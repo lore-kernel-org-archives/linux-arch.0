@@ -1,41 +1,71 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V9 18/21] dt-bindings: csky CPU Bindings
-Date: Fri, 19 Oct 2018 10:19:09 +0800
-Message-ID: <20181019021908.GA6298@guoren-Inspiron-7460>
-References: <cover.1539655731.git.ren_guo@c-sky.com>
- <867b2328e3dbaef58d0b5e7fc58e8545d1510951.1539655732.git.ren_guo@c-sky.com>
- <20181018143135.GA22243@bogus>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 7/8] eisa: consolidate EISA Kconfig entry in drivers/eisa
+Date: Fri, 19 Oct 2018 13:46:50 +0900
+Message-ID: <CAK7LNAT0pzpMZC+X5KiofPCUH89hr716WCKQkNYronQa3byT9w@mail.gmail.com>
+References: <20181017080201.10866-1-hch@lst.de> <20181017080201.10866-8-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181018143135.GA22243@bogus>
+In-Reply-To: <20181017080201.10866-8-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Herring <robh@kernel.org>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, hch@infradead.org, marc.zyngier@arm.com, mark.rutland@arm.com, peterz@infradead.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com
+To: Christoph Hellwig <hch@lst.de>
+Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 18, 2018 at 09:31:35AM -0500, Rob Herring wrote:
-> On Tue, 16 Oct 2018 10:58:37 +0800, Guo Ren wrote:
-> > This patch adds the documentation to describe that how to add cpu nodes in
-> > dts for SMP.
-> > 
-> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> > Cc: Rob Herring <robh@kernel.org>
-> > ---
-> > Changelog:
-> >  - Add compatible.
-> >  - Remove status part.
-> > ---
-> > ---
-> >  Documentation/devicetree/bindings/csky/cpus.txt | 73 +++++++++++++++++++++++++
-> >  1 file changed, 73 insertions(+)
-> >  create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
-> > 
-> 
-> Reviewed-by: Rob Herring <robh@kernel.org>
+On Wed, Oct 17, 2018 at 5:03 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> Let architectures opt into EISA support by selecting HAS_EISA and
+> handle everything else in drivers/eisa.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
 
-Thx Rob
 
+> index 60e37b9a715d..c90a1a4d6079 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -59,6 +59,7 @@ config ARM
+>         select HAVE_ARCH_TRACEHOOK
+>         select HAVE_ARM_SMCCC if CPU_V7
+>         select HAVE_EBPF_JIT if !CPU_ENDIAN_BE32
+> +       select HAVE_EISA
+
+I doubt this.
+
+arch/arm/Kconfig previously did not include
+driver/eisa/Kconfig.
+
+No ARM platform enabled CONFIG_EISA either.
+
+
+>         select HAVE_CONTEXT_TRACKING
+>         select HAVE_C_RECORDMCOUNT
+>         select HAVE_DEBUG_KMEMLEAK
+> @@ -162,21 +163,6 @@ config HAVE_PROC_CPU
+>  config NO_IOPORT_MAP
+>         bool
+>
+> -config EISA
+> -       bool
+> -       ---help---
+> -         The Extended Industry Standard Architecture (EISA) bus was
+> -         developed as an open alternative to the IBM MicroChannel bus.
+> -
+> -         The EISA bus provided some of the features of the IBM MicroChannel
+> -         bus while maintaining backward compatibility with cards made for
+> -         the older ISA bus.  The EISA bus saw limited use between 1988 and
+> -         1995 when it was made obsolete by the PCI bus.
+> -
+> -         Say Y here if you are building a kernel for an EISA-based machine.
+> -
+> -         Otherwise, say N.
+> -
+>  config SBUS
+>         bool
+>
+
+
+-- 
 Best Regards
- Guo Ren
+Masahiro Yamada
