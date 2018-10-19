@@ -1,40 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f66.google.com ([209.85.161.66]:43885 "EHLO
-        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726924AbeJSNYr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 09:24:47 -0400
+Received: from verein.lst.de ([213.95.11.211]:43660 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726465AbeJSPEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Oct 2018 11:04:49 -0400
+Date: Fri, 19 Oct 2018 09:00:01 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/ v2
+Message-ID: <20181019070001.GA30556@lst.de>
+References: <20181017080201.10866-1-hch@lst.de> <CAMuHMdWMtxxu8iivcnT=uWTMHsp=iSq_QzXqDWQut5OHwTU8Sg@mail.gmail.com>
 MIME-Version: 1.0
-References: <20181017080201.10866-1-hch@lst.de> <20181017080201.10866-5-hch@lst.de>
-In-Reply-To: <20181017080201.10866-5-hch@lst.de>
-From: Max Filippov <jcmvbkbc@gmail.com>
-Date: Thu, 18 Oct 2018 22:19:51 -0700
-Message-ID: <CAMo8BfKOqAKLPEXatPZQ4bCAAzQLx_vAHscmxDJPC9PGsoJqtA@mail.gmail.com>
-Subject: Re: [PATCH 4/8] PCI: consolidate PCI config entry in drivers/pci
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdWMtxxu8iivcnT=uWTMHsp=iSq_QzXqDWQut5OHwTU8Sg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, mporter@kernel.crashing.org, alex.bou9@gmail.com, linux@dominikbrodowski.net, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181019051951.g0Mulg6P-VMP3R4bhsilSATNxlLtUVXIdVhsQPx-I4o@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Matt Porter <mporter@kernel.crashing.org>, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, scsi <linux-scsi@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20181019070001.Wptro5340i0-mvxywhCnoHpUydelyenf6hsKDi8q4ZU@z>
 
-Hi Christoph,
+On Wed, Oct 17, 2018 at 10:30:49AM +0200, Geert Uytterhoeven wrote:
+> Please use "git format-patch -v<N> --cover" to prepare patch series
+> for sending with git-send-email.
+> 
+>   "-v<N>" to prefix all patches with version number <N>,
+>   "--cover" to have a "[PATCH 0/<M>]" prefix in the cover letter.
 
-On Wed, Oct 17, 2018 at 1:03 AM Christoph Hellwig <hch@lst.de> wrote:
-> diff --git a/arch/xtensa/configs/iss_defconfig b/arch/xtensa/configs/iss_defconfig
-> index 4bb5b76d9524..818849bb7736 100644
-> --- a/arch/xtensa/configs/iss_defconfig
-> +++ b/arch/xtensa/configs/iss_defconfig
-> @@ -4,7 +4,7 @@ CONFIG_EXPERT=y
->  CONFIG_SYSCTL_SYSCALL=y
->  # CONFIG_IOSCHED_DEADLINE is not set
->  # CONFIG_IOSCHED_CFQ is not set
-> -# CONFIG_PCI is not set
-> +CONFIG_PCI=y
-
-This change doesn't make sense as there's no PCI hardware in the Xtensa ISS.
-Otherwise for the Xtensa part:
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-
--- 
-Thanks.
--- Max
+We had that discussion before and I strongly disagree with messing
+up the subject lines like that.  The git-send-email defaults are
+perfectly fine.
