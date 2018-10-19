@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44650 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:44828 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726784AbeJSUQU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 16:16:20 -0400
+        with ESMTP id S1727744AbeJSUQ1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 16:16:27 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 4/9] powerpc: remove CONFIG_MCA leftovers
-Date: Fri, 19 Oct 2018 14:09:47 +0200
-Message-ID: <20181019120952.32763-5-hch@lst.de>
+Subject: [PATCH 7/9] pcmcia: allow PCMCIA support independent of the architecture
+Date: Fri, 19 Oct 2018 14:09:50 +0200
+Message-ID: <20181019120952.32763-8-hch@lst.de>
 In-Reply-To: <20181019120952.32763-1-hch@lst.de>
 References: <20181019120952.32763-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,57 +15,213 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masahiro Yamada <yamada.masahiro@socionext.com>
 Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181019120947.OwQWCSSQwd0OmpT2q6v5jKFn8D3CcjXoQWtgqN1Bt5c@z>
+Message-ID: <20181019120950.iMlU2J_YG9WjSwjdjsJ9PAkGJHbY6MIilgZq8VPTD80@z>
+
+There is nothing architecture specific in the PCMCIA core, so allow
+building it everywhere.  The actual host controllers will depend on ISA,
+PCI or a specific SOC.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Dominik Brodowski <linux@dominikbrodowski.net>
 Acked-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/powerpc/Kconfig | 4 ----
- drivers/scsi/Kconfig | 6 +++---
- 2 files changed, 3 insertions(+), 7 deletions(-)
+ arch/alpha/Kconfig     | 2 --
+ arch/arm/Kconfig       | 2 --
+ arch/ia64/Kconfig      | 2 --
+ arch/m68k/Kconfig.bus  | 2 --
+ arch/mips/Kconfig      | 2 --
+ arch/powerpc/Kconfig   | 2 --
+ arch/sh/Kconfig        | 2 --
+ arch/sparc/Kconfig     | 2 --
+ arch/unicore32/Kconfig | 6 ------
+ arch/x86/Kconfig       | 2 --
+ arch/xtensa/Kconfig    | 2 --
+ drivers/Kconfig        | 1 +
+ drivers/parisc/Kconfig | 2 --
+ drivers/pcmcia/Kconfig | 1 +
+ 14 files changed, 2 insertions(+), 28 deletions(-)
 
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index bb89924c0361..96f02268ea16 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -675,8 +675,6 @@ config HZ
+ 
+ source "drivers/eisa/Kconfig"
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ config SRM_ENV
+ 	tristate "SRM environment through procfs"
+ 	depends on PROC_FS
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 7495d0a0aa31..ec602deaab43 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1241,8 +1241,6 @@ config PCI_HOST_ITE8152
+ 	default y
+ 	select DMABOUNCE
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ endmenu
+ 
+ menu "Kernel Features"
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 89da763d7c17..704ff5922ce0 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -553,8 +553,6 @@ config PCI_DOMAINS
+ config PCI_SYSCALL
+ 	def_bool PCI
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ endmenu
+ 
+ endif
+diff --git a/arch/m68k/Kconfig.bus b/arch/m68k/Kconfig.bus
+index 8cb0604b195b..9d0a3a23d50e 100644
+--- a/arch/m68k/Kconfig.bus
++++ b/arch/m68k/Kconfig.bus
+@@ -68,6 +68,4 @@ if !MMU
+ config ISA_DMA_API
+         def_bool !M5272
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ endif
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 09b93d5a55cb..18eeb66c6d99 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -3090,8 +3090,6 @@ config ZONE_DMA
+ config ZONE_DMA32
+ 	bool
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ config HAS_RAPIDIO
+ 	bool
+ 	default n
 diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index e8c8970248bc..d4e97469a5f0 100644
+index 086d78c7c2c8..ffd1695ad9b4 100644
 --- a/arch/powerpc/Kconfig
 +++ b/arch/powerpc/Kconfig
-@@ -941,10 +941,6 @@ config FSL_GTM
- 	help
- 	  Freescale General-purpose Timers support
+@@ -959,8 +959,6 @@ config PCI_8260
+ 	select PPC_INDIRECT_PCI
+ 	default y
  
--# Yes MCA RS/6000s exist but Linux-PPC does not currently support any
--config MCA
--	bool
+-source "drivers/pcmcia/Kconfig"
 -
- # Platforms that what PCI turned unconditionally just do select PCI
- # in their config node.  Platforms that want to choose at config
- # time should select PPC_PCI_CHOICE
-diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
-index 7c097006c54d..d3734c54aec9 100644
---- a/drivers/scsi/Kconfig
-+++ b/drivers/scsi/Kconfig
-@@ -535,7 +535,7 @@ config SCSI_HPTIOP
+ config HAS_RAPIDIO
+ 	bool
+ 	default n
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 2ff6855811a5..ce9487139155 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -861,8 +861,6 @@ config MAPLE
+ config PCI_DOMAINS
+ 	bool
  
- config SCSI_BUSLOGIC
- 	tristate "BusLogic SCSI support"
--	depends on (PCI || ISA || MCA) && SCSI && ISA_DMA_API && VIRT_TO_BUS
-+	depends on (PCI || ISA) && SCSI && ISA_DMA_API && VIRT_TO_BUS
+-source "drivers/pcmcia/Kconfig"
+-
+ endmenu
+ 
+ menu "Power management options (EXPERIMENTAL)"
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index fc311b8dc46b..0198f96528fc 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -509,8 +509,6 @@ config SPARC_GRPCI2
+ 	help
+ 	  Say Y here to include the GRPCI2 Host Bridge Driver.
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ config SUN_OPENPROMFS
+ 	tristate "Openprom tree appears in /proc/openprom"
+ 	help
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index 601dcad2560e..d7750e7c7ccb 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -118,12 +118,6 @@ config UNICORE_FPU_F64
+ 
+ endmenu
+ 
+-menu "Bus support"
+-
+-source "drivers/pcmcia/Kconfig"
+-
+-endmenu
+-
+ menu "Kernel Features"
+ 
+ source "kernel/Kconfig.hz"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5816e20a3ff9..fda01408b596 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2810,8 +2810,6 @@ config AMD_NB
+ 	def_bool y
+ 	depends on CPU_SUP_AMD && PCI
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ config RAPIDIO
+ 	tristate "RapidIO support"
+ 	depends on PCI
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index f057c16a48a5..c18ceaab7860 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -517,8 +517,6 @@ config FORCE_MAX_ZONEORDER
+ 	  This config option is actually maximum order plus one. For example,
+ 	  a value of 11 means that the largest free memory block is 2^10 pages.
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ config PLATFORM_WANT_DEFAULT_MEM
+ 	def_bool n
+ 
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 059573823387..58ee88c36cf5 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -5,6 +5,7 @@ menu "Device Drivers"
+ 
+ source "drivers/amba/Kconfig"
+ source "drivers/pci/Kconfig"
++source "drivers/pcmcia/Kconfig"
+ 
+ 
+ source "drivers/base/Kconfig"
+diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
+index 5bbfea1a019c..1a55763d1245 100644
+--- a/drivers/parisc/Kconfig
++++ b/drivers/parisc/Kconfig
+@@ -92,8 +92,6 @@ config IOMMU_SBA
+ 	depends on PCI_LBA
+ 	default PCI_LBA
+ 
+-source "drivers/pcmcia/Kconfig"
+-
+ endmenu
+ 
+ menu "PA-RISC specific drivers"
+diff --git a/drivers/pcmcia/Kconfig b/drivers/pcmcia/Kconfig
+index cbbe4a285b48..c9bdbb463a7e 100644
+--- a/drivers/pcmcia/Kconfig
++++ b/drivers/pcmcia/Kconfig
+@@ -4,6 +4,7 @@
+ 
+ menuconfig PCCARD
+ 	tristate "PCCard (PCMCIA/CardBus) support"
++	depends on !UML
  	---help---
- 	  This is support for BusLogic MultiMaster and FlashPoint SCSI Host
- 	  Adapters. Consult the SCSI-HOWTO, available from
-@@ -1142,12 +1142,12 @@ config SCSI_LPFC_DEBUG_FS
- 
- config SCSI_SIM710
- 	tristate "Simple 53c710 SCSI support (Compaq, NCR machines)"
--	depends on (EISA || MCA) && SCSI
-+	depends on EISA && SCSI
- 	select SCSI_SPI_ATTRS
- 	---help---
- 	  This driver is for NCR53c710 based SCSI host adapters.
- 
--	  It currently supports Compaq EISA cards and NCR MCA cards
-+	  It currently supports Compaq EISA cards.
- 
- config SCSI_DC395x
- 	tristate "Tekram DC395(U/UW/F) and DC315(U) SCSI support"
+ 	  Say Y here if you want to attach PCMCIA- or PC-cards to your Linux
+ 	  computer.  These are credit-card size devices such as network cards,
 -- 
 2.19.1
