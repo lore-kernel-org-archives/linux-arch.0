@@ -1,46 +1,87 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
-Date: Fri, 19 Oct 2018 13:36:47 +0100
-Message-ID: <20181019123646.GG14246@arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 2/9] arm: remove EISA kconfig option
+Date: Fri, 19 Oct 2018 21:56:34 +0900
+Message-ID: <CAK7LNATc54ZMaKLzabW=NqCQ+WSr-3C7PNAGL6OmOnQf_kgOyQ@mail.gmail.com>
+References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-3-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
+In-Reply-To: <20181019120952.32763-3-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kristina Martsenko <kristina.martsenko@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Russell King <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 05, 2018 at 09:47:37AM +0100, Kristina Martsenko wrote:
-> 1) Key support
-> 
-> This series enables the use of instructions using APIAKey, which is
-> initialised and maintained per-process (shared by all threads). GCC
-> currently only makes use of APIAKey.
-> 
-> This series does not add support for APIBKey, APDAKey, APDBKey, nor
-> APGAKey. HINT-space instructions using these keys will currently execute
-> as NOPs. Support for these keys can be added as users appear.
-> 
-> Note that while we expose the cpuid register (ID_AA64ISAR1_EL1) to
-> userspace, it only contains one feature for address authentication
-> (API/APA), so it cannot be used by userspace to tell which keys the
-> kernel supports. For this the kernel exposes HWCAP bits, one per key
-> (currently only APIAKey), which must be checked instead.
+On Fri, Oct 19, 2018 at 9:10 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> No arm config enables EISA, and arm does not include drivers/eisa/Kconfig
+> which provides support for things like PCI to EISA bridges, so it is most
+> likely dead.
+>
+> If this is wrong we will be able to resurrect it easily by selecting
+> HAVE_EISA for the right arm configs after this series.
 
-Given that the architecture doesn't provide an identification mechanism
-for the case where only one of the keys is available, I would much prefer
-that we expose both of the keys to userspace. Is the only downside of
-that a possible exception entry overhead if the kernel wants to use pointer
-authentication as well?
+What is your concern?
 
-Having an initial implementation where the B key operations act as NOPs
-isn't ideal if we want to support future users -- chances are they'll
-be put off because deployed kernels don't give them whatever security
-guarantees they require. It's a bit of a chicken-and-egg problem, so
-unless we have good reasons to keep the B key hidden, I think we should
-be exposing it from the start.
+This absolutely looks dead to me.
 
-Will
+
+> Suggested-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/arm/Kconfig | 15 ---------------
+>  1 file changed, 15 deletions(-)
+>
+> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+> index e8cd55a5b04c..e33735ce1c14 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -165,21 +165,6 @@ config HAVE_PROC_CPU
+>  config NO_IOPORT_MAP
+>         bool
+>
+> -config EISA
+> -       bool
+
+There is no prompt for this symbol.
+Hence, there is no way for a user to enable this directly.
+
+'select EISA' is the only way to enable it.
+
+git grep 'select EISA'
+gave no hit.
+
+So, we can say it is dead.
+
+
+
+
+
+> -       ---help---
+> -         The Extended Industry Standard Architecture (EISA) bus was
+> -         developed as an open alternative to the IBM MicroChannel bus.
+> -
+> -         The EISA bus provided some of the features of the IBM MicroChannel
+> -         bus while maintaining backward compatibility with cards made for
+> -         the older ISA bus.  The EISA bus saw limited use between 1988 and
+> -         1995 when it was made obsolete by the PCI bus.
+> -
+> -         Say Y here if you are building a kernel for an EISA-based machine.
+> -
+> -         Otherwise, say N.
+> -
+>  config SBUS
+>         bool
+
+
+
+I guess the situation is the same as powerpc.
+
+The difference between arm and powerpc is the presence of help.
+
+You fold the powerpc change in 9/9.
+
+
+-- 
+Best Regards
+Masahiro Yamada
