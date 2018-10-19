@@ -1,40 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:45289 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726784AbeJSUHs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Oct 2018 16:07:48 -0400
-Date: Fri, 19 Oct 2018 14:01:59 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/ v2
-Message-ID: <20181019120159.GA14677@lst.de>
-References: <20181017080201.10866-1-hch@lst.de> <CAMuHMdWMtxxu8iivcnT=uWTMHsp=iSq_QzXqDWQut5OHwTU8Sg@mail.gmail.com> <20181019070001.GA30556@lst.de> <CAMuHMdXLug_T4onn23JormmYZXDWVnEFYaoMzA90bpGFvk6Eow@mail.gmail.com> <20181019071057.GA31656@lst.de> <CAMuHMdXqPNOwcjWVmH08YSfZopc0pWLUj-r0s6g=q0oUdqWhWw@mail.gmail.com>
+Received: from mail-it1-f196.google.com ([209.85.166.196]:51154 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726784AbeJSUOr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 16:14:47 -0400
+Received: by mail-it1-f196.google.com with SMTP id k206-v6so4000557ite.0
+        for <linux-arch@vger.kernel.org>; Fri, 19 Oct 2018 05:08:58 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXqPNOwcjWVmH08YSfZopc0pWLUj-r0s6g=q0oUdqWhWw@mail.gmail.com>
+References: <20180511162028.20616-1-brgl@bgdev.pl>
+In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Date: Fri, 19 Oct 2018 14:08:46 +0200
+Message-ID: <CAMRc=MdShqv00spBgOu1=YfG9enZ6umPss7kfi=XRV=J6S3qGA@mail.gmail.com>
+Subject: Re: [PATCH 00/12] introduce support for early platform drivers
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Christoph Hellwig <hch@lst.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Matt Porter <mporter@kernel.crashing.org>, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, scsi <linux-scsi@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20181019120159.fPTish42AosD2xERxhnAAdBf43shQ4_3uoZeQFcTi0I@z>
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20181019120846.PvjKIXQCKfa4zR4yI7H-Rfh0UKSl_Nx2QYxDzGpV728@z>
 
-On Fri, Oct 19, 2018 at 09:22:08AM +0200, Geert Uytterhoeven wrote:
-> Hi Christoph,
-> 
-> On Fri, Oct 19, 2018 at 9:10 AM Christoph Hellwig <hch@lst.de> wrote:
-> > On Fri, Oct 19, 2018 at 09:07:51AM +0200, Geert Uytterhoeven wrote:
-> > > Without this:
-> > >   - It's hard to visually match your untagged cover letter with the
-> > > actual patches,
-> > >   - Your individual patches lack the version info, so people cannot see which
-> > >     version review comments in an email reply apply to.
-> >
-> > All of that is trivially solved by mail threading.
-> 
-> You forgot to answer this question:
-> 
-> | Can you please clarify what exactly that would mess up?
+pt., 11 maj 2018 o 18:21 Bartosz Golaszewski <brgl@bgdev.pl> napisa=C5=82(a=
+):
+>
+> This series is a follow-up to the RFC[1] posted a couple days ago.
+>
+> NOTE: this series applies on top of my recent patches[2] that move the pr=
+evious
+> implementation of early platform devices to arch/sh.
+>
+> Problem:
+>
+> Certain class of devices, such as timers, certain clock drivers and irq c=
+hip
+> drivers need to be probed early in the boot sequence. The currently prefe=
+rred
+> approach is using one of the OF_DECLARE() macros. This however does not c=
+reate
+> a platform device which has many drawbacks - such as not being able to us=
+e
+> devres routines, dev_ log functions or no way of deferring the init OF fu=
+nction
+> if some other resources are missing.
+>
+> For drivers that use both platform drivers and OF_DECLARE the situation i=
+s even
+> more complicated as the code needs to take into account that there can po=
+ssibly
+> be no struct device present. For a specific use case that we're having pr=
+oblems
+> with, please refer to the recent DaVinci common-clock conversion patches =
+and
+> the nasty workaround that this problem implies[3].
+>
+> We also used to have an early platform drivers implementation but they we=
+re not
+> integrated with the linux device model at all - they merely used the same=
+ data
+> structures. The users could not use devres, defer probe and the early dev=
+ices
+> never became actual platform devices later on.
+>
+> Proposed solution:
+>
+> This series aims at solving this problem by (re-)introducing the concept =
+of
+> early platform drivers and devices - this time however in a way that seam=
+lessly
+> integrates with the existing platform drivers and also offers device-tree
+> support.
+>
+> The idea is to provide a way for users to probe devices early, while alre=
+ady
+> being able to use devres, devices resources and properties and also defer=
+red
+> probing.
+>
+> New structures are introduced: the early platform driver contains the
+> early_probe callback which has the same signature as regular platform_dev=
+ice
+> probe. This callback is called early on. The user can have both the early=
+ and
+> regular probe speficied or only one of them and they both receive the sam=
+e
+> platform device object as argument. Any device data allocated early will =
+be
+> carried over to the normal probe.
+>
+> The architecture code is responsible for calling early_platform_start() i=
+n
+> which the early drivers will be registered and devices populated from DT.
+>
+> Once the device and kobject mechanisms are ready, all early drivers and d=
+evices
+> will be converted into real platform drivers and devices. Also: if any of=
+ the
+> early platform registration functions will be called once early initializ=
+ation
+> is done, these functions will work like regular platform_device/driver on=
+es.
+>
+> Patches 1-9/12 introduce changes to existing code that are necessary befo=
+re
+> adding support for early drivers. Patch 10/12 contains the new framwork i=
+n an
+> isolated file which can be compiled only if needed by the architecture.
+>
+> Patch 11/12 contains a dummy early platform driver that serves as a code
+> example and can be used for simple testing.
+>
+> The last patch finally makes the of/platform code aware of early platform
+> drivers.
+>
+> If accepted, this new mechanism could potentially lead to consolidation o=
+f the
+> code currently used by users of OF_DECLARE, since they could be converted=
+ to
+> actual platform drivers.
+>
+> [1] https://lkml.org/lkml/2018/4/26/657
+> [2] https://lkml.org/lkml/2018/4/30/547
+> [3] https://lkml.org/lkml/2018/4/26/1094
+>
+> Bartosz Golaszewski (12):
+>   platform/early: add a new field to struct device
+>   platform/early: don't WARN() on non-empty devres list for early
+>     devices
+>   platform/early: export platform_match() locally
+>   platform: provide a separate function for initializing platform
+>     devices
+>   platform: export platform_device_release() locally
+>   of: add a new flag for OF device nodes
+>   of/platform: provide a separate routine for setting up device
+>     resources
+>   of/platform: provide a separate routine for device initialization
+>   platform/early: add an init section for early driver data
+>   platform/early: implement support for early platform drivers
+>   misc: implement a dummy early platform driver
+>   of/platform: make the OF code aware of early platform drivers
+>
+>  drivers/base/Kconfig              |   3 +
+>  drivers/base/Makefile             |   1 +
+>  drivers/base/base.h               |   4 +
+>  drivers/base/dd.c                 |   2 +-
+>  drivers/base/early.c              | 332 ++++++++++++++++++++++++++++++
+>  drivers/base/platform.c           |  28 ++-
+>  drivers/misc/Kconfig              |   8 +
+>  drivers/misc/Makefile             |   2 +
+>  drivers/misc/dummy-early.c        |  82 ++++++++
+>  drivers/of/platform.c             |  85 +++++---
+>  include/asm-generic/vmlinux.lds.h |  11 +
+>  include/linux/device.h            |   1 +
+>  include/linux/early_platform.h    |  75 +++++++
+>  include/linux/of.h                |   1 +
+>  include/linux/of_platform.h       |   2 +
+>  include/linux/platform_device.h   |   2 +
+>  16 files changed, 604 insertions(+), 35 deletions(-)
+>  create mode 100644 drivers/base/early.c
+>  create mode 100644 drivers/misc/dummy-early.c
+>  create mode 100644 include/linux/early_platform.h
+>
+> --
+> 2.17.0
+>
 
-It makes the already limited space in the subject line even shorted
-(or harder to read depending on which way you go) for absolutely not
-good reason.
+Hi
+
+For anyone interested: I'll be doing a BoF about early platform
+drivers next week on Monday at 6:00pm during the ELCE 2018 in
+Edinburgh. It would be great to discuss this topic personally.
+
+Best regards and hope to see you there
+Bartosz Golaszewski
