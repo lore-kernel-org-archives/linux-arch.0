@@ -1,18 +1,19 @@
-From: Alan Stern <stern@rowland.harvard.edu>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 Subject: Re: Interrupts, smp_load_acquire(), smp_store_release(), etc.
-Date: Sat, 20 Oct 2018 16:18:37 -0400 (EDT)
-Message-ID: <Pine.LNX.4.44L0.1810201612530.28059-100000@netrider.rowland.org>
+Date: Sat, 20 Oct 2018 22:22:29 +0200
+Message-ID: <20181020202229.GA10526@andrea>
 References: <20181020161049.GA13756@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <20181020161049.GA13756@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davidtgoldblatt@gmail.com, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davidtgoldblatt@gmail.com, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, 20 Oct 2018, Paul E. McKenney wrote:
+[...]
 
 > The second (informal) litmus test has a more interesting Linux-kernel
 > counterpart:
@@ -40,14 +41,31 @@ On Sat, 20 Oct 2018, Paul E. McKenney wrote:
 > t1_interrupt()'s store to x and t1()'s store to y.  This could (again,
 > in paranoid theory) result in the outcome r0==0 && r1==0 && r2==1.
 
-This is disconcerting only if we assume that t1_interrupt() has to be
-executed by the same CPU as t1().  If the interrupt could be fielded by
-a different CPU then the paranoid outcome is perfectly understandable,
-even in an SC context.
+FWIW, I'd rather call "paranoid" the act of excluding such outcome ;-)
+but I admit that I've only run this test in *my mind*: in an SC world,
 
-So the question really should be limited to situations where a handler 
-is forced to execute in the context of a particular thread.  While 
-POSIX does allow such restrictions for user programs, I'm not aware of 
-any similar mechanism in the kernel.
+  CPU1				CPU2
 
-Alan
+  t1()
+    t1_interrupt()
+      r0 = READ_ONCE(y); // =0
+				t2()
+				  r1 = smp_load_acquire(&x); // =0
+      smp_store_release(&x, 1);
+    smp_store_release(&y, 1);
+				  r2 = smp_load_acquire(&y); // =1
+
+
+> So how paranoid should we be with respect to interrupt handlers for
+> smp_store_release(), smp_load_acquire(), and the various RMW atomic
+> operations that are sometimes implemented with separate memory-barrier
+> instructions?  ;-)
+
+Good question! ;-)
+
+  Andrea
+
+
+> 
+> 							Thanx, Paul
+> 
