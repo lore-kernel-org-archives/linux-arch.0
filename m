@@ -1,71 +1,63 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 Subject: Re: Interrupts, smp_load_acquire(), smp_store_release(), etc.
-Date: Sat, 20 Oct 2018 22:22:29 +0200
-Message-ID: <20181020202229.GA10526@andrea>
+Date: Sat, 20 Oct 2018 14:04:13 -0700
+Message-ID: <20181020210413.GB2674@linux.ibm.com>
 References: <20181020161049.GA13756@linux.ibm.com>
+ <Pine.LNX.4.44L0.1810201612530.28059-100000@netrider.rowland.org>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181020161049.GA13756@linux.ibm.com>
+In-Reply-To: <Pine.LNX.4.44L0.1810201612530.28059-100000@netrider.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davidtgoldblatt@gmail.com, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davidtgoldblatt@gmail.com, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
 List-Id: linux-arch.vger.kernel.org
 
-[...]
-
-> The second (informal) litmus test has a more interesting Linux-kernel
-> counterpart:
+On Sat, Oct 20, 2018 at 04:18:37PM -0400, Alan Stern wrote:
+> On Sat, 20 Oct 2018, Paul E. McKenney wrote:
 > 
-> 	void t1_interrupt(void)
-> 	{
-> 		r0 = READ_ONCE(y);
-> 		smp_store_release(&x, 1);
-> 	}
+> > The second (informal) litmus test has a more interesting Linux-kernel
+> > counterpart:
+> > 
+> > 	void t1_interrupt(void)
+> > 	{
+> > 		r0 = READ_ONCE(y);
+> > 		smp_store_release(&x, 1);
+> > 	}
+> > 
+> > 	void t1(void)
+> > 	{
+> > 		smp_store_release(&y, 1);
+> > 	}
+> > 
+> > 	void t2(void)
+> > 	{
+> > 		r1 = smp_load_acquire(&x);
+> > 		r2 = smp_load_acquire(&y);
+> > 	}
+> > 
+> > On store-reordering architectures that implement smp_store_release()
+> > as a memory-barrier instruction followed by a store, the interrupt could
+> > arrive betweentimes in t1(), so that there would be no ordering between
+> > t1_interrupt()'s store to x and t1()'s store to y.  This could (again,
+> > in paranoid theory) result in the outcome r0==0 && r1==0 && r2==1.
 > 
-> 	void t1(void)
-> 	{
-> 		smp_store_release(&y, 1);
-> 	}
+> This is disconcerting only if we assume that t1_interrupt() has to be
+> executed by the same CPU as t1().  If the interrupt could be fielded by
+> a different CPU then the paranoid outcome is perfectly understandable,
+> even in an SC context.
 > 
-> 	void t2(void)
-> 	{
-> 		r1 = smp_load_acquire(&x);
-> 		r2 = smp_load_acquire(&y);
-> 	}
-> 
-> On store-reordering architectures that implement smp_store_release()
-> as a memory-barrier instruction followed by a store, the interrupt could
-> arrive betweentimes in t1(), so that there would be no ordering between
-> t1_interrupt()'s store to x and t1()'s store to y.  This could (again,
-> in paranoid theory) result in the outcome r0==0 && r1==0 && r2==1.
+> So the question really should be limited to situations where a handler 
+> is forced to execute in the context of a particular thread.  While 
+> POSIX does allow such restrictions for user programs, I'm not aware of 
+> any similar mechanism in the kernel.
 
-FWIW, I'd rather call "paranoid" the act of excluding such outcome ;-)
-but I admit that I've only run this test in *my mind*: in an SC world,
+Good point, and I was in fact assuming that t1() and t1_interrupt()
+were executing on the same CPU.
 
-  CPU1				CPU2
+This sort of thing happens naturally in the kernel when both t1()
+and t1_interrupt() are accessing per-CPU variables.
 
-  t1()
-    t1_interrupt()
-      r0 = READ_ONCE(y); // =0
-				t2()
-				  r1 = smp_load_acquire(&x); // =0
-      smp_store_release(&x, 1);
-    smp_store_release(&y, 1);
-				  r2 = smp_load_acquire(&y); // =1
-
-
-> So how paranoid should we be with respect to interrupt handlers for
-> smp_store_release(), smp_load_acquire(), and the various RMW atomic
-> operations that are sometimes implemented with separate memory-barrier
-> instructions?  ;-)
-
-Good question! ;-)
-
-  Andrea
-
-
-> 
-> 							Thanx, Paul
-> 
+							Thanx, Paul
