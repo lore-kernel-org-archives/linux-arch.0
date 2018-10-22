@@ -1,502 +1,136 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 22 Oct 2018 14:09:09 -0700
-Message-ID: <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+From: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Subject: Re: [PATCH RFC v3 0/3] Rlimit for module space
+Date: Mon, 22 Oct 2018 23:06:00 +0000
+Message-ID: <6b1017c450d163539d2b974657baaaf697f0a138.camel@intel.com>
+References: <20181019204723.3903-1-rick.p.edgecombe@intel.com>
+         <CAKv+Gu_AgPv2o4=U0-7pnpgtSufEobnta8oKhhGfCdCxM82B5Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+In-Reply-To: <CAKv+Gu_AgPv2o4=U0-7pnpgtSufEobnta8oKhhGfCdCxM82B5Q@mail.gmail.com>
 Content-Language: en-US
+Content-ID: <1AB12749F9958F4E89403DA7611AC278@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
+To: "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "daniel@iogearbox.net" <daniel@iogearbox.net>, "keescook@chromium.org" <keescook@chromium.org>, "jeyu@kernel.org" <jeyu@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arjan@linux.intel.com" <arjan@linux.intel.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "jannh@google.com" <jannh@google.com>, "x86@kernel.org" <x86@kernel.org>, "kristen@linux.intel.com" <kristen@linux.intel.com>, "Dock, Deneen T" <deneen.t.dock@intel.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mingo@redhat.com" <mingo@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-For simplicity and consistency, this patch provides an implementation
-for signal-based fault notification prior to the coredump of a child
-process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-be used by an application to express its interest and to specify the
-signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
-signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
-
-Changes to prctl(2):
-
-   PR_SET_PREDUMP_SIG (since Linux 4.20.x)
-          Set the child pre-coredump signal of the calling process to
-          arg2 (either SIGUSR1, or SIUSR2, or SIGCHLD, or 0 to clear).
-          This is the signal that the calling process will get prior to
-          the coredump of a child process. This value is cleared across
-          execve(2), or for the child of a fork(2).
-
-          When SIGCHLD is specified, the signal code will be set to
-          CLD_PREDUMP in such an SIGCHLD signal.
-
-   PR_GET_PREDUMP_SIG (since Linux 4.20.x)
-          Return the current value of the child pre-coredump signal,
-          in the location pointed to by (int *) arg2.
-
-Background:
-
-As the coredump of a process may take time, in certain time-sensitive
-applications it is necessary for a parent process (e.g., a process
-manager) to be notified of a child's imminent death before the coredump
-so that the parent process can act sooner, such as re-spawning an
-application process, or initiating a control-plane fail-over.
-
-Currently there are two ways for a parent process to be notified of a
-child process's state change. One is to use the POSIX signal, and
-another is to use the kernel connector module. The specific events and
-actions are summarized as follows:
-
-Process Event    POSIX Signal                Connector-based
-----------------------------------------------------------------------
-ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
-                 SIGCHLD / CLD_STOPPED
-
-ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
-                 SIGCHLD / CLD_CONTINUED
-
-pre_coredump/    N/A                         proc_coredump_connector()
-get_signal()
-
-post_coredump/   do_notify_parent()          proc_exit_connector()
-do_exit()        SIGCHLD / exit_signal
-----------------------------------------------------------------------
-
-As shown in the table, the signal-based pre-coredump notification is not
-currently available. In some cases using a connector-based notification
-can be quite complicated (e.g., when a process manager is written in shell
-scripts and thus is subject to certain inherent limitations), and a
-signal-based notification would be simpler and better suited.
-
-Signed-off-by: Enke Chen <enkechen@cisco.com>
----
-v1 -> v2:
-
-o remove the setting/gettting on others in prctl().
-o move the notification from get_signal() to do_coredump().
-o notify the "parent" instead of "real_parent".
-o move the "predump_signal" from "task_struct" to "signal_struct".
-o clear the signal setting across execve(2) as well.
-o add validation for unused prctl() parameters.
-o add selftests for the new prctl() API.
-
- arch/x86/kernel/signal_compat.c                  |   2 +-
- fs/coredump.c                                    |  10 ++
- fs/exec.c                                        |   3 +
- include/linux/sched/signal.h                     |   4 +
- include/linux/signal.h                           |   5 +
- include/uapi/asm-generic/siginfo.h               |   3 +-
- include/uapi/linux/prctl.h                       |   4 +
- kernel/fork.c                                    |   3 +
- kernel/signal.c                                  |  39 ++++++
- kernel/sys.c                                     |  15 ++
- tools/testing/selftests/prctl/Makefile           |   2 +-
- tools/testing/selftests/prctl/predump-sig-test.c | 171 +++++++++++++++++++++++
- 12 files changed, 258 insertions(+), 3 deletions(-)
- create mode 100644 tools/testing/selftests/prctl/predump-sig-test.c
-
-diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-index 9ccbf05..a3deba8 100644
---- a/arch/x86/kernel/signal_compat.c
-+++ b/arch/x86/kernel/signal_compat.c
-@@ -30,7 +30,7 @@ static inline void signal_compat_build_tests(void)
- 	BUILD_BUG_ON(NSIGSEGV != 7);
- 	BUILD_BUG_ON(NSIGBUS  != 5);
- 	BUILD_BUG_ON(NSIGTRAP != 5);
--	BUILD_BUG_ON(NSIGCHLD != 6);
-+	BUILD_BUG_ON(NSIGCHLD != 7);
- 	BUILD_BUG_ON(NSIGSYS  != 1);
- 
- 	/* This is part of the ABI and can never change in size: */
-diff --git a/fs/coredump.c b/fs/coredump.c
-index e42e17e..f11e31f 100644
---- a/fs/coredump.c
-+++ b/fs/coredump.c
-@@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
- 	struct cred *cred;
- 	int retval = 0;
- 	int ispipe;
-+	bool notify;
- 	struct files_struct *displaced;
- 	/* require nonrelative corefile path and be extra careful */
- 	bool need_suid_safe = false;
-@@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
- 	if (retval < 0)
- 		goto fail_creds;
- 
-+	/*
-+	 * Send the pre-coredump signal to the parent if requested.
-+	 */
-+	read_lock(&tasklist_lock);
-+	notify = do_notify_parent_predump(current);
-+	read_unlock(&tasklist_lock);
-+	if (notify)
-+		cond_resched();
-+
- 	old_cred = override_creds(cred);
- 
- 	ispipe = format_corename(&cn, &cprm);
-diff --git a/fs/exec.c b/fs/exec.c
-index fc281b7..7714da7 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1181,6 +1181,9 @@ static int de_thread(struct task_struct *tsk)
- 	/* we have changed execution domain */
- 	tsk->exit_signal = SIGCHLD;
- 
-+	/* Clear the pre-coredump signal before loading a new binary */
-+	sig->predump_signal = 0;
-+
- #ifdef CONFIG_POSIX_TIMERS
- 	exit_itimers(sig);
- 	flush_itimer_signals();
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 13789d1..047829d 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -112,6 +112,9 @@ struct signal_struct {
- 	int			group_stop_count;
- 	unsigned int		flags; /* see SIGNAL_* flags below */
- 
-+	/* The signal sent prior to a child's coredump */
-+	int			predump_signal;
-+
- 	/*
- 	 * PR_SET_CHILD_SUBREAPER marks a process, like a service
- 	 * manager, to re-parent orphan (double-forking) child processes
-@@ -332,6 +335,7 @@ extern int kill_pid_info_as_cred(int, struct kernel_siginfo *, struct pid *,
- extern int kill_pgrp(struct pid *pid, int sig, int priv);
- extern int kill_pid(struct pid *pid, int sig, int priv);
- extern __must_check bool do_notify_parent(struct task_struct *, int);
-+extern bool do_notify_parent_predump(struct task_struct *p);
- extern void __wake_up_parent(struct task_struct *p, struct task_struct *parent);
- extern void force_sig(int, struct task_struct *);
- extern int send_sig(int, struct task_struct *, int);
-diff --git a/include/linux/signal.h b/include/linux/signal.h
-index f428e86..6e1b2c9 100644
---- a/include/linux/signal.h
-+++ b/include/linux/signal.h
-@@ -262,6 +262,11 @@ static inline int valid_signal(unsigned long sig)
- 	return sig <= _NSIG ? 1 : 0;
- }
- 
-+static inline int valid_predump_signal(int sig)
-+{
-+	return (sig == SIGCHLD) || (sig == SIGUSR1) || (sig == SIGUSR2);
-+}
-+
- struct timespec;
- struct pt_regs;
- enum pid_type;
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cb3d6c2..1a47cef 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -267,7 +267,8 @@ struct {				\
- #define CLD_TRAPPED	4	/* traced child has trapped */
- #define CLD_STOPPED	5	/* child has stopped */
- #define CLD_CONTINUED	6	/* stopped child has continued */
--#define NSIGCHLD	6
-+#define CLD_PREDUMP	7	/* child is about to dump core */
-+#define NSIGCHLD	7
- 
- /*
-  * SIGPOLL (or any other signal without signal specific si_codes) si_codes
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index c0d7ea0..79f0a8a 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -219,4 +219,8 @@ struct prctl_mm_map {
- # define PR_SPEC_DISABLE		(1UL << 2)
- # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
- 
-+/* Whether to receive signal prior to child's coredump */
-+#define PR_SET_PREDUMP_SIG	54
-+#define PR_GET_PREDUMP_SIG	55
-+
- #endif /* _LINUX_PRCTL_H */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 07cddff..a9c9988 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1553,6 +1553,9 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
- 	tty_audit_fork(sig);
- 	sched_autogroup_fork(sig);
- 
-+	/* Clear the pre-coredump signal for the child of fork(2) */
-+	sig->predump_signal = 0;
-+
- 	sig->oom_score_adj = current->signal->oom_score_adj;
- 	sig->oom_score_adj_min = current->signal->oom_score_adj_min;
- 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index 9a32bc2..e4c154b 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1855,6 +1855,45 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
- 	return autoreap;
- }
- 
-+/*
-+ * While do_notify_parent() notifies the parent of a child's death post
-+ * its coredump, this function lets the parent (if so desired) know about
-+ * the imminent death of a child just prior to its coredump.
-+ *
-+ * The caller must hold at least the read lock on tasklist_lock.
-+ */
-+bool do_notify_parent_predump(struct task_struct *tsk)
-+{
-+	struct sighand_struct *sighand;
-+	struct kernel_siginfo info;
-+	struct task_struct *parent;
-+	unsigned long flags;
-+	pid_t pid;
-+	int sig;
-+
-+	parent = tsk->parent;
-+	sighand = parent->sighand;
-+	pid = task_tgid_vnr(tsk);
-+
-+	spin_lock_irqsave(&sighand->siglock, flags);
-+	sig = parent->signal->predump_signal;
-+	if (!valid_predump_signal(sig)) {
-+		spin_unlock_irqrestore(&sighand->siglock, flags);
-+		return false;
-+	}
-+
-+	clear_siginfo(&info);
-+	info.si_pid = pid;
-+	info.si_signo = sig;
-+	if (sig == SIGCHLD)
-+		info.si_code = CLD_PREDUMP;
-+
-+	__group_send_sig_info(sig, &info, parent);
-+	__wake_up_parent(tsk, parent);
-+	spin_unlock_irqrestore(&sighand->siglock, flags);
-+	return true;
-+}
-+
- /**
-  * do_notify_parent_cldstop - notify parent of stopped/continued state change
-  * @tsk: task reporting the state change
-diff --git a/kernel/sys.c b/kernel/sys.c
-index 123bd73..8ed9a63 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -2476,6 +2476,21 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
- 			return -EINVAL;
- 		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
- 		break;
-+	case PR_SET_PREDUMP_SIG:
-+		if (arg3 || arg4 || arg5)
-+			return -EINVAL;
-+
-+		/* 0 is valid for disabling the feature */
-+		if (arg2 && !valid_predump_signal((int)arg2))
-+			return -EINVAL;
-+		me->signal->predump_signal = (int)arg2;
-+		break;
-+	case PR_GET_PREDUMP_SIG:
-+		if (arg3 || arg4 || arg5)
-+			return -EINVAL;
-+		error = put_user(me->signal->predump_signal,
-+				 (int __user *)arg2);
-+		break;
- 	default:
- 		error = -EINVAL;
- 		break;
-diff --git a/tools/testing/selftests/prctl/Makefile b/tools/testing/selftests/prctl/Makefile
-index c7923b2..f8d60d5 100644
---- a/tools/testing/selftests/prctl/Makefile
-+++ b/tools/testing/selftests/prctl/Makefile
-@@ -5,7 +5,7 @@ ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
- 
- ifeq ($(ARCH),x86)
- TEST_PROGS := disable-tsc-ctxt-sw-stress-test disable-tsc-on-off-stress-test \
--		disable-tsc-test
-+		disable-tsc-test predump-sig-test
- all: $(TEST_PROGS)
- 
- include ../lib.mk
-diff --git a/tools/testing/selftests/prctl/predump-sig-test.c b/tools/testing/selftests/prctl/predump-sig-test.c
-new file mode 100644
-index 0000000..57042f7
---- /dev/null
-+++ b/tools/testing/selftests/prctl/predump-sig-test.c
-@@ -0,0 +1,171 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2018, Enke Chen, Cisco Systems, Inc.
-+ *
-+ * Tests for prctl(PR_SET_PREDUMP_SIG, ...) / prctl(PR_GET_PREDUMP_SIG, ...)
-+ *
-+ * When set with prctl(), the specified signal is sent to the parent process
-+ * prior to the coredump of a child process.
-+ *
-+ * Usage: ./predump-sig-test {SIGUSR1 | SIGUSR2 | SIGCHLD}
-+ */
-+
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <unistd.h>
-+#include <sys/prctl.h>
-+#include <signal.h>
-+#include <sys/signalfd.h>
-+#include <errno.h>
-+
-+#ifndef PR_SET_PREDUMP_SIG
-+#define PR_SET_PREDUMP_SIG	54
-+#define PR_GET_PREDUMP_SIG	55
-+#endif
-+
-+#ifndef CLD_PREDUMP
-+#define CLD_PREDUMP	7	/* child is about to dump core */
-+#endif
-+
-+#define handle_error(msg) \
-+	do { perror(msg); exit(EXIT_FAILURE); } while (0)
-+
-+static int test_prctl(int sig)
-+{
-+	int sig2, rc;
-+
-+	rc = prctl(PR_SET_PREDUMP_SIG, sig, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: setting");
-+
-+	rc = prctl(PR_GET_PREDUMP_SIG, &sig2, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: getting");
-+
-+	if (sig2 != sig) {
-+		printf("prctl: sig %d, post %d\n", sig, sig2);
-+		return -1;
-+	}
-+	return 0;
-+}
-+
-+static int sigfd;
-+static int predump_signal;
-+
-+static int init_signalfd(void)
-+{
-+	sigset_t mask;
-+	int sfd;
-+
-+	sigemptyset(&mask);
-+	sigaddset(&mask, SIGCHLD);
-+	if (predump_signal && (predump_signal != SIGCHLD))
-+		sigaddset(&mask, predump_signal);
-+
-+	/*
-+	 * Block signals so that they aren't handled according to their
-+	 * default dispositions.
-+	 */
-+	if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
-+		handle_error("sigprocmask");
-+
-+	sfd = signalfd(-1, &mask, SFD_CLOEXEC);
-+	if (sfd == -1)
-+		handle_error("signalfd");
-+
-+	return sfd;
-+}
-+
-+static void parent_func(pid_t child_pid)
-+{
-+	struct signalfd_siginfo si;
-+	int count = 0;
-+	ssize_t s;
-+
-+	for (;;) {
-+		s = read(sigfd, &si, sizeof(struct signalfd_siginfo));
-+		if (s != sizeof(struct signalfd_siginfo))
-+			handle_error("read");
-+
-+		count++;
-+		printf("\nReceived signal: ssi_pid %ld, ssi_signo %d\n",
-+		       si.ssi_pid, si.ssi_signo);
-+		printf("siginfo: ssi_errno %d, ssi_code %d, ssi_status %d\n",
-+		       si.ssi_errno, si.ssi_code, si.ssi_status);
-+
-+		if (si.ssi_signo == SIGCHLD) {
-+			if (si.ssi_code == CLD_PREDUMP)
-+				printf("predump signal\n");
-+			else
-+				break;
-+		} else if (si.ssi_signo == predump_signal)
-+			printf("predump signal\n");
-+	}
-+
-+	printf("Test result: %s\n", (count == 2) ? "PASS" : "FAIL");
-+	fflush(stdout);
-+}
-+
-+static void child_func(void)
-+{
-+	int rc, sig;
-+
-+	printf("\nChild pid: %ld\n", (long)getpid());
-+
-+	/* Test: Child should not inherit the predump_signal */
-+	rc = prctl(PR_GET_PREDUMP_SIG, &sig, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: child");
-+
-+	printf("child: predump_signal %d\n", sig);
-+
-+	/* Force coredump here */
-+	printf("child: calling abort()\n");
-+	fflush(stdout);
-+	abort();
-+}
-+
-+int main(int argc, char *argv[])
-+{
-+	pid_t child_pid;
-+	int rc;
-+
-+	if (argc != 2) {
-+		printf("invalid number of arguments\n");
-+		exit(EXIT_FAILURE);
-+	}
-+
-+	if (strcmp(argv[1], "SIGUSR1") == 0)
-+		predump_signal = SIGUSR1;
-+	else if (strcmp(argv[1], "SIGUSR2") == 0)
-+		predump_signal = SIGUSR2;
-+	else if (strcmp(argv[1], "SIGCHLD") == 0)
-+		predump_signal = SIGCHLD;
-+	else {
-+		printf("invalid argument for signal\n");
-+		fflush(stdout);
-+		exit(EXIT_FAILURE);
-+	}
-+
-+	/* Test: prctl() setting */
-+	rc = test_prctl(0);
-+	printf("prctl: sig %d %s\n", 0, (rc == 0) ? "PASS" : "FAIL");
-+	rc = test_prctl(predump_signal);
-+	printf("prctl: sig %d %s\n",
-+	       predump_signal, (rc == 0) ? "PASS" : "FAIL");
-+
-+	/* Init signalfd */
-+	sigfd = init_signalfd();
-+
-+	child_pid = fork();
-+	if (child_pid == -1)
-+		handle_error("fork");
-+
-+	if (child_pid == 0) {       /* Code executed by child */
-+		child_func();
-+	} else {                    /* Code executed by parent */
-+		parent_func(child_pid);
-+		exit(EXIT_SUCCESS);
-+	}
-+}
--- 
-1.8.3.1
+T24gU2F0LCAyMDE4LTEwLTIwIGF0IDE5OjIwICswMjAwLCBBcmQgQmllc2hldXZlbCB3cm90ZToN
+Cj4gSGkgUmljaywNCj4gDQo+IE9uIDE5IE9jdG9iZXIgMjAxOCBhdCAyMjo0NywgUmljayBFZGdl
+Y29tYmUgPHJpY2sucC5lZGdlY29tYmVAaW50ZWwuY29tPg0KPiB3cm90ZToNCj4gPiBJZiBCUEYg
+SklUIGlzIG9uLCB0aGVyZSBpcyBubyBlZmZlY3RpdmUgbGltaXQgdG8gcHJldmVudCBmaWxsaW5n
+IHRoZSBlbnRpcmUNCj4gPiBtb2R1bGUgc3BhY2Ugd2l0aCBKSVRlZCBlL0JQRiBmaWx0ZXJzLg0K
+PiANCj4gV2h5IGRvIEJQRiBmaWx0ZXJzIHVzZSB0aGUgbW9kdWxlIHNwYWNlLCBhbmQgZG9lcyB0
+aGlzIHJlYXNvbiBhcHBseSB0bw0KPiBhbGwgYXJjaGl0ZWN0dXJlcz8NCj4gDQo+IE9uIGFybTY0
+LCB3ZSBhbHJlYWR5IHN1cHBvcnQgbG9hZGluZyBwbGFpbiBtb2R1bGVzIGZhciBhd2F5IGZyb20g
+dGhlDQo+IGNvcmUga2VybmVsIChpLmUuIG91dCBvZiByYW5nZSBmb3Igb3JkaW5hcnkgcmVsYXRp
+dmUganVtcC9jYWxsbA0KPiBpbnN0cnVjdGlvbnMpLCBhbmQgc28gSSdkIGV4cGVjdCBCUEYgdG8g
+YmUgYWJsZSB0byBkZWFsIHdpdGggdGhpcw0KPiBhbHJlYWR5IGFzIHdlbGwuIFNvIGZvciBhcm02
+NCwgSSB3b25kZXIgd2h5IGFuIG9yZGluYXJ5IHZtYWxsb2NfZXhlYygpDQo+IHdvdWxkbid0IGJl
+IG1vcmUgYXBwcm9wcmlhdGUuDQpBRkFJSywgaXQncyBsaWtlIHlvdSBzYWlkIGFib3V0IHJlbGF0
+aXZlIGluc3RydWN0aW9uIGxpbWl0cywgYnV0IGFsc28gYmVjYXVzZQ0Kc29tZSBwcmVkaWN0b3Jz
+IGRvbid0IHByZWRpY3QgcGFzdCBhIGNlcnRhaW4gZGlzdGFuY2UuIFNvIHBlcmZvcm1hbmNlIGFz
+IHdlbGwuDQpOb3Qgc3VyZSB0aGUgcmVhc29ucyBmb3IgZWFjaCBhcmNoLCBvciBpZiB0aGV5IGFs
+bCBhcHBseSBmb3IgQlBGIEpJVC4gVGhlcmUgc2VlbQ0KdG8gYmUgOCBieSBteSBjb3VudCwgdGhh
+dCBoYXZlIGEgZGVkaWNhdGVkIG1vZHVsZSBzcGFjZSBmb3Igc29tZSByZWFzb24uDQoNCj4gU28g
+YmVmb3JlIHJlZmFjdG9yaW5nIHRoZSBtb2R1bGUgYWxsb2MvZnJlZSByb3V0aW5lcyB0byBhY2Nv
+bW1vZGF0ZQ0KPiBCUEYsIEknZCBsaWtlIHRvIHRha2Ugb25lIHN0ZXAgYmFjayBhbmQgYXNzZXNz
+IHdoZXRoZXIgaXQgd291bGRuJ3QgYmUNCj4gbW9yZSBhcHByb3ByaWF0ZSB0byBoYXZlIGEgc2Vw
+YXJhdGUgYnBmX2FsbG9jL2ZyZWUgQVBJLCB3aGljaCBjb3VsZCBiZQ0KPiB0b3RhbGx5IHNlcGFy
+YXRlIGZyb20gbW9kdWxlIGFsbG9jL2ZyZWUgaWYgdGhlIGFyY2ggcGVybWl0cyBpdC4NCj4gDQpJ
+IGFtIG5vdCBhIEJQRiBKSVQgZXhwZXJ0IHVuZm9ydHVuYXRlbHksIGhvcGVmdWxseSBzb21lb25l
+IG1vcmUgYXV0aG9yaXRhdGl2ZQ0Kd2lsbCBjaGltZSBpbi4gSSBvbmx5IHJhbiBpbnRvIHRoaXMg
+YmVjYXVzZSBJIHdhcyB0cnlpbmcgdG8gaW5jcmVhc2UNCnJhbmRvbWl6YXRpb24gZm9yIHRoZSBt
+b2R1bGUgc3BhY2UgYW5kIHdhbnRlZCB0byBmaW5kIG91dCBob3cgbWFueSBhbGxvY2F0aW9ucw0K
+bmVlZGVkIHRvIGJlIHN1cHBvcnRlZC4NCg0KSSdkIGd1ZXNzIHRob3VnaCwgdGhhdCBCUEYgSklU
+IGlzIGp1c3QgYXNzdW1pbmcgdGhhdCB0aGVyZSB3aWxsIGJlIHNvbWUgYXJjaA0Kc3BlY2lmaWMg
+Y29uc3RyYWludHMgYWJvdXQgd2hlcmUgdGV4dCBjYW4gYmUgcGxhY2VkIG9wdGltYWxseSBhbmQg
+dGhleSB3b3VsZA0KYWxyZWFkeSBiZSB0YWtlbiBpbnRvIGFjY291bnQgaW4gdGhlIG1vZHVsZSBz
+cGFjZSBhbGxvY2F0b3IuDQoNCklmIHRoZXJlIGFyZSBubyBjb25zdHJhaW50cyBmb3Igc29tZSBh
+cmNoLCBJJ2Qgd29uZGVyIHdoeSBub3QganVzdCB1cGRhdGUgaXRzDQptb2R1bGVfYWxsb2MgdG8g
+dXNlIHRoZSB3aG9sZSBzcGFjZSBhdmFpbGFibGUuIFdoYXQgZXhhY3RseSBhcmUgdGhlIGNvbnN0
+cmFpbnRzDQpmb3IgYXJtNjQgZm9yIG5vcm1hbCBtb2R1bGVzPw0KDQpJdCBzZWVtcyBmaW5lIHRv
+IG1lIGZvciBhcmNoaXRlY3R1cmVzIHRvIGhhdmUgdGhlIG9wdGlvbiBvZiBzb2x2aW5nIHRoaXMg
+YQ0KZGlmZmVyZW50IHdheS4gSWYgcG90ZW50aWFsbHkgdGhlIHJsaW1pdCBlbmRzIHVwIGJlaW5n
+IHRoZSBiZXN0IHNvbHV0aW9uIGZvcg0Kc29tZSBhcmNoaXRlY3R1cmVzIHRob3VnaCwgZG8geW91
+IHRoaW5rIHRoaXMgcmVmYWN0b3IgKHByZXR0eSBjbG9zZSB0byBqdXN0IGENCm5hbWUgY2hhbmdl
+KSBpcyB0aGF0IGludHJ1c2l2ZT8NCg0KSSBndWVzcyBpdCBjb3VsZCBiZSBqdXN0IGEgQlBGIEpJ
+VCBwZXIgdXNlciBsaW1pdCBhbmQgbm90IHRvdWNoIG1vZHVsZSBzcGFjZSwNCmJ1dCBJIHRob3Vn
+aHQgdGhlIG1vZHVsZSBzcGFjZSBsaW1pdCB3YXMgYSBtb3JlIGdlbmVyYWwgc29sdXRpb24gYXMg
+dGhhdCBpcyB0aGUNCmFjdHVhbCBsaW1pdGVkIHJlc291cmNlLg0KDQo+ID4gRm9yIGNsYXNzaWMg
+QlBGIGZpbHRlcnMgYXR0YWNoZWQgd2l0aA0KPiA+IHNldHNvY2tvcHQgU09fQVRUQUNIX0ZJTFRF
+UiwgdGhlcmUgaXMgbm8gbWVtbG9jayBybGltaXQgY2hlY2sgdG8gbGltaXQgdGhlDQo+ID4gbnVt
+YmVyIG9mIGluc2VydGlvbnMgbGlrZSB0aGVyZSBpcyBmb3IgdGhlIGJwZiBzeXNjYWxsLg0KPiA+
+IA0KPiA+IFRoaXMgcGF0Y2ggYWRkcyBhIHBlciB1c2VyIHJsaW1pdCBmb3IgbW9kdWxlIHNwYWNl
+LCBhcyB3ZWxsIGFzIGEgc3lzdGVtIHdpZGUNCj4gPiBsaW1pdCBmb3IgQlBGIEpJVC4gSW4gYSBw
+cmV2aW91c2x5IHJldmlld2VkIHBhdGNoc2V0LCBKYW5uIEhvcm4gcG9pbnRlZCBvdXQNCj4gPiB0
+aGUNCj4gPiBwcm9ibGVtIHRoYXQgaW4gc29tZSBjYXNlcyBhIHVzZXIgY2FuIGdldCBhY2Nlc3Mg
+dG8gNjU1MzYgVUlEcywgc28gdGhlDQo+ID4gZWZmZWN0aXZlDQo+ID4gbGltaXQgY2Fubm90IGJl
+IHNldCBsb3cgZW5vdWdoIHRvIHN0b3AgYW4gYXR0YWNrZXIgYW5kIGJlIHVzZWZ1bCBmb3IgdGhl
+DQo+ID4gZ2VuZXJhbA0KPiA+IGNhc2UuIEEgZGlzY3Vzc2VkIGFsdGVybmF0aXZlIHNvbHV0aW9u
+IHdhcyBhIHN5c3RlbSB3aWRlIGxpbWl0IGZvciBCUEYgSklUDQo+ID4gZmlsdGVycy4gVGhpcyBt
+dWNoIG1vcmUgc2ltcGx5IHJlc29sdmVzIHRoZSBwcm9ibGVtIG9mIGV4aGF1c3Rpb24gYW5kDQo+
+ID4gZGUtcmFuZG9taXppbmcgaW4gdGhlIGNhc2Ugb2Ygbm9uLUNPTkZJR19CUEZfSklUX0FMV0FZ
+U19PTi4gSWYNCj4gPiBDT05GSUdfQlBGX0pJVF9BTFdBWVNfT04gaXMgb24gaG93ZXZlciwgQlBG
+IGluc2VydGlvbnMgd2lsbCBmYWlsIGlmIGFub3RoZXINCj4gPiB1c2VyDQo+ID4gZXhoYXVzdHMg
+dGhlIEJQRiBKSVQgbGltaXQuIEluIHRoaXMgY2FzZSBhIHBlciB1c2VyIGxpbWl0IGlzIHN0aWxs
+IG5lZWRlZC4NCj4gPiBJZg0KPiA+IHRoZSBzdWJ1aWQgZmFjaWxpdHkgaXMgZGlzYWJsZWQgZm9y
+IG5vcm1hbCB1c2VycywgdGhpcyBzaG91bGQgc3RpbGwgYmUgb2sNCj4gPiBiZWNhdXNlIHRoZSBo
+aWdoZXIgbGltaXQgd2lsbCBub3QgYmUgYWJsZSB0byBiZSB3b3JrZWQgYXJvVGhleSBtaWdodCB1
+bmQNCj4gPiB0aGF0IHdheS4NCj4gPiANCj4gPiBUaGUgbmV3IEJQRiBKSVQgbGltaXQgY2FuIGJl
+IHNldCBsaWtlIHRoaXM6DQo+ID4gZWNobyA1MDAwMDAwID4gL3Byb2Mvc3lzL25ldC9jb3JlL2Jw
+Zl9qaXRfbGltaXQNCj4gPiANCj4gPiBTbyBJICp0aGluayogdGhpcyBwYXRjaHNldCBzaG91bGQg
+cmVzb2x2ZSB0aGF0IGlzc3VlIGV4Y2VwdCBmb3IgdGhlDQo+ID4gY29uZmlndXJhdGlvbiBvZiBD
+T05GSUdfQlBGX0pJVF9BTFdBWVNfT04gYW5kIHN1YnVpZCBhbGxvd2VkIGZvciBub3JtYWwNCj4g
+PiB1c2Vycy4NCj4gPiBCZXR0ZXIgbW9kdWxlIHNwYWNlIEtBU0xSIGlzIGFub3RoZXIgd2F5IHRv
+IHJlc29sdmUgdGhlIGRlLXJhbmRvbWl6aW5nDQo+ID4gaXNzdWUsDQo+ID4gYW5kIHNvIHRoZW4g
+eW91IHdvdWxkIGp1c3QgYmUgbGVmdCB3aXRoIHRoZSBCUEYgRE9TIGluIHRoYXQgY29uZmlndXJh
+dGlvbi4NCj4gPiANCj4gPiBKYW5uIGFsc28gcG9pbnRlZCBvdXQgaG93LCB3aXRoIHB1cnBvc2Vs
+eSBmcmFnbWVudGluZyB0aGUgbW9kdWxlIHNwYWNlLCB5b3UNCj4gPiBjb3VsZCBtYWtlIHRoZSBl
+ZmZlY3RpdmUgbW9kdWxlIHNwYWNlIGJsb2NrYWdlIGFyZWEgbXVjaCBsYXJnZXIuIFRoaXMgaXMN
+Cj4gPiBhbHNvDQo+ID4gc29tZXdoYXQgdW4tcmVzb2x2ZWQuIFRoZSBpbXBhY3Qgd291bGQgZGVw
+ZW5kIG9uIGhvdyBiaWcgb2YgYSBzcGFjZSB5b3UgYXJlDQo+ID4gdHJ5aW5nIHRvIGFsbG9jYXRl
+LiBUaGUgbGltaXQgaGFzIGJlZW4gbG93ZXJlZCBvbiB4ODZfNjQgc28gdGhhdCBhdCBsZWFzdA0K
+PiA+IHR5cGljYWwgc2l6ZWQgQlBGIGZpbHRlcnMgY2Fubm90IGJlIGJsb2NrZWQuDQo+ID4gDQo+
+ID4gSWYgYW55b25lIHdpdGggbW9yZSBleHBlcmllbmNlIHdpdGggc3VidWlkL3VzZXIgbmFtZXNw
+YWNlcyBoYXMgYW55DQo+ID4gc3VnZ2VzdGlvbnMNCj4gPiBJJ2QgYmUgZ2xhZCB0byBoZWFyLiBP
+biBhbiBVYnVudHUgbWFjaGluZSBpdCBkaWRuJ3Qgc2VlbSBsaWtlIGEgdW4tDQo+ID4gcHJpdmls
+ZWdlZA0KPiA+IHVzZXIgY291bGQgZG8gdGhpcy4gSSBhbSBnb2luZyB0byBrZWVwIHdvcmtpbmcg
+b24gdGhpcyBhbmQgc2VlIGlmIEkgY2FuIGZpbmQNCj4gPiBhDQo+ID4gYmV0dGVyIHNvbHV0aW9u
+Lg0KPiA+IA0KPiA+IENoYW5nZXMgc2luY2UgdjI6DQo+ID4gIC0gU3lzdGVtIHdpZGUgQlBGIEpJ
+VCBsaW1pdCAoZGlzY3Vzc2lvbiB3aXRoIEphbm4gSG9ybikNCj4gPiAgLSBIb2xkaW5nIHJlZmVy
+ZW5jZSB0byB1c2VyIGNvcnJlY3RseSAoSmFubikNCj4gPiAgLSBIYXZpbmcgYXJjaCB2ZXJzaW9u
+cyBvZiBtb2R1bGRlX2FsbG9jIChEYXZlIEhhbnNlbiwgSmVzc2ljYSBZdSkNCj4gPiAgLSBTaHJp
+bmtpbmcgb2YgZGVmYXVsdCBsaW1pdHMsIHRvIGhlbHAgcHJldmVudCB0aGUgbGltaXQgYmVpbmcg
+d29ya2VkDQo+ID4gYXJvdW5kDQo+ID4gICAgd2l0aCBmcmFnbWVudGF0aW9uIChKYW5uKQ0KPiA+
+IA0KPiA+IENoYW5nZXMgc2luY2UgdjE6DQo+ID4gIC0gUGx1ZyBpbiBmb3Igbm9uLXg4Ng0KPiA+
+ICAtIEFyY2ggc3BlY2lmaWMgZGVmYXVsdCB2YWx1ZXMNCj4gPiANCj4gPiANCj4gPiBSaWNrIEVk
+Z2Vjb21iZSAoMyk6DQo+ID4gICBtb2R1bGVzOiBDcmVhdGUgYXJjaCB2ZXJzaW9ucyBvZiBtb2R1
+bGUgYWxsb2MvZnJlZQ0KPiA+ICAgbW9kdWxlczogQ3JlYXRlIHJsaW1pdCBmb3IgbW9kdWxlIHNw
+YWNlDQo+ID4gICBicGY6IEFkZCBzeXN0ZW0gd2lkZSBCUEYgSklUIGxpbWl0DQo+ID4gDQo+ID4g
+IGFyY2gvYXJtL2tlcm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgICB8ICAgMiArLQ0KPiA+ICBh
+cmNoL2FybTY0L2tlcm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgfCAgIDIgKy0NCj4gPiAgYXJj
+aC9taXBzL2tlcm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgIHwgICAyICstDQo+ID4gIGFyY2gv
+bmRzMzIva2VybmVsL21vZHVsZS5jICAgICAgICAgICAgICB8ICAgMiArLQ0KPiA+ICBhcmNoL25p
+b3MyL2tlcm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgfCAgIDQgKy0NCj4gPiAgYXJjaC9wYXJp
+c2Mva2VybmVsL21vZHVsZS5jICAgICAgICAgICAgIHwgICAyICstDQo+ID4gIGFyY2gvczM5MC9r
+ZXJuZWwvbW9kdWxlLmMgICAgICAgICAgICAgICB8ICAgMiArLQ0KPiA+ICBhcmNoL3NwYXJjL2tl
+cm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgfCAgIDIgKy0NCj4gPiAgYXJjaC91bmljb3JlMzIv
+a2VybmVsL21vZHVsZS5jICAgICAgICAgIHwgICAyICstDQo+ID4gIGFyY2gveDg2L2luY2x1ZGUv
+YXNtL3BndGFibGVfMzJfdHlwZXMuaCB8ICAgMyArDQo+ID4gIGFyY2gveDg2L2luY2x1ZGUvYXNt
+L3BndGFibGVfNjRfdHlwZXMuaCB8ICAgMiArDQo+ID4gIGFyY2gveDg2L2tlcm5lbC9tb2R1bGUu
+YyAgICAgICAgICAgICAgICB8ICAgMiArLQ0KPiA+ICBmcy9wcm9jL2Jhc2UuYyAgICAgICAgICAg
+ICAgICAgICAgICAgICAgfCAgIDEgKw0KPiA+ICBpbmNsdWRlL2FzbS1nZW5lcmljL3Jlc291cmNl
+LmggICAgICAgICAgfCAgIDggKysNCj4gPiAgaW5jbHVkZS9saW51eC9icGYuaCAgICAgICAgICAg
+ICAgICAgICAgIHwgICA3ICsrDQo+ID4gIGluY2x1ZGUvbGludXgvZmlsdGVyLmggICAgICAgICAg
+ICAgICAgICB8ICAgMSArDQo+ID4gIGluY2x1ZGUvbGludXgvc2NoZWQvdXNlci5oICAgICAgICAg
+ICAgICB8ICAgNCArDQo+ID4gIGluY2x1ZGUvdWFwaS9hc20tZ2VuZXJpYy9yZXNvdXJjZS5oICAg
+ICB8ICAgMyArLQ0KPiA+ICBrZXJuZWwvYnBmL2NvcmUuYyAgICAgICAgICAgICAgICAgICAgICAg
+fCAgMjIgKysrLQ0KPiA+ICBrZXJuZWwvYnBmL2lub2RlLmMgICAgICAgICAgICAgICAgICAgICAg
+fCAgMTYgKysrDQo+ID4gIGtlcm5lbC9tb2R1bGUuYyAgICAgICAgICAgICAgICAgICAgICAgICB8
+IDE1MiArKysrKysrKysrKysrKysrKysrKysrKy0NCj4gPiAgbmV0L2NvcmUvc3lzY3RsX25ldF9j
+b3JlLmMgICAgICAgICAgICAgIHwgICA3ICsrDQo+ID4gIDIyIGZpbGVzIGNoYW5nZWQsIDIzMyBp
+bnNlcnRpb25zKCspLCAxNSBkZWxldGlvbnMoLSkNCj4gPiANCj4gPiAtLQ0KPiA+IDIuMTcuMQ0K
+PiA+IA0KYnJhbmNoaW5nIHByZWRpY3RvcnMgbWF5IG5vdCBiZSBhYmxlIHRvIHByZWRpY3QgcGFz
+dCBhIGNlcnRhaW4gZGlzdGFuY2UuIFNvDQpwZXJmb3JtYW5jZSBhcyB3ZWxsLg0K
