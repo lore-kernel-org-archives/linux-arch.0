@@ -1,144 +1,66 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Tue, 23 Oct 2018 11:23:48 +0200
-Message-ID: <20181023092348.GA14340@redhat.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 07/17] arm64: add basic pointer authentication support
+Date: Tue, 23 Oct 2018 11:20:09 +0100
+Message-ID: <20181023102008.GA8989@brain-police>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <20181005084754.20950-8-kristina.martsenko@arm.com>
+ <20181019111542.6wrvjguirglzg7vg@mbp>
+ <5ca5bf92-f2b7-48c9-ea41-5efeff09a799@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+In-Reply-To: <5ca5bf92-f2b7-48c9-ea41-5efeff09a799@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Enke Chen <enkechen@cisco.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+To: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Kristina Martsenko <Kristina.Martsenko@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Mark Rutland <Mark.Rutland@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Jones <drjones@redhat.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Adam Wallis <awallis@codeaurora.org>, Suzuki Poulose <Suzuki.Poulose@arm.com>, Christoffer Dall <Christoffer.Dall@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/22, Enke Chen wrote:
->
-> As the coredump of a process may take time, in certain time-sensitive
-> applications it is necessary for a parent process (e.g., a process
-> manager) to be notified of a child's imminent death before the coredump
-> so that the parent process can act sooner, such as re-spawning an
-> application process, or initiating a control-plane fail-over.
+On Tue, Oct 23, 2018 at 09:36:16AM +0100, Ramana Radhakrishnan wrote:
+> On 19/10/2018 12:15, Catalin Marinas wrote:
+> > On Fri, Oct 05, 2018 at 09:47:44AM +0100, Kristina Martsenko wrote:
+> >> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
+> >> new file mode 100644
+> >> index 000000000000..2aefedc31d9e
+> >> --- /dev/null
+> >> +++ b/arch/arm64/include/asm/pointer_auth.h
+> >> @@ -0,0 +1,63 @@
+> >> +// SPDX-License-Identifier: GPL-2.0
+> >> +#ifndef __ASM_POINTER_AUTH_H
+> >> +#define __ASM_POINTER_AUTH_H
+> >> +
+> >> +#include <linux/random.h>
+> >> +
+> >> +#include <asm/cpufeature.h>
+> >> +#include <asm/sysreg.h>
+> >> +
+> >> +#ifdef CONFIG_ARM64_PTR_AUTH
+> >> +/*
+> >> + * Each key is a 128-bit quantity which is split across a pair of 64-bit
+> >> + * registers (Lo and Hi).
+> >> + */
+> >> +struct ptrauth_key {
+> >> +	unsigned long lo, hi;
+> >> +};
+> >> +
+> >> +/*
+> >> + * We give each process its own instruction A key (APIAKey), which is shared by
+> >> + * all threads. This is inherited upon fork(), and reinitialised upon exec*().
+> >> + * All other keys are currently unused, with APIBKey, APDAKey, and APBAKey
+> >> + * instructions behaving as NOPs.
+> >> + */
+> > 
+> > I don't remember the past discussions but I assume the tools guys are ok
+> > with a single key shared by multiple threads. Ramana, could you ack this
+> > part, FTR?
+> 
+> Sorry about the slow response, I've been traveling.
+> 
+> Ack and Will's response covers the reasons why pretty well. A prctl call 
+> would be a good enhancement.
 
-Personally I still do not like this feature, but I won't argue.
+One minor "gotcha" with that is that the glibc prctl() wrapper would need to
+be annotated not to use pointer auth, or we'd have to issue the syscall
+in-line.
 
-> --- a/fs/coredump.c
-> +++ b/fs/coredump.c
-> @@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->  	struct cred *cred;
->  	int retval = 0;
->  	int ispipe;
-> +	bool notify;
->  	struct files_struct *displaced;
->  	/* require nonrelative corefile path and be extra careful */
->  	bool need_suid_safe = false;
-> @@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->  	if (retval < 0)
->  		goto fail_creds;
->
-> +	/*
-> +	 * Send the pre-coredump signal to the parent if requested.
-> +	 */
-> +	read_lock(&tasklist_lock);
-> +	notify = do_notify_parent_predump(current);
-> +	read_unlock(&tasklist_lock);
-> +	if (notify)
-> +		cond_resched();
-
-Hmm. I do not understand why do we need cond_resched(). And even if we need it,
-why we can't call it unconditionally?
-
-I'd also suggest to move read_lock/unlock(tasklist) into do_notify_parent_predump()
-and remove the "task_struct *tsk" argument, tsk is always current.
-
-Yes, do_notify_parent() and do_notify_parent_cldstop() are called with tasklist_lock
-held, but there are good reasons for that.
-
-
-> +static inline int valid_predump_signal(int sig)
-> +{
-> +	return (sig == SIGCHLD) || (sig == SIGUSR1) || (sig == SIGUSR2);
-> +}
-
-I still do not understand why do we need to restrict predump_signal.
-
-PR_SET_PREDUMP_SIG can only change the caller's ->predump_signal, so to me
-even PR_SET_PREDUMP_SIG(SIGKILL) is fine.
-
-And once again, SIGCHLD/SIGUSR do not queue, this means that PR_SET_PREDUMP_SIG
-is pointless if you have 2 or more children.
-
-> +bool do_notify_parent_predump(struct task_struct *tsk)
-> +{
-> +	struct sighand_struct *sighand;
-> +	struct kernel_siginfo info;
-> +	struct task_struct *parent;
-> +	unsigned long flags;
-> +	pid_t pid;
-> +	int sig;
-> +
-> +	parent = tsk->parent;
-> +	sighand = parent->sighand;
-> +	pid = task_tgid_vnr(tsk);
-> +
-> +	spin_lock_irqsave(&sighand->siglock, flags);
-> +	sig = parent->signal->predump_signal;
-> +	if (!valid_predump_signal(sig)) {
-> +		spin_unlock_irqrestore(&sighand->siglock, flags);
-> +		return false;
-> +	}
-
-Why do we need to check parent->signal->predump_signal under ->siglock?
-This complicates the code for no reason, afaics.
-
-> +	clear_siginfo(&info);
-> +	info.si_pid = pid;
-> +	info.si_signo = sig;
-> +	if (sig == SIGCHLD)
-> +		info.si_code = CLD_PREDUMP;
-> +
-> +	__group_send_sig_info(sig, &info, parent);
-> +	__wake_up_parent(tsk, parent);
-
-Why __wake_up_parent() ?
-
-do_notify_parent() does this to wake up the parent sleeping in do_wait(), to
-report the event. But predump_signal has nothing to do with wait().
-
-Now. This version sends the signal to ->parent, not ->real_parent. OK, but this
-means that real_parent won't be notified if its child is traced.
-
-
-> +	case PR_SET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +
-> +		/* 0 is valid for disabling the feature */
-> +		if (arg2 && !valid_predump_signal((int)arg2))
-> +			return -EINVAL;
-> +		me->signal->predump_signal = (int)arg2;
-> +		break;
-
-Again, I do not understand why do we need valid_predump_signal(). But even
-if we need it, I don't understand why should we check it twice. IOW, why
-do_notify_parent_predump() can't simply check ->predump_signal != 0?
-
-Whatever we do, PR_SET_PREDUMP_SIG should validate arg2 anyway. Who else can
-change ->predump_signal  after that?
-
-> +	case PR_GET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +		error = put_user(me->signal->predump_signal,
-> +				 (int __user *)arg2);
-
-To me it would be better to simply return ->predump_signal, iow
-
-		error = me->signal->predump_signal;
-		break;
-
-but I won't insist, this is subjective and cosmetic.
-
-Oleg.
+Will
