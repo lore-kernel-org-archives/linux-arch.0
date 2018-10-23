@@ -1,178 +1,105 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Tue, 23 Oct 2018 12:43:20 -0700
-Message-ID: <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <20181023092348.GA14340@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Subject: [PATCH 01/17] prmem: linker section for static write rare
+Date: Wed, 24 Oct 2018 00:34:48 +0300
+Message-ID: <20181023213504.28905-2-igor.stoppa@huawei.com>
+References: <20181023213504.28905-1-igor.stoppa@huawei.com>
+Reply-To: Igor Stoppa <igor.stoppa@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181023092348.GA14340@redhat.com>
-Content-Language: en-US
+In-Reply-To: <20181023213504.28905-1-igor.stoppa@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+To: Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org
+Cc: igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Oleg:
+Introduce a section and a label for statically allocated write rare
+data.
 
-Thanks for your review. Please see my replies inline.
+The label is named "__write_rare_after_init".
+As the name implies, after the init phase is completed, this section
+will be modifiable only by invoking write rare functions.
 
-On 10/23/18 2:23 AM, Oleg Nesterov wrote:
-> On 10/22, Enke Chen wrote:
->>
->> As the coredump of a process may take time, in certain time-sensitive
->> applications it is necessary for a parent process (e.g., a process
->> manager) to be notified of a child's imminent death before the coredump
->> so that the parent process can act sooner, such as re-spawning an
->> application process, or initiating a control-plane fail-over.
-> 
-> Personally I still do not like this feature, but I won't argue.
-> 
->> --- a/fs/coredump.c
->> +++ b/fs/coredump.c
->> @@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->>  	struct cred *cred;
->>  	int retval = 0;
->>  	int ispipe;
->> +	bool notify;
->>  	struct files_struct *displaced;
->>  	/* require nonrelative corefile path and be extra careful */
->>  	bool need_suid_safe = false;
->> @@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->>  	if (retval < 0)
->>  		goto fail_creds;
->>
->> +	/*
->> +	 * Send the pre-coredump signal to the parent if requested.
->> +	 */
->> +	read_lock(&tasklist_lock);
->> +	notify = do_notify_parent_predump(current);
->> +	read_unlock(&tasklist_lock);
->> +	if (notify)
->> +		cond_resched();
-> 
-> Hmm. I do not understand why do we need cond_resched(). And even if we need it,
-> why we can't call it unconditionally?
+NOTE:
+this needs rework, because the current write-rare mechanism works
+only on x86_64 and not arm64, due to arm64 mappings.
 
-Remember the goal is to allow the parent (e.g., a process manager) to take early
-action. The "yield" before doing coredump will help.
+Signed-off-by: Igor Stoppa <igor.stoppa@huawei.com>
+CC: Arnd Bergmann <arnd@arndb.de>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Kate Stewart <kstewart@linuxfoundation.org>
+CC: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+CC: Philippe Ombredanne <pombredanne@nexb.com>
+CC: linux-arch@vger.kernel.org
+CC: linux-kernel@vger.kernel.org
+---
+ include/asm-generic/vmlinux.lds.h | 20 ++++++++++++++++++++
+ include/linux/cache.h             | 17 +++++++++++++++++
+ 2 files changed, 37 insertions(+)
 
-The yield is made conditional because the notification is conditional.
-Is that ok?
-
-> 
-> I'd also suggest to move read_lock/unlock(tasklist) into do_notify_parent_predump()
-> and remove the "task_struct *tsk" argument, tsk is always current.
-> 
-> Yes, do_notify_parent() and do_notify_parent_cldstop() are called with tasklist_lock
-> held, but there are good reasons for that.
-
-Sure I will make the suggested changes. This function is only called in one place.
-
-> 
-> 
->> +static inline int valid_predump_signal(int sig)
->> +{
->> +	return (sig == SIGCHLD) || (sig == SIGUSR1) || (sig == SIGUSR2);
->> +}
-> 
-> I still do not understand why do we need to restrict predump_signal.
-> 
-> PR_SET_PREDUMP_SIG can only change the caller's ->predump_signal, so to me
-> even PR_SET_PREDUMP_SIG(SIGKILL) is fine.
-
-I will remove it to reduce the code size and give more flexibility to the application.
-
-> 
-> And once again, SIGCHLD/SIGUSR do not queue, this means that PR_SET_PREDUMP_SIG
-> is pointless if you have 2 or more children.
-
-Hmm, could you point me to the code where SIGCHLD/SIGUSR is treated differently
-w.r.t. queuing?  That does not sound right to me.
-
-> 
->> +bool do_notify_parent_predump(struct task_struct *tsk)
->> +{
->> +	struct sighand_struct *sighand;
->> +	struct kernel_siginfo info;
->> +	struct task_struct *parent;
->> +	unsigned long flags;
->> +	pid_t pid;
->> +	int sig;
->> +
->> +	parent = tsk->parent;
->> +	sighand = parent->sighand;
->> +	pid = task_tgid_vnr(tsk);
->> +
->> +	spin_lock_irqsave(&sighand->siglock, flags);
->> +	sig = parent->signal->predump_signal;
->> +	if (!valid_predump_signal(sig)) {
->> +		spin_unlock_irqrestore(&sighand->siglock, flags);
->> +		return false;
->> +	}
-> 
-> Why do we need to check parent->signal->predump_signal under ->siglock?
-> This complicates the code for no reason, afaics.
-> 
->> +	clear_siginfo(&info);
->> +	info.si_pid = pid;
->> +	info.si_signo = sig;
->> +	if (sig == SIGCHLD)
->> +		info.si_code = CLD_PREDUMP;
->> +
->> +	__group_send_sig_info(sig, &info, parent);
->> +	__wake_up_parent(tsk, parent);
-> 
-> Why __wake_up_parent() ?
-
-not needed, and will remove.
-
-> 
-> do_notify_parent() does this to wake up the parent sleeping in do_wait(), to
-> report the event. But predump_signal has nothing to do with wait().
-> 
-> Now. This version sends the signal to ->parent, not ->real_parent. OK, but this
-> means that real_parent won't be notified if its child is traced.
-> > 
->> +	case PR_SET_PREDUMP_SIG:
->> +		if (arg3 || arg4 || arg5)
->> +			return -EINVAL;
->> +
->> +		/* 0 is valid for disabling the feature */
->> +		if (arg2 && !valid_predump_signal((int)arg2))
->> +			return -EINVAL;
->> +		me->signal->predump_signal = (int)arg2;
->> +		break;
-> 
-> Again, I do not understand why do we need valid_predump_signal(). But even
-> if we need it, I don't understand why should we check it twice. IOW, why
-> do_notify_parent_predump() can't simply check ->predump_signal != 0?
-> 
-> Whatever we do, PR_SET_PREDUMP_SIG should validate arg2 anyway. Who else can
-> change ->predump_signal  after that?
-
-Ok, will relax.
-
-> 
->> +	case PR_GET_PREDUMP_SIG:
->> +		if (arg3 || arg4 || arg5)
->> +			return -EINVAL;
->> +		error = put_user(me->signal->predump_signal,
->> +				 (int __user *)arg2);
-> 
-> To me it would be better to simply return ->predump_signal, iow
-> 
-> 		error = me->signal->predump_signal;
-> 		break;
-> 
-> but I won't insist, this is subjective and cosmetic.
-
-Vast majority of system calls returns 0 or -1. So does PR_GET_PDEATHSIG.
-I would like to keep them consistent.
-
-Thanks again.
-
--- Enke
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index d7701d466b60..fd40a15e3b24 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -300,6 +300,25 @@
+ 	. = __start_init_task + THREAD_SIZE;				\
+ 	__end_init_task = .;
+ 
++/*
++ * Allow architectures to handle wr_after_init data on their
++ * own by defining an empty WR_AFTER_INIT_DATA.
++ * However, it's important that pages containing WR_RARE data do not
++ * hold anything else, to avoid both accidentally unprotecting something
++ * that is supposed to stay read-only all the time and also to protect
++ * something else that is supposed to be writeable all the time.
++ */
++#ifndef WR_AFTER_INIT_DATA
++#define WR_AFTER_INIT_DATA(align)					\
++	. = ALIGN(PAGE_SIZE);						\
++	__start_wr_after_init = .;					\
++	. = ALIGN(align);						\
++	*(.data..wr_after_init)						\
++	. = ALIGN(PAGE_SIZE);						\
++	__end_wr_after_init = .;					\
++	. = ALIGN(align);
++#endif
++
+ /*
+  * Allow architectures to handle ro_after_init data on their
+  * own by defining an empty RO_AFTER_INIT_DATA.
+@@ -320,6 +339,7 @@
+ 		__start_rodata = .;					\
+ 		*(.rodata) *(.rodata.*)					\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
++		WR_AFTER_INIT_DATA(align) /* wr after init */	\
+ 		KEEP(*(__vermagic))	/* Kernel version magic */	\
+ 		. = ALIGN(8);						\
+ 		__start___tracepoints_ptrs = .;				\
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 750621e41d1c..9a7e7134b887 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -31,6 +31,23 @@
+ #define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
+ #endif
+ 
++/*
++ * __wr_after_init is used to mark objects that cannot be modified
++ * directly after init (i.e. after mark_rodata_ro() has been called).
++ * These objects become effectively read-only, from the perspective of
++ * performing a direct write, like a variable assignment.
++ * However, they can be altered through a dedicated function.
++ * It is intended for those objects which are occasionally modified after
++ * init, however they are modified so seldomly, that the extra cost from
++ * the indirect modification is either negligible or worth paying, for the
++ * sake of the protection gained.
++ */
++#ifndef __wr_after_init
++#define __wr_after_init \
++		__attribute__((__section__(".data..wr_after_init")))
++#endif
++
++
+ #ifndef ____cacheline_aligned
+ #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
+ #endif
+-- 
+2.17.1
