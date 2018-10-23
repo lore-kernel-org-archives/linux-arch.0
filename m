@@ -1,62 +1,178 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-Date: Tue, 23 Oct 2018 11:50:21 -0700
-Message-ID: <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
-References: <20181011001846.30964-1-keescook@chromium.org> <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
- <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
- <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
- <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com> <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
- <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com> <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
- <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com> <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
- <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
+From: Enke Chen <enkechen@cisco.com>
+Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
+Date: Tue, 23 Oct 2018 12:43:20 -0700
+Message-ID: <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+ <20181023092348.GA14340@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
+In-Reply-To: <20181023092348.GA14340@redhat.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Casey Schaufler <casey@schaufler-ca.com>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 23, 2018 at 9:48 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
-> On 10/12/2018 12:01 PM, Kees Cook wrote:
->> On Friday, October 12, 2018 3:19 AM, John Johansen
->> <john.johansen@canonical.com> wrote:
->>> It isn't perfect but it manages consistency across distros as best as
->>> can be achieved atm.
->> Yeah, this is why I'm okay with the current series: it provides as
->> consistent a view as possible, but leaves room for future improvements
->> (like adding "+" or "!" or "all" or whatever).
+Hi, Oleg:
+
+Thanks for your review. Please see my replies inline.
+
+On 10/23/18 2:23 AM, Oleg Nesterov wrote:
+> On 10/22, Enke Chen wrote:
 >>
->> I'm curious to see what SELinux folks think of v5, though. I *think* I
->> addressed all the concerns there, even Paul's "I want my distro
->> default to not have extreme stacking" case too.
+>> As the coredump of a process may take time, in certain time-sensitive
+>> applications it is necessary for a parent process (e.g., a process
+>> manager) to be notified of a child's imminent death before the coredump
+>> so that the parent process can act sooner, such as re-spawning an
+>> application process, or initiating a control-plane fail-over.
+> 
+> Personally I still do not like this feature, but I won't argue.
+> 
+>> --- a/fs/coredump.c
+>> +++ b/fs/coredump.c
+>> @@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
+>>  	struct cred *cred;
+>>  	int retval = 0;
+>>  	int ispipe;
+>> +	bool notify;
+>>  	struct files_struct *displaced;
+>>  	/* require nonrelative corefile path and be extra careful */
+>>  	bool need_suid_safe = false;
+>> @@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
+>>  	if (retval < 0)
+>>  		goto fail_creds;
 >>
->> -Kees
->
-> Looks like I should go on vacation more often. :)
->
-> I am generally opposed to fancy specification languages.
-> I support the explicit lsm= list specification because you
-> don't have to know any context to create a boot line that
-> will work, and be as close to what you've specified as possible
-> for the kernel configuration. One need look no further than
-> the mechanisms for setting POSIX ACLs for an example of
-> how to ensure a feature isn't used.
->
-> Had we the foresight to make security= take a list of
-> modules when Yama was added we might have avoided some of
-> this brouhaha, but there was no reason to expect that stacking
-> was ever going to happen back then.
+>> +	/*
+>> +	 * Send the pre-coredump signal to the parent if requested.
+>> +	 */
+>> +	read_lock(&tasklist_lock);
+>> +	notify = do_notify_parent_predump(current);
+>> +	read_unlock(&tasklist_lock);
+>> +	if (notify)
+>> +		cond_resched();
+> 
+> Hmm. I do not understand why do we need cond_resched(). And even if we need it,
+> why we can't call it unconditionally?
 
-This sounds like an "Ack" for you? :) I'll harass everyone in person
-in a couple days.
+Remember the goal is to allow the parent (e.g., a process manager) to take early
+action. The "yield" before doing coredump will help.
 
-Did you poke around at my combined series?
-https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
+The yield is made conditional because the notification is conditional.
+Is that ok?
 
--Kees
+> 
+> I'd also suggest to move read_lock/unlock(tasklist) into do_notify_parent_predump()
+> and remove the "task_struct *tsk" argument, tsk is always current.
+> 
+> Yes, do_notify_parent() and do_notify_parent_cldstop() are called with tasklist_lock
+> held, but there are good reasons for that.
 
--- 
-Kees Cook
-Pixel Security
+Sure I will make the suggested changes. This function is only called in one place.
+
+> 
+> 
+>> +static inline int valid_predump_signal(int sig)
+>> +{
+>> +	return (sig == SIGCHLD) || (sig == SIGUSR1) || (sig == SIGUSR2);
+>> +}
+> 
+> I still do not understand why do we need to restrict predump_signal.
+> 
+> PR_SET_PREDUMP_SIG can only change the caller's ->predump_signal, so to me
+> even PR_SET_PREDUMP_SIG(SIGKILL) is fine.
+
+I will remove it to reduce the code size and give more flexibility to the application.
+
+> 
+> And once again, SIGCHLD/SIGUSR do not queue, this means that PR_SET_PREDUMP_SIG
+> is pointless if you have 2 or more children.
+
+Hmm, could you point me to the code where SIGCHLD/SIGUSR is treated differently
+w.r.t. queuing?  That does not sound right to me.
+
+> 
+>> +bool do_notify_parent_predump(struct task_struct *tsk)
+>> +{
+>> +	struct sighand_struct *sighand;
+>> +	struct kernel_siginfo info;
+>> +	struct task_struct *parent;
+>> +	unsigned long flags;
+>> +	pid_t pid;
+>> +	int sig;
+>> +
+>> +	parent = tsk->parent;
+>> +	sighand = parent->sighand;
+>> +	pid = task_tgid_vnr(tsk);
+>> +
+>> +	spin_lock_irqsave(&sighand->siglock, flags);
+>> +	sig = parent->signal->predump_signal;
+>> +	if (!valid_predump_signal(sig)) {
+>> +		spin_unlock_irqrestore(&sighand->siglock, flags);
+>> +		return false;
+>> +	}
+> 
+> Why do we need to check parent->signal->predump_signal under ->siglock?
+> This complicates the code for no reason, afaics.
+> 
+>> +	clear_siginfo(&info);
+>> +	info.si_pid = pid;
+>> +	info.si_signo = sig;
+>> +	if (sig == SIGCHLD)
+>> +		info.si_code = CLD_PREDUMP;
+>> +
+>> +	__group_send_sig_info(sig, &info, parent);
+>> +	__wake_up_parent(tsk, parent);
+> 
+> Why __wake_up_parent() ?
+
+not needed, and will remove.
+
+> 
+> do_notify_parent() does this to wake up the parent sleeping in do_wait(), to
+> report the event. But predump_signal has nothing to do with wait().
+> 
+> Now. This version sends the signal to ->parent, not ->real_parent. OK, but this
+> means that real_parent won't be notified if its child is traced.
+> > 
+>> +	case PR_SET_PREDUMP_SIG:
+>> +		if (arg3 || arg4 || arg5)
+>> +			return -EINVAL;
+>> +
+>> +		/* 0 is valid for disabling the feature */
+>> +		if (arg2 && !valid_predump_signal((int)arg2))
+>> +			return -EINVAL;
+>> +		me->signal->predump_signal = (int)arg2;
+>> +		break;
+> 
+> Again, I do not understand why do we need valid_predump_signal(). But even
+> if we need it, I don't understand why should we check it twice. IOW, why
+> do_notify_parent_predump() can't simply check ->predump_signal != 0?
+> 
+> Whatever we do, PR_SET_PREDUMP_SIG should validate arg2 anyway. Who else can
+> change ->predump_signal  after that?
+
+Ok, will relax.
+
+> 
+>> +	case PR_GET_PREDUMP_SIG:
+>> +		if (arg3 || arg4 || arg5)
+>> +			return -EINVAL;
+>> +		error = put_user(me->signal->predump_signal,
+>> +				 (int __user *)arg2);
+> 
+> To me it would be better to simply return ->predump_signal, iow
+> 
+> 		error = me->signal->predump_signal;
+> 		break;
+> 
+> but I won't insist, this is subjective and cosmetic.
+
+Vast majority of system calls returns 0 or -1. So does PR_GET_PDEATHSIG.
+I would like to keep them consistent.
+
+Thanks again.
+
+-- Enke
