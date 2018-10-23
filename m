@@ -1,85 +1,81 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Tue, 23 Oct 2018 14:40:10 -0700
-Message-ID: <a7cd5312-f743-cf57-7945-c2964026f652@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <20181023092348.GA14340@redhat.com>
- <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
+From: Florian Fainelli <f.fainelli@gmail.com>
+Subject: [PATCH 0/2] arm64: Cut rebuild time when changing
+ CONFIG_BLK_DEV_INITRD
+Date: Tue, 23 Oct 2018 16:40:41 -0700
+Message-ID: <20181023234044.1138-1-f.fainelli@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: linux-kernel@vger.kernel.org
+Cc: "open list:MIPS" <linux-mips@linux-mips.org>, Alan Kao <alankao@andestech.com>, "open list:SUPERH" <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, Marc Zyngier <marc.zyngier@arm.com>, "open list:USER-MODE LINUX UML" <linux-um@lists.infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>, Matt Redfearn <matt.redfearn@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Oleg:
+Hi all,
 
-On 10/23/18 12:43 PM, Enke Chen wrote:
+While investigating why ARM64 required a ton of objects to be rebuilt
+when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
+because we define __early_init_dt_declare_initrd() differently and we do
+that in arch/arm64/include/asm/memory.h which gets included by a fair
+amount of other header files, and translation units as well.
 
->>
->>> --- a/fs/coredump.c
->>> +++ b/fs/coredump.c
->>> @@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->>>  	struct cred *cred;
->>>  	int retval = 0;
->>>  	int ispipe;
->>> +	bool notify;
->>>  	struct files_struct *displaced;
->>>  	/* require nonrelative corefile path and be extra careful */
->>>  	bool need_suid_safe = false;
->>> @@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->>>  	if (retval < 0)
->>>  		goto fail_creds;
->>>
->>> +	/*
->>> +	 * Send the pre-coredump signal to the parent if requested.
->>> +	 */
->>> +	read_lock(&tasklist_lock);
->>> +	notify = do_notify_parent_predump(current);
->>> +	read_unlock(&tasklist_lock);
->>> +	if (notify)
->>> +		cond_resched();
->>
->> Hmm. I do not understand why do we need cond_resched(). And even if we need it,
->> why we can't call it unconditionally?
-> 
-> Remember the goal is to allow the parent (e.g., a process manager) to take early
-> action. The "yield" before doing coredump will help.
-> 
-> The yield is made conditional because the notification is conditional.
-> Is that ok?
+This patch series proposes adding an empty initrd.h to satisfy the need
+for drivers/of/fdt.c to unconditionally include that file, and moves the
+custom __early_init_dt_declare_initrd() definition away from
+asm/memory.h
 
-Given this is in do_coredump(), it is ok to make it unconditional for simplicity.
+This cuts the number of objects rebuilds from 1920 down to 26, so a
+factor 73 approximately.
 
->>
->>> +bool do_notify_parent_predump(struct task_struct *tsk)
->>> +{
->>> +	struct sighand_struct *sighand;
->>> +	struct kernel_siginfo info;
->>> +	struct task_struct *parent;
->>> +	unsigned long flags;
->>> +	pid_t pid;
->>> +	int sig;
->>> +
->>> +	parent = tsk->parent;
->>> +	sighand = parent->sighand;
->>> +	pid = task_tgid_vnr(tsk);
->>> +
->>> +	spin_lock_irqsave(&sighand->siglock, flags);
->>> +	sig = parent->signal->predump_signal;
->>> +	if (!valid_predump_signal(sig)) {
->>> +		spin_unlock_irqrestore(&sighand->siglock, flags);
->>> +		return false;
->>> +	}
->>
->> Why do we need to check parent->signal->predump_signal under ->siglock?
->> This complicates the code for no reason, afaics.
+Apologies for the long CC list, please let me know how you would go
+about merging that and if another approach would be preferable, e.g:
+introducing a CONFIG_ARCH_INITRD_BELOW_START_OK Kconfig option or
+something like that.
 
-Will simplify.
+Florian Fainelli (2):
+  arch: Add asm-generic/initrd.h and make use of it for most
+    architectures
+  arm64: Create asm/initrd.h
 
-Thanks.  -- Enke
+ arch/alpha/include/asm/Kbuild      |  1 +
+ arch/arc/include/asm/Kbuild        |  1 +
+ arch/arm/include/asm/Kbuild        |  1 +
+ arch/arm64/include/asm/initrd.h    | 13 +++++++++++++
+ arch/arm64/include/asm/memory.h    |  8 --------
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/ia64/include/asm/Kbuild       |  1 +
+ arch/m68k/include/asm/Kbuild       |  1 +
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/mips/include/asm/Kbuild       |  1 +
+ arch/nds32/include/asm/Kbuild      |  1 +
+ arch/nios2/include/asm/Kbuild      |  1 +
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/parisc/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild    |  1 +
+ arch/riscv/include/asm/Kbuild      |  1 +
+ arch/s390/include/asm/Kbuild       |  1 +
+ arch/sh/include/asm/Kbuild         |  1 +
+ arch/sparc/include/asm/Kbuild      |  1 +
+ arch/um/include/asm/Kbuild         |  1 +
+ arch/unicore32/include/asm/Kbuild  |  1 +
+ arch/x86/include/asm/Kbuild        |  1 +
+ arch/xtensa/include/asm/Kbuild     |  1 +
+ drivers/of/fdt.c                   |  1 +
+ include/asm-generic/initrd.h       |  1 +
+ 27 files changed, 38 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm64/include/asm/initrd.h
+ create mode 100644 include/asm-generic/initrd.h
+
+-- 
+2.17.1
