@@ -1,122 +1,85 @@
-From: Igor Stoppa <igor.stoppa@gmail.com>
-Subject: [PATCH 16/17] prmem: pratomic-long
-Date: Wed, 24 Oct 2018 00:35:03 +0300
-Message-ID: <20181023213504.28905-17-igor.stoppa@huawei.com>
-References: <20181023213504.28905-1-igor.stoppa@huawei.com>
-Reply-To: Igor Stoppa <igor.stoppa@gmail.com>
+From: Enke Chen <enkechen@cisco.com>
+Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
+Date: Tue, 23 Oct 2018 14:40:10 -0700
+Message-ID: <a7cd5312-f743-cf57-7945-c2964026f652@cisco.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+ <20181023092348.GA14340@redhat.com>
+ <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181023213504.28905-1-igor.stoppa@huawei.com>
+In-Reply-To: <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org
-Cc: igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
 List-Id: linux-arch.vger.kernel.org
 
-Minimalistic functionality for having the write rare version of
-atomic_long_t data.
+Hi, Oleg:
 
-Signed-off-by: Igor Stoppa <igor.stoppa@huawei.com>
-CC: Will Deacon <will.deacon@arm.com>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Arnd Bergmann <arnd@arndb.de>
-CC: linux-arch@vger.kernel.org
-CC: linux-kernel@vger.kernel.org
----
- MAINTAINERS                   |  1 +
- include/linux/pratomic-long.h | 73 +++++++++++++++++++++++++++++++++++
- 2 files changed, 74 insertions(+)
- create mode 100644 include/linux/pratomic-long.h
+On 10/23/18 12:43 PM, Enke Chen wrote:
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index e7f7cb1682a6..9d72688d00a3 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9466,6 +9466,7 @@ F:	mm/test_pmalloc.c
- F:	Documentation/core-api/prmem.rst
- F:	include/linux/prlist.h
- F:	lib/test_prlist.c
-+F:	include/linux/pratomic-long.h
- 
- MEMORY MANAGEMENT
- L:	linux-mm@kvack.org
-diff --git a/include/linux/pratomic-long.h b/include/linux/pratomic-long.h
-new file mode 100644
-index 000000000000..8f1408593733
---- /dev/null
-+++ b/include/linux/pratomic-long.h
-@@ -0,0 +1,73 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/* Atomic operations for write rare memory */
-+#ifndef _LINUX_PRATOMIC_LONG_H
-+#define _LINUX_PRATOMIC_LONG_H
-+#include <linux/prmem.h>
-+#include <linux/compiler.h>
-+#include <asm-generic/atomic-long.h>
-+
-+struct pratomic_long_t {
-+	atomic_long_t l __aligned(sizeof(atomic_long_t));
-+} __aligned(sizeof(atomic_long_t));
-+
-+#define PRATOMIC_LONG_INIT(i)	{	\
-+	.l = ATOMIC_LONG_INIT((i)),	\
-+}
-+
-+static __always_inline
-+bool __pratomic_long_op(bool inc, struct pratomic_long_t *l)
-+{
-+	struct page *page;
-+	uintptr_t base;
-+	uintptr_t offset;
-+	unsigned long flags;
-+	size_t size = sizeof(*l);
-+	bool is_virt = __is_wr_after_init(l, size);
-+
-+	if (WARN(!(is_virt || likely(__is_wr_pool(l, size))),
-+		 WR_ERR_RANGE_MSG))
-+		return false;
-+	local_irq_save(flags);
-+	if (is_virt)
-+		page = virt_to_page(l);
-+	else
-+		vmalloc_to_page(l);
-+	offset = (~PAGE_MASK) & (uintptr_t)l;
-+	base = (uintptr_t)vmap(&page, 1, VM_MAP, PAGE_KERNEL);
-+	if (WARN(!base, WR_ERR_PAGE_MSG)) {
-+		local_irq_restore(flags);
-+		return false;
-+	}
-+	if (inc)
-+		atomic_long_inc((atomic_long_t *)(base + offset));
-+	else
-+		atomic_long_dec((atomic_long_t *)(base + offset));
-+	vunmap((void *)base);
-+	local_irq_restore(flags);
-+	return true;
-+
-+}
-+
-+/**
-+ * pratomic_long_inc - atomic increment of rare write long
-+ * @l: address of the variable of type struct pratomic_long_t
-+ *
-+ * Return: true on success, false otherwise
-+ */
-+static __always_inline bool pratomic_long_inc(struct pratomic_long_t *l)
-+{
-+	return __pratomic_long_op(true, l);
-+}
-+
-+/**
-+ * pratomic_long_inc - atomic decrement of rare write long
-+ * @l: address of the variable of type struct pratomic_long_t
-+ *
-+ * Return: true on success, false otherwise
-+ */
-+static __always_inline bool pratomic_long_dec(struct pratomic_long_t *l)
-+{
-+	return __pratomic_long_op(false, l);
-+}
-+
-+#endif
--- 
-2.17.1
+>>
+>>> --- a/fs/coredump.c
+>>> +++ b/fs/coredump.c
+>>> @@ -546,6 +546,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
+>>>  	struct cred *cred;
+>>>  	int retval = 0;
+>>>  	int ispipe;
+>>> +	bool notify;
+>>>  	struct files_struct *displaced;
+>>>  	/* require nonrelative corefile path and be extra careful */
+>>>  	bool need_suid_safe = false;
+>>> @@ -590,6 +591,15 @@ void do_coredump(const kernel_siginfo_t *siginfo)
+>>>  	if (retval < 0)
+>>>  		goto fail_creds;
+>>>
+>>> +	/*
+>>> +	 * Send the pre-coredump signal to the parent if requested.
+>>> +	 */
+>>> +	read_lock(&tasklist_lock);
+>>> +	notify = do_notify_parent_predump(current);
+>>> +	read_unlock(&tasklist_lock);
+>>> +	if (notify)
+>>> +		cond_resched();
+>>
+>> Hmm. I do not understand why do we need cond_resched(). And even if we need it,
+>> why we can't call it unconditionally?
+> 
+> Remember the goal is to allow the parent (e.g., a process manager) to take early
+> action. The "yield" before doing coredump will help.
+> 
+> The yield is made conditional because the notification is conditional.
+> Is that ok?
+
+Given this is in do_coredump(), it is ok to make it unconditional for simplicity.
+
+>>
+>>> +bool do_notify_parent_predump(struct task_struct *tsk)
+>>> +{
+>>> +	struct sighand_struct *sighand;
+>>> +	struct kernel_siginfo info;
+>>> +	struct task_struct *parent;
+>>> +	unsigned long flags;
+>>> +	pid_t pid;
+>>> +	int sig;
+>>> +
+>>> +	parent = tsk->parent;
+>>> +	sighand = parent->sighand;
+>>> +	pid = task_tgid_vnr(tsk);
+>>> +
+>>> +	spin_lock_irqsave(&sighand->siglock, flags);
+>>> +	sig = parent->signal->predump_signal;
+>>> +	if (!valid_predump_signal(sig)) {
+>>> +		spin_unlock_irqrestore(&sighand->siglock, flags);
+>>> +		return false;
+>>> +	}
+>>
+>> Why do we need to check parent->signal->predump_signal under ->siglock?
+>> This complicates the code for no reason, afaics.
+
+Will simplify.
+
+Thanks.  -- Enke
