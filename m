@@ -1,76 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f194.google.com ([209.85.219.194]:46555 "EHLO
-        mail-yb1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727829AbeJXDPC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2018 23:15:02 -0400
-Received: by mail-yb1-f194.google.com with SMTP id o8-v6so1002486ybk.13
-        for <linux-arch@vger.kernel.org>; Tue, 23 Oct 2018 11:50:25 -0700 (PDT)
-Received: from mail-yw1-f49.google.com (mail-yw1-f49.google.com. [209.85.161.49])
-        by smtp.gmail.com with ESMTPSA id e206-v6sm526862ywc.8.2018.10.23.11.50.22
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Tue, 23 Oct 2018 11:50:23 -0700 (PDT)
-Received: by mail-yw1-f49.google.com with SMTP id j75-v6so986474ywj.10
-        for <linux-arch@vger.kernel.org>; Tue, 23 Oct 2018 11:50:22 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
-References: <20181011001846.30964-1-keescook@chromium.org> <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
+Received: from sonic313-26.consmr.mail.gq1.yahoo.com ([98.137.65.89]:46513
+        "EHLO sonic313-26.consmr.mail.gq1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728608AbeJXDaA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Oct 2018 23:30:00 -0400
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+References: <20181011001846.30964-1-keescook@chromium.org>
+ <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
  <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
  <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
- <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com> <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
- <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com> <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
- <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com> <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
+ <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
+ <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
+ <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
+ <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
+ <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com>
+ <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
  <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Tue, 23 Oct 2018 11:50:21 -0700
-Message-ID: <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-Content-Type: text/plain; charset="UTF-8"
+ <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <63410d08-d0d1-8cd9-5d9e-70d95a1a8ca0@schaufler-ca.com>
+Date: Tue, 23 Oct 2018 12:05:14 -0700
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Casey Schaufler <casey@schaufler-ca.com>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181023185021.sW80IVNrKmmdLlXEdBn6ubVVN7jC63AP1ZkbRUpY4kg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Casey Schaufler <casey@schaufler-ca.com>
 
-On Tue, Oct 23, 2018 at 9:48 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
-> On 10/12/2018 12:01 PM, Kees Cook wrote:
->> On Friday, October 12, 2018 3:19 AM, John Johansen
->> <john.johansen@canonical.com> wrote:
->>> It isn't perfect but it manages consistency across distros as best as
->>> can be achieved atm.
->> Yeah, this is why I'm okay with the current series: it provides as
->> consistent a view as possible, but leaves room for future improvements
->> (like adding "+" or "!" or "all" or whatever).
+On 10/23/2018 11:50 AM, Kees Cook wrote:
+> On Tue, Oct 23, 2018 at 9:48 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+>> On 10/12/2018 12:01 PM, Kees Cook wrote:
+>>> On Friday, October 12, 2018 3:19 AM, John Johansen
+>>> <john.johansen@canonical.com> wrote:
+>>>> It isn't perfect but it manages consistency across distros as best as
+>>>> can be achieved atm.
+>>> Yeah, this is why I'm okay with the current series: it provides as
+>>> consistent a view as possible, but leaves room for future improvements
+>>> (like adding "+" or "!" or "all" or whatever).
+>>>
+>>> I'm curious to see what SELinux folks think of v5, though. I *think* I
+>>> addressed all the concerns there, even Paul's "I want my distro
+>>> default to not have extreme stacking" case too.
+>>>
+>>> -Kees
+>> Looks like I should go on vacation more often. :)
 >>
->> I'm curious to see what SELinux folks think of v5, though. I *think* I
->> addressed all the concerns there, even Paul's "I want my distro
->> default to not have extreme stacking" case too.
+>> I am generally opposed to fancy specification languages.
+>> I support the explicit lsm= list specification because you
+>> don't have to know any context to create a boot line that
+>> will work, and be as close to what you've specified as possible
+>> for the kernel configuration. One need look no further than
+>> the mechanisms for setting POSIX ACLs for an example of
+>> how to ensure a feature isn't used.
 >>
->> -Kees
->
-> Looks like I should go on vacation more often. :)
->
-> I am generally opposed to fancy specification languages.
-> I support the explicit lsm= list specification because you
-> don't have to know any context to create a boot line that
-> will work, and be as close to what you've specified as possible
-> for the kernel configuration. One need look no further than
-> the mechanisms for setting POSIX ACLs for an example of
-> how to ensure a feature isn't used.
->
-> Had we the foresight to make security= take a list of
-> modules when Yama was added we might have avoided some of
-> this brouhaha, but there was no reason to expect that stacking
-> was ever going to happen back then.
+>> Had we the foresight to make security= take a list of
+>> modules when Yama was added we might have avoided some of
+>> this brouhaha, but there was no reason to expect that stacking
+>> was ever going to happen back then.
+> This sounds like an "Ack" for you? :) I'll harass everyone in person
+> in a couple days.
 
-This sounds like an "Ack" for you? :) I'll harass everyone in person
-in a couple days.
+Acked-by: Casey Schaufler <casey@schaufler-ca.com>
 
-Did you poke around at my combined series?
-https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
+> Did you poke around at my combined series?
+> https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
 
--Kees
+I hope to do that on the plane later today.
 
--- 
-Kees Cook
-Pixel Security
+> -Kees
