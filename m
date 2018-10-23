@@ -1,43 +1,28 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RESEND PATCH v3 3/3] sh: add the sh_ prefix to early platform symbols
-Date: Tue, 23 Oct 2018 13:32:16 +0200
-Message-ID: <CAMuHMdWPPr56j3z4-eamtavt7cZ2jkKyE3W5_XiK1HNim8qXBg@mail.gmail.com>
-References: <20180827090651.25062-1-brgl@bgdev.pl> <20180827090651.25062-4-brgl@bgdev.pl>
- <8636swude1.wl-marc.zyngier@arm.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2 1/7] modules: Create rlimit for module space
+Date: Tue, 23 Oct 2018 13:32:34 +0200
+Message-ID: <20181023113234.GH32333@dhcp22.suse.cz>
+References: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
+ <20181011233117.7883-2-rick.p.edgecombe@intel.com>
+ <CAG48ez2fWg64nGxDXUQS3695KpVNrakAbarXJnYPd6xv5wOD+A@mail.gmail.com>
+ <7b0714e26c7c2216721641d7df16a49687927e37.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8636swude1.wl-marc.zyngier@arm.com>
+Content-Disposition: inline
+In-Reply-To: <7b0714e26c7c2216721641d7df16a49687927e37.camel@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Bartosz Golaszewski <brgl@bgdev.pl>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg KH <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frow>
+To: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Cc: "jannh@google.com" <jannh@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "daniel@iogearbox.net" <daniel@iogearbox.net>, "keescook@chromium.org" <keescook@chromium.org>, "jeyu@kernel.org" <jeyu@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arjan@linux.intel.com" <arjan@linux.intel.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "kristen@linux.intel.com" <kristen@linux.intel.com>, "Dock, Deneen T" <deneen.t.dock@intel.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mingo@redhat.com" <mingo@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Marc,
+On Fri 12-10-18 17:04:46, Edgecombe, Rick P wrote:
+[...]
+> Any thoughts on if instead of all this there was just a system wide limit on BPF
+> JIT module space usage?
 
-On Tue, Oct 23, 2018 at 1:11 PM Marc Zyngier <marc.zyngier@arm.com> wrote:
-> On Mon, 27 Aug 2018 10:06:51 +0100,
-> Bartosz Golaszewski <brgl@bgdev.pl> wrote:
-> As for the whole "early device" debate, my take is that we'd be much
-> better off making the device model available early, rather than trying
-> to architect something that is simply papering over the issue.
-
-The device model itself can be made available earlier, but the big blocker
-is mainly the use of everything related to the scheduler (threads, msleep()),
-which depends on the "early" timer.
-
-I think it can be made to work if msleep() and all thread-related functions
-would return -EPROBE_DEFER, but that should be handled in every
-single driver, which may be already the case for thread-related functions,
-but not for e.g. msleep(), which currently returns void.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
+We do allow to charge vmalloc memory to a memory cgroup. Isn't that a
+way forward?
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Michal Hocko
+SUSE Labs
