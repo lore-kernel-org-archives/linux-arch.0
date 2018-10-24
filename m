@@ -1,459 +1,80 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: [PATCH v3] kernel/signal: Signal-based pre-coredump notification
-Date: Tue, 23 Oct 2018 22:39:34 -0700
-Message-ID: <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH V9 21/21] csky: support dword access for get_user_size()
+Date: Wed, 24 Oct 2018 08:17:47 +0100
+Message-ID: <CAK8P3a28SLy85pCq9eS-xnLuFo4XAJmnKCiy0XF9ZZtLxfaUDw@mail.gmail.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com> <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
+ <CAK8P3a1wfeWboHvU1o_kooMc2hML8iWcNrz=mp6tYT52iGwfjw@mail.gmail.com>
+ <20181018034117.GD15088@guoren-Inspiron-7460> <CAK8P3a0cFhBE1tX0xisP__MYiBfaAUQHsW6ZhkmTPocRf1Zb6w@mail.gmail.com>
+ <20181018085751.GA21934@guoren-Inspiron-7460>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
-Content-Language: en-US
+In-Reply-To: <20181018085751.GA21934@guoren-Inspiron-7460>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-For simplicity and consistency, this patch provides an implementation
-for signal-based fault notification prior to the coredump of a child
-process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-be used by an application to express its interest and to specify the
-signal for such a notification. A new signal code CLD_PREDUMP is also
-defined for SIGCHLD.
+On Thu, Oct 18, 2018 at 9:57 AM Guo Ren <ren_guo@c-sky.com> wrote:
+>
+> On Thu, Oct 18, 2018 at 10:34:00AM +0200, Arnd Bergmann wrote:
+> > On Thu, Oct 18, 2018 at 5:41 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> > >
+> > > On Wed, Oct 17, 2018 at 05:44:17PM +0200, Arnd Bergmann wrote:
+> > > > On Tue, Oct 16, 2018 at 5:33 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> > > > >
+> > > > > Support dword access for get_user_size and redesign put_user_size with
+> > > > > the same style of get_user_size. It's Ok to use xxx_user_asm_common for
+> > > > > all size of variable with ldb, ldh, ldw, ld.d
+> > > > >
+> > > > > ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
+> > > > > follow abiv2 gcc ABI for dword access.
+> > > >
+> > > > Are you sure this is correct for this?
+> > > >
+> > > > static inline u32 get_64_to_32(__u64 __user *p)
+> > > > {
+> > > >       u32 ret;
+> > > >       get_user(ret, p);
+> > > >       return ret;
+> > > > }
+> > > >
+> > > > If I read __get_user_asm_common() right, the ld.d would overwrite
+> > > > two registers, but the caller only expects one, so it clobbers one
+> > > > that might be in use.
+> > > Ah... BUG! I only consider the get_user(u64, u64 *) :P
+> > >
+> > > Change to:
+> > > case 8:                                                 \
+> > > __get_user_asm_dword((x), ptr, "ld.d", retval);         \
+> > > break;
+> > >
+> > > #define __get_user_asm_dword(x, ptr, err)               \
+> > > do {                                                    \
+> > >         u64 tmp;                                        \
+> > >         __get_user_asm_common(tmp, ptr, "ld.d", err);   \
+> > >         x = typeof(x) tmp;                              \
+> > > } while(0)
+> > >
+> > > #define __put_user_asm_dword(x, ptr, err)               \
+> > > do {                                                    \
+> > >         u64 tmp = (u64) x;                              \
+> > >         __put_user_asm_common(tmp, ptr, "st.d", err);   \
+> > > } while(0)
+> > >
+> >
+> > I think this will cause warnings for code that passes a pointer.
+> >
+> > The 64-bit __get_user() is really hard, and most 32-bit architectures don't
+> > implement it at all. If you really want to add it, have a look at what
+> > x86 and arm do. IIRC they both use __builtin_choose_expr(),
+> Thx for the tips and I'll drop the patch first for the upstream.
+>
+> I want to implement it because of make allmodconfig and
+> drivers/android/binder.c need it. I'll learn __builtin_choose_expr()
+> and prepare patch next.
 
-Changes to prctl(2):
+I think we should fix binder.c instead. Many other architectures
+have the same problem.
 
-   PR_SET_PREDUMP_SIG (since Linux 4.20.x)
-          Set the child pre-coredump signal of the calling process to
-          arg2 (either a signal value in the range 1..maxsig, or 0 to
-          clear). This is the signal that the calling process will get
-          prior to the coredump of a child process. This value is
-          cleared across execve(2), or for the child of a fork(2).
-
-          When SIGCHLD is specified, the signal code will be set to
-          CLD_PREDUMP in such an SIGCHLD signal.
-
-   PR_GET_PREDUMP_SIG (since Linux 4.20.x)
-          Return the current value of the child pre-coredump signal,
-          in the location pointed to by (int *) arg2.
-
-Background:
-
-As the coredump of a process may take time, in certain time-sensitive
-applications it is necessary for a parent process (e.g., a process
-manager) to be notified of a child's imminent death before the coredump
-so that the parent process can act sooner, such as re-spawning an
-application process, or initiating a control-plane fail-over.
-
-Currently there are two ways for a parent process to be notified of a
-child process's state change. One is to use the POSIX signal, and
-another is to use the kernel connector module. The specific events and
-actions are summarized as follows:
-
-Process Event    POSIX Signal                Connector-based
-----------------------------------------------------------------------
-ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
-                 SIGCHLD / CLD_STOPPED
-
-ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
-                 SIGCHLD / CLD_CONTINUED
-
-pre_coredump/    N/A                         proc_coredump_connector()
-get_signal()
-
-post_coredump/   do_notify_parent()          proc_exit_connector()
-do_exit()        SIGCHLD / exit_signal
-----------------------------------------------------------------------
-
-As shown in the table, the signal-based pre-coredump notification is not
-currently available. In some cases using a connector-based notification
-can be quite complicated (e.g., when a process manager is written in shell
-scripts and thus is subject to certain inherent limitations), and a
-signal-based notification would be simpler and better suited.
-
-Signed-off-by: Enke Chen <enkechen@cisco.com>
----
-v2 -> v3:
-
-Addressed review comments from Oleg Nesterov, including:
-o remove the restriction on signal for PR_SET_PREDUMP_SIG.
-o code simplification
-
- arch/x86/kernel/signal_compat.c                  |   2 +-
- fs/coredump.c                                    |   6 +
- fs/exec.c                                        |   3 +
- include/linux/sched/signal.h                     |   4 +
- include/uapi/asm-generic/siginfo.h               |   3 +-
- include/uapi/linux/prctl.h                       |   4 +
- kernel/fork.c                                    |   3 +
- kernel/signal.c                                  |  31 +++++
- kernel/sys.c                                     |  13 ++
- tools/testing/selftests/prctl/Makefile           |   2 +-
- tools/testing/selftests/prctl/predump-sig-test.c | 169 +++++++++++++++++++++++
- 11 files changed, 237 insertions(+), 3 deletions(-)
- create mode 100644 tools/testing/selftests/prctl/predump-sig-test.c
-
-diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-index 9ccbf05..a3deba8 100644
---- a/arch/x86/kernel/signal_compat.c
-+++ b/arch/x86/kernel/signal_compat.c
-@@ -30,7 +30,7 @@ static inline void signal_compat_build_tests(void)
- 	BUILD_BUG_ON(NSIGSEGV != 7);
- 	BUILD_BUG_ON(NSIGBUS  != 5);
- 	BUILD_BUG_ON(NSIGTRAP != 5);
--	BUILD_BUG_ON(NSIGCHLD != 6);
-+	BUILD_BUG_ON(NSIGCHLD != 7);
- 	BUILD_BUG_ON(NSIGSYS  != 1);
- 
- 	/* This is part of the ABI and can never change in size: */
-diff --git a/fs/coredump.c b/fs/coredump.c
-index e42e17e..d6ca1a3 100644
---- a/fs/coredump.c
-+++ b/fs/coredump.c
-@@ -590,6 +590,12 @@ void do_coredump(const kernel_siginfo_t *siginfo)
- 	if (retval < 0)
- 		goto fail_creds;
- 
-+	/*
-+	 * Send the pre-coredump signal to the parent if requested.
-+	 */
-+	do_notify_parent_predump();
-+	cond_resched();
-+
- 	old_cred = override_creds(cred);
- 
- 	ispipe = format_corename(&cn, &cprm);
-diff --git a/fs/exec.c b/fs/exec.c
-index fc281b7..7714da7 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1181,6 +1181,9 @@ static int de_thread(struct task_struct *tsk)
- 	/* we have changed execution domain */
- 	tsk->exit_signal = SIGCHLD;
- 
-+	/* Clear the pre-coredump signal before loading a new binary */
-+	sig->predump_signal = 0;
-+
- #ifdef CONFIG_POSIX_TIMERS
- 	exit_itimers(sig);
- 	flush_itimer_signals();
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 13789d1..132ce08 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -112,6 +112,9 @@ struct signal_struct {
- 	int			group_stop_count;
- 	unsigned int		flags; /* see SIGNAL_* flags below */
- 
-+	/* The signal sent prior to a child's coredump */
-+	int			predump_signal;
-+
- 	/*
- 	 * PR_SET_CHILD_SUBREAPER marks a process, like a service
- 	 * manager, to re-parent orphan (double-forking) child processes
-@@ -332,6 +335,7 @@ extern int kill_pid_info_as_cred(int, struct kernel_siginfo *, struct pid *,
- extern int kill_pgrp(struct pid *pid, int sig, int priv);
- extern int kill_pid(struct pid *pid, int sig, int priv);
- extern __must_check bool do_notify_parent(struct task_struct *, int);
-+extern void do_notify_parent_predump(void);
- extern void __wake_up_parent(struct task_struct *p, struct task_struct *parent);
- extern void force_sig(int, struct task_struct *);
- extern int send_sig(int, struct task_struct *, int);
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cb3d6c2..1a47cef 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -267,7 +267,8 @@ struct {				\
- #define CLD_TRAPPED	4	/* traced child has trapped */
- #define CLD_STOPPED	5	/* child has stopped */
- #define CLD_CONTINUED	6	/* stopped child has continued */
--#define NSIGCHLD	6
-+#define CLD_PREDUMP	7	/* child is about to dump core */
-+#define NSIGCHLD	7
- 
- /*
-  * SIGPOLL (or any other signal without signal specific si_codes) si_codes
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index c0d7ea0..79f0a8a 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -219,4 +219,8 @@ struct prctl_mm_map {
- # define PR_SPEC_DISABLE		(1UL << 2)
- # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
- 
-+/* Whether to receive signal prior to child's coredump */
-+#define PR_SET_PREDUMP_SIG	54
-+#define PR_GET_PREDUMP_SIG	55
-+
- #endif /* _LINUX_PRCTL_H */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 07cddff..8e30a00 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1553,6 +1553,9 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
- 	tty_audit_fork(sig);
- 	sched_autogroup_fork(sig);
- 
-+	/* Clear the pre-coredump signal for the child */
-+	sig->predump_signal = 0;
-+
- 	sig->oom_score_adj = current->signal->oom_score_adj;
- 	sig->oom_score_adj_min = current->signal->oom_score_adj_min;
- 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index 9a32bc2..904ad8a 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1855,6 +1855,37 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
- 	return autoreap;
- }
- 
-+/*
-+ * While do_notify_parent() notifies the parent of a child's death post
-+ * its coredump, this function lets the parent (if so desired) know about
-+ * the imminent death of a child just prior to its coredump.
-+ */
-+void do_notify_parent_predump(void)
-+{
-+	struct sighand_struct *sighand;
-+	struct kernel_siginfo info;
-+	struct task_struct *parent;
-+	unsigned long flags;
-+	int sig;
-+
-+	read_lock(&tasklist_lock);
-+	parent = current->parent;
-+	sig = parent->signal->predump_signal;
-+	if (sig != 0) {
-+		clear_siginfo(&info);
-+		info.si_pid = task_tgid_vnr(current);
-+		info.si_signo = sig;
-+		if (sig == SIGCHLD)
-+			info.si_code = CLD_PREDUMP;
-+
-+		sighand = parent->sighand;
-+		spin_lock_irqsave(&sighand->siglock, flags);
-+		__group_send_sig_info(sig, &info, parent);
-+		spin_unlock_irqrestore(&sighand->siglock, flags);
-+	}
-+	read_unlock(&tasklist_lock);
-+}
-+
- /**
-  * do_notify_parent_cldstop - notify parent of stopped/continued state change
-  * @tsk: task reporting the state change
-diff --git a/kernel/sys.c b/kernel/sys.c
-index 123bd73..39aa3b8 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -2476,6 +2476,19 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
- 			return -EINVAL;
- 		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
- 		break;
-+	case PR_SET_PREDUMP_SIG:
-+		if (arg3 || arg4 || arg5)
-+			return -EINVAL;
-+		if (!valid_signal((int)arg2))
-+			return -EINVAL;
-+		me->signal->predump_signal = (int)arg2;
-+		break;
-+	case PR_GET_PREDUMP_SIG:
-+		if (arg3 || arg4 || arg5)
-+			return -EINVAL;
-+		error = put_user(me->signal->predump_signal,
-+				 (int __user *)arg2);
-+		break;
- 	default:
- 		error = -EINVAL;
- 		break;
-diff --git a/tools/testing/selftests/prctl/Makefile b/tools/testing/selftests/prctl/Makefile
-index c7923b2..f8d60d5 100644
---- a/tools/testing/selftests/prctl/Makefile
-+++ b/tools/testing/selftests/prctl/Makefile
-@@ -5,7 +5,7 @@ ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
- 
- ifeq ($(ARCH),x86)
- TEST_PROGS := disable-tsc-ctxt-sw-stress-test disable-tsc-on-off-stress-test \
--		disable-tsc-test
-+		disable-tsc-test predump-sig-test
- all: $(TEST_PROGS)
- 
- include ../lib.mk
-diff --git a/tools/testing/selftests/prctl/predump-sig-test.c b/tools/testing/selftests/prctl/predump-sig-test.c
-new file mode 100644
-index 0000000..1b93521
---- /dev/null
-+++ b/tools/testing/selftests/prctl/predump-sig-test.c
-@@ -0,0 +1,169 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2018, Enke Chen, Cisco Systems, Inc.
-+ *
-+ * Tests for prctl(PR_SET_PREDUMP_SIG, ...) / prctl(PR_GET_PREDUMP_SIG, ...)
-+ *
-+ * When set with prctl(), the specified signal is sent to the parent process
-+ * prior to the coredump of a child process.
-+ *
-+ * Usage: ./predump-sig-test {SIGUSR1 | SIGCHLD}
-+ */
-+
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <unistd.h>
-+#include <sys/prctl.h>
-+#include <signal.h>
-+#include <sys/signalfd.h>
-+#include <errno.h>
-+
-+#ifndef PR_SET_PREDUMP_SIG
-+#define PR_SET_PREDUMP_SIG	54
-+#define PR_GET_PREDUMP_SIG	55
-+#endif
-+
-+#ifndef CLD_PREDUMP
-+#define CLD_PREDUMP	7	/* child is about to dump core */
-+#endif
-+
-+#define handle_error(msg) \
-+	do { perror(msg); exit(EXIT_FAILURE); } while (0)
-+
-+static int test_prctl(int sig)
-+{
-+	int sig2, rc;
-+
-+	rc = prctl(PR_SET_PREDUMP_SIG, sig, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: setting");
-+
-+	rc = prctl(PR_GET_PREDUMP_SIG, &sig2, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: getting");
-+
-+	if (sig2 != sig) {
-+		printf("prctl: sig %d, post %d\n", sig, sig2);
-+		return -1;
-+	}
-+	return 0;
-+}
-+
-+static int sigfd;
-+static int predump_signal;
-+
-+static int init_signalfd(void)
-+{
-+	sigset_t mask;
-+	int sfd;
-+
-+	sigemptyset(&mask);
-+	sigaddset(&mask, SIGCHLD);
-+	if (predump_signal && (predump_signal != SIGCHLD))
-+		sigaddset(&mask, predump_signal);
-+
-+	/*
-+	 * Block signals so that they aren't handled according to their
-+	 * default dispositions.
-+	 */
-+	if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
-+		handle_error("sigprocmask");
-+
-+	sfd = signalfd(-1, &mask, SFD_CLOEXEC);
-+	if (sfd == -1)
-+		handle_error("signalfd");
-+
-+	return sfd;
-+}
-+
-+static void parent_fn(pid_t child_pid)
-+{
-+	struct signalfd_siginfo si;
-+	int count = 0;
-+	ssize_t s;
-+
-+	for (;;) {
-+		s = read(sigfd, &si, sizeof(struct signalfd_siginfo));
-+		if (s != sizeof(struct signalfd_siginfo))
-+			handle_error("read");
-+
-+		count++;
-+		printf("\nReceived signal: ssi_pid %ld, ssi_signo %d\n",
-+		       si.ssi_pid, si.ssi_signo);
-+		printf("siginfo: ssi_errno %d, ssi_code %d, ssi_status %d\n",
-+		       si.ssi_errno, si.ssi_code, si.ssi_status);
-+
-+		if (si.ssi_signo == SIGCHLD) {
-+			if (si.ssi_code == CLD_PREDUMP)
-+				printf("predump signal\n");
-+			else
-+				break;
-+		} else if (si.ssi_signo == predump_signal)
-+			printf("predump signal\n");
-+	}
-+
-+	printf("Test result: %s\n", (count == 2) ? "PASS" : "FAIL");
-+	fflush(stdout);
-+}
-+
-+static void child_fn(void)
-+{
-+	int rc, sig;
-+
-+	printf("\nChild pid: %ld\n", (long)getpid());
-+
-+	/* Test: Child should not inherit the predump_signal */
-+	rc = prctl(PR_GET_PREDUMP_SIG, &sig, 0, 0, 0);
-+	if (rc < 0)
-+		handle_error("prctl: child");
-+
-+	printf("child: predump_signal %d\n", sig);
-+
-+	/* Force coredump here */
-+	printf("child: calling abort()\n");
-+	fflush(stdout);
-+	abort();
-+}
-+
-+int main(int argc, char *argv[])
-+{
-+	pid_t child_pid;
-+	int rc;
-+
-+	if (argc != 2) {
-+		printf("invalid number of arguments\n");
-+		exit(EXIT_FAILURE);
-+	}
-+
-+	if (strcmp(argv[1], "SIGUSR1") == 0)
-+		predump_signal = SIGUSR1;
-+	else if (strcmp(argv[1], "SIGCHLD") == 0)
-+		predump_signal = SIGCHLD;
-+	else {
-+		printf("invalid argument for signal\n");
-+		fflush(stdout);
-+		exit(EXIT_FAILURE);
-+	}
-+
-+	/* Test: prctl() setting */
-+	rc = test_prctl(0);
-+	printf("prctl: sig %d %s\n", 0, (rc == 0) ? "PASS" : "FAIL");
-+	rc = test_prctl(predump_signal);
-+	printf("prctl: sig %d %s\n",
-+	       predump_signal, (rc == 0) ? "PASS" : "FAIL");
-+
-+	/* Init signalfd */
-+	sigfd = init_signalfd();
-+
-+	child_pid = fork();
-+	if (child_pid == -1)
-+		handle_error("fork");
-+
-+	if (child_pid == 0) {       /* Code executed by child */
-+		child_fn();
-+	} else {                    /* Code executed by parent */
-+		parent_fn(child_pid);
-+		exit(EXIT_SUCCESS);
-+	}
-+}
--- 
-1.8.3.1
+          Arnd
