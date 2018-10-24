@@ -1,79 +1,69 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v2 0/2] arm64: Cut rebuild time when changing CONFIG_BLK_DEV_INITRD
-Date: Wed, 24 Oct 2018 16:25:47 -0500
-Message-ID: <CAL_JsqKC6+8gobdk1uhMLLdMUHEO8D0c3m6+F_3y3NTU_KidOw@mail.gmail.com>
-References: <20181024193256.23734-1-f.fainelli@gmail.com> <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
- <6e647f76-8523-09d3-9b72-d8d8abd213a4@gmail.com>
+From: Enke Chen <enkechen@cisco.com>
+Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
+Date: Wed, 24 Oct 2018 14:56:12 -0700
+Message-ID: <d24eac49-f808-7d4d-f5fc-59ad2464fb73@cisco.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+ <20181023092348.GA14340@redhat.com>
+ <1e68a3ce-32cd-b058-3d1d-36455ceca848@cisco.com>
+ <20181024135212.GF30128@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6e647f76-8523-09d3-9b72-d8d8abd213a4@gmail.com>
+In-Reply-To: <20181024135212.GF30128@redhat.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Florian Fainelli <f.fainelli@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Olof Johansson <olof@lixom.net>, linux-alpha@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux-MIPS <linux-mips@linux-mips.org>, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@list>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 24, 2018 at 3:01 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
->
-> On 10/24/18 12:55 PM, Rob Herring wrote:
-> > On Wed, Oct 24, 2018 at 2:33 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
-> >>
-> >> Hi all,
-> >>
-> >> While investigating why ARM64 required a ton of objects to be rebuilt
-> >> when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
-> >> because we define __early_init_dt_declare_initrd() differently and we do
-> >> that in arch/arm64/include/asm/memory.h which gets included by a fair
-> >> amount of other header files, and translation units as well.
-> >
-> > I scratch my head sometimes as to why some config options rebuild so
-> > much stuff. One down, ? to go. :)
-> >
->
-> This one was by far the most invasive one due to its include chain, but
-> yes, there would be many more that could be optimized.
->
-> >> Changing the value of CONFIG_DEV_BLK_INITRD is a common thing with build
-> >> systems that generate two kernels: one with the initramfs and one
-> >> without. buildroot is one of these build systems, OpenWrt is also
-> >> another one that does this.
-> >>
-> >> This patch series proposes adding an empty initrd.h to satisfy the need
-> >> for drivers/of/fdt.c to unconditionally include that file, and moves the
-> >> custom __early_init_dt_declare_initrd() definition away from
-> >> asm/memory.h
-> >>
-> >> This cuts the number of objects rebuilds from 1920 down to 26, so a
-> >> factor 73 approximately.
-> >>
-> >> Apologies for the long CC list, please let me know how you would go
-> >> about merging that and if another approach would be preferable, e.g:
-> >> introducing a CONFIG_ARCH_INITRD_BELOW_START_OK Kconfig option or
-> >> something like that.
-> >
-> > There may be a better way as of 4.20 because bootmem is now gone and
-> > only memblock is used. This should unify what each arch needs to do
-> > with initrd early. We need the physical address early for memblock
-> > reserving. Then later on we need the virtual address to access the
-> > initrd. Perhaps we should just change initrd_start and initrd_end to
-> > physical addresses (or add 2 new variables would be less invasive and
-> > allow for different translation than __va()). The sanity checks and
-> > memblock reserve could also perhaps be moved to a common location.
-> >
-> > Alternatively, given arm64 is the only oddball, I'd be fine with an
-> > "if (IS_ENABLED(CONFIG_ARM64))" condition in the default
-> > __early_init_dt_declare_initrd as long as we have a path to removing
-> > it like the above option.
->
-> OK, let me cook a patch doing that and meanwhile I will look at how much
-> work is involved to implement the above option you outlined, which also
-> sounds entirely reasonable.
+Hi, Olge:
 
-BTW, I would suspect that initrd_below_start_ok being 1 is not okay
-for most arches. I'm not sure how that would work. min_low_pfn is
-typically based on the start of memory. arm64 is not even setting it.
+On 10/24/18 6:52 AM, Oleg Nesterov wrote:
+> On 10/23, Enke Chen wrote:
+>>
+>>>> +	/*
+>>>> +	 * Send the pre-coredump signal to the parent if requested.
+>>>> +	 */
+>>>> +	read_lock(&tasklist_lock);
+>>>> +	notify = do_notify_parent_predump(current);
+>>>> +	read_unlock(&tasklist_lock);
+>>>> +	if (notify)
+>>>> +		cond_resched();
+>>>
+>>> Hmm. I do not understand why do we need cond_resched(). And even if we need it,
+>>> why we can't call it unconditionally?
+>>
+>> Remember the goal is to allow the parent (e.g., a process manager) to take early
+>> action. The "yield" before doing coredump will help.
+> 
+> I don't see how can it actually help...
+> 
+> cond_resched() is nop if CONFIG_PREEMPT or should_resched() == 0.
+> 
+> and the coredumping thread will certainly need to sleep/wait anyway.
 
-Rob
+I am really surprised by this - cond_resched() is used in many places and it actually
+does not do anything w/o CONFIG_PREEMPT.
 
-> --
-> Florian
+Will remove.
+
+> 
+>>> And once again, SIGCHLD/SIGUSR do not queue, this means that PR_SET_PREDUMP_SIG
+>>> is pointless if you have 2 or more children.
+>>
+>> Hmm, could you point me to the code where SIGCHLD/SIGUSR is treated differently
+>> w.r.t. queuing?  That does not sound right to me.
+> 
+> see the legacy_queue() check. Any signal < SIGRTMIN do not queue. IOW, if SIGCHLD
+> is already pending, then next SIGCHLD is simply ignored.
+
+Got it. This means that a distinct signal (in particular a RT signal) would be more
+preferred. This is what it is done in our application. You earlier suggestion about
+removing the signal limitation makes a lot sense to me now.
+
+Given that a distinct signal is more preferred, I am wondering if I should just remove
+CLD_PREDUMP from the patch.
+
+Thanks.  -- Enke
