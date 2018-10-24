@@ -1,93 +1,77 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH v3] kernel/signal: Signal-based pre-coredump notification
-Date: Wed, 24 Oct 2018 15:02:29 -0700
-Message-ID: <b6908962-84e3-3791-e827-2f463bb50eb2@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <20181024140214.GG30128@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH V9 01/21] csky: Build infrastructure
+Date: Wed, 24 Oct 2018 23:53:05 +0100
+Message-ID: <CAK8P3a2coXVaaiZUcxsp8DmWcVdBrDMomYAN--M42TuSnHxKNA@mail.gmail.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com> <801add6d63256a3bf0802e2b03efb0f9c206dab0.1539655731.git.ren_guo@c-sky.com>
+ <20181023000834.GA20335@guoren-Inspiron-7460>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181024140214.GG30128@redhat.com>
-Content-Language: en-US
+In-Reply-To: <20181023000834.GA20335@guoren-Inspiron-7460>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Oleg:
+On Tue, Oct 23, 2018 at 1:08 AM Guo Ren <ren_guo@c-sky.com> wrote:
+>
+> Hi Arnd,
+>
+> Could you help me review the patch, seems the patch is skipped.
+> ref: https://lkml.org/lkml/2018/10/16/224
 
-On 10/24/18 7:02 AM, Oleg Nesterov wrote:
-> On 10/23, Enke Chen wrote:
->>
->> --- a/fs/coredump.c
->> +++ b/fs/coredump.c
->> @@ -590,6 +590,12 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->>  	if (retval < 0)
->>  		goto fail_creds;
->>
->> +	/*
->> +	 * Send the pre-coredump signal to the parent if requested.
->> +	 */
->> +	do_notify_parent_predump();
->> +	cond_resched();
-> 
-> I am still not sure cond_resched() makes any sense here...
-> 
->> @@ -1553,6 +1553,9 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
->>  	tty_audit_fork(sig);
->>  	sched_autogroup_fork(sig);
->>
->> +	/* Clear the pre-coredump signal for the child */
->> +	sig->predump_signal = 0;
-> 
-> No need, copy_signal() does zalloc().
-> 
+Ah right, I missed that. I think I originally had some thoughts on it but
+didn't immediately comment and then forgot about it. It's basically
+ok, so
 
-Removed.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-> 
->> +void do_notify_parent_predump(void)
->> +{
->> +	struct sighand_struct *sighand;
->> +	struct kernel_siginfo info;
->> +	struct task_struct *parent;
->> +	unsigned long flags;
->> +	int sig;
->> +
->> +	read_lock(&tasklist_lock);
->> +	parent = current->parent;
->> +	sig = parent->signal->predump_signal;
->> +	if (sig != 0) {
->> +		clear_siginfo(&info);
->> +		info.si_pid = task_tgid_vnr(current);
->> +		info.si_signo = sig;
->> +		if (sig == SIGCHLD)
->> +			info.si_code = CLD_PREDUMP;
->> +
->> +		sighand = parent->sighand;
->> +		spin_lock_irqsave(&sighand->siglock, flags);
->> +		__group_send_sig_info(sig, &info, parent);
->> +		spin_unlock_irqrestore(&sighand->siglock, flags);
-> 
-> You can just use do_send_sig_info() and remove sighand/flags/spin_lock_irqsave.
+but please have a look below for a follow-up patch:
 
-Ok.
+> > diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+> > new file mode 100644
+> > index 0000000..014eb57
+> > --- /dev/null
+> > +++ b/arch/csky/include/asm/Kbuild
+> > @@ -0,0 +1,72 @@
+> > +generic-y += asm-offsets.h
+> > +generic-y += bitsperlong.h
+> > +generic-y += bugs.h
+> > +generic-y += clkdev.h
+> > +generic-y += compat.h
+> > +generic-y += current.h
+> > +generic-y += delay.h
+> > +generic-y += device.h
+> > +generic-y += div64.h
+...
+> > +generic-y += errno.h
+...
+> > +generic-y += ioctl.h
+> > +generic-y += ioctls.h
 
-> 
-> Perhaps the "likely" predump_signal==0 check at the start makes sense to avoid
-> read_lock(tasklist).
+A number of the header files that are marked as generic-y in
+asm/Kbuild are also marked the same way in uapi/asm/Kbuild.
+I think this is a mistake, since we only need one of the two
+for each header.
 
-I am not sure if we should/need to deviate from the convention (locking before
-access the parent). In any case it may not matter as the coredump is in the
-exceptional code flow.
+When both exist, we just take the one from asm/, but then we install
+the uapi/asm/ version in the 'make headers_install' stage, and they
+both have the same contents, so I think you only need the uapi/asm/
+version here.
 
-> 
-> And I'd suggest to move it into coredump.c and make it static. It won't have
-> another user.
+> > diff --git a/arch/csky/include/uapi/asm/Kbuild b/arch/csky/include/uapi/asm/Kbuild
+> > new file mode 100644
+> > index 0000000..b65252b
+> > --- /dev/null
+> > +++ b/arch/csky/include/uapi/asm/Kbuild
+> > @@ -0,0 +1,33 @@
+> > +include include/uapi/asm-generic/Kbuild.asm
+> > +
+> > +header-y += cachectl.h
+> > +header-y += stat.h
 
-Ok.
+It also seems that the second statement here (for stat.h) is from
+an older version, since that header no longer exists, at least if
+I'm reading your patches correctly.
 
-Thanks.  -- Enke
+         Arnd
