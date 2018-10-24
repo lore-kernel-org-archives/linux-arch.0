@@ -1,80 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f67.google.com ([209.85.221.67]:45011 "EHLO
-        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726433AbeJYEbC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2018 00:31:02 -0400
-Subject: Re: [PATCH v2 0/2] arm64: Cut rebuild time when changing
- CONFIG_BLK_DEV_INITRD
-References: <20181024193256.23734-1-f.fainelli@gmail.com>
- <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
-From: Florian Fainelli <f.fainelli@gmail.com>
-Message-ID: <6e647f76-8523-09d3-9b72-d8d8abd213a4@gmail.com>
-Date: Wed, 24 Oct 2018 13:01:19 -0700
+Received: from mail-yb1-f193.google.com ([209.85.219.193]:40281 "EHLO
+        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725873AbeJYElt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2018 00:41:49 -0400
+Received: by mail-yb1-f193.google.com with SMTP id g9-v6so2691573ybh.7
+        for <linux-arch@vger.kernel.org>; Wed, 24 Oct 2018 13:12:20 -0700 (PDT)
+Received: from mail-yb1-f179.google.com (mail-yb1-f179.google.com. [209.85.219.179])
+        by smtp.gmail.com with ESMTPSA id l30-v6sm5957615ywa.104.2018.10.24.13.12.16
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 24 Oct 2018 13:12:17 -0700 (PDT)
+Received: by mail-yb1-f179.google.com with SMTP id p144-v6so2677050yba.11
+        for <linux-arch@vger.kernel.org>; Wed, 24 Oct 2018 13:12:16 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <33754ab5-5c7a-b174-0ad6-195323a169f1@schaufler-ca.com>
+References: <20181011001846.30964-1-keescook@chromium.org> <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
+ <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
+ <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+ <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com> <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
+ <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com> <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
+ <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com> <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
+ <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com> <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
+ <63410d08-d0d1-8cd9-5d9e-70d95a1a8ca0@schaufler-ca.com> <33754ab5-5c7a-b174-0ad6-195323a169f1@schaufler-ca.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 24 Oct 2018 13:12:15 -0700
+Message-ID: <CAGXu5jLyn6mLKFK+RuBkYWenm8sXXR+yqJ3VzVCpUqOVmru_XA@mail.gmail.com>
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Olof Johansson <olof@lixom.net>, linux-alpha@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux-MIPS <linux-mips@linux-mips.org>, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, linux-parisc@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, SH-Linux <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, devicetree@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20181024200119.TmvkakF2EzquhxeKxz6kLv8Qumj9K0XuozfDbI_jDfg@z>
+To: Casey Schaufler <casey@schaufler-ca.com>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On 10/24/18 12:55 PM, Rob Herring wrote:
-> On Wed, Oct 24, 2018 at 2:33 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
+On Wed, Oct 24, 2018 at 1:56 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+> On 10/23/2018 12:05 PM, Casey Schaufler wrote:
+>> On 10/23/2018 11:50 AM, Kees Cook wrote:
 >>
->> Hi all,
->>
->> While investigating why ARM64 required a ton of objects to be rebuilt
->> when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
->> because we define __early_init_dt_declare_initrd() differently and we do
->> that in arch/arm64/include/asm/memory.h which gets included by a fair
->> amount of other header files, and translation units as well.
-> 
-> I scratch my head sometimes as to why some config options rebuild so
-> much stuff. One down, ? to go. :)
-> 
+>>> Did you poke around at my combined series?
+>>> https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
+>> I hope to do that on the plane later today.
+>
+> I had a chance to poke at the combined series and it
+> all seems to work as advertised.
 
-This one was by far the most invasive one due to its include chain, but
-yes, there would be many more that could be optimized.
+/me stares at John, Paul, and Stephen. Hurry up and get off your planes! ;)
 
->> Changing the value of CONFIG_DEV_BLK_INITRD is a common thing with build
->> systems that generate two kernels: one with the initramfs and one
->> without. buildroot is one of these build systems, OpenWrt is also
->> another one that does this.
->>
->> This patch series proposes adding an empty initrd.h to satisfy the need
->> for drivers/of/fdt.c to unconditionally include that file, and moves the
->> custom __early_init_dt_declare_initrd() definition away from
->> asm/memory.h
->>
->> This cuts the number of objects rebuilds from 1920 down to 26, so a
->> factor 73 approximately.
->>
->> Apologies for the long CC list, please let me know how you would go
->> about merging that and if another approach would be preferable, e.g:
->> introducing a CONFIG_ARCH_INITRD_BELOW_START_OK Kconfig option or
->> something like that.
-> 
-> There may be a better way as of 4.20 because bootmem is now gone and
-> only memblock is used. This should unify what each arch needs to do
-> with initrd early. We need the physical address early for memblock
-> reserving. Then later on we need the virtual address to access the
-> initrd. Perhaps we should just change initrd_start and initrd_end to
-> physical addresses (or add 2 new variables would be less invasive and
-> allow for different translation than __va()). The sanity checks and
-> memblock reserve could also perhaps be moved to a common location.
-> 
-> Alternatively, given arm64 is the only oddball, I'd be fine with an
-> "if (IS_ENABLED(CONFIG_ARM64))" condition in the default
-> __early_init_dt_declare_initrd as long as we have a path to removing
-> it like the above option.
+-Kees
 
-OK, let me cook a patch doing that and meanwhile I will look at how much
-work is involved to implement the above option you outlined, which also
-sounds entirely reasonable.
-
-Thanks!
 -- 
-Florian
+Kees Cook
