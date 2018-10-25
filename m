@@ -1,193 +1,200 @@
 From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Thu, 25 Oct 2018 14:56:18 -0700
-Message-ID: <1f9128b3-7d92-9daa-fa2c-c82a53227d50@cisco.com>
+Subject: [PATCH v4] kernel/signal: Signal-based pre-coredump notification
+Date: Thu, 25 Oct 2018 15:56:10 -0700
+Message-ID: <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
 References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
  <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <87sh0vpj5q.fsf@xmission.com>
- <df08c74f-1027-c635-fb99-a12d23f60947@cisco.com>
- <87zhv2md04.fsf@xmission.com>
+ <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87zhv2md04.fsf@xmission.com>
+In-Reply-To: <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shu>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Eric:
+For simplicity and consistency, this patch provides an implementation
+for signal-based fault notification prior to the coredump of a child
+process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+be used by an application to express its interest and to specify the
+signal for such a notification.
 
-Please see my replied inline.
+Changes to prctl(2):
 
-On 10/25/18 5:23 AM, Eric W. Biederman wrote:
-> Enke Chen <enkechen@cisco.com> writes:
-> 
->> Hi, Eric:
->>
->> Thanks for your comments. Please see my replies inline.
->>
->> On 10/24/18 6:29 AM, Eric W. Biederman wrote:
->>> Enke Chen <enkechen@cisco.com> writes:
->>>
->>>> For simplicity and consistency, this patch provides an implementation
->>>> for signal-based fault notification prior to the coredump of a child
->>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
->>>> be used by an application to express its interest and to specify the
->>>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
->>>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
->>>>
->>>> Changes to prctl(2):
->>>>
->>>>    PR_SET_PREDUMP_SIG (since Linux 4.20.x)
->>>>           Set the child pre-coredump signal of the calling process to
->>>>           arg2 (either SIGUSR1, or SIUSR2, or SIGCHLD, or 0 to clear).
->>>>           This is the signal that the calling process will get prior to
->>>>           the coredump of a child process. This value is cleared across
->>>>           execve(2), or for the child of a fork(2).
->>>>
->>>>           When SIGCHLD is specified, the signal code will be set to
->>>>           CLD_PREDUMP in such an SIGCHLD signal.
->>>
->>> Your signal handling is still not right.  Please read and comprehend
->>> siginfo_layout.
->>>
->>> You have not filled in all of the required fields for the SIGCHLD case.
->>> For the non SIGCHLD case you are using si_code == 0 == SI_USER which is
->>> very wrong.  This is not a user generated signal.
->>>
->>> Let me say this slowly.  The pair si_signo si_code determines the union
->>> member of struct siginfo.  That needs to be handled consistently. You
->>> aren't.  I just finished fixing this up in the entire kernel and now you
->>> are trying to add a usage that is worst than most of the bugs I have
->>> fixed.  I really don't appreciate having to deal with no bugs.
->>>
->>
->> My apologies. I will investigate and make them consistent.
->>
->>>
->>>
->>> Further siginfo can be dropped.  Multiple signals with the same signal
->>> number can be consolidated.  What is your plan for dealing with that?
->>
->> The primary application for the early notification involves a process
->> manager which is responsible for re-spawning processes or initiating
->> the control-plane fail-over. There are two models:
->>
->> One model is to have 1:1 relationship between a process manager and
->> application process. There can only be one predump-signal (say, SIGUSR1)
->> from the child to the parent, and will unlikely be dropped or consolidated.
->>
->> Another model is to have 1:N where there is only one process manager with
->> multiple application processes. One of the RT signal can be used to help
->> make it more reliable.
-> 
-> Which suggests you want one of the negative si_codes, and to use the _rt
-> siginfo member like sigqueue.
+   PR_SET_PREDUMP_SIG (since Linux 4.20.x)
+          Set the child pre-coredump signal of the calling process to
+          arg2 (either a signal value in the range 1..maxsig, or 0 to
+          clear). This is the signal that the calling process will get
+          prior to the coredump of a child process. This value is
+          cleared across execve(2), or for the child of a fork(2).
 
-It seems that we do not need to touch the si_codes. A dedicated signal
-for the pre-coredump notification is simpler and more robust. There are
-enough RT signal numbers available.
+   PR_GET_PREDUMP_SIG (since Linux 4.20.x)
+          Return the current value of the child pre-coredump signal,
+          in the location pointed to by (int *) arg2.
 
-> 
->>> Other code paths pair with wait to get the information out.  There
->>> is no equivalent of wait in your code.
->>
->> I was not aware of that before.  Let me investigate.
->>
->>>
->>> Signals can be delayed by quite a bit, scheduling delays etc.  They can
->>> not provide any meaningful kind of real time notification.
->>>
->>
->> The timing requirement is about 50-100 msecs for BFD.  Not sure if that
->> qualifies as "real time".  This mechanism has worked well in deployment
->> over the years.
-> 
-> It would help if those numbers were put into the patch description so
-> people can tell if the mechanism is quick enough.
+Background:
 
-I will do as suggested, but at the risk of making the patch description
-longer than the patch itself :-)
+As the coredump of a process may take time, in certain time-sensitive
+applications it is necessary for a parent process (e.g., a process
+manager) to be notified of a child's imminent death before the coredump
+so that the parent process can act sooner, such as re-spawning an
+application process, or initiating a control-plane fail-over.
 
-> 
->>> So between delays and loss of information signals appear to be a very
->>> poor fit for this usecase.
->>>
->>> I am concerned about code that does not fit the usecase well because
->>> such code winds up as code that no one cares about that must be
->>> maintained indefinitely, because somewhere out there there is one use
->>> that would break if the interface was removed.  This does not feel like
->>> an interface people will want to use and maintain in proper working
->>> order forever.
->>>
->>> Ugh.  Your test case is even using signalfd.  So you don't even want
->>> this signal to be delivered as a signal.
->>
->> I actually tested sigaction()/waitpid() as well. If there is a preference,
->> I can check in the sigaction()/waitpid() version instead.
->>
->>>
->>> You add an interface that takes a pointer and you don't add a compat
->>> interface.  See Oleg's point of just returning the signal number in the
->>> return code.
->>
->> This is what Oleg said "but I won't insist, this is subjective and cosmetic".
->>
->> It is no big deal either way. It just seems less work if we do not keep
->> adding exceptions to the prctl(2) manpage:
->>  
->> prctl(2):
->>
->>        On success, PR_GET_DUMPABLE,   PR_GET_KEEPCAPS,   PR_GET_NO_NEW_PRIVS,   PR_CAPBSET_READ,    PR_GET_TIMING,    PR_GET_SECUREBITS,
->>        PR_MCE_KILL_GET,  PR_CAP_AMBIENT+PR_CAP_AMBIENT_IS_SET,  and  (if  it returns) PR_GET_SECCOMP return the nonnegative values described
->>        above.  All other option values return 0 on success.  On error, -1 is returned, and errno is set appropriately.
-> 
-> More work in the man page versus less work in the kernel, and less code
-> to maintain.  I will vote for more work in the man page.
+One application is BFD. The early fault notification is a critical
+component for maintaining BFD sessions (with a timeout value of
+50 msec or 100 msec) across a control-plane failure.
 
-Oleg has given me a pass on this one. It is one line. But I still
-prefer not to change back unless there is strong opinion... 
+Currently there are two ways for a parent process to be notified of a
+child process's state change. One is to use the POSIX signal, and
+another is to use the kernel connector module. The specific events and
+actions are summarized as follows:
 
-> 
->>> Now I am wondering how well prctl works from a 32bit process on a 64bit
->>> kernel.  At first glance it looks like it probably does not work.
->>>
->>
->> I am not sure which part would be problematic.
-> 
-> 32bit pointers need to be translated into 64bit pointers.  If the system
-> call does not zero extend them.  Plus structure sizes.
-> 
-> I think prctl is just inside the line where problems happen but it is so
-> close to the line of structure size differences that it makes me
-> nervous.  Typically pointers in structures are what cause system calls
-> to cross that line.
-> 
->>> Consistency with PDEATHSIG is not a good argument for anything.
->>> PDEATHSIG at the present time is unusable in the real world by most
->>> applications that want something like it.
->>
->> Agreed, PDEATHSIG seems to have a few issues ...
->>
->>>
->>> So far I see an interface that even you don't want to use as designed,
->>> that is implemented incorrectly.
->>>
->>> The concern is real and deserves to be addressed.  I don't think signals
->>> are the right way to handle it, and certainly not this patch as it
->>> stands.
->>
->> I will address your concerns on the patch. Regarding the requirement and the
->> overall solution, if there are specific questions that I have not answered,
->> please let me know.
-> 
-> So far so good.
-> 
+Process Event    POSIX Signal                Connector-based
+----------------------------------------------------------------------
+ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
+                 SIGCHLD / CLD_STOPPED
 
-Thanks. Reviews from folks on the list have certainly made the code shorter,
-simpler and cleaner.
+ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
+                 SIGCHLD / CLD_CONTINUED
 
--- Enke
+pre_coredump/    N/A                         proc_coredump_connector()
+get_signal()
+
+post_coredump/   do_notify_parent()          proc_exit_connector()
+do_exit()        SIGCHLD / exit_signal
+----------------------------------------------------------------------
+
+As shown in the table, the signal-based pre-coredump notification is not
+currently available. In some cases using a connector-based notification
+can be quite complicated (e.g., when a process manager is written in shell
+scripts and thus is subject to certain inherent limitations), and a
+signal-based notification would be simpler and better suited.
+
+Signed-off-by: Enke Chen <enkechen@cisco.com>
+---
+v3 -> v4:
+
+Addressed review comments from Oleg Nesterov, and Eric W. Biederman,
+including:
+o remove the definition CLD_PREDUMP.
+o code simplification.
+o split out the selftest code.
+
+ fs/coredump.c                | 23 +++++++++++++++++++++++
+ fs/exec.c                    |  3 +++
+ include/linux/sched/signal.h |  3 +++
+ include/uapi/linux/prctl.h   |  4 ++++
+ kernel/sys.c                 | 13 +++++++++++++
+ 5 files changed, 46 insertions(+)
+
+diff --git a/fs/coredump.c b/fs/coredump.c
+index e42e17e..22c40dc 100644
+--- a/fs/coredump.c
++++ b/fs/coredump.c
+@@ -536,6 +536,24 @@ static int umh_pipe_setup(struct subprocess_info *info, struct cred *new)
+ 	return err;
+ }
+ 
++/*
++ * While do_notify_parent() notifies the parent of a child's death post
++ * its coredump, this function lets the parent (if so desired) know about
++ * the imminent death of a child just prior to its coredump.
++ */
++static void do_notify_parent_predump(void)
++{
++	struct task_struct *parent;
++	int sig;
++
++	read_lock(&tasklist_lock);
++	parent = current->parent;
++	sig = parent->signal->predump_signal;
++	if (sig != 0)
++		do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
++	read_unlock(&tasklist_lock);
++}
++
+ void do_coredump(const kernel_siginfo_t *siginfo)
+ {
+ 	struct core_state core_state;
+@@ -590,6 +608,11 @@ void do_coredump(const kernel_siginfo_t *siginfo)
+ 	if (retval < 0)
+ 		goto fail_creds;
+ 
++	/*
++	 * Send the pre-coredump signal to the parent if requested.
++	 */
++	do_notify_parent_predump();
++
+ 	old_cred = override_creds(cred);
+ 
+ 	ispipe = format_corename(&cn, &cprm);
+diff --git a/fs/exec.c b/fs/exec.c
+index fc281b7..7714da7 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1181,6 +1181,9 @@ static int de_thread(struct task_struct *tsk)
+ 	/* we have changed execution domain */
+ 	tsk->exit_signal = SIGCHLD;
+ 
++	/* Clear the pre-coredump signal before loading a new binary */
++	sig->predump_signal = 0;
++
+ #ifdef CONFIG_POSIX_TIMERS
+ 	exit_itimers(sig);
+ 	flush_itimer_signals();
+diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
+index 13789d1..728ef68 100644
+--- a/include/linux/sched/signal.h
++++ b/include/linux/sched/signal.h
+@@ -112,6 +112,9 @@ struct signal_struct {
+ 	int			group_stop_count;
+ 	unsigned int		flags; /* see SIGNAL_* flags below */
+ 
++	/* The signal sent prior to a child's coredump */
++	int			predump_signal;
++
+ 	/*
+ 	 * PR_SET_CHILD_SUBREAPER marks a process, like a service
+ 	 * manager, to re-parent orphan (double-forking) child processes
+diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+index c0d7ea0..79f0a8a 100644
+--- a/include/uapi/linux/prctl.h
++++ b/include/uapi/linux/prctl.h
+@@ -219,4 +219,8 @@ struct prctl_mm_map {
+ # define PR_SPEC_DISABLE		(1UL << 2)
+ # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
+ 
++/* Whether to receive signal prior to child's coredump */
++#define PR_SET_PREDUMP_SIG	54
++#define PR_GET_PREDUMP_SIG	55
++
+ #endif /* _LINUX_PRCTL_H */
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 123bd73..39aa3b8 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -2476,6 +2476,19 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
+ 			return -EINVAL;
+ 		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
+ 		break;
++	case PR_SET_PREDUMP_SIG:
++		if (arg3 || arg4 || arg5)
++			return -EINVAL;
++		if (!valid_signal((int)arg2))
++			return -EINVAL;
++		me->signal->predump_signal = (int)arg2;
++		break;
++	case PR_GET_PREDUMP_SIG:
++		if (arg3 || arg4 || arg5)
++			return -EINVAL;
++		error = put_user(me->signal->predump_signal,
++				 (int __user *)arg2);
++		break;
+ 	default:
+ 		error = -EINVAL;
+ 		break;
+-- 
+1.8.3.1
