@@ -1,379 +1,169 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v2 1/1] nds32: Power management for nds32
-Date: Thu, 25 Oct 2018 18:14:22 +0800
-Message-ID: <CAEbi=3fp0YJh9iJw+D0apTa6-Atio-sscu1KuQZ0qbB5ie6cNg@mail.gmail.com>
-References: <cover.1540375392.git.nickhu@andestech.com> <8ce923ff55f75b764888fc82d97bc3b744858be1.1540375392.git.nickhu@andestech.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
+Date: Thu, 25 Oct 2018 07:23:07 -0500
+Message-ID: <87zhv2md04.fsf@xmission.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+        <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+        <87sh0vpj5q.fsf@xmission.com>
+        <df08c74f-1027-c635-fb99-a12d23f60947@cisco.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8ce923ff55f75b764888fc82d97bc3b744858be1.1540375392.git.nickhu@andestech.com>
+In-Reply-To: <df08c74f-1027-c635-fb99-a12d23f60947@cisco.com> (Enke Chen's
+        message of "Wed, 24 Oct 2018 16:50:26 -0700")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nickhu <nickhu@andestech.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, rjw@rjwysocki.net, pavel@ucw.cz, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Zong Li <zong@andestech.com>, linux-pm@vger.kernel.org, alankao@andestech.com
+To: Enke Chen <enkechen@cisco.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shu>
 List-Id: linux-arch.vger.kernel.org
 
-Nick Hu <nickhu@andestech.com> =E6=96=BC 2018=E5=B9=B410=E6=9C=8824=E6=97=
-=A5 =E9=80=B1=E4=B8=89 =E4=B8=8B=E5=8D=886:14=E5=AF=AB=E9=81=93=EF=BC=9A
->
-> There are three sleep states in nds32:
->         suspend to idle,
->         suspend to standby,
->         suspend to ram
->
-> In suspend to ram, we use the 'standby' instruction to emulate
-> power management device to hang the system util wakeup source
-> send wakeup events to break the loop.
->
-> First, we push the general purpose registers and system registers
-> to stack. Second, we translate stack pointer to physical address
-> and store to memory to save the stack pointer. Third, after write
-> back and invalid the cache we hang in 'standby' intruction.
-> When wakeup source trigger wake up events, the loop will be break
-> and resume the system.
->
-> Signed-off-by: Nick Hu <nickhu@andestech.com>
-> Acked-by: Pavel Machek <pavel@ucw.cz>
-> ---
->  arch/nds32/Kconfig               |  10 +++
->  arch/nds32/include/asm/suspend.h |  11 +++
->  arch/nds32/kernel/Makefile       |   2 +-
->  arch/nds32/kernel/pm.c           |  79 +++++++++++++++++++
->  arch/nds32/kernel/sleep.S        | 129 +++++++++++++++++++++++++++++++
->  drivers/irqchip/irq-ativic32.c   |  31 ++++++++
->  6 files changed, 261 insertions(+), 1 deletion(-)
->  create mode 100644 arch/nds32/include/asm/suspend.h
->  create mode 100644 arch/nds32/kernel/pm.c
->  create mode 100644 arch/nds32/kernel/sleep.S
->
-> diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
-> index dd448d431f5a..8e2c5ac6acd1 100644
-> --- a/arch/nds32/Kconfig
-> +++ b/arch/nds32/Kconfig
-> @@ -95,3 +95,13 @@ endmenu
->  menu "Kernel Features"
->  source "kernel/Kconfig.hz"
->  endmenu
-> +
-> +menu "Power management options"
-> +config SYS_SUPPORTS_APM_EMULATION
-> +       bool
-> +
-> +config ARCH_SUSPEND_POSSIBLE
-> +       def_bool y
-> +
-> +source "kernel/power/Kconfig"
-> +endmenu
-> diff --git a/arch/nds32/include/asm/suspend.h b/arch/nds32/include/asm/su=
-spend.h
-> new file mode 100644
-> index 000000000000..6ed2418af1ac
-> --- /dev/null
-> +++ b/arch/nds32/include/asm/suspend.h
-> @@ -0,0 +1,11 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +// Copyright (C) 2008-2017 Andes Technology Corporation
-> +
-> +#ifndef __ASM_NDS32_SUSPEND_H
-> +#define __ASM_NDS32_SUSPEND_H
-> +
-> +extern void suspend2ram(void);
-> +extern void cpu_resume(void);
-> +extern unsigned long wake_mask;
-> +
-> +#endif
-> diff --git a/arch/nds32/kernel/Makefile b/arch/nds32/kernel/Makefile
-> index f52bd2744f50..8d62f2ecb1ab 100644
-> --- a/arch/nds32/kernel/Makefile
-> +++ b/arch/nds32/kernel/Makefile
-> @@ -16,7 +16,7 @@ obj-$(CONFIG_STACKTRACE)      +=3D stacktrace.o
->  obj-$(CONFIG_OF)               +=3D devtree.o
->  obj-$(CONFIG_CACHE_L2)         +=3D atl2c.o
->  obj-$(CONFIG_PERF_EVENTS) +=3D perf_event_cpu.o
-> -
-> +obj-$(CONFIG_PM)               +=3D pm.o sleep.o
->  extra-y :=3D head.o vmlinux.lds
->
->  obj-y                          +=3D vdso/
-> diff --git a/arch/nds32/kernel/pm.c b/arch/nds32/kernel/pm.c
-> new file mode 100644
-> index 000000000000..6989560abf4e
-> --- /dev/null
-> +++ b/arch/nds32/kernel/pm.c
-> @@ -0,0 +1,79 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2008-2017 Andes Technology Corporation
-> +
-> +#include <linux/init.h>
-> +#include <linux/suspend.h>
-> +#include <linux/device.h>
-> +#include <linux/printk.h>
-> +#include <linux/suspend.h>
-> +#include <asm/suspend.h>
-> +#include <nds32_intrinsic.h>
-> +
-> +unsigned int resume_addr;
-> +unsigned int *phy_addr_sp_tmp;
-> +
-> +static void nds32_suspend2ram(void)
-> +{
-> +       pgd_t *pgdv;
-> +       pud_t *pudv;
-> +       pmd_t *pmdv;
-> +       pte_t *ptev;
-> +
-> +       pgdv =3D (pgd_t *)__va((__nds32__mfsr(NDS32_SR_L1_PPTB) &
-> +               L1_PPTB_mskBASE)) + pgd_index((unsigned int)cpu_resume);
-> +
-> +       pudv =3D pud_offset(pgdv, (unsigned int)cpu_resume);
-> +       pmdv =3D pmd_offset(pudv, (unsigned int)cpu_resume);
-> +       ptev =3D pte_offset_map(pmdv, (unsigned int)cpu_resume);
-> +
-> +       resume_addr =3D ((*ptev) & TLB_DATA_mskPPN)
-> +                       | ((unsigned int)cpu_resume & 0x00000fff);
-> +
-> +       suspend2ram();
-> +}
-> +
-> +static void nds32_suspend_cpu(void)
-> +{
-> +       while (!(__nds32__mfsr(NDS32_SR_INT_PEND) & wake_mask))
-> +               __asm__ volatile ("standby no_wake_grant\n\t");
-> +}
-> +
-> +static int nds32_pm_valid(suspend_state_t state)
-> +{
-> +       switch (state) {
-> +       case PM_SUSPEND_ON:
-> +       case PM_SUSPEND_STANDBY:
-> +       case PM_SUSPEND_MEM:
-> +               return 1;
-> +       default:
-> +               return 0;
-> +       }
-> +}
-> +
-> +static int nds32_pm_enter(suspend_state_t state)
-> +{
-> +       pr_debug("%s:state:%d\n", __func__, state);
-> +       switch (state) {
-> +       case PM_SUSPEND_STANDBY:
-> +               nds32_suspend_cpu();
-> +               return 0;
-> +       case PM_SUSPEND_MEM:
-> +               nds32_suspend2ram();
-> +               return 0;
-> +       default:
-> +               return -EINVAL;
-> +       }
-> +}
-> +
-> +static const struct platform_suspend_ops nds32_pm_ops =3D {
-> +       .valid =3D nds32_pm_valid,
-> +       .enter =3D nds32_pm_enter,
-> +};
-> +
-> +static int __init nds32_pm_init(void)
-> +{
-> +       pr_debug("Enter %s\n", __func__);
-> +       suspend_set_ops(&nds32_pm_ops);
-> +       return 0;
-> +}
-> +late_initcall(nds32_pm_init);
-> diff --git a/arch/nds32/kernel/sleep.S b/arch/nds32/kernel/sleep.S
-> new file mode 100644
-> index 000000000000..60c64bfbc901
-> --- /dev/null
-> +++ b/arch/nds32/kernel/sleep.S
-> @@ -0,0 +1,129 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/* Copyright (C) 2017 Andes Technology Corporation */
-> +
-> +#include <asm/memory.h>
-> +
-> +.data
-> +.global sp_tmp
-> +sp_tmp:
-> +.long
-> +
-> +.text
-> +.globl suspend2ram
-> +.globl cpu_resume
-> +
-> +suspend2ram:
-> +       pushm   $r0, $r31
-> +#if defined(CONFIG_HWZOL)
-> +       mfusr   $r0, $lc
-> +       mfusr   $r1, $le
-> +       mfusr   $r2, $lb
-> +#endif
-> +       mfsr    $r3, $mr0
-> +       mfsr    $r4, $mr1
-> +       mfsr    $r5, $mr4
-> +       mfsr    $r6, $mr6
-> +       mfsr    $r7, $mr7
-> +       mfsr    $r8, $mr8
-> +       mfsr    $r9, $ir0
-> +       mfsr    $r10, $ir1
-> +       mfsr    $r11, $ir2
-> +       mfsr    $r12, $ir3
-> +       mfsr    $r13, $ir9
-> +       mfsr    $r14, $ir10
-> +       mfsr    $r15, $ir12
-> +       mfsr    $r16, $ir13
-> +       mfsr    $r17, $ir14
-> +       mfsr    $r18, $ir15
-> +       pushm   $r0, $r19
-> +
-> +       tlbop   FlushAll
-> +       isb
-> +
-> +       // transfer $sp from va to pa
-> +       sethi   $r0, hi20(PAGE_OFFSET)
-> +       ori     $r0, $r0, lo12(PAGE_OFFSET)
-> +       movi    $r2, PHYS_OFFSET
-> +       sub     $r1, $sp, $r0
-> +       add     $r2, $r1, $r2
-> +
-> +       // store pa($sp) to sp_tmp
-> +       sethi   $r1, hi20(sp_tmp)
-> +       swi     $r2, [$r1 + lo12(sp_tmp)]
-> +
-> +       pushm   $r16, $r25
-> +       pushm   $r29, $r30
-> +#ifdef CONFIG_CACHE_L2
-> +       jal     dcache_wb_all_level
-> +#else
-> +       jal     cpu_dcache_wb_all
-> +#endif
-> +       popm    $r29, $r30
-> +       popm    $r16, $r25
-> +
-> +       // get wake_mask and loop in standby
-> +       la      $r1, wake_mask
-> +       lwi     $r1, [$r1]
-> +self_loop:
-> +       standby wake_grant
-> +       mfsr    $r2, $ir15
-> +       and     $r2, $r1, $r2
-> +       beqz    $r2, self_loop
-> +
-> +       // set ipc to resume address
-> +       la      $r1, resume_addr
-> +       lwi     $r1, [$r1]
-> +       mtsr    $r1, $ipc
-> +       isb
-> +
-> +       // reset psw, turn off the address translation
-> +       li      $r2, 0x7000a
-> +       mtsr    $r2, $ipsw
-> +       isb
-> +
-> +       iret
-> +cpu_resume:
-> +       // translate the address of sp_tmp variable to pa
-> +       la      $r1, sp_tmp
-> +       sethi   $r0, hi20(PAGE_OFFSET)
-> +       ori     $r0, $r0, lo12(PAGE_OFFSET)
-> +       movi    $r2, PHYS_OFFSET
-> +       sub     $r1, $r1, $r0
-> +       add     $r1, $r1, $r2
-> +
-> +       // access the sp_tmp to get stack pointer
-> +       lwi     $sp, [$r1]
-> +
-> +       popm    $r0, $r19
-> +#if defined(CONFIG_HWZOL)
-> +       mtusr   $r0, $lb
-> +       mtusr   $r1, $lc
-> +       mtusr   $r2, $le
-> +#endif
-> +       mtsr    $r3, $mr0
-> +       mtsr    $r4, $mr1
-> +       mtsr    $r5, $mr4
-> +       mtsr    $r6, $mr6
-> +       mtsr    $r7, $mr7
-> +       mtsr    $r8, $mr8
-> +       // set original psw to ipsw
-> +       mtsr    $r9, $ir1
-> +
-> +       mtsr    $r11, $ir2
-> +       mtsr    $r12, $ir3
-> +
-> +       // set ipc to RR
-> +       la      $r13, RR
-> +       mtsr    $r13, $ir9
-> +
-> +       mtsr    $r14, $ir10
-> +       mtsr    $r15, $ir12
-> +       mtsr    $r16, $ir13
-> +       mtsr    $r17, $ir14
-> +       mtsr    $r18, $ir15
-> +       popm    $r0, $r31
-> +
-> +       isb
-> +       iret
-> +RR:
-> +       ret
-> diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic3=
-2.c
-> index f69a8588521c..85cf6e0e0e52 100644
-> --- a/drivers/irqchip/irq-ativic32.c
-> +++ b/drivers/irqchip/irq-ativic32.c
-> @@ -10,6 +10,8 @@
->  #include <linux/irqchip.h>
->  #include <nds32_intrinsic.h>
->
-> +unsigned long wake_mask;
-> +
->  static void ativic32_ack_irq(struct irq_data *data)
->  {
->         __nds32__mtsr_dsb(BIT(data->hwirq), NDS32_SR_INT_PEND2);
-> @@ -27,11 +29,40 @@ static void ativic32_unmask_irq(struct irq_data *data=
-)
->         __nds32__mtsr_dsb(int_mask2 | (BIT(data->hwirq)), NDS32_SR_INT_MA=
-SK2);
->  }
->
-> +static int nointc_set_wake(struct irq_data *data, unsigned int on)
-> +{
-> +       unsigned long int_mask =3D __nds32__mfsr(NDS32_SR_INT_MASK);
-> +       static unsigned long irq_orig_bit;
-> +       u32 bit =3D 1 << data->hwirq;
-> +
-> +       if (on) {
-> +               if (int_mask & bit)
-> +                       __assign_bit(data->hwirq, &irq_orig_bit, true);
-> +               else
-> +                       __assign_bit(data->hwirq, &irq_orig_bit, false);
-> +
-> +               __assign_bit(data->hwirq, &int_mask, true);
-> +               __assign_bit(data->hwirq, &wake_mask, true);
-> +
-> +       } else {
-> +               if (!(irq_orig_bit & bit))
-> +                       __assign_bit(data->hwirq, &int_mask, false);
-> +
-> +               __assign_bit(data->hwirq, &wake_mask, false);
-> +               __assign_bit(data->hwirq, &irq_orig_bit, false);
-> +       }
-> +
-> +       __nds32__mtsr_dsb(int_mask, NDS32_SR_INT_MASK);
-> +
-> +       return 0;
-> +}
-> +
->  static struct irq_chip ativic32_chip =3D {
->         .name =3D "ativic32",
->         .irq_ack =3D ativic32_ack_irq,
->         .irq_mask =3D ativic32_mask_irq,
->         .irq_unmask =3D ativic32_unmask_irq,
-> +       .irq_set_wake =3D nointc_set_wake,
->  };
->
->  static unsigned int __initdata nivic_map[6] =3D { 6, 2, 10, 16, 24, 32 }=
-;
-Hi Nick,
+Enke Chen <enkechen@cisco.com> writes:
 
-Thank you.
-Acked-by: Greentime Hu <greentime@andestech.com>
+> Hi, Eric:
+>
+> Thanks for your comments. Please see my replies inline.
+>
+> On 10/24/18 6:29 AM, Eric W. Biederman wrote:
+>> Enke Chen <enkechen@cisco.com> writes:
+>> 
+>>> For simplicity and consistency, this patch provides an implementation
+>>> for signal-based fault notification prior to the coredump of a child
+>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+>>> be used by an application to express its interest and to specify the
+>>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
+>>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
+>>>
+>>> Changes to prctl(2):
+>>>
+>>>    PR_SET_PREDUMP_SIG (since Linux 4.20.x)
+>>>           Set the child pre-coredump signal of the calling process to
+>>>           arg2 (either SIGUSR1, or SIUSR2, or SIGCHLD, or 0 to clear).
+>>>           This is the signal that the calling process will get prior to
+>>>           the coredump of a child process. This value is cleared across
+>>>           execve(2), or for the child of a fork(2).
+>>>
+>>>           When SIGCHLD is specified, the signal code will be set to
+>>>           CLD_PREDUMP in such an SIGCHLD signal.
+>> 
+>> Your signal handling is still not right.  Please read and comprehend
+>> siginfo_layout.
+>> 
+>> You have not filled in all of the required fields for the SIGCHLD case.
+>> For the non SIGCHLD case you are using si_code == 0 == SI_USER which is
+>> very wrong.  This is not a user generated signal.
+>> 
+>> Let me say this slowly.  The pair si_signo si_code determines the union
+>> member of struct siginfo.  That needs to be handled consistently. You
+>> aren't.  I just finished fixing this up in the entire kernel and now you
+>> are trying to add a usage that is worst than most of the bugs I have
+>> fixed.  I really don't appreciate having to deal with no bugs.
+>> 
+>
+> My apologies. I will investigate and make them consistent.
+>
+>> 
+>> 
+>> Further siginfo can be dropped.  Multiple signals with the same signal
+>> number can be consolidated.  What is your plan for dealing with that?
+>
+> The primary application for the early notification involves a process
+> manager which is responsible for re-spawning processes or initiating
+> the control-plane fail-over. There are two models:
+>
+> One model is to have 1:1 relationship between a process manager and
+> application process. There can only be one predump-signal (say, SIGUSR1)
+> from the child to the parent, and will unlikely be dropped or consolidated.
+>
+> Another model is to have 1:N where there is only one process manager with
+> multiple application processes. One of the RT signal can be used to help
+> make it more reliable.
+
+Which suggests you want one of the negative si_codes, and to use the _rt
+siginfo member like sigqueue.
+
+>> Other code paths pair with wait to get the information out.  There
+>> is no equivalent of wait in your code.
+>
+> I was not aware of that before.  Let me investigate.
+>
+>> 
+>> Signals can be delayed by quite a bit, scheduling delays etc.  They can
+>> not provide any meaningful kind of real time notification.
+>> 
+>
+> The timing requirement is about 50-100 msecs for BFD.  Not sure if that
+> qualifies as "real time".  This mechanism has worked well in deployment
+> over the years.
+
+It would help if those numbers were put into the patch description so
+people can tell if the mechanism is quick enough.
+
+>> So between delays and loss of information signals appear to be a very
+>> poor fit for this usecase.
+>> 
+>> I am concerned about code that does not fit the usecase well because
+>> such code winds up as code that no one cares about that must be
+>> maintained indefinitely, because somewhere out there there is one use
+>> that would break if the interface was removed.  This does not feel like
+>> an interface people will want to use and maintain in proper working
+>> order forever.
+>> 
+>> Ugh.  Your test case is even using signalfd.  So you don't even want
+>> this signal to be delivered as a signal.
+>
+> I actually tested sigaction()/waitpid() as well. If there is a preference,
+> I can check in the sigaction()/waitpid() version instead.
+>
+>> 
+>> You add an interface that takes a pointer and you don't add a compat
+>> interface.  See Oleg's point of just returning the signal number in the
+>> return code.
+>
+> This is what Oleg said "but I won't insist, this is subjective and cosmetic".
+>
+> It is no big deal either way. It just seems less work if we do not keep
+> adding exceptions to the prctl(2) manpage:
+>  
+> prctl(2):
+>
+>        On success, PR_GET_DUMPABLE,   PR_GET_KEEPCAPS,   PR_GET_NO_NEW_PRIVS,   PR_CAPBSET_READ,    PR_GET_TIMING,    PR_GET_SECUREBITS,
+>        PR_MCE_KILL_GET,  PR_CAP_AMBIENT+PR_CAP_AMBIENT_IS_SET,  and  (if  it returns) PR_GET_SECCOMP return the nonnegative values described
+>        above.  All other option values return 0 on success.  On error, -1 is returned, and errno is set appropriately.
+
+More work in the man page versus less work in the kernel, and less code
+to maintain.  I will vote for more work in the man page.
+
+>> Now I am wondering how well prctl works from a 32bit process on a 64bit
+>> kernel.  At first glance it looks like it probably does not work.
+>>
+>
+> I am not sure which part would be problematic.
+
+32bit pointers need to be translated into 64bit pointers.  If the system
+call does not zero extend them.  Plus structure sizes.
+
+I think prctl is just inside the line where problems happen but it is so
+close to the line of structure size differences that it makes me
+nervous.  Typically pointers in structures are what cause system calls
+to cross that line.
+
+>> Consistency with PDEATHSIG is not a good argument for anything.
+>> PDEATHSIG at the present time is unusable in the real world by most
+>> applications that want something like it.
+>
+> Agreed, PDEATHSIG seems to have a few issues ...
+>
+>> 
+>> So far I see an interface that even you don't want to use as designed,
+>> that is implemented incorrectly.
+>> 
+>> The concern is real and deserves to be addressed.  I don't think signals
+>> are the right way to handle it, and certainly not this patch as it
+>> stands.
+>
+> I will address your concerns on the patch. Regarding the requirement and the
+> overall solution, if there are specific questions that I have not answered,
+> please let me know.
+
+So far so good.
+
+Eric
