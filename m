@@ -1,169 +1,154 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Thu, 25 Oct 2018 07:23:07 -0500
-Message-ID: <87zhv2md04.fsf@xmission.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
-        <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
-        <87sh0vpj5q.fsf@xmission.com>
-        <df08c74f-1027-c635-fb99-a12d23f60947@cisco.com>
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH v2 0/2] arm64: Cut rebuild time when changing CONFIG_BLK_DEV_INITRD
+Date: Thu, 25 Oct 2018 08:15:15 -0500
+Message-ID: <CAL_JsqL62ttsGSbE1BS5v-mX3pKE-p_HyvuZD6nB+GUbQyetzg@mail.gmail.com>
+References: <20181024193256.23734-1-f.fainelli@gmail.com> <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
+ <20181025093833.GA23607@rapoport-lnx>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <df08c74f-1027-c635-fb99-a12d23f60947@cisco.com> (Enke Chen's
-        message of "Wed, 24 Oct 2018 16:50:26 -0700")
+In-Reply-To: <20181025093833.GA23607@rapoport-lnx>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Enke Chen <enkechen@cisco.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shu>
+To: rppt@linux.ibm.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Florian Fainelli <f.fainelli@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Olof Johansson <olof@lixom.net>, linux-alpha@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux-MIPS <linux-mips@linux-mips.org>, nios2-dev@lists.
 List-Id: linux-arch.vger.kernel.org
 
-Enke Chen <enkechen@cisco.com> writes:
++Ard
 
-> Hi, Eric:
+On Thu, Oct 25, 2018 at 4:38 AM Mike Rapoport <rppt@linux.ibm.com> wrote:
 >
-> Thanks for your comments. Please see my replies inline.
+> On Wed, Oct 24, 2018 at 02:55:17PM -0500, Rob Herring wrote:
+> > On Wed, Oct 24, 2018 at 2:33 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
+> > >
+> > > Hi all,
+> > >
+> > > While investigating why ARM64 required a ton of objects to be rebuilt
+> > > when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
+> > > because we define __early_init_dt_declare_initrd() differently and we do
+> > > that in arch/arm64/include/asm/memory.h which gets included by a fair
+> > > amount of other header files, and translation units as well.
+> >
+> > I scratch my head sometimes as to why some config options rebuild so
+> > much stuff. One down, ? to go. :)
+> >
+> > > Changing the value of CONFIG_DEV_BLK_INITRD is a common thing with build
+> > > systems that generate two kernels: one with the initramfs and one
+> > > without. buildroot is one of these build systems, OpenWrt is also
+> > > another one that does this.
+> > >
+> > > This patch series proposes adding an empty initrd.h to satisfy the need
+> > > for drivers/of/fdt.c to unconditionally include that file, and moves the
+> > > custom __early_init_dt_declare_initrd() definition away from
+> > > asm/memory.h
+> > >
+> > > This cuts the number of objects rebuilds from 1920 down to 26, so a
+> > > factor 73 approximately.
+> > >
+> > > Apologies for the long CC list, please let me know how you would go
+> > > about merging that and if another approach would be preferable, e.g:
+> > > introducing a CONFIG_ARCH_INITRD_BELOW_START_OK Kconfig option or
+> > > something like that.
+> >
+> > There may be a better way as of 4.20 because bootmem is now gone and
+> > only memblock is used. This should unify what each arch needs to do
+> > with initrd early. We need the physical address early for memblock
+> > reserving. Then later on we need the virtual address to access the
+> > initrd. Perhaps we should just change initrd_start and initrd_end to
+> > physical addresses (or add 2 new variables would be less invasive and
+> > allow for different translation than __va()). The sanity checks and
+> > memblock reserve could also perhaps be moved to a common location.
+> >
+> > Alternatively, given arm64 is the only oddball, I'd be fine with an
+> > "if (IS_ENABLED(CONFIG_ARM64))" condition in the default
+> > __early_init_dt_declare_initrd as long as we have a path to removing
+> > it like the above option.
 >
-> On 10/24/18 6:29 AM, Eric W. Biederman wrote:
->> Enke Chen <enkechen@cisco.com> writes:
->> 
->>> For simplicity and consistency, this patch provides an implementation
->>> for signal-based fault notification prior to the coredump of a child
->>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
->>> be used by an application to express its interest and to specify the
->>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
->>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
->>>
->>> Changes to prctl(2):
->>>
->>>    PR_SET_PREDUMP_SIG (since Linux 4.20.x)
->>>           Set the child pre-coredump signal of the calling process to
->>>           arg2 (either SIGUSR1, or SIUSR2, or SIGCHLD, or 0 to clear).
->>>           This is the signal that the calling process will get prior to
->>>           the coredump of a child process. This value is cleared across
->>>           execve(2), or for the child of a fork(2).
->>>
->>>           When SIGCHLD is specified, the signal code will be set to
->>>           CLD_PREDUMP in such an SIGCHLD signal.
->> 
->> Your signal handling is still not right.  Please read and comprehend
->> siginfo_layout.
->> 
->> You have not filled in all of the required fields for the SIGCHLD case.
->> For the non SIGCHLD case you are using si_code == 0 == SI_USER which is
->> very wrong.  This is not a user generated signal.
->> 
->> Let me say this slowly.  The pair si_signo si_code determines the union
->> member of struct siginfo.  That needs to be handled consistently. You
->> aren't.  I just finished fixing this up in the entire kernel and now you
->> are trying to add a usage that is worst than most of the bugs I have
->> fixed.  I really don't appreciate having to deal with no bugs.
->> 
+> I think arm64 does not have to redefine __early_init_dt_declare_initrd().
+> Something like this might be just all we need (completely untested,
+> probably it won't even compile):
 >
-> My apologies. I will investigate and make them consistent.
+> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+> index 9d9582c..e9ca238 100644
+> --- a/arch/arm64/mm/init.c
+> +++ b/arch/arm64/mm/init.c
+> @@ -62,6 +62,9 @@ s64 memstart_addr __ro_after_init = -1;
+>  phys_addr_t arm64_dma_phys_limit __ro_after_init;
 >
->> 
->> 
->> Further siginfo can be dropped.  Multiple signals with the same signal
->> number can be consolidated.  What is your plan for dealing with that?
+>  #ifdef CONFIG_BLK_DEV_INITRD
+> +
+> +static phys_addr_t initrd_start_phys, initrd_end_phys;
+> +
+>  static int __init early_initrd(char *p)
+>  {
+>         unsigned long start, size;
+> @@ -71,8 +74,8 @@ static int __init early_initrd(char *p)
+>         if (*endp == ',') {
+>                 size = memparse(endp + 1, NULL);
 >
-> The primary application for the early notification involves a process
-> manager which is responsible for re-spawning processes or initiating
-> the control-plane fail-over. There are two models:
+> -               initrd_start = start;
+> -               initrd_end = start + size;
+> +               initrd_start_phys = start;
+> +               initrd_end_phys = end;
+>         }
+>         return 0;
+>  }
+> @@ -407,14 +410,27 @@ void __init arm64_memblock_init(void)
+>                 memblock_add(__pa_symbol(_text), (u64)(_end - _text));
+>         }
 >
-> One model is to have 1:1 relationship between a process manager and
-> application process. There can only be one predump-signal (say, SIGUSR1)
-> from the child to the parent, and will unlikely be dropped or consolidated.
->
-> Another model is to have 1:N where there is only one process manager with
-> multiple application processes. One of the RT signal can be used to help
-> make it more reliable.
+> -       if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) && initrd_start) {
+> +       if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) &&
+> +           (initrd_start || initrd_start_phys)) {
+> +               /*
+> +                * FIXME: ensure proper precendence between
+> +                * early_initrd and DT when both are present
 
-Which suggests you want one of the negative si_codes, and to use the _rt
-siginfo member like sigqueue.
+Command line takes precedence, so just reverse the order.
 
->> Other code paths pair with wait to get the information out.  There
->> is no equivalent of wait in your code.
->
-> I was not aware of that before.  Let me investigate.
->
->> 
->> Signals can be delayed by quite a bit, scheduling delays etc.  They can
->> not provide any meaningful kind of real time notification.
->> 
->
-> The timing requirement is about 50-100 msecs for BFD.  Not sure if that
-> qualifies as "real time".  This mechanism has worked well in deployment
-> over the years.
+> +                */
+> +               if (initrd_start) {
+> +                       initrd_start_phys = __phys_to_virt(initrd_start);
+> +                       initrd_end_phys = __phys_to_virt(initrd_end);
 
-It would help if those numbers were put into the patch description so
-people can tell if the mechanism is quick enough.
+AIUI, the original issue was doing the P2V translation was happening
+too early and the VA could be wrong if the linear range is adjusted.
+So I don't think this would work.
 
->> So between delays and loss of information signals appear to be a very
->> poor fit for this usecase.
->> 
->> I am concerned about code that does not fit the usecase well because
->> such code winds up as code that no one cares about that must be
->> maintained indefinitely, because somewhere out there there is one use
->> that would break if the interface was removed.  This does not feel like
->> an interface people will want to use and maintain in proper working
->> order forever.
->> 
->> Ugh.  Your test case is even using signalfd.  So you don't even want
->> this signal to be delivered as a signal.
->
-> I actually tested sigaction()/waitpid() as well. If there is a preference,
-> I can check in the sigaction()/waitpid() version instead.
->
->> 
->> You add an interface that takes a pointer and you don't add a compat
->> interface.  See Oleg's point of just returning the signal number in the
->> return code.
->
-> This is what Oleg said "but I won't insist, this is subjective and cosmetic".
->
-> It is no big deal either way. It just seems less work if we do not keep
-> adding exceptions to the prctl(2) manpage:
->  
-> prctl(2):
->
->        On success, PR_GET_DUMPABLE,   PR_GET_KEEPCAPS,   PR_GET_NO_NEW_PRIVS,   PR_CAPBSET_READ,    PR_GET_TIMING,    PR_GET_SECUREBITS,
->        PR_MCE_KILL_GET,  PR_CAP_AMBIENT+PR_CAP_AMBIENT_IS_SET,  and  (if  it returns) PR_GET_SECCOMP return the nonnegative values described
->        above.  All other option values return 0 on success.  On error, -1 is returned, and errno is set appropriately.
+I suppose you could convert the VA back to a PA before any adjustments
+and then back to a VA again after. But that's kind of hacky. 2 wrongs
+making a right.
 
-More work in the man page versus less work in the kernel, and less code
-to maintain.  I will vote for more work in the man page.
-
->> Now I am wondering how well prctl works from a 32bit process on a 64bit
->> kernel.  At first glance it looks like it probably does not work.
->>
+> +               } else if (initrd_start_phys) {
+> +                       initrd_start = __va(initrd_start_phys);
+> +                       initrd_end = __va(initrd_start_phys);
+> +               }
+> +
+>                 /*
+>                  * Add back the memory we just removed if it results in the
+>                  * initrd to become inaccessible via the linear mapping.
+>                  * Otherwise, this is a no-op
+>                  */
+> -               u64 base = initrd_start & PAGE_MASK;
+> -               u64 size = PAGE_ALIGN(initrd_end) - base;
+> +               u64 base = initrd_start_phys & PAGE_MASK;
+> +               u64 size = PAGE_ALIGN(initrd_end_phys) - base;
 >
-> I am not sure which part would be problematic.
-
-32bit pointers need to be translated into 64bit pointers.  If the system
-call does not zero extend them.  Plus structure sizes.
-
-I think prctl is just inside the line where problems happen but it is so
-close to the line of structure size differences that it makes me
-nervous.  Typically pointers in structures are what cause system calls
-to cross that line.
-
->> Consistency with PDEATHSIG is not a good argument for anything.
->> PDEATHSIG at the present time is unusable in the real world by most
->> applications that want something like it.
+>                 /*
+>                  * We can only add back the initrd memory if we don't end up
+> @@ -458,7 +474,7 @@ void __init arm64_memblock_init(void)
+>          * pagetables with memblock.
+>          */
+>         memblock_reserve(__pa_symbol(_text), _end - _text);
+> -#ifdef CONFIG_BLK_DEV_INITRD
+> +#if 0
+>         if (initrd_start) {
+>                 memblock_reserve(initrd_start, initrd_end - initrd_start);
 >
-> Agreed, PDEATHSIG seems to have a few issues ...
 >
->> 
->> So far I see an interface that even you don't want to use as designed,
->> that is implemented incorrectly.
->> 
->> The concern is real and deserves to be addressed.  I don't think signals
->> are the right way to handle it, and certainly not this patch as it
->> stands.
+> > Rob
+> >
 >
-> I will address your concerns on the patch. Regarding the requirement and the
-> overall solution, if there are specific questions that I have not answered,
-> please let me know.
-
-So far so good.
-
-Eric
+> --
+> Sincerely yours,
+> Mike.
+>
