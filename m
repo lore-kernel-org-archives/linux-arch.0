@@ -1,7 +1,7 @@
 From: Enke Chen <enkechen@cisco.com>
 Subject: Re: [PATCH v2] kernel/signal: Signal-based pre-coredump notification
-Date: Thu, 25 Oct 2018 14:24:19 -0700
-Message-ID: <3da93f7c-972d-14e0-dae2-f0217ba03dc1@cisco.com>
+Date: Thu, 25 Oct 2018 14:56:18 -0700
+Message-ID: <1f9128b3-7d92-9daa-fa2c-c82a53227d50@cisco.com>
 References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
  <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
  <87sh0vpj5q.fsf@xmission.com>
@@ -20,10 +20,18 @@ List-Id: linux-arch.vger.kernel.org
 
 Hi, Eric:
 
-I have a couple comments inlined.
+Please see my replied inline.
 
->> On Wed, Oct 24, 2018 at 3:30 PM Eric W. Biederman <ebiederm@xmission.com> wrote:
+On 10/25/18 5:23 AM, Eric W. Biederman wrote:
+> Enke Chen <enkechen@cisco.com> writes:
+> 
+>> Hi, Eric:
+>>
+>> Thanks for your comments. Please see my replies inline.
+>>
+>> On 10/24/18 6:29 AM, Eric W. Biederman wrote:
 >>> Enke Chen <enkechen@cisco.com> writes:
+>>>
 >>>> For simplicity and consistency, this patch provides an implementation
 >>>> for signal-based fault notification prior to the coredump of a child
 >>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
@@ -42,35 +50,144 @@ I have a couple comments inlined.
 >>>>
 >>>>           When SIGCHLD is specified, the signal code will be set to
 >>>>           CLD_PREDUMP in such an SIGCHLD signal.
->> [...]
+>>>
+>>> Your signal handling is still not right.  Please read and comprehend
+>>> siginfo_layout.
+>>>
+>>> You have not filled in all of the required fields for the SIGCHLD case.
+>>> For the non SIGCHLD case you are using si_code == 0 == SI_USER which is
+>>> very wrong.  This is not a user generated signal.
+>>>
+>>> Let me say this slowly.  The pair si_signo si_code determines the union
+>>> member of struct siginfo.  That needs to be handled consistently. You
+>>> aren't.  I just finished fixing this up in the entire kernel and now you
+>>> are trying to add a usage that is worst than most of the bugs I have
+>>> fixed.  I really don't appreciate having to deal with no bugs.
+>>>
+>>
+>> My apologies. I will investigate and make them consistent.
+>>
+>>>
+>>>
+>>> Further siginfo can be dropped.  Multiple signals with the same signal
+>>> number can be consolidated.  What is your plan for dealing with that?
+>>
+>> The primary application for the early notification involves a process
+>> manager which is responsible for re-spawning processes or initiating
+>> the control-plane fail-over. There are two models:
+>>
+>> One model is to have 1:1 relationship between a process manager and
+>> application process. There can only be one predump-signal (say, SIGUSR1)
+>> from the child to the parent, and will unlikely be dropped or consolidated.
+>>
+>> Another model is to have 1:N where there is only one process manager with
+>> multiple application processes. One of the RT signal can be used to help
+>> make it more reliable.
+> 
+> Which suggests you want one of the negative si_codes, and to use the _rt
+> siginfo member like sigqueue.
+
+It seems that we do not need to touch the si_codes. A dedicated signal
+for the pre-coredump notification is simpler and more robust. There are
+enough RT signal numbers available.
+
+> 
+>>> Other code paths pair with wait to get the information out.  There
+>>> is no equivalent of wait in your code.
+>>
+>> I was not aware of that before.  Let me investigate.
+>>
+>>>
+>>> Signals can be delayed by quite a bit, scheduling delays etc.  They can
+>>> not provide any meaningful kind of real time notification.
+>>>
+>>
+>> The timing requirement is about 50-100 msecs for BFD.  Not sure if that
+>> qualifies as "real time".  This mechanism has worked well in deployment
+>> over the years.
+> 
+> It would help if those numbers were put into the patch description so
+> people can tell if the mechanism is quick enough.
+
+I will do as suggested, but at the risk of making the patch description
+longer than the patch itself :-)
+
+> 
+>>> So between delays and loss of information signals appear to be a very
+>>> poor fit for this usecase.
+>>>
+>>> I am concerned about code that does not fit the usecase well because
+>>> such code winds up as code that no one cares about that must be
+>>> maintained indefinitely, because somewhere out there there is one use
+>>> that would break if the interface was removed.  This does not feel like
+>>> an interface people will want to use and maintain in proper working
+>>> order forever.
+>>>
 >>> Ugh.  Your test case is even using signalfd.  So you don't even want
 >>> this signal to be delivered as a signal.
 >>
->> Just to make sure everyone's on the same page: You're suggesting that
->> it might make sense to deliver the pre-dump notification via a new
->> type of file instead (along the lines of signalfd, timerfd, eventfd
->> and so on)?
+>> I actually tested sigaction()/waitpid() as well. If there is a preference,
+>> I can check in the sigaction()/waitpid() version instead.
+>>
+>>>
+>>> You add an interface that takes a pointer and you don't add a compat
+>>> interface.  See Oleg's point of just returning the signal number in the
+>>> return code.
+>>
+>> This is what Oleg said "but I won't insist, this is subjective and cosmetic".
+>>
+>> It is no big deal either way. It just seems less work if we do not keep
+>> adding exceptions to the prctl(2) manpage:
+>>  
+>> prctl(2):
+>>
+>>        On success, PR_GET_DUMPABLE,   PR_GET_KEEPCAPS,   PR_GET_NO_NEW_PRIVS,   PR_CAPBSET_READ,    PR_GET_TIMING,    PR_GET_SECUREBITS,
+>>        PR_MCE_KILL_GET,  PR_CAP_AMBIENT+PR_CAP_AMBIENT_IS_SET,  and  (if  it returns) PR_GET_SECCOMP return the nonnegative values described
+>>        above.  All other option values return 0 on success.  On error, -1 is returned, and errno is set appropriately.
 > 
-> My real complaint was that the API was not being tested in the way it
-> is expected to be used.  Which makes a test pretty much useless as some
-> aspect userspace could regress and the test would not notice because it
-> is testing something different.
+> More work in the man page versus less work in the kernel, and less code
+> to maintain.  I will vote for more work in the man page.
+
+Oleg has given me a pass on this one. It is one line. But I still
+prefer not to change back unless there is strong opinion... 
+
 > 
+>>> Now I am wondering how well prctl works from a 32bit process on a 64bit
+>>> kernel.  At first glance it looks like it probably does not work.
+>>>
+>>
+>> I am not sure which part would be problematic.
+> 
+> 32bit pointers need to be translated into 64bit pointers.  If the system
+> call does not zero extend them.  Plus structure sizes.
+> 
+> I think prctl is just inside the line where problems happen but it is so
+> close to the line of structure size differences that it makes me
+> nervous.  Typically pointers in structures are what cause system calls
+> to cross that line.
+> 
+>>> Consistency with PDEATHSIG is not a good argument for anything.
+>>> PDEATHSIG at the present time is unusable in the real world by most
+>>> applications that want something like it.
+>>
+>> Agreed, PDEATHSIG seems to have a few issues ...
+>>
+>>>
+>>> So far I see an interface that even you don't want to use as designed,
+>>> that is implemented incorrectly.
+>>>
+>>> The concern is real and deserves to be addressed.  I don't think signals
+>>> are the right way to handle it, and certainly not this patch as it
+>>> stands.
+>>
+>> I will address your concerns on the patch. Regarding the requirement and the
+>> overall solution, if there are specific questions that I have not answered,
+>> please let me know.
+> 
+> So far so good.
 > 
 
-As I stated in a prior email, I have test code for both sigaction/waipid(),
-and signefd(). As the sigaction/waitpid is more widely used and that is
-what you prefer, I will change the selftest code to reflect that in the
-next version.  Actually I should separate out the selftest code.
+Thanks. Reviews from folks on the list have certainly made the code shorter,
+simpler and cleaner.
 
-> 
-> I do think that a file descriptor based API might be a good alternative
-> to a signal based API.  The proc connector and signals are not the only
-> API solution.
-> 
-> The common solution to this problem is that distributions defailt the
-> rlimit core file size to 0.
-
-We do need coredumps in order to have the bugs fixed.
-
-Thanks.  -- Enke
+-- Enke
