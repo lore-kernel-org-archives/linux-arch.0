@@ -1,46 +1,89 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH RFC v3 0/3] Rlimit for module space
-Date: Thu, 25 Oct 2018 16:18:35 +0200
-Message-ID: <20181025141835.GS18839@dhcp22.suse.cz>
-References: <20181019204723.3903-1-rick.p.edgecombe@intel.com>
- <CAKv+Gu_AgPv2o4=U0-7pnpgtSufEobnta8oKhhGfCdCxM82B5Q@mail.gmail.com>
- <6b1017c450d163539d2b974657baaaf697f0a138.camel@intel.com>
- <CAKv+Gu-Rk-SQVOQ63L3DkF3=EVik3pHXzpNp5r5TrgDajTM_iQ@mail.gmail.com>
- <20181024150706.jewcclhhh756tupn@linux-8ccs>
- <d7cb6a8c-b7d6-5c82-6721-2b5387da673f@iogearbox.net>
- <d1fec827d028168047eafbac56e8e47d37cf7fb5.camel@intel.com>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V9 01/21] csky: Build infrastructure
+Date: Fri, 26 Oct 2018 01:04:08 +0800
+Message-ID: <20181025170407.GA9747@guoren-Inspiron-7460>
+References: <cover.1539655731.git.ren_guo@c-sky.com>
+ <801add6d63256a3bf0802e2b03efb0f9c206dab0.1539655731.git.ren_guo@c-sky.com>
+ <20181023000834.GA20335@guoren-Inspiron-7460>
+ <CAK8P3a2coXVaaiZUcxsp8DmWcVdBrDMomYAN--M42TuSnHxKNA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-14283-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <d1fec827d028168047eafbac56e8e47d37cf7fb5.camel@intel.com>
-To: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
-Cc: "daniel@iogearbox.net" <daniel@iogearbox.net>, "jeyu@kernel.org" <jeyu@kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "jannh@google.com" <jannh@google.com>, "keescook@chromium.org" <keescook@chromium.org>, "arjan@linux.intel.com" <arjan@linux.intel.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "kristen@linux.intel.com" <kristen@linux.intel.com>, "Dock, Deneen T" <deneen.t.dock@intel.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mingo@redhat.com" <mingo@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.>
+In-Reply-To: <CAK8P3a2coXVaaiZUcxsp8DmWcVdBrDMomYAN--M42TuSnHxKNA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu 25-10-18 01:01:44, Edgecombe, Rick P wrote:
-[...]
-> FWIW, cgroups seems like a better solution than rlimit to me too. Maybe you all
-> already know, but it looks like the cgroups vmalloc charge is done in the main
-> page allocator and counts against the whole kernel memory limit.
+On Wed, Oct 24, 2018 at 11:53:05PM +0100, Arnd Bergmann wrote:
+> On Tue, Oct 23, 2018 at 1:08 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> > Hi Arnd,
+> >
+> > Could you help me review the patch, seems the patch is skipped.
+> > ref: https://lkml.org/lkml/2018/10/16/224
+> 
+> Ah right, I missed that. I think I originally had some thoughts on it but
+> didn't immediately comment and then forgot about it. It's basically
+> ok, so
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Thx.
 
-I am not sure I understand what you are saying but let me clarify that
-vmalloc memory is accounted against memory cgroup associated with the
-user context calling vmalloc. All you need to do is to add __GFP_ACCOUNT
-to the gfp mask. The only challenge here is the charged memory life
-cycle. When does it get deallocated? In the worst case the memory is not
-tight to any user context and as such it doesn't get deallocated by
-killing all processes which could lead to memcg limit exhaustion.
+> 
+> but please have a look below for a follow-up patch:
+> 
+> > > diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+> > > new file mode 100644
+> > > index 0000000..014eb57
+> > > --- /dev/null
+> > > +++ b/arch/csky/include/asm/Kbuild
+> > > @@ -0,0 +1,72 @@
+> > > +generic-y += asm-offsets.h
+> > > +generic-y += bitsperlong.h
+> > > +generic-y += bugs.h
+> > > +generic-y += clkdev.h
+> > > +generic-y += compat.h
+> > > +generic-y += current.h
+> > > +generic-y += delay.h
+> > > +generic-y += device.h
+> > > +generic-y += div64.h
+> ...
+> > > +generic-y += errno.h
+> ...
+> > > +generic-y += ioctl.h
+> > > +generic-y += ioctls.h
+> 
+> A number of the header files that are marked as generic-y in
+> asm/Kbuild are also marked the same way in uapi/asm/Kbuild.
+> I think this is a mistake, since we only need one of the two
+> for each header.
+> 
+> When both exist, we just take the one from asm/, but then we install
+> the uapi/asm/ version in the 'make headers_install' stage, and they
+> both have the same contents, so I think you only need the uapi/asm/
+> version here.
+Ok, I've cleaned them up.
 
-> A user may want
-> to have a higher kernel limit than the module space size, so it seems it isn't
-> enough by itself and some new limit would need to be added.
+> 
+> > > diff --git a/arch/csky/include/uapi/asm/Kbuild b/arch/csky/include/uapi/asm/Kbuild
+> > > new file mode 100644
+> > > index 0000000..b65252b
+> > > --- /dev/null
+> > > +++ b/arch/csky/include/uapi/asm/Kbuild
+> > > @@ -0,0 +1,33 @@
+> > > +include include/uapi/asm-generic/Kbuild.asm
+> > > +
+> > > +header-y += cachectl.h
+> > > +header-y += stat.h
+> 
+> It also seems that the second statement here (for stat.h) is from
+> an older version, since that header no longer exists, at least if
+> I'm reading your patches correctly.
+Yes, no "header-y += stat.h" and I've removed it.
 
-If there is another restriction on this memory then you are right.
--- 
-Michal Hocko
-SUSE Labs
+Thx for the reviewed.
+
+Best Regards
+ Guo Ren
