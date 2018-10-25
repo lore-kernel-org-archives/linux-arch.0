@@ -1,89 +1,87 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V9 01/21] csky: Build infrastructure
-Date: Fri, 26 Oct 2018 01:04:08 +0800
-Message-ID: <20181025170407.GA9747@guoren-Inspiron-7460>
+Subject: Re: [PATCH V9 21/21] csky: support dword access for get_user_size()
+Date: Fri, 26 Oct 2018 01:08:13 +0800
+Message-ID: <20181025170813.GB9747@guoren-Inspiron-7460>
 References: <cover.1539655731.git.ren_guo@c-sky.com>
- <801add6d63256a3bf0802e2b03efb0f9c206dab0.1539655731.git.ren_guo@c-sky.com>
- <20181023000834.GA20335@guoren-Inspiron-7460>
- <CAK8P3a2coXVaaiZUcxsp8DmWcVdBrDMomYAN--M42TuSnHxKNA@mail.gmail.com>
+ <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
+ <CAK8P3a1wfeWboHvU1o_kooMc2hML8iWcNrz=mp6tYT52iGwfjw@mail.gmail.com>
+ <20181018034117.GD15088@guoren-Inspiron-7460>
+ <CAK8P3a0cFhBE1tX0xisP__MYiBfaAUQHsW6ZhkmTPocRf1Zb6w@mail.gmail.com>
+ <20181018085751.GA21934@guoren-Inspiron-7460>
+ <CAK8P3a28SLy85pCq9eS-xnLuFo4XAJmnKCiy0XF9ZZtLxfaUDw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a2coXVaaiZUcxsp8DmWcVdBrDMomYAN--M42TuSnHxKNA@mail.gmail.com>
+In-Reply-To: <CAK8P3a28SLy85pCq9eS-xnLuFo4XAJmnKCiy0XF9ZZtLxfaUDw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 24, 2018 at 11:53:05PM +0100, Arnd Bergmann wrote:
-> On Tue, Oct 23, 2018 at 1:08 AM Guo Ren <ren_guo@c-sky.com> wrote:
+On Wed, Oct 24, 2018 at 08:17:47AM +0100, Arnd Bergmann wrote:
+> On Thu, Oct 18, 2018 at 9:57 AM Guo Ren <ren_guo@c-sky.com> wrote:
 > >
-> > Hi Arnd,
+> > On Thu, Oct 18, 2018 at 10:34:00AM +0200, Arnd Bergmann wrote:
+> > > On Thu, Oct 18, 2018 at 5:41 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> > > >
+> > > > On Wed, Oct 17, 2018 at 05:44:17PM +0200, Arnd Bergmann wrote:
+> > > > > On Tue, Oct 16, 2018 at 5:33 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> > > > > >
+> > > > > > Support dword access for get_user_size and redesign put_user_size with
+> > > > > > the same style of get_user_size. It's Ok to use xxx_user_asm_common for
+> > > > > > all size of variable with ldb, ldh, ldw, ld.d
+> > > > > >
+> > > > > > ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
+> > > > > > follow abiv2 gcc ABI for dword access.
+> > > > >
+> > > > > Are you sure this is correct for this?
+> > > > >
+> > > > > static inline u32 get_64_to_32(__u64 __user *p)
+> > > > > {
+> > > > >       u32 ret;
+> > > > >       get_user(ret, p);
+> > > > >       return ret;
+> > > > > }
+> > > > >
+> > > > > If I read __get_user_asm_common() right, the ld.d would overwrite
+> > > > > two registers, but the caller only expects one, so it clobbers one
+> > > > > that might be in use.
+> > > > Ah... BUG! I only consider the get_user(u64, u64 *) :P
+> > > >
+> > > > Change to:
+> > > > case 8:                                                 \
+> > > > __get_user_asm_dword((x), ptr, "ld.d", retval);         \
+> > > > break;
+> > > >
+> > > > #define __get_user_asm_dword(x, ptr, err)               \
+> > > > do {                                                    \
+> > > >         u64 tmp;                                        \
+> > > >         __get_user_asm_common(tmp, ptr, "ld.d", err);   \
+> > > >         x = typeof(x) tmp;                              \
+> > > > } while(0)
+> > > >
+> > > > #define __put_user_asm_dword(x, ptr, err)               \
+> > > > do {                                                    \
+> > > >         u64 tmp = (u64) x;                              \
+> > > >         __put_user_asm_common(tmp, ptr, "st.d", err);   \
+> > > > } while(0)
+> > > >
+> > >
+> > > I think this will cause warnings for code that passes a pointer.
+> > >
+> > > The 64-bit __get_user() is really hard, and most 32-bit architectures don't
+> > > implement it at all. If you really want to add it, have a look at what
+> > > x86 and arm do. IIRC they both use __builtin_choose_expr(),
+> > Thx for the tips and I'll drop the patch first for the upstream.
 > >
-> > Could you help me review the patch, seems the patch is skipped.
-> > ref: https://lkml.org/lkml/2018/10/16/224
+> > I want to implement it because of make allmodconfig and
+> > drivers/android/binder.c need it. I'll learn __builtin_choose_expr()
+> > and prepare patch next.
 > 
-> Ah right, I missed that. I think I originally had some thoughts on it but
-> didn't immediately comment and then forgot about it. It's basically
-> ok, so
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-Thx.
-
-> 
-> but please have a look below for a follow-up patch:
-> 
-> > > diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
-> > > new file mode 100644
-> > > index 0000000..014eb57
-> > > --- /dev/null
-> > > +++ b/arch/csky/include/asm/Kbuild
-> > > @@ -0,0 +1,72 @@
-> > > +generic-y += asm-offsets.h
-> > > +generic-y += bitsperlong.h
-> > > +generic-y += bugs.h
-> > > +generic-y += clkdev.h
-> > > +generic-y += compat.h
-> > > +generic-y += current.h
-> > > +generic-y += delay.h
-> > > +generic-y += device.h
-> > > +generic-y += div64.h
-> ...
-> > > +generic-y += errno.h
-> ...
-> > > +generic-y += ioctl.h
-> > > +generic-y += ioctls.h
-> 
-> A number of the header files that are marked as generic-y in
-> asm/Kbuild are also marked the same way in uapi/asm/Kbuild.
-> I think this is a mistake, since we only need one of the two
-> for each header.
-> 
-> When both exist, we just take the one from asm/, but then we install
-> the uapi/asm/ version in the 'make headers_install' stage, and they
-> both have the same contents, so I think you only need the uapi/asm/
-> version here.
-Ok, I've cleaned them up.
-
-> 
-> > > diff --git a/arch/csky/include/uapi/asm/Kbuild b/arch/csky/include/uapi/asm/Kbuild
-> > > new file mode 100644
-> > > index 0000000..b65252b
-> > > --- /dev/null
-> > > +++ b/arch/csky/include/uapi/asm/Kbuild
-> > > @@ -0,0 +1,33 @@
-> > > +include include/uapi/asm-generic/Kbuild.asm
-> > > +
-> > > +header-y += cachectl.h
-> > > +header-y += stat.h
-> 
-> It also seems that the second statement here (for stat.h) is from
-> an older version, since that header no longer exists, at least if
-> I'm reading your patches correctly.
-Yes, no "header-y += stat.h" and I've removed it.
-
-Thx for the reviewed.
+> I think we should fix binder.c instead. Many other architectures
+> have the same problem.
+Yes, and I'll study the file.
 
 Best Regards
  Guo Ren
