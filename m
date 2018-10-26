@@ -1,82 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:39350 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725867AbeJZNtM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2018 09:49:12 -0400
-Received: by mail-pg1-f193.google.com with SMTP id r9-v6so5101697pgv.6
-        for <linux-arch@vger.kernel.org>; Thu, 25 Oct 2018 22:13:42 -0700 (PDT)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v6 0/5] parisc: system call table generation support
-Date: Fri, 26 Oct 2018 10:43:06 +0530
-Message-ID: <1540530791-3961-1-git-send-email-firoz.khan@linaro.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:52872 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726014AbeJZQsw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Oct 2018 12:48:52 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w9Q89v2X100094
+        for <linux-arch@vger.kernel.org>; Fri, 26 Oct 2018 04:12:48 -0400
+Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2nbvecxwcp-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 26 Oct 2018 04:12:47 -0400
+Received: from localhost
+        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
+        Fri, 26 Oct 2018 09:12:45 +0100
+Date: Fri, 26 Oct 2018 09:12:25 +0100
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v2 0/2] arm64: Cut rebuild time when changing
+ CONFIG_BLK_DEV_INITRD
+References: <20181024193256.23734-1-f.fainelli@gmail.com>
+ <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
+ <20181025093833.GA23607@rapoport-lnx>
+ <CAL_JsqL62ttsGSbE1BS5v-mX3pKE-p_HyvuZD6nB+GUbQyetzg@mail.gmail.com>
+ <20181025172935.GA27364@rapoport-lnx>
+ <CAL_JsqJrMq+QHvuOsqEdCFchmXsd4s2XKUD_TboKzeEQprJvjg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAL_JsqJrMq+QHvuOsqEdCFchmXsd4s2XKUD_TboKzeEQprJvjg@mail.gmail.com>
+Message-ID: <20181026081224.GB27364@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181026051306.si0pn0w4r4a8LRS3suWI8yyBwFS24rRzpKzPDHuKlcY@z>
+To: Rob Herring <robh@kernel.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Florian Fainelli <f.fainelli@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Olof Johansson <olof@lixom.net>, linux-alpha@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux-MIPS <linux-mips@linux-mips.org>, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, linux-parisc@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, SH-Linux <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, devicetree@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20181026081225.fDVGm0uZwxBgIc36762qbR-rrlgAlJo3_4nrCYU552E@z>
 
-The purpose of this patch series is, we can easily add/modify/delete
-system call table support by changing entry in syscall.tbl file 
-instead of manually changing many files. The other goal is to unify 
-the system call table generation support implementation across all 
-the architectures. 
+On Thu, Oct 25, 2018 at 04:13:10PM -0500, Rob Herring wrote:
+> On Thu, Oct 25, 2018 at 12:30 PM Mike Rapoport <rppt@linux.ibm.com> wrote:
+> >
+> > On Thu, Oct 25, 2018 at 08:15:15AM -0500, Rob Herring wrote:
+> > > +Ard
+> > >
+> > > On Thu, Oct 25, 2018 at 4:38 AM Mike Rapoport <rppt@linux.ibm.com> wrote:
+> > > >
+> > > > On Wed, Oct 24, 2018 at 02:55:17PM -0500, Rob Herring wrote:
+> > > > > On Wed, Oct 24, 2018 at 2:33 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
+> > > > > >
+> > > > > > Hi all,
+> > > > > >
+> > > > > > While investigating why ARM64 required a ton of objects to be rebuilt
+> > > > > > when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
+> > > > > > because we define __early_init_dt_declare_initrd() differently and we do
+> > > > > > that in arch/arm64/include/asm/memory.h which gets included by a fair
+> > > > > > amount of other header files, and translation units as well.
+> > > > >
+> > > > > I scratch my head sometimes as to why some config options rebuild so
+> > > > > much stuff. One down, ? to go. :)
+> > > > >
+> > > > > > Changing the value of CONFIG_DEV_BLK_INITRD is a common thing with build
+> > > > > > systems that generate two kernels: one with the initramfs and one
+> > > > > > without. buildroot is one of these build systems, OpenWrt is also
+> > > > > > another one that does this.
+> > > > > >
+> > > > > > This patch series proposes adding an empty initrd.h to satisfy the need
+> > > > > > for drivers/of/fdt.c to unconditionally include that file, and moves the
+> > > > > > custom __early_init_dt_declare_initrd() definition away from
+> > > > > > asm/memory.h
+> > > > > >
+> > > > > > This cuts the number of objects rebuilds from 1920 down to 26, so a
+> > > > > > factor 73 approximately.
+> > > > > >
+> > > > > > Apologies for the long CC list, please let me know how you would go
+> > > > > > about merging that and if another approach would be preferable, e.g:
+> > > > > > introducing a CONFIG_ARCH_INITRD_BELOW_START_OK Kconfig option or
+> > > > > > something like that.
+> > > > >
+> > > > > There may be a better way as of 4.20 because bootmem is now gone and
+> > > > > only memblock is used. This should unify what each arch needs to do
+> > > > > with initrd early. We need the physical address early for memblock
+> > > > > reserving. Then later on we need the virtual address to access the
+> > > > > initrd. Perhaps we should just change initrd_start and initrd_end to
+> > > > > physical addresses (or add 2 new variables would be less invasive and
+> > > > > allow for different translation than __va()). The sanity checks and
+> > > > > memblock reserve could also perhaps be moved to a common location.
+> > > > >
+> > > > > Alternatively, given arm64 is the only oddball, I'd be fine with an
+> > > > > "if (IS_ENABLED(CONFIG_ARM64))" condition in the default
+> > > > > __early_init_dt_declare_initrd as long as we have a path to removing
+> > > > > it like the above option.
+> > > >
+> > > > I think arm64 does not have to redefine __early_init_dt_declare_initrd().
+> > > > Something like this might be just all we need (completely untested,
+> > > > probably it won't even compile):
+> > > >
+> > > > diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+> > > > index 9d9582c..e9ca238 100644
+> > > > --- a/arch/arm64/mm/init.c
+> > > > +++ b/arch/arm64/mm/init.c
+> > > > @@ -62,6 +62,9 @@ s64 memstart_addr __ro_after_init = -1;
+> > > >  phys_addr_t arm64_dma_phys_limit __ro_after_init;
+> > > >
+> > > >  #ifdef CONFIG_BLK_DEV_INITRD
+> > > > +
+> > > > +static phys_addr_t initrd_start_phys, initrd_end_phys;
+> > > > +
+> > > >  static int __init early_initrd(char *p)
+> > > >  {
+> > > >         unsigned long start, size;
+> > > > @@ -71,8 +74,8 @@ static int __init early_initrd(char *p)
+> > > >         if (*endp == ',') {
+> > > >                 size = memparse(endp + 1, NULL);
+> > > >
+> > > > -               initrd_start = start;
+> > > > -               initrd_end = start + size;
+> > > > +               initrd_start_phys = start;
+> > > > +               initrd_end_phys = end;
+> > > >         }
+> > > >         return 0;
+> > > >  }
+> > > > @@ -407,14 +410,27 @@ void __init arm64_memblock_init(void)
+> > > >                 memblock_add(__pa_symbol(_text), (u64)(_end - _text));
+> > > >         }
+> > > >
+> > > > -       if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) && initrd_start) {
+> > > > +       if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) &&
+> > > > +           (initrd_start || initrd_start_phys)) {
+> > > > +               /*
+> > > > +                * FIXME: ensure proper precendence between
+> > > > +                * early_initrd and DT when both are present
+> > >
+> > > Command line takes precedence, so just reverse the order.
+> > >
+> > > > +                */
+> > > > +               if (initrd_start) {
+> > > > +                       initrd_start_phys = __phys_to_virt(initrd_start);
+> > > > +                       initrd_end_phys = __phys_to_virt(initrd_end);
+> 
+> BTW, I think you meant virt_to_phys() here?
 
-The system call tables are in different format in all architecture. 
-It will be difficult to manually add, modify or delete the system 
-calls in the respective files manually. To make it easy by keeping
-a script and which'll generate uapi header file and syscall table 
-file.
-
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
-
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-	- Compat entry name, if required.
-
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, ia64, m68k, micro-
-blaze, mips, powerpc, sh, sparc, and xtensa. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038 issue. We need 
-to add two dozen of system calls to solve Y2038 issue. So this patch
-series will help to add new system calls easily by adding new entry 
-in the syscall.tbl.
-
-Firoz Khan (5):
-  parisc: move __IGNORE* entries to non uapi header
-  parisc: add __NR_syscalls along with __NR_Linux_syscalls
-  parisc: add system call table generation support
-  parisc: generate uapi header and system call table files
-  parisc: syscalls: ignore nfsservctl for other architectures
-
- arch/parisc/Makefile                      |   4 +
- arch/parisc/include/asm/Kbuild            |   3 +
- arch/parisc/include/asm/unistd.h          |   8 +
- arch/parisc/include/uapi/asm/Kbuild       |   2 +
- arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
- arch/parisc/kernel/syscall.S              |  11 +-
- arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
- arch/parisc/kernel/syscalls/Makefile      |  57 ++++
- arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++
- arch/parisc/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
- scripts/checksyscalls.sh                  |   1 +
- 12 files changed, 532 insertions(+), 836 deletions(-)
- delete mode 100644 arch/parisc/kernel/syscall_table.S
- create mode 100644 arch/parisc/kernel/syscalls/Makefile
- create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
- create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+Right, and then there is no problem at all do the conversion here :)
+ 
+> > >
+> > > AIUI, the original issue was doing the P2V translation was happening
+> > > too early and the VA could be wrong if the linear range is adjusted.
+> > > So I don't think this would work.
+> >
+> > Probably things have changed since then, but in the current code there is
+> >
+> >                 initrd_start = __phys_to_virt(initrd_start);
+> >
+> > and in between only the code related to CONFIG_RANDOMIZE_BASE, so I believe
+> > it's safe to use __phys_to_virt() here as well.
+> 
+> Here is fine yes, but I believe it was the the phys to virt in the DT
+> code before adjusting the linear range that was the problem.
+> 
+> Rob
+> 
 
 -- 
-1.9.1
+Sincerely yours,
+Mike.
