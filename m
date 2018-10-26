@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 1/5] ia64: add __NR_old_getpagesize in uapi header file
-Date: Fri, 26 Oct 2018 10:41:10 +0530
-Message-ID: <1540530674-3824-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 2/5] ia64: add __NR_syscalls along with NR_syscalls
+Date: Fri, 26 Oct 2018 10:41:11 +0530
+Message-ID: <1540530674-3824-3-git-send-email-firoz.khan@linaro.org>
 References: <1540530674-3824-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1540530674-3824-1-git-send-email-firoz.khan@linaro.org>
@@ -10,31 +10,68 @@ To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fen
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-sys_getpagesize entry is present in kernel/entry.S file to
-support for old user interface. So we need to add an uapi
-entry too.
+NR_syscalls macro holds the number of system call exist
+in ia64 architecture. We have to change the value of NR-
+_syscalls, if we add or delete a system call.
 
-Add __NR_old_getpagesize in uapi/asm/unistd.h in order to
-not break old user space as it is reserved for backwards
-compatibility with old __NR_getpagesize.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update NR_sy-
+scalls value.
+
+1. Update NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
+
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_syscalls in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/ia64/include/uapi/asm/unistd.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/ia64/include/asm/unistd.h      | 4 +---
+ arch/ia64/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 3 deletions(-)
 
+diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
+index ffb705d..397b143 100644
+--- a/arch/ia64/include/asm/unistd.h
++++ b/arch/ia64/include/asm/unistd.h
+@@ -10,9 +10,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-
+-
+-#define NR_syscalls			326 /* length of syscall table */
++#define NR_syscalls		__NR_syscalls /* length of syscall table */
+ 
+ /*
+  * The following defines stop scripts/checksyscalls.sh from complaining about
 diff --git a/arch/ia64/include/uapi/asm/unistd.h b/arch/ia64/include/uapi/asm/unistd.h
-index 5fe71d4..4d590c9 100644
+index 4d590c9..4186dc2 100644
 --- a/arch/ia64/include/uapi/asm/unistd.h
 +++ b/arch/ia64/include/uapi/asm/unistd.h
-@@ -161,7 +161,7 @@
- #define __NR_nanosleep			1168
- #define __NR_nfsservctl			1169
- #define __NR_prctl			1170
--/* 1171 is reserved for backwards compatibility with old __NR_getpagesize */
-+#define __NR_old_getpagesize            1171
- #define __NR_mmap2			1172
- #define __NR_pciconfig_read		1173
- #define __NR_pciconfig_write		1174
+@@ -341,4 +341,8 @@
+ #define __NR_preadv2			1348
+ #define __NR_pwritev2			1349
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			326
++#endif
++
+ #endif /* _UAPI_ASM_IA64_UNISTD_H */
 -- 
 1.9.1
