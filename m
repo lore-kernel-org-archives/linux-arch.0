@@ -1,69 +1,71 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 0/3] microblaze: system call table generation support
-Date: Fri, 26 Oct 2018 10:39:09 +0530
-Message-ID: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 1/3] microblaze: move __NR_syscalls macro from asm/unistd.h
+Date: Fri, 26 Oct 2018 10:39:10 +0530
+Message-ID: <1540530552-3652-2-git-send-email-firoz.khan@linaro.org>
+References: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily add/modify/delete
-system call table support by changing entry in syscall.tbl file 
-instead of manually changing many files. The other goal is to unify 
-the system call table generation support implementation across all 
-the architectures. 
+__NR_syscalls macro holds the number of system call exist
+in microblaze architecture. We have to change the value of
+__NR_syscalls, if we add or delete a system call.
 
-The system call tables are in different format in all architecture. 
-It will be difficult to manually add, modify or delete the system 
-calls in the respective files manually. To make it easy by keeping
-a script and which'll generate uapi header file and syscall table 
-file.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update __NR-
+_syscalls value.
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
+1. Update __NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update __NR_syscalls in asm/unistd.h file.
 
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
+The 2nd option will be the recommended one. For that, I
+moved the __NR_syscalls macro from asm/unistd.h to uapi-
+/asm/unistd.h. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
-I have done the same support for work for alpha, ia64, m68k, mips, 
-parisc, powerpc, sh, sparc, and xtensa. Below mentioned git repos-
-itory contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/microblaze/include/asm/unistd.h      | 2 --
+ arch/microblaze/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-Finally, this is the ground work to solve the Y2038 issue. We need 
-to add two dozen of system calls to solve Y2038 issue. So this patch
-series will help to add new system calls easily by adding new entry 
-in the syscall.tbl.
-
-Firoz Khan (3):
-  microblaze: move __NR_syscalls macro from asm/unistd.h
-  microblaze: add system call table generation support
-  microblaze: generate uapi header and system call table files
-
- arch/microblaze/Makefile                      |   3 +
- arch/microblaze/include/asm/Kbuild            |   1 +
- arch/microblaze/include/asm/unistd.h          |   2 -
- arch/microblaze/include/uapi/asm/Kbuild       |   1 +
- arch/microblaze/include/uapi/asm/unistd.h     | 407 +------------------------
- arch/microblaze/kernel/syscall_table.S        | 406 +------------------------
- arch/microblaze/kernel/syscalls/Makefile      |  38 +++
- arch/microblaze/kernel/syscalls/syscall.tbl   | 410 ++++++++++++++++++++++++++
- arch/microblaze/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/microblaze/kernel/syscalls/syscalltbl.sh |  32 ++
- 10 files changed, 526 insertions(+), 810 deletions(-)
- create mode 100644 arch/microblaze/kernel/syscalls/Makefile
- create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
- create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/microblaze/include/asm/unistd.h b/arch/microblaze/include/asm/unistd.h
+index a62d094..e19550f 100644
+--- a/arch/microblaze/include/asm/unistd.h
++++ b/arch/microblaze/include/asm/unistd.h
+@@ -38,6 +38,4 @@
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+-#define __NR_syscalls         401
+-
+ #endif /* _ASM_MICROBLAZE_UNISTD_H */
+diff --git a/arch/microblaze/include/uapi/asm/unistd.h b/arch/microblaze/include/uapi/asm/unistd.h
+index 7a9f16a..ed9c6f5 100644
+--- a/arch/microblaze/include/uapi/asm/unistd.h
++++ b/arch/microblaze/include/uapi/asm/unistd.h
+@@ -418,4 +418,8 @@
+ #define __NR_io_pgetevents	399
+ #define __NR_rseq		400
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls         401
++#endif
++
+ #endif /* _UAPI_ASM_MICROBLAZE_UNISTD_H */
 -- 
 1.9.1
