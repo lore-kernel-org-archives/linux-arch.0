@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 1/4] m68k: rename system call table file name
-Date: Fri, 26 Oct 2018 10:36:14 +0530
-Message-ID: <1540530377-3509-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 2/4] m68k: add __NR_syscalls along with NR_syscalls
+Date: Fri, 26 Oct 2018 10:36:15 +0530
+Message-ID: <1540530377-3509-3-git-send-email-firoz.khan@linaro.org>
 References: <1540530377-3509-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1540530377-3509-1-git-send-email-firoz.khan@linaro.org>
@@ -10,51 +10,67 @@ To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, 
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The system call table entries are present in syscalltable.S.
-One of the patch in this patch series will generate the sys-
-tem call table entries using the system call table generation
-script and which will replace the existig table file.
+NR_syscalls macro holds the number of system call exist
+in m68k architecture. We have to change the value of NR-
+_syscalls, if we add or delete a system call.
 
-In order to come up with a common naming convention across
-all architecture, we need to change the file name to syscall-
-_table.S. This change will unify the system call table gener-
-tion implementation across all architecture.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update NR_sy-
+scalls value.
+
+1. Update NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
+
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_syscalls in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/m68k/kernel/Makefile                            | 2 +-
- arch/m68k/kernel/{syscalltable.S => syscall_table.S} | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
- rename arch/m68k/kernel/{syscalltable.S => syscall_table.S} (99%)
+ arch/m68k/include/asm/unistd.h      | 3 +--
+ arch/m68k/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
-index dbac7f8..5f40ce6 100644
---- a/arch/m68k/kernel/Makefile
-+++ b/arch/m68k/kernel/Makefile
-@@ -15,7 +15,7 @@ extra-$(CONFIG_SUN3)	:= sun3-head.o
- extra-y			+= vmlinux.lds
+diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
+index 30d0d3f..5072e94 100644
+--- a/arch/m68k/include/asm/unistd.h
++++ b/arch/m68k/include/asm/unistd.h
+@@ -4,8 +4,7 @@
  
- obj-y	:= entry.o irq.o module.o process.o ptrace.o
--obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
-+obj-y	+= setup.o signal.o sys_m68k.o syscall_table.o time.o traps.o
+ #include <uapi/asm/unistd.h>
  
- obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
- obj-$(CONFIG_MMU_SUN3) += ints.o vectors.o
-diff --git a/arch/m68k/kernel/syscalltable.S b/arch/m68k/kernel/syscall_table.S
-similarity index 99%
-rename from arch/m68k/kernel/syscalltable.S
-rename to arch/m68k/kernel/syscall_table.S
-index 2c8402e..6145bc0 100644
---- a/arch/m68k/kernel/syscalltable.S
-+++ b/arch/m68k/kernel/syscall_table.S
-@@ -6,7 +6,7 @@
-  *
-  *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-  *                      Kenneth Albanowski <kjahds@kjahds.com>,
-- *  Copyright (C) 2000  Lineo Inc. (www.lineo.com) 
-+ *  Copyright (C) 2000  Lineo Inc. (www.lineo.com)
-  *  Copyright (C) 1991, 1992  Linus Torvalds
-  *
-  *  Linux/m68k support by Hamish Macdonald
+-
+-#define NR_syscalls		380
++#define NR_syscalls __NR_syscalls
+ 
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_OLD_STAT
+diff --git a/arch/m68k/include/uapi/asm/unistd.h b/arch/m68k/include/uapi/asm/unistd.h
+index de3054f..ba4176aa 100644
+--- a/arch/m68k/include/uapi/asm/unistd.h
++++ b/arch/m68k/include/uapi/asm/unistd.h
+@@ -387,4 +387,8 @@
+ #define __NR_pwritev2		378
+ #define __NR_statx		379
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls		380
++#endif
++
+ #endif /* _UAPI_ASM_M68K_UNISTD_H_ */
 -- 
 1.9.1
