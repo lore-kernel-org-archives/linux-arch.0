@@ -1,84 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:44933 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726113AbeJZNtY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2018 09:49:24 -0400
-Received: by mail-pg1-f194.google.com with SMTP id w3-v6so5095913pgs.11
-        for <linux-arch@vger.kernel.org>; Thu, 25 Oct 2018 22:13:54 -0700 (PDT)
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:46670 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727377AbeJZNtm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2018 09:49:42 -0400
+Received: by mail-pl1-f193.google.com with SMTP id bb7-v6so4905285plb.13
+        for <linux-arch@vger.kernel.org>; Thu, 25 Oct 2018 22:14:11 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v6 2/5] parisc: add __NR_syscalls along with __NR_Linux_syscalls
-Date: Fri, 26 Oct 2018 10:43:08 +0530
-Message-ID: <1540530791-3961-3-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v6 5/5] parisc: syscalls: ignore nfsservctl for other architectures
+Date: Fri, 26 Oct 2018 10:43:11 +0530
+Message-ID: <1540530791-3961-6-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1540530791-3961-1-git-send-email-firoz.khan@linaro.org>
 References: <1540530791-3961-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181026051308.XvT67Pc3bziXmgZPq0Otu4hvIPbzXSP-duohe6lsl4c@z>
+Message-ID: <20181026051311.w4VtewbQYSSTUSAhggPktn3F1hO94TivCw2PNAIUBYc@z>
 
-__NR_Linux_syscalls macro holds the number of system call
-exist in parisc architecture. We have to change the value
-of __NR_Linux_syscalls, if we add or delete a system call.
+This adds an exception to the syscall table checking script.
 
-One of the patch in this patch series has a script which
-will generate a uapi header based on syscall.tbl file.
-The syscall.tbl file contains the total number of system
-calls information. So we have two option to update __NR-
-_Linux_syscalls value.
+nfsservctl entry is only provided on x86, and there is no
+reason to add it elsewhere. However, including it on the
+syscall table caused a warning for most configurations on
+non-x86.
 
-1. Update __NR_Linux_syscalls in asm/unistd.h manually by
-   counting the no.of system calls. No need to update __NR-
-   _Linux_syscalls until we either add a new system call or
-   delete existing system call.
-
-2. We can keep this feature it above mentioned script,
-   that will count the number of syscalls and keep it in
-   a generated file. In this case we don't need to expli-
-   citly update __NR_Linux_syscalls in asm/unistd.h file.
-
-The 2nd option will be the recommended one. For that, I
-added the __NR_syscalls macro in uapi/asm/unistd.h along
-with __NR_Linux_syscalls asm/unistd.h. The macro __NR_sys-
-calls also added for making the name convention same across
-all architecture. While __NR_syscalls isn't strictly part
-of the uapi, having it as part of the generated header to
-simplifies the implementation. We also need to enclose
-this macro with #ifdef __KERNEL__ to avoid side effects.
+<stdin>:696:2: warning: #warning syscall nfsservctl not implemented [-Wcpp]
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/parisc/include/asm/unistd.h      | 2 ++
- arch/parisc/include/uapi/asm/unistd.h | 4 +++-
- 2 files changed, 5 insertions(+), 1 deletion(-)
+ scripts/checksyscalls.sh | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
-index 93fd9f6..d30fdbcb 100644
---- a/arch/parisc/include/asm/unistd.h
-+++ b/arch/parisc/include/asm/unistd.h
-@@ -4,6 +4,8 @@
+diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
+index ee3dfb5..cf93100 100755
+--- a/scripts/checksyscalls.sh
++++ b/scripts/checksyscalls.sh
+@@ -150,6 +150,7 @@ cat << EOF
+ #define __IGNORE_uselib
+ #define __IGNORE__sysctl
+ #define __IGNORE_arch_prctl
++#define __IGNORE_nfsservctl
  
- #include <uapi/asm/unistd.h>
- 
-+#define __NR_Linux_syscalls     __NR_syscalls
-+
- #ifndef __ASSEMBLY__
- 
- #define SYS_ify(syscall_name)   __NR_##syscall_name
-diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
-index bb52e12..f10d065 100644
---- a/arch/parisc/include/uapi/asm/unistd.h
-+++ b/arch/parisc/include/uapi/asm/unistd.h
-@@ -366,7 +366,9 @@
- #define __NR_statx		(__NR_Linux + 349)
- #define __NR_io_pgetevents	(__NR_Linux + 350)
- 
--#define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
-+#ifdef __KERNEL__
-+#define __NR_syscalls           351
-+#endif
- 
- #define LINUX_GATEWAY_ADDR      0x100
- 
+ /* ... including the "new" 32-bit uid syscalls */
+ #define __IGNORE_lchown32
 -- 
 1.9.1
