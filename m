@@ -1,67 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:37140 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726149AbeJZNmV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2018 09:42:21 -0400
-Received: by mail-pf1-f196.google.com with SMTP id j23-v6so5320056pfi.4
-        for <linux-arch@vger.kernel.org>; Thu, 25 Oct 2018 22:06:52 -0700 (PDT)
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:42345 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725876AbeJZNpK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2018 09:45:10 -0400
+Received: by mail-pl1-f194.google.com with SMTP id t6-v6so4887781plo.9
+        for <linux-arch@vger.kernel.org>; Thu, 25 Oct 2018 22:09:41 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 1/4] m68k: rename system call table file name
-Date: Fri, 26 Oct 2018 10:36:14 +0530
-Message-ID: <1540530377-3509-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1540530377-3509-1-git-send-email-firoz.khan@linaro.org>
-References: <1540530377-3509-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 1/3] microblaze: move __NR_syscalls macro from asm/unistd.h
+Date: Fri, 26 Oct 2018 10:39:10 +0530
+Message-ID: <1540530552-3652-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
+References: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181026050614.8xbSBchgHS5-A59oIpwaN2Jfka1Q1MkZOUPh_jw9oaE@z>
+Message-ID: <20181026050910.yKXOYPt2EXXFhnPGM9xHEkdqrpRClMihfhKl_-STLFI@z>
 
-The system call table entries are present in syscalltable.S.
-One of the patch in this patch series will generate the sys-
-tem call table entries using the system call table generation
-script and which will replace the existig table file.
+__NR_syscalls macro holds the number of system call exist
+in microblaze architecture. We have to change the value of
+__NR_syscalls, if we add or delete a system call.
 
-In order to come up with a common naming convention across
-all architecture, we need to change the file name to syscall-
-_table.S. This change will unify the system call table gener-
-tion implementation across all architecture.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update __NR-
+_syscalls value.
+
+1. Update __NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
+
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update __NR_syscalls in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I
+moved the __NR_syscalls macro from asm/unistd.h to uapi-
+/asm/unistd.h. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/m68k/kernel/Makefile                            | 2 +-
- arch/m68k/kernel/{syscalltable.S => syscall_table.S} | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
- rename arch/m68k/kernel/{syscalltable.S => syscall_table.S} (99%)
+ arch/microblaze/include/asm/unistd.h      | 2 --
+ arch/microblaze/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
-index dbac7f8..5f40ce6 100644
---- a/arch/m68k/kernel/Makefile
-+++ b/arch/m68k/kernel/Makefile
-@@ -15,7 +15,7 @@ extra-$(CONFIG_SUN3)	:= sun3-head.o
- extra-y			+= vmlinux.lds
+diff --git a/arch/microblaze/include/asm/unistd.h b/arch/microblaze/include/asm/unistd.h
+index a62d094..e19550f 100644
+--- a/arch/microblaze/include/asm/unistd.h
++++ b/arch/microblaze/include/asm/unistd.h
+@@ -38,6 +38,4 @@
  
- obj-y	:= entry.o irq.o module.o process.o ptrace.o
--obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
-+obj-y	+= setup.o signal.o sys_m68k.o syscall_table.o time.o traps.o
+ #endif /* __ASSEMBLY__ */
  
- obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
- obj-$(CONFIG_MMU_SUN3) += ints.o vectors.o
-diff --git a/arch/m68k/kernel/syscalltable.S b/arch/m68k/kernel/syscall_table.S
-similarity index 99%
-rename from arch/m68k/kernel/syscalltable.S
-rename to arch/m68k/kernel/syscall_table.S
-index 2c8402e..6145bc0 100644
---- a/arch/m68k/kernel/syscalltable.S
-+++ b/arch/m68k/kernel/syscall_table.S
-@@ -6,7 +6,7 @@
-  *
-  *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-  *                      Kenneth Albanowski <kjahds@kjahds.com>,
-- *  Copyright (C) 2000  Lineo Inc. (www.lineo.com) 
-+ *  Copyright (C) 2000  Lineo Inc. (www.lineo.com)
-  *  Copyright (C) 1991, 1992  Linus Torvalds
-  *
-  *  Linux/m68k support by Hamish Macdonald
+-#define __NR_syscalls         401
+-
+ #endif /* _ASM_MICROBLAZE_UNISTD_H */
+diff --git a/arch/microblaze/include/uapi/asm/unistd.h b/arch/microblaze/include/uapi/asm/unistd.h
+index 7a9f16a..ed9c6f5 100644
+--- a/arch/microblaze/include/uapi/asm/unistd.h
++++ b/arch/microblaze/include/uapi/asm/unistd.h
+@@ -418,4 +418,8 @@
+ #define __NR_io_pgetevents	399
+ #define __NR_rseq		400
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls         401
++#endif
++
+ #endif /* _UAPI_ASM_MICROBLAZE_UNISTD_H */
 -- 
 1.9.1
