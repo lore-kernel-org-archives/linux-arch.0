@@ -1,38 +1,65 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v4] kernel/signal: Signal-based pre-coredump notification
-Date: Fri, 26 Oct 2018 10:28:13 +0200
-Message-ID: <20181026082812.GA10581@redhat.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v2 0/2] arm64: Cut rebuild time when changing
+ CONFIG_BLK_DEV_INITRD
+Date: Fri, 26 Oct 2018 12:07:09 +0100
+Message-ID: <20181026110708.GA3814@rapoport-lnx>
+References: <20181024193256.23734-1-f.fainelli@gmail.com>
+ <CAL_Jsq+KCOv6pXXHhHDZ+7-QUrmtMDvSjEVhK15yZ3qbnn61Ag@mail.gmail.com>
+ <20181025093833.GA23607@rapoport-lnx>
+ <CAL_JsqL62ttsGSbE1BS5v-mX3pKE-p_HyvuZD6nB+GUbQyetzg@mail.gmail.com>
+ <20181025172935.GA27364@rapoport-lnx>
+ <CAL_JsqJrMq+QHvuOsqEdCFchmXsd4s2XKUD_TboKzeEQprJvjg@mail.gmail.com>
+ <1bb3bd63-a88e-b668-ea36-f0f985c0e2b1@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
+In-Reply-To: <1bb3bd63-a88e-b668-ea36-f0f985c0e2b1@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Enke Chen <enkechen@cisco.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+To: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Rob Herring <robh@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Olof Johansson <olof@lixom.net>, linux-alpha@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux-MIPS <linux-mips>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/25, Enke Chen wrote:
->
-> +static void do_notify_parent_predump(void)
-> +{
-> +	struct task_struct *parent;
-> +	int sig;
-> +
-> +	read_lock(&tasklist_lock);
-> +	parent = current->parent;
-> +	sig = parent->signal->predump_signal;
-> +	if (sig != 0)
-> +		do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
-> +	read_unlock(&tasklist_lock);
+On Thu, Oct 25, 2018 at 04:07:13PM -0700, Florian Fainelli wrote:
+> On 10/25/18 2:13 PM, Rob Herring wrote:
+> > On Thu, Oct 25, 2018 at 12:30 PM Mike Rapoport <rppt@linux.ibm.com> wrote:
+> >>
+> >> On Thu, Oct 25, 2018 at 08:15:15AM -0500, Rob Herring wrote:
+> >>> +Ard
+> >>>
+> >>> On Thu, Oct 25, 2018 at 4:38 AM Mike Rapoport <rppt@linux.ibm.com> wrote:
+> >>>>
+> >>>> On Wed, Oct 24, 2018 at 02:55:17PM -0500, Rob Herring wrote:
+> >>>>> On Wed, Oct 24, 2018 at 2:33 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
+> >>>>>>
+> >>>>>> Hi all,
+> >>>>>>
+> >>>>>> While investigating why ARM64 required a ton of objects to be rebuilt
+> >>>>>> when toggling CONFIG_DEV_BLK_INITRD, it became clear that this was
+> >>>>>> because we define __early_init_dt_declare_initrd() differently and we do
+> >>>>>> that in arch/arm64/include/asm/memory.h which gets included by a fair
+> >>>>>> amount of other header files, and translation units as well.
+> >>>>>
+> >>>> I think arm64 does not have to redefine __early_init_dt_declare_initrd().
+> >>>> Something like this might be just all we need (completely untested,
+> >>>> probably it won't even compile):
 
-Ah. It is strange I didn't think about this before... Please, do not take
-tasklist_lock, use rcu_read_lock() instead. do_send_sig_info() uses the
-rcu-friendly lock_task_sighand(), so rcu_dereference(parent) should work
-fine.
+[ ... ]
+ 
+> FWIW, I am extracting the ARM implementation that parses the initrd
+> early command line parameter and the "setup" code doing the page
+> boundary alignment and memblock checking into a helper into lib/ that
+> other architectures can re-use. So far, this removes the need for
+> unicore32, arc and arm to duplicate essentially the same logic.
 
-Oleg.
+Presuming you are going to need asm-generic/initrd.h for that as well,
+using override for __early_init_dt_declare_initrd in arm64 version of
+initrd.h might be the simplest option.
+
+> -- 
+> Florian
+> 
+
+-- 
+Sincerely yours,
+Mike.
