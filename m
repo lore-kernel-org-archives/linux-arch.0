@@ -1,71 +1,40 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 0/5] ia64: system call table generation support
-Date: Fri, 26 Oct 2018 10:41:09 +0530
-Message-ID: <1540530674-3824-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 1/5] ia64: add __NR_old_getpagesize in uapi header file
+Date: Fri, 26 Oct 2018 10:41:10 +0530
+Message-ID: <1540530674-3824-2-git-send-email-firoz.khan@linaro.org>
+References: <1540530674-3824-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1540530674-3824-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily add/modify/delete
-system call table support by changing entry in syscall.tbl file 
-instead of manually changing many files. The other goal is to unify 
-the system call table generation support implementation across all 
-the architectures. 
+sys_getpagesize entry is present in kernel/entry.S file to
+support for old user interface. So we need to add an uapi
+entry too.
 
-The system call tables are in different format in all architecture. 
-It will be difficult to manually add, modify or delete the system 
-calls in the respective files manually. To make it easy by keeping
-a script and which'll generate uapi header file and syscall table 
-file.
+Add __NR_old_getpagesize in uapi/asm/unistd.h in order to
+not break old user space as it is reserved for backwards
+compatibility with old __NR_getpagesize.
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/ia64/include/uapi/asm/unistd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, m68k, microblaze,
-mips, parisc, powerpc, sh, sparc, and xtensa. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038 issue. We need 
-to add two dozen of system calls to solve Y2038 issue. So this patch
-series will help to add new system calls easily by adding new entry 
-in the syscall.tbl.
-
-Firoz Khan (5):
-  ia64: add __NR_old_getpagesize in uapi header file
-  ia64: add __NR_syscalls along with NR_syscalls
-  ia64: add an offset for system call number
-  ia64: add system call table generation support
-  ia64: generate uapi header and system call table files
-
- arch/ia64/Makefile                      |   3 +
- arch/ia64/include/asm/Kbuild            |   1 +
- arch/ia64/include/asm/unistd.h          |   4 +-
- arch/ia64/include/uapi/asm/Kbuild       |   1 +
- arch/ia64/include/uapi/asm/unistd.h     | 332 +------------------------------
- arch/ia64/kernel/entry.S                | 331 +------------------------------
- arch/ia64/kernel/syscalls/Makefile      |  40 ++++
- arch/ia64/kernel/syscalls/syscall.tbl   | 337 ++++++++++++++++++++++++++++++++
- arch/ia64/kernel/syscalls/syscallhdr.sh |  36 ++++
- arch/ia64/kernel/syscalls/syscalltbl.sh |  32 +++
- 10 files changed, 457 insertions(+), 660 deletions(-)
- create mode 100644 arch/ia64/kernel/syscalls/Makefile
- create mode 100644 arch/ia64/kernel/syscalls/syscall.tbl
- create mode 100644 arch/ia64/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/ia64/include/uapi/asm/unistd.h b/arch/ia64/include/uapi/asm/unistd.h
+index 5fe71d4..4d590c9 100644
+--- a/arch/ia64/include/uapi/asm/unistd.h
++++ b/arch/ia64/include/uapi/asm/unistd.h
+@@ -161,7 +161,7 @@
+ #define __NR_nanosleep			1168
+ #define __NR_nfsservctl			1169
+ #define __NR_prctl			1170
+-/* 1171 is reserved for backwards compatibility with old __NR_getpagesize */
++#define __NR_old_getpagesize            1171
+ #define __NR_mmap2			1172
+ #define __NR_pciconfig_read		1173
+ #define __NR_pciconfig_write		1174
 -- 
 1.9.1
