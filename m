@@ -1,39 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:41698 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727583AbeJ3AxB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2018 20:53:01 -0400
-Received: by mail-lj1-f195.google.com with SMTP id z80-v6so2266684ljb.8
-        for <linux-arch@vger.kernel.org>; Mon, 29 Oct 2018 09:03:47 -0700 (PDT)
-Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com. [209.85.208.177])
-        by smtp.gmail.com with ESMTPSA id p19-v6sm579421ljb.47.2018.10.29.09.03.44
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 29 Oct 2018 09:03:44 -0700 (PDT)
-Received: by mail-lj1-f177.google.com with SMTP id x85-v6so4137830ljb.2
-        for <linux-arch@vger.kernel.org>; Mon, 29 Oct 2018 09:03:44 -0700 (PDT)
-MIME-Version: 1.0
-References: <1540613318-23877-1-git-send-email-ren_guo@c-sky.com>
-In-Reply-To: <1540613318-23877-1-git-send-email-ren_guo@c-sky.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 29 Oct 2018 09:03:27 -0700
-Message-ID: <CAHk-=whq5ebFd2CKE0bybLOY7ttMPxGiXF3WkzFXtkYhAbJqSg@mail.gmail.com>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:36291 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727823AbeJ3BMN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Oct 2018 21:12:13 -0400
+Date: Tue, 30 Oct 2018 00:22:45 +0800
+From: Guo Ren <ren_guo@c-sky.com>
 Subject: Re: [GIT PULL] C-SKY(csky) Port for Linux 4.20
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20181029162243.GA988@guoren-Inspiron-7460>
+References: <1540613318-23877-1-git-send-email-ren_guo@c-sky.com>
+ <CAHk-=whHhzsdgbVwRFB8oGVwnfN551HPQjtvuodf+W5dNHtjuA@mail.gmail.com>
+ <CAK8P3a2-wyXxctVtJxniUoeShASMhF-6Z1vyvfBnr6wKJuioAQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a2-wyXxctVtJxniUoeShASMhF-6Z1vyvfBnr6wKJuioAQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ren_guo@c-sky.com
-Cc: Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, Peter Zijlstra <peterz@infradead.org>, robh@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, guoren1983@gmail.com
-Message-ID: <20181029160327.iy5i-sFTEDLpOa8BTQmBXMtcbR_ExX2RrIQtCMBiZUM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Marc Zyngier <marc.zyngier@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, guoren1983@gmail.com
+Message-ID: <20181029162245.oeeBf5-s2oWtiyPqMwZACbBkSIzxAIDnreUraW-uU_c@z>
 
-On Fri, Oct 26, 2018 at 9:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> This tag contains the Linux port for C-SKY(csky) based on linux-4.19
-> Release, which has been through 10 rounds of review on mailing list.
->
-> We almost got the Acked-by/Reviewed-by of all patches except "Process
-> management and Signal", but all've been tested.
+Thx Arnd,
 
-Pulled,
+On Mon, Oct 29, 2018 at 10:44:59AM +0100, Arnd Bergmann wrote:
+[...]
+> Guo, in the future I recommend to add all patches on top of the latest
+> -rc1 (or maybe a later -rc) but not rebase them or pull in the mainline
+> kernel into your own tree
+Ok, I'll follow the rules.   
 
-                    Linus
+> 
+> One more general comment: I think this may well be the last new CPU
+> architecture we ever add to the kernel. Both nds32 and c-sky are made
+> by companies that also work on risc-v, and generally speaking risc-v
+> seems to be killing off any of the minor licensable instruction set projects,
+> just like ARM has mostly killed off the custom vendor-specific instruction
+> sets already. If we add another architecture in the future, it may instead
+> be something like the LLVM bitcode or WebAssembly, who knows?
+ ISA is like a language, we will learn foreign languages, but we will
+ not give up our mother tongue. RISC-V is a great ISA, and it will
+ promote other ISAs to be more open.
+
+ From ecology, diversity will make Linux more robust.
+
+ We will continue to improve csky subsystem, and now is only the
+ beginning.
+
+ Best Regards
+  Guo Ren
