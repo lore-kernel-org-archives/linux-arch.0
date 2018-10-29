@@ -1,51 +1,37 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v4] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 29 Oct 2018 12:18:05 +0100
-Message-ID: <20181029111804.GA24820@redhat.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
- <20181026082812.GA10581@redhat.com>
- <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] C-SKY(csky) Port for Linux 4.20
+Date: Mon, 29 Oct 2018 12:27:01 +0100
+Message-ID: <CAK8P3a1mnNbMA+qRLKkhwwW_+KzkSfeNA5Nn_zVS1z8OWU+uGg@mail.gmail.com>
+References: <1540613318-23877-1-git-send-email-ren_guo@c-sky.com>
+ <CAHk-=whHhzsdgbVwRFB8oGVwnfN551HPQjtvuodf+W5dNHtjuA@mail.gmail.com>
+ <CAK8P3a2-wyXxctVtJxniUoeShASMhF-6Z1vyvfBnr6wKJuioAQ@mail.gmail.com> <CAMuHMdU6e8vu_Kak2Avzn2WeTkmc-mjagR5tzX8BxgdH_UcYUA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
+In-Reply-To: <CAMuHMdU6e8vu_Kak2Avzn2WeTkmc-mjagR5tzX8BxgdH_UcYUA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Enke Chen <enkechen@cisco.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Guo Ren <ren_guo@c-sky.com>, Marc Zyngier <marc.zyngier@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, guoren1983@gmail.com, mrybczyn@kalray.eu
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-On 10/26, Enke Chen wrote:
+On Mon, Oct 29, 2018 at 11:26 AM Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
 >
-> This is really a good idea given that "parent" is declared as RCU-protected.
-> Just a bit odd, though, that the "parent" has not been accessed this way in
-> the code base.
-
-It is acccessed when possible,
-
-> So just to confirm: the revised code would look like the following:
+> On Mon, Oct 29, 2018 at 10:45 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> > One more general comment: I think this may well be the last new CPU
+> > architecture we ever add to the kernel. Both nds32 and c-sky are made
+> > by companies that also work on risc-v, and generally speaking risc-v
+> > seems to be killing off any of the minor licensable instruction set projects,
+> > just like ARM has mostly killed off the custom vendor-specific instruction
+> > sets already. If we add another architecture in the future, it may instead
+> > be something like the LLVM bitcode or WebAssembly, who knows?
 >
-> static void do_notify_parent_predump(void)
-> {
->         struct task_struct *parent;
->         int sig;
+> Kalray MPPA?
 >
->         rcu_read_lock();
->         parent = rcu_dereference(current->parent);
->         sig = parent->signal->predump_signal;
->         if (sig != 0)
->                 do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
->         rcu_read_unlock();
-> }
 
-Yes, this is what I meant.
+Ok, I stand corrected. I found the sources at [1], which look like they
+are getting ready for an initial submission.
 
-But I still think do_notify_parent_predump() should notify ->real_parent,
-not ->parent.
+       Arnd
 
-Oleg.
+[1] https://github.com/kalray/linux_coolidge/commits/kalray-v4.19-rc8
