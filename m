@@ -1,80 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcdn-iport-8.cisco.com ([173.37.86.79]:34161 "EHLO
-        rcdn-iport-8.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726016AbeJ3F7D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2018 01:59:03 -0400
-Subject: Re: [PATCH v4] kernel/signal: Signal-based pre-coredump notification
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
- <20181026082812.GA10581@redhat.com>
- <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
- <20181029111804.GA24820@redhat.com>
-From: Enke Chen <enkechen@cisco.com>
-Message-ID: <634f9518-c742-16f0-84f4-90943af6aed2@cisco.com>
-Date: Mon, 29 Oct 2018 14:08:34 -0700
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:37234 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726485AbeJ3GHq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2018 02:07:46 -0400
+Subject: Re: [PATCH 16/17] prmem: pratomic-long
+References: <20181023213504.28905-1-igor.stoppa@huawei.com>
+ <20181023213504.28905-17-igor.stoppa@huawei.com>
+ <20181025001312.GA3159@worktop.c.hoisthospitality.com>
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Message-ID: <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com>
+Date: Mon, 29 Oct 2018 23:17:14 +0200
 MIME-Version: 1.0
-In-Reply-To: <20181029111804.GA24820@redhat.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <20181025001312.GA3159@worktop.c.hoisthospitality.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
-Message-ID: <20181029210834.CA7ziDplS1WS0bp0LZMjKuGFNXn9gh2PKIMQvXtIZbw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org, igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181029211714.bsdJxVIMtl--L8mo-rXFwKIZN-RaHOlOOQt7RsuJrrw@z>
 
-Hi, Oleg:
 
-Yes, it should be the "real_parent" that is more interested in the notification.
-Will revert back.
 
-+static void do_notify_parent_predump(void)
-+{
-+	struct task_struct *parent;
-+	int sig;
-+
-+	rcu_read_lock();
-+	parent = rcu_dereference(current->real_parent);
-+	sig = parent->signal->predump_signal;
-+	if (sig != 0)
-+		do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
-+	rcu_read_unlock();
-+}
+On 25/10/2018 01:13, Peter Zijlstra wrote:
+> On Wed, Oct 24, 2018 at 12:35:03AM +0300, Igor Stoppa wrote:
+>> +static __always_inline
+>> +bool __pratomic_long_op(bool inc, struct pratomic_long_t *l)
+>> +{
+>> +	struct page *page;
+>> +	uintptr_t base;
+>> +	uintptr_t offset;
+>> +	unsigned long flags;
+>> +	size_t size = sizeof(*l);
+>> +	bool is_virt = __is_wr_after_init(l, size);
+>> +
+>> +	if (WARN(!(is_virt || likely(__is_wr_pool(l, size))),
+>> +		 WR_ERR_RANGE_MSG))
+>> +		return false;
+>> +	local_irq_save(flags);
+>> +	if (is_virt)
+>> +		page = virt_to_page(l);
+>> +	else
+>> +		vmalloc_to_page(l);
+>> +	offset = (~PAGE_MASK) & (uintptr_t)l;
+>> +	base = (uintptr_t)vmap(&page, 1, VM_MAP, PAGE_KERNEL);
+>> +	if (WARN(!base, WR_ERR_PAGE_MSG)) {
+>> +		local_irq_restore(flags);
+>> +		return false;
+>> +	}
+>> +	if (inc)
+>> +		atomic_long_inc((atomic_long_t *)(base + offset));
+>> +	else
+>> +		atomic_long_dec((atomic_long_t *)(base + offset));
+>> +	vunmap((void *)base);
+>> +	local_irq_restore(flags);
+>> +	return true;
+>> +
+>> +}
+> 
+> That's just hideously nasty.. and horribly broken.
+> 
+> We're not going to duplicate all these kernel interfaces wrapped in gunk
+> like that. 
 
-Thanks.  -- Enke
+one possibility would be to have macros which use typeof() on the 
+parameter being passed, to decide what implementation to use: regular or 
+write-rare
 
-On 10/29/18 4:18 AM, Oleg Nesterov wrote:
-> Hi,
-> 
-> On 10/26, Enke Chen wrote:
->>
->> This is really a good idea given that "parent" is declared as RCU-protected.
->> Just a bit odd, though, that the "parent" has not been accessed this way in
->> the code base.
-> 
-> It is acccessed when possible,
-> 
->> So just to confirm: the revised code would look like the following:
->>
->> static void do_notify_parent_predump(void)
->> {
->>         struct task_struct *parent;
->>         int sig;
->>
->>         rcu_read_lock();
->>         parent = rcu_dereference(current->parent);
->>         sig = parent->signal->predump_signal;
->>         if (sig != 0)
->>                 do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
->>         rcu_read_unlock();
->> }
-> 
-> Yes, this is what I meant.
-> 
-> But I still think do_notify_parent_predump() should notify ->real_parent,
-> not ->parent.
-> 
-> Oleg.
-> 
+This means that type punning would still be needed, to select the 
+implementation.
+
+Would this be enough? Is there some better way?
+
+> Also, you _cannot_ call vunmap() with IRQs disabled. Clearly
+> you've never tested this with debug bits enabled.
+
+I thought I had them. And I _did_ have them enabled, at some point.
+But I must have messed up with the configuration and I failed to notice 
+this.
+
+I can think of a way it might work, albeit it's not going to be very pretty:
+
+* for the vmap(): if I understand correctly, it might sleep while 
+obtaining memory for creating the mapping. This part could be executed 
+before disabling interrupts. The rest of the function, instead, would be 
+executed after interrupts are disabled.
+
+* for vunmap(): after the writing is done, change also the alternate 
+mapping to read only, then enable interrupts and destroy the alternate 
+mapping. Making also the secondary mapping read only makes it equally 
+secure as the primary, which means that it can be visible also with 
+interrupts enabled.
+
+
+--
+igor
