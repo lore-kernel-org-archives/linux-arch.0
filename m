@@ -1,99 +1,34 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 16/17] prmem: pratomic-long
-Date: Tue, 30 Oct 2018 16:28:16 +0000
-Message-ID: <20181030162815.GB20827@arm.com>
-References: <20181023213504.28905-1-igor.stoppa@huawei.com>
- <20181023213504.28905-17-igor.stoppa@huawei.com>
- <20181025001312.GA3159@worktop.c.hoisthospitality.com>
- <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com>
- <20181030155841.GF8177@hirez.programming.kicks-ass.net>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v5] kernel/signal: Signal-based pre-coredump notification
+Date: Tue, 30 Oct 2018 17:46:29 +0100
+Message-ID: <20181030164628.GD7643@redhat.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+ <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
+ <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
+ <20181026082812.GA10581@redhat.com>
+ <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
+ <20181029111804.GA24820@redhat.com>
+ <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181030155841.GF8177@hirez.programming.kicks-ass.net>
+In-Reply-To: <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Igor Stoppa <igor.stoppa@gmail.com>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org, igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Enke Chen <enkechen@cisco.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@s>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 30, 2018 at 04:58:41PM +0100, Peter Zijlstra wrote:
-> On Mon, Oct 29, 2018 at 11:17:14PM +0200, Igor Stoppa wrote:
-> > 
-> > 
-> > On 25/10/2018 01:13, Peter Zijlstra wrote:
-> > > On Wed, Oct 24, 2018 at 12:35:03AM +0300, Igor Stoppa wrote:
-> > > > +static __always_inline
-> > > > +bool __pratomic_long_op(bool inc, struct pratomic_long_t *l)
-> > > > +{
-> > > > +	struct page *page;
-> > > > +	uintptr_t base;
-> > > > +	uintptr_t offset;
-> > > > +	unsigned long flags;
-> > > > +	size_t size = sizeof(*l);
-> > > > +	bool is_virt = __is_wr_after_init(l, size);
-> > > > +
-> > > > +	if (WARN(!(is_virt || likely(__is_wr_pool(l, size))),
-> > > > +		 WR_ERR_RANGE_MSG))
-> > > > +		return false;
-> > > > +	local_irq_save(flags);
-> > > > +	if (is_virt)
-> > > > +		page = virt_to_page(l);
-> > > > +	else
-> > > > +		vmalloc_to_page(l);
-> > > > +	offset = (~PAGE_MASK) & (uintptr_t)l;
-> > > > +	base = (uintptr_t)vmap(&page, 1, VM_MAP, PAGE_KERNEL);
-> > > > +	if (WARN(!base, WR_ERR_PAGE_MSG)) {
-> > > > +		local_irq_restore(flags);
-> > > > +		return false;
-> > > > +	}
-> > > > +	if (inc)
-> > > > +		atomic_long_inc((atomic_long_t *)(base + offset));
-> > > > +	else
-> > > > +		atomic_long_dec((atomic_long_t *)(base + offset));
-> > > > +	vunmap((void *)base);
-> > > > +	local_irq_restore(flags);
-> > > > +	return true;
-> > > > +
-> > > > +}
-> > > 
-> > > That's just hideously nasty.. and horribly broken.
-> > > 
-> > > We're not going to duplicate all these kernel interfaces wrapped in gunk
-> > > like that.
-> > 
-> > one possibility would be to have macros which use typeof() on the parameter
-> > being passed, to decide what implementation to use: regular or write-rare
-> > 
-> > This means that type punning would still be needed, to select the
-> > implementation.
-> > 
-> > Would this be enough? Is there some better way?
-> 
-> Like mentioned elsewhere; if you do write_enable() + write_disable()
-> thingies, it all becomes:
-> 
-> 	write_enable();
-> 	atomic_foo(&bar);
-> 	write_disable();
-> 
-> No magic gunk infested duplication at all. Of course, ideally you'd then
-> teach objtool about this (or a GCC plugin I suppose) to ensure any
-> enable reached a disable.
+On 10/29, Enke Chen wrote:
+>
+> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
 
-Isn't the issue here that we don't want to change the page tables for the
-mapping of &bar, but instead want to create a temporary writable alias
-at a random virtual address?
+Hmm. I didn't say this ;)
 
-So you'd want:
+But OK, feel free to keep this tag.
 
-	wbar = write_enable(&bar);
-	atomic_foo(wbar);
-	write_disable(wbar);
+I do not like this feauture. But I see no technical problems in this version
+and I never pretented I understand the user-space needs, so I won't argue.
 
-which is probably better expressed as a map/unmap API. I suspect this
-would also be the only way to do things for cmpxchg() loops, where you
-want to create the mapping outside of the loop to minimise your time in
-the critical section.
-
-Will
+Oleg.
