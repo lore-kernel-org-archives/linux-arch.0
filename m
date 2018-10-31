@@ -1,117 +1,77 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 1/9] aha152x: rename the PCMCIA define
-Date: Thu, 1 Nov 2018 00:22:21 +0900
-Message-ID: <CAK7LNASCtHqB8DiA8NSNYY4823NwcOMV-3sS4RLFc8pfgEQD4w@mail.gmail.com>
-References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-2-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181019120952.32763-2-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+From: Alexey Brodkin <alexey.brodkin@synopsys.com>
+Subject: [PATCH v4] devres: Align data[] to ARCH_KMALLOC_MINALIGN
+Date: Wed, 31 Oct 2018 18:25:47 +0300
+Message-ID: <20181031152547.9066-1-abrodkin@synopsys.com>
+Return-path: <stable-owner@vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Alexey Brodkin <alexey.brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, David Laight <David.Laight@ACULAB.COM>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vineet Gupta <vineet.gupta1@synopsys.com>, Will Deacon <will.deacon@arm.com>, Greg KH <greg@kroah.com>, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 19, 2018 at 9:10 PM Christoph Hellwig <hch@lst.de> wrote:
->
-> We plan to enable building the PCMCIA core and drivers, and the
-> non-prefixed PCMCIA name clashes with some arch headers.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
+Initially we bumped into problem with 32-bit aligned atomic64_t
+on ARC, see [1]. And then during quite lengthly discussion Peter Z.
+mentioned ARCH_KMALLOC_MINALIGN which IMHO makes perfect sense.
+If allocation is done by plain kmalloc() obtained buffer will be
+ARCH_KMALLOC_MINALIGN aligned and then why buffer obtained via
+devm_kmalloc() should have any other alignment?
 
+This way we at least get the same behavior for both types of
+allocation.
 
-Applied to linux-kbuild.
+[1] http://lists.infradead.org/pipermail/linux-snps-arc/2018-July/004009.html
+[2] http://lists.infradead.org/pipermail/linux-snps-arc/2018-July/004036.html
 
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Laight <David.Laight@ACULAB.COM>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Greg KH <greg@kroah.com>
+Cc: <stable@vger.kernel.org> # 4.8+
+---
 
+Changes v3 -> v4:
 
+ * Use ARCH_KMALLOC_MINALIGN for alignment instead of "8" [Peter]
 
->  drivers/scsi/aha152x.c             | 14 +++++++-------
->  drivers/scsi/pcmcia/aha152x_core.c |  2 +-
->  2 files changed, 8 insertions(+), 8 deletions(-)
->
-> diff --git a/drivers/scsi/aha152x.c b/drivers/scsi/aha152x.c
-> index 4d7b0e0adbf7..301b3cad15f8 100644
-> --- a/drivers/scsi/aha152x.c
-> +++ b/drivers/scsi/aha152x.c
-> @@ -269,7 +269,7 @@ static LIST_HEAD(aha152x_host_list);
->  /* DEFINES */
->
->  /* For PCMCIA cards, always use AUTOCONF */
-> -#if defined(PCMCIA) || defined(MODULE)
-> +#if defined(AHA152X_PCMCIA) || defined(MODULE)
->  #if !defined(AUTOCONF)
->  #define AUTOCONF
->  #endif
-> @@ -297,7 +297,7 @@ CMD_INC_RESID(struct scsi_cmnd *cmd, int inc)
->
->  #define DELAY_DEFAULT 1000
->
-> -#if defined(PCMCIA)
-> +#if defined(AHA152X_PCMCIA)
->  #define IRQ_MIN 0
->  #define IRQ_MAX 16
->  #else
-> @@ -328,7 +328,7 @@ MODULE_AUTHOR("J=C3=BCrgen Fischer");
->  MODULE_DESCRIPTION(AHA152X_REVID);
->  MODULE_LICENSE("GPL");
->
-> -#if !defined(PCMCIA)
-> +#if !defined(AHA152X_PCMCIA)
->  #if defined(MODULE)
->  static int io[] =3D {0, 0};
->  module_param_hw_array(io, int, ioport, NULL, 0);
-> @@ -391,7 +391,7 @@ static struct isapnp_device_id id_table[] =3D {
->  MODULE_DEVICE_TABLE(isapnp, id_table);
->  #endif /* ISAPNP */
->
-> -#endif /* !PCMCIA */
-> +#endif /* !AHA152X_PCMCIA */
->
->  static struct scsi_host_template aha152x_driver_template;
->
-> @@ -863,7 +863,7 @@ void aha152x_release(struct Scsi_Host *shpnt)
->         if (shpnt->irq)
->                 free_irq(shpnt->irq, shpnt);
->
-> -#if !defined(PCMCIA)
-> +#if !defined(AHA152X_PCMCIA)
->         if (shpnt->io_port)
->                 release_region(shpnt->io_port, IO_RANGE);
->  #endif
-> @@ -2924,7 +2924,7 @@ static struct scsi_host_template aha152x_driver_tem=
-plate =3D {
->         .slave_alloc                    =3D aha152x_adjust_queue,
->  };
->
-> -#if !defined(PCMCIA)
-> +#if !defined(AHA152X_PCMCIA)
->  static int setup_count;
->  static struct aha152x_setup setup[2];
->
-> @@ -3392,4 +3392,4 @@ static int __init aha152x_setup(char *str)
->  __setup("aha152x=3D", aha152x_setup);
->  #endif
->
-> -#endif /* !PCMCIA */
-> +#endif /* !AHA152X_PCMCIA */
-> diff --git a/drivers/scsi/pcmcia/aha152x_core.c b/drivers/scsi/pcmcia/aha=
-152x_core.c
-> index dba3716511c5..24b89228b241 100644
-> --- a/drivers/scsi/pcmcia/aha152x_core.c
-> +++ b/drivers/scsi/pcmcia/aha152x_core.c
-> @@ -1,3 +1,3 @@
-> -#define PCMCIA 1
-> +#define AHA152X_PCMCIA 1
->  #define AHA152X_STAT 1
->  #include "aha152x.c"
-> --
-> 2.19.1
->
+Changes v2 -> v3:
 
+ * Align explicitly to 8 bytes [David]
+ * Rephrased in-line comment [David]
+ * Added more techinical details to commit message [Greg]
+ * Mention more alignment options in commit message [Geert]
 
---=20
-Best Regards
-Masahiro Yamada
+Changes v1 -> v2:
+
+ * Reworded commit message
+ * Inserted comment right in source [Thomas]
+
+ drivers/base/devres.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index 4aaf00d2098b..e038e2b3b7ea 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -26,8 +26,14 @@ struct devres_node {
+ 
+ struct devres {
+ 	struct devres_node		node;
+-	/* -- 3 pointers */
+-	unsigned long long		data[];	/* guarantee ull alignment */
++	/*
++	 * Some archs want to perform DMA into kmalloc caches
++	 * and need a guaranteed alignment larger than
++	 * the alignment of a 64-bit integer.
++	 * Thus we use ARCH_KMALLOC_MINALIGN here and get exactly the same
++	 * buffer alignment as if it was allocated by plain kmalloc().
++	 */
++	u8 __aligned(ARCH_KMALLOC_MINALIGN) data[];
+ };
+ 
+ struct devres_group {
+-- 
+2.17.2
