@@ -1,57 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52635 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728583AbeJaLjo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 Oct 2018 07:39:44 -0400
-Date: Wed, 31 Oct 2018 10:43:38 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V3 2/2] csky: use common dtb build rules
-Message-ID: <20181031024336.GA10756@guoren-Inspiron-7460>
-References: <d7007cad85bb06e0f4e081bc4daf6f0f79c81861.1540921794.git.ren_guo@c-sky.com>
- <3bbfd02a59c0a9865cf63ac454408c87cd9c7427.1540921794.git.ren_guo@c-sky.com>
- <CAL_JsqKsx6OqbW+Z8q=2CBC+dU99ay5ggT8eONxf1eCh+Jwkig@mail.gmail.com>
- <CAL_JsqKE4Nzcn7CXJTCuPkSWWn3qONcU=3WMQLK6xWptJQUE_A@mail.gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:34670 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727436AbeJaSId (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2018 14:08:33 -0400
+Date: Wed, 31 Oct 2018 10:10:48 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 16/17] prmem: pratomic-long
+Message-ID: <20181031091048.GH744@hirez.programming.kicks-ass.net>
+References: <20181023213504.28905-1-igor.stoppa@huawei.com>
+ <20181023213504.28905-17-igor.stoppa@huawei.com>
+ <20181025001312.GA3159@worktop.c.hoisthospitality.com>
+ <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com>
+ <20181030155841.GF8177@hirez.programming.kicks-ass.net>
+ <20181030162815.GB20827@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAL_JsqKE4Nzcn7CXJTCuPkSWWn3qONcU=3WMQLK6xWptJQUE_A@mail.gmail.com>
+In-Reply-To: <20181030162815.GB20827@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Igor Stoppa <igor.stoppa@gmail.com>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org, igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181031091048.OXHv-Rmeh5uH-t_iqnDQk1c8_4LvVD0tLg0wZFcFRv4@z>
 
-On Tue, Oct 30, 2018 at 02:22:48PM -0500, Rob Herring wrote:
-> On Tue, Oct 30, 2018 at 2:10 PM Rob Herring <robh@kernel.org> wrote:
-> >
-> > On Tue, Oct 30, 2018 at 12:50 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > >
-> > > Remove the Kbuild rules in arch/csky and use common dtb build rules.
-> > >
-> > > This modification is based on:
-> > >
-> > > commit 37c8a5fafa3b ("kbuild: consolidate Devicetree dtb build rules")
-> > >
-> > > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> > > Cc: Rob Herring <robh@kernel.org>
-> > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > ---
-> > >  arch/csky/Makefile          | 11 +----------
-> > >  arch/csky/boot/dts/Makefile |  3 ---
-> > >  2 files changed, 1 insertion(+), 13 deletions(-)
-> >
-> > Reviewed-by: Rob Herring <robh@kernel.org>
+On Tue, Oct 30, 2018 at 04:28:16PM +0000, Will Deacon wrote:
+> On Tue, Oct 30, 2018 at 04:58:41PM +0100, Peter Zijlstra wrote:
+> > Like mentioned elsewhere; if you do write_enable() + write_disable()
+> > thingies, it all becomes:
+> > 
+> > 	write_enable();
+> > 	atomic_foo(&bar);
+> > 	write_disable();
+> > 
+> > No magic gunk infested duplication at all. Of course, ideally you'd then
+> > teach objtool about this (or a GCC plugin I suppose) to ensure any
+> > enable reached a disable.
 > 
-> BTW, it's not very not clear what the change from v2 was. In the
-> future, please include a change log in each patch. Also, Arnd acked
-> v2, so you should add those when posting a new version unless there's
-> major changes, but don't post new versions just to add the
-> acks/reviewed-bys. It doesn't really matter in this case as you are
-> the maintainer and have to collect them, but generally the maintainers
-> only collect acks on the version they apply and don't go looking at
-> prior versions.
-I sent "PATCH V2" too fast and there is no need for "PATCH V3" and I will
-pay attention next time. Thanks for reminding.
+> Isn't the issue here that we don't want to change the page tables for the
+> mapping of &bar, but instead want to create a temporary writable alias
+> at a random virtual address?
+> 
+> So you'd want:
+> 
+> 	wbar = write_enable(&bar);
+> 	atomic_foo(wbar);
+> 	write_disable(wbar);
+> 
+> which is probably better expressed as a map/unmap API. I suspect this
+> would also be the only way to do things for cmpxchg() loops, where you
+> want to create the mapping outside of the loop to minimise your time in
+> the critical section.
 
-Best Regards
- Guo Ren
+Ah, so I was thikning that the altnerative mm would have stuff in the
+same location, just RW instead of RO.
+
+But yes, if we, like Andy suggets, use the userspace address range for
+the aliases, then we need to do as you suggest.
