@@ -1,56 +1,117 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 16/17] prmem: pratomic-long
-Date: Wed, 31 Oct 2018 10:10:48 +0100
-Message-ID: <20181031091048.GH744@hirez.programming.kicks-ass.net>
-References: <20181023213504.28905-1-igor.stoppa@huawei.com>
- <20181023213504.28905-17-igor.stoppa@huawei.com>
- <20181025001312.GA3159@worktop.c.hoisthospitality.com>
- <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com>
- <20181030155841.GF8177@hirez.programming.kicks-ass.net>
- <20181030162815.GB20827@arm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 1/9] aha152x: rename the PCMCIA define
+Date: Thu, 1 Nov 2018 00:22:21 +0900
+Message-ID: <CAK7LNASCtHqB8DiA8NSNYY4823NwcOMV-3sS4RLFc8pfgEQD4w@mail.gmail.com>
+References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-2-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-14353-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-In-Reply-To: <20181030162815.GB20827@arm.com>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Igor Stoppa <igor.stoppa@gmail.com>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, kernel-hardening@lists.openwall.com, linux-integrity@vger.kernel.org, linux-security-module@vger.kernel.org, igor.stoppa@huawei.com, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181019120952.32763-2-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 30, 2018 at 04:28:16PM +0000, Will Deacon wrote:
-> On Tue, Oct 30, 2018 at 04:58:41PM +0100, Peter Zijlstra wrote:
-> > Like mentioned elsewhere; if you do write_enable() + write_disable()
-> > thingies, it all becomes:
-> > 
-> > 	write_enable();
-> > 	atomic_foo(&bar);
-> > 	write_disable();
-> > 
-> > No magic gunk infested duplication at all. Of course, ideally you'd then
-> > teach objtool about this (or a GCC plugin I suppose) to ensure any
-> > enable reached a disable.
-> 
-> Isn't the issue here that we don't want to change the page tables for the
-> mapping of &bar, but instead want to create a temporary writable alias
-> at a random virtual address?
-> 
-> So you'd want:
-> 
-> 	wbar = write_enable(&bar);
-> 	atomic_foo(wbar);
-> 	write_disable(wbar);
-> 
-> which is probably better expressed as a map/unmap API. I suspect this
-> would also be the only way to do things for cmpxchg() loops, where you
-> want to create the mapping outside of the loop to minimise your time in
-> the critical section.
+On Fri, Oct 19, 2018 at 9:10 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> We plan to enable building the PCMCIA core and drivers, and the
+> non-prefixed PCMCIA name clashes with some arch headers.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
 
-Ah, so I was thikning that the altnerative mm would have stuff in the
-same location, just RW instead of RO.
 
-But yes, if we, like Andy suggets, use the userspace address range for
-the aliases, then we need to do as you suggest.
+Applied to linux-kbuild.
+
+
+
+
+>  drivers/scsi/aha152x.c             | 14 +++++++-------
+>  drivers/scsi/pcmcia/aha152x_core.c |  2 +-
+>  2 files changed, 8 insertions(+), 8 deletions(-)
+>
+> diff --git a/drivers/scsi/aha152x.c b/drivers/scsi/aha152x.c
+> index 4d7b0e0adbf7..301b3cad15f8 100644
+> --- a/drivers/scsi/aha152x.c
+> +++ b/drivers/scsi/aha152x.c
+> @@ -269,7 +269,7 @@ static LIST_HEAD(aha152x_host_list);
+>  /* DEFINES */
+>
+>  /* For PCMCIA cards, always use AUTOCONF */
+> -#if defined(PCMCIA) || defined(MODULE)
+> +#if defined(AHA152X_PCMCIA) || defined(MODULE)
+>  #if !defined(AUTOCONF)
+>  #define AUTOCONF
+>  #endif
+> @@ -297,7 +297,7 @@ CMD_INC_RESID(struct scsi_cmnd *cmd, int inc)
+>
+>  #define DELAY_DEFAULT 1000
+>
+> -#if defined(PCMCIA)
+> +#if defined(AHA152X_PCMCIA)
+>  #define IRQ_MIN 0
+>  #define IRQ_MAX 16
+>  #else
+> @@ -328,7 +328,7 @@ MODULE_AUTHOR("J=C3=BCrgen Fischer");
+>  MODULE_DESCRIPTION(AHA152X_REVID);
+>  MODULE_LICENSE("GPL");
+>
+> -#if !defined(PCMCIA)
+> +#if !defined(AHA152X_PCMCIA)
+>  #if defined(MODULE)
+>  static int io[] =3D {0, 0};
+>  module_param_hw_array(io, int, ioport, NULL, 0);
+> @@ -391,7 +391,7 @@ static struct isapnp_device_id id_table[] =3D {
+>  MODULE_DEVICE_TABLE(isapnp, id_table);
+>  #endif /* ISAPNP */
+>
+> -#endif /* !PCMCIA */
+> +#endif /* !AHA152X_PCMCIA */
+>
+>  static struct scsi_host_template aha152x_driver_template;
+>
+> @@ -863,7 +863,7 @@ void aha152x_release(struct Scsi_Host *shpnt)
+>         if (shpnt->irq)
+>                 free_irq(shpnt->irq, shpnt);
+>
+> -#if !defined(PCMCIA)
+> +#if !defined(AHA152X_PCMCIA)
+>         if (shpnt->io_port)
+>                 release_region(shpnt->io_port, IO_RANGE);
+>  #endif
+> @@ -2924,7 +2924,7 @@ static struct scsi_host_template aha152x_driver_tem=
+plate =3D {
+>         .slave_alloc                    =3D aha152x_adjust_queue,
+>  };
+>
+> -#if !defined(PCMCIA)
+> +#if !defined(AHA152X_PCMCIA)
+>  static int setup_count;
+>  static struct aha152x_setup setup[2];
+>
+> @@ -3392,4 +3392,4 @@ static int __init aha152x_setup(char *str)
+>  __setup("aha152x=3D", aha152x_setup);
+>  #endif
+>
+> -#endif /* !PCMCIA */
+> +#endif /* !AHA152X_PCMCIA */
+> diff --git a/drivers/scsi/pcmcia/aha152x_core.c b/drivers/scsi/pcmcia/aha=
+152x_core.c
+> index dba3716511c5..24b89228b241 100644
+> --- a/drivers/scsi/pcmcia/aha152x_core.c
+> +++ b/drivers/scsi/pcmcia/aha152x_core.c
+> @@ -1,3 +1,3 @@
+> -#define PCMCIA 1
+> +#define AHA152X_PCMCIA 1
+>  #define AHA152X_STAT 1
+>  #include "aha152x.c"
+> --
+> 2.19.1
+>
+
+
+--=20
+Best Regards
+Masahiro Yamada
