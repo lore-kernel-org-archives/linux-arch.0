@@ -1,82 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:36206 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728698AbeKAAY3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2018 20:24:29 -0400
-From: Alexey Brodkin <alexey.brodkin@synopsys.com>
-Subject: [PATCH v4] devres: Align data[] to ARCH_KMALLOC_MINALIGN
-Date: Wed, 31 Oct 2018 18:25:47 +0300
-Message-ID: <20181031152547.9066-1-abrodkin@synopsys.com>
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:32965 "EHLO
+        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727638AbeKAA0p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2018 20:26:45 -0400
+MIME-Version: 1.0
+References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-4-hch@lst.de>
+In-Reply-To: <20181019120952.32763-4-hch@lst.de>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Thu, 1 Nov 2018 00:27:30 +0900
+Message-ID: <CAK7LNATPnn=8B2jisxfwOg5KWr1YSkBJEtiquzK9GQ8s-D2Q9g@mail.gmail.com>
+Subject: Re: [PATCH 3/9] powerpc: remove CONFIG_PCI_QSPAN
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Alexey Brodkin <alexey.brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, David Laight <David.Laight@ACULAB.COM>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vineet Gupta <vineet.gupta1@synopsys.com>, Will Deacon <will.deacon@arm.com>, Greg KH <greg@kroah.com>, stable@vger.kernel.org
-Message-ID: <20181031152547.iYmDXNDZyrjwrt2BndT2lGWSFXmVERSiPkw3mXHDeoM@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20181031152730.cn_60mqbqupbMXqNwTPEziIPc95lH-1CazZfRGa42c4@z>
 
-Initially we bumped into problem with 32-bit aligned atomic64_t
-on ARC, see [1]. And then during quite lengthly discussion Peter Z.
-mentioned ARCH_KMALLOC_MINALIGN which IMHO makes perfect sense.
-If allocation is done by plain kmalloc() obtained buffer will be
-ARCH_KMALLOC_MINALIGN aligned and then why buffer obtained via
-devm_kmalloc() should have any other alignment?
+On Fri, Oct 19, 2018 at 9:10 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> This option isn't actually used anywhere.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> ---
 
-This way we at least get the same behavior for both types of
-allocation.
 
-[1] http://lists.infradead.org/pipermail/linux-snps-arc/2018-July/004009.html
-[2] http://lists.infradead.org/pipermail/linux-snps-arc/2018-July/004036.html
+Applied to linux-kbuild.
 
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: David Laight <David.Laight@ACULAB.COM>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Greg KH <greg@kroah.com>
-Cc: <stable@vger.kernel.org> # 4.8+
----
 
-Changes v3 -> v4:
 
- * Use ARCH_KMALLOC_MINALIGN for alignment instead of "8" [Peter]
 
-Changes v2 -> v3:
+>  arch/powerpc/Kconfig | 9 ---------
+>  1 file changed, 9 deletions(-)
+>
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index a80669209155..e8c8970248bc 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -955,7 +955,6 @@ config PCI
+>         bool "PCI support" if PPC_PCI_CHOICE
+>         default y if !40x && !CPM2 && !PPC_8xx && !PPC_83xx \
+>                 && !PPC_85xx && !PPC_86xx && !GAMECUBE_COMMON
+> -       default PCI_QSPAN if PPC_8xx
+>         select GENERIC_PCI_IOMAP
+>         help
+>           Find out whether your system includes a PCI bus. PCI is the name of
+> @@ -969,14 +968,6 @@ config PCI_DOMAINS
+>  config PCI_SYSCALL
+>         def_bool PCI
+>
+> -config PCI_QSPAN
+> -       bool "QSpan PCI"
+> -       depends on PPC_8xx
+> -       select PPC_I8259
+> -       help
+> -         Say Y here if you have a system based on a Motorola 8xx-series
+> -         embedded processor with a QSPAN PCI interface, otherwise say N.
+> -
+>  config PCI_8260
+>         bool
+>         depends on PCI && 8260
+> --
+> 2.19.1
+>
 
- * Align explicitly to 8 bytes [David]
- * Rephrased in-line comment [David]
- * Added more techinical details to commit message [Greg]
- * Mention more alignment options in commit message [Geert]
 
-Changes v1 -> v2:
-
- * Reworded commit message
- * Inserted comment right in source [Thomas]
-
- drivers/base/devres.c | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/drivers/base/devres.c b/drivers/base/devres.c
-index 4aaf00d2098b..e038e2b3b7ea 100644
---- a/drivers/base/devres.c
-+++ b/drivers/base/devres.c
-@@ -26,8 +26,14 @@ struct devres_node {
- 
- struct devres {
- 	struct devres_node		node;
--	/* -- 3 pointers */
--	unsigned long long		data[];	/* guarantee ull alignment */
-+	/*
-+	 * Some archs want to perform DMA into kmalloc caches
-+	 * and need a guaranteed alignment larger than
-+	 * the alignment of a 64-bit integer.
-+	 * Thus we use ARCH_KMALLOC_MINALIGN here and get exactly the same
-+	 * buffer alignment as if it was allocated by plain kmalloc().
-+	 */
-+	u8 __aligned(ARCH_KMALLOC_MINALIGN) data[];
- };
- 
- struct devres_group {
 -- 
-2.17.2
+Best Regards
+Masahiro Yamada
