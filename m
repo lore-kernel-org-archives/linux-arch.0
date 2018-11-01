@@ -1,72 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f66.google.com ([209.85.161.66]:37401 "EHLO
-        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726095AbeKAMfS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2018 08:35:18 -0400
-Received: by mail-yw1-f66.google.com with SMTP id v77-v6so7379716ywc.4
-        for <linux-arch@vger.kernel.org>; Wed, 31 Oct 2018 20:34:12 -0700 (PDT)
-Received: from mail-yb1-f171.google.com (mail-yb1-f171.google.com. [209.85.219.171])
-        by smtp.gmail.com with ESMTPSA id m68-v6sm6996944ywf.95.2018.10.31.20.34.11
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Wed, 31 Oct 2018 20:34:11 -0700 (PDT)
-Received: by mail-yb1-f171.google.com with SMTP id w16-v6so7574911ybp.3
-        for <linux-arch@vger.kernel.org>; Wed, 31 Oct 2018 20:34:11 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20181031091048.GH744@hirez.programming.kicks-ass.net>
-References: <20181023213504.28905-1-igor.stoppa@huawei.com>
- <20181023213504.28905-17-igor.stoppa@huawei.com> <20181025001312.GA3159@worktop.c.hoisthospitality.com>
- <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com> <20181030155841.GF8177@hirez.programming.kicks-ass.net>
- <20181030162815.GB20827@arm.com> <20181031091048.GH744@hirez.programming.kicks-ass.net>
-From: Kees Cook <keescook@chromium.org>
-Date: Wed, 31 Oct 2018 20:28:33 -0700
-Message-ID: <CAGXu5jKmhoSsOTqDJmr3ijwDAh57Bfq3KVE+AjrBdLXjPz83+g@mail.gmail.com>
-Subject: Re: [PATCH 16/17] prmem: pratomic-long
-Content-Type: text/plain; charset="UTF-8"
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:36891 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727355AbeKAOaC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2018 10:30:02 -0400
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [GIT PULL] fixup dtb Kbuild for C-SKY(csky) Port
+Date: Thu,  1 Nov 2018 13:28:25 +0800
+Message-ID: <1541050105-14469-1-git-send-email-ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Igor Stoppa <igor.stoppa@gmail.com>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-integrity <linux-integrity@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Igor Stoppa <igor.stoppa@huawei.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181101032833.Vo4gQ4My1Pfy-89QBQaJPBls3INvexaM4q3nbOBrEDM@z>
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, robh@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren1983@gmail.com, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20181101052825.aEWO22imaaby3-XtH517R7QMK5DSOvT7yPqtkdkBAbo@z>
 
-On Wed, Oct 31, 2018 at 2:10 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Tue, Oct 30, 2018 at 04:28:16PM +0000, Will Deacon wrote:
->> On Tue, Oct 30, 2018 at 04:58:41PM +0100, Peter Zijlstra wrote:
->> > Like mentioned elsewhere; if you do write_enable() + write_disable()
->> > thingies, it all becomes:
->> >
->> >     write_enable();
->> >     atomic_foo(&bar);
->> >     write_disable();
->> >
->> > No magic gunk infested duplication at all. Of course, ideally you'd then
->> > teach objtool about this (or a GCC plugin I suppose) to ensure any
->> > enable reached a disable.
->>
->> Isn't the issue here that we don't want to change the page tables for the
->> mapping of &bar, but instead want to create a temporary writable alias
->> at a random virtual address?
->>
->> So you'd want:
->>
->>       wbar = write_enable(&bar);
->>       atomic_foo(wbar);
->>       write_disable(wbar);
->>
->> which is probably better expressed as a map/unmap API. I suspect this
->> would also be the only way to do things for cmpxchg() loops, where you
->> want to create the mapping outside of the loop to minimise your time in
->> the critical section.
->
-> Ah, so I was thikning that the altnerative mm would have stuff in the
-> same location, just RW instead of RO.
+Please pull this to fixup dtb Kbuild rules for csky subsystem.
 
-I was hoping for the same location too. That allows use to use a gcc
-plugin to mark, say, function pointer tables, as read-only, and
-annotate their rare updates with write_rare() without any
-recalculation.
+The following changes since commit ac435075892e3e651c667b4a9f2267cf3ef1d5a2:
 
--Kees
+  Merge tag 'csky-for-linus-4.20' of https://github.com/c-sky/csky-linux (2018-10-29 08:25:00 -0700)
 
--- 
-Kees Cook
+are available in the git repository at:
+
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-4.20-fixup-dtb
+
+for you to fetch changes up to e8d0c9a726cd1eae410148fcc6a1db23019f0334:
+
+  csky: use common dtb build rules (2018-11-01 10:52:27 +0800)
+
+----------------------------------------------------------------
+csky: dtb Kbuild fixup patches for linux-4.20-rc1
+
+These patches are complementary to "C-SKY(csky) Port for Linux 4.20" and
+fixup dtb Kbuild to follow the new Devicetree dtb build rules.
+
+Link: https://lore.kernel.org/lkml/CABGGisxiWaQn9qDqpfxEWcckkGJfMzFvSPGvuhQK7oB404-6DQ@mail.gmail.com/
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+
+----------------------------------------------------------------
+Guo Ren (2):
+      csky: remove builtin-dtb Kbuild
+      csky: use common dtb build rules
+
+ arch/csky/Kconfig.debug     | 10 +---------
+ arch/csky/Makefile          | 13 +------------
+ arch/csky/boot/dts/Makefile | 10 ----------
+ 3 files changed, 2 insertions(+), 31 deletions(-)
