@@ -1,38 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:57954 "EHLO
-        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725792AbeKBEht (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 00:37:49 -0400
-Date: Thu, 1 Nov 2018 15:31:07 -0400
-From: Rich Felker <dalias@libc.org>
-Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181101193107.GE5150@brightrain.aerifal.cx>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com>
- <20181101185225.GC5150@brightrain.aerifal.cx>
- <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
+Received: from shards.monkeyblade.net ([23.128.96.9]:46142 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725780AbeKBFhu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 01:37:50 -0400
+Date: Thu, 01 Nov 2018 13:33:15 -0700 (PDT)
+Message-ID: <20181101.133315.47887636039827313.davem@davemloft.net>
+Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1541080391-3890-4-git-send-email-firoz.khan@linaro.org>
+References: <1541080391-3890-1-git-send-email-firoz.khan@linaro.org>
+        <1541080391-3890-4-git-send-email-firoz.khan@linaro.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jann Horn <jannh@google.com>, luto@kernel.org, dave.hansen@linux.intel.com, sean.j.christopherson@intel.com, jethro@fortanix.com, jarkko.sakkinen@linux.intel.com, fweimer@redhat.com, linux-api@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, tglx@linutronix.de, Ingo Molnar <mingo@redhat.com>, bp@alien8.de, carlos@redhat.com, adhemerval.zanella@linaro.org
-Message-ID: <20181101193107.2c6fOBsKP3zg9sZNnDXKnbbvSEmWJ8qSZsWWbPP5IJI@z>
+To: firoz.khan@linaro.org
+Cc: sparclinux@vger.kernel.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20181101203315.Ml9kC3-XJ5-t6m6J-zS5MAT7ZL3DI6kpSftV_B8a64A@z>
 
-On Thu, Nov 01, 2018 at 12:10:35PM -0700, Linus Torvalds wrote:
-> On Thu, Nov 1, 2018 at 11:52 AM Rich Felker <dalias@libc.org> wrote:
-> >
-> > There's no need to chain if the handler is specific to the context
-> > where the fault happens. You just replace the handler with the one
-> > relevant to the code you're about to run before you run it.
-> 
-> That's much too expensive to do as a system call.
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Thu,  1 Nov 2018 19:23:10 +0530
 
-See my other emails in this thread. You would register the *address*
-(in TLS) of a function pointer object pointing to the handler, rather
-than the function address of the handler. Then switching handler is
-just a single store in userspace, no syscalls involved.
+> +141	common	getpeername		sys_getpeername			sys_nis_syscall
+ ...
+> +150	common	getsockname		sys_getsockname			sys_nis_syscall
 
-Rich
+The sys_nis_syscall in these two entries is incorrect, see the patch
+below.
+
+One of my worst fears about this change has been realized, that
+instead of helping us find problems, it is so automated to the point
+that it fails to question issues like this.
+
+If sys_nis_syscall for the compat syscall shows up in a situation where the
+native 32-bit syscall does have an entry, that's a BUG and the script should
+point this out so that the bug can be fixed.
+
+Thank you.
+
+====================
