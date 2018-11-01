@@ -1,83 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:35975 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727998AbeKAW7z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2018 18:59:55 -0400
-Received: by mail-pg1-f196.google.com with SMTP id z17-v6so9075519pgv.3
-        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 06:56:50 -0700 (PDT)
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:39853 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728198AbeKAW77 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2018 18:59:59 -0400
+Received: by mail-pf1-f195.google.com with SMTP id c25-v6so9377713pfe.6
+        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 06:56:55 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v1 0/4] xtensa: system call table generation support
-Date: Thu,  1 Nov 2018 19:26:17 +0530
-Message-ID: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v1 1/4] xtensa: move SYS_XTENSA_* macros to non uapi header
+Date: Thu,  1 Nov 2018 19:26:18 +0530
+Message-ID: <1541080581-4072-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
+References: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181101135617.8ljC3vPlImSJ949160c3JIQYV-XFtVBt9a6T6PdBv8w@z>
+Message-ID: <20181101135618.qp3-JypEa3ohCMvKICuT94nHBO3j-3XN3NMoYCU3seE@z>
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the 
-system call table generation support implementation 
-across all the architectures. 
+All the SYS_XTENSA_* macros used by sysxtensa syscall
+handlers are resides in the uapi header file move to
+non uapi header asm/unistd.h as it is not used by any
+user space applications.
 
-The system call tables are in different format in 
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a 
-script and which'll generate uapi header file and 
-syscall table file.
+It is correct to keep these macros in non uapi header
+file asm/unistd.h while uapi/asm/unistd.h must hold
+information only useful for user space applications.
 
-syscall.tbl contains the list of available system 
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in the
-syscall.tbl file.
+One of the patch in this patch series will generate
+uapi header file. The information which directly used
+by the user space application must be present in uapi
+file.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/xtensa/include/asm/unistd.h      | 18 ++++++++++++++++++
+ arch/xtensa/include/uapi/asm/unistd.h | 18 ------------------
+ 2 files changed, 18 insertions(+), 18 deletions(-)
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to come
-up with a generic solution.
-
-I have done the same support for work for alpha, ia64,
-m68k, microblaze, mips, parisc, powerpc, sh and sparc.
-Below mentioned git repository contains more details 
-about the workflow.
-
- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to solve
-Y2038 issue. So this patch series will help to add new 
-system calls easily by adding new entry in the syscall.tbl.
-
-Firoz Khan (4):
-  xtensa: move SYS_XTENSA_* macros to non uapi header
-  xtensa: add __NR_syscalls along with __NR_syscall_count
-  xtensa: add system call table generation support
-  xtensa: generate uapi header and syscall table header files
-
- arch/xtensa/Makefile                      |   3 +
- arch/xtensa/include/asm/Kbuild            |   1 +
- arch/xtensa/include/asm/unistd.h          |  20 +
- arch/xtensa/include/uapi/asm/Kbuild       |   1 +
- arch/xtensa/include/uapi/asm/unistd.h     | 798 +-----------------------------
- arch/xtensa/kernel/syscall.c              |   5 +-
- arch/xtensa/kernel/syscalls/Makefile      |  38 ++
- arch/xtensa/kernel/syscalls/syscall.tbl   | 374 ++++++++++++++
- arch/xtensa/kernel/syscalls/syscallhdr.sh |  36 ++
- arch/xtensa/kernel/syscalls/syscalltbl.sh |  32 ++
- 10 files changed, 510 insertions(+), 798 deletions(-)
- create mode 100644 arch/xtensa/kernel/syscalls/Makefile
- create mode 100644 arch/xtensa/kernel/syscalls/syscall.tbl
- create mode 100644 arch/xtensa/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/xtensa/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
+index ed66db3..c73eca83 100644
+--- a/arch/xtensa/include/asm/unistd.h
++++ b/arch/xtensa/include/asm/unistd.h
+@@ -22,4 +22,22 @@
+ #define __IGNORE_vfork				/* use clone */
+ #define __IGNORE_fadvise64			/* use fadvise64_64 */
+ 
++/*
++ * sysxtensa syscall handler
++ *
++ * int sysxtensa (SYS_XTENSA_ATOMIC_SET,     ptr, val,    unused);
++ * int sysxtensa (SYS_XTENSA_ATOMIC_ADD,     ptr, val,    unused);
++ * int sysxtensa (SYS_XTENSA_ATOMIC_EXG_ADD, ptr, val,    unused);
++ * int sysxtensa (SYS_XTENSA_ATOMIC_CMP_SWP, ptr, oldval, newval);
++ *        a2            a6                   a3    a4      a5
++ */
++
++#define SYS_XTENSA_RESERVED               0     /* don't use this */
++#define SYS_XTENSA_ATOMIC_SET             1     /* set variable */
++#define SYS_XTENSA_ATOMIC_EXG_ADD         2     /* exchange memory and add */
++#define SYS_XTENSA_ATOMIC_ADD             3     /* add to memory */
++#define SYS_XTENSA_ATOMIC_CMP_SWP         4     /* compare and swap */
++
++#define SYS_XTENSA_COUNT                  5     /* count */
++
+ #endif /* _XTENSA_UNISTD_H */
+diff --git a/arch/xtensa/include/uapi/asm/unistd.h b/arch/xtensa/include/uapi/asm/unistd.h
+index bc3f62d..c8ac79a 100644
+--- a/arch/xtensa/include/uapi/asm/unistd.h
++++ b/arch/xtensa/include/uapi/asm/unistd.h
+@@ -780,24 +780,6 @@
+ 
+ #define __NR_syscall_count			352
+ 
+-/*
+- * sysxtensa syscall handler
+- *
+- * int sysxtensa (SYS_XTENSA_ATOMIC_SET,     ptr, val,    unused);
+- * int sysxtensa (SYS_XTENSA_ATOMIC_ADD,     ptr, val,    unused);
+- * int sysxtensa (SYS_XTENSA_ATOMIC_EXG_ADD, ptr, val,    unused);
+- * int sysxtensa (SYS_XTENSA_ATOMIC_CMP_SWP, ptr, oldval, newval);
+- *        a2            a6                   a3    a4      a5
+- */
+-
+-#define SYS_XTENSA_RESERVED               0     /* don't use this */
+-#define SYS_XTENSA_ATOMIC_SET             1     /* set variable */
+-#define SYS_XTENSA_ATOMIC_EXG_ADD         2     /* exchange memory and add */
+-#define SYS_XTENSA_ATOMIC_ADD             3     /* add to memory */
+-#define SYS_XTENSA_ATOMIC_CMP_SWP         4     /* compare and swap */
+-
+-#define SYS_XTENSA_COUNT                  5     /* count */
+-
+ #undef __SYSCALL
+ 
+ #endif /* _UAPI_XTENSA_UNISTD_H */
 -- 
 1.9.1
