@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 1/5] alpha: move __IGNORE* entries to non uapi header
-Date: Thu,  1 Nov 2018 19:13:33 +0530
-Message-ID: <1541079817-3431-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v2 2/5] alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
+Date: Thu,  1 Nov 2018 19:13:34 +0530
+Message-ID: <1541079817-3431-3-git-send-email-firoz.khan@linaro.org>
 References: <1541079817-3431-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1541079817-3431-1-git-send-email-firoz.khan@linaro.org>
@@ -10,90 +10,83 @@ To: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Koksh
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-All the __IGNORE* entries are resides in the uapi header
-file move to non uapi header asm/unistd.h as it is not
-used by any user space applications.
+Remove CONFIG_OSF4_COMPAT config flag from system call
+table - systbls.S and to keep the same feature, add the
+flag in osf_sys.c.
 
-It is correct to keep __IGNORE* entry in non uapi header
-asm/unistd.h while uapi/asm/unistd.h must hold information
-only useful for user space applications.
-
-One of the patch in this patch series will generate uapi
-header file. The information which directly used by the
-user space application must be present in uapi file.
+One of the patch in this patch series will generate the
+system call table file. In order to come up with a common
+implementation across all architecture, we need this change.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/alpha/include/asm/unistd.h      | 21 +++++++++++++++++++++
- arch/alpha/include/uapi/asm/unistd.h | 21 ---------------------
- 2 files changed, 21 insertions(+), 21 deletions(-)
+ arch/alpha/kernel/osf_sys.c | 9 ++++++---
+ arch/alpha/kernel/systbls.S | 5 -----
+ 2 files changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/arch/alpha/include/asm/unistd.h b/arch/alpha/include/asm/unistd.h
-index d6e29a1..cbd04d3 100644
---- a/arch/alpha/include/asm/unistd.h
-+++ b/arch/alpha/include/asm/unistd.h
-@@ -17,4 +17,25 @@
- #define __ARCH_WANT_SYS_VFORK
- #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+index cff52d8..4a147bf 100644
+--- a/arch/alpha/kernel/osf_sys.c
++++ b/arch/alpha/kernel/osf_sys.c
+@@ -1343,7 +1343,6 @@ struct timex32 {
+ }
  
-+/*
-+ * Ignore legacy syscalls that we don't use.
-+ */
-+#define __IGNORE_alarm
-+#define __IGNORE_creat
-+#define __IGNORE_getegid
-+#define __IGNORE_geteuid
-+#define __IGNORE_getgid
-+#define __IGNORE_getpid
-+#define __IGNORE_getppid
-+#define __IGNORE_getuid
-+#define __IGNORE_pause
-+#define __IGNORE_time
-+#define __IGNORE_utime
-+#define __IGNORE_umount2
-+
-+/* Alpha doesn't have protection keys. */
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
-+
- #endif /* _ALPHA_UNISTD_H */
-diff --git a/arch/alpha/include/uapi/asm/unistd.h b/arch/alpha/include/uapi/asm/unistd.h
-index e153ca6..47c65f1 100644
---- a/arch/alpha/include/uapi/asm/unistd.h
-+++ b/arch/alpha/include/uapi/asm/unistd.h
-@@ -241,22 +241,6 @@
- #define __NR_osf_fdatasync	261	/* not implemented */
- 
- /*
-- * Ignore legacy syscalls that we don't use.
-- */
--#define __IGNORE_alarm
--#define __IGNORE_creat
--#define __IGNORE_getegid
--#define __IGNORE_geteuid
--#define __IGNORE_getgid
--#define __IGNORE_getpid
--#define __IGNORE_getppid
--#define __IGNORE_getuid
--#define __IGNORE_pause
--#define __IGNORE_time
--#define __IGNORE_utime
--#define __IGNORE_umount2
+ #ifdef CONFIG_OSF4_COMPAT
 -
--/*
-  * Linux-specific system calls begin at 300
-  */
- #define __NR_bdflush		300
-@@ -481,9 +465,4 @@
- #define __NR_pwritev2			521
- #define __NR_statx			522
+ /* Clear top 32 bits of iov_len in the user's buffer for
+    compatibility with old versions of OSF/1 where iov_len
+    was defined as int. */
+@@ -1360,27 +1359,31 @@ struct timex32 {
+ 	}
+ 	return 0;
+ }
++#endif
  
--/* Alpha doesn't have protection keys. */
--#define __IGNORE_pkey_mprotect
--#define __IGNORE_pkey_alloc
--#define __IGNORE_pkey_free
+ SYSCALL_DEFINE3(osf_readv, unsigned long, fd,
+ 		const struct iovec __user *, vector, unsigned long, count)
+ {
++#ifdef CONFIG_OSF4_COMPAT
+ 	if (unlikely(personality(current->personality) == PER_OSF4))
+ 		if (osf_fix_iov_len(vector, count))
+ 			return -EFAULT;
++#endif
++
+ 	return sys_readv(fd, vector, count);
+ }
+ 
+ SYSCALL_DEFINE3(osf_writev, unsigned long, fd,
+ 		const struct iovec __user *, vector, unsigned long, count)
+ {
++#ifdef CONFIG_OSF4_COMPAT
+ 	if (unlikely(personality(current->personality) == PER_OSF4))
+ 		if (osf_fix_iov_len(vector, count))
+ 			return -EFAULT;
++#endif
+ 	return sys_writev(fd, vector, count);
+ }
+ 
+-#endif
 -
- #endif /* _UAPI_ALPHA_UNISTD_H */
+ SYSCALL_DEFINE2(osf_getpriority, int, which, int, who)
+ {
+ 	int prio = sys_getpriority(which, who);
+diff --git a/arch/alpha/kernel/systbls.S b/arch/alpha/kernel/systbls.S
+index 1374e59..fcf2f60 100644
+--- a/arch/alpha/kernel/systbls.S
++++ b/arch/alpha/kernel/systbls.S
+@@ -132,13 +132,8 @@ sys_call_table:
+ 	.quad sys_osf_getrusage
+ 	.quad sys_getsockopt
+ 	.quad alpha_ni_syscall
+-#ifdef CONFIG_OSF4_COMPAT
+ 	.quad sys_osf_readv			/* 120 */
+ 	.quad sys_osf_writev
+-#else
+-	.quad sys_readv				/* 120 */
+-	.quad sys_writev
+-#endif
+ 	.quad sys_osf_settimeofday
+ 	.quad sys_fchown
+ 	.quad sys_fchmod
 -- 
 1.9.1
