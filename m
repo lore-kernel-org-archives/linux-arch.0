@@ -1,69 +1,84 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 6/9] PCI: consolidate PCI config entry in drivers/pci
-Date: Thu, 1 Nov 2018 10:24:58 +0000
-Message-ID: <20181101102458.GN30658@n2100.armlinux.org.uk>
-References: <20181019120952.32763-1-hch@lst.de>
- <20181019120952.32763-7-hch@lst.de>
- <20181019122228.GJ30658@n2100.armlinux.org.uk>
- <CAK7LNATZ8LagrTrTae_QCQbSuTW7_y6sDrdTHfTyONPrsYDs4A@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v2 0/5] alpha: system call table generation support
+Date: Thu,  1 Nov 2018 19:13:32 +0530
+Message-ID: <1541079817-3431-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK7LNATZ8LagrTrTae_QCQbSuTW7_y6sDrdTHfTyONPrsYDs4A@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Alex Bounine <alex.bou9@gmail.com>, mporter@kernel.crashing.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 19, 2018 at 09:58:46PM +0900, Masahiro Yamada wrote:
-> On Fri, Oct 19, 2018 at 9:23 PM Russell King - ARM Linux
-> <linux@armlinux.org.uk> wrote:
-> 
-> > > index a68b34183107..b185794549be 100644
-> > > --- a/arch/arm/mach-pxa/Kconfig
-> > > +++ b/arch/arm/mach-pxa/Kconfig
-> > > @@ -125,7 +125,7 @@ config MACH_ARMCORE
-> > >       bool "CompuLab CM-X255/CM-X270 modules"
-> > >       select ARCH_HAS_DMA_SET_COHERENT_MASK if PCI
-> > >       select IWMMXT
-> > > -     select MIGHT_HAVE_PCI
-> > > +     select HAVE_PCI
-> > >       select NEED_MACH_IO_H if PCI
-> > >       select PXA25x
-> > >       select PXA27x
-> >
-> > This is wrong.  "MIGHT_HAVE_PCI" is _not_ the same as "HAVE_PCI" - we
-> > have a bunch of platforms that mandatorily have PCI and these select
-> > PCI directly.  "MIGHT_HAVE_PCI" controls the _visibility_ of the PCI
-> > menu option, but does not prevent it being selected.  Your patch will
-> > cause Kconfig to complain for those which mandatorily have PCI but
-> > do not set HAVE_PCI.
-> 
-> 
-> Good catch!
-> But, adding a bunch of 'select HAVE_PCI' along with 'select PCI' is ugly.
-> 
-> Do you have any suggestion?
-> 
-> How about letting CONFIG_ARM to select HAVE_PCI ?
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the 
+system call table generation support implementation 
+across all the architectures. 
 
-Well, the situation we have on ARM is rather optimal - when the
-rest of the configuration supports PCI, PCI is made visible.  When
-there's no hardware support for PCI, PCI is hidden.  When PCI is
-mandatory, PCI is selected and mostly always hidden.
+The system call tables are in different format in 
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a 
+script and which'll generate uapi header file and 
+syscall table file.
 
-It seems that with this consolidation, we lose that - we end up
-with PCI being visible for every ARM config, not only those where
-PCI is "impossible" but also for those where PCI is forcefully
-selected.
+syscall.tbl contains the list of available system 
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in the
+syscall.tbl file.
 
-That said, offering PCI for platforms that do not have any possibility
-of PCI hardware shouldn't cause any compile issues, and would increase
-build coverage - but I'd say it wouldn't _usefully_ increase build
-coverage.
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to come
+up with a generic solution.
+
+I have done the same support for work for ia64, m68k, 
+microblaze, mips, parisc, powerpc, sh sparc and xtensa.
+Below mentioned git repository contains more details 
+about the workflow.
+
+ https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to solve
+Y2038 issue. So this patch series will help to add new 
+system calls easily by adding new entry in the syscall.tbl.
+
+Changes since v1:
+ - optimized/updated the syscall table generation 
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall.tbl.
+
+Firoz Khan (5):
+  alpha: move __IGNORE* entries to non uapi header
+  alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
+  alpha: add __NR_syscalls along with NR_SYSCALLS
+  alpha: add system call table generation support
+  alpha: generate uapi header and syscall table header files
+
+ arch/alpha/Makefile                      |   3 +
+ arch/alpha/include/asm/Kbuild            |   2 +-
+ arch/alpha/include/asm/unistd.h          |  23 +-
+ arch/alpha/include/uapi/asm/Kbuild       |   1 +
+ arch/alpha/include/uapi/asm/unistd.h     | 484 +--------------------------
+ arch/alpha/kernel/osf_sys.c              |   9 +-
+ arch/alpha/kernel/syscalls/Makefile      |  38 +++
+ arch/alpha/kernel/syscalls/syscall.tbl   | 453 ++++++++++++++++++++++++++
+ arch/alpha/kernel/syscalls/syscallhdr.sh |  36 ++
+ arch/alpha/kernel/syscalls/syscalltbl.sh |  36 ++
+ arch/alpha/kernel/systbls.S              | 542 +------------------------------
+ 11 files changed, 600 insertions(+), 1027 deletions(-)
+ create mode 100644 arch/alpha/kernel/syscalls/Makefile
+ create mode 100644 arch/alpha/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/alpha/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/alpha/kernel/syscalls/syscalltbl.sh
 
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
-According to speedtest.net: 11.9Mbps down 500kbps up
+1.9.1
