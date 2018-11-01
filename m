@@ -1,42 +1,36 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [GIT PULL] fixup dtb Kbuild for C-SKY(csky) Port
-Date: Thu,  1 Nov 2018 13:28:25 +0800
-Message-ID: <1541050105-14469-1-git-send-email-ren_guo@c-sky.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 6/9] PCI: consolidate PCI config entry in drivers/pci
+Date: Thu, 1 Nov 2018 06:48:31 +0100
+Message-ID: <20181101054831.GA4589@lst.de>
+References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-7-hch@lst.de> <20181019122228.GJ30658@n2100.armlinux.org.uk> <CAK7LNATZ8LagrTrTae_QCQbSuTW7_y6sDrdTHfTyONPrsYDs4A@mail.gmail.com> <CAK7LNASUArREw1AWUzcOoQCe5=4jyifbs+x2CdCK+qXJ+woAdw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAK7LNASUArREw1AWUzcOoQCe5=4jyifbs+x2CdCK+qXJ+woAdw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, robh@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren1983@gmail.com, Guo Ren <ren_guo@c-sky.com>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Alex Bounine <alex.bou9@gmail.com>, mporter@kernel.crashing.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Please pull this to fixup dtb Kbuild rules for csky subsystem.
+On Thu, Nov 01, 2018 at 01:05:26AM +0900, Masahiro Yamada wrote:
+> > How about letting CONFIG_ARM to select HAVE_PCI ?
+> >
+> 
+> 
+> I applied 1/9, 3/9, 4/9, 5/9.
+> (I think 2/9 should be squashed to 9/9)
+> 
+> As Russell pointed out, we need to avoid
+> the unmet dependency.
 
-The following changes since commit ac435075892e3e651c667b4a9f2267cf3ef1d5a2:
+Yes, I think the HAVE_PCI is probably the nicest way, but we'll
+need to wait what Russell as the maintainer wants.
 
-  Merge tag 'csky-for-linus-4.20' of https://github.com/c-sky/csky-linux (2018-10-29 08:25:00 -0700)
+> Are you planning to send
+> the updated version for 6/9 through - 9/9 ?
+> 
+> If so, could you please rebase 6/9
+> so that it is cleanly applicable ?
 
-are available in the git repository at:
-
-  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-4.20-fixup-dtb
-
-for you to fetch changes up to e8d0c9a726cd1eae410148fcc6a1db23019f0334:
-
-  csky: use common dtb build rules (2018-11-01 10:52:27 +0800)
-
-----------------------------------------------------------------
-csky: dtb Kbuild fixup patches for linux-4.20-rc1
-
-These patches are complementary to "C-SKY(csky) Port for Linux 4.20" and
-fixup dtb Kbuild to follow the new Devicetree dtb build rules.
-
-Link: https://lore.kernel.org/lkml/CABGGisxiWaQn9qDqpfxEWcckkGJfMzFvSPGvuhQK7oB404-6DQ@mail.gmail.com/
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-
-----------------------------------------------------------------
-Guo Ren (2):
-      csky: remove builtin-dtb Kbuild
-      csky: use common dtb build rules
-
- arch/csky/Kconfig.debug     | 10 +---------
- arch/csky/Makefile          | 13 +------------
- arch/csky/boot/dts/Makefile | 10 ----------
- 3 files changed, 2 insertions(+), 31 deletions(-)
+Will do once I find some time after rc1.
