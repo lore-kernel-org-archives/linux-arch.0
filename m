@@ -1,74 +1,58 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 6/9] PCI: consolidate PCI config entry in drivers/pci
-Date: Thu, 1 Nov 2018 01:05:26 +0900
-Message-ID: <CAK7LNASUArREw1AWUzcOoQCe5=4jyifbs+x2CdCK+qXJ+woAdw@mail.gmail.com>
-References: <20181019120952.32763-1-hch@lst.de> <20181019120952.32763-7-hch@lst.de>
- <20181019122228.GJ30658@n2100.armlinux.org.uk> <CAK7LNATZ8LagrTrTae_QCQbSuTW7_y6sDrdTHfTyONPrsYDs4A@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 16/17] prmem: pratomic-long
+Date: Wed, 31 Oct 2018 20:28:33 -0700
+Message-ID: <CAGXu5jKmhoSsOTqDJmr3ijwDAh57Bfq3KVE+AjrBdLXjPz83+g@mail.gmail.com>
+References: <20181023213504.28905-1-igor.stoppa@huawei.com>
+ <20181023213504.28905-17-igor.stoppa@huawei.com> <20181025001312.GA3159@worktop.c.hoisthospitality.com>
+ <806bfff0-8d62-9918-480d-ec791b93841e@gmail.com> <20181030155841.GF8177@hirez.programming.kicks-ass.net>
+ <20181030162815.GB20827@arm.com> <20181031091048.GH744@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNATZ8LagrTrTae_QCQbSuTW7_y6sDrdTHfTyONPrsYDs4A@mail.gmail.com>
+In-Reply-To: <20181031091048.GH744@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Alex Bounine <alex.bou9@gmail.com>, mporter@kernel.crashing.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King <linux@armlinux.org.uk>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, Igor Stoppa <igor.stoppa@gmail.com>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Matthew Wilcox <willy@infradead.org>, Dave Chinner <david@fromorbit.com>, James Morris <jmorris@namei.org>, Michal Hocko <mhocko@kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-integrity <linux-integrity@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Igor Stoppa <igor.stoppa@huawei.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Laura Abbott <labbott@redhat.com>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
-
-
-On Fri, Oct 19, 2018 at 9:58 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
+On Wed, Oct 31, 2018 at 2:10 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Tue, Oct 30, 2018 at 04:28:16PM +0000, Will Deacon wrote:
+>> On Tue, Oct 30, 2018 at 04:58:41PM +0100, Peter Zijlstra wrote:
+>> > Like mentioned elsewhere; if you do write_enable() + write_disable()
+>> > thingies, it all becomes:
+>> >
+>> >     write_enable();
+>> >     atomic_foo(&bar);
+>> >     write_disable();
+>> >
+>> > No magic gunk infested duplication at all. Of course, ideally you'd then
+>> > teach objtool about this (or a GCC plugin I suppose) to ensure any
+>> > enable reached a disable.
+>>
+>> Isn't the issue here that we don't want to change the page tables for the
+>> mapping of &bar, but instead want to create a temporary writable alias
+>> at a random virtual address?
+>>
+>> So you'd want:
+>>
+>>       wbar = write_enable(&bar);
+>>       atomic_foo(wbar);
+>>       write_disable(wbar);
+>>
+>> which is probably better expressed as a map/unmap API. I suspect this
+>> would also be the only way to do things for cmpxchg() loops, where you
+>> want to create the mapping outside of the loop to minimise your time in
+>> the critical section.
 >
-> On Fri, Oct 19, 2018 at 9:23 PM Russell King - ARM Linux
-> <linux@armlinux.org.uk> wrote:
->
-> > > index a68b34183107..b185794549be 100644
-> > > --- a/arch/arm/mach-pxa/Kconfig
-> > > +++ b/arch/arm/mach-pxa/Kconfig
-> > > @@ -125,7 +125,7 @@ config MACH_ARMCORE
-> > >       bool "CompuLab CM-X255/CM-X270 modules"
-> > >       select ARCH_HAS_DMA_SET_COHERENT_MASK if PCI
-> > >       select IWMMXT
-> > > -     select MIGHT_HAVE_PCI
-> > > +     select HAVE_PCI
-> > >       select NEED_MACH_IO_H if PCI
-> > >       select PXA25x
-> > >       select PXA27x
-> >
-> > This is wrong.  "MIGHT_HAVE_PCI" is _not_ the same as "HAVE_PCI" - we
-> > have a bunch of platforms that mandatorily have PCI and these select
-> > PCI directly.  "MIGHT_HAVE_PCI" controls the _visibility_ of the PCI
-> > menu option, but does not prevent it being selected.  Your patch will
-> > cause Kconfig to complain for those which mandatorily have PCI but
-> > do not set HAVE_PCI.
->
->
-> Good catch!
-> But, adding a bunch of 'select HAVE_PCI' along with 'select PCI' is ugly.
->
-> Do you have any suggestion?
->
-> How about letting CONFIG_ARM to select HAVE_PCI ?
->
+> Ah, so I was thikning that the altnerative mm would have stuff in the
+> same location, just RW instead of RO.
 
+I was hoping for the same location too. That allows use to use a gcc
+plugin to mark, say, function pointer tables, as read-only, and
+annotate their rare updates with write_rare() without any
+recalculation.
 
-I applied 1/9, 3/9, 4/9, 5/9.
-(I think 2/9 should be squashed to 9/9)
+-Kees
 
-As Russell pointed out, we need to avoid
-the unmet dependency.
-
-
-Are you planning to send
-the updated version for 6/9 through - 9/9 ?
-
-If so, could you please rebase 6/9
-so that it is cleanly applicable ?
-
-
-Thanks.
-
-
---
-Best Regards
-Masahiro Yamada
+-- 
+Kees Cook
