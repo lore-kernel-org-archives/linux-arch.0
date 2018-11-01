@@ -1,44 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:29446 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725935AbeKBEFF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Nov 2018 00:05:05 -0400
-Date: Thu, 1 Nov 2018 21:00:38 +0200 (EET)
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-In-Reply-To: <877ehwisaa.fsf@oldenburg.str.redhat.com>
-Message-ID: <alpine.DEB.2.21.1811012058480.7972@jsakkine-mobl1>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com> <877ehwisaa.fsf@oldenburg.str.redhat.com>
+Received: from mail-lj1-f170.google.com ([209.85.208.170]:33302 "EHLO
+        mail-lj1-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726124AbeKBEPM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 00:15:12 -0400
+Received: by mail-lj1-f170.google.com with SMTP id z21-v6so19059036ljz.0
+        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 12:10:54 -0700 (PDT)
+Received: from mail-lf1-f54.google.com (mail-lf1-f54.google.com. [209.85.167.54])
+        by smtp.gmail.com with ESMTPSA id d15-v6sm1588155lja.38.2018.11.01.12.10.51
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 01 Nov 2018 12:10:52 -0700 (PDT)
+Received: by mail-lf1-f54.google.com with SMTP id n26-v6so15018156lfl.1
+        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 12:10:51 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII; format=flowed
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com> <20181101185225.GC5150@brightrain.aerifal.cx>
+In-Reply-To: <20181101185225.GC5150@brightrain.aerifal.cx>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 1 Nov 2018 12:10:35 -0700
+Message-ID: <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
+Subject: Re: RFC: userspace exception fixups
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Adhemerval Zanella <adhemerval.zanella@linaro.org>, carlos@redhat.com
-Message-ID: <20181101190038._qGJ7QAKyiJ-B-6iwwozMY0zeJxzNOH2lieUAru7tVM@z>
+To: dalias@libc.org
+Cc: Jann Horn <jannh@google.com>, luto@kernel.org, dave.hansen@linux.intel.com, sean.j.christopherson@intel.com, jethro@fortanix.com, jarkko.sakkinen@linux.intel.com, fweimer@redhat.com, linux-api@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, tglx@linutronix.de, Ingo Molnar <mingo@redhat.com>, bp@alien8.de, carlos@redhat.com, adhemerval.zanella@linaro.org
+Message-ID: <20181101191035.8_V9ctbKtBK9sepPwcjjmGYSYxSGt8Upq4m0XqyCCSI@z>
 
-On Thu, 1 Nov 2018, Florian Weimer wrote:
-> * Andy Lutomirski:
+On Thu, Nov 1, 2018 at 11:52 AM Rich Felker <dalias@libc.org> wrote:
 >
->> The basic idea would be to allow libc, or maybe even any library, to
->> register a handler that gets a chance to act on an exception caused by
->> a user instruction before a signal is delivered.  As a straw-man
->> example for how this could work, there could be a new syscall:
->>
->> long register_exception_handler(void (*handler)(int, siginfo_t *, void *));
->>
->> If a handler is registered, then, if a synchronous exception happens
->> (page fault, etc), the kernel would set up an exception frame as usual
->> but, rather than checking for signal handlers, it would just call the
->> registered handler.  That handler is expected to either handle the
->> exception entirely on its own or to call one of two new syscalls to
->> ask for normal signal delivery or to ask to retry the faulting
->> instruction.
->
-> Would the exception handler be a per-thread resource?
+> There's no need to chain if the handler is specific to the context
+> where the fault happens. You just replace the handler with the one
+> relevant to the code you're about to run before you run it.
 
-For SGX purposes it would *need* to be per-thread resource so that the
-run-time (not just Intel but any user space support code for SGX) is
-able to act on thread that caused this exception inside the enclave.
+That's much too expensive to do as a system call.
 
-/Jarkko
+Maybe an rseq-like "register an area where exception information will
+be found" and then you can just swap in a pointer there (and nest with
+previous pointers).
+
+But even that doesn't work. Maybe some library wants to capture page
+faults because they write-protected some area and want to log writes
+and then emulate them (or just enable them after logging - statistical
+logging is a thing).
+
+And then another library (or just nested code) wants to handle the
+eenter fault, so it overwrites the page handler fault. What do you do
+if you now get a page fault before you even do the eenter?
+
+The whole "one global error handler" model is broken. It's broken even
+if the "global" one is just per-thread. Don't do it.
+
+Even signals didn't make *that* bad a mistake, and signals are horrible.
+
+                        Linus
