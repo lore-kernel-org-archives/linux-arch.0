@@ -1,60 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56006 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727749AbeKBI2L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Nov 2018 04:28:11 -0400
-Received: from mail-wr1-f43.google.com (mail-wr1-f43.google.com [209.85.221.43])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 6AEA82086D
-        for <linux-arch@vger.kernel.org>; Thu,  1 Nov 2018 23:23:08 +0000 (UTC)
-Received: by mail-wr1-f43.google.com with SMTP id d10-v6so154025wrs.5
-        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 16:23:08 -0700 (PDT)
+Received: from mail-it1-f196.google.com ([209.85.166.196]:55086 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727350AbeKBOqF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 10:46:05 -0400
+Received: by mail-it1-f196.google.com with SMTP id d6so1722931itl.4
+        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2018 22:40:09 -0700 (PDT)
 MIME-Version: 1.0
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com>
- <20181101185225.GC5150@brightrain.aerifal.cx> <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
- <20181101193107.GE5150@brightrain.aerifal.cx> <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
-In-Reply-To: <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 1 Nov 2018 16:22:55 -0700
-Message-ID: <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
-Subject: Re: RFC: userspace exception fixups
+References: <1541080391-3890-1-git-send-email-firoz.khan@linaro.org>
+ <1541080391-3890-4-git-send-email-firoz.khan@linaro.org> <20181101.133315.47887636039827313.davem@davemloft.net>
+In-Reply-To: <20181101.133315.47887636039827313.davem@davemloft.net>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Fri, 2 Nov 2018 11:09:57 +0530
+Message-ID: <CALxhOnieTqFzs-D9mNB5nL0=iPGFE92Gwm-Coft7D0_7RJgHiQ@mail.gmail.com>
+Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Rich Felker <dalias@libc.org>, Jann Horn <jannh@google.com>, Andrew Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Carlos O'Donell <carlos@redhat.com>, adhemerval.zanella@linaro.org
-Message-ID: <20181101232255.vfCBz0ZrI20XgIAgOykUWElRbV2YIIlcsRh8i_MlFy0@z>
+To: "David S . Miller" <davem@davemloft.net>
+Cc: sparclinux <sparclinux@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181102053957.M4d5amvr4Kyf7-mekYLezGah6PejPSc9eRMeMm1AcSg@z>
 
-On Thu, Nov 1, 2018 at 2:24 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Thu, Nov 1, 2018 at 12:31 PM Rich Felker <dalias@libc.org> wrote:
-> >
-> > See my other emails in this thread. You would register the *address*
-> > (in TLS) of a function pointer object pointing to the handler, rather
-> > than the function address of the handler. Then switching handler is
-> > just a single store in userspace, no syscalls involved.
->
-> Yes.
->
-> And for just EENTER, maybe that's the right model.
->
-> If we want to generalize it to other thread-synchronous faults, it
-> needs way more information and a list of handlers, but if we limit the
-> thing to _only_ EENTER getting an SGX fault, then a single "this is
-> the fault handler" address is probably the right thing to do.
+Hi David,
 
-It sounds like you're saying that the kernel should know, *before*
-running any user fixup code, whether the fault in question is one that
-wants a fixup.  Sounds reasonable.
+On Fri, 2 Nov 2018 at 02:03, David Miller <davem@davemloft.net> wrote:
+>
+> From: Firoz Khan <firoz.khan@linaro.org>
+> Date: Thu,  1 Nov 2018 19:23:10 +0530
+>
+> > +141  common  getpeername             sys_getpeername                 sys_nis_syscall
+>  ...
+> > +150  common  getsockname             sys_getsockname                 sys_nis_syscall
+>
+> The sys_nis_syscall in these two entries is incorrect, see the patch
+> below.
 
-I think it would be nice, but not absolutely necessary, if user code
-didn't need to poke some value into TLS each time it ran a function
-that had a fixup.  With the poke-into-TLS approach, it looks a lot
-like rseq, and rseq doesn't nest very nicely.  I think we really want
-this mechanism to Just Work.  So we could maybe have a syscall that
-associates a list of fixups with a given range of text addresses.  We
-might want the kernel to automatically zap the fixups when the text in
-question is unmapped.
+True, The patch you mentioned here is the merged recently and I
+created this patch series
+few hours before that.
+
+>
+> One of my worst fears about this change has been realized, that
+> instead of helping us find problems, it is so automated to the point
+> that it fails to question issues like this.
+
+Yes. I have created the system call table generation support for 10
+architecture including
+sparc. Every architecture I validated the generated file with replaced
+one and made sure
+both are same. But still I expect some human errors. The one which I
+missed was caught
+by respective maintainers.
+
+BTW, the error can be raised only one time, during the development.
+
+> If sys_nis_syscall for the compat syscall shows up in a situation where the
+> native 32-bit syscall does have an entry, that's a BUG and the script should
+> point this out so that the bug can be fixed.
+
+syscall.tbl is the input to the script, so the developers has the
+responsibility to fill the table
+properly. I don't know, we have to write a script which has to be
+smart enough to catch the
+wrong syscall entries.
+
+Thanks for your feedback.
+
+Firoz
+
+>
+> Thank you.
+>
+> ====================
+> From 1f2b5b8e2df4591fbca430aff9c5a072dcc0f408 Mon Sep 17 00:00:00 2001
+> From: "David S. Miller" <davem@davemloft.net>
+> Date: Wed, 31 Oct 2018 18:30:21 -0700
+> Subject: [PATCH] sparc64: Wire up compat getpeername and getsockname.
+>
+> Fixes: 8b30ca73b7cc ("sparc: Add all necessary direct socket system calls.")
+> Reported-by: Joseph Myers  <joseph@codesourcery.com>
+> Signed-off-by: David S. Miller <davem@davemloft.net>
+> ---
+>  arch/sparc/kernel/systbls_64.S | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
+> index bb68c80..ff9389a 100644
+> --- a/arch/sparc/kernel/systbls_64.S
+> +++ b/arch/sparc/kernel/systbls_64.S
+> @@ -47,9 +47,9 @@ sys_call_table32:
+>         .word sys_recvfrom, sys_setreuid16, sys_setregid16, sys_rename, compat_sys_truncate
+>  /*130*/        .word compat_sys_ftruncate, sys_flock, compat_sys_lstat64, sys_sendto, sys_shutdown
+>         .word sys_socketpair, sys_mkdir, sys_rmdir, compat_sys_utimes, compat_sys_stat64
+> -/*140*/        .word sys_sendfile64, sys_nis_syscall, compat_sys_futex, sys_gettid, compat_sys_getrlimit
+> +/*140*/        .word sys_sendfile64, sys_getpeername, compat_sys_futex, sys_gettid, compat_sys_getrlimit
+>         .word compat_sys_setrlimit, sys_pivot_root, sys_prctl, sys_pciconfig_read, sys_pciconfig_write
+> -/*150*/        .word sys_nis_syscall, sys_inotify_init, sys_inotify_add_watch, sys_poll, sys_getdents64
+> +/*150*/        .word sys_getsockname, sys_inotify_init, sys_inotify_add_watch, sys_poll, sys_getdents64
+>         .word compat_sys_fcntl64, sys_inotify_rm_watch, compat_sys_statfs, compat_sys_fstatfs, sys_oldumount
+>  /*160*/        .word compat_sys_sched_setaffinity, compat_sys_sched_getaffinity, sys_getdomainname, sys_setdomainname, sys_nis_syscall
+>         .word sys_quotactl, sys_set_tid_address, compat_sys_mount, compat_sys_ustat, sys_setxattr
+> --
+> 2.1.2.532.g19b5d50
+>
