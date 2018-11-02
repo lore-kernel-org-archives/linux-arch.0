@@ -1,133 +1,54 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 096/143] compiler.h: Allow arch-specific asm/compiler.h
-Date: Fri,  2 Nov 2018 19:34:41 +0100
-Message-ID: <20181102182905.564377295@linuxfoundation.org>
-References: <20181102182857.064326086@linuxfoundation.org>
+From: Jann Horn <jannh@google.com>
+Subject: Re: RFC: userspace exception fixups
+Date: Fri, 2 Nov 2018 20:02:23 +0100
+Message-ID: <CAG48ez0x7ZPcKvLt01WS-VrLm59WfvYE3nE1xbnyn3Qsp5T2rA@mail.gmail.com>
+References: <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
+ <20181101193107.GE5150@brightrain.aerifal.cx> <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
+ <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
+ <20181102163034.GB7393@linux.intel.com> <7050972d-a874-dc08-3214-93e81181da60@intel.com>
+ <20181102170627.GD7393@linux.intel.com> <a4d2b3ec-43ec-f062-e180-c6e5a0d9fab8@intel.com>
+ <20181102173350.GF7393@linux.intel.com> <CALCETrUQVPN0LSEz+5aNsbfFc=rQ33JHiOoRXVbvEEb9is9DDQ@mail.gmail.com>
+ <20181102182712.GG7393@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181102182857.064326086@linuxfoundation.org>
+In-Reply-To: <20181102182712.GG7393@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-mips@linux-mips.org, Sasha Levin <sashal@kernel.org>
+To: sean.j.christopherson@intel.com
+Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, dalias@libc.org, Dave Hansen <dave.hansen@linux.intel.com>, jethro@fortanix.com, jarkko.sakkinen@linux.intel.com, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, carlos@redhat.com, adhemerval.za
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+On Fri, Nov 2, 2018 at 7:27 PM Sean Christopherson
+<sean.j.christopherson@intel.com> wrote:
+> On Fri, Nov 02, 2018 at 10:48:38AM -0700, Andy Lutomirski wrote:
+> > This whole mechanism seems very complicated, and it's not clear
+> > exactly what behavior user code wants.
+>
+> No argument there.  That's why I like the approach of dumping the
+> exception to userspace without trying to do anything intelligent in
+> the kernel.  Userspace can then do whatever it wants AND we don't
+> have to worry about mucking with stacks.
+>
+> One of the hiccups with the VDSO approach is that the enclave may
+> want to use the untrusted stack, i.e. the stack that has the VDSO's
+> stack frame.  For example, Intel's SDK uses the untrusted stack to
+> pass parameters for EEXIT, which means an AEX might occur with what
+> is effectively a bad stack from the VDSO's perspective.
 
-------------------
+What exactly does "uses the untrusted stack to pass parameters for
+EEXIT" mean? I guess you're saying that the enclave is writing to
+RSP+[0...some_positive_offset], and the written data needs to be
+visible to the code outside the enclave afterwards?
 
-[ Upstream commit 04f264d3a8b0eb25d378127bd78c3c9a0261c828 ]
+In other words, the vDSO helper would have to not touch the stack
+pointer (only using the 128-byte redzone to store spilled data, at
+least across the enclave entry), and return by decrementing the stack
+pointer by 8 immediately before returning (storing the return pointer
+in the redzone)?
 
-We have a need to override the definition of
-barrier_before_unreachable() for MIPS, which means we either need to add
-architecture-specific code into linux/compiler-gcc.h or we need to allow
-the architecture to provide a header that can define the macro before
-the generic definition. The latter seems like the better approach.
-
-A straightforward approach to the per-arch header is to make use of
-asm-generic to provide a default empty header & adjust architectures
-which don't need anything specific to make use of that by adding the
-header to generic-y. Unfortunately this doesn't work so well due to
-commit 28128c61e08e ("kconfig.h: Include compiler types to avoid missed
-struct attributes") which caused linux/compiler_types.h to be included
-in the compilation of every C file via the -include linux/kconfig.h flag
-in c_flags.
-
-Because the -include flag is present for all C files we compile, we need
-the architecture-provided header to be present before any C files are
-compiled. If any C files can be compiled prior to the asm-generic header
-wrappers being generated then we hit a build failure due to missing
-header. Such cases do exist - one pointed out by the kbuild test robot
-is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-of the archprepare target [1].
-
-This leaves us with a few options:
-
-  1) Use generic-y & fix any build failures we find by enforcing
-     ordering such that the asm-generic target occurs before any C
-     compilation, such that linux/compiler_types.h can always include
-     the generated asm-generic wrapper which in turn includes the empty
-     asm-generic header. This would rely on us finding all the
-     problematic cases - I don't know for sure that the ia64 issue is
-     the only one.
-
-  2) Add an actual empty header to each architecture, so that we don't
-     need the generated asm-generic wrapper. This seems messy.
-
-  3) Give up & add #ifdef CONFIG_MIPS or similar to
-     linux/compiler_types.h. This seems messy too.
-
-  4) Include the arch header only when it's actually needed, removing
-     the need for the asm-generic wrapper for all other architectures.
-
-This patch allows us to use approach 4, by including an asm/compiler.h
-header from linux/compiler_types.h after the inclusion of the
-compiler-specific linux/compiler-*.h header(s). We do this
-conditionally, only when CONFIG_HAVE_ARCH_COMPILER_H is selected, in
-order to avoid the need for asm-generic wrappers & the associated build
-ordering issue described above. The asm/compiler.h header is included
-after the generic linux/compiler-*.h header(s) for consistency with the
-way linux/compiler-intel.h & linux/compiler-clang.h are included after
-the linux/compiler-gcc.h header that they override.
-
-[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
-
-Signed-off-by: Paul Burton <paul.burton@mips.com>
-Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-Patchwork: https://patchwork.linux-mips.org/patch/20269/
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kbuild@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- arch/Kconfig                   |  8 ++++++++
- include/linux/compiler_types.h | 12 ++++++++++++
- 2 files changed, 20 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 40dc31fea90c..77b3e21c4844 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -965,4 +965,12 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
- 
-+config HAVE_ARCH_COMPILER_H
-+	bool
-+	help
-+	  An architecture can select this if it provides an
-+	  asm/compiler.h header that should be included after
-+	  linux/compiler-*.h in order to override macro definitions that those
-+	  headers generally provide.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index 6b79a9bba9a7..4be464a07612 100644
---- a/include/linux/compiler_types.h
-+++ b/include/linux/compiler_types.h
-@@ -78,6 +78,18 @@ extern void __chk_io_ptr(const volatile void __iomem *);
- #include <linux/compiler-clang.h>
- #endif
- 
-+/*
-+ * Some architectures need to provide custom definitions of macros provided
-+ * by linux/compiler-*.h, and can do so using asm/compiler.h. We include that
-+ * conditionally rather than using an asm-generic wrapper in order to avoid
-+ * build failures if any C compilation, which will include this file via an
-+ * -include argument in c_flags, occurs prior to the asm-generic wrappers being
-+ * generated.
-+ */
-+#ifdef CONFIG_HAVE_ARCH_COMPILER_H
-+#include <asm/compiler.h>
-+#endif
-+
- /*
-  * Generic compiler-dependent macros required for kernel
-  * build go below this comment. Actual compiler/compiler version
--- 
-2.17.1
+So you'd call the vDSO helper with a normal "call
+vdso_helper_address", then the vDSO helper does "add rsp, 8", then the
+vDSO helper does its magic, and then it returns with "sub rsp, 8" and
+"ret"? That way you don't touch anything on the high-address side of
+RSP while still avoiding running into CET problems. (I'm assuming that
+you can use CET in a process that is hosting SGX enclaves?)
