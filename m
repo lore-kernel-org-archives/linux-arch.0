@@ -1,19 +1,19 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.18 079/150] compiler.h: Allow arch-specific asm/compiler.h
-Date: Fri,  2 Nov 2018 19:34:01 +0100
-Message-ID: <20181102182909.067675897@linuxfoundation.org>
-References: <20181102182902.250560510@linuxfoundation.org>
+Subject: [PATCH 4.14 096/143] compiler.h: Allow arch-specific asm/compiler.h
+Date: Fri,  2 Nov 2018 19:34:41 +0100
+Message-ID: <20181102182905.564377295@linuxfoundation.org>
+References: <20181102182857.064326086@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181102182902.250560510@linuxfoundation.org>
+In-Reply-To: <20181102182857.064326086@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-mips@linux-mips.org, Sasha Levin <sashal@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.18-stable review patch.  If anyone has any objections, please let me know.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -90,10 +90,10 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  2 files changed, 20 insertions(+)
 
 diff --git a/arch/Kconfig b/arch/Kconfig
-index f03b72644902..a18371a36e03 100644
+index 40dc31fea90c..77b3e21c4844 100644
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -977,4 +977,12 @@ config REFCOUNT_FULL
+@@ -965,4 +965,12 @@ config REFCOUNT_FULL
  	  against various use-after-free conditions that can be used in
  	  security flaw exploits.
  
@@ -107,7 +107,7 @@ index f03b72644902..a18371a36e03 100644
 +
  source "kernel/gcov/Kconfig"
 diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index a8ba6b04152c..55e4be8b016b 100644
+index 6b79a9bba9a7..4be464a07612 100644
 --- a/include/linux/compiler_types.h
 +++ b/include/linux/compiler_types.h
 @@ -78,6 +78,18 @@ extern void __chk_io_ptr(const volatile void __iomem *);
