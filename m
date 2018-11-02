@@ -1,77 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:57748 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727946AbeKCB7c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 21:59:32 -0400
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V13 resend 4/4] dt-bindings: timer: gx6605s SOC timer
-Date: Sat,  3 Nov 2018 00:51:31 +0800
-Message-Id: <ad5c91023ae9bbb07aa0392882667a5a2b133fc5.1539579760.git.ren_guo@c-sky.com>
-In-Reply-To: <7becd836e1477d7ac2d3f8538a6d7f5b9651c389.1539579760.git.ren_guo@c-sky.com>
-References: <7becd836e1477d7ac2d3f8538a6d7f5b9651c389.1539579760.git.ren_guo@c-sky.com>
-In-Reply-To: <7becd836e1477d7ac2d3f8538a6d7f5b9651c389.1539579760.git.ren_guo@c-sky.com>
-References: <7becd836e1477d7ac2d3f8538a6d7f5b9651c389.1539579760.git.ren_guo@c-sky.com>
+Received: from mga09.intel.com ([134.134.136.24]:4129 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726318AbeKCB7w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 2 Nov 2018 21:59:52 -0400
+Date: Fri, 2 Nov 2018 09:52:04 -0700
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: RFC: userspace exception fixups
+Message-ID: <20181102165204.GC7393@linux.intel.com>
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com>
+ <20181101185225.GC5150@brightrain.aerifal.cx>
+ <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
+ <20181101193107.GE5150@brightrain.aerifal.cx>
+ <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
+ <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
+ <20181102163034.GB7393@linux.intel.com>
+ <7e14ee0e-ce15-1e88-7ae9-4d0f40cb3d84@fortanix.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7e14ee0e-ce15-1e88-7ae9-4d0f40cb3d84@fortanix.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: daniel.lezcano@linaro.org, tglx@linutronix.de
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
+To: Jethro Beekman <jethro@fortanix.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rich Felker <dalias@libc.org>, Jann Horn <jannh@google.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Carlos O'Donell <carlos@redhat.com>, "adhemerval.zanella@linaro.org" <adhemerval.zanella@linaro.org>
+Message-ID: <20181102165204.LlLkI-2h3RRdDArepbUEOBxPttMoFaCImoIShfnErpg@z>
 
-Dt-bindings doc for gx6605s SOC's system timer.
+On Fri, Nov 02, 2018 at 04:37:10PM +0000, Jethro Beekman wrote:
+> On 2018-11-02 09:30, Sean Christopherson wrote:
+> >... The intended convention for EENTER is to have an ENCLU at the AEX target ...
+> >
+> >... to further enforce that the AEX target needs to be ENCLU.
+> 
+> Some SGX runtimes may want to use a different AEX target.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Reviewed-by: Rob Herring <robh@kernel.org>
----
- .../bindings/timer/csky,gx6605s-timer.txt          | 42 ++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-
-diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-new file mode 100644
-index 0000000..6b04344
---- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-@@ -0,0 +1,42 @@
-+=================
-+gx6605s SOC Timer
-+=================
-+
-+The timer is used in gx6605s soc as system timer and the driver
-+contain clk event and clk source.
-+
-+==============================
-+timer node bindings definition
-+==============================
-+
-+	Description: Describes gx6605s SOC timer
-+
-+	PROPERTIES
-+
-+	- compatible
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "csky,gx6605s-timer"
-+	- reg
-+		Usage: required
-+		Value type: <u32 u32>
-+		Definition: <phyaddr size> in soc from cpu view
-+	- clocks
-+		Usage: required
-+		Value type: phandle + clock specifier cells
-+		Definition: must be input clk node
-+	- interrupt
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be timer irq num defined by soc
-+
-+Examples:
-+---------
-+
-+	timer0: timer@20a000 {
-+		compatible = "csky,gx6605s-timer";
-+		reg = <0x0020a000 0x400>;
-+		clocks = <&dummy_apb_clk>;
-+		interrupts = <10>;
-+		interrupt-parent = <&intc>;
-+	};
--- 
-2.7.4
+To what end?  Userspace gets no indication as to why the AEX occurred.
+And if exceptions are getting transfered to userspace the trampoline
+would effectively be handling only INTR, NMI, #MC and EPC #PF.
