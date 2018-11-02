@@ -1,138 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44634 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728699AbeKCDtx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Nov 2018 23:49:53 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.18 079/150] compiler.h: Allow arch-specific asm/compiler.h
-Date: Fri,  2 Nov 2018 19:34:01 +0100
-Message-ID: <20181102182909.067675897@linuxfoundation.org>
-In-Reply-To: <20181102182902.250560510@linuxfoundation.org>
-References: <20181102182902.250560510@linuxfoundation.org>
+Received: from mail-yb1-f193.google.com ([209.85.219.193]:34652 "EHLO
+        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725957AbeKCF5w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Nov 2018 01:57:52 -0400
+Received: by mail-yb1-f193.google.com with SMTP id n140-v6so1340462yba.1
+        for <linux-arch@vger.kernel.org>; Fri, 02 Nov 2018 13:49:14 -0700 (PDT)
+Received: from mail-yw1-f44.google.com (mail-yw1-f44.google.com. [209.85.161.44])
+        by smtp.gmail.com with ESMTPSA id r185-v6sm8025045ywd.40.2018.11.02.13.49.10
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 02 Nov 2018 13:49:10 -0700 (PDT)
+Received: by mail-yw1-f44.google.com with SMTP id i185-v6so1274523ywa.12
+        for <linux-arch@vger.kernel.org>; Fri, 02 Nov 2018 13:49:10 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <1541182406.20901.31.camel@linux.ibm.com>
+References: <20181011001846.30964-1-keescook@chromium.org> <20181011001846.30964-13-keescook@chromium.org>
+ <1541182406.20901.31.camel@linux.ibm.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Fri, 2 Nov 2018 13:49:09 -0700
+Message-ID: <CAGXu5jKM_goC2519EXZu7Bh0VoW8jQeR=AJ0XovUPe4_635XNw@mail.gmail.com>
+Subject: Re: [PATCH security-next v5 12/30] LSM: Provide separate ordered initialization
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-mips@linux-mips.org, Sasha Levin <sashal@kernel.org>
-Message-ID: <20181102183401.bVYzSlopoB_OqRQB8e4c98porjsTGmSaNcBuNqRA4rc@z>
+To: Mimi Zohar <zohar@linux.ibm.com>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181102204909.4Fd6k-srRpXFfhs7_tioPnTJyGYwzdxe7qcXuda2sYs@z>
 
-4.18-stable review patch.  If anyone has any objections, please let me know.
+On Fri, Nov 2, 2018 at 11:13 AM, Mimi Zohar <zohar@linux.ibm.com> wrote:
+> I don't recall why "integrity" is on the security_initcall, while both
+> IMA and EVM are on the late_initcall().
 
-------------------
+It's because integrity needs to have a VFS buffer allocated extremely
+early, so it used the security init to do it. While it's not an LSM,
+it does use this part of LSM infrastructure. I didn't see an obvious
+alternative at the time, but now that I think about it, maybe just a
+simple postcore_initcall() would work?
 
-[ Upstream commit 04f264d3a8b0eb25d378127bd78c3c9a0261c828 ]
+-Kees
 
-We have a need to override the definition of
-barrier_before_unreachable() for MIPS, which means we either need to add
-architecture-specific code into linux/compiler-gcc.h or we need to allow
-the architecture to provide a header that can define the macro before
-the generic definition. The latter seems like the better approach.
-
-A straightforward approach to the per-arch header is to make use of
-asm-generic to provide a default empty header & adjust architectures
-which don't need anything specific to make use of that by adding the
-header to generic-y. Unfortunately this doesn't work so well due to
-commit 28128c61e08e ("kconfig.h: Include compiler types to avoid missed
-struct attributes") which caused linux/compiler_types.h to be included
-in the compilation of every C file via the -include linux/kconfig.h flag
-in c_flags.
-
-Because the -include flag is present for all C files we compile, we need
-the architecture-provided header to be present before any C files are
-compiled. If any C files can be compiled prior to the asm-generic header
-wrappers being generated then we hit a build failure due to missing
-header. Such cases do exist - one pointed out by the kbuild test robot
-is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-of the archprepare target [1].
-
-This leaves us with a few options:
-
-  1) Use generic-y & fix any build failures we find by enforcing
-     ordering such that the asm-generic target occurs before any C
-     compilation, such that linux/compiler_types.h can always include
-     the generated asm-generic wrapper which in turn includes the empty
-     asm-generic header. This would rely on us finding all the
-     problematic cases - I don't know for sure that the ia64 issue is
-     the only one.
-
-  2) Add an actual empty header to each architecture, so that we don't
-     need the generated asm-generic wrapper. This seems messy.
-
-  3) Give up & add #ifdef CONFIG_MIPS or similar to
-     linux/compiler_types.h. This seems messy too.
-
-  4) Include the arch header only when it's actually needed, removing
-     the need for the asm-generic wrapper for all other architectures.
-
-This patch allows us to use approach 4, by including an asm/compiler.h
-header from linux/compiler_types.h after the inclusion of the
-compiler-specific linux/compiler-*.h header(s). We do this
-conditionally, only when CONFIG_HAVE_ARCH_COMPILER_H is selected, in
-order to avoid the need for asm-generic wrappers & the associated build
-ordering issue described above. The asm/compiler.h header is included
-after the generic linux/compiler-*.h header(s) for consistency with the
-way linux/compiler-intel.h & linux/compiler-clang.h are included after
-the linux/compiler-gcc.h header that they override.
-
-[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
-
-Signed-off-by: Paul Burton <paul.burton@mips.com>
-Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-Patchwork: https://patchwork.linux-mips.org/patch/20269/
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kbuild@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- arch/Kconfig                   |  8 ++++++++
- include/linux/compiler_types.h | 12 ++++++++++++
- 2 files changed, 20 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index f03b72644902..a18371a36e03 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -977,4 +977,12 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
- 
-+config HAVE_ARCH_COMPILER_H
-+	bool
-+	help
-+	  An architecture can select this if it provides an
-+	  asm/compiler.h header that should be included after
-+	  linux/compiler-*.h in order to override macro definitions that those
-+	  headers generally provide.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index a8ba6b04152c..55e4be8b016b 100644
---- a/include/linux/compiler_types.h
-+++ b/include/linux/compiler_types.h
-@@ -78,6 +78,18 @@ extern void __chk_io_ptr(const volatile void __iomem *);
- #include <linux/compiler-clang.h>
- #endif
- 
-+/*
-+ * Some architectures need to provide custom definitions of macros provided
-+ * by linux/compiler-*.h, and can do so using asm/compiler.h. We include that
-+ * conditionally rather than using an asm-generic wrapper in order to avoid
-+ * build failures if any C compilation, which will include this file via an
-+ * -include argument in c_flags, occurs prior to the asm-generic wrappers being
-+ * generated.
-+ */
-+#ifdef CONFIG_HAVE_ARCH_COMPILER_H
-+#include <asm/compiler.h>
-+#endif
-+
- /*
-  * Generic compiler-dependent macros required for kernel
-  * build go below this comment. Actual compiler/compiler version
 -- 
-2.17.1
+Kees Cook
