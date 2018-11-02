@@ -1,48 +1,91 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: RFC: userspace exception fixups
-Date: Thu, 1 Nov 2018 16:22:55 -0700
-Message-ID: <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com>
- <20181101185225.GC5150@brightrain.aerifal.cx> <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
- <20181101193107.GE5150@brightrain.aerifal.cx> <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v2 3/4] sparc: add system call table generation
+	support
+Date: Fri, 2 Nov 2018 11:09:57 +0530
+Message-ID: <CALxhOnieTqFzs-D9mNB5nL0=iPGFE92Gwm-Coft7D0_7RJgHiQ@mail.gmail.com>
+References: <1541080391-3890-1-git-send-email-firoz.khan@linaro.org>
+ <1541080391-3890-4-git-send-email-firoz.khan@linaro.org>
+ <20181101.133315.47887636039827313.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Rich Felker <dalias@libc.org>, Jann Horn <jannh@google.com>, Andrew Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <20181101.133315.47887636039827313.davem@davemloft.net>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: "David S . Miller" <davem@davemloft.net>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, sparclinux <sparclinux@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 1, 2018 at 2:24 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Thu, Nov 1, 2018 at 12:31 PM Rich Felker <dalias@libc.org> wrote:
-> >
-> > See my other emails in this thread. You would register the *address*
-> > (in TLS) of a function pointer object pointing to the handler, rather
-> > than the function address of the handler. Then switching handler is
-> > just a single store in userspace, no syscalls involved.
->
-> Yes.
->
-> And for just EENTER, maybe that's the right model.
->
-> If we want to generalize it to other thread-synchronous faults, it
-> needs way more information and a list of handlers, but if we limit the
-> thing to _only_ EENTER getting an SGX fault, then a single "this is
-> the fault handler" address is probably the right thing to do.
-
-It sounds like you're saying that the kernel should know, *before*
-running any user fixup code, whether the fault in question is one that
-wants a fixup.  Sounds reasonable.
-
-I think it would be nice, but not absolutely necessary, if user code
-didn't need to poke some value into TLS each time it ran a function
-that had a fixup.  With the poke-into-TLS approach, it looks a lot
-like rseq, and rseq doesn't nest very nicely.  I think we really want
-this mechanism to Just Work.  So we could maybe have a syscall that
-associates a list of fixups with a given range of text addresses.  We
-might want the kernel to automatically zap the fixups when the text in
-question is unmapped.
+SGkgRGF2aWQsCgpPbiBGcmksIDIgTm92IDIwMTggYXQgMDI6MDMsIERhdmlkIE1pbGxlciA8ZGF2
+ZW1AZGF2ZW1sb2Z0Lm5ldD4gd3JvdGU6Cj4KPiBGcm9tOiBGaXJveiBLaGFuIDxmaXJvei5raGFu
+QGxpbmFyby5vcmc+Cj4gRGF0ZTogVGh1LCAgMSBOb3YgMjAxOCAxOToyMzoxMCArMDUzMAo+Cj4g
+PiArMTQxICBjb21tb24gIGdldHBlZXJuYW1lICAgICAgICAgICAgIHN5c19nZXRwZWVybmFtZSAg
+ICAgICAgICAgICAgICAgc3lzX25pc19zeXNjYWxsCj4gIC4uLgo+ID4gKzE1MCAgY29tbW9uICBn
+ZXRzb2NrbmFtZSAgICAgICAgICAgICBzeXNfZ2V0c29ja25hbWUgICAgICAgICAgICAgICAgIHN5
+c19uaXNfc3lzY2FsbAo+Cj4gVGhlIHN5c19uaXNfc3lzY2FsbCBpbiB0aGVzZSB0d28gZW50cmll
+cyBpcyBpbmNvcnJlY3QsIHNlZSB0aGUgcGF0Y2gKPiBiZWxvdy4KClRydWUsIFRoZSBwYXRjaCB5
+b3UgbWVudGlvbmVkIGhlcmUgaXMgdGhlIG1lcmdlZCByZWNlbnRseSBhbmQgSQpjcmVhdGVkIHRo
+aXMgcGF0Y2ggc2VyaWVzCmZldyBob3VycyBiZWZvcmUgdGhhdC4KCj4KPiBPbmUgb2YgbXkgd29y
+c3QgZmVhcnMgYWJvdXQgdGhpcyBjaGFuZ2UgaGFzIGJlZW4gcmVhbGl6ZWQsIHRoYXQKPiBpbnN0
+ZWFkIG9mIGhlbHBpbmcgdXMgZmluZCBwcm9ibGVtcywgaXQgaXMgc28gYXV0b21hdGVkIHRvIHRo
+ZSBwb2ludAo+IHRoYXQgaXQgZmFpbHMgdG8gcXVlc3Rpb24gaXNzdWVzIGxpa2UgdGhpcy4KClll
+cy4gSSBoYXZlIGNyZWF0ZWQgdGhlIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRpb24gc3VwcG9y
+dCBmb3IgMTAKYXJjaGl0ZWN0dXJlIGluY2x1ZGluZwpzcGFyYy4gRXZlcnkgYXJjaGl0ZWN0dXJl
+IEkgdmFsaWRhdGVkIHRoZSBnZW5lcmF0ZWQgZmlsZSB3aXRoIHJlcGxhY2VkCm9uZSBhbmQgbWFk
+ZSBzdXJlCmJvdGggYXJlIHNhbWUuIEJ1dCBzdGlsbCBJIGV4cGVjdCBzb21lIGh1bWFuIGVycm9y
+cy4gVGhlIG9uZSB3aGljaCBJCm1pc3NlZCB3YXMgY2F1Z2h0CmJ5IHJlc3BlY3RpdmUgbWFpbnRh
+aW5lcnMuCgpCVFcsIHRoZSBlcnJvciBjYW4gYmUgcmFpc2VkIG9ubHkgb25lIHRpbWUsIGR1cmlu
+ZyB0aGUgZGV2ZWxvcG1lbnQuCgo+IElmIHN5c19uaXNfc3lzY2FsbCBmb3IgdGhlIGNvbXBhdCBz
+eXNjYWxsIHNob3dzIHVwIGluIGEgc2l0dWF0aW9uIHdoZXJlIHRoZQo+IG5hdGl2ZSAzMi1iaXQg
+c3lzY2FsbCBkb2VzIGhhdmUgYW4gZW50cnksIHRoYXQncyBhIEJVRyBhbmQgdGhlIHNjcmlwdCBz
+aG91bGQKPiBwb2ludCB0aGlzIG91dCBzbyB0aGF0IHRoZSBidWcgY2FuIGJlIGZpeGVkLgoKc3lz
+Y2FsbC50YmwgaXMgdGhlIGlucHV0IHRvIHRoZSBzY3JpcHQsIHNvIHRoZSBkZXZlbG9wZXJzIGhh
+cyB0aGUKcmVzcG9uc2liaWxpdHkgdG8gZmlsbCB0aGUgdGFibGUKcHJvcGVybHkuIEkgZG9uJ3Qg
+a25vdywgd2UgaGF2ZSB0byB3cml0ZSBhIHNjcmlwdCB3aGljaCBoYXMgdG8gYmUKc21hcnQgZW5v
+dWdoIHRvIGNhdGNoIHRoZQp3cm9uZyBzeXNjYWxsIGVudHJpZXMuCgpUaGFua3MgZm9yIHlvdXIg
+ZmVlZGJhY2suCgpGaXJvegoKPgo+IFRoYW5rIHlvdS4KPgo+ID09PT09PT09PT09PT09PT09PT09
+Cj4gRnJvbSAxZjJiNWI4ZTJkZjQ1OTFmYmNhNDMwYWZmOWM1YTA3MmRjYzBmNDA4IE1vbiBTZXAg
+MTcgMDA6MDA6MDAgMjAwMQo+IEZyb206ICJEYXZpZCBTLiBNaWxsZXIiIDxkYXZlbUBkYXZlbWxv
+ZnQubmV0Pgo+IERhdGU6IFdlZCwgMzEgT2N0IDIwMTggMTg6MzA6MjEgLTA3MDAKPiBTdWJqZWN0
+OiBbUEFUQ0hdIHNwYXJjNjQ6IFdpcmUgdXAgY29tcGF0IGdldHBlZXJuYW1lIGFuZCBnZXRzb2Nr
+bmFtZS4KPgo+IEZpeGVzOiA4YjMwY2E3M2I3Y2MgKCJzcGFyYzogQWRkIGFsbCBuZWNlc3Nhcnkg
+ZGlyZWN0IHNvY2tldCBzeXN0ZW0gY2FsbHMuIikKPiBSZXBvcnRlZC1ieTogSm9zZXBoIE15ZXJz
+ICA8am9zZXBoQGNvZGVzb3VyY2VyeS5jb20+Cj4gU2lnbmVkLW9mZi1ieTogRGF2aWQgUy4gTWls
+bGVyIDxkYXZlbUBkYXZlbWxvZnQubmV0Pgo+IC0tLQo+ICBhcmNoL3NwYXJjL2tlcm5lbC9zeXN0
+YmxzXzY0LlMgfCA0ICsrLS0KPiAgMSBmaWxlIGNoYW5nZWQsIDIgaW5zZXJ0aW9ucygrKSwgMiBk
+ZWxldGlvbnMoLSkKPgo+IGRpZmYgLS1naXQgYS9hcmNoL3NwYXJjL2tlcm5lbC9zeXN0YmxzXzY0
+LlMgYi9hcmNoL3NwYXJjL2tlcm5lbC9zeXN0YmxzXzY0LlMKPiBpbmRleCBiYjY4YzgwLi5mZjkz
+ODlhIDEwMDY0NAo+IC0tLSBhL2FyY2gvc3BhcmMva2VybmVsL3N5c3RibHNfNjQuUwo+ICsrKyBi
+L2FyY2gvc3BhcmMva2VybmVsL3N5c3RibHNfNjQuUwo+IEBAIC00Nyw5ICs0Nyw5IEBAIHN5c19j
+YWxsX3RhYmxlMzI6Cj4gICAgICAgICAud29yZCBzeXNfcmVjdmZyb20sIHN5c19zZXRyZXVpZDE2
+LCBzeXNfc2V0cmVnaWQxNiwgc3lzX3JlbmFtZSwgY29tcGF0X3N5c190cnVuY2F0ZQo+ICAvKjEz
+MCovICAgICAgICAud29yZCBjb21wYXRfc3lzX2Z0cnVuY2F0ZSwgc3lzX2Zsb2NrLCBjb21wYXRf
+c3lzX2xzdGF0NjQsIHN5c19zZW5kdG8sIHN5c19zaHV0ZG93bgo+ICAgICAgICAgLndvcmQgc3lz
+X3NvY2tldHBhaXIsIHN5c19ta2Rpciwgc3lzX3JtZGlyLCBjb21wYXRfc3lzX3V0aW1lcywgY29t
+cGF0X3N5c19zdGF0NjQKPiAtLyoxNDAqLyAgICAgICAgLndvcmQgc3lzX3NlbmRmaWxlNjQsIHN5
+c19uaXNfc3lzY2FsbCwgY29tcGF0X3N5c19mdXRleCwgc3lzX2dldHRpZCwgY29tcGF0X3N5c19n
+ZXRybGltaXQKPiArLyoxNDAqLyAgICAgICAgLndvcmQgc3lzX3NlbmRmaWxlNjQsIHN5c19nZXRw
+ZWVybmFtZSwgY29tcGF0X3N5c19mdXRleCwgc3lzX2dldHRpZCwgY29tcGF0X3N5c19nZXRybGlt
+aXQKPiAgICAgICAgIC53b3JkIGNvbXBhdF9zeXNfc2V0cmxpbWl0LCBzeXNfcGl2b3Rfcm9vdCwg
+c3lzX3ByY3RsLCBzeXNfcGNpY29uZmlnX3JlYWQsIHN5c19wY2ljb25maWdfd3JpdGUKPiAtLyox
+NTAqLyAgICAgICAgLndvcmQgc3lzX25pc19zeXNjYWxsLCBzeXNfaW5vdGlmeV9pbml0LCBzeXNf
+aW5vdGlmeV9hZGRfd2F0Y2gsIHN5c19wb2xsLCBzeXNfZ2V0ZGVudHM2NAo+ICsvKjE1MCovICAg
+ICAgICAud29yZCBzeXNfZ2V0c29ja25hbWUsIHN5c19pbm90aWZ5X2luaXQsIHN5c19pbm90aWZ5
+X2FkZF93YXRjaCwgc3lzX3BvbGwsIHN5c19nZXRkZW50czY0Cj4gICAgICAgICAud29yZCBjb21w
+YXRfc3lzX2ZjbnRsNjQsIHN5c19pbm90aWZ5X3JtX3dhdGNoLCBjb21wYXRfc3lzX3N0YXRmcywg
+Y29tcGF0X3N5c19mc3RhdGZzLCBzeXNfb2xkdW1vdW50Cj4gIC8qMTYwKi8gICAgICAgIC53b3Jk
+IGNvbXBhdF9zeXNfc2NoZWRfc2V0YWZmaW5pdHksIGNvbXBhdF9zeXNfc2NoZWRfZ2V0YWZmaW5p
+dHksIHN5c19nZXRkb21haW5uYW1lLCBzeXNfc2V0ZG9tYWlubmFtZSwgc3lzX25pc19zeXNjYWxs
+Cj4gICAgICAgICAud29yZCBzeXNfcXVvdGFjdGwsIHN5c19zZXRfdGlkX2FkZHJlc3MsIGNvbXBh
+dF9zeXNfbW91bnQsIGNvbXBhdF9zeXNfdXN0YXQsIHN5c19zZXR4YXR0cgo+IC0tCj4gMi4xLjIu
+NTMyLmcxOWI1ZDUwCj4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5vcmcKaHR0cHM6Ly9s
+aXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
