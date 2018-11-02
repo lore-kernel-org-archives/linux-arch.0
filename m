@@ -1,51 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:50503 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726083AbeKCHvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 3 Nov 2018 03:51:17 -0400
-Date: Sat, 3 Nov 2018 00:42:04 +0200
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181102224204.GC24373@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <CAG48ez0vBqL0tyfWwmuc_cq+OAUoEi88=r+t6h64a-Fw8z59zA@mail.gmail.com>
- <20181101185225.GC5150@brightrain.aerifal.cx>
- <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
- <20181101193107.GE5150@brightrain.aerifal.cx>
- <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
- <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
- <20181102163034.GB7393@linux.intel.com>
- <7e14ee0e-ce15-1e88-7ae9-4d0f40cb3d84@fortanix.com>
- <20181102165204.GC7393@linux.intel.com>
+Received: from mail-oi1-f193.google.com ([209.85.167.193]:33276 "EHLO
+        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728432AbeKCIhM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Nov 2018 04:37:12 -0400
+Received: by mail-oi1-f193.google.com with SMTP id c25-v6so2949127oiy.0
+        for <linux-arch@vger.kernel.org>; Fri, 02 Nov 2018 16:28:01 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181102165204.GC7393@linux.intel.com>
+References: <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
+ <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
+ <20181102163034.GB7393@linux.intel.com> <7050972d-a874-dc08-3214-93e81181da60@intel.com>
+ <20181102170627.GD7393@linux.intel.com> <a4d2b3ec-43ec-f062-e180-c6e5a0d9fab8@intel.com>
+ <20181102173350.GF7393@linux.intel.com> <CALCETrUQVPN0LSEz+5aNsbfFc=rQ33JHiOoRXVbvEEb9is9DDQ@mail.gmail.com>
+ <20181102182712.GG7393@linux.intel.com> <CAG48ez0x7ZPcKvLt01WS-VrLm59WfvYE3nE1xbnyn3Qsp5T2rA@mail.gmail.com>
+ <20181102220437.GI7393@linux.intel.com>
+In-Reply-To: <20181102220437.GI7393@linux.intel.com>
+From: Jann Horn <jannh@google.com>
+Date: Sat, 3 Nov 2018 00:27:34 +0100
+Message-ID: <CAG48ez1+nGDbuBaKJVPAOzEwiBkXqHHs7vmyAqvbeM42r0nFHg@mail.gmail.com>
+Subject: Re: RFC: userspace exception fixups
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: Jethro Beekman <jethro@fortanix.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rich Felker <dalias@libc.org>, Jann Horn <jannh@google.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Carlos O'Donell <carlos@redhat.com>, "adhemerval.zanella@linaro.org" <adhemerval.zanella@linaro.org>
-Message-ID: <20181102224204.0lKtLWXL8kMQth2NSdwiYhCHEnjfQNTjWg3RudQecOo@z>
+To: sean.j.christopherson@intel.com
+Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, dalias@libc.org, Dave Hansen <dave.hansen@linux.intel.com>, jethro@fortanix.com, jarkko.sakkinen@linux.intel.com, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, carlos@redhat.com, adhemerval.zanella@linaro.org
+Message-ID: <20181102232734.D7lsTLiF67_Tu2O5nru63EicFogsTDYMQvXlfjZco7A@z>
 
-On Fri, Nov 02, 2018 at 09:52:04AM -0700, Sean Christopherson wrote:
-> On Fri, Nov 02, 2018 at 04:37:10PM +0000, Jethro Beekman wrote:
-> > On 2018-11-02 09:30, Sean Christopherson wrote:
-> > >... The intended convention for EENTER is to have an ENCLU at the AEX target ...
+On Fri, Nov 2, 2018 at 11:04 PM Sean Christopherson
+<sean.j.christopherson@intel.com> wrote:
+> On Fri, Nov 02, 2018 at 08:02:23PM +0100, Jann Horn wrote:
+> > On Fri, Nov 2, 2018 at 7:27 PM Sean Christopherson
+> > <sean.j.christopherson@intel.com> wrote:
+> > > On Fri, Nov 02, 2018 at 10:48:38AM -0700, Andy Lutomirski wrote:
+> > > > This whole mechanism seems very complicated, and it's not clear
+> > > > exactly what behavior user code wants.
 > > >
-> > >... to further enforce that the AEX target needs to be ENCLU.
-> > 
-> > Some SGX runtimes may want to use a different AEX target.
-> 
-> To what end?  Userspace gets no indication as to why the AEX occurred.
-> And if exceptions are getting transfered to userspace the trampoline
-> would effectively be handling only INTR, NMI, #MC and EPC #PF.
+> > > No argument there.  That's why I like the approach of dumping the
+> > > exception to userspace without trying to do anything intelligent in
+> > > the kernel.  Userspace can then do whatever it wants AND we don't
+> > > have to worry about mucking with stacks.
+> > >
+> > > One of the hiccups with the VDSO approach is that the enclave may
+> > > want to use the untrusted stack, i.e. the stack that has the VDSO's
+> > > stack frame.  For example, Intel's SDK uses the untrusted stack to
+> > > pass parameters for EEXIT, which means an AEX might occur with what
+> > > is effectively a bad stack from the VDSO's perspective.
+> >
+> > What exactly does "uses the untrusted stack to pass parameters for
+> > EEXIT" mean? I guess you're saying that the enclave is writing to
+> > RSP+[0...some_positive_offset], and the written data needs to be
+> > visible to the code outside the enclave afterwards?
+>
+> As is, they actually do it the other way around, i.e. negative offsets
+> relative to the untrusted %RSP.  Going into the enclave there is no
+> reserved space on the stack.  The SDK uses EEXIT like a function call,
+> i.e. pushing parameters on the stack and making an call outside of the
+> enclave, hence the name out-call.  This allows the SDK to handle any
+> reasonable out-call without a priori knowledge of the application's
+> maximum out-call "size".
 
-I've understood that in some cases run-time implementation requires to
-run a handler implemented inside the enclave i.e the sequence would be
-
-1. #AEX
-2. EENTER(in-enclave handler)
-3. EEXIT(%rcx)
-4. ERESUME
-
-/Jarkko
+But presumably this is bounded to be at most 128 bytes (the red zone
+size), right? Otherwise this would be incompatible with
+non-sigaltstack signal delivery.
