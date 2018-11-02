@@ -1,109 +1,133 @@
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Fri, 2 Nov 2018 11:27:12 -0700
-Message-ID: <20181102182712.GG7393@linux.intel.com>
-References: <CAHk-=wgFo8tuZX5gzCfWGdAwGyn_Ar9JFnnMFNuwr9=vtfDV1g@mail.gmail.com>
- <20181101193107.GE5150@brightrain.aerifal.cx>
- <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
- <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
- <20181102163034.GB7393@linux.intel.com>
- <7050972d-a874-dc08-3214-93e81181da60@intel.com>
- <20181102170627.GD7393@linux.intel.com>
- <a4d2b3ec-43ec-f062-e180-c6e5a0d9fab8@intel.com>
- <20181102173350.GF7393@linux.intel.com>
- <CALCETrUQVPN0LSEz+5aNsbfFc=rQ33JHiOoRXVbvEEb9is9DDQ@mail.gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.18 079/150] compiler.h: Allow arch-specific asm/compiler.h
+Date: Fri,  2 Nov 2018 19:34:01 +0100
+Message-ID: <20181102182909.067675897@linuxfoundation.org>
+References: <20181102182902.250560510@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrUQVPN0LSEz+5aNsbfFc=rQ33JHiOoRXVbvEEb9is9DDQ@mail.gmail.com>
+In-Reply-To: <20181102182902.250560510@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rich Felker <dalias@libc.org>, Jann Horn <jannh@google.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-mips@linux-mips.org, Sasha Levin <sashal@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 02, 2018 at 10:48:38AM -0700, Andy Lutomirski wrote:
-> On Fri, Nov 2, 2018 at 10:33 AM Sean Christopherson
-> <sean.j.christopherson@intel.com> wrote:
-> >
-> > On Fri, Nov 02, 2018 at 10:13:23AM -0700, Dave Hansen wrote:
-> > > On 11/2/18 10:06 AM, Sean Christopherson wrote:
-> > > > On Fri, Nov 02, 2018 at 09:56:44AM -0700, Dave Hansen wrote:
-> > > >> On 11/2/18 9:30 AM, Sean Christopherson wrote:
-> > > >>> What if rather than having userspace register an address for fixup, the
-> > > >>> kernel instead unconditionally does fixup on the ENCLU opcode?
-> > > >>
-> > > >> The problem is knowing what to do for the fixup.  If we have a simple
-> > > >> action to take that's universal, like backing up %RIP, or setting some
-> > > >> other register state, it's not bad.
-> > > >
-> > > > Isn't the EENTER/RESUME behavior universal?  Or am I missing something?
-> > >
-> > > Could someone write down all the ways we get in and out of the enclave?
-> > >
-> > > I think we always get in from userspace calling EENTER or ERESUME.  We
-> > > can't ever enter directly from the kernel, like via an IRET from what I
-> > > understand.
-> >
-> > Correct, the only way to get into the enclave is EENTER or ERESUME.
-> > My understanding is that even SMIs bounce through the AEX target
-> > before transitioning to SMM.
-> >
-> > > We get *out* from exceptions, hardware interrupts, or enclave-explicit
-> > > EEXITs.  Did I miss any?  Remind me where the hardware lands the control
-> > > flow in each of those exit cases.
-> >
-> > And VMExits.  There are basically two cases: EEXIT and everything else.
-> > EEXIT is a glorified indirect jump, e.g. %RBX holds the target %RIP.
-> > Everything else is an Asynchronous Enclave Exit (AEX).  On an AEX, %RIP
-> > is set to a value specified by EENTER/ERESUME, %RBP and %RSP are
-> > restored to pre-enclave values and all other registers are loaded with
-> > synthetic state.  The actual interrupt/exception/VMExit then triggers,
-> > e.g. the %RIP on the stack for an exception is always the AEX target,
-> > not the %RIP inside the enclave that actually faulted.
-> 
-> So what exactly happens when an enclave accesses non-enclave memory
-> and takes a page fault, for example?  The SDM says that the #PF vector
-> and error code are stored in the SSA frame where the kernel can't see
-> them.  Is a real #PF then delivered?
+4.18-stable review patch.  If anyone has any objections, please let me know.
 
-Yes.  From there kernel's perspective a #PF occurred on the %RIP of the
-AEX target.  This holds true for all AEX types, e.g. GUEST_RIP on VMExit
-also points at the AEX target.  On an AEX, %RAX, %RBX and %RCX are set
-to match the ERESUME parameter.  The idea is for userspace to have an
-ENCU at the AEX so that it automatically ERESUMEs the enclave after the
-kernel handles the fault.  And the trampoline approach means the ucode
-flows for exceptions, interrupts, VMExit, VMEnter, IRET, RSM, etc...
-generally don't need to be SGX-aware.  The events themselves just need
-to be redirected to the AEX target and then redo the event.
+------------------
 
-> I guess that, if the memory in question gets faulted in, then the
-> kernel resumes exection at the AEP address, which does ERESUME, and
-> the enclave resumes.  But if the access is bad, then the kernel
-> delivers a signal (or uses some other new mechanism), and then what
-> happens?  Is the enclave just considered dead?  Is user code supposed
-> to EENTER back into the enclave to tell it that it got an error?
+[ Upstream commit 04f264d3a8b0eb25d378127bd78c3c9a0261c828 ]
 
-Completely depends on the enclave and its runtime.  A simple enclave
-mayy never expect to encounter a bad access or #UD and so its runtime
-would probably just kill it.  A test/development enclave might have
-its runtime call back into the enclave to dump state on a fatal fault.
+We have a need to override the definition of
+barrier_before_unreachable() for MIPS, which means we either need to add
+architecture-specific code into linux/compiler-gcc.h or we need to allow
+the architecture to provide a header that can define the macro before
+the generic definition. The latter seems like the better approach.
 
-Complex runtimes, e.g. libraries that wrap unmodified applications,
-will call back into the enclave so that libraries in-enclave fault
-handler can decode what went wrong and take action accordingly, e.g.
-request CPUID information if unmodified code tried to do CPUID.
+A straightforward approach to the per-arch header is to make use of
+asm-generic to provide a default empty header & adjust architectures
+which don't need anything specific to make use of that by adding the
+header to generic-y. Unfortunately this doesn't work so well due to
+commit 28128c61e08e ("kconfig.h: Include compiler types to avoid missed
+struct attributes") which caused linux/compiler_types.h to be included
+in the compilation of every C file via the -include linux/kconfig.h flag
+in c_flags.
 
-> This whole mechanism seems very complicated, and it's not clear
-> exactly what behavior user code wants.
+Because the -include flag is present for all C files we compile, we need
+the architecture-provided header to be present before any C files are
+compiled. If any C files can be compiled prior to the asm-generic header
+wrappers being generated then we hit a build failure due to missing
+header. Such cases do exist - one pointed out by the kbuild test robot
+is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
+of the archprepare target [1].
 
-No argument there.  That's why I like the approach of dumping the
-exception to userspace without trying to do anything intelligent in
-the kernel.  Userspace can then do whatever it wants AND we don't
-have to worry about mucking with stacks.
+This leaves us with a few options:
 
-One of the hiccups with the VDSO approach is that the enclave may
-want to use the untrusted stack, i.e. the stack that has the VDSO's
-stack frame.  For example, Intel's SDK uses the untrusted stack to
-pass parameters for EEXIT, which means an AEX might occur with what
-is effectively a bad stack from the VDSO's perspective.
+  1) Use generic-y & fix any build failures we find by enforcing
+     ordering such that the asm-generic target occurs before any C
+     compilation, such that linux/compiler_types.h can always include
+     the generated asm-generic wrapper which in turn includes the empty
+     asm-generic header. This would rely on us finding all the
+     problematic cases - I don't know for sure that the ia64 issue is
+     the only one.
+
+  2) Add an actual empty header to each architecture, so that we don't
+     need the generated asm-generic wrapper. This seems messy.
+
+  3) Give up & add #ifdef CONFIG_MIPS or similar to
+     linux/compiler_types.h. This seems messy too.
+
+  4) Include the arch header only when it's actually needed, removing
+     the need for the asm-generic wrapper for all other architectures.
+
+This patch allows us to use approach 4, by including an asm/compiler.h
+header from linux/compiler_types.h after the inclusion of the
+compiler-specific linux/compiler-*.h header(s). We do this
+conditionally, only when CONFIG_HAVE_ARCH_COMPILER_H is selected, in
+order to avoid the need for asm-generic wrappers & the associated build
+ordering issue described above. The asm/compiler.h header is included
+after the generic linux/compiler-*.h header(s) for consistency with the
+way linux/compiler-intel.h & linux/compiler-clang.h are included after
+the linux/compiler-gcc.h header that they override.
+
+[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
+
+Signed-off-by: Paul Burton <paul.burton@mips.com>
+Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Patchwork: https://patchwork.linux-mips.org/patch/20269/
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <jhogan@kernel.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ arch/Kconfig                   |  8 ++++++++
+ include/linux/compiler_types.h | 12 ++++++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index f03b72644902..a18371a36e03 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -977,4 +977,12 @@ config REFCOUNT_FULL
+ 	  against various use-after-free conditions that can be used in
+ 	  security flaw exploits.
+ 
++config HAVE_ARCH_COMPILER_H
++	bool
++	help
++	  An architecture can select this if it provides an
++	  asm/compiler.h header that should be included after
++	  linux/compiler-*.h in order to override macro definitions that those
++	  headers generally provide.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index a8ba6b04152c..55e4be8b016b 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -78,6 +78,18 @@ extern void __chk_io_ptr(const volatile void __iomem *);
+ #include <linux/compiler-clang.h>
+ #endif
+ 
++/*
++ * Some architectures need to provide custom definitions of macros provided
++ * by linux/compiler-*.h, and can do so using asm/compiler.h. We include that
++ * conditionally rather than using an asm-generic wrapper in order to avoid
++ * build failures if any C compilation, which will include this file via an
++ * -include argument in c_flags, occurs prior to the asm-generic wrappers being
++ * generated.
++ */
++#ifdef CONFIG_HAVE_ARCH_COMPILER_H
++#include <asm/compiler.h>
++#endif
++
+ /*
+  * Generic compiler-dependent macros required for kernel
+  * build go below this comment. Actual compiler/compiler version
+-- 
+2.17.1
