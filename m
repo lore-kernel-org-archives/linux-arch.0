@@ -1,37 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr40066.outbound.protection.outlook.com ([40.107.4.66]:34656
-        "EHLO EUR03-DB5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725935AbeKBSxZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Nov 2018 14:53:25 -0400
-From: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>
-Subject: Re: [PATCH v5 11/17] arm64: docs: document pointer authentication
-Date: Fri, 2 Nov 2018 09:46:47 +0000
-Message-ID: <7f9c1bc4-2e82-e930-7d00-c26791ab9eef@arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-12-kristina.martsenko@arm.com>
- <CAGXu5j+73z1dPS13xrOgPpn47sfwzNd9BO-USr7V+7quJt7yjA@mail.gmail.com>
-In-Reply-To: <CAGXu5j+73z1dPS13xrOgPpn47sfwzNd9BO-USr7V+7quJt7yjA@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <2DC72581046359458B7C520916056EC1@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:43950 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725990AbeKBUXc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2018 16:23:32 -0400
+Received: by mail-wr1-f68.google.com with SMTP id y3-v6so1282099wrh.10
+        for <linux-arch@vger.kernel.org>; Fri, 02 Nov 2018 04:16:43 -0700 (PDT)
+Subject: Re: [PATCH V13 0/2] C-SKY(csky) Timer Driver
+References: <cover.1540947083.git.ren_guo@c-sky.com>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Message-ID: <8ce6d07f-6608-dcb2-6394-00a18d726988@linaro.org>
+Date: Fri, 2 Nov 2018 12:16:39 +0100
 MIME-Version: 1.0
+In-Reply-To: <cover.1540947083.git.ren_guo@c-sky.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Kristina Martsenko <Kristina.Martsenko@arm.com>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <Catalin.Marinas@arm.com>, Christoffer Dall <Christoffer.Dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Suzuki Poulose <Suzuki.Poulose@arm.com>, Will Deacon <Will.Deacon@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>nd <nd@arm.com>
-Message-ID: <20181102094647.5EGtBL0yE1YxtiMxzRnEI5mSFmUE5xJ3gWLI13TNzYw@z>
+To: Guo Ren <ren_guo@c-sky.com>, tglx@linutronix.de
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, devicetree@vger.kernel.org
 
-DQo+PiArDQo+PiArV2hlbiBDT05GSUdfQVJNNjRfUFRSX0FVVEggaXMgc2VsZWN0ZWQsIGFuZCBy
-ZWxldmFudCBIVyBzdXBwb3J0IGlzDQo+PiArcHJlc2VudCwgdGhlIGtlcm5lbCB3aWxsIGFzc2ln
-biBhIHJhbmRvbSBBUElBS2V5IHZhbHVlIHRvIGVhY2ggcHJvY2Vzcw0KPj4gK2F0IGV4ZWMqKCkg
-dGltZS4gVGhpcyBrZXkgaXMgc2hhcmVkIGJ5IGFsbCB0aHJlYWRzIHdpdGhpbiB0aGUgcHJvY2Vz
-cywNCj4+ICthbmQgdGhlIGtleSBpcyBwcmVzZXJ2ZWQgYWNyb3NzIGZvcmsoKS4gUHJlc2VuY2Ug
-b2YgZnVuY3Rpb25hbGl0eSB1c2luZw0KPj4gK0FQSUFLZXkgaXMgYWR2ZXJ0aXNlZCB2aWEgSFdD
-QVBfQVBJQS4NCj4gDQo+IEl0IG1pZ2h0IGJlIHVzZWZ1bCB0byBpbmNsdWRlIGRvY3VtZW50YXRp
-b24gaGVyZSBvbiBob3cgbWFueSBiaXRzIG9mDQo+IHRoZSBhZGRyZXNzIGFyZSBiZWluZyB1c2Vk
-IGZvciB0aGUgUEFDIGJpdHMgKEknbSBhc3N1bWluZyBpdCdzIDc/KQ0KDQoNCnRoZSBudW1iZXIg
-b2YgYml0cyBhdmFpbGFibGUgZGVwZW5kcyBvbiB0aGUgVkEgc2l6ZSwgc28geW91IGNhbid0IHJl
-YWxseSANCmRvY3VtZW50IGEgbnVtYmVyLg0KDQpSYW1hbmENCg0KPiANCj4gLUtlZXMNCj4gDQoN
-Cg==
+
+Hi Guo,
+
+On 31/10/2018 03:06, Guo Ren wrote:
+> Hi Daniel & Thomas,
+> 
+> I sent you "PATCH V13" a few days ago, but no-reply:
+> https://lkml.org/lkml/2018/10/29/608
+> Now I send again.
+
+Where are the DT bindings ?
+
+please (cc lkml when sending patches)
+
+
+
+> Although csky subsystem has been merged into linux-4.20, but there is no
+> timer drivers for csky. A lot of boards need these timer drivers.
+> 
+> Please help merge them into linux-4.20, wait for you reply.
+> 
+> Thx
+>  Guo Ren
+> 
+> Changelog:
+>  - Move changelog to end of patch.
+>  - Remove the set_irq_createmapping call back in csky-mp-intc.c.
+>  - Convert the cpumask to an interrupt-controller specific representation
+>    in driver's code, and not the SMP code's, and also modify the related
+>    codes in csky kernel patchset.
+>  - Add COMPILE_TEST for csky_mp_timer.
+>  - Fixup smp boot error, cpuhp_setup_state must after timer_of_init()
+>    for csky_mp_timer.
+> 
+> Guo Ren (2):
+>   clocksource: add C-SKY SMP timer
+>   clocksource: add gx6605s SOC system timer
+> 
+>  drivers/clocksource/Kconfig         |  18 ++++
+>  drivers/clocksource/Makefile        |   2 +
+>  drivers/clocksource/timer-gx6605s.c | 154 ++++++++++++++++++++++++++++++++
+>  drivers/clocksource/timer-mp-csky.c | 173 ++++++++++++++++++++++++++++++++++++
+>  include/linux/cpuhotplug.h          |   1 +
+>  5 files changed, 348 insertions(+)
+>  create mode 100644 drivers/clocksource/timer-gx6605s.c
+>  create mode 100644 drivers/clocksource/timer-mp-csky.c
+> 
+
+
+-- 
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
