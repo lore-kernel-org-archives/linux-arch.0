@@ -1,59 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
-Date: Mon, 5 Nov 2018 11:48:43 +0100
-Message-ID: <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
-References: <1541080391-3890-1-git-send-email-firoz.khan@linaro.org>
- <1541080391-3890-4-git-send-email-firoz.khan@linaro.org> <20181101.133315.47887636039827313.davem@davemloft.net>
+From: Mimi Zohar <zohar@linux.ibm.com>
+Subject: Re: [PATCH security-next v5 12/30] LSM: Provide separate ordered
+ initialization
+Date: Mon, 05 Nov 2018 09:13:58 -0500
+Message-ID: <1541427238.21115.58.camel@linux.ibm.com>
+References: <20181011001846.30964-1-keescook@chromium.org>
+         <20181011001846.30964-13-keescook@chromium.org>
+         <1541182406.20901.31.camel@linux.ibm.com>
+         <CAGXu5jKM_goC2519EXZu7Bh0VoW8jQeR=AJ0XovUPe4_635XNw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181101.133315.47887636039827313.davem@davemloft.net>
+In-Reply-To: <CAGXu5jKM_goC2519EXZu7Bh0VoW8jQeR=AJ0XovUPe4_635XNw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: firoz.khan@linaro.org, sparclinux@vger.kernel.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+To: Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/1/18, David Miller <davem@davemloft.net> wrote:
-> From: Firoz Khan <firoz.khan@linaro.org>
-> Date: Thu,  1 Nov 2018 19:23:10 +0530
->
->> +141	common	getpeername		sys_getpeername			sys_nis_syscall
->  ...
->> +150	common	getsockname		sys_getsockname			sys_nis_syscall
->
-> The sys_nis_syscall in these two entries is incorrect, see the patch
-> below.
->
-> One of my worst fears about this change has been realized, that
-> instead of helping us find problems, it is so automated to the point
-> that it fails to question issues like this.
->
-> If sys_nis_syscall for the compat syscall shows up in a situation where the
-> native 32-bit syscall does have an entry, that's a BUG and the script
-> should
-> point this out so that the bug can be fixed.
+On Fri, 2018-11-02 at 13:49 -0700, Kees Cook wrote:
+> On Fri, Nov 2, 2018 at 11:13 AM, Mimi Zohar <zohar@linux.ibm.com> wrote:
+> > I don't recall why "integrity" is on the security_initcall, while both
+> > IMA and EVM are on the late_initcall().
+> 
+> It's because integrity needs to have a VFS buffer allocated extremely
+> early, so it used the security init to do it. While it's not an LSM,
+> it does use this part of LSM infrastructure. I didn't see an obvious
+> alternative at the time, but now that I think about it, maybe just a
+> simple postcore_initcall() would work?
 
-I see this as a multi-step process. Unfortunately, some architectures have
-multiple issues in their system call tables, most importantly the ones that
-include system call numbers on some architectures but have had them
-removed when the implementation got removed.
+I was questioning why the "security_initcall", which is called after
+the late_initcall.  Moving it to the postcore_initcall, before the
+late_initcall, sounds right.
 
-The sparc sys_nis_syscall is another such issue: we don't have anything
-like that on other architectures, so I think we should either move it to
-kernel/sys_ni.c for everyone, or use the normal sys_ni_syscall().
-
-Then there is inconsistency between the set of system calls per architecture,
-e.g. some have both socketcall()/ipc() and the individual socket syscalls
-from those multiplexors, some only have one of the two sets.
-Here, I think we may want to move to the separate system calls on all
-architectures and only keep the multiplexors for backwards compatibility.
-A future glibc may then remove the support for socketcall() and ipc()
-once they require linux-5.x or higher and always have the separate calls.
-
-However, for all of those, I want the /format/ of the tables to be consistent
-so we can create the tooling around it to find and fix the issues. The work
-that Firoz is doing for now just makes sure that the /contents/ of the tables
-don't change at all, which is hard enough to do (the current version gets
-it all right afaict, but the previous versions missed some details).
-
-      Arnd
+Mimi
