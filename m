@@ -1,64 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:35088 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726255AbeKEUHv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Nov 2018 15:07:51 -0500
-MIME-Version: 1.0
-In-Reply-To: <20181101.133315.47887636039827313.davem@davemloft.net>
-References: <1541080391-3890-1-git-send-email-firoz.khan@linaro.org>
- <1541080391-3890-4-git-send-email-firoz.khan@linaro.org> <20181101.133315.47887636039827313.davem@davemloft.net>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 5 Nov 2018 11:48:43 +0100
-Message-ID: <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
-Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51408 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728718AbeKEXeO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Nov 2018 18:34:14 -0500
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wA5E9GJh015106
+        for <linux-arch@vger.kernel.org>; Mon, 5 Nov 2018 09:14:19 -0500
+Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2njpkvu0dw-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 05 Nov 2018 09:14:18 -0500
+Received: from localhost
+        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <zohar@linux.ibm.com>;
+        Mon, 5 Nov 2018 14:14:16 -0000
+Subject: Re: [PATCH security-next v5 12/30] LSM: Provide separate ordered
+ initialization
+From: Mimi Zohar <zohar@linux.ibm.com>
+Date: Mon, 05 Nov 2018 09:13:58 -0500
+In-Reply-To: <CAGXu5jKM_goC2519EXZu7Bh0VoW8jQeR=AJ0XovUPe4_635XNw@mail.gmail.com>
+References: <20181011001846.30964-1-keescook@chromium.org>
+         <20181011001846.30964-13-keescook@chromium.org>
+         <1541182406.20901.31.camel@linux.ibm.com>
+         <CAGXu5jKM_goC2519EXZu7Bh0VoW8jQeR=AJ0XovUPe4_635XNw@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Message-ID: <1541427238.21115.58.camel@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: firoz.khan@linaro.org, sparclinux@vger.kernel.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
-Message-ID: <20181105104843.b8H22sPIYP8FR6_UXhpdmDh-2StgTwZbtwqgwSyo3pY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181105141358.p6RYcTAulC-zMrc8ZWbxYjRGxY9WROwt0O9pV86Cq_k@z>
 
-On 11/1/18, David Miller <davem@davemloft.net> wrote:
-> From: Firoz Khan <firoz.khan@linaro.org>
-> Date: Thu,  1 Nov 2018 19:23:10 +0530
->
->> +141	common	getpeername		sys_getpeername			sys_nis_syscall
->  ...
->> +150	common	getsockname		sys_getsockname			sys_nis_syscall
->
-> The sys_nis_syscall in these two entries is incorrect, see the patch
-> below.
->
-> One of my worst fears about this change has been realized, that
-> instead of helping us find problems, it is so automated to the point
-> that it fails to question issues like this.
->
-> If sys_nis_syscall for the compat syscall shows up in a situation where the
-> native 32-bit syscall does have an entry, that's a BUG and the script
-> should
-> point this out so that the bug can be fixed.
+On Fri, 2018-11-02 at 13:49 -0700, Kees Cook wrote:
+> On Fri, Nov 2, 2018 at 11:13 AM, Mimi Zohar <zohar@linux.ibm.com> wrote:
+> > I don't recall why "integrity" is on the security_initcall, while both
+> > IMA and EVM are on the late_initcall().
+> 
+> It's because integrity needs to have a VFS buffer allocated extremely
+> early, so it used the security init to do it. While it's not an LSM,
+> it does use this part of LSM infrastructure. I didn't see an obvious
+> alternative at the time, but now that I think about it, maybe just a
+> simple postcore_initcall() would work?
 
-I see this as a multi-step process. Unfortunately, some architectures have
-multiple issues in their system call tables, most importantly the ones that
-include system call numbers on some architectures but have had them
-removed when the implementation got removed.
+I was questioning why the "security_initcall", which is called after
+the late_initcall.  Moving it to the postcore_initcall, before the
+late_initcall, sounds right.
 
-The sparc sys_nis_syscall is another such issue: we don't have anything
-like that on other architectures, so I think we should either move it to
-kernel/sys_ni.c for everyone, or use the normal sys_ni_syscall().
-
-Then there is inconsistency between the set of system calls per architecture,
-e.g. some have both socketcall()/ipc() and the individual socket syscalls
-from those multiplexors, some only have one of the two sets.
-Here, I think we may want to move to the separate system calls on all
-architectures and only keep the multiplexors for backwards compatibility.
-A future glibc may then remove the support for socketcall() and ipc()
-once they require linux-5.x or higher and always have the separate calls.
-
-However, for all of those, I want the /format/ of the tables to be consistent
-so we can create the tooling around it to find and fix the issues. The work
-that Firoz is doing for now just makes sure that the /contents/ of the tables
-don't change at all, which is hard enough to do (the current version gets
-it all right afaict, but the previous versions missed some details).
-
-      Arnd
+Mimi
