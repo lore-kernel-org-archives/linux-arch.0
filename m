@@ -1,64 +1,137 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Sat, 3 Nov 2018 00:36:36 +0100
-Message-ID: <CAG48ez2J9wRNDs0vhNVvVG4swjF8cA5n4T0vQnKixdPCaXVpHQ@mail.gmail.com>
-References: <CAHk-=wiYSpmDOfpi9n7ETsxK2UrUKfT4kM=Y3yqRSaZuFFPY1A@mail.gmail.com>
- <CALCETrWe4+apXJNswHAKVVqajGS3jTEKxdd2r3iu-MzGK1v0DA@mail.gmail.com>
- <20181102163034.GB7393@linux.intel.com> <7050972d-a874-dc08-3214-93e81181da60@intel.com>
- <20181102170627.GD7393@linux.intel.com> <a4d2b3ec-43ec-f062-e180-c6e5a0d9fab8@intel.com>
- <20181102173350.GF7393@linux.intel.com> <CALCETrUQVPN0LSEz+5aNsbfFc=rQ33JHiOoRXVbvEEb9is9DDQ@mail.gmail.com>
- <20181102182712.GG7393@linux.intel.com> <CAG48ez0x7ZPcKvLt01WS-VrLm59WfvYE3nE1xbnyn3Qsp5T2rA@mail.gmail.com>
- <20181102220437.GI7393@linux.intel.com> <CAG48ez1+nGDbuBaKJVPAOzEwiBkXqHHs7vmyAqvbeM42r0nFHg@mail.gmail.com>
- <CALCETrXq1Kj=McxnPVjkscNq-b_7LeoFOdu7qKjHdvwcfFh9Og@mail.gmail.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH v3 0/3] microblaze: system call table generation support
+Date: Mon, 5 Nov 2018 09:18:50 +0100
+Message-ID: <7af87565-19cc-df96-fe57-b0a8fe81d9cd@monstr.eu>
+References: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="TExgSfnQJEzmZukQQiCAHptMStTVOKVWI"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrXq1Kj=McxnPVjkscNq-b_7LeoFOdu7qKjHdvwcfFh9Og@mail.gmail.com>
+In-Reply-To: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: sean.j.christopherson@intel.com, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, dalias@libc.org, Dave Hansen <dave.hansen@linux.intel.com>, jethro@fortanix.com, jarkko.sakkinen@linux.intel.com, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, carlos@redhat.com, adhemerval.zane
+To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Nov 3, 2018 at 12:32 AM Andy Lutomirski <luto@kernel.org> wrote:
-> On Fri, Nov 2, 2018 at 4:28 PM Jann Horn <jannh@google.com> wrote:
-> > On Fri, Nov 2, 2018 at 11:04 PM Sean Christopherson
-> > <sean.j.christopherson@intel.com> wrote:
-> > > On Fri, Nov 02, 2018 at 08:02:23PM +0100, Jann Horn wrote:
-> > > > On Fri, Nov 2, 2018 at 7:27 PM Sean Christopherson
-> > > > <sean.j.christopherson@intel.com> wrote:
-> > > > > On Fri, Nov 02, 2018 at 10:48:38AM -0700, Andy Lutomirski wrote:
-> > > > > > This whole mechanism seems very complicated, and it's not clear
-> > > > > > exactly what behavior user code wants.
-> > > > >
-> > > > > No argument there.  That's why I like the approach of dumping the
-> > > > > exception to userspace without trying to do anything intelligent in
-> > > > > the kernel.  Userspace can then do whatever it wants AND we don't
-> > > > > have to worry about mucking with stacks.
-> > > > >
-> > > > > One of the hiccups with the VDSO approach is that the enclave may
-> > > > > want to use the untrusted stack, i.e. the stack that has the VDSO's
-> > > > > stack frame.  For example, Intel's SDK uses the untrusted stack to
-> > > > > pass parameters for EEXIT, which means an AEX might occur with what
-> > > > > is effectively a bad stack from the VDSO's perspective.
-> > > >
-> > > > What exactly does "uses the untrusted stack to pass parameters for
-> > > > EEXIT" mean? I guess you're saying that the enclave is writing to
-> > > > RSP+[0...some_positive_offset], and the written data needs to be
-> > > > visible to the code outside the enclave afterwards?
-> > >
-> > > As is, they actually do it the other way around, i.e. negative offsets
-> > > relative to the untrusted %RSP.  Going into the enclave there is no
-> > > reserved space on the stack.  The SDK uses EEXIT like a function call,
-> > > i.e. pushing parameters on the stack and making an call outside of the
-> > > enclave, hence the name out-call.  This allows the SDK to handle any
-> > > reasonable out-call without a priori knowledge of the application's
-> > > maximum out-call "size".
-> >
-> > But presumably this is bounded to be at most 128 bytes (the red zone
-> > size), right? Otherwise this would be incompatible with
-> > non-sigaltstack signal delivery.
->
->
-> I think Sean is saying that the enclave also updates RSP.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--TExgSfnQJEzmZukQQiCAHptMStTVOKVWI
+Content-Type: multipart/mixed; boundary="FlZnou0W2AEzHYm6OH75kAsiEjeopixzY";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+To: Firoz Khan <firoz.khan@linaro.org>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Philippe Ombredanne <pombredanne@nexb.com>,
+ Thomas Gleixner <tglx@linutronix.de>,
+ Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com,
+ marcin.juszkiewicz@linaro.org
+Message-ID: <7af87565-19cc-df96-fe57-b0a8fe81d9cd@monstr.eu>
+Subject: Re: [PATCH v3 0/3] microblaze: system call table generation support
+References: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1540530552-3652-1-git-send-email-firoz.khan@linaro.org>
 
-Ah, bleh, of course.
+--FlZnou0W2AEzHYm6OH75kAsiEjeopixzY
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+Hi,
+
+On 26. 10. 18 7:09, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily add/modify/delete
+> system call table support by changing entry in syscall.tbl file=20
+> instead of manually changing many files. The other goal is to unify=20
+> the system call table generation support implementation across all=20
+> the architectures.=20
+>=20
+> The system call tables are in different format in all architecture.=20
+> It will be difficult to manually add, modify or delete the system=20
+> calls in the respective files manually. To make it easy by keeping
+> a script and which'll generate uapi header file and syscall table=20
+> file.
+>=20
+> syscall.tbl contains the list of available system calls along with=20
+> system call number and corresponding entry point. Add a new system=20
+> call in this architecture will be possible by adding new entry in=20
+> the syscall.tbl file.
+>=20
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+>=20
+> ARM, s390 and x86 architecuture does exist the similar support. I=20
+> leverage their implementation to come up with a generic solution.
+>=20
+> I have done the same support for work for alpha, ia64, m68k, mips,=20
+> parisc, powerpc, sh, sparc, and xtensa. Below mentioned git repos-
+> itory contains more details.
+> Git repo:- https://github.com/frzkhn/system_call_table_generator/
+>=20
+> Finally, this is the ground work to solve the Y2038 issue. We need=20
+> to add two dozen of system calls to solve Y2038 issue. So this patch
+> series will help to add new system calls easily by adding new entry=20
+> in the syscall.tbl.
+>=20
+> Firoz Khan (3):
+>   microblaze: move __NR_syscalls macro from asm/unistd.h
+>   microblaze: add system call table generation support
+>   microblaze: generate uapi header and system call table files
+>=20
+>  arch/microblaze/Makefile                      |   3 +
+>  arch/microblaze/include/asm/Kbuild            |   1 +
+>  arch/microblaze/include/asm/unistd.h          |   2 -
+>  arch/microblaze/include/uapi/asm/Kbuild       |   1 +
+>  arch/microblaze/include/uapi/asm/unistd.h     | 407 +-----------------=
+-------
+>  arch/microblaze/kernel/syscall_table.S        | 406 +-----------------=
+-------
+>  arch/microblaze/kernel/syscalls/Makefile      |  38 +++
+>  arch/microblaze/kernel/syscalls/syscall.tbl   | 410 ++++++++++++++++++=
+++++++++
+>  arch/microblaze/kernel/syscalls/syscallhdr.sh |  36 +++
+>  arch/microblaze/kernel/syscalls/syscalltbl.sh |  32 ++
+>  10 files changed, 526 insertions(+), 810 deletions(-)
+>  create mode 100644 arch/microblaze/kernel/syscalls/Makefile
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
+>=20
+
+where is the changelog?
+
+Thanks,
+Michal
+
+
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP SoCs
+
+
+
+--FlZnou0W2AEzHYm6OH75kAsiEjeopixzY--
+
+--TExgSfnQJEzmZukQQiCAHptMStTVOKVWI
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iEYEARECAAYFAlvf/O4ACgkQykllyylKDCE0YwCfRKsTNOjT3vrYIlR9FC6hikXr
+GMMAoJWWZZ/hbLe6fIMo8AlIlotzfpZN
+=Ii+7
+-----END PGP SIGNATURE-----
+
+--TExgSfnQJEzmZukQQiCAHptMStTVOKVWI--
