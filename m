@@ -1,51 +1,39 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v5 21/27] x86/cet/shstk: Introduce WRUSS instruction
-Date: Tue, 06 Nov 2018 12:21:38 -0800
-Message-ID: <26c7e2dd72efe8168b296285985eb5f025881bb1.camel@intel.com>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
-         <20181011151523.27101-22-yu-cheng.yu@intel.com>
-         <ee5a93f7-ed42-dcc5-0e55-e73ac2637e84@intel.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH v1 0/4] xtensa: system call table generation support
+Date: Tue, 6 Nov 2018 12:30:03 -0800
+Message-ID: <20181106203003.q7kqlwm5hcnxmu6t@octofox.metropolis>
+References: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <ee5a93f7-ed42-dcc5-0e55-e73ac2637e84@intel.com>
+Content-Disposition: inline
+In-Reply-To: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-11-06 at 10:43 -0800, Dave Hansen wrote:
-> On 10/11/18 8:15 AM, Yu-cheng Yu wrote:
-> > --- a/arch/x86/mm/fault.c
-> > +++ b/arch/x86/mm/fault.c
-> > @@ -1305,6 +1305,15 @@ __do_page_fault(struct pt_regs *regs, unsigned long
-> > error_code,
-> >  		error_code |= X86_PF_USER;
-> >  		flags |= FAULT_FLAG_USER;
-> >  	} else {
-> > +		/*
-> > +		 * WRUSS is a kernel instruction and but writes
-> > +		 * to user shadow stack.  When a fault occurs,
-> > +		 * both X86_PF_USER and X86_PF_SHSTK are set.
-> > +		 * Clear X86_PF_USER here.
-> > +		 */
-> > +		if ((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
-> > +		    (X86_PF_USER | X86_PF_SHSTK))
-> > +			error_code &= ~X86_PF_USER;
-> 
-> This hunk of code basically points out that the architecture of WRUSS is
-> broken for Linux.  The setting of X86_PF_USER for a ring-0 instruction
-> really is a mis-feature of the architecture for us and we *undo* it in
-> software which is unfortunate.  Wish I would have caught this earlier.
-> 
-> Andy, note that this is another case where hw_error_code and
-> sw_error_code will diverge, unfortunately.
-> 
-> Anyway, this is going to necessitate some comment updates in the page
-> fault code.  Yu-cheng, you are going to collide with some recent changes
-> I made to the page fault code.  Please be careful with the context when
-> you do the merge and make sure that all the new comments stay correct.
+On Thu, Nov 01, 2018 at 07:26:17PM +0530, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the 
+> system call table generation support implementation 
+> across all the architectures. 
+ 
+Do I understand it right that you're also planning to unify scripts
+and makefile snippets used to generate headers, as they're not
+architecture-specific?
 
-Ok.  Thanks!
+> Firoz Khan (4):
+>   xtensa: move SYS_XTENSA_* macros to non uapi header
+>   xtensa: add __NR_syscalls along with __NR_syscall_count
+>   xtensa: add system call table generation support
+>   xtensa: generate uapi header and syscall table header files
 
-Yu-cheng
+Other than the two notes that I've posted to the individual patches
+this series looks good to me.
+
+-- 
+Thanks.
+-- Max
