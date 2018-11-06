@@ -1,67 +1,95 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 0/5] alpha: system call table generation support
-Date: Tue, 6 Nov 2018 09:42:21 +0530
-Message-ID: <CALxhOnjYVVC7-_h8975OLKZg4x8ApgfG4EaxmGy3HLFiLCcdGw@mail.gmail.com>
-References: <1541079817-3431-1-git-send-email-firoz.khan@linaro.org> <CAEdQ38FckCWguy5MUYkjwhmc3eA30WXB5QNGaU2Yv8gjHvGc=A@mail.gmail.com>
+Subject: Re: [PATCH v1 4/4] xtensa: generate uapi header and syscall table
+ header files
+Date: Tue, 6 Nov 2018 09:51:11 +0530
+Message-ID: <CALxhOnh3RQNw7zArOpsBqOi82_JpTP1pG9tDmrp1PyRER8eGzg@mail.gmail.com>
+References: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
+ <1541080581-4072-5-git-send-email-firoz.khan@linaro.org> <CAMo8BfKaSUTMT0h2jRg2ysRnc2yvVT-3=-gq6pH-XpKm1iydQQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAEdQ38FckCWguy5MUYkjwhmc3eA30WXB5QNGaU2Yv8gjHvGc=A@mail.gmail.com>
+In-Reply-To: <CAMo8BfKaSUTMT0h2jRg2ysRnc2yvVT-3=-gq6pH-XpKm1iydQQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Matt,
+Hi Max,
 
-On Tue, 6 Nov 2018 at 03:01, Matt Turner <mattst88@gmail.com> wrote:
+On Tue, 6 Nov 2018 at 03:14, Max Filippov <jcmvbkbc@gmail.com> wrote:
 >
-> On Thu, Nov 1, 2018 at 6:44 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On Thu, Nov 1, 2018 at 6:57 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 > >
-> > The purpose of this patch series is, we can easily
-> > add/modify/delete system call table support by cha-
-> > nging entry in syscall.tbl file instead of manually
-> > changing many files. The other goal is to unify the
-> > system call table generation support implementation
-> > across all the architectures.
+> > System call table generation script must be run to gener-
+> > ate unistd_32.h and syscall_table.h files. This patch will
+> > have changes which will invokes the script.
 > >
-> > The system call tables are in different format in
-> > all architecture. It will be difficult to manually
-> > add, modify or delete the system calls in the resp-
-> > ective files manually. To make it easy by keeping a
-> > script and which'll generate uapi header file and
-> > syscall table file.
+> > This patch will generate unistd_32.h and syscall_table.h
+> > files by the syscall table generation script invoked by
+> > xtensa/Makefile and the generated files against the removed
+> > files must be identical.
 > >
-> > syscall.tbl contains the list of available system
-> > calls along with system call number and correspond-
-> > ing entry point. Add a new system call in this arch-
-> > itecture will be possible by adding new entry in the
-> > syscall.tbl file.
+> > The generated uapi header file will be included in uapi/-
+> > asm/unistd.h and generated system call table header file
+> > will be included by kernel/syscall.c file.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> > ---
+> >  arch/xtensa/Makefile                  |   3 +
+> >  arch/xtensa/include/asm/Kbuild        |   1 +
+> >  arch/xtensa/include/uapi/asm/Kbuild   |   1 +
+> >  arch/xtensa/include/uapi/asm/unistd.h | 782 +---------------------------------
+> >  arch/xtensa/kernel/syscall.c          |   5 +-
+> >  5 files changed, 10 insertions(+), 782 deletions(-)
+> >
+> > diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
+> > index d67e30fa..1e7b179 100644
+> > --- a/arch/xtensa/Makefile
+> > +++ b/arch/xtensa/Makefile
+> > @@ -99,6 +99,9 @@ all Image zImage uImage: vmlinux
+> >  dtbs: scripts
+> >         $(Q)$(MAKE) $(build)=$(boot)/dts
+> >
+> > +archheaders:
+> > +       $(Q)$(MAKE) $(build)=arch/xtensa/kernel/syscalls all
+> > +
+> >  define archhelp
+> >    @echo '* Image       - Kernel ELF image with reset vector'
+> >    @echo '* zImage      - Compressed kernel image (arch/xtensa/boot/images/zImage.*)'
+> > diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+> > index 82c75643..b35d2e6 100644
+> > --- a/arch/xtensa/include/asm/Kbuild
+> > +++ b/arch/xtensa/include/asm/Kbuild
+> > @@ -28,3 +28,4 @@ generic-y += topology.h
+> >  generic-y += trace_clock.h
+> >  generic-y += word-at-a-time.h
+> >  generic-y += xor.h
+> > +generic-y += syscall_table.h
 >
-> Sounds like a worthy goal.
+> This doesn't look right: syscall_table.h is not asm-generic header.
 
-Thanks! This is Arnd's idea to come up with a common script
-for all the architecture. This implementation is a groundwork to
-solve Y2038 issue.
+If I remove Kbuild entries, the generated file get removed in build time.
 
->
-> I tried applying the patches and it seems they haven't been rebased
-> since v4.18. My rebases are in
-> https://git.kernel.org/pub/scm/linux/kernel/git/mattst88/alpha.git/log/?h=for-linus
-
-I was rebased with 4.19-rc8 before sending v2 (what I remember).
-
->
-> They seem to work for me, FWIW.
->
-> Is your plan to have the patches go through the separate architecture
-> trees, or go in together? I think I'd at least prefer for another
-> architecture to take the plunge before alpha.
-
-I would like Arnd's to comment on this as it is my first patch series. As I
-mentioned in the cover letter this implementation done for 8 architecture-
-alpha, ia64, m68k, microblaze, parisc, sh, sparc, and xtensa. Most of the
-review are also done. mips and powerpc are *almost* completed. FYI,
-The system call table generation script for IA64 merged in linux-next.
+SYSTBL  arch/xtensa/include/generated/asm/syscall_table.h
+SYSHDR  arch/xtensa/include/generated/uapi/asm/unistd_32.h
+REMOVE  arch/xtensa/include/generated/uapi/asm/unistd_32.h
+REMOVE  arch/xtensa/include/generated/asm/syscall_table.h
 
 Firoz
+
+>
+> > diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
+> > index 837d4dd..f826d52 100644
+> > --- a/arch/xtensa/include/uapi/asm/Kbuild
+> > +++ b/arch/xtensa/include/uapi/asm/Kbuild
+> > @@ -11,3 +11,4 @@ generic-y += resource.h
+> >  generic-y += siginfo.h
+> >  generic-y += statfs.h
+> >  generic-y += termios.h
+> > +generic-y += unistd_32.h
+>
+> Ditto: unistd32_.h is not asm-generic header.
+>
+> --
+> Thanks.
+> -- Max
