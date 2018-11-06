@@ -1,38 +1,67 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v1 1/4] xtensa: move SYS_XTENSA_* macros to non uapi header
-Date: Tue, 6 Nov 2018 07:59:04 +0530
-Message-ID: <CALxhOni=HJ=88Hw3EqG9ayuEp4xTE0HfeEj3jgF8hrFBXLh3hQ@mail.gmail.com>
-References: <1541080581-4072-1-git-send-email-firoz.khan@linaro.org>
- <1541080581-4072-2-git-send-email-firoz.khan@linaro.org> <CAMo8BfK1AYn7LyF0ssAyFRGBJmCJEH6jP4+05RXR0n6+-udtDw@mail.gmail.com>
+Subject: Re: [PATCH v2 0/5] alpha: system call table generation support
+Date: Tue, 6 Nov 2018 09:42:21 +0530
+Message-ID: <CALxhOnjYVVC7-_h8975OLKZg4x8ApgfG4EaxmGy3HLFiLCcdGw@mail.gmail.com>
+References: <1541079817-3431-1-git-send-email-firoz.khan@linaro.org> <CAEdQ38FckCWguy5MUYkjwhmc3eA30WXB5QNGaU2Yv8gjHvGc=A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8BfK1AYn7LyF0ssAyFRGBJmCJEH6jP4+05RXR0n6+-udtDw@mail.gmail.com>
+In-Reply-To: <CAEdQ38FckCWguy5MUYkjwhmc3eA30WXB5QNGaU2Yv8gjHvGc=A@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Max,
+Hi Matt,
 
-On Tue, 6 Nov 2018 at 02:59, Max Filippov <jcmvbkbc@gmail.com> wrote:
+On Tue, 6 Nov 2018 at 03:01, Matt Turner <mattst88@gmail.com> wrote:
 >
-> On Thu, Nov 1, 2018 at 6:56 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > All the SYS_XTENSA_* macros used by sysxtensa syscall
-> > handlers are resides in the uapi header file move to
-> > non uapi header asm/unistd.h as it is not used by any
-> > user space applications.
+> On Thu, Nov 1, 2018 at 6:44 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >
+> > The purpose of this patch series is, we can easily
+> > add/modify/delete system call table support by cha-
+> > nging entry in syscall.tbl file instead of manually
+> > changing many files. The other goal is to unify the
+> > system call table generation support implementation
+> > across all the architectures.
+> >
+> > The system call tables are in different format in
+> > all architecture. It will be difficult to manually
+> > add, modify or delete the system calls in the resp-
+> > ective files manually. To make it easy by keeping a
+> > script and which'll generate uapi header file and
+> > syscall table file.
+> >
+> > syscall.tbl contains the list of available system
+> > calls along with system call number and correspond-
+> > ing entry point. Add a new system call in this arch-
+> > itecture will be possible by adding new entry in the
+> > syscall.tbl file.
 >
-> These definitions are meant to be used by the userspace to
-> perform atomic operations in the absence of atomic access
-> instructions in the xtensa CPU variant.
+> Sounds like a worthy goal.
 
-Ohh. I can revert these changes.
-Thanks for your feedback.
+Thanks! This is Arnd's idea to come up with a common script
+for all the architecture. This implementation is a groundwork to
+solve Y2038 issue.
+
+>
+> I tried applying the patches and it seems they haven't been rebased
+> since v4.18. My rebases are in
+> https://git.kernel.org/pub/scm/linux/kernel/git/mattst88/alpha.git/log/?h=for-linus
+
+I was rebased with 4.19-rc8 before sending v2 (what I remember).
+
+>
+> They seem to work for me, FWIW.
+>
+> Is your plan to have the patches go through the separate architecture
+> trees, or go in together? I think I'd at least prefer for another
+> architecture to take the plunge before alpha.
+
+I would like Arnd's to comment on this as it is my first patch series. As I
+mentioned in the cover letter this implementation done for 8 architecture-
+alpha, ia64, m68k, microblaze, parisc, sh, sparc, and xtensa. Most of the
+review are also done. mips and powerpc are *almost* completed. FYI,
+The system call table generation script for IA64 merged in linux-next.
 
 Firoz
-
->
-> --
-> Thanks.
-> -- Max
