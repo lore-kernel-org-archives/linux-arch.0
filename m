@@ -1,32 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([23.128.96.9]:39558 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728899AbeKFNwJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Nov 2018 08:52:09 -0500
-Date: Mon, 05 Nov 2018 20:28:49 -0800 (PST)
-Message-ID: <20181105.202849.1012263715606612557.davem@davemloft.net>
-Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
-References: <1541080391-3890-4-git-send-email-firoz.khan@linaro.org>
-        <20181101.133315.47887636039827313.davem@davemloft.net>
-        <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail-vs1-f68.google.com ([209.85.217.68]:33164 "EHLO
+        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728133AbeKFRi6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Nov 2018 12:38:58 -0500
+MIME-Version: 1.0
+References: <20181105221117.31828-1-willy@infradead.org>
+In-Reply-To: <20181105221117.31828-1-willy@infradead.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 6 Nov 2018 09:14:44 +0100
+Message-ID: <CAMuHMdU90im=GH+TrboxjH0K-cqfYmeDXromvC=ag5MjcE5-bg@mail.gmail.com>
+Subject: Re: [PATCH] fls: Change parameter to unsigned int
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: firoz.khan@linaro.org, sparclinux@vger.kernel.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
-Message-ID: <20181106042849.12VKI9sHG54vizCmI26lQtCFum9LMFzUabbm0KpeJE8@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20181106081444.5zv1zKFQt_l6PMORMqhbhLxMHcl7m-Om6nEfIXFY4U8@z>
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 5 Nov 2018 11:48:43 +0100
+On Mon, Nov 5, 2018 at 11:11 PM Matthew Wilcox <willy@infradead.org> wrote:
+> When testing in userspace, UBSAN pointed out that shifting into the sign
+> bit is undefined behaviour.  It doesn't really make sense to ask for the
+> highest set bit of a negative value, so just turn the argument type into
+> an unsigned int.
+>
+> Some architectures (eg ppc) already had it declared as an unsigned int,
+> so I don't expect too many problems.
+>
+> Signed-off-by: Matthew Wilcox <willy@infradead.org>
 
-> However, for all of those, I want the /format/ of the tables to be consistent
-> so we can create the tooling around it to find and fix the issues. The work
-> that Firoz is doing for now just makes sure that the /contents/ of the tables
-> don't change at all, which is hard enough to do (the current version gets
-> it all right afaict, but the previous versions missed some details).
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Ok, agreed.
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
