@@ -1,27 +1,37 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 3/4] sparc: add system call table generation support
-Date: Mon, 05 Nov 2018 20:28:49 -0800 (PST)
-Message-ID: <20181105.202849.1012263715606612557.davem@davemloft.net>
-References: <1541080391-3890-4-git-send-email-firoz.khan@linaro.org>
-        <20181101.133315.47887636039827313.davem@davemloft.net>
-        <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] fls: Change parameter to unsigned int
+Date: Tue, 6 Nov 2018 09:14:44 +0100
+Message-ID: <CAMuHMdU90im=GH+TrboxjH0K-cqfYmeDXromvC=ag5MjcE5-bg@mail.gmail.com>
+References: <20181105221117.31828-1-willy@infradead.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a0XOzuMxv5wJpd=jhronFJQ=PwCZ58VgxSkL_sSPV+CZQ@mail.gmail.com>
+In-Reply-To: <20181105221117.31828-1-willy@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: firoz.khan@linaro.org, sparclinux@vger.kernel.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 5 Nov 2018 11:48:43 +0100
+On Mon, Nov 5, 2018 at 11:11 PM Matthew Wilcox <willy@infradead.org> wrote:
+> When testing in userspace, UBSAN pointed out that shifting into the sign
+> bit is undefined behaviour.  It doesn't really make sense to ask for the
+> highest set bit of a negative value, so just turn the argument type into
+> an unsigned int.
+>
+> Some architectures (eg ppc) already had it declared as an unsigned int,
+> so I don't expect too many problems.
+>
+> Signed-off-by: Matthew Wilcox <willy@infradead.org>
 
-> However, for all of those, I want the /format/ of the tables to be consistent
-> so we can create the tooling around it to find and fix the issues. The work
-> that Firoz is doing for now just makes sure that the /contents/ of the tables
-> don't change at all, which is hard enough to do (the current version gets
-> it all right afaict, but the previous versions missed some details).
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Ok, agreed.
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
