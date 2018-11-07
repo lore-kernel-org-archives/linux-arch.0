@@ -1,56 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:49880 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:49882 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726722AbeKHG0p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1726583AbeKHG0p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 8 Nov 2018 01:26:45 -0500
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Wed,  7 Nov 2018 13:54:31 -0700
-Message-ID: <20181107205433.3875-1-logang@deltatee.com>
+Date: Wed,  7 Nov 2018 13:54:33 -0700
+Message-ID: <20181107205433.3875-3-logang@deltatee.com>
+In-Reply-To: <20181107205433.3875-1-logang@deltatee.com>
+References: <20181107205433.3875-1-logang@deltatee.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: [PATCH v2 0/2] Introduce common code for risc-v sparsemem support
+Subject: [PATCH v2 2/2] mm/sparse: add common helper to mark all memblocks present
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20181107205431.0UCQdmLQgqdR3sW_XHGl2FNuILU_zHygJor4P3oqNnE@z>
+Cc: Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Logan Gunthorpe <logang@deltatee.com>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
+Message-ID: <20181107205433.UTTjVK6cgjUV_lhgMPCtIwkA7n84mnNe7zwW0PzgJuw@z>
 
-These are the first two common patches in my series to introduce
-sparsemem support to RISC-V. The full series was posted last cycle
-here [1] and the latest version can be found here [2].
+Presently the arches arm64, arm and sh have a function which loops through
+each memblock and calls memory present. riscv will require a similar
+function.
 
-As recommended by Palmer, I'd like to get the changes to common code
-merged and then I will pursue the cleanups in the individual arches (arm,
-arm64, and sh) as well as add the new feature to riscv.
+Introduce a common memblocks_present() function that can be used by
+all the arches. Subsequent patches will cleanup the arches that
+make use of this.
 
-I would suggest we merge these two patches through Andrew's mm tree.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Oscar Salvador <osalvador@suse.de>
+---
+ include/linux/mmzone.h |  6 ++++++
+ mm/sparse.c            | 16 ++++++++++++++++
+ 2 files changed, 22 insertions(+)
 
-Thanks,
-
-Logan
-
-[1] https://lore.kernel.org/lkml/20181015175702.9036-1-logang@deltatee.com/T/#u
-[2] https://github.com/sbates130272/linux-p2pmem.git riscv-sparsemem-v4
-
---
-
-Changes in v2:
- * Added a comment documenting the awkwardly named memblocks_present()
-   function, as suggested by Andrew.
-
---
-
-Logan Gunthorpe (2):
-  mm: Introduce common STRUCT_PAGE_MAX_SHIFT define
-  mm/sparse: add common helper to mark all memblocks present
-
- arch/arm64/include/asm/memory.h |  9 ---------
- arch/arm64/mm/init.c            |  8 --------
- include/asm-generic/fixmap.h    |  1 +
- include/linux/mm_types.h        |  5 +++++
- include/linux/mmzone.h          |  6 ++++++
- mm/sparse.c                     | 16 ++++++++++++++++
- 6 files changed, 28 insertions(+), 17 deletions(-)
-
---
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 847705a6d0ec..db023a92f3a4 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -783,6 +783,12 @@ void memory_present(int nid, unsigned long start, unsigned long end);
+ static inline void memory_present(int nid, unsigned long start, unsigned long end) {}
+ #endif
+ 
++#if defined(CONFIG_SPARSEMEM)
++void memblocks_present(void);
++#else
++static inline void memblocks_present(void) {}
++#endif
++
+ #ifdef CONFIG_HAVE_MEMORYLESS_NODES
+ int local_memory_node(int node_id);
+ #else
+diff --git a/mm/sparse.c b/mm/sparse.c
+index 33307fc05c4d..3abc8cc50201 100644
+--- a/mm/sparse.c
++++ b/mm/sparse.c
+@@ -239,6 +239,22 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
+ 	}
+ }
+ 
++/*
++ * Mark all memblocks as present using memory_present(). This is a
++ * convienence function that is useful for a number of arches
++ * to mark all of the systems memory as present during initialization.
++ */
++void __init memblocks_present(void)
++{
++	struct memblock_region *reg;
++
++	for_each_memblock(memory, reg) {
++		memory_present(memblock_get_region_node(reg),
++			       memblock_region_memory_base_pfn(reg),
++			       memblock_region_memory_end_pfn(reg));
++	}
++}
++
+ /*
+  * Subtle, we encode the real pfn into the mem_map such that
+  * the identity pfn - section_mem_map will return the actual
+-- 
 2.19.0
