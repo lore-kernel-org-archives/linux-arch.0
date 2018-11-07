@@ -1,33 +1,51 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 2/2] mm/sparse: add common helper to mark all memblocks
- present
-Date: Wed, 7 Nov 2018 12:38:38 -0800
-Message-ID: <20181107123838.1b7234c98a87dec5a2b25e67@linux-foundation.org>
-References: <20181107173859.24096-1-logang@deltatee.com>
-        <20181107173859.24096-3-logang@deltatee.com>
-        <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
-        <724be9bb-59b6-33f3-7b59-3ca644d59bf7@deltatee.com>
-        <alpine.DEB.2.21.1811072125280.1666@nanos.tec.linutronix.de>
-        <b1cc442e-7314-4a8e-3eec-9adc200d7582@deltatee.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v2 0/2] Introduce common code for risc-v sparsemem support
+Date: Wed,  7 Nov 2018 13:54:31 -0700
+Message-ID: <20181107205433.3875-1-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b1cc442e-7314-4a8e-3eec-9adc200d7582@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
+To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Logan Gunthorpe <logang@deltatee.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 7 Nov 2018 13:36:34 -0700 Logan Gunthorpe <logang@deltatee.com> wrote:
+These are the first two common patches in my series to introduce
+sparsemem support to RISC-V. The full series was posted last cycle
+here [1] and the latest version can be found here [2].
 
-> > Actually if both names suck, then there also is the option to rename both
-> > instead of adding a comment to explain the suckage.
-> 
-> Ok, well, I wasn't expecting to take on a big rename like that as it
-> would create a patch touching a bunch of arches and mm files... But if
-> we can come to some agreement on a better name and someone is willing to
-> take that patch without significant delay then I'd be happy to create
-> the patch and add it to the start of my series.
+As recommended by Palmer, I'd like to get the changes to common code
+merged and then I will pursue the cleanups in the individual arches (arm,
+arm64, and sh) as well as add the new feature to riscv.
 
-Some other time ;)  Let's just get the missing documentation added for now?
+I would suggest we merge these two patches through Andrew's mm tree.
+
+Thanks,
+
+Logan
+
+[1] https://lore.kernel.org/lkml/20181015175702.9036-1-logang@deltatee.com/T/#u
+[2] https://github.com/sbates130272/linux-p2pmem.git riscv-sparsemem-v4
+
+--
+
+Changes in v2:
+ * Added a comment documenting the awkwardly named memblocks_present()
+   function, as suggested by Andrew.
+
+--
+
+Logan Gunthorpe (2):
+  mm: Introduce common STRUCT_PAGE_MAX_SHIFT define
+  mm/sparse: add common helper to mark all memblocks present
+
+ arch/arm64/include/asm/memory.h |  9 ---------
+ arch/arm64/mm/init.c            |  8 --------
+ include/asm-generic/fixmap.h    |  1 +
+ include/linux/mm_types.h        |  5 +++++
+ include/linux/mmzone.h          |  6 ++++++
+ mm/sparse.c                     | 16 ++++++++++++++++
+ 6 files changed, 28 insertions(+), 17 deletions(-)
+
+--
+2.19.0
