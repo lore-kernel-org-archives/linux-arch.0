@@ -1,66 +1,33 @@
-From: Logan Gunthorpe <logang@deltatee.com>
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH 2/2] mm/sparse: add common helper to mark all memblocks
  present
-Date: Wed, 7 Nov 2018 13:36:34 -0700
-Message-ID: <b1cc442e-7314-4a8e-3eec-9adc200d7582@deltatee.com>
+Date: Wed, 7 Nov 2018 12:38:38 -0800
+Message-ID: <20181107123838.1b7234c98a87dec5a2b25e67@linux-foundation.org>
 References: <20181107173859.24096-1-logang@deltatee.com>
- <20181107173859.24096-3-logang@deltatee.com>
- <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
- <724be9bb-59b6-33f3-7b59-3ca644d59bf7@deltatee.com>
- <alpine.DEB.2.21.1811072125280.1666@nanos.tec.linutronix.de>
+        <20181107173859.24096-3-logang@deltatee.com>
+        <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
+        <724be9bb-59b6-33f3-7b59-3ca644d59bf7@deltatee.com>
+        <alpine.DEB.2.21.1811072125280.1666@nanos.tec.linutronix.de>
+        <b1cc442e-7314-4a8e-3eec-9adc200d7582@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1811072125280.1666@nanos.tec.linutronix.de>
-Content-Language: en-CA
+In-Reply-To: <b1cc442e-7314-4a8e-3eec-9adc200d7582@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, 7 Nov 2018 13:36:34 -0700 Logan Gunthorpe <logang@deltatee.com> wrote:
 
-
-On 2018-11-07 1:26 p.m., Thomas Gleixner wrote:
-> Logan,
+> > Actually if both names suck, then there also is the option to rename both
+> > instead of adding a comment to explain the suckage.
 > 
-> On Wed, 7 Nov 2018, Logan Gunthorpe wrote:
->> On 2018-11-07 1:12 p.m., Andrew Morton wrote:
->>>> +void __init memblocks_present(void)
->>>> +{
->>>> +	struct memblock_region *reg;
->>>> +
->>>> +	for_each_memblock(memory, reg) {
->>>> +		memory_present(memblock_get_region_node(reg),
->>>> +			       memblock_region_memory_base_pfn(reg),
->>>> +			       memblock_region_memory_end_pfn(reg));
->>>> +	}
->>>> +}
->>>> +
->>>
->>> I don't like the name much.  To me, memblocks_present means "are
->>> memblocks present" whereas this actually means "memblocks are present".
->>> But whatever.  A little covering comment which describes what this
->>> does and why it does it would be nice.
->>
->> The same argument can be made about the existing memory_present()
->> function and I think it's worth keeping the naming consistent. I'll add
->> a comment and resend shortly.
-> 
-> Actually if both names suck, then there also is the option to rename both
-> instead of adding a comment to explain the suckage.
+> Ok, well, I wasn't expecting to take on a big rename like that as it
+> would create a patch touching a bunch of arches and mm files... But if
+> we can come to some agreement on a better name and someone is willing to
+> take that patch without significant delay then I'd be happy to create
+> the patch and add it to the start of my series.
 
-Ok, well, I wasn't expecting to take on a big rename like that as it
-would create a patch touching a bunch of arches and mm files... But if
-we can come to some agreement on a better name and someone is willing to
-take that patch without significant delay then I'd be happy to create
-the patch and add it to the start of my series.
-
-Some ideas for new names:
-
-mark_memory_present() / mark_memblocks_present()
-set_memory_present() / set_memblocks_present()
-memory_register() / memblocks_register()
-register_memory() / register_memblocks()
-
-Logan
+Some other time ;)  Let's just get the missing documentation added for now?
