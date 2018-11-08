@@ -1,47 +1,80 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Thu, 8 Nov 2018 12:10:30 -0800
-Message-ID: <7027c3dc-addb-1b96-027e-a57fccf1f812@intel.com>
-References: <1541518670.7839.31.camel@intel.com>
- <AF4A5C77-0A79-403F-A205-0F93B7CD6E26@amacapital.net>
- <1541524750.7839.51.camel@intel.com>
- <22596E35-F5D1-4935-86AB-B510DCA0FABE@amacapital.net>
- <c9659222-efc6-b73a-ce48-30be8bdc5397@intel.com>
- <CALCETrWBV=1JbAKYn2Jy2LxkGZQvKRtFRnrWUMoejrwQe73VHw@mail.gmail.com>
- <b9c53669-cd27-e3bc-3d62-f47c77029c43@intel.com>
- <1C426267-492F-4AE7-8BE8-C7FE278531F9@amacapital.net>
- <209cf4a5-eda9-2495-539f-fed22252cf02@intel.com>
- <9B76E95B-5745-412E-8007-7FAA7F83D6FB@amacapital.net>
- <20181108195420.GA14715@linux.intel.com>
- <CALCETrUCQbPMfBJVRRg=0apEU=2U2ps74UPTrN8bFqi1k0K4VA@mail.gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v5 04/27] x86/fpu/xstate: Add XSAVES system states for
+ shadow stack
+Date: Thu, 08 Nov 2018 12:40:02 -0800
+Message-ID: <bb049aa9578bae7cfc6bd7c05b540f033f6685cc.camel@intel.com>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+         <20181011151523.27101-5-yu-cheng.yu@intel.com>
+         <20181108184038.GJ7543@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrUCQbPMfBJVRRg=0apEU=2U2ps74UPTrN8bFqi1k0K4VA@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <20181108184038.GJ7543@zn.tnic>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rich Felker <dalias@libc.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@>
+To: Borislav Petkov <bp@alien8.de>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-On 11/8/18 12:05 PM, Andy Lutomirski wrote:
-> Hmm.  The idea being that the SDK preserves RBP but not RSP.  That's
-> not the most terrible thing in the world.  But could the SDK live with
-> something more like my suggestion where the vDSO supplies a normal
-> function that takes a struct containing registers that are visible to
-> the enclave?  This would make it extremely awkward for the enclave to
-> use the untrusted stack per se, but it would make it quite easy (I
-> think) for the untrusted part of the SDK to allocate some extra memory
-> and just tell the enclave that *that* memory is the stack.
+On Thu, 2018-11-08 at 19:40 +0100, Borislav Petkov wrote:
+> On Thu, Oct 11, 2018 at 08:15:00AM -0700, Yu-cheng Yu wrote:
+> > [...] 
+> > +/*
+> > + * State component 11 is Control flow Enforcement user states
+> 
+> Why the Camel-cased naming?
+> 
+> "Control" then "flow" then capitalized again "Enforcement".
+> 
+> Fix all occurrences pls, especially the user-visible strings.
 
-I really think the enclave should keep its grubby mitts off the
-untrusted stack.  There are lots of ways to get memory, even with
-stack-like semantics, that don't involve mucking with the stack itself.
+I will change it to "Control-flow Enforcement" everywhere.
 
-I have not heard a good, hard argument for why there is an absolute
-*need* to store things on the actual untrusted stack.
+> > + */
+> > +struct cet_user_state {
+> > +	u64 u_cet;	/* user control flow settings */
+> > +	u64 user_ssp;	/* user shadow stack pointer */
+> 
+> Prefix both with "usr_" instead.
 
-We could quite easily have the untrusted code just promise to allocate a
-stack-sized virtual area (even derived from the stack rlimit size) and
-pass that into the enclave for parameter use.
+Ok.
+
+> [...]
+> 
+> Just write "privilege level" everywhere - not "ring".
+> 
+> Btw, do you see how the type and the name of all those other fields in
+> that file are tabulated? Except yours...
+
+I will fix it.
+
+[...] 
+> > 
+> > diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
+> > index 605ec6decf3e..ad36ea28bfd1 100644
+> > --- a/arch/x86/kernel/fpu/xstate.c
+> > +++ b/arch/x86/kernel/fpu/xstate.c
+> > @@ -35,6 +35,9 @@ static const char *xfeature_names[] =
+> >  	"Processor Trace (unused)"	,
+> >  	"Protection Keys User registers",
+> >  	"unknown xstate feature"	,
+> > +	"Control flow User registers"	,
+> > +	"Control flow Kernel registers"	,
+> > +	"unknown xstate feature"	,
+> 
+> So there are two "unknown xstate feature" array elems now...
+> 
+> >  static short xsave_cpuid_features[] __initdata = {
+> > @@ -48,6 +51,9 @@ static short xsave_cpuid_features[] __initdata = {
+> >  	X86_FEATURE_AVX512F,
+> >  	X86_FEATURE_INTEL_PT,
+> >  	X86_FEATURE_PKU,
+> > +	0,		   /* Unused */
+> 
+> What's that for?
+
+In fpu_init_system_xstate(), we test and clear features that are not enabled.
+There we depend on the order of these elements.  This is the tenth "unknown
+xstate feature".
+
+Yu-cheng
