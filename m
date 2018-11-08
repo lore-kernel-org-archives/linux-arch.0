@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v8 2/8] uaccess: add untagged_addr definition for other arches
-Date: Thu,  8 Nov 2018 15:36:09 +0100
-Message-ID: <c9028422854fb5bfb79d798397b30d4701207062.1541687720.git.andreyknvl@google.com>
+Subject: [PATCH v8 5/8] lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+Date: Thu,  8 Nov 2018 15:36:12 +0100
+Message-ID: <4969eac81732e555ca1ec102c12eb1e29c82ed29.1541687720.git.andreyknvl@google.com>
 References: <cover.1541687720.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,32 +12,43 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-To allow arm64 syscalls accept tagged pointers from userspace, we must
-untag them when they are passed to the kernel. Since untagging is done in
-generic parts of the kernel, the untagged_addr macro needs to be defined
-for all architectures.
+strncpy_from_user and strnlen_user accept user addresses as arguments, and
+do not go through the same path as copy_from_user and others, so here we
+need to handle the case of tagged user addresses separately.
 
-Define it as a noop for other architectures besides arm64.
+Untag user pointers passed to these functions.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- include/linux/uaccess.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ lib/strncpy_from_user.c | 2 ++
+ lib/strnlen_user.c      | 2 ++
+ 2 files changed, 4 insertions(+)
 
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index efe79c1cdd47..c045b4eff95e 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -13,6 +13,10 @@
+diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+index b53e1b5d80f4..97467cd2bc59 100644
+--- a/lib/strncpy_from_user.c
++++ b/lib/strncpy_from_user.c
+@@ -106,6 +106,8 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
+ 	if (unlikely(count <= 0))
+ 		return 0;
  
- #include <asm/uaccess.h>
- 
-+#ifndef untagged_addr
-+#define untagged_addr(addr) addr
-+#endif
++	src = untagged_addr(src);
 +
- /*
-  * Architectures should provide two primitives (raw_copy_{to,from}_user())
-  * and get rid of their private instances of copy_{to,from}_user() and
+ 	max_addr = user_addr_max();
+ 	src_addr = (unsigned long)src;
+ 	if (likely(src_addr < max_addr)) {
+diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+index 60d0bbda8f5e..8b5f56466e00 100644
+--- a/lib/strnlen_user.c
++++ b/lib/strnlen_user.c
+@@ -108,6 +108,8 @@ long strnlen_user(const char __user *str, long count)
+ 	if (unlikely(count <= 0))
+ 		return 0;
+ 
++	str = untagged_addr(str);
++
+ 	max_addr = user_addr_max();
+ 	src_addr = (unsigned long)str;
+ 	if (likely(src_addr < max_addr)) {
 -- 
 2.19.1.930.g4563a0d9d0-goog
