@@ -1,85 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:14746 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726140AbeKIGW3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Nov 2018 01:22:29 -0500
-Message-ID: <bb049aa9578bae7cfc6bd7c05b540f033f6685cc.camel@intel.com>
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:37434 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726813AbeKIGXx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 01:23:53 -0500
+Received: by mail-wr1-f65.google.com with SMTP id o15-v6so19054763wrv.4
+        for <linux-arch@vger.kernel.org>; Thu, 08 Nov 2018 12:46:40 -0800 (PST)
+MIME-Version: 1.0
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com> <20181011151523.27101-5-yu-cheng.yu@intel.com>
+In-Reply-To: <20181011151523.27101-5-yu-cheng.yu@intel.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 8 Nov 2018 12:46:29 -0800
+Message-ID: <CALCETrVAe8R=crVHoD5QmbN-gAW+V-Rwkwe4kQP7V7zQm9TM=Q@mail.gmail.com>
 Subject: Re: [PATCH v5 04/27] x86/fpu/xstate: Add XSAVES system states for
  shadow stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 08 Nov 2018 12:40:02 -0800
-In-Reply-To: <20181108184038.GJ7543@zn.tnic>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
-         <20181011151523.27101-5-yu-cheng.yu@intel.com>
-         <20181108184038.GJ7543@zn.tnic>
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181108204002.nPazors-chha-Jbz1vyz_XtG3-7uMURxjusR9xVtY6A@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
+Message-ID: <20181108204629.0KRdFMZzxd1_0mbzJMZkeciCd1PkrBcJlpbkyqfWLhE@z>
 
-On Thu, 2018-11-08 at 19:40 +0100, Borislav Petkov wrote:
-> On Thu, Oct 11, 2018 at 08:15:00AM -0700, Yu-cheng Yu wrote:
-> > [...] 
-> > +/*
-> > + * State component 11 is Control flow Enforcement user states
-> 
-> Why the Camel-cased naming?
-> 
-> "Control" then "flow" then capitalized again "Enforcement".
-> 
-> Fix all occurrences pls, especially the user-visible strings.
+On Thu, Oct 11, 2018 at 8:20 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> Intel Control-flow Enforcement Technology (CET) introduces the
+> following MSRs into the XSAVES system states.
+>
+>     IA32_U_CET (user-mode CET settings),
+>     IA32_PL3_SSP (user-mode shadow stack),
+>     IA32_PL0_SSP (kernel-mode shadow stack),
+>     IA32_PL1_SSP (ring-1 shadow stack),
+>     IA32_PL2_SSP (ring-2 shadow stack).
+>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/fpu/types.h            | 22 +++++++++++++++++++++
+>  arch/x86/include/asm/fpu/xstate.h           |  4 +++-
+>  arch/x86/include/uapi/asm/processor-flags.h |  2 ++
+>  arch/x86/kernel/fpu/xstate.c                | 10 ++++++++++
+>  4 files changed, 37 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/include/asm/fpu/types.h b/arch/x86/include/asm/fpu/types.h
+> index 202c53918ecf..e55d51d172f1 100644
+> --- a/arch/x86/include/asm/fpu/types.h
+> +++ b/arch/x86/include/asm/fpu/types.h
+> @@ -114,6 +114,9 @@ enum xfeature {
+>         XFEATURE_Hi16_ZMM,
+>         XFEATURE_PT_UNIMPLEMENTED_SO_FAR,
+>         XFEATURE_PKRU,
+> +       XFEATURE_RESERVED,
+> +       XFEATURE_SHSTK_USER,
+> +       XFEATURE_SHSTK_KERNEL,
+>
+>         XFEATURE_MAX,
+>  };
+> @@ -128,6 +131,8 @@ enum xfeature {
+>  #define XFEATURE_MASK_Hi16_ZMM         (1 << XFEATURE_Hi16_ZMM)
+>  #define XFEATURE_MASK_PT               (1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
+>  #define XFEATURE_MASK_PKRU             (1 << XFEATURE_PKRU)
+> +#define XFEATURE_MASK_SHSTK_USER       (1 << XFEATURE_SHSTK_USER)
+> +#define XFEATURE_MASK_SHSTK_KERNEL     (1 << XFEATURE_SHSTK_KERNEL)
+>
+>  #define XFEATURE_MASK_FPSSE            (XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
+>  #define XFEATURE_MASK_AVX512           (XFEATURE_MASK_OPMASK \
+> @@ -229,6 +234,23 @@ struct pkru_state {
+>         u32                             pad;
+>  } __packed;
+>
+> +/*
+> + * State component 11 is Control flow Enforcement user states
+> + */
+> +struct cet_user_state {
+> +       u64 u_cet;      /* user control flow settings */
+> +       u64 user_ssp;   /* user shadow stack pointer */
+> +} __packed;
+> +
+> +/*
+> + * State component 12 is Control flow Enforcement kernel states
+> + */
+> +struct cet_kernel_state {
+> +       u64 kernel_ssp; /* kernel shadow stack */
+> +       u64 pl1_ssp;    /* ring-1 shadow stack */
+> +       u64 pl2_ssp;    /* ring-2 shadow stack */
+> +} __packed;
+> +
 
-I will change it to "Control-flow Enforcement" everywhere.
-
-> > + */
-> > +struct cet_user_state {
-> > +	u64 u_cet;	/* user control flow settings */
-> > +	u64 user_ssp;	/* user shadow stack pointer */
-> 
-> Prefix both with "usr_" instead.
-
-Ok.
-
-> [...]
-> 
-> Just write "privilege level" everywhere - not "ring".
-> 
-> Btw, do you see how the type and the name of all those other fields in
-> that file are tabulated? Except yours...
-
-I will fix it.
-
-[...] 
-> > 
-> > diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-> > index 605ec6decf3e..ad36ea28bfd1 100644
-> > --- a/arch/x86/kernel/fpu/xstate.c
-> > +++ b/arch/x86/kernel/fpu/xstate.c
-> > @@ -35,6 +35,9 @@ static const char *xfeature_names[] =
-> >  	"Processor Trace (unused)"	,
-> >  	"Protection Keys User registers",
-> >  	"unknown xstate feature"	,
-> > +	"Control flow User registers"	,
-> > +	"Control flow Kernel registers"	,
-> > +	"unknown xstate feature"	,
-> 
-> So there are two "unknown xstate feature" array elems now...
-> 
-> >  static short xsave_cpuid_features[] __initdata = {
-> > @@ -48,6 +51,9 @@ static short xsave_cpuid_features[] __initdata = {
-> >  	X86_FEATURE_AVX512F,
-> >  	X86_FEATURE_INTEL_PT,
-> >  	X86_FEATURE_PKU,
-> > +	0,		   /* Unused */
-> 
-> What's that for?
-
-In fpu_init_system_xstate(), we test and clear features that are not enabled.
-There we depend on the order of these elements.  This is the tenth "unknown
-xstate feature".
-
-Yu-cheng
+Why are these __packed?  It seems like it'll generate bad code for no
+obvious purpose.
