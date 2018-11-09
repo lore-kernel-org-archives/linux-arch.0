@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 05/27] kernel: Add clock_mode support
-Date: Fri,  9 Nov 2018 12:37:08 +0000
-Message-ID: <20181109123730.8743-6-vincenzo.frascino@arm.com>
+Subject: [PATCH 03/27] kernel: Add International Atomic Time support
+Date: Fri,  9 Nov 2018 12:37:06 +0000
+Message-ID: <20181109123730.8743-4-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,11 +21,12 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures store the clock mode into the vDSO datapage,
-consequently the generic datapage needs to be aligned to expose this
-information.
+Currently, datapage.h has no support for CLOCK_TAI.
+CLOCK_TAI is similar to CLOCK_REALTIME, but uses the International
+Atomic Time (TAI) reference instead of UTC to avoid jumping on leap
+second updates.
 
-This patch adds support for clock_mode in datapage.h.
+This patch adds CLOCK_TAI (tai_sec) support to datapage.h.
 
 Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
@@ -34,16 +35,16 @@ Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
  1 file changed, 1 insertion(+)
 
 diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-index fb6ce4c3f2d0..9a934158f1b8 100644
+index 52189c21d422..d50a108afaed 100644
 --- a/include/vdso/datapage.h
 +++ b/include/vdso/datapage.h
-@@ -43,6 +43,7 @@ struct vdso_data {
- 	__u32 tz_minuteswest;	/* Whacky timezone stuff */
- 	__u32 tz_dsttime;
- 	__u32 use_syscall;
-+	__u32 clock_mode;
- };
- 
- #endif /* !__ASSEMBLY__ */
+@@ -33,6 +33,7 @@ struct vdso_data {
+ 	__u64 wtm_clock_sec;	/* Wall to monotonic time */
+ 	__u64 wtm_clock_nsec;
+ 	__u64 btm_nsec;		/* Monotonic to boot time */
++	__u64 tai_sec;		/* International Atomic Time */
+ 	__u32 tb_seq_count;	/* Timebase sequence counter */
+ 	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
+ 	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
 -- 
 2.19.1
