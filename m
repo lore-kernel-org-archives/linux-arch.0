@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 14/27] arm64: compat: Generate asm offsets for signals
-Date: Fri,  9 Nov 2018 12:37:17 +0000
-Message-ID: <20181109123730.8743-15-vincenzo.frascino@arm.com>
+Subject: [PATCH 20/27] arm64: compat: Get sigreturn trampolines from vDSO
+Date: Fri,  9 Nov 2018 12:37:23 +0000
+Message-ID: <20181109123730.8743-21-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,75 +21,93 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch updates asm-offsets for arm64 to generate the correct offsets
-for compat signals.
+When the compat vDSO is enabled, the sigreturn trampolines are not
+anymore available through [sigpage] but through [vdso].
 
-They will be useful for the implementation of the compat sigreturn
-trampolines in vDSO context.
+This patch adds the relevant code the enable the feature.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/signal32.h | 14 +++++++++++++-
- arch/arm64/kernel/asm-offsets.c   |  6 ++++++
- 2 files changed, 19 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/vdso.h |  3 +++
+ arch/arm64/kernel/signal32.c  | 29 +++++++++++++++++++++++++++--
+ 2 files changed, 30 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
-index 1f05268f4c6d..a6fd7be1b22a 100644
---- a/arch/arm64/include/asm/signal32.h
-+++ b/arch/arm64/include/asm/signal32.h
-@@ -52,7 +52,7 @@ struct compat_ucontext {
- 	compat_stack_t			uc_stack;
- 	struct compat_sigcontext	uc_mcontext;
- 	compat_sigset_t			uc_sigmask;
--	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
-+	int				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
- 	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
- };
+diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
+index 839ce0031bd5..9b197e5ea759 100644
+--- a/arch/arm64/include/asm/vdso.h
++++ b/arch/arm64/include/asm/vdso.h
+@@ -28,6 +28,9 @@
+ #ifndef __ASSEMBLY__
  
-@@ -66,6 +66,18 @@ struct compat_rt_sigframe {
- 	struct compat_sigframe sig;
- };
- 
-+/* Macros for asm-offsets.c */
-+#define OFFSET_OF_COMPAT_SIGFRAME_REGS (				\
-+			offsetof(struct compat_sigframe, uc) +		\
-+			offsetof(struct compat_ucontext, uc_mcontext) +	\
-+			offsetof(struct compat_sigcontext, arm_r0))
-+
-+#define OFFSET_OF_COMPAT_RT_SIGFRAME_REGS (				\
-+			offsetof(struct compat_rt_sigframe, sig) +	\
-+			offsetof(struct compat_sigframe, uc) +		\
-+			offsetof(struct compat_ucontext, uc_mcontext) +	\
-+			offsetof(struct compat_sigcontext, arm_r0))
-+
- int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 		       struct pt_regs *regs);
- int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-index 06cfd2363a86..4f8317c23908 100644
---- a/arch/arm64/kernel/asm-offsets.c
-+++ b/arch/arm64/kernel/asm-offsets.c
-@@ -30,6 +30,7 @@
- #include <asm/fixmap.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
-+#include <asm/signal32.h>
- #include <asm/smp_plat.h>
- #include <asm/suspend.h>
- #include <linux/kbuild.h>
-@@ -81,6 +82,11 @@ int main(void)
-   DEFINE(S_STACKFRAME,		offsetof(struct pt_regs, stackframe));
-   DEFINE(S_FRAME_SIZE,		sizeof(struct pt_regs));
-   BLANK();
-+#ifdef CONFIG_COMPAT
-+  DEFINE(COMPAT_SIGFRAME_REGS_OFFSET,		OFFSET_OF_COMPAT_SIGFRAME_REGS);
-+  DEFINE(COMPAT_RT_SIGFRAME_REGS_OFFSET,	OFFSET_OF_COMPAT_RT_SIGFRAME_REGS);
-+  BLANK();
+ #include <generated/vdso-offsets.h>
++#ifdef CONFIG_COMPAT_VDSO
++#include <generated/vdso32-offsets.h>
 +#endif
-   DEFINE(MM_CONTEXT_ID,		offsetof(struct mm_struct, context.id.counter));
-   BLANK();
-   DEFINE(VMA_VM_MM,		offsetof(struct vm_area_struct, vm_mm));
+ 
+ #define VDSO_SYMBOL(base, name)						   \
+ ({									   \
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index 16c490a83131..be471a81084e 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -29,6 +29,7 @@
+ #include <asm/traps.h>
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
++#include <asm/vdso.h>
+ 
+ struct compat_vfp_sigframe {
+ 	compat_ulong_t	magic;
+@@ -333,7 +334,6 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 	compat_ulong_t retcode;
+ 	compat_ulong_t spsr = regs->pstate & ~(PSR_f | PSR_AA32_E_BIT);
+ 	int thumb;
+-	void *sigreturn_base;
+ 
+ 	/* Check if the handler is written for ARM or Thumb */
+ 	thumb = handler & 1;
+@@ -353,14 +353,39 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 		retcode = ptr_to_compat(ka->sa.sa_restorer);
+ 	} else {
+ 		/* Set up sigreturn pointer */
++#ifdef CONFIG_COMPAT_VDSO
++		void *vdso_base = current->mm->context.vdso;
++		void *vdso_trampoline;
++
++		if (ka->sa.sa_flags & SA_SIGINFO) {
++			if (thumb) {
++				vdso_trampoline = VDSO_SYMBOL(vdso_base,
++							compat_rt_sigreturn_thumb);
++			} else {
++				vdso_trampoline = VDSO_SYMBOL(vdso_base,
++							compat_rt_sigreturn_arm);
++			}
++		} else {
++			if (thumb) {
++				vdso_trampoline = VDSO_SYMBOL(vdso_base,
++							compat_sigreturn_thumb);
++			} else {
++				vdso_trampoline = VDSO_SYMBOL(vdso_base,
++							compat_sigreturn_arm);
++			}
++		}
++
++		retcode = ptr_to_compat(vdso_trampoline) + thumb;
++#else
+ 		unsigned int idx = thumb << 1;
+-		sigreturn_base = current->mm->context.vdso;
++		void *sigreturn_base = current->mm->context.vdso;
+ 
+ 		if (ka->sa.sa_flags & SA_SIGINFO)
+ 			idx += 3;
+ 
+ 		retcode = ptr_to_compat(sigreturn_base) +
+ 			  (idx << 2) + thumb;
++#endif
+ 	}
+ 
+ 	regs->regs[0]	= usig;
 -- 
 2.19.1
