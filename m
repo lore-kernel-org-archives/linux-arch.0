@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 20/27] arm64: compat: Get sigreturn trampolines from vDSO
-Date: Fri,  9 Nov 2018 12:37:23 +0000
-Message-ID: <20181109123730.8743-21-vincenzo.frascino@arm.com>
+Subject: [PATCH 21/27] arm64: Add vDSO compat support
+Date: Fri,  9 Nov 2018 12:37:24 +0000
+Message-ID: <20181109123730.8743-22-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,93 +21,92 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-When the compat vDSO is enabled, the sigreturn trampolines are not
-anymore available through [sigpage] but through [vdso].
-
-This patch adds the relevant code the enable the feature.
+This patch adds vDSO compat support to the arm64 building system.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/vdso.h |  3 +++
- arch/arm64/kernel/signal32.c  | 29 +++++++++++++++++++++++++++--
- 2 files changed, 30 insertions(+), 2 deletions(-)
+ arch/arm64/Kconfig         |  1 +
+ arch/arm64/Makefile        | 21 +++++++++++++++++++--
+ arch/arm64/kernel/Makefile |  6 +++++-
+ 3 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
-index 839ce0031bd5..9b197e5ea759 100644
---- a/arch/arm64/include/asm/vdso.h
-+++ b/arch/arm64/include/asm/vdso.h
-@@ -28,6 +28,9 @@
- #ifndef __ASSEMBLY__
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 2c7d447401b5..79829ddf7cc9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -103,6 +103,7 @@ config ARM64
+ 	select GENERIC_STRNLEN_USER
+ 	select GENERIC_TIME_VSYSCALL
+ 	select GENERIC_GETTIMEOFDAY
++	select GENERIC_COMPAT_VDSO
+ 	select HANDLE_DOMAIN_IRQ
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ACPI_APEI if (ACPI && EFI)
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 6cb9fc7e9382..814d2b0ac017 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -49,9 +49,23 @@ $(warning Detected assembler with broken .inst; disassembly will be unreliable)
+   endif
+ endif
  
- #include <generated/vdso-offsets.h>
-+#ifdef CONFIG_COMPAT_VDSO
-+#include <generated/vdso32-offsets.h>
-+#endif
- 
- #define VDSO_SYMBOL(base, name)						   \
- ({									   \
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index 16c490a83131..be471a81084e 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -29,6 +29,7 @@
- #include <asm/traps.h>
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
-+#include <asm/vdso.h>
- 
- struct compat_vfp_sigframe {
- 	compat_ulong_t	magic;
-@@ -333,7 +334,6 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	compat_ulong_t retcode;
- 	compat_ulong_t spsr = regs->pstate & ~(PSR_f | PSR_AA32_E_BIT);
- 	int thumb;
--	void *sigreturn_base;
- 
- 	/* Check if the handler is written for ARM or Thumb */
- 	thumb = handler & 1;
-@@ -353,14 +353,39 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 		retcode = ptr_to_compat(ka->sa.sa_restorer);
- 	} else {
- 		/* Set up sigreturn pointer */
-+#ifdef CONFIG_COMPAT_VDSO
-+		void *vdso_base = current->mm->context.vdso;
-+		void *vdso_trampoline;
+-KBUILD_CFLAGS	+= -mgeneral-regs-only $(lseinstr) $(brokengasinst)
++ifeq ($(CONFIG_GENERIC_COMPAT_VDSO), y)
++  CROSS_COMPILE_ARM32 ?= $(CONFIG_CROSS_COMPILE_COMPAT_VDSO:"%"=%)
 +
-+		if (ka->sa.sa_flags & SA_SIGINFO) {
-+			if (thumb) {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_rt_sigreturn_thumb);
-+			} else {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_rt_sigreturn_arm);
-+			}
-+		} else {
-+			if (thumb) {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_sigreturn_thumb);
-+			} else {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_sigreturn_arm);
-+			}
-+		}
++  ifeq ($(CROSS_COMPILE_ARM32),)
++    $(warning CROSS_COMPILE_ARM32 not defined or empty, the compat vDSO will not be built)
++  else ifeq ($(shell which $(CROSS_COMPILE_ARM32)gcc 2> /dev/null),)
++    $(error $(CROSS_COMPILE_ARM32)gcc not found, check CROSS_COMPILE_ARM32)
++  else
++    export CROSS_COMPILE_ARM32
++    export CONFIG_COMPAT_VDSO := y
++    compat_vdso := -DCONFIG_COMPAT_VDSO=1
++  endif
++endif
 +
-+		retcode = ptr_to_compat(vdso_trampoline) + thumb;
-+#else
- 		unsigned int idx = thumb << 1;
--		sigreturn_base = current->mm->context.vdso;
-+		void *sigreturn_base = current->mm->context.vdso;
++KBUILD_CFLAGS	+= -mgeneral-regs-only $(lseinstr) $(brokengasinst) $(compat_vdso)
+ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
+-KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst)
++KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst) $(compat_vdso)
  
- 		if (ka->sa.sa_flags & SA_SIGINFO)
- 			idx += 3;
+ KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
+ KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
+@@ -144,6 +158,9 @@ ifeq ($(KBUILD_EXTMOD),)
+ prepare: vdso_prepare
+ vdso_prepare: prepare0
+ 	$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso include/generated/vdso-offsets.h
++	$(if $(CONFIG_COMPAT_VDSO),$(Q)$(MAKE) \
++		$(build)=arch/arm64/kernel/vdso32  \
++		include/generated/vdso32-offsets.h)
+ endif
  
- 		retcode = ptr_to_compat(sigreturn_base) +
- 			  (idx << 2) + thumb;
-+#endif
- 	}
+ define archhelp
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 2fcba6b87829..29234a70d168 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -28,7 +28,10 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 	$(call if_changed,objcopy)
  
- 	regs->regs[0]	= usig;
+ arm64-obj-$(CONFIG_COMPAT)		+= sys32.o signal32.o			\
+-					   sigreturn32.o sys_compat.o
++					   sys_compat.o
++ifneq ($(CONFIG_COMPAT_VDSO), y)
++arm64-obj-$(CONFIG_COMPAT)		+= sigreturn32.o
++endif
+ arm64-obj-$(CONFIG_KUSER_HELPERS)	+= kuser32.o
+ arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+ arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+@@ -60,6 +63,7 @@ arm64-obj-$(CONFIG_ARM_SDE_INTERFACE)	+= sdei.o
+ arm64-obj-$(CONFIG_ARM64_SSBD)		+= ssbd.o
+ 
+ obj-y					+= $(arm64-obj-y) vdso/ probes/
++obj-$(CONFIG_COMPAT_VDSO)		+= vdso32/
+ obj-m					+= $(arm64-obj-m)
+ head-y					:= head.o
+ extra-y					+= $(head-y) vmlinux.lds
 -- 
 2.19.1
