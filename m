@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:59160 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727662AbeKIWTM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Nov 2018 17:19:12 -0500
+Received: from foss.arm.com ([217.140.101.70]:59206 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727662AbeKIWTR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Nov 2018 17:19:17 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 24/27] mips: Introduce vdso_direct
-Date: Fri,  9 Nov 2018 12:37:27 +0000
-Message-ID: <20181109123730.8743-25-vincenzo.frascino@arm.com>
+Subject: [PATCH 26/27] clock: gic-timer: Add support for vdso_direct
+Date: Fri,  9 Nov 2018 12:37:29 +0000
+Message-ID: <20181109123730.8743-27-vincenzo.frascino@arm.com>
 In-Reply-To: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,35 +15,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20181109123727.OyuNaYvUk5yvBbChu_nlLiRnwFpj7AkDF3WIqF8z5Ng@z>
+Message-ID: <20181109123729.zId6fTuA-NJ7ti74gTnr9lbUQouBv_aqNLl1Gn_MlYc@z>
 
-vdso_direct is an architectural clock configuration parameter that
-exposes the usage of not of the vDSO.
+This patch is a consequence of the introduction of vdso_direct on
+mips architectures.
 
-If vdso_direct is false, the time related syscalls will be used instead
-of the vDSO library.
+If the clock source is selected, vdso_direct is set to true.
 
-This patch introduces the parameter in the mips architecture to prepare
-the ground for the support of the generic vDSO library.
-
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/include/asm/clocksource.h | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/clocksource/mips-gic-timer.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/clocksource.h b/arch/mips/include/asm/clocksource.h
-index 3deb1d0c1a94..eab11ee4871a 100644
---- a/arch/mips/include/asm/clocksource.h
-+++ b/arch/mips/include/asm/clocksource.h
-@@ -23,6 +23,7 @@
-  * @vdso_clock_mode: Method the VDSO should use to access the clocksource.
-  */
- struct arch_clocksource_data {
-+	bool vdso_direct;
- 	u8 vdso_clock_mode;
+diff --git a/drivers/clocksource/mips-gic-timer.c b/drivers/clocksource/mips-gic-timer.c
+index 54f8a331b53a..e7e0789084cd 100644
+--- a/drivers/clocksource/mips-gic-timer.c
++++ b/drivers/clocksource/mips-gic-timer.c
+@@ -158,7 +158,10 @@ static struct clocksource gic_clocksource = {
+ 	.name		= "GIC",
+ 	.read		= gic_hpt_read,
+ 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+-	.archdata	= { .vdso_clock_mode = VDSO_CLOCK_GIC },
++	.archdata	= {
++			    .vdso_direct = true,
++			    .vdso_clock_mode = VDSO_CLOCK_GIC
++			  },
  };
  
+ static int __init __gic_clocksource_init(void)
 -- 
 2.19.1
