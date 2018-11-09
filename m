@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 04/27] kernel: Add masks support for Raw and NTP time
-Date: Fri,  9 Nov 2018 12:37:07 +0000
-Message-ID: <20181109123730.8743-5-vincenzo.frascino@arm.com>
+Subject: [PATCH 05/27] kernel: Add clock_mode support
+Date: Fri,  9 Nov 2018 12:37:08 +0000
+Message-ID: <20181109123730.8743-6-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,33 +21,29 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Depending on the clocksource selected there can be supported a
-different resolution hence we require a mask to be applied to the
-time calculation.
+Some architectures store the clock mode into the vDSO datapage,
+consequently the generic datapage needs to be aligned to expose this
+information.
 
-This patch exposes the mask in the datapage for Raw and NTP adjusted
-clock.
+This patch adds support for clock_mode in datapage.h.
 
 Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/vdso/datapage.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/vdso/datapage.h | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-index d50a108afaed..fb6ce4c3f2d0 100644
+index fb6ce4c3f2d0..9a934158f1b8 100644
 --- a/include/vdso/datapage.h
 +++ b/include/vdso/datapage.h
-@@ -36,8 +36,10 @@ struct vdso_data {
- 	__u64 tai_sec;		/* International Atomic Time */
- 	__u32 tb_seq_count;	/* Timebase sequence counter */
- 	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
-+	__u64 cs_mono_mask;	/* NTP-adjusted clocksource mask */
- 	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
- 	__u32 cs_raw_mult;	/* Raw clocksource multiplier */
-+	__u64 cs_raw_mask;	/* Raw clocksource mask */
+@@ -43,6 +43,7 @@ struct vdso_data {
  	__u32 tz_minuteswest;	/* Whacky timezone stuff */
  	__u32 tz_dsttime;
  	__u32 use_syscall;
++	__u32 clock_mode;
+ };
+ 
+ #endif /* !__ASSEMBLY__ */
 -- 
 2.19.1
