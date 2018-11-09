@@ -1,44 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:65502 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728108AbeKJDCV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Nov 2018 22:02:21 -0500
-Subject: Re: [PATCH v5 04/27] x86/fpu/xstate: Add XSAVES system states for
- shadow stack
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-5-yu-cheng.yu@intel.com>
- <CALCETrVAe8R=crVHoD5QmbN-gAW+V-Rwkwe4kQP7V7zQm9TM=Q@mail.gmail.com>
- <4295b8f786c10c469870a6d9725749ce75dcdaa2.camel@intel.com>
- <CALCETrUKzXYzRrWRdi8Z7AdAF0uZW5Gs7J4s=55dszoyzc29rw@mail.gmail.com>
- <043a17ef-dc9f-56d2-5fba-1a58b7b0fd4d@intel.com>
- <20181108220054.GP3074@bombadil.infradead.org>
- <ead230ab-a904-50d6-c4cf-46d5804f6151@intel.com>
- <20181109003225.GQ3074@bombadil.infradead.org>
- <6cd2ae51-2d2a-9c68-df7c-45b49e0a813f@intel.com>
- <20181109171740.GT3074@bombadil.infradead.org>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <ded6f43a-11d1-89bf-e00c-66c281786cff@intel.com>
-Date: Fri, 9 Nov 2018 09:20:50 -0800
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:42237 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727991AbeKJDFK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 22:05:10 -0500
+Received: by mail-pl1-f194.google.com with SMTP id t6-v6so1220772plo.9
+        for <linux-arch@vger.kernel.org>; Fri, 09 Nov 2018 09:23:39 -0800 (PST)
+Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C
+ implementation
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
+ <20181109123730.8743-8-vincenzo.frascino@arm.com>
+ <CAK8P3a1w=GBcYk2OaVNzfagMMeD_zdBK3G16BSYjFANKdSAezQ@mail.gmail.com>
+From: Mark Salyzyn <salyzyn@android.com>
+Message-ID: <ef94c2cb-4573-211d-f69e-57bf90a80e6a@android.com>
+Date: Fri, 9 Nov 2018 09:23:37 -0800
 MIME-Version: 1.0
-In-Reply-To: <20181109171740.GT3074@bombadil.infradead.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAK8P3a1w=GBcYk2OaVNzfagMMeD_zdBK3G16BSYjFANKdSAezQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-GB
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181109172050.Oj9U6-dP4N9Hbo228BzOH3Zmj8E7VCRWPgLxo-oNs7U@z>
+To: Arnd Bergmann <arnd@arndb.de>, vincenzo.frascino@arm.com
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, pcc@google.com
+Message-ID: <20181109172337.EvE_X1WtFs4Oo4BYL3YpHnqMH4bBy5RnsjxyDO-gBfY@z>
 
-On 11/9/18 9:17 AM, Matthew Wilcox wrote:
->> But, later versions of the hardware have instructions that don't have
->> static offsets for the state components (when the XSAVES/XSAVEC
->> instructions are used).  So, for those, the structure embedding isn't
->> used at *all* since some state might not be present.
-> But *when present*, this structure is always aligned on an 8-byte
-> boundary, right?
+On 11/09/2018 08:13 AM, Arnd Bergmann wrote:
+>> diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
+>> index beca249bc2f3..9de0ffc369c5 100644
+>> --- a/arch/arm64/kernel/vdso/vdso.lds.S
+>> +++ b/arch/arm64/kernel/vdso/vdso.lds.S
+>> @@ -88,6 +88,7 @@ VERSION
+>>                  __kernel_gettimeofday;
+>>                  __kernel_clock_gettime;
+>>                  __kernel_clock_getres;
+>> +               __kernel_time;
+>>          local: *;
+>>          };
+>>   }
+> I would  prefer to not add any deprecated interfaces in the VDSO. If we
+> have the 64-bit version of clock_gettime, we don't need the 32-bit version
+> of it, and we don't need gettimeofday() or time() either. The C library
+> can easily implement those by calling into clock_gettime.
+Alas time() calls are simple and in the order of get_res, the cost of 
+which is a five fold
+improvement over the alternate higher resolution calls (clock_gettime or 
+up to 100 fold
+on some architectures over gettimeofday). We could measure a small 
+improvement in
+cpu utilization (and thus battery life by extension) attributed to arm64 
+Android by
+calling __kernel_time over __kernel_clock_gettime with coarse 
+resolution. A game of
+inches admittedly, but super KISS to add, and it is not as-if 
+__kernel_time existence
+will cause an issue with deprecation of a system call entry point.
 
-There's no guarantee of that.
-
-There is an "aligned" attribute for each XSAVE state component, but I do
-not believe it is set for anything yet.
+-- Mark
