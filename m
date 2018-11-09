@@ -1,131 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:60986 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727735AbeKJAWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Nov 2018 19:22:15 -0500
-Subject: Re: [PATCH 1/2] dma-mapping: remove ->mapping_error
-References: <20181109084632.22848-1-hch@lst.de>
- <20181109084632.22848-2-hch@lst.de>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <75c72464-1ff6-7c53-2cdb-0c5882c190aa@arm.com>
-Date: Fri, 9 Nov 2018 14:41:18 +0000
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:34441 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727828AbeKJBrB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 20:47:01 -0500
+Received: by mail-qk1-f194.google.com with SMTP id a132so2385864qkg.1
+        for <linux-arch@vger.kernel.org>; Fri, 09 Nov 2018 08:05:49 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20181109084632.22848-2-hch@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com> <20181109123730.8743-7-vincenzo.frascino@arm.com>
+In-Reply-To: <20181109123730.8743-7-vincenzo.frascino@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 9 Nov 2018 17:05:31 +0100
+Message-ID: <CAK8P3a3yu_ZOCxDhGvPnff45jEkEMcQ-KuX5Otqfzfi52kd+tA@mail.gmail.com>
+Subject: Re: [PATCH 06/27] kernel: Define gettimeofday vdso common code
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org
-Message-ID: <20181109144118.U2zpjHYh0P6bwPn-UB2lcaxIpp2By7O7xjqfLrzVv08@z>
+To: vincenzo.frascino@arm.com
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, salyzyn@android.com, pcc@google.com
+Message-ID: <20181109160531.zexGq_C8BIWCeZBS3E_1DX_vQC5yfMd956FuxChykwI@z>
 
-On 09/11/2018 08:46, Christoph Hellwig wrote:
-[...]
-> diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-> index 1167ff0416cf..cfb422e17049 100644
-> --- a/drivers/iommu/amd_iommu.c
-> +++ b/drivers/iommu/amd_iommu.c
-> @@ -55,8 +55,6 @@
->   #include "amd_iommu_types.h"
->   #include "irq_remapping.h"
->   
-> -#define AMD_IOMMU_MAPPING_ERROR	0
-> -
->   #define CMD_SET_TYPE(cmd, t) ((cmd)->data[1] |= ((t) << 28))
->   
->   #define LOOP_TIMEOUT	100000
-> @@ -2339,7 +2337,7 @@ static dma_addr_t __map_single(struct device *dev,
->   	paddr &= PAGE_MASK;
->   
->   	address = dma_ops_alloc_iova(dev, dma_dom, pages, dma_mask);
-> -	if (address == AMD_IOMMU_MAPPING_ERROR)
-> +	if (address == DMA_MAPPING_ERROR)
+On Fri, Nov 9, 2018 at 1:38 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
+> +/*
+> + * To avoid performance issues __u_vdso (unsigned vdso type) depends
+> + * on the architecture:
+> + * 32 bit only __u_vdso is defined as __u32
+> + * 64 bit plus compat __u_vdso is defined as __u64
+> + */
+> +#ifdef CONFIG_GENERIC_VDSO_32
+> +typedef __u32 __u_vdso;
+> +#else
+> +typedef __u64 __u_vdso;
+> +#endif /* CONFIG_GENERIC_VDSO_32 */
+> +
+>  struct vdso_data {
+> -       __u64 cs_cycle_last;    /* Timebase at clocksource init */
+> -       __u64 raw_time_sec;     /* Raw time */
+> +       __u64 cs_cycle_last;            /* Timebase at clocksource init */
+> +       __u_vdso raw_time_sec;          /* Raw time */
+>         __u64 raw_time_nsec;
+> -       __u64 xtime_clock_sec;  /* Kernel time */
+> +       __u_vdso xtime_clock_sec;       /* Kernel time */
+>         __u64 xtime_clock_nsec;
+> -       __u64 xtime_coarse_sec; /* Coarse time */
+> +       __u_vdso xtime_coarse_sec;      /* Coarse time */
+>         __u64 xtime_coarse_nsec;
+> -       __u64 wtm_clock_sec;    /* Wall to monotonic time */
+> +       __u_vdso wtm_clock_sec;         /* Wall to monotonic time */
 
-This for one is clearly broken, because the IOVA allocator still returns 
-0 on failure here...
+It looks like you change the layout in a way that makes it incompatible between
+32-bit and 64-bit user space. Doesn't that break the compat-vdso code
+for 32-bit?
 
->   		goto out;
->   
->   	prot = dir2prot(direction);
-> @@ -2376,7 +2374,7 @@ static dma_addr_t __map_single(struct device *dev,
->   
->   	dma_ops_free_iova(dma_dom, address, pages);
->   
-> -	return AMD_IOMMU_MAPPING_ERROR;
-> +	return DMA_MAPPING_ERROR;
->   }
->   
->   /*
-> @@ -2427,7 +2425,7 @@ static dma_addr_t map_page(struct device *dev, struct page *page,
->   	if (PTR_ERR(domain) == -EINVAL)
->   		return (dma_addr_t)paddr;
->   	else if (IS_ERR(domain))
-> -		return AMD_IOMMU_MAPPING_ERROR;
-> +		return DMA_MAPPING_ERROR;
->   
->   	dma_mask = *dev->dma_mask;
->   	dma_dom = to_dma_ops_domain(domain);
-> @@ -2504,7 +2502,7 @@ static int map_sg(struct device *dev, struct scatterlist *sglist,
->   	npages = sg_num_pages(dev, sglist, nelems);
->   
->   	address = dma_ops_alloc_iova(dev, dma_dom, npages, dma_mask);
-> -	if (address == AMD_IOMMU_MAPPING_ERROR)
-> +	if (address == DMA_MAPPING_ERROR)
+It also seems like we need the seconds to be 64-bit wide, at least
+for anything that counts in CLOCK_REALTIME or a related format,
+otherwise we have to change it back for y2038 support.
 
-..and here.
-
-I very much agree with the concept, but I think the way to go about it 
-is to convert the implementations which need it to the standardised 
-*_MAPPING_ERROR value one-by-one, and only then then do the big sweep to 
-remove them all. That has more of a chance of getting worthwhile review 
-and testing from the respective relevant parties (I'll confess I came 
-looking for this bug specifically, since I happened to recall amd_iommu 
-having a tricky implicit reliance on the old DMA_ERROR_CODE being 0 on x86).
-
-In terms of really minimising the error-checking overhead it's a bit of 
-a shame that DMA_MAPPING_ERROR = 0 doesn't seem viable as the thing to 
-standardise on, since that has advantages at the micro-optimisation 
-level for many ISAs - fixing up the legacy IOMMU code doesn't seem 
-insurmountable, but I suspect there may well be non-IOMMU platforms 
-where DMA to physical address 0 is a thing :(
-
-(yeah, I know saving a couple of instructions and potential register 
-allocations is down in the noise when we're already going from an 
-indirect call to an inline comparison; I'm mostly just thinking out loud 
-there)
-
-Robin.
-
->   		goto out_err;
->   
->   	prot = dir2prot(direction);
-> @@ -2627,7 +2625,7 @@ static void *alloc_coherent(struct device *dev, size_t size,
->   	*dma_addr = __map_single(dev, dma_dom, page_to_phys(page),
->   				 size, DMA_BIDIRECTIONAL, dma_mask);
->   
-> -	if (*dma_addr == AMD_IOMMU_MAPPING_ERROR)
-> +	if (*dma_addr == DMA_MAPPING_ERROR)
->   		goto out_free;
->   
->   	return page_address(page);
-> @@ -2678,11 +2676,6 @@ static int amd_iommu_dma_supported(struct device *dev, u64 mask)
->   	return check_device(dev);
->   }
->   
-> -static int amd_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
-> -{
-> -	return dma_addr == AMD_IOMMU_MAPPING_ERROR;
-> -}
-> -
->   static const struct dma_map_ops amd_iommu_dma_ops = {
->   	.alloc		= alloc_coherent,
->   	.free		= free_coherent,
-> @@ -2691,7 +2684,6 @@ static const struct dma_map_ops amd_iommu_dma_ops = {
->   	.map_sg		= map_sg,
->   	.unmap_sg	= unmap_sg,
->   	.dma_supported	= amd_iommu_dma_supported,
-> -	.mapping_error	= amd_iommu_mapping_error,
->   };
->   
->   static int init_reserved_iova_ranges(void)
+      Arnd
