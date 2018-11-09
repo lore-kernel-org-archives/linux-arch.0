@@ -1,68 +1,65 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
-Date: Fri, 9 Nov 2018 22:13:50 +0100
-Message-ID: <CAK8P3a0aPkbTUusK7=1Y49dSiM+X9hUkdbWZCTm3pmRx6N4rag@mail.gmail.com>
-References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
- <20181109123730.8743-8-vincenzo.frascino@arm.com>
- <CAK8P3a1w=GBcYk2OaVNzfagMMeD_zdBK3G16BSYjFANKdSAezQ@mail.gmail.com>
- <ef94c2cb-4573-211d-f69e-57bf90a80e6a@android.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [RFC] remove the ->mapping_error method from dma_map_ops
+Date: Fri, 09 Nov 2018 15:12:34 -0800 (PST)
+Message-ID: <20181109.151234.2231390463846593374.davem@davemloft.net>
+References: <20181109084632.22848-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <ef94c2cb-4573-211d-f69e-57bf90a80e6a@android.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: salyzyn@android.com
-Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, vincenzo.frascino@arm.com, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181109084632.22848-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: hch@lst.de
+Cc: iommu@lists.linux-foundation.org, torvalds@linux-foundation.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 9, 2018 at 6:23 PM Mark Salyzyn <salyzyn@android.com> wrote:
-> On 11/09/2018 08:13 AM, Arnd Bergmann wrote:
-> >> diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
-> >> index beca249bc2f3..9de0ffc369c5 100644
-> >> --- a/arch/arm64/kernel/vdso/vdso.lds.S
-> >> +++ b/arch/arm64/kernel/vdso/vdso.lds.S
-> >> @@ -88,6 +88,7 @@ VERSION
-> >>                  __kernel_gettimeofday;
-> >>                  __kernel_clock_gettime;
-> >>                  __kernel_clock_getres;
-> >> +               __kernel_time;
-> >>          local: *;
-> >>          };
-> >>   }
-> > I would  prefer to not add any deprecated interfaces in the VDSO. If we
-> > have the 64-bit version of clock_gettime, we don't need the 32-bit version
-> > of it, and we don't need gettimeofday() or time() either. The C library
-> > can easily implement those by calling into clock_gettime.
->
-> Alas time() calls are simple and in the order of get_res, the cost of
-> which is a five fold improvement over the alternate higher resolution calls
-> (clock_gettime or up to 100 fold on some architectures over gettimeofday).
->
-> We could measure a small improvement in cpu utilization (and thus
->  battery life by extension) attributed to arm64 Android by calling
-> __kernel_time over __kernel_clock_gettime with coarse resolution.
->
-> A game of inches admittedly, but super KISS to add, and it is not as-if
-> __kernel_time existence will cause an issue with deprecation of a system
-> call entry point.
+From: Christoph Hellwig <hch@lst.de>
+Date: Fri,  9 Nov 2018 09:46:30 +0100
 
-But wouldn't it be much better to fix the application in that case?
-I can't see any reason why a user would call time() so often that
-it shows up in CPU profiles, when the result only changes every
-few billion CPU cycles.
+> Error reporting for the dma_map_single and dma_map_page operations is
+> currently a mess.  Both APIs directly return the dma_addr_t to be used for
+> the DMA, with a magic error escape that is specific to the instance and
+> checked by another method provided.  This has a few downsides:
+> 
+>  - the error check is easily forgotten and a __must_check marker doesn't
+>    help as the value always is consumed anyway
+>  - the error checking requires another indirect call, which have gotten
+>    incredibly expensive
+>  - a lot of code is wasted on implementing these methods
+> 
+> The historical reason for this is that people thought DMA mappings would
+> not fail when the API was created, which sounds like a really bad
+> assumption in retrospective, and then we tried to cram error handling
+> onto it later on.
+> 
+> There basically are two variants:  the error code is 0 because the
+> implementation will never return 0 as a valid DMA address, or the error
+> code is all-F as the implementation won't ever return an address that
+> high.  The old AMD GART is the only one not falling into these two camps
+> as it picks sort of a relative zero relative to where it is mapped.
+> 
+> The 0 return doesn't work for a lot of IOMMUs that start allocating
+> bus space from address zero, so we can't consolidate on that, but I think
+> we can move everyone to all-Fs, which the patch here does.  The reason
+> for that is that there is only one way to ever get this address: by
+> doing a 1-byte long, 1-byte aligned mapping, but all our mappings
+> are not only longer but generally aligned, and the mappings have to
+> keep at least the basic alignment.  Please try to poke holes into this
+> idea as it would simplify our logic a lot, and also allow to change
+> at least the not so commonly used yet dma_map_single_attrs and
+> dma_map_page_attrs to actually return an error code and further improve
+> the error handling flow in the drivers.
 
-Moreover, most architectures cannot return a time64_t from a
-system call today, so we'd have to change the system call
-entry points on all of those first to implement the slowpath
-for a new time64() system call.
+I have no problem with patch #1, it looks great.
 
-      Arnd
+But patch #2 on the other hand, not so much.
+
+I hate seeing values returned by reference, it adds cost especially
+on cpus where all argments and return values fit in registers (we end
+up forcing a stack slot and memory references).
+
+And we don't need it here.
+
+DMA addresses are like pointers, and therefore we can return errors and
+valid success values in the same dma_addr_t just fine.  PTR_ERR() --> DMA_ERR(),
+IS_PTR_ERR() --> IS_DMA_ERR, etc.
