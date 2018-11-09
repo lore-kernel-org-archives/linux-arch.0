@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 09/27] arm64: compat: Split kuser32
-Date: Fri,  9 Nov 2018 12:37:12 +0000
-Message-ID: <20181109123730.8743-10-vincenzo.frascino@arm.com>
+Subject: [PATCH 13/27] arm64: compat: Expose signal related structures
+Date: Fri,  9 Nov 2018 12:37:16 +0000
+Message-ID: <20181109123730.8743-14-vincenzo.frascino@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,160 +21,140 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-To make it possible to disable kuser helpers in aarch32 we need to
-divide the kuser and the sigreturn functionalities.
+The compat signal data structures are required as part of the compat
+vDSO implementation in order to provide the unwinding information for
+the sigreturn trampolines.
 
-This patch splits the current version of kuser32 in kuser32 (for kuser
-helpers) and sigreturn32 (for sigreturn helpers).
+This patch exposes the mentioned data structures as part of signal32.h.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/Makefile      |  2 +-
- arch/arm64/kernel/kuser32.S     | 58 ++-------------------------------
- arch/arm64/kernel/sigreturn32.S | 46 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 57 deletions(-)
- create mode 100644 arch/arm64/kernel/sigreturn32.S
+ arch/arm64/include/asm/signal32.h | 46 +++++++++++++++++++++++++++++++
+ arch/arm64/kernel/signal32.c      | 46 -------------------------------
+ 2 files changed, 46 insertions(+), 46 deletions(-)
 
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 4c8b13bede80..6bd4f619732a 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index 58e288aaf0ba..1f05268f4c6d 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -20,6 +20,52 @@
+ #ifdef CONFIG_COMPAT
+ #include <linux/compat.h>
  
- arm64-obj-$(CONFIG_COMPAT)		+= sys32.o kuser32.o signal32.o 	\
--					   sys_compat.o
-+					   sigreturn32.o sys_compat.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-index 997e6b27ff6a..f19e2b015097 100644
---- a/arch/arm64/kernel/kuser32.S
-+++ b/arch/arm64/kernel/kuser32.S
-@@ -1,24 +1,9 @@
- /*
-- * Low-level user helpers placed in the vectors page for AArch32.
-+ * AArch32 user helpers.
-  * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-  *
-  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-- * Copyright (C) 2012 ARM Ltd.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-- *
-- *
-- * AArch32 user helpers.
-+ * Copyright (C) 2012-2018 ARM Ltd.
-  *
-  * Each segment is 32-byte aligned and will be moved to the top of the high
-  * vector page.  New segments (if ever needed) must be added in front of
-@@ -77,42 +62,3 @@ __kuser_helper_version:			// 0xffff0ffc
- 	.word	((__kuser_helper_end - __kuser_helper_start) >> 5)
- 	.globl	__kuser_helper_end
- __kuser_helper_end:
++struct compat_sigcontext {
++	/* We always set these two fields to 0 */
++	compat_ulong_t			trap_no;
++	compat_ulong_t			error_code;
++
++	compat_ulong_t			oldmask;
++	compat_ulong_t			arm_r0;
++	compat_ulong_t			arm_r1;
++	compat_ulong_t			arm_r2;
++	compat_ulong_t			arm_r3;
++	compat_ulong_t			arm_r4;
++	compat_ulong_t			arm_r5;
++	compat_ulong_t			arm_r6;
++	compat_ulong_t			arm_r7;
++	compat_ulong_t			arm_r8;
++	compat_ulong_t			arm_r9;
++	compat_ulong_t			arm_r10;
++	compat_ulong_t			arm_fp;
++	compat_ulong_t			arm_ip;
++	compat_ulong_t			arm_sp;
++	compat_ulong_t			arm_lr;
++	compat_ulong_t			arm_pc;
++	compat_ulong_t			arm_cpsr;
++	compat_ulong_t			fault_address;
++};
++
++struct compat_ucontext {
++	compat_ulong_t			uc_flags;
++	compat_uptr_t			uc_link;
++	compat_stack_t			uc_stack;
++	struct compat_sigcontext	uc_mcontext;
++	compat_sigset_t			uc_sigmask;
++	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
++	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
++};
++
++struct compat_sigframe {
++	struct compat_ucontext	uc;
++	compat_ulong_t		retcode[2];
++};
++
++struct compat_rt_sigframe {
++	struct compat_siginfo info;
++	struct compat_sigframe sig;
++};
++
+ int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 		       struct pt_regs *regs);
+ int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index 265a6fab331d..16c490a83131 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -30,42 +30,6 @@
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
+ 
+-struct compat_sigcontext {
+-	/* We always set these two fields to 0 */
+-	compat_ulong_t			trap_no;
+-	compat_ulong_t			error_code;
 -
--/*
-- * AArch32 sigreturn code
-- *
-- * For ARM syscalls, the syscall number has to be loaded into r7.
-- * We do not support an OABI userspace.
-- *
-- * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-- * need two 16-bit instructions.
-- */
--	.globl __aarch32_sigret_code_start
--__aarch32_sigret_code_start:
+-	compat_ulong_t			oldmask;
+-	compat_ulong_t			arm_r0;
+-	compat_ulong_t			arm_r1;
+-	compat_ulong_t			arm_r2;
+-	compat_ulong_t			arm_r3;
+-	compat_ulong_t			arm_r4;
+-	compat_ulong_t			arm_r5;
+-	compat_ulong_t			arm_r6;
+-	compat_ulong_t			arm_r7;
+-	compat_ulong_t			arm_r8;
+-	compat_ulong_t			arm_r9;
+-	compat_ulong_t			arm_r10;
+-	compat_ulong_t			arm_fp;
+-	compat_ulong_t			arm_ip;
+-	compat_ulong_t			arm_sp;
+-	compat_ulong_t			arm_lr;
+-	compat_ulong_t			arm_pc;
+-	compat_ulong_t			arm_cpsr;
+-	compat_ulong_t			fault_address;
+-};
 -
--	/*
--	 * ARM Code
--	 */
--	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_sigreturn
+-struct compat_ucontext {
+-	compat_ulong_t			uc_flags;
+-	compat_uptr_t			uc_link;
+-	compat_stack_t			uc_stack;
+-	struct compat_sigcontext	uc_mcontext;
+-	compat_sigset_t			uc_sigmask;
+-	int		__unused[32 - (sizeof (compat_sigset_t) / sizeof (int))];
+-	compat_ulong_t	uc_regspace[128] __attribute__((__aligned__(8)));
+-};
 -
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
+ struct compat_vfp_sigframe {
+ 	compat_ulong_t	magic;
+ 	compat_ulong_t	size;
+@@ -92,16 +56,6 @@ struct compat_aux_sigframe {
+ 	unsigned long			end_magic;
+ } __attribute__((__aligned__(8)));
+ 
+-struct compat_sigframe {
+-	struct compat_ucontext	uc;
+-	compat_ulong_t		retcode[2];
+-};
 -
--	/*
--	 * ARM code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
+-struct compat_rt_sigframe {
+-	struct compat_siginfo info;
+-	struct compat_sigframe sig;
+-};
 -
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
--
--        .globl __aarch32_sigret_code_end
--__aarch32_sigret_code_end:
-diff --git a/arch/arm64/kernel/sigreturn32.S b/arch/arm64/kernel/sigreturn32.S
-new file mode 100644
-index 000000000000..475d30d471ac
---- /dev/null
-+++ b/arch/arm64/kernel/sigreturn32.S
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * AArch32 sigreturn code.
-+ * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-+ *
-+ * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-+ * Copyright (C) 2012-2018 ARM Ltd.
-+ *
-+ * For ARM syscalls, the syscall number has to be loaded into r7.
-+ * We do not support an OABI userspace.
-+ *
-+ * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-+ * need two 16-bit instructions.
-+ */
-+
-+#include <asm/unistd.h>
-+
-+	.globl __aarch32_sigret_code_start
-+__aarch32_sigret_code_start:
-+
-+	/*
-+	 * ARM Code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3		// mov	r7, #__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef		// svc	#__NR_compat_sigreturn
-+
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
-+
-+	/*
-+	 * ARM code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
-+
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
-+
-+        .globl __aarch32_sigret_code_end
-+__aarch32_sigret_code_end:
+ #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+ 
+ static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
 -- 
 2.19.1
