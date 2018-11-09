@@ -1,37 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40018 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:45278 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727093AbeKIQwV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 11:52:21 -0500
-Date: Thu, 8 Nov 2018 23:12:59 -0800
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181109071259.GA14784@infradead.org>
-References: <1541524750.7839.51.camel@intel.com>
- <22596E35-F5D1-4935-86AB-B510DCA0FABE@amacapital.net>
- <c9659222-efc6-b73a-ce48-30be8bdc5397@intel.com>
- <CALCETrWBV=1JbAKYn2Jy2LxkGZQvKRtFRnrWUMoejrwQe73VHw@mail.gmail.com>
- <b9c53669-cd27-e3bc-3d62-f47c77029c43@intel.com>
- <1C426267-492F-4AE7-8BE8-C7FE278531F9@amacapital.net>
- <209cf4a5-eda9-2495-539f-fed22252cf02@intel.com>
- <9B76E95B-5745-412E-8007-7FAA7F83D6FB@amacapital.net>
- <20181108195420.GA14715@linux.intel.com>
- <CALCETrUCQbPMfBJVRRg=0apEU=2U2ps74UPTrN8bFqi1k0K4VA@mail.gmail.com>
+        with ESMTP id S1727529AbeKIS0M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 13:26:12 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [RFC] remove the ->mapping_error method from dma_map_ops
+Date: Fri,  9 Nov 2018 09:46:30 +0100
+Message-ID: <20181109084632.22848-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrUCQbPMfBJVRRg=0apEU=2U2ps74UPTrN8bFqi1k0K4VA@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Dave Hansen <dave.hansen@intel.com>, Andrew Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rich Felker <dalias@libc.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jethro Beekman <jethro@fortanix.com>, Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Carlos O'Donell <carlos@redhat.com>, adhemerval.zanella@linaro.org
-Message-ID: <20181109071259.LYZF0GXw0r53XGeBtHIK0tc9PKMnm_eCAy6GVm6MgY0@z>
+To: iommu@lists.linux-foundation.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181109084630.cLXNDKc0XwXj1JmYtrj75Qa7o5t4yCj8SRr5FIbjI2Q@z>
 
-On Thu, Nov 08, 2018 at 12:05:42PM -0800, Andy Lutomirski wrote:
-> This whole thing is a mess.  I'm starting to think that the cleanest
-> solution would be to provide a way to just tell the kernel that
-> certain RIP values have exception fixups.
+Error reporting for the dma_map_single and dma_map_page operations is
+currently a mess.  Both APIs directly return the dma_addr_t to be used for
+the DMA, with a magic error escape that is specific to the instance and
+checked by another method provided.  This has a few downsides:
 
-The bay far cleanest solution would be to say that SGX is sich a mess
-that we are not going to support it at all.  It's not like it is a must
-have a feature to start with.
+ - the error check is easily forgotten and a __must_check marker doesn't
+   help as the value always is consumed anyway
+ - the error checking requires another indirect call, which have gotten
+   incredibly expensive
+ - a lot of code is wasted on implementing these methods
+
+The historical reason for this is that people thought DMA mappings would
+not fail when the API was created, which sounds like a really bad
+assumption in retrospective, and then we tried to cram error handling
+onto it later on.
+
+There basically are two variants:  the error code is 0 because the
+implementation will never return 0 as a valid DMA address, or the error
+code is all-F as the implementation won't ever return an address that
+high.  The old AMD GART is the only one not falling into these two camps
+as it picks sort of a relative zero relative to where it is mapped.
+
+The 0 return doesn't work for a lot of IOMMUs that start allocating
+bus space from address zero, so we can't consolidate on that, but I think
+we can move everyone to all-Fs, which the patch here does.  The reason
+for that is that there is only one way to ever get this address: by
+doing a 1-byte long, 1-byte aligned mapping, but all our mappings
+are not only longer but generally aligned, and the mappings have to
+keep at least the basic alignment.  Please try to poke holes into this
+idea as it would simplify our logic a lot, and also allow to change
+at least the not so commonly used yet dma_map_single_attrs and
+dma_map_page_attrs to actually return an error code and further improve
+the error handling flow in the drivers.
