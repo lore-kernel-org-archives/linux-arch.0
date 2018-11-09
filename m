@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/2] dma-mapping: remove ->mapping_error
-Date: Fri,  9 Nov 2018 09:46:31 +0100
-Message-ID: <20181109084632.22848-2-hch@lst.de>
+Subject: [PATCH 2/2] dma-mapping: return errors from dma_map_page and dma_map_attrs
+Date: Fri,  9 Nov 2018 09:46:32 +0100
+Message-ID: <20181109084632.22848-3-hch@lst.de>
 References: <20181109084632.22848-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,1637 +12,590 @@ To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-There is no need to perform an indirect function call to check if a
-DMA mapping resulted in an error, if we always return the last
-possible dma address as the error code.  While that could in theory
-be a valid DMAable region, it would have to assume we want to
-support unaligned DMAs of size 1, which is rather pointless.
+The current DMA API map_page and map_single routines use a very bad API
+pattern that makes error checking hard.  The calls to them are far too
+many and too complex to easily change that, but the relatively new _attr
+variants that take an additional attributs argument only have a few
+callers and can be changed easily.  So here we change them to return
+an errno value, and return the dma address by reference to allow for
+much saner error checking.
 
-Instead simplify the whole machinery by using (~(dma_addr_t)0x0)
-as the common error return.
+In the long run we should move existing callers of dma_map_page and
+dma_map_single to these _attr variants with a 0 attrs argument to get
+the better API everywhere, but without a single flag day.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/alpha/kernel/pci_iommu.c        | 10 ++-----
- arch/arm/common/dmabounce.c          | 12 +++------
- arch/arm/include/asm/dma-iommu.h     |  2 --
- arch/arm/mm/dma-mapping.c            | 39 +++++++++++-----------------
- arch/arm64/mm/dma-mapping.c          | 15 +++--------
- arch/ia64/hp/common/sba_iommu.c      |  8 +-----
- arch/ia64/sn/pci/pci_dma.c           |  8 +-----
- arch/mips/include/asm/jazzdma.h      |  6 -----
- arch/mips/jazz/jazzdma.c             | 16 ++++--------
- arch/powerpc/include/asm/iommu.h     |  3 ---
- arch/powerpc/kernel/dma-iommu.c      |  6 -----
- arch/powerpc/kernel/dma-swiotlb.c    |  1 -
- arch/powerpc/kernel/iommu.c          | 28 ++++++++++----------
- arch/powerpc/platforms/cell/iommu.c  |  1 -
- arch/powerpc/platforms/pseries/vio.c |  3 +--
- arch/s390/pci/pci_dma.c              | 18 ++++---------
- arch/sparc/kernel/iommu.c            | 12 +++------
- arch/sparc/kernel/iommu_common.h     |  2 --
- arch/sparc/kernel/pci_sun4v.c        | 14 +++-------
- arch/x86/kernel/amd_gart_64.c        | 19 ++++----------
- arch/x86/kernel/pci-calgary_64.c     | 24 ++++++-----------
- drivers/iommu/amd_iommu.c            | 18 ++++---------
- drivers/iommu/dma-iommu.c            | 23 ++++++----------
- drivers/iommu/intel-iommu.c          | 13 +++++-----
- drivers/parisc/ccio-dma.c            | 10 +------
- drivers/parisc/sba_iommu.c           | 10 +------
- drivers/pci/controller/vmd.c         |  6 -----
- drivers/xen/swiotlb-xen.c            | 12 ++-------
- include/linux/dma-direct.h           |  3 ---
- include/linux/dma-iommu.h            |  1 -
- include/linux/dma-mapping.h          | 12 ++++-----
- kernel/dma/direct.c                  |  8 +-----
- kernel/dma/swiotlb.c                 |  9 +++----
- 33 files changed, 105 insertions(+), 267 deletions(-)
+ Documentation/DMA-API.txt                     |  4 +-
+ drivers/crypto/caam/caamalg.c                 |  8 +--
+ drivers/crypto/caam/caamalg_qi2.c             | 13 ++--
+ drivers/crypto/caam/caamhash.c                |  8 +--
+ drivers/crypto/talitos.c                      |  4 +-
+ drivers/gpu/drm/i915/i915_gem_gtt.c           | 19 +++---
+ drivers/net/ethernet/broadcom/bnxt/bnxt.c     | 20 +++---
+ .../ethernet/cavium/thunder/nicvf_queues.c    | 27 ++++----
+ drivers/net/ethernet/intel/i40e/i40e_txrx.c   | 11 +---
+ drivers/net/ethernet/intel/i40e/i40e_xsk.c    |  5 +-
+ drivers/net/ethernet/intel/iavf/iavf_txrx.c   | 11 +---
+ drivers/net/ethernet/intel/igb/igb_main.c     | 11 +---
+ drivers/net/ethernet/intel/igc/igc_main.c     | 11 +---
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c | 12 +---
+ drivers/net/ethernet/intel/ixgbe/ixgbe_xsk.c  |  5 +-
+ .../net/ethernet/intel/ixgbevf/ixgbevf_main.c | 11 +---
+ .../ethernet/netronome/nfp/nfp_net_common.c   | 12 ++--
+ include/linux/dma-mapping.h                   | 62 +++++++++++++------
+ 18 files changed, 109 insertions(+), 145 deletions(-)
 
-diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
-index 46e08e0d9181..30339a0369ce 100644
---- a/arch/alpha/kernel/pci_iommu.c
-+++ b/arch/alpha/kernel/pci_iommu.c
-@@ -291,7 +291,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
- 	   use direct_map above, it now must be considered an error. */
- 	if (! alpha_mv.mv_pci_tbi) {
- 		printk_once(KERN_WARNING "pci_map_single: no HW sg\n");
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 	}
+diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
+index ac66ae2509a9..2a9069907470 100644
+--- a/Documentation/DMA-API.txt
++++ b/Documentation/DMA-API.txt
+@@ -439,10 +439,10 @@ See also dma_map_single().
  
- 	arena = hose->sg_pci;
-@@ -307,7 +307,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
- 	if (dma_ofs < 0) {
- 		printk(KERN_WARNING "pci_map_single failed: "
- 		       "could not allocate dma page tables\n");
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 	}
+ ::
  
- 	paddr &= PAGE_MASK;
-@@ -935,11 +935,6 @@ iommu_unbind(struct pci_iommu_arena *arena, long pg_start, long pg_count)
- 	return 0;
- }
+-	dma_addr_t
++	int	
+ 	dma_map_single_attrs(struct device *dev, void *cpu_addr, size_t size,
+ 			     enum dma_data_direction dir,
+-			     unsigned long attrs)
++			     unsigned long attrs, dma_addr_t *dma_handle);
  
--static int alpha_pci_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == 0;
--}
--
- const struct dma_map_ops alpha_pci_ops = {
- 	.alloc			= alpha_pci_alloc_coherent,
- 	.free			= alpha_pci_free_coherent,
-@@ -947,7 +942,6 @@ const struct dma_map_ops alpha_pci_ops = {
- 	.unmap_page		= alpha_pci_unmap_page,
- 	.map_sg			= alpha_pci_map_sg,
- 	.unmap_sg		= alpha_pci_unmap_sg,
--	.mapping_error		= alpha_pci_mapping_error,
- 	.dma_supported		= alpha_pci_supported,
- };
- EXPORT_SYMBOL(alpha_pci_ops);
-diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
-index 9a92de63426f..5ba4622030ca 100644
---- a/arch/arm/common/dmabounce.c
-+++ b/arch/arm/common/dmabounce.c
-@@ -257,7 +257,7 @@ static inline dma_addr_t map_single(struct device *dev, void *ptr, size_t size,
- 	if (buf == NULL) {
- 		dev_err(dev, "%s: unable to map unsafe buffer %p!\n",
- 		       __func__, ptr);
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
+ 	void
+ 	dma_unmap_single_attrs(struct device *dev, dma_addr_t dma_addr,
+diff --git a/drivers/crypto/caam/caamalg.c b/drivers/crypto/caam/caamalg.c
+index 869f092432de..cbcd55fda24f 100644
+--- a/drivers/crypto/caam/caamalg.c
++++ b/drivers/crypto/caam/caamalg.c
+@@ -3022,11 +3022,9 @@ static int caam_init_common(struct caam_ctx *ctx, struct caam_alg_entry *caam,
+ 	else
+ 		ctx->dir = DMA_TO_DEVICE;
  
- 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
-@@ -327,7 +327,7 @@ static dma_addr_t dmabounce_map_page(struct device *dev, struct page *page,
- 
- 	ret = needs_bounce(dev, dma_addr, size);
- 	if (ret < 0)
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (ret == 0) {
- 		arm_dma_ops.sync_single_for_device(dev, dma_addr, size, dir);
-@@ -336,7 +336,7 @@ static dma_addr_t dmabounce_map_page(struct device *dev, struct page *page,
- 
- 	if (PageHighMem(page)) {
- 		dev_err(dev, "DMA buffer bouncing of HIGHMEM pages is not supported\n");
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	return map_single(dev, page_address(page) + offset, size, dir, attrs);
-@@ -453,11 +453,6 @@ static int dmabounce_dma_supported(struct device *dev, u64 dma_mask)
- 	return arm_dma_ops.dma_supported(dev, dma_mask);
- }
- 
--static int dmabounce_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return arm_dma_ops.mapping_error(dev, dma_addr);
--}
--
- static const struct dma_map_ops dmabounce_ops = {
- 	.alloc			= arm_dma_alloc,
- 	.free			= arm_dma_free,
-@@ -472,7 +467,6 @@ static const struct dma_map_ops dmabounce_ops = {
- 	.sync_sg_for_cpu	= arm_dma_sync_sg_for_cpu,
- 	.sync_sg_for_device	= arm_dma_sync_sg_for_device,
- 	.dma_supported		= dmabounce_dma_supported,
--	.mapping_error		= dmabounce_mapping_error,
- };
- 
- static int dmabounce_init_pool(struct dmabounce_pool *pool, struct device *dev,
-diff --git a/arch/arm/include/asm/dma-iommu.h b/arch/arm/include/asm/dma-iommu.h
-index 6821f1249300..772f48ef84b7 100644
---- a/arch/arm/include/asm/dma-iommu.h
-+++ b/arch/arm/include/asm/dma-iommu.h
-@@ -9,8 +9,6 @@
- #include <linux/dma-debug.h>
- #include <linux/kref.h>
- 
--#define ARM_MAPPING_ERROR		(~(dma_addr_t)0x0)
--
- struct dma_iommu_mapping {
- 	/* iommu specific data */
- 	struct iommu_domain	*domain;
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 661fe48ab78d..2cfb17bad1e6 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -179,11 +179,6 @@ static void arm_dma_sync_single_for_device(struct device *dev,
- 	__dma_page_cpu_to_dev(page, offset, size, dir);
- }
- 
--static int arm_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == ARM_MAPPING_ERROR;
--}
--
- const struct dma_map_ops arm_dma_ops = {
- 	.alloc			= arm_dma_alloc,
- 	.free			= arm_dma_free,
-@@ -197,7 +192,6 @@ const struct dma_map_ops arm_dma_ops = {
- 	.sync_single_for_device	= arm_dma_sync_single_for_device,
- 	.sync_sg_for_cpu	= arm_dma_sync_sg_for_cpu,
- 	.sync_sg_for_device	= arm_dma_sync_sg_for_device,
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- EXPORT_SYMBOL(arm_dma_ops);
-@@ -217,7 +211,6 @@ const struct dma_map_ops arm_coherent_dma_ops = {
- 	.get_sgtable		= arm_dma_get_sgtable,
- 	.map_page		= arm_coherent_dma_map_page,
- 	.map_sg			= arm_dma_map_sg,
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- EXPORT_SYMBOL(arm_coherent_dma_ops);
-@@ -774,7 +767,7 @@ static void *__dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 	gfp &= ~(__GFP_COMP);
- 	args.gfp = gfp;
- 
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 	allowblock = gfpflags_allow_blocking(gfp);
- 	cma = allowblock ? dev_get_cma_area(dev) : false;
- 
-@@ -1217,7 +1210,7 @@ static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping *mapping,
- 	if (i == mapping->nr_bitmaps) {
- 		if (extend_iommu_mapping(mapping)) {
- 			spin_unlock_irqrestore(&mapping->lock, flags);
--			return ARM_MAPPING_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 
- 		start = bitmap_find_next_zero_area(mapping->bitmaps[i],
-@@ -1225,7 +1218,7 @@ static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping *mapping,
- 
- 		if (start > mapping->bits) {
- 			spin_unlock_irqrestore(&mapping->lock, flags);
--			return ARM_MAPPING_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 
- 		bitmap_set(mapping->bitmaps[i], start, count);
-@@ -1409,7 +1402,7 @@ __iommu_create_mapping(struct device *dev, struct page **pages, size_t size,
- 	int i;
- 
- 	dma_addr = __alloc_iova(mapping, size);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	iova = dma_addr;
-@@ -1436,7 +1429,7 @@ __iommu_create_mapping(struct device *dev, struct page **pages, size_t size,
- fail:
- 	iommu_unmap(mapping->domain, dma_addr, iova-dma_addr);
- 	__free_iova(mapping, dma_addr, size);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t size)
-@@ -1497,7 +1490,7 @@ static void *__iommu_alloc_simple(struct device *dev, size_t size, gfp_t gfp,
- 		return NULL;
- 
- 	*handle = __iommu_create_mapping(dev, &page, size, attrs);
--	if (*handle == ARM_MAPPING_ERROR)
-+	if (*handle == DMA_MAPPING_ERROR)
- 		goto err_mapping;
- 
- 	return addr;
-@@ -1525,7 +1518,7 @@ static void *__arm_iommu_alloc_attrs(struct device *dev, size_t size,
- 	struct page **pages;
- 	void *addr = NULL;
- 
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 	size = PAGE_ALIGN(size);
- 
- 	if (coherent_flag  == COHERENT || !gfpflags_allow_blocking(gfp))
-@@ -1546,7 +1539,7 @@ static void *__arm_iommu_alloc_attrs(struct device *dev, size_t size,
- 		return NULL;
- 
- 	*handle = __iommu_create_mapping(dev, pages, size, attrs);
--	if (*handle == ARM_MAPPING_ERROR)
-+	if (*handle == DMA_MAPPING_ERROR)
- 		goto err_buffer;
- 
- 	if (attrs & DMA_ATTR_NO_KERNEL_MAPPING)
-@@ -1696,10 +1689,10 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
- 	int prot;
- 
- 	size = PAGE_ALIGN(size);
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 
- 	iova_base = iova = __alloc_iova(mapping, size);
--	if (iova == ARM_MAPPING_ERROR)
-+	if (iova == DMA_MAPPING_ERROR)
+-	dma_addr = dma_map_single_attrs(ctx->jrdev, ctx->sh_desc_enc,
+-					offsetof(struct caam_ctx,
+-						 sh_desc_enc_dma),
+-					ctx->dir, DMA_ATTR_SKIP_CPU_SYNC);
+-	if (dma_mapping_error(ctx->jrdev, dma_addr)) {
++	if (dma_map_single_attrs(ctx->jrdev, ctx->sh_desc_enc,
++			offsetof(struct caam_ctx, sh_desc_enc_dma),
++			ctx->dir, DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 		dev_err(ctx->jrdev, "unable to map key, shared descriptors\n");
+ 		caam_jr_free(ctx->jrdev);
  		return -ENOMEM;
+diff --git a/drivers/crypto/caam/caamalg_qi2.c b/drivers/crypto/caam/caamalg_qi2.c
+index 7d8ac0222fa3..9453dca56798 100644
+--- a/drivers/crypto/caam/caamalg_qi2.c
++++ b/drivers/crypto/caam/caamalg_qi2.c
+@@ -1336,10 +1336,9 @@ static int caam_cra_init(struct caam_ctx *ctx, struct caam_alg_entry *caam,
+ 	ctx->dev = caam->dev;
+ 	ctx->dir = uses_dkp ? DMA_BIDIRECTIONAL : DMA_TO_DEVICE;
  
- 	for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s)) {
-@@ -1739,7 +1732,7 @@ static int __iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 	for (i = 1; i < nents; i++) {
- 		s = sg_next(s);
- 
--		s->dma_address = ARM_MAPPING_ERROR;
-+		s->dma_address = DMA_MAPPING_ERROR;
- 		s->dma_length = 0;
- 
- 		if (s->offset || (size & ~PAGE_MASK) || size + s->length > max) {
-@@ -1914,7 +1907,7 @@ static dma_addr_t arm_coherent_iommu_map_page(struct device *dev, struct page *p
- 	int ret, prot, len = PAGE_ALIGN(size + offset);
- 
- 	dma_addr = __alloc_iova(mapping, len);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	prot = __dma_info_to_prot(dir, attrs);
-@@ -1926,7 +1919,7 @@ static dma_addr_t arm_coherent_iommu_map_page(struct device *dev, struct page *p
- 	return dma_addr + offset;
- fail:
- 	__free_iova(mapping, dma_addr, len);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /**
-@@ -2020,7 +2013,7 @@ static dma_addr_t arm_iommu_map_resource(struct device *dev,
- 	size_t len = PAGE_ALIGN(size + offset);
- 
- 	dma_addr = __alloc_iova(mapping, len);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	prot = __dma_info_to_prot(dir, attrs) | IOMMU_MMIO;
-@@ -2032,7 +2025,7 @@ static dma_addr_t arm_iommu_map_resource(struct device *dev,
- 	return dma_addr + offset;
- fail:
- 	__free_iova(mapping, dma_addr, len);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /**
-@@ -2105,7 +2098,6 @@ const struct dma_map_ops iommu_ops = {
- 	.map_resource		= arm_iommu_map_resource,
- 	.unmap_resource		= arm_iommu_unmap_resource,
- 
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- 
-@@ -2124,7 +2116,6 @@ const struct dma_map_ops iommu_coherent_ops = {
- 	.map_resource	= arm_iommu_map_resource,
- 	.unmap_resource	= arm_iommu_unmap_resource,
- 
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- 
-diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
-index a3ac26284845..4cc70029cf8d 100644
---- a/arch/arm64/mm/dma-mapping.c
-+++ b/arch/arm64/mm/dma-mapping.c
-@@ -282,7 +282,7 @@ static dma_addr_t __dummy_map_page(struct device *dev, struct page *page,
- 				   enum dma_data_direction dir,
- 				   unsigned long attrs)
- {
--	return 0;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void __dummy_unmap_page(struct device *dev, dma_addr_t dev_addr,
-@@ -317,11 +317,6 @@ static void __dummy_sync_sg(struct device *dev,
- {
- }
- 
--static int __dummy_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
--{
--	return 1;
--}
--
- static int __dummy_dma_supported(struct device *hwdev, u64 mask)
- {
- 	return 0;
-@@ -339,7 +334,6 @@ const struct dma_map_ops dummy_dma_ops = {
- 	.sync_single_for_device = __dummy_sync_single,
- 	.sync_sg_for_cpu        = __dummy_sync_sg,
- 	.sync_sg_for_device     = __dummy_sync_sg,
--	.mapping_error          = __dummy_mapping_error,
- 	.dma_supported          = __dummy_dma_supported,
- };
- EXPORT_SYMBOL(dummy_dma_ops);
-@@ -403,7 +397,7 @@ static void *__iommu_alloc_attrs(struct device *dev, size_t size,
- 			return NULL;
- 
- 		*handle = iommu_dma_map_page(dev, page, 0, iosize, ioprot);
--		if (iommu_dma_mapping_error(dev, *handle)) {
-+		if (*handle == DMA_MAPPING_ERROR) {
- 			if (coherent)
- 				__free_pages(page, get_order(size));
- 			else
-@@ -420,7 +414,7 @@ static void *__iommu_alloc_attrs(struct device *dev, size_t size,
- 			return NULL;
- 
- 		*handle = iommu_dma_map_page(dev, page, 0, iosize, ioprot);
--		if (iommu_dma_mapping_error(dev, *handle)) {
-+		if (*handle == DMA_MAPPING_ERROR) {
- 			dma_release_from_contiguous(dev, page,
- 						    size >> PAGE_SHIFT);
- 			return NULL;
-@@ -580,7 +574,7 @@ static dma_addr_t __iommu_map_page(struct device *dev, struct page *page,
- 	dma_addr_t dev_addr = iommu_dma_map_page(dev, page, offset, size, prot);
- 
- 	if (!coherent && !(attrs & DMA_ATTR_SKIP_CPU_SYNC) &&
--	    !iommu_dma_mapping_error(dev, dev_addr))
-+	    dev_addr != DMA_MAPPING_ERROR)
- 		__dma_map_area(page_address(page) + offset, size, dir);
- 
- 	return dev_addr;
-@@ -663,7 +657,6 @@ static const struct dma_map_ops iommu_dma_ops = {
- 	.sync_sg_for_device = __iommu_sync_sg_for_device,
- 	.map_resource = iommu_dma_map_resource,
- 	.unmap_resource = iommu_dma_unmap_resource,
--	.mapping_error = iommu_dma_mapping_error,
- };
- 
- static int __init __iommu_dma_init(void)
-diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-index e8a93b07283e..5fca8ca85629 100644
---- a/arch/ia64/hp/common/sba_iommu.c
-+++ b/arch/ia64/hp/common/sba_iommu.c
-@@ -973,7 +973,7 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
- 
- 	pide = sba_alloc_range(ioc, dev, size);
- 	if (pide < 0)
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 
- 	iovp = (dma_addr_t) pide << iovp_shift;
- 
-@@ -2170,11 +2170,6 @@ static int sba_dma_supported (struct device *dev, u64 mask)
- 	return ((mask & 0xFFFFFFFFUL) == 0xFFFFFFFFUL);
- }
- 
--static int sba_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return 0;
--}
--
- __setup("nosbagart", nosbagart);
- 
- static int __init
-@@ -2208,7 +2203,6 @@ const struct dma_map_ops sba_dma_ops = {
- 	.map_sg			= sba_map_sg_attrs,
- 	.unmap_sg		= sba_unmap_sg_attrs,
- 	.dma_supported		= sba_dma_supported,
--	.mapping_error		= sba_dma_mapping_error,
- };
- 
- void sba_dma_init(void)
-diff --git a/arch/ia64/sn/pci/pci_dma.c b/arch/ia64/sn/pci/pci_dma.c
-index 4ce4ee4ef9f2..b7d42e4edc1f 100644
---- a/arch/ia64/sn/pci/pci_dma.c
-+++ b/arch/ia64/sn/pci/pci_dma.c
-@@ -196,7 +196,7 @@ static dma_addr_t sn_dma_map_page(struct device *dev, struct page *page,
- 
- 	if (!dma_addr) {
- 		printk(KERN_ERR "%s: out of ATEs\n", __func__);
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 	}
- 	return dma_addr;
- }
-@@ -314,11 +314,6 @@ static int sn_dma_map_sg(struct device *dev, struct scatterlist *sgl,
- 	return nhwentries;
- }
- 
--static int sn_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return 0;
--}
--
- static u64 sn_dma_get_required_mask(struct device *dev)
- {
- 	return DMA_BIT_MASK(64);
-@@ -441,7 +436,6 @@ static struct dma_map_ops sn_dma_ops = {
- 	.unmap_page		= sn_dma_unmap_page,
- 	.map_sg			= sn_dma_map_sg,
- 	.unmap_sg		= sn_dma_unmap_sg,
--	.mapping_error		= sn_dma_mapping_error,
- 	.dma_supported		= sn_dma_supported,
- 	.get_required_mask	= sn_dma_get_required_mask,
- };
-diff --git a/arch/mips/include/asm/jazzdma.h b/arch/mips/include/asm/jazzdma.h
-index d913439c738c..d13f940022d5 100644
---- a/arch/mips/include/asm/jazzdma.h
-+++ b/arch/mips/include/asm/jazzdma.h
-@@ -39,12 +39,6 @@ extern int vdma_get_enable(int channel);
- #define VDMA_PAGE(a)		((unsigned int)(a) >> 12)
- #define VDMA_OFFSET(a)		((unsigned int)(a) & (VDMA_PAGESIZE-1))
- 
--/*
-- * error code returned by vdma_alloc()
-- * (See also arch/mips/kernel/jazzdma.c)
-- */
--#define VDMA_ERROR		0xffffffff
--
- /*
-  * VDMA pagetable entry description
-  */
-diff --git a/arch/mips/jazz/jazzdma.c b/arch/mips/jazz/jazzdma.c
-index 4c41ed0a637e..6256d35dbf4d 100644
---- a/arch/mips/jazz/jazzdma.c
-+++ b/arch/mips/jazz/jazzdma.c
-@@ -104,12 +104,12 @@ unsigned long vdma_alloc(unsigned long paddr, unsigned long size)
- 		if (vdma_debug)
- 			printk("vdma_alloc: Invalid physical address: %08lx\n",
- 			       paddr);
--		return VDMA_ERROR;	/* invalid physical address */
-+		return DMA_MAPPING_ERROR;	/* invalid physical address */
- 	}
- 	if (size > 0x400000 || size == 0) {
- 		if (vdma_debug)
- 			printk("vdma_alloc: Invalid size: %08lx\n", size);
--		return VDMA_ERROR;	/* invalid physical address */
-+		return DMA_MAPPING_ERROR;	/* invalid physical address */
- 	}
- 
- 	spin_lock_irqsave(&vdma_lock, flags);
-@@ -123,7 +123,7 @@ unsigned long vdma_alloc(unsigned long paddr, unsigned long size)
- 		       first < VDMA_PGTBL_ENTRIES) first++;
- 		if (first + pages > VDMA_PGTBL_ENTRIES) {	/* nothing free */
- 			spin_unlock_irqrestore(&vdma_lock, flags);
--			return VDMA_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 
- 		last = first + 1;
-@@ -569,7 +569,7 @@ static void *jazz_dma_alloc(struct device *dev, size_t size,
- 		return NULL;
- 
- 	*dma_handle = vdma_alloc(virt_to_phys(ret), size);
--	if (*dma_handle == VDMA_ERROR) {
-+	if (*dma_handle == DMA_MAPPING_ERROR) {
- 		dma_direct_free_pages(dev, size, ret, *dma_handle, attrs);
- 		return NULL;
- 	}
-@@ -620,7 +620,7 @@ static int jazz_dma_map_sg(struct device *dev, struct scatterlist *sglist,
- 			arch_sync_dma_for_device(dev, sg_phys(sg), sg->length,
- 				dir);
- 		sg->dma_address = vdma_alloc(sg_phys(sg), sg->length);
--		if (sg->dma_address == VDMA_ERROR)
-+		if (sg->dma_address == DMA_MAPPING_ERROR)
- 			return 0;
- 		sg_dma_len(sg) = sg->length;
- 	}
-@@ -674,11 +674,6 @@ static void jazz_dma_sync_sg_for_cpu(struct device *dev,
- 		arch_sync_dma_for_cpu(dev, sg_phys(sg), sg->length, dir);
- }
- 
--static int jazz_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == VDMA_ERROR;
--}
--
- const struct dma_map_ops jazz_dma_ops = {
- 	.alloc			= jazz_dma_alloc,
- 	.free			= jazz_dma_free,
-@@ -692,6 +687,5 @@ const struct dma_map_ops jazz_dma_ops = {
- 	.sync_sg_for_device	= jazz_dma_sync_sg_for_device,
- 	.dma_supported		= dma_direct_supported,
- 	.cache_sync		= arch_dma_cache_sync,
--	.mapping_error		= jazz_dma_mapping_error,
- };
- EXPORT_SYMBOL(jazz_dma_ops);
-diff --git a/arch/powerpc/include/asm/iommu.h b/arch/powerpc/include/asm/iommu.h
-index 35db0cbc9222..5c45e702133c 100644
---- a/arch/powerpc/include/asm/iommu.h
-+++ b/arch/powerpc/include/asm/iommu.h
-@@ -142,9 +142,6 @@ int get_iommu_order(unsigned long size, struct iommu_table *tbl)
- struct scatterlist;
- 
- #ifdef CONFIG_PPC64
--
--#define IOMMU_MAPPING_ERROR		(~(dma_addr_t)0x0)
--
- static inline void set_iommu_table_base(struct device *dev,
- 					struct iommu_table *base)
- {
-diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
-index f9fe2080ceb9..5ebacf0fe41a 100644
---- a/arch/powerpc/kernel/dma-iommu.c
-+++ b/arch/powerpc/kernel/dma-iommu.c
-@@ -106,11 +106,6 @@ static u64 dma_iommu_get_required_mask(struct device *dev)
- 	return mask;
- }
- 
--int dma_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == IOMMU_MAPPING_ERROR;
--}
--
- struct dma_map_ops dma_iommu_ops = {
- 	.alloc			= dma_iommu_alloc_coherent,
- 	.free			= dma_iommu_free_coherent,
-@@ -121,6 +116,5 @@ struct dma_map_ops dma_iommu_ops = {
- 	.map_page		= dma_iommu_map_page,
- 	.unmap_page		= dma_iommu_unmap_page,
- 	.get_required_mask	= dma_iommu_get_required_mask,
--	.mapping_error		= dma_iommu_mapping_error,
- };
- EXPORT_SYMBOL(dma_iommu_ops);
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 5fc335f4d9cd..3d8df2cf8be9 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -59,7 +59,6 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
- 	.sync_single_for_device = swiotlb_sync_single_for_device,
- 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
- 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.mapping_error = dma_direct_mapping_error,
- 	.get_required_mask = swiotlb_powerpc_get_required,
- };
- 
-diff --git a/arch/powerpc/kernel/iommu.c b/arch/powerpc/kernel/iommu.c
-index f0dc680e659a..ca7f73488c62 100644
---- a/arch/powerpc/kernel/iommu.c
-+++ b/arch/powerpc/kernel/iommu.c
-@@ -197,11 +197,11 @@ static unsigned long iommu_range_alloc(struct device *dev,
- 	if (unlikely(npages == 0)) {
- 		if (printk_ratelimit())
- 			WARN_ON(1);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	if (should_fail_iommu(dev))
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	/*
- 	 * We don't need to disable preemption here because any CPU can
-@@ -277,7 +277,7 @@ static unsigned long iommu_range_alloc(struct device *dev,
- 		} else {
- 			/* Give up */
- 			spin_unlock_irqrestore(&(pool->lock), flags);
--			return IOMMU_MAPPING_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 	}
- 
-@@ -309,13 +309,13 @@ static dma_addr_t iommu_alloc(struct device *dev, struct iommu_table *tbl,
- 			      unsigned long attrs)
- {
- 	unsigned long entry;
--	dma_addr_t ret = IOMMU_MAPPING_ERROR;
-+	dma_addr_t ret = DMA_MAPPING_ERROR;
- 	int build_fail;
- 
- 	entry = iommu_range_alloc(dev, tbl, npages, NULL, mask, align_order);
- 
--	if (unlikely(entry == IOMMU_MAPPING_ERROR))
--		return IOMMU_MAPPING_ERROR;
-+	if (unlikely(entry == DMA_MAPPING_ERROR))
-+		return DMA_MAPPING_ERROR;
- 
- 	entry += tbl->it_offset;	/* Offset into real TCE table */
- 	ret = entry << tbl->it_page_shift;	/* Set the return dma address */
-@@ -327,12 +327,12 @@ static dma_addr_t iommu_alloc(struct device *dev, struct iommu_table *tbl,
- 
- 	/* tbl->it_ops->set() only returns non-zero for transient errors.
- 	 * Clean up the table bitmap in this case and return
--	 * IOMMU_MAPPING_ERROR. For all other errors the functionality is
-+	 * DMA_MAPPING_ERROR. For all other errors the functionality is
- 	 * not altered.
- 	 */
- 	if (unlikely(build_fail)) {
- 		__iommu_free(tbl, ret, npages);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	/* Flush/invalidate TLB caches if necessary */
-@@ -477,7 +477,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 		DBG("  - vaddr: %lx, size: %lx\n", vaddr, slen);
- 
- 		/* Handle failure */
--		if (unlikely(entry == IOMMU_MAPPING_ERROR)) {
-+		if (unlikely(entry == DMA_MAPPING_ERROR)) {
- 			if (!(attrs & DMA_ATTR_NO_WARN) &&
- 			    printk_ratelimit())
- 				dev_info(dev, "iommu_alloc failed, tbl %p "
-@@ -544,7 +544,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 	 */
- 	if (outcount < incount) {
- 		outs = sg_next(outs);
--		outs->dma_address = IOMMU_MAPPING_ERROR;
-+		outs->dma_address = DMA_MAPPING_ERROR;
- 		outs->dma_length = 0;
- 	}
- 
-@@ -562,7 +562,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 			npages = iommu_num_pages(s->dma_address, s->dma_length,
- 						 IOMMU_PAGE_SIZE(tbl));
- 			__iommu_free(tbl, vaddr, npages);
--			s->dma_address = IOMMU_MAPPING_ERROR;
-+			s->dma_address = DMA_MAPPING_ERROR;
- 			s->dma_length = 0;
- 		}
- 		if (s == outs)
-@@ -776,7 +776,7 @@ dma_addr_t iommu_map_page(struct device *dev, struct iommu_table *tbl,
- 			  unsigned long mask, enum dma_data_direction direction,
- 			  unsigned long attrs)
- {
--	dma_addr_t dma_handle = IOMMU_MAPPING_ERROR;
-+	dma_addr_t dma_handle = DMA_MAPPING_ERROR;
- 	void *vaddr;
- 	unsigned long uaddr;
- 	unsigned int npages, align;
-@@ -796,7 +796,7 @@ dma_addr_t iommu_map_page(struct device *dev, struct iommu_table *tbl,
- 		dma_handle = iommu_alloc(dev, tbl, vaddr, npages, direction,
- 					 mask >> tbl->it_page_shift, align,
- 					 attrs);
--		if (dma_handle == IOMMU_MAPPING_ERROR) {
-+		if (dma_handle == DMA_MAPPING_ERROR) {
- 			if (!(attrs & DMA_ATTR_NO_WARN) &&
- 			    printk_ratelimit())  {
- 				dev_info(dev, "iommu_alloc failed, tbl %p "
-@@ -868,7 +868,7 @@ void *iommu_alloc_coherent(struct device *dev, struct iommu_table *tbl,
- 	io_order = get_iommu_order(size, tbl);
- 	mapping = iommu_alloc(dev, tbl, ret, nio_pages, DMA_BIDIRECTIONAL,
- 			      mask >> tbl->it_page_shift, io_order, 0);
--	if (mapping == IOMMU_MAPPING_ERROR) {
-+	if (mapping == DMA_MAPPING_ERROR) {
- 		free_pages((unsigned long)ret, order);
- 		return NULL;
- 	}
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 12352a58072a..af2a3c15e0ec 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -654,7 +654,6 @@ static const struct dma_map_ops dma_iommu_fixed_ops = {
- 	.dma_supported  = dma_suported_and_switch,
- 	.map_page       = dma_fixed_map_page,
- 	.unmap_page     = dma_fixed_unmap_page,
--	.mapping_error	= dma_iommu_mapping_error,
- };
- 
- static void cell_dma_dev_setup(struct device *dev)
-diff --git a/arch/powerpc/platforms/pseries/vio.c b/arch/powerpc/platforms/pseries/vio.c
-index 88f1ad1d6309..a29ad7db918a 100644
---- a/arch/powerpc/platforms/pseries/vio.c
-+++ b/arch/powerpc/platforms/pseries/vio.c
-@@ -519,7 +519,7 @@ static dma_addr_t vio_dma_iommu_map_page(struct device *dev, struct page *page,
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
- 	struct iommu_table *tbl;
--	dma_addr_t ret = IOMMU_MAPPING_ERROR;
-+	dma_addr_t ret = DMA_MAPPING_ERROR;
- 
- 	tbl = get_iommu_table_base(dev);
- 	if (vio_cmo_alloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)))) {
-@@ -625,7 +625,6 @@ static const struct dma_map_ops vio_dma_mapping_ops = {
- 	.unmap_page        = vio_dma_iommu_unmap_page,
- 	.dma_supported     = vio_dma_iommu_dma_supported,
- 	.get_required_mask = vio_dma_get_required_mask,
--	.mapping_error	   = dma_iommu_mapping_error,
- };
- 
- /**
-diff --git a/arch/s390/pci/pci_dma.c b/arch/s390/pci/pci_dma.c
-index d387a0fbdd7e..346ba382193a 100644
---- a/arch/s390/pci/pci_dma.c
-+++ b/arch/s390/pci/pci_dma.c
-@@ -15,8 +15,6 @@
- #include <linux/pci.h>
- #include <asm/pci_dma.h>
- 
--#define S390_MAPPING_ERROR		(~(dma_addr_t) 0x0)
--
- static struct kmem_cache *dma_region_table_cache;
- static struct kmem_cache *dma_page_table_cache;
- static int s390_iommu_strict;
-@@ -301,7 +299,7 @@ static dma_addr_t dma_alloc_address(struct device *dev, int size)
- 
- out_error:
- 	spin_unlock_irqrestore(&zdev->iommu_bitmap_lock, flags);
--	return S390_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void dma_free_address(struct device *dev, dma_addr_t dma_addr, int size)
-@@ -349,7 +347,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
- 	/* This rounds up number of pages based on size and offset */
- 	nr_pages = iommu_num_pages(pa, size, PAGE_SIZE);
- 	dma_addr = dma_alloc_address(dev, nr_pages);
--	if (dma_addr == S390_MAPPING_ERROR) {
-+	if (dma_addr == DMA_MAPPING_ERROR) {
- 		ret = -ENOSPC;
- 		goto out_err;
- 	}
-@@ -372,7 +370,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
- out_err:
- 	zpci_err("map error:\n");
- 	zpci_err_dma(ret, pa);
--	return S390_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void s390_dma_unmap_pages(struct device *dev, dma_addr_t dma_addr,
-@@ -449,7 +447,7 @@ static int __s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 	int ret;
- 
- 	dma_addr_base = dma_alloc_address(dev, nr_pages);
--	if (dma_addr_base == S390_MAPPING_ERROR)
-+	if (dma_addr_base == DMA_MAPPING_ERROR)
+-	dma_addr = dma_map_single_attrs(ctx->dev, ctx->flc,
+-					offsetof(struct caam_ctx, flc_dma),
+-					ctx->dir, DMA_ATTR_SKIP_CPU_SYNC);
+-	if (dma_mapping_error(ctx->dev, dma_addr)) {
++	if (dma_map_single_attrs(ctx->dev, ctx->flc,
++			offsetof(struct caam_ctx, flc_dma),
++			ctx->dir, DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 		dev_err(ctx->dev, "unable to map key, shared descriptors\n");
  		return -ENOMEM;
- 
- 	dma_addr = dma_addr_base;
-@@ -496,7 +494,7 @@ static int s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 	for (i = 1; i < nr_elements; i++) {
- 		s = sg_next(s);
- 
--		s->dma_address = S390_MAPPING_ERROR;
-+		s->dma_address = DMA_MAPPING_ERROR;
- 		s->dma_length = 0;
- 
- 		if (s->offset || (size & ~PAGE_MASK) ||
-@@ -546,11 +544,6 @@ static void s390_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
  	}
- }
- 	
--static int s390_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == S390_MAPPING_ERROR;
--}
--
- int zpci_dma_init_device(struct zpci_dev *zdev)
+@@ -4272,10 +4271,8 @@ static int caam_hash_cra_init(struct crypto_tfm *tfm)
+ 
+ 	ctx->dev = caam_hash->dev;
+ 
+-	dma_addr = dma_map_single_attrs(ctx->dev, ctx->flc, sizeof(ctx->flc),
+-					DMA_BIDIRECTIONAL,
+-					DMA_ATTR_SKIP_CPU_SYNC);
+-	if (dma_mapping_error(ctx->dev, dma_addr)) {
++	if (dma_map_single_attrs(ctx->dev, ctx->flc, sizeof(ctx->flc),
++			DMA_BIDIRECTIONAL, DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 		dev_err(ctx->dev, "unable to map shared descriptors\n");
+ 		return -ENOMEM;
+ 	}
+diff --git a/drivers/crypto/caam/caamhash.c b/drivers/crypto/caam/caamhash.c
+index 46924affa0bd..e0bc10ab891e 100644
+--- a/drivers/crypto/caam/caamhash.c
++++ b/drivers/crypto/caam/caamhash.c
+@@ -1693,11 +1693,9 @@ static int caam_hash_cra_init(struct crypto_tfm *tfm)
+ 	priv = dev_get_drvdata(ctx->jrdev->parent);
+ 	ctx->dir = priv->era >= 6 ? DMA_BIDIRECTIONAL : DMA_TO_DEVICE;
+ 
+-	dma_addr = dma_map_single_attrs(ctx->jrdev, ctx->sh_desc_update,
+-					offsetof(struct caam_hash_ctx,
+-						 sh_desc_update_dma),
+-					ctx->dir, DMA_ATTR_SKIP_CPU_SYNC);
+-	if (dma_mapping_error(ctx->jrdev, dma_addr)) {
++	if (dma_map_single_attrs(ctx->jrdev, ctx->sh_desc_update,
++			offsetof(struct caam_hash_ctx, sh_desc_update_dma),
++			ctx->dir, DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 		dev_err(ctx->jrdev, "unable to map shared descriptors\n");
+ 		caam_jr_free(ctx->jrdev);
+ 		return -ENOMEM;
+diff --git a/drivers/crypto/talitos.c b/drivers/crypto/talitos.c
+index 6988012deca4..1b0f816994bf 100644
+--- a/drivers/crypto/talitos.c
++++ b/drivers/crypto/talitos.c
+@@ -110,10 +110,12 @@ static void __map_single_talitos_ptr(struct device *dev,
+ 				     enum dma_data_direction dir,
+ 				     unsigned long attrs)
  {
- 	int rc;
-@@ -675,7 +668,6 @@ const struct dma_map_ops s390_pci_dma_ops = {
- 	.unmap_sg	= s390_dma_unmap_sg,
- 	.map_page	= s390_dma_map_pages,
- 	.unmap_page	= s390_dma_unmap_pages,
--	.mapping_error	= s390_mapping_error,
- 	/* dma_supported is unconditionally true without a callback */
- };
- EXPORT_SYMBOL_GPL(s390_pci_dma_ops);
-diff --git a/arch/sparc/kernel/iommu.c b/arch/sparc/kernel/iommu.c
-index 40d008b0bd3e..0626bae5e3da 100644
---- a/arch/sparc/kernel/iommu.c
-+++ b/arch/sparc/kernel/iommu.c
-@@ -315,7 +315,7 @@ static dma_addr_t dma_4u_map_page(struct device *dev, struct page *page,
- bad_no_ctx:
- 	if (printk_ratelimit())
- 		WARN_ON(1);
--	return SPARC_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void strbuf_flush(struct strbuf *strbuf, struct iommu *iommu,
-@@ -548,7 +548,7 @@ static int dma_4u_map_sg(struct device *dev, struct scatterlist *sglist,
- 
- 	if (outcount < incount) {
- 		outs = sg_next(outs);
--		outs->dma_address = SPARC_MAPPING_ERROR;
-+		outs->dma_address = DMA_MAPPING_ERROR;
- 		outs->dma_length = 0;
- 	}
- 
-@@ -574,7 +574,7 @@ static int dma_4u_map_sg(struct device *dev, struct scatterlist *sglist,
- 			iommu_tbl_range_free(&iommu->tbl, vaddr, npages,
- 					     IOMMU_ERROR_CODE);
- 
--			s->dma_address = SPARC_MAPPING_ERROR;
-+			s->dma_address = DMA_MAPPING_ERROR;
- 			s->dma_length = 0;
- 		}
- 		if (s == outs)
-@@ -742,11 +742,6 @@ static void dma_4u_sync_sg_for_cpu(struct device *dev,
- 	spin_unlock_irqrestore(&iommu->lock, flags);
- }
- 
--static int dma_4u_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == SPARC_MAPPING_ERROR;
--}
--
- static int dma_4u_supported(struct device *dev, u64 device_mask)
- {
- 	struct iommu *iommu = dev->archdata.iommu;
-@@ -772,7 +767,6 @@ static const struct dma_map_ops sun4u_dma_ops = {
- 	.sync_single_for_cpu	= dma_4u_sync_single_for_cpu,
- 	.sync_sg_for_cpu	= dma_4u_sync_sg_for_cpu,
- 	.dma_supported		= dma_4u_supported,
--	.mapping_error		= dma_4u_mapping_error,
- };
- 
- const struct dma_map_ops *dma_ops = &sun4u_dma_ops;
-diff --git a/arch/sparc/kernel/iommu_common.h b/arch/sparc/kernel/iommu_common.h
-index e3c02ba32500..d62ed9c5682d 100644
---- a/arch/sparc/kernel/iommu_common.h
-+++ b/arch/sparc/kernel/iommu_common.h
-@@ -48,6 +48,4 @@ static inline int is_span_boundary(unsigned long entry,
- 	return iommu_is_span_boundary(entry, nr, shift, boundary_size);
- }
- 
--#define SPARC_MAPPING_ERROR	(~(dma_addr_t)0x0)
--
- #endif /* _IOMMU_COMMON_H */
-diff --git a/arch/sparc/kernel/pci_sun4v.c b/arch/sparc/kernel/pci_sun4v.c
-index 565d9ac883d0..fa0e42b4cbfb 100644
---- a/arch/sparc/kernel/pci_sun4v.c
-+++ b/arch/sparc/kernel/pci_sun4v.c
-@@ -414,12 +414,12 @@ static dma_addr_t dma_4v_map_page(struct device *dev, struct page *page,
- bad:
- 	if (printk_ratelimit())
- 		WARN_ON(1);
--	return SPARC_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- 
- iommu_map_fail:
- 	local_irq_restore(flags);
- 	iommu_tbl_range_free(tbl, bus_addr, npages, IOMMU_ERROR_CODE);
--	return SPARC_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void dma_4v_unmap_page(struct device *dev, dma_addr_t bus_addr,
-@@ -592,7 +592,7 @@ static int dma_4v_map_sg(struct device *dev, struct scatterlist *sglist,
- 
- 	if (outcount < incount) {
- 		outs = sg_next(outs);
--		outs->dma_address = SPARC_MAPPING_ERROR;
-+		outs->dma_address = DMA_MAPPING_ERROR;
- 		outs->dma_length = 0;
- 	}
- 
-@@ -609,7 +609,7 @@ static int dma_4v_map_sg(struct device *dev, struct scatterlist *sglist,
- 			iommu_tbl_range_free(tbl, vaddr, npages,
- 					     IOMMU_ERROR_CODE);
- 			/* XXX demap? XXX */
--			s->dma_address = SPARC_MAPPING_ERROR;
-+			s->dma_address = DMA_MAPPING_ERROR;
- 			s->dma_length = 0;
- 		}
- 		if (s == outs)
-@@ -688,11 +688,6 @@ static int dma_4v_supported(struct device *dev, u64 device_mask)
- 	return pci64_dma_supported(to_pci_dev(dev), device_mask);
- }
- 
--static int dma_4v_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == SPARC_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops sun4v_dma_ops = {
- 	.alloc				= dma_4v_alloc_coherent,
- 	.free				= dma_4v_free_coherent,
-@@ -701,7 +696,6 @@ static const struct dma_map_ops sun4v_dma_ops = {
- 	.map_sg				= dma_4v_map_sg,
- 	.unmap_sg			= dma_4v_unmap_sg,
- 	.dma_supported			= dma_4v_supported,
--	.mapping_error			= dma_4v_mapping_error,
- };
- 
- static void pci_sun4v_scan_bus(struct pci_pbm_info *pbm, struct device *parent)
-diff --git a/arch/x86/kernel/amd_gart_64.c b/arch/x86/kernel/amd_gart_64.c
-index 3f9d1b4019bb..07484eb36efe 100644
---- a/arch/x86/kernel/amd_gart_64.c
-+++ b/arch/x86/kernel/amd_gart_64.c
-@@ -50,8 +50,6 @@ static unsigned long iommu_pages;	/* .. and in pages */
- 
- static u32 *iommu_gatt_base;		/* Remapping table */
- 
--static dma_addr_t bad_dma_addr;
--
- /*
-  * If this is disabled the IOMMU will use an optimized flushing strategy
-  * of only flushing when an mapping is reused. With it true the GART is
-@@ -220,7 +218,7 @@ static dma_addr_t dma_map_area(struct device *dev, dma_addr_t phys_mem,
- 	int i;
- 
- 	if (unlikely(phys_mem + size > GART_MAX_PHYS_ADDR))
--		return bad_dma_addr;
-+		return DMA_MAPPING_ERROR;
- 
- 	iommu_page = alloc_iommu(dev, npages, align_mask);
- 	if (iommu_page == -1) {
-@@ -229,7 +227,7 @@ static dma_addr_t dma_map_area(struct device *dev, dma_addr_t phys_mem,
- 		if (panic_on_overflow)
- 			panic("dma_map_area overflow %lu bytes\n", size);
- 		iommu_full(dev, size, dir);
--		return bad_dma_addr;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	for (i = 0; i < npages; i++) {
-@@ -315,7 +313,7 @@ static int dma_map_sg_nonforce(struct device *dev, struct scatterlist *sg,
- 
- 		if (nonforced_iommu(dev, addr, s->length)) {
- 			addr = dma_map_area(dev, addr, s->length, dir, 0);
--			if (addr == bad_dma_addr) {
-+			if (addr == DMA_MAPPING_ERROR) {
- 				if (i > 0)
- 					gart_unmap_sg(dev, sg, i, dir, 0);
- 				nents = 0;
-@@ -471,7 +469,7 @@ static int gart_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 
- 	iommu_full(dev, pages << PAGE_SHIFT, dir);
- 	for_each_sg(sg, s, nents, i)
--		s->dma_address = bad_dma_addr;
-+		s->dma_address = DMA_MAPPING_ERROR;
- 	return 0;
- }
- 
-@@ -490,7 +488,7 @@ gart_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_addr,
- 	*dma_addr = dma_map_area(dev, virt_to_phys(vaddr), size,
- 			DMA_BIDIRECTIONAL, (1UL << get_order(size)) - 1);
- 	flush_gart();
--	if (unlikely(*dma_addr == bad_dma_addr))
-+	if (unlikely(*dma_addr == DMA_MAPPING_ERROR))
- 		goto out_free;
- 	return vaddr;
- out_free:
-@@ -507,11 +505,6 @@ gart_free_coherent(struct device *dev, size_t size, void *vaddr,
- 	dma_direct_free_pages(dev, size, vaddr, dma_addr, attrs);
- }
- 
--static int gart_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return (dma_addr == bad_dma_addr);
--}
--
- static int no_agp;
- 
- static __init unsigned long check_iommu_size(unsigned long aper, u64 aper_size)
-@@ -695,7 +688,6 @@ static const struct dma_map_ops gart_dma_ops = {
- 	.unmap_page			= gart_unmap_page,
- 	.alloc				= gart_alloc_coherent,
- 	.free				= gart_free_coherent,
--	.mapping_error			= gart_mapping_error,
- 	.dma_supported			= dma_direct_supported,
- };
- 
-@@ -796,7 +788,6 @@ int __init gart_iommu_init(void)
- 	agp_memory_reserved	= iommu_size;
- 	iommu_start		= aper_size - iommu_size;
- 	iommu_bus_base		= info.aper_base + iommu_start;
--	bad_dma_addr		= iommu_bus_base;
- 	iommu_gatt_base		= agp_gatt_table + (iommu_start>>PAGE_SHIFT);
- 
- 	/*
-diff --git a/arch/x86/kernel/pci-calgary_64.c b/arch/x86/kernel/pci-calgary_64.c
-index bbfc8b1e9104..a1af5a707bb7 100644
---- a/arch/x86/kernel/pci-calgary_64.c
-+++ b/arch/x86/kernel/pci-calgary_64.c
-@@ -51,8 +51,6 @@
- #include <asm/x86_init.h>
- #include <asm/iommu_table.h>
- 
--#define CALGARY_MAPPING_ERROR	0
--
- #ifdef CONFIG_CALGARY_IOMMU_ENABLED_BY_DEFAULT
- int use_calgary __read_mostly = 1;
- #else
-@@ -255,7 +253,7 @@ static unsigned long iommu_range_alloc(struct device *dev,
- 			if (panic_on_overflow)
- 				panic("Calgary: fix the allocator.\n");
- 			else
--				return CALGARY_MAPPING_ERROR;
-+				return DMA_MAPPING_ERROR;
- 		}
- 	}
- 
-@@ -275,10 +273,10 @@ static dma_addr_t iommu_alloc(struct device *dev, struct iommu_table *tbl,
- 
- 	entry = iommu_range_alloc(dev, tbl, npages);
- 
--	if (unlikely(entry == CALGARY_MAPPING_ERROR)) {
-+	if (unlikely(entry == DMA_MAPPING_ERROR)) {
- 		pr_warn("failed to allocate %u pages in iommu %p\n",
- 			npages, tbl);
--		return CALGARY_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	/* set the return dma address */
-@@ -298,7 +296,7 @@ static void iommu_free(struct iommu_table *tbl, dma_addr_t dma_addr,
- 	unsigned long flags;
- 
- 	/* were we called with bad_dma_address? */
--	badend = CALGARY_MAPPING_ERROR + (EMERGENCY_PAGES * PAGE_SIZE);
-+	badend = DMA_MAPPING_ERROR + (EMERGENCY_PAGES * PAGE_SIZE);
- 	if (unlikely(dma_addr < badend)) {
- 		WARN(1, KERN_ERR "Calgary: driver tried unmapping bad DMA "
- 		       "address 0x%Lx\n", dma_addr);
-@@ -383,7 +381,7 @@ static int calgary_map_sg(struct device *dev, struct scatterlist *sg,
- 		npages = iommu_num_pages(vaddr, s->length, PAGE_SIZE);
- 
- 		entry = iommu_range_alloc(dev, tbl, npages);
--		if (entry == CALGARY_MAPPING_ERROR) {
-+		if (entry == DMA_MAPPING_ERROR) {
- 			/* makes sure unmap knows to stop */
- 			s->dma_length = 0;
- 			goto error;
-@@ -401,7 +399,7 @@ static int calgary_map_sg(struct device *dev, struct scatterlist *sg,
- error:
- 	calgary_unmap_sg(dev, sg, nelems, dir, 0);
- 	for_each_sg(sg, s, nelems, i) {
--		sg->dma_address = CALGARY_MAPPING_ERROR;
-+		sg->dma_address = DMA_MAPPING_ERROR;
- 		sg->dma_length = 0;
- 	}
- 	return 0;
-@@ -454,7 +452,7 @@ static void* calgary_alloc_coherent(struct device *dev, size_t size,
- 
- 	/* set up tces to cover the allocated range */
- 	mapping = iommu_alloc(dev, tbl, ret, npages, DMA_BIDIRECTIONAL);
--	if (mapping == CALGARY_MAPPING_ERROR)
-+	if (mapping == DMA_MAPPING_ERROR)
- 		goto free;
- 	*dma_handle = mapping;
- 	return ret;
-@@ -479,11 +477,6 @@ static void calgary_free_coherent(struct device *dev, size_t size,
- 	free_pages((unsigned long)vaddr, get_order(size));
- }
- 
--static int calgary_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == CALGARY_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops calgary_dma_ops = {
- 	.alloc = calgary_alloc_coherent,
- 	.free = calgary_free_coherent,
-@@ -491,7 +484,6 @@ static const struct dma_map_ops calgary_dma_ops = {
- 	.unmap_sg = calgary_unmap_sg,
- 	.map_page = calgary_map_page,
- 	.unmap_page = calgary_unmap_page,
--	.mapping_error = calgary_mapping_error,
- 	.dma_supported = dma_direct_supported,
- };
- 
-@@ -740,7 +732,7 @@ static void __init calgary_reserve_regions(struct pci_dev *dev)
- 	struct iommu_table *tbl = pci_iommu(dev->bus);
- 
- 	/* reserve EMERGENCY_PAGES from bad_dma_address and up */
--	iommu_range_reserve(tbl, CALGARY_MAPPING_ERROR, EMERGENCY_PAGES);
-+	iommu_range_reserve(tbl, DMA_MAPPING_ERROR, EMERGENCY_PAGES);
- 
- 	/* avoid the BIOS/VGA first 640KB-1MB region */
- 	/* for CalIOC2 - avoid the entire first MB */
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index 1167ff0416cf..cfb422e17049 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -55,8 +55,6 @@
- #include "amd_iommu_types.h"
- #include "irq_remapping.h"
- 
--#define AMD_IOMMU_MAPPING_ERROR	0
--
- #define CMD_SET_TYPE(cmd, t) ((cmd)->data[1] |= ((t) << 28))
- 
- #define LOOP_TIMEOUT	100000
-@@ -2339,7 +2337,7 @@ static dma_addr_t __map_single(struct device *dev,
- 	paddr &= PAGE_MASK;
- 
- 	address = dma_ops_alloc_iova(dev, dma_dom, pages, dma_mask);
--	if (address == AMD_IOMMU_MAPPING_ERROR)
-+	if (address == DMA_MAPPING_ERROR)
- 		goto out;
- 
- 	prot = dir2prot(direction);
-@@ -2376,7 +2374,7 @@ static dma_addr_t __map_single(struct device *dev,
- 
- 	dma_ops_free_iova(dma_dom, address, pages);
- 
--	return AMD_IOMMU_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /*
-@@ -2427,7 +2425,7 @@ static dma_addr_t map_page(struct device *dev, struct page *page,
- 	if (PTR_ERR(domain) == -EINVAL)
- 		return (dma_addr_t)paddr;
- 	else if (IS_ERR(domain))
--		return AMD_IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	dma_mask = *dev->dma_mask;
- 	dma_dom = to_dma_ops_domain(domain);
-@@ -2504,7 +2502,7 @@ static int map_sg(struct device *dev, struct scatterlist *sglist,
- 	npages = sg_num_pages(dev, sglist, nelems);
- 
- 	address = dma_ops_alloc_iova(dev, dma_dom, npages, dma_mask);
--	if (address == AMD_IOMMU_MAPPING_ERROR)
-+	if (address == DMA_MAPPING_ERROR)
- 		goto out_err;
- 
- 	prot = dir2prot(direction);
-@@ -2627,7 +2625,7 @@ static void *alloc_coherent(struct device *dev, size_t size,
- 	*dma_addr = __map_single(dev, dma_dom, page_to_phys(page),
- 				 size, DMA_BIDIRECTIONAL, dma_mask);
- 
--	if (*dma_addr == AMD_IOMMU_MAPPING_ERROR)
-+	if (*dma_addr == DMA_MAPPING_ERROR)
- 		goto out_free;
- 
- 	return page_address(page);
-@@ -2678,11 +2676,6 @@ static int amd_iommu_dma_supported(struct device *dev, u64 mask)
- 	return check_device(dev);
- }
- 
--static int amd_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == AMD_IOMMU_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops amd_iommu_dma_ops = {
- 	.alloc		= alloc_coherent,
- 	.free		= free_coherent,
-@@ -2691,7 +2684,6 @@ static const struct dma_map_ops amd_iommu_dma_ops = {
- 	.map_sg		= map_sg,
- 	.unmap_sg	= unmap_sg,
- 	.dma_supported	= amd_iommu_dma_supported,
--	.mapping_error	= amd_iommu_mapping_error,
- };
- 
- static int init_reserved_iova_ranges(void)
-diff --git a/drivers/iommu/dma-iommu.c b/drivers/iommu/dma-iommu.c
-index d1b04753b204..60c7e9e9901e 100644
---- a/drivers/iommu/dma-iommu.c
-+++ b/drivers/iommu/dma-iommu.c
-@@ -32,8 +32,6 @@
- #include <linux/scatterlist.h>
- #include <linux/vmalloc.h>
- 
--#define IOMMU_MAPPING_ERROR	0
--
- struct iommu_dma_msi_page {
- 	struct list_head	list;
- 	dma_addr_t		iova;
-@@ -523,7 +521,7 @@ void iommu_dma_free(struct device *dev, struct page **pages, size_t size,
- {
- 	__iommu_dma_unmap(iommu_get_dma_domain(dev), *handle, size);
- 	__iommu_dma_free_pages(pages, PAGE_ALIGN(size) >> PAGE_SHIFT);
--	*handle = IOMMU_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- }
- 
- /**
-@@ -556,7 +554,7 @@ struct page **iommu_dma_alloc(struct device *dev, size_t size, gfp_t gfp,
- 	dma_addr_t iova;
- 	unsigned int count, min_size, alloc_sizes = domain->pgsize_bitmap;
- 
--	*handle = IOMMU_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 
- 	min_size = alloc_sizes & -alloc_sizes;
- 	if (min_size < PAGE_SIZE) {
-@@ -649,11 +647,11 @@ static dma_addr_t __iommu_dma_map(struct device *dev, phys_addr_t phys,
- 
- 	iova = iommu_dma_alloc_iova(domain, size, dma_get_mask(dev), dev);
- 	if (!iova)
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (iommu_map(domain, iova, phys - iova_off, size, prot)) {
- 		iommu_dma_free_iova(cookie, iova, size);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 	return iova + iova_off;
- }
-@@ -694,7 +692,7 @@ static int __finalise_sg(struct device *dev, struct scatterlist *sg, int nents,
- 
- 		s->offset += s_iova_off;
- 		s->length = s_length;
--		sg_dma_address(s) = IOMMU_MAPPING_ERROR;
-+		sg_dma_address(s) = DMA_MAPPING_ERROR;
- 		sg_dma_len(s) = 0;
- 
- 		/*
-@@ -737,11 +735,11 @@ static void __invalidate_sg(struct scatterlist *sg, int nents)
- 	int i;
- 
- 	for_each_sg(sg, s, nents, i) {
--		if (sg_dma_address(s) != IOMMU_MAPPING_ERROR)
-+		if (sg_dma_address(s) != DMA_MAPPING_ERROR)
- 			s->offset += sg_dma_address(s);
- 		if (sg_dma_len(s))
- 			s->length = sg_dma_len(s);
--		sg_dma_address(s) = IOMMU_MAPPING_ERROR;
-+		sg_dma_address(s) = DMA_MAPPING_ERROR;
- 		sg_dma_len(s) = 0;
- 	}
- }
-@@ -858,11 +856,6 @@ void iommu_dma_unmap_resource(struct device *dev, dma_addr_t handle,
- 	__iommu_dma_unmap(iommu_get_dma_domain(dev), handle, size);
- }
- 
--int iommu_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == IOMMU_MAPPING_ERROR;
--}
--
- static struct iommu_dma_msi_page *iommu_dma_get_msi_page(struct device *dev,
- 		phys_addr_t msi_addr, struct iommu_domain *domain)
- {
-@@ -882,7 +875,7 @@ static struct iommu_dma_msi_page *iommu_dma_get_msi_page(struct device *dev,
- 		return NULL;
- 
- 	iova = __iommu_dma_map(dev, msi_addr, size, prot, domain);
--	if (iommu_dma_mapping_error(dev, iova))
-+	if (iova == DMA_MAPPING_ERROR)
- 		goto out_free_page;
- 
- 	INIT_LIST_HEAD(&msi_page->list);
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index f3ccf025108b..ffc4864d0ed7 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -3661,8 +3661,13 @@ static dma_addr_t intel_map_page(struct device *dev, struct page *page,
- 				 enum dma_data_direction dir,
- 				 unsigned long attrs)
- {
--	return __intel_map_single(dev, page_to_phys(page) + offset, size,
+-	dma_addr_t dma_addr = dma_map_single_attrs(dev, data, len, dir, attrs);
+ 	struct talitos_private *priv = dev_get_drvdata(dev);
+ 	bool is_sec1 = has_ftr_sec1(priv);
 +	dma_addr_t dma_addr;
+ 
++	/* XXX: this driver badly needs error handling. */
++	dma_map_single_attrs(dev, data, len, dir, attrs, &dma_addr);
+ 	to_talitos_ptr(ptr, dma_addr, len, is_sec1);
+ }
+ 
+diff --git a/drivers/gpu/drm/i915/i915_gem_gtt.c b/drivers/gpu/drm/i915/i915_gem_gtt.c
+index 56c7f8637311..49a0c275546b 100644
+--- a/drivers/gpu/drm/i915/i915_gem_gtt.c
++++ b/drivers/gpu/drm/i915/i915_gem_gtt.c
+@@ -566,12 +566,9 @@ static int __setup_page_dma(struct i915_address_space *vm,
+ 	if (unlikely(!p->page))
+ 		return -ENOMEM;
+ 
+-	p->daddr = dma_map_page_attrs(vm->dma,
+-				      p->page, 0, PAGE_SIZE,
+-				      PCI_DMA_BIDIRECTIONAL,
+-				      DMA_ATTR_SKIP_CPU_SYNC |
+-				      DMA_ATTR_NO_WARN);
+-	if (unlikely(dma_mapping_error(vm->dma, p->daddr))) {
++	if (dma_map_page_attrs(vm->dma, p->page, 0, PAGE_SIZE,
++			PCI_DMA_BIDIRECTIONAL,
++			DMA_ATTR_SKIP_CPU_SYNC | DMA_ATTR_NO_WARN, &p->daddr)) {
+ 		vm_free_page(vm, p->page);
+ 		return -ENOMEM;
+ 	}
+@@ -651,12 +648,10 @@ setup_scratch_page(struct i915_address_space *vm, gfp_t gfp)
+ 		if (unlikely(!page))
+ 			goto skip;
+ 
+-		addr = dma_map_page_attrs(vm->dma,
+-					  page, 0, size,
+-					  PCI_DMA_BIDIRECTIONAL,
+-					  DMA_ATTR_SKIP_CPU_SYNC |
+-					  DMA_ATTR_NO_WARN);
+-		if (unlikely(dma_mapping_error(vm->dma, addr)))
++		if (unlikely(dma_map_page_attrs(vm->dma, page, 0, size,
++				PCI_DMA_BIDIRECTIONAL,
++				DMA_ATTR_SKIP_CPU_SYNC | DMA_ATTR_NO_WARN,
++				&addr)))
+ 			goto free_page;
+ 
+ 		if (unlikely(!IS_ALIGNED(addr, size)))
+diff --git a/drivers/net/ethernet/broadcom/bnxt/bnxt.c b/drivers/net/ethernet/broadcom/bnxt/bnxt.c
+index dd85d790f638..b94e13499d68 100644
+--- a/drivers/net/ethernet/broadcom/bnxt/bnxt.c
++++ b/drivers/net/ethernet/broadcom/bnxt/bnxt.c
+@@ -662,9 +662,8 @@ static struct page *__bnxt_alloc_rx_page(struct bnxt *bp, dma_addr_t *mapping,
+ 	if (!page)
+ 		return NULL;
+ 
+-	*mapping = dma_map_page_attrs(dev, page, 0, PAGE_SIZE, bp->rx_dir,
+-				      DMA_ATTR_WEAK_ORDERING);
+-	if (dma_mapping_error(dev, *mapping)) {
++	if (dma_map_page_attrs(dev, page, 0, PAGE_SIZE, bp->rx_dir,
++			DMA_ATTR_WEAK_ORDERING, mapping)) {
+ 		__free_page(page);
+ 		return NULL;
+ 	}
+@@ -682,11 +681,9 @@ static inline u8 *__bnxt_alloc_rx_data(struct bnxt *bp, dma_addr_t *mapping,
+ 	if (!data)
+ 		return NULL;
+ 
+-	*mapping = dma_map_single_attrs(&pdev->dev, data + bp->rx_dma_offset,
+-					bp->rx_buf_use_size, bp->rx_dir,
+-					DMA_ATTR_WEAK_ORDERING);
+-
+-	if (dma_mapping_error(&pdev->dev, *mapping)) {
++	if (dma_map_single_attrs(&pdev->dev, data + bp->rx_dma_offset,
++			bp->rx_buf_use_size, bp->rx_dir, DMA_ATTR_WEAK_ORDERING,
++			mapping)) {
+ 		kfree(data);
+ 		data = NULL;
+ 	}
+@@ -787,10 +784,9 @@ static inline int bnxt_alloc_rx_page(struct bnxt *bp,
+ 			return -ENOMEM;
+ 	}
+ 
+-	mapping = dma_map_page_attrs(&pdev->dev, page, offset,
+-				     BNXT_RX_PAGE_SIZE, PCI_DMA_FROMDEVICE,
+-				     DMA_ATTR_WEAK_ORDERING);
+-	if (dma_mapping_error(&pdev->dev, mapping)) {
++	if (dma_map_page_attrs(&pdev->dev, page, offset,
++			BNXT_RX_PAGE_SIZE, PCI_DMA_FROMDEVICE,
++			DMA_ATTR_WEAK_ORDERING, &mapping)) {
+ 		__free_page(page);
+ 		return -EIO;
+ 	}
+diff --git a/drivers/net/ethernet/cavium/thunder/nicvf_queues.c b/drivers/net/ethernet/cavium/thunder/nicvf_queues.c
+index 187a249ff2d1..fd762b5b233d 100644
+--- a/drivers/net/ethernet/cavium/thunder/nicvf_queues.c
++++ b/drivers/net/ethernet/cavium/thunder/nicvf_queues.c
+@@ -213,17 +213,18 @@ static inline int nicvf_alloc_rcv_buffer(struct nicvf *nic, struct rbdr *rbdr,
+ 	if (rbdr->is_xdp && pgcache && pgcache->dma_addr) {
+ 		*rbuf = pgcache->dma_addr;
+ 	} else {
++		dma_addr_t addr;
+ 		/* HW will ensure data coherency, CPU sync not required */
+-		*rbuf = (u64)dma_map_page_attrs(&nic->pdev->dev, nic->rb_page,
+-						nic->rb_page_offset, buf_len,
+-						DMA_FROM_DEVICE,
+-						DMA_ATTR_SKIP_CPU_SYNC);
+-		if (dma_mapping_error(&nic->pdev->dev, (dma_addr_t)*rbuf)) {
++		if (dma_map_page_attrs(&nic->pdev->dev, nic->rb_page,
++				nic->rb_page_offset, buf_len, DMA_FROM_DEVICE,
++				DMA_ATTR_SKIP_CPU_SYNC, &addr)) {
+ 			if (!nic->rb_page_offset)
+ 				__free_pages(nic->rb_page, 0);
+ 			nic->rb_page = NULL;
+ 			return -ENOMEM;
+ 		}
 +
-+	dma_addr = __intel_map_single(dev, page_to_phys(page) + offset, size,
- 				  dir, *dev->dma_mask);
-+	if (dma_addr == 0)
-+		return DMA_MAPPING_ERROR;
-+	return dma_addr;
++		*rbuf = addr;
+ 		if (pgcache)
+ 			pgcache->dma_addr = *rbuf + XDP_PACKET_HEADROOM;
+ 		nic->rb_page_offset += buf_len;
+@@ -1576,10 +1577,9 @@ int nicvf_sq_append_skb(struct nicvf *nic, struct snd_queue *sq,
+ 	qentry = nicvf_get_nxt_sqentry(sq, qentry);
+ 	size = skb_is_nonlinear(skb) ? skb_headlen(skb) : skb->len;
+ 	/* HW will ensure data coherency, CPU sync not required */
+-	dma_addr = dma_map_page_attrs(&nic->pdev->dev, virt_to_page(skb->data),
+-				      offset_in_page(skb->data), size,
+-				      DMA_TO_DEVICE, DMA_ATTR_SKIP_CPU_SYNC);
+-	if (dma_mapping_error(&nic->pdev->dev, dma_addr)) {
++	if (dma_map_page_attrs(&nic->pdev->dev, virt_to_page(skb->data),
++			offset_in_page(skb->data), size, DMA_TO_DEVICE,
++			DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 		nicvf_rollback_sq_desc(sq, qentry, subdesc_cnt);
+ 		return 0;
+ 	}
+@@ -1597,12 +1597,9 @@ int nicvf_sq_append_skb(struct nicvf *nic, struct snd_queue *sq,
+ 
+ 		qentry = nicvf_get_nxt_sqentry(sq, qentry);
+ 		size = skb_frag_size(frag);
+-		dma_addr = dma_map_page_attrs(&nic->pdev->dev,
+-					      skb_frag_page(frag),
+-					      frag->page_offset, size,
+-					      DMA_TO_DEVICE,
+-					      DMA_ATTR_SKIP_CPU_SYNC);
+-		if (dma_mapping_error(&nic->pdev->dev, dma_addr)) {
++		if (dma_map_page_attrs(&nic->pdev->dev, skb_frag_page(frag),
++				frag->page_offset, size, DMA_TO_DEVICE,
++				DMA_ATTR_SKIP_CPU_SYNC, &dma_addr)) {
+ 			/* Free entire chain of mapped buffers
+ 			 * here 'i' = frags mapped + above mapped skb->data
+ 			 */
+diff --git a/drivers/net/ethernet/intel/i40e/i40e_txrx.c b/drivers/net/ethernet/intel/i40e/i40e_txrx.c
+index aef3c89ee79c..1d1515197bf7 100644
+--- a/drivers/net/ethernet/intel/i40e/i40e_txrx.c
++++ b/drivers/net/ethernet/intel/i40e/i40e_txrx.c
+@@ -1535,15 +1535,8 @@ static bool i40e_alloc_mapped_page(struct i40e_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 i40e_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE,
+-				 I40E_RX_DMA_ATTR);
+-
+-	/* if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0, i40e_rx_pg_size(rx_ring),
++			DMA_FROM_DEVICE, I40E_RX_DMA_ATTR, &dma)) {
+ 		__free_pages(page, i40e_rx_pg_order(rx_ring));
+ 		rx_ring->rx_stats.alloc_page_failed++;
+ 		return false;
+diff --git a/drivers/net/ethernet/intel/i40e/i40e_xsk.c b/drivers/net/ethernet/intel/i40e/i40e_xsk.c
+index add1e457886d..f950160c7e45 100644
+--- a/drivers/net/ethernet/intel/i40e/i40e_xsk.c
++++ b/drivers/net/ethernet/intel/i40e/i40e_xsk.c
+@@ -88,9 +88,8 @@ static int i40e_xsk_umem_dma_map(struct i40e_vsi *vsi, struct xdp_umem *umem)
+ 
+ 	dev = &pf->pdev->dev;
+ 	for (i = 0; i < umem->npgs; i++) {
+-		dma = dma_map_page_attrs(dev, umem->pgs[i], 0, PAGE_SIZE,
+-					 DMA_BIDIRECTIONAL, I40E_RX_DMA_ATTR);
+-		if (dma_mapping_error(dev, dma))
++		if (dma_map_page_attrs(dev, umem->pgs[i], 0, PAGE_SIZE,
++				DMA_BIDIRECTIONAL, I40E_RX_DMA_ATTR, &dma))
+ 			goto out_unmap;
+ 
+ 		umem->pages[i].dma = dma;
+diff --git a/drivers/net/ethernet/intel/iavf/iavf_txrx.c b/drivers/net/ethernet/intel/iavf/iavf_txrx.c
+index fb9bfad96daf..e973985faf49 100644
+--- a/drivers/net/ethernet/intel/iavf/iavf_txrx.c
++++ b/drivers/net/ethernet/intel/iavf/iavf_txrx.c
+@@ -827,15 +827,8 @@ static bool iavf_alloc_mapped_page(struct iavf_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 iavf_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE,
+-				 IAVF_RX_DMA_ATTR);
+-
+-	/* if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0, iavf_rx_pg_size(rx_ring),
++			DMA_FROM_DEVICE, IAVF_RX_DMA_ATTR, &dma)) {
+ 		__free_pages(page, iavf_rx_pg_order(rx_ring));
+ 		rx_ring->rx_stats.alloc_page_failed++;
+ 		return false;
+diff --git a/drivers/net/ethernet/intel/igb/igb_main.c b/drivers/net/ethernet/intel/igb/igb_main.c
+index 5df88ad8ac81..355bdd0004d4 100644
+--- a/drivers/net/ethernet/intel/igb/igb_main.c
++++ b/drivers/net/ethernet/intel/igb/igb_main.c
+@@ -8439,15 +8439,8 @@ static bool igb_alloc_mapped_page(struct igb_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 igb_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE,
+-				 IGB_RX_DMA_ATTR);
+-
+-	/* if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0, igb_rx_pg_size(rx_ring),
++			DMA_FROM_DEVICE, IGB_RX_DMA_ATTR, &dma)) {
+ 		__free_pages(page, igb_rx_pg_order(rx_ring));
+ 
+ 		rx_ring->rx_stats.alloc_failed++;
+diff --git a/drivers/net/ethernet/intel/igc/igc_main.c b/drivers/net/ethernet/intel/igc/igc_main.c
+index 9d85707e8a81..d2cbc65cf291 100644
+--- a/drivers/net/ethernet/intel/igc/igc_main.c
++++ b/drivers/net/ethernet/intel/igc/igc_main.c
+@@ -1505,15 +1505,8 @@ static bool igc_alloc_mapped_page(struct igc_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 igc_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE,
+-				 IGC_RX_DMA_ATTR);
+-
+-	/* if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0, igc_rx_pg_size(rx_ring),
++			DMA_FROM_DEVICE, IGC_RX_DMA_ATTR, &dma)) {
+ 		__free_page(page);
+ 
+ 		rx_ring->rx_stats.alloc_failed++;
+diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
+index 113b38e0defb..03f172b1ec4d 100644
+--- a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
++++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
+@@ -1542,16 +1542,8 @@ static bool ixgbe_alloc_mapped_page(struct ixgbe_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 ixgbe_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE,
+-				 IXGBE_RX_DMA_ATTR);
+-
+-	/*
+-	 * if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0, ixgbe_rx_pg_size(rx_ring),
++			DMA_FROM_DEVICE, IXGBE_RX_DMA_ATTR, &dma)) {
+ 		__free_pages(page, ixgbe_rx_pg_order(rx_ring));
+ 
+ 		rx_ring->rx_stats.alloc_rx_page_failed++;
+diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_xsk.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_xsk.c
+index 65c3e2c979d4..9de8e4890acb 100644
+--- a/drivers/net/ethernet/intel/ixgbe/ixgbe_xsk.c
++++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_xsk.c
+@@ -75,9 +75,8 @@ static int ixgbe_xsk_umem_dma_map(struct ixgbe_adapter *adapter,
+ 	dma_addr_t dma;
+ 
+ 	for (i = 0; i < umem->npgs; i++) {
+-		dma = dma_map_page_attrs(dev, umem->pgs[i], 0, PAGE_SIZE,
+-					 DMA_BIDIRECTIONAL, IXGBE_RX_DMA_ATTR);
+-		if (dma_mapping_error(dev, dma))
++		if (dma_map_page_attrs(dev, umem->pgs[i], 0, PAGE_SIZE,
++				DMA_BIDIRECTIONAL, IXGBE_RX_DMA_ATTR, &dma))
+ 			goto out_unmap;
+ 
+ 		umem->pages[i].dma = dma;
+diff --git a/drivers/net/ethernet/intel/ixgbevf/ixgbevf_main.c b/drivers/net/ethernet/intel/ixgbevf/ixgbevf_main.c
+index 5e47ede7e832..966fefb32ad5 100644
+--- a/drivers/net/ethernet/intel/ixgbevf/ixgbevf_main.c
++++ b/drivers/net/ethernet/intel/ixgbevf/ixgbevf_main.c
+@@ -620,14 +620,9 @@ static bool ixgbevf_alloc_mapped_page(struct ixgbevf_ring *rx_ring,
+ 	}
+ 
+ 	/* map page for use */
+-	dma = dma_map_page_attrs(rx_ring->dev, page, 0,
+-				 ixgbevf_rx_pg_size(rx_ring),
+-				 DMA_FROM_DEVICE, IXGBEVF_RX_DMA_ATTR);
+-
+-	/* if mapping failed free memory back to system since
+-	 * there isn't much point in holding memory we can't use
+-	 */
+-	if (dma_mapping_error(rx_ring->dev, dma)) {
++	if (dma_map_page_attrs(rx_ring->dev, page, 0,
++			ixgbevf_rx_pg_size(rx_ring), DMA_FROM_DEVICE,
++			IXGBEVF_RX_DMA_ATTR, &dma)) {
+ 		__free_pages(page, ixgbevf_rx_pg_order(rx_ring));
+ 
+ 		rx_ring->rx_stats.alloc_rx_page_failed++;
+diff --git a/drivers/net/ethernet/netronome/nfp/nfp_net_common.c b/drivers/net/ethernet/netronome/nfp/nfp_net_common.c
+index 6bddfcfdec34..933b3cfe2234 100644
+--- a/drivers/net/ethernet/netronome/nfp/nfp_net_common.c
++++ b/drivers/net/ethernet/netronome/nfp/nfp_net_common.c
+@@ -60,11 +60,13 @@ void nfp_net_get_fw_version(struct nfp_net_fw_version *fw_ver,
+ 	put_unaligned_le32(reg, fw_ver);
  }
  
- static void intel_unmap(struct device *dev, dma_addr_t dev_addr, size_t size)
-@@ -3865,11 +3870,6 @@ static int intel_map_sg(struct device *dev, struct scatterlist *sglist, int nele
- 	return nelems;
- }
- 
--static int intel_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return !dma_addr;
--}
--
- static const struct dma_map_ops intel_dma_ops = {
- 	.alloc = intel_alloc_coherent,
- 	.free = intel_free_coherent,
-@@ -3877,7 +3877,6 @@ static const struct dma_map_ops intel_dma_ops = {
- 	.unmap_sg = intel_unmap_sg,
- 	.map_page = intel_map_page,
- 	.unmap_page = intel_unmap_page,
--	.mapping_error = intel_mapping_error,
- 	.dma_supported = dma_direct_supported,
- };
- 
-diff --git a/drivers/parisc/ccio-dma.c b/drivers/parisc/ccio-dma.c
-index 701a7d6a74d5..714aac72df0e 100644
---- a/drivers/parisc/ccio-dma.c
-+++ b/drivers/parisc/ccio-dma.c
-@@ -110,8 +110,6 @@
- #define CMD_TLB_DIRECT_WRITE 35         /* IO_COMMAND for I/O TLB Writes     */
- #define CMD_TLB_PURGE        33         /* IO_COMMAND to Purge I/O TLB entry */
- 
--#define CCIO_MAPPING_ERROR    (~(dma_addr_t)0)
--
- struct ioa_registers {
-         /* Runway Supervisory Set */
-         int32_t    unused1[12];
-@@ -740,7 +738,7 @@ ccio_map_single(struct device *dev, void *addr, size_t size,
- 	BUG_ON(!dev);
- 	ioc = GET_IOC(dev);
- 	if (!ioc)
--		return CCIO_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	BUG_ON(size <= 0);
- 
-@@ -1021,11 +1019,6 @@ ccio_unmap_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 	DBG_RUN_SG("%s() DONE (nents %d)\n", __func__, nents);
- }
- 
--static int ccio_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == CCIO_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops ccio_ops = {
- 	.dma_supported =	ccio_dma_supported,
- 	.alloc =		ccio_alloc,
-@@ -1034,7 +1027,6 @@ static const struct dma_map_ops ccio_ops = {
- 	.unmap_page =		ccio_unmap_page,
- 	.map_sg = 		ccio_map_sg,
- 	.unmap_sg = 		ccio_unmap_sg,
--	.mapping_error =	ccio_mapping_error,
- };
- 
- #ifdef CONFIG_PROC_FS
-diff --git a/drivers/parisc/sba_iommu.c b/drivers/parisc/sba_iommu.c
-index c1e599a429af..452d306ce5cb 100644
---- a/drivers/parisc/sba_iommu.c
-+++ b/drivers/parisc/sba_iommu.c
-@@ -93,8 +93,6 @@
- 
- #define DEFAULT_DMA_HINT_REG	0
- 
--#define SBA_MAPPING_ERROR    (~(dma_addr_t)0)
--
- struct sba_device *sba_list;
- EXPORT_SYMBOL_GPL(sba_list);
- 
-@@ -725,7 +723,7 @@ sba_map_single(struct device *dev, void *addr, size_t size,
- 
- 	ioc = GET_IOC(dev);
- 	if (!ioc)
--		return SBA_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	/* save offset bits */
- 	offset = ((dma_addr_t) (long) addr) & ~IOVP_MASK;
-@@ -1080,11 +1078,6 @@ sba_unmap_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 
- }
- 
--static int sba_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == SBA_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops sba_ops = {
- 	.dma_supported =	sba_dma_supported,
- 	.alloc =		sba_alloc,
-@@ -1093,7 +1086,6 @@ static const struct dma_map_ops sba_ops = {
- 	.unmap_page =		sba_unmap_page,
- 	.map_sg =		sba_map_sg,
- 	.unmap_sg =		sba_unmap_sg,
--	.mapping_error =	sba_mapping_error,
- };
- 
- 
-diff --git a/drivers/pci/controller/vmd.c b/drivers/pci/controller/vmd.c
-index e50b0b5815ff..98ce79eac128 100644
---- a/drivers/pci/controller/vmd.c
-+++ b/drivers/pci/controller/vmd.c
-@@ -394,11 +394,6 @@ static void vmd_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- 	vmd_dma_ops(dev)->sync_sg_for_device(to_vmd_dev(dev), sg, nents, dir);
- }
- 
--static int vmd_mapping_error(struct device *dev, dma_addr_t addr)
--{
--	return vmd_dma_ops(dev)->mapping_error(to_vmd_dev(dev), addr);
--}
--
- static int vmd_dma_supported(struct device *dev, u64 mask)
+-static dma_addr_t nfp_net_dma_map_rx(struct nfp_net_dp *dp, void *frag)
++static int nfp_net_dma_map_rx(struct nfp_net_dp *dp, void *frag,
++		dma_addr_t *dma_handle)
  {
- 	return vmd_dma_ops(dev)->dma_supported(to_vmd_dev(dev), mask);
-@@ -446,7 +441,6 @@ static void vmd_setup_dma_ops(struct vmd_dev *vmd)
- 	ASSIGN_VMD_DMA_OPS(source, dest, sync_single_for_device);
- 	ASSIGN_VMD_DMA_OPS(source, dest, sync_sg_for_cpu);
- 	ASSIGN_VMD_DMA_OPS(source, dest, sync_sg_for_device);
--	ASSIGN_VMD_DMA_OPS(source, dest, mapping_error);
- 	ASSIGN_VMD_DMA_OPS(source, dest, dma_supported);
- 	ASSIGN_VMD_DMA_OPS(source, dest, get_required_mask);
- 	add_dma_domain(domain);
-diff --git a/drivers/xen/swiotlb-xen.c b/drivers/xen/swiotlb-xen.c
-index 2a7f545bd0b5..6dc969d5ea2f 100644
---- a/drivers/xen/swiotlb-xen.c
-+++ b/drivers/xen/swiotlb-xen.c
-@@ -53,8 +53,6 @@
-  * API.
-  */
- 
--#define XEN_SWIOTLB_ERROR_CODE	(~(dma_addr_t)0x0)
--
- static char *xen_io_tlb_start, *xen_io_tlb_end;
- static unsigned long xen_io_tlb_nslabs;
- /*
-@@ -406,7 +404,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
- 	map = swiotlb_tbl_map_single(dev, start_dma_addr, phys, size, dir,
- 				     attrs);
- 	if (map == SWIOTLB_MAP_ERROR)
--		return XEN_SWIOTLB_ERROR_CODE;
-+		return DMA_MAPPING_ERROR;
- 
- 	dev_addr = xen_phys_to_bus(map);
- 	xen_dma_map_page(dev, pfn_to_page(map >> PAGE_SHIFT),
-@@ -421,7 +419,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
- 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
- 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
- 
--	return XEN_SWIOTLB_ERROR_CODE;
-+	return DMA_MAPPING_ERROR;
+ 	return dma_map_single_attrs(dp->dev, frag + NFP_NET_RX_BUF_HEADROOM,
+ 				    dp->fl_bufsz - NFP_NET_RX_BUF_NON_DATA,
+-				    dp->rx_dma_dir, DMA_ATTR_SKIP_CPU_SYNC);
++				    dp->rx_dma_dir, DMA_ATTR_SKIP_CPU_SYNC,
++				    dma_handle);
  }
  
- /*
-@@ -700,11 +698,6 @@ xen_swiotlb_get_sgtable(struct device *dev, struct sg_table *sgt,
- 	return dma_common_get_sgtable(dev, sgt, cpu_addr, handle, size, attrs);
- }
+ static void
+@@ -1188,8 +1190,7 @@ static void *nfp_net_rx_alloc_one(struct nfp_net_dp *dp, dma_addr_t *dma_addr)
+ 		return NULL;
+ 	}
  
--static int xen_swiotlb_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == XEN_SWIOTLB_ERROR_CODE;
--}
--
- const struct dma_map_ops xen_swiotlb_dma_ops = {
- 	.alloc = xen_swiotlb_alloc_coherent,
- 	.free = xen_swiotlb_free_coherent,
-@@ -719,5 +712,4 @@ const struct dma_map_ops xen_swiotlb_dma_ops = {
- 	.dma_supported = xen_swiotlb_dma_supported,
- 	.mmap = xen_swiotlb_dma_mmap,
- 	.get_sgtable = xen_swiotlb_get_sgtable,
--	.mapping_error	= xen_swiotlb_mapping_error,
- };
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index bd73e7a91410..e7600f92d876 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -5,8 +5,6 @@
- #include <linux/dma-mapping.h>
- #include <linux/mem_encrypt.h>
+-	*dma_addr = nfp_net_dma_map_rx(dp, frag);
+-	if (dma_mapping_error(dp->dev, *dma_addr)) {
++	if (nfp_net_dma_map_rx(dp, frag, dma_addr)) {
+ 		nfp_net_free_frag(frag, dp->xdp_prog);
+ 		nn_dp_warn(dp, "Failed to map DMA RX buffer\n");
+ 		return NULL;
+@@ -1215,8 +1216,7 @@ static void *nfp_net_napi_alloc_one(struct nfp_net_dp *dp, dma_addr_t *dma_addr)
+ 		frag = page_address(page);
+ 	}
  
--#define DIRECT_MAPPING_ERROR		0
--
- #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
- #include <asm/dma-direct.h>
- #else
-@@ -73,5 +71,4 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
- 		enum dma_data_direction dir, unsigned long attrs);
- int dma_direct_supported(struct device *dev, u64 mask);
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr);
- #endif /* _LINUX_DMA_DIRECT_H */
-diff --git a/include/linux/dma-iommu.h b/include/linux/dma-iommu.h
-index e8ca5e654277..e760dc5d1fa8 100644
---- a/include/linux/dma-iommu.h
-+++ b/include/linux/dma-iommu.h
-@@ -69,7 +69,6 @@ dma_addr_t iommu_dma_map_resource(struct device *dev, phys_addr_t phys,
- 		size_t size, enum dma_data_direction dir, unsigned long attrs);
- void iommu_dma_unmap_resource(struct device *dev, dma_addr_t handle,
- 		size_t size, enum dma_data_direction dir, unsigned long attrs);
--int iommu_dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
- 
- /* The DMA API isn't _quite_ the whole story, though... */
- void iommu_dma_map_msi_msg(int irq, struct msi_msg *msg);
+-	*dma_addr = nfp_net_dma_map_rx(dp, frag);
+-	if (dma_mapping_error(dp->dev, *dma_addr)) {
++	if (nfp_net_dma_map_rx(dp, frag, dma_addr)) {
+ 		nfp_net_free_frag(frag, dp->xdp_prog);
+ 		nn_dp_warn(dp, "Failed to map DMA RX buffer\n");
+ 		return NULL;
 diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 15bd41447025..c08779649ac0 100644
+index c08779649ac0..d70bded7aea8 100644
 --- a/include/linux/dma-mapping.h
 +++ b/include/linux/dma-mapping.h
-@@ -128,11 +128,15 @@ struct dma_map_ops {
- 				   enum dma_data_direction dir);
- 	void (*cache_sync)(struct device *dev, void *vaddr, size_t size,
- 			enum dma_data_direction direction);
--	int (*mapping_error)(struct device *dev, dma_addr_t dma_addr);
- 	int (*dma_supported)(struct device *dev, u64 mask);
- 	u64 (*get_required_mask)(struct device *dev);
- };
- 
-+/*
-+ * Error return value from ->map_page.
-+ */
-+#define DMA_MAPPING_ERROR	(~(dma_addr_t)0x0)
-+
- extern const struct dma_map_ops dma_direct_ops;
- extern const struct dma_map_ops dma_virt_ops;
- 
-@@ -573,12 +577,8 @@ static inline void dma_free_coherent(struct device *dev, size_t size,
- 
- static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
- {
--	const struct dma_map_ops *ops = get_dma_ops(dev);
--
- 	debug_dma_mapping_error(dev, dma_addr);
--	if (ops->mapping_error)
--		return ops->mapping_error(dev, dma_addr);
--	return 0;
-+	return dma_addr == DMA_MAPPING_ERROR;
+@@ -224,22 +224,37 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
  }
- 
- static inline void dma_check_mask(struct device *dev, u64 mask)
-diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
-index 22a12ab5a5e9..d4335a03193a 100644
---- a/kernel/dma/direct.c
-+++ b/kernel/dma/direct.c
-@@ -265,7 +265,7 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- 	dma_addr_t dma_addr = phys_to_dma(dev, phys);
- 
- 	if (!check_addr(dev, dma_addr, size, __func__))
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
- 		dma_direct_sync_single_for_device(dev, dma_addr, size, dir);
-@@ -312,11 +312,6 @@ int dma_direct_supported(struct device *dev, u64 mask)
- 	return mask >= phys_to_dma(dev, min_mask);
- }
- 
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == DIRECT_MAPPING_ERROR;
--}
--
- const struct dma_map_ops dma_direct_ops = {
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
-@@ -335,7 +330,6 @@ const struct dma_map_ops dma_direct_ops = {
  #endif
- 	.get_required_mask	= dma_direct_get_required_mask,
- 	.dma_supported		= dma_direct_supported,
--	.mapping_error		= dma_direct_mapping_error,
- 	.cache_sync		= arch_dma_cache_sync,
- };
- EXPORT_SYMBOL(dma_direct_ops);
-diff --git a/kernel/dma/swiotlb.c b/kernel/dma/swiotlb.c
-index 5731daa09a32..42b0c7d50d2b 100644
---- a/kernel/dma/swiotlb.c
-+++ b/kernel/dma/swiotlb.c
-@@ -631,21 +631,21 @@ static dma_addr_t swiotlb_bounce_page(struct device *dev, phys_addr_t *phys,
- 	if (unlikely(swiotlb_force == SWIOTLB_NO_FORCE)) {
- 		dev_warn_ratelimited(dev,
- 			"Cannot do DMA to address %pa\n", phys);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
  
- 	/* Oh well, have to allocate and map a bounce buffer. */
- 	*phys = swiotlb_tbl_map_single(dev, __phys_to_dma(dev, io_tlb_start),
- 			*phys, size, dir, attrs);
- 	if (*phys == SWIOTLB_MAP_ERROR)
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
+-static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+-					      size_t size,
+-					      enum dma_data_direction dir,
+-					      unsigned long attrs)
++static __must_check inline int
++dma_map_single_attrs(struct device *dev, void *ptr, size_t size,
++		enum dma_data_direction dir, unsigned long attrs,
++		dma_addr_t *dma_handle)
++{
++	const struct dma_map_ops *ops = get_dma_ops(dev);
++
++	BUG_ON(!valid_dma_direction(dir));
++	debug_dma_map_single(dev, ptr, size);
++	*dma_handle = ops->map_page(dev, virt_to_page(ptr), offset_in_page(ptr),
++			size, dir, attrs);
++	if (*dma_handle == DMA_MAPPING_ERROR)
++		return -ENOMEM;
++
++	debug_dma_map_page(dev, virt_to_page(ptr), offset_in_page(ptr), size,
++			dir, *dma_handle, true);
++	return 0;
++}
++
++static inline dma_addr_t dma_map_single(struct device *dev, void *ptr,
++		size_t size, enum dma_data_direction dir)
+ {
+ 	const struct dma_map_ops *ops = get_dma_ops(dev);
+ 	dma_addr_t addr;
  
- 	/* Ensure that the address returned is DMA'ble */
- 	dma_addr = __phys_to_dma(dev, *phys);
- 	if (unlikely(!dma_capable(dev, dma_addr, size))) {
- 		swiotlb_tbl_unmap_single(dev, *phys, size, dir,
- 			attrs | DMA_ATTR_SKIP_CPU_SYNC);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	return dma_addr;
-@@ -788,7 +788,7 @@ swiotlb_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nelems,
- 	for_each_sg(sgl, sg, nelems, i) {
- 		sg->dma_address = swiotlb_map_page(dev, sg_page(sg), sg->offset,
- 				sg->length, dir, attrs);
--		if (sg->dma_address == DIRECT_MAPPING_ERROR)
-+		if (sg->dma_address == DMA_MAPPING_ERROR)
- 			goto out_error;
- 		sg_dma_len(sg) = sg->length;
- 	}
-@@ -868,7 +868,6 @@ swiotlb_dma_supported(struct device *hwdev, u64 mask)
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	debug_dma_map_single(dev, ptr, size);
+-	addr = ops->map_page(dev, virt_to_page(ptr),
+-			     offset_in_page(ptr), size,
+-			     dir, attrs);
+-	debug_dma_map_page(dev, virt_to_page(ptr),
+-			   offset_in_page(ptr), size,
+-			   dir, addr, true);
++	addr = ops->map_page(dev, virt_to_page(ptr), offset_in_page(ptr), size,
++			dir, 0);
++	debug_dma_map_page(dev, virt_to_page(ptr), offset_in_page(ptr), size,
++			dir, addr, true);
+ 	return addr;
  }
  
- const struct dma_map_ops swiotlb_dma_ops = {
--	.mapping_error		= dma_direct_mapping_error,
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
- 	.sync_single_for_cpu	= swiotlb_sync_single_for_cpu,
+@@ -287,19 +302,30 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ 		ops->unmap_sg(dev, sg, nents, dir, attrs);
+ }
+ 
+-static inline dma_addr_t dma_map_page_attrs(struct device *dev,
+-					    struct page *page,
+-					    size_t offset, size_t size,
+-					    enum dma_data_direction dir,
+-					    unsigned long attrs)
++static __must_check inline int
++dma_map_page_attrs(struct device *dev, struct page *page, size_t offset,
++		size_t size, enum dma_data_direction dir, unsigned long attrs,
++		dma_addr_t *dma_handle)
++{
++	const struct dma_map_ops *ops = get_dma_ops(dev);
++
++	BUG_ON(!valid_dma_direction(dir));
++	*dma_handle = ops->map_page(dev, page, offset, size, dir, attrs);
++	if (*dma_handle == DMA_MAPPING_ERROR)
++		return -ENOMEM;
++	debug_dma_map_page(dev, page, offset, size, dir, *dma_handle, false);
++	return 0;
++}
++
++static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
++		size_t offset, size_t size, enum dma_data_direction dir)
+ {
+ 	const struct dma_map_ops *ops = get_dma_ops(dev);
+ 	dma_addr_t addr;
+ 
+ 	BUG_ON(!valid_dma_direction(dir));
+-	addr = ops->map_page(dev, page, offset, size, dir, attrs);
++	addr = ops->map_page(dev, page, offset, size, dir, 0);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+-
+ 	return addr;
+ }
+ 
+@@ -428,11 +454,9 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 
+ }
+ 
+-#define dma_map_single(d, a, s, r) dma_map_single_attrs(d, a, s, r, 0)
+ #define dma_unmap_single(d, a, s, r) dma_unmap_single_attrs(d, a, s, r, 0)
+ #define dma_map_sg(d, s, n, r) dma_map_sg_attrs(d, s, n, r, 0)
+ #define dma_unmap_sg(d, s, n, r) dma_unmap_sg_attrs(d, s, n, r, 0)
+-#define dma_map_page(d, p, o, s, r) dma_map_page_attrs(d, p, o, s, r, 0)
+ #define dma_unmap_page(d, a, s, r) dma_unmap_page_attrs(d, a, s, r, 0)
+ 
+ static inline void
 -- 
 2.19.1
