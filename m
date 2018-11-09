@@ -1,85 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:57948 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728007AbeKJDNy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 22:13:54 -0500
-Subject: Re: [PATCH] ARC: MM: fix UB and kernel resourse leak in do_page_fault
-References: <20181107121249.6657-1-Eugeniy.Paltsev@synopsys.com>
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Message-ID: <fc14368c-bf00-1e55-5b0e-eb50a848c952@synopsys.com>
-Date: Fri, 9 Nov 2018 09:32:12 -0800
+Received: from mail-it1-f194.google.com ([209.85.166.194]:35754 "EHLO
+        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727995AbeKJDvt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2018 22:51:49 -0500
+Received: by mail-it1-f194.google.com with SMTP id v11so4627042itj.0
+        for <linux-arch@vger.kernel.org>; Fri, 09 Nov 2018 10:10:07 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20181107121249.6657-1-Eugeniy.Paltsev@synopsys.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com> <20181109123730.8743-8-vincenzo.frascino@arm.com>
+In-Reply-To: <20181109123730.8743-8-vincenzo.frascino@arm.com>
+From: Peter Collingbourne <pcc@google.com>
+Date: Fri, 9 Nov 2018 10:09:55 -0800
+Message-ID: <CAMn1gO5tmJDXEgAZefcOmp1E2LmG3uqbO7vFwZRxAy2Cny114g@mail.gmail.com>
+Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Alexey Brodkin <alexey.brodkin@synopsys.com>, "Eric W . Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org
-Message-ID: <20181109173212.t16NARV-KbXiDTtlQisvMNOoYX7vEJQ2Y-uFmLAq4d4@z>
+To: vincenzo.frascino@arm.com
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com
+Message-ID: <20181109180955.X8aCLJuojH5vxDfUAQbtbRNeZkAFeRXkKcHpcM7Sig0@z>
 
-On 11/7/18 4:12 AM, Eugeniy Paltsev wrote:
-> Commit 15773ae938d8 ("signal/arc: Use force_sig_fault where
-> appropriate") adds undefined behaviour and kernel resource leak
-> to userspace in ARC do_page_fault() implementation.
-> 
-> This happens because we don't initialize si_code variable after we
-> switch to force_sig_fault using. si_code (as a part of siginfo_t
-> structure) was previously initialized by clear_siginfo(&info) call
-> which was removed.
-> 
-> Undefined behaviour path:
-> -------------------->8---------------------------
-> }}} a/arch/arc/mm/fault.c
-> !! -67,6 +67,7 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
->         struct task_struct *tsk = current;
->         struct mm_struct *mm = tsk->mm;
-> +       /// >>> si_code - uninitialized
->         int si_code;
->         int ret;
->         vm_fault_t fault;
->         int write = regs->ecr_cause & ECR_C_PROTV_STORE;  /* ST/EX */
-> !! -81,8 +82,10 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
->          * only copy the information from the master page table,
->          * nothing more.
->          */
-> +       /// >>> take true branch
->         if (address >= VMALLOC_START) {
->                 ret = handle_kernel_vaddr_fault(address);
-> +               /// >>> take true branch
->                 if (unlikely(ret))
+On Fri, Nov 9, 2018 at 4:38 AM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
+> -ccflags-y := -shared -fno-common -fno-builtin
+> +ccflags-y := -shared -fno-common -fno-builtin -fno-stack-protector
 
-While the fix is legit, are you sure this code path was taken. VMALLOC_START is
-memory for kernel modules and/or vmalloc. So the fault was induced in kernel space
-in which case user_mode)r) will not be true.
+This either needs to include -ffixed-x18 or
+https://patchwork.kernel.org/patch/10671685/ needs to appear earlier
+in this series.
 
-
-> +                       /// >>> jump to label "bad_area_nosemaphore"
->                         goto bad_area_nosemaphore;
->                 else
-> !! -193,10 +196,13 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
->  bad_area:
->         up_read(&mm->mmap_sem);
-> 
-> +       /// >>> reach label "bad_area_nosemaphore"
->  bad_area_nosemaphore:
->         /* User mode accesses just cause a SIGSEGV */
-> +       /// >>> take true branch
->         if (user_mode(regs)) {
->                 tsk->thread.fault_address = address;
-> +               /// >>> Ooops:
-> +               /// >>> use uninitialized value "si_code"
-> +               /// >>> when calling "force_sig_fault"
->                 force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
->                 return;
->         }
-> -------------------->8---------------------------
-> 
-> Fixes: 15773ae938d8 ("signal/arc: Use force_sig_fault where appropriate")
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-
-Added to for-curr after trimming the changelog
-
-Thx,
--Vineet
+Peter
