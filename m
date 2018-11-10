@@ -1,65 +1,56 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC] remove the ->mapping_error method from dma_map_ops
-Date: Fri, 09 Nov 2018 15:12:34 -0800 (PST)
-Message-ID: <20181109.151234.2231390463846593374.davem@davemloft.net>
-References: <20181109084632.22848-1-hch@lst.de>
+Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
+Date: Fri, 09 Nov 2018 16:29:20 -0800 (PST)
+Message-ID: <20181109.162920.1263908485037438031.davem@davemloft.net>
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
+ <20181109123730.8743-8-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181109084632.22848-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: hch@lst.de
-Cc: iommu@lists.linux-foundation.org, torvalds@linux-foundation.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20181109123730.8743-8-vincenzo.frascino@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: vincenzo.frascino@arm.com
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, salyzyn@android.com, paul.burton@mips.com, tglx@linutronix.de, pcc@google.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Christoph Hellwig <hch@lst.de>
-Date: Fri,  9 Nov 2018 09:46:30 +0100
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Date: Fri,  9 Nov 2018 12:37:10 +0000
 
-> Error reporting for the dma_map_single and dma_map_page operations is
-> currently a mess.  Both APIs directly return the dma_addr_t to be used for
-> the DMA, with a magic error escape that is specific to the instance and
-> checked by another method provided.  This has a few downsides:
+> To take advantage of the commonly defined vdso interface for
+> gettimeofday the architectural code requires an adaptation.
 > 
->  - the error check is easily forgotten and a __must_check marker doesn't
->    help as the value always is consumed anyway
->  - the error checking requires another indirect call, which have gotten
->    incredibly expensive
->  - a lot of code is wasted on implementing these methods
+> This patch re-implements the gettimeofday vdso in C in order to use
+> lib/vdso.
 > 
-> The historical reason for this is that people thought DMA mappings would
-> not fail when the API was created, which sounds like a really bad
-> assumption in retrospective, and then we tried to cram error handling
-> onto it later on.
+> With the new implementation arm64 gains support for CLOCK_BOOTTIME,
+> CLOCK_TAI and __kernel_time.
 > 
-> There basically are two variants:  the error code is 0 because the
-> implementation will never return 0 as a valid DMA address, or the error
-> code is all-F as the implementation won't ever return an address that
-> high.  The old AMD GART is the only one not falling into these two camps
-> as it picks sort of a relative zero relative to where it is mapped.
-> 
-> The 0 return doesn't work for a lot of IOMMUs that start allocating
-> bus space from address zero, so we can't consolidate on that, but I think
-> we can move everyone to all-Fs, which the patch here does.  The reason
-> for that is that there is only one way to ever get this address: by
-> doing a 1-byte long, 1-byte aligned mapping, but all our mappings
-> are not only longer but generally aligned, and the mappings have to
-> keep at least the basic alignment.  Please try to poke holes into this
-> idea as it would simplify our logic a lot, and also allow to change
-> at least the not so commonly used yet dma_map_single_attrs and
-> dma_map_page_attrs to actually return an error code and further improve
-> the error handling flow in the drivers.
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-I have no problem with patch #1, it looks great.
+What is the performance penalty for going to C from ASM like this?
 
-But patch #2 on the other hand, not so much.
+I like the vDSO consolidation, but actually I think it makes a lot of
+sense to implement these things in assembler with some C implementation
+as guidance or for architectures that haven't optimized into an ASM
+version yet.
 
-I hate seeing values returned by reference, it adds cost especially
-on cpus where all argments and return values fit in registers (we end
-up forcing a stack slot and memory references).
+I'd also like to see if we can somehow make PowerPC's optimizations in
+this area usable in more places.
 
-And we don't need it here.
+It defines a reciprocal in order to use a multiply instead of a divide
+after capturing the time values.
 
-DMA addresses are like pointers, and therefore we can return errors and
-valid success values in the same dma_addr_t just fine.  PTR_ERR() --> DMA_ERR(),
-IS_PTR_ERR() --> IS_DMA_ERR, etc.
+I say all of this because I want to do something similar on sparc, and
+having a generic implementation of all of the math would make that easier
+for me and other architecture maintainers who might want to do the same.
