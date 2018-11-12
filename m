@@ -1,165 +1,68 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH v4 4/4] namei: aggressively check for nd->root escape on ".." resolution
-Date: Tue, 13 Nov 2018 01:26:54 +1100
-Message-ID: <20181112142654.341-5-cyphar@cyphar.com>
-References: <20181112142654.341-1-cyphar@cyphar.com>
+From: Mark Salyzyn <salyzyn@android.com>
+Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
+Date: Mon, 12 Nov 2018 10:21:12 -0800
+Message-ID: <1b41ccb3-34dc-e579-f65d-328400cf2b8a@android.com>
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
+ <20181109123730.8743-8-vincenzo.frascino@arm.com>
+ <20181109.162920.1263908485037438031.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181112142654.341-1-cyphar@cyphar.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Jann Horn <jannh@google.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20181109.162920.1263908485037438031.davem@davemloft.net>
+Content-Language: en-GB
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: David Miller <davem@davemloft.net>, vincenzo.frascino@arm.com
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, tglx@linutronix.de, pcc@google.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-This patch allows for O_BENEATH and O_THISROOT to safely permit ".."
-resolution (in the case of O_BENEATH the resolution will still fail if
-".." resolution would resolve a path outside of the root -- while
-O_THISROOT will chroot(2)-style scope it). "magic link" jumps are still
-disallowed entirely because now they could result in inconsistent
-behaviour if resolution encounters a subsequent "..".
+On 11/09/2018 04:29 PM, David Miller wrote:
+> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Date: Fri,  9 Nov 2018 12:37:10 +0000
+>
+>> To take advantage of the commonly defined vdso interface for
+>> gettimeofday the architectural code requires an adaptation.
+>>
+>> This patch re-implements the gettimeofday vdso in C in order to use
+>> lib/vdso.
+>>
+>> With the new implementation arm64 gains support for CLOCK_BOOTTIME,
+>> CLOCK_TAI and __kernel_time.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> What is the performance penalty for going to C from ASM like this?
+>
+> I like the vDSO consolidation, but actually I think it makes a lot of
+> sense to implement these things in assembler with some C implementation
+> as guidance or for architectures that haven't optimized into an ASM
+> version yet.
+>
+> I'd also like to see if we can somehow make PowerPC's optimizations in
+> this area usable in more places.
+>
+> It defines a reciprocal in order to use a multiply instead of a divide
+> after capturing the time values.
+>
+> I say all of this because I want to do something similar on sparc, and
+> having a generic implementation of all of the math would make that easier
+> for me and other architecture maintainers who might want to do the same.
 
-The need for this patch is explained by observing there is a fairly
-easy-to-exploit race condition with chroot(2) (and thus by extension
-O_THISROOT and O_BENEATH) where a rename(2) of a path can be used to
-"skip over" nd->root and thus escape to the filesystem above nd->root.
+I saw an _improvement_ in performance for the C implementation (for 
+arm64), the optimizer did a better job with the specific processor 
+architecture and actually killed a few bugs in the assembler 
+implementation. The improvement was in the order of a nano-second or two 
+in micro-benchmarks.
 
-  thread1 [attacker]:
-    for (;;)
-      renameat2(AT_FDCWD, "/a/b/c", AT_FDCWD, "/a/d", RENAME_EXCHANGE);
-  thread2 [victim]:
-    for (;;)
-      openat(dirb, "b/c/../../etc/shadow", O_THISROOT);
+I used the bionic benchmarks to measure the performance.
 
-With fairly significant regularity, thread2 will resolve to
-"/etc/shadow" rather than "/a/b/etc/shadow". There is also a similar
-(though somewhat more privileged) attack using MS_MOVE.
-
-With this patch, such cases will be detected *during* ".." resolution
-(which is the weak point of chroot(2) -- since walking *into* a
-subdirectory tautologically cannot result in you walking *outside*
-nd->root -- except through a bind-mount or "magic link"). By detecting
-this at ".." resolution (rather than checking only at the end of the
-entire resolution) we can both correct escapes by jumping back to the
-root (in the case of O_THISROOT), as well as avoid revealing to
-attackers the structure of the filesystem outside of the root (through
-timing attacks for instance).
-
-In order to avoid a quadratic lookup with each ".." entry, we only
-activate the slow path if a write through &rename_lock or &mount_lock
-have occurred during path resolution (&rename_lock and &mount_lock are
-re-taken to further optimise the lookup). Since the primary attack being
-protected against is MS_MOVE or rename(2), not doing additional checks
-unless a mount or rename have occurred avoids making the common case
-slow.
-
-The use of path_is_under() here might seem suspect, but on further
-inspection of the most important race (a path was *inside* the root but
-is now *outside*), there appears to be no attack potential. If
-path_is_under() occurs before the rename, then the path will be resolved
-but since the path was originally inside the root there is no escape.
-Subsequent ".." jumps are guaranteed to check path_is_under() (by
-construction, &rename_lock or &mount_lock must have been taken by the
-attacker after path_is_under() returned in the victim), and thus will
-not be able to escape from the previously-inside-root path. Walking down
-is still safe since the entire subtree was moved (either by rename(2) or
-MS_MOVE) and because (as discussed above) walking down is safe.
-
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jann Horn <jannh@google.com>
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
----
- fs/namei.c | 48 +++++++++++++++++++++++++++++++++---------------
- 1 file changed, 33 insertions(+), 15 deletions(-)
-
-diff --git a/fs/namei.c b/fs/namei.c
-index 459faea5b832..b2c962f149c7 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -493,7 +493,7 @@ struct nameidata {
- 	struct path	root;
- 	struct inode	*inode; /* path.dentry.d_inode */
- 	unsigned int	flags;
--	unsigned	seq, m_seq;
-+	unsigned	seq, m_seq, r_seq;
- 	int		last_type;
- 	unsigned	depth;
- 	int		total_link_count;
-@@ -1741,19 +1741,35 @@ static inline int may_lookup(struct nameidata *nd)
- static inline int handle_dots(struct nameidata *nd, int type)
- {
- 	if (type == LAST_DOTDOT) {
--		/*
--		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
--		 * cause our parent to have moved outside of the root and us to skip
--		 * over it.
--		 */
--		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_CHROOT)))
--			return -EXDEV;
-+		int error = 0;
-+
- 		if (!nd->root.mnt)
- 			set_root(nd);
--		if (nd->flags & LOOKUP_RCU) {
--			return follow_dotdot_rcu(nd);
--		} else
--			return follow_dotdot(nd);
-+		if (nd->flags & LOOKUP_RCU)
-+			error = follow_dotdot_rcu(nd);
-+		else
-+			error = follow_dotdot(nd);
-+		if (error)
-+			return error;
-+
-+		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_CHROOT))) {
-+			bool m_retry = read_seqretry(&mount_lock, nd->m_seq);
-+			bool r_retry = read_seqretry(&rename_lock, nd->r_seq);
-+
-+			/*
-+			 * Don't bother checking unless there's a racing
-+			 * rename(2) or MS_MOVE.
-+			 */
-+			if (likely(!m_retry && !r_retry))
-+				return 0;
-+
-+			if (m_retry && !(nd->flags & LOOKUP_RCU))
-+				nd->m_seq = read_seqbegin(&mount_lock);
-+			if (r_retry)
-+				nd->r_seq = read_seqbegin(&rename_lock);
-+			if (!path_is_under(&nd->path, &nd->root))
-+				return -EXDEV;
-+		}
- 	}
- 	return 0;
- }
-@@ -2274,6 +2290,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
- 	nd->flags = flags | LOOKUP_JUMPED | LOOKUP_PARENT;
- 	nd->depth = 0;
-+
-+	nd->m_seq = read_seqbegin(&mount_lock);
-+	if (unlikely(flags & (LOOKUP_BENEATH | LOOKUP_CHROOT)))
-+		nd->r_seq = read_seqbegin(&rename_lock);
-+
- 	if (flags & LOOKUP_ROOT) {
- 		struct dentry *root = nd->root.dentry;
- 		struct inode *inode = root->d_inode;
-@@ -2284,7 +2305,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 		if (flags & LOOKUP_RCU) {
- 			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
- 			nd->root_seq = nd->seq;
--			nd->m_seq = read_seqbegin(&mount_lock);
- 		} else {
- 			path_get(&nd->path);
- 		}
-@@ -2295,8 +2315,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.mnt = NULL;
- 	nd->path.dentry = NULL;
- 
--	nd->m_seq = read_seqbegin(&mount_lock);
--
- 	if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_CHROOT))) {
- 		error = dirfd_path_init(nd);
- 		if (unlikely(error))
--- 
-2.19.1
+-- Mark
