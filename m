@@ -1,161 +1,47 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v5 05/27] Documentation/x86: Add CET description
-Date: Tue, 13 Nov 2018 13:02:24 -0800
-Message-ID: <43979cffef0a4b5ea90b3fc41b6f9edd2a4324db.camel@intel.com>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
-         <20181011151523.27101-6-yu-cheng.yu@intel.com>
-         <20181113184337.GM10502@zn.tnic>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
+Date: Tue, 13 Nov 2018 17:09:00 -0600
+Message-ID: <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com> <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181113184337.GM10502@zn.tnic>
+In-Reply-To: <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Kristina Martsenko <kristina.martsenko@arm.com>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-11-13 at 19:43 +0100, Borislav Petkov wrote:
-> On Thu, Oct 11, 2018 at 08:15:01AM -0700, Yu-cheng Yu wrote:
-> > Explain how CET works and the no_cet_shstk/no_cet_ibt kernel
-> > parameters.
-> > 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > ---
-> >  .../admin-guide/kernel-parameters.txt         |   6 +
-> >  Documentation/index.rst                       |   1 +
-> >  Documentation/x86/index.rst                   |  11 +
-> >  Documentation/x86/intel_cet.rst               | 266 ++++++++++++++++++
-> >  4 files changed, 284 insertions(+)
-> >  create mode 100644 Documentation/x86/index.rst
-> >  create mode 100644 Documentation/x86/intel_cet.rst
-> 
-> So this patch should probably come first in the series so that a reader
-> can know what to expect...
-> 
-> > diff --git a/Documentation/admin-guide/kernel-parameters.txt
-> > b/Documentation/admin-guide/kernel-parameters.txt
-> > index 92eb1f42240d..3854423f7c86 100644
-> > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > @@ -2764,6 +2764,12 @@
-> >  			noexec=on: enable non-executable mappings (default)
-> >  			noexec=off: disable non-executable mappings
-> >  
-> > +	no_cet_ibt	[X86-64] Disable indirect branch tracking for
-> > user-mode
-> > +			applications
-> > +
-> > +	no_cet_shstk	[X86-64] Disable shadow stack support for user-
-> > mode
-> > +			applications
-> > +
-> >  	nosmap		[X86]
-> >  			Disable SMAP (Supervisor Mode Access Prevention)
-> >  			even if it is supported by processor.
-> > diff --git a/Documentation/index.rst b/Documentation/index.rst
-> > index 5db7e87c7cb1..1cdc139adb40 100644
-> > --- a/Documentation/index.rst
-> > +++ b/Documentation/index.rst
-> 
-> Please integrate scripts/checkpatch.pl into your patch creation
-> workflow. Some of the warnings/errors *actually* make sense:
-> 
-> WARNING: Missing or malformed SPDX-License-Identifier tag in line 1
-> #76: FILE: Documentation/x86/index.rst:1:
-> +=======================
-> 
-> WARNING: Missing or malformed SPDX-License-Identifier tag in line 1
-> #93: FILE: Documentation/x86/intel_cet.rst:1:
-> +=========================================
-> 
-> > @@ -104,6 +104,7 @@ implementation.
-> >     :maxdepth: 2
-> >  
-> >     sh/index
-> > +   x86/index
-> >  
-> >  Filesystem Documentation
-> >  ------------------------
-> > diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
-> > new file mode 100644
-> > index 000000000000..9c34d8cbc8f0
-> > --- /dev/null
-> > +++ b/Documentation/x86/index.rst
-> > @@ -0,0 +1,11 @@
-> > +=======================
-> > +X86 Documentation
-> > +=======================
-> > +
-> > +Control Flow Enforcement
-> > +========================
-> > +
-> > +.. toctree::
-> > +   :maxdepth: 1
-> > +
-> > +   intel_cet
-> > diff --git a/Documentation/x86/intel_cet.rst
-> > b/Documentation/x86/intel_cet.rst
-> > new file mode 100644
-> > index 000000000000..946f4802a51f
-> > --- /dev/null
-> > +++ b/Documentation/x86/intel_cet.rst
-> > @@ -0,0 +1,266 @@
-> > +=========================================
-> > +Control Flow Enforcement Technology (CET)
-> > +=========================================
-> > +
-> > +[1] Overview
-> > +============
-> > +
-> > +Control Flow Enforcement Technology (CET) provides protection against
-> > +return/jump-oriented programming (ROP) attacks.  It can be implemented
-> > +to protect both the kernel and applications.  In the first phase,
-> > +only the user-mode protection is implemented on the 64-bit kernel.
-> 
-> s/the//			         is implemented in 64-bit mode.
-> 
-> > +However, 32-bit applications are supported under the compatibility
-> > +mode.
-> 
-> Drop "However":
-> 
-> "32-bit applications are, of course, supported in compatibility mode."
-> 
-> > +
-> > +CET includes shadow stack (SHSTK) and indirect branch tracking (IBT).
-> 
-> "CET introduces two a shadow stack and an indirect branch tracking mechanism."
-> 
-> > +The SHSTK is a secondary stack allocated from memory.  The processor
-> 
-> s/The//
-> 
-> > +automatically pushes/pops a secure copy to the SHSTK every return
-> > +address and,
-> 
-> that reads funny - pls reorganize. Also, what is a "secure copy"?
-> 
-> You mean a copy of every return address which software cannot access?
-> 
-> > by comparing the secure copy to the program stack copy,
-> > +verifies function returns are as intended. 
-> 
-> 			 ... have not been corrupted/modified."
-> 
-> > The IBT verifies all
-> > +indirect CALL/JMP targets are intended and marked by the compiler with
-> > +'ENDBR' op codes.
-> 
-> "opcode" - one word. And before you use "ENDBR" you need to explain it
-> above what it is.
-> 
-> /me reads further... encounters ENDBR's definition...
-> 
-> ah, ok, so you should say something like
-> 
-> "... and marked by the compiler with the ENDBR opcode (see below)."
+On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
+<kristina.martsenko@arm.com> wrote:
+> When the PAC authentication fails, it doesn't actually generate an
+> exception, it just flips a bit in the high-order bits of the pointer,
+> making the pointer invalid. Then when the pointer is dereferenced (e.g.
+> as a function return address), it generates the usual type of exception
+> for an invalid address.
 
-I will work on it.  Thanks!
+Ah! Okay, thanks. I missed that detail. :)
 
-Yu-cheng
+What area of memory ends up being addressable with such bit flips?
+(i.e. is the kernel making sure nothing executable ends up there?)
+
+> So when a function return fails in user mode, the exception is handled
+> in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
+> function return fails in kernel mode, the exception is handled in
+> __do_kernel_fault and the task is killed.
+>
+> This is different from stack protector as we don't panic the kernel, we
+> just kill the task. It would be difficult to panic as we don't have a
+> reliable way of knowing that the exception was caused by a PAC
+> authentication failure (we just have an invalid pointer with a specific
+> bit flipped). We also don't print out any PAC-related warning.
+
+There are other "guesses" in __do_kernel_fault(), I think? Could a
+"PAC mismatch?" warning be included in the Oops if execution fails in
+the address range that PAC failures would resolve into?
+
+-Kees
+
+-- 
+Kees Cook
