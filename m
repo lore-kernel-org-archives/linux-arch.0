@@ -1,96 +1,77 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 0/5] ia64: system call table generation support
-Date: Tue, 13 Nov 2018 12:27:40 +0530
-Message-ID: <1542092265-20956-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v5 2/5] ia64: add __NR_syscalls along with NR_syscalls
+Date: Tue, 13 Nov 2018 12:27:42 +0530
+Message-ID: <1542092265-20956-3-git-send-email-firoz.khan@linaro.org>
+References: <1542092265-20956-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1542092265-20956-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the
-system call table generation support implementation
-across all the architectures.
+NR_syscalls macro holds the number of system call exist
+in ia64 architecture. We have to change the value of NR-
+_syscalls, if we add or delete a system call.
 
-The system call tables are in different format in
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a
-script and which'll generate uapi header file and
-syscall table file.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update NR_sy-
+scalls value.
 
-syscall.tbl contains the list of available system
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in the
-syscall.tbl file.
+1. Update NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_syscalls in asm/unistd.h file.
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to
-come up with a generic solution.
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
-I have done the same support for work for alpha, m68k,
-microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
-Below mentioned git repository contains more details
-about the workflow.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/ia64/include/asm/unistd.h      | 4 +---
+ arch/ia64/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 3 deletions(-)
 
-https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to
-solve Y2038 issue. So this patch series will help to
-add new system calls easily by adding new entry in
-the syscall.tbl.
-
-changes since v4:
- - changed from generic-y to generated-y in Kbuild.
-
-changes since v3:
- - optimized/updated the syscall table generation
-   scripts.
- - fixed all mixed indentation issues in syscall.tbl.
- - added "comments" in syscall.tbl.
- - removed __IGNORE entries which was added in v2
-   to suppress the warning.
-
-changes since v2:
- - fixed the offset logic in the script.
- - added missing new line.
-
-changes since v1:
- - enclosed __NR_sycalls macro with __KERNEL__.
-
-Firoz Khan (5):
-  ia64: add __NR_old_getpagesize in uapi header file
-  ia64: add __NR_syscalls along with NR_syscalls
-  ia64: add an offset for system call number
-  ia64: add system call table generation support
-  ia64: generate uapi header and system call table files
-
- arch/ia64/Makefile                      |   3 +
- arch/ia64/include/asm/Kbuild            |   1 +
- arch/ia64/include/asm/unistd.h          |   4 +-
- arch/ia64/include/uapi/asm/Kbuild       |   1 +
- arch/ia64/include/uapi/asm/unistd.h     | 332 +------------------------------
- arch/ia64/kernel/entry.S                | 331 +------------------------------
- arch/ia64/kernel/syscalls/Makefile      |  40 ++++
- arch/ia64/kernel/syscalls/syscall.tbl   | 337 ++++++++++++++++++++++++++++++++
- arch/ia64/kernel/syscalls/syscallhdr.sh |  36 ++++
- arch/ia64/kernel/syscalls/syscalltbl.sh |  32 +++
- 10 files changed, 458 insertions(+), 659 deletions(-)
- create mode 100644 arch/ia64/kernel/syscalls/Makefile
- create mode 100644 arch/ia64/kernel/syscalls/syscall.tbl
- create mode 100644 arch/ia64/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
+index 49e34db..0b08ebd 100644
+--- a/arch/ia64/include/asm/unistd.h
++++ b/arch/ia64/include/asm/unistd.h
+@@ -10,9 +10,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-
+-
+-#define NR_syscalls			326 /* length of syscall table */
++#define NR_syscalls		__NR_syscalls /* length of syscall table */
+ 
+ /*
+  * The following defines stop scripts/checksyscalls.sh from complaining about
+diff --git a/arch/ia64/include/uapi/asm/unistd.h b/arch/ia64/include/uapi/asm/unistd.h
+index 94b835c..388ab4e 100644
+--- a/arch/ia64/include/uapi/asm/unistd.h
++++ b/arch/ia64/include/uapi/asm/unistd.h
+@@ -341,4 +341,8 @@
+ #define __NR_preadv2			1348
+ #define __NR_pwritev2			1349
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			326
++#endif
++
+ #endif /* _UAPI_ASM_IA64_UNISTD_H */
 -- 
 1.9.1
