@@ -1,45 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51720 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731276AbeKMUeX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Nov 2018 15:34:23 -0500
+Received: from foss.arm.com ([217.140.101.70]:52026 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726581AbeKMU4J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Nov 2018 15:56:09 -0500
 Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C
  implementation
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
  <20181109123730.8743-8-vincenzo.frascino@arm.com>
- <CAMn1gO5tmJDXEgAZefcOmp1E2LmG3uqbO7vFwZRxAy2Cny114g@mail.gmail.com>
+ <CAK8P3a1w=GBcYk2OaVNzfagMMeD_zdBK3G16BSYjFANKdSAezQ@mail.gmail.com>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <a9726884-70e5-bff4-555d-cd870a5bd6db@arm.com>
-Date: Tue, 13 Nov 2018 10:36:49 +0000
+Message-ID: <8e306faf-6261-8363-3f18-70e754fa3a9d@arm.com>
+Date: Tue, 13 Nov 2018 10:58:31 +0000
 MIME-Version: 1.0
-In-Reply-To: <CAMn1gO5tmJDXEgAZefcOmp1E2LmG3uqbO7vFwZRxAy2Cny114g@mail.gmail.com>
+In-Reply-To: <CAK8P3a1w=GBcYk2OaVNzfagMMeD_zdBK3G16BSYjFANKdSAezQ@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Collingbourne <pcc@google.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com
-Message-ID: <20181113103649.bsY4JXZLpVKdu9o5DF5WLv2uP3UgTToo0xxmEf1xhz4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, salyzyn@android.com, pcc@google.com
+Message-ID: <20181113105831.tgZQtDF9NkTDjqhHvcmis0quRhJgRB0qlJqPsLkLTVw@z>
 
-Hi Peter,
-
-thank you for your review.
-
-On 09/11/2018 18:09, Peter Collingbourne wrote:
-> On Fri, Nov 9, 2018 at 4:38 AM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->> -ccflags-y := -shared -fno-common -fno-builtin
->> +ccflags-y := -shared -fno-common -fno-builtin -fno-stack-protector
+On 09/11/2018 16:13, Arnd Bergmann wrote:
+>> +
+>> +extern struct vdso_data _vdso_data;
+>> +
+>> +static __always_inline notrace int gettimeofday_fallback(struct timeval *_tv,
+>> +                                                        struct timezone *_tz)
 > 
-> This either needs to include -ffixed-x18 or
-> https://patchwork.kernel.org/patch/10671685/ needs to appear earlier
-> in this series.
+> I'm trying to get rid of the last users of 'struct timeval' in the kernel so
+> we can remove the definition (it will clash with future glibc implementations
+> in the uapi headers). Could you change this to use __kernel_old_timeval
+> instead?
+>
+
+Ok, will update all the data types in v2.
+
+... 
+
+>> diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vdso.lds.S
+>> index beca249bc2f3..9de0ffc369c5 100644
+>> --- a/arch/arm64/kernel/vdso/vdso.lds.S
+>> +++ b/arch/arm64/kernel/vdso/vdso.lds.S
+>> @@ -88,6 +88,7 @@ VERSION
+>>                 __kernel_gettimeofday;
+>>                 __kernel_clock_gettime;
+>>                 __kernel_clock_getres;
+>> +               __kernel_time;
+>>         local: *;
+>>         };
+>>  }
+> 
+> I would  prefer to not add any deprecated interfaces in the VDSO. If we
+> have the 64-bit version of clock_gettime, we don't need the 32-bit version
+> of it, and we don't need gettimeofday() or time() either. The C library
+> can easily implement those by calling into clock_gettime.
 > 
 
-I did not add -ffixed-x18 to my flags because I was planning to cherry-pick your patch. It will be in v2.
+I like the idea, this would make the vdso lib code more simple and more maintainable.
 
-> Peter
+In this patchset I tried to cover the widest possible scenario making things configurable: each architecture can select and enable exactly what it needs from the vdso common code. 
+
+Based on what you are proposing, once the C library will implement things in this way, it will be easy to deprecate and remove the unused code.
+
+I am not familiar with the development plans of the various C libraries, but looking at bionic libc currently seems using all the vdso exposed functions [1].
+
+[1] https://github.com/aosp-mirror/platform_bionic/blob/master/libc/bionic/vdso.cpp
+
+...
+
+> 
+>         Arnd
 > 
 
 -- 
