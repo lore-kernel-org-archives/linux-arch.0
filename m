@@ -1,84 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:36133 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731910AbeKMUR1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2018 15:17:27 -0500
-Received: by mail-pg1-f196.google.com with SMTP id z17-v6so5480059pgv.3
-        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2018 02:20:02 -0800 (PST)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 1/3] xtensa: add __NR_syscalls along with __NR_syscall_count
-Date: Tue, 13 Nov 2018 15:49:28 +0530
-Message-ID: <1542104370-22831-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
-References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
+Received: from foss.arm.com ([217.140.101.70]:51180 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726765AbeKMUS6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Nov 2018 15:18:58 -0500
+Subject: Re: [PATCH 06/27] kernel: Define gettimeofday vdso common code
+References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
+ <20181109123730.8743-7-vincenzo.frascino@arm.com>
+ <CAK8P3a3yu_ZOCxDhGvPnff45jEkEMcQ-KuX5Otqfzfi52kd+tA@mail.gmail.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <c75dc535-7910-f3cb-4c63-802f18f70208@arm.com>
+Date: Tue, 13 Nov 2018 10:21:28 +0000
+MIME-Version: 1.0
+In-Reply-To: <CAK8P3a3yu_ZOCxDhGvPnff45jEkEMcQ-KuX5Otqfzfi52kd+tA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181113101928.0cnuEx1-omVTQibg0nGv1YwRlGBCJ2zTkFojWrhUpAk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, salyzyn@android.com, pcc@google.com
+Message-ID: <20181113102128.CwFssZ-0JO_i7y7TAgHWMTVy1-iYmmEtjSSwVeYO02o@z>
 
-__NR_syscall_count macro holds the number of system call
-exist in xtensa architecture. We have to change the value
-of __NR_syscall_count, if we add or delete a system call.
+Hi Arnd,
 
-One of the patch in this patch series has a script which
-will generate a uapi header based on syscall.tbl file.
-The syscall.tbl file contains the total number of system
-calls information. So we have two option to update __NR-
-_syscall_count value.
+thank you for reviewing my patches.
 
-1. Update __NR_syscall_count in asm/unistd.h manually by
-   counting the no.of system calls. No need to update __NR-
-   _syscall_count until we either add a new system call or
-   delete existing system call.
+On 09/11/2018 16:05, Arnd Bergmann wrote:
+> On Fri, Nov 9, 2018 at 1:38 PM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
+>> +/*
+>> + * To avoid performance issues __u_vdso (unsigned vdso type) depends
+>> + * on the architecture:
+>> + * 32 bit only __u_vdso is defined as __u32
+>> + * 64 bit plus compat __u_vdso is defined as __u64
+>> + */
+>> +#ifdef CONFIG_GENERIC_VDSO_32
+>> +typedef __u32 __u_vdso;
+>> +#else
+>> +typedef __u64 __u_vdso;
+>> +#endif /* CONFIG_GENERIC_VDSO_32 */
+>> +
+>>  struct vdso_data {
+>> -       __u64 cs_cycle_last;    /* Timebase at clocksource init */
+>> -       __u64 raw_time_sec;     /* Raw time */
+>> +       __u64 cs_cycle_last;            /* Timebase at clocksource init */
+>> +       __u_vdso raw_time_sec;          /* Raw time */
+>>         __u64 raw_time_nsec;
+>> -       __u64 xtime_clock_sec;  /* Kernel time */
+>> +       __u_vdso xtime_clock_sec;       /* Kernel time */
+>>         __u64 xtime_clock_nsec;
+>> -       __u64 xtime_coarse_sec; /* Coarse time */
+>> +       __u_vdso xtime_coarse_sec;      /* Coarse time */
+>>         __u64 xtime_coarse_nsec;
+>> -       __u64 wtm_clock_sec;    /* Wall to monotonic time */
+>> +       __u_vdso wtm_clock_sec;         /* Wall to monotonic time */
+> 
+> It looks like you change the layout in a way that makes it incompatible between
+> 32-bit and 64-bit user space. Doesn't that break the compat-vdso code
+> for 32-bit?
+> 
 
-2. We can keep this feature it above mentioned script,
-   that will count the number of syscalls and keep it in
-   a generated file. In this case we don't need to expli-
-   citly update __NR_syscall_count in asm/unistd.h file.
+No, it does not since vdso_data structure is not part of the ABI and the userspace can access the vdso library only via function symbols. There was a proposal some time ago to introduce ABI data structures in the vdso data page but it was rejected [1] and [2].
 
-The 2nd option will be the recommended one. For that, I
-added the __NR_syscalls macro in uapi/asm/unistd.h along
-with __NR_syscall_count asm/unistd.h. The macro __NR_sys-
-calls also added for making the name convention same across
-all architecture. While __NR_syscalls isn't strictly part
-of the uapi, having it as part of the generated header to
-simplifies the implementation. We also need to enclose
-this macro with #ifdef __KERNEL__ to avoid side effects.
+CONFIG_GENERIC_VDSO_32 is meant to be used in 32 bit only platforms and the rationale behind it is to preserve performances were possible.
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/xtensa/include/asm/unistd.h      | 2 ++
- arch/xtensa/include/uapi/asm/unistd.h | 4 +++-
- 2 files changed, 5 insertions(+), 1 deletion(-)
+[1] https://lkml.org/lkml/2015/9/2/460
+[2] https://lkml.org/lkml/2015/9/2/534
 
-diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
-index 574e552..787987a 100644
---- a/arch/xtensa/include/asm/unistd.h
-+++ b/arch/xtensa/include/asm/unistd.h
-@@ -5,6 +5,8 @@
- #define __ARCH_WANT_SYS_CLONE
- #include <uapi/asm/unistd.h>
- 
-+#define __NR_syscall_count	__NR_syscalls
-+
- #define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_UTIME
-diff --git a/arch/xtensa/include/uapi/asm/unistd.h b/arch/xtensa/include/uapi/asm/unistd.h
-index bc3f62d..332d67a 100644
---- a/arch/xtensa/include/uapi/asm/unistd.h
-+++ b/arch/xtensa/include/uapi/asm/unistd.h
-@@ -778,7 +778,9 @@
- #define __NR_statx				351
- __SYSCALL(351, sys_statx, 5)
- 
--#define __NR_syscall_count			352
-+#ifdef __KERNEL__
-+#define __NR_syscalls				352
-+#endif
- 
- /*
-  * sysxtensa syscall handler
+> It also seems like we need the seconds to be 64-bit wide, at least
+> for anything that counts in CLOCK_REALTIME or a related format,
+> otherwise we have to change it back for y2038 support.
+> 
+
+I agree with you, we should address the y2038 support here, even if there are some architectures that currently use u32 for CLOCK_REALTIME sec.
+
+>       Arnd
+> 
+
 -- 
-1.9.1
+Regards,
+Vincenzo
