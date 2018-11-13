@@ -1,43 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f196.google.com ([209.85.219.196]:45275 "EHLO
-        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726408AbeKNJuT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 04:50:19 -0500
+Received: from mail-yb1-f193.google.com ([209.85.219.193]:43626 "EHLO
+        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726408AbeKNJyA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 04:54:00 -0500
 MIME-Version: 1.0
-References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org> <1542104370-22831-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1542104370-22831-2-git-send-email-firoz.khan@linaro.org>
+References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
 From: Max Filippov <jcmvbkbc@gmail.com>
-Date: Tue, 13 Nov 2018 15:49:29 -0800
-Message-ID: <CAMo8BfJGWgJrsg858nwO_845HQOSMNm4AxEqjEjVsSMZMG1Gzw@mail.gmail.com>
-Subject: Re: [PATCH v2 1/3] xtensa: add __NR_syscalls along with __NR_syscall_count
+Date: Tue, 13 Nov 2018 15:53:09 -0800
+Message-ID: <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com>
+Subject: Re: [PATCH v2 0/3] xtensa: system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Firoz Khan <firoz.khan@linaro.org>
 Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
-Message-ID: <20181113234929.poMPlydnq2ZqhqKMcnmi0gjgIDOGJXDNmZKddR2_3OU@z>
+Message-ID: <20181113235309.fEa9JmANBTjRhA5LkYkfRWGikq1bpfqePj6-ozNsqwc@z>
 
 Hi Firoz,
 
-I have one more question:
+On Tue, Nov 13, 2018 at 2:19 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+[...]
+> Firoz Khan (3):
+>   xtensa: add __NR_syscalls along with __NR_syscall_count
+>   xtensa: add system call table generation support
+>   xtensa: generate uapi header and syscall table header files
 
-On Tue, Nov 13, 2018 at 2:20 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> The 2nd option will be the recommended one. For that, I
-> added the __NR_syscalls macro in uapi/asm/unistd.h along
-> with __NR_syscall_count asm/unistd.h. The macro __NR_sys-
-> calls also added for making the name convention same across
-> all architecture. While __NR_syscalls isn't strictly part
-> of the uapi, having it as part of the generated header to
-> simplifies the implementation. We also need to enclose
-> this macro with #ifdef __KERNEL__ to avoid side effects.
-
-Looking at the include/uapi/asm-generic/unistd.h I see that
-__NR_syscalls is not guarded by the #ifdef __KERNEL__,
-why should it be guarded for xtensa?
-
-If we remove __NR_syscall_count from the uapi header I'd
-suggest dropping it completely and switching its two current
-users to __NR_syscalls.
+What's your plan for submission of this series? Are you going to
+submit it with other similar series in a common tree, or shall I take
+it into the xtensa tree?
 
 -- 
 Thanks.
