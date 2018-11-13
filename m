@@ -1,95 +1,79 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 0/3] m68k: system call table generation support
-Date: Tue, 13 Nov 2018 11:30:26 +0530
-Message-ID: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v5 1/3] m68k: add __NR_syscalls along with NR_syscalls
+Date: Tue, 13 Nov 2018 11:30:27 +0530
+Message-ID: <1542088829-19790-2-git-send-email-firoz.khan@linaro.org>
+References: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the
-system call table generation support implementation
-across all the architectures.
+NR_syscalls macro holds the number of system call
+exist in m68k architecture. We have to change the
+value of NR_syscalls, if we add or delete a system
+call.
 
-The system call tables are in different format in
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a
-script and which'll generate uapi header file and
-syscall table file.
+One of the patch in this patch series has a script
+which will generate a uapi header based on syscall-
+.tbl file. The syscall.tbl file contains the total
+number of system calls information. So we have two
+option to update NR_syscalls value.
 
-syscall.tbl contains the list of available system
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in the
-syscall.tbl file.
+1. Update NR_syscalls in asm/unistd.h manually by
+   counting the no.of system calls. No need to up-
+   date NR_syscalls until we either add a new sys-
+   tem call or delete existing system call.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
+2. We can keep this feature it above mentioned sc-
+   ript, that will count the number of syscalls and
+   keep it in a generated file. In this case we
+   don't need to explicitly update NR_syscalls in
+   asm/unistd.h file.
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to
-come up with a generic solution.
+The 2nd option will be the recommended one. For that,
+I added the __NR_syscalls macro in uapi/asm/unistd.h
+along with NR_syscalls asm/unistd.h. The macro __NR-
+_syscalls also added for making the name convention
+same across all architecture. While __NR_syscalls
+isn't strictly part of the uapi, having it as part
+of the generated header to simplifies the implement-
+ation. We also need to enclose this macro with #ifdef
+__KERNEL__ to avoid side effects.
 
-I have done the same support for work for alpha, ia64,
-microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
-Below mentioned git repository contains more details
-about the workflow.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/m68k/include/asm/unistd.h      | 3 +--
+ arch/m68k/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to
-solve Y2038 issue. So this patch series will help to
-add new system calls easily by adding new entry in
-the syscall.tbl.
-
-changes since v4:
- - changed from generic-y to generated-y in Kbuild.
- - remove the patch "0001-m68k-rename-system-call-
-   table-file-name.patch".
-
-changes since v3:
- - optimized/updated the syscall table generation
-   scripts.
- - fixed all mixed indentation issues in syscall.tbl.
- - added "comments" in syscall_*.tbl.
-
-changes since v2:
- - removed __IGNORE entries which was added in v2
-   to suppress the warning.
- - added missing new line.
-
-changes since v1:
- - enclosed __NR_sycalls macro with __KERNEL__.
-
-Firoz Khan (3):
-  m68k: add __NR_syscalls along with NR_syscalls
-  m68k: add system call table generation support
-  m68k: generate uapi header and syscall table header files
-
- arch/m68k/Makefile                      |   3 +
- arch/m68k/include/asm/Kbuild            |   1 +
- arch/m68k/include/asm/unistd.h          |   3 +-
- arch/m68k/include/uapi/asm/Kbuild       |   1 +
- arch/m68k/include/uapi/asm/unistd.h     | 385 +------------------------------
- arch/m68k/kernel/syscalls/Makefile      |  38 ++++
- arch/m68k/kernel/syscalls/syscall.tbl   | 389 ++++++++++++++++++++++++++++++++
- arch/m68k/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/m68k/kernel/syscalls/syscalltbl.sh |  32 +++
- arch/m68k/kernel/syscalltable.S         | 387 +------------------------------
- 10 files changed, 507 insertions(+), 768 deletions(-)
- create mode 100644 arch/m68k/kernel/syscalls/Makefile
- create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
- create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
+index e680031..49d5de1 100644
+--- a/arch/m68k/include/asm/unistd.h
++++ b/arch/m68k/include/asm/unistd.h
+@@ -4,8 +4,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-
+-#define NR_syscalls		380
++#define NR_syscalls	__NR_syscalls
+ 
+ #define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+diff --git a/arch/m68k/include/uapi/asm/unistd.h b/arch/m68k/include/uapi/asm/unistd.h
+index de3054f..ba4176aa 100644
+--- a/arch/m68k/include/uapi/asm/unistd.h
++++ b/arch/m68k/include/uapi/asm/unistd.h
+@@ -387,4 +387,8 @@
+ #define __NR_pwritev2		378
+ #define __NR_statx		379
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls		380
++#endif
++
+ #endif /* _UAPI_ASM_M68K_UNISTD_H_ */
 -- 
 1.9.1
