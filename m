@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Subject: Re: [PATCH 06/27] kernel: Define gettimeofday vdso common code
-Date: Tue, 13 Nov 2018 10:21:28 +0000
-Message-ID: <c75dc535-7910-f3cb-4c63-802f18f70208@arm.com>
+Date: Tue, 13 Nov 2018 10:24:22 +0000
+Message-ID: <61f77f06-396e-9293-c8cc-28fe7ea32af5@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
  <20181109123730.8743-7-vincenzo.frascino@arm.com>
- <CAK8P3a3yu_ZOCxDhGvPnff45jEkEMcQ-KuX5Otqfzfi52kd+tA@mail.gmail.com>
+ <CAK8P3a0QSfzsM-h9Kf36Pzr2WvXbyi0_RQG0+Nsp+1RoTRq7Ww@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a3yu_ZOCxDhGvPnff45jEkEMcQ-KuX5Otqfzfi52kd+tA@mail.gmail.com>
+In-Reply-To: <CAK8P3a0QSfzsM-h9Kf36Pzr2WvXbyi0_RQG0+Nsp+1RoTRq7Ww@mail.gmail.com>
 Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
@@ -21,63 +21,36 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, salyzyn@android.com, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, pcc@google.com, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
 
-thank you for reviewing my patches.
-
-On 09/11/2018 16:05, Arnd Bergmann wrote:
-> On Fri, Nov 9, 2018 at 1:38 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->> +/*
->> + * To avoid performance issues __u_vdso (unsigned vdso type) depends
->> + * on the architecture:
->> + * 32 bit only __u_vdso is defined as __u32
->> + * 64 bit plus compat __u_vdso is defined as __u64
->> + */
->> +#ifdef CONFIG_GENERIC_VDSO_32
->> +typedef __u32 __u_vdso;
->> +#else
->> +typedef __u64 __u_vdso;
->> +#endif /* CONFIG_GENERIC_VDSO_32 */
->> +
->>  struct vdso_data {
->> -       __u64 cs_cycle_last;    /* Timebase at clocksource init */
->> -       __u64 raw_time_sec;     /* Raw time */
->> +       __u64 cs_cycle_last;            /* Timebase at clocksource init */
->> +       __u_vdso raw_time_sec;          /* Raw time */
->>         __u64 raw_time_nsec;
->> -       __u64 xtime_clock_sec;  /* Kernel time */
->> +       __u_vdso xtime_clock_sec;       /* Kernel time */
->>         __u64 xtime_clock_nsec;
->> -       __u64 xtime_coarse_sec; /* Coarse time */
->> +       __u_vdso xtime_coarse_sec;      /* Coarse time */
->>         __u64 xtime_coarse_nsec;
->> -       __u64 wtm_clock_sec;    /* Wall to monotonic time */
->> +       __u_vdso wtm_clock_sec;         /* Wall to monotonic time */
+On 10/11/2018 16:18, Arnd Bergmann wrote:
+> On 11/9/18, Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
+>> In the last few years we assisted to an explosion of vdso
+>> implementations that mostly share similar code.
+>>
+>> This patch tries to unify the gettimeofday vdso implementation
+>> introducing lib/vdso. The code contained in this library can
+>> ideally be reused by all the architectures avoiding, where
+>> possible, code duplication.
+>>
+>> In doing so, tries to maintain the performances using inlining as much
+>> as possible and consequently reduces the surface for ROP type of attacks.
+>>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > 
-> It looks like you change the layout in a way that makes it incompatible between
-> 32-bit and 64-bit user space. Doesn't that break the compat-vdso code
-> for 32-bit?
+> I just noticed that this new version misses some of the cleanups
+> that Thomas recently did in the x86 version, e.g. f3e839384164
+> ("x86/vdso: Replace the clockid switch case").
+> 
+> I haven't looked at all the details, but I'd suggest using the latest
+> x86 code as a base.
 > 
 
-No, it does not since vdso_data structure is not part of the ABI and the userspace can access the vdso library only via function symbols. There was a proposal some time ago to introduce ABI data structures in the vdso data page but it was rejected [1] and [2].
+Ok, I will have a look at Thomas' work. Thanks for pointing this out. 
 
-CONFIG_GENERIC_VDSO_32 is meant to be used in 32 bit only platforms and the rationale behind it is to preserve performances were possible.
-
-[1] https://lkml.org/lkml/2015/9/2/460
-[2] https://lkml.org/lkml/2015/9/2/534
-
-> It also seems like we need the seconds to be 64-bit wide, at least
-> for anything that counts in CLOCK_REALTIME or a related format,
-> otherwise we have to change it back for y2038 support.
-> 
-
-I agree with you, we should address the y2038 support here, even if there are some architectures that currently use u32 for CLOCK_REALTIME sec.
-
->       Arnd
+>         Arnd
 > 
 
 -- 
