@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:34831 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732287AbeKMP5e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2018 10:57:34 -0500
-Received: by mail-pf1-f195.google.com with SMTP id v9-v6so5495093pff.2
-        for <linux-arch@vger.kernel.org>; Mon, 12 Nov 2018 22:01:04 -0800 (PST)
+Received: from mail-pl1-f181.google.com ([209.85.214.181]:33799 "EHLO
+        mail-pl1-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726612AbeKMQB3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2018 11:01:29 -0500
+Received: by mail-pl1-f181.google.com with SMTP id f12-v6so5481483plo.1
+        for <linux-arch@vger.kernel.org>; Mon, 12 Nov 2018 22:04:58 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 0/3] m68k: system call table generation support
-Date: Tue, 13 Nov 2018 11:30:26 +0530
-Message-ID: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 0/3] microblaze: system call table generation support
+Date: Tue, 13 Nov 2018 11:34:31 +0530
+Message-ID: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181113060026.hxOTcJeatyjqOqU1T4pS60xkXequ7Q0ItKp573LqJoQ@z>
+Message-ID: <20181113060431.JlPI0euO9XbU1sdpt_Au_2RERmSuXUHn3gDMj5ir3Ck@z>
 
 The purpose of this patch series is, we can easily
 add/modify/delete system call table support by cha-
@@ -46,7 +46,7 @@ ilar support. I leverage their implementation to
 come up with a generic solution.
 
 I have done the same support for work for alpha, ia64,
-microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
+m68k, mips, parisc, powerpc, sh, sparc and xtensa.
 Below mentioned git repository contains more details
 about the workflow.
 
@@ -58,45 +58,39 @@ solve Y2038 issue. So this patch series will help to
 add new system calls easily by adding new entry in
 the syscall.tbl.
 
-changes since v4:
- - changed from generic-y to generated-y in Kbuild.
- - remove the patch "0001-m68k-rename-system-call-
-   table-file-name.patch".
-
 changes since v3:
+ - changed from generic-y to generated-y in Kbuild.
+
+changes since v2:
  - optimized/updated the syscall table generation
    scripts.
  - fixed all mixed indentation issues in syscall.tbl.
  - added "comments" in syscall_*.tbl.
 
-changes since v2:
- - removed __IGNORE entries which was added in v2
-   to suppress the warning.
- - added missing new line.
-
 changes since v1:
  - enclosed __NR_sycalls macro with __KERNEL__.
+ - added missing new line.
 
 Firoz Khan (3):
-  m68k: add __NR_syscalls along with NR_syscalls
-  m68k: add system call table generation support
-  m68k: generate uapi header and syscall table header files
+  microblaze: move __NR_syscalls macro from asm/unistd.h
+  microblaze: add system call table generation support
+  microblaze: generate uapi header and system call table files
 
- arch/m68k/Makefile                      |   3 +
- arch/m68k/include/asm/Kbuild            |   1 +
- arch/m68k/include/asm/unistd.h          |   3 +-
- arch/m68k/include/uapi/asm/Kbuild       |   1 +
- arch/m68k/include/uapi/asm/unistd.h     | 385 +------------------------------
- arch/m68k/kernel/syscalls/Makefile      |  38 ++++
- arch/m68k/kernel/syscalls/syscall.tbl   | 389 ++++++++++++++++++++++++++++++++
- arch/m68k/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/m68k/kernel/syscalls/syscalltbl.sh |  32 +++
- arch/m68k/kernel/syscalltable.S         | 387 +------------------------------
- 10 files changed, 507 insertions(+), 768 deletions(-)
- create mode 100644 arch/m68k/kernel/syscalls/Makefile
- create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
- create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
+ arch/microblaze/Makefile                      |   3 +
+ arch/microblaze/include/asm/Kbuild            |   1 +
+ arch/microblaze/include/asm/unistd.h          |   2 -
+ arch/microblaze/include/uapi/asm/Kbuild       |   1 +
+ arch/microblaze/include/uapi/asm/unistd.h     | 407 +------------------------
+ arch/microblaze/kernel/syscall_table.S        | 406 +------------------------
+ arch/microblaze/kernel/syscalls/Makefile      |  38 +++
+ arch/microblaze/kernel/syscalls/syscall.tbl   | 410 ++++++++++++++++++++++++++
+ arch/microblaze/kernel/syscalls/syscallhdr.sh |  36 +++
+ arch/microblaze/kernel/syscalls/syscalltbl.sh |  32 ++
+ 10 files changed, 526 insertions(+), 810 deletions(-)
+ create mode 100644 arch/microblaze/kernel/syscalls/Makefile
+ create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
 
 -- 
 1.9.1
