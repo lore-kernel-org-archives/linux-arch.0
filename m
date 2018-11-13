@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 2/5] alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
-Date: Tue, 13 Nov 2018 15:01:50 +0530
-Message-ID: <1542101513-22010-3-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 3/5] alpha: add __NR_syscalls along with NR_SYSCALLS
+Date: Tue, 13 Nov 2018 15:01:51 +0530
+Message-ID: <1542101513-22010-4-git-send-email-firoz.khan@linaro.org>
 References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
@@ -10,83 +10,66 @@ To: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Koksh
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Remove CONFIG_OSF4_COMPAT config flag from system call
-table - systbls.S and to keep the same feature, add the
-flag in osf_sys.c.
+NR_SYSCALLS macro holds the number of system call exist
+in alpha architecture. We have to change the value of NR-
+_SYSCALLS, if we add or delete a system call.
 
-One of the patch in this patch series will generate the
-system call table file. In order to come up with a common
-implementation across all architecture, we need this change.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update NR_SY-
+CALLS value.
+
+1. Update NR_SYSCALLS in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_SYS-
+   CALLS until we either add a new system call or delete
+   existing system call.
+
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_SYSCALLS in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_SYSCALLS asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/alpha/kernel/osf_sys.c | 9 ++++++---
- arch/alpha/kernel/systbls.S | 5 -----
- 2 files changed, 6 insertions(+), 8 deletions(-)
+ arch/alpha/include/asm/unistd.h      | 2 +-
+ arch/alpha/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-index cff52d8..4a147bf 100644
---- a/arch/alpha/kernel/osf_sys.c
-+++ b/arch/alpha/kernel/osf_sys.c
-@@ -1343,7 +1343,6 @@ struct timex32 {
- }
+diff --git a/arch/alpha/include/asm/unistd.h b/arch/alpha/include/asm/unistd.h
+index 4f0ceb3..21b706a 100644
+--- a/arch/alpha/include/asm/unistd.h
++++ b/arch/alpha/include/asm/unistd.h
+@@ -4,7 +4,7 @@
  
- #ifdef CONFIG_OSF4_COMPAT
--
- /* Clear top 32 bits of iov_len in the user's buffer for
-    compatibility with old versions of OSF/1 where iov_len
-    was defined as int. */
-@@ -1360,27 +1359,31 @@ struct timex32 {
- 	}
- 	return 0;
- }
-+#endif
+ #include <uapi/asm/unistd.h>
  
- SYSCALL_DEFINE3(osf_readv, unsigned long, fd,
- 		const struct iovec __user *, vector, unsigned long, count)
- {
-+#ifdef CONFIG_OSF4_COMPAT
- 	if (unlikely(personality(current->personality) == PER_OSF4))
- 		if (osf_fix_iov_len(vector, count))
- 			return -EFAULT;
+-#define NR_SYSCALLS			523
++#define NR_SYSCALLS	__NR_syscalls
+ 
+ #define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+diff --git a/arch/alpha/include/uapi/asm/unistd.h b/arch/alpha/include/uapi/asm/unistd.h
+index 47c65f1..ab40aa6 100644
+--- a/arch/alpha/include/uapi/asm/unistd.h
++++ b/arch/alpha/include/uapi/asm/unistd.h
+@@ -465,4 +465,8 @@
+ #define __NR_pwritev2			521
+ #define __NR_statx			522
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			523
 +#endif
 +
- 	return sys_readv(fd, vector, count);
- }
- 
- SYSCALL_DEFINE3(osf_writev, unsigned long, fd,
- 		const struct iovec __user *, vector, unsigned long, count)
- {
-+#ifdef CONFIG_OSF4_COMPAT
- 	if (unlikely(personality(current->personality) == PER_OSF4))
- 		if (osf_fix_iov_len(vector, count))
- 			return -EFAULT;
-+#endif
- 	return sys_writev(fd, vector, count);
- }
- 
--#endif
--
- SYSCALL_DEFINE2(osf_getpriority, int, which, int, who)
- {
- 	int prio = sys_getpriority(which, who);
-diff --git a/arch/alpha/kernel/systbls.S b/arch/alpha/kernel/systbls.S
-index 5b2e8ec..59ca11d 100644
---- a/arch/alpha/kernel/systbls.S
-+++ b/arch/alpha/kernel/systbls.S
-@@ -132,13 +132,8 @@ sys_call_table:
- 	.quad sys_osf_getrusage
- 	.quad sys_getsockopt
- 	.quad sys_ni_syscall
--#ifdef CONFIG_OSF4_COMPAT
- 	.quad sys_osf_readv			/* 120 */
- 	.quad sys_osf_writev
--#else
--	.quad sys_readv				/* 120 */
--	.quad sys_writev
--#endif
- 	.quad sys_osf_settimeofday
- 	.quad sys_fchown
- 	.quad sys_fchmod
+ #endif /* _UAPI_ALPHA_UNISTD_H */
 -- 
 1.9.1
