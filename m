@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH 06/27] kernel: Define gettimeofday vdso common code
-Date: Tue, 13 Nov 2018 10:24:22 +0000
-Message-ID: <61f77f06-396e-9293-c8cc-28fe7ea32af5@arm.com>
+Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
+Date: Tue, 13 Nov 2018 10:36:49 +0000
+Message-ID: <a9726884-70e5-bff4-555d-cd870a5bd6db@arm.com>
 References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
- <20181109123730.8743-7-vincenzo.frascino@arm.com>
- <CAK8P3a0QSfzsM-h9Kf36Pzr2WvXbyi0_RQG0+Nsp+1RoTRq7Ww@mail.gmail.com>
+ <20181109123730.8743-8-vincenzo.frascino@arm.com>
+ <CAMn1gO5tmJDXEgAZefcOmp1E2LmG3uqbO7vFwZRxAy2Cny114g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a0QSfzsM-h9Kf36Pzr2WvXbyi0_RQG0+Nsp+1RoTRq7Ww@mail.gmail.com>
+In-Reply-To: <CAMn1gO5tmJDXEgAZefcOmp1E2LmG3uqbO7vFwZRxAy2Cny114g@mail.gmail.com>
 Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
@@ -20,37 +20,28 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+To: Peter Collingbourne <pcc@google.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, salyzyn@android.com, paul.burton@mips.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
+Hi Peter,
 
-On 10/11/2018 16:18, Arnd Bergmann wrote:
-> On 11/9/18, Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
->> In the last few years we assisted to an explosion of vdso
->> implementations that mostly share similar code.
->>
->> This patch tries to unify the gettimeofday vdso implementation
->> introducing lib/vdso. The code contained in this library can
->> ideally be reused by all the architectures avoiding, where
->> possible, code duplication.
->>
->> In doing so, tries to maintain the performances using inlining as much
->> as possible and consequently reduces the surface for ROP type of attacks.
->>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+thank you for your review.
+
+On 09/11/2018 18:09, Peter Collingbourne wrote:
+> On Fri, Nov 9, 2018 at 4:38 AM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
+>> -ccflags-y := -shared -fno-common -fno-builtin
+>> +ccflags-y := -shared -fno-common -fno-builtin -fno-stack-protector
 > 
-> I just noticed that this new version misses some of the cleanups
-> that Thomas recently did in the x86 version, e.g. f3e839384164
-> ("x86/vdso: Replace the clockid switch case").
-> 
-> I haven't looked at all the details, but I'd suggest using the latest
-> x86 code as a base.
+> This either needs to include -ffixed-x18 or
+> https://patchwork.kernel.org/patch/10671685/ needs to appear earlier
+> in this series.
 > 
 
-Ok, I will have a look at Thomas' work. Thanks for pointing this out. 
+I did not add -ffixed-x18 to my flags because I was planning to cherry-pick your patch. It will be in v2.
 
->         Arnd
+> Peter
 > 
 
 -- 
