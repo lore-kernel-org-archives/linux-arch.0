@@ -1,214 +1,587 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcdn-iport-8.cisco.com ([173.37.86.79]:44453 "EHLO
-        rcdn-iport-8.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726078AbeKMJRe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2018 04:17:34 -0500
-Subject: Re: [PATCH v5] kernel/signal: Signal-based pre-coredump notification
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
- <20181026082812.GA10581@redhat.com>
- <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
- <20181029111804.GA24820@redhat.com>
- <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
-From: Enke Chen <enkechen@cisco.com>
-Message-ID: <ed8e0231-2b28-7cc0-4ae4-7cfcae3e0865@cisco.com>
-Date: Mon, 12 Nov 2018 15:22:07 -0800
-MIME-Version: 1.0
-In-Reply-To: <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:44307 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730934AbeKMP5o (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2018 10:57:44 -0500
+Received: by mail-pl1-f196.google.com with SMTP id s5-v6so5453172plq.11
+        for <linux-arch@vger.kernel.org>; Mon, 12 Nov 2018 22:01:15 -0800 (PST)
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v5 2/3] m68k: add system call table generation support
+Date: Tue, 13 Nov 2018 11:30:28 +0530
+Message-ID: <1542088829-19790-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
+References: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
-Message-ID: <20181112232207.etdgPeyVeyhJCQOcWlyBXFa9Zwz1ujo_B_PqScRa-U0@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Message-ID: <20181113060028.BWT9JmIT6wrF4YofmRIlhOEzAKYVOuA8n-sWCNycr-g@z>
 
-Hi, Folks:
+The system call tables are in different format in all
+architecture and it will be difficult to manually add,
+modify or delete the syscall table entries in the res-
+pective files. To make it easy by keeping a script and
+which will generate the uapi header and syscall table
+file. This change will also help to unify the implemen-
+tation across all architectures.
 
-Could you please take care of this patch [PATCH 5]?
+The system call table generation script is added in
+kernel/syscalls directory which contain the scripts to
+generate both uapi header file and system call table
+files. The syscall.tbl will be input for the scripts.
 
-Thanks.  -- Enke
+syscall.tbl contains the list of available system calls
+along with system call number and corresponding entry
+point. Add a new system call in this architecture will
+be possible by adding new entry in the syscall.tbl file.
 
-On 10/29/18 3:31 PM, Enke Chen wrote:
-> For simplicity and consistency, this patch provides an implementation
-> for signal-based fault notification prior to the coredump of a child
-> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-> be used by an application to express its interest and to specify the
-> signal for such a notification.
-> 
-> Changes to prctl(2):
-> 
->    PR_SET_PREDUMP_SIG (since Linux 4.20.x)
->           Set the child pre-coredump signal of the calling process to
->           arg2 (either a signal value in the range 1..maxsig, or 0 to
->           clear). This is the signal that the calling process will get
->           prior to the coredump of a child process. This value is
->           cleared across execve(2), or for the child of a fork(2).
-> 
->    PR_GET_PREDUMP_SIG (since Linux 4.20.x)
->           Return the current value of the child pre-coredump signal,
->           in the location pointed to by (int *) arg2.
-> 
-> Background:
-> 
-> As the coredump of a process may take time, in certain time-sensitive
-> applications it is necessary for a parent process (e.g., a process
-> manager) to be notified of a child's imminent death before the coredump
-> so that the parent process can act sooner, such as re-spawning an
-> application process, or initiating a control-plane fail-over.
-> 
-> One application is BFD. The early fault notification is a critical
-> component for maintaining BFD sessions (with a timeout value of
-> 50 msec or 100 msec) across a control-plane failure.
-> 
-> Currently there are two ways for a parent process to be notified of a
-> child process's state change. One is to use the POSIX signal, and
-> another is to use the kernel connector module. The specific events and
-> actions are summarized as follows:
-> 
-> Process Event    POSIX Signal                Connector-based
-> ----------------------------------------------------------------------
-> ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_STOPPED
-> 
-> ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_CONTINUED
-> 
-> pre_coredump/    N/A                         proc_coredump_connector()
-> get_signal()
-> 
-> post_coredump/   do_notify_parent()          proc_exit_connector()
-> do_exit()        SIGCHLD / exit_signal
-> ----------------------------------------------------------------------
-> 
-> As shown in the table, the signal-based pre-coredump notification is not
-> currently available. In some cases using a connector-based notification
-> can be quite complicated (e.g., when a process manager is written in shell
-> scripts and thus is subject to certain inherent limitations), and a
-> signal-based notification would be simpler and better suited.
-> 
-> Signed-off-by: Enke Chen <enkechen@cisco.com>
-> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
-> ---
-> v4 -> v5:
-> Addressed review comments from Oleg Nesterov:
-> o use rcu_read_lock instead.
-> o revert back to notify the real_parent.
-> 
->  fs/coredump.c                | 23 +++++++++++++++++++++++
->  fs/exec.c                    |  3 +++
->  include/linux/sched/signal.h |  3 +++
->  include/uapi/linux/prctl.h   |  4 ++++
->  kernel/sys.c                 | 13 +++++++++++++
->  5 files changed, 46 insertions(+)
-> 
-> diff --git a/fs/coredump.c b/fs/coredump.c
-> index e42e17e..740b1bb 100644
-> --- a/fs/coredump.c
-> +++ b/fs/coredump.c
-> @@ -536,6 +536,24 @@ static int umh_pipe_setup(struct subprocess_info *info, struct cred *new)
->  	return err;
->  }
->  
-> +/*
-> + * While do_notify_parent() notifies the parent of a child's death post
-> + * its coredump, this function lets the parent (if so desired) know about
-> + * the imminent death of a child just prior to its coredump.
-> + */
-> +static void do_notify_parent_predump(void)
-> +{
-> +	struct task_struct *parent;
-> +	int sig;
-> +
-> +	rcu_read_lock();
-> +	parent = rcu_dereference(current->real_parent);
-> +	sig = parent->signal->predump_signal;
-> +	if (sig != 0)
-> +		do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
-> +	rcu_read_unlock();
-> +}
-> +
->  void do_coredump(const kernel_siginfo_t *siginfo)
->  {
->  	struct core_state core_state;
-> @@ -590,6 +608,11 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->  	if (retval < 0)
->  		goto fail_creds;
->  
-> +	/*
-> +	 * Send the pre-coredump signal to the parent if requested.
-> +	 */
-> +	do_notify_parent_predump();
-> +
->  	old_cred = override_creds(cred);
->  
->  	ispipe = format_corename(&cn, &cprm);
-> diff --git a/fs/exec.c b/fs/exec.c
-> index fc281b7..7714da7 100644
-> --- a/fs/exec.c
-> +++ b/fs/exec.c
-> @@ -1181,6 +1181,9 @@ static int de_thread(struct task_struct *tsk)
->  	/* we have changed execution domain */
->  	tsk->exit_signal = SIGCHLD;
->  
-> +	/* Clear the pre-coredump signal before loading a new binary */
-> +	sig->predump_signal = 0;
-> +
->  #ifdef CONFIG_POSIX_TIMERS
->  	exit_itimers(sig);
->  	flush_itimer_signals();
-> diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-> index 13789d1..728ef68 100644
-> --- a/include/linux/sched/signal.h
-> +++ b/include/linux/sched/signal.h
-> @@ -112,6 +112,9 @@ struct signal_struct {
->  	int			group_stop_count;
->  	unsigned int		flags; /* see SIGNAL_* flags below */
->  
-> +	/* The signal sent prior to a child's coredump */
-> +	int			predump_signal;
-> +
->  	/*
->  	 * PR_SET_CHILD_SUBREAPER marks a process, like a service
->  	 * manager, to re-parent orphan (double-forking) child processes
-> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> index c0d7ea0..79f0a8a 100644
-> --- a/include/uapi/linux/prctl.h
-> +++ b/include/uapi/linux/prctl.h
-> @@ -219,4 +219,8 @@ struct prctl_mm_map {
->  # define PR_SPEC_DISABLE		(1UL << 2)
->  # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
->  
-> +/* Whether to receive signal prior to child's coredump */
-> +#define PR_SET_PREDUMP_SIG	54
-> +#define PR_GET_PREDUMP_SIG	55
-> +
->  #endif /* _LINUX_PRCTL_H */
-> diff --git a/kernel/sys.c b/kernel/sys.c
-> index 123bd73..39aa3b8 100644
-> --- a/kernel/sys.c
-> +++ b/kernel/sys.c
-> @@ -2476,6 +2476,19 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
->  			return -EINVAL;
->  		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
->  		break;
-> +	case PR_SET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +		if (!valid_signal((int)arg2))
-> +			return -EINVAL;
-> +		me->signal->predump_signal = (int)arg2;
-> +		break;
-> +	case PR_GET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +		error = put_user(me->signal->predump_signal,
-> +				 (int __user *)arg2);
-> +		break;
->  	default:
->  		error = -EINVAL;
->  		break;
-> 
+Adding a new table entry consisting of:
+  	- System call number.
+	- ABI.
+	- System call name.
+	- Entry point name.
+
+syscallhdr.sh and syscalltbl.sh will generate uapi header
+unistd_32.h and syscall_table.h files respectively. Both
+.sh files will parse the content syscall.tbl to generate
+the header and table files. unistd_32.h will be included
+by uapi/asm/unistd.h and syscall_table.h is included by
+kernel/syscall_table.S - the real system call table.
+
+ARM, s390 and x86 architecuture does have similar support.
+I leverage their implementation to come up with a generic
+solution.
+
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/m68k/kernel/syscalls/Makefile      |  38 ++++
+ arch/m68k/kernel/syscalls/syscall.tbl   | 389 ++++++++++++++++++++++++++++++++
+ arch/m68k/kernel/syscalls/syscallhdr.sh |  36 +++
+ arch/m68k/kernel/syscalls/syscalltbl.sh |  32 +++
+ 4 files changed, 495 insertions(+)
+ create mode 100644 arch/m68k/kernel/syscalls/Makefile
+ create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
+
+diff --git a/arch/m68k/kernel/syscalls/Makefile b/arch/m68k/kernel/syscalls/Makefile
+new file mode 100644
+index 0000000..659faef
+--- /dev/null
++++ b/arch/m68k/kernel/syscalls/Makefile
+@@ -0,0 +1,38 @@
++# SPDX-License-Identifier: GPL-2.0
++kapi := arch/$(SRCARCH)/include/generated/asm
++uapi := arch/$(SRCARCH)/include/generated/uapi/asm
++
++_dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
++	  $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
++
++syscall := $(srctree)/$(src)/syscall.tbl
++syshdr := $(srctree)/$(src)/syscallhdr.sh
++systbl := $(srctree)/$(src)/syscalltbl.sh
++
++quiet_cmd_syshdr = SYSHDR  $@
++      cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
++		   '$(syshdr_abis_$(basetarget))'		\
++		   '$(syshdr_pfx_$(basetarget))'		\
++		   '$(syshdr_offset_$(basetarget))'
++
++quiet_cmd_systbl = SYSTBL  $@
++      cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
++		   '$(systbl_abis_$(basetarget))'		\
++		   '$(systbl_abi_$(basetarget))'		\
++		   '$(systbl_offset_$(basetarget))'
++
++$(uapi)/unistd_32.h: $(syscall) $(syshdr)
++	$(call if_changed,syshdr)
++
++$(kapi)/syscall_table.h: $(syscall) $(systbl)
++	$(call if_changed,systbl)
++
++uapisyshdr-y		+= unistd_32.h
++kapisyshdr-y		+= syscall_table.h
++
++targets	+= $(uapisyshdr-y) $(kapisyshdr-y)
++
++PHONY += all
++all: $(addprefix $(uapi)/,$(uapisyshdr-y))
++all: $(addprefix $(kapi)/,$(kapisyshdr-y))
++	@:
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+new file mode 100644
+index 0000000..1a95c4a
+--- /dev/null
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -0,0 +1,389 @@
++# SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
++#
++# system call numbers and entry vectors for m68k
++#
++# The format is:
++# <number> <abi> <name> <entry point>
++#
++# The <abi> is always "common" for this file
++#
++0	common	restart_syscall			sys_restart_syscall
++1	common	exit				sys_exit
++2	common	fork				__sys_fork
++3	common	read				sys_read
++4	common	write				sys_write
++5	common	open				sys_open
++6	common	close				sys_close
++7	common	waitpid				sys_waitpid
++8	common	creat				sys_creat
++9	common	link				sys_link
++10	common	unlink				sys_unlink
++11	common	execve				sys_execve
++12	common	chdir				sys_chdir
++13	common	time				sys_time
++14	common	mknod				sys_mknod
++15	common	chmod				sys_chmod
++16	common	chown				sys_chown16
++# 17 was break
++18	common	oldstat				sys_stat
++19	common	lseek				sys_lseek
++20	common	getpid				sys_getpid
++21	common	mount				sys_mount
++22	common	umount				sys_oldumount
++23	common	setuid				sys_setuid16
++24	common	getuid				sys_getuid16
++25	common	stime				sys_stime
++26	common	ptrace				sys_ptrace
++27	common	alarm				sys_alarm
++28	common	oldfstat			sys_fstat
++29	common	pause				sys_pause
++30	common	utime				sys_utime
++# 31 was stty
++# 32 was gtty
++33	common	access				sys_access
++34	common	nice				sys_nice
++# 35 was ftime
++36	common	sync				sys_sync
++37	common	kill				sys_kill
++38	common	rename				sys_rename
++39	common	mkdir				sys_mkdir
++40	common	rmdir				sys_rmdir
++41	common	dup				sys_dup
++42	common	pipe				sys_pipe
++43	common	times				sys_times
++# 44 was prof
++45	common	brk				sys_brk
++46	common	setgid				sys_setgid16
++47	common	getgid				sys_getgid16
++48	common	signal				sys_signal
++49	common	geteuid				sys_geteuid16
++50	common	getegid				sys_getegid16
++51	common	acct				sys_acct
++52	common	umount2				sys_umount
++# 53 was lock
++54	common	ioctl				sys_ioctl
++55	common	fcntl				sys_fcntl
++# 56 was mpx
++57	common	setpgid				sys_setpgid
++# 58 was ulimit
++# 59 was oldolduname
++60	common	umask				sys_umask
++61	common	chroot				sys_chroot
++62	common	ustat				sys_ustat
++63	common	dup2				sys_dup2
++64	common	getppid				sys_getppid
++65	common	getpgrp				sys_getpgrp
++66	common	setsid				sys_setsid
++67	common	sigaction			sys_sigaction
++68	common	sgetmask			sys_sgetmask
++69	common	ssetmask			sys_ssetmask
++70	common	setreuid			sys_setreuid16
++71	common	setregid			sys_setregid16
++72	common	sigsuspend			sys_sigsuspend
++73	common	sigpending			sys_sigpending
++74	common	sethostname			sys_sethostname
++75	common	setrlimit			sys_setrlimit
++76	common	getrlimit			sys_old_getrlimit
++77	common	getrusage			sys_getrusage
++78	common	gettimeofday			sys_gettimeofday
++79	common	settimeofday			sys_settimeofday
++80	common	getgroups			sys_getgroups16
++81	common	setgroups			sys_setgroups16
++82	common	select				sys_old_select
++83	common	symlink				sys_symlink
++84	common	oldlstat			sys_lstat
++85	common	readlink			sys_readlink
++86	common	uselib				sys_uselib
++87	common	swapon				sys_swapon
++88	common	reboot				sys_reboot
++89	common	readdir				sys_old_readdir
++90	common	mmap				sys_old_mmap
++91	common	munmap				sys_munmap
++92	common	truncate			sys_truncate
++93	common	ftruncate			sys_ftruncate
++94	common	fchmod				sys_fchmod
++95	common	fchown				sys_fchown16
++96	common	getpriority			sys_getpriority
++97	common	setpriority			sys_setpriority
++# 98 was profil
++99	common	statfs				sys_statfs
++100	common	fstatfs				sys_fstatfs
++# 101 was ioperm
++102	common	socketcall			sys_socketcall
++103	common	syslog				sys_syslog
++104	common	setitimer			sys_setitimer
++105	common	getitimer			sys_getitimer
++106	common	stat				sys_newstat
++107	common	lstat				sys_newlstat
++108	common	fstat				sys_newfstat
++# 109 was olduname
++# 110 was iopl
++111	common	vhangup				sys_vhangup
++# 112 was idle
++# 113 was vm86
++114	common	wait4				sys_wait4
++115	common	swapoff				sys_swapoff
++116	common	sysinfo				sys_sysinfo
++117	common	ipc				sys_ipc
++118	common	fsync				sys_fsync
++119	common	sigreturn			sys_sigreturn
++120	common	clone				__sys_clone
++121	common	setdomainname			sys_setdomainname
++122	common	uname				sys_newuname
++123	common	cacheflush			sys_cacheflush
++124	common	adjtimex			sys_adjtimex
++125	common	mprotect			sys_mprotect
++126	common	sigprocmask			sys_sigprocmask
++127	common	create_module			sys_ni_syscall
++128	common	init_module			sys_init_module
++129	common	delete_module			sys_delete_module
++130	common	get_kernel_syms			sys_ni_syscall
++131	common	quotactl			sys_quotactl
++132	common	getpgid				sys_getpgid
++133	common	fchdir				sys_fchdir
++134	common	bdflush				sys_bdflush
++135	common	sysfs				sys_sysfs
++136	common	personality			sys_personality
++# 137 was afs_syscall
++138	common	setfsuid			sys_setfsuid16
++139	common	setfsgid			sys_setfsgid16
++140	common	_llseek				sys_llseek
++141	common	getdents			sys_getdents
++142	common	_newselect			sys_select
++143	common	flock				sys_flock
++144	common	msync				sys_msync
++145	common	readv				sys_readv
++146	common	writev				sys_writev
++147	common	getsid				sys_getsid
++148	common	fdatasync			sys_fdatasync
++149	common	_sysctl				sys_sysctl
++150	common	mlock				sys_mlock
++151	common	munlock				sys_munlock
++152	common	mlockall			sys_mlockall
++153	common	munlockall			sys_munlockall
++154	common	sched_setparam			sys_sched_setparam
++155	common	sched_getparam			sys_sched_getparam
++156	common	sched_setscheduler		sys_sched_setscheduler
++157	common	sched_getscheduler		sys_sched_getscheduler
++158	common	sched_yield			sys_sched_yield
++159	common	sched_get_priority_max		sys_sched_get_priority_max
++160	common	sched_get_priority_min		sys_sched_get_priority_min
++161	common	sched_rr_get_interval		sys_sched_rr_get_interval
++162	common	nanosleep			sys_nanosleep
++163	common	mremap				sys_mremap
++164	common	setresuid			sys_setresuid16
++165	common	getresuid			sys_getresuid16
++166	common	getpagesize			sys_getpagesize
++167	common	query_module			sys_ni_syscall
++168	common	poll				sys_poll
++169	common	nfsservctl			sys_ni_syscall
++170	common	setresgid			sys_setresgid16
++171	common	getresgid			sys_getresgid16
++172	common	prctl				sys_prctl
++173	common	rt_sigreturn			sys_rt_sigreturn
++174	common	rt_sigaction			sys_rt_sigaction
++175	common	rt_sigprocmask			sys_rt_sigprocmask
++176	common	rt_sigpending			sys_rt_sigpending
++177	common	rt_sigtimedwait			sys_rt_sigtimedwait
++178	common	rt_sigqueueinfo			sys_rt_sigqueueinfo
++179	common	rt_sigsuspend			sys_rt_sigsuspend
++180	common	pread64				sys_pread64
++181	common	pwrite64			sys_pwrite64
++182	common	lchown				sys_lchown16
++183	common	getcwd				sys_getcwd
++184	common	capget				sys_capget
++185	common	capset				sys_capset
++186	common	sigaltstack			sys_sigaltstack
++187	common	sendfile			sys_sendfile
++188	common	getpmsg				sys_ni_syscall
++189	common	putpmsg				sys_ni_syscall
++190	common	vfork				__sys_vfork
++191	common	ugetrlimit			sys_getrlimit
++192	common	mmap2				sys_mmap2
++193	common	truncate64			sys_truncate64
++194	common	ftruncate64			sys_ftruncate64
++195	common	stat64				sys_stat64
++196	common	lstat64				sys_lstat64
++197	common	fstat64				sys_fstat64
++198	common	chown32				sys_chown
++199	common	getuid32			sys_getuid
++200	common	getgid32			sys_getgid
++201	common	geteuid32			sys_geteuid
++202	common	getegid32			sys_getegid
++203	common	setreuid32			sys_setreuid
++204	common	setregid32			sys_setregid
++205	common	getgroups32			sys_getgroups
++206	common	setgroups32			sys_setgroups
++207	common	fchown32			sys_fchown
++208	common	setresuid32			sys_setresuid
++209	common	getresuid32			sys_getresuid
++210	common	setresgid32			sys_setresgid
++211	common	getresgid32			sys_getresgid
++212	common	lchown32			sys_lchown
++213	common	setuid32			sys_setuid
++214	common	setgid32			sys_setgid
++215	common	setfsuid32			sys_setfsuid
++216	common	setfsgid32			sys_setfsgid
++217	common	pivot_root			sys_pivot_root
++# 218 is reserved
++# 219 is reserved
++220	common	getdents64			sys_getdents64
++221	common	gettid				sys_gettid
++222	common	tkill				sys_tkill
++223	common	setxattr			sys_setxattr
++224	common	lsetxattr			sys_lsetxattr
++225	common	fsetxattr			sys_fsetxattr
++226	common	getxattr			sys_getxattr
++227	common	lgetxattr			sys_lgetxattr
++228	common	fgetxattr			sys_fgetxattr
++229	common	listxattr			sys_listxattr
++230	common	llistxattr			sys_llistxattr
++231	common	flistxattr			sys_flistxattr
++232	common	removexattr			sys_removexattr
++233	common	lremovexattr			sys_lremovexattr
++234	common	fremovexattr			sys_fremovexattr
++235	common	futex				sys_futex
++236	common	sendfile64			sys_sendfile64
++237	common	mincore				sys_mincore
++238	common	madvise				sys_madvise
++239	common	fcntl64				sys_fcntl64
++240	common	readahead			sys_readahead
++241	common	io_setup			sys_io_setup
++242	common	io_destroy			sys_io_destroy
++243	common	io_getevents			sys_io_getevents
++244	common	io_submit			sys_io_submit
++245	common	io_cancel			sys_io_cancel
++246	common	fadvise64			sys_fadvise64
++247	common	exit_group			sys_exit_group
++248	common	lookup_dcookie			sys_lookup_dcookie
++249	common	epoll_create			sys_epoll_create
++250	common	epoll_ctl			sys_epoll_ctl
++251	common	epoll_wait			sys_epoll_wait
++252	common	remap_file_pages		sys_remap_file_pages
++253	common	set_tid_address			sys_set_tid_address
++254	common	timer_create			sys_timer_create
++255	common	timer_settime			sys_timer_settime
++256	common	timer_gettime			sys_timer_gettime
++257	common	timer_getoverrun		sys_timer_getoverrun
++258	common	timer_delete			sys_timer_delete
++259	common	clock_settime			sys_clock_settime
++260	common	clock_gettime			sys_clock_gettime
++261	common	clock_getres			sys_clock_getres
++262	common	clock_nanosleep			sys_clock_nanosleep
++263	common	statfs64			sys_statfs64
++264	common	fstatfs64			sys_fstatfs64
++265	common	tgkill				sys_tgkill
++266	common	utimes				sys_utimes
++267	common	fadvise64_64			sys_fadvise64_64
++268	common	mbind				sys_mbind
++269	common	get_mempolicy			sys_get_mempolicy
++270	common	set_mempolicy			sys_set_mempolicy
++271	common	mq_open				sys_mq_open
++272	common	mq_unlink			sys_mq_unlink
++273	common	mq_timedsend			sys_mq_timedsend
++274	common	mq_timedreceive			sys_mq_timedreceive
++275	common	mq_notify			sys_mq_notify
++276	common	mq_getsetattr			sys_mq_getsetattr
++277	common	waitid				sys_waitid
++# 278 was vserver
++279	common	add_key				sys_add_key
++280	common	request_key			sys_request_key
++281	common	keyctl				sys_keyctl
++282	common	ioprio_set			sys_ioprio_set
++283	common	ioprio_get			sys_ioprio_get
++284	common	inotify_init			sys_inotify_init
++285	common	inotify_add_watch		sys_inotify_add_watch
++286	common	inotify_rm_watch		sys_inotify_rm_watch
++287	common	migrate_pages			sys_migrate_pages
++288	common	openat				sys_openat
++289	common	mkdirat				sys_mkdirat
++290	common	mknodat				sys_mknodat
++291	common	fchownat			sys_fchownat
++292	common	futimesat			sys_futimesat
++293	common	fstatat64			sys_fstatat64
++294	common	unlinkat			sys_unlinkat
++295	common	renameat			sys_renameat
++296	common	linkat				sys_linkat
++297	common	symlinkat			sys_symlinkat
++298	common	readlinkat			sys_readlinkat
++299	common	fchmodat			sys_fchmodat
++300	common	faccessat			sys_faccessat
++301	common	pselect6			sys_pselect6
++302	common	ppoll				sys_ppoll
++303	common	unshare				sys_unshare
++304	common	set_robust_list			sys_set_robust_list
++305	common	get_robust_list			sys_get_robust_list
++306	common	splice				sys_splice
++307	common	sync_file_range			sys_sync_file_range
++308	common	tee				sys_tee
++309	common	vmsplice			sys_vmsplice
++310	common	move_pages			sys_move_pages
++311	common	sched_setaffinity		sys_sched_setaffinity
++312	common	sched_getaffinity		sys_sched_getaffinity
++313	common	kexec_load			sys_kexec_load
++314	common	getcpu				sys_getcpu
++315	common	epoll_pwait			sys_epoll_pwait
++316	common	utimensat			sys_utimensat
++317	common	signalfd			sys_signalfd
++318	common	timerfd_create			sys_timerfd_create
++319	common	eventfd				sys_eventfd
++320	common	fallocate			sys_fallocate
++321	common	timerfd_settime			sys_timerfd_settime
++322	common	timerfd_gettime			sys_timerfd_gettime
++323	common	signalfd4			sys_signalfd4
++324	common	eventfd2			sys_eventfd2
++325	common	epoll_create1			sys_epoll_create1
++326	common	dup3				sys_dup3
++327	common	pipe2				sys_pipe2
++328	common	inotify_init1			sys_inotify_init1
++329	common	preadv				sys_preadv
++330	common	pwritev				sys_pwritev
++331	common	rt_tgsigqueueinfo		sys_rt_tgsigqueueinfo
++332	common	perf_event_open			sys_perf_event_open
++333	common	get_thread_area			sys_get_thread_area
++334	common	set_thread_area			sys_set_thread_area
++335	common	atomic_cmpxchg_32		sys_atomic_cmpxchg_32
++336	common	atomic_barrier			sys_atomic_barrier
++337	common	fanotify_init			sys_fanotify_init
++338	common	fanotify_mark			sys_fanotify_mark
++339	common	prlimit64			sys_prlimit64
++340	common	name_to_handle_at		sys_name_to_handle_at
++341	common	open_by_handle_at		sys_open_by_handle_at
++342	common	clock_adjtime			sys_clock_adjtime
++343	common	syncfs				sys_syncfs
++344	common	setns				sys_setns
++345	common	process_vm_readv		sys_process_vm_readv
++346	common	process_vm_writev		sys_process_vm_writev
++347	common	kcmp				sys_kcmp
++348	common	finit_module			sys_finit_module
++349	common	sched_setattr			sys_sched_setattr
++350	common	sched_getattr			sys_sched_getattr
++351	common	renameat2			sys_renameat2
++352	common	getrandom			sys_getrandom
++353	common	memfd_create			sys_memfd_create
++354	common	bpf				sys_bpf
++355	common	execveat			sys_execveat
++356	common	socket				sys_socket
++357	common	socketpair			sys_socketpair
++358	common	bind				sys_bind
++359	common	connect				sys_connect
++360	common	listen				sys_listen
++361	common	accept4				sys_accept4
++362	common	getsockopt			sys_getsockopt
++363	common	setsockopt			sys_setsockopt
++364	common	getsockname			sys_getsockname
++365	common	getpeername			sys_getpeername
++366	common	sendto				sys_sendto
++367	common	sendmsg				sys_sendmsg
++368	common	recvfrom			sys_recvfrom
++369	common	recvmsg				sys_recvmsg
++370	common	shutdown			sys_shutdown
++371	common	recvmmsg			sys_recvmmsg
++372	common	sendmmsg			sys_sendmmsg
++373	common	userfaultfd			sys_userfaultfd
++374	common	membarrier			sys_membarrier
++375	common	mlock2				sys_mlock2
++376	common	copy_file_range			sys_copy_file_range
++377	common	preadv2				sys_preadv2
++378	common	pwritev2			sys_pwritev2
++379	common	statx				sys_statx
+diff --git a/arch/m68k/kernel/syscalls/syscallhdr.sh b/arch/m68k/kernel/syscalls/syscallhdr.sh
+new file mode 100644
+index 0000000..a5a73e8
+--- /dev/null
++++ b/arch/m68k/kernel/syscalls/syscallhdr.sh
+@@ -0,0 +1,36 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++in="$1"
++out="$2"
++my_abis=`echo "($3)" | tr ',' '|'`
++prefix="$4"
++offset="$5"
++
++fileguard=_UAPI_ASM_M68K_`basename "$out" | sed \
++	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
++	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
++grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++	printf "#ifndef %s\n" "${fileguard}"
++	printf "#define %s\n" "${fileguard}"
++	printf "\n"
++
++	nxt=0
++	while read nr abi name entry ; do
++		if [ -z "$offset" ]; then
++			printf "#define __NR_%s%s\t%s\n" \
++				"${prefix}" "${name}" "${nr}"
++		else
++			printf "#define __NR_%s%s\t(%s + %s)\n" \
++				"${prefix}" "${name}" "${offset}" "${nr}"
++		fi
++		nxt=$((nr+1))
++	done
++
++	printf "\n"
++	printf "#ifdef __KERNEL__\n"
++	printf "#define __NR_syscalls\t%s\n" "${nxt}"
++	printf "#endif\n"
++	printf "\n"
++	printf "#endif /* %s */" "${fileguard}"
++) > "$out"
+diff --git a/arch/m68k/kernel/syscalls/syscalltbl.sh b/arch/m68k/kernel/syscalls/syscalltbl.sh
+new file mode 100644
+index 0000000..85d78d9
+--- /dev/null
++++ b/arch/m68k/kernel/syscalls/syscalltbl.sh
+@@ -0,0 +1,32 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++in="$1"
++out="$2"
++my_abis=`echo "($3)" | tr ',' '|'`
++my_abi="$4"
++offset="$5"
++
++emit() {
++	t_nxt="$1"
++	t_nr="$2"
++	t_entry="$3"
++
++	while [ $t_nxt -lt $t_nr ]; do
++		printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
++		t_nxt=$((t_nxt+1))
++	done
++	printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
++}
++
++grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++	nxt=0
++	if [ -z "$offset" ]; then
++		offset=0
++	fi
++
++	while read nr abi name entry ; do
++		emit $((nxt+offset)) $((nr+offset)) $entry
++		nxt=$((nr+1))
++	done
++) > "$out"
+-- 
+1.9.1
