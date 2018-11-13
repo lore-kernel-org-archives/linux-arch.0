@@ -1,209 +1,95 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH v5] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 12 Nov 2018 15:22:07 -0800
-Message-ID: <ed8e0231-2b28-7cc0-4ae4-7cfcae3e0865@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
- <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
- <20181026082812.GA10581@redhat.com>
- <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
- <20181029111804.GA24820@redhat.com>
- <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v5 0/3] m68k: system call table generation support
+Date: Tue, 13 Nov 2018 11:30:26 +0530
+Message-ID: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Folks:
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the
+system call table generation support implementation
+across all the architectures.
 
-Could you please take care of this patch [PATCH 5]?
+The system call tables are in different format in
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a
+script and which'll generate uapi header file and
+syscall table file.
 
-Thanks.  -- Enke
+syscall.tbl contains the list of available system
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in the
+syscall.tbl file.
 
-On 10/29/18 3:31 PM, Enke Chen wrote:
-> For simplicity and consistency, this patch provides an implementation
-> for signal-based fault notification prior to the coredump of a child
-> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-> be used by an application to express its interest and to specify the
-> signal for such a notification.
-> 
-> Changes to prctl(2):
-> 
->    PR_SET_PREDUMP_SIG (since Linux 4.20.x)
->           Set the child pre-coredump signal of the calling process to
->           arg2 (either a signal value in the range 1..maxsig, or 0 to
->           clear). This is the signal that the calling process will get
->           prior to the coredump of a child process. This value is
->           cleared across execve(2), or for the child of a fork(2).
-> 
->    PR_GET_PREDUMP_SIG (since Linux 4.20.x)
->           Return the current value of the child pre-coredump signal,
->           in the location pointed to by (int *) arg2.
-> 
-> Background:
-> 
-> As the coredump of a process may take time, in certain time-sensitive
-> applications it is necessary for a parent process (e.g., a process
-> manager) to be notified of a child's imminent death before the coredump
-> so that the parent process can act sooner, such as re-spawning an
-> application process, or initiating a control-plane fail-over.
-> 
-> One application is BFD. The early fault notification is a critical
-> component for maintaining BFD sessions (with a timeout value of
-> 50 msec or 100 msec) across a control-plane failure.
-> 
-> Currently there are two ways for a parent process to be notified of a
-> child process's state change. One is to use the POSIX signal, and
-> another is to use the kernel connector module. The specific events and
-> actions are summarized as follows:
-> 
-> Process Event    POSIX Signal                Connector-based
-> ----------------------------------------------------------------------
-> ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_STOPPED
-> 
-> ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_CONTINUED
-> 
-> pre_coredump/    N/A                         proc_coredump_connector()
-> get_signal()
-> 
-> post_coredump/   do_notify_parent()          proc_exit_connector()
-> do_exit()        SIGCHLD / exit_signal
-> ----------------------------------------------------------------------
-> 
-> As shown in the table, the signal-based pre-coredump notification is not
-> currently available. In some cases using a connector-based notification
-> can be quite complicated (e.g., when a process manager is written in shell
-> scripts and thus is subject to certain inherent limitations), and a
-> signal-based notification would be simpler and better suited.
-> 
-> Signed-off-by: Enke Chen <enkechen@cisco.com>
-> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
-> ---
-> v4 -> v5:
-> Addressed review comments from Oleg Nesterov:
-> o use rcu_read_lock instead.
-> o revert back to notify the real_parent.
-> 
->  fs/coredump.c                | 23 +++++++++++++++++++++++
->  fs/exec.c                    |  3 +++
->  include/linux/sched/signal.h |  3 +++
->  include/uapi/linux/prctl.h   |  4 ++++
->  kernel/sys.c                 | 13 +++++++++++++
->  5 files changed, 46 insertions(+)
-> 
-> diff --git a/fs/coredump.c b/fs/coredump.c
-> index e42e17e..740b1bb 100644
-> --- a/fs/coredump.c
-> +++ b/fs/coredump.c
-> @@ -536,6 +536,24 @@ static int umh_pipe_setup(struct subprocess_info *info, struct cred *new)
->  	return err;
->  }
->  
-> +/*
-> + * While do_notify_parent() notifies the parent of a child's death post
-> + * its coredump, this function lets the parent (if so desired) know about
-> + * the imminent death of a child just prior to its coredump.
-> + */
-> +static void do_notify_parent_predump(void)
-> +{
-> +	struct task_struct *parent;
-> +	int sig;
-> +
-> +	rcu_read_lock();
-> +	parent = rcu_dereference(current->real_parent);
-> +	sig = parent->signal->predump_signal;
-> +	if (sig != 0)
-> +		do_send_sig_info(sig, SEND_SIG_NOINFO, parent, PIDTYPE_TGID);
-> +	rcu_read_unlock();
-> +}
-> +
->  void do_coredump(const kernel_siginfo_t *siginfo)
->  {
->  	struct core_state core_state;
-> @@ -590,6 +608,11 @@ void do_coredump(const kernel_siginfo_t *siginfo)
->  	if (retval < 0)
->  		goto fail_creds;
->  
-> +	/*
-> +	 * Send the pre-coredump signal to the parent if requested.
-> +	 */
-> +	do_notify_parent_predump();
-> +
->  	old_cred = override_creds(cred);
->  
->  	ispipe = format_corename(&cn, &cprm);
-> diff --git a/fs/exec.c b/fs/exec.c
-> index fc281b7..7714da7 100644
-> --- a/fs/exec.c
-> +++ b/fs/exec.c
-> @@ -1181,6 +1181,9 @@ static int de_thread(struct task_struct *tsk)
->  	/* we have changed execution domain */
->  	tsk->exit_signal = SIGCHLD;
->  
-> +	/* Clear the pre-coredump signal before loading a new binary */
-> +	sig->predump_signal = 0;
-> +
->  #ifdef CONFIG_POSIX_TIMERS
->  	exit_itimers(sig);
->  	flush_itimer_signals();
-> diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-> index 13789d1..728ef68 100644
-> --- a/include/linux/sched/signal.h
-> +++ b/include/linux/sched/signal.h
-> @@ -112,6 +112,9 @@ struct signal_struct {
->  	int			group_stop_count;
->  	unsigned int		flags; /* see SIGNAL_* flags below */
->  
-> +	/* The signal sent prior to a child's coredump */
-> +	int			predump_signal;
-> +
->  	/*
->  	 * PR_SET_CHILD_SUBREAPER marks a process, like a service
->  	 * manager, to re-parent orphan (double-forking) child processes
-> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> index c0d7ea0..79f0a8a 100644
-> --- a/include/uapi/linux/prctl.h
-> +++ b/include/uapi/linux/prctl.h
-> @@ -219,4 +219,8 @@ struct prctl_mm_map {
->  # define PR_SPEC_DISABLE		(1UL << 2)
->  # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
->  
-> +/* Whether to receive signal prior to child's coredump */
-> +#define PR_SET_PREDUMP_SIG	54
-> +#define PR_GET_PREDUMP_SIG	55
-> +
->  #endif /* _LINUX_PRCTL_H */
-> diff --git a/kernel/sys.c b/kernel/sys.c
-> index 123bd73..39aa3b8 100644
-> --- a/kernel/sys.c
-> +++ b/kernel/sys.c
-> @@ -2476,6 +2476,19 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
->  			return -EINVAL;
->  		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
->  		break;
-> +	case PR_SET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +		if (!valid_signal((int)arg2))
-> +			return -EINVAL;
-> +		me->signal->predump_signal = (int)arg2;
-> +		break;
-> +	case PR_GET_PREDUMP_SIG:
-> +		if (arg3 || arg4 || arg5)
-> +			return -EINVAL;
-> +		error = put_user(me->signal->predump_signal,
-> +				 (int __user *)arg2);
-> +		break;
->  	default:
->  		error = -EINVAL;
->  		break;
-> 
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to
+come up with a generic solution.
+
+I have done the same support for work for alpha, ia64,
+microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
+Below mentioned git repository contains more details
+about the workflow.
+
+https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to
+solve Y2038 issue. So this patch series will help to
+add new system calls easily by adding new entry in
+the syscall.tbl.
+
+changes since v4:
+ - changed from generic-y to generated-y in Kbuild.
+ - remove the patch "0001-m68k-rename-system-call-
+   table-file-name.patch".
+
+changes since v3:
+ - optimized/updated the syscall table generation
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall_*.tbl.
+
+changes since v2:
+ - removed __IGNORE entries which was added in v2
+   to suppress the warning.
+ - added missing new line.
+
+changes since v1:
+ - enclosed __NR_sycalls macro with __KERNEL__.
+
+Firoz Khan (3):
+  m68k: add __NR_syscalls along with NR_syscalls
+  m68k: add system call table generation support
+  m68k: generate uapi header and syscall table header files
+
+ arch/m68k/Makefile                      |   3 +
+ arch/m68k/include/asm/Kbuild            |   1 +
+ arch/m68k/include/asm/unistd.h          |   3 +-
+ arch/m68k/include/uapi/asm/Kbuild       |   1 +
+ arch/m68k/include/uapi/asm/unistd.h     | 385 +------------------------------
+ arch/m68k/kernel/syscalls/Makefile      |  38 ++++
+ arch/m68k/kernel/syscalls/syscall.tbl   | 389 ++++++++++++++++++++++++++++++++
+ arch/m68k/kernel/syscalls/syscallhdr.sh |  36 +++
+ arch/m68k/kernel/syscalls/syscalltbl.sh |  32 +++
+ arch/m68k/kernel/syscalltable.S         | 387 +------------------------------
+ 10 files changed, 507 insertions(+), 768 deletions(-)
+ create mode 100644 arch/m68k/kernel/syscalls/Makefile
+ create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
+
+-- 
+1.9.1
