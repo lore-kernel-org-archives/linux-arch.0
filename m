@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49966 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49980 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732891AbeKNS0u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:50 -0500
+        with ESMTP id S1732965AbeKNS0v (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:51 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/34] powerpc/pci: remove the dma_set_mask pci_controller ops methods
-Date: Wed, 14 Nov 2018 09:23:01 +0100
-Message-ID: <20181114082314.8965-22-hch@lst.de>
+Subject: [PATCH 26/34] powerpc/dma: fix an off-by-one in dma_capable
+Date: Wed, 14 Nov 2018 09:23:06 +0100
+Message-ID: <20181114082314.8965-27-hch@lst.de>
 In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,46 +15,38 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181114082301.dyhvJGxylDtC3lkcchPF9fORhsJoSvvMUhArbV2_P9c@z>
+Message-ID: <20181114082306.uQ8PBO-cK233N6BBlhU5B9CWvCkNLesyTmXosD7PmCE@z>
 
-Unused now.
+We need to compare the last byte in the dma range and not the one after it
+for the bus_dma_mask, just like we do for the regular dma_mask.  Fix this
+cleanly by merging the two comparisms into one.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/pci-bridge.h | 2 --
- arch/powerpc/kernel/dma.c             | 7 -------
- 2 files changed, 9 deletions(-)
+ arch/powerpc/include/asm/dma-direct.h | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index aace7033fa02..a50703af7db3 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -45,8 +45,6 @@ struct pci_controller_ops {
- 	void		(*teardown_msi_irqs)(struct pci_dev *pdev);
- #endif
+diff --git a/arch/powerpc/include/asm/dma-direct.h b/arch/powerpc/include/asm/dma-direct.h
+index e00ab5d0612d..92d8aed86422 100644
+--- a/arch/powerpc/include/asm/dma-direct.h
++++ b/arch/powerpc/include/asm/dma-direct.h
+@@ -4,15 +4,11 @@
  
--	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
+ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+ {
+-#ifdef CONFIG_SWIOTLB
+-	if (dev->bus_dma_mask && addr + size > dev->bus_dma_mask)
+-		return false;
+-#endif
 -
- 	void		(*shutdown)(struct pci_controller *hose);
- };
+ 	if (!dev->dma_mask)
+ 		return false;
  
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 154e1cdae7f9..829eb2fefc8c 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -279,13 +279,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
- 	if (ppc_md.dma_set_mask)
- 		return ppc_md.dma_set_mask(dev, dma_mask);
+-	return addr + size - 1 <= *dev->dma_mask;
++	return addr + size - 1 <=
++		min_not_zero(*dev->dma_mask, dev->bus_dma_mask);
+ }
  
--	if (dev_is_pci(dev)) {
--		struct pci_dev *pdev = to_pci_dev(dev);
--		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
--		if (phb->controller_ops.dma_set_mask)
--			return phb->controller_ops.dma_set_mask(pdev, dma_mask);
--	}
--
- 	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
- 		return -EIO;
- 	*dev->dma_mask = dma_mask;
+ static inline dma_addr_t __phys_to_dma(struct device *dev, phys_addr_t paddr)
 -- 
 2.19.1
