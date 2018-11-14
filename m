@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/34] powerpc/pci: remove the dma_set_mask pci_controller ops methods
-Date: Wed, 14 Nov 2018 09:23:01 +0100
-Message-ID: <20181114082314.8965-22-hch@lst.de>
+Subject: [PATCH 27/34] powerpc/fsl_pci: simplify fsl_pci_dma_set_mask
+Date: Wed, 14 Nov 2018 09:23:07 +0100
+Message-ID: <20181114082314.8965-28-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,44 +12,39 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Unused now.
+swiotlb will only bounce buffer the effectice dma address for the device
+is smaller than the actual DMA range.  Instead of flipping between the
+swiotlb and nommu ops for FSL SOCs that have the second outbound window
+just don't set the bus dma_mask in this case.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/pci-bridge.h | 2 --
- arch/powerpc/kernel/dma.c             | 7 -------
- 2 files changed, 9 deletions(-)
+ arch/powerpc/sysdev/fsl_pci.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index aace7033fa02..a50703af7db3 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -45,8 +45,6 @@ struct pci_controller_ops {
- 	void		(*teardown_msi_irqs)(struct pci_dev *pdev);
- #endif
+diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
+index f136567a5ed5..296ffabc9386 100644
+--- a/arch/powerpc/sysdev/fsl_pci.c
++++ b/arch/powerpc/sysdev/fsl_pci.c
+@@ -143,7 +143,7 @@ static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
+ 	 * mapping that allows addressing any RAM address from across PCI.
+ 	 */
+ 	if (dev_is_pci(dev) && dma_mask >= pci64_dma_offset * 2 - 1) {
+-		set_dma_ops(dev, &dma_nommu_ops);
++		dev->bus_dma_mask = 0;
+ 		set_dma_offset(dev, pci64_dma_offset);
+ 	}
  
--	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
--
- 	void		(*shutdown)(struct pci_controller *hose);
- };
+@@ -403,10 +403,6 @@ static void setup_pci_atmu(struct pci_controller *hose)
+ 				out_be32(&pci->piw[win_idx].piwar,  piwar);
+ 			}
  
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 154e1cdae7f9..829eb2fefc8c 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -279,13 +279,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
- 	if (ppc_md.dma_set_mask)
- 		return ppc_md.dma_set_mask(dev, dma_mask);
+-			/*
+-			 * install our own dma_set_mask handler to fixup dma_ops
+-			 * and dma_offset
+-			 */
+ 			ppc_md.dma_set_mask = fsl_pci_dma_set_mask;
  
--	if (dev_is_pci(dev)) {
--		struct pci_dev *pdev = to_pci_dev(dev);
--		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
--		if (phb->controller_ops.dma_set_mask)
--			return phb->controller_ops.dma_set_mask(pdev, dma_mask);
--	}
--
- 	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
- 		return -EIO;
- 	*dev->dma_mask = dma_mask;
+ 			pr_info("%pOF: Setup 64-bit PCI DMA window\n", hose->dn);
 -- 
 2.19.1
