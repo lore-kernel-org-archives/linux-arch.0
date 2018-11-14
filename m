@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50004 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49254 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728391AbeKNS0y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:54 -0500
+        with ESMTP id S1732082AbeKNSZx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:25:53 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 27/34] powerpc/fsl_pci: simplify fsl_pci_dma_set_mask
-Date: Wed, 14 Nov 2018 09:23:07 +0100
-Message-ID: <20181114082314.8965-28-hch@lst.de>
+Subject: [PATCH 02/34] powerpc: allow NOT_COHERENT_CACHE for amigaone
+Date: Wed, 14 Nov 2018 09:22:42 +0100
+Message-ID: <20181114082314.8965-3-hch@lst.de>
 In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,41 +15,28 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181114082307.6KoiShfkLSp-gRTEdCSL6mIO2fZplHy0_V5JZOnXAvg@z>
+Message-ID: <20181114082242.PylZmN7Gk03Qxie9XPaN8Q678IyiyqyPIjl8oY242jo@z>
 
-swiotlb will only bounce buffer the effectice dma address for the device
-is smaller than the actual DMA range.  Instead of flipping between the
-swiotlb and nommu ops for FSL SOCs that have the second outbound window
-just don't set the bus dma_mask in this case.
+AMIGAONE select NOT_COHERENT_CACHE, so we better allow it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/sysdev/fsl_pci.c | 6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ arch/powerpc/platforms/Kconfig.cputype | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
-index f136567a5ed5..296ffabc9386 100644
---- a/arch/powerpc/sysdev/fsl_pci.c
-+++ b/arch/powerpc/sysdev/fsl_pci.c
-@@ -143,7 +143,7 @@ static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
- 	 * mapping that allows addressing any RAM address from across PCI.
- 	 */
- 	if (dev_is_pci(dev) && dma_mask >= pci64_dma_offset * 2 - 1) {
--		set_dma_ops(dev, &dma_nommu_ops);
-+		dev->bus_dma_mask = 0;
- 		set_dma_offset(dev, pci64_dma_offset);
- 	}
+diff --git a/arch/powerpc/platforms/Kconfig.cputype b/arch/powerpc/platforms/Kconfig.cputype
+index f4e2c5729374..6fedbf349fce 100644
+--- a/arch/powerpc/platforms/Kconfig.cputype
++++ b/arch/powerpc/platforms/Kconfig.cputype
+@@ -412,7 +412,8 @@ config NR_CPUS
  
-@@ -403,10 +403,6 @@ static void setup_pci_atmu(struct pci_controller *hose)
- 				out_be32(&pci->piw[win_idx].piwar,  piwar);
- 			}
+ config NOT_COHERENT_CACHE
+ 	bool
+-	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || GAMECUBE_COMMON
++	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || \
++		GAMECUBE_COMMON || AMIGAONE
+ 	default n if PPC_47x
+ 	default y
  
--			/*
--			 * install our own dma_set_mask handler to fixup dma_ops
--			 * and dma_offset
--			 */
- 			ppc_md.dma_set_mask = fsl_pci_dma_set_mask;
- 
- 			pr_info("%pOF: Setup 64-bit PCI DMA window\n", hose->dn);
 -- 
 2.19.1
