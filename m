@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50222 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49778 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732043AbeKNS1T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:27:19 -0500
+        with ESMTP id S1728406AbeKNS0e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:34 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 32/34] powerpc/dma: remove get_dma_offset
-Date: Wed, 14 Nov 2018 09:23:12 +0100
-Message-ID: <20181114082314.8965-33-hch@lst.de>
+Subject: [PATCH 15/34] powerpc/dart: use the generic iommu bypass code
+Date: Wed, 14 Nov 2018 09:22:55 +0100
+Message-ID: <20181114082314.8965-16-hch@lst.de>
 In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,66 +15,88 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181114082312.sMNYHJTSWH6Es8gFHJNaRy-G0QkjfjsyrcsJLA-cvkA@z>
+Message-ID: <20181114082255.n6-pr0YbYYXFYh3_ptz2OgYsGrWFNqA-93JFM603daE@z>
 
-Just fold the calculation into __phys_to_dma/__dma_to_phys as those are
-the only places that should know about it.
+Use the generic iommu bypass code instead of overriding set_dma_mask.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/include/asm/dma-direct.h  |  8 ++++++--
- arch/powerpc/include/asm/dma-mapping.h | 16 ----------------
- 2 files changed, 6 insertions(+), 18 deletions(-)
+ arch/powerpc/sysdev/dart_iommu.c | 45 +++++++++++---------------------
+ 1 file changed, 15 insertions(+), 30 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/dma-direct.h b/arch/powerpc/include/asm/dma-direct.h
-index 92d8aed86422..a2912b47102c 100644
---- a/arch/powerpc/include/asm/dma-direct.h
-+++ b/arch/powerpc/include/asm/dma-direct.h
-@@ -13,11 +13,15 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- 
- static inline dma_addr_t __phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
--	return paddr + get_dma_offset(dev);
-+	if (!dev)
-+		return paddr + PCI_DRAM_OFFSET;
-+	return paddr + dev->archdata.dma_offset;
+diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
+index 283ce04c5844..2681a19347ba 100644
+--- a/arch/powerpc/sysdev/dart_iommu.c
++++ b/arch/powerpc/sysdev/dart_iommu.c
+@@ -360,13 +360,6 @@ static void iommu_table_dart_setup(void)
+ 	set_bit(iommu_table_dart.it_size - 1, iommu_table_dart.it_map);
  }
  
- static inline phys_addr_t __dma_to_phys(struct device *dev, dma_addr_t daddr)
- {
--	return daddr - get_dma_offset(dev);
-+	if (!dev)
-+		return daddr - PCI_DRAM_OFFSET;
-+	return daddr - dev->archdata.dma_offset;
- }
- #endif /* ASM_POWERPC_DMA_DIRECT_H */
-diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-index 93e57e28be28..c70f55d2f5e0 100644
---- a/arch/powerpc/include/asm/dma-mapping.h
-+++ b/arch/powerpc/include/asm/dma-mapping.h
-@@ -43,22 +43,6 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return NULL;
- }
- 
--/*
-- * get_dma_offset()
-- *
-- * Get the dma offset on configurations where the dma address can be determined
-- * from the physical address by looking at a simple offset.  Direct dma and
-- * swiotlb use this function, but it is typically not used by implementations
-- * with an iommu.
-- */
--static inline dma_addr_t get_dma_offset(struct device *dev)
+-static void pci_dma_dev_setup_dart(struct pci_dev *dev)
 -{
--	if (dev)
--		return dev->archdata.dma_offset;
--
--	return PCI_DRAM_OFFSET;
+-	if (dart_is_u4)
+-		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
+-	set_iommu_table_base(&dev->dev, &iommu_table_dart);
 -}
 -
- static inline void set_dma_offset(struct device *dev, dma_addr_t off)
+ static void pci_dma_bus_setup_dart(struct pci_bus *bus)
  {
- 	if (dev)
+ 	if (!iommu_table_dart_inited) {
+@@ -390,27 +383,16 @@ static bool dart_device_on_pcie(struct device *dev)
+ 	return false;
+ }
+ 
+-static int dart_dma_set_mask(struct device *dev, u64 dma_mask)
++static void pci_dma_dev_setup_dart(struct pci_dev *dev)
+ {
+-	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
+-		return -EIO;
+-
+-	/* U4 supports a DART bypass, we use it for 64-bit capable
+-	 * devices to improve performances. However, that only works
+-	 * for devices connected to U4 own PCIe interface, not bridged
+-	 * through hypertransport. We need the device to support at
+-	 * least 40 bits of addresses.
+-	 */
+-	if (dart_device_on_pcie(dev) && dma_mask >= DMA_BIT_MASK(40)) {
+-		dev_info(dev, "Using 64-bit DMA iommu bypass\n");
+-		set_dma_ops(dev, &dma_nommu_ops);
+-	} else {
+-		dev_info(dev, "Using 32-bit DMA via iommu\n");
+-		set_dma_ops(dev, &dma_iommu_ops);
+-	}
++	if (dart_is_u4 && dart_device_on_pcie(&dev->dev))
++		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
++	set_iommu_table_base(&dev->dev, &iommu_table_dart);
++}
+ 
+-	*dev->dma_mask = dma_mask;
+-	return 0;
++static bool iommu_bypass_supported_dart(struct pci_dev *dev, u64 mask)
++{
++	return dart_is_u4 && dart_device_on_pcie(&dev->dev);
+ }
+ 
+ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+@@ -430,12 +412,15 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+ 	if (dart_init(dn) != 0)
+ 		return;
+ 
+-	/* Setup bypass if supported */
+-	if (dart_is_u4)
+-		ppc_md.dma_set_mask = dart_dma_set_mask;
+-
++	/*
++	 * U4 supports a DART bypass, we use it for 64-bit capable devices to
++	 * improve performance.  However, that only works for devices connected
++	 * to the U4 own PCIe interface, not bridged through hypertransport.
++	 * We need the device to support at least 40 bits of addresses.
++	 */
+ 	controller_ops->dma_dev_setup = pci_dma_dev_setup_dart;
+ 	controller_ops->dma_bus_setup = pci_dma_bus_setup_dart;
++	controller_ops->iommu_bypass_supported = iommu_bypass_supported_dart;
+ 
+ 	/* Setup pci_dma ops */
+ 	set_pci_dma_ops(&dma_iommu_ops);
 -- 
 2.19.1
