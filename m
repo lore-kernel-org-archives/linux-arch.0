@@ -1,47 +1,37 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: use generic DMA mapping code in powerpc V4
-Date: Wed, 14 Nov 2018 09:22:40 +0100
-Message-ID: <20181114082314.8965-1-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 02/34] powerpc: allow NOT_COHERENT_CACHE for amigaone
+Date: Wed, 14 Nov 2018 09:22:42 +0100
+Message-ID: <20181114082314.8965-3-hch@lst.de>
+References: <20181114082314.8965-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181114082314.8965-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+AMIGAONE select NOT_COHERENT_CACHE, so we better allow it.
 
-this series switches the powerpc port to use the generic swiotlb and
-noncoherent dma ops, and to use more generic code for the coherent
-direct mapping, as well as removing a lot of dead code.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/powerpc/platforms/Kconfig.cputype | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-As this series is very large and depends on the dma-mapping tree I've
-also published a git tree:
-
-    git://git.infradead.org/users/hch/misc.git powerpc-dma.4
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
-
-Changes since v3:
- - rebase on the powerpc fixes tree
- - add a new patch to actually make the baseline amigaone config
-   configure without warnings
- - only use ZONE_DMA for 64-bit embedded CPUs, on pseries an IOMMU is
-   always present
- - fix compile in mem.c for one configuration
- - drop the full npu removal for now, will be resent separately
- - a few git bisection fixes
-
-The changes since v1 are to big to list and v2 was not posted in public.
+diff --git a/arch/powerpc/platforms/Kconfig.cputype b/arch/powerpc/platforms/Kconfig.cputype
+index f4e2c5729374..6fedbf349fce 100644
+--- a/arch/powerpc/platforms/Kconfig.cputype
++++ b/arch/powerpc/platforms/Kconfig.cputype
+@@ -412,7 +412,8 @@ config NR_CPUS
+ 
+ config NOT_COHERENT_CACHE
+ 	bool
+-	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || GAMECUBE_COMMON
++	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || \
++		GAMECUBE_COMMON || AMIGAONE
+ 	default n if PPC_47x
+ 	default y
+ 
+-- 
+2.19.1
