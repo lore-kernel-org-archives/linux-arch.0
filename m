@@ -1,42 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49254 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732082AbeKNSZx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:25:53 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 02/34] powerpc: allow NOT_COHERENT_CACHE for amigaone
-Date: Wed, 14 Nov 2018 09:22:42 +0100
-Message-ID: <20181114082314.8965-3-hch@lst.de>
-In-Reply-To: <20181114082314.8965-1-hch@lst.de>
-References: <20181114082314.8965-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:42628 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728071AbeKNUGU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 15:06:20 -0500
+Received: by mail-pg1-f195.google.com with SMTP id d72so3703294pga.9
+        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2018 02:03:46 -0800 (PST)
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v2 0/4] powerpc: system call table generation support
+Date: Wed, 14 Nov 2018 15:33:14 +0530
+Message-ID: <1542189798-27713-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181114082242.PylZmN7Gk03Qxie9XPaN8Q678IyiyqyPIjl8oY242jo@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Message-ID: <20181114100314.ymXAVoG2XGGWPTw1_6uUdJ_rehpMVXI-fj7DgmkEBdg@z>
 
-AMIGAONE select NOT_COHERENT_CACHE, so we better allow it.
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the 
+system call table generation support implementation 
+across all the architectures. 
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/platforms/Kconfig.cputype | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+The system call tables are in different format in 
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a 
+script and which'll generate uapi header file and 
+syscall table file.
 
-diff --git a/arch/powerpc/platforms/Kconfig.cputype b/arch/powerpc/platforms/Kconfig.cputype
-index f4e2c5729374..6fedbf349fce 100644
---- a/arch/powerpc/platforms/Kconfig.cputype
-+++ b/arch/powerpc/platforms/Kconfig.cputype
-@@ -412,7 +412,8 @@ config NR_CPUS
- 
- config NOT_COHERENT_CACHE
- 	bool
--	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || GAMECUBE_COMMON
-+	depends on 4xx || PPC_8xx || E200 || PPC_MPC512x || \
-+		GAMECUBE_COMMON || AMIGAONE
- 	default n if PPC_47x
- 	default y
- 
+syscall.tbl contains the list of available system 
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+	- Compat entry name.
+	- spu entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to 
+come up with a generic solution.
+
+I have done the same support for work for alpha, 
+ia64, m68k, microblaze, mips, parisc, sh, sparc, 
+and xtensa. Below mentioned git repository contains
+more details about the workflow.
+
+https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to 
+solve Y2038 issue. So this patch series will help to
+add new system calls easily by adding new entry in the
+syscall.tbl.
+
+Changes since v1:
+ - optimized/updated the syscall table generation 
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall_*.tbl.
+ - changed from generic-y to generated-y in Kbuild.
+
+Firoz Khan (4):
+  powerpc: add __NR_syscalls along with NR_syscalls
+  powerpc: move macro definition from asm/systbl.h
+  powerpc: add system call table generation support
+  powerpc: generate uapi header and system call table files
+
+ arch/powerpc/Makefile                       |   3 +
+ arch/powerpc/include/asm/Kbuild             |   4 +
+ arch/powerpc/include/asm/systbl.h           | 396 ---------------------------
+ arch/powerpc/include/asm/unistd.h           |   3 +-
+ arch/powerpc/include/uapi/asm/Kbuild        |   2 +
+ arch/powerpc/include/uapi/asm/unistd.h      | 389 +-------------------------
+ arch/powerpc/kernel/Makefile                |  10 -
+ arch/powerpc/kernel/syscalls/Makefile       |  61 +++++
+ arch/powerpc/kernel/syscalls/syscall.tbl    | 408 ++++++++++++++++++++++++++++
+ arch/powerpc/kernel/syscalls/syscallhdr.sh  |  36 +++
+ arch/powerpc/kernel/syscalls/syscalltbl.sh  |  41 +++
+ arch/powerpc/kernel/systbl.S                |  37 +--
+ arch/powerpc/kernel/systbl_chk.c            |  60 ----
+ arch/powerpc/platforms/cell/spu_callbacks.c |  17 +-
+ 14 files changed, 575 insertions(+), 892 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/systbl.h
+ create mode 100644 arch/powerpc/kernel/syscalls/Makefile
+ create mode 100644 arch/powerpc/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
+ delete mode 100644 arch/powerpc/kernel/systbl_chk.c
+
 -- 
-2.19.1
+1.9.1
