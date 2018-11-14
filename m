@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 1/4] powerpc: add __NR_syscalls along with NR_syscalls
-Date: Wed, 14 Nov 2018 15:33:15 +0530
-Message-ID: <1542189798-27713-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v2 2/4] powerpc: move macro definition from asm/systbl.h
+Date: Wed, 14 Nov 2018 15:33:16 +0530
+Message-ID: <1542189798-27713-3-git-send-email-firoz.khan@linaro.org>
 References: <1542189798-27713-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1542189798-27713-1-git-send-email-firoz.khan@linaro.org>
@@ -10,75 +10,70 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-NR_syscalls macro holds the number of system call exist
-in powerpc architecture. We have to change the value of
-NR_syscalls, if we add or delete a system call.
+Move the macro definition for compat_sys_sigsuspend from
+asm/systbl.h to the file which it is getting included.
 
-One of the patch in this patch series has a script which
-will generate a uapi header based on syscall.tbl file.
-The syscall.tbl file contains the number of system call
-information. So we have two option to update NR_syscalls
-value.
+One of the patch in this patch series is generating uapi
+header and syscall table files. In order to come up with
+a common implimentation across all architecture, we need
+to do this change.
 
-1. Update NR_syscalls in asm/unistd.h manually by count-
-   ing the no.of system calls. No need to update NR_sys-
-   calls until we either add a new system call or delete
-   existing system call.
-
-2. We can keep this feature in above mentioned script,
-   that will count the number of syscalls and keep it in
-   a generated file. In this case we don't need to expli-
-   citly update NR_syscalls in asm/unistd.h file.
-
-The 2nd option will be the recommended one. For that, I
-added the __NR_syscalls macro in uapi/asm/unistd.h along
-with NR_syscalls asm/unistd.h. The macro __NR_syscalls
-also added for making the name convention same across all
-architecture. While __NR_syscalls isn't strictly part of
-the uapi, having it as part of the generated header to
-simplifies the implementation. We also need to enclose
-this macro with #ifdef __KERNEL__ to avoid side effects.
+This change will simplify the implementation of system
+call table generation script and help to come up a common
+implementation across all architecture.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/powerpc/include/asm/unistd.h      | 3 +--
- arch/powerpc/include/uapi/asm/unistd.h | 5 ++++-
- 2 files changed, 5 insertions(+), 3 deletions(-)
+ arch/powerpc/include/asm/systbl.h           | 1 -
+ arch/powerpc/kernel/systbl.S                | 1 +
+ arch/powerpc/kernel/systbl_chk.c            | 1 +
+ arch/powerpc/platforms/cell/spu_callbacks.c | 1 +
+ 4 files changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index b0de85b..a3c35e6 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -11,8 +11,7 @@
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 01b5171..c4321b9 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -76,7 +76,6 @@
+ SYSCALL_SPU(ssetmask)
+ SYSCALL_SPU(setreuid)
+ SYSCALL_SPU(setregid)
+-#define compat_sys_sigsuspend sys_sigsuspend
+ SYS32ONLY(sigsuspend)
+ SYSX(sys_ni_syscall,compat_sys_sigpending,sys_sigpending)
+ SYSCALL_SPU(sethostname)
+diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
+index 919a327..9ff1913 100644
+--- a/arch/powerpc/kernel/systbl.S
++++ b/arch/powerpc/kernel/systbl.S
+@@ -47,4 +47,5 @@
+ .globl sys_call_table
+ sys_call_table:
  
- #include <uapi/asm/unistd.h>
++#define compat_sys_sigsuspend	sys_sigsuspend
+ #include <asm/systbl.h>
+diff --git a/arch/powerpc/kernel/systbl_chk.c b/arch/powerpc/kernel/systbl_chk.c
+index 4653258..db97da7 100644
+--- a/arch/powerpc/kernel/systbl_chk.c
++++ b/arch/powerpc/kernel/systbl_chk.c
+@@ -56,5 +56,6 @@
+ #define getrlimit		ugetrlimit
  
--
--#define NR_syscalls		389
-+#define NR_syscalls	__NR_syscalls
+ START_TABLE
++#define compat_sys_sigsuspend	sys_sigsuspend
+ #include <asm/systbl.h>
+ END_TABLE NR_syscalls
+diff --git a/arch/powerpc/platforms/cell/spu_callbacks.c b/arch/powerpc/platforms/cell/spu_callbacks.c
+index 8ae8620..7517a43 100644
+--- a/arch/powerpc/platforms/cell/spu_callbacks.c
++++ b/arch/powerpc/platforms/cell/spu_callbacks.c
+@@ -47,6 +47,7 @@
+ #define COMPAT_SPU_NEW(func)	sys_##func,
+ #define SYSX_SPU(f, f3264, f32)	f,
  
- #define __NR__exit __NR_exit
++#define compat_sys_sigsuspend	sys_sigsuspend
+ #include <asm/systbl.h>
+ };
  
-diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
-index 985534d..7195868 100644
---- a/arch/powerpc/include/uapi/asm/unistd.h
-+++ b/arch/powerpc/include/uapi/asm/unistd.h
-@@ -10,7 +10,6 @@
- #ifndef _UAPI_ASM_POWERPC_UNISTD_H_
- #define _UAPI_ASM_POWERPC_UNISTD_H_
- 
--
- #define __NR_restart_syscall	  0
- #define __NR_exit		  1
- #define __NR_fork		  2
-@@ -401,4 +400,8 @@
- #define __NR_rseq		387
- #define __NR_io_pgetevents	388
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls		389
-+#endif
-+
- #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.9.1
