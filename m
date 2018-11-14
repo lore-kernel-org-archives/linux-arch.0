@@ -1,97 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f176.google.com ([209.85.215.176]:42844 "EHLO
-        mail-pg1-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727318AbeKNP2h (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 10:28:37 -0500
-Received: by mail-pg1-f176.google.com with SMTP id d72so3377120pga.9
-        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2018 21:26:58 -0800 (PST)
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:43358 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731357AbeKNP2t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 10:28:49 -0500
+Received: by mail-pl1-f196.google.com with SMTP id g59-v6so7191863plb.10
+        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2018 21:27:09 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 0/4] sparc: system call table generation support
-Date: Wed, 14 Nov 2018 10:56:27 +0530
-Message-ID: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 2/4] sparc: add __NR_syscalls along with NR_syscalls
+Date: Wed, 14 Nov 2018 10:56:29 +0530
+Message-ID: <1542173191-24981-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
+References: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181114052627.z2fS6hZ0tT0S2f3J_XA6-YK6SGx_rd-BBsAZ3VTGMjY@z>
+Message-ID: <20181114052629.cM6yxjxWp4VEfD_GfjbluDiuIyiROF83zqjsqLwQHQY@z>
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the 
-system call table generation support implementation 
-across all the architectures. 
+NR_syscalls macro holds the number of system call exist
+in sparc architecture. We have to change the value of NR-
+_syscalls, if we add or delete a system call.
 
-The system call tables are in different format in 
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a 
-script and which'll generate uapi header file and 
-syscall table file.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update NR_sy-
+scalls value.
 
-syscall.tbl contains the list of available system 
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in 
-the syscall.tbl file.
+1. Update NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-	- Compat entry name, if required.
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_syscalls in asm/unistd.h file.
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to 
-come up with a generic solution.
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
-I have done the same support for work for alpha, 
-ia64, m68k, microblaze, mips, parisc, powerpc, sh 
-and xtensa. Below mentioned git repository contains
-more details about the workflow.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/sparc/include/asm/unistd.h      | 2 ++
+ arch/sparc/include/uapi/asm/unistd.h | 4 +++-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
 
-https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to 
-solve Y2038 issue. So this patch series will help to
-add new system calls easily by adding new entry in the
-syscall.tbl.
-
-Changes since v2:
- - changed from generic-y to generated-y in Kbuild.
- - added io_pgetevents entry in the syscall.tbl.
- - updated the compat system call table.
-
-Changes since v1:
- - optimized/updated the syscall table generation 
-   scripts.
- - fixed all mixed indentation issues in syscall.tbl.
- - added "comments" in syscall.tbl.
-
-Firoz Khan (4):
-  sparc: move __IGNORE* entries to non uapi header
-  sparc: add __NR_syscalls along with NR_syscalls
-  sparc: add system call table generation support
-  sparc: generate uapi header and system call table files
-
- arch/sparc/Makefile                      |   3 +
- arch/sparc/include/asm/Kbuild            |   4 +-
- arch/sparc/include/asm/unistd.h          |  18 ++
- arch/sparc/include/uapi/asm/Kbuild       |   2 +
- arch/sparc/include/uapi/asm/unistd.h     | 426 +------------------------------
- arch/sparc/kernel/syscalls/Makefile      |  55 ++++
- arch/sparc/kernel/syscalls/syscall.tbl   | 409 +++++++++++++++++++++++++++++
- arch/sparc/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/sparc/kernel/syscalls/syscalltbl.sh |  36 +++
- arch/sparc/kernel/systbls_32.S           |  81 +-----
- arch/sparc/kernel/systbls_64.S           | 157 +-----------
- 11 files changed, 572 insertions(+), 655 deletions(-)
- create mode 100644 arch/sparc/kernel/syscalls/Makefile
- create mode 100644 arch/sparc/kernel/syscalls/syscall.tbl
- create mode 100644 arch/sparc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/sparc/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
+index 73d2454..5194d86 100644
+--- a/arch/sparc/include/asm/unistd.h
++++ b/arch/sparc/include/asm/unistd.h
+@@ -17,6 +17,8 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
++#define NR_syscalls	__NR_syscalls
++
+ #ifdef __32bit_syscall_numbers__
+ #else
+ #define __NR_time		231 /* Linux sparc32                               */
+diff --git a/arch/sparc/include/uapi/asm/unistd.h b/arch/sparc/include/uapi/asm/unistd.h
+index d37a136..4ae11c4 100644
+--- a/arch/sparc/include/uapi/asm/unistd.h
++++ b/arch/sparc/include/uapi/asm/unistd.h
+@@ -429,7 +429,9 @@
+ #define __NR_statx		360
+ #define __NR_io_pgetevents	361
+ 
+-#define NR_syscalls		362
++#ifdef __KERNEL__
++#define __NR_syscalls		362
++#endif
+ 
+ /* Bitmask values returned from kern_features system call.  */
+ #define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
 -- 
 1.9.1
