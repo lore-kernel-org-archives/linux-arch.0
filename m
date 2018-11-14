@@ -1,84 +1,119 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 07/17] arm64: add basic pointer authentication support
-Date: Wed, 14 Nov 2018 18:11:39 +0000
-Message-ID: <20181114181138.GB2580@brain-police>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-8-kristina.martsenko@arm.com>
- <20181019111542.6wrvjguirglzg7vg@mbp>
- <20181019112404.GD14246@arm.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 06/27] x86/cet: Control protection exception handler
+Date: Wed, 14 Nov 2018 19:44:36 +0100
+Message-ID: <20181114184436.GK13926@zn.tnic>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+ <20181011151523.27101-7-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181019112404.GD14246@arm.com>
+In-Reply-To: <20181011151523.27101-7-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel@lists.infradead.org, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Andrew Jones <drjones@redhat.com>, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Adam Wallis <awallis@codeaurora.org>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, gorcunov@openvz.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+That subject needs a verb:
 
-On Fri, Oct 19, 2018 at 12:24:04PM +0100, Will Deacon wrote:
-> On Fri, Oct 19, 2018 at 12:15:43PM +0100, Catalin Marinas wrote:
-> > On Fri, Oct 05, 2018 at 09:47:44AM +0100, Kristina Martsenko wrote:
-> > > diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-> > > new file mode 100644
-> > > index 000000000000..2aefedc31d9e
-> > > --- /dev/null
-> > > +++ b/arch/arm64/include/asm/pointer_auth.h
-> > > @@ -0,0 +1,63 @@
-> > > +// SPDX-License-Identifier: GPL-2.0
-> > > +#ifndef __ASM_POINTER_AUTH_H
-> > > +#define __ASM_POINTER_AUTH_H
-> > > +
-> > > +#include <linux/random.h>
-> > > +
-> > > +#include <asm/cpufeature.h>
-> > > +#include <asm/sysreg.h>
-> > > +
-> > > +#ifdef CONFIG_ARM64_PTR_AUTH
-> > > +/*
-> > > + * Each key is a 128-bit quantity which is split across a pair of 64-bit
-> > > + * registers (Lo and Hi).
-> > > + */
-> > > +struct ptrauth_key {
-> > > +	unsigned long lo, hi;
-> > > +};
-> > > +
-> > > +/*
-> > > + * We give each process its own instruction A key (APIAKey), which is shared by
-> > > + * all threads. This is inherited upon fork(), and reinitialised upon exec*().
-> > > + * All other keys are currently unused, with APIBKey, APDAKey, and APBAKey
-> > > + * instructions behaving as NOPs.
-> > > + */
-> > 
-> > I don't remember the past discussions but I assume the tools guys are ok
-> > with a single key shared by multiple threads. Ramana, could you ack this
-> > part, FTR?
-> > 
-> > (and it would help if someone from the Android and Chrome camps can
-> > confirm)
-> 
-> FWIW: I think we should be entertaining a prctl() interface to use a new
-> key on a per-thread basis. Obviously, this would need to be used with care
-> (e.g. you'd fork(); use the prctl() and then you'd better not return from
-> the calling function!).
-> 
-> Assuming we want this (Kees -- I was under the impression that everything in
-> Android would end up with the same key otherwise?), then the question is
-> do we want:
-> 
->   - prctl() get/set operations for the key, or
->   - prctl() set_random_key operation, or
->   - both of the above?
-> 
-> Part of the answer to that may lie in the requirements of CRIU, where I
-> strongly suspect they need explicit get/set operations, although these
-> could be gated on CONFIG_CHECKPOINT_RESTORE=y.
+Subject: [PATCH v5 06/27] x86/cet: Add control protection exception handler
 
-I managed to speak to the CRIU developers at LPC. The good news is that
-their preference is for a ptrace()-based interface for getting and setting
-the keys, so the only prctl() operation we need is to set a random key
-(separately for A and B).
+On Thu, Oct 11, 2018 at 08:15:02AM -0700, Yu-cheng Yu wrote:
+> A control protection exception is triggered when a control flow transfer
+> attempt violated shadow stack or indirect branch tracking constraints.
+> For example, the return address for a RET instruction differs from the
+> safe copy on the shadow stack; or a JMP instruction arrives at a non-
+> ENDBR instruction.
+> 
+> The control protection exception handler works in a similar way as the
+> general protection fault handler.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/entry/entry_64.S          |  2 +-
+>  arch/x86/include/asm/traps.h       |  3 ++
+>  arch/x86/kernel/idt.c              |  4 ++
+>  arch/x86/kernel/signal_compat.c    |  2 +-
+>  arch/x86/kernel/traps.c            | 64 ++++++++++++++++++++++++++++++
+>  include/uapi/asm-generic/siginfo.h |  3 +-
+>  6 files changed, 75 insertions(+), 3 deletions(-)
 
-Will
+A *lot* of style problems here. Please use checkpatch and then common
+sense to check your patches before sending. All those below are valid,
+AFAICT:
+
+WARNING: function definition argument 'struct pt_regs *' should also have an identifier name
+#76: FILE: arch/x86/include/asm/traps.h:81:
++dotraplinkage void do_control_protection(struct pt_regs *, long);
+
+WARNING: function definition argument 'long' should also have an identifier name
+#76: FILE: arch/x86/include/asm/traps.h:81:
++dotraplinkage void do_control_protection(struct pt_regs *, long);
+
+WARNING: static const char * array should probably be static const char * const
+#124: FILE: arch/x86/kernel/traps.c:581:
++static const char *control_protection_err[] =
+
+ERROR: that open brace { should be on the previous line
+#125: FILE: arch/x86/kernel/traps.c:582:
++static const char *control_protection_err[] =
++{
+
+WARNING: quoted string split across lines
+#158: FILE: arch/x86/kernel/traps.c:615:
++		WARN_ONCE(1, "CET is disabled but got control "
++			  "protection fault\n");
+
+WARNING: Prefer printk_ratelimited or pr_<level>_ratelimited to printk_ratelimit
+#165: FILE: arch/x86/kernel/traps.c:622:
++	    printk_ratelimit()) {
+
+WARNING: Avoid logging continuation uses where feasible
+#176: FILE: arch/x86/kernel/traps.c:633:
++		pr_cont("\n");
+
+ERROR: "(foo*)" should be "(foo *)"
+#183: FILE: arch/x86/kernel/traps.c:640:
++	info.si_addr	= (void __user*)uprobe_get_trap_addr(regs);
+
+
+And now that patch doesn't even build anymore because of the siginfo
+changes which came in during the merge window. I guess I'll wait for
+your v6 patchset.
+
+---
+arch/x86/kernel/traps.c: In function ‘do_control_protection’:
+arch/x86/kernel/traps.c:627:16: error: passing argument 1 of ‘clear_siginfo’ from incompatible pointer type [-Werror=incompatible-pointer-types]
+  clear_siginfo(&info);
+                ^~~~~
+In file included from ./include/linux/sched/signal.h:6,
+                 from ./include/linux/ptrace.h:7,
+                 from ./include/linux/ftrace.h:14,
+                 from ./include/linux/kprobes.h:42,
+                 from arch/x86/kernel/traps.c:19:
+./include/linux/signal.h:20:52: note: expected ‘kernel_siginfo_t *’ {aka ‘struct kernel_siginfo *’} but argument is of type ‘siginfo_t *’ {aka ‘struct siginfo *’}
+ static inline void clear_siginfo(kernel_siginfo_t *info)
+                                  ~~~~~~~~~~~~~~~~~~^~~~
+arch/x86/kernel/traps.c:632:26: error: passing argument 2 of ‘force_sig_info’ from incompatible pointer type [-Werror=incompatible-pointer-types]
+  force_sig_info(SIGSEGV, &info, tsk);
+                          ^~~~~
+In file included from ./include/linux/ptrace.h:7,
+                 from ./include/linux/ftrace.h:14,
+                 from ./include/linux/kprobes.h:42,
+                 from arch/x86/kernel/traps.c:19:
+./include/linux/sched/signal.h:327:32: note: expected ‘struct kernel_siginfo *’ but argument is of type ‘siginfo_t *’ {aka ‘struct siginfo *’}
+ extern int force_sig_info(int, struct kernel_siginfo *, struct task_struct *);
+                                ^~~~~~~~~~~~~~~~~~~~~~~
+cc1: some warnings being treated as errors
+make[2]: *** [scripts/Makefile.build:291: arch/x86/kernel/traps.o] Error 1
+make[1]: *** [scripts/Makefile.build:516: arch/x86/kernel] Error 2
+make[1]: *** Waiting for unfinished jobs....
+make: *** [Makefile:1060: arch/x86] Error 2
+make: *** Waiting for unfinished jobs....
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
