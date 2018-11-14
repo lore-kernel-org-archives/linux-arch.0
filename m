@@ -1,36 +1,60 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 06/27] x86/cet: Control protection exception handler
-Date: Wed, 14 Nov 2018 21:28:02 +0100
-Message-ID: <20181114202802.GN13926@zn.tnic>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-7-yu-cheng.yu@intel.com>
- <20181114184436.GK13926@zn.tnic>
- <307b6162b0270871e664ca88a96b4ea0d1b3f65b.camel@intel.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
+Date: Wed, 14 Nov 2018 21:47:02 +0000
+Message-ID: <20181114214701.gdnrznakwtm76jlt@blommer>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
+ <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
+ <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <307b6162b0270871e664ca88a96b4ea0d1b3f65b.camel@intel.com>
+In-Reply-To: <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Kees Cook <keescook@chromium.org>
+Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 14, 2018 at 12:19:42PM -0800, Yu-cheng Yu wrote:
-> Yes, I was not sure if the addition should follow the existing style (which does
-> not have identifier names).  What do you think is right?
+On Tue, Nov 13, 2018 at 05:09:00PM -0600, Kees Cook wrote:
+> On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
+> <kristina.martsenko@arm.com> wrote:
+> > When the PAC authentication fails, it doesn't actually generate an
+> > exception, it just flips a bit in the high-order bits of the pointer,
+> > making the pointer invalid. Then when the pointer is dereferenced (e.g.
+> > as a function return address), it generates the usual type of exception
+> > for an invalid address.
+> 
+> Ah! Okay, thanks. I missed that detail. :)
+> 
+> What area of memory ends up being addressable with such bit flips?
+> (i.e. is the kernel making sure nothing executable ends up there?)
+> 
+> > So when a function return fails in user mode, the exception is handled
+> > in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
+> > function return fails in kernel mode, the exception is handled in
+> > __do_kernel_fault and the task is killed.
+> >
+> > This is different from stack protector as we don't panic the kernel, we
+> > just kill the task. It would be difficult to panic as we don't have a
+> > reliable way of knowing that the exception was caused by a PAC
+> > authentication failure (we just have an invalid pointer with a specific
+> > bit flipped). We also don't print out any PAC-related warning.
+> 
+> There are other "guesses" in __do_kernel_fault(), I think? Could a
+> "PAC mismatch?" warning be included in the Oops if execution fails in
+> the address range that PAC failures would resolve into?
 
-Yeah, we've converted them all now to named params:
+I'd personally prefer that we didn't try to guess if a fault is due to a failed
+AUT*, even for logging.
 
-https://git.kernel.org/tip/8e1599fcac2efda8b7d433ef69d2492f0b351e3f
+Presently, it's not possible to distinguish between a fault resulting from a
+failed AUT* and a fault which happens to have hte same bits/clear, so there are
+false positives. The architecture may also change the precise details of the
+faulting address, and we'd have false negatives in that case.
 
-It probably would be easier if you redo your patchset ontop of current
-tip/master.
+Given that, I think suggesting that a fault is due to a failed AUT* is liable
+to make things more confusing.
 
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Thanks,
+Mark.
