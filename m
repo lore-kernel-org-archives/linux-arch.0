@@ -1,68 +1,47 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v3 0/4] sparc: system call table generation support
-Date: Wed, 14 Nov 2018 12:34:13 +0530
-Message-ID: <CALxhOngcKwEGRQPu0qmK0ytDwfgoo0UHCHJSQsfacZ6XDrW8Ww@mail.gmail.com>
-References: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org> <CAOMdWSJ1NiMTThftBysvsntPdRBHN7gq_w19gtzi6KmBKAdz+Q@mail.gmail.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: use generic DMA mapping code in powerpc V4
+Date: Wed, 14 Nov 2018 09:22:40 +0100
+Message-ID: <20181114082314.8965-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAOMdWSJ1NiMTThftBysvsntPdRBHN7gq_w19gtzi6KmBKAdz+Q@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: allen.lkml@gmail.com
-Cc: "David S . Miller" <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Allen,
+Hi all,
 
-On Wed, 14 Nov 2018 at 12:14, Allen <allen.lkml@gmail.com> wrote:
->
-> > Changes since v2:
-> >  - changed from generic-y to generated-y in Kbuild.
-> >  - added io_pgetevents entry in the syscall.tbl.
-> >  - updated the compat system call table.
-> >
-> > Changes since v1:
-> >  - optimized/updated the syscall table generation
-> >    scripts.
-> >  - fixed all mixed indentation issues in syscall.tbl.
-> >  - added "comments" in syscall.tbl.
-> >
-> > Firoz Khan (4):
-> >   sparc: move __IGNORE* entries to non uapi header
-> >   sparc: add __NR_syscalls along with NR_syscalls
-> >   sparc: add system call table generation support
-> >   sparc: generate uapi header and system call table files
->
-> Tested and looks fine.
+this series switches the powerpc port to use the generic swiotlb and
+noncoherent dma ops, and to use more generic code for the coherent
+direct mapping, as well as removing a lot of dead code.
 
-Great, thanks!
+As this series is very large and depends on the dma-mapping tree I've
+also published a git tree:
 
-Firoz
+    git://git.infradead.org/users/hch/misc.git powerpc-dma.4
 
->
-> Tested-by: Allen Pais <allen.lkml@gmail.com>
->
-> >  arch/sparc/Makefile                      |   3 +
-> >  arch/sparc/include/asm/Kbuild            |   4 +-
-> >  arch/sparc/include/asm/unistd.h          |  18 ++
-> >  arch/sparc/include/uapi/asm/Kbuild       |   2 +
-> >  arch/sparc/include/uapi/asm/unistd.h     | 426 +------------------------------
-> >  arch/sparc/kernel/syscalls/Makefile      |  55 ++++
-> >  arch/sparc/kernel/syscalls/syscall.tbl   | 409 +++++++++++++++++++++++++++++
-> >  arch/sparc/kernel/syscalls/syscallhdr.sh |  36 +++
-> >  arch/sparc/kernel/syscalls/syscalltbl.sh |  36 +++
-> >  arch/sparc/kernel/systbls_32.S           |  81 +-----
-> >  arch/sparc/kernel/systbls_64.S           | 157 +-----------
-> >  11 files changed, 572 insertions(+), 655 deletions(-)
-> >  create mode 100644 arch/sparc/kernel/syscalls/Makefile
-> >  create mode 100644 arch/sparc/kernel/syscalls/syscall.tbl
-> >  create mode 100644 arch/sparc/kernel/syscalls/syscallhdr.sh
-> >  create mode 100644 arch/sparc/kernel/syscalls/syscalltbl.sh
-> >
-> > --
-> > 1.9.1
-> >
->
->
-> --
->        - Allen
+Gitweb:
+
+    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
+
+Changes since v3:
+ - rebase on the powerpc fixes tree
+ - add a new patch to actually make the baseline amigaone config
+   configure without warnings
+ - only use ZONE_DMA for 64-bit embedded CPUs, on pseries an IOMMU is
+   always present
+ - fix compile in mem.c for one configuration
+ - drop the full npu removal for now, will be resent separately
+ - a few git bisection fixes
+
+The changes since v1 are to big to list and v2 was not posted in public.
