@@ -1,73 +1,61 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH 07/27] arm64: Substitute gettimeofday with C implementation
-Date: Wed, 14 Nov 2018 10:22:52 +0000
-Message-ID: <b455064b-4ffe-3ed3-6fa1-ee65e78f054b@arm.com>
-References: <20181109123730.8743-1-vincenzo.frascino@arm.com>
- <20181109123730.8743-8-vincenzo.frascino@arm.com>
- <20181109.162920.1263908485037438031.davem@davemloft.net>
+From: Kristina Martsenko <kristina.martsenko@arm.com>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
+Date: Wed, 14 Nov 2018 15:54:43 +0000
+Message-ID: <bcfe9fd2-8832-f975-8462-18e6645ffec6@arm.com>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
+ <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
+ <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20181109.162920.1263908485037438031.davem@davemloft.net>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, salyzyn@android.com, paul.burton@mips.com, tglx@linutronix.de, pcc@google.com, linux-arm-kernel@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi David,
-
-thank you for reviewing my code.
-
-On 10/11/2018 00:29, David Miller wrote:
-> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> Date: Fri,  9 Nov 2018 12:37:10 +0000
+On 13/11/2018 23:09, Kees Cook wrote:
+> On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
+> <kristina.martsenko@arm.com> wrote:
+>> When the PAC authentication fails, it doesn't actually generate an
+>> exception, it just flips a bit in the high-order bits of the pointer,
+>> making the pointer invalid. Then when the pointer is dereferenced (e.g.
+>> as a function return address), it generates the usual type of exception
+>> for an invalid address.
 > 
->> To take advantage of the commonly defined vdso interface for
->> gettimeofday the architectural code requires an adaptation.
+> Ah! Okay, thanks. I missed that detail. :)
+> 
+> What area of memory ends up being addressable with such bit flips?
+> (i.e. is the kernel making sure nothing executable ends up there?)
+
+The address will be in between the user and kernel address ranges, so
+it's guaranteed to be invalid and not address any memory.
+
+Specifically, assuming a 48-bit VA configuration, user addresses must
+have bits [55:48] clear and kernel addresses must have bits [63:48] set.
+When authentication fails it will set two bits in those ranges to "10"
+or "01", ensuring that the address is no longer a valid user or kernel
+address.
+
+>> So when a function return fails in user mode, the exception is handled
+>> in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
+>> function return fails in kernel mode, the exception is handled in
+>> __do_kernel_fault and the task is killed.
 >>
->> This patch re-implements the gettimeofday vdso in C in order to use
->> lib/vdso.
->>
->> With the new implementation arm64 gains support for CLOCK_BOOTTIME,
->> CLOCK_TAI and __kernel_time.
->>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> This is different from stack protector as we don't panic the kernel, we
+>> just kill the task. It would be difficult to panic as we don't have a
+>> reliable way of knowing that the exception was caused by a PAC
+>> authentication failure (we just have an invalid pointer with a specific
+>> bit flipped). We also don't print out any PAC-related warning.
 > 
-> What is the performance penalty for going to C from ASM like this?
-> 
-> I like the vDSO consolidation, but actually I think it makes a lot of
-> sense to implement these things in assembler with some C implementation
-> as guidance or for architectures that haven't optimized into an ASM
-> version yet.
-> 
-> I'd also like to see if we can somehow make PowerPC's optimizations in
-> this area usable in more places.
-> 
-> It defines a reciprocal in order to use a multiply instead of a divide
-> after capturing the time values.
-> > I say all of this because I want to do something similar on sparc, and
-> having a generic implementation of all of the math would make that easier
-> for me and other architecture maintainers who might want to do the same.
-> 
+> There are other "guesses" in __do_kernel_fault(), I think? Could a
+> "PAC mismatch?" warning be included in the Oops if execution fails in
+> the address range that PAC failures would resolve into?
 
-I did run some benchmarks on arm64 with both vdsotest-bench (I added a
-script to the vdsotest implementation that can be used to replicate the
-results) and an ad-hoc test that stresses the vdso library and the
-differences in terms of performance penalty are very little (~1%) to
-none in some cases.  
+Sounds reasonable to me, I'll add a warning.
 
--- 
-Regards,
-Vincenzo
+Thanks,
+Kristina
