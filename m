@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49476 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49690 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731357AbeKNS0J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:09 -0500
+        with ESMTP id S1728406AbeKNS01 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 13:26:27 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/34] powerpc/pseries: unwind dma_get_required_mask_pSeriesLP a bit
-Date: Wed, 14 Nov 2018 09:22:50 +0100
-Message-ID: <20181114082314.8965-11-hch@lst.de>
+Subject: [PATCH 12/34] powerpc/cell: move dma direct window setup out of dma_configure
+Date: Wed, 14 Nov 2018 09:22:52 +0100
+Message-ID: <20181114082314.8965-13-hch@lst.de>
 In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,28 +15,66 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181114082250.6vw7Y_85MZNYGRUS8PoivkLH4jadIiCNxNQEb75MDZ0@z>
+Message-ID: <20181114082252.rxg3xFnWO1D9rb7UupTyAia4EnOAH07drgZ7tAAcs18@z>
 
-Call dma_get_required_mask_pSeriesLP directly instead of dma_iommu_ops
-to simply the code a bit.
+Configure the dma settings at device setup time, and stop playing games
+with get_pci_dma_ops.  This prepares for using the common dma_configure
+code later on.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/platforms/pseries/iommu.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
 
-diff --git a/arch/powerpc/platforms/pseries/iommu.c b/arch/powerpc/platforms/pseries/iommu.c
-index 06f02960b439..da5716de7f4c 100644
---- a/arch/powerpc/platforms/pseries/iommu.c
-+++ b/arch/powerpc/platforms/pseries/iommu.c
-@@ -1273,7 +1273,7 @@ static u64 dma_get_required_mask_pSeriesLP(struct device *dev)
- 			return DMA_BIT_MASK(64);
- 	}
+diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
+index 12352a58072a..cce5bf9515e5 100644
+--- a/arch/powerpc/platforms/cell/iommu.c
++++ b/arch/powerpc/platforms/cell/iommu.c
+@@ -657,14 +657,21 @@ static const struct dma_map_ops dma_iommu_fixed_ops = {
+ 	.mapping_error	= dma_iommu_mapping_error,
+ };
  
--	return dma_iommu_ops.get_required_mask(dev);
-+	return dma_iommu_get_required_mask(dev);
++static u64 cell_iommu_get_fixed_address(struct device *dev);
++
+ static void cell_dma_dev_setup(struct device *dev)
+ {
+-	if (get_pci_dma_ops() == &dma_iommu_ops)
++	if (get_pci_dma_ops() == &dma_iommu_ops) {
++		u64 addr = cell_iommu_get_fixed_address(dev);
++
++		if (addr != OF_BAD_ADDR)
++			set_dma_offset(dev, addr + dma_iommu_fixed_base);
+ 		set_iommu_table_base(dev, cell_get_iommu_table(dev));
+-	else if (get_pci_dma_ops() == &dma_nommu_ops)
++	} else if (get_pci_dma_ops() == &dma_nommu_ops) {
+ 		set_dma_offset(dev, cell_dma_nommu_offset);
+-	else
++	} else {
+ 		BUG();
++	}
  }
  
- static int iommu_mem_notifier(struct notifier_block *nb, unsigned long action,
+ static void cell_pci_dma_dev_setup(struct pci_dev *dev)
+@@ -950,19 +957,14 @@ static int dma_suported_and_switch(struct device *dev, u64 dma_mask)
+ {
+ 	if (dma_mask == DMA_BIT_MASK(64) &&
+ 	    cell_iommu_get_fixed_address(dev) != OF_BAD_ADDR) {
+-		u64 addr = cell_iommu_get_fixed_address(dev) +
+-			dma_iommu_fixed_base;
+ 		dev_dbg(dev, "iommu: 64-bit OK, using fixed ops\n");
+-		dev_dbg(dev, "iommu: fixed addr = %llx\n", addr);
+ 		set_dma_ops(dev, &dma_iommu_fixed_ops);
+-		set_dma_offset(dev, addr);
+ 		return 1;
+ 	}
+ 
+ 	if (dma_iommu_dma_supported(dev, dma_mask)) {
+ 		dev_dbg(dev, "iommu: not 64-bit, using default ops\n");
+-		set_dma_ops(dev, get_pci_dma_ops());
+-		cell_dma_dev_setup(dev);
++		set_dma_ops(dev, &dma_iommu_ops);
+ 		return 1;
+ 	}
+ 
 -- 
 2.19.1
