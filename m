@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/34] powerpc/dma: remove the unused ISA_DMA_THRESHOLD export
-Date: Wed, 14 Nov 2018 09:22:44 +0100
-Message-ID: <20181114082314.8965-5-hch@lst.de>
+Subject: [PATCH 05/34] powerpc/dma: remove the unused dma_iommu_ops export
+Date: Wed, 14 Nov 2018 09:22:45 +0100
+Message-ID: <20181114082314.8965-6-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -13,22 +13,26 @@ Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kv
 List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/kernel/setup_32.c | 1 -
- 1 file changed, 1 deletion(-)
+ arch/powerpc/kernel/dma-iommu.c | 2 --
+ 1 file changed, 2 deletions(-)
 
-diff --git a/arch/powerpc/kernel/setup_32.c b/arch/powerpc/kernel/setup_32.c
-index 81909600013a..07f7e6aaf104 100644
---- a/arch/powerpc/kernel/setup_32.c
-+++ b/arch/powerpc/kernel/setup_32.c
-@@ -59,7 +59,6 @@ unsigned long ISA_DMA_THRESHOLD;
- unsigned int DMA_MODE_READ;
- unsigned int DMA_MODE_WRITE;
+diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
+index f9fe2080ceb9..2ca6cfaebf65 100644
+--- a/arch/powerpc/kernel/dma-iommu.c
++++ b/arch/powerpc/kernel/dma-iommu.c
+@@ -6,7 +6,6 @@
+  * busses using the iommu infrastructure
+  */
  
--EXPORT_SYMBOL(ISA_DMA_THRESHOLD);
- EXPORT_SYMBOL(DMA_MODE_READ);
- EXPORT_SYMBOL(DMA_MODE_WRITE);
+-#include <linux/export.h>
+ #include <asm/iommu.h>
  
+ /*
+@@ -123,4 +122,3 @@ struct dma_map_ops dma_iommu_ops = {
+ 	.get_required_mask	= dma_iommu_get_required_mask,
+ 	.mapping_error		= dma_iommu_mapping_error,
+ };
+-EXPORT_SYMBOL(dma_iommu_ops);
 -- 
 2.19.1
