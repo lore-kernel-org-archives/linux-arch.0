@@ -1,169 +1,77 @@
-From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.18 08/59] s390/mm: fix mis-accounting of pgtable_bytes
-Date: Wed, 14 Nov 2018 17:22:40 -0500
-Message-ID: <20181114222335.99339-8-sashal@kernel.org>
-References: <20181114222335.99339-1-sashal@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181114222335.99339-1-sashal@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: stable@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Sasha Levin <sashal@kernel.org>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
+Date: Wed, 14 Nov 2018 16:48:11 -0600
+Message-ID: <CAGXu5jJun3CuUa12aQpy+m7Op-g9XwPv3CygwqYX2dy0A4qt5Q@mail.gmail.com>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
+ <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
+ <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
+ <20181114214701.gdnrznakwtm76jlt@blommer>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+In-Reply-To: <20181114214701.gdnrznakwtm76jlt@blommer>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Wed, Nov 14, 2018 at 3:47 PM, Mark Rutland <mark.rutland@arm.com> wrote:
+> On Tue, Nov 13, 2018 at 05:09:00PM -0600, Kees Cook wrote:
+>> On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
+>> <kristina.martsenko@arm.com> wrote:
+>> > When the PAC authentication fails, it doesn't actually generate an
+>> > exception, it just flips a bit in the high-order bits of the pointer,
+>> > making the pointer invalid. Then when the pointer is dereferenced (e.g.
+>> > as a function return address), it generates the usual type of exception
+>> > for an invalid address.
+>>
+>> Ah! Okay, thanks. I missed that detail. :)
+>>
+>> What area of memory ends up being addressable with such bit flips?
+>> (i.e. is the kernel making sure nothing executable ends up there?)
+>>
+>> > So when a function return fails in user mode, the exception is handled
+>> > in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
+>> > function return fails in kernel mode, the exception is handled in
+>> > __do_kernel_fault and the task is killed.
+>> >
+>> > This is different from stack protector as we don't panic the kernel, we
+>> > just kill the task. It would be difficult to panic as we don't have a
+>> > reliable way of knowing that the exception was caused by a PAC
+>> > authentication failure (we just have an invalid pointer with a specific
+>> > bit flipped). We also don't print out any PAC-related warning.
+>>
+>> There are other "guesses" in __do_kernel_fault(), I think? Could a
+>> "PAC mismatch?" warning be included in the Oops if execution fails in
+>> the address range that PAC failures would resolve into?
+>
+> I'd personally prefer that we didn't try to guess if a fault is due to a failed
+> AUT*, even for logging.
+>
+> Presently, it's not possible to distinguish between a fault resulting from a
+> failed AUT* and a fault which happens to have hte same bits/clear, so there are
+> false positives. The architecture may also change the precise details of the
+> faulting address, and we'd have false negatives in that case.
+>
+> Given that, I think suggesting that a fault is due to a failed AUT* is liable
+> to make things more confusing.
 
-[ Upstream commit e12e4044aede97974f2222eb7f0ed726a5179a32 ]
+Okay, no worries. It should be pretty clear from the back trace anyway. :)
 
-In case a fork or a clone system fails in copy_process and the error
-handling does the mmput() at the bad_fork_cleanup_mm label, the
-following warning messages will appear on the console:
+As long as there isn't any way for the pointer bit flips to result in
+an addressable range, I'm happy. :)
 
-  BUG: non-zero pgtables_bytes on freeing mm: 16384
+-Kees
 
-The reason for that is the tricks we play with mm_inc_nr_puds() and
-mm_inc_nr_pmds() in init_new_context().
-
-A normal 64-bit process has 3 levels of page table, the p4d level and
-the pud level are folded. On process termination the free_pud_range()
-function in mm/memory.c will subtract 16KB from pgtable_bytes with a
-mm_dec_nr_puds() call, but there actually is not really a pud table.
-
-One issue with this is the fact that pgtable_bytes is usually off
-by a few kilobytes, but the more severe problem is that for a failed
-fork or clone the free_pgtables() function is not called. In this case
-there is no mm_dec_nr_puds() or mm_dec_nr_pmds() that go together with
-the mm_inc_nr_puds() and mm_inc_nr_pmds in init_new_context().
-The pgtable_bytes will be off by 16384 or 32768 bytes and we get the
-BUG message. The message itself is purely cosmetic, but annoying.
-
-To fix this override the mm_pmd_folded, mm_pud_folded and mm_p4d_folded
-function to check for the true size of the address space.
-
-Reported-by: Li Wang <liwang@redhat.com>
-Tested-by: Li Wang <liwang@redhat.com>
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- arch/s390/include/asm/mmu_context.h |  5 -----
- arch/s390/include/asm/pgalloc.h     |  6 +++---
- arch/s390/include/asm/pgtable.h     | 18 ++++++++++++++++++
- arch/s390/include/asm/tlb.h         |  6 +++---
- arch/s390/mm/pgalloc.c              |  1 +
- 5 files changed, 25 insertions(+), 11 deletions(-)
-
-diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
-index d16bc79c30bb..02331ce22bf4 100644
---- a/arch/s390/include/asm/mmu_context.h
-+++ b/arch/s390/include/asm/mmu_context.h
-@@ -44,8 +44,6 @@ static inline int init_new_context(struct task_struct *tsk,
- 		mm->context.asce_limit = STACK_TOP_MAX;
- 		mm->context.asce = __pa(mm->pgd) | _ASCE_TABLE_LENGTH |
- 				   _ASCE_USER_BITS | _ASCE_TYPE_REGION3;
--		/* pgd_alloc() did not account this pud */
--		mm_inc_nr_puds(mm);
- 		break;
- 	case -PAGE_SIZE:
- 		/* forked 5-level task, set new asce with new_mm->pgd */
-@@ -61,9 +59,6 @@ static inline int init_new_context(struct task_struct *tsk,
- 		/* forked 2-level compat task, set new asce with new mm->pgd */
- 		mm->context.asce = __pa(mm->pgd) | _ASCE_TABLE_LENGTH |
- 				   _ASCE_USER_BITS | _ASCE_TYPE_SEGMENT;
--		/* pgd_alloc() did not account this pmd */
--		mm_inc_nr_pmds(mm);
--		mm_inc_nr_puds(mm);
- 	}
- 	crst_table_init((unsigned long *) mm->pgd, pgd_entry_type(mm));
- 	return 0;
-diff --git a/arch/s390/include/asm/pgalloc.h b/arch/s390/include/asm/pgalloc.h
-index f0f9bcf94c03..5ee733720a57 100644
---- a/arch/s390/include/asm/pgalloc.h
-+++ b/arch/s390/include/asm/pgalloc.h
-@@ -36,11 +36,11 @@ static inline void crst_table_init(unsigned long *crst, unsigned long entry)
- 
- static inline unsigned long pgd_entry_type(struct mm_struct *mm)
- {
--	if (mm->context.asce_limit <= _REGION3_SIZE)
-+	if (mm_pmd_folded(mm))
- 		return _SEGMENT_ENTRY_EMPTY;
--	if (mm->context.asce_limit <= _REGION2_SIZE)
-+	if (mm_pud_folded(mm))
- 		return _REGION3_ENTRY_EMPTY;
--	if (mm->context.asce_limit <= _REGION1_SIZE)
-+	if (mm_p4d_folded(mm))
- 		return _REGION2_ENTRY_EMPTY;
- 	return _REGION1_ENTRY_EMPTY;
- }
-diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-index 5ab636089c60..960cf51e9d43 100644
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -483,6 +483,24 @@ static inline int is_module_addr(void *addr)
- 				   _REGION_ENTRY_PROTECT | \
- 				   _REGION_ENTRY_NOEXEC)
- 
-+static inline bool mm_p4d_folded(struct mm_struct *mm)
-+{
-+	return mm->context.asce_limit <= _REGION1_SIZE;
-+}
-+#define mm_p4d_folded(mm) mm_p4d_folded(mm)
-+
-+static inline bool mm_pud_folded(struct mm_struct *mm)
-+{
-+	return mm->context.asce_limit <= _REGION2_SIZE;
-+}
-+#define mm_pud_folded(mm) mm_pud_folded(mm)
-+
-+static inline bool mm_pmd_folded(struct mm_struct *mm)
-+{
-+	return mm->context.asce_limit <= _REGION3_SIZE;
-+}
-+#define mm_pmd_folded(mm) mm_pmd_folded(mm)
-+
- static inline int mm_has_pgste(struct mm_struct *mm)
- {
- #ifdef CONFIG_PGSTE
-diff --git a/arch/s390/include/asm/tlb.h b/arch/s390/include/asm/tlb.h
-index 457b7ba0fbb6..b31c779cf581 100644
---- a/arch/s390/include/asm/tlb.h
-+++ b/arch/s390/include/asm/tlb.h
-@@ -136,7 +136,7 @@ static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- static inline void pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
- 				unsigned long address)
- {
--	if (tlb->mm->context.asce_limit <= _REGION3_SIZE)
-+	if (mm_pmd_folded(tlb->mm))
- 		return;
- 	pgtable_pmd_page_dtor(virt_to_page(pmd));
- 	tlb_remove_table(tlb, pmd);
-@@ -152,7 +152,7 @@ static inline void pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
- static inline void p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
- 				unsigned long address)
- {
--	if (tlb->mm->context.asce_limit <= _REGION1_SIZE)
-+	if (mm_p4d_folded(tlb->mm))
- 		return;
- 	tlb_remove_table(tlb, p4d);
- }
-@@ -167,7 +167,7 @@ static inline void p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
- static inline void pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
- 				unsigned long address)
- {
--	if (tlb->mm->context.asce_limit <= _REGION2_SIZE)
-+	if (mm_pud_folded(tlb->mm))
- 		return;
- 	tlb_remove_table(tlb, pud);
- }
-diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
-index 76d89ee8b428..814f26520aa2 100644
---- a/arch/s390/mm/pgalloc.c
-+++ b/arch/s390/mm/pgalloc.c
-@@ -101,6 +101,7 @@ int crst_table_upgrade(struct mm_struct *mm, unsigned long end)
- 			mm->context.asce_limit = _REGION1_SIZE;
- 			mm->context.asce = __pa(mm->pgd) | _ASCE_TABLE_LENGTH |
- 				_ASCE_USER_BITS | _ASCE_TYPE_REGION2;
-+			mm_inc_nr_puds(mm);
- 		} else {
- 			crst_table_init(table, _REGION1_ENTRY_EMPTY);
- 			pgd_populate(mm, (pgd_t *) table, (p4d_t *) pgd);
 -- 
-2.17.1
+Kees Cook
