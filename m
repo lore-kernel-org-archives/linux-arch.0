@@ -1,148 +1,92 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/34] powerpc/dma: stop overriding dma_get_required_mask
-Date: Wed, 14 Nov 2018 09:23:00 +0100
-Message-ID: <20181114082314.8965-21-hch@lst.de>
-References: <20181114082314.8965-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v2 0/4] powerpc: system call table generation support
+Date: Wed, 14 Nov 2018 15:33:14 +0530
+Message-ID: <1542189798-27713-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The ppc_md and pci_controller_ops methods are unused now and can be
-removed.  The dma_nommu implementation is generic to the generic one
-except for using max_pfn instead of calling into the memblock API,
-and all other dma_map_ops instances implement a method of their own.
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the 
+system call table generation support implementation 
+across all the architectures. 
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/include/asm/device.h      |  2 --
- arch/powerpc/include/asm/dma-mapping.h |  2 --
- arch/powerpc/include/asm/machdep.h     |  2 --
- arch/powerpc/include/asm/pci-bridge.h  |  1 -
- arch/powerpc/kernel/dma.c              | 30 --------------------------
- drivers/base/platform.c                |  2 --
- 6 files changed, 39 deletions(-)
+The system call tables are in different format in 
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a 
+script and which'll generate uapi header file and 
+syscall table file.
 
-diff --git a/arch/powerpc/include/asm/device.h b/arch/powerpc/include/asm/device.h
-index 1aa53318b4bc..3814e1c2d4bc 100644
---- a/arch/powerpc/include/asm/device.h
-+++ b/arch/powerpc/include/asm/device.h
-@@ -59,6 +59,4 @@ struct pdev_archdata {
- 	u64 dma_mask;
- };
- 
--#define ARCH_HAS_DMA_GET_REQUIRED_MASK
--
- #endif /* _ASM_POWERPC_DEVICE_H */
-diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-index 140ce5ad3120..e5ee4ac97c14 100644
---- a/arch/powerpc/include/asm/dma-mapping.h
-+++ b/arch/powerpc/include/asm/dma-mapping.h
-@@ -113,7 +113,5 @@ static inline void set_dma_offset(struct device *dev, dma_addr_t off)
- #define HAVE_ARCH_DMA_SET_MASK 1
- extern int dma_set_mask(struct device *dev, u64 dma_mask);
- 
--extern u64 __dma_get_required_mask(struct device *dev);
--
- #endif /* __KERNEL__ */
- #endif	/* _ASM_DMA_MAPPING_H */
-diff --git a/arch/powerpc/include/asm/machdep.h b/arch/powerpc/include/asm/machdep.h
-index 8311869005fa..7b70dcbce1b9 100644
---- a/arch/powerpc/include/asm/machdep.h
-+++ b/arch/powerpc/include/asm/machdep.h
-@@ -47,9 +47,7 @@ struct machdep_calls {
- #endif
- #endif /* CONFIG_PPC64 */
- 
--	/* Platform set_dma_mask and dma_get_required_mask overrides */
- 	int		(*dma_set_mask)(struct device *dev, u64 dma_mask);
--	u64		(*dma_get_required_mask)(struct device *dev);
- 
- 	int		(*probe)(void);
- 	void		(*setup_arch)(void); /* Optional, may be NULL */
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 5c7a1e7ffc8a..aace7033fa02 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -46,7 +46,6 @@ struct pci_controller_ops {
- #endif
- 
- 	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
--	u64		(*dma_get_required_mask)(struct pci_dev *pdev);
- 
- 	void		(*shutdown)(struct pci_controller *hose);
- };
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 6c368b6820bb..154e1cdae7f9 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -246,7 +246,6 @@ const struct dma_map_ops dma_nommu_ops = {
- 	.map_sg				= dma_nommu_map_sg,
- 	.dma_supported			= dma_nommu_dma_supported,
- 	.map_page			= dma_nommu_map_page,
--	.get_required_mask		= dma_nommu_get_required_mask,
- #ifdef CONFIG_NOT_COHERENT_CACHE
- 	.sync_single_for_cpu 		= dma_nommu_sync_single,
- 	.sync_single_for_device 	= dma_nommu_sync_single,
-@@ -294,35 +293,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
- }
- EXPORT_SYMBOL(dma_set_mask);
- 
--u64 __dma_get_required_mask(struct device *dev)
--{
--	const struct dma_map_ops *dma_ops = get_dma_ops(dev);
--
--	if (unlikely(dma_ops == NULL))
--		return 0;
--
--	if (dma_ops->get_required_mask)
--		return dma_ops->get_required_mask(dev);
--
--	return DMA_BIT_MASK(8 * sizeof(dma_addr_t));
--}
--
--u64 dma_get_required_mask(struct device *dev)
--{
--	if (ppc_md.dma_get_required_mask)
--		return ppc_md.dma_get_required_mask(dev);
--
--	if (dev_is_pci(dev)) {
--		struct pci_dev *pdev = to_pci_dev(dev);
--		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
--		if (phb->controller_ops.dma_get_required_mask)
--			return phb->controller_ops.dma_get_required_mask(pdev);
--	}
--
--	return __dma_get_required_mask(dev);
--}
--EXPORT_SYMBOL_GPL(dma_get_required_mask);
--
- static int __init dma_init(void)
- {
- #ifdef CONFIG_IBMVIO
-diff --git a/drivers/base/platform.c b/drivers/base/platform.c
-index 41b91af95afb..648b6213e322 100644
---- a/drivers/base/platform.c
-+++ b/drivers/base/platform.c
-@@ -1179,7 +1179,6 @@ int __init platform_bus_init(void)
- 	return error;
- }
- 
--#ifndef ARCH_HAS_DMA_GET_REQUIRED_MASK
- static u64 dma_default_get_required_mask(struct device *dev)
- {
- 	u32 low_totalram = ((max_pfn - 1) << PAGE_SHIFT);
-@@ -1208,7 +1207,6 @@ u64 dma_get_required_mask(struct device *dev)
- 	return dma_default_get_required_mask(dev);
- }
- EXPORT_SYMBOL_GPL(dma_get_required_mask);
--#endif
- 
- static __initdata LIST_HEAD(early_platform_driver_list);
- static __initdata LIST_HEAD(early_platform_device_list);
+syscall.tbl contains the list of available system 
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+	- Compat entry name.
+	- spu entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to 
+come up with a generic solution.
+
+I have done the same support for work for alpha, 
+ia64, m68k, microblaze, mips, parisc, sh, sparc, 
+and xtensa. Below mentioned git repository contains
+more details about the workflow.
+
+https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to 
+solve Y2038 issue. So this patch series will help to
+add new system calls easily by adding new entry in the
+syscall.tbl.
+
+Changes since v1:
+ - optimized/updated the syscall table generation 
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall_*.tbl.
+ - changed from generic-y to generated-y in Kbuild.
+
+Firoz Khan (4):
+  powerpc: add __NR_syscalls along with NR_syscalls
+  powerpc: move macro definition from asm/systbl.h
+  powerpc: add system call table generation support
+  powerpc: generate uapi header and system call table files
+
+ arch/powerpc/Makefile                       |   3 +
+ arch/powerpc/include/asm/Kbuild             |   4 +
+ arch/powerpc/include/asm/systbl.h           | 396 ---------------------------
+ arch/powerpc/include/asm/unistd.h           |   3 +-
+ arch/powerpc/include/uapi/asm/Kbuild        |   2 +
+ arch/powerpc/include/uapi/asm/unistd.h      | 389 +-------------------------
+ arch/powerpc/kernel/Makefile                |  10 -
+ arch/powerpc/kernel/syscalls/Makefile       |  61 +++++
+ arch/powerpc/kernel/syscalls/syscall.tbl    | 408 ++++++++++++++++++++++++++++
+ arch/powerpc/kernel/syscalls/syscallhdr.sh  |  36 +++
+ arch/powerpc/kernel/syscalls/syscalltbl.sh  |  41 +++
+ arch/powerpc/kernel/systbl.S                |  37 +--
+ arch/powerpc/kernel/systbl_chk.c            |  60 ----
+ arch/powerpc/platforms/cell/spu_callbacks.c |  17 +-
+ 14 files changed, 575 insertions(+), 892 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/systbl.h
+ create mode 100644 arch/powerpc/kernel/syscalls/Makefile
+ create mode 100644 arch/powerpc/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
+ delete mode 100644 arch/powerpc/kernel/systbl_chk.c
+
 -- 
-2.19.1
+1.9.1
