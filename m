@@ -1,48 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sonic301-38.consmr.mail.ne1.yahoo.com ([66.163.184.207]:41595
-        "EHLO sonic301-38.consmr.mail.ne1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726379AbeKOHJn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Nov 2018 02:09:43 -0500
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-References: <20181011001846.30964-1-keescook@chromium.org>
- <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
- <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
- <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
- <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
- <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
- <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com>
- <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
- <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
- <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
- <63410d08-d0d1-8cd9-5d9e-70d95a1a8ca0@schaufler-ca.com>
- <33754ab5-5c7a-b174-0ad6-195323a169f1@schaufler-ca.com>
- <CAGXu5jLyn6mLKFK+RuBkYWenm8sXXR+yqJ3VzVCpUqOVmru_XA@mail.gmail.com>
-From: Casey Schaufler <casey@schaufler-ca.com>
-Message-ID: <1df16f7f-aabb-9581-d41d-25d0582cdd06@schaufler-ca.com>
-Date: Wed, 14 Nov 2018 13:04:50 -0800
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51512 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725756AbeKOHwC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Nov 2018 02:52:02 -0500
+Date: Wed, 14 Nov 2018 21:47:02 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
+Message-ID: <20181114214701.gdnrznakwtm76jlt@blommer>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
+ <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
+ <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jLyn6mLKFK+RuBkYWenm8sXXR+yqJ3VzVCpUqOVmru_XA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181114214702.rUBq8pkT0jxGadU4ksQY7td9OwQp-DMvelIww_GwhfY@z>
 
-On 10/24/2018 1:12 PM, Kees Cook wrote:
-> On Wed, Oct 24, 2018 at 1:56 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
->> On 10/23/2018 12:05 PM, Casey Schaufler wrote:
->>> On 10/23/2018 11:50 AM, Kees Cook wrote:
->>>
->>>> Did you poke around at my combined series?
->>>> https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
->>> I hope to do that on the plane later today.
->> I had a chance to poke at the combined series and it
->> all seems to work as advertised.
-> /me stares at John, Paul, and Stephen. Hurry up and get off your planes! ;)
->
-> -Kees
->
-Now that we have next-general updated I'm porting these forward.
+On Tue, Nov 13, 2018 at 05:09:00PM -0600, Kees Cook wrote:
+> On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
+> <kristina.martsenko@arm.com> wrote:
+> > When the PAC authentication fails, it doesn't actually generate an
+> > exception, it just flips a bit in the high-order bits of the pointer,
+> > making the pointer invalid. Then when the pointer is dereferenced (e.g.
+> > as a function return address), it generates the usual type of exception
+> > for an invalid address.
+> 
+> Ah! Okay, thanks. I missed that detail. :)
+> 
+> What area of memory ends up being addressable with such bit flips?
+> (i.e. is the kernel making sure nothing executable ends up there?)
+> 
+> > So when a function return fails in user mode, the exception is handled
+> > in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
+> > function return fails in kernel mode, the exception is handled in
+> > __do_kernel_fault and the task is killed.
+> >
+> > This is different from stack protector as we don't panic the kernel, we
+> > just kill the task. It would be difficult to panic as we don't have a
+> > reliable way of knowing that the exception was caused by a PAC
+> > authentication failure (we just have an invalid pointer with a specific
+> > bit flipped). We also don't print out any PAC-related warning.
+> 
+> There are other "guesses" in __do_kernel_fault(), I think? Could a
+> "PAC mismatch?" warning be included in the Oops if execution fails in
+> the address range that PAC failures would resolve into?
+
+I'd personally prefer that we didn't try to guess if a fault is due to a failed
+AUT*, even for logging.
+
+Presently, it's not possible to distinguish between a fault resulting from a
+failed AUT* and a fault which happens to have hte same bits/clear, so there are
+false positives. The architecture may also change the precise details of the
+faulting address, and we'd have false negatives in that case.
+
+Given that, I think suggesting that a fault is due to a failed AUT* is liable
+to make things more confusing.
+
+Thanks,
+Mark.
