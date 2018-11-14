@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/34] powerpc/powernv: remove pnv_npu_dma_set_mask
-Date: Wed, 14 Nov 2018 09:22:57 +0100
-Message-ID: <20181114082314.8965-18-hch@lst.de>
+Subject: [PATCH 14/34] powerpc/dart: remove dead cleanup code in iommu_init_early_dart
+Date: Wed, 14 Nov 2018 09:22:54 +0100
+Message-ID: <20181114082314.8965-15-hch@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,40 +12,42 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-These devices are not PCIe devices and do not have associated dma map
-ops, so this is just dead code.
+If dart_init failed we didn't have a chance to setup dma or controller
+ops yet, so there is no point in resetting them.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/platforms/powernv/pci-ioda.c | 9 ---------
- 1 file changed, 9 deletions(-)
+ arch/powerpc/sysdev/dart_iommu.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
-diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
-index afbb73cd3c5b..1d9f446f3eff 100644
---- a/arch/powerpc/platforms/powernv/pci-ioda.c
-+++ b/arch/powerpc/platforms/powernv/pci-ioda.c
-@@ -3688,14 +3688,6 @@ static const struct pci_controller_ops pnv_pci_ioda_controller_ops = {
- 	.shutdown		= pnv_pci_ioda_shutdown,
- };
+diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
+index a5b40d1460f1..283ce04c5844 100644
+--- a/arch/powerpc/sysdev/dart_iommu.c
++++ b/arch/powerpc/sysdev/dart_iommu.c
+@@ -428,7 +428,7 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
  
--static int pnv_npu_dma_set_mask(struct pci_dev *npdev, u64 dma_mask)
--{
--	dev_err_once(&npdev->dev,
--			"%s operation unsupported for NVLink devices\n",
--			__func__);
--	return -EPERM;
--}
+ 	/* Initialize the DART HW */
+ 	if (dart_init(dn) != 0)
+-		goto bail;
++		return;
+ 
+ 	/* Setup bypass if supported */
+ 	if (dart_is_u4)
+@@ -439,15 +439,6 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+ 
+ 	/* Setup pci_dma ops */
+ 	set_pci_dma_ops(&dma_iommu_ops);
+-	return;
 -
- static const struct pci_controller_ops pnv_npu_ioda_controller_ops = {
- 	.dma_dev_setup		= pnv_pci_dma_dev_setup,
- #ifdef CONFIG_PCI_MSI
-@@ -3705,7 +3697,6 @@ static const struct pci_controller_ops pnv_npu_ioda_controller_ops = {
- 	.enable_device_hook	= pnv_pci_enable_device_hook,
- 	.window_alignment	= pnv_pci_window_alignment,
- 	.reset_secondary_bus	= pnv_pci_reset_secondary_bus,
--	.dma_set_mask		= pnv_npu_dma_set_mask,
- 	.shutdown		= pnv_pci_ioda_shutdown,
- };
+- bail:
+-	/* If init failed, use direct iommu and null setup functions */
+-	controller_ops->dma_dev_setup = NULL;
+-	controller_ops->dma_bus_setup = NULL;
+-
+-	/* Setup pci_dma ops */
+-	set_pci_dma_ops(&dma_nommu_ops);
+ }
  
+ #ifdef CONFIG_PM
 -- 
 2.19.1
