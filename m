@@ -1,42 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:37997 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727251AbeKNO67 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 09:58:59 -0500
-Received: by mail-it1-f194.google.com with SMTP id k141-v6so22059717itk.3
-        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2018 20:57:24 -0800 (PST)
-MIME-Version: 1.0
-References: <1542092265-20956-1-git-send-email-firoz.khan@linaro.org> <3908561D78D1C84285E8C5FCA982C28F7D4560BE@ORSMSX110.amr.corp.intel.com>
-In-Reply-To: <3908561D78D1C84285E8C5FCA982C28F7D4560BE@ORSMSX110.amr.corp.intel.com>
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:42867 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731357AbeKNP2m (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2018 10:28:42 -0500
+Received: by mail-pl1-f194.google.com with SMTP id x21-v6so4480490pln.9
+        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2018 21:27:03 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Wed, 14 Nov 2018 10:27:13 +0530
-Message-ID: <CALxhOngSrDmg12W9zMEgNWakKUK_W9wOv0d2MQ0pmixOs-Ns1w@mail.gmail.com>
-Subject: Re: [PATCH v5 0/5] ia64: system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+Subject: [PATCH v3 1/4] sparc: move __IGNORE* entries to non uapi header
+Date: Wed, 14 Nov 2018 10:56:28 +0530
+Message-ID: <1542173191-24981-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
+References: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181114045713.EQuxL8H5AYJBxi3SvNmcS5ayZzzcB4UlqP6yO94crWk@z>
+To: "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Message-ID: <20181114052628._UQunt7xCvd5Q8U53pePjxwb566FKkwga5SSTtWtxLM@z>
 
-Hi Tony,
+All the __IGNORE* entries are resides in the uapi header
+file move to non uapi header asm/unistd.h as it is not
+used by any user space applications.
 
-On Tue, 13 Nov 2018 at 22:39, Luck, Tony <tony.luck@intel.com> wrote:
->
-> > The purpose of this patch series is, we can easily
-> > add/modify/delete system call table support by cha-
-> > nging entry in syscall.tbl file instead of manually
-> > changing many files. The other goal is to unify the
-> > system call table generation support implementation
-> > across all the architectures.
->
-> Replaced v4 with this new version in my "next" branch.
+It is correct to keep __IGNORE* entry in non uapi header
+asm/unistd.h while uapi/asm/unistd.h must hold information
+only useful for user space applications.
 
-Ok. Thanks!
+One of the patch in this patch series will generate uapi
+header file. The information which directly used by the
+user space application must be present in uapi file.
 
-Firoz
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/sparc/include/asm/unistd.h      | 16 ++++++++++++++++
+ arch/sparc/include/uapi/asm/unistd.h | 16 ----------------
+ 2 files changed, 16 insertions(+), 16 deletions(-)
 
->
-> Thanks
->
-> -Tony
+diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
+index 00f87db..73d2454 100644
+--- a/arch/sparc/include/asm/unistd.h
++++ b/arch/sparc/include/asm/unistd.h
+@@ -46,4 +46,20 @@
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #endif
+ 
++#ifdef __32bit_syscall_numbers__
++/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
++ * it never had the plain ones and there is no value to adding those
++ * old versions into the syscall table.
++ */
++#define __IGNORE_setresuid
++#define __IGNORE_getresuid
++#define __IGNORE_setresgid
++#define __IGNORE_getresgid
++#endif
++
++/* Sparc doesn't have protection keys. */
++#define __IGNORE_pkey_mprotect
++#define __IGNORE_pkey_alloc
++#define __IGNORE_pkey_free
++
+ #endif /* _SPARC_UNISTD_H */
+diff --git a/arch/sparc/include/uapi/asm/unistd.h b/arch/sparc/include/uapi/asm/unistd.h
+index 45b4bf1..d37a136 100644
+--- a/arch/sparc/include/uapi/asm/unistd.h
++++ b/arch/sparc/include/uapi/asm/unistd.h
+@@ -434,20 +434,4 @@
+ /* Bitmask values returned from kern_features system call.  */
+ #define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
+ 
+-#ifdef __32bit_syscall_numbers__
+-/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
+- * it never had the plain ones and there is no value to adding those
+- * old versions into the syscall table.
+- */
+-#define __IGNORE_setresuid
+-#define __IGNORE_getresuid
+-#define __IGNORE_setresgid
+-#define __IGNORE_getresgid
+-#endif
+-
+-/* Sparc doesn't have protection keys. */
+-#define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+-
+ #endif /* _UAPI_SPARC_UNISTD_H */
+-- 
+1.9.1
