@@ -1,41 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:47752 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725756AbeKOGcv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Nov 2018 01:32:51 -0500
-Date: Wed, 14 Nov 2018 21:28:02 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 06/27] x86/cet: Control protection exception handler
-Message-ID: <20181114202802.GN13926@zn.tnic>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-7-yu-cheng.yu@intel.com>
- <20181114184436.GK13926@zn.tnic>
- <307b6162b0270871e664ca88a96b4ea0d1b3f65b.camel@intel.com>
+Received: from sonic301-38.consmr.mail.ne1.yahoo.com ([66.163.184.207]:41595
+        "EHLO sonic301-38.consmr.mail.ne1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726379AbeKOHJn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Nov 2018 02:09:43 -0500
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+References: <20181011001846.30964-1-keescook@chromium.org>
+ <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+ <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
+ <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
+ <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
+ <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
+ <8251564f-ba7a-1777-a606-dec472b32f35@canonical.com>
+ <CAGXu5j+2yVZ5DQHyqvJKnSYYqRCzeMtEabBwYFOWkTcwMUWhEw@mail.gmail.com>
+ <96e92224-aedf-5026-d6dd-b29121b4dc0d@schaufler-ca.com>
+ <CAGXu5jKFqtV_NFRaXPKVgNQt3F1pwFqopDLp1ZQJDGM_Bdid6Q@mail.gmail.com>
+ <63410d08-d0d1-8cd9-5d9e-70d95a1a8ca0@schaufler-ca.com>
+ <33754ab5-5c7a-b174-0ad6-195323a169f1@schaufler-ca.com>
+ <CAGXu5jLyn6mLKFK+RuBkYWenm8sXXR+yqJ3VzVCpUqOVmru_XA@mail.gmail.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <1df16f7f-aabb-9581-d41d-25d0582cdd06@schaufler-ca.com>
+Date: Wed, 14 Nov 2018 13:04:50 -0800
 MIME-Version: 1.0
+In-Reply-To: <CAGXu5jLyn6mLKFK+RuBkYWenm8sXXR+yqJ3VzVCpUqOVmru_XA@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <307b6162b0270871e664ca88a96b4ea0d1b3f65b.camel@intel.com>
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181114202802.4y5FDeNB_-E30aNAjzNwvZ0UpxZzfkDBCbxhtARX6-Y@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, James Morris <jmorris@namei.org>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Wed, Nov 14, 2018 at 12:19:42PM -0800, Yu-cheng Yu wrote:
-> Yes, I was not sure if the addition should follow the existing style (which does
-> not have identifier names).  What do you think is right?
-
-Yeah, we've converted them all now to named params:
-
-https://git.kernel.org/tip/8e1599fcac2efda8b7d433ef69d2492f0b351e3f
-
-It probably would be easier if you redo your patchset ontop of current
-tip/master.
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+On 10/24/2018 1:12 PM, Kees Cook wrote:
+> On Wed, Oct 24, 2018 at 1:56 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+>> On 10/23/2018 12:05 PM, Casey Schaufler wrote:
+>>> On 10/23/2018 11:50 AM, Kees Cook wrote:
+>>>
+>>>> Did you poke around at my combined series?
+>>>> https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=lsm/ordering-v6-blob-sharing
+>>> I hope to do that on the plane later today.
+>> I had a chance to poke at the combined series and it
+>> all seems to work as advertised.
+> /me stares at John, Paul, and Stephen. Hurry up and get off your planes! ;)
+>
+> -Kees
+>
+Now that we have next-general updated I'm porting these forward.
