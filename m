@@ -1,49 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:58978 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725742AbeKPFOx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2018 00:14:53 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/ v4
-Date: Thu, 15 Nov 2018 20:05:28 +0100
-Message-ID: <20181115190538.17016-1-hch@lst.de>
+Received: from mout.gmx.net ([212.227.17.21]:45187 "EHLO mout.gmx.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725742AbeKPFkO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Nov 2018 00:40:14 -0500
+Subject: Re: [PATCH v7 0/5] parisc: system call table generation support
+References: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <58c3c4a4-7f55-bf08-1c96-ef1aa7f97072@gmx.de>
+Date: Thu, 15 Nov 2018 20:30:56 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org
-Message-ID: <20181115190528.4nYJ1NazZY6vEotPLWhTrWqtbKwl5EjxlzuN-ix7bcs@z>
+To: Firoz Khan <firoz.khan@linaro.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20181115193056.3zXI_wVJtz7MEEJ20b2UssXrlEcvv6gVgv04e-J7UZI@z>
 
-Hi all,
+On 14.11.2018 07:34, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the
+> system call table generation support implementation
+> across all the architectures.
+> 
+> The system call tables are in different format in
+> all architecture. It will be difficult to manually
+> add, modify or delete the system calls in the resp-
+> ective files manually. To make it easy by keeping a
+> script and which'll generate uapi header file and
+> syscall table file.
+> 
+> syscall.tbl contains the list of available system
+> calls along with system call number and correspond-
+> ing entry point. Add a new system call in this arch-
+> itecture will be possible by adding new entry in the
+> syscall.tbl file.
+> 
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+> 
+> ARM, s390 and x86 architecuture does exist the sim-
+> ilar support. I leverage their implementation to
+> come up with a generic solution.
+> 
+> I have done the same support for work for alpha, ia64,
+> m68k, microblaze, mips, powerpc, sh, sparc and xtensa.
+> Below mentioned git repository contains more details
+> about the workflow.
+> 
+> https://github.com/frzkhn/system_call_table_generator/
+> 
+> Finally, this is the ground work to solve the Y2038
+> issue. We need to add two dozen of system calls to
+> solve Y2038 issue. So this patch series will help to
+> add new system calls easily by adding new entry in
+> the syscall.tbl.
+> 
+> changes since v6:
+>  - changed from generic-y to generated-y in Kbuild.
+> 
+> changes since v5:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - fixed all mixed indentation issues in syscall.tbl.
+>  - added "comments" in syscall_*.tbl.
+> 
+> changes since v4:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - removed __IGNORE entries which was added in v2
+>    to suppress the warning.
+> 
+> changes since v3:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - added missing new line.
+> 
+> changes since v2:
+>  - updated the syscall.tbl file by including missed
+>    entries.
+> 
+> changes since v1:
+>  - enclosed __NR_sycalls macro with __KERNEL__.
+> 
+> Firoz Khan (5):
+>   parisc: move __IGNORE* entries to non uapi header
+>   parisc: add __NR_syscalls along with __NR_Linux_syscalls
+>   parisc: add system call table generation support
+>   parisc: generate uapi header and system call table files
+>   parisc: syscalls: ignore nfsservctl for other architectures
 
-currently every architecture that wants to provide on of the common
-periphal busses needs to add some boilerplate code and include the
-right Kconfig files.   This series instead just selects the presence
-(when needed) and then handles everything in the bus-specific
-Kconfig file under drivers/.
+Firoz, you may add
+Acked-by: Helge Deller <deller@gmx.de>
+to the whole parisc series.
 
-Changes since v3:
- - drop the patches already merged
- - fix a typo in the PCI help text
- - split the always enable PCI on alpha change into a separate patch
- - remove the mips HT_PCI symbol
- - add a new FORCE_PCI symbol to easily allow selecting PCI support
- - new patch to consolidate PCI_DOMAINS
- - new patch to consolidate PCI_SYSCALL
+Thanks!
+Helge
 
-Changes since v2:
- - depend on HAVE_PCI for PCIe endpoint code
- - fix some commit message typos
- - remove CONFIG_PCI from xtensa iss defconfig
- - drop EISA support from arm
- - clean up EISA selection for alpha
 
-Changes since v1:
- - rename all HAS_* Kconfig symbols to HAVE_*
- - drop the CONFIG_PCI_QSPAN option entirely
- - drop duplicate select from powerpc
- - restore missing selection of PCI_MSI for riscv
- - update x86 and riscv defconfigs to include PCI
- - actually inclue drivers/eisa/Kconfig
- - adjust some captilizations
+ 
+>  arch/parisc/Makefile                      |   3 +
+>  arch/parisc/include/asm/Kbuild            |   3 +
+>  arch/parisc/include/asm/unistd.h          |   8 +
+>  arch/parisc/include/uapi/asm/Kbuild       |   2 +
+>  arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
+>  arch/parisc/kernel/syscall.S              |  11 +-
+>  arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
+>  arch/parisc/kernel/syscalls/Makefile      |  57 ++++
+>  arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++
+>  arch/parisc/kernel/syscalls/syscallhdr.sh |  36 +++
+>  arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
+>  scripts/checksyscalls.sh                  |   1 +
+>  12 files changed, 531 insertions(+), 836 deletions(-)
+>  delete mode 100644 arch/parisc/kernel/syscall_table.S
+>  create mode 100644 arch/parisc/kernel/syscalls/Makefile
+>  create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
+>  create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+> 
