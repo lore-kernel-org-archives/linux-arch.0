@@ -1,61 +1,68 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 1/3] xtensa: add __NR_syscalls along with __NR_syscall_count
-Date: Thu, 15 Nov 2018 15:35:23 +0530
-Message-ID: <CALxhOnhBN3ibNku5z4ZwnRjnWEtSrsbyVQUDzJkT6U65Ek0H+g@mail.gmail.com>
-References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
- <1542104370-22831-2-git-send-email-firoz.khan@linaro.org> <CAMo8BfJGWgJrsg858nwO_845HQOSMNm4AxEqjEjVsSMZMG1Gzw@mail.gmail.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v5 07/17] arm64: add basic pointer authentication support
+Date: Thu, 15 Nov 2018 10:25:39 +0000
+Message-ID: <20181115102537.GL3505@e103592.cambridge.arm.com>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <20181005084754.20950-8-kristina.martsenko@arm.com>
+ <20181019111542.6wrvjguirglzg7vg@mbp>
+ <20181019112404.GD14246@arm.com>
+ <20181114181138.GB2580@brain-police>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8BfJGWgJrsg858nwO_845HQOSMNm4AxEqjEjVsSMZMG1Gzw@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20181114181138.GB2580@brain-police>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, linux-kernel@vger.kernel.org, Adam Wallis <awallis@codeaurora.org>, Kristina Martsenko <kristina.martsenko@arm.com>, gorcunov@openvz.org, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Max,
+On Wed, Nov 14, 2018 at 06:11:39PM +0000, Will Deacon wrote:
 
-On Wed, 14 Nov 2018 at 05:19, Max Filippov <jcmvbkbc@gmail.com> wrote:
->
-> Hi Firoz,
->
-> I have one more question:
->
-> On Tue, Nov 13, 2018 at 2:20 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > The 2nd option will be the recommended one. For that, I
-> > added the __NR_syscalls macro in uapi/asm/unistd.h along
-> > with __NR_syscall_count asm/unistd.h. The macro __NR_sys-
-> > calls also added for making the name convention same across
-> > all architecture. While __NR_syscalls isn't strictly part
-> > of the uapi, having it as part of the generated header to
-> > simplifies the implementation. We also need to enclose
-> > this macro with #ifdef __KERNEL__ to avoid side effects.
->
-> Looking at the include/uapi/asm-generic/unistd.h I see that
-> __NR_syscalls is not guarded by the #ifdef __KERNEL__,
-> why should it be guarded for xtensa?
+[...]
 
-__NR_syscalls for kernel. So this macro is present in asm/unistd.h
-rather than uapi/asm/unistd.h. As I mentioned in the patch, it would
-be better to keep in uapi/asm/unistd.h to count the number of syscalls.
-But this will create some side effect. So I was guarded with __KERNEL__.
-In order to come up with common implementation, I kept this for all
-architecture.
+> On Fri, Oct 19, 2018 at 12:24:04PM +0100, Will Deacon wrote:
 
->
-> If we remove __NR_syscall_count from the uapi header I'd
-> suggest dropping it completely and switching its two current
-> users to __NR_syscalls.
+[...]
 
-I'm not removing the __NR_syscall_count macro; just place it
-in asm/unistd.h file for the above reason.
+> > FWIW: I think we should be entertaining a prctl() interface to use a new
+> > key on a per-thread basis. Obviously, this would need to be used with care
+> > (e.g. you'd fork(); use the prctl() and then you'd better not return from
+> > the calling function!).
+> > 
+> > Assuming we want this (Kees -- I was under the impression that everything in
+> > Android would end up with the same key otherwise?), then the question is
+> > do we want:
+> > 
+> >   - prctl() get/set operations for the key, or
+> >   - prctl() set_random_key operation, or
+> >   - both of the above?
+> > 
+> > Part of the answer to that may lie in the requirements of CRIU, where I
+> > strongly suspect they need explicit get/set operations, although these
+> > could be gated on CONFIG_CHECKPOINT_RESTORE=y.
+> 
+> I managed to speak to the CRIU developers at LPC. The good news is that
+> their preference is for a ptrace()-based interface for getting and setting
+> the keys, so the only prctl() operation we need is to set a random key
+> (separately for A and B).
 
-FYI, I made sure that the kernel will build with my patch. I would
-appreciate if you can perform the boot test on the actual platform.
+That's good if it works for them, and it seems the cleaner approach.
 
-Thanks
-Firoz
->
-> --
-> Thanks.
-> -- Max
+_If_ they run the new thread up to a checkpoint, restoring the memory
+and doing all the setup that requires in-thread syscalls, then stop it
+in ptrace to finally inject the regs, then it makes sense to set the
+keys at that stop -- i.e., you set the keys atomically* with the final
+setting of the thread's PC.
+
+(* with respect to the target thread)
+
+So long as you're confident they've understood the implications of
+ptrauth for CRIU, I guess this can work.
+
+
+(In other news, they will also need to do some work to support SVE, but
+that's unrelated to ptrauth.)
+
+Cheers
+---Dave
