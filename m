@@ -1,220 +1,122 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 6/9] PCI: consolidate the PCI_SYSCALL symbol
-Date: Thu, 15 Nov 2018 20:05:34 +0100
-Message-ID: <20181115190538.17016-7-hch@lst.de>
-References: <20181115190538.17016-1-hch@lst.de>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH v7 0/5] parisc: system call table generation support
+Date: Thu, 15 Nov 2018 20:30:56 +0100
+Message-ID: <58c3c4a4-7f55-bf08-1c96-ef1aa7f97072@gmx.de>
+References: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181115190538.17016-1-hch@lst.de>
+In-Reply-To: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org
+To: Firoz Khan <firoz.khan@linaro.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Let architectures select the syscall support instead of duplicating the
-kconfig entry.
+On 14.11.2018 07:34, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the
+> system call table generation support implementation
+> across all the architectures.
+> 
+> The system call tables are in different format in
+> all architecture. It will be difficult to manually
+> add, modify or delete the system calls in the resp-
+> ective files manually. To make it easy by keeping a
+> script and which'll generate uapi header file and
+> syscall table file.
+> 
+> syscall.tbl contains the list of available system
+> calls along with system call number and correspond-
+> ing entry point. Add a new system call in this arch-
+> itecture will be possible by adding new entry in the
+> syscall.tbl file.
+> 
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+> 
+> ARM, s390 and x86 architecuture does exist the sim-
+> ilar support. I leverage their implementation to
+> come up with a generic solution.
+> 
+> I have done the same support for work for alpha, ia64,
+> m68k, microblaze, mips, powerpc, sh, sparc and xtensa.
+> Below mentioned git repository contains more details
+> about the workflow.
+> 
+> https://github.com/frzkhn/system_call_table_generator/
+> 
+> Finally, this is the ground work to solve the Y2038
+> issue. We need to add two dozen of system calls to
+> solve Y2038 issue. So this patch series will help to
+> add new system calls easily by adding new entry in
+> the syscall.tbl.
+> 
+> changes since v6:
+>  - changed from generic-y to generated-y in Kbuild.
+> 
+> changes since v5:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - fixed all mixed indentation issues in syscall.tbl.
+>  - added "comments" in syscall_*.tbl.
+> 
+> changes since v4:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - removed __IGNORE entries which was added in v2
+>    to suppress the warning.
+> 
+> changes since v3:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - added missing new line.
+> 
+> changes since v2:
+>  - updated the syscall.tbl file by including missed
+>    entries.
+> 
+> changes since v1:
+>  - enclosed __NR_sycalls macro with __KERNEL__.
+> 
+> Firoz Khan (5):
+>   parisc: move __IGNORE* entries to non uapi header
+>   parisc: add __NR_syscalls along with __NR_Linux_syscalls
+>   parisc: add system call table generation support
+>   parisc: generate uapi header and system call table files
+>   parisc: syscalls: ignore nfsservctl for other architectures
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/Kconfig      | 4 +---
- arch/arc/Kconfig        | 4 +---
- arch/arm/Kconfig        | 4 +---
- arch/arm64/Kconfig      | 4 +---
- arch/ia64/Kconfig       | 4 +---
- arch/microblaze/Kconfig | 4 +---
- arch/powerpc/Kconfig    | 4 +---
- arch/sparc/Kconfig      | 4 +---
- drivers/pci/Kconfig     | 3 +++
- 9 files changed, 11 insertions(+), 24 deletions(-)
+Firoz, you may add
+Acked-by: Helge Deller <deller@gmx.de>
+to the whole parisc series.
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 2bf98e581684..1f679508bc34 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -8,6 +8,7 @@ config ALPHA
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select FORCE_PCI if !ALPHA_JENSEN
- 	select PCI_DOMAINS if PCI
-+	select PCI_SYSCALL if PCI
- 	select HAVE_AOUT
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
-@@ -322,9 +323,6 @@ config ISA_DMA_API
- 	bool
- 	default y
+Thanks!
+Helge
+
+
  
--config PCI_SYSCALL
--	def_bool PCI
--
- config ALPHA_NONAME
- 	bool
- 	depends on ALPHA_BOOK1 || ALPHA_NONAME_CH
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 5d2dde4b04cd..54d618960a14 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -46,6 +46,7 @@ config ARC
- 	select OF
- 	select OF_EARLY_FLATTREE
- 	select OF_RESERVED_MEM
-+	select PCI_SYSCALL if PCI
- 	select PERF_USE_VMALLOC if ARC_CACHE_VIPT_ALIASING
- 
- config ARCH_HAS_CACHE_LINE_SIZE
-@@ -550,7 +551,4 @@ config FORCE_MAX_ZONEORDER
- 	default "12" if ARC_HUGEPAGE_16M
- 	default "11"
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- source "kernel/power/Kconfig"
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 5eab9f943723..73d0f5e9feb7 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -103,6 +103,7 @@ config ARM
- 	select OF_RESERVED_MEM if OF
- 	select OLD_SIGACTION
- 	select OLD_SIGSUSPEND3
-+	select PCI_SYSCALL if PCI
- 	select PERF_USE_VMALLOC
- 	select REFCOUNT_FULL
- 	select RTC_LIB
-@@ -1218,9 +1219,6 @@ config PCI_NANOENGINE
- 	help
- 	  Enable PCI on the BSE nanoEngine board.
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- config PCI_HOST_ITE8152
- 	bool
- 	depends on PCI && MACH_ARMCORE
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 0eba26143350..8db186f8442b 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -166,6 +166,7 @@ config ARM64
- 	select OF_RESERVED_MEM
- 	select PCI_DOMAINS_GENERIC if PCI
- 	select PCI_ECAM if ACPI
-+	select PCI_SYSCALL if PCI
- 	select POWER_RESET
- 	select POWER_SUPPLY
- 	select REFCOUNT_FULL
-@@ -289,9 +290,6 @@ config ARCH_PROC_KCORE_TEXT
- 
- source "arch/arm64/Kconfig.platforms"
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- menu "Kernel Features"
- 
- menu "ARM errata workarounds via the alternatives framework"
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 7cf4b8bd779f..8f18d90c933d 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -16,6 +16,7 @@ config IA64
- 	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
- 	select FORCE_PCI if (!IA64_HP_SIM)
- 	select PCI_DOMAINS if PCI
-+	select PCI_SYSCALL if PCI
- 	select HAVE_UNSTABLE_SCHED_CLOCK
- 	select HAVE_EXIT_THREAD
- 	select HAVE_IDE
-@@ -545,9 +546,6 @@ if !IA64_HP_SIM
- 
- menu "Bus options (PCI, PCMCIA)"
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- source "drivers/pcmcia/Kconfig"
- 
- endmenu
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 551252d5c561..b3012bb4e2b2 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -37,6 +37,7 @@ config MICROBLAZE
- 	select OF
- 	select OF_EARLY_FLATTREE
- 	select PCI_DOMAINS_GENERIC if PCI
-+	select PCI_SYSCALL if PCI
- 	select TRACING_SUPPORT
- 	select VIRT_TO_BUS
- 	select CPU_NO_EFFICIENT_FFS
-@@ -268,9 +269,6 @@ endmenu
- 
- menu "Bus Options"
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- config PCI_XILINX
- 	bool "Xilinx PCI host bridge support"
- 	depends on PCI
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index edd3686eec28..cbdcd1c0b1e0 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -237,6 +237,7 @@ config PPC
- 	select OLD_SIGACTION			if PPC32
- 	select OLD_SIGSUSPEND
- 	select PCI_DOMAINS			if PCI
-+	select PCI_SYSCALL			if PCI
- 	select RTC_LIB
- 	select SPARSE_IRQ
- 	select SYSCTL_EXCEPTION_TRACE
-@@ -932,9 +933,6 @@ config FSL_GTM
- 	help
- 	  Freescale General-purpose Timers support
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- config PCI_8260
- 	bool
- 	depends on PCI && 8260
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index d2b760b4d2d2..20417b8b12a5 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -39,6 +39,7 @@ config SPARC
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
- 	select MODULES_USE_ELF_RELA
-+	select PCI_SYSCALL if PCI
- 	select ODD_RT_SIGACTION
- 	select OLD_SIGSUSPEND
- 	select ARCH_HAS_SG_CHAIN
-@@ -474,9 +475,6 @@ config SUN_LDOMS
- 	  Say Y here is you want to support virtual devices via
- 	  Logical Domains.
- 
--config PCI_SYSCALL
--	def_bool PCI
--
- config PCIC_PCI
- 	bool
- 	depends on PCI && SPARC32 && !SPARC_LEON
-diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
-index 95812fc4958c..904847d173de 100644
---- a/drivers/pci/Kconfig
-+++ b/drivers/pci/Kconfig
-@@ -30,6 +30,9 @@ config PCI_DOMAINS_GENERIC
- 	select PCI_DOMAINS
- 	bool
- 
-+config PCI_SYSCALL
-+	bool
-+
- source "drivers/pci/pcie/Kconfig"
- 
- config PCI_MSI
--- 
-2.19.1
+>  arch/parisc/Makefile                      |   3 +
+>  arch/parisc/include/asm/Kbuild            |   3 +
+>  arch/parisc/include/asm/unistd.h          |   8 +
+>  arch/parisc/include/uapi/asm/Kbuild       |   2 +
+>  arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
+>  arch/parisc/kernel/syscall.S              |  11 +-
+>  arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
+>  arch/parisc/kernel/syscalls/Makefile      |  57 ++++
+>  arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++
+>  arch/parisc/kernel/syscalls/syscallhdr.sh |  36 +++
+>  arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
+>  scripts/checksyscalls.sh                  |   1 +
+>  12 files changed, 531 insertions(+), 836 deletions(-)
+>  delete mode 100644 arch/parisc/kernel/syscall_table.S
+>  create mode 100644 arch/parisc/kernel/syscalls/Makefile
+>  create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
+>  create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+> 
