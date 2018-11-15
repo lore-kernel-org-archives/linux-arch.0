@@ -1,36 +1,52 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH v2 0/3] xtensa: system call table generation support
-Date: Thu, 15 Nov 2018 12:16:09 -0800
-Message-ID: <CAMo8BfLgf7+89X6bGtK9iKz2FkZwCtDT4W=ipc4R0OTgjMGoAQ@mail.gmail.com>
-References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
- <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com> <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Q&A from "Concurrency with tools/memory-model"
+Date: Thu, 15 Nov 2018 14:56:30 -0800
+Message-ID: <20181115225630.GA30917@linux.ibm.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com>
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 15, 2018 at 1:57 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> On Wed, 14 Nov 2018 at 05:23, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> > On Tue, Nov 13, 2018 at 2:19 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > [...]
-> > > Firoz Khan (3):
-> > >   xtensa: add __NR_syscalls along with __NR_syscall_count
-> > >   xtensa: add system call table generation support
-> > >   xtensa: generate uapi header and syscall table header files
-> >
-> > What's your plan for submission of this series? Are you going to
-> > submit it with other similar series in a common tree, or shall I take
-> > it into the xtensa tree?
->
-> I prefer the second  option.
+Hello!
 
-Ok, I've applied the series to my xtensa tree, it should appear in the next
-linux-next.
+Good turnout and some good questions here in Vancouver BC, please see
+below for rough notes.  ;-)
 
--- 
-Thanks.
--- Max
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+"Concurrency with tools/memory-model"
+
+Andrea Parri presenting.
+
+Rough notes of Q&A.
+
+o	Want atomic bit operation.
+
+o	But smp_read_barrier_depends() not there, so how to note pairing?
+	A:  Note the dependency as the other end of the pairing.
+
+o	Speculation barriers, as in Spectre and Meltdown?  A: This would
+	require adding timing, not in the immediate future.
+
+o	What ordering does system calls provide?  A: None that we know of.
+	Boqun: Userspace needs to explicitly provide the needed ordering
+	when interacting with the kernel.  Some architectures do provide
+	full barriers, but not to be counted on.
+
+o	Why herd7?  A: Based on other formalizations -- note that herd7
+	had a number of hardware models.  Paul: Plus the founder of the
+	LKMM project is a co-author of herd, which might have had some
+	effect.
+
+o	Why not also model interrupts and NMIs?  Promela and spin have
+	been used for this.  A: Cannot currently model them.  You can
+	emulated them with additional threads and locks, if you wish.
+	Vincent Nimal and Lihao Liang have done some academic work on
+	these topics.
