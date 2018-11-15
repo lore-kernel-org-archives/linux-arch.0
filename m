@@ -1,77 +1,94 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
-Date: Wed, 14 Nov 2018 16:48:11 -0600
-Message-ID: <CAGXu5jJun3CuUa12aQpy+m7Op-g9XwPv3CygwqYX2dy0A4qt5Q@mail.gmail.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
- <df3e029b-51b3-51a0-70f7-3239234373e2@arm.com>
- <CAGXu5jJMfCz4qFY8y1Uf7BdP961ZeBotFVUb5owaksxnz26akg@mail.gmail.com>
- <20181114214701.gdnrznakwtm76jlt@blommer>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-In-Reply-To: <20181114214701.gdnrznakwtm76jlt@blommer>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v2 0/5] mips: system call table generation support
+Date: Thu, 15 Nov 2018 11:44:16 +0530
+Message-ID: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 14, 2018 at 3:47 PM, Mark Rutland <mark.rutland@arm.com> wrote:
-> On Tue, Nov 13, 2018 at 05:09:00PM -0600, Kees Cook wrote:
->> On Tue, Nov 13, 2018 at 10:17 AM, Kristina Martsenko
->> <kristina.martsenko@arm.com> wrote:
->> > When the PAC authentication fails, it doesn't actually generate an
->> > exception, it just flips a bit in the high-order bits of the pointer,
->> > making the pointer invalid. Then when the pointer is dereferenced (e.g.
->> > as a function return address), it generates the usual type of exception
->> > for an invalid address.
->>
->> Ah! Okay, thanks. I missed that detail. :)
->>
->> What area of memory ends up being addressable with such bit flips?
->> (i.e. is the kernel making sure nothing executable ends up there?)
->>
->> > So when a function return fails in user mode, the exception is handled
->> > in __do_user_fault and a forced SIGSEGV is delivered to the task. When a
->> > function return fails in kernel mode, the exception is handled in
->> > __do_kernel_fault and the task is killed.
->> >
->> > This is different from stack protector as we don't panic the kernel, we
->> > just kill the task. It would be difficult to panic as we don't have a
->> > reliable way of knowing that the exception was caused by a PAC
->> > authentication failure (we just have an invalid pointer with a specific
->> > bit flipped). We also don't print out any PAC-related warning.
->>
->> There are other "guesses" in __do_kernel_fault(), I think? Could a
->> "PAC mismatch?" warning be included in the Oops if execution fails in
->> the address range that PAC failures would resolve into?
->
-> I'd personally prefer that we didn't try to guess if a fault is due to a failed
-> AUT*, even for logging.
->
-> Presently, it's not possible to distinguish between a fault resulting from a
-> failed AUT* and a fault which happens to have hte same bits/clear, so there are
-> false positives. The architecture may also change the precise details of the
-> faulting address, and we'd have false negatives in that case.
->
-> Given that, I think suggesting that a fault is due to a failed AUT* is liable
-> to make things more confusing.
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the 
+system call table generation support implementation 
+across all the architectures. 
 
-Okay, no worries. It should be pretty clear from the back trace anyway. :)
+The system call tables are in different format in 
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a 
+script and which'll generate uapi header file and 
+syscall table file.
 
-As long as there isn't any way for the pointer bit flips to result in
-an addressable range, I'm happy. :)
+syscall.tbl contains the list of available system 
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in 
+the syscall.tbl file.
 
--Kees
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+	- Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to 
+come up with a generic solution.
+
+I have done the same support for work for alpha, 
+ia64, m68k, microblaze, parisc, powerpc, sh, sparc, 
+and xtensa. Below mentioned git repository contains
+more details about the workflow.
+
+https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to 
+solve Y2038 issue. So this patch series will help to
+add new system calls easily by adding new entry in
+the syscall.tbl.
+
+Changes since v1:
+ - optimized/updated the syscall table generation 
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall_*.tbl.
+ - changed from generic-y to generated-y in Kbuild.
+
+Firoz Khan (5):
+  mips: add __NR_syscalls along with __NR_Linux_syscalls
+  mips: add +1 to __NR_syscalls in uapi header
+  mips: remove syscall table entries
+  mips: add system call table generation support
+  mips: generate uapi header and system call table files
+
+ arch/mips/Makefile                        |    3 +
+ arch/mips/include/asm/Kbuild              |    4 +
+ arch/mips/include/asm/unistd.h            |    6 +-
+ arch/mips/include/uapi/asm/Kbuild         |    3 +
+ arch/mips/include/uapi/asm/unistd.h       | 1057 +----------------------------
+ arch/mips/kernel/ftrace.c                 |    6 +-
+ arch/mips/kernel/scall32-o32.S            |  390 +----------
+ arch/mips/kernel/scall64-64.S             |  335 +--------
+ arch/mips/kernel/scall64-n32.S            |  341 +---------
+ arch/mips/kernel/scall64-o32.S            |  379 +----------
+ arch/mips/kernel/syscalls/Makefile        |   71 ++
+ arch/mips/kernel/syscalls/syscall_64.tbl  |  339 +++++++++
+ arch/mips/kernel/syscalls/syscall_n32.tbl |  343 ++++++++++
+ arch/mips/kernel/syscalls/syscall_o32.tbl |  382 +++++++++++
+ arch/mips/kernel/syscalls/syscallhdr.sh   |   36 +
+ arch/mips/kernel/syscalls/syscalltbl.sh   |   36 +
+ 16 files changed, 1259 insertions(+), 2472 deletions(-)
+ create mode 100644 arch/mips/kernel/syscalls/Makefile
+ create mode 100644 arch/mips/kernel/syscalls/syscall_64.tbl
+ create mode 100644 arch/mips/kernel/syscalls/syscall_n32.tbl
+ create mode 100644 arch/mips/kernel/syscalls/syscall_o32.tbl
+ create mode 100644 arch/mips/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/mips/kernel/syscalls/syscalltbl.sh
 
 -- 
-Kees Cook
+1.9.1
