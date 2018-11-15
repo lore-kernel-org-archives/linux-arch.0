@@ -1,122 +1,37 @@
-From: Helge Deller <deller@gmx.de>
-Subject: Re: [PATCH v7 0/5] parisc: system call table generation support
-Date: Thu, 15 Nov 2018 20:30:56 +0100
-Message-ID: <58c3c4a4-7f55-bf08-1c96-ef1aa7f97072@gmx.de>
-References: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH v2 1/3] xtensa: add __NR_syscalls along with __NR_syscall_count
+Date: Thu, 15 Nov 2018 11:45:30 -0800
+Message-ID: <CAMo8BfKM0M-f9UNmz0o9qZb9srJn7yxkYVYjqGc84c0eO5jnmg@mail.gmail.com>
+References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
+ <1542104370-22831-2-git-send-email-firoz.khan@linaro.org> <CAMo8BfJGWgJrsg858nwO_845HQOSMNm4AxEqjEjVsSMZMG1Gzw@mail.gmail.com>
+ <CALxhOnhBN3ibNku5z4ZwnRjnWEtSrsbyVQUDzJkT6U65Ek0H+g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
-Content-Language: en-US
+In-Reply-To: <CALxhOnhBN3ibNku5z4ZwnRjnWEtSrsbyVQUDzJkT6U65Ek0H+g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 14.11.2018 07:34, Firoz Khan wrote:
-> The purpose of this patch series is, we can easily
-> add/modify/delete system call table support by cha-
-> nging entry in syscall.tbl file instead of manually
-> changing many files. The other goal is to unify the
-> system call table generation support implementation
-> across all the architectures.
-> 
-> The system call tables are in different format in
-> all architecture. It will be difficult to manually
-> add, modify or delete the system calls in the resp-
-> ective files manually. To make it easy by keeping a
-> script and which'll generate uapi header file and
-> syscall table file.
-> 
-> syscall.tbl contains the list of available system
-> calls along with system call number and correspond-
-> ing entry point. Add a new system call in this arch-
-> itecture will be possible by adding new entry in the
-> syscall.tbl file.
-> 
-> Adding a new table entry consisting of:
->         - System call number.
->         - ABI.
->         - System call name.
->         - Entry point name.
-> 
-> ARM, s390 and x86 architecuture does exist the sim-
-> ilar support. I leverage their implementation to
-> come up with a generic solution.
-> 
-> I have done the same support for work for alpha, ia64,
-> m68k, microblaze, mips, powerpc, sh, sparc and xtensa.
-> Below mentioned git repository contains more details
-> about the workflow.
-> 
-> https://github.com/frzkhn/system_call_table_generator/
-> 
-> Finally, this is the ground work to solve the Y2038
-> issue. We need to add two dozen of system calls to
-> solve Y2038 issue. So this patch series will help to
-> add new system calls easily by adding new entry in
-> the syscall.tbl.
-> 
-> changes since v6:
->  - changed from generic-y to generated-y in Kbuild.
-> 
-> changes since v5:
->  - optimized/updated the syscall table generation
->    scripts.
->  - fixed all mixed indentation issues in syscall.tbl.
->  - added "comments" in syscall_*.tbl.
-> 
-> changes since v4:
->  - optimized/updated the syscall table generation
->    scripts.
->  - removed __IGNORE entries which was added in v2
->    to suppress the warning.
-> 
-> changes since v3:
->  - optimized/updated the syscall table generation
->    scripts.
->  - added missing new line.
-> 
-> changes since v2:
->  - updated the syscall.tbl file by including missed
->    entries.
-> 
-> changes since v1:
->  - enclosed __NR_sycalls macro with __KERNEL__.
-> 
-> Firoz Khan (5):
->   parisc: move __IGNORE* entries to non uapi header
->   parisc: add __NR_syscalls along with __NR_Linux_syscalls
->   parisc: add system call table generation support
->   parisc: generate uapi header and system call table files
->   parisc: syscalls: ignore nfsservctl for other architectures
+On Thu, Nov 15, 2018 at 2:05 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On Wed, 14 Nov 2018 at 05:19, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > If we remove __NR_syscall_count from the uapi header I'd
+> > suggest dropping it completely and switching its two current
+> > users to __NR_syscalls.
+>
+> I'm not removing the __NR_syscall_count macro; just place it
+> in asm/unistd.h file for the above reason.
 
-Firoz, you may add
-Acked-by: Helge Deller <deller@gmx.de>
-to the whole parisc series.
+Ok, I'll apply this series to the xtensa tree and make my cleanups
+on top of it.
 
-Thanks!
-Helge
+> FYI, I made sure that the kernel will build with my patch. I would
+> appreciate if you can perform the boot test on the actual platform.
 
+I did a simple boot testing on a range of configurations, it works.
+I'll also run LTP a bit later.
 
- 
->  arch/parisc/Makefile                      |   3 +
->  arch/parisc/include/asm/Kbuild            |   3 +
->  arch/parisc/include/asm/unistd.h          |   8 +
->  arch/parisc/include/uapi/asm/Kbuild       |   2 +
->  arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
->  arch/parisc/kernel/syscall.S              |  11 +-
->  arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
->  arch/parisc/kernel/syscalls/Makefile      |  57 ++++
->  arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++
->  arch/parisc/kernel/syscalls/syscallhdr.sh |  36 +++
->  arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
->  scripts/checksyscalls.sh                  |   1 +
->  12 files changed, 531 insertions(+), 836 deletions(-)
->  delete mode 100644 arch/parisc/kernel/syscall_table.S
->  create mode 100644 arch/parisc/kernel/syscalls/Makefile
->  create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
->  create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
->  create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
-> 
+-- 
+Thanks.
+-- Max
