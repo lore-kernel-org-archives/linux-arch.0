@@ -1,53 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-08.nifty.com ([210.131.2.75]:52830 "EHLO
-        conuserg-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728673AbeKOSgc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2018 13:36:32 -0500
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 0/8] kbuild: clean-up modversion, TRIM_UNUSED_KSYMS, if_changed_rule, etc.
-Date: Thu, 15 Nov 2018 17:27:07 +0900
-Message-ID: <1542270435-11181-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mail-io1-f65.google.com ([209.85.166.65]:43978 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728719AbeKOUE4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2018 15:04:56 -0500
+Received: by mail-io1-f65.google.com with SMTP id t81-v6so13992639iod.10
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2018 01:57:48 -0800 (PST)
+MIME-Version: 1.0
+References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org> <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com>
+In-Reply-To: <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Thu, 15 Nov 2018 15:27:36 +0530
+Message-ID: <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com>
+Subject: Re: [PATCH v2 0/3] xtensa: system call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kbuild@vger.kernel.org
-Cc: Sam Ravnborg <sam@ravnborg.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>, Richard Weinberger <richard@nod.at>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeff Dike <jdike@addtoit.com>
-Message-ID: <20181115082707.het93Q3YEAYo4wUg7wN2DbzJm42Fc--XPWi2SKh6H5c@z>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181115095736.0_eFCayE1C-fb2ODo7mzqc9UE4jQ0ZHvGLXPLzg18OM@z>
 
-As a Kbuild maintainer, I always struggle to keep the core makefiles
-clean because people tend to squeeze more and more clutter code into
-the kbuild core in order to do what they want to do.
+Hi Max,
 
-The biggest step forward in this series is to re-implement
-the build trick of CONFIG_TRIM_UNUSED_KSYMS in a cleaner way.
-scripts/Kbuild.include now looks nice again.
-Also, in my rough estimation, building with CONFIG_TRIM_UNUSED_KSYMS
-became 40-50 % faster.
+On Wed, 14 Nov 2018 at 05:23, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>
+> Hi Firoz,
+>
+> On Tue, Nov 13, 2018 at 2:19 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> [...]
+> > Firoz Khan (3):
+> >   xtensa: add __NR_syscalls along with __NR_syscall_count
+> >   xtensa: add system call table generation support
+> >   xtensa: generate uapi header and syscall table header files
+>
+> What's your plan for submission of this series? Are you going to
+> submit it with other similar series in a common tree, or shall I take
+> it into the xtensa tree?
 
-Besides those, nice cleanups are here and there.
+I prefer the second  option.
 
+Thanks
+Firoz
 
-
-Masahiro Yamada (8):
-  kbuild: remove redundant 'set -e' from filechk_* defines
-  kbuild: remove redundant 'set -e' from sub_cmd_record_mcount
-  kbuild: refactor modversions build rules
-  kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
-  kbuild: change if_changed_rule to accept multi-line recipe
-  kbuild: remove trailing semicolon from cmd_* passed to if_changed_rule
-  kbuild: refactor if_changed and if_changed_dep
-  kbuild: remove redundant 'set -e' from cmd_* defines
-
- arch/um/Makefile             |  2 +-
- include/asm-generic/export.h | 13 +++---
- include/linux/export.h       | 18 ++++----
- scripts/Kbuild.include       | 44 +++-----------------
- scripts/Makefile.build       | 98 +++++++++++++++++++-------------------------
- scripts/Makefile.lib         |  2 +-
- scripts/basic/fixdep.c       | 31 ++------------
- scripts/gen_ksymdeps.sh      | 25 +++++++++++
- scripts/package/Makefile     |  1 -
- 9 files changed, 96 insertions(+), 138 deletions(-)
- create mode 100755 scripts/gen_ksymdeps.sh
-
--- 
-2.7.4
+>
+> --
+> Thanks.
+> -- Max
