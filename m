@@ -1,41 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:34920 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725809AbeKPGZh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2018 01:25:37 -0500
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:49724 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725948AbeKPJG2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Nov 2018 04:06:28 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wAFMtbAv084502
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2018 17:56:38 -0500
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2nsentapcm-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2018 17:56:38 -0500
+Received: from localhost
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 15 Nov 2018 22:56:37 -0000
+Date: Thu, 15 Nov 2018 14:56:30 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Q&A from "Concurrency with tools/memory-model"
+Reply-To: paulmck@linux.ibm.com
 MIME-Version: 1.0
-References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
- <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com> <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com>
-In-Reply-To: <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com>
-From: Max Filippov <jcmvbkbc@gmail.com>
-Date: Thu, 15 Nov 2018 12:16:09 -0800
-Message-ID: <CAMo8BfLgf7+89X6bGtK9iKz2FkZwCtDT4W=ipc4R0OTgjMGoAQ@mail.gmail.com>
-Subject: Re: [PATCH v2 0/3] xtensa: system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20181115225630.GA30917@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
-Message-ID: <20181115201609.Zti6Lv-VUW2NWcgX7hg4EQOh0p4XeJYy5RTudNqk-TQ@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20181115225630.x8rqM43tnvNpqKlMxKVm4tg8pbcA8Hy4rfpKHAD6Sj4@z>
 
-On Thu, Nov 15, 2018 at 1:57 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> On Wed, 14 Nov 2018 at 05:23, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> > On Tue, Nov 13, 2018 at 2:19 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > [...]
-> > > Firoz Khan (3):
-> > >   xtensa: add __NR_syscalls along with __NR_syscall_count
-> > >   xtensa: add system call table generation support
-> > >   xtensa: generate uapi header and syscall table header files
-> >
-> > What's your plan for submission of this series? Are you going to
-> > submit it with other similar series in a common tree, or shall I take
-> > it into the xtensa tree?
->
-> I prefer the second  option.
+Hello!
 
-Ok, I've applied the series to my xtensa tree, it should appear in the next
-linux-next.
+Good turnout and some good questions here in Vancouver BC, please see
+below for rough notes.  ;-)
 
--- 
-Thanks.
--- Max
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+"Concurrency with tools/memory-model"
+
+Andrea Parri presenting.
+
+Rough notes of Q&A.
+
+o	Want atomic bit operation.
+
+o	But smp_read_barrier_depends() not there, so how to note pairing?
+	A:  Note the dependency as the other end of the pairing.
+
+o	Speculation barriers, as in Spectre and Meltdown?  A: This would
+	require adding timing, not in the immediate future.
+
+o	What ordering does system calls provide?  A: None that we know of.
+	Boqun: Userspace needs to explicitly provide the needed ordering
+	when interacting with the kernel.  Some architectures do provide
+	full barriers, but not to be counted on.
+
+o	Why herd7?  A: Based on other formalizations -- note that herd7
+	had a number of hardware models.  Paul: Plus the founder of the
+	LKMM project is a co-author of herd, which might have had some
+	effect.
+
+o	Why not also model interrupts and NMIs?  Promela and spin have
+	been used for this.  A: Cannot currently model them.  You can
+	emulated them with additional threads and locks, if you wish.
+	Vincent Nimal and Lihao Liang have done some academic work on
+	these topics.
