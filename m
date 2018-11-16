@@ -1,158 +1,157 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 4/8] kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
-Date: Fri, 16 Nov 2018 16:13:33 +0900
-Message-ID: <CAK7LNATT7PYvH-z572MGSjXbCybAW0TcNebz9CgGM4J07aMOvw@mail.gmail.com>
-References: <1542270435-11181-1-git-send-email-yamada.masahiro@socionext.com>
- <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com> <nycvar.YSQ.7.76.1811152346510.1993@knanqh.ubzr>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH v4 0/3] microblaze: system call table generation support
+Date: Fri, 16 Nov 2018 09:31:00 +0100
+Message-ID: <632c1d3f-26cf-7e65-4e7a-cc882ef168c4@monstr.eu>
+References: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="W0OFtpJrjHn1JGCgnYWWSnZBTKoztM5XW"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <nycvar.YSQ.7.76.1811152346510.1993@knanqh.ubzr>
+In-Reply-To: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nicolas Pitre <nicolas.pitre@linaro.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michal Marek <michal.lkml@markovi.net>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 16, 2018 at 2:13 PM Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
->
-> On Thu, 15 Nov 2018, Masahiro Yamada wrote:
->
-> > My main motivation of this commit is to clean up scripts/Kbuild.include
-> > and scripts/Makefile.build.
-> >
-> > Currently, CONFIG_TRIM_UNUSED_KSYMS works with a tricky gimmick;
-> > possibly exported symbols are detected by letting $(CPP) replace
-> > EXPORT_SYMBOL* with a special string '=== __KSYM_*===', which is
-> > post-processed by sed, and passed to fixdep. The extra preprocessing
-> > is costly, and hacking cmd_and_fixdep is ugly.
-> >
-> > I came up with a new way to find exported symbols; insert a dummy
-> > symbol __ksym_marker_* to each potentially exported symbol. Those
-> > dummy symbols are picked up by $(NM), post-processed by sed, then
-> > appended to .*.cmd files. I collected the post-process part to a
-> > new shell script scripts/gen_ksymdeps.sh for readability. The dummy
-> > symbols are put into the .discard.* section so that the linker
-> > script rips them off the final vmlinux or modules.
->
-> Brilliant!  I really like it.
->
-> Minor comments below.
->
-> > diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-> > index 4d73e6e..294d6ae 100644
-> > --- a/include/asm-generic/export.h
-> > +++ b/include/asm-generic/export.h
-> > @@ -59,16 +59,19 @@ __kcrctab_\name:
-> >  .endm
-> >  #undef __put
-> >
-> > -#if defined(__KSYM_DEPS__)
-> > -
-> > -#define __EXPORT_SYMBOL(sym, val, sec)       === __KSYM_##sym ===
-> > -
-> > -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> > +#if defined(CONFIG_TRIM_UNUSED_KSYMS)
-> >
-> >  #include <linux/kconfig.h>
-> >  #include <generated/autoksyms.h>
-> >
-> > +.macro __ksym_marker sym
-> > +     .section ".discard.ksym","a"
-> > +__ksym_marker_\sym:
-> > +      .previous
->
-> Does this work as intended? I have vague memories about having problems
-> with sections being discarded when they don't allocate any space.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--W0OFtpJrjHn1JGCgnYWWSnZBTKoztM5XW
+Content-Type: multipart/mixed; boundary="Pla37rODYW6n9t799SvllDnYNa0LfYfpM";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+To: Firoz Khan <firoz.khan@linaro.org>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Philippe Ombredanne <pombredanne@nexb.com>,
+ Thomas Gleixner <tglx@linutronix.de>,
+ Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com,
+ marcin.juszkiewicz@linaro.org
+Message-ID: <632c1d3f-26cf-7e65-4e7a-cc882ef168c4@monstr.eu>
+Subject: Re: [PATCH v4 0/3] microblaze: system call table generation support
+References: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org>
 
-What I can tell is, this patch produces the same size kernel
-(after dropping debug info by 'strip' command).
+--Pla37rODYW6n9t799SvllDnYNa0LfYfpM
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
+On 13. 11. 18 7:04, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the
+> system call table generation support implementation
+> across all the architectures.
+>=20
+> The system call tables are in different format in
+> all architecture. It will be difficult to manually
+> add, modify or delete the system calls in the resp-
+> ective files manually. To make it easy by keeping a
+> script and which'll generate uapi header file and
+> syscall table file.
+>=20
+> syscall.tbl contains the list of available system
+> calls along with system call number and correspond-
+> ing entry point. Add a new system call in this arch-
+> itecture will be possible by adding new entry in the
+> syscall.tbl file.
+>=20
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+>=20
+> ARM, s390 and x86 architecuture does exist the sim-
+> ilar support. I leverage their implementation to
+> come up with a generic solution.
+>=20
+> I have done the same support for work for alpha, ia64,
+> m68k, mips, parisc, powerpc, sh, sparc and xtensa.
+> Below mentioned git repository contains more details
+> about the workflow.
+>=20
+> https://github.com/frzkhn/system_call_table_generator/
+>=20
+> Finally, this is the ground work to solve the Y2038
+> issue. We need to add two dozen of system calls to
+> solve Y2038 issue. So this patch series will help to
+> add new system calls easily by adding new entry in
+> the syscall.tbl.
+>=20
+> changes since v3:
+>  - changed from generic-y to generated-y in Kbuild.
+>=20
+> changes since v2:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - fixed all mixed indentation issues in syscall.tbl.
+>  - added "comments" in syscall_*.tbl.
+>=20
+> changes since v1:
+>  - enclosed __NR_sycalls macro with __KERNEL__.
+>  - added missing new line.
 
-> > +.endm
-> > +
-> >  #define __EXPORT_SYMBOL(sym, val, sec)                               \
-> > +     __ksym_marker sym;                                      \
-> >       __cond_export_sym(sym, val, sec, __is_defined(__KSYM_##sym))
-> >  #define __cond_export_sym(sym, val, sec, conf)                       \
-> >       ___cond_export_sym(sym, val, sec, conf)
-> > diff --git a/include/linux/export.h b/include/linux/export.h
-> > index ce764a5..0413a3d 100644
-> > --- a/include/linux/export.h
-> > +++ b/include/linux/export.h
-> > @@ -92,22 +92,22 @@ struct kernel_symbol {
-> >   */
-> >  #define __EXPORT_SYMBOL(sym, sec)
-> >
-> > -#elif defined(__KSYM_DEPS__)
-> > +#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> > +
-> > +#include <generated/autoksyms.h>
-> >
-> >  /*
-> >   * For fine grained build dependencies, we want to tell the build system
-> >   * about each possible exported symbol even if they're not actually exported.
-> > - * We use a string pattern that is unlikely to be valid code that the build
-> > - * system filters out from the preprocessor output (see ksym_dep_filter
-> > - * in scripts/Kbuild.include).
-> > + * We use a symbol pattern __ksym_marker_<symbol> that the build system filters
-> > + * from the $(NM) output (see scripts/gen_ksymdep.sh). These symbols are
-> > + * discarded in the final link stage.
-> >   */
-> > -#define __EXPORT_SYMBOL(sym, sec)    === __KSYM_##sym ===
-> > -
-> > -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> > -
-> > -#include <generated/autoksyms.h>
-> > +#define __ksym_marker(sym)   \
-> > +     static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
->
-> Even if this is discarded during the final link, maybe this could save
-> a tiny amount of disk space by using a char instead?
+next time please also keep this changelog in every patch.
 
+>=20
+> Firoz Khan (3):
+>   microblaze: move __NR_syscalls macro from asm/unistd.h
+>   microblaze: add system call table generation support
+>   microblaze: generate uapi header and system call table files
+>=20
+>  arch/microblaze/Makefile                      |   3 +
+>  arch/microblaze/include/asm/Kbuild            |   1 +
+>  arch/microblaze/include/asm/unistd.h          |   2 -
+>  arch/microblaze/include/uapi/asm/Kbuild       |   1 +
+>  arch/microblaze/include/uapi/asm/unistd.h     | 407 +-----------------=
+-------
+>  arch/microblaze/kernel/syscall_table.S        | 406 +-----------------=
+-------
+>  arch/microblaze/kernel/syscalls/Makefile      |  38 +++
+>  arch/microblaze/kernel/syscalls/syscall.tbl   | 410 ++++++++++++++++++=
+++++++++
+>  arch/microblaze/kernel/syscalls/syscallhdr.sh |  36 +++
+>  arch/microblaze/kernel/syscalls/syscalltbl.sh |  32 ++
+>  10 files changed, 526 insertions(+), 810 deletions(-)
+>  create mode 100644 arch/microblaze/kernel/syscalls/Makefile
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
+>=20
 
-I am afraid you missed '[0]' after the symbol name.
-This is actually zero-length array.
+Looks good now. I have queue it to next. And also asked our team to
+retest everything.
 
-No memory allocated for this dummy section.
+Thanks,
+Michal
 
-As far as I tested, this is working.
-
-
-
-
-
-> > diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> > index 7f3ca6e..e5ba9b1 100644
-> > --- a/scripts/Makefile.build
-> > +++ b/scripts/Makefile.build
-> > @@ -254,9 +254,18 @@ objtool_dep = $(objtool_obj)                                     \
-> >             $(wildcard include/config/orc/unwinder.h          \
-> >                        include/config/stack/validation.h)
-> >
-> > +ifdef CONFIG_TRIM_UNUSED_KSYMS
-> > +cmd_gen_ksymdeps = \
-> > +     $(CONFIG_SHELL) $(srctree)/scripts/gen_ksymdeps.sh $@ > $(dot-target).tmp; \
-> > +     cat $(dot-target).tmp >> $(dot-target).cmd; \
-> > +     rm -f $(dot-target).tmp;
->
-> Why don't you append to $(dot-target).cmd directly?
-
-
-If scripts/gen_ksymdeps.sh fails for some reasons,
-it will error out immediately thanks to 'set -e' flag.
-
-Appending incomplete portion might end up with a corrupted .*.cmd file.
-
-Probably, that would not happen, but I just wanted to ensure it.
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
 
 
 
+--Pla37rODYW6n9t799SvllDnYNa0LfYfpM--
 
->
-> Nicolas
+--W0OFtpJrjHn1JGCgnYWWSnZBTKoztM5XW
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
 
+iEYEARECAAYFAlvugEkACgkQykllyylKDCGuLACeLdJgfLbAgvM64yYaH5bB+U3u
+4xcAnjD3dwMDCj1P1rF3YGv1ipQsJrSO
+=0wDO
+-----END PGP SIGNATURE-----
 
---
-Best Regards
-Masahiro Yamada
+--W0OFtpJrjHn1JGCgnYWWSnZBTKoztM5XW--
