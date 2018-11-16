@@ -1,73 +1,123 @@
-From: Palmer Dabbelt <palmer-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 1/2] csky, h8300,
-	riscv: remove <asm/scatterlist.h> leftovers
-Date: Thu, 15 Nov 2018 17:47:26 -0800 (PST)
-Message-ID: <mhng-328f3881-d91e-4e25-b711-c5d7d91c62e6@palmer-si-x1c4>
-References: <20181109090008.24150-2-hch@lst.de>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20181109090008.24150-2-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [PATCH 4/8] kbuild: simplify dependency generation for
+ CONFIG_TRIM_UNUSED_KSYMS
+Date: Fri, 16 Nov 2018 00:13:10 -0500 (EST)
+Message-ID: <nycvar.YSQ.7.76.1811152346510.1993@knanqh.ubzr>
+References: <1542270435-11181-1-git-send-email-yamada.masahiro@socionext.com> <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 09 Nov 2018 01:00:07 PST (-0800), Christoph Hellwig wrote:
-> There has been no <asm/scatterlist.h> for a long time, which also means
-> there is no point in using it from asm-generic.
->
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> ---
->  arch/csky/include/asm/Kbuild  | 1 -
->  arch/h8300/include/asm/Kbuild | 1 -
->  arch/riscv/include/asm/Kbuild | 1 -
->  3 files changed, 3 deletions(-)
->
-> diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
-> index 2a0abe8f2a35..7c48a123300d 100644
-> --- a/arch/csky/include/asm/Kbuild
-> +++ b/arch/csky/include/asm/Kbuild
-> @@ -34,7 +34,6 @@ generic-y += pci.h
->  generic-y += percpu.h
->  generic-y += preempt.h
->  generic-y += qrwlock.h
-> -generic-y += scatterlist.h
->  generic-y += sections.h
->  generic-y += serial.h
->  generic-y += shm.h
-> diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-> index a5d0b2991f47..32f0c8952147 100644
-> --- a/arch/h8300/include/asm/Kbuild
-> +++ b/arch/h8300/include/asm/Kbuild
-> @@ -36,7 +36,6 @@ generic-y += parport.h
->  generic-y += percpu.h
->  generic-y += pgalloc.h
->  generic-y += preempt.h
-> -generic-y += scatterlist.h
->  generic-y += sections.h
->  generic-y += serial.h
->  generic-y += sizes.h
-> diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-> index 6a646d9ea780..011cc7c7b3ad 100644
-> --- a/arch/riscv/include/asm/Kbuild
-> +++ b/arch/riscv/include/asm/Kbuild
-> @@ -37,7 +37,6 @@ generic-y += poll.h
->  generic-y += posix_types.h
->  generic-y += preempt.h
->  generic-y += resource.h
-> -generic-y += scatterlist.h
->  generic-y += sections.h
->  generic-y += sembuf.h
->  generic-y += serial.h
+On Thu, 15 Nov 2018, Masahiro Yamada wrote:
 
-Reviewed-by: Palmer Dabbelt <palmer-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
+> My main motivation of this commit is to clean up scripts/Kbuild.include
+> and scripts/Makefile.build.
+> 
+> Currently, CONFIG_TRIM_UNUSED_KSYMS works with a tricky gimmick;
+> possibly exported symbols are detected by letting $(CPP) replace
+> EXPORT_SYMBOL* with a special string '=== __KSYM_*===', which is
+> post-processed by sed, and passed to fixdep. The extra preprocessing
+> is costly, and hacking cmd_and_fixdep is ugly.
+> 
+> I came up with a new way to find exported symbols; insert a dummy
+> symbol __ksym_marker_* to each potentially exported symbol. Those
+> dummy symbols are picked up by $(NM), post-processed by sed, then
+> appended to .*.cmd files. I collected the post-process part to a
+> new shell script scripts/gen_ksymdeps.sh for readability. The dummy
+> symbols are put into the .discard.* section so that the linker
+> script rips them off the final vmlinux or modules.
+
+Brilliant!  I really like it.
+
+Minor comments below.
+
+> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+> index 4d73e6e..294d6ae 100644
+> --- a/include/asm-generic/export.h
+> +++ b/include/asm-generic/export.h
+> @@ -59,16 +59,19 @@ __kcrctab_\name:
+>  .endm
+>  #undef __put
+>  
+> -#if defined(__KSYM_DEPS__)
+> -
+> -#define __EXPORT_SYMBOL(sym, val, sec)	=== __KSYM_##sym ===
+> -
+> -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
+> +#if defined(CONFIG_TRIM_UNUSED_KSYMS)
+>  
+>  #include <linux/kconfig.h>
+>  #include <generated/autoksyms.h>
+>  
+> +.macro __ksym_marker sym
+> +	.section ".discard.ksym","a"
+> +__ksym_marker_\sym:
+> +	 .previous
+
+Does this work as intended? I have vague memories about having problems 
+with sections being discarded when they don't allocate any space.
+
+> +.endm
+> +
+>  #define __EXPORT_SYMBOL(sym, val, sec)				\
+> +	__ksym_marker sym;					\
+>  	__cond_export_sym(sym, val, sec, __is_defined(__KSYM_##sym))
+>  #define __cond_export_sym(sym, val, sec, conf)			\
+>  	___cond_export_sym(sym, val, sec, conf)
+> diff --git a/include/linux/export.h b/include/linux/export.h
+> index ce764a5..0413a3d 100644
+> --- a/include/linux/export.h
+> +++ b/include/linux/export.h
+> @@ -92,22 +92,22 @@ struct kernel_symbol {
+>   */
+>  #define __EXPORT_SYMBOL(sym, sec)
+>  
+> -#elif defined(__KSYM_DEPS__)
+> +#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
+> +
+> +#include <generated/autoksyms.h>
+>  
+>  /*
+>   * For fine grained build dependencies, we want to tell the build system
+>   * about each possible exported symbol even if they're not actually exported.
+> - * We use a string pattern that is unlikely to be valid code that the build
+> - * system filters out from the preprocessor output (see ksym_dep_filter
+> - * in scripts/Kbuild.include).
+> + * We use a symbol pattern __ksym_marker_<symbol> that the build system filters
+> + * from the $(NM) output (see scripts/gen_ksymdep.sh). These symbols are
+> + * discarded in the final link stage.
+>   */
+> -#define __EXPORT_SYMBOL(sym, sec)	=== __KSYM_##sym ===
+> -
+> -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
+> -
+> -#include <generated/autoksyms.h>
+> +#define __ksym_marker(sym)	\
+> +	static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+
+Even if this is discarded during the final link, maybe this could save 
+a tiny amount of disk space by using a char instead?
+
+> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+> index 7f3ca6e..e5ba9b1 100644
+> --- a/scripts/Makefile.build
+> +++ b/scripts/Makefile.build
+> @@ -254,9 +254,18 @@ objtool_dep = $(objtool_obj)					\
+>  	      $(wildcard include/config/orc/unwinder.h		\
+>  			 include/config/stack/validation.h)
+>  
+> +ifdef CONFIG_TRIM_UNUSED_KSYMS
+> +cmd_gen_ksymdeps = \
+> +	$(CONFIG_SHELL) $(srctree)/scripts/gen_ksymdeps.sh $@ > $(dot-target).tmp; \
+> +	cat $(dot-target).tmp >> $(dot-target).cmd; \
+> +	rm -f $(dot-target).tmp;
+
+Why don't you append to $(dot-target).cmd directly?
+
+
+Nicolas
