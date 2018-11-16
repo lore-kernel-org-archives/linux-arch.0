@@ -1,123 +1,46 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH 4/8] kbuild: simplify dependency generation for
- CONFIG_TRIM_UNUSED_KSYMS
-Date: Fri, 16 Nov 2018 00:13:10 -0500 (EST)
-Message-ID: <nycvar.YSQ.7.76.1811152346510.1993@knanqh.ubzr>
-References: <1542270435-11181-1-git-send-email-yamada.masahiro@socionext.com> <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v2 0/3] xtensa: system call table generation support
+Date: Fri, 16 Nov 2018 11:17:44 +0530
+Message-ID: <CALxhOnih2fQhxuR9-X-JRmKcZj7XRPX7hg-sKyG0WFr_tgCmEA@mail.gmail.com>
+References: <1542104370-22831-1-git-send-email-firoz.khan@linaro.org>
+ <CAMo8BfLt0NuQOTP6MBbRdOpK0_fWwtvfZArwVhwW1SZyzH4mbQ@mail.gmail.com>
+ <CALxhOng8jc3WCmw-i5LeghjE5EKuJaXVZGHLN98+552qqgUy=Q@mail.gmail.com> <CAMo8BfLgf7+89X6bGtK9iKz2FkZwCtDT4W=ipc4R0OTgjMGoAQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <CAMo8BfLgf7+89X6bGtK9iKz2FkZwCtDT4W=ipc4R0OTgjMGoAQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 15 Nov 2018, Masahiro Yamada wrote:
+Hi Max,
 
-> My main motivation of this commit is to clean up scripts/Kbuild.include
-> and scripts/Makefile.build.
-> 
-> Currently, CONFIG_TRIM_UNUSED_KSYMS works with a tricky gimmick;
-> possibly exported symbols are detected by letting $(CPP) replace
-> EXPORT_SYMBOL* with a special string '=== __KSYM_*===', which is
-> post-processed by sed, and passed to fixdep. The extra preprocessing
-> is costly, and hacking cmd_and_fixdep is ugly.
-> 
-> I came up with a new way to find exported symbols; insert a dummy
-> symbol __ksym_marker_* to each potentially exported symbol. Those
-> dummy symbols are picked up by $(NM), post-processed by sed, then
-> appended to .*.cmd files. I collected the post-process part to a
-> new shell script scripts/gen_ksymdeps.sh for readability. The dummy
-> symbols are put into the .discard.* section so that the linker
-> script rips them off the final vmlinux or modules.
+On Fri, 16 Nov 2018 at 01:46, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>
+> On Thu, Nov 15, 2018 at 1:57 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > On Wed, 14 Nov 2018 at 05:23, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > > On Tue, Nov 13, 2018 at 2:19 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > > [...]
+> > > > Firoz Khan (3):
+> > > >   xtensa: add __NR_syscalls along with __NR_syscall_count
+> > > >   xtensa: add system call table generation support
+> > > >   xtensa: generate uapi header and syscall table header files
+> > >
+> > > What's your plan for submission of this series? Are you going to
+> > > submit it with other similar series in a common tree, or shall I take
+> > > it into the xtensa tree?
+> >
+> > I prefer the second  option.
+>
+> Ok, I've applied the series to my xtensa tree, it should appear in the next
+> linux-next.
 
-Brilliant!  I really like it.
+Sounds good. Thank you.
 
-Minor comments below.
+Firoz
 
-> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-> index 4d73e6e..294d6ae 100644
-> --- a/include/asm-generic/export.h
-> +++ b/include/asm-generic/export.h
-> @@ -59,16 +59,19 @@ __kcrctab_\name:
->  .endm
->  #undef __put
->  
-> -#if defined(__KSYM_DEPS__)
-> -
-> -#define __EXPORT_SYMBOL(sym, val, sec)	=== __KSYM_##sym ===
-> -
-> -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> +#if defined(CONFIG_TRIM_UNUSED_KSYMS)
->  
->  #include <linux/kconfig.h>
->  #include <generated/autoksyms.h>
->  
-> +.macro __ksym_marker sym
-> +	.section ".discard.ksym","a"
-> +__ksym_marker_\sym:
-> +	 .previous
-
-Does this work as intended? I have vague memories about having problems 
-with sections being discarded when they don't allocate any space.
-
-> +.endm
-> +
->  #define __EXPORT_SYMBOL(sym, val, sec)				\
-> +	__ksym_marker sym;					\
->  	__cond_export_sym(sym, val, sec, __is_defined(__KSYM_##sym))
->  #define __cond_export_sym(sym, val, sec, conf)			\
->  	___cond_export_sym(sym, val, sec, conf)
-> diff --git a/include/linux/export.h b/include/linux/export.h
-> index ce764a5..0413a3d 100644
-> --- a/include/linux/export.h
-> +++ b/include/linux/export.h
-> @@ -92,22 +92,22 @@ struct kernel_symbol {
->   */
->  #define __EXPORT_SYMBOL(sym, sec)
->  
-> -#elif defined(__KSYM_DEPS__)
-> +#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> +
-> +#include <generated/autoksyms.h>
->  
->  /*
->   * For fine grained build dependencies, we want to tell the build system
->   * about each possible exported symbol even if they're not actually exported.
-> - * We use a string pattern that is unlikely to be valid code that the build
-> - * system filters out from the preprocessor output (see ksym_dep_filter
-> - * in scripts/Kbuild.include).
-> + * We use a symbol pattern __ksym_marker_<symbol> that the build system filters
-> + * from the $(NM) output (see scripts/gen_ksymdep.sh). These symbols are
-> + * discarded in the final link stage.
->   */
-> -#define __EXPORT_SYMBOL(sym, sec)	=== __KSYM_##sym ===
-> -
-> -#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
-> -
-> -#include <generated/autoksyms.h>
-> +#define __ksym_marker(sym)	\
-> +	static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
-
-Even if this is discarded during the final link, maybe this could save 
-a tiny amount of disk space by using a char instead?
-
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index 7f3ca6e..e5ba9b1 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -254,9 +254,18 @@ objtool_dep = $(objtool_obj)					\
->  	      $(wildcard include/config/orc/unwinder.h		\
->  			 include/config/stack/validation.h)
->  
-> +ifdef CONFIG_TRIM_UNUSED_KSYMS
-> +cmd_gen_ksymdeps = \
-> +	$(CONFIG_SHELL) $(srctree)/scripts/gen_ksymdeps.sh $@ > $(dot-target).tmp; \
-> +	cat $(dot-target).tmp >> $(dot-target).cmd; \
-> +	rm -f $(dot-target).tmp;
-
-Why don't you append to $(dot-target).cmd directly?
-
-
-Nicolas
+>
+> --
+> Thanks.
+> -- Max
