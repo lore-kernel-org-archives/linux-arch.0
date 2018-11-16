@@ -1,125 +1,290 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v4 0/3] microblaze: system call table generation support
-Date: Fri, 16 Nov 2018 14:57:51 +0530
-Message-ID: <CALxhOnjQgk8gX-N14H+4VtZhSSDB==NYdt5Y7-ihy6pxa6BPEA@mail.gmail.com>
-References: <1542089074-20027-1-git-send-email-firoz.khan@linaro.org> <632c1d3f-26cf-7e65-4e7a-cc882ef168c4@monstr.eu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: Re: [PATCH 2/2] arch: switch the default on ARCH_HAS_SG_CHAIN
+Date: Fri, 16 Nov 2018 08:52:14 -0800 (PST)
+Message-ID: <mhng-9c1955e1-d7cf-4ee4-8bf8-6bef720c9b98@palmer-si-x1c4>
+References: <20181109090008.24150-3-hch@lst.de>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <632c1d3f-26cf-7e65-4e7a-cc882ef168c4@monstr.eu>
+In-Reply-To: <20181109090008.24150-3-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <monstr@monstr.eu>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michal,
+On Fri, 09 Nov 2018 01:00:08 PST (-0800), Christoph Hellwig wrote:
+> These days architectures are mostly out of the business of dealing with
+> struct scatterlist at all, unless they have architecture specific iommu
+> drivers.  Replace the ARCH_HAS_SG_CHAIN symbol with a ARCH_NO_SG_CHAIN
+> one only enabled for architectures with horrible legacy iommu drivers
+> like alpha and parisc, and conditionally for arm which wants to keep it
+> disable for legacy platforms.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  .../features/io/sg-chain/arch-support.txt     | 33 -------------------
+>  arch/alpha/Kconfig                            |  1 +
+>  arch/arc/Kconfig                              |  1 -
+>  arch/arm/Kconfig                              |  2 +-
+>  arch/arm64/Kconfig                            |  1 -
+>  arch/ia64/Kconfig                             |  1 -
+>  arch/parisc/Kconfig                           |  1 +
+>  arch/powerpc/Kconfig                          |  1 -
+>  arch/s390/Kconfig                             |  1 -
+>  arch/sparc/Kconfig                            |  1 -
+>  arch/x86/Kconfig                              |  1 -
+>  arch/xtensa/Kconfig                           |  1 -
+>  include/linux/scatterlist.h                   |  6 ++--
+>  lib/Kconfig                                   |  2 +-
+>  lib/scatterlist.c                             |  2 +-
+>  15 files changed, 8 insertions(+), 47 deletions(-)
+>  delete mode 100644 Documentation/features/io/sg-chain/arch-support.txt
 
-On Fri, 16 Nov 2018 at 14:01, Michal Simek <monstr@monstr.eu> wrote:
->
-> On 13. 11. 18 7:04, Firoz Khan wrote:
-> > The purpose of this patch series is, we can easily
-> > add/modify/delete system call table support by cha-
-> > nging entry in syscall.tbl file instead of manually
-> > changing many files. The other goal is to unify the
-> > system call table generation support implementation
-> > across all the architectures.
-> >
-> > The system call tables are in different format in
-> > all architecture. It will be difficult to manually
-> > add, modify or delete the system calls in the resp-
-> > ective files manually. To make it easy by keeping a
-> > script and which'll generate uapi header file and
-> > syscall table file.
-> >
-> > syscall.tbl contains the list of available system
-> > calls along with system call number and correspond-
-> > ing entry point. Add a new system call in this arch-
-> > itecture will be possible by adding new entry in the
-> > syscall.tbl file.
-> >
-> > Adding a new table entry consisting of:
-> >         - System call number.
-> >         - ABI.
-> >         - System call name.
-> >         - Entry point name.
-> >
-> > ARM, s390 and x86 architecuture does exist the sim-
-> > ilar support. I leverage their implementation to
-> > come up with a generic solution.
-> >
-> > I have done the same support for work for alpha, ia64,
-> > m68k, mips, parisc, powerpc, sh, sparc and xtensa.
-> > Below mentioned git repository contains more details
-> > about the workflow.
-> >
-> > https://github.com/frzkhn/system_call_table_generator/
-> >
-> > Finally, this is the ground work to solve the Y2038
-> > issue. We need to add two dozen of system calls to
-> > solve Y2038 issue. So this patch series will help to
-> > add new system calls easily by adding new entry in
-> > the syscall.tbl.
-> >
-> > changes since v3:
-> >  - changed from generic-y to generated-y in Kbuild.
-> >
-> > changes since v2:
-> >  - optimized/updated the syscall table generation
-> >    scripts.
-> >  - fixed all mixed indentation issues in syscall.tbl.
-> >  - added "comments" in syscall_*.tbl.
-> >
-> > changes since v1:
-> >  - enclosed __NR_sycalls macro with __KERNEL__.
-> >  - added missing new line.
->
-> next time please also keep this changelog in every patch.
+As far as I can tell, it looks like m68k, mips, and powerpc mention an IOMMU in 
+their ports, don't set ARCH_HAS_SG_CHAIN, and with this patch set won't set 
+ARCH_NO_SG_CHAIN.  The issue is that I'm not sure how to determine what 
+constitutes a horrible legacy IOMMU, at least with respect to not being able to 
+use scatterlist chaining.
 
-Sure. Basically I haven't came across changelog till a point
-where  Geert Uytterhoeven <geert@linux-m68k.org> pointed
-out changelog is missing. Thanks Geert :)
+I poked through the 68k stuff (sun3 and sun3x) and the only thing I see that's 
+odd is that DVMA_PAGE_SHIFT is 13.  That matches PAGE_SHIFT for the subarch, 
+though, so I don't think it's an issue.  It looks like the mention in MIPS is 
+trivial, so that should be fine.  There's a lot in the PC port so I just 
+glanced at it.  I assume it's OK, but I did see an explicit mention of SG in 
+their generic IOMMU.  There's a lot of flavors here so I'm not sure how well 
+they all work.
 
->
-> >
-> > Firoz Khan (3):
-> >   microblaze: move __NR_syscalls macro from asm/unistd.h
-> >   microblaze: add system call table generation support
-> >   microblaze: generate uapi header and system call table files
-> >
-> >  arch/microblaze/Makefile                      |   3 +
-> >  arch/microblaze/include/asm/Kbuild            |   1 +
-> >  arch/microblaze/include/asm/unistd.h          |   2 -
-> >  arch/microblaze/include/uapi/asm/Kbuild       |   1 +
-> >  arch/microblaze/include/uapi/asm/unistd.h     | 407 +------------------------
-> >  arch/microblaze/kernel/syscall_table.S        | 406 +------------------------
-> >  arch/microblaze/kernel/syscalls/Makefile      |  38 +++
-> >  arch/microblaze/kernel/syscalls/syscall.tbl   | 410 ++++++++++++++++++++++++++
-> >  arch/microblaze/kernel/syscalls/syscallhdr.sh |  36 +++
-> >  arch/microblaze/kernel/syscalls/syscalltbl.sh |  32 ++
-> >  10 files changed, 526 insertions(+), 810 deletions(-)
-> >  create mode 100644 arch/microblaze/kernel/syscalls/Makefile
-> >  create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
-> >  create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
-> >  create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
-> >
->
-> Looks good now. I have queue it to next. And also asked our team to
-> retest everything.
+I don't really think that's enough for my reviewed-by tag, so feel free to give 
+me some pointers if you're looking for one -- I'd be happy to lean about 
+IOMMUs (particularly broken ones, as that might help prevent us from designing 
+a broken one), I'm just not sure what I'm looking for.
 
-Sounds good!
+I'm going to assume you're going to merge this and I'll drop the RISC-V patch 
+that turns on ARCH_HAS_SG_CHAIN.
 
-Thanks
-Firoz
+Thanks!
 
+> diff --git a/Documentation/features/io/sg-chain/arch-support.txt b/Documentation/features/io/sg-chain/arch-support.txt
+> deleted file mode 100644
+> index 6554f0372c3f..000000000000
+> --- a/Documentation/features/io/sg-chain/arch-support.txt
+> +++ /dev/null
+> @@ -1,33 +0,0 @@
+> -#
+> -# Feature name:          sg-chain
+> -#         Kconfig:       ARCH_HAS_SG_CHAIN
+> -#         description:   arch supports chained scatter-gather lists
+> -#
+> -    -----------------------
+> -    |         arch |status|
+> -    -----------------------
+> -    |       alpha: | TODO |
+> -    |         arc: |  ok  |
+> -    |         arm: |  ok  |
+> -    |       arm64: |  ok  |
+> -    |         c6x: | TODO |
+> -    |       h8300: | TODO |
+> -    |     hexagon: | TODO |
+> -    |        ia64: |  ok  |
+> -    |        m68k: | TODO |
+> -    |  microblaze: | TODO |
+> -    |        mips: | TODO |
+> -    |       nds32: | TODO |
+> -    |       nios2: | TODO |
+> -    |    openrisc: | TODO |
+> -    |      parisc: | TODO |
+> -    |     powerpc: |  ok  |
+> -    |       riscv: | TODO |
+> -    |        s390: |  ok  |
+> -    |          sh: | TODO |
+> -    |       sparc: |  ok  |
+> -    |          um: | TODO |
+> -    |   unicore32: | TODO |
+> -    |         x86: |  ok  |
+> -    |      xtensa: | TODO |
+> -    -----------------------
+> diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+> index 5b4f88363453..a7e748a46c18 100644
+> --- a/arch/alpha/Kconfig
+> +++ b/arch/alpha/Kconfig
+> @@ -5,6 +5,7 @@ config ALPHA
+>  	select ARCH_MIGHT_HAVE_PC_PARPORT
+>  	select ARCH_MIGHT_HAVE_PC_SERIO
+>  	select ARCH_NO_PREEMPT
+> +	select ARCH_NO_SG_CHAIN
+>  	select ARCH_USE_CMPXCHG_LOCKREF
+>  	select HAVE_AOUT
+>  	select HAVE_IDE
+> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+> index c9e2a1323536..fd48d698da29 100644
+> --- a/arch/arc/Kconfig
+> +++ b/arch/arc/Kconfig
+> @@ -13,7 +13,6 @@ config ARC
+>  	select ARCH_HAS_PTE_SPECIAL
+>  	select ARCH_HAS_SYNC_DMA_FOR_CPU
+>  	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
+>  	select BUILDTIME_EXTABLE_SORT
+>  	select CLONE_BACKWARDS
+> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+> index 91be74d8df65..199eb62230b0 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -19,6 +19,7 @@ config ARM
+>  	select ARCH_HAVE_CUSTOM_GPIO_H
+>  	select ARCH_HAS_GCOV_PROFILE_ALL
+>  	select ARCH_MIGHT_HAVE_PC_PARPORT
+> +	select ARCH_NO_SG_CHAIN if !ARM_HAS_SG_CHAIN
+>  	select ARCH_OPTIONAL_KERNEL_RWX if ARCH_HAS_STRICT_KERNEL_RWX
+>  	select ARCH_OPTIONAL_KERNEL_RWX_DEFAULT if CPU_V7
+>  	select ARCH_SUPPORTS_ATOMIC_RMW
+> @@ -118,7 +119,6 @@ config ARM
+>  	  <http://www.arm.linux.org.uk/>.
 >
-> Thanks,
-> Michal
+>  config ARM_HAS_SG_CHAIN
+> -	select ARCH_HAS_SG_CHAIN
+>  	bool
 >
-> --
-> Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-> w: www.monstr.eu p: +42-0-721842854
-> Maintainer of Linux kernel - Xilinx Microblaze
-> Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-> U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+>  config ARM_DMA_USE_IOMMU
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 787d7850e064..4c851b3a7b7c 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -23,7 +23,6 @@ config ARM64
+>  	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+>  	select ARCH_HAS_PTE_SPECIAL
+>  	select ARCH_HAS_SET_MEMORY
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_HAS_STRICT_KERNEL_RWX
+>  	select ARCH_HAS_STRICT_MODULE_RWX
+>  	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+> diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+> index 36773def6920..d6f203658994 100644
+> --- a/arch/ia64/Kconfig
+> +++ b/arch/ia64/Kconfig
+> @@ -29,7 +29,6 @@ config IA64
+>  	select HAVE_MEMBLOCK_NODE_MAP
+>  	select HAVE_VIRT_CPU_ACCOUNTING
+>  	select ARCH_HAS_DMA_MARK_CLEAN
+> -	select ARCH_HAS_SG_CHAIN
+>  	select VIRT_TO_BUS
+>  	select ARCH_DISCARD_MEMBLOCK
+>  	select GENERIC_IRQ_PROBE
+> diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+> index 92a339ee28b3..428ee50fc3db 100644
+> --- a/arch/parisc/Kconfig
+> +++ b/arch/parisc/Kconfig
+> @@ -11,6 +11,7 @@ config PARISC
+>  	select ARCH_HAS_ELF_RANDOMIZE
+>  	select ARCH_HAS_STRICT_KERNEL_RWX
+>  	select ARCH_HAS_UBSAN_SANITIZE_ALL
+> +	select ARCH_NO_SG_CHAIN
+>  	select ARCH_SUPPORTS_MEMORY_FAILURE
+>  	select RTC_CLASS
+>  	select RTC_DRV_GENERIC
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 8be31261aec8..4bc8edd83cee 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -138,7 +138,6 @@ config PPC
+>  	select ARCH_HAS_PTE_SPECIAL
+>  	select ARCH_HAS_MEMBARRIER_CALLBACKS
+>  	select ARCH_HAS_SCALED_CPUTIME		if VIRT_CPU_ACCOUNTING_NATIVE && PPC64
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_HAS_STRICT_KERNEL_RWX	if ((PPC_BOOK3S_64 || PPC32) && !RELOCATABLE && !HIBERNATION)
+>  	select ARCH_HAS_TICK_BROADCAST		if GENERIC_CLOCKEVENTS_BROADCAST
+>  	select ARCH_HAS_UACCESS_FLUSHCACHE	if PPC64
+> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> index 5173366af8f3..5624e8607054 100644
+> --- a/arch/s390/Kconfig
+> +++ b/arch/s390/Kconfig
+> @@ -73,7 +73,6 @@ config S390
+>  	select ARCH_HAS_KCOV
+>  	select ARCH_HAS_PTE_SPECIAL
+>  	select ARCH_HAS_SET_MEMORY
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_HAS_STRICT_KERNEL_RWX
+>  	select ARCH_HAS_STRICT_MODULE_RWX
+>  	select ARCH_HAS_UBSAN_SANITIZE_ALL
+> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+> index 490b2c95c212..8853b6ceae17 100644
+> --- a/arch/sparc/Kconfig
+> +++ b/arch/sparc/Kconfig
+> @@ -40,7 +40,6 @@ config SPARC
+>  	select MODULES_USE_ELF_RELA
+>  	select ODD_RT_SIGACTION
+>  	select OLD_SIGSUSPEND
+> -	select ARCH_HAS_SG_CHAIN
+>  	select CPU_NO_EFFICIENT_FFS
+>  	select LOCKDEP_SMALL if LOCKDEP
+>  	select NEED_DMA_MAP_STATE
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index ba7e3464ee92..6faab6f9b57e 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -66,7 +66,6 @@ config X86
+>  	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+>  	select ARCH_HAS_UACCESS_MCSAFE		if X86_64 && X86_MCE
+>  	select ARCH_HAS_SET_MEMORY
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_HAS_STRICT_KERNEL_RWX
+>  	select ARCH_HAS_STRICT_MODULE_RWX
+>  	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+> diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+> index d29b7365da8d..e3387919eb22 100644
+> --- a/arch/xtensa/Kconfig
+> +++ b/arch/xtensa/Kconfig
+> @@ -1,7 +1,6 @@
+>  # SPDX-License-Identifier: GPL-2.0
+>  config XTENSA
+>  	def_bool y
+> -	select ARCH_HAS_SG_CHAIN
+>  	select ARCH_HAS_SYNC_DMA_FOR_CPU
+>  	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+>  	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
+> diff --git a/include/linux/scatterlist.h b/include/linux/scatterlist.h
+> index 093aa57120b0..b96f0d0b5b8f 100644
+> --- a/include/linux/scatterlist.h
+> +++ b/include/linux/scatterlist.h
+> @@ -324,10 +324,10 @@ size_t sg_zero_buffer(struct scatterlist *sgl, unsigned int nents,
+>   * Like SG_CHUNK_SIZE, but for archs that have sg chaining. This limit
+>   * is totally arbitrary, a setting of 2048 will get you at least 8mb ios.
+>   */
+> -#ifdef CONFIG_ARCH_HAS_SG_CHAIN
+> -#define SG_MAX_SEGMENTS	2048
+> -#else
+> +#ifdef CONFIG_ARCH_NO_SG_CHAIN
+>  #define SG_MAX_SEGMENTS	SG_CHUNK_SIZE
+> +#else
+> +#define SG_MAX_SEGMENTS	2048
+>  #endif
 >
+>  #ifdef CONFIG_SG_POOL
+> diff --git a/lib/Kconfig b/lib/Kconfig
+> index a9965f4af4dd..d5a5e2ebf286 100644
+> --- a/lib/Kconfig
+> +++ b/lib/Kconfig
+> @@ -577,7 +577,7 @@ config SG_POOL
+>  # sg chaining option
+>  #
 >
+> -config ARCH_HAS_SG_CHAIN
+> +config ARCH_NO_SG_CHAIN
+>  	def_bool n
+>
+>  config ARCH_HAS_PMEM_API
+> diff --git a/lib/scatterlist.c b/lib/scatterlist.c
+> index 7c6096a71704..9ba349e775ef 100644
+> --- a/lib/scatterlist.c
+> +++ b/lib/scatterlist.c
+> @@ -271,7 +271,7 @@ int __sg_alloc_table(struct sg_table *table, unsigned int nents,
+>
+>  	if (nents == 0)
+>  		return -EINVAL;
+> -#ifndef CONFIG_ARCH_HAS_SG_CHAIN
+> +#ifdef CONFIG_ARCH_NO_SG_CHAIN
+>  	if (WARN_ON_ONCE(nents > max_ents))
+>  		return -EINVAL;
+>  #endif
