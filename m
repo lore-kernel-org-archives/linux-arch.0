@@ -1,56 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:44865 "EHLO mga09.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:54574 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725915AbeKRRf2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 18 Nov 2018 12:35:28 -0500
-Date: Sun, 18 Nov 2018 09:15:48 +0200
+        id S1725914AbeKRRhz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 18 Nov 2018 12:37:55 -0500
+Date: Sun, 18 Nov 2018 09:18:16 +0200
 From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
 Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181118071548.GA4795@linux.intel.com>
+Message-ID: <20181118071816.GB4795@linux.intel.com>
 References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <20181118071548.GA4795@linux.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+In-Reply-To: <20181118071548.GA4795@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@kernel.org>
 Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181118071548.Qtqx_fQfN2kZOAn3gF_oCgNMuCPLo5Cpj_79P3LWuXI@z>
+Message-ID: <20181118071816.BfhfmIRsp0IRucoQuUC7vNHzmoA2r1Xybnyg028slSE@z>
 
-On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
-> Hi all-
+On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
+> On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
+> > Hi all-
+> > 
+> > The people working on SGX enablement are grappling with a somewhat
+> > annoying issue: the x86 EENTER instruction is used from user code and
+> > can, as part of its normal-ish operation, raise an exception.  It is
+> > also highly likely to be used from a library, and signal handling in
+> > libraries is unpleasant at best.
+> > 
+> > There's been some discussion of adding a vDSO entry point to wrap
+> > EENTER and do something sensible with the exceptions, but I'm
+> > wondering if a more general mechanism would be helpful.
 > 
-> The people working on SGX enablement are grappling with a somewhat
-> annoying issue: the x86 EENTER instruction is used from user code and
-> can, as part of its normal-ish operation, raise an exception.  It is
-> also highly likely to be used from a library, and signal handling in
-> libraries is unpleasant at best.
+> I haven't really followed all of this discussion because I've been busy
+> working on the patch set but for me all of these approaches look awfully
+> complicated.
 > 
-> There's been some discussion of adding a vDSO entry point to wrap
-> EENTER and do something sensible with the exceptions, but I'm
-> wondering if a more general mechanism would be helpful.
+> I'll throw my own suggestion and apologize if this has been already
+> suggested and discarded: return-to-AEP.
+> 
+> My idea is to do just a small extension to SGX AEX handling. At the
+> moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
+> fill extend this by filling other three spare registers with exception
 
-I haven't really followed all of this discussion because I've been busy
-working on the patch set but for me all of these approaches look awfully
-complicated.
-
-I'll throw my own suggestion and apologize if this has been already
-suggested and discarded: return-to-AEP.
-
-My idea is to do just a small extension to SGX AEX handling. At the
-moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
-fill extend this by filling other three spare registers with exception
-information.
-
-AEP handler can then do whatever it wants to do with this information
-or just do ERESUME.
-
-In some ways this dummied version of Sean's suggestion.
-
-I think whatever the solution is it should be lightweight and this is
-such solution. Why? Because exception handling could be then used to
-implement other stuff than just error hadling like syscall wrapper
-for the enclaves in nice and lean way.
+s/fill extend/extend/
 
 /Jarkko
