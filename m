@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:54574 "EHLO mga06.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:47204 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725914AbeKRRhz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 18 Nov 2018 12:37:55 -0500
-Date: Sun, 18 Nov 2018 09:18:16 +0200
+        id S1726269AbeKRXWa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 18 Nov 2018 18:22:30 -0500
+Date: Sun, 18 Nov 2018 15:02:03 +0200
 From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
 Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181118071816.GB4795@linux.intel.com>
+Message-ID: <20181118130203.GA18934@linux.intel.com>
 References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
  <20181118071548.GA4795@linux.intel.com>
 MIME-Version: 1.0
@@ -17,7 +17,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@kernel.org>
 Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181118071816.BfhfmIRsp0IRucoQuUC7vNHzmoA2r1Xybnyg028slSE@z>
+Message-ID: <20181118130203.qa1mH51LyLnkvEsCVRW1j0lCTZ1I5o8gKDLXIwQmJSg@z>
 
 On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
 > On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
@@ -43,7 +43,20 @@ On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
 > My idea is to do just a small extension to SGX AEX handling. At the
 > moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
 > fill extend this by filling other three spare registers with exception
+> information.
+> 
+> AEP handler can then do whatever it wants to do with this information
+> or just do ERESUME.
 
-s/fill extend/extend/
+A correction here. In practice this will add a requirement to have a bit
+more complicated AEP code (check the regs for exceptions) than before
+and not just bytes for ENCLU.
 
-/Jarkko
+e.g. AEP handler should be along the lines
+
+1. #PF (or #UD or) happens. Kernel fills the registers when it cannot
+   handle the exception and returns back to user space i.e. to the
+   AEP handler.
+2. Check the registers containing exception information. If they have
+   been filled, take whatever actions user space wants to take.
+3. Otherwise, just ERESUME.
