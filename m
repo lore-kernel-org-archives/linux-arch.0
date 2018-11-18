@@ -1,7 +1,7 @@
 From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
 Subject: Re: RFC: userspace exception fixups
-Date: Sun, 18 Nov 2018 09:18:16 +0200
-Message-ID: <20181118071816.GB4795@linux.intel.com>
+Date: Sun, 18 Nov 2018 15:02:03 +0200
+Message-ID: <20181118130203.GA18934@linux.intel.com>
 References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
  <20181118071548.GA4795@linux.intel.com>
 Mime-Version: 1.0
@@ -38,7 +38,26 @@ On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
 > My idea is to do just a small extension to SGX AEX handling. At the
 > moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
 > fill extend this by filling other three spare registers with exception
+> information.
+> 
+> AEP handler can then do whatever it wants to do with this information
+> or just do ERESUME.
 
-s/fill extend/extend/
+A correction here. In practice this will add a requirement to have a bit
+more complicated AEP code (check the regs for exceptions) than before
+and not just bytes for ENCLU.
+
+e.g. AEP handler should be along the lines
+
+1. #PF (or #UD or) happens. Kernel fills the registers when it cannot
+   handle the exception and returns back to user space i.e. to the
+   AEP handler.
+2. Check the registers containing exception information. If they have
+   been filled, take whatever actions user space wants to take.
+3. Otherwise, just ERESUME.
+
+From my point of view this is making the AEP parameter useful. Its
+standard use is just weird (always point to a place just containing
+ENCLU bytes, why the heck it even exists).
 
 /Jarkko
