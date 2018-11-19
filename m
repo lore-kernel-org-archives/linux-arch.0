@@ -1,50 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua1-f66.google.com ([209.85.222.66]:34749 "EHLO
-        mail-ua1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726512AbeKSSbL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2018 13:31:11 -0500
-MIME-Version: 1.0
-References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org> <0b9aaa2f-9eda-82f1-8d52-b537a8c0c190@landley.net>
-In-Reply-To: <0b9aaa2f-9eda-82f1-8d52-b537a8c0c190@landley.net>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 19 Nov 2018 09:08:06 +0100
-Message-ID: <CAMuHMdUKPo6Lu0CtWERYkQTKSATqq0QVit-Awcn1O2EsS22iKQ@mail.gmail.com>
+Received: from mail-it1-f193.google.com ([209.85.166.193]:55621 "EHLO
+        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726955AbeKSTVA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2018 14:21:00 -0500
+Received: by mail-it1-f193.google.com with SMTP id o19so7050491itg.5
+        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 00:58:01 -0800 (PST)
 Subject: Re: [PATCH v3 0/3] sh: system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
+ <0b9aaa2f-9eda-82f1-8d52-b537a8c0c190@landley.net>
+ <CAMuHMdUKPo6Lu0CtWERYkQTKSATqq0QVit-Awcn1O2EsS22iKQ@mail.gmail.com>
+From: Rob Landley <rob@landley.net>
+Message-ID: <72faac80-114f-f563-b340-0cdeea2673cd@landley.net>
+Date: Mon, 19 Nov 2018 02:57:59 -0600
+MIME-Version: 1.0
+In-Reply-To: <CAMuHMdUKPo6Lu0CtWERYkQTKSATqq0QVit-Awcn1O2EsS22iKQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Landley <rob@landley.net>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: firoz.khan@linaro.org, Linux-sh list <linux-sh@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
-Message-ID: <20181119080806.P9DMpWF0-LTbT3sHlDFAQrG8jyJleTSHjjlRcIempOQ@z>
+Message-ID: <20181119085759.qlfUiKL0GVYFduDycc07hF565mtGhvoyMtDRbWKnKPw@z>
 
-On Mon, Nov 19, 2018 at 6:26 AM Rob Landley <rob@landley.net> wrote:
-> On 11/13/18 10:32 PM, Firoz Khan wrote:
-> > The purpose of this patch series is, we can easily
-> > add/modify/delete system call table support by cha-
-> > nging entry in syscall.tbl file instead of manually
-> > changing many files. The other goal is to unify the
-> > system call table generation support implementation
-> > across all the architectures.
->
-> I applied the patch in https://github.com/landley/mkroot and the result booted
-> under qemu-system-sh4, seems to work fine. Network's fine, it can read a block
-> device, etc.
->
-> Acked-and-or-tested-by: Rob Landley <rob@landley.net>
->
-> I assume that this is just git du jour and not your patch:
->
-> WARNING: CPU: 0 PID: 1 at mm/slub.c:2448 ___slab_alloc.constprop.34+0x196/0x288
+On 11/19/18 2:08 AM, Geert Uytterhoeven wrote:
+> On Mon, Nov 19, 2018 at 6:26 AM Rob Landley <rob@landley.net> wrote:
+>> WARNING: CPU: 0 PID: 1 at mm/slub.c:2448 ___slab_alloc.constprop.34+0x196/0x288
+> 
+> https://patchwork.kernel.org/patch/10549883/
 
-https://patchwork.kernel.org/patch/10549883/
+Given that Sato-san is co-maintainer of arch/sh and that was posted in July, why
+is it not upstream yet?
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Rob
