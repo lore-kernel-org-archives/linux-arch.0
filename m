@@ -1,57 +1,32 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 1/3] sh: add __NR_syscalls along with
-	NR_syscalls
-Date: Mon, 19 Nov 2018 17:50:50 +0100
-Message-ID: <CAK8P3a3fFznLDZTs0eLa_dJCKdENC96w1MoC1pNM6gYwcb=Cow@mail.gmail.com>
-References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
- <1542169930-24118-2-git-send-email-firoz.khan@linaro.org>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: RFC: userspace exception fixups
+Date: Mon, 19 Nov 2018 09:00:08 -0800
+Message-ID: <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <20181118071548.GA4795@linux.intel.com> <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+ <20181119160204.GD13298@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1542169930-24118-2-git-send-email-firoz.khan@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch <linux-arch@vger.kernel.org>, Rich Felker <dalias@libc.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, gregkh <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181119160204.GD13298@linux.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Cc: Andrew Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.c>
 List-Id: linux-arch.vger.kernel.org
 
-T24gV2VkLCBOb3YgMTQsIDIwMTggYXQgNTozMiBBTSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxp
-bmFyby5vcmc+IHdyb3RlOgo+Cj4gTlJfc3lzY2FsbHMgbWFjcm8gaG9sZHMgdGhlIG51bWJlciBv
-ZiBzeXN0ZW0gY2FsbCBleGlzdAo+IGluIHNoIGFyY2hpdGVjdHVyZS4gV2UgaGF2ZSB0byBjaGFu
-Z2UgdGhlIHZhbHVlIG9mIE5SLQo+IF9zeXNjYWxscywgaWYgd2UgYWRkIG9yIGRlbGV0ZSBhIHN5
-c3RlbSBjYWxsLgo+Cj4gT25lIG9mIHRoZSBwYXRjaCBpbiB0aGlzIHBhdGNoIHNlcmllcyBoYXMg
-YSBzY3JpcHQgd2hpY2gKPiB3aWxsIGdlbmVyYXRlIGEgdWFwaSBoZWFkZXIgYmFzZWQgb24gc3lz
-Y2FsbC50YmwgZmlsZS4KPiBUaGUgc3lzY2FsbC50YmwgZmlsZSBjb250YWlucyB0aGUgdG90YWwg
-bnVtYmVyIG9mIHN5c3RlbQo+IGNhbGxzIGluZm9ybWF0aW9uLiBTbyB3ZSBoYXZlIHR3byBvcHRp
-b24gdG8gdXBkYXRlIE5SX3N5LQo+IHNjYWxscyB2YWx1ZS4KPgo+IDEuIFVwZGF0ZSBOUl9zeXNj
-YWxscyBpbiBhc20vdW5pc3RkLmggbWFudWFsbHkgYnkgY291bnQtCj4gICAgaW5nIHRoZSBuby5v
-ZiBzeXN0ZW0gY2FsbHMuIE5vIG5lZWQgdG8gdXBkYXRlIE5SX3N5cy0KPiAgICBjYWxscyB1bnRp
-bCB3ZSBlaXRoZXIgYWRkIGEgbmV3IHN5c3RlbSBjYWxsIG9yIGRlbGV0ZQo+ICAgIGV4aXN0aW5n
-IHN5c3RlbSBjYWxsLgo+Cj4gMi4gV2UgY2FuIGtlZXAgdGhpcyBmZWF0dXJlIGl0IGFib3ZlIG1l
-bnRpb25lZCBzY3JpcHQsCj4gICAgdGhhdCB3aWxsIGNvdW50IHRoZSBudW1iZXIgb2Ygc3lzY2Fs
-bHMgYW5kIGtlZXAgaXQgaW4KPiAgICBhIGdlbmVyYXRlZCBmaWxlLiBJbiB0aGlzIGNhc2Ugd2Ug
-ZG9uJ3QgbmVlZCB0byBleHBsaS0KPiAgICBjaXRseSB1cGRhdGUgTlJfc3lzY2FsbHMgaW4gYXNt
-L3VuaXN0ZC5oIGZpbGUuCj4KPiBUaGUgMm5kIG9wdGlvbiB3aWxsIGJlIHRoZSByZWNvbW1lbmRl
-ZCBvbmUuIEZvciB0aGF0LCBJCj4gYWRkZWQgdGhlIF9fTlJfc3lzY2FsbHMgbWFjcm8gaW4gdWFw
-aS9hc20vdW5pc3RkXzMyLzY0LmgKPiBhbG9uZyB3aXRoIE5SX3N5c2NhbGxzIHdoaWNoIGlzIG1v
-dmVkIHRvIGFzbS91bmlzdGQuaC4KPiBUaGUgbWFjcm8gX19OUl9zeXNjYWxscyBhbHNvIGFkZGVk
-IGZvciBtYWtpbmcgdGhlIG5hbWUKPiBjb252ZW50aW9uIHNhbWUgYWNyb3NzIGFsbCBhcmNoaXRl
-Y3R1cmUuIFdoaWxlIF9fTlJfc3lzLQo+IGNhbGxzIGlzbid0IHN0cmljdGx5IHBhcnQgb2YgdGhl
-IHVhcGksIGhhdmluZyBpdCBhcyBwYXJ0Cj4gb2YgdGhlIGdlbmVyYXRlZCBoZWFkZXIgdG8gc2lt
-cGxpZmllcyB0aGUgaW1wbGVtZW50YXRpb24uCj4gV2UgYWxzbyBuZWVkIHRvIGVuY2xvc2UgdGhp
-cyBtYWNybyB3aXRoICNpZmRlZiBfX0tFUk5FTF9fCj4gdG8gYXZvaWQgc2lkZSBlZmZlY3RzLgo+
-Cj4gU2lnbmVkLW9mZi1ieTogRmlyb3ogS2hhbiA8Zmlyb3oua2hhbkBsaW5hcm8ub3JnPgoKTG9v
-a3MgY29ycmVjdCB0byBtZSwgYnV0IHNpbmNlIHRoZXJlIGFyZSBvbmx5IHRocmVlIHJlZmVyZW5j
-ZXMgdG8KJ05SX3N5c2NhbGxzJyBpbiBhcmNoL3NoLCBJIHdvbmRlciBpZiB3ZSBzaG91bGQganVz
-dCByZXBsYWNlIGl0IHdpdGgKX19OUl9zeXNjYWxscyBpbiB0aGUgc2FtZSBwYXRjaC4KCiAgICAg
-ICBBcm5kCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClky
-MDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGlu
-YXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
+On Mon, Nov 19, 2018 at 8:02 AM Jarkko Sakkinen
+<jarkko.sakkinen@linux.intel.com> wrote:
+>
+> On Mon, Nov 19, 2018 at 07:29:36AM -0800, Andy Lutomirski wrote:
+> > 1. The kernel needs some way to know *when* to apply this fixup.
+> > Decoding the instruction stream and doing it to all exceptions that
+> > hit an ENCLU instruction seems like a poor design.
+>
+> I'm not sure why you would ever need to do any type of fixup as the idea
+> is to just return to AEP i.e. from chosen exceptions (EPCM, #UD) the AEP
+> would work the same way as for exceptions that the kernel can deal with
+> except filling the exception information to registers.
+
+Sure, but how does the kernel know when to do that and when to send a
+signal?  I don't really like decoding the instruction stream to figure
+it out.
