@@ -1,38 +1,35 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [RFC] remove the ->mapping_error method from dma_map_ops
-Date: Mon, 19 Nov 2018 14:55:00 +0100
-Message-ID: <20181119135459.GB16334@lst.de>
-References: <20181109084632.22848-1-hch@lst.de> <20181109.151234.2231390463846593374.davem@davemloft.net>
+Subject: Re: [PATCH 2/2] arch: switch the default on ARCH_HAS_SG_CHAIN
+Date: Mon, 19 Nov 2018 14:58:52 +0100
+Message-ID: <20181119135852.GA16428@lst.de>
+References: <20181109090008.24150-3-hch@lst.de> <mhng-9c1955e1-d7cf-4ee4-8bf8-6bef720c9b98@palmer-si-x1c4>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181109.151234.2231390463846593374.davem@davemloft.net>
+In-Reply-To: <mhng-9c1955e1-d7cf-4ee4-8bf8-6bef720c9b98@palmer-si-x1c4>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: hch@lst.de, iommu@lists.linux-foundation.org, torvalds@linux-foundation.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Julia Lawall <Julia.Lawall@lip6.fr>, Dan Carpenter <dan.carpenter@oracle.com>
+To: Palmer Dabbelt <palmer@sifive.com>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 09, 2018 at 03:12:34PM -0800, David Miller wrote:
-> But patch #2 on the other hand, not so much.
-> 
-> I hate seeing values returned by reference, it adds cost especially
-> on cpus where all argments and return values fit in registers (we end
-> up forcing a stack slot and memory references).
-> 
-> And we don't need it here.
-> 
-> DMA addresses are like pointers, and therefore we can return errors and
-> valid success values in the same dma_addr_t just fine.  PTR_ERR() --> DMA_ERR(),
-> IS_PTR_ERR() --> IS_DMA_ERR, etc.
+On Fri, Nov 16, 2018 at 08:52:14AM -0800, Palmer Dabbelt wrote:
+> As far as I can tell, it looks like m68k, mips, and powerpc mention an 
+> IOMMU in their ports, don't set ARCH_HAS_SG_CHAIN, and with this patch set 
+> won't set ARCH_NO_SG_CHAIN.
 
-In the end this is an inline function, so with a decently smart
-compiler the generated code shouldn't change too much.  The big problem
-that prompted me to come up with this patch is that not handling failure
-from dma_map* in a swiotlb setup can lead to grave data corruption, and
-we have no easy way to force error checking on these return values.
+m68k has no iommu, and not operations that operate on a scatterlist.
 
-I've added a few of the static typechecking suspect if they have a
-better idea on how to make the return value of dma_map_single/pages
-in a way that we get warnings if dma_mapping_error isn't called on them.
-But I can't really think of a good way.
+mips has a trivial iommu driver (jazzdma), but I wrote the current
+instance of it, nad it is fine.
+
+powerpc has various iommu, but actually enables ARCH_HAS_SG_CHAIN
+unconditionally.
+
+> The issue is that I'm not sure how to 
+> determine what constitutes a horrible legacy IOMMU, at least with respect 
+> to not being able to use scatterlist chaining.
+
+It basically means someone is iterating using manual pointer arithmetics
+over a multi-element scatterlist instead of using the sg_next and
+for_each_sg helpers.
