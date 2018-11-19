@@ -1,36 +1,50 @@
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Mon, 19 Nov 2018 18:02:04 +0200
-Message-ID: <20181119160204.GD13298@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
- <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 2/4] powerpc: move macro definition from asm/systbl.h
+Date: Mon, 19 Nov 2018 17:11:58 +0100
+Message-ID: <CAK8P3a2AsQKPpFRKpNiEo2TVjfanuTSUjhO1wxgvLYyiqeaMNQ@mail.gmail.com>
+References: <1542189798-27713-1-git-send-email-firoz.khan@linaro.org> <1542189798-27713-3-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+In-Reply-To: <1542189798-27713-3-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxram@us.ibm.com, Geert Uytterhoeven <geert@linux-m68k.org>, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 19, 2018 at 07:29:36AM -0800, Andy Lutomirski wrote:
-> 1. The kernel needs some way to know *when* to apply this fixup.
-> Decoding the instruction stream and doing it to all exceptions that
-> hit an ENCLU instruction seems like a poor design.
+On Wed, Nov 14, 2018 at 11:04 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 
-I'm not sure why you would ever need to do any type of fixup as the idea
-is to just return to AEP i.e. from chosen exceptions (EPCM, #UD) the AEP
-would work the same way as for exceptions that the kernel can deal with
-except filling the exception information to registers.
+> diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+> index 01b5171..c4321b9 100644
+> --- a/arch/powerpc/include/asm/systbl.h
+> +++ b/arch/powerpc/include/asm/systbl.h
+> @@ -76,7 +76,6 @@
+>  SYSCALL_SPU(ssetmask)
+>  SYSCALL_SPU(setreuid)
+>  SYSCALL_SPU(setregid)
+> -#define compat_sys_sigsuspend sys_sigsuspend
+>  SYS32ONLY(sigsuspend)
 
-> 2. It starts exposing what looks like a more generic exception
-> handling mechanism to userspace, except that it's nonsensical for
-> anything other than ENCLU.
+I think the macro here is just a workaround for the fact that SYS32ONLY()
+always prepends the name with 'compat_' for the compat version, and there
+is no other macro to do this. After the conversion, this can easily be
+done using the regular table, as you need separate names for the
+32-bit entries anyway.
 
-Well, I see the user space and namely the run-time the host for the
-enclave i.e. middle-man to provide services for emulating instructions
-etc.
+>  SYSX(sys_ni_syscall,compat_sys_s
+> diff --git a/arch/powerpc/platforms/cell/spu_callbacks.c b/arch/powerpc/platforms/cell/spu_callbacks.c
+> index 8ae8620..7517a43 100644
+> --- a/arch/powerpc/platforms/cell/spu_callbacks.c
+> +++ b/arch/powerpc/platforms/cell/spu_callbacks.c
+> @@ -47,6 +47,7 @@
+>  #define COMPAT_SPU_NEW(func)   sys_##func,
+>  #define SYSX_SPU(f, f3264, f32)        f,
+>
+> +#define compat_sys_sigsuspend  sys_sigsuspend
+>  #include <asm/systbl.h>
+>  };
 
-/Jarkko
+The spu_callbacks.c and systbl_chk.c files don't need this macro,
+but that doesn't matter once you drop this patch.
+
+      Arnd
