@@ -1,44 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37420 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2405343AbeKTDYi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Nov 2018 22:24:38 -0500
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B0F47224E0
-        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 17:00:22 +0000 (UTC)
-Received: by mail-wm1-f52.google.com with SMTP id k198so5551971wmd.3
-        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 09:00:22 -0800 (PST)
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:34711 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389737AbeKTDPU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2018 22:15:20 -0500
 MIME-Version: 1.0
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com> <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
- <20181119160204.GD13298@linux.intel.com>
-In-Reply-To: <20181119160204.GD13298@linux.intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 19 Nov 2018 09:00:08 -0800
-Message-ID: <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
-Subject: Re: RFC: userspace exception fixups
+References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org> <1542169930-24118-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542169930-24118-2-git-send-email-firoz.khan@linaro.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 19 Nov 2018 17:50:50 +0100
+Message-ID: <CAK8P3a3fFznLDZTs0eLa_dJCKdENC96w1MoC1pNM6gYwcb=Cow@mail.gmail.com>
+Subject: Re: [PATCH v3 1/3] sh: add __NR_syscalls along with NR_syscalls
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181119170008.oaqWNl_hBT22sHCxvjJ6njhGY2yFan4iXADP645Fs6A@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Linux-sh list <linux-sh@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181119165050.WyLewHI3g5I3fPyja-GZ68QF9ogxkoUlANfA0jRScc8@z>
 
-On Mon, Nov 19, 2018 at 8:02 AM Jarkko Sakkinen
-<jarkko.sakkinen@linux.intel.com> wrote:
+On Wed, Nov 14, 2018 at 5:32 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> On Mon, Nov 19, 2018 at 07:29:36AM -0800, Andy Lutomirski wrote:
-> > 1. The kernel needs some way to know *when* to apply this fixup.
-> > Decoding the instruction stream and doing it to all exceptions that
-> > hit an ENCLU instruction seems like a poor design.
+> NR_syscalls macro holds the number of system call exist
+> in sh architecture. We have to change the value of NR-
+> _syscalls, if we add or delete a system call.
 >
-> I'm not sure why you would ever need to do any type of fixup as the idea
-> is to just return to AEP i.e. from chosen exceptions (EPCM, #UD) the AEP
-> would work the same way as for exceptions that the kernel can deal with
-> except filling the exception information to registers.
+> One of the patch in this patch series has a script which
+> will generate a uapi header based on syscall.tbl file.
+> The syscall.tbl file contains the total number of system
+> calls information. So we have two option to update NR_sy-
+> scalls value.
+>
+> 1. Update NR_syscalls in asm/unistd.h manually by count-
+>    ing the no.of system calls. No need to update NR_sys-
+>    calls until we either add a new system call or delete
+>    existing system call.
+>
+> 2. We can keep this feature it above mentioned script,
+>    that will count the number of syscalls and keep it in
+>    a generated file. In this case we don't need to expli-
+>    citly update NR_syscalls in asm/unistd.h file.
+>
+> The 2nd option will be the recommended one. For that, I
+> added the __NR_syscalls macro in uapi/asm/unistd_32/64.h
+> along with NR_syscalls which is moved to asm/unistd.h.
+> The macro __NR_syscalls also added for making the name
+> convention same across all architecture. While __NR_sys-
+> calls isn't strictly part of the uapi, having it as part
+> of the generated header to simplifies the implementation.
+> We also need to enclose this macro with #ifdef __KERNEL__
+> to avoid side effects.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 
-Sure, but how does the kernel know when to do that and when to send a
-signal?  I don't really like decoding the instruction stream to figure
-it out.
+Looks correct to me, but since there are only three references to
+'NR_syscalls' in arch/sh, I wonder if we should just replace it with
+__NR_syscalls in the same patch.
+
+       Arnd
