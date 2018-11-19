@@ -1,63 +1,27 @@
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Sun, 18 Nov 2018 15:02:03 +0200
-Message-ID: <20181118130203.GA18934@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v3 0/4] sparc: system call table generation support
+Date: Sun, 18 Nov 2018 18:59:13 -0800 (PST)
+Message-ID: <20181118.185913.65989390344960294.davem@davemloft.net>
+References: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181118071548.GA4795@linux.intel.com>
+In-Reply-To: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
+To: firoz.khan@linaro.org
+Cc: sparclinux@vger.kernel.org, geert@linux-m68k.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
-> On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
-> > Hi all-
-> > 
-> > The people working on SGX enablement are grappling with a somewhat
-> > annoying issue: the x86 EENTER instruction is used from user code and
-> > can, as part of its normal-ish operation, raise an exception.  It is
-> > also highly likely to be used from a library, and signal handling in
-> > libraries is unpleasant at best.
-> > 
-> > There's been some discussion of adding a vDSO entry point to wrap
-> > EENTER and do something sensible with the exceptions, but I'm
-> > wondering if a more general mechanism would be helpful.
-> 
-> I haven't really followed all of this discussion because I've been busy
-> working on the patch set but for me all of these approaches look awfully
-> complicated.
-> 
-> I'll throw my own suggestion and apologize if this has been already
-> suggested and discarded: return-to-AEP.
-> 
-> My idea is to do just a small extension to SGX AEX handling. At the
-> moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
-> fill extend this by filling other three spare registers with exception
-> information.
-> 
-> AEP handler can then do whatever it wants to do with this information
-> or just do ERESUME.
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Wed, 14 Nov 2018 10:56:27 +0530
 
-A correction here. In practice this will add a requirement to have a bit
-more complicated AEP code (check the regs for exceptions) than before
-and not just bytes for ENCLU.
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the 
+> system call table generation support implementation 
+> across all the architectures. 
+ ...
 
-e.g. AEP handler should be along the lines
-
-1. #PF (or #UD or) happens. Kernel fills the registers when it cannot
-   handle the exception and returns back to user space i.e. to the
-   AEP handler.
-2. Check the registers containing exception information. If they have
-   been filled, take whatever actions user space wants to take.
-3. Otherwise, just ERESUME.
-
-From my point of view this is making the AEP parameter useful. Its
-standard use is just weird (always point to a place just containing
-ENCLU bytes, why the heck it even exists).
-
-/Jarkko
+Series applied to sparc-next.
