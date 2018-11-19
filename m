@@ -1,27 +1,87 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v3 0/4] sparc: system call table generation support
-Date: Sun, 18 Nov 2018 18:59:13 -0800 (PST)
-Message-ID: <20181118.185913.65989390344960294.davem@davemloft.net>
-References: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v3 0/3] sh: system call table generation support
+Date: Mon, 19 Nov 2018 10:38:20 +0530
+Message-ID: <CALxhOnis61eCGyS22e0_s5PLOimsNX+mhgMa_-enLWQ=EarBfg@mail.gmail.com>
+References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1542173191-24981-1-git-send-email-firoz.khan@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: firoz.khan@linaro.org
-Cc: sparclinux@vger.kernel.org, geert@linux-m68k.org, gregkh@linuxfoundation.org, pombredanne@nexb.com, tglx@linutronix.de, kstewart@linuxfoundation.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: linux-sh@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Wed, 14 Nov 2018 10:56:27 +0530
-
-> The purpose of this patch series is, we can easily
-> add/modify/delete system call table support by cha-
-> nging entry in syscall.tbl file instead of manually
-> changing many files. The other goal is to unify the 
-> system call table generation support implementation 
-> across all the architectures. 
- ...
-
-Series applied to sparc-next.
+T24gV2VkLCAxNCBOb3YgMjAxOCBhdCAxMDowMiwgRmlyb3ogS2hhbiA8Zmlyb3oua2hhbkBsaW5h
+cm8ub3JnPiB3cm90ZToKPgo+IFRoZSBwdXJwb3NlIG9mIHRoaXMgcGF0Y2ggc2VyaWVzIGlzLCB3
+ZSBjYW4gZWFzaWx5Cj4gYWRkL21vZGlmeS9kZWxldGUgc3lzdGVtIGNhbGwgdGFibGUgc3VwcG9y
+dCBieSBjaGEtCj4gbmdpbmcgZW50cnkgaW4gc3lzY2FsbC50YmwgZmlsZSBpbnN0ZWFkIG9mIG1h
+bnVhbGx5Cj4gY2hhbmdpbmcgbWFueSBmaWxlcy4gVGhlIG90aGVyIGdvYWwgaXMgdG8gdW5pZnkg
+dGhlCj4gc3lzdGVtIGNhbGwgdGFibGUgZ2VuZXJhdGlvbiBzdXBwb3J0IGltcGxlbWVudGF0aW9u
+Cj4gYWNyb3NzIGFsbCB0aGUgYXJjaGl0ZWN0dXJlcy4KPgo+IFRoZSBzeXN0ZW0gY2FsbCB0YWJs
+ZXMgYXJlIGluIGRpZmZlcmVudCBmb3JtYXQgaW4KPiBhbGwgYXJjaGl0ZWN0dXJlLiBJdCB3aWxs
+IGJlIGRpZmZpY3VsdCB0byBtYW51YWxseQo+IGFkZCwgbW9kaWZ5IG9yIGRlbGV0ZSB0aGUgc3lz
+dGVtIGNhbGxzIGluIHRoZSByZXNwLQo+IGVjdGl2ZSBmaWxlcyBtYW51YWxseS4gVG8gbWFrZSBp
+dCBlYXN5IGJ5IGtlZXBpbmcgYQo+IHNjcmlwdCBhbmQgd2hpY2gnbGwgZ2VuZXJhdGUgdWFwaSBo
+ZWFkZXIgZmlsZSBhbmQKPiBzeXNjYWxsIHRhYmxlIGZpbGUuCj4KPiBzeXNjYWxsLnRibCBjb250
+YWlucyB0aGUgbGlzdCBvZiBhdmFpbGFibGUgc3lzdGVtCj4gY2FsbHMgYWxvbmcgd2l0aCBzeXN0
+ZW0gY2FsbCBudW1iZXIgYW5kIGNvcnJlc3BvbmQtCj4gaW5nIGVudHJ5IHBvaW50LiBBZGQgYSBu
+ZXcgc3lzdGVtIGNhbGwgaW4gdGhpcyBhcmNoLQo+IGl0ZWN0dXJlIHdpbGwgYmUgcG9zc2libGUg
+YnkgYWRkaW5nIG5ldyBlbnRyeSBpbgo+IHRoZSBzeXNjYWxsLnRibCBmaWxlLgo+Cj4gQWRkaW5n
+IGEgbmV3IHRhYmxlIGVudHJ5IGNvbnNpc3Rpbmcgb2Y6Cj4gICAgICAgICAtIFN5c3RlbSBjYWxs
+IG51bWJlci4KPiAgICAgICAgIC0gQUJJLgo+ICAgICAgICAgLSBTeXN0ZW0gY2FsbCBuYW1lLgo+
+ICAgICAgICAgLSBFbnRyeSBwb2ludCBuYW1lLgo+Cj4gUGxlYXNlIG5vdGUsIHRoaXMgc3VwcG9y
+dCBpcyBvbmx5IGF2YWlsYWJsZSBmb3IgMzItYml0Cj4ga2VybmVsLCBub3QgNjQtYml0IGtlcm5l
+bC4gQXMgSSBjYW1lIGFjcm9zcyB0aGUgNjQtYml0Cj4ga2VybmVsIGlzIG5vdCBhY3RpdmUgZm9y
+IGxvbmcgdGltZS4KPgo+IEFSTSwgczM5MCBhbmQgeDg2IGFyY2hpdGVjdXR1cmUgZG9lcyBleGlz
+dCB0aGUgc2ltLQo+IGlsYXIgc3VwcG9ydC4gSSBsZXZlcmFnZSB0aGVpciBpbXBsZW1lbnRhdGlv
+biB0byBjb21lCj4gdXAgd2l0aCBhIGdlbmVyaWMgc29sdXRpb24uCj4KPiBJIGhhdmUgZG9uZSB0
+aGUgc2FtZSBzdXBwb3J0IGZvciB3b3JrIGZvciBhbHBoYSwgaWE2NCwKPiBtNjhrLCBtaWNyb2Js
+YXplLCBtaXBzLCBwYXJpc2MsIHBvd2VycGMsIHNwYXJjLCBhbmQKPiB4dGVuc2EuIEJlbG93IG1l
+bnRpb25lZCBnaXQgcmVwb3NpdG9yeSBjb250YWlucyBtb3JlCj4gZGV0YWlscyBhYm91dCB0aGUg
+d29ya2Zsb3cuCj4KPiBodHRwczovL2dpdGh1Yi5jb20vZnJ6a2huL3N5c3RlbV9jYWxsX3RhYmxl
+X2dlbmVyYXRvci8KPgo+IEZpbmFsbHksIHRoaXMgaXMgdGhlIGdyb3VuZCB3b3JrIHRvIHNvbHZl
+IHRoZSBZMjAzOAo+IGlzc3VlLiBXZSBuZWVkIHRvIGFkZCB0d28gZG96ZW4gb2Ygc3lzdGVtIGNh
+bGxzIHRvIHNvbHZlCj4gWTIwMzggaXNzdWUuIFNvIHRoaXMgcGF0Y2ggc2VyaWVzIHdpbGwgaGVs
+cCB0byBhZGQgbmV3Cj4gc3lzdGVtIGNhbGxzIGVhc2lseSBieSBhZGRpbmcgbmV3IGVudHJ5IGlu
+IHRoZSBzeXNjYWxsLQo+IC50YmwuCj4KPiBDaGFuZ2VzIHNpbmNlIHYyOgo+ICAtIGNoYW5nZWQg
+ZnJvbSBnZW5lcmljLXkgdG8gZ2VuZXJhdGVkLXkgaW4gS2J1aWxkLgo+Cj4gQ2hhbmdlcyBzaW5j
+ZSB2MToKPiAgLSBvcHRpbWl6ZWQvdXBkYXRlZCB0aGUgc3lzY2FsbCB0YWJsZSBnZW5lcmF0aW9u
+Cj4gICAgc2NyaXB0cy4KPiAgLSBmaXhlZCBhbGwgbWl4ZWQgaW5kZW50YXRpb24gaXNzdWVzIGlu
+IHN5c2NhbGwudGJsLgo+ICAtIGFkZGVkICJjb21tZW50cyIgaW4gc3lzY2FsbC50YmwuCj4KPiBG
+aXJveiBLaGFuICgzKToKPiAgIHNoOiBhZGQgX19OUl9zeXNjYWxscyBhbG9uZyB3aXRoIE5SX3N5
+c2NhbGxzCj4gICBzaDogYWRkIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRpb24gc3VwcG9ydAo+
+ICAgc2g6IGdlbmVyYXRlIHVhcGkgaGVhZGVyIGFuZCBzeXNjYWxsIHRhYmxlIGhlYWRlciBmaWxl
+cwoKR2VudGxlIHJlbWluZGVyIQoKQ291bGQgc29tZW9uZSByZXZpZXcgdGhpcyBwYXRjaCBzZXJp
+ZXMuIEkgaGF2ZW4ndCByZWNlaXZlZCBhbnkKZmVlZGJhY2sgdGlsbCBub3cuCgpGWUksIHRoaXMg
+c3VwcG9ydCBpcyBvbmx5IGF2YWlsYWJsZSBmb3IgMzItYml0IGtlcm5lbCwgbm90IDY0LWJpdApr
+ZXJuZWwuIEFzIEkgY2FtZSBhY3Jvc3MgdGhlIDY0LWJpdCBrZXJuZWwgaXMgbm90IGFjdGl2ZSBm
+b3IgbG9uZyB0aW1lLgoKVGhhbmtzCkZpcm96Cgo+Cj4gIGFyY2gvc2gvTWFrZWZpbGUgICAgICAg
+ICAgICAgICAgICAgICAgfCAgIDMgKwo+ICBhcmNoL3NoL2luY2x1ZGUvYXNtL0tidWlsZCAgICAg
+ICAgICAgIHwgICAxICsKPiAgYXJjaC9zaC9pbmNsdWRlL2FzbS91bmlzdGQuaCAgICAgICAgICB8
+ICAgMiArCj4gIGFyY2gvc2gvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQgICAgICAgfCAgIDEgKwo+
+ICBhcmNoL3NoL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkXzMyLmggIHwgICA0ICstCj4gIGFyY2gv
+c2gvaW5jbHVkZS91YXBpL2FzbS91bmlzdGRfNjQuaCAgfCAgIDQgKy0KPiAgYXJjaC9zaC9rZXJu
+ZWwvc3lzY2FsbHMvTWFrZWZpbGUgICAgICB8ICAzOCArKysrCj4gIGFyY2gvc2gva2VybmVsL3N5
+c2NhbGxzL3N5c2NhbGwudGJsICAgfCAzOTIgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysr
+KysrKwo+ICBhcmNoL3NoL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsaGRyLnNoIHwgIDM2ICsrKysK
+PiAgYXJjaC9zaC9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbHRibC5zaCB8ICAzMiArKysKPiAgYXJj
+aC9zaC9rZXJuZWwvc3lzY2FsbHNfMzIuUyAgICAgICAgICB8IDM4NyArLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0KPiAgMTEgZmlsZXMgY2hhbmdlZCwgNTE0IGluc2VydGlvbnMoKyks
+IDM4NiBkZWxldGlvbnMoLSkKPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvc2gva2VybmVsL3N5
+c2NhbGxzL01ha2VmaWxlCj4gIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL3NoL2tlcm5lbC9zeXNj
+YWxscy9zeXNjYWxsLnRibAo+ICBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9zaC9rZXJuZWwvc3lz
+Y2FsbHMvc3lzY2FsbGhkci5zaAo+ICBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9zaC9rZXJuZWwv
+c3lzY2FsbHMvc3lzY2FsbHRibC5zaAo+Cj4gLS0KPiAxLjkuMQo+Cl9fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBs
+aXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZv
+L3kyMDM4Cg==
