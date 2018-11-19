@@ -1,165 +1,154 @@
-From: Jethro Beekman <jethro@fortanix.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Mon, 19 Nov 2018 05:17:26 +0000
-Message-ID: <ce304dba-0b02-02e2-4de8-212cd3bd1876@fortanix.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
- <20181118130203.GA18934@linux.intel.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v7 0/5] parisc: system call table generation support
+Date: Mon, 19 Nov 2018 10:51:00 +0530
+Message-ID: <CALxhOnjgnn-5LYndwZDJU=_C_RKOCWw6+qyrASedL0XM7GhLMQ@mail.gmail.com>
+References: <1542177301-25844-1-git-send-email-firoz.khan@linaro.org>
+ <58c3c4a4-7f55-bf08-1c96-ef1aa7f97072@gmx.de> <CALxhOngc1cSSDVznnX+iLg-Ne9+k0ct0wT-z0MXKSeKxJE3Vsg@mail.gmail.com>
+ <20181116215502.GA6585@ls3530.dellerweb.de> <CAK8P3a2g-7iR594Fs_goYCYPqgO6FRML5oi9vodDC_wKHF64bA@mail.gmail.com>
+ <20181117162623.GA14763@ls3530.dellerweb.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pkcs7-signature"; micalg=sha-256; boundary="------------ms030006070600080800030405"
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181118130203.GA18934@linux.intel.com>
-Content-Language: en-US
+In-Reply-To: <20181117162623.GA14763@ls3530.dellerweb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutroni>
+To: Helge Deller <deller@gmx.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-parisc@vger.kernel.org, James.Bottomley@hansenpartnership.com, dave.anglin@bell.net, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
---------------ms030006070600080800030405
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Hi Helge,
 
-On 2018-11-18 18:32, Jarkko Sakkinen wrote:
-> On Sun, Nov 18, 2018 at 09:15:48AM +0200, Jarkko Sakkinen wrote:
->> On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
->>> Hi all-
->>>
->>> The people working on SGX enablement are grappling with a somewhat
->>> annoying issue: the x86 EENTER instruction is used from user code and=
+On Sat, 17 Nov 2018 at 22:01, Helge Deller <deller@gmx.de> wrote:
+>
+> * Arnd Bergmann <arnd@arndb.de>:
+> > On Fri, Nov 16, 2018 at 1:55 PM Helge Deller <deller@gmx.de> wrote:
+> > > > On Fri, 16 Nov 2018 at 01:01, Helge Deller <deller@gmx.de> wrote:
+> > > > >
+> > > > > On 14.11.2018 07:34, Firoz Khan wrote:
+> > > > > > The purpose of this patch series is, we can easily
+> > > > > > add/modify/delete system call table support by cha-
+> > > > > > nging entry in syscall.tbl file instead of manually
+> > > > > > changing many files. The other goal is to unify the
+> > > > > > system call table generation support implementation
+> > > > > > across all the architectures.
+> > > > > >
+> > > > > > The system call tables are in different format in
+> > > > > > all architecture. It will be difficult to manually
+> > > > > > add, modify or delete the system calls in the resp-
+> > > > > > ective files manually. To make it easy by keeping a
+> > > > > > script and which'll generate uapi header file and
+> > > > > > syscall table file.
+> > > > > >
+> > > > > > syscall.tbl contains the list of available system
+> > > > > > calls along with system call number and correspond-
+> > > > > > ing entry point. Add a new system call in this arch-
+> > > > > > itecture will be possible by adding new entry in the
+> > > > > > syscall.tbl file.
+> > > > > >
+> > > > > > Adding a new table entry consisting of:
+> > > > > >         - System call number.
+> > > > > >         - ABI.
+> > > > > >         - System call name.
+> > > > > >         - Entry point name.
+> > > > > >
+> > > > > > ....
+> > > > > > Firoz Khan (5):
+> > > > > >   parisc: move __IGNORE* entries to non uapi header
+> > > > > >   parisc: add __NR_syscalls along with __NR_Linux_syscalls
+> > > > > >   parisc: add system call table generation support
+> > > > > >   parisc: generate uapi header and system call table files
+> > > > > >   parisc: syscalls: ignore nfsservctl for other architectures
+> > > > >
+> > > > > Firoz, you may add
+> > > > > Acked-by: Helge Deller <deller@gmx.de>
+> > > > > to the whole parisc series.
+> > > >
+> > > > Sure, will do.
+> > > > I'm on a vacation right now. will send mid next week.
+> > >
+> > > That's ok, there is no urgency.
+> > >
+> > > Actually, I noticed that the generated files unistd_32.h
+> > > and unistd_64.h do have the same contents, since on parisc
+> > > we keep the syscall numbers the same for 32- and 64-bit.
+> > > With that in mind, we can simply generate on unistd.h
+> > > file for both variants.
+> >
+> > It depends on what we want to do in the future. When we add
+> > around 20 new system calls fro y2038, my plan was to
+> > only add them for 32-bit architectures, leaving holes on
+> > 64-bit ones.
+>
+> Ok, I didn't thought of that.
+>
+> > We can also assign the new numbers on parisc64 but they would have the
+> > same entry point as existing calls.
+>
+> > If you prefer doing it like that, your patch seems fine for that,
+> > it's just slightly inconsistent with the other 64-bit architectures
+> > then.
+>
+> I really prefer to stay in sync with other major architectures.
+> So, please drop my last patch.
+>
+> Instead please apply only the next one, which drops the NR_Linux
+> offset value (which is 0 anyway).
 
->>> can, as part of its normal-ish operation, raise an exception.  It is
->>> also highly likely to be used from a library, and signal handling in
->>> libraries is unpleasant at best.
->>>
->>> There's been some discussion of adding a vDSO entry point to wrap
->>> EENTER and do something sensible with the exceptions, but I'm
->>> wondering if a more general mechanism would be helpful.
->>
->> I haven't really followed all of this discussion because I've been bus=
-y
->> working on the patch set but for me all of these approaches look awful=
-ly
->> complicated.
->>
->> I'll throw my own suggestion and apologize if this has been already
->> suggested and discarded: return-to-AEP.
->>
->> My idea is to do just a small extension to SGX AEX handling. At the
->> moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
->> fill extend this by filling other three spare registers with exception=
+This can be easily done. FYI, our intention is the generated file must be
+same as the old one. That's why I kept the offset as it is. I can add
+one extra patch to remove NR_Linux.
 
->> information.
->>
->> AEP handler can then do whatever it wants to do with this information
->> or just do ERESUME.
->=20
-> A correction here. In practice this will add a requirement to have a bi=
-t
-> more complicated AEP code (check the regs for exceptions) than before
-> and not just bytes for ENCLU.
->=20
-> e.g. AEP handler should be along the lines
->=20
-> 1. #PF (or #UD or) happens. Kernel fills the registers when it cannot
->     handle the exception and returns back to user space i.e. to the
->     AEP handler.
-> 2. Check the registers containing exception information. If they have
->     been filled, take whatever actions user space wants to take.
-> 3. Otherwise, just ERESUME.
->=20
->  From my point of view this is making the AEP parameter useful. Its
-> standard use is just weird (always point to a place just containing
-> ENCLU bytes, why the heck it even exists).
+>
+> Thanks,
+> Helge
+>
+>
+> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+> index 6e31f58ad6b5..98dc953656af 100644
+> --- a/arch/parisc/include/uapi/asm/unistd.h
+> +++ b/arch/parisc/include/uapi/asm/unistd.h
+> @@ -2,7 +2,6 @@
+>  #ifndef _UAPI_ASM_PARISC_UNISTD_H_
+>  #define _UAPI_ASM_PARISC_UNISTD_H_
+>
+> -#define __NR_Linux             0
+>  #ifdef __LP64__
+>  #include <asm/unistd_64.h>
+>  #else
+> diff --git a/arch/parisc/kernel/syscalls/Makefile b/arch/parisc/kernel/syscalls/Makefile
+> index defa8878f6d2..4dcc5c9ae7f2 100644
+> --- a/arch/parisc/kernel/syscalls/Makefile
+> +++ b/arch/parisc/kernel/syscalls/Makefile
+> @@ -12,22 +12,18 @@ systbl := $(srctree)/$(src)/syscalltbl.sh
+>  quiet_cmd_syshdr = SYSHDR  $@
+>        cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'       \
+>                    '$(syshdr_abis_$(basetarget))'               \
+> -                  '$(syshdr_pfx_$(basetarget))'                \
+> -                  '$(syshdr_offset_$(basetarget))'
+> +                  '$(syshdr_pfx_$(basetarget))'
+>
+>  quiet_cmd_systbl = SYSTBL  $@
+>        cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'       \
+>                    '$(systbl_abis_$(basetarget))'               \
+> -                  '$(systbl_abi_$(basetarget))'                \
+> -                  '$(systbl_offset_$(basetarget))'
+> +                  '$(systbl_abi_$(basetarget))'
+>
+>  syshdr_abis_unistd_32 := common,32
+> -syshdr_offset_unistd_32 := __NR_Linux
 
-I like this solution. Keeps things simple. One question: when an=20
-exception occurs, how does the kernel know whether to set special=20
-registers or send a signal?
+I'll remove this line
 
---
-Jethro Beekman | Fortanix
+>  $(uapi)/unistd_32.h: $(syscall) $(syshdr)
+>         $(call if_changed,syshdr)
+>
+>  syshdr_abis_unistd_64 := common,64
+> -syshdr_offset_unistd_64 := __NR_Linux
 
+And this one too. rest of the files will be the same w.r.t v7.
 
+Thanks
+Firoz
 
---------------ms030006070600080800030405
-Content-Type: application/pkcs7-signature; name="smime.p7s"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="smime.p7s"
-Content-Description: S/MIME Cryptographic Signature
-
-MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCC
-Cx8wggUxMIIEGaADAgECAhBdZC9mIseKJlmxx1xn+g00MA0GCSqGSIb3DQEBCwUAMIGXMQsw
-CQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxm
-b3JkMRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDE9MDsGA1UEAxM0Q09NT0RPIFJTQSBD
-bGllbnQgQXV0aGVudGljYXRpb24gYW5kIFNlY3VyZSBFbWFpbCBDQTAeFw0xODA5MTUwMDAw
-MDBaFw0xOTA5MTUyMzU5NTlaMCQxIjAgBgkqhkiG9w0BCQEWE2pldGhyb0Bmb3J0YW5peC5j
-b20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDRQDOQsroKjy2xAQCXLyqryJt4
-Xwj8hcweJCzOnjILKHIoWlOQ0b9yIbFLIWBRt/9zdxlE5ZabDVHnkIyhcVgtU/BA73e78Wx2
-LOObdg0wfs9U2CVRYhz2EPHFjGvkYKihItt69ye91hj1w7RKCrYC8KZGSZ/+sbkJzQdXVy32
-lxmiNEt17GNRebpkJCaFnznd6C2a8tBAS2Fa/UNyFdEs4eoRoYSKswclRhbe81aVhqY2hjcd
-O6puyyaYp5hkmau2UPih6OpRSOhbe6Tuebceg1yvumoVX3OZtGPS1VdQ+p0bxB0RE6gNs140
-ZKUhrvAJDETuGaaQD4A2/6ksLunjAgMBAAGjggHpMIIB5TAfBgNVHSMEGDAWgBSCr2yM+MX+
-lmF86B89K3FIXsSLwDAdBgNVHQ4EFgQUsFUcmGtaJBU7/52LyTYHC/M+LscwDgYDVR0PAQH/
-BAQDAgWgMAwGA1UdEwEB/wQCMAAwIAYDVR0lBBkwFwYIKwYBBQUHAwQGCysGAQQBsjEBAwUC
-MBEGCWCGSAGG+EIBAQQEAwIFIDBGBgNVHSAEPzA9MDsGDCsGAQQBsjEBAgEBATArMCkGCCsG
-AQUFBwIBFh1odHRwczovL3NlY3VyZS5jb21vZG8ubmV0L0NQUzBaBgNVHR8EUzBRME+gTaBL
-hklodHRwOi8vY3JsLmNvbW9kb2NhLmNvbS9DT01PRE9SU0FDbGllbnRBdXRoZW50aWNhdGlv
-bmFuZFNlY3VyZUVtYWlsQ0EuY3JsMIGLBggrBgEFBQcBAQR/MH0wVQYIKwYBBQUHMAKGSWh0
-dHA6Ly9jcnQuY29tb2RvY2EuY29tL0NPTU9ET1JTQUNsaWVudEF1dGhlbnRpY2F0aW9uYW5k
-U2VjdXJlRW1haWxDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmNvbW9kb2NhLmNv
-bTAeBgNVHREEFzAVgRNqZXRocm9AZm9ydGFuaXguY29tMA0GCSqGSIb3DQEBCwUAA4IBAQB6
-v3tFEUSGv9+yY4wUjvcMyz3126nJrX5LkfEvrnCEpEiImECuoYvxOYNLYYynell7BQGtTaZg
-shMfDvwpy2isoi3w1AWAfbn6npnSKLzu0BMRvcCPWY8VPmePPizTqXoPkLwgTJfSaWkxMP1u
-rfL9S5NeRdkjwjHklX5IWuwwDu1hsKVZrxSSY2unCtvq67UHWz+z6rG1JQrP2YDfb98xun3y
-eLBNe/LFBNnGISbkT5q6D+e5c0bgzoH9nH4bsw3t8aDqJTfT3BqQdWr4pF05ODzzeOmEqeYE
-qGlD9hIL2AbmTZLjunAnARr6Fv7Sfqt23ptsGkmoZ9ZQNjT3TlwvMIIF5jCCA86gAwIBAgIQ
-apvhODv/K2ufAdXZuKdSVjANBgkqhkiG9w0BAQwFADCBhTELMAkGA1UEBhMCR0IxGzAZBgNV
-BAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09N
-T0RPIENBIExpbWl0ZWQxKzApBgNVBAMTIkNPTU9ETyBSU0EgQ2VydGlmaWNhdGlvbiBBdXRo
-b3JpdHkwHhcNMTMwMTEwMDAwMDAwWhcNMjgwMTA5MjM1OTU5WjCBlzELMAkGA1UEBhMCR0Ix
-GzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UE
-ChMRQ09NT0RPIENBIExpbWl0ZWQxPTA7BgNVBAMTNENPTU9ETyBSU0EgQ2xpZW50IEF1dGhl
-bnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
-ggEKAoIBAQC+s55XrCh2dUAWxzgDmNPGGHYhUPMleQtMtaDRfTpYPpynMS6n9jR22YRq2tA9
-NEjk6vW7rN/5sYFLIP1of3l0NKZ6fLWfF2VgJ5cijKYy/qlAckY1wgOkUMgzKlWlVJGyK+Ul
-NEQ1/5ErCsHq9x9aU/x1KwTdF/LCrT03Rl/FwFrf1XTCwa2QZYL55AqLPikFlgqOtzk06kb2
-qvGlnHJvijjI03BOrNpo+kZGpcHsgyO1/u1OZTaOo8wvEU17VVeP1cHWse9tGKTDyUGg2hJZ
-jrqck39UIm/nKbpDSZ0JsMoIw/JtOOg0JC56VzQgBo7ictReTQE5LFLG3yQK+xS1AgMBAAGj
-ggE8MIIBODAfBgNVHSMEGDAWgBS7r34CPfqm8TyEjq3uOJjs2TIy1DAdBgNVHQ4EFgQUgq9s
-jPjF/pZhfOgfPStxSF7Ei8AwDgYDVR0PAQH/BAQDAgGGMBIGA1UdEwEB/wQIMAYBAf8CAQAw
-EQYDVR0gBAowCDAGBgRVHSAAMEwGA1UdHwRFMEMwQaA/oD2GO2h0dHA6Ly9jcmwuY29tb2Rv
-Y2EuY29tL0NPTU9ET1JTQUNlcnRpZmljYXRpb25BdXRob3JpdHkuY3JsMHEGCCsGAQUFBwEB
-BGUwYzA7BggrBgEFBQcwAoYvaHR0cDovL2NydC5jb21vZG9jYS5jb20vQ09NT0RPUlNBQWRk
-VHJ1c3RDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmNvbW9kb2NhLmNvbTANBgkq
-hkiG9w0BAQwFAAOCAgEAeFyygSg0TzzuX1bOn5dW7I+iaxf28/ZJCAbU2C81zd9A/tNx4+js
-QgwRGiHjZrAYayZrrm78hOx7aEpkfNPQIHGG6Fvq3EzWf/Lvx7/hk6zSPwIal9v5IkDcZoFD
-7f3iT7PdkHJY9B51csvU50rxpEg1OyOT8fk2zvvPBuM4qQNqbGWlnhMpIMwpWZT89RY0wpJO
-+2V6eXEGGHsROs3njeP9DqqqAJaBa4wBeKOdGCWn1/Jp2oY6dyNmNppI4ZNMUH4Tam85S1j6
-E95u4+1Nuru84OrMIzqvISE2HN/56ebTOWlcrurffade2022O/tUU1gb4jfWCcyvB8czm12F
-gX/y/lRjmDbEA08QJNB2729Y+io1IYO3ztveBdvUCIYZojTq/OCR6MvnzS6X72HP0PRLRTiO
-SEmIDsS5N5w/8IW1Hva5hEFy6fDAfd9yI+O+IMMAj1KcL/Zo9jzJ16HO5m60ttl1Enk8MQkz
-/W3JlHaeI5iKFn4UJu1/cP2YHXYPiWf2JyBzsLBrGk1II+3yL8aorYew6CQvdVifC3HtwlSa
-m9V1niiCfOBe2C12TdKGu05LWIA3ZkFcWJGaNXOZ6Ggyh/TqvXG5v7zmEVDNXFnHn9tFpMpO
-UvxhcsjycBtH0dZ0WrNw6gH+HF8TIhCnH3+zzWuDN0Rk6h9KVkfKehIxggQ1MIIEMQIBATCB
-rDCBlzELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UE
-BxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxPTA7BgNVBAMTNENPTU9E
-TyBSU0EgQ2xpZW50IEF1dGhlbnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0ECEF1kL2Yi
-x4omWbHHXGf6DTQwDQYJYIZIAWUDBAIBBQCgggJZMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0B
-BwEwHAYJKoZIhvcNAQkFMQ8XDTE4MTExOTA1MTcxMlowLwYJKoZIhvcNAQkEMSIEIEMCd7us
-AiJP3IcVvrq+lmWcpj3baIYMKMBfqqLuc/RFMGwGCSqGSIb3DQEJDzFfMF0wCwYJYIZIAWUD
-BAEqMAsGCWCGSAFlAwQBAjAKBggqhkiG9w0DBzAOBggqhkiG9w0DAgICAIAwDQYIKoZIhvcN
-AwICAUAwBwYFKw4DAgcwDQYIKoZIhvcNAwICASgwgb0GCSsGAQQBgjcQBDGBrzCBrDCBlzEL
-MAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2Fs
-Zm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxPTA7BgNVBAMTNENPTU9ETyBSU0Eg
-Q2xpZW50IEF1dGhlbnRpY2F0aW9uIGFuZCBTZWN1cmUgRW1haWwgQ0ECEF1kL2Yix4omWbHH
-XGf6DTQwgb8GCyqGSIb3DQEJEAILMYGvoIGsMIGXMQswCQYDVQQGEwJHQjEbMBkGA1UECBMS
-R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8g
-Q0EgTGltaXRlZDE9MDsGA1UEAxM0Q09NT0RPIFJTQSBDbGllbnQgQXV0aGVudGljYXRpb24g
-YW5kIFNlY3VyZSBFbWFpbCBDQQIQXWQvZiLHiiZZscdcZ/oNNDANBgkqhkiG9w0BAQEFAASC
-AQA3OX33ODUV9LgCwyYFBDFeJCgwwBJFWs05rWM0rUCyiWKr1f6HbUDymWz4qnNny/2uldrM
-evmuZncSazm4XVAw4aQAhWkulDAeJTuhFk7/tQXHiGtVCTGu2hrTrfgkQPD4v8dfTeURsONS
-I0hGgByJ3auJhp2j6KyO+yHQGsmRiEz477DIoGOcz/IWvDtrK6lkmTkmOdBQVzbMCaj3vn98
-jTW7/ZBnBGC1u5aacaZI/iyhOVywlL6wi1QQ+qFWJv7CWoiHmEXSh2ffDPHqf2FqEcjBVhhf
-hDTHzhqFWXNMBStjpuxKEBgCIqQqSZZa0g4dRn4MGbb1xz0/FGrMCFWdAAAAAAAA
-
---------------ms030006070600080800030405--
+>  $(uapi)/unistd_64.h: $(syscall) $(syshdr)
+>         $(call if_changed,syshdr)
+>
