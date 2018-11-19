@@ -1,31 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f68.google.com ([209.85.128.68]:55524 "EHLO
-        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730580AbeKTItd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2018 03:49:33 -0500
-Received: by mail-wm1-f68.google.com with SMTP id y139so266759wmc.5
-        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 14:23:44 -0800 (PST)
+Received: from mail-eopbgr780101.outbound.protection.outlook.com ([40.107.78.101]:27549
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726431AbeKTI4A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Nov 2018 03:56:00 -0500
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v2 3/5] mips: remove syscall table entries
+Date: Mon, 19 Nov 2018 22:29:29 +0000
+Message-ID: <20181119222924.ybnl7qe4hobud5fb@pburton-laptop>
+References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org>
+ <1542262461-29024-4-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542262461-29024-4-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <048540EEEDA7B04DAE7C3A95B96AB90D@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-References: <20181119214934.6174-1-yu-cheng.yu@intel.com> <20181119214934.6174-10-yu-cheng.yu@intel.com>
-In-Reply-To: <20181119214934.6174-10-yu-cheng.yu@intel.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Mon, 19 Nov 2018 14:23:32 -0800
-Message-ID: <CALCETrUkXMHcwX8u+mGDD9Vj+iQE7CRMHL7jQnfAT6WXV8SBEQ@mail.gmail.com>
-Subject: Re: [RFC PATCH v6 09/11] x86/vsyscall/32: Add ENDBR32 to vsyscall
- entry point
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181119222332.hsJA40ljbtZw2iNZp-at2q9VtEPkbelTxhL2kb5XBXc@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181119222929.Zw3CoYaYiG7eeCqc6FpXzsUyI4JBcz_Iroy2OuaMXYc@z>
 
-On Mon, Nov 19, 2018 at 1:55 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
->
-> From: "H.J. Lu" <hjl.tools@gmail.com>
->
-> Add ENDBR32 to vsyscall entry point.
+Hi Firoz,
 
-$SUBJECT should be "x86/vdso/32: Add ENDBR32 to __kernel_vsyscall entry point".
+On Thu, Nov 15, 2018 at 11:44:19AM +0530, Firoz Khan wrote:
+> diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o3=
+2.S
+> index a9b895f..4eee437 100644
+> --- a/arch/mips/kernel/scall32-o32.S
+> +++ b/arch/mips/kernel/scall32-o32.S
+> @@ -208,6 +208,18 @@ einval: li	v0, -ENOSYS
+>  	jr	ra
+>  	END(sys_syscall)
+> =20
+> +#ifdef CONFIG_MIPS_MT_FPAFF
+> +	/*
+> +	 * For FPU affinity scheduling on MIPS MT processors, we need to
+> +	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
+> +	 * in kernel/sched/core.c.  Considered only temporary we only support
+> +	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
+> +	 * atm.
+> +	 */
+> +#define mipsmt_sys_sched_setaffinity sys_sched_setaffinity
+> +#define mipsmt_sys_sched_getaffinity sys_sched_getaffinity
 
---Andy
+Is this backwards? ie. should it be:
+
+    #define sys_sched_setaffinity mipsmt_sys_sched_setaffinity
+    #define sys_sched_getaffinity mipsmt_sys_sched_getaffinity
+
+?
+
+I don't see how the mipsmt_* functions will ever be used after this
+patch.
+
+Thanks,
+    Paul
+
+> +#endif /* CONFIG_MIPS_MT_FPAFF */
+> +
+>  	.align	2
+>  	.type	sys_call_table, @object
+>  EXPORT(sys_call_table)
+> @@ -450,20 +462,8 @@ EXPORT(sys_call_table)
+>  	PTR	sys_tkill
+>  	PTR	sys_sendfile64
+>  	PTR	sys_futex
+> -#ifdef CONFIG_MIPS_MT_FPAFF
+> -	/*
+> -	 * For FPU affinity scheduling on MIPS MT processors, we need to
+> -	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
+> -	 * in kernel/sched/core.c.  Considered only temporary we only support
+> -	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
+> -	 * atm.
+> -	 */
+> -	PTR	mipsmt_sys_sched_setaffinity
+> -	PTR	mipsmt_sys_sched_getaffinity
+> -#else
+>  	PTR	sys_sched_setaffinity
+>  	PTR	sys_sched_getaffinity		/* 4240 */
+> -#endif /* CONFIG_MIPS_MT_FPAFF */
+>  	PTR	sys_io_setup
+>  	PTR	sys_io_destroy
+>  	PTR	sys_io_getevents
+> --=20
+> 1.9.1
+>=20
