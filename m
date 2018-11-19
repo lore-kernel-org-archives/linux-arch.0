@@ -1,56 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga09.intel.com ([134.134.136.24]:32094 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731022AbeKTIUI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Nov 2018 03:20:08 -0500
+        id S1731504AbeKTIUG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Nov 2018 03:20:06 -0500
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v6 18/26] mm: Introduce do_mmap_locked()
-Date: Mon, 19 Nov 2018 13:48:01 -0800
-Message-ID: <20181119214809.6086-19-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v6 15/26] mm: Handle shadow stack page fault
+Date: Mon, 19 Nov 2018 13:47:58 -0800
+Message-ID: <20181119214809.6086-16-yu-cheng.yu@intel.com>
 In-Reply-To: <20181119214809.6086-1-yu-cheng.yu@intel.com>
 References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181119214801.KZEqdAKRFzf3FOigneiksrwDvT3yciUOwteGqLz5oDw@z>
+Message-ID: <20181119214758.L7wrdvXO7CSWlmkpUOw65vMM7Zibo6AB_t2c30byQ80@z>
 
-There are a few places that need do_mmap() with mm->mmap_sem held.
-Create an in-line function for that.
+When a task does fork(), its shadow stack (SHSTK) must be duplicated
+for the child.  This patch implements a flow similar to copy-on-write
+of an anonymous page, but for SHSTK.
+
+A SHSTK PTE must be RO and dirty.  This dirty bit requirement is used
+to effect the copying.  In copy_one_pte(), clear the dirty bit from a
+SHSTK PTE to cause a page fault upon the next SHSTK access.  At that
+time, fix the PTE and copy/re-use the page.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- include/linux/mm.h | 18 ++++++++++++++++++
- 1 file changed, 18 insertions(+)
+ arch/x86/mm/pgtable.c         | 15 +++++++++++++++
+ include/asm-generic/pgtable.h |  8 ++++++++
+ mm/memory.c                   |  7 ++++++-
+ 3 files changed, 29 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7873ac3635a7..36f72c4441cc 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2348,6 +2348,24 @@ static inline void mm_populate(unsigned long addr, unsigned long len)
- static inline void mm_populate(unsigned long addr, unsigned long len) {}
- #endif
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 59274e2c1ac4..75dddc3d8451 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -887,3 +887,18 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
  
-+static inline unsigned long do_mmap_locked(unsigned long addr,
-+	unsigned long len, unsigned long prot, unsigned long flags,
-+	vm_flags_t vm_flags)
+ #endif /* CONFIG_X86_64 */
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
++
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
 +{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long populate;
-+
-+	down_write(&mm->mmap_sem);
-+	addr = do_mmap(NULL, addr, len, prot, flags, vm_flags, 0,
-+		       &populate, NULL);
-+	up_write(&mm->mmap_sem);
-+
-+	if (populate)
-+		mm_populate(addr, populate);
-+
-+	return addr;
++	if (vma->vm_flags & VM_SHSTK)
++		return pte_mkdirty_shstk(pte);
++	else
++		return pte;
 +}
 +
- /* These take the mm semaphore themselves */
- extern int __must_check vm_brk(unsigned long, unsigned long);
- extern int __must_check vm_brk_flags(unsigned long, unsigned long, unsigned long);
++inline bool arch_copy_pte_mapping(vm_flags_t vm_flags)
++{
++	return (vm_flags & VM_SHSTK);
++}
++#endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 359fb935ded6..30ac390fb2d4 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1143,4 +1143,12 @@ static inline bool arch_has_pfn_modify_check(void)
+ #define mm_pmd_folded(mm)	__is_defined(__PAGETABLE_PMD_FOLDED)
+ #endif
+ 
++#ifndef CONFIG_ARCH_HAS_SHSTK
++#define pte_set_vma_features(pte, vma) pte
++#define arch_copy_pte_mapping(vma_flags) false
++#else
++pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
++bool arch_copy_pte_mapping(vm_flags_t vm_flags);
++#endif
++
+ #endif /* _ASM_GENERIC_PGTABLE_H */
+diff --git a/mm/memory.c b/mm/memory.c
+index 4ad2d293ddc2..f6b2e1ece4ab 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -775,7 +775,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 	 * If it's a COW mapping, write protect it both
+ 	 * in the parent and the child
+ 	 */
+-	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
++	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
++	    arch_copy_pte_mapping(vm_flags)) {
+ 		ptep_set_wrprotect(src_mm, addr, src_pte);
+ 		pte = pte_wrprotect(pte);
+ 	}
+@@ -2218,6 +2219,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry = pte_mkyoung(vmf->orig_pte);
+ 	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++	entry = pte_set_vma_features(entry, vma);
+ 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -2291,6 +2293,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++		entry = pte_set_vma_features(entry, vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+ 		 * pte with the new entry. This will avoid a race condition
+@@ -2801,6 +2804,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 	pte = mk_pte(page, vma->vm_page_prot);
+ 	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
+ 		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
++		pte = pte_set_vma_features(pte, vma);
+ 		vmf->flags &= ~FAULT_FLAG_WRITE;
+ 		ret |= VM_FAULT_WRITE;
+ 		exclusive = RMAP_EXCLUSIVE;
+@@ -2943,6 +2947,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	entry = mk_pte(page, vma->vm_page_prot);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry));
++	entry = pte_set_vma_features(entry, vma);
+ 
+ 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+ 			&vmf->ptl);
 -- 
 2.17.1
