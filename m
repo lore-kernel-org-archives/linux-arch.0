@@ -1,122 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga09.intel.com ([134.134.136.24]:32094 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731430AbeKTIUE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Nov 2018 03:20:04 -0500
+        id S1731430AbeKTIUA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Nov 2018 03:20:00 -0500
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v6 13/26] x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for _PAGE_DIRTY_SW
-Date: Mon, 19 Nov 2018 13:47:56 -0800
-Message-ID: <20181119214809.6086-14-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v6 09/26] mm/mmap: Prevent Shadow Stack VMA merges
+Date: Mon, 19 Nov 2018 13:47:52 -0800
+Message-ID: <20181119214809.6086-10-yu-cheng.yu@intel.com>
 In-Reply-To: <20181119214809.6086-1-yu-cheng.yu@intel.com>
 References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181119214756.ooGcS2wC3z3Jfa6dwodaQhukZRuiHaE7HF27534WxJ0@z>
+Message-ID: <20181119214752.FNRlUIbT0m_UsI7wQ97l3hB5df6q0BZJL07k2kxUko0@z>
 
-When Shadow Stack is enabled, the [R/O + PAGE_DIRTY_HW] setting is
-reserved only for the Shadow Stack.  Non-Shadow Stack R/O PTEs use
-[R/O + PAGE_DIRTY_SW].
-
-When a PTE goes from [R/W + PAGE_DIRTY_HW] to [R/O + PAGE_DIRTY_SW],
-it could become a transient Shadow Stack PTE in two cases.
-
-The first case is that some processors can start a write but end up
-seeing a read-only PTE by the time they get to the Dirty bit,
-creating a transient Shadow Stack PTE.  However, this will not occur
-on processors supporting Shadow Stack therefore we don't need a TLB
-flush here.
-
-The second case is that when the software, without atomic, tests &
-replaces PAGE_DIRTY_HW with PAGE_DIRTY_SW, a transient Shadow Stack
-PTE can exist.  This is prevented with cmpxchg.
-
-Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided
-many insights to the issue.  Jann Horn provided the cmpxchg solution.
+To prevent function call/return spills into the next shadow stack
+area, do not merge shadow stack areas.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/pgtable.h | 58 ++++++++++++++++++++++++++++++++++
- 1 file changed, 58 insertions(+)
+ mm/mmap.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index db4b9d22d2f7..cf0c50ef53d8 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1202,7 +1202,36 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
- static inline void ptep_set_wrprotect(struct mm_struct *mm,
- 				      unsigned long addr, pte_t *ptep)
- {
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+	pte_t new_pte, pte = READ_ONCE(*ptep);
-+
-+	/*
-+	 * Some processors can start a write, but end up
-+	 * seeing a read-only PTE by the time they get
-+	 * to the Dirty bit.  In this case, they will
-+	 * set the Dirty bit, leaving a read-only, Dirty
-+	 * PTE which looks like a Shadow Stack PTE.
-+	 *
-+	 * However, this behavior has been improved and
-+	 * will not occur on processors supporting
-+	 * Shadow Stacks.  Without this guarantee, a
-+	 * transition to a non-present PTE and flush the
-+	 * TLB would be needed.
-+	 *
-+	 * When changing a writable PTE to read-only and
-+	 * if the PTE has _PAGE_DIRTY_HW set, we move
-+	 * that bit to _PAGE_DIRTY_SW so that the PTE is
-+	 * not a valid Shadow Stack PTE.
-+	 */
-+	do {
-+		new_pte = pte_wrprotect(pte);
-+		new_pte.pte |= (new_pte.pte & _PAGE_DIRTY_HW) >>
-+				_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-+		new_pte.pte &= ~_PAGE_DIRTY_HW;
-+	} while (!try_cmpxchg(ptep, &pte, new_pte));
-+#else
- 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-+#endif
- }
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 6c04292e16a7..30836512ca79 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1147,6 +1147,12 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
+ 	if (vm_flags & VM_SPECIAL)
+ 		return NULL;
  
- #define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)
-@@ -1265,7 +1294,36 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
- static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- 				      unsigned long addr, pmd_t *pmdp)
- {
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+	pmd_t new_pmd, pmd = READ_ONCE(*pmdp);
-+
 +	/*
-+	 * Some processors can start a write, but end up
-+	 * seeing a read-only PMD by the time they get
-+	 * to the Dirty bit.  In this case, they will
-+	 * set the Dirty bit, leaving a read-only, Dirty
-+	 * PMD which looks like a Shadow Stack PMD.
-+	 *
-+	 * However, this behavior has been improved and
-+	 * will not occur on processors supporting
-+	 * Shadow Stacks.  Without this guarantee, a
-+	 * transition to a non-present PMD and flush the
-+	 * TLB would be needed.
-+	 *
-+	 * When changing a writable PMD to read-only and
-+	 * if the PMD has _PAGE_DIRTY_HW set, we move
-+	 * that bit to _PAGE_DIRTY_SW so that the PMD is
-+	 * not a valid Shadow Stack PMD.
++	 * Do not merge shadow stack areas.
 +	 */
-+	do {
-+		new_pmd = pmd_wrprotect(pmd);
-+		new_pmd.pmd |= (new_pmd.pmd & _PAGE_DIRTY_HW) >>
-+				_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-+		new_pmd.pmd &= ~_PAGE_DIRTY_HW;
-+	} while (!try_cmpxchg(pmdp, &pmd, new_pmd));
-+#else
- 	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
-+#endif
- }
- 
- #define pud_write pud_write
++	if (vm_flags & VM_SHSTK)
++		return NULL;
++
+ 	if (prev)
+ 		next = prev->vm_next;
+ 	else
 -- 
 2.17.1
