@@ -1,64 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56500 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729759AbeKTBxr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Nov 2018 20:53:47 -0500
-Received: from mail-wr1-f47.google.com (mail-wr1-f47.google.com [209.85.221.47])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 53EB7214C1
-        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 15:29:50 +0000 (UTC)
-Received: by mail-wr1-f47.google.com with SMTP id j17-v6so32498197wrq.11
-        for <linux-arch@vger.kernel.org>; Mon, 19 Nov 2018 07:29:50 -0800 (PST)
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:41081 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729762AbeKTCQB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2018 21:16:01 -0500
 MIME-Version: 1.0
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
-In-Reply-To: <20181118071548.GA4795@linux.intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 19 Nov 2018 07:29:36 -0800
-Message-ID: <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
-Subject: Re: RFC: userspace exception fixups
+References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org> <1542262461-29024-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1542262461-29024-2-git-send-email-firoz.khan@linaro.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 19 Nov 2018 16:51:44 +0100
+Message-ID: <CAK8P3a2CuryCoZKaOXz=nH_WTAZ7VneNoUYHkKFDLQNQvrkWUg@mail.gmail.com>
+Subject: Re: [PATCH v2 1/5] mips: add __NR_syscalls along with __NR_Linux_syscalls
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181119152936.AKhYVSRJ6OlOPbqmtUhejrIvNLSZ-ETulJ7GBTOMIh0@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181119155144.0-v-STwancI167mwNIE2ooe1Nflh7hYb2hzoOcNHjMY@z>
 
-On Sat, Nov 17, 2018 at 11:16 PM Jarkko Sakkinen
-<jarkko.sakkinen@linux.intel.com> wrote:
+On Thu, Nov 15, 2018 at 7:14 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> On Thu, Nov 01, 2018 at 10:53:40AM -0700, Andy Lutomirski wrote:
-> > Hi all-
-> >
-> > The people working on SGX enablement are grappling with a somewhat
-> > annoying issue: the x86 EENTER instruction is used from user code and
-> > can, as part of its normal-ish operation, raise an exception.  It is
-> > also highly likely to be used from a library, and signal handling in
-> > libraries is unpleasant at best.
-> >
-> > There's been some discussion of adding a vDSO entry point to wrap
-> > EENTER and do something sensible with the exceptions, but I'm
-> > wondering if a more general mechanism would be helpful.
->
-> I haven't really followed all of this discussion because I've been busy
-> working on the patch set but for me all of these approaches look awfully
-> complicated.
->
-> I'll throw my own suggestion and apologize if this has been already
-> suggested and discarded: return-to-AEP.
->
-> My idea is to do just a small extension to SGX AEX handling. At the
-> moment hardware will RAX, RBX and RCX with ERESUME parameters. We can
-> fill extend this by filling other three spare registers with exception
-> information.
+> The 2nd option will be the recommended one. For that, I
+> added the __NR_syscalls macro in uapi/asm/unistd.h along
+> with __NR_Linux_syscalls. The macro __NR_syscalls also
+> added for making the name convention same across all
+> architecture. While __NR_syscalls isn't strictly part of
+> the uapi, having it as part of the generated header to
+> simplifies the implementation. We also need to enclose
+> this macro with #ifdef __KERNEL__ to avoid side effects.
 
-I have two issues with this approach:
+I fear this doesn't work the way you hoped:
 
-1. The kernel needs some way to know *when* to apply this fixup.
-Decoding the instruction stream and doing it to all exceptions that
-hit an ENCLU instruction seems like a poor design.
+> --- a/arch/mips/include/uapi/asm/unistd.h
+> +++ b/arch/mips/include/uapi/asm/unistd.h
+> @@ -391,16 +391,19 @@
+>  #define __NR_rseq                      (__NR_Linux + 367)
+>  #define __NR_io_pgetevents             (__NR_Linux + 368)
+>
+> +#ifdef __KERNEL__
+> +#define __NR_syscalls                  368
+> +#endif
 
-2. It starts exposing what looks like a more generic exception
-handling mechanism to userspace, except that it's nonsensical for
-anything other than ENCLU.
+We now have three different definitions of __NR_syscalls,
+one for each ABI. User space previously saw the correct
+one (now it doesn't see any, but that's ok).
+
+>  /*
+>   * Offset of the last Linux o32 flavoured syscall
+>   */
+> -#define __NR_Linux_syscalls            368
+> +#define __NR_Linux_syscalls            __NR_syscalls
+
+so this part part again is ok.
+
+>  #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+>
+>  #define __NR_O32_Linux                 4000
+> -#define __NR_O32_Linux_syscalls                368
+> +#define __NR_O32_Linux_syscalls                __NR_syscalls
+
+but this part is not: Now __NR_O32_Linux_syscalls is defined
+to __NR_syscalls, which may be one of the three values.
+Any usage of __NR_O32_Linux_syscalls in a 64-bit kernel
+is then clearly wrong.
+
+>  #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+>
+>  #define __NR_N32_Linux                 6000
+> -#define __NR_N32_Linux_syscalls                332
+> +#define __NR_N32_Linux_syscalls                __NR_syscalls
+
+Same for this one.
+
+       Arnd
