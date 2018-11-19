@@ -1,37 +1,36 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 5/5] mips: generate uapi header and system call table files
-Date: Mon, 19 Nov 2018 17:01:43 +0100
-Message-ID: <CAK8P3a20MaFRNf8-umvrGNtjgNG98PkzcFGtHrnY835UEGv3tg@mail.gmail.com>
-References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org> <1542262461-29024-6-git-send-email-firoz.khan@linaro.org>
+From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Subject: Re: RFC: userspace exception fixups
+Date: Mon, 19 Nov 2018 18:02:04 +0200
+Message-ID: <20181119160204.GD13298@linux.intel.com>
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <20181118071548.GA4795@linux.intel.com>
+ <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1542262461-29024-6-git-send-email-firoz.khan@linaro.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 15, 2018 at 7:15 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> System call table generation script must be run to gener-
-> ate unistd_64/n32/o32.h and syscall_table_32_o32/64_64/64-
-> _n32/64-o32.h files. This patch will have changes which
-> will invokes the script.
->
-> This patch will generate unistd_64/n32/o32.h and syscall-
-> _table_32_o32/64_64/64-n32/64-o32.h files by the syscall
-> table generation script invoked by parisc/Makefile and
-> the generated files against the removed files must be
-> identical.
->
-> The generated uapi header file will be included in uapi/-
-> asm/unistd.h and generated system call table header file
-> will be included by kernel/scall32-o32/64-64/64-n32/-
-> 64-o32.Sfile.
->
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+On Mon, Nov 19, 2018 at 07:29:36AM -0800, Andy Lutomirski wrote:
+> 1. The kernel needs some way to know *when* to apply this fixup.
+> Decoding the instruction stream and doing it to all exceptions that
+> hit an ENCLU instruction seems like a poor design.
 
-Looks good to me.
+I'm not sure why you would ever need to do any type of fixup as the idea
+is to just return to AEP i.e. from chosen exceptions (EPCM, #UD) the AEP
+would work the same way as for exceptions that the kernel can deal with
+except filling the exception information to registers.
 
-      Arnd
+> 2. It starts exposing what looks like a more generic exception
+> handling mechanism to userspace, except that it's nonsensical for
+> anything other than ENCLU.
+
+Well, I see the user space and namely the run-time the host for the
+enclave i.e. middle-man to provide services for emulating instructions
+etc.
+
+/Jarkko
