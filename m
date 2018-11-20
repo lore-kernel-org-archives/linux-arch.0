@@ -1,52 +1,65 @@
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-Date: Tue, 20 Nov 2018 12:11:33 +0200
-Message-ID: <20181120101133.GA7319@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
- <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
- <20181119160204.GD13298@linux.intel.com>
- <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 3/5] mips: remove syscall table entries
+Date: Tue, 20 Nov 2018 11:54:07 +0100
+Message-ID: <CAK8P3a2o+jKd0EF81TezmJbTLBPRN9frCBf3wvxySa0sEbC+-A@mail.gmail.com>
+References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org>
+ <1542262461-29024-4-git-send-email-firoz.khan@linaro.org> <20181119222924.ybnl7qe4hobud5fb@pburton-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+In-Reply-To: <20181119222924.ybnl7qe4hobud5fb@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Jethro Beekman <jethro@fortanix.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, nhorman@redhat.com, npmccallum@redhat.com, "Ayoun, Serge" <serge.ayoun@intel.com>, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Firoz Khan <firoz.khan@linaro.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 19, 2018 at 09:00:08AM -0800, Andy Lutomirski wrote:
-> On Mon, Nov 19, 2018 at 8:02 AM Jarkko Sakkinen
-> <jarkko.sakkinen@linux.intel.com> wrote:
+On Mon, Nov 19, 2018 at 11:29 PM Paul Burton <paul.burton@mips.com> wrote:
+>
+> Hi Firoz,
+>
+> On Thu, Nov 15, 2018 at 11:44:19AM +0530, Firoz Khan wrote:
+> > diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
+> > index a9b895f..4eee437 100644
+> > --- a/arch/mips/kernel/scall32-o32.S
+> > +++ b/arch/mips/kernel/scall32-o32.S
+> > @@ -208,6 +208,18 @@ einval: li       v0, -ENOSYS
+> >       jr      ra
+> >       END(sys_syscall)
 > >
-> > On Mon, Nov 19, 2018 at 07:29:36AM -0800, Andy Lutomirski wrote:
-> > > 1. The kernel needs some way to know *when* to apply this fixup.
-> > > Decoding the instruction stream and doing it to all exceptions that
-> > > hit an ENCLU instruction seems like a poor design.
-> >
-> > I'm not sure why you would ever need to do any type of fixup as the idea
-> > is to just return to AEP i.e. from chosen exceptions (EPCM, #UD) the AEP
-> > would work the same way as for exceptions that the kernel can deal with
-> > except filling the exception information to registers.
-> 
-> Sure, but how does the kernel know when to do that and when to send a
-> signal?  I don't really like decoding the instruction stream to figure
-> it out.
+> > +#ifdef CONFIG_MIPS_MT_FPAFF
+> > +     /*
+> > +      * For FPU affinity scheduling on MIPS MT processors, we need to
+> > +      * intercept sys_sched_xxxaffinity() calls until we get a proper hook
+> > +      * in kernel/sched/core.c.  Considered only temporary we only support
+> > +      * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
+> > +      * atm.
+> > +      */
+> > +#define mipsmt_sys_sched_setaffinity sys_sched_setaffinity
+> > +#define mipsmt_sys_sched_getaffinity sys_sched_getaffinity
+>
+> Is this backwards? ie. should it be:
+>
+>     #define sys_sched_setaffinity mipsmt_sys_sched_setaffinity
+>     #define sys_sched_getaffinity mipsmt_sys_sched_getaffinity
+>
+> ?
+>
+> I don't see how the mipsmt_* functions will ever be used after this
+> patch.
 
-Hmm... why you have to decode instruction stream to find that out? Would
-just depend on exception type (#GP with EPCM, #UD). Or are you saying
-that kernel should need to SIGSEGV if there is in fact ENCLU so that
-there is no infinite trap loop? Sorry, I'm a bit lost here that where
-does this decoding requirement comes from in the first place. I
-understand how it is used in Sean's proposal...
+Good catch!
 
-Anyway, this option can be probably discarded without further
-consideration because apparently single stepping can cause #DB SS fault
-if AEP handler is anything else than a single instruction.
+> > -      * atm.
+> > -      */
+> > -     PTR     mipsmt_sys_sched_setaffinity
+> > -     PTR     mipsmt_sys_sched_getaffinity
+> > -#else
+> >       PTR     sys_sched_setaffinity
+> >       PTR     sys_sched_getaffinity           /* 4240 */
+> > -#endif /* CONFIG_MIPS_MT_FPAFF */
+> >       PTR     sys_io_setup
 
-For me it seems that by ruling out options, vDSO option is what is
-left. I don't like it but at least it works...
+My guess would be that he removed the wrong lines here instead,
+and the first half was intentional.
 
-/Jarkko
+       Arnd
