@@ -1,56 +1,82 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 4/5] mips: add system call table generation support
-Date: Tue, 20 Nov 2018 12:43:53 +0530
-Message-ID: <CALxhOnjYzvDGdvuWitiOP46YuV6XViu9O3Fi0FU9u2jnV3W2EQ@mail.gmail.com>
-References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org>
- <1542262461-29024-5-git-send-email-firoz.khan@linaro.org> <20181119223524.gsvjkf5v24ic7ilj@pburton-laptop>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC PATCH v6 01/26] Documentation/x86: Add CET description
+Date: Tue, 20 Nov 2018 10:52:53 +0100
+Message-ID: <20181120095253.GA119911@gmail.com>
+References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+ <20181119214809.6086-2-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181119223524.gsvjkf5v24ic7ilj@pburton-laptop>
+Content-Disposition: inline
+In-Reply-To: <20181119214809.6086-2-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
 
-On Tue, 20 Nov 2018 at 04:05, Paul Burton <paul.burton@mips.com> wrote:
->
-> Hi Firoz,
->
-> On Thu, Nov 15, 2018 at 11:44:20AM +0530, Firoz Khan wrote:
-> > diff --git a/arch/mips/kernel/syscalls/Makefile b/arch/mips/kernel/syscalls/Makefile
-> > new file mode 100644
-> > index 0000000..dc6bbb1
-> > --- /dev/null
-> > +++ b/arch/mips/kernel/syscalls/Makefile
-> > @@ -0,0 +1,71 @@
-> > +# SPDX-License-Identifier: GPL-2.0
-> > +kapi := arch/$(SRCARCH)/include/generated/asm
-> > +uapi := arch/$(SRCARCH)/include/generated/uapi/asm
-> > +
-> > +_dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')    \
-> > +       $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
-> > +
-> > +syscallo32 := $(srctree)/$(src)/syscall_o32.tbl
-> > +syscall64 := $(srctree)/$(src)/syscall_64.tbl
-> > +syscalln32 := $(srctree)/$(src)/syscall_n32.tbl
-> > +syshdr := $(srctree)/$(src)/syscallhdr.sh
-> > +systbl := $(srctree)/$(src)/syscalltbl.sh
->
-> Could we go with 'n64' instead of just '64'?
->
-> When we get nanoMIPS support we'll be introducing the p32 ABI, and
-> there's a reasonable chance that the equivalent p64 ABI may come along
-> in the future. Using 'n64' now would avoid confusion in that case where
-> we may have 2 different 64-bit ABIs.
+* Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 
-Sure, will do.
+> +X86 Documentation
+> +=======================
+> +
+> +Control-flow Enforcement
+> +========================
+> +
+> +.. toctree::
+> +   :maxdepth: 1
+> +
+> +   intel_cet
+> diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
+> new file mode 100644
+> index 000000000000..dac83bbf8a24
+> --- /dev/null
+> +++ b/Documentation/x86/intel_cet.rst
+> @@ -0,0 +1,268 @@
+> +.. SPDX-License-Identifier: GPL-2.0
+> +
+> +=========================================
+> +Control-flow Enforcement Technology (CET)
+> +=========================================
+> +
+> +[1] Overview
+> +============
+> +
+> +Control-flow Enforcement Technology (CET) provides protection against
+> +return/jump-oriented programming (ROP) attacks.  It can be setup to
+> +protect both the kernel and applications.  In the first phase,
+> +only the user-mode protection is implemented in 64-bit mode; 32-bit
+> +applications are supported in compatibility mode.
+> +
+> +CET introduces shadow stack (SHSTK) and indirect branch tracking
+> +(IBT).  SHSTK is a secondary stack allocated from memory and cannot
+> +be directly modified by applications.  When executing a CALL, the
+> +processor pushes a copy of the return address to SHSTK.  Upon
+> +function return, the processor pops the SHSTK copy and compares it
+> +to the one from the program stack.  If the two copies differ, the
+> +processor raises a control-protection exception.  IBT verifies all
+> +indirect CALL/JMP targets are intended as marked by the compiler
+> +with 'ENDBR' opcodes (see CET instructions below).
+> +
+> +There are two kernel configuration options:
+> +
+> +    INTEL_X86_SHADOW_STACK_USER, and
+> +    INTEL_X86_BRANCH_TRACKING_USER.
+> +
+> +To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or later
+> +are required.  To build a CET-enabled application, GLIBC v2.28 or
+> +later is also required.
+> +
+> +There are two command-line options for disabling CET features:
+> +
+> +    no_cet_shstk - disables SHSTK, and
+> +    no_cet_ibt - disables IBT.
+> +
+> +At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
 
-Thanks
-Firoz
+What is the rough expected performance impact of CET on average function 
+call frequency user applications and the kernel itself?
 
->
-> Thanks,
->     Paul
+Thanks,
+
+	Ingo
