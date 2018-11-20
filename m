@@ -1,48 +1,72 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 0/9] kbuild: clean-up modversion, TRIM_UNUSED_KSYMS, if_changed_rule, etc.
-Date: Tue, 20 Nov 2018 10:05:21 +0900
-Message-ID: <1542675930-21114-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 4/8] kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
+Date: Tue, 20 Nov 2018 10:13:53 +0900
+Message-ID: <CAK7LNARvZZa-RgLCs9hwwgwrH-frxL6H1a3=BQzHmVqX6sPhTw@mail.gmail.com>
+References: <1542270435-11181-1-git-send-email-yamada.masahiro@socionext.com>
+ <1542270435-11181-5-git-send-email-yamada.masahiro@socionext.com>
+ <nycvar.YSQ.7.76.1811152346510.1993@knanqh.ubzr> <CAK7LNATT7PYvH-z572MGSjXbCybAW0TcNebz9CgGM4J07aMOvw@mail.gmail.com>
+ <nycvar.YSQ.7.76.1811161234160.1993@knanqh.ubzr>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <nycvar.YSQ.7.76.1811161234160.1993@knanqh.ubzr>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kbuild@vger.kernel.org
-Cc: Sam Ravnborg <sam@ravnborg.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, Michal Marek <michal.lkml@markovi.net>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeff Dike <jdike@addtoit.com>
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michal Marek <michal.lkml@markovi.net>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-As a Kbuild maintainer, I always struggle to keep the core makefiles
-clean because people tend to squeeze more and more clutter code into
-the kbuild core in order to do what they want to do.
+Hi Nicolas,
 
-The biggest step forward in this series is to re-implement
-the build trick of CONFIG_TRIM_UNUSED_KSYMS in a cleaner way.
-scripts/Kbuild.include now looks nice again.
-Also, in my rough estimation, building with CONFIG_TRIM_UNUSED_KSYMS
-became 40-50 % faster.
 
-Besides those, nice cleanups are here and there.
+On Sat, Nov 17, 2018 at 2:50 AM Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
 
-Masahiro Yamada (9):
-  kbuild: let fixdep directly write to .*.cmd files
-  kbuild: remove redundant 'set -e' from filechk_* defines
-  kbuild: remove redundant 'set -e' from sub_cmd_record_mcount
-  kbuild: refactor modversions build rules
-  kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
-  kbuild: change if_changed_rule for multi-line recipe
-  kbuild: remove trailing semicolon from cmd_* passed to if_changed_rule
-  kbuild: refactor if_changed and if_changed_dep
-  kbuild: remove redundant 'set -e' from cmd_* defines
+> > > > diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+> > > > index 7f3ca6e..e5ba9b1 100644
+> > > > --- a/scripts/Makefile.build
+> > > > +++ b/scripts/Makefile.build
+> > > > @@ -254,9 +254,18 @@ objtool_dep = $(objtool_obj)                                     \
+> > > >             $(wildcard include/config/orc/unwinder.h          \
+> > > >                        include/config/stack/validation.h)
+> > > >
+> > > > +ifdef CONFIG_TRIM_UNUSED_KSYMS
+> > > > +cmd_gen_ksymdeps = \
+> > > > +     $(CONFIG_SHELL) $(srctree)/scripts/gen_ksymdeps.sh $@ > $(dot-target).tmp; \
+> > > > +     cat $(dot-target).tmp >> $(dot-target).cmd; \
+> > > > +     rm -f $(dot-target).tmp;
+> > >
+> > > Why don't you append to $(dot-target).cmd directly?
+> >
+> >
+> > If scripts/gen_ksymdeps.sh fails for some reasons,
+> > it will error out immediately thanks to 'set -e' flag.
+> >
+> > Appending incomplete portion might end up with a corrupted .*.cmd file.
+> >
+> > Probably, that would not happen, but I just wanted to ensure it.
+>
+> Well, strictly speaking, if scripts/gen_ksymdeps.sh fails and its output
+> isn't appended at all to the .*.cmd file, then that .*.cmd file is
+> already corrupted as it is missing necessary dependencies. Would be
+> better to delete the .*.cmd file entirely in that case.
 
- Makefile                     |  13 +++---
- arch/um/Makefile             |   2 +-
- include/asm-generic/export.h |  13 +++---
- include/linux/export.h       |  18 ++++----
- scripts/Kbuild.include       |  49 +++-----------------
- scripts/Makefile.build       | 105 ++++++++++++++++++-------------------------
- scripts/Makefile.lib         |   2 +-
- scripts/basic/fixdep.c       |  31 ++-----------
- scripts/gen_ksymdeps.sh      |  25 +++++++++++
- scripts/package/Makefile     |   1 -
- 10 files changed, 106 insertions(+), 153 deletions(-)
- create mode 100755 scripts/gen_ksymdeps.sh
+
+More strictly speaking, missing necessary dependencies is not a big deal.
+
+Now, scripts/Kbuild.include specifies .DELETE_ON_ERROR
+
+Any error in fixdep, gen_ksymdeps.sh, or whatever
+will delete *.o file anyway.
+
+So, I change the course
+so that fixdep and gen_ksymdeps.sh directly write to .*.cmd files.
+
+
+I wrote detailed explanation here:
+https://patchwork.kernel.org/patch/10689697/
+
+
+
 
 -- 
-2.7.4
+Best Regards
+Masahiro Yamada
