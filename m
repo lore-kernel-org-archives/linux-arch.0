@@ -1,67 +1,56 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v3 1/3] sh: add __NR_syscalls along with NR_syscalls
-Date: Tue, 20 Nov 2018 12:35:44 +0530
-Message-ID: <CALxhOng+PHszhOWiBr3BXzy+PFrkrMteyk8A7J74ZUdGf24aww@mail.gmail.com>
-References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
- <1542169930-24118-2-git-send-email-firoz.khan@linaro.org> <CAK8P3a3fFznLDZTs0eLa_dJCKdENC96w1MoC1pNM6gYwcb=Cow@mail.gmail.com>
+Subject: Re: [PATCH v2 4/5] mips: add system call table generation support
+Date: Tue, 20 Nov 2018 12:43:53 +0530
+Message-ID: <CALxhOnjYzvDGdvuWitiOP46YuV6XViu9O3Fi0FU9u2jnV3W2EQ@mail.gmail.com>
+References: <1542262461-29024-1-git-send-email-firoz.khan@linaro.org>
+ <1542262461-29024-5-git-send-email-firoz.khan@linaro.org> <20181119223524.gsvjkf5v24ic7ilj@pburton-laptop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3fFznLDZTs0eLa_dJCKdENC96w1MoC1pNM6gYwcb=Cow@mail.gmail.com>
+In-Reply-To: <20181119223524.gsvjkf5v24ic7ilj@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-sh@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+Hi Paul,
 
-On Mon, 19 Nov 2018 at 22:21, Arnd Bergmann <arnd@arndb.de> wrote:
+On Tue, 20 Nov 2018 at 04:05, Paul Burton <paul.burton@mips.com> wrote:
 >
-> On Wed, Nov 14, 2018 at 5:32 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> >
-> > NR_syscalls macro holds the number of system call exist
-> > in sh architecture. We have to change the value of NR-
-> > _syscalls, if we add or delete a system call.
-> >
-> > One of the patch in this patch series has a script which
-> > will generate a uapi header based on syscall.tbl file.
-> > The syscall.tbl file contains the total number of system
-> > calls information. So we have two option to update NR_sy-
-> > scalls value.
-> >
-> > 1. Update NR_syscalls in asm/unistd.h manually by count-
-> >    ing the no.of system calls. No need to update NR_sys-
-> >    calls until we either add a new system call or delete
-> >    existing system call.
-> >
-> > 2. We can keep this feature it above mentioned script,
-> >    that will count the number of syscalls and keep it in
-> >    a generated file. In this case we don't need to expli-
-> >    citly update NR_syscalls in asm/unistd.h file.
-> >
-> > The 2nd option will be the recommended one. For that, I
-> > added the __NR_syscalls macro in uapi/asm/unistd_32/64.h
-> > along with NR_syscalls which is moved to asm/unistd.h.
-> > The macro __NR_syscalls also added for making the name
-> > convention same across all architecture. While __NR_sys-
-> > calls isn't strictly part of the uapi, having it as part
-> > of the generated header to simplifies the implementation.
-> > We also need to enclose this macro with #ifdef __KERNEL__
-> > to avoid side effects.
-> >
-> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> Hi Firoz,
 >
-> Looks correct to me, but since there are only three references to
-> 'NR_syscalls' in arch/sh, I wonder if we should just replace it with
-> __NR_syscalls in the same patch.
+> On Thu, Nov 15, 2018 at 11:44:20AM +0530, Firoz Khan wrote:
+> > diff --git a/arch/mips/kernel/syscalls/Makefile b/arch/mips/kernel/syscalls/Makefile
+> > new file mode 100644
+> > index 0000000..dc6bbb1
+> > --- /dev/null
+> > +++ b/arch/mips/kernel/syscalls/Makefile
+> > @@ -0,0 +1,71 @@
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +kapi := arch/$(SRCARCH)/include/generated/asm
+> > +uapi := arch/$(SRCARCH)/include/generated/uapi/asm
+> > +
+> > +_dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')    \
+> > +       $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
+> > +
+> > +syscallo32 := $(srctree)/$(src)/syscall_o32.tbl
+> > +syscall64 := $(srctree)/$(src)/syscall_64.tbl
+> > +syscalln32 := $(srctree)/$(src)/syscall_n32.tbl
+> > +syshdr := $(srctree)/$(src)/syscallhdr.sh
+> > +systbl := $(srctree)/$(src)/syscalltbl.sh
+>
+> Could we go with 'n64' instead of just '64'?
+>
+> When we get nanoMIPS support we'll be introducing the p32 ABI, and
+> there's a reasonable chance that the equivalent p64 ABI may come along
+> in the future. Using 'n64' now would avoid confusion in that case where
+> we may have 2 different 64-bit ABIs.
 
-This is the approach I had initially, But someone pointed out that doing
-this way - #define NR_syscalls    __NR_syscalls would be better. The
-only difference is here the number of occurrence 3 and there 5-7
-occurrence of NR_syscalls.
+Sure, will do.
 
 Thanks
 Firoz
 
 >
->        Arnd
+> Thanks,
+>     Paul
