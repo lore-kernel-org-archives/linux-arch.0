@@ -1,38 +1,49 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v2 16/15] syscall_get_arch: add "struct task_struct *"
- argument
-Date: Wed, 21 Nov 2018 07:15:15 -0800
-Message-ID: <CALCETrV8AJPkZF7TzhXSte_wJgNXH+-s7-tPM-8xjcAfYgzdhg@mail.gmail.com>
-References: <20181107042751.3b519062@akathisia>
- <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com>
- <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
+From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Subject: Re: RFC: userspace exception fixups
+Date: Wed, 21 Nov 2018 17:17:34 +0200
+Message-ID: <20181121151734.GA16564@linux.intel.com>
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <20181118071548.GA4795@linux.intel.com>
+ <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+ <20181119160204.GD13298@linux.intel.com>
+ <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+ <20181120101133.GA7319@linux.intel.com>
+ <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
+ <20181120225518.GE8391@linux.intel.com>
+ <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20181121004422.GA29053@altlinux.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Paul Moore <paul@paul-moore.com>, linux-hexagon@vger.kernel.org, X86 ML <x86@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Elvira Khabirova <lineprinter@altlinux.org>, arcml <linux-snps-arc@lists.infradead.org>, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Andrew Lutomirski <luto@kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Eric Paris <eparis@redhat.com>, linux-audit@redhat.comlinux-
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jethro Beekman <jethro@fortanix.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.co>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 20, 2018 at 4:44 PM Dmitry V. Levin <ldv@altlinux.org> wrote:
->
-> This argument is required to extend the generic ptrace API
-> with PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going to be
-> called from ptrace_request() along with other syscall_get_* functions
-> with a tracee as their argument.
->
-> This change partially reverts commit 5e937a9ae913 ("syscall_get_arch:
-> remove useless function arguments").
->
+On Wed, Nov 21, 2018 at 05:17:32AM +0000, Jethro Beekman wrote:
+> Jarkko, can you please explain you solution in detail? The CPU receives an
+> exception. This will be handled by the kernel exception handler. What
+> information does the kernel exception handler use to determine whether to
+> deliver the exception as a regular signal to the process, or whether to set
+> the special registers values for userspace and just continue executing the
+> process manually?
 
-Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
+Now we throw SIGSEGV when PF_SGX set, right? In my solution that would
+be turned just doing iret to AEP with the extra that three registers get
+exception data (type, reason, addr). No decoding or RIP adjusting
+involved.
+
+That would mean that you would actually have to implement AEP handler
+than just have enclu there.
+
+I've also proposed that perhaps for SGX also #UD should be propagated
+this way because for some instructions you need outside help to emulate
+"non-enclave" environment.
+
+That is all I have drafted together so far. I'll try to finish v18 this
+week with other stuff and refine further next week (unless someone gives
+obvious reason why this doesn't work, which might well be because I
+haven't went too deep with my analysis yet because of lack of time).
+
+/Jarkko
