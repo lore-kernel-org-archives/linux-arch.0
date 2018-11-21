@@ -1,42 +1,68 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC PATCH v6 01/26] Documentation/x86: Add CET description
-Date: Wed, 21 Nov 2018 08:24:33 +0100
-Message-ID: <20181121072433.GA56599@gmail.com>
-References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
- <20181119214809.6086-2-yu-cheng.yu@intel.com>
- <20181120095253.GA119911@gmail.com>
- <16a0261fbe4b31e2f42b552d6a991a1116d398c2.camel@intel.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH v2 0/9] kbuild: clean-up modversion, TRIM_UNUSED_KSYMS,
+ if_changed_rule, etc.
+Date: Wed, 21 Nov 2018 23:39:13 +0900
+Message-ID: <CAK7LNAReYwYAgGfxsHX2uRxXrYizM9C0rmq7V_ck-V+dc+oN4A@mail.gmail.com>
+References: <1542675930-21114-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <16a0261fbe4b31e2f42b552d6a991a1116d398c2.camel@intel.com>
+In-Reply-To: <1542675930-21114-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-um@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michal Marek <michal.lkml@markovi.net>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeff Dike <jdike@addtoit.com>
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Nov 20, 2018 at 10:11 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> As a Kbuild maintainer, I always struggle to keep the core makefiles
+> clean because people tend to squeeze more and more clutter code into
+> the kbuild core in order to do what they want to do.
+>
+> The biggest step forward in this series is to re-implement
+> the build trick of CONFIG_TRIM_UNUSED_KSYMS in a cleaner way.
+> scripts/Kbuild.include now looks nice again.
+> Also, in my rough estimation, building with CONFIG_TRIM_UNUSED_KSYMS
+> became 40-50 % faster.
+>
+> Besides those, nice cleanups are here and there.
+>
+> Masahiro Yamada (9):
+>   kbuild: let fixdep directly write to .*.cmd files
+>   kbuild: remove redundant 'set -e' from filechk_* defines
+>   kbuild: remove redundant 'set -e' from sub_cmd_record_mcount
+>   kbuild: refactor modversions build rules
+>   kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
+>   kbuild: change if_changed_rule for multi-line recipe
+>   kbuild: remove trailing semicolon from cmd_* passed to if_changed_rule
+>   kbuild: refactor if_changed and if_changed_dep
+>   kbuild: remove redundant 'set -e' from cmd_* defines
 
-* Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+Series, applied to linux-kbuild.
 
-> On Tue, 2018-11-20 at 10:52 +0100, Ingo Molnar wrote:
-> > * Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > 
-> > > +X86 Documentation
-> > > [...]
-> > > +
-> > > +At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
-> > 
-> > What is the rough expected performance impact of CET on average function 
-> > call frequency user applications and the kernel itself?
-> 
-> I don't have any conclusive numbers yet; but since currently only user-mode
-> protection is implemented, I suspect any impact would be most likely to the
-> application.  The kernel would spend some small amount of time on the setup of
-> CET.
 
-This is horribly vague.
 
-Thanks,
 
-	Ingo
+
+>  Makefile                     |  13 +++---
+>  arch/um/Makefile             |   2 +-
+>  include/asm-generic/export.h |  13 +++---
+>  include/linux/export.h       |  18 ++++----
+>  scripts/Kbuild.include       |  49 +++-----------------
+>  scripts/Makefile.build       | 105 ++++++++++++++++++-------------------------
+>  scripts/Makefile.lib         |   2 +-
+>  scripts/basic/fixdep.c       |  31 ++-----------
+>  scripts/gen_ksymdeps.sh      |  25 +++++++++++
+>  scripts/package/Makefile     |   1 -
+>  10 files changed, 106 insertions(+), 153 deletions(-)
+>  create mode 100755 scripts/gen_ksymdeps.sh
+>
+> --
+> 2.7.4
+>
+
+
+-- 
+Best Regards
+Masahiro Yamada
