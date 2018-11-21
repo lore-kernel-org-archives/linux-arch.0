@@ -1,54 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:2377 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726849AbeKVBwb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Nov 2018 20:52:31 -0500
-Date: Wed, 21 Nov 2018 17:17:34 +0200
-From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181121151734.GA16564@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
- <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
- <20181119160204.GD13298@linux.intel.com>
- <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
- <20181120101133.GA7319@linux.intel.com>
- <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
- <20181120225518.GE8391@linux.intel.com>
- <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:34872 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731131AbeKVCWG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2018 21:22:06 -0500
+Received: by mail-pl1-f196.google.com with SMTP id v1-v6so6079273plo.2
+        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2018 07:47:09 -0800 (PST)
+Date: Wed, 21 Nov 2018 07:47:07 -0800 (PST)
+Subject: Re: [PATCH v2 16/15] syscall_get_arch: add "struct task_struct *" argument
+In-Reply-To: <20181121004422.GA29053@altlinux.org>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-c75e14b8-b36c-46c2-8ffc-914312ed0cef@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jethro Beekman <jethro@fortanix.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, "Christopherson, Sean J" <sean.j.christopherson@intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181121151734.bzslyh2pzg6hz6QrhU4QJ7D3qp5pFcxO8uYL2RcPGw0@z>
+To: ldv@altlinux.org
+Cc: luto@kernel.org, eparis@redhat.com, paul@paul-moore.com, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, esyr@redhat.com, lineprinter@altlinux.org, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, oleg@redhat.com, linux-audit@redhat.com, linux-alpha@vger.kernel.org, nios2-dev@lists.rocketboards.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181121154707.LMTC3lfSNAmUV4_Iig96FiCJeU3gGG6XQWExyrE3nKo@z>
 
-On Wed, Nov 21, 2018 at 05:17:32AM +0000, Jethro Beekman wrote:
-> Jarkko, can you please explain you solution in detail? The CPU receives an
-> exception. This will be handled by the kernel exception handler. What
-> information does the kernel exception handler use to determine whether to
-> deliver the exception as a regular signal to the process, or whether to set
-> the special registers values for userspace and just continue executing the
-> process manually?
+On Tue, 20 Nov 2018 16:44:22 PST (-0800), ldv@altlinux.org wrote:
+> This argument is required to extend the generic ptrace API
+> with PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going to be
+> called from ptrace_request() along with other syscall_get_* functions
+> with a tracee as their argument.
+>
+> This change partially reverts commit 5e937a9ae913 ("syscall_get_arch:
+> remove useless function arguments").
+>
+> Cc: linux-alpha@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-audit@redhat.com
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-ia64@vger.kernel.org
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-mips@linux-mips.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-um@lists.infradead.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: nios2-dev@lists.rocketboards.org
+> Cc: openrisc@lists.librecores.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> Cc: x86@kernel.org
+> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 
-Now we throw SIGSEGV when PF_SGX set, right? In my solution that would
-be turned just doing iret to AEP with the extra that three registers get
-exception data (type, reason, addr). No decoding or RIP adjusting
-involved.
-
-That would mean that you would actually have to implement AEP handler
-than just have enclu there.
-
-I've also proposed that perhaps for SGX also #UD should be propagated
-this way because for some instructions you need outside help to emulate
-"non-enclave" environment.
-
-That is all I have drafted together so far. I'll try to finish v18 this
-week with other stuff and refine further next week (unless someone gives
-obvious reason why this doesn't work, which might well be because I
-haven't went too deep with my analysis yet because of lack of time).
-
-/Jarkko
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
