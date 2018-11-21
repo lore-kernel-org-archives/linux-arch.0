@@ -1,73 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:50096 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726004AbeKVBOi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2018 20:14:38 -0500
+Received: from mail.kernel.org ([198.145.29.99]:50560 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731165AbeKVBuU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Nov 2018 20:50:20 -0500
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 8B1ED21731
+        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2018 15:15:29 +0000 (UTC)
+Received: by mail-wm1-f52.google.com with SMTP id u13-v6so6145487wmc.4
+        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2018 07:15:29 -0800 (PST)
 MIME-Version: 1.0
-References: <1542675930-21114-1-git-send-email-yamada.masahiro@socionext.com>
-In-Reply-To: <1542675930-21114-1-git-send-email-yamada.masahiro@socionext.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Wed, 21 Nov 2018 23:39:13 +0900
-Message-ID: <CAK7LNAReYwYAgGfxsHX2uRxXrYizM9C0rmq7V_ck-V+dc+oN4A@mail.gmail.com>
-Subject: Re: [PATCH v2 0/9] kbuild: clean-up modversion, TRIM_UNUSED_KSYMS,
- if_changed_rule, etc.
+References: <20181107042751.3b519062@akathisia> <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com>
+ <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
+In-Reply-To: <20181121004422.GA29053@altlinux.org>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Wed, 21 Nov 2018 07:15:15 -0800
+Message-ID: <CALCETrV8AJPkZF7TzhXSte_wJgNXH+-s7-tPM-8xjcAfYgzdhg@mail.gmail.com>
+Subject: Re: [PATCH v2 16/15] syscall_get_arch: add "struct task_struct *" argument
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-um@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michal Marek <michal.lkml@markovi.net>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeff Dike <jdike@addtoit.com>
-Message-ID: <20181121143913.rkAgGNcE4R4RkJ2Tf0YrRgU_Mvk3qPOFNSxyfGocqUw@z>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Andrew Lutomirski <luto@kernel.org>, Eric Paris <eparis@redhat.com>, Paul Moore <paul@paul-moore.com>, Elvira Khabirova <lineprinter@altlinux.org>, Eugene Syromiatnikov <esyr@redhat.com>, Oleg Nesterov <oleg@redhat.com>, linux-audit@redhat.com, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-sh@vger.kernel.org, arcml <linux-snps-arc@lists.infradead.org>, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, X86 ML <x86@kernel.org>
+Message-ID: <20181121151515.1_2W_k9-0pdreS-zjCwDGzdWtjOPFidrnQccjaPIyJU@z>
 
-On Tue, Nov 20, 2018 at 10:11 AM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
+On Tue, Nov 20, 2018 at 4:44 PM Dmitry V. Levin <ldv@altlinux.org> wrote:
 >
-> As a Kbuild maintainer, I always struggle to keep the core makefiles
-> clean because people tend to squeeze more and more clutter code into
-> the kbuild core in order to do what they want to do.
+> This argument is required to extend the generic ptrace API
+> with PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going to be
+> called from ptrace_request() along with other syscall_get_* functions
+> with a tracee as their argument.
 >
-> The biggest step forward in this series is to re-implement
-> the build trick of CONFIG_TRIM_UNUSED_KSYMS in a cleaner way.
-> scripts/Kbuild.include now looks nice again.
-> Also, in my rough estimation, building with CONFIG_TRIM_UNUSED_KSYMS
-> became 40-50 % faster.
->
-> Besides those, nice cleanups are here and there.
->
-> Masahiro Yamada (9):
->   kbuild: let fixdep directly write to .*.cmd files
->   kbuild: remove redundant 'set -e' from filechk_* defines
->   kbuild: remove redundant 'set -e' from sub_cmd_record_mcount
->   kbuild: refactor modversions build rules
->   kbuild: simplify dependency generation for CONFIG_TRIM_UNUSED_KSYMS
->   kbuild: change if_changed_rule for multi-line recipe
->   kbuild: remove trailing semicolon from cmd_* passed to if_changed_rule
->   kbuild: refactor if_changed and if_changed_dep
->   kbuild: remove redundant 'set -e' from cmd_* defines
-
-Series, applied to linux-kbuild.
-
-
-
-
-
->  Makefile                     |  13 +++---
->  arch/um/Makefile             |   2 +-
->  include/asm-generic/export.h |  13 +++---
->  include/linux/export.h       |  18 ++++----
->  scripts/Kbuild.include       |  49 +++-----------------
->  scripts/Makefile.build       | 105 ++++++++++++++++++-------------------------
->  scripts/Makefile.lib         |   2 +-
->  scripts/basic/fixdep.c       |  31 ++-----------
->  scripts/gen_ksymdeps.sh      |  25 +++++++++++
->  scripts/package/Makefile     |   1 -
->  10 files changed, 106 insertions(+), 153 deletions(-)
->  create mode 100755 scripts/gen_ksymdeps.sh
->
-> --
-> 2.7.4
+> This change partially reverts commit 5e937a9ae913 ("syscall_get_arch:
+> remove useless function arguments").
 >
 
-
--- 
-Best Regards
-Masahiro Yamada
+Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
