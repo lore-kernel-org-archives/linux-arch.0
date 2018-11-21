@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v8 4/6] parisc: add system call table generation support
-Date: Wed, 21 Nov 2018 09:44:28 +0530
-Message-ID: <1542773670-25460-5-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v8 5/6] parisc: generate uapi header and system call table files
+Date: Wed, 21 Nov 2018 09:44:29 +0530
+Message-ID: <1542773670-25460-6-git-send-email-firoz.khan@linaro.org>
 References: <1542773670-25460-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1542773670-25460-1-git-send-email-firoz.khan@linaro.org>
@@ -10,575 +10,942 @@ To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.o
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The system call tables are in different format in all
-architecture and it will be difficult to manually add,
-modify or delete the syscall table entries in the res-
-pective files. To make it easy by keeping a script and
-which will generate the uapi header and syscall table
-file. This change will also help to unify the implemen-
-tation across all architectures.
+System call table generation script must be run to gener-
+ate unistd_32/64.h and syscall_table_32/64/c32.h files.
+This patch will have changes which will invokes the script.
 
-The system call table generation script is added in
-kernel/syscalls directory which contain the scripts to
-generate both uapi header file and system call table
-files. The syscall.tbl will be input for the scripts.
+This patch will generate unistd_32/64.h and syscall_table-
+_32/64/c32.h files by the syscall table generation script
+invoked by parisc/Makefile and the generated files against
+the removed files must be identical.
 
-syscall.tbl contains the list of available system calls
-along with system call number and corresponding entry
-point. Add a new system call in this architecture will
-be possible by adding new entry in the syscall.tbl file.
-
-Adding a new table entry consisting of:
-  	- System call number.
-	- ABI.
-	- System call name.
-	- Entry point name.
-	- Compat entry name, if required.
-
-syscallhdr.sh and syscalltbl.sh will generate uapi header
-unistd_32/64.h and syscall_table_32/64/c32.h files respect-
-ively. Both .sh files will parse the content syscall.tbl
-to generate the header and table files. unistd_32/64.h will
-be included by uapi/asm/unistd.h and syscall_table_32/64/-
-c32.h is included by kernel/syscall.S - the real system
-call table.
-
-ARM, s390 and x86 architecuture does have similar support.
-I leverage their implementation to come up with a generic
-solution.
+The generated uapi header file will be included in uapi/-
+asm/unistd.h and generated system call table header file
+will be included by kernel/syscall.S file.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 Acked-by: Helge Deller <deller@gmx.de>
 ---
- arch/parisc/kernel/syscalls/Makefile      |  55 +++++
- arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++++++++
- arch/parisc/kernel/syscalls/syscallhdr.sh |  36 +++
- arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
- 4 files changed, 496 insertions(+)
- create mode 100644 arch/parisc/kernel/syscalls/Makefile
- create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
- create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+ arch/parisc/Makefile                  |   3 +
+ arch/parisc/include/asm/Kbuild        |   3 +
+ arch/parisc/include/uapi/asm/Kbuild   |   2 +
+ arch/parisc/include/uapi/asm/unistd.h | 369 +--------------------------
+ arch/parisc/kernel/syscall.S          |  11 +-
+ arch/parisc/kernel/syscall_table.S    | 459 ----------------------------------
+ 6 files changed, 20 insertions(+), 827 deletions(-)
+ delete mode 100644 arch/parisc/kernel/syscall_table.S
 
-diff --git a/arch/parisc/kernel/syscalls/Makefile b/arch/parisc/kernel/syscalls/Makefile
-new file mode 100644
-index 0000000..c22a21c
---- /dev/null
-+++ b/arch/parisc/kernel/syscalls/Makefile
-@@ -0,0 +1,55 @@
-+# SPDX-License-Identifier: GPL-2.0
-+kapi := arch/$(SRCARCH)/include/generated/asm
-+uapi := arch/$(SRCARCH)/include/generated/uapi/asm
+diff --git a/arch/parisc/Makefile b/arch/parisc/Makefile
+index d047a09..1c4ea91 100644
+--- a/arch/parisc/Makefile
++++ b/arch/parisc/Makefile
+@@ -156,3 +156,6 @@ define archhelp
+ 	@echo  '		  copy to $$(INSTALL_PATH)'
+ 	@echo  '  zinstall	- Install compressed vmlinuz kernel'
+ endef
 +
-+_dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
-+	  $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
-+
-+syscall := $(srctree)/$(src)/syscall.tbl
-+syshdr := $(srctree)/$(src)/syscallhdr.sh
-+systbl := $(srctree)/$(src)/syscalltbl.sh
-+
-+quiet_cmd_syshdr = SYSHDR  $@
-+      cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
-+		   '$(syshdr_abis_$(basetarget))'		\
-+		   '$(syshdr_pfx_$(basetarget))'		\
-+		   '$(syshdr_offset_$(basetarget))'
-+
-+quiet_cmd_systbl = SYSTBL  $@
-+      cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
-+		   '$(systbl_abis_$(basetarget))'		\
-+		   '$(systbl_abi_$(basetarget))'		\
-+		   '$(systbl_offset_$(basetarget))'
-+
-+syshdr_abis_unistd_32 := common,32
-+$(uapi)/unistd_32.h: $(syscall) $(syshdr)
-+	$(call if_changed,syshdr)
-+
-+syshdr_abis_unistd_64 := common,64
-+$(uapi)/unistd_64.h: $(syscall) $(syshdr)
-+	$(call if_changed,syshdr)
-+
-+systbl_abis_syscall_table_32 := common,32
-+$(kapi)/syscall_table_32.h: $(syscall) $(systbl)
-+	$(call if_changed,systbl)
-+
-+systbl_abis_syscall_table_64 := common,64
-+$(kapi)/syscall_table_64.h: $(syscall) $(systbl)
-+	$(call if_changed,systbl)
-+
-+systbl_abis_syscall_table_c32 := common,32
-+systbl_abi_syscall_table_c32 := c32
-+$(kapi)/syscall_table_c32.h: $(syscall) $(systbl)
-+	$(call if_changed,systbl)
-+
-+uapisyshdr-y		+= unistd_32.h unistd_64.h
-+kapisyshdr-y		+= syscall_table_32.h		\
-+			   syscall_table_64.h		\
-+			   syscall_table_c32.h
-+
-+targets	+= $(uapisyshdr-y) $(kapisyshdr-y)
-+
-+PHONY += all
-+all: $(addprefix $(uapi)/,$(uapisyshdr-y))
-+all: $(addprefix $(kapi)/,$(kapisyshdr-y))
-+	@:
-diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-new file mode 100644
-index 0000000..9bbd2f9
---- /dev/null
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -0,0 +1,369 @@
-+# SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
-+#
-+# system call numbers and entry vectors for parisc
-+#
-+# The format is:
-+# <number> <abi> <name> <entry point> <compat entry point>
-+#
-+# The <abi> can be common, 64, or 32 for this file.
-+#
-+0	common	restart_syscall		sys_restart_syscall
-+1	common	exit			sys_exit
-+2	common	fork			sys_fork_wrapper
-+3	common	read			sys_read
-+4	common	write			sys_write
-+5	common	open			sys_open			compat_sys_open
-+6	common	close			sys_close
-+7	common	waitpid			sys_waitpid
-+8	common	creat			sys_creat
-+9	common	link			sys_link
-+10	common	unlink			sys_unlink
-+11	common	execve			sys_execve			compat_sys_execve
-+12	common	chdir			sys_chdir
-+13	common	time			sys_time			compat_sys_time
-+14	common	mknod			sys_mknod
-+15	common	chmod			sys_chmod
-+16	common	lchown			sys_lchown
-+17	common	socket			sys_socket
-+18	common	stat			sys_newstat			compat_sys_newstat
-+19	common	lseek			sys_lseek			compat_sys_lseek
-+20	common	getpid			sys_getpid
-+21	common	mount			sys_mount			compat_sys_mount
-+22	common	bind			sys_bind
-+23	common	setuid			sys_setuid
-+24	common	getuid			sys_getuid
-+25	common	stime			sys_stime			compat_sys_stime
-+26	common	ptrace			sys_ptrace			compat_sys_ptrace
-+27	common	alarm			sys_alarm
-+28	common	fstat			sys_newfstat			compat_sys_newfstat
-+29	common	pause			sys_pause
-+30	common	utime			sys_utime			compat_sys_utime
-+31	common	connect			sys_connect
-+32	common	listen			sys_listen
-+33	common	access			sys_access
-+34	common	nice			sys_nice
-+35	common	accept			sys_accept
-+36	common	sync			sys_sync
-+37	common	kill			sys_kill
-+38	common	rename			sys_rename
-+39	common	mkdir			sys_mkdir
-+40	common	rmdir			sys_rmdir
-+41	common	dup			sys_dup
-+42	common	pipe			sys_pipe
-+43	common	times			sys_times			compat_sys_times
-+44	common	getsockname		sys_getsockname
-+45	common	brk			sys_brk
-+46	common	setgid			sys_setgid
-+47	common	getgid			sys_getgid
-+48	common	signal			sys_signal
-+49	common	geteuid			sys_geteuid
-+50	common	getegid			sys_getegid
-+51	common	acct			sys_acct
-+52	common	umount2			sys_umount
-+53	common	getpeername		sys_getpeername
-+54	common	ioctl			sys_ioctl			compat_sys_ioctl
-+55	common	fcntl			sys_fcntl			compat_sys_fcntl
-+56	common	socketpair		sys_socketpair
-+57	common	setpgid			sys_setpgid
-+58	common	send			sys_send
-+59	common	uname			sys_newuname
-+60	common	umask			sys_umask
-+61	common	chroot			sys_chroot
-+62	common	ustat			sys_ustat			compat_sys_ustat
-+63	common	dup2			sys_dup2
-+64	common	getppid			sys_getppid
-+65	common	getpgrp			sys_getpgrp
-+66	common	setsid			sys_setsid
-+67	common	pivot_root		sys_pivot_root
-+68	common	sgetmask		sys_sgetmask			sys32_unimplemented
-+69	common	ssetmask		sys_ssetmask			sys32_unimplemented
-+70	common	setreuid		sys_setreuid
-+71	common	setregid		sys_setregid
-+72	common	mincore			sys_mincore
-+73	common	sigpending		sys_sigpending			compat_sys_sigpending
-+74	common	sethostname		sys_sethostname
-+75	common	setrlimit		sys_setrlimit			compat_sys_setrlimit
-+76	common	getrlimit		sys_getrlimit			compat_sys_getrlimit
-+77	common	getrusage		sys_getrusage			compat_sys_getrusage
-+78	common	gettimeofday		sys_gettimeofday		compat_sys_gettimeofday
-+79	common	settimeofday		sys_settimeofday		compat_sys_settimeofday
-+80	common	getgroups		sys_getgroups
-+81	common	setgroups		sys_setgroups
-+82	common	sendto			sys_sendto
-+83	common	symlink			sys_symlink
-+84	common	lstat			sys_newlstat			compat_sys_newlstat
-+85	common	readlink		sys_readlink
-+86	common	uselib			sys_ni_syscall
-+87	common	swapon			sys_swapon
-+88	common	reboot			sys_reboot
-+89	common	mmap2			sys_mmap2
-+90	common	mmap			sys_mmap
-+91	common	munmap			sys_munmap
-+92	common	truncate		sys_truncate			compat_sys_truncate
-+93	common	ftruncate		sys_ftruncate			compat_sys_ftruncate
-+94	common	fchmod			sys_fchmod
-+95	common	fchown			sys_fchown
-+96	common	getpriority		sys_getpriority
-+97	common	setpriority		sys_setpriority
-+98	common	recv			sys_recv
-+99	common	statfs			sys_statfs			compat_sys_statfs
-+100	common	fstatfs			sys_fstatfs			compat_sys_fstatfs
-+101	common	stat64			sys_stat64
-+# 102 was socketcall
-+103	common	syslog			sys_syslog
-+104	common	setitimer		sys_setitimer			compat_sys_setitimer
-+105	common	getitimer		sys_getitimer			compat_sys_getitimer
-+106	common	capget			sys_capget
-+107	common	capset			sys_capset
-+108	32	pread64			parisc_pread64
-+108	64	pread64			sys_pread64
-+109	32	pwrite64		parisc_pwrite64
-+109	64	pwrite64		sys_pwrite64
-+110	common	getcwd			sys_getcwd
-+111	common	vhangup			sys_vhangup
-+112	common	fstat64			sys_fstat64
-+113	common	vfork			sys_vfork_wrapper
-+114	common	wait4			sys_wait4			compat_sys_wait4
-+115	common	swapoff			sys_swapoff
-+116	common	sysinfo			sys_sysinfo			compat_sys_sysinfo
-+117	common	shutdown		sys_shutdown
-+118	common	fsync			sys_fsync
-+119	common	madvise			sys_madvise
-+120	common	clone			sys_clone_wrapper
-+121	common	setdomainname		sys_setdomainname
-+122	common	sendfile		sys_sendfile			compat_sys_sendfile
-+123	common	recvfrom		sys_recvfrom
-+124	common	adjtimex		sys_adjtimex			compat_sys_adjtimex
-+125	common	mprotect		sys_mprotect
-+126	common	sigprocmask		sys_sigprocmask			compat_sys_sigprocmask
-+# 127 was create_module
-+128	common	init_module		sys_init_module
-+129	common	delete_module		sys_delete_module
-+# 130 was get_kernel_syms
-+131	common	quotactl		sys_quotactl
-+132	common	getpgid			sys_getpgid
-+133	common	fchdir			sys_fchdir
-+134	common	bdflush			sys_bdflush
-+135	common	sysfs			sys_sysfs
-+136	32	personality		parisc_personality
-+136	64	personality		sys_personality
-+# 137 was afs_syscall
-+138	common	setfsuid		sys_setfsuid
-+139	common	setfsgid		sys_setfsgid
-+140	common	_llseek			sys_llseek
-+141	common	getdents		sys_getdents			compat_sys_getdents
-+142	common	_newselect		sys_select			compat_sys_select
-+143	common	flock			sys_flock
-+144	common	msync			sys_msync
-+145	common	readv			sys_readv			compat_sys_readv
-+146	common	writev			sys_writev			compat_sys_writev
-+147	common	getsid			sys_getsid
-+148	common	fdatasync		sys_fdatasync
-+149	common	_sysctl			sys_sysctl			compat_sys_sysctl
-+150	common	mlock			sys_mlock
-+151	common	munlock			sys_munlock
-+152	common	mlockall		sys_mlockall
-+153	common	munlockall		sys_munlockall
-+154	common	sched_setparam		sys_sched_setparam
-+155	common	sched_getparam		sys_sched_getparam
-+156	common	sched_setscheduler	sys_sched_setscheduler
-+157	common	sched_getscheduler	sys_sched_getscheduler
-+158	common	sched_yield		sys_sched_yield
-+159	common	sched_get_priority_max	sys_sched_get_priority_max
-+160	common	sched_get_priority_min	sys_sched_get_priority_min
-+161	common	sched_rr_get_interval	sys_sched_rr_get_interval	compat_sys_sched_rr_get_interval
-+162	common	nanosleep		sys_nanosleep			compat_sys_nanosleep
-+163	common	mremap			sys_mremap
-+164	common	setresuid		sys_setresuid
-+165	common	getresuid		sys_getresuid
-+166	common	sigaltstack		sys_sigaltstack			compat_sys_sigaltstack
-+# 167 was query_module
-+168	common	poll			sys_poll
-+# 169 was nfsservctl
-+170	common	setresgid		sys_setresgid
-+171	common	getresgid		sys_getresgid
-+172	common	prctl			sys_prctl
-+173	common	rt_sigreturn		sys_rt_sigreturn_wrapper
-+174	common	rt_sigaction		sys_rt_sigaction		compat_sys_rt_sigaction
-+175	common	rt_sigprocmask		sys_rt_sigprocmask		compat_sys_rt_sigprocmask
-+176	common	rt_sigpending		sys_rt_sigpending		compat_sys_rt_sigpending
-+177	common	rt_sigtimedwait		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait
-+178	common	rt_sigqueueinfo		sys_rt_sigqueueinfo		compat_sys_rt_sigqueueinfo
-+179	common	rt_sigsuspend		sys_rt_sigsuspend		compat_sys_rt_sigsuspend
-+180	common	chown			sys_chown
-+181	common	setsockopt		sys_setsockopt			compat_sys_setsockopt
-+182	common	getsockopt		sys_getsockopt			compat_sys_getsockopt
-+183	common	sendmsg			sys_sendmsg			compat_sys_sendmsg
-+184	common	recvmsg			sys_recvmsg			compat_sys_recvmsg
-+185	common	semop			sys_semop
-+186	common	semget			sys_semget
-+187	common	semctl			sys_semctl			compat_sys_semctl
-+188	common	msgsnd			sys_msgsnd			compat_sys_msgsnd
-+189	common	msgrcv			sys_msgrcv			compat_sys_msgrcv
-+190	common	msgget			sys_msgget
-+191	common	msgctl			sys_msgctl			compat_sys_msgctl
-+192	common	shmat			sys_shmat			compat_sys_shmat
-+193	common	shmdt			sys_shmdt
-+194	common	shmget			sys_shmget
-+195	common	shmctl			sys_shmctl			compat_sys_shmctl
-+# 196 was getpmsg
-+# 197 was putpmsg
-+198	common	lstat64			sys_lstat64
-+199	32	truncate64		parisc_truncate64
-+199	64	truncate64		sys_truncate64
-+200	32	ftruncate64		parisc_ftruncate64
-+200	64	ftruncate64		sys_ftruncate64
-+201	common	getdents64		sys_getdents64
-+202	common	fcntl64			sys_fcntl64			compat_sys_fcntl64
-+# 203 was attrctl
-+# 204 was acl_get
-+# 205 was acl_set
-+206	common	gettid			sys_gettid
-+207	32	readahead		parisc_readahead
-+207	64	readahead		sys_readahead
-+208	common	tkill			sys_tkill
-+209	common	sendfile64		sys_sendfile64			compat_sys_sendfile64
-+210	common	futex			sys_futex			compat_sys_futex
-+211	common	sched_setaffinity	sys_sched_setaffinity		compat_sys_sched_setaffinity
-+212	common	sched_getaffinity	sys_sched_getaffinity		compat_sys_sched_getaffinity
-+# 213 was set_thread_area
-+# 214 was get_thread_area
-+215	common	io_setup		sys_io_setup			compat_sys_io_setup
-+216	common	io_destroy		sys_io_destroy
-+217	common	io_getevents		sys_io_getevents		compat_sys_io_getevents
-+218	common	io_submit		sys_io_submit			compat_sys_io_submit
-+219	common	io_cancel		sys_io_cancel
-+# 220 was alloc_hugepages
-+# 221 was free_hugepages
-+222	common	exit_group		sys_exit_group
-+223	common	lookup_dcookie		sys_lookup_dcookie		compat_sys_lookup_dcookie
-+224	common	epoll_create		sys_epoll_create
-+225	common	epoll_ctl		sys_epoll_ctl
-+226	common	epoll_wait		sys_epoll_wait
-+227	common	remap_file_pages	sys_remap_file_pages
-+228	common	semtimedop		sys_semtimedop			compat_sys_semtimedop
-+229	common	mq_open			sys_mq_open			compat_sys_mq_open
-+230	common	mq_unlink		sys_mq_unlink
-+231	common	mq_timedsend		sys_mq_timedsend		compat_sys_mq_timedsend
-+232	common	mq_timedreceive		sys_mq_timedreceive		compat_sys_mq_timedreceive
-+233	common	mq_notify		sys_mq_notify			compat_sys_mq_notify
-+234	common	mq_getsetattr		sys_mq_getsetattr		compat_sys_mq_getsetattr
-+235	common	waitid			sys_waitid			compat_sys_waitid
-+236	32	fadvise64_64		parisc_fadvise64_64
-+236	64	fadvise64_64		sys_fadvise64_64
-+237	common	set_tid_address		sys_set_tid_address
-+238	common	setxattr		sys_setxattr
-+239	common	lsetxattr		sys_lsetxattr
-+240	common	fsetxattr		sys_fsetxattr
-+241	common	getxattr		sys_getxattr
-+242	common	lgetxattr		sys_lgetxattr
-+243	common	fgetxattr		sys_fgetxattr
-+244	common	listxattr		sys_listxattr
-+245	common	llistxattr		sys_llistxattr
-+246	common	flistxattr		sys_flistxattr
-+247	common	removexattr		sys_removexattr
-+248	common	lremovexattr		sys_lremovexattr
-+249	common	fremovexattr		sys_fremovexattr
-+250	common	timer_create		sys_timer_create		compat_sys_timer_create
-+251	common	timer_settime		sys_timer_settime		compat_sys_timer_settime
-+252	common	timer_gettime		sys_timer_gettime		compat_sys_timer_gettime
-+253	common	timer_getoverrun	sys_timer_getoverrun
-+254	common	timer_delete		sys_timer_delete
-+255	common	clock_settime		sys_clock_settime		compat_sys_clock_settime
-+256	common	clock_gettime		sys_clock_gettime		compat_sys_clock_gettime
-+257	common	clock_getres		sys_clock_getres		compat_sys_clock_getres
-+258	common	clock_nanosleep		sys_clock_nanosleep		compat_sys_clock_nanosleep
-+259	common	tgkill			sys_tgkill
-+260	common	mbind			sys_mbind			compat_sys_mbind
-+261	common	get_mempolicy		sys_get_mempolicy		compat_sys_get_mempolicy
-+262	common	set_mempolicy		sys_set_mempolicy		compat_sys_set_mempolicy
-+# 263 was vserver
-+264	common	add_key			sys_add_key
-+265	common	request_key		sys_request_key
-+266	common	keyctl			sys_keyctl			compat_sys_keyctl
-+267	common	ioprio_set		sys_ioprio_set
-+268	common	ioprio_get		sys_ioprio_get
-+269	common	inotify_init		sys_inotify_init
-+270	common	inotify_add_watch	sys_inotify_add_watch
-+271	common	inotify_rm_watch	sys_inotify_rm_watch
-+272	common	migrate_pages		sys_migrate_pages
-+273	common	pselect6		sys_pselect6			compat_sys_pselect6
-+274	common	ppoll			sys_ppoll			compat_sys_ppoll
-+275	common	openat			sys_openat			compat_sys_openat
-+276	common	mkdirat			sys_mkdirat
-+277	common	mknodat			sys_mknodat
-+278	common	fchownat		sys_fchownat
-+279	common	futimesat		sys_futimesat			compat_sys_futimesat
-+280	common	fstatat64		sys_fstatat64
-+281	common	unlinkat		sys_unlinkat
-+282	common	renameat		sys_renameat
-+283	common	linkat			sys_linkat
-+284	common	symlinkat		sys_symlinkat
-+285	common	readlinkat		sys_readlinkat
-+286	common	fchmodat		sys_fchmodat
-+287	common	faccessat		sys_faccessat
-+288	common	unshare			sys_unshare
-+289	common	set_robust_list		sys_set_robust_list		compat_sys_set_robust_list
-+290	common	get_robust_list		sys_get_robust_list		compat_sys_get_robust_list
-+291	common	splice			sys_splice
-+292	32	sync_file_range		parisc_sync_file_range
-+292	64	sync_file_range		sys_sync_file_range
-+293	common	tee			sys_tee
-+294	common	vmsplice		sys_vmsplice			compat_sys_vmsplice
-+295	common	move_pages		sys_move_pages			compat_sys_move_pages
-+296	common	getcpu			sys_getcpu
-+297	common	epoll_pwait		sys_epoll_pwait			compat_sys_epoll_pwait
-+298	common	statfs64		sys_statfs64			compat_sys_statfs64
-+299	common	fstatfs64		sys_fstatfs64			compat_sys_fstatfs64
-+300	common	kexec_load		sys_kexec_load			compat_sys_kexec_load
-+301	common	utimensat		sys_utimensat			compat_sys_utimensat
-+302	common	signalfd		sys_signalfd			compat_sys_signalfd
-+# 303 was timerfd
-+304	common	eventfd			sys_eventfd
-+305	32	fallocate		parisc_fallocate
-+305	64	fallocate		sys_fallocate
-+306	common	timerfd_create		sys_timerfd_create
-+307	common	timerfd_settime		sys_timerfd_settime		compat_sys_timerfd_settime
-+308	common	timerfd_gettime		sys_timerfd_gettime		compat_sys_timerfd_gettime
-+309	common	signalfd4		sys_signalfd4			compat_sys_signalfd4
-+310	common	eventfd2		sys_eventfd2
-+311	common	epoll_create1		sys_epoll_create1
-+312	common	dup3			sys_dup3
-+313	common	pipe2			sys_pipe2
-+314	common	inotify_init1		sys_inotify_init1
-+315	common	preadv	sys_preadv	compat_sys_preadv
-+316	common	pwritev	sys_pwritev	compat_sys_pwritev
-+317	common	rt_tgsigqueueinfo	sys_rt_tgsigqueueinfo		compat_sys_rt_tgsigqueueinfo
-+318	common	perf_event_open		sys_perf_event_open
-+319	common	recvmmsg		sys_recvmmsg			compat_sys_recvmmsg
-+320	common	accept4			sys_accept4
-+321	common	prlimit64		sys_prlimit64
-+322	common	fanotify_init		sys_fanotify_init
-+323	common	fanotify_mark		sys_fanotify_mark		sys32_fanotify_mark
-+324	common	clock_adjtime		sys_clock_adjtime		compat_sys_clock_adjtime
-+325	common	name_to_handle_at	sys_name_to_handle_at
-+326	common	open_by_handle_at	sys_open_by_handle_at		compat_sys_open_by_handle_at
-+327	common	syncfs			sys_syncfs
-+328	common	setns			sys_setns
-+329	common	sendmmsg		sys_sendmmsg			compat_sys_sendmmsg
-+330	common	process_vm_readv	sys_process_vm_readv		compat_sys_process_vm_readv
-+331	common	process_vm_writev	sys_process_vm_writev		compat_sys_process_vm_writev
-+332	common	kcmp			sys_kcmp
-+333	common	finit_module		sys_finit_module
-+334	common	sched_setattr		sys_sched_setattr
-+335	common	sched_getattr		sys_sched_getattr
-+336	common	utimes			sys_utimes			compat_sys_utimes
-+337	common	renameat2		sys_renameat2
-+338	common	seccomp			sys_seccomp
-+339	common	getrandom		sys_getrandom
-+340	common	memfd_create		sys_memfd_create
-+341	common	bpf			sys_bpf
-+342	common	execveat		sys_execveat			compat_sys_execveat
-+343	common	membarrier		sys_membarrier
-+344	common	userfaultfd		sys_userfaultfd
-+345	common	mlock2			sys_mlock2
-+346	common	copy_file_range		sys_copy_file_range
-+347	common	preadv2			sys_preadv2			compat_sys_preadv2
-+348	common	pwritev2		sys_pwritev2			compat_sys_pwritev2
-+349	common	statx			sys_statx
-+350	common	io_pgetevents		sys_io_pgetevents		compat_sys_io_pgetevents
-diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh b/arch/parisc/kernel/syscalls/syscallhdr.sh
-new file mode 100644
-index 0000000..50242b7
---- /dev/null
-+++ b/arch/parisc/kernel/syscalls/syscallhdr.sh
-@@ -0,0 +1,36 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+in="$1"
-+out="$2"
-+my_abis=`echo "($3)" | tr ',' '|'`
-+prefix="$4"
-+offset="$5"
-+
-+fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
-+	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-+	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-+grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-+	printf "#ifndef %s\n" "${fileguard}"
-+	printf "#define %s\n" "${fileguard}"
-+	printf "\n"
-+
-+	nxt=0
-+	while read nr abi name entry compat ; do
-+		if [ -z "$offset" ]; then
-+			printf "#define __NR_%s%s\t%s\n" \
-+				"${prefix}" "${name}" "${nr}"
-+		else
-+			printf "#define __NR_%s%s\t(%s + %s)\n" \
-+				"${prefix}" "${name}" "${offset}" "${nr}"
-+		fi
-+		nxt=$((nr+1))
-+	done
-+
-+	printf "\n"
-+	printf "#ifdef __KERNEL__\n"
-+	printf "#define __NR_syscalls\t%s\n" "${nxt}"
-+	printf "#endif\n"
-+	printf "\n"
-+	printf "#endif /* %s */" "${fileguard}"
-+) > "$out"
-diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
-new file mode 100644
-index 0000000..45b5bae
---- /dev/null
-+++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
-@@ -0,0 +1,36 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+in="$1"
-+out="$2"
-+my_abis=`echo "($3)" | tr ',' '|'`
-+my_abi="$4"
-+offset="$5"
-+
-+emit() {
-+	t_nxt="$1"
-+	t_nr="$2"
-+	t_entry="$3"
-+
-+	while [ $t_nxt -lt $t_nr ]; do
-+		printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
-+		t_nxt=$((t_nxt+1))
-+	done
-+	printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
-+}
-+
-+grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-+	nxt=0
-+	if [ -z "$offset" ]; then
-+		offset=0
-+	fi
-+
-+	while read nr abi name entry compat ; do
-+		if [ "$my_abi" = "c32" ] && [ ! -z "$compat" ]; then
-+			emit $((nxt+offset)) $((nr+offset)) $compat
-+		else
-+			emit $((nxt+offset)) $((nr+offset)) $entry
-+		fi
-+		nxt=$((nr+1))
-+	done
-+) > "$out"
++archheaders:
++	$(Q)$(MAKE) $(build)=arch/parisc/kernel/syscalls all
+diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
+index 2013d63..0b1e354 100644
+--- a/arch/parisc/include/asm/Kbuild
++++ b/arch/parisc/include/asm/Kbuild
+@@ -1,3 +1,6 @@
++generated-y += syscall_table_32.h
++generated-y += syscall_table_64.h
++generated-y += syscall_table_c32.h
+ generic-y += barrier.h
+ generic-y += current.h
+ generic-y += device.h
+diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
+index adb5c64..d31b426 100644
+--- a/arch/parisc/include/uapi/asm/Kbuild
++++ b/arch/parisc/include/uapi/asm/Kbuild
+@@ -1,6 +1,8 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
+ 
++generated-y += unistd_32.h
++generated-y += unistd_64.h
+ generic-y += auxvec.h
+ generic-y += bpf_perf_event.h
+ generic-y += kvm_para.h
+diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+index 63e9aae..98dc953 100644
+--- a/arch/parisc/include/uapi/asm/unistd.h
++++ b/arch/parisc/include/uapi/asm/unistd.h
+@@ -2,371 +2,10 @@
+ #ifndef _UAPI_ASM_PARISC_UNISTD_H_
+ #define _UAPI_ASM_PARISC_UNISTD_H_
+ 
+-/*
+- * Linux system call numbers.
+- *
+- * Cary Coutant says that we should just use another syscall gateway
+- * page to avoid clashing with the HPUX space, and I think he's right:
+- * it will would keep a branch out of our syscall entry path, at the
+- * very least.  If we decide to change it later, we can ``just'' tweak
+- * the LINUX_GATEWAY_ADDR define at the bottom and make __NR_Linux be
+- * 1024 or something.  Oh, and recompile libc. =)
+- */
+-
+-#define __NR_restart_syscall      0
+-#define __NR_exit                 1
+-#define __NR_fork                 2
+-#define __NR_read                 3
+-#define __NR_write                4
+-#define __NR_open                 5
+-#define __NR_close                6
+-#define __NR_waitpid              7
+-#define __NR_creat                8
+-#define __NR_link                 9
+-#define __NR_unlink              10
+-#define __NR_execve              11
+-#define __NR_chdir               12
+-#define __NR_time                13
+-#define __NR_mknod               14
+-#define __NR_chmod               15
+-#define __NR_lchown              16
+-#define __NR_socket              17
+-#define __NR_stat                18
+-#define __NR_lseek               19
+-#define __NR_getpid              20
+-#define __NR_mount               21
+-#define __NR_bind                22
+-#define __NR_setuid              23
+-#define __NR_getuid              24
+-#define __NR_stime               25
+-#define __NR_ptrace              26
+-#define __NR_alarm               27
+-#define __NR_fstat               28
+-#define __NR_pause               29
+-#define __NR_utime               30
+-#define __NR_connect             31
+-#define __NR_listen              32
+-#define __NR_access              33
+-#define __NR_nice                34
+-#define __NR_accept              35
+-#define __NR_sync                36
+-#define __NR_kill                37
+-#define __NR_rename              38
+-#define __NR_mkdir               39
+-#define __NR_rmdir               40
+-#define __NR_dup                 41
+-#define __NR_pipe                42
+-#define __NR_times               43
+-#define __NR_getsockname         44
+-#define __NR_brk                 45
+-#define __NR_setgid              46
+-#define __NR_getgid              47
+-#define __NR_signal              48
+-#define __NR_geteuid             49
+-#define __NR_getegid             50
+-#define __NR_acct                51
+-#define __NR_umount2             52
+-#define __NR_getpeername         53
+-#define __NR_ioctl               54
+-#define __NR_fcntl               55
+-#define __NR_socketpair          56
+-#define __NR_setpgid             57
+-#define __NR_send                58
+-#define __NR_uname               59
+-#define __NR_umask               60
+-#define __NR_chroot              61
+-#define __NR_ustat               62
+-#define __NR_dup2                63
+-#define __NR_getppid             64
+-#define __NR_getpgrp             65
+-#define __NR_setsid              66
+-#define __NR_pivot_root          67
+-#define __NR_sgetmask            68
+-#define __NR_ssetmask            69
+-#define __NR_setreuid            70
+-#define __NR_setregid            71
+-#define __NR_mincore             72
+-#define __NR_sigpending          73
+-#define __NR_sethostname         74
+-#define __NR_setrlimit           75
+-#define __NR_getrlimit           76
+-#define __NR_getrusage           77
+-#define __NR_gettimeofday        78
+-#define __NR_settimeofday        79
+-#define __NR_getgroups           80
+-#define __NR_setgroups           81
+-#define __NR_sendto              82
+-#define __NR_symlink             83
+-#define __NR_lstat               84
+-#define __NR_readlink            85
+-#define __NR_uselib              86
+-#define __NR_swapon              87
+-#define __NR_reboot              88
+-#define __NR_mmap2               89
+-#define __NR_mmap                90
+-#define __NR_munmap              91
+-#define __NR_truncate            92
+-#define __NR_ftruncate           93
+-#define __NR_fchmod              94
+-#define __NR_fchown              95
+-#define __NR_getpriority         96
+-#define __NR_setpriority         97
+-#define __NR_recv                98
+-#define __NR_statfs              99
+-#define __NR_fstatfs            100
+-#define __NR_stat64             101
+-/* #define __NR_socketcall         102 */
+-#define __NR_syslog             103
+-#define __NR_setitimer          104
+-#define __NR_getitimer          105
+-#define __NR_capget             106
+-#define __NR_capset             107
+-#define __NR_pread64            108
+-#define __NR_pwrite64           109
+-#define __NR_getcwd             110
+-#define __NR_vhangup            111
+-#define __NR_fstat64            112
+-#define __NR_vfork              113
+-#define __NR_wait4              114
+-#define __NR_swapoff            115
+-#define __NR_sysinfo            116
+-#define __NR_shutdown           117
+-#define __NR_fsync              118
+-#define __NR_madvise            119
+-#define __NR_clone              120
+-#define __NR_setdomainname      121
+-#define __NR_sendfile           122
+-#define __NR_recvfrom           123
+-#define __NR_adjtimex           124
+-#define __NR_mprotect           125
+-#define __NR_sigprocmask        126
+-#define __NR_create_module      127 /* not used */
+-#define __NR_init_module        128
+-#define __NR_delete_module      129
+-#define __NR_get_kernel_syms    130 /* not used */
+-#define __NR_quotactl           131
+-#define __NR_getpgid            132
+-#define __NR_fchdir             133
+-#define __NR_bdflush            134
+-#define __NR_sysfs              135
+-#define __NR_personality        136
+-#define __NR_afs_syscall        137 /* not used */
+-#define __NR_setfsuid           138
+-#define __NR_setfsgid           139
+-#define __NR__llseek            140
+-#define __NR_getdents           141
+-#define __NR__newselect         142
+-#define __NR_flock              143
+-#define __NR_msync              144
+-#define __NR_readv              145
+-#define __NR_writev             146
+-#define __NR_getsid             147
+-#define __NR_fdatasync          148
+-#define __NR__sysctl            149
+-#define __NR_mlock              150
+-#define __NR_munlock            151
+-#define __NR_mlockall           152
+-#define __NR_munlockall         153
+-#define __NR_sched_setparam             154
+-#define __NR_sched_getparam             155
+-#define __NR_sched_setscheduler         156
+-#define __NR_sched_getscheduler         157
+-#define __NR_sched_yield                158
+-#define __NR_sched_get_priority_max     159
+-#define __NR_sched_get_priority_min     160
+-#define __NR_sched_rr_get_interval      161
+-#define __NR_nanosleep          162
+-#define __NR_mremap             163
+-#define __NR_setresuid          164
+-#define __NR_getresuid          165
+-#define __NR_sigaltstack        166
+-#define __NR_query_module       167 /* not used */
+-#define __NR_poll               168
+-#define __NR_nfsservctl         169 /* not used */
+-#define __NR_setresgid          170
+-#define __NR_getresgid          171
+-#define __NR_prctl              172
+-#define __NR_rt_sigreturn       173
+-#define __NR_rt_sigaction       174
+-#define __NR_rt_sigprocmask     175
+-#define __NR_rt_sigpending      176
+-#define __NR_rt_sigtimedwait    177
+-#define __NR_rt_sigqueueinfo    178
+-#define __NR_rt_sigsuspend      179
+-#define __NR_chown              180
+-#define __NR_setsockopt         181
+-#define __NR_getsockopt         182
+-#define __NR_sendmsg            183
+-#define __NR_recvmsg            184
+-#define __NR_semop              185
+-#define __NR_semget             186
+-#define __NR_semctl             187
+-#define __NR_msgsnd             188
+-#define __NR_msgrcv             189
+-#define __NR_msgget             190
+-#define __NR_msgctl             191
+-#define __NR_shmat              192
+-#define __NR_shmdt              193
+-#define __NR_shmget             194
+-#define __NR_shmctl             195
+-#define __NR_getpmsg            196 /* not used */
+-#define __NR_putpmsg            197 /* not used */
+-#define __NR_lstat64            198
+-#define __NR_truncate64         199
+-#define __NR_ftruncate64        200
+-#define __NR_getdents64         201
+-#define __NR_fcntl64            202
+-#define __NR_attrctl            203 /* not used */
+-#define __NR_acl_get            204 /* not used */
+-#define __NR_acl_set            205 /* not used */
+-#define __NR_gettid             206
+-#define __NR_readahead          207
+-#define __NR_tkill              208
+-#define __NR_sendfile64         209
+-#define __NR_futex              210
+-#define __NR_sched_setaffinity  211
+-#define __NR_sched_getaffinity  212
+-#define __NR_set_thread_area    213 /* not used */
+-#define __NR_get_thread_area    214 /* not used */
+-#define __NR_io_setup           215
+-#define __NR_io_destroy         216
+-#define __NR_io_getevents       217
+-#define __NR_io_submit          218
+-#define __NR_io_cancel          219
+-#define __NR_alloc_hugepages    220 /* not used */
+-#define __NR_free_hugepages     221 /* not used */
+-#define __NR_exit_group         222
+-#define __NR_lookup_dcookie     223
+-#define __NR_epoll_create       224
+-#define __NR_epoll_ctl          225
+-#define __NR_epoll_wait         226
+-#define __NR_remap_file_pages   227
+-#define __NR_semtimedop         228
+-#define __NR_mq_open            229
+-#define __NR_mq_unlink          230
+-#define __NR_mq_timedsend       231
+-#define __NR_mq_timedreceive    232
+-#define __NR_mq_notify          233
+-#define __NR_mq_getsetattr      234
+-#define __NR_waitid		235
+-#define __NR_fadvise64_64	236
+-#define __NR_set_tid_address	237
+-#define __NR_setxattr		238
+-#define __NR_lsetxattr		239
+-#define __NR_fsetxattr		240
+-#define __NR_getxattr		241
+-#define __NR_lgetxattr		242
+-#define __NR_fgetxattr		243
+-#define __NR_listxattr		244
+-#define __NR_llistxattr		245
+-#define __NR_flistxattr		246
+-#define __NR_removexattr	247
+-#define __NR_lremovexattr	248
+-#define __NR_fremovexattr	249
+-#define __NR_timer_create	250
+-#define __NR_timer_settime	251
+-#define __NR_timer_gettime	252
+-#define __NR_timer_getoverrun	253
+-#define __NR_timer_delete	254
+-#define __NR_clock_settime	255
+-#define __NR_clock_gettime	256
+-#define __NR_clock_getres	257
+-#define __NR_clock_nanosleep	258
+-#define __NR_tgkill		259
+-#define __NR_mbind		260
+-#define __NR_get_mempolicy	261
+-#define __NR_set_mempolicy	262
+-#define __NR_vserver		263 /* not used */
+-#define __NR_add_key		264
+-#define __NR_request_key	265
+-#define __NR_keyctl		266
+-#define __NR_ioprio_set		267
+-#define __NR_ioprio_get		268
+-#define __NR_inotify_init	269
+-#define __NR_inotify_add_watch	270
+-#define __NR_inotify_rm_watch	271
+-#define __NR_migrate_pages	272
+-#define __NR_pselect6		273
+-#define __NR_ppoll		274
+-#define __NR_openat		275
+-#define __NR_mkdirat		276
+-#define __NR_mknodat		277
+-#define __NR_fchownat		278
+-#define __NR_futimesat		279
+-#define __NR_fstatat64		280
+-#define __NR_unlinkat		281
+-#define __NR_renameat		282
+-#define __NR_linkat		283
+-#define __NR_symlinkat		284
+-#define __NR_readlinkat		285
+-#define __NR_fchmodat		286
+-#define __NR_faccessat		287
+-#define __NR_unshare		288
+-#define __NR_set_robust_list	289
+-#define __NR_get_robust_list	290
+-#define __NR_splice		291
+-#define __NR_sync_file_range	292
+-#define __NR_tee		293
+-#define __NR_vmsplice		294
+-#define __NR_move_pages		295
+-#define __NR_getcpu		296
+-#define __NR_epoll_pwait	297
+-#define __NR_statfs64		298
+-#define __NR_fstatfs64		299
+-#define __NR_kexec_load		300
+-#define __NR_utimensat		301
+-#define __NR_signalfd		302
+-#define __NR_timerfd		303 /* not used */
+-#define __NR_eventfd		304
+-#define __NR_fallocate		305
+-#define __NR_timerfd_create	306
+-#define __NR_timerfd_settime	307
+-#define __NR_timerfd_gettime	308
+-#define __NR_signalfd4		309
+-#define __NR_eventfd2		310
+-#define __NR_epoll_create1	311
+-#define __NR_dup3		312
+-#define __NR_pipe2		313
+-#define __NR_inotify_init1	314
+-#define __NR_preadv		315
+-#define __NR_pwritev		316
+-#define __NR_rt_tgsigqueueinfo	317
+-#define __NR_perf_event_open	318
+-#define __NR_recvmmsg		319
+-#define __NR_accept4		320
+-#define __NR_prlimit64		321
+-#define __NR_fanotify_init	322
+-#define __NR_fanotify_mark	323
+-#define __NR_clock_adjtime	324
+-#define __NR_name_to_handle_at	325
+-#define __NR_open_by_handle_at	326
+-#define __NR_syncfs		327
+-#define __NR_setns		328
+-#define __NR_sendmmsg		329
+-#define __NR_process_vm_readv	330
+-#define __NR_process_vm_writev	331
+-#define __NR_kcmp		332
+-#define __NR_finit_module	333
+-#define __NR_sched_setattr	334
+-#define __NR_sched_getattr	335
+-#define __NR_utimes		336
+-#define __NR_renameat2		337
+-#define __NR_seccomp		338
+-#define __NR_getrandom		339
+-#define __NR_memfd_create	340
+-#define __NR_bpf		341
+-#define __NR_execveat		342
+-#define __NR_membarrier		343
+-#define __NR_userfaultfd	344
+-#define __NR_mlock2		345
+-#define __NR_copy_file_range	346
+-#define __NR_preadv2		347
+-#define __NR_pwritev2		348
+-#define __NR_statx		349
+-#define __NR_io_pgetevents	350
+-
+-#ifdef __KERNEL__
+-#define __NR_syscalls		351
++#ifdef __LP64__
++#include <asm/unistd_64.h>
++#else
++#include <asm/unistd_32.h>
+ #endif
+ 
+ #define LINUX_GATEWAY_ADDR	0x100
+diff --git a/arch/parisc/kernel/syscall.S b/arch/parisc/kernel/syscall.S
+index a9bc90d..4f77bd9 100644
+--- a/arch/parisc/kernel/syscall.S
++++ b/arch/parisc/kernel/syscall.S
+@@ -923,19 +923,24 @@ ENTRY(lws_table)
+ END(lws_table)
+ 	/* End of lws table */
+ 
++#define __SYSCALL(nr, entry, nargs) ASM_ULONG_INSN entry
+ 	.align 8
+ ENTRY(sys_call_table)
+ 	.export sys_call_table,data
+-#include "syscall_table.S"
++#ifdef CONFIG_64BIT
++#include <asm/syscall_table_c32.h>   /* Compat syscalls */
++#else
++#include <asm/syscall_table_32.h>    /* 32-bit native syscalls */
++#endif
+ END(sys_call_table)
+ 
+ #ifdef CONFIG_64BIT
+ 	.align 8
+ ENTRY(sys_call_table64)
+-#define SYSCALL_TABLE_64BIT
+-#include "syscall_table.S"
++#include <asm/syscall_table_64.h>    /* 64-bit native syscalls */
+ END(sys_call_table64)
+ #endif
++#undef __SYSCALL
+ 
+ 	/*
+ 		All light-weight-syscall atomic operations 
+diff --git a/arch/parisc/kernel/syscall_table.S b/arch/parisc/kernel/syscall_table.S
+deleted file mode 100644
+index fe3f2a4..0000000
+--- a/arch/parisc/kernel/syscall_table.S
++++ /dev/null
+@@ -1,459 +0,0 @@
+-/*    System Call Table
+- *
+- *    Copyright (C) 1999-2004 Matthew Wilcox <willy at parisc-linux.org>
+- *    Copyright (C) 2000-2001 John Marvin <jsm at parisc-linux.org>
+- *    Copyright (C) 2000 Alan Modra <amodra at parisc-linux.org>
+- *    Copyright (C) 2000-2003 Paul Bame <bame at parisc-linux.org>
+- *    Copyright (C) 2000 Philipp Rumpf <prumpf with tux.org>
+- *    Copyright (C) 2000 Michael Ang <mang with subcarrier.org>
+- *    Copyright (C) 2000 David Huggins-Daines <dhd with pobox.org>
+- *    Copyright (C) 2000 Grant Grundler <grundler at parisc-linux.org>
+- *    Copyright (C) 2001 Richard Hirst <rhirst with parisc-linux.org>
+- *    Copyright (C) 2001-2002 Ryan Bradetich <rbrad at parisc-linux.org>
+- *    Copyright (C) 2001-2007 Helge Deller <deller at parisc-linux.org>
+- *    Copyright (C) 2000-2001 Thomas Bogendoerfer <tsbogend at parisc-linux.org>
+- *    Copyright (C) 2002 Randolph Chung <tausq with parisc-linux.org>
+- *    Copyright (C) 2005-2006 Kyle McMartin <kyle at parisc-linux.org>
+- *
+- *    This program is free software; you can redistribute it and/or modify
+- *    it under the terms of the GNU General Public License as published by
+- *    the Free Software Foundation; either version 2 of the License, or
+- *    (at your option) any later version.
+- *
+- *    This program is distributed in the hope that it will be useful,
+- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *    GNU General Public License for more details.
+- *
+- *    You should have received a copy of the GNU General Public License
+- *    along with this program; if not, write to the Free Software
+- *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+- */
+-
+-#if defined(CONFIG_64BIT) && !defined(SYSCALL_TABLE_64BIT)
+-/* Use ENTRY_SAME for 32-bit syscalls which are the same on wide and
+- * narrow palinux.  Use ENTRY_DIFF for those where a 32-bit specific
+- * implementation is required on wide palinux.  Use ENTRY_COMP where
+- * the compatibility layer has a useful 32-bit implementation.
+- */
+-#define ENTRY_SAME(_name_) .dword sys_##_name_
+-#define ENTRY_DIFF(_name_) .dword sys32_##_name_
+-#define ENTRY_UHOH(_name_) .dword sys32_##unimplemented
+-#define ENTRY_OURS(_name_) .dword parisc_##_name_
+-#define ENTRY_COMP(_name_) .dword compat_sys_##_name_
+-#elif defined(CONFIG_64BIT) && defined(SYSCALL_TABLE_64BIT)
+-#define ENTRY_SAME(_name_) .dword sys_##_name_
+-#define ENTRY_DIFF(_name_) .dword sys_##_name_
+-#define ENTRY_UHOH(_name_) .dword sys_##_name_
+-#define ENTRY_OURS(_name_) .dword sys_##_name_
+-#define ENTRY_COMP(_name_) .dword sys_##_name_
+-#else
+-#define ENTRY_SAME(_name_) .word sys_##_name_
+-#define ENTRY_DIFF(_name_) .word sys_##_name_
+-#define ENTRY_UHOH(_name_) .word sys_##_name_
+-#define ENTRY_OURS(_name_) .word parisc_##_name_
+-#define ENTRY_COMP(_name_) .word sys_##_name_
+-#endif
+-
+-90:	ENTRY_SAME(restart_syscall)	/* 0 */
+-91:	ENTRY_SAME(exit)
+-	ENTRY_SAME(fork_wrapper)
+-	ENTRY_SAME(read)
+-	ENTRY_SAME(write)
+-	ENTRY_COMP(open)		/* 5 */
+-	ENTRY_SAME(close)
+-	ENTRY_SAME(waitpid)
+-	ENTRY_SAME(creat)
+-	ENTRY_SAME(link)
+-	ENTRY_SAME(unlink)		/* 10 */
+-	ENTRY_COMP(execve)
+-	ENTRY_SAME(chdir)
+-	/* See comments in kernel/time.c!!! Maybe we don't need this? */
+-	ENTRY_COMP(time)
+-	ENTRY_SAME(mknod)
+-	ENTRY_SAME(chmod)		/* 15 */
+-	ENTRY_SAME(lchown)
+-	ENTRY_SAME(socket)
+-	/* struct stat is MAYBE identical wide and narrow ?? */
+-	ENTRY_COMP(newstat)
+-	ENTRY_COMP(lseek)
+-	ENTRY_SAME(getpid)		/* 20 */
+-	/* the 'void * data' parameter may need re-packing in wide */
+-	ENTRY_COMP(mount)
+-	/* concerned about struct sockaddr in wide/narrow */
+-	/* ---> I think sockaddr is OK unless the compiler packs the struct */
+-	/*      differently to align the char array */
+-	ENTRY_SAME(bind)
+-	ENTRY_SAME(setuid)
+-	ENTRY_SAME(getuid)
+-	ENTRY_COMP(stime)		/* 25 */
+-	ENTRY_COMP(ptrace)
+-	ENTRY_SAME(alarm)
+-	/* see stat comment */
+-	ENTRY_COMP(newfstat)
+-	ENTRY_SAME(pause)
+-	/* struct utimbuf uses time_t which might vary */
+-	ENTRY_COMP(utime)		/* 30 */
+-	/* struct sockaddr... */
+-	ENTRY_SAME(connect)
+-	ENTRY_SAME(listen)
+-	ENTRY_SAME(access)
+-	ENTRY_SAME(nice)
+-	/* struct sockaddr... */
+-	ENTRY_SAME(accept)		/* 35 */
+-	ENTRY_SAME(sync)
+-	ENTRY_SAME(kill)
+-	ENTRY_SAME(rename)
+-	ENTRY_SAME(mkdir)
+-	ENTRY_SAME(rmdir)		/* 40 */
+-	ENTRY_SAME(dup)
+-	ENTRY_SAME(pipe)
+-	ENTRY_COMP(times)
+-	/* struct sockaddr... */
+-	ENTRY_SAME(getsockname)
+-	/* it seems possible brk() could return a >4G pointer... */
+-	ENTRY_SAME(brk)			/* 45 */
+-	ENTRY_SAME(setgid)
+-	ENTRY_SAME(getgid)
+-	ENTRY_SAME(signal)
+-	ENTRY_SAME(geteuid)
+-	ENTRY_SAME(getegid)		/* 50 */
+-	ENTRY_SAME(acct)
+-	ENTRY_SAME(umount)
+-	/* struct sockaddr... */
+-	ENTRY_SAME(getpeername)
+-	ENTRY_COMP(ioctl)
+-	ENTRY_COMP(fcntl)		/* 55 */
+-	ENTRY_SAME(socketpair)
+-	ENTRY_SAME(setpgid)
+-	ENTRY_SAME(send)
+-	ENTRY_SAME(newuname)
+-	ENTRY_SAME(umask)		/* 60 */
+-	ENTRY_SAME(chroot)
+-	ENTRY_COMP(ustat)
+-	ENTRY_SAME(dup2)
+-	ENTRY_SAME(getppid)
+-	ENTRY_SAME(getpgrp)		/* 65 */
+-	ENTRY_SAME(setsid)
+-	ENTRY_SAME(pivot_root)
+-	/* I don't like this */
+-	ENTRY_UHOH(sgetmask)
+-	ENTRY_UHOH(ssetmask)
+-	ENTRY_SAME(setreuid)		/* 70 */
+-	ENTRY_SAME(setregid)
+-	ENTRY_SAME(mincore)
+-	ENTRY_COMP(sigpending)
+-	ENTRY_SAME(sethostname)
+-	/* Following 3 have linux-common-code structs containing longs -( */
+-	ENTRY_COMP(setrlimit)		/* 75 */
+-	ENTRY_COMP(getrlimit)
+-	ENTRY_COMP(getrusage)
+-	/* struct timeval and timezone are maybe?? consistent wide and narrow */
+-	ENTRY_COMP(gettimeofday)
+-	ENTRY_COMP(settimeofday)
+-	ENTRY_SAME(getgroups)		/* 80 */
+-	ENTRY_SAME(setgroups)
+-	/* struct socketaddr... */
+-	ENTRY_SAME(sendto)
+-	ENTRY_SAME(symlink)
+-	/* see stat comment */
+-	ENTRY_COMP(newlstat)
+-	ENTRY_SAME(readlink)		/* 85 */
+-	ENTRY_SAME(ni_syscall)	/* was uselib */
+-	ENTRY_SAME(swapon)
+-	ENTRY_SAME(reboot)
+-	ENTRY_SAME(mmap2)
+-	ENTRY_SAME(mmap)		/* 90 */
+-	ENTRY_SAME(munmap)
+-	ENTRY_COMP(truncate)
+-	ENTRY_COMP(ftruncate)
+-	ENTRY_SAME(fchmod)
+-	ENTRY_SAME(fchown)		/* 95 */
+-	ENTRY_SAME(getpriority)
+-	ENTRY_SAME(setpriority)
+-	ENTRY_SAME(recv)
+-	ENTRY_COMP(statfs)
+-	ENTRY_COMP(fstatfs)		/* 100 */
+-	ENTRY_SAME(stat64)
+-	ENTRY_SAME(ni_syscall)	/* was socketcall */
+-	ENTRY_SAME(syslog)
+-	/* even though manpage says struct timeval contains longs, ours has
+-	 * time_t and suseconds_t -- both of which are safe wide/narrow */
+-	ENTRY_COMP(setitimer)
+-	ENTRY_COMP(getitimer)		/* 105 */
+-	ENTRY_SAME(capget)
+-	ENTRY_SAME(capset)
+-	ENTRY_OURS(pread64)
+-	ENTRY_OURS(pwrite64)
+-	ENTRY_SAME(getcwd)		/* 110 */
+-	ENTRY_SAME(vhangup)
+-	ENTRY_SAME(fstat64)
+-	ENTRY_SAME(vfork_wrapper)
+-	/* struct rusage contains longs... */
+-	ENTRY_COMP(wait4)
+-	ENTRY_SAME(swapoff)		/* 115 */
+-	ENTRY_COMP(sysinfo)
+-	ENTRY_SAME(shutdown)
+-	ENTRY_SAME(fsync)
+-	ENTRY_SAME(madvise)
+-	ENTRY_SAME(clone_wrapper)	/* 120 */
+-	ENTRY_SAME(setdomainname)
+-	ENTRY_COMP(sendfile)
+-	/* struct sockaddr... */
+-	ENTRY_SAME(recvfrom)
+-	/* struct timex contains longs */
+-	ENTRY_COMP(adjtimex)
+-	ENTRY_SAME(mprotect)		/* 125 */
+-	/* old_sigset_t forced to 32 bits.  Beware glibc sigset_t */
+-	ENTRY_COMP(sigprocmask)
+-	ENTRY_SAME(ni_syscall)	/* create_module */
+-	ENTRY_SAME(init_module)
+-	ENTRY_SAME(delete_module)
+-	ENTRY_SAME(ni_syscall)		/* 130: get_kernel_syms */
+-	/* time_t inside struct dqblk */
+-	ENTRY_SAME(quotactl)
+-	ENTRY_SAME(getpgid)
+-	ENTRY_SAME(fchdir)
+-	ENTRY_SAME(bdflush)
+-	ENTRY_SAME(sysfs)		/* 135 */
+-	ENTRY_OURS(personality)
+-	ENTRY_SAME(ni_syscall)	/* for afs_syscall */
+-	ENTRY_SAME(setfsuid)
+-	ENTRY_SAME(setfsgid)
+-	/* I think this might work */
+-	ENTRY_SAME(llseek)		/* 140 */
+-	ENTRY_COMP(getdents)
+-	/* it is POSSIBLE that select will be OK because even though fd_set
+-	 * contains longs, the macros and sizes are clever. */
+-	ENTRY_COMP(select)
+-	ENTRY_SAME(flock)
+-	ENTRY_SAME(msync)
+-	/* struct iovec contains pointers */
+-	ENTRY_COMP(readv)		/* 145 */
+-	ENTRY_COMP(writev)
+-	ENTRY_SAME(getsid)
+-	ENTRY_SAME(fdatasync)
+-	/* struct __sysctl_args is a mess */
+-	ENTRY_COMP(sysctl)
+-	ENTRY_SAME(mlock)		/* 150 */
+-	ENTRY_SAME(munlock)
+-	ENTRY_SAME(mlockall)
+-	ENTRY_SAME(munlockall)
+-	/* struct sched_param is ok for now */
+-	ENTRY_SAME(sched_setparam)
+-	ENTRY_SAME(sched_getparam)	/* 155 */
+-	ENTRY_SAME(sched_setscheduler)
+-	ENTRY_SAME(sched_getscheduler)
+-	ENTRY_SAME(sched_yield)
+-	ENTRY_SAME(sched_get_priority_max)
+-	ENTRY_SAME(sched_get_priority_min)	/* 160 */
+-	ENTRY_COMP(sched_rr_get_interval)
+-	ENTRY_COMP(nanosleep)
+-	ENTRY_SAME(mremap)
+-	ENTRY_SAME(setresuid)
+-	ENTRY_SAME(getresuid)		/* 165 */
+-	ENTRY_COMP(sigaltstack)
+-	ENTRY_SAME(ni_syscall)		/* query_module */
+-	ENTRY_SAME(poll)
+-	/* structs contain pointers and an in_addr... */
+-	ENTRY_SAME(ni_syscall)		/* was nfsservctl */
+-	ENTRY_SAME(setresgid)		/* 170 */
+-	ENTRY_SAME(getresgid)
+-	ENTRY_SAME(prctl)
+-	/* signals need a careful review */
+-	ENTRY_SAME(rt_sigreturn_wrapper)
+-	ENTRY_COMP(rt_sigaction)
+-	ENTRY_COMP(rt_sigprocmask)	/* 175 */
+-	ENTRY_COMP(rt_sigpending)
+-	ENTRY_COMP(rt_sigtimedwait)
+-	/* even though the struct siginfo_t is different, it appears like
+-	 * all the paths use values which should be same wide and narrow.
+-	 * Also the struct is padded to 128 bytes which means we don't have
+-	 * to worry about faulting trying to copy in a larger 64-bit
+-	 * struct from a 32-bit user-space app.
+-	 */
+-	ENTRY_COMP(rt_sigqueueinfo)
+-	ENTRY_COMP(rt_sigsuspend)
+-	ENTRY_SAME(chown)		/* 180 */
+-	/* setsockopt() used by iptables: SO_SET_REPLACE/SO_SET_ADD_COUNTERS */
+-	ENTRY_COMP(setsockopt)
+-	ENTRY_COMP(getsockopt)
+-	ENTRY_COMP(sendmsg)
+-	ENTRY_COMP(recvmsg)
+-	ENTRY_SAME(semop)		/* 185 */
+-	ENTRY_SAME(semget)
+-	ENTRY_COMP(semctl)
+-	ENTRY_COMP(msgsnd)
+-	ENTRY_COMP(msgrcv)
+-	ENTRY_SAME(msgget)		/* 190 */
+-	ENTRY_COMP(msgctl)
+-	ENTRY_COMP(shmat)
+-	ENTRY_SAME(shmdt)
+-	ENTRY_SAME(shmget)
+-	ENTRY_COMP(shmctl)		/* 195 */
+-	ENTRY_SAME(ni_syscall)		/* streams1 */
+-	ENTRY_SAME(ni_syscall)		/* streams2 */
+-	ENTRY_SAME(lstat64)
+-	ENTRY_OURS(truncate64)
+-	ENTRY_OURS(ftruncate64)		/* 200 */
+-	ENTRY_SAME(getdents64)
+-	ENTRY_COMP(fcntl64)
+-	ENTRY_SAME(ni_syscall)	/* attrctl -- dead */
+-	ENTRY_SAME(ni_syscall)	/* acl_get -- dead */
+-	ENTRY_SAME(ni_syscall)		/* 205 (acl_set -- dead) */
+-	ENTRY_SAME(gettid)
+-	ENTRY_OURS(readahead)
+-	ENTRY_SAME(tkill)
+-	ENTRY_COMP(sendfile64)
+-	ENTRY_COMP(futex)		/* 210 */
+-	ENTRY_COMP(sched_setaffinity)
+-	ENTRY_COMP(sched_getaffinity)
+-	ENTRY_SAME(ni_syscall)	/* set_thread_area */
+-	ENTRY_SAME(ni_syscall)	/* get_thread_area */
+-	ENTRY_COMP(io_setup)		/* 215 */
+-	ENTRY_SAME(io_destroy)
+-	ENTRY_COMP(io_getevents)
+-	ENTRY_COMP(io_submit)
+-	ENTRY_SAME(io_cancel)
+-	ENTRY_SAME(ni_syscall)		/* 220: was alloc_hugepages */
+-	ENTRY_SAME(ni_syscall)		/* was free_hugepages */
+-	ENTRY_SAME(exit_group)
+-	ENTRY_COMP(lookup_dcookie)
+-	ENTRY_SAME(epoll_create)
+-	ENTRY_SAME(epoll_ctl)		/* 225 */
+-	ENTRY_SAME(epoll_wait)
+- 	ENTRY_SAME(remap_file_pages)
+-	ENTRY_COMP(semtimedop)
+-	ENTRY_COMP(mq_open)
+-	ENTRY_SAME(mq_unlink)		/* 230 */
+-	ENTRY_COMP(mq_timedsend)
+-	ENTRY_COMP(mq_timedreceive)
+-	ENTRY_COMP(mq_notify)
+-	ENTRY_COMP(mq_getsetattr)
+-	ENTRY_COMP(waitid)		/* 235 */
+-	ENTRY_OURS(fadvise64_64)
+-	ENTRY_SAME(set_tid_address)
+-	ENTRY_SAME(setxattr)
+-	ENTRY_SAME(lsetxattr)
+-	ENTRY_SAME(fsetxattr)		/* 240 */
+-	ENTRY_SAME(getxattr)
+-	ENTRY_SAME(lgetxattr)
+-	ENTRY_SAME(fgetxattr)
+-	ENTRY_SAME(listxattr)
+-	ENTRY_SAME(llistxattr)		/* 245 */
+-	ENTRY_SAME(flistxattr)
+-	ENTRY_SAME(removexattr)
+-	ENTRY_SAME(lremovexattr)
+-	ENTRY_SAME(fremovexattr)
+-	ENTRY_COMP(timer_create)	/* 250 */
+-	ENTRY_COMP(timer_settime)
+-	ENTRY_COMP(timer_gettime)
+-	ENTRY_SAME(timer_getoverrun)
+-	ENTRY_SAME(timer_delete)
+-	ENTRY_COMP(clock_settime)	/* 255 */
+-	ENTRY_COMP(clock_gettime)
+-	ENTRY_COMP(clock_getres)
+-	ENTRY_COMP(clock_nanosleep)
+-	ENTRY_SAME(tgkill)
+-	ENTRY_COMP(mbind)		/* 260 */
+-	ENTRY_COMP(get_mempolicy)
+-	ENTRY_COMP(set_mempolicy)
+-	ENTRY_SAME(ni_syscall)	/* 263: reserved for vserver */
+-	ENTRY_SAME(add_key)
+-	ENTRY_SAME(request_key)		/* 265 */
+-	ENTRY_COMP(keyctl)
+-	ENTRY_SAME(ioprio_set)
+-	ENTRY_SAME(ioprio_get)
+-	ENTRY_SAME(inotify_init)
+-	ENTRY_SAME(inotify_add_watch)	/* 270 */
+-	ENTRY_SAME(inotify_rm_watch)
+-	ENTRY_SAME(migrate_pages)
+-	ENTRY_COMP(pselect6)
+-	ENTRY_COMP(ppoll)
+-	ENTRY_COMP(openat)		/* 275 */
+-	ENTRY_SAME(mkdirat)
+-	ENTRY_SAME(mknodat)
+-	ENTRY_SAME(fchownat)
+-	ENTRY_COMP(futimesat)
+-	ENTRY_SAME(fstatat64)		/* 280 */
+-	ENTRY_SAME(unlinkat)
+-	ENTRY_SAME(renameat)
+-	ENTRY_SAME(linkat)
+-	ENTRY_SAME(symlinkat)
+-	ENTRY_SAME(readlinkat)		/* 285 */
+-	ENTRY_SAME(fchmodat)
+-	ENTRY_SAME(faccessat)
+-	ENTRY_SAME(unshare)
+-	ENTRY_COMP(set_robust_list)
+-	ENTRY_COMP(get_robust_list)	/* 290 */
+-	ENTRY_SAME(splice)
+-	ENTRY_OURS(sync_file_range)
+-	ENTRY_SAME(tee)
+-	ENTRY_COMP(vmsplice)
+-	ENTRY_COMP(move_pages)		/* 295 */
+-	ENTRY_SAME(getcpu)
+-	ENTRY_COMP(epoll_pwait)
+-	ENTRY_COMP(statfs64)
+-	ENTRY_COMP(fstatfs64)
+-	ENTRY_COMP(kexec_load)		/* 300 */
+-	ENTRY_COMP(utimensat)
+-	ENTRY_COMP(signalfd)
+-	ENTRY_SAME(ni_syscall)		/* was timerfd */
+-	ENTRY_SAME(eventfd)
+-	ENTRY_OURS(fallocate)		/* 305 */
+-	ENTRY_SAME(timerfd_create)
+-	ENTRY_COMP(timerfd_settime)
+-	ENTRY_COMP(timerfd_gettime)
+-	ENTRY_COMP(signalfd4)
+-	ENTRY_SAME(eventfd2)		/* 310 */
+-	ENTRY_SAME(epoll_create1)
+-	ENTRY_SAME(dup3)
+-	ENTRY_SAME(pipe2)
+-	ENTRY_SAME(inotify_init1)
+-	ENTRY_COMP(preadv)		/* 315 */
+-	ENTRY_COMP(pwritev)
+-	ENTRY_COMP(rt_tgsigqueueinfo)
+-	ENTRY_SAME(perf_event_open)
+-	ENTRY_COMP(recvmmsg)
+-	ENTRY_SAME(accept4)		/* 320 */
+-	ENTRY_SAME(prlimit64)
+-	ENTRY_SAME(fanotify_init)
+-	ENTRY_DIFF(fanotify_mark)
+-	ENTRY_COMP(clock_adjtime)
+-	ENTRY_SAME(name_to_handle_at)	/* 325 */
+-	ENTRY_COMP(open_by_handle_at)
+-	ENTRY_SAME(syncfs)
+-	ENTRY_SAME(setns)
+-	ENTRY_COMP(sendmmsg)
+-	ENTRY_COMP(process_vm_readv)	/* 330 */
+-	ENTRY_COMP(process_vm_writev)
+-	ENTRY_SAME(kcmp)
+-	ENTRY_SAME(finit_module)
+-	ENTRY_SAME(sched_setattr)
+-	ENTRY_SAME(sched_getattr)	/* 335 */
+-	ENTRY_COMP(utimes)
+-	ENTRY_SAME(renameat2)
+-	ENTRY_SAME(seccomp)
+-	ENTRY_SAME(getrandom)
+-	ENTRY_SAME(memfd_create)	/* 340 */
+-	ENTRY_SAME(bpf)
+-	ENTRY_COMP(execveat)
+-	ENTRY_SAME(membarrier)
+-	ENTRY_SAME(userfaultfd)
+-	ENTRY_SAME(mlock2)		/* 345 */
+-	ENTRY_SAME(copy_file_range)
+-	ENTRY_COMP(preadv2)
+-	ENTRY_COMP(pwritev2)
+-	ENTRY_SAME(statx)
+-	ENTRY_COMP(io_pgetevents)	/* 350 */
+-
+-
+-.ifne (. - 90b) - (__NR_Linux_syscalls * (91b - 90b))
+-.error "size of syscall table does not fit value of __NR_Linux_syscalls"
+-.endif
+-
+-#undef ENTRY_SAME
+-#undef ENTRY_DIFF
+-#undef ENTRY_UHOH
+-#undef ENTRY_COMP
+-#undef ENTRY_OURS
 -- 
 1.9.1
