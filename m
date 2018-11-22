@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47712 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47624 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390877AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2390875AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 22 Nov 2018 06:10:19 -0500
-Message-ID: <20181122003332.793493004@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:11 -0500
+Message-ID: <20181122003332.643482042@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:10 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 10/18] riscv/function_graph: Simplify with function_graph_entry()
+Subject: [for-next][PATCH 09/18] powerpc/function_graph: Simplify with function_graph_entry()
 References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Greentime Hu <greentime@andestech.com>, Alan Kao <alankao@andestech.com>, Palmer Dabbelt <palmer@sifive.com>, stable@kernel.org
-Message-ID: <20181122002811.C1Zi5owi5pRCPpM7LW8Qysd0tW1_lX_jJirvhg6L2YQ@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, stable@kernel.org
+Message-ID: <20181122002810.33KJxroi7fYwbjvT4qiHsMirSztnFYJlnsBPc89L5mI@z>
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
@@ -22,53 +22,55 @@ The function_graph_entry() function does the work of calling the function
 graph hook function and the management of the shadow stack, simplifying the
 work done in the architecture dependent prepare_ftrace_return().
 
-Have riscv use the new code, and remove the shadow stack management as well as
+Have powerpc use the new code, and remove the shadow stack management as well as
 having to set up the trace structure.
 
 This is needed to prepare for a fix of a design bug on how the curr_ret_stack
 is used.
 
-Cc: Greentime Hu <greentime@andestech.com>
-Cc: Alan Kao <alankao@andestech.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/riscv/kernel/ftrace.c | 14 ++------------
- 1 file changed, 2 insertions(+), 12 deletions(-)
+ arch/powerpc/kernel/trace/ftrace.c | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-diff --git a/arch/riscv/kernel/ftrace.c b/arch/riscv/kernel/ftrace.c
-index 1157b6b52d25..c433f6d3dd64 100644
---- a/arch/riscv/kernel/ftrace.c
-+++ b/arch/riscv/kernel/ftrace.c
-@@ -132,7 +132,6 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
+diff --git a/arch/powerpc/kernel/trace/ftrace.c b/arch/powerpc/kernel/trace/ftrace.c
+index 4bf051d3e21e..b65c8a34ad6e 100644
+--- a/arch/powerpc/kernel/trace/ftrace.c
++++ b/arch/powerpc/kernel/trace/ftrace.c
+@@ -950,7 +950,6 @@ int ftrace_disable_ftrace_graph_caller(void)
+  */
+ unsigned long prepare_ftrace_return(unsigned long parent, unsigned long ip)
  {
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
- 	unsigned long old;
 -	struct ftrace_graph_ent trace;
- 	int err;
+ 	unsigned long return_hooker;
  
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
-@@ -144,17 +143,8 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
- 	 */
- 	old = *parent;
+ 	if (unlikely(ftrace_graph_is_dead()))
+@@ -961,18 +960,8 @@ unsigned long prepare_ftrace_return(unsigned long parent, unsigned long ip)
  
--	trace.func = self_addr;
+ 	return_hooker = ppc_function_entry(return_to_handler);
+ 
+-	trace.func = ip;
 -	trace.depth = current->curr_ret_stack + 1;
 -
+-	/* Only trace if the calling function expects to */
 -	if (!ftrace_graph_entry(&trace))
--		return;
+-		goto out;
 -
--	err = ftrace_push_return_trace(old, self_addr, &trace.depth,
--				       frame_pointer, parent);
--	if (err == -EBUSY)
--		return;
--	*parent = return_hooker;
-+	if (function_graph_enter(old, self_addr, frame_pointer, parent))
-+		*parent = return_hooker;
+-	if (ftrace_push_return_trace(parent, ip, &trace.depth, 0,
+-				     NULL) == -EBUSY)
+-		goto out;
+-
+-	parent = return_hooker;
++	if (!function_graph_enter(parent, ip, 0, NULL))
++		parent = return_hooker;
+ out:
+ 	return parent;
  }
- 
- #ifdef CONFIG_DYNAMIC_FTRACE
 -- 
 2.19.1
