@@ -1,76 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47712 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:48028 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388198AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Nov 2018 06:10:19 -0500
-Message-ID: <20181122003332.346955071@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:08 -0500
+        id S2390885AbeKVLKU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Nov 2018 06:10:20 -0500
+Message-ID: <20181122003333.738228014@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:17 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 07/18] nds32: function_graph: Simplify with function_graph_entry()
+Subject: [for-next][PATCH 16/18] function_graph: Move return callback before update of curr_ret_stack
 References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Greentime Hu <greentime@andestech.com>, stable@kernel.org
-Message-ID: <20181122002808.6O3pJIF-rS5iK__tIAdo-OxB8_m4vKYoerevR-AuPu0@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
+Message-ID: <20181122002817.7TlHsSQFnDiu0dW32H_r0k0U2nVVnRxySm8Ovn2ormE@z>
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The function_graph_entry() function does the work of calling the function
-graph hook function and the management of the shadow stack, simplifying the
-work done in the architecture dependent prepare_ftrace_return().
+In the past, curr_ret_stack had two functions. One was to denote the depth
+of the call graph, the other is to keep track of where on the ret_stack the
+data is used. Although they may be slightly related, there are two cases
+where they need to be used differently.
 
-Have nds32 use the new code, and remove the shadow stack management as well as
-having to set up the trace structure.
+The one case is that it keeps the ret_stack data from being corrupted by an
+interrupt coming in and overwriting the data still in use. The other is just
+to know where the depth of the stack currently is.
 
-This is needed to prepare for a fix of a design bug on how the curr_ret_stack
-is used.
+The function profiler uses the ret_stack to save a "subtime" variable that
+is part of the data on the ret_stack. If curr_ret_stack is modified too
+early, then this variable can be corrupted.
 
-Cc: Greentime Hu <greentime@andestech.com>
+The "max_depth" option, when set to 1, will record the first functions going
+into the kernel. To see all top functions (when dealing with timings), the
+depth variable needs to be lowered before calling the return hook. But by
+lowering the curr_ret_stack, it makes the data on the ret_stack still being
+used by the return hook susceptible to being overwritten.
+
+Now that there's two variables to handle both cases (curr_ret_depth), we can
+move them to the locations where they can handle both cases.
+
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/nds32/kernel/ftrace.c | 18 ++----------------
- 1 file changed, 2 insertions(+), 16 deletions(-)
+ kernel/trace/trace_functions_graph.c | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
 
-diff --git a/arch/nds32/kernel/ftrace.c b/arch/nds32/kernel/ftrace.c
-index a0a9679ad5de..8a41372551ff 100644
---- a/arch/nds32/kernel/ftrace.c
-+++ b/arch/nds32/kernel/ftrace.c
-@@ -211,29 +211,15 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
- 			   unsigned long frame_pointer)
- {
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
--	struct ftrace_graph_ent trace;
- 	unsigned long old;
--	int err;
- 
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
- 
- 	old = *parent;
- 
--	trace.func = self_addr;
--	trace.depth = current->curr_ret_stack + 1;
--
--	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace))
--		return;
--
--	err = ftrace_push_return_trace(old, self_addr, &trace.depth,
--				       frame_pointer, NULL);
--
--	if (err == -EBUSY)
--		return;
--
--	*parent = return_hooker;
-+	if (!function_graph_enter(old, self_addr, frame_pointer, NULL))
-+		*parent = return_hooker;
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 02d4081a7f5a..4f0d72ae6362 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -261,7 +261,13 @@ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
+ 	trace->func = current->ret_stack[index].func;
+ 	trace->calltime = current->ret_stack[index].calltime;
+ 	trace->overrun = atomic_read(&current->trace_overrun);
+-	trace->depth = current->curr_ret_depth;
++	trace->depth = current->curr_ret_depth--;
++	/*
++	 * We still want to trace interrupts coming in if
++	 * max_depth is set to 1. Make sure the decrement is
++	 * seen before ftrace_graph_return.
++	 */
++	barrier();
  }
  
- noinline void ftrace_graph_caller(void)
+ /*
+@@ -275,9 +281,14 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
+ 
+ 	ftrace_pop_return_trace(&trace, &ret, frame_pointer);
+ 	trace.rettime = trace_clock_local();
++	ftrace_graph_return(&trace);
++	/*
++	 * The ftrace_graph_return() may still access the current
++	 * ret_stack structure, we need to make sure the update of
++	 * curr_ret_stack is after that.
++	 */
+ 	barrier();
+ 	current->curr_ret_stack--;
+-	current->curr_ret_depth--;
+ 	/*
+ 	 * The curr_ret_stack can be less than -1 only if it was
+ 	 * filtered out and it's about to return from the function.
+@@ -288,13 +299,6 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
+ 		return ret;
+ 	}
+ 
+-	/*
+-	 * The trace should run after decrementing the ret counter
+-	 * in case an interrupt were to come in. We don't want to
+-	 * lose the interrupt if max_depth is set.
+-	 */
+-	ftrace_graph_return(&trace);
+-
+ 	if (unlikely(!ret)) {
+ 		ftrace_graph_stop();
+ 		WARN_ON(1);
 -- 
 2.19.1
