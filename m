@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:58456 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:59632 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732590AbeKWAnd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:33 -0500
+        with ESMTP id S1731181AbeKWAnm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:42 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/24] parisc/ccio: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:06 +0100
-Message-ID: <20181122140320.24080-11-hch@lst.de>
+Subject: [PATCH 12/24] arm64: remove the dummy_dma_ops mapping_error method
+Date: Thu, 22 Nov 2018 15:03:08 +0100
+Message-ID: <20181122140320.24080-13-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,58 +15,48 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140306._y_k9fLRmS3g971RqRSAh6Aj5Rw6m3GK7alfJEw3gHM@z>
+Message-ID: <20181122140308.fKlIhlahEBjEqxSqFaL_X4XW0cYlDLi2MHkSms2w3Rs@z>
 
-The CCIO iommu code already returns (~(dma_addr_t)0x0) on mapping
-failures, so we can switch over to returning DMA_MAPPING_ERROR and let
-the core dma-mapping code handle the rest.
+Just return DMA_MAPPING_ERROR from __dummy_map_page and let the core
+dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/parisc/ccio-dma.c | 10 +---------
- 1 file changed, 1 insertion(+), 9 deletions(-)
+ arch/arm64/mm/dma-mapping.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/drivers/parisc/ccio-dma.c b/drivers/parisc/ccio-dma.c
-index 701a7d6a74d5..714aac72df0e 100644
---- a/drivers/parisc/ccio-dma.c
-+++ b/drivers/parisc/ccio-dma.c
-@@ -110,8 +110,6 @@
- #define CMD_TLB_DIRECT_WRITE 35         /* IO_COMMAND for I/O TLB Writes     */
- #define CMD_TLB_PURGE        33         /* IO_COMMAND to Purge I/O TLB entry */
- 
--#define CCIO_MAPPING_ERROR    (~(dma_addr_t)0)
--
- struct ioa_registers {
-         /* Runway Supervisory Set */
-         int32_t    unused1[12];
-@@ -740,7 +738,7 @@ ccio_map_single(struct device *dev, void *addr, size_t size,
- 	BUG_ON(!dev);
- 	ioc = GET_IOC(dev);
- 	if (!ioc)
--		return CCIO_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	BUG_ON(size <= 0);
- 
-@@ -1021,11 +1019,6 @@ ccio_unmap_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 	DBG_RUN_SG("%s() DONE (nents %d)\n", __func__, nents);
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index a3ac26284845..fdc26ea5036c 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -282,7 +282,7 @@ static dma_addr_t __dummy_map_page(struct device *dev, struct page *page,
+ 				   enum dma_data_direction dir,
+ 				   unsigned long attrs)
+ {
+-	return 0;
++	return DMA_MAPPING_ERROR;
  }
  
--static int ccio_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ static void __dummy_unmap_page(struct device *dev, dma_addr_t dev_addr,
+@@ -317,11 +317,6 @@ static void __dummy_sync_sg(struct device *dev,
+ {
+ }
+ 
+-static int __dummy_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
 -{
--	return dma_addr == CCIO_MAPPING_ERROR;
+-	return 1;
 -}
 -
- static const struct dma_map_ops ccio_ops = {
- 	.dma_supported =	ccio_dma_supported,
- 	.alloc =		ccio_alloc,
-@@ -1034,7 +1027,6 @@ static const struct dma_map_ops ccio_ops = {
- 	.unmap_page =		ccio_unmap_page,
- 	.map_sg = 		ccio_map_sg,
- 	.unmap_sg = 		ccio_unmap_sg,
--	.mapping_error =	ccio_mapping_error,
+ static int __dummy_dma_supported(struct device *hwdev, u64 mask)
+ {
+ 	return 0;
+@@ -339,7 +334,6 @@ const struct dma_map_ops dummy_dma_ops = {
+ 	.sync_single_for_device = __dummy_sync_single,
+ 	.sync_sg_for_cpu        = __dummy_sync_sg,
+ 	.sync_sg_for_device     = __dummy_sync_sg,
+-	.mapping_error          = __dummy_mapping_error,
+ 	.dma_supported          = __dummy_dma_supported,
  };
- 
- #ifdef CONFIG_PROC_FS
+ EXPORT_SYMBOL(dummy_dma_ops);
 -- 
 2.19.1
