@@ -1,68 +1,61 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: remove the ->mapping_error method from dma_map_ops V2
-Date: Thu, 22 Nov 2018 15:02:56 +0100
-Message-ID: <20181122140320.24080-1-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 01/24] dma-direct: Make DIRECT_MAPPING_ERROR viable for SWIOTLB
+Date: Thu, 22 Nov 2018 15:02:57 +0100
+Message-ID: <20181122140320.24080-2-hch@lst.de>
+References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Jon Mason <jdmason@kudzu.us>, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20181122140320.24080-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Error reporting for the dma_map_single and dma_map_page operations is
-currently a mess.  Both APIs directly return the dma_addr_t to be used for
-the DMA, with a magic error escape that is specific to the instance and
-checked by another method provided.  This has a few downsides:
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
 
- - the error check is easily forgotten and a __must_check marker doesn't
-   help as the value always is consumed anyway
- - the error checking requires another indirect call, which have gotten
-   incredibly expensive
- - a lot of code is wasted on implementing these methods
+With the overflow buffer removed, we no longer have a unique address
+which is guaranteed not to be a valid DMA target to use as an error
+token. The DIRECT_MAPPING_ERROR value of 0 tries to at least represent
+an unlikely DMA target, but unfortunately there are already SWIOTLB
+users with DMA-able memory at physical address 0 which now gets falsely
+treated as a mapping failure and leads to all manner of misbehaviour.
 
-The historical reason for this is that people thought DMA mappings would
-not fail when the API was created, which sounds like a really bad
-assumption in retrospective, and then we tried to cram error handling
-onto it later on.
+The best we can do to mitigate that is flip DIRECT_MAPPING_ERROR to the
+other commonly-used error value of all-bits-set, since the last single
+byte of memory is by far the least-likely-valid DMA target.
 
-There basically are two variants:  the error code is 0 because the
-implementation will never return 0 as a valid DMA address, or the error
-code is all-F as the implementation won't ever return an address that
-high.  The old AMD GART is the only one not falling into these two camps
-as it picks sort of a relative zero relative to where it is mapped.
+Fixes: dff8d6c1ed58 ("swiotlb: remove the overflow buffer")
+Reported-by: John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Tested-by: John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Acked-by: Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Signed-off-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+---
+ include/linux/dma-direct.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-The 0 return doesn't work for direct mappings that have ram at address
-zero and a lot of IOMMUs that start allocating bus space from address
-zero, so we can't consolidate on that, but I think we can move everyone
-to all-Fs, which the patch here does.  The reason for that is that
-there is only one way to ever get this address: by doing a 1-byte long,
-1-byte aligned mapping, but all our mappings are not only longer but
-generally aligned, and the mappings have to keep at least the basic
-alignment.
-
-Note that the first two patches are queued up for 4.20 and included
-for reference.
-
-A git tree is also available here:
-
-    git://git.infradead.org/users/hch/misc.git dma-mapping-error.2
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/dma-mapping-error.2
-
-Changes since v1:
- - dropped the signature change
- - split into multiple patches
- - fixed the iova allocator return check in amd-iommu
- - remove EMERGENCY_PAGES in amd_gart and calgary
+diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
+index bd73e7a91410..9e66bfe369aa 100644
+--- a/include/linux/dma-direct.h
++++ b/include/linux/dma-direct.h
+@@ -5,7 +5,7 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/mem_encrypt.h>
+ 
+-#define DIRECT_MAPPING_ERROR		0
++#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
+ 
+ #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
+ #include <asm/dma-direct.h>
+-- 
+2.19.1
