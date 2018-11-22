@@ -1,75 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47576 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390768AbeKVLKS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Nov 2018 06:10:18 -0500
-Message-ID: <20181122003331.917870132@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:05 -0500
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 04/18] arm64: function_graph: Simplify with function_graph_entry()
-References: <20181122002801.501220343@goodmis.org>
+Received: from rcdn-iport-4.cisco.com ([173.37.86.75]:61286 "EHLO
+        rcdn-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732372AbeKVLqn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 06:46:43 -0500
+Subject: Re: [PATCH v5] kernel/signal: Signal-based pre-coredump notification
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
+ <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
+ <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
+ <20181026082812.GA10581@redhat.com>
+ <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
+ <20181029111804.GA24820@redhat.com>
+ <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
+ <20181030164628.GD7643@redhat.com>
+ <20181121163711.2c00316784d221eb1750edb0@linux-foundation.org>
+From: Enke Chen <enkechen@cisco.com>
+Message-ID: <ae3b48ef-6bb0-2bc2-eca6-651fdb2dce37@cisco.com>
+Date: Wed, 21 Nov 2018 17:09:50 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+In-Reply-To: <20181121163711.2c00316784d221eb1750edb0@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, stable@kernel.org
-Message-ID: <20181122002805.qoyqmpYBOtQmMXEgR6U3uSA6xvfimM7j5tOj1Smplxc@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Enke Chen <enkechen@cisco.com>
+Message-ID: <20181122010950._00aO8i_dqt1bEDTANOqdAuyrW8iqQP61LeN8z-j2JI@z>
 
-From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
+Hi, Andrew:
 
-The function_graph_entry() function does the work of calling the function
-graph hook function and the management of the shadow stack, simplifying the
-work done in the architecture dependent prepare_ftrace_return().
+On 11/21/18 4:37 PM, Andrew Morton wrote:
+> On Tue, 30 Oct 2018 17:46:29 +0100 Oleg Nesterov <oleg@redhat.com> wrote:
+> 
+>> On 10/29, Enke Chen wrote:
+>>>
+>>> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+>>
+>> Hmm. I didn't say this ;)
+>>
+>> But OK, feel free to keep this tag.
+>>
+>> I do not like this feauture.
+> 
+> Why is that?
+> 
+>> But I see no technical problems in this version
+>> and I never pretented I understand the user-space needs, so I won't argue.
+> 
+> The changelog appears to spell this all out quite well?  Unusually
+> well, in my experience ;)
 
-Have arm64 use the new code, and remove the shadow stack management as well as
-having to set up the trace structure.
+I also followed up with a little more explanation in the email thread on
+10/30/2018:
 
-This is needed to prepare for a fix of a design bug on how the curr_ret_stack
-is used.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: stable@kernel.org
-Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
-Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/arm64/kernel/ftrace.c | 15 +--------------
- 1 file changed, 1 insertion(+), 14 deletions(-)
+As I explained earlier, the primary application is in the area of network
+high-availability / non-stop-forwarding where early fault notification and
+early action can help maintain BFD sessions and thus avoid unnecessary
+disruption to forwarding while the control-plane is recovering.
+---
 
-diff --git a/arch/arm64/kernel/ftrace.c b/arch/arm64/kernel/ftrace.c
-index 50986e388d2b..57e962290df3 100644
---- a/arch/arm64/kernel/ftrace.c
-+++ b/arch/arm64/kernel/ftrace.c
-@@ -216,8 +216,6 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
- {
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
- 	unsigned long old;
--	struct ftrace_graph_ent trace;
--	int err;
- 
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
-@@ -229,18 +227,7 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
- 	 */
- 	old = *parent;
- 
--	trace.func = self_addr;
--	trace.depth = current->curr_ret_stack + 1;
--
--	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace))
--		return;
--
--	err = ftrace_push_return_trace(old, self_addr, &trace.depth,
--				       frame_pointer, NULL);
--	if (err == -EBUSY)
--		return;
--	else
-+	if (!function_graph_enter(old, self_addr, frame_pointer, NULL))
- 		*parent = return_hooker;
- }
- 
--- 
-2.19.1
+BTW, I probably should have pointed out this earlier:
+
+BFD stands for "RFC 5880: Bi-directional forwarding detection".
+
+> 
+> A couple of things...
+> 
+> - We'll be looking for a manpage update please.  (Search MAINTAINERS
+>   for "manpage")
+
+Yes, I will submit a manpage update.  Most of the text is already
+written in the patch description.
+
+> 
+> - As it's a linux-specific feature, a test under
+>   tools/testing/selftests would be appropriate.  I don't know how much
+>   that work will be. 
+
+The selftest code was submitted on 10/25/2018:
+
+   [PATCH] selftests/prctl: selftest for pre-coredump signal notification
+
+> Do we have other linux-specific signal extensions which could piggyback onto that?
+
+No. There are enough existing signals that an application can choose for this
+purpose, such as SIGUSR1, SIGUSR1, and any of the RT signals.
+
+Thanks.  -- Enke
