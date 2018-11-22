@@ -1,7 +1,7 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 18/18] function_graph: Have profiler use curr_ret_stack and not depth
-Date: Wed, 21 Nov 2018 19:28:19 -0500
-Message-ID: <20181122003334.014794329@goodmis.org>
+Subject: [for-next][PATCH 14/18] function_graph: Make ftrace_push_return_trace() static
+Date: Wed, 21 Nov 2018 19:28:15 -0500
+Message-ID: <20181122003333.445140997@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
@@ -13,43 +13,46 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The profiler uses trace->depth to find its entry on the ret_stack, but the
-depth may not match the actual location of where its entry is (if an
-interrupt were to preempt the processing of the profiler for another
-function, the depth and the curr_ret_stack will be different).
+As all architectures now call function_graph_enter() to do the entry work,
+no architecture should ever call ftrace_push_return_trace(). Make it static.
 
-Have it use the curr_ret_stack as the index to find its ret_stack entry
-instead of using the depth variable, as that is no longer guaranteed to be
-the same.
+This is needed to prepare for a fix of a design bug on how the curr_ret_stack
+is used.
 
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- kernel/trace/ftrace.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/linux/ftrace.h               | 3 ---
+ kernel/trace/trace_functions_graph.c | 2 +-
+ 2 files changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 48513954713c..77734451cb05 100644
---- a/kernel/trace/ftrace.c
-+++ b/kernel/trace/ftrace.c
-@@ -817,7 +817,7 @@ function_profile_call(unsigned long ip, unsigned long parent_ip,
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- static int profile_graph_entry(struct ftrace_graph_ent *trace)
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index 5717e8f81c59..dd16e8218db3 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -776,9 +776,6 @@ struct ftrace_ret_stack {
+  */
+ extern void return_to_handler(void);
+ 
+-extern int
+-ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
+-			 unsigned long frame_pointer, unsigned long *retp);
+ extern int
+ function_graph_enter(unsigned long ret, unsigned long func,
+ 		     unsigned long frame_pointer, unsigned long *retp);
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 28f2602435d0..88ca787a1cdc 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -118,7 +118,7 @@ print_graph_duration(struct trace_array *tr, unsigned long long duration,
+ 		     struct trace_seq *s, u32 flags);
+ 
+ /* Add a function return address to the trace stack on thread info.*/
+-int
++static int
+ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
+ 			 unsigned long frame_pointer, unsigned long *retp)
  {
--	int index = trace->depth;
-+	int index = current->curr_ret_stack;
- 
- 	function_profile_call(trace->func, 0, NULL, NULL);
- 
-@@ -852,7 +852,7 @@ static void profile_graph_return(struct ftrace_graph_ret *trace)
- 	if (!fgraph_graph_time) {
- 		int index;
- 
--		index = trace->depth;
-+		index = current->curr_ret_stack;
- 
- 		/* Append this call time to the parent time to subtract */
- 		if (index)
 -- 
 2.19.1
