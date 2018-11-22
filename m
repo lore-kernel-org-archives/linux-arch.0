@@ -1,58 +1,61 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH v6 00/26] Control-flow Enforcement: Shadow Stack
-Date: Thu, 22 Nov 2018 08:53:08 -0800
-Message-ID: <CALCETrWLtpfkecfUAXJ64Z5xDeHPJxTQSci+T4RCem7vCqorTw@mail.gmail.com>
-References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Date: Thu, 22 Nov 2018 17:07:15 +0000
+Message-ID: <20181122170715.GI30658@n2100.armlinux.org.uk>
+References: <20181122140320.24080-1-hch@lst.de>
+ <CAHk-=wh=_T=A53+o4zLNbKio43LGqVDb0KCbWPDvAg54bRDmWw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wh=_T=A53+o4zLNbKio43LGqVDb0KCbWPDvAg54bRDmWw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Florian Weimer <fweimer@redhat.com>, Carlos O'Donell <carlos@redhat.com>, Rich Felker <dalias@libc.org>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@re>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, joro@8bytes.org, the arch/x86 maintainers <x86@kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, iommu@lists.linux-foundation.org, jdmason@kudzu.us, xen-devel@lists.xenproject.org, robin.murphy@arm.com, linux-arm-kernel@lists.infradead.org, m.szyprowski@samsung.com
 List-Id: linux-arch.vger.kernel.org
 
-[cc some more libc folks]
+On Thu, Nov 22, 2018 at 08:50:47AM -0800, Linus Torvalds wrote:
+> On Thu, Nov 22, 2018 at 6:03 AM Christoph Hellwig <hch@lst.de> wrote:
+> >
+> > The 0 return doesn't work for direct mappings that have ram at address
+> > zero and a lot of IOMMUs that start allocating bus space from address
+> > zero, so we can't consolidate on that, but I think we can move everyone
+> > to all-Fs, which the patch here does.
+> 
+> Hmm. Maybe not limit it to just all ones, but actually use the
+> (standard, for the kernel) IS_ERR_VALUE()?
+> 
+> That basically reserves the last 4095 values in an unsigned long for
+> error values.
+> 
+> Then those functions could actually return *what* error they
+> encountered, using just plain
+> 
+>         return -ENOMEM;
+> 
+> or whatever?
 
-I have a general question about this patch set:
+Linus,
 
-If I'm writing a user program, and I write a signal handler, there are
-two things I want to make sure I can still do:
+I'm afraid that won't work very well - 32 bit platforms with 64-bit
+addresses (LPAE) would have dma_addr_t as a 64-bit value, which
+wouldn't fit into an unsigned long.
 
-1. I want to be able to unwind directly from the signal handler
-without involving sigreturn() -- that is, I want to make sure that
-siglongjmp() works.  How does this work?  Is INCSSP involved?  How
-exactly does the user program know how much to increment SSP by?  (And
-why on Earth does INCSSP only consider the low 8 bits of its argument?
- That sounds like a mistake.  Can Intel still fix that?  On the other
-hand, what happens if you INCSSP off the end of the shadow stack
-entirely?  I assume the next access will fault as long as there's an
-appropriate guard page.)
+IS_ERR_VALUE() would cast a 64-bit DMA address down to a 32-bit
+pointer (effectively masking with 0xffffffff).  It would have the
+effect of making (eg) 0xXXXXXXXX_fffffVVV an error, where XXXXXXXX
+are any of the top 32-bits of a 64-bit bus address, and VVV is the
+error code value.
 
-2. I want to be able to modify the signal context from a signal
-handler such that, when the signal handler returns, it will return to
-a frame higher up on the call stack than where the signal started and
-to a different RIP value.  How can I do this?  I guess I can modify
-the shadow stack with WRSS if WR_SHSTK_EN=1, but how do I tell the
-kernel to kindly skip the frames I want to skip when I do sigreturn()?
+That could be a problem if you hit it in several places throughout
+your available RAM... we'd have to mark every top page of RAM in
+a naturally aligned 4GB as unusable, as well as block the top page
+in natually aligned 4GB blocks from IOMMUs... and then what about
+buses that have weird offsets...
 
-The reason I'm asking #2 is that I think it's time to resurrect my old
-vDSO syscall cancellation helper series here:
+So, I don't think the IS_ERR_VALUE() would work very well.
 
-https://lwn.net/Articles/679434/
-
-and it's not at all clear to me that __vdso_abort_pending_syscall()
-can work without kernel assistance when CET is enabled.  I want to
-make sure that it can be done, or I want to come up with some other
-way to allow a signal handler to abort a syscall while CET is on.  I
-could probably change __vdso_abort_pending_syscall() to instead point
-RIP to __kernel_vsyscall's epilogue so that we con't change the depth
-of the call stack.  But I could imagine that other user programs might
-engage in similar shenanigans and want to have some way to unwind a
-signal's return context without actually jumping there a la
-siglongjmp().
-
-Also, what is the intended setting of WR_SHSTK_EN with this patch set applied?
-
-(I suppose we could just say that 32-bit processes should not use CET,
-but that seems a bit sad.)
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
+According to speedtest.net: 11.9Mbps down 500kbps up
