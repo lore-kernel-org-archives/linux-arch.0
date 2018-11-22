@@ -1,84 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47650 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:48058 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390861AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Nov 2018 06:10:19 -0500
-Message-ID: <20181122003332.209589047@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:07 -0500
+        id S2390895AbeKVLKU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Nov 2018 06:10:20 -0500
+Message-ID: <20181122003333.880108256@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:18 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 06/18] MIPS: function_graph: Simplify with function_graph_entry()
+Subject: [for-next][PATCH 17/18] function_graph: Reverse the order of pushing the ret_stack and the
+ callback
 References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org, stable@kernel.org
-Message-ID: <20181122002807.iA3abwehk702mcXQrflabgf-rPSfWRLn2gy72sHTcRg@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
+Message-ID: <20181122002818.jjpSF2BJTO-OFa_eflIij4V5w4efgYuRKvPtURLUXzM@z>
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The function_graph_entry() function does the work of calling the function
-graph hook function and the management of the shadow stack, simplifying the
-work done in the architecture dependent prepare_ftrace_return().
+The function graph profiler uses the ret_stack to store the "subtime" and
+reuse it by nested functions and also on the return. But the current logic
+has the profiler callback called before the ret_stack is updated, and it is
+just modifying the ret_stack that will later be allocated (it's just lucky
+that the "subtime" is not touched when it is allocated).
 
-Have MIPS use the new code, and remove the shadow stack management as well as
-having to set up the trace structure.
+This could also cause a crash if we are at the end of the ret_stack when
+this happens.
 
-This is needed to prepare for a fix of a design bug on how the curr_ret_stack
-is used.
+By reversing the order of the allocating the ret_stack and then calling the
+callbacks attached to a function being traced, the ret_stack entry is no
+longer used before it is allocated.
 
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: linux-mips@linux-mips.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/mips/kernel/ftrace.c | 14 ++------------
- 1 file changed, 2 insertions(+), 12 deletions(-)
+ kernel/trace/trace_functions_graph.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
-index 7f3dfdbc3657..b122cbb4aad1 100644
---- a/arch/mips/kernel/ftrace.c
-+++ b/arch/mips/kernel/ftrace.c
-@@ -322,7 +322,6 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
- 			   unsigned long fp)
- {
- 	unsigned long old_parent_ra;
--	struct ftrace_graph_ent trace;
- 	unsigned long return_hooker = (unsigned long)
- 	    &return_to_handler;
- 	int faulted, insns;
-@@ -369,12 +368,6 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
- 	if (unlikely(faulted))
- 		goto out;
- 
--	if (ftrace_push_return_trace(old_parent_ra, self_ra, &trace.depth, fp,
--				     NULL) == -EBUSY) {
--		*parent_ra_addr = old_parent_ra;
--		return;
--	}
--
- 	/*
- 	 * Get the recorded ip of the current mcount calling site in the
- 	 * __mcount_loc section, which will be used to filter the function
-@@ -382,13 +375,10 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
- 	 */
- 
- 	insns = core_kernel_text(self_ra) ? 2 : MCOUNT_OFFSET_INSNS + 1;
--	trace.func = self_ra - (MCOUNT_INSN_SIZE * insns);
-+	self_ra -= (MCOUNT_INSN_SIZE * insns);
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 4f0d72ae6362..2561460d7baf 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -188,15 +188,17 @@ int function_graph_enter(unsigned long ret, unsigned long func,
+ 	trace.func = func;
+ 	trace.depth = ++current->curr_ret_depth;
  
 -	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace)) {
--		current->curr_ret_stack--;
-+	if (function_graph_enter(old_parent_ra, self_ra, fp, NULL))
- 		*parent_ra_addr = old_parent_ra;
--	}
- 	return;
- out:
- 	ftrace_graph_stop();
+-	if (!ftrace_graph_entry(&trace))
+-		goto out;
+-
+ 	if (ftrace_push_return_trace(ret, func,
+ 				     frame_pointer, retp))
+ 		goto out;
+ 
++	/* Only trace if the calling function expects to */
++	if (!ftrace_graph_entry(&trace))
++		goto out_ret;
++
+ 	return 0;
++ out_ret:
++	current->curr_ret_stack--;
+  out:
+ 	current->curr_ret_depth--;
+ 	return -EBUSY;
 -- 
 2.19.1
