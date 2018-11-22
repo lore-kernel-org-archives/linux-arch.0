@@ -1,14 +1,14 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 11/18] s390/function_graph: Simplify with function_graph_entry()
-Date: Wed, 21 Nov 2018 19:28:12 -0500
-Message-ID: <20181122003332.940703297@goodmis.org>
+Subject: [for-next][PATCH 02/18] x86/function_graph: Simplify with function_graph_entry()
+Date: Wed, 21 Nov 2018 19:28:03 -0500
+Message-ID: <20181122003331.630203912@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Julian Wiedmann <jwi@linux.ibm.com>, linux-s390@vger.kernel.org, stable@kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, stable@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
@@ -17,51 +17,56 @@ The function_graph_entry() function does the work of calling the function
 graph hook function and the management of the shadow stack, simplifying the
 work done in the architecture dependent prepare_ftrace_return().
 
-Have s390 use the new code, and remove the shadow stack management as well as
+Have x86 use the new code, and remove the shadow stack management as well as
 having to set up the trace structure.
 
 This is needed to prepare for a fix of a design bug on how the curr_ret_stack
 is used.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Julian Wiedmann <jwi@linux.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/s390/kernel/ftrace.c | 13 ++-----------
- 1 file changed, 2 insertions(+), 11 deletions(-)
+ arch/x86/kernel/ftrace.c | 15 +--------------
+ 1 file changed, 1 insertion(+), 14 deletions(-)
 
-diff --git a/arch/s390/kernel/ftrace.c b/arch/s390/kernel/ftrace.c
-index 84be7f02d0c2..39b13d71a8fe 100644
---- a/arch/s390/kernel/ftrace.c
-+++ b/arch/s390/kernel/ftrace.c
-@@ -203,22 +203,13 @@ device_initcall(ftrace_plt_init);
-  */
- unsigned long prepare_ftrace_return(unsigned long parent, unsigned long ip)
+diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
+index 01ebcb6f263e..7ee8067cbf45 100644
+--- a/arch/x86/kernel/ftrace.c
++++ b/arch/x86/kernel/ftrace.c
+@@ -994,7 +994,6 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent,
  {
+ 	unsigned long old;
+ 	int faulted;
 -	struct ftrace_graph_ent trace;
--
- 	if (unlikely(ftrace_graph_is_dead()))
- 		goto out;
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		goto out;
- 	ip -= MCOUNT_INSN_SIZE;
--	trace.func = ip;
+ 	unsigned long return_hooker = (unsigned long)
+ 				&return_to_handler;
+ 
+@@ -1046,19 +1045,7 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent,
+ 		return;
+ 	}
+ 
+-	trace.func = self_addr;
 -	trace.depth = current->curr_ret_stack + 1;
--	/* Only trace if the calling function expects to. */
--	if (!ftrace_graph_entry(&trace))
--		goto out;
--	if (ftrace_push_return_trace(parent, ip, &trace.depth, 0,
--				     NULL) == -EBUSY)
--		goto out;
--	parent = (unsigned long) return_to_handler;
-+	if (!function_graph_enter(parent, ip, 0, NULL))
-+		parent = (unsigned long) return_to_handler;
- out:
- 	return parent;
+-
+-	/* Only trace if the calling function expects to */
+-	if (!ftrace_graph_entry(&trace)) {
++	if (function_graph_enter(old, self_addr, frame_pointer, parent))
+ 		*parent = old;
+-		return;
+-	}
+-
+-	if (ftrace_push_return_trace(old, self_addr, &trace.depth,
+-				     frame_pointer, parent) == -EBUSY) {
+-		*parent = old;
+-		return;
+-	}
  }
+ #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
 -- 
 2.19.1
