@@ -1,70 +1,100 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v2 16/15 v2] syscall_get_arch: add "struct task_struct *"
- argument
-Date: Wed, 21 Nov 2018 19:45:51 +0000
-Message-ID: <20181121194549.4glznckje73z2uxk@pburton-laptop>
-References: <20181107042751.3b519062@akathisia>
- <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com>
- <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
- <20181121184004.jro532jopnbmru2m@pburton-laptop>
- <20181121190009.GA10301@altlinux.org> <20181121193512.GA11297@altlinux.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [for-next][PATCH 00/18] function_graph: Add separate depth counter to prevent trace corruption
+Date: Wed, 21 Nov 2018 19:28:01 -0500
+Message-ID: <20181122002801.501220343@goodmis.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181121193512.GA11297@altlinux.org>
-Content-Language: en-US
-Content-ID: <708ADDE084183B41A3B884270BF84771@namprd22.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Eric Paris <eparis@redhat.com>, Paul Moore <paul@paul-moore.com>, Elvira Khabirova <lineprinter@altlinux.org>, Eugene Syromyatnikov <esyr@redhat.com>, Oleg Nesterov <oleg@redhat.com>, "linux-audit@redhat.com" <linux-audit@redhat.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>
+To: linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Dmitry,
+While working on rewriting function graph tracer, I found a design
+flaw in the code. Commit 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth
+before calling trace return callback") tried to fix a bug that caused
+interrupts not to be traced if max_depth was set to 1 (for debugging
+NO_HZ_FULL), because if it came in just as another function that was being
+traced that had a depth of 1 was exiting. This caused the timing of being in
+the kernel to be off. The fix was simply to move the calling of the return
+function after the updating of curr_ret_stack index as that was what was
+being used.
 
-On Wed, Nov 21, 2018 at 10:35:12PM +0300, Dmitry V. Levin wrote:
-> This argument is required to extend the generic ptrace API with
-> PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going to be
-> called from ptrace_request() along with other syscall_get_* functions
-> with a tracee as their argument.
->=20
-> This change partially reverts commit 5e937a9ae913 ("syscall_get_arch:
-> remove useless function arguments").
->=20
-> Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
-> Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
-> Cc: linux-audit@redhat.com
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: linux-snps-arc@lists.infradead.org
-> Cc: linux-um@lists.infradead.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: nios2-dev@lists.rocketboards.org
-> Cc: openrisc@lists.librecores.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: uclinux-h8-devel@lists.sourceforge.jp
-> Cc: x86@kernel.org
-> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
-> ---
->=20
-> v2: cleaned up mips part, added Reviewed-by
+The change log even says that it was safe to do this, but unfortunately it
+was not, and the barrier() there was specifically *for* that function (which
+shows why one should document barriers).
 
-I thought the last one was v2? :)
+The problem is that the return callback may still be using what's on the
+shadow stack and by changing the shadow stack pointer, it may allow for
+another function being traced to overwrite that data. Note, if this happens,
+it will only cause garbage data to be traced and will not affect the actual
+operations of the kernel (ie. it wont crash).
 
-Anyway, this looks fine to me now:
+Unfortunately just reverting that will bring back the old bug. The real way
+to fix that old bug is to create another counter to handle the depth, but
+this means that we need to change all the architectures that implement
+function graph tracing (that's 12 of them). Luckily, I need to do this
+anyway in my re-design so this is a good thing.
 
-    Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
+Since all the archictectures do basicall the same thing to prepare the
+function graph trace to be traced, I made a generic function that they all
+can use and simplified the logic of all the architectures. Then I'm able to
+fix the design problem in one place.
 
-Thanks,
-    Paul
+I pushed this code up to let zero-day have a whack at it, and I also
+downloaded the latest 8.1.0 cross compilers for all the archs that are
+affected and compiled tested them all (and got rid of all the warnings
+I introduced as well).
+
+I marked this all for stable, but in reality it may not need to be ported
+as it will probably not be trivial to do so, becaues you'll need to also
+fix the architectures that are no longer used (although do we care about
+them?). But if someone really cares about correct timings of the function
+graph profiler when the options/graph-time is set to zero, then be my
+guest.
+
+Feel free to test this! I'll be pushing this to linux-next and let it
+sit there a week or so before pushing it to Linus.
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
+ftrace/urgent
+
+Head SHA1: 1ffd62e282a649483afb0bb4d76f7244b3c10075
+
+
+Steven Rostedt (VMware) (18):
+      function_graph: Create function_graph_enter() to consolidate architecture code
+      x86/function_graph: Simplify with function_graph_entry()
+      ARM: function_graph: Simplify with function_graph_entry()
+      arm64: function_graph: Simplify with function_graph_entry()
+      microblaze: function_graph: Simplify with function_graph_entry()
+      MIPS: function_graph: Simplify with function_graph_entry()
+      nds32: function_graph: Simplify with function_graph_entry()
+      parisc: function_graph: Simplify with function_graph_entry()
+      powerpc/function_graph: Simplify with function_graph_entry()
+      riscv/function_graph: Simplify with function_graph_entry()
+      s390/function_graph: Simplify with function_graph_entry()
+      sh/function_graph: Simplify with function_graph_entry()
+      sparc/function_graph: Simplify with function_graph_entry()
+      function_graph: Make ftrace_push_return_trace() static
+      function_graph: Use new curr_ret_depth to manage depth instead of curr_ret_stack
+      function_graph: Move return callback before update of curr_ret_stack
+      function_graph: Reverse the order of pushing the ret_stack and the callback
+      function_graph: Have profiler use curr_ret_stack and not depth
+
+----
+ arch/arm/kernel/ftrace.c             | 17 +------------
+ arch/arm64/kernel/ftrace.c           | 15 +----------
+ arch/microblaze/kernel/ftrace.c      | 15 ++---------
+ arch/mips/kernel/ftrace.c            | 14 ++---------
+ arch/nds32/kernel/ftrace.c           | 18 ++-----------
+ arch/parisc/kernel/ftrace.c          | 17 +++----------
+ arch/powerpc/kernel/trace/ftrace.c   | 15 ++---------
+ arch/riscv/kernel/ftrace.c           | 14 ++---------
+ arch/s390/kernel/ftrace.c            | 13 ++--------
+ arch/sh/kernel/ftrace.c              | 16 ++----------
+ arch/sparc/kernel/ftrace.c           | 11 +-------
+ arch/x86/kernel/ftrace.c             | 15 +----------
+ include/linux/ftrace.h               |  4 +--
+ include/linux/sched.h                |  1 +
+ kernel/trace/ftrace.c                |  7 ++++--
+ kernel/trace/trace_functions_graph.c | 49 ++++++++++++++++++++++++++++--------
+ 16 files changed, 67 insertions(+), 174 deletions(-)
