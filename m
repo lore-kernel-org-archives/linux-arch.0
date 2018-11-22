@@ -1,68 +1,35 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/24] alpha: remove the mapping_error
- dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:09 +0100
-Message-ID: <20181122140320.24080-14-hch@lst.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Date: Thu, 22 Nov 2018 08:50:47 -0800
+Message-ID: <CAHk-=wh=_T=A53+o4zLNbKio43LGqVDb0KCbWPDvAg54bRDmWw@mail.gmail.com>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
-To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Jon Mason <jdmason@kudzu.us>, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, jdmason@kudzu.us, joro@8bytes.org, David Woodhouse <dwmw2@infradead.org>, m.szyprowski@samsung.com, robin.murphy@arm.com, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-UmV0dXJuIERNQV9NQVBQSU5HX0VSUk9SIGluc3RlYWQgb2YgMCBvbiBhIGRtYSBtYXBwaW5nIGZh
-aWx1cmUgYW5kIGxldAp0aGUgY29yZSBkbWEtbWFwcGluZyBjb2RlIGhhbmRsZSB0aGUgcmVzdC4K
-ClNpZ25lZC1vZmYtYnk6IENocmlzdG9waCBIZWxsd2lnIDxoY2hAbHN0LmRlPgotLS0KIGFyY2gv
-YWxwaGEva2VybmVsL3BjaV9pb21tdS5jIHwgMTQgKysrKy0tLS0tLS0tLS0KIDEgZmlsZSBjaGFu
-Z2VkLCA0IGluc2VydGlvbnMoKyksIDEwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gv
-YWxwaGEva2VybmVsL3BjaV9pb21tdS5jIGIvYXJjaC9hbHBoYS9rZXJuZWwvcGNpX2lvbW11LmMK
-aW5kZXggNDZlMDhlMGQ5MTgxLi5lMTcxNmUwZDkyZmQgMTAwNjQ0Ci0tLSBhL2FyY2gvYWxwaGEv
-a2VybmVsL3BjaV9pb21tdS5jCisrKyBiL2FyY2gvYWxwaGEva2VybmVsL3BjaV9pb21tdS5jCkBA
-IC0yOTEsNyArMjkxLDcgQEAgcGNpX21hcF9zaW5nbGVfMShzdHJ1Y3QgcGNpX2RldiAqcGRldiwg
-dm9pZCAqY3B1X2FkZHIsIHNpemVfdCBzaXplLAogCSAgIHVzZSBkaXJlY3RfbWFwIGFib3ZlLCBp
-dCBub3cgbXVzdCBiZSBjb25zaWRlcmVkIGFuIGVycm9yLiAqLwogCWlmICghIGFscGhhX212Lm12
-X3BjaV90YmkpIHsKIAkJcHJpbnRrX29uY2UoS0VSTl9XQVJOSU5HICJwY2lfbWFwX3NpbmdsZTog
-bm8gSFcgc2dcbiIpOwotCQlyZXR1cm4gMDsKKwkJcmV0dXJuIERNQV9NQVBQSU5HX0VSUk9SOwog
-CX0KIAogCWFyZW5hID0gaG9zZS0+c2dfcGNpOwpAQCAtMzA3LDcgKzMwNyw3IEBAIHBjaV9tYXBf
-c2luZ2xlXzEoc3RydWN0IHBjaV9kZXYgKnBkZXYsIHZvaWQgKmNwdV9hZGRyLCBzaXplX3Qgc2l6
-ZSwKIAlpZiAoZG1hX29mcyA8IDApIHsKIAkJcHJpbnRrKEtFUk5fV0FSTklORyAicGNpX21hcF9z
-aW5nbGUgZmFpbGVkOiAiCiAJCSAgICAgICAiY291bGQgbm90IGFsbG9jYXRlIGRtYSBwYWdlIHRh
-Ymxlc1xuIik7Ci0JCXJldHVybiAwOworCQlyZXR1cm4gRE1BX01BUFBJTkdfRVJST1I7CiAJfQog
-CiAJcGFkZHIgJj0gUEFHRV9NQVNLOwpAQCAtNDU1LDcgKzQ1NSw3IEBAIHN0YXRpYyB2b2lkICph
-bHBoYV9wY2lfYWxsb2NfY29oZXJlbnQoc3RydWN0IGRldmljZSAqZGV2LCBzaXplX3Qgc2l6ZSwK
-IAltZW1zZXQoY3B1X2FkZHIsIDAsIHNpemUpOwogCiAJKmRtYV9hZGRycCA9IHBjaV9tYXBfc2lu
-Z2xlXzEocGRldiwgY3B1X2FkZHIsIHNpemUsIDApOwotCWlmICgqZG1hX2FkZHJwID09IDApIHsK
-KwlpZiAoKmRtYV9hZGRycCA9PSBETUFfTUFQUElOR19FUlJPUikgewogCQlmcmVlX3BhZ2VzKCh1
-bnNpZ25lZCBsb25nKWNwdV9hZGRyLCBvcmRlcik7CiAJCWlmIChhbHBoYV9tdi5tdl9wY2lfdGJp
-IHx8IChnZnAgJiBHRlBfRE1BKSkKIAkJCXJldHVybiBOVUxMOwpAQCAtNjcxLDcgKzY3MSw3IEBA
-IHN0YXRpYyBpbnQgYWxwaGFfcGNpX21hcF9zZyhzdHJ1Y3QgZGV2aWNlICpkZXYsIHN0cnVjdCBz
-Y2F0dGVybGlzdCAqc2csCiAJCXNnLT5kbWFfYWRkcmVzcwogCQkgID0gcGNpX21hcF9zaW5nbGVf
-MShwZGV2LCBTR19FTlRfVklSVF9BRERSRVNTKHNnKSwKIAkJCQkgICAgIHNnLT5sZW5ndGgsIGRh
-Y19hbGxvd2VkKTsKLQkJcmV0dXJuIHNnLT5kbWFfYWRkcmVzcyAhPSAwOworCQlyZXR1cm4gc2ct
-PmRtYV9hZGRyZXNzICE9IERNQV9NQVBQSU5HX0VSUk9SOwogCX0KIAogCXN0YXJ0ID0gc2c7CkBA
-IC05MzUsMTEgKzkzNSw2IEBAIGlvbW11X3VuYmluZChzdHJ1Y3QgcGNpX2lvbW11X2FyZW5hICph
-cmVuYSwgbG9uZyBwZ19zdGFydCwgbG9uZyBwZ19jb3VudCkKIAlyZXR1cm4gMDsKIH0KIAotc3Rh
-dGljIGludCBhbHBoYV9wY2lfbWFwcGluZ19lcnJvcihzdHJ1Y3QgZGV2aWNlICpkZXYsIGRtYV9h
-ZGRyX3QgZG1hX2FkZHIpCi17Ci0JcmV0dXJuIGRtYV9hZGRyID09IDA7Ci19Ci0KIGNvbnN0IHN0
-cnVjdCBkbWFfbWFwX29wcyBhbHBoYV9wY2lfb3BzID0gewogCS5hbGxvYwkJCT0gYWxwaGFfcGNp
-X2FsbG9jX2NvaGVyZW50LAogCS5mcmVlCQkJPSBhbHBoYV9wY2lfZnJlZV9jb2hlcmVudCwKQEAg
-LTk0Nyw3ICs5NDIsNiBAQCBjb25zdCBzdHJ1Y3QgZG1hX21hcF9vcHMgYWxwaGFfcGNpX29wcyA9
-IHsKIAkudW5tYXBfcGFnZQkJPSBhbHBoYV9wY2lfdW5tYXBfcGFnZSwKIAkubWFwX3NnCQkJPSBh
-bHBoYV9wY2lfbWFwX3NnLAogCS51bm1hcF9zZwkJPSBhbHBoYV9wY2lfdW5tYXBfc2csCi0JLm1h
-cHBpbmdfZXJyb3IJCT0gYWxwaGFfcGNpX21hcHBpbmdfZXJyb3IsCiAJLmRtYV9zdXBwb3J0ZWQJ
-CT0gYWxwaGFfcGNpX3N1cHBvcnRlZCwKIH07CiBFWFBPUlRfU1lNQk9MKGFscGhhX3BjaV9vcHMp
-OwotLSAKMi4xOS4xCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVucHJvamVjdC5v
-cmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL3hlbi1kZXZl
-bA==
+On Thu, Nov 22, 2018 at 6:03 AM Christoph Hellwig <hch@lst.de> wrote:
+>
+> The 0 return doesn't work for direct mappings that have ram at address
+> zero and a lot of IOMMUs that start allocating bus space from address
+> zero, so we can't consolidate on that, but I think we can move everyone
+> to all-Fs, which the patch here does.
+
+Hmm. Maybe not limit it to just all ones, but actually use the
+(standard, for the kernel) IS_ERR_VALUE()?
+
+That basically reserves the last 4095 values in an unsigned long for
+error values.
+
+Then those functions could actually return *what* error they
+encountered, using just plain
+
+        return -ENOMEM;
+
+or whatever?
+
+               Linus
