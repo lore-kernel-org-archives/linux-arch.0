@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 22/24] iommu/dma-iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:18 +0100
-Message-ID: <20181122140320.24080-23-hch@lst.de>
+Subject: [PATCH 24/24] dma-mapping: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:20 +0100
+Message-ID: <20181122140320.24080-25-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,155 +12,71 @@ To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
-the core dma-mapping code handle the rest.
+No users left except for vmd which just forwards it.  Also switch
+dma_mapping_error to an explicit bool return value.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/mm/dma-mapping.c |  7 +++----
- drivers/iommu/dma-iommu.c   | 23 ++++++++---------------
- include/linux/dma-iommu.h   |  1 -
- 3 files changed, 11 insertions(+), 20 deletions(-)
+ drivers/pci/controller/vmd.c |  6 ------
+ include/linux/dma-mapping.h  | 13 ++-----------
+ 2 files changed, 2 insertions(+), 17 deletions(-)
 
-diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
-index fdc26ea5036c..4cc70029cf8d 100644
---- a/arch/arm64/mm/dma-mapping.c
-+++ b/arch/arm64/mm/dma-mapping.c
-@@ -397,7 +397,7 @@ static void *__iommu_alloc_attrs(struct device *dev, size_t size,
- 			return NULL;
- 
- 		*handle = iommu_dma_map_page(dev, page, 0, iosize, ioprot);
--		if (iommu_dma_mapping_error(dev, *handle)) {
-+		if (*handle == DMA_MAPPING_ERROR) {
- 			if (coherent)
- 				__free_pages(page, get_order(size));
- 			else
-@@ -414,7 +414,7 @@ static void *__iommu_alloc_attrs(struct device *dev, size_t size,
- 			return NULL;
- 
- 		*handle = iommu_dma_map_page(dev, page, 0, iosize, ioprot);
--		if (iommu_dma_mapping_error(dev, *handle)) {
-+		if (*handle == DMA_MAPPING_ERROR) {
- 			dma_release_from_contiguous(dev, page,
- 						    size >> PAGE_SHIFT);
- 			return NULL;
-@@ -574,7 +574,7 @@ static dma_addr_t __iommu_map_page(struct device *dev, struct page *page,
- 	dma_addr_t dev_addr = iommu_dma_map_page(dev, page, offset, size, prot);
- 
- 	if (!coherent && !(attrs & DMA_ATTR_SKIP_CPU_SYNC) &&
--	    !iommu_dma_mapping_error(dev, dev_addr))
-+	    dev_addr != DMA_MAPPING_ERROR)
- 		__dma_map_area(page_address(page) + offset, size, dir);
- 
- 	return dev_addr;
-@@ -657,7 +657,6 @@ static const struct dma_map_ops iommu_dma_ops = {
- 	.sync_sg_for_device = __iommu_sync_sg_for_device,
- 	.map_resource = iommu_dma_map_resource,
- 	.unmap_resource = iommu_dma_unmap_resource,
--	.mapping_error = iommu_dma_mapping_error,
- };
- 
- static int __init __iommu_dma_init(void)
-diff --git a/drivers/iommu/dma-iommu.c b/drivers/iommu/dma-iommu.c
-index d1b04753b204..60c7e9e9901e 100644
---- a/drivers/iommu/dma-iommu.c
-+++ b/drivers/iommu/dma-iommu.c
-@@ -32,8 +32,6 @@
- #include <linux/scatterlist.h>
- #include <linux/vmalloc.h>
- 
--#define IOMMU_MAPPING_ERROR	0
--
- struct iommu_dma_msi_page {
- 	struct list_head	list;
- 	dma_addr_t		iova;
-@@ -523,7 +521,7 @@ void iommu_dma_free(struct device *dev, struct page **pages, size_t size,
- {
- 	__iommu_dma_unmap(iommu_get_dma_domain(dev), *handle, size);
- 	__iommu_dma_free_pages(pages, PAGE_ALIGN(size) >> PAGE_SHIFT);
--	*handle = IOMMU_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
+diff --git a/drivers/pci/controller/vmd.c b/drivers/pci/controller/vmd.c
+index e50b0b5815ff..98ce79eac128 100644
+--- a/drivers/pci/controller/vmd.c
++++ b/drivers/pci/controller/vmd.c
+@@ -394,11 +394,6 @@ static void vmd_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	vmd_dma_ops(dev)->sync_sg_for_device(to_vmd_dev(dev), sg, nents, dir);
  }
  
- /**
-@@ -556,7 +554,7 @@ struct page **iommu_dma_alloc(struct device *dev, size_t size, gfp_t gfp,
- 	dma_addr_t iova;
- 	unsigned int count, min_size, alloc_sizes = domain->pgsize_bitmap;
- 
--	*handle = IOMMU_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 
- 	min_size = alloc_sizes & -alloc_sizes;
- 	if (min_size < PAGE_SIZE) {
-@@ -649,11 +647,11 @@ static dma_addr_t __iommu_dma_map(struct device *dev, phys_addr_t phys,
- 
- 	iova = iommu_dma_alloc_iova(domain, size, dma_get_mask(dev), dev);
- 	if (!iova)
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (iommu_map(domain, iova, phys - iova_off, size, prot)) {
- 		iommu_dma_free_iova(cookie, iova, size);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 	return iova + iova_off;
- }
-@@ -694,7 +692,7 @@ static int __finalise_sg(struct device *dev, struct scatterlist *sg, int nents,
- 
- 		s->offset += s_iova_off;
- 		s->length = s_length;
--		sg_dma_address(s) = IOMMU_MAPPING_ERROR;
-+		sg_dma_address(s) = DMA_MAPPING_ERROR;
- 		sg_dma_len(s) = 0;
- 
- 		/*
-@@ -737,11 +735,11 @@ static void __invalidate_sg(struct scatterlist *sg, int nents)
- 	int i;
- 
- 	for_each_sg(sg, s, nents, i) {
--		if (sg_dma_address(s) != IOMMU_MAPPING_ERROR)
-+		if (sg_dma_address(s) != DMA_MAPPING_ERROR)
- 			s->offset += sg_dma_address(s);
- 		if (sg_dma_len(s))
- 			s->length = sg_dma_len(s);
--		sg_dma_address(s) = IOMMU_MAPPING_ERROR;
-+		sg_dma_address(s) = DMA_MAPPING_ERROR;
- 		sg_dma_len(s) = 0;
- 	}
- }
-@@ -858,11 +856,6 @@ void iommu_dma_unmap_resource(struct device *dev, dma_addr_t handle,
- 	__iommu_dma_unmap(iommu_get_dma_domain(dev), handle, size);
- }
- 
--int iommu_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int vmd_mapping_error(struct device *dev, dma_addr_t addr)
 -{
--	return dma_addr == IOMMU_MAPPING_ERROR;
+-	return vmd_dma_ops(dev)->mapping_error(to_vmd_dev(dev), addr);
 -}
 -
- static struct iommu_dma_msi_page *iommu_dma_get_msi_page(struct device *dev,
- 		phys_addr_t msi_addr, struct iommu_domain *domain)
+ static int vmd_dma_supported(struct device *dev, u64 mask)
  {
-@@ -882,7 +875,7 @@ static struct iommu_dma_msi_page *iommu_dma_get_msi_page(struct device *dev,
- 		return NULL;
+ 	return vmd_dma_ops(dev)->dma_supported(to_vmd_dev(dev), mask);
+@@ -446,7 +441,6 @@ static void vmd_setup_dma_ops(struct vmd_dev *vmd)
+ 	ASSIGN_VMD_DMA_OPS(source, dest, sync_single_for_device);
+ 	ASSIGN_VMD_DMA_OPS(source, dest, sync_sg_for_cpu);
+ 	ASSIGN_VMD_DMA_OPS(source, dest, sync_sg_for_device);
+-	ASSIGN_VMD_DMA_OPS(source, dest, mapping_error);
+ 	ASSIGN_VMD_DMA_OPS(source, dest, dma_supported);
+ 	ASSIGN_VMD_DMA_OPS(source, dest, get_required_mask);
+ 	add_dma_domain(domain);
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index c323c539b7cb..c250e2ca6dfc 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -128,7 +128,6 @@ struct dma_map_ops {
+ 				   enum dma_data_direction dir);
+ 	void (*cache_sync)(struct device *dev, void *vaddr, size_t size,
+ 			enum dma_data_direction direction);
+-	int (*mapping_error)(struct device *dev, dma_addr_t dma_addr);
+ 	int (*dma_supported)(struct device *dev, u64 mask);
+ 	u64 (*get_required_mask)(struct device *dev);
+ };
+@@ -573,18 +572,10 @@ static inline void dma_free_coherent(struct device *dev, size_t size,
+ 	return dma_free_attrs(dev, size, cpu_addr, dma_handle, 0);
+ }
  
- 	iova = __iommu_dma_map(dev, msi_addr, size, prot, domain);
--	if (iommu_dma_mapping_error(dev, iova))
-+	if (iova == DMA_MAPPING_ERROR)
- 		goto out_free_page;
+-static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++static inline bool dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ {
+-	const struct dma_map_ops *ops = get_dma_ops(dev);
+-
+ 	debug_dma_mapping_error(dev, dma_addr);
+-
+-	if (dma_addr == DMA_MAPPING_ERROR)
+-		return 1;
+-
+-	if (ops->mapping_error)
+-		return ops->mapping_error(dev, dma_addr);
+-	return 0;
++	return dma_addr == DMA_MAPPING_ERROR;
+ }
  
- 	INIT_LIST_HEAD(&msi_page->list);
-diff --git a/include/linux/dma-iommu.h b/include/linux/dma-iommu.h
-index e8ca5e654277..e760dc5d1fa8 100644
---- a/include/linux/dma-iommu.h
-+++ b/include/linux/dma-iommu.h
-@@ -69,7 +69,6 @@ dma_addr_t iommu_dma_map_resource(struct device *dev, phys_addr_t phys,
- 		size_t size, enum dma_data_direction dir, unsigned long attrs);
- void iommu_dma_unmap_resource(struct device *dev, dma_addr_t handle,
- 		size_t size, enum dma_data_direction dir, unsigned long attrs);
--int iommu_dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
- 
- /* The DMA API isn't _quite_ the whole story, though... */
- void iommu_dma_map_msi_msg(int irq, struct msi_msg *msg);
+ static inline void dma_check_mask(struct device *dev, u64 mask)
 -- 
 2.19.1
