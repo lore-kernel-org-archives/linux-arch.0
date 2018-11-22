@@ -1,69 +1,64 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 05/18] microblaze: function_graph: Simplify with function_graph_entry()
-Date: Wed, 21 Nov 2018 19:28:06 -0500
-Message-ID: <20181122003332.061738282@goodmis.org>
+Subject: [for-next][PATCH 17/18] function_graph: Reverse the order of pushing the ret_stack and the
+ callback
+Date: Wed, 21 Nov 2018 19:28:18 -0500
+Message-ID: <20181122003333.880108256@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Michal Simek <monstr@monstr.eu>, stable@kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The function_graph_entry() function does the work of calling the function
-graph hook function and the management of the shadow stack, simplifying the
-work done in the architecture dependent prepare_ftrace_return().
+The function graph profiler uses the ret_stack to store the "subtime" and
+reuse it by nested functions and also on the return. But the current logic
+has the profiler callback called before the ret_stack is updated, and it is
+just modifying the ret_stack that will later be allocated (it's just lucky
+that the "subtime" is not touched when it is allocated).
 
-Have microblaze use the new code, and remove the shadow stack management as well as
-having to set up the trace structure.
+This could also cause a crash if we are at the end of the ret_stack when
+this happens.
 
-This is needed to prepare for a fix of a design bug on how the curr_ret_stack
-is used.
+By reversing the order of the allocating the ret_stack and then calling the
+callbacks attached to a function being traced, the ret_stack entry is no
+longer used before it is allocated.
 
-Cc: Michal Simek <monstr@monstr.eu>
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/microblaze/kernel/ftrace.c | 15 ++-------------
- 1 file changed, 2 insertions(+), 13 deletions(-)
+ kernel/trace/trace_functions_graph.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/microblaze/kernel/ftrace.c b/arch/microblaze/kernel/ftrace.c
-index d57563c58a26..224eea40e1ee 100644
---- a/arch/microblaze/kernel/ftrace.c
-+++ b/arch/microblaze/kernel/ftrace.c
-@@ -22,8 +22,7 @@
- void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- {
- 	unsigned long old;
--	int faulted, err;
--	struct ftrace_graph_ent trace;
-+	int faulted;
- 	unsigned long return_hooker = (unsigned long)
- 				&return_to_handler;
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 4f0d72ae6362..2561460d7baf 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -188,15 +188,17 @@ int function_graph_enter(unsigned long ret, unsigned long func,
+ 	trace.func = func;
+ 	trace.depth = ++current->curr_ret_depth;
  
-@@ -63,18 +62,8 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 		return;
- 	}
- 
--	err = ftrace_push_return_trace(old, self_addr, &trace.depth, 0, NULL);
--	if (err == -EBUSY) {
-+	if (function_graph_enter(old, self_addr, 0, NULL))
- 		*parent = old;
--		return;
--	}
--
--	trace.func = self_addr;
 -	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace)) {
--		current->curr_ret_stack--;
--		*parent = old;
--	}
- }
- #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+-	if (!ftrace_graph_entry(&trace))
+-		goto out;
+-
+ 	if (ftrace_push_return_trace(ret, func,
+ 				     frame_pointer, retp))
+ 		goto out;
  
++	/* Only trace if the calling function expects to */
++	if (!ftrace_graph_entry(&trace))
++		goto out_ret;
++
+ 	return 0;
++ out_ret:
++	current->curr_ret_stack--;
+  out:
+ 	current->curr_ret_depth--;
+ 	return -EBUSY;
 -- 
 2.19.1
