@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/24] iommu/intel: small map_page cleanup
-Date: Thu, 22 Nov 2018 15:03:16 +0100
-Message-ID: <20181122140320.24080-21-hch@lst.de>
+Subject: [PATCH 21/24] iommu/vt-d: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:17 +0100
+Message-ID: <20181122140320.24080-22-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,54 +12,64 @@ To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Pass the page + offset to the low-level __iommu_map_single helper
-(which gets renamed to fit the new calling conventions) as both
-callers have the page at hand.
+Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
+the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/iommu/intel-iommu.c | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ drivers/iommu/intel-iommu.c | 12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
 
 diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index f3ccf025108b..3b8a7acac7a1 100644
+index 3b8a7acac7a1..a5704155932d 100644
 --- a/drivers/iommu/intel-iommu.c
 +++ b/drivers/iommu/intel-iommu.c
-@@ -3597,9 +3597,11 @@ static int iommu_no_mapping(struct device *dev)
- 	return 0;
+@@ -3617,7 +3617,7 @@ static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
+ 
+ 	domain = get_valid_domain_for_dev(dev);
+ 	if (!domain)
+-		return 0;
++		return DMA_MAPPING_ERROR;
+ 
+ 	iommu = domain_get_iommu(domain);
+ 	size = aligned_nrpages(paddr, size);
+@@ -3655,7 +3655,7 @@ static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
+ 		free_iova_fast(&domain->iovad, iova_pfn, dma_to_mm_pfn(size));
+ 	pr_err("Device %s request: %zx@%llx dir %d --- failed\n",
+ 		dev_name(dev), size, (unsigned long long)paddr, dir);
+-	return 0;
++	return DMA_MAPPING_ERROR;
  }
  
--static dma_addr_t __intel_map_single(struct device *dev, phys_addr_t paddr,
--				     size_t size, int dir, u64 dma_mask)
-+static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
-+				   unsigned long offset, size_t size, int dir,
-+				   u64 dma_mask)
- {
-+	phys_addr_t paddr = page_to_phys(page) + offset;
- 	struct dmar_domain *domain;
- 	phys_addr_t start_paddr;
- 	unsigned long iova_pfn;
-@@ -3661,8 +3663,7 @@ static dma_addr_t intel_map_page(struct device *dev, struct page *page,
- 				 enum dma_data_direction dir,
- 				 unsigned long attrs)
- {
--	return __intel_map_single(dev, page_to_phys(page) + offset, size,
--				  dir, *dev->dma_mask);
-+	return __intel_map_page(dev, page, offset, size, dir, *dev->dma_mask);
- }
+ static dma_addr_t intel_map_page(struct device *dev, struct page *page,
+@@ -3756,7 +3756,7 @@ static void *intel_alloc_coherent(struct device *dev, size_t size,
  
- static void intel_unmap(struct device *dev, dma_addr_t dev_addr, size_t size)
-@@ -3753,9 +3754,8 @@ static void *intel_alloc_coherent(struct device *dev, size_t size,
- 		return NULL;
- 	memset(page_address(page), 0, size);
- 
--	*dma_handle = __intel_map_single(dev, page_to_phys(page), size,
--					 DMA_BIDIRECTIONAL,
--					 dev->coherent_dma_mask);
-+	*dma_handle = __intel_map_page(dev, page, 0, size, DMA_BIDIRECTIONAL,
-+				       dev->coherent_dma_mask);
- 	if (*dma_handle)
+ 	*dma_handle = __intel_map_page(dev, page, 0, size, DMA_BIDIRECTIONAL,
+ 				       dev->coherent_dma_mask);
+-	if (*dma_handle)
++	if (*dma_handle != DMA_MAPPING_ERROR)
  		return page_address(page);
  	if (!dma_release_from_contiguous(dev, page, size >> PAGE_SHIFT))
+ 		__free_pages(page, order);
+@@ -3865,11 +3865,6 @@ static int intel_map_sg(struct device *dev, struct scatterlist *sglist, int nele
+ 	return nelems;
+ }
+ 
+-static int intel_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return !dma_addr;
+-}
+-
+ static const struct dma_map_ops intel_dma_ops = {
+ 	.alloc = intel_alloc_coherent,
+ 	.free = intel_free_coherent,
+@@ -3877,7 +3872,6 @@ static const struct dma_map_ops intel_dma_ops = {
+ 	.unmap_sg = intel_unmap_sg,
+ 	.map_page = intel_map_page,
+ 	.unmap_page = intel_unmap_page,
+-	.mapping_error = intel_mapping_error,
+ 	.dma_supported = dma_direct_supported,
+ };
+ 
 -- 
 2.19.1
