@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:55880 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:60006 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391646AbeKWAnP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:15 -0500
+        with ESMTP id S2437252AbeKWAnp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:45 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/24] dma-direct: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:00 +0100
-Message-ID: <20181122140320.24080-5-hch@lst.de>
+Subject: [PATCH 14/24] ia64/sba_iommu: improve internal map_page users
+Date: Thu, 22 Nov 2018 15:03:10 +0100
+Message-ID: <20181122140320.24080-15-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,138 +15,190 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140300.zVX9JtF1QzqLkvT6ddR7BsoMmUyxx9hG9u9t0hX0WwM@z>
+Message-ID: <20181122140310.JlRebHudexC0YJtECC4WQkdfHJbCKOQxh0u_FeiUuOg@z>
 
-The dma-direct code already returns (~(dma_addr_t)0x0) on mapping
-failures, so we can switch over to returning DMA_MAPPING_ERROR and let
-the core dma-mapping code handle the rest.
+Remove the odd sba_{un,}map_single_attrs wrappers, check errors
+everywhere, and remove the completly bogus alloc_pages_node call that
+uses the dma attributes argument as the node id.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/kernel/dma-swiotlb.c |  1 -
- include/linux/dma-direct.h        |  3 ---
- kernel/dma/direct.c               |  8 +-------
- kernel/dma/swiotlb.c              | 11 +++++------
- 4 files changed, 6 insertions(+), 17 deletions(-)
+ arch/ia64/hp/common/sba_iommu.c | 71 ++++++++++++---------------------
+ 1 file changed, 26 insertions(+), 45 deletions(-)
 
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 5fc335f4d9cd..3d8df2cf8be9 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -59,7 +59,6 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
- 	.sync_single_for_device = swiotlb_sync_single_for_device,
- 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
- 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.mapping_error = dma_direct_mapping_error,
- 	.get_required_mask = swiotlb_powerpc_get_required,
- };
- 
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index 9e66bfe369aa..e7600f92d876 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -5,8 +5,6 @@
- #include <linux/dma-mapping.h>
- #include <linux/mem_encrypt.h>
- 
--#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
--
- #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
- #include <asm/dma-direct.h>
- #else
-@@ -73,5 +71,4 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
- 		enum dma_data_direction dir, unsigned long attrs);
- int dma_direct_supported(struct device *dev, u64 mask);
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr);
- #endif /* _LINUX_DMA_DIRECT_H */
-diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
-index 22a12ab5a5e9..d4335a03193a 100644
---- a/kernel/dma/direct.c
-+++ b/kernel/dma/direct.c
-@@ -265,7 +265,7 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- 	dma_addr_t dma_addr = phys_to_dma(dev, phys);
- 
- 	if (!check_addr(dev, dma_addr, size, __func__))
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
- 		dma_direct_sync_single_for_device(dev, dma_addr, size, dir);
-@@ -312,11 +312,6 @@ int dma_direct_supported(struct device *dev, u64 mask)
- 	return mask >= phys_to_dma(dev, min_mask);
+diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
+index e8a93b07283e..b953282d4704 100644
+--- a/arch/ia64/hp/common/sba_iommu.c
++++ b/arch/ia64/hp/common/sba_iommu.c
+@@ -907,11 +907,12 @@ sba_mark_invalid(struct ioc *ioc, dma_addr_t iova, size_t byte_cnt)
  }
  
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ /**
+- * sba_map_single_attrs - map one buffer and return IOVA for DMA
++ * sba_map_page - map one buffer and return IOVA for DMA
+  * @dev: instance of PCI owned by the driver that's asking.
+- * @addr:  driver buffer to map.
+- * @size:  number of bytes to map in driver buffer.
+- * @dir:  R/W or both.
++ * @page: page to map
++ * @poff: offset into page
++ * @size: number of bytes to map
++ * @dir: dma direction
+  * @attrs: optional dma attributes
+  *
+  * See Documentation/DMA-API-HOWTO.txt
+@@ -944,7 +945,7 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
+  		** Device is bit capable of DMA'ing to the buffer...
+ 		** just return the PCI address of ptr
+  		*/
+-		DBG_BYPASS("sba_map_single_attrs() bypass mask/addr: "
++		DBG_BYPASS("sba_map_page() bypass mask/addr: "
+ 			   "0x%lx/0x%lx\n",
+ 		           to_pci_dev(dev)->dma_mask, pci_addr);
+ 		return pci_addr;
+@@ -966,7 +967,7 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
+ 
+ #ifdef ASSERT_PDIR_SANITY
+ 	spin_lock_irqsave(&ioc->res_lock, flags);
+-	if (sba_check_pdir(ioc,"Check before sba_map_single_attrs()"))
++	if (sba_check_pdir(ioc,"Check before sba_map_page()"))
+ 		panic("Sanity check failed");
+ 	spin_unlock_irqrestore(&ioc->res_lock, flags);
+ #endif
+@@ -997,20 +998,12 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
+ 	/* form complete address */
+ #ifdef ASSERT_PDIR_SANITY
+ 	spin_lock_irqsave(&ioc->res_lock, flags);
+-	sba_check_pdir(ioc,"Check after sba_map_single_attrs()");
++	sba_check_pdir(ioc,"Check after sba_map_page()");
+ 	spin_unlock_irqrestore(&ioc->res_lock, flags);
+ #endif
+ 	return SBA_IOVA(ioc, iovp, offset);
+ }
+ 
+-static dma_addr_t sba_map_single_attrs(struct device *dev, void *addr,
+-				       size_t size, enum dma_data_direction dir,
+-				       unsigned long attrs)
 -{
--	return dma_addr == DIRECT_MAPPING_ERROR;
+-	return sba_map_page(dev, virt_to_page(addr),
+-			    (unsigned long)addr & ~PAGE_MASK, size, dir, attrs);
 -}
 -
- const struct dma_map_ops dma_direct_ops = {
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
-@@ -335,7 +330,6 @@ const struct dma_map_ops dma_direct_ops = {
+ #ifdef ENABLE_MARK_CLEAN
+ static SBA_INLINE void
+ sba_mark_clean(struct ioc *ioc, dma_addr_t iova, size_t size)
+@@ -1036,7 +1029,7 @@ sba_mark_clean(struct ioc *ioc, dma_addr_t iova, size_t size)
  #endif
- 	.get_required_mask	= dma_direct_get_required_mask,
- 	.dma_supported		= dma_direct_supported,
--	.mapping_error		= dma_direct_mapping_error,
- 	.cache_sync		= arch_dma_cache_sync,
- };
- EXPORT_SYMBOL(dma_direct_ops);
-diff --git a/kernel/dma/swiotlb.c b/kernel/dma/swiotlb.c
-index 045930e32c0e..ff1ce81bb623 100644
---- a/kernel/dma/swiotlb.c
-+++ b/kernel/dma/swiotlb.c
-@@ -631,21 +631,21 @@ static dma_addr_t swiotlb_bounce_page(struct device *dev, phys_addr_t *phys,
- 	if (unlikely(swiotlb_force == SWIOTLB_NO_FORCE)) {
- 		dev_warn_ratelimited(dev,
- 			"Cannot do DMA to address %pa\n", phys);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
  
- 	/* Oh well, have to allocate and map a bounce buffer. */
- 	*phys = swiotlb_tbl_map_single(dev, __phys_to_dma(dev, io_tlb_start),
- 			*phys, size, dir, attrs);
- 	if (*phys == SWIOTLB_MAP_ERROR)
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
+ /**
+- * sba_unmap_single_attrs - unmap one IOVA and free resources
++ * sba_unmap_page - unmap one IOVA and free resources
+  * @dev: instance of PCI owned by the driver that's asking.
+  * @iova:  IOVA of driver buffer previously mapped.
+  * @size:  number of bytes mapped in driver buffer.
+@@ -1063,7 +1056,7 @@ static void sba_unmap_page(struct device *dev, dma_addr_t iova, size_t size,
+ 		/*
+ 		** Address does not fall w/in IOVA, must be bypassing
+ 		*/
+-		DBG_BYPASS("sba_unmap_single_attrs() bypass addr: 0x%lx\n",
++		DBG_BYPASS("sba_unmap_page() bypass addr: 0x%lx\n",
+ 			   iova);
  
- 	/* Ensure that the address returned is DMA'ble */
- 	dma_addr = __phys_to_dma(dev, *phys);
- 	if (unlikely(!dma_capable(dev, dma_addr, size))) {
- 		swiotlb_tbl_unmap_single(dev, *phys, size, dir,
- 			attrs | DMA_ATTR_SKIP_CPU_SYNC);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	return dma_addr;
-@@ -680,7 +680,7 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 
- 	if (!dev_is_dma_coherent(dev) &&
- 	    (attrs & DMA_ATTR_SKIP_CPU_SYNC) == 0 &&
--	    dev_addr != DIRECT_MAPPING_ERROR)
-+	    dev_addr != DMA_MAPPING_ERROR)
- 		arch_sync_dma_for_device(dev, phys, size, dir);
- 
- 	return dev_addr;
-@@ -789,7 +789,7 @@ swiotlb_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nelems,
- 	for_each_sg(sgl, sg, nelems, i) {
- 		sg->dma_address = swiotlb_map_page(dev, sg_page(sg), sg->offset,
- 				sg->length, dir, attrs);
--		if (sg->dma_address == DIRECT_MAPPING_ERROR)
-+		if (sg->dma_address == DMA_MAPPING_ERROR)
- 			goto out_error;
- 		sg_dma_len(sg) = sg->length;
- 	}
-@@ -869,7 +869,6 @@ swiotlb_dma_supported(struct device *hwdev, u64 mask)
+ #ifdef ENABLE_MARK_CLEAN
+@@ -1114,12 +1107,6 @@ static void sba_unmap_page(struct device *dev, dma_addr_t iova, size_t size,
+ #endif /* DELAYED_RESOURCE_CNT == 0 */
  }
  
- const struct dma_map_ops swiotlb_dma_ops = {
--	.mapping_error		= dma_direct_mapping_error,
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
- 	.sync_single_for_cpu	= swiotlb_sync_single_for_cpu,
+-void sba_unmap_single_attrs(struct device *dev, dma_addr_t iova, size_t size,
+-			    enum dma_data_direction dir, unsigned long attrs)
+-{
+-	sba_unmap_page(dev, iova, size, dir, attrs);
+-}
+-
+ /**
+  * sba_alloc_coherent - allocate/map shared mem for DMA
+  * @dev: instance of PCI owned by the driver that's asking.
+@@ -1132,30 +1119,20 @@ static void *
+ sba_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle,
+ 		   gfp_t flags, unsigned long attrs)
+ {
++	struct page *page;
+ 	struct ioc *ioc;
+ 	void *addr;
+ 
+ 	ioc = GET_IOC(dev);
+ 	ASSERT(ioc);
+ 
+-#ifdef CONFIG_NUMA
+-	{
+-		struct page *page;
+-
+-		page = alloc_pages_node(ioc->node, flags, get_order(size));
+-		if (unlikely(!page))
+-			return NULL;
+-
+-		addr = page_address(page);
+-	}
+-#else
+-	addr = (void *) __get_free_pages(flags, get_order(size));
+-#endif
+-	if (unlikely(!addr))
++	page = alloc_pages(ioc->node, get_order(size));
++	if (unlikely(!page))
+ 		return NULL;
+ 
++	addr = page_address(page);
+ 	memset(addr, 0, size);
+-	*dma_handle = virt_to_phys(addr);
++	*dma_handle = page_to_phys(page);
+ 
+ #ifdef ALLOW_IOV_BYPASS
+ 	ASSERT(dev->coherent_dma_mask);
+@@ -1174,9 +1151,10 @@ sba_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle,
+ 	 * If device can't bypass or bypass is disabled, pass the 32bit fake
+ 	 * device to map single to get an iova mapping.
+ 	 */
+-	*dma_handle = sba_map_single_attrs(&ioc->sac_only_dev->dev, addr,
+-					   size, 0, 0);
+-
++	*dma_handle = sba_map_page(&ioc->sac_only_dev->dev, page, 0, size,
++			DMA_BIDIRECTIONAL, 0);
++	if (dma_mapping_error(dev, *dma_handle))
++		return NULL;
+ 	return addr;
+ }
+ 
+@@ -1193,7 +1171,7 @@ sba_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle,
+ static void sba_free_coherent(struct device *dev, size_t size, void *vaddr,
+ 			      dma_addr_t dma_handle, unsigned long attrs)
+ {
+-	sba_unmap_single_attrs(dev, dma_handle, size, 0, 0);
++	sba_unmap_page(dev, dma_handle, size, 0, 0);
+ 	free_pages((unsigned long) vaddr, get_order(size));
+ }
+ 
+@@ -1483,7 +1461,10 @@ static int sba_map_sg_attrs(struct device *dev, struct scatterlist *sglist,
+ 	/* Fast path single entry scatterlists. */
+ 	if (nents == 1) {
+ 		sglist->dma_length = sglist->length;
+-		sglist->dma_address = sba_map_single_attrs(dev, sba_sg_address(sglist), sglist->length, dir, attrs);
++		sglist->dma_address = sba_map_page(dev, sg_page(sglist),
++				sglist->offset, sglist->length, dir, attrs);
++		if (dma_mapping_error(dev, sglist->dma_address))
++			return 0;
+ 		return 1;
+ 	}
+ 
+@@ -1572,8 +1553,8 @@ static void sba_unmap_sg_attrs(struct device *dev, struct scatterlist *sglist,
+ 
+ 	while (nents && sglist->dma_length) {
+ 
+-		sba_unmap_single_attrs(dev, sglist->dma_address,
+-				       sglist->dma_length, dir, attrs);
++		sba_unmap_page(dev, sglist->dma_address, sglist->dma_length,
++			       dir, attrs);
+ 		sglist = sg_next(sglist);
+ 		nents--;
+ 	}
 -- 
 2.19.1
