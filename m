@@ -1,57 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54716 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388851AbeKWAnF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:05 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 01/24] dma-direct: Make DIRECT_MAPPING_ERROR viable for SWIOTLB
-Date: Thu, 22 Nov 2018 15:02:57 +0100
-Message-ID: <20181122140320.24080-2-hch@lst.de>
-In-Reply-To: <20181122140320.24080-1-hch@lst.de>
-References: <20181122140320.24080-1-hch@lst.de>
+Received: from mail-lf1-f67.google.com ([209.85.167.67]:33073 "EHLO
+        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731494AbeKWDbU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 22:31:20 -0500
+Received: by mail-lf1-f67.google.com with SMTP id i26so6958856lfc.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Nov 2018 08:51:07 -0800 (PST)
+Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com. [209.85.208.178])
+        by smtp.gmail.com with ESMTPSA id q4-v6sm2954091ljb.4.2018.11.22.08.51.04
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 22 Nov 2018 08:51:04 -0800 (PST)
+Received: by mail-lj1-f178.google.com with SMTP id c19-v6so8505633lja.5
+        for <linux-arch@vger.kernel.org>; Thu, 22 Nov 2018 08:51:04 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20181122140320.24080-1-hch@lst.de>
+In-Reply-To: <20181122140320.24080-1-hch@lst.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 22 Nov 2018 08:50:47 -0800
+Message-ID: <CAHk-=wh=_T=A53+o4zLNbKio43LGqVDb0KCbWPDvAg54bRDmWw@mail.gmail.com>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140257.8rJREQDA16iZEou9kt2Q7sG45zCKR9dxgXMDjLyaz5Q@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, jdmason@kudzu.us, joro@8bytes.org, David Woodhouse <dwmw2@infradead.org>, m.szyprowski@samsung.com, robin.murphy@arm.com, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
+Message-ID: <20181122165047.ka6YzrLCssyDtX5G7pZ76Ym4c-qPzE7cuEn4noA6UdA@z>
 
-From: Robin Murphy <robin.murphy@arm.com>
+On Thu, Nov 22, 2018 at 6:03 AM Christoph Hellwig <hch@lst.de> wrote:
+>
+> The 0 return doesn't work for direct mappings that have ram at address
+> zero and a lot of IOMMUs that start allocating bus space from address
+> zero, so we can't consolidate on that, but I think we can move everyone
+> to all-Fs, which the patch here does.
 
-With the overflow buffer removed, we no longer have a unique address
-which is guaranteed not to be a valid DMA target to use as an error
-token. The DIRECT_MAPPING_ERROR value of 0 tries to at least represent
-an unlikely DMA target, but unfortunately there are already SWIOTLB
-users with DMA-able memory at physical address 0 which now gets falsely
-treated as a mapping failure and leads to all manner of misbehaviour.
+Hmm. Maybe not limit it to just all ones, but actually use the
+(standard, for the kernel) IS_ERR_VALUE()?
 
-The best we can do to mitigate that is flip DIRECT_MAPPING_ERROR to the
-other commonly-used error value of all-bits-set, since the last single
-byte of memory is by far the least-likely-valid DMA target.
+That basically reserves the last 4095 values in an unsigned long for
+error values.
 
-Fixes: dff8d6c1ed58 ("swiotlb: remove the overflow buffer")
-Reported-by: John Stultz <john.stultz@linaro.org>
-Tested-by: John Stultz <john.stultz@linaro.org>
-Acked-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/linux/dma-direct.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Then those functions could actually return *what* error they
+encountered, using just plain
 
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index bd73e7a91410..9e66bfe369aa 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -5,7 +5,7 @@
- #include <linux/dma-mapping.h>
- #include <linux/mem_encrypt.h>
- 
--#define DIRECT_MAPPING_ERROR		0
-+#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
- 
- #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
- #include <asm/dma-direct.h>
--- 
-2.19.1
+        return -ENOMEM;
+
+or whatever?
+
+               Linus
