@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 06/24] powerpc/iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:02 +0100
-Message-ID: <20181122140320.24080-7-hch@lst.de>
+Subject: [PATCH 07/24] mips/jazz: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:03 +0100
+Message-ID: <20181122140320.24080-8-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,209 +12,97 @@ To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The powerpc iommu code already returns (~(dma_addr_t)0x0) on mapping
-failures, so we can switch over to returning DMA_MAPPING_ERROR and let
-the core dma-mapping code handle the rest.
+The Jazz iommu code already returns (~(dma_addr_t)0x0) on mapping
+failures, so we can switch over to returning DMA_MAPPING_ERROR and
+let the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/iommu.h     |  4 ----
- arch/powerpc/kernel/dma-iommu.c      |  6 ------
- arch/powerpc/kernel/iommu.c          | 28 ++++++++++++++--------------
- arch/powerpc/platforms/cell/iommu.c  |  1 -
- arch/powerpc/platforms/pseries/vio.c |  3 +--
- 5 files changed, 15 insertions(+), 27 deletions(-)
+ arch/mips/include/asm/jazzdma.h |  6 ------
+ arch/mips/jazz/jazzdma.c        | 16 +++++-----------
+ 2 files changed, 5 insertions(+), 17 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/iommu.h b/arch/powerpc/include/asm/iommu.h
-index 35db0cbc9222..55312990d1d2 100644
---- a/arch/powerpc/include/asm/iommu.h
-+++ b/arch/powerpc/include/asm/iommu.h
-@@ -143,8 +143,6 @@ struct scatterlist;
+diff --git a/arch/mips/include/asm/jazzdma.h b/arch/mips/include/asm/jazzdma.h
+index d913439c738c..d13f940022d5 100644
+--- a/arch/mips/include/asm/jazzdma.h
++++ b/arch/mips/include/asm/jazzdma.h
+@@ -39,12 +39,6 @@ extern int vdma_get_enable(int channel);
+ #define VDMA_PAGE(a)		((unsigned int)(a) >> 12)
+ #define VDMA_OFFSET(a)		((unsigned int)(a) & (VDMA_PAGESIZE-1))
  
- #ifdef CONFIG_PPC64
- 
--#define IOMMU_MAPPING_ERROR		(~(dma_addr_t)0x0)
+-/*
+- * error code returned by vdma_alloc()
+- * (See also arch/mips/kernel/jazzdma.c)
+- */
+-#define VDMA_ERROR		0xffffffff
 -
- static inline void set_iommu_table_base(struct device *dev,
- 					struct iommu_table *base)
- {
-@@ -242,8 +240,6 @@ static inline int __init tce_iommu_bus_notifier_init(void)
- }
- #endif /* !CONFIG_IOMMU_API */
- 
--int dma_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr);
--
- #else
- 
- static inline void *get_iommu_table_base(struct device *dev)
-diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
-index f9fe2080ceb9..5ebacf0fe41a 100644
---- a/arch/powerpc/kernel/dma-iommu.c
-+++ b/arch/powerpc/kernel/dma-iommu.c
-@@ -106,11 +106,6 @@ static u64 dma_iommu_get_required_mask(struct device *dev)
- 	return mask;
- }
- 
--int dma_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == IOMMU_MAPPING_ERROR;
--}
--
- struct dma_map_ops dma_iommu_ops = {
- 	.alloc			= dma_iommu_alloc_coherent,
- 	.free			= dma_iommu_free_coherent,
-@@ -121,6 +116,5 @@ struct dma_map_ops dma_iommu_ops = {
- 	.map_page		= dma_iommu_map_page,
- 	.unmap_page		= dma_iommu_unmap_page,
- 	.get_required_mask	= dma_iommu_get_required_mask,
--	.mapping_error		= dma_iommu_mapping_error,
- };
- EXPORT_SYMBOL(dma_iommu_ops);
-diff --git a/arch/powerpc/kernel/iommu.c b/arch/powerpc/kernel/iommu.c
-index f0dc680e659a..ca7f73488c62 100644
---- a/arch/powerpc/kernel/iommu.c
-+++ b/arch/powerpc/kernel/iommu.c
-@@ -197,11 +197,11 @@ static unsigned long iommu_range_alloc(struct device *dev,
- 	if (unlikely(npages == 0)) {
- 		if (printk_ratelimit())
- 			WARN_ON(1);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
+ /*
+  * VDMA pagetable entry description
+  */
+diff --git a/arch/mips/jazz/jazzdma.c b/arch/mips/jazz/jazzdma.c
+index 4c41ed0a637e..6256d35dbf4d 100644
+--- a/arch/mips/jazz/jazzdma.c
++++ b/arch/mips/jazz/jazzdma.c
+@@ -104,12 +104,12 @@ unsigned long vdma_alloc(unsigned long paddr, unsigned long size)
+ 		if (vdma_debug)
+ 			printk("vdma_alloc: Invalid physical address: %08lx\n",
+ 			       paddr);
+-		return VDMA_ERROR;	/* invalid physical address */
++		return DMA_MAPPING_ERROR;	/* invalid physical address */
+ 	}
+ 	if (size > 0x400000 || size == 0) {
+ 		if (vdma_debug)
+ 			printk("vdma_alloc: Invalid size: %08lx\n", size);
+-		return VDMA_ERROR;	/* invalid physical address */
++		return DMA_MAPPING_ERROR;	/* invalid physical address */
  	}
  
- 	if (should_fail_iommu(dev))
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	/*
- 	 * We don't need to disable preemption here because any CPU can
-@@ -277,7 +277,7 @@ static unsigned long iommu_range_alloc(struct device *dev,
- 		} else {
- 			/* Give up */
- 			spin_unlock_irqrestore(&(pool->lock), flags);
--			return IOMMU_MAPPING_ERROR;
+ 	spin_lock_irqsave(&vdma_lock, flags);
+@@ -123,7 +123,7 @@ unsigned long vdma_alloc(unsigned long paddr, unsigned long size)
+ 		       first < VDMA_PGTBL_ENTRIES) first++;
+ 		if (first + pages > VDMA_PGTBL_ENTRIES) {	/* nothing free */
+ 			spin_unlock_irqrestore(&vdma_lock, flags);
+-			return VDMA_ERROR;
 +			return DMA_MAPPING_ERROR;
  		}
- 	}
  
-@@ -309,13 +309,13 @@ static dma_addr_t iommu_alloc(struct device *dev, struct iommu_table *tbl,
- 			      unsigned long attrs)
- {
- 	unsigned long entry;
--	dma_addr_t ret = IOMMU_MAPPING_ERROR;
-+	dma_addr_t ret = DMA_MAPPING_ERROR;
- 	int build_fail;
+ 		last = first + 1;
+@@ -569,7 +569,7 @@ static void *jazz_dma_alloc(struct device *dev, size_t size,
+ 		return NULL;
  
- 	entry = iommu_range_alloc(dev, tbl, npages, NULL, mask, align_order);
- 
--	if (unlikely(entry == IOMMU_MAPPING_ERROR))
--		return IOMMU_MAPPING_ERROR;
-+	if (unlikely(entry == DMA_MAPPING_ERROR))
-+		return DMA_MAPPING_ERROR;
- 
- 	entry += tbl->it_offset;	/* Offset into real TCE table */
- 	ret = entry << tbl->it_page_shift;	/* Set the return dma address */
-@@ -327,12 +327,12 @@ static dma_addr_t iommu_alloc(struct device *dev, struct iommu_table *tbl,
- 
- 	/* tbl->it_ops->set() only returns non-zero for transient errors.
- 	 * Clean up the table bitmap in this case and return
--	 * IOMMU_MAPPING_ERROR. For all other errors the functionality is
-+	 * DMA_MAPPING_ERROR. For all other errors the functionality is
- 	 * not altered.
- 	 */
- 	if (unlikely(build_fail)) {
- 		__iommu_free(tbl, ret, npages);
--		return IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	/* Flush/invalidate TLB caches if necessary */
-@@ -477,7 +477,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 		DBG("  - vaddr: %lx, size: %lx\n", vaddr, slen);
- 
- 		/* Handle failure */
--		if (unlikely(entry == IOMMU_MAPPING_ERROR)) {
-+		if (unlikely(entry == DMA_MAPPING_ERROR)) {
- 			if (!(attrs & DMA_ATTR_NO_WARN) &&
- 			    printk_ratelimit())
- 				dev_info(dev, "iommu_alloc failed, tbl %p "
-@@ -544,7 +544,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 	 */
- 	if (outcount < incount) {
- 		outs = sg_next(outs);
--		outs->dma_address = IOMMU_MAPPING_ERROR;
-+		outs->dma_address = DMA_MAPPING_ERROR;
- 		outs->dma_length = 0;
- 	}
- 
-@@ -562,7 +562,7 @@ int ppc_iommu_map_sg(struct device *dev, struct iommu_table *tbl,
- 			npages = iommu_num_pages(s->dma_address, s->dma_length,
- 						 IOMMU_PAGE_SIZE(tbl));
- 			__iommu_free(tbl, vaddr, npages);
--			s->dma_address = IOMMU_MAPPING_ERROR;
-+			s->dma_address = DMA_MAPPING_ERROR;
- 			s->dma_length = 0;
- 		}
- 		if (s == outs)
-@@ -776,7 +776,7 @@ dma_addr_t iommu_map_page(struct device *dev, struct iommu_table *tbl,
- 			  unsigned long mask, enum dma_data_direction direction,
- 			  unsigned long attrs)
- {
--	dma_addr_t dma_handle = IOMMU_MAPPING_ERROR;
-+	dma_addr_t dma_handle = DMA_MAPPING_ERROR;
- 	void *vaddr;
- 	unsigned long uaddr;
- 	unsigned int npages, align;
-@@ -796,7 +796,7 @@ dma_addr_t iommu_map_page(struct device *dev, struct iommu_table *tbl,
- 		dma_handle = iommu_alloc(dev, tbl, vaddr, npages, direction,
- 					 mask >> tbl->it_page_shift, align,
- 					 attrs);
--		if (dma_handle == IOMMU_MAPPING_ERROR) {
-+		if (dma_handle == DMA_MAPPING_ERROR) {
- 			if (!(attrs & DMA_ATTR_NO_WARN) &&
- 			    printk_ratelimit())  {
- 				dev_info(dev, "iommu_alloc failed, tbl %p "
-@@ -868,7 +868,7 @@ void *iommu_alloc_coherent(struct device *dev, struct iommu_table *tbl,
- 	io_order = get_iommu_order(size, tbl);
- 	mapping = iommu_alloc(dev, tbl, ret, nio_pages, DMA_BIDIRECTIONAL,
- 			      mask >> tbl->it_page_shift, io_order, 0);
--	if (mapping == IOMMU_MAPPING_ERROR) {
-+	if (mapping == DMA_MAPPING_ERROR) {
- 		free_pages((unsigned long)ret, order);
+ 	*dma_handle = vdma_alloc(virt_to_phys(ret), size);
+-	if (*dma_handle == VDMA_ERROR) {
++	if (*dma_handle == DMA_MAPPING_ERROR) {
+ 		dma_direct_free_pages(dev, size, ret, *dma_handle, attrs);
  		return NULL;
  	}
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 12352a58072a..af2a3c15e0ec 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -654,7 +654,6 @@ static const struct dma_map_ops dma_iommu_fixed_ops = {
- 	.dma_supported  = dma_suported_and_switch,
- 	.map_page       = dma_fixed_map_page,
- 	.unmap_page     = dma_fixed_unmap_page,
--	.mapping_error	= dma_iommu_mapping_error,
+@@ -620,7 +620,7 @@ static int jazz_dma_map_sg(struct device *dev, struct scatterlist *sglist,
+ 			arch_sync_dma_for_device(dev, sg_phys(sg), sg->length,
+ 				dir);
+ 		sg->dma_address = vdma_alloc(sg_phys(sg), sg->length);
+-		if (sg->dma_address == VDMA_ERROR)
++		if (sg->dma_address == DMA_MAPPING_ERROR)
+ 			return 0;
+ 		sg_dma_len(sg) = sg->length;
+ 	}
+@@ -674,11 +674,6 @@ static void jazz_dma_sync_sg_for_cpu(struct device *dev,
+ 		arch_sync_dma_for_cpu(dev, sg_phys(sg), sg->length, dir);
+ }
+ 
+-static int jazz_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return dma_addr == VDMA_ERROR;
+-}
+-
+ const struct dma_map_ops jazz_dma_ops = {
+ 	.alloc			= jazz_dma_alloc,
+ 	.free			= jazz_dma_free,
+@@ -692,6 +687,5 @@ const struct dma_map_ops jazz_dma_ops = {
+ 	.sync_sg_for_device	= jazz_dma_sync_sg_for_device,
+ 	.dma_supported		= dma_direct_supported,
+ 	.cache_sync		= arch_dma_cache_sync,
+-	.mapping_error		= jazz_dma_mapping_error,
  };
- 
- static void cell_dma_dev_setup(struct device *dev)
-diff --git a/arch/powerpc/platforms/pseries/vio.c b/arch/powerpc/platforms/pseries/vio.c
-index 88f1ad1d6309..a29ad7db918a 100644
---- a/arch/powerpc/platforms/pseries/vio.c
-+++ b/arch/powerpc/platforms/pseries/vio.c
-@@ -519,7 +519,7 @@ static dma_addr_t vio_dma_iommu_map_page(struct device *dev, struct page *page,
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
- 	struct iommu_table *tbl;
--	dma_addr_t ret = IOMMU_MAPPING_ERROR;
-+	dma_addr_t ret = DMA_MAPPING_ERROR;
- 
- 	tbl = get_iommu_table_base(dev);
- 	if (vio_cmo_alloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)))) {
-@@ -625,7 +625,6 @@ static const struct dma_map_ops vio_dma_mapping_ops = {
- 	.unmap_page        = vio_dma_iommu_unmap_page,
- 	.dma_supported     = vio_dma_iommu_dma_supported,
- 	.get_required_mask = vio_dma_get_required_mask,
--	.mapping_error	   = dma_iommu_mapping_error,
- };
- 
- /**
+ EXPORT_SYMBOL(jazz_dma_ops);
 -- 
 2.19.1
