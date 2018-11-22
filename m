@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/24] parisc/sba_iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:07 +0100
-Message-ID: <20181122140320.24080-12-hch@lst.de>
+Subject: [PATCH 12/24] arm64: remove the dummy_dma_ops mapping_error method
+Date: Thu, 22 Nov 2018 15:03:08 +0100
+Message-ID: <20181122140320.24080-13-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,56 +12,46 @@ To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The SBA iommu code already returns (~(dma_addr_t)0x0) on mapping
-failures, so we can switch over to returning DMA_MAPPING_ERROR and let
-the core dma-mapping code handle the rest.
+Just return DMA_MAPPING_ERROR from __dummy_map_page and let the core
+dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/parisc/sba_iommu.c | 10 +---------
- 1 file changed, 1 insertion(+), 9 deletions(-)
+ arch/arm64/mm/dma-mapping.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/drivers/parisc/sba_iommu.c b/drivers/parisc/sba_iommu.c
-index c1e599a429af..452d306ce5cb 100644
---- a/drivers/parisc/sba_iommu.c
-+++ b/drivers/parisc/sba_iommu.c
-@@ -93,8 +93,6 @@
- 
- #define DEFAULT_DMA_HINT_REG	0
- 
--#define SBA_MAPPING_ERROR    (~(dma_addr_t)0)
--
- struct sba_device *sba_list;
- EXPORT_SYMBOL_GPL(sba_list);
- 
-@@ -725,7 +723,7 @@ sba_map_single(struct device *dev, void *addr, size_t size,
- 
- 	ioc = GET_IOC(dev);
- 	if (!ioc)
--		return SBA_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	/* save offset bits */
- 	offset = ((dma_addr_t) (long) addr) & ~IOVP_MASK;
-@@ -1080,11 +1078,6 @@ sba_unmap_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index a3ac26284845..fdc26ea5036c 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -282,7 +282,7 @@ static dma_addr_t __dummy_map_page(struct device *dev, struct page *page,
+ 				   enum dma_data_direction dir,
+ 				   unsigned long attrs)
+ {
+-	return 0;
++	return DMA_MAPPING_ERROR;
  }
  
--static int sba_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ static void __dummy_unmap_page(struct device *dev, dma_addr_t dev_addr,
+@@ -317,11 +317,6 @@ static void __dummy_sync_sg(struct device *dev,
+ {
+ }
+ 
+-static int __dummy_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
 -{
--	return dma_addr == SBA_MAPPING_ERROR;
+-	return 1;
 -}
 -
- static const struct dma_map_ops sba_ops = {
- 	.dma_supported =	sba_dma_supported,
- 	.alloc =		sba_alloc,
-@@ -1093,7 +1086,6 @@ static const struct dma_map_ops sba_ops = {
- 	.unmap_page =		sba_unmap_page,
- 	.map_sg =		sba_map_sg,
- 	.unmap_sg =		sba_unmap_sg,
--	.mapping_error =	sba_mapping_error,
+ static int __dummy_dma_supported(struct device *hwdev, u64 mask)
+ {
+ 	return 0;
+@@ -339,7 +334,6 @@ const struct dma_map_ops dummy_dma_ops = {
+ 	.sync_single_for_device = __dummy_sync_single,
+ 	.sync_sg_for_cpu        = __dummy_sync_sg,
+ 	.sync_sg_for_device     = __dummy_sync_sg,
+-	.mapping_error          = __dummy_mapping_error,
+ 	.dma_supported          = __dummy_dma_supported,
  };
- 
- 
+ EXPORT_SYMBOL(dummy_dma_ops);
 -- 
 2.19.1
