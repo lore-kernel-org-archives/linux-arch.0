@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:59836 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:32924 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731181AbeKWAnn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:43 -0500
+        with ESMTP id S1731458AbeKWAoH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:44:07 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/24] alpha: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:09 +0100
-Message-ID: <20181122140320.24080-14-hch@lst.de>
+Subject: [PATCH 23/24] xen-swiotlb: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:19 +0100
+Message-ID: <20181122140320.24080-24-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,75 +15,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140309.nH3Bymk6MI9Buv3nF_9_myv-MEgWTmId0kWP0PN0Y5c@z>
+Message-ID: <20181122140319.M8oZbwIMogQX6vNeW0Xtw2VpOgKp5pCkmyojIBq3TuA@z>
 
 Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
 the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/alpha/kernel/pci_iommu.c | 14 ++++----------
- 1 file changed, 4 insertions(+), 10 deletions(-)
+ drivers/xen/swiotlb-xen.c | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
-index 46e08e0d9181..e1716e0d92fd 100644
---- a/arch/alpha/kernel/pci_iommu.c
-+++ b/arch/alpha/kernel/pci_iommu.c
-@@ -291,7 +291,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
- 	   use direct_map above, it now must be considered an error. */
- 	if (! alpha_mv.mv_pci_tbi) {
- 		printk_once(KERN_WARNING "pci_map_single: no HW sg\n");
--		return 0;
+diff --git a/drivers/xen/swiotlb-xen.c b/drivers/xen/swiotlb-xen.c
+index 2a7f545bd0b5..6dc969d5ea2f 100644
+--- a/drivers/xen/swiotlb-xen.c
++++ b/drivers/xen/swiotlb-xen.c
+@@ -53,8 +53,6 @@
+  * API.
+  */
+ 
+-#define XEN_SWIOTLB_ERROR_CODE	(~(dma_addr_t)0x0)
+-
+ static char *xen_io_tlb_start, *xen_io_tlb_end;
+ static unsigned long xen_io_tlb_nslabs;
+ /*
+@@ -406,7 +404,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+ 	map = swiotlb_tbl_map_single(dev, start_dma_addr, phys, size, dir,
+ 				     attrs);
+ 	if (map == SWIOTLB_MAP_ERROR)
+-		return XEN_SWIOTLB_ERROR_CODE;
 +		return DMA_MAPPING_ERROR;
- 	}
  
- 	arena = hose->sg_pci;
-@@ -307,7 +307,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
- 	if (dma_ofs < 0) {
- 		printk(KERN_WARNING "pci_map_single failed: "
- 		       "could not allocate dma page tables\n");
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 	}
+ 	dev_addr = xen_phys_to_bus(map);
+ 	xen_dma_map_page(dev, pfn_to_page(map >> PAGE_SHIFT),
+@@ -421,7 +419,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+ 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
+ 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
  
- 	paddr &= PAGE_MASK;
-@@ -455,7 +455,7 @@ static void *alpha_pci_alloc_coherent(struct device *dev, size_t size,
- 	memset(cpu_addr, 0, size);
- 
- 	*dma_addrp = pci_map_single_1(pdev, cpu_addr, size, 0);
--	if (*dma_addrp == 0) {
-+	if (*dma_addrp == DMA_MAPPING_ERROR) {
- 		free_pages((unsigned long)cpu_addr, order);
- 		if (alpha_mv.mv_pci_tbi || (gfp & GFP_DMA))
- 			return NULL;
-@@ -671,7 +671,7 @@ static int alpha_pci_map_sg(struct device *dev, struct scatterlist *sg,
- 		sg->dma_address
- 		  = pci_map_single_1(pdev, SG_ENT_VIRT_ADDRESS(sg),
- 				     sg->length, dac_allowed);
--		return sg->dma_address != 0;
-+		return sg->dma_address != DMA_MAPPING_ERROR;
- 	}
- 
- 	start = sg;
-@@ -935,11 +935,6 @@ iommu_unbind(struct pci_iommu_arena *arena, long pg_start, long pg_count)
- 	return 0;
+-	return XEN_SWIOTLB_ERROR_CODE;
++	return DMA_MAPPING_ERROR;
  }
  
--static int alpha_pci_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ /*
+@@ -700,11 +698,6 @@ xen_swiotlb_get_sgtable(struct device *dev, struct sg_table *sgt,
+ 	return dma_common_get_sgtable(dev, sgt, cpu_addr, handle, size, attrs);
+ }
+ 
+-static int xen_swiotlb_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -{
--	return dma_addr == 0;
+-	return dma_addr == XEN_SWIOTLB_ERROR_CODE;
 -}
 -
- const struct dma_map_ops alpha_pci_ops = {
- 	.alloc			= alpha_pci_alloc_coherent,
- 	.free			= alpha_pci_free_coherent,
-@@ -947,7 +942,6 @@ const struct dma_map_ops alpha_pci_ops = {
- 	.unmap_page		= alpha_pci_unmap_page,
- 	.map_sg			= alpha_pci_map_sg,
- 	.unmap_sg		= alpha_pci_unmap_sg,
--	.mapping_error		= alpha_pci_mapping_error,
- 	.dma_supported		= alpha_pci_supported,
+ const struct dma_map_ops xen_swiotlb_dma_ops = {
+ 	.alloc = xen_swiotlb_alloc_coherent,
+ 	.free = xen_swiotlb_free_coherent,
+@@ -719,5 +712,4 @@ const struct dma_map_ops xen_swiotlb_dma_ops = {
+ 	.dma_supported = xen_swiotlb_dma_supported,
+ 	.mmap = xen_swiotlb_dma_mmap,
+ 	.get_sgtable = xen_swiotlb_get_sgtable,
+-	.mapping_error	= xen_swiotlb_mapping_error,
  };
- EXPORT_SYMBOL(alpha_pci_ops);
 -- 
 2.19.1
