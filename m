@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:60992 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:54716 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731458AbeKWAn7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:59 -0500
+        with ESMTP id S2388851AbeKWAnF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:05 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/24] iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:15 +0100
-Message-ID: <20181122140320.24080-20-hch@lst.de>
+Subject: [PATCH 01/24] dma-direct: Make DIRECT_MAPPING_ERROR viable for SWIOTLB
+Date: Thu, 22 Nov 2018 15:02:57 +0100
+Message-ID: <20181122140320.24080-2-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,97 +15,43 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140315.KY8tG0U-2MSpwAojsAE29Jiyn1z7uyJIsUAsqdgTlLU@z>
+Message-ID: <20181122140257.8rJREQDA16iZEou9kt2Q7sG45zCKR9dxgXMDjLyaz5Q@z>
 
-Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
-the core dma-mapping code handle the rest.
+From: Robin Murphy <robin.murphy@arm.com>
 
-Note that the existing code used AMD_IOMMU_MAPPING_ERROR to check from
-a 0 return from the IOVA allocator, which is replaced with an explicit
-0 as in the implementation and other users of that interface.
+With the overflow buffer removed, we no longer have a unique address
+which is guaranteed not to be a valid DMA target to use as an error
+token. The DIRECT_MAPPING_ERROR value of 0 tries to at least represent
+an unlikely DMA target, but unfortunately there are already SWIOTLB
+users with DMA-able memory at physical address 0 which now gets falsely
+treated as a mapping failure and leads to all manner of misbehaviour.
 
+The best we can do to mitigate that is flip DIRECT_MAPPING_ERROR to the
+other commonly-used error value of all-bits-set, since the last single
+byte of memory is by far the least-likely-valid DMA target.
+
+Fixes: dff8d6c1ed58 ("swiotlb: remove the overflow buffer")
+Reported-by: John Stultz <john.stultz@linaro.org>
+Tested-by: John Stultz <john.stultz@linaro.org>
+Acked-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/iommu/amd_iommu.c | 18 +++++-------------
- 1 file changed, 5 insertions(+), 13 deletions(-)
+ include/linux/dma-direct.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index 1167ff0416cf..c5d6c7c42b0a 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -55,8 +55,6 @@
- #include "amd_iommu_types.h"
- #include "irq_remapping.h"
+diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
+index bd73e7a91410..9e66bfe369aa 100644
+--- a/include/linux/dma-direct.h
++++ b/include/linux/dma-direct.h
+@@ -5,7 +5,7 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/mem_encrypt.h>
  
--#define AMD_IOMMU_MAPPING_ERROR	0
--
- #define CMD_SET_TYPE(cmd, t) ((cmd)->data[1] |= ((t) << 28))
+-#define DIRECT_MAPPING_ERROR		0
++#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
  
- #define LOOP_TIMEOUT	100000
-@@ -2339,7 +2337,7 @@ static dma_addr_t __map_single(struct device *dev,
- 	paddr &= PAGE_MASK;
- 
- 	address = dma_ops_alloc_iova(dev, dma_dom, pages, dma_mask);
--	if (address == AMD_IOMMU_MAPPING_ERROR)
-+	if (!address)
- 		goto out;
- 
- 	prot = dir2prot(direction);
-@@ -2376,7 +2374,7 @@ static dma_addr_t __map_single(struct device *dev,
- 
- 	dma_ops_free_iova(dma_dom, address, pages);
- 
--	return AMD_IOMMU_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /*
-@@ -2427,7 +2425,7 @@ static dma_addr_t map_page(struct device *dev, struct page *page,
- 	if (PTR_ERR(domain) == -EINVAL)
- 		return (dma_addr_t)paddr;
- 	else if (IS_ERR(domain))
--		return AMD_IOMMU_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	dma_mask = *dev->dma_mask;
- 	dma_dom = to_dma_ops_domain(domain);
-@@ -2504,7 +2502,7 @@ static int map_sg(struct device *dev, struct scatterlist *sglist,
- 	npages = sg_num_pages(dev, sglist, nelems);
- 
- 	address = dma_ops_alloc_iova(dev, dma_dom, npages, dma_mask);
--	if (address == AMD_IOMMU_MAPPING_ERROR)
-+	if (address == DMA_MAPPING_ERROR)
- 		goto out_err;
- 
- 	prot = dir2prot(direction);
-@@ -2627,7 +2625,7 @@ static void *alloc_coherent(struct device *dev, size_t size,
- 	*dma_addr = __map_single(dev, dma_dom, page_to_phys(page),
- 				 size, DMA_BIDIRECTIONAL, dma_mask);
- 
--	if (*dma_addr == AMD_IOMMU_MAPPING_ERROR)
-+	if (*dma_addr == DMA_MAPPING_ERROR)
- 		goto out_free;
- 
- 	return page_address(page);
-@@ -2678,11 +2676,6 @@ static int amd_iommu_dma_supported(struct device *dev, u64 mask)
- 	return check_device(dev);
- }
- 
--static int amd_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == AMD_IOMMU_MAPPING_ERROR;
--}
--
- static const struct dma_map_ops amd_iommu_dma_ops = {
- 	.alloc		= alloc_coherent,
- 	.free		= free_coherent,
-@@ -2691,7 +2684,6 @@ static const struct dma_map_ops amd_iommu_dma_ops = {
- 	.map_sg		= map_sg,
- 	.unmap_sg	= unmap_sg,
- 	.dma_supported	= amd_iommu_dma_supported,
--	.mapping_error	= amd_iommu_mapping_error,
- };
- 
- static int init_reserved_iova_ranges(void)
+ #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
+ #include <asm/dma-direct.h>
 -- 
 2.19.1
