@@ -1,58 +1,62 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 14/18] function_graph: Make ftrace_push_return_trace() static
-Date: Wed, 21 Nov 2018 19:28:15 -0500
-Message-ID: <20181122003333.445140997@goodmis.org>
+Subject: [for-next][PATCH 13/18] sparc/function_graph: Simplify with function_graph_entry()
+Date: Wed, 21 Nov 2018 19:28:14 -0500
+Message-ID: <20181122003333.299708099@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, stable@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-As all architectures now call function_graph_enter() to do the entry work,
-no architecture should ever call ftrace_push_return_trace(). Make it static.
+The function_graph_entry() function does the work of calling the function
+graph hook function and the management of the shadow stack, simplifying the
+work done in the architecture dependent prepare_ftrace_return().
+
+Have sparc use the new code, and remove the shadow stack management as well as
+having to set up the trace structure.
 
 This is needed to prepare for a fix of a design bug on how the curr_ret_stack
 is used.
 
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- include/linux/ftrace.h               | 3 ---
- kernel/trace/trace_functions_graph.c | 2 +-
- 2 files changed, 1 insertion(+), 4 deletions(-)
+ arch/sparc/kernel/ftrace.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
-diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index 5717e8f81c59..dd16e8218db3 100644
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -776,9 +776,6 @@ struct ftrace_ret_stack {
-  */
- extern void return_to_handler(void);
- 
--extern int
--ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
--			 unsigned long frame_pointer, unsigned long *retp);
- extern int
- function_graph_enter(unsigned long ret, unsigned long func,
- 		     unsigned long frame_pointer, unsigned long *retp);
-diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index 28f2602435d0..88ca787a1cdc 100644
---- a/kernel/trace/trace_functions_graph.c
-+++ b/kernel/trace/trace_functions_graph.c
-@@ -118,7 +118,7 @@ print_graph_duration(struct trace_array *tr, unsigned long long duration,
- 		     struct trace_seq *s, u32 flags);
- 
- /* Add a function return address to the trace stack on thread info.*/
--int
-+static int
- ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
- 			 unsigned long frame_pointer, unsigned long *retp)
+diff --git a/arch/sparc/kernel/ftrace.c b/arch/sparc/kernel/ftrace.c
+index 915dda4ae412..684b84ce397f 100644
+--- a/arch/sparc/kernel/ftrace.c
++++ b/arch/sparc/kernel/ftrace.c
+@@ -126,20 +126,11 @@ unsigned long prepare_ftrace_return(unsigned long parent,
+ 				    unsigned long frame_pointer)
  {
+ 	unsigned long return_hooker = (unsigned long) &return_to_handler;
+-	struct ftrace_graph_ent trace;
+ 
+ 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
+ 		return parent + 8UL;
+ 
+-	trace.func = self_addr;
+-	trace.depth = current->curr_ret_stack + 1;
+-
+-	/* Only trace if the calling function expects to */
+-	if (!ftrace_graph_entry(&trace))
+-		return parent + 8UL;
+-
+-	if (ftrace_push_return_trace(parent, self_addr, &trace.depth,
+-				     frame_pointer, NULL) == -EBUSY)
++	if (function_graph_enter(parent, self_addr, frame_pointer, NULL))
+ 		return parent + 8UL;
+ 
+ 	return return_hooker;
 -- 
 2.19.1
