@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/24] ia64/sba_iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:11 +0100
-Message-ID: <20181122140320.24080-16-hch@lst.de>
+Subject: [PATCH 16/24] ia64/sn: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:12 +0100
+Message-ID: <20181122140320.24080-17-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,41 +17,41 @@ the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/hp/common/sba_iommu.c | 8 +-------
+ arch/ia64/sn/pci/pci_dma.c | 8 +-------
  1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-index b953282d4704..0316af2cb426 100644
---- a/arch/ia64/hp/common/sba_iommu.c
-+++ b/arch/ia64/hp/common/sba_iommu.c
-@@ -974,7 +974,7 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
+diff --git a/arch/ia64/sn/pci/pci_dma.c b/arch/ia64/sn/pci/pci_dma.c
+index 4ce4ee4ef9f2..b7d42e4edc1f 100644
+--- a/arch/ia64/sn/pci/pci_dma.c
++++ b/arch/ia64/sn/pci/pci_dma.c
+@@ -196,7 +196,7 @@ static dma_addr_t sn_dma_map_page(struct device *dev, struct page *page,
  
- 	pide = sba_alloc_range(ioc, dev, size);
- 	if (pide < 0)
+ 	if (!dma_addr) {
+ 		printk(KERN_ERR "%s: out of ATEs\n", __func__);
 -		return 0;
 +		return DMA_MAPPING_ERROR;
- 
- 	iovp = (dma_addr_t) pide << iovp_shift;
- 
-@@ -2151,11 +2151,6 @@ static int sba_dma_supported (struct device *dev, u64 mask)
- 	return ((mask & 0xFFFFFFFFUL) == 0xFFFFFFFFUL);
+ 	}
+ 	return dma_addr;
+ }
+@@ -314,11 +314,6 @@ static int sn_dma_map_sg(struct device *dev, struct scatterlist *sgl,
+ 	return nhwentries;
  }
  
--static int sba_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int sn_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -{
 -	return 0;
 -}
 -
- __setup("nosbagart", nosbagart);
- 
- static int __init
-@@ -2189,7 +2184,6 @@ const struct dma_map_ops sba_dma_ops = {
- 	.map_sg			= sba_map_sg_attrs,
- 	.unmap_sg		= sba_unmap_sg_attrs,
- 	.dma_supported		= sba_dma_supported,
--	.mapping_error		= sba_dma_mapping_error,
+ static u64 sn_dma_get_required_mask(struct device *dev)
+ {
+ 	return DMA_BIT_MASK(64);
+@@ -441,7 +436,6 @@ static struct dma_map_ops sn_dma_ops = {
+ 	.unmap_page		= sn_dma_unmap_page,
+ 	.map_sg			= sn_dma_map_sg,
+ 	.unmap_sg		= sn_dma_unmap_sg,
+-	.mapping_error		= sn_dma_mapping_error,
+ 	.dma_supported		= sn_dma_supported,
+ 	.get_required_mask	= sn_dma_get_required_mask,
  };
- 
- void sba_dma_init(void)
 -- 
 2.19.1
