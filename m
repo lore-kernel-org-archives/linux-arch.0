@@ -1,64 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54802 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:55286 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2395332AbeKWAnG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:06 -0500
+        with ESMTP id S2395350AbeKWAnL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:11 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: remove the ->mapping_error method from dma_map_ops V2
-Date: Thu, 22 Nov 2018 15:02:56 +0100
-Message-ID: <20181122140320.24080-1-hch@lst.de>
+Subject: [PATCH 03/24] dma-mapping: provide a generic DMA_MAPPING_ERROR
+Date: Thu, 22 Nov 2018 15:02:59 +0100
+Message-ID: <20181122140320.24080-4-hch@lst.de>
+In-Reply-To: <20181122140320.24080-1-hch@lst.de>
+References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140256.5BaEwkYjVN29gaOdNM9ENg1yKZOgtnqsI01YbBSvyZU@z>
+Message-ID: <20181122140259.G7Q0NGsWzRULU1sypYqrN7exkvs457uWWUyyJWQ9_v8@z>
 
-Error reporting for the dma_map_single and dma_map_page operations is
-currently a mess.  Both APIs directly return the dma_addr_t to be used for
-the DMA, with a magic error escape that is specific to the instance and
-checked by another method provided.  This has a few downsides:
+Error handling of the dma_map_single and dma_map_page APIs is a little
+problematic at the moment, in that we use different encodings in the
+returned dma_addr_t to indicate an error.  That means we require an
+additional indirect call to figure out if a dma mapping call returned
+an error, and a lot of boilerplate code to implement these semantics.
 
- - the error check is easily forgotten and a __must_check marker doesn't
-   help as the value always is consumed anyway
- - the error checking requires another indirect call, which have gotten
-   incredibly expensive
- - a lot of code is wasted on implementing these methods
+Instead return the maximum addressable value as the error.  As long
+as we don't allow mapping single-byte ranges with single-byte alignment
+this value can never be a valid return.  Additionaly if drivers do
+not check the return value from the dma_map* routines this values means
+they will generally not be pointed to actual memory.
 
-The historical reason for this is that people thought DMA mappings would
-not fail when the API was created, which sounds like a really bad
-assumption in retrospective, and then we tried to cram error handling
-onto it later on.
+Once the default value is added here we can start removing the
+various mapping_error methods and just rely on this generic check.
 
-There basically are two variants:  the error code is 0 because the
-implementation will never return 0 as a valid DMA address, or the error
-code is all-F as the implementation won't ever return an address that
-high.  The old AMD GART is the only one not falling into these two camps
-as it picks sort of a relative zero relative to where it is mapped.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ include/linux/dma-mapping.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-The 0 return doesn't work for direct mappings that have ram at address
-zero and a lot of IOMMUs that start allocating bus space from address
-zero, so we can't consolidate on that, but I think we can move everyone
-to all-Fs, which the patch here does.  The reason for that is that
-there is only one way to ever get this address: by doing a 1-byte long,
-1-byte aligned mapping, but all our mappings are not only longer but
-generally aligned, and the mappings have to keep at least the basic
-alignment.
-
-Note that the first two patches are queued up for 4.20 and included
-for reference.
-
-A git tree is also available here:
-
-    git://git.infradead.org/users/hch/misc.git dma-mapping-error.2
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/dma-mapping-error.2
-
-Changes since v1:
- - dropped the signature change
- - split into multiple patches
- - fixed the iova allocator return check in amd-iommu
- - remove EMERGENCY_PAGES in amd_gart and calgary
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 15bd41447025..c323c539b7cb 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -133,6 +133,8 @@ struct dma_map_ops {
+ 	u64 (*get_required_mask)(struct device *dev);
+ };
+ 
++#define DMA_MAPPING_ERROR		(~(dma_addr_t)0)
++
+ extern const struct dma_map_ops dma_direct_ops;
+ extern const struct dma_map_ops dma_virt_ops;
+ 
+@@ -576,6 +578,10 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ 	const struct dma_map_ops *ops = get_dma_ops(dev);
+ 
+ 	debug_dma_mapping_error(dev, dma_addr);
++
++	if (dma_addr == DMA_MAPPING_ERROR)
++		return 1;
++
+ 	if (ops->mapping_error)
+ 		return ops->mapping_error(dev, dma_addr);
+ 	return 0;
+-- 
+2.19.1
