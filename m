@@ -1,8 +1,8 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 17/18] function_graph: Reverse the order of pushing the ret_stack and the
- callback
-Date: Wed, 21 Nov 2018 19:28:18 -0500
-Message-ID: <20181122003333.880108256@goodmis.org>
+Subject: [for-next][PATCH 15/18] function_graph: Use new curr_ret_depth to manage depth instead of
+ curr_ret_stack
+Date: Wed, 21 Nov 2018 19:28:16 -0500
+Message-ID: <20181122003333.592319701@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
@@ -14,51 +14,139 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The function graph profiler uses the ret_stack to store the "subtime" and
-reuse it by nested functions and also on the return. But the current logic
-has the profiler callback called before the ret_stack is updated, and it is
-just modifying the ret_stack that will later be allocated (it's just lucky
-that the "subtime" is not touched when it is allocated).
+Currently, the depth of the ret_stack is determined by curr_ret_stack index.
+The issue is that there's a race between setting of the curr_ret_stack and
+calling of the callback attached to the return of the function.
 
-This could also cause a crash if we are at the end of the ret_stack when
-this happens.
+Commit 03274a3ffb44 ("tracing/fgraph: Adjust fgraph depth before calling
+trace return callback") moved the calling of the callback to after the
+setting of the curr_ret_stack, even stating that it was safe to do so, when
+in fact, it was the reason there was a barrier() there (yes, I should have
+commented that barrier()).
 
-By reversing the order of the allocating the ret_stack and then calling the
-callbacks attached to a function being traced, the ret_stack entry is no
-longer used before it is allocated.
+Not only does the curr_ret_stack keep track of the current call graph depth,
+it also keeps the ret_stack content from being overwritten by new data.
+
+The function profiler, uses the "subtime" variable of ret_stack structure
+and by moving the curr_ret_stack, it allows for interrupts to use the same
+structure it was using, corrupting the data, and breaking the profiler.
+
+To fix this, there needs to be two variables to handle the call stack depth
+and the pointer to where the ret_stack is being used, as they need to change
+at two different locations.
 
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- kernel/trace/trace_functions_graph.c | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ include/linux/sched.h                |  1 +
+ kernel/trace/ftrace.c                |  3 +++
+ kernel/trace/trace_functions_graph.c | 21 +++++++++++++--------
+ 3 files changed, 17 insertions(+), 8 deletions(-)
 
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index a51c13c2b1a0..d6183a55e8eb 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1116,6 +1116,7 @@ struct task_struct {
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ 	/* Index of current stored address in ret_stack: */
+ 	int				curr_ret_stack;
++	int				curr_ret_depth;
+ 
+ 	/* Stack of return addresses for return function tracing: */
+ 	struct ftrace_ret_stack		*ret_stack;
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index f536f601bd46..48513954713c 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -6814,6 +6814,7 @@ static int alloc_retstack_tasklist(struct ftrace_ret_stack **ret_stack_list)
+ 			atomic_set(&t->tracing_graph_pause, 0);
+ 			atomic_set(&t->trace_overrun, 0);
+ 			t->curr_ret_stack = -1;
++			t->curr_ret_depth = -1;
+ 			/* Make sure the tasks see the -1 first: */
+ 			smp_wmb();
+ 			t->ret_stack = ret_stack_list[start++];
+@@ -7038,6 +7039,7 @@ graph_init_task(struct task_struct *t, struct ftrace_ret_stack *ret_stack)
+ void ftrace_graph_init_idle_task(struct task_struct *t, int cpu)
+ {
+ 	t->curr_ret_stack = -1;
++	t->curr_ret_depth = -1;
+ 	/*
+ 	 * The idle task has no parent, it either has its own
+ 	 * stack or no stack at all.
+@@ -7068,6 +7070,7 @@ void ftrace_graph_init_task(struct task_struct *t)
+ 	/* Make sure we do not use the parent ret_stack */
+ 	t->ret_stack = NULL;
+ 	t->curr_ret_stack = -1;
++	t->curr_ret_depth = -1;
+ 
+ 	if (ftrace_graph_active) {
+ 		struct ftrace_ret_stack *ret_stack;
 diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index 4f0d72ae6362..2561460d7baf 100644
+index 88ca787a1cdc..02d4081a7f5a 100644
 --- a/kernel/trace/trace_functions_graph.c
 +++ b/kernel/trace/trace_functions_graph.c
-@@ -188,15 +188,17 @@ int function_graph_enter(unsigned long ret, unsigned long func,
- 	trace.func = func;
- 	trace.depth = ++current->curr_ret_depth;
+@@ -119,7 +119,7 @@ print_graph_duration(struct trace_array *tr, unsigned long long duration,
  
--	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace))
--		goto out;
+ /* Add a function return address to the trace stack on thread info.*/
+ static int
+-ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
++ftrace_push_return_trace(unsigned long ret, unsigned long func,
+ 			 unsigned long frame_pointer, unsigned long *retp)
+ {
+ 	unsigned long long calltime;
+@@ -177,8 +177,6 @@ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
+ #ifdef HAVE_FUNCTION_GRAPH_RET_ADDR_PTR
+ 	current->ret_stack[index].retp = retp;
+ #endif
+-	*depth = current->curr_ret_stack;
 -
- 	if (ftrace_push_return_trace(ret, func,
- 				     frame_pointer, retp))
- 		goto out;
- 
-+	/* Only trace if the calling function expects to */
-+	if (!ftrace_graph_entry(&trace))
-+		goto out_ret;
-+
  	return 0;
-+ out_ret:
-+	current->curr_ret_stack--;
-  out:
- 	current->curr_ret_depth--;
- 	return -EBUSY;
+ }
+ 
+@@ -188,14 +186,20 @@ int function_graph_enter(unsigned long ret, unsigned long func,
+ 	struct ftrace_graph_ent trace;
+ 
+ 	trace.func = func;
+-	trace.depth = current->curr_ret_stack + 1;
++	trace.depth = ++current->curr_ret_depth;
+ 
+ 	/* Only trace if the calling function expects to */
+ 	if (!ftrace_graph_entry(&trace))
+-		return -EBUSY;
++		goto out;
+ 
+-	return ftrace_push_return_trace(ret, func, &trace.depth,
+-					frame_pointer, retp);
++	if (ftrace_push_return_trace(ret, func,
++				     frame_pointer, retp))
++		goto out;
++
++	return 0;
++ out:
++	current->curr_ret_depth--;
++	return -EBUSY;
+ }
+ 
+ /* Retrieve a function return address to the trace stack on thread info.*/
+@@ -257,7 +261,7 @@ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
+ 	trace->func = current->ret_stack[index].func;
+ 	trace->calltime = current->ret_stack[index].calltime;
+ 	trace->overrun = atomic_read(&current->trace_overrun);
+-	trace->depth = index;
++	trace->depth = current->curr_ret_depth;
+ }
+ 
+ /*
+@@ -273,6 +277,7 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
+ 	trace.rettime = trace_clock_local();
+ 	barrier();
+ 	current->curr_ret_stack--;
++	current->curr_ret_depth--;
+ 	/*
+ 	 * The curr_ret_stack can be less than -1 only if it was
+ 	 * filtered out and it's about to return from the function.
 -- 
 2.19.1
