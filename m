@@ -1,7 +1,7 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 16/18] function_graph: Move return callback before update of curr_ret_stack
-Date: Wed, 21 Nov 2018 19:28:17 -0500
-Message-ID: <20181122003333.738228014@goodmis.org>
+Subject: [for-next][PATCH 18/18] function_graph: Have profiler use curr_ret_stack and not depth
+Date: Wed, 21 Nov 2018 19:28:19 -0500
+Message-ID: <20181122003334.014794329@goodmis.org>
 References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
@@ -13,83 +13,43 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-In the past, curr_ret_stack had two functions. One was to denote the depth
-of the call graph, the other is to keep track of where on the ret_stack the
-data is used. Although they may be slightly related, there are two cases
-where they need to be used differently.
+The profiler uses trace->depth to find its entry on the ret_stack, but the
+depth may not match the actual location of where its entry is (if an
+interrupt were to preempt the processing of the profiler for another
+function, the depth and the curr_ret_stack will be different).
 
-The one case is that it keeps the ret_stack data from being corrupted by an
-interrupt coming in and overwriting the data still in use. The other is just
-to know where the depth of the stack currently is.
-
-The function profiler uses the ret_stack to save a "subtime" variable that
-is part of the data on the ret_stack. If curr_ret_stack is modified too
-early, then this variable can be corrupted.
-
-The "max_depth" option, when set to 1, will record the first functions going
-into the kernel. To see all top functions (when dealing with timings), the
-depth variable needs to be lowered before calling the return hook. But by
-lowering the curr_ret_stack, it makes the data on the ret_stack still being
-used by the return hook susceptible to being overwritten.
-
-Now that there's two variables to handle both cases (curr_ret_depth), we can
-move them to the locations where they can handle both cases.
+Have it use the curr_ret_stack as the index to find its ret_stack entry
+instead of using the depth variable, as that is no longer guaranteed to be
+the same.
 
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- kernel/trace/trace_functions_graph.c | 22 +++++++++++++---------
- 1 file changed, 13 insertions(+), 9 deletions(-)
+ kernel/trace/ftrace.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index 02d4081a7f5a..4f0d72ae6362 100644
---- a/kernel/trace/trace_functions_graph.c
-+++ b/kernel/trace/trace_functions_graph.c
-@@ -261,7 +261,13 @@ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
- 	trace->func = current->ret_stack[index].func;
- 	trace->calltime = current->ret_stack[index].calltime;
- 	trace->overrun = atomic_read(&current->trace_overrun);
--	trace->depth = current->curr_ret_depth;
-+	trace->depth = current->curr_ret_depth--;
-+	/*
-+	 * We still want to trace interrupts coming in if
-+	 * max_depth is set to 1. Make sure the decrement is
-+	 * seen before ftrace_graph_return.
-+	 */
-+	barrier();
- }
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index 48513954713c..77734451cb05 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -817,7 +817,7 @@ function_profile_call(unsigned long ip, unsigned long parent_ip,
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ static int profile_graph_entry(struct ftrace_graph_ent *trace)
+ {
+-	int index = trace->depth;
++	int index = current->curr_ret_stack;
  
- /*
-@@ -275,9 +281,14 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
+ 	function_profile_call(trace->func, 0, NULL, NULL);
  
- 	ftrace_pop_return_trace(&trace, &ret, frame_pointer);
- 	trace.rettime = trace_clock_local();
-+	ftrace_graph_return(&trace);
-+	/*
-+	 * The ftrace_graph_return() may still access the current
-+	 * ret_stack structure, we need to make sure the update of
-+	 * curr_ret_stack is after that.
-+	 */
- 	barrier();
- 	current->curr_ret_stack--;
--	current->curr_ret_depth--;
- 	/*
- 	 * The curr_ret_stack can be less than -1 only if it was
- 	 * filtered out and it's about to return from the function.
-@@ -288,13 +299,6 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
- 		return ret;
- 	}
+@@ -852,7 +852,7 @@ static void profile_graph_return(struct ftrace_graph_ret *trace)
+ 	if (!fgraph_graph_time) {
+ 		int index;
  
--	/*
--	 * The trace should run after decrementing the ret counter
--	 * in case an interrupt were to come in. We don't want to
--	 * lose the interrupt if max_depth is set.
--	 */
--	ftrace_graph_return(&trace);
--
- 	if (unlikely(!ret)) {
- 		ftrace_graph_stop();
- 		WARN_ON(1);
+-		index = trace->depth;
++		index = current->curr_ret_stack;
+ 
+ 		/* Append this call time to the parent time to subtract */
+ 		if (index)
 -- 
 2.19.1
