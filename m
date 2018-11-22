@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:55286 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:55274 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2395350AbeKWAnL (ORCPT
+        with ESMTP id S2395332AbeKWAnL (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:11 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/24] dma-mapping: provide a generic DMA_MAPPING_ERROR
-Date: Thu, 22 Nov 2018 15:02:59 +0100
-Message-ID: <20181122140320.24080-4-hch@lst.de>
+Subject: [PATCH 02/24] swiotlb: Skip cache maintenance on map error
+Date: Thu, 22 Nov 2018 15:02:58 +0100
+Message-ID: <20181122140320.24080-3-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,51 +15,38 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140259.G7Q0NGsWzRULU1sypYqrN7exkvs457uWWUyyJWQ9_v8@z>
+Message-ID: <20181122140258.lhaSSwSGz2kwjy6Gwr7XT2l4p9iu3vqmRUT83jAsw08@z>
 
-Error handling of the dma_map_single and dma_map_page APIs is a little
-problematic at the moment, in that we use different encodings in the
-returned dma_addr_t to indicate an error.  That means we require an
-additional indirect call to figure out if a dma mapping call returned
-an error, and a lot of boilerplate code to implement these semantics.
+From: Robin Murphy <robin.murphy@arm.com>
 
-Instead return the maximum addressable value as the error.  As long
-as we don't allow mapping single-byte ranges with single-byte alignment
-this value can never be a valid return.  Additionaly if drivers do
-not check the return value from the dma_map* routines this values means
-they will generally not be pointed to actual memory.
+If swiotlb_bounce_page() failed, calling arch_sync_dma_for_device() may
+lead to such delights as performing cache maintenance on whatever
+address phys_to_virt(SWIOTLB_MAP_ERROR) looks like, which is typically
+outside the kernel memory map and goes about as well as expected.
 
-Once the default value is added here we can start removing the
-various mapping_error methods and just rely on this generic check.
+Don't do that.
 
+Fixes: a4a4330db46a ("swiotlb: add support for non-coherent DMA")
+Tested-by: John Stultz <john.stultz@linaro.org>
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/dma-mapping.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+ kernel/dma/swiotlb.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 15bd41447025..c323c539b7cb 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -133,6 +133,8 @@ struct dma_map_ops {
- 	u64 (*get_required_mask)(struct device *dev);
- };
+diff --git a/kernel/dma/swiotlb.c b/kernel/dma/swiotlb.c
+index 5731daa09a32..045930e32c0e 100644
+--- a/kernel/dma/swiotlb.c
++++ b/kernel/dma/swiotlb.c
+@@ -679,7 +679,8 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ 	}
  
-+#define DMA_MAPPING_ERROR		(~(dma_addr_t)0)
-+
- extern const struct dma_map_ops dma_direct_ops;
- extern const struct dma_map_ops dma_virt_ops;
+ 	if (!dev_is_dma_coherent(dev) &&
+-	    (attrs & DMA_ATTR_SKIP_CPU_SYNC) == 0)
++	    (attrs & DMA_ATTR_SKIP_CPU_SYNC) == 0 &&
++	    dev_addr != DIRECT_MAPPING_ERROR)
+ 		arch_sync_dma_for_device(dev, phys, size, dir);
  
-@@ -576,6 +578,10 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
- 
- 	debug_dma_mapping_error(dev, dma_addr);
-+
-+	if (dma_addr == DMA_MAPPING_ERROR)
-+		return 1;
-+
- 	if (ops->mapping_error)
- 		return ops->mapping_error(dev, dma_addr);
- 	return 0;
+ 	return dev_addr;
 -- 
 2.19.1
