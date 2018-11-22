@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:60568 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:59836 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731458AbeKWAnt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:49 -0500
+        with ESMTP id S1731181AbeKWAnn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:43 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/24] ia64/sba_iommu: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:11 +0100
-Message-ID: <20181122140320.24080-16-hch@lst.de>
+Subject: [PATCH 13/24] alpha: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:09 +0100
+Message-ID: <20181122140320.24080-14-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,48 +15,75 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140311.MQNVqvsK8D2q4txYfn3qNVEefNJf47-dTBkEGyPAeCI@z>
+Message-ID: <20181122140309.nH3Bymk6MI9Buv3nF_9_myv-MEgWTmId0kWP0PN0Y5c@z>
 
 Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
 the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/hp/common/sba_iommu.c | 8 +-------
- 1 file changed, 1 insertion(+), 7 deletions(-)
+ arch/alpha/kernel/pci_iommu.c | 14 ++++----------
+ 1 file changed, 4 insertions(+), 10 deletions(-)
 
-diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-index b953282d4704..0316af2cb426 100644
---- a/arch/ia64/hp/common/sba_iommu.c
-+++ b/arch/ia64/hp/common/sba_iommu.c
-@@ -974,7 +974,7 @@ static dma_addr_t sba_map_page(struct device *dev, struct page *page,
- 
- 	pide = sba_alloc_range(ioc, dev, size);
- 	if (pide < 0)
+diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
+index 46e08e0d9181..e1716e0d92fd 100644
+--- a/arch/alpha/kernel/pci_iommu.c
++++ b/arch/alpha/kernel/pci_iommu.c
+@@ -291,7 +291,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
+ 	   use direct_map above, it now must be considered an error. */
+ 	if (! alpha_mv.mv_pci_tbi) {
+ 		printk_once(KERN_WARNING "pci_map_single: no HW sg\n");
 -		return 0;
 +		return DMA_MAPPING_ERROR;
+ 	}
  
- 	iovp = (dma_addr_t) pide << iovp_shift;
+ 	arena = hose->sg_pci;
+@@ -307,7 +307,7 @@ pci_map_single_1(struct pci_dev *pdev, void *cpu_addr, size_t size,
+ 	if (dma_ofs < 0) {
+ 		printk(KERN_WARNING "pci_map_single failed: "
+ 		       "could not allocate dma page tables\n");
+-		return 0;
++		return DMA_MAPPING_ERROR;
+ 	}
  
-@@ -2151,11 +2151,6 @@ static int sba_dma_supported (struct device *dev, u64 mask)
- 	return ((mask & 0xFFFFFFFFUL) == 0xFFFFFFFFUL);
+ 	paddr &= PAGE_MASK;
+@@ -455,7 +455,7 @@ static void *alpha_pci_alloc_coherent(struct device *dev, size_t size,
+ 	memset(cpu_addr, 0, size);
+ 
+ 	*dma_addrp = pci_map_single_1(pdev, cpu_addr, size, 0);
+-	if (*dma_addrp == 0) {
++	if (*dma_addrp == DMA_MAPPING_ERROR) {
+ 		free_pages((unsigned long)cpu_addr, order);
+ 		if (alpha_mv.mv_pci_tbi || (gfp & GFP_DMA))
+ 			return NULL;
+@@ -671,7 +671,7 @@ static int alpha_pci_map_sg(struct device *dev, struct scatterlist *sg,
+ 		sg->dma_address
+ 		  = pci_map_single_1(pdev, SG_ENT_VIRT_ADDRESS(sg),
+ 				     sg->length, dac_allowed);
+-		return sg->dma_address != 0;
++		return sg->dma_address != DMA_MAPPING_ERROR;
+ 	}
+ 
+ 	start = sg;
+@@ -935,11 +935,6 @@ iommu_unbind(struct pci_iommu_arena *arena, long pg_start, long pg_count)
+ 	return 0;
  }
  
--static int sba_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int alpha_pci_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -{
--	return 0;
+-	return dma_addr == 0;
 -}
 -
- __setup("nosbagart", nosbagart);
- 
- static int __init
-@@ -2189,7 +2184,6 @@ const struct dma_map_ops sba_dma_ops = {
- 	.map_sg			= sba_map_sg_attrs,
- 	.unmap_sg		= sba_unmap_sg_attrs,
- 	.dma_supported		= sba_dma_supported,
--	.mapping_error		= sba_dma_mapping_error,
+ const struct dma_map_ops alpha_pci_ops = {
+ 	.alloc			= alpha_pci_alloc_coherent,
+ 	.free			= alpha_pci_free_coherent,
+@@ -947,7 +942,6 @@ const struct dma_map_ops alpha_pci_ops = {
+ 	.unmap_page		= alpha_pci_unmap_page,
+ 	.map_sg			= alpha_pci_map_sg,
+ 	.unmap_sg		= alpha_pci_unmap_sg,
+-	.mapping_error		= alpha_pci_mapping_error,
+ 	.dma_supported		= alpha_pci_supported,
  };
- 
- void sba_dma_init(void)
+ EXPORT_SYMBOL(alpha_pci_ops);
 -- 
 2.19.1
