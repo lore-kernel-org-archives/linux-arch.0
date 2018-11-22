@@ -1,76 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr780100.outbound.protection.outlook.com ([40.107.78.100]:32352
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726505AbeKVGVk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Nov 2018 01:21:40 -0500
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v2 16/15 v2] syscall_get_arch: add "struct task_struct *"
- argument
-Date: Wed, 21 Nov 2018 19:45:51 +0000
-Message-ID: <20181121194549.4glznckje73z2uxk@pburton-laptop>
-References: <20181107042751.3b519062@akathisia>
- <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com>
- <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
- <20181121184004.jro532jopnbmru2m@pburton-laptop>
- <20181121190009.GA10301@altlinux.org> <20181121193512.GA11297@altlinux.org>
-In-Reply-To: <20181121193512.GA11297@altlinux.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <708ADDE084183B41A3B884270BF84771@namprd22.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Received: from mail.kernel.org ([198.145.29.99]:47496 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2388230AbeKVLKS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Nov 2018 06:10:18 -0500
+Message-ID: <20181122003331.630203912@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:03 -0500
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [for-next][PATCH 02/18] x86/function_graph: Simplify with function_graph_entry()
+References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Eric Paris <eparis@redhat.com>, Paul Moore <paul@paul-moore.com>, Elvira Khabirova <lineprinter@altlinux.org>, Eugene Syromyatnikov <esyr@redhat.com>, Oleg Nesterov <oleg@redhat.com>, "linux-audit@redhat.com" <linux-audit@redhat.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-um@lists.infradead.org" <linux-um@lists.infradead.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "uclinux-h8-devel@lists.sourceforge.jp" <uclinux-h8-devel@lists.sourceforge.jp>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20181121194551.6T8nJRrSVKh0pGmPljorAMizo7Z4jmkpNCvWtyy89Rw@z>
+To: linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, stable@kernel.org
+Message-ID: <20181122002803.Jmu5L73gjy6svbz9yBhQSFQEbnrQtAz6xecgnPnuJ0s@z>
 
-Hi Dmitry,
+From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-On Wed, Nov 21, 2018 at 10:35:12PM +0300, Dmitry V. Levin wrote:
-> This argument is required to extend the generic ptrace API with
-> PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going to be
-> called from ptrace_request() along with other syscall_get_* functions
-> with a tracee as their argument.
->=20
-> This change partially reverts commit 5e937a9ae913 ("syscall_get_arch:
-> remove useless function arguments").
->=20
-> Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
-> Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
-> Cc: linux-audit@redhat.com
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: linux-snps-arc@lists.infradead.org
-> Cc: linux-um@lists.infradead.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: nios2-dev@lists.rocketboards.org
-> Cc: openrisc@lists.librecores.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: uclinux-h8-devel@lists.sourceforge.jp
-> Cc: x86@kernel.org
-> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
-> ---
->=20
-> v2: cleaned up mips part, added Reviewed-by
+The function_graph_entry() function does the work of calling the function
+graph hook function and the management of the shadow stack, simplifying the
+work done in the architecture dependent prepare_ftrace_return().
 
-I thought the last one was v2? :)
+Have x86 use the new code, and remove the shadow stack management as well as
+having to set up the trace structure.
 
-Anyway, this looks fine to me now:
+This is needed to prepare for a fix of a design bug on how the curr_ret_stack
+is used.
 
-    Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: stable@kernel.org
+Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+---
+ arch/x86/kernel/ftrace.c | 15 +--------------
+ 1 file changed, 1 insertion(+), 14 deletions(-)
 
-Thanks,
-    Paul
+diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
+index 01ebcb6f263e..7ee8067cbf45 100644
+--- a/arch/x86/kernel/ftrace.c
++++ b/arch/x86/kernel/ftrace.c
+@@ -994,7 +994,6 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent,
+ {
+ 	unsigned long old;
+ 	int faulted;
+-	struct ftrace_graph_ent trace;
+ 	unsigned long return_hooker = (unsigned long)
+ 				&return_to_handler;
+ 
+@@ -1046,19 +1045,7 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent,
+ 		return;
+ 	}
+ 
+-	trace.func = self_addr;
+-	trace.depth = current->curr_ret_stack + 1;
+-
+-	/* Only trace if the calling function expects to */
+-	if (!ftrace_graph_entry(&trace)) {
++	if (function_graph_enter(old, self_addr, frame_pointer, parent))
+ 		*parent = old;
+-		return;
+-	}
+-
+-	if (ftrace_push_return_trace(old, self_addr, &trace.depth,
+-				     frame_pointer, parent) == -EBUSY) {
+-		*parent = old;
+-		return;
+-	}
+ }
+ #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+-- 
+2.19.1
