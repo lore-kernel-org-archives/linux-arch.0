@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:32924 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:59342 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731458AbeKWAoH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:44:07 -0500
+        with ESMTP id S1732590AbeKWAnj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Nov 2018 19:43:39 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 23/24] xen-swiotlb: remove the mapping_error dma_map_ops method
-Date: Thu, 22 Nov 2018 15:03:19 +0100
-Message-ID: <20181122140320.24080-24-hch@lst.de>
+Subject: [PATCH 11/24] parisc/sba_iommu: remove the mapping_error dma_map_ops method
+Date: Thu, 22 Nov 2018 15:03:07 +0100
+Message-ID: <20181122140320.24080-12-hch@lst.de>
 In-Reply-To: <20181122140320.24080-1-hch@lst.de>
 References: <20181122140320.24080-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,64 +15,58 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181122140319.M8oZbwIMogQX6vNeW0Xtw2VpOgKp5pCkmyojIBq3TuA@z>
+Message-ID: <20181122140307.pxjbt5MOO_WMYLAnnnpl-vO4dxU4TUEy9rykAjIe77I@z>
 
-Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
+The SBA iommu code already returns (~(dma_addr_t)0x0) on mapping
+failures, so we can switch over to returning DMA_MAPPING_ERROR and let
 the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/xen/swiotlb-xen.c | 12 ++----------
- 1 file changed, 2 insertions(+), 10 deletions(-)
+ drivers/parisc/sba_iommu.c | 10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
 
-diff --git a/drivers/xen/swiotlb-xen.c b/drivers/xen/swiotlb-xen.c
-index 2a7f545bd0b5..6dc969d5ea2f 100644
---- a/drivers/xen/swiotlb-xen.c
-+++ b/drivers/xen/swiotlb-xen.c
-@@ -53,8 +53,6 @@
-  * API.
-  */
+diff --git a/drivers/parisc/sba_iommu.c b/drivers/parisc/sba_iommu.c
+index c1e599a429af..452d306ce5cb 100644
+--- a/drivers/parisc/sba_iommu.c
++++ b/drivers/parisc/sba_iommu.c
+@@ -93,8 +93,6 @@
  
--#define XEN_SWIOTLB_ERROR_CODE	(~(dma_addr_t)0x0)
+ #define DEFAULT_DMA_HINT_REG	0
+ 
+-#define SBA_MAPPING_ERROR    (~(dma_addr_t)0)
 -
- static char *xen_io_tlb_start, *xen_io_tlb_end;
- static unsigned long xen_io_tlb_nslabs;
- /*
-@@ -406,7 +404,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
- 	map = swiotlb_tbl_map_single(dev, start_dma_addr, phys, size, dir,
- 				     attrs);
- 	if (map == SWIOTLB_MAP_ERROR)
--		return XEN_SWIOTLB_ERROR_CODE;
+ struct sba_device *sba_list;
+ EXPORT_SYMBOL_GPL(sba_list);
+ 
+@@ -725,7 +723,7 @@ sba_map_single(struct device *dev, void *addr, size_t size,
+ 
+ 	ioc = GET_IOC(dev);
+ 	if (!ioc)
+-		return SBA_MAPPING_ERROR;
 +		return DMA_MAPPING_ERROR;
  
- 	dev_addr = xen_phys_to_bus(map);
- 	xen_dma_map_page(dev, pfn_to_page(map >> PAGE_SHIFT),
-@@ -421,7 +419,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
- 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
- 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
+ 	/* save offset bits */
+ 	offset = ((dma_addr_t) (long) addr) & ~IOVP_MASK;
+@@ -1080,11 +1078,6 @@ sba_unmap_sg(struct device *dev, struct scatterlist *sglist, int nents,
  
--	return XEN_SWIOTLB_ERROR_CODE;
-+	return DMA_MAPPING_ERROR;
  }
  
- /*
-@@ -700,11 +698,6 @@ xen_swiotlb_get_sgtable(struct device *dev, struct sg_table *sgt,
- 	return dma_common_get_sgtable(dev, sgt, cpu_addr, handle, size, attrs);
- }
- 
--static int xen_swiotlb_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int sba_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -{
--	return dma_addr == XEN_SWIOTLB_ERROR_CODE;
+-	return dma_addr == SBA_MAPPING_ERROR;
 -}
 -
- const struct dma_map_ops xen_swiotlb_dma_ops = {
- 	.alloc = xen_swiotlb_alloc_coherent,
- 	.free = xen_swiotlb_free_coherent,
-@@ -719,5 +712,4 @@ const struct dma_map_ops xen_swiotlb_dma_ops = {
- 	.dma_supported = xen_swiotlb_dma_supported,
- 	.mmap = xen_swiotlb_dma_mmap,
- 	.get_sgtable = xen_swiotlb_get_sgtable,
--	.mapping_error	= xen_swiotlb_mapping_error,
+ static const struct dma_map_ops sba_ops = {
+ 	.dma_supported =	sba_dma_supported,
+ 	.alloc =		sba_alloc,
+@@ -1093,7 +1086,6 @@ static const struct dma_map_ops sba_ops = {
+ 	.unmap_page =		sba_unmap_page,
+ 	.map_sg =		sba_map_sg,
+ 	.unmap_sg =		sba_unmap_sg,
+-	.mapping_error =	sba_mapping_error,
  };
+ 
+ 
 -- 
 2.19.1
