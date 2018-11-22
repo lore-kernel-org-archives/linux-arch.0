@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47760 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47650 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390876AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2390861AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 22 Nov 2018 06:10:19 -0500
-Message-ID: <20181122003332.500796758@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:09 -0500
+Message-ID: <20181122003332.209589047@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:07 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 08/18] parisc: function_graph: Simplify with function_graph_entry()
+Subject: [for-next][PATCH 06/18] MIPS: function_graph: Simplify with function_graph_entry()
 References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org, stable@kernel.org
-Message-ID: <20181122002809.ilER4Gbgr1Nc4GoXPazh-VSKvbGEX2RkgbfQYNN6w6k@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org, stable@kernel.org
+Message-ID: <20181122002807.iA3abwehk702mcXQrflabgf-rPSfWRLn2gy72sHTcRg@z>
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
@@ -22,56 +22,63 @@ The function_graph_entry() function does the work of calling the function
 graph hook function and the management of the shadow stack, simplifying the
 work done in the architecture dependent prepare_ftrace_return().
 
-Have parisc use the new code, and remove the shadow stack management as well as
+Have MIPS use the new code, and remove the shadow stack management as well as
 having to set up the trace structure.
 
 This is needed to prepare for a fix of a design bug on how the curr_ret_stack
 is used.
 
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: James Hogan <jhogan@kernel.org>
+Cc: linux-mips@linux-mips.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/parisc/kernel/ftrace.c | 17 +++--------------
- 1 file changed, 3 insertions(+), 14 deletions(-)
+ arch/mips/kernel/ftrace.c | 14 ++------------
+ 1 file changed, 2 insertions(+), 12 deletions(-)
 
-diff --git a/arch/parisc/kernel/ftrace.c b/arch/parisc/kernel/ftrace.c
-index 6fa8535d3cce..e46a4157a894 100644
---- a/arch/parisc/kernel/ftrace.c
-+++ b/arch/parisc/kernel/ftrace.c
-@@ -30,7 +30,6 @@ static void __hot prepare_ftrace_return(unsigned long *parent,
- 					unsigned long self_addr)
+diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
+index 7f3dfdbc3657..b122cbb4aad1 100644
+--- a/arch/mips/kernel/ftrace.c
++++ b/arch/mips/kernel/ftrace.c
+@@ -322,7 +322,6 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
+ 			   unsigned long fp)
  {
- 	unsigned long old;
+ 	unsigned long old_parent_ra;
 -	struct ftrace_graph_ent trace;
- 	extern int parisc_return_to_handler;
+ 	unsigned long return_hooker = (unsigned long)
+ 	    &return_to_handler;
+ 	int faulted, insns;
+@@ -369,12 +368,6 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
+ 	if (unlikely(faulted))
+ 		goto out;
  
- 	if (unlikely(ftrace_graph_is_dead()))
-@@ -41,19 +40,9 @@ static void __hot prepare_ftrace_return(unsigned long *parent,
- 
- 	old = *parent;
- 
--	trace.func = self_addr;
--	trace.depth = current->curr_ret_stack + 1;
--
--	/* Only trace if the calling function expects to */
--	if (!ftrace_graph_entry(&trace))
+-	if (ftrace_push_return_trace(old_parent_ra, self_ra, &trace.depth, fp,
+-				     NULL) == -EBUSY) {
+-		*parent_ra_addr = old_parent_ra;
 -		return;
+-	}
 -
--        if (ftrace_push_return_trace(old, self_addr, &trace.depth,
--				     0, NULL) == -EBUSY)
--                return;
--
--	/* activate parisc_return_to_handler() as return point */
--	*parent = (unsigned long) &parisc_return_to_handler;
-+	if (!function_graph_enter(old, self_addr, 0, NULL))
-+		/* activate parisc_return_to_handler() as return point */
-+		*parent = (unsigned long) &parisc_return_to_handler;
- }
- #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+ 	/*
+ 	 * Get the recorded ip of the current mcount calling site in the
+ 	 * __mcount_loc section, which will be used to filter the function
+@@ -382,13 +375,10 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
+ 	 */
  
+ 	insns = core_kernel_text(self_ra) ? 2 : MCOUNT_OFFSET_INSNS + 1;
+-	trace.func = self_ra - (MCOUNT_INSN_SIZE * insns);
++	self_ra -= (MCOUNT_INSN_SIZE * insns);
+ 
+-	/* Only trace if the calling function expects to */
+-	if (!ftrace_graph_entry(&trace)) {
+-		current->curr_ret_stack--;
++	if (function_graph_enter(old_parent_ra, self_ra, fp, NULL))
+ 		*parent_ra_addr = old_parent_ra;
+-	}
+ 	return;
+ out:
+ 	ftrace_graph_stop();
 -- 
 2.19.1
