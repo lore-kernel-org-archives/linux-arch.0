@@ -1,72 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47650 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47472 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390878AbeKVLKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Nov 2018 06:10:19 -0500
-Message-ID: <20181122003332.940703297@goodmis.org>
-Date: Wed, 21 Nov 2018 19:28:12 -0500
+        id S1729105AbeKVLKS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Nov 2018 06:10:18 -0500
+Message-ID: <20181122003331.479176746@goodmis.org>
+Date: Wed, 21 Nov 2018 19:28:02 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 11/18] s390/function_graph: Simplify with function_graph_entry()
+Subject: [for-next][PATCH 01/18] function_graph: Create function_graph_enter() to consolidate
+ architecture code
 References: <20181122002801.501220343@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Julian Wiedmann <jwi@linux.ibm.com>, linux-s390@vger.kernel.org, stable@kernel.org
-Message-ID: <20181122002812.0MD33NKJrHdHyjd8dSH8npW9El1SgHKXOY7ebKpBOx4@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
+Message-ID: <20181122002802.ad0m_6cJlxTVpzxtpQ0TsVFJZQXL8cKLutsdJGb1MWM@z>
 
 From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 
-The function_graph_entry() function does the work of calling the function
-graph hook function and the management of the shadow stack, simplifying the
-work done in the architecture dependent prepare_ftrace_return().
+Currently all the architectures do basically the same thing in preparing the
+function graph tracer on entry to a function. This code can be pulled into a
+generic location and then this will allow the function graph tracer to be
+fixed, as well as extended.
 
-Have s390 use the new code, and remove the shadow stack management as well as
-having to set up the trace structure.
+Create a new function graph helper function_graph_enter() that will call the
+hook function (ftrace_graph_entry) and the shadow stack operation
+(ftrace_push_return_trace), and remove the need of the architecture code to
+manage the shadow stack.
 
 This is needed to prepare for a fix of a design bug on how the curr_ret_stack
 is used.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Julian Wiedmann <jwi@linux.ibm.com>
-Cc: linux-s390@vger.kernel.org
 Cc: stable@kernel.org
 Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
 Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/s390/kernel/ftrace.c | 13 ++-----------
- 1 file changed, 2 insertions(+), 11 deletions(-)
+ include/linux/ftrace.h               |  3 +++
+ kernel/trace/trace_functions_graph.c | 16 ++++++++++++++++
+ 2 files changed, 19 insertions(+)
 
-diff --git a/arch/s390/kernel/ftrace.c b/arch/s390/kernel/ftrace.c
-index 84be7f02d0c2..39b13d71a8fe 100644
---- a/arch/s390/kernel/ftrace.c
-+++ b/arch/s390/kernel/ftrace.c
-@@ -203,22 +203,13 @@ device_initcall(ftrace_plt_init);
-  */
- unsigned long prepare_ftrace_return(unsigned long parent, unsigned long ip)
- {
--	struct ftrace_graph_ent trace;
--
- 	if (unlikely(ftrace_graph_is_dead()))
- 		goto out;
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		goto out;
- 	ip -= MCOUNT_INSN_SIZE;
--	trace.func = ip;
--	trace.depth = current->curr_ret_stack + 1;
--	/* Only trace if the calling function expects to. */
--	if (!ftrace_graph_entry(&trace))
--		goto out;
--	if (ftrace_push_return_trace(parent, ip, &trace.depth, 0,
--				     NULL) == -EBUSY)
--		goto out;
--	parent = (unsigned long) return_to_handler;
-+	if (!function_graph_enter(parent, ip, 0, NULL))
-+		parent = (unsigned long) return_to_handler;
- out:
- 	return parent;
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index a397907e8d72..5717e8f81c59 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -779,6 +779,9 @@ extern void return_to_handler(void);
+ extern int
+ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
+ 			 unsigned long frame_pointer, unsigned long *retp);
++extern int
++function_graph_enter(unsigned long ret, unsigned long func,
++		     unsigned long frame_pointer, unsigned long *retp);
+ 
+ unsigned long ftrace_graph_ret_addr(struct task_struct *task, int *idx,
+ 				    unsigned long ret, unsigned long *retp);
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 169b3c44ee97..28f2602435d0 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -182,6 +182,22 @@ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
+ 	return 0;
  }
+ 
++int function_graph_enter(unsigned long ret, unsigned long func,
++			 unsigned long frame_pointer, unsigned long *retp)
++{
++	struct ftrace_graph_ent trace;
++
++	trace.func = func;
++	trace.depth = current->curr_ret_stack + 1;
++
++	/* Only trace if the calling function expects to */
++	if (!ftrace_graph_entry(&trace))
++		return -EBUSY;
++
++	return ftrace_push_return_trace(ret, func, &trace.depth,
++					frame_pointer, retp);
++}
++
+ /* Retrieve a function return address to the trace stack on thread info.*/
+ static void
+ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
 -- 
 2.19.1
