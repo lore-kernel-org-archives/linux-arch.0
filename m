@@ -1,77 +1,46 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [for-next][PATCH 15/18] function_graph: Use new curr_ret_depth
- to manage depth instead of curr_ret_stack
-Date: Fri, 23 Nov 2018 09:14:47 -0500
-Message-ID: <20181123091447.0e2eed1b@vmware.local.home>
-References: <20181122002801.501220343@goodmis.org>
-        <20181122003333.592319701@goodmis.org>
-        <20181122100322.GN2131@hirez.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH v4 2/4] namei: O_BENEATH-style path resolution flags
+Date: Fri, 23 Nov 2018 08:07:03 -0800
+Message-ID: <CALCETrURCXjNMBR6DjujVc6HHHS=CbET81kHS+odur+Bm-z7Tg@mail.gmail.com>
+References: <20181112142654.341-1-cyphar@cyphar.com> <20181112142654.341-3-cyphar@cyphar.com>
+ <1ce83cdf6e3168350b69f98f08aaa202bbaa682d.camel@bitron.ch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181122100322.GN2131@hirez.programming.kicks-ass.net>
+In-Reply-To: <1ce83cdf6e3168350b69f98f08aaa202bbaa682d.camel@bitron.ch>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, stable@kernel.org
+To: j@bitron.ch
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Linux API <linux-api@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, David Drysdale <drysdale@google.com>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 22 Nov 2018 11:03:22 +0100
-Peter Zijlstra <peterz@infradead.org> wrote:
+> On Nov 23, 2018, at 5:10 AM, J=C3=BCrg Billeter <j@bitron.ch> wrote:
+>
+> Hi Aleksa,
+>
+>> On Tue, 2018-11-13 at 01:26 +1100, Aleksa Sarai wrote:
+>> * O_BENEATH: Disallow "escapes" from the starting point of the
+>>  filesystem tree during resolution (you must stay "beneath" the
+>>  starting point at all times). Currently this is done by disallowing
+>>  ".." and absolute paths (either in the given path or found during
+>>  symlink resolution) entirely, as well as all "magic link" jumping.
+>
+> With open_tree(2) and OPEN_TREE_CLONE, will O_BENEATH still be
+> necessary?
 
-> On Wed, Nov 21, 2018 at 07:28:16PM -0500, Steven Rostedt wrote:
-> > @@ -188,14 +186,20 @@ int function_graph_enter(unsigned long ret, unsigned long func,
-> >  	struct ftrace_graph_ent trace;
-> >  
-> >  	trace.func = func;
-> > -	trace.depth = current->curr_ret_stack + 1;
-> > +	trace.depth = ++current->curr_ret_depth;
-> >  
-> >  	/* Only trace if the calling function expects to */
-> >  	if (!ftrace_graph_entry(&trace))
-> > -		return -EBUSY;
-> > +		goto out;
-> >  
-> > -	return ftrace_push_return_trace(ret, func, &trace.depth,
-> > -					frame_pointer, retp);
-> > +	if (ftrace_push_return_trace(ret, func,
-> > +				     frame_pointer, retp))  
-> 
-> You can unwrap that line, by my counting that's at 69 chars, so unless
-> you're editing on a C64 it should fit your screen.
+This discussion reminds me of something I=E2=80=99m uncomfortable with in t=
+he
+current patches: currently, most of the O_ flags determine some
+property of the returned opened file.  The new O_ flags you're adding
+don't -- instead, they affect the lookup of the file.  So O_BENEATH
+doesn't return a descriptor that can only be used to loop up files
+beneath it -- it just controls whether open(2) succeeds or fails.  It
+might be nice for the naming of the flags to reflect this.  I also
+don't love that we have some magic AT_ flags that work with some
+syscalls and some magic O_ flags that work with others.
 
-Thanks I may add a clean up patch. I already ran this code under
-several hours of testing, and only plan on touching it if there's more
-than cosmetic issues.
+In this regard, I liked the AT_ naming better.  Although I don't love
+adding AT_ flags because the restrict our ability to usefully use the
+high bits of the fd in the future.
 
-The reason that looks like that is because I just massaged the line it
-replaced, and didn't take into account that I could now make it into a
-single line.
-
-> 
-> > +		goto out;
-> > +
-> > +	return 0;
-> > + out:
-> > +	current->curr_ret_depth--;
-> > +	return -EBUSY;
-> >  }  
-> 
-> [diff "default"]
-> 	xfuncname = "^[[:alpha:]$_].*[^:]$"
-> 
-> avoids the need for that ludicrous label indenting.
-
-I still prefer the 'space', and it fits with the rest of the file ;-)
-
-TomAYto / TomAHto
-
-> 
-> Also, "error" might be a better label name.
-
-True. I'll add that on top too, but for the stable/rc release, that
-isn't needed.
-
-Thanks for taking a look at this code.
-
--- Steve
+--Andy
