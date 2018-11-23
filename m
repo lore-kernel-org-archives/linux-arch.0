@@ -1,47 +1,40 @@
-From: =?ISO-8859-1?Q?J=FCrg?= Billeter <j@bitron.ch>
-Subject: Re: [PATCH v4 2/4] namei: O_BENEATH-style path resolution flags
-Date: Fri, 23 Nov 2018 13:10:17 +0100
-Message-ID: <1ce83cdf6e3168350b69f98f08aaa202bbaa682d.camel@bitron.ch>
-References: <20181112142654.341-1-cyphar@cyphar.com>
-         <20181112142654.341-3-cyphar@cyphar.com>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Date: Fri, 23 Nov 2018 14:03:13 +0100
+Message-ID: <20181123130313.GI1586@8bytes.org>
+References: <20181122140320.24080-1-hch@lst.de>
+ <CAHk-=wh=_T=A53+o4zLNbKio43LGqVDb0KCbWPDvAg54bRDmWw@mail.gmail.com>
+ <20181122170715.GI30658@n2100.armlinux.org.uk>
+ <CAHk-=wgfGzXuDAKFQPdzMib3QCRHfSTsy5=gLU-WCoya+Ym+1A@mail.gmail.com>
+ <11829e3c-7302-f821-cf5c-863e5267a17b@arm.com>
+ <20181123104918.GE1586@8bytes.org>
+ <20181123110155.GR30658@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181112142654.341-3-cyphar@cyphar.com>
+Content-Disposition: inline
+In-Reply-To: <20181123110155.GR30658@n2100.armlinux.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Eric Biederman <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, David Drysdale <drysdale@google.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Robin Murphy <robin.murphy@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, the arch/x86 maintainers <x86@kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, iommu@lists.linux-foundation.org, jdmason@kudzu.us, xen-devel@lists.xenproject.org, linux-arm-kernel@lists.infradead.org, m.szyprowski@samsung.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Aleksa,
+On Fri, Nov 23, 2018 at 11:01:55AM +0000, Russell King - ARM Linux wrote:
+> Yuck.  So, if we have a 4GB non-PAE 32-bit system, or a PAE system
+> where we have valid memory across the 4GB boundary and no IOMMU,
+> we have to reserve the top 4K page in the first 4GB of RAM?
 
-On Tue, 2018-11-13 at 01:26 +1100, Aleksa Sarai wrote:
-> * O_BENEATH: Disallow "escapes" from the starting point of the
->   filesystem tree during resolution (you must stay "beneath" the
->   starting point at all times). Currently this is done by disallowing
->   ".." and absolute paths (either in the given path or found during
->   symlink resolution) entirely, as well as all "magic link" jumping.
+But that is only needed when dma_addr_t is 32bit anyway, no?
 
-With open_tree(2) and OPEN_TREE_CLONE, will O_BENEATH still be
-necessary? As I understand it, O_BENEATH could be replaced by a much
-simpler flag that only disallows absolute paths (incl. absolute
-symlinks). And it would have the benefit that you can actually pass the
-tree/directory fd to another process and escaping would not be possible
-even if that other process doesn't use O_BENEATH (after calling
-mount_setattr(2) to make sure it's locked down).
+> Rather than inventing magic cookies like this, I'd much rather we
+> sanitised the API so that we have functions that return success or
+> an error code, rather than trying to shoe-horn some kind of magic
+> error codes into dma_addr_t and subtly break systems in the process.
 
-This approach would also make it easy to restrict writes via a cloned
-tree/directory fd by marking it read-only via mount_setattr(2) (and
-locking down the read-only flag). This would again be especially useful
-when passing tree/directory fds across processes, or for voluntary
-self-lockdown within a process for robustness against security bugs.
+Sure, but is has the obvious downside that we need to touch every driver
+that uses these functions, and that are probably a lot of drivers.
 
-This wouldn't affect any of the other flags in this patch. And for full
-equivalence to O_BENEATH you'd have to use O_NOMAGICLINKS in addition
-to O_NOABSOLUTE, or whatever that new flag would be called.
 
-Or is OPEN_TREE_CLONE too expensive for this use case? Or is there
-anything else I'm missing?
+Regards,
 
-Jürg
+	Joerg
