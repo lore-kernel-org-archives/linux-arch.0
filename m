@@ -1,23 +1,32 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: Re: [PATCH 8/8] socket: Add SO_TIMESTAMPING_NEW
-Date: Sat, 24 Nov 2018 21:07:35 -0800
-Message-ID: <CABeXuvoRPAFa5v86pp+WmBkjzbHZSJqjzibL1+Zx8Uas6bvohg@mail.gmail.com>
-References: <20181124022035.17519-1-deepa.kernel@gmail.com>
- <20181124022035.17519-9-deepa.kernel@gmail.com> <CAF=yD-Jz8c2EsoKxUDbf7dygWRW49kwteUsksq3eUV00Eg94-w@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Liu Xiang <liu.xiang6@zte.com.cn>
+Subject: [PATCH] asm-generic: Add spaces around & operator
+Date: Sun, 25 Nov 2018 17:30:45 +0800
+Message-ID: <1543138245-3673-1-git-send-email-liu.xiang6@zte.com.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAF=yD-Jz8c2EsoKxUDbf7dygWRW49kwteUsksq3eUV00Eg94-w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: willemdebruijn.kernel@gmail.com
-Cc: "David S. Miller" <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Chris Zankel <chris@zankel.net>, fenghua.yu@intel.com, rth@twiddle.net, Thomas Gleixner <tglx@linutronix.de>, ubraun@linux.ibm.com, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-ia64@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux <sparclinux@vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, liuxiang_1999@126.com, Liu Xiang <liu.xiang6@zte.com.cn>
 List-Id: linux-arch.vger.kernel.org
 
-> > +               new_tstamp = sock_flag(sk, SOCK_TSTAMP_NEW);
-> > +               if (new_tstamp)
->
-> nit: no need for explicit variable
+Add spaces around '&' to follow kernel coding style.
 
-Sure, will drop it.
+Signed-off-by: Liu Xiang <liu.xiang6@zte.com.cn>
+---
+ include/asm-generic/fixmap.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
--Deepa
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index 827e4d3..d6e8da3 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -18,7 +18,7 @@
+ #include <linux/bug.h>
+ 
+ #define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
+-#define __virt_to_fix(x)	((FIXADDR_TOP - ((x)&PAGE_MASK)) >> PAGE_SHIFT)
++#define __virt_to_fix(x)	((FIXADDR_TOP - ((x) & PAGE_MASK)) >> PAGE_SHIFT)
+ 
+ #ifndef __ASSEMBLY__
+ /*
+-- 
+1.9.1
