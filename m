@@ -1,38 +1,40 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH v6 00/26] Control-flow Enforcement: Shadow Stack
-Date: Mon, 26 Nov 2018 10:29:40 -0800
-Message-ID: <CALCETrV4BP6gTgVZos19WZrbgEH7t4PqPOeP2VJte1kE=ehokg@mail.gmail.com>
-References: <20181119214809.6086-1-yu-cheng.yu@intel.com> <CALCETrWLtpfkecfUAXJ64Z5xDeHPJxTQSci+T4RCem7vCqorTw@mail.gmail.com>
- <35b33f293bc392df71710102f38fa6a40d0bb996.camel@intel.com>
+From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Subject: Re: RFC: userspace exception fixups
+Date: Mon, 26 Nov 2018 14:06:27 -0800
+Message-ID: <20181126220627.GD868@linux.intel.com>
+References: <20181118071548.GA4795@linux.intel.com>
+ <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+ <20181119160204.GD13298@linux.intel.com>
+ <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+ <20181120101133.GA7319@linux.intel.com>
+ <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
+ <20181120225518.GE8391@linux.intel.com>
+ <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
+ <20181121151734.GA16564@linux.intel.com>
+ <20181126143534.GA25719@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <35b33f293bc392df71710102f38fa6a40d0bb996.camel@intel.com>
+Content-Disposition: inline
+In-Reply-To: <20181126143534.GA25719@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Florian Weimer <fweimer@redhat.com>, Carlos O'Donell <carlos@redhat.com>, Rich Felker <dalias@libc.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbe>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Jethro Beekman <jethro@fortanix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 26, 2018 at 9:44 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
->
-> On Thu, 2018-11-22 at 08:53 -0800, Andy Lutomirski wrote:
-> > [cc some more libc folks]
+On Mon, Nov 26, 2018 at 06:35:34AM -0800, Sean Christopherson wrote:
+> And how would you determine the #UD is related to SGX?  Hardware doesn't
+> provide any indication that a #UD (or any other fault) is related to SGX
+> or occurred in an enclave.  The only fault that is special-cased in a
+> non-virtualized environment is #PF signaled by the EPCM, which gets the
+> PF_SGX bit set in the error code.
 
->
-> >
-> > 2. I want to be able to modify the signal context from a signal
-> > handler such that, when the signal handler returns, it will return to
-> > a frame higher up on the call stack than where the signal started and
-> > to a different RIP value.  How can I do this?  I guess I can modify
-> > the shadow stack with WRSS if WR_SHSTK_EN=1, but how do I tell the
-> > kernel to kindly skip the frames I want to skip when I do sigreturn()?
-> >
-> > The reason I'm asking #2 is that I think it's time to resurrect my old
-> > vDSO syscall cancellation helper series here:
-> >
-> > https://lwn.net/Articles/679434/
->
-> If tools/testing/selftests/x86/unwind_vdso.c passes, can we say the kernel does
-> the right thing?  Or do you have other tests that I can run?
+Could you not detect #UD from address where it happened? Kernel knows
+where enclaves are mapped. BTW, how does Intel run-time emulate opcodes
+currently?
 
-I haven't written the relevant test yet.  Hopefully soon :)
+Anyway, I've fully discarded the whole idea because implementing single
+stepping w/o well defined AEP handler is nasty. I think vDSO's are the
+only viable path that at least I'm aware off...
+
+/Jarkko
