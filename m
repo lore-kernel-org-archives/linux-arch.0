@@ -1,126 +1,57 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [for-next][PATCH 00/18] function_graph: Add separate depth
- counter to prevent trace corruption
-Date: Mon, 26 Nov 2018 14:15:57 +0900
-Message-ID: <20181126141557.3f7be1aad456345b9a0dfcae@kernel.org>
-References: <20181122002801.501220343@goodmis.org>
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: RFC: userspace exception fixups
+Date: Mon, 26 Nov 2018 06:35:34 -0800
+Message-ID: <20181126143534.GA25719@linux.intel.com>
+References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
+ <20181118071548.GA4795@linux.intel.com>
+ <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+ <20181119160204.GD13298@linux.intel.com>
+ <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+ <20181120101133.GA7319@linux.intel.com>
+ <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
+ <20181120225518.GE8391@linux.intel.com>
+ <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
+ <20181121151734.GA16564@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181122002801.501220343@goodmis.org>
+Content-Disposition: inline
+In-Reply-To: <20181121151734.GA16564@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>
+To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Cc: Jethro Beekman <jethro@fortanix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas
 List-Id: linux-arch.vger.kernel.org
 
-Hi Steve,
+On Wed, Nov 21, 2018 at 05:17:34PM +0200, Jarkko Sakkinen wrote:
+> On Wed, Nov 21, 2018 at 05:17:32AM +0000, Jethro Beekman wrote:
+> > Jarkko, can you please explain you solution in detail? The CPU receives an
+> > exception. This will be handled by the kernel exception handler. What
+> > information does the kernel exception handler use to determine whether to
+> > deliver the exception as a regular signal to the process, or whether to set
+> > the special registers values for userspace and just continue executing the
+> > process manually?
+> 
+> Now we throw SIGSEGV when PF_SGX set, right? In my solution that would
+> be turned just doing iret to AEP with the extra that three registers get
+> exception data (type, reason, addr). No decoding or RIP adjusting
+> involved.
+> 
+> That would mean that you would actually have to implement AEP handler
+> than just have enclu there.
+> 
+> I've also proposed that perhaps for SGX also #UD should be propagated
+> this way because for some instructions you need outside help to emulate
+> "non-enclave" environment.
 
-This series looks good to me.
+And how would you determine the #UD is related to SGX?  Hardware doesn't
+provide any indication that a #UD (or any other fault) is related to SGX
+or occurred in an enclave.  The only fault that is special-cased in a
+non-virtualized environment is #PF signaled by the EPCM, which gets the
+PF_SGX bit set in the error code.
 
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-
-for this series.
-
-Thank you!
-
-# Now I know why sometimes func-graph depth looks broken...
-
-
-On Wed, 21 Nov 2018 19:28:01 -0500
-Steven Rostedt <rostedt@goodmis.org> wrote:
-
-> While working on rewriting function graph tracer, I found a design
-> flaw in the code. Commit 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth
-> before calling trace return callback") tried to fix a bug that caused
-> interrupts not to be traced if max_depth was set to 1 (for debugging
-> NO_HZ_FULL), because if it came in just as another function that was being
-> traced that had a depth of 1 was exiting. This caused the timing of being in
-> the kernel to be off. The fix was simply to move the calling of the return
-> function after the updating of curr_ret_stack index as that was what was
-> being used.
+> That is all I have drafted together so far. I'll try to finish v18 this
+> week with other stuff and refine further next week (unless someone gives
+> obvious reason why this doesn't work, which might well be because I
+> haven't went too deep with my analysis yet because of lack of time).
 > 
-> The change log even says that it was safe to do this, but unfortunately it
-> was not, and the barrier() there was specifically *for* that function (which
-> shows why one should document barriers).
-> 
-> The problem is that the return callback may still be using what's on the
-> shadow stack and by changing the shadow stack pointer, it may allow for
-> another function being traced to overwrite that data. Note, if this happens,
-> it will only cause garbage data to be traced and will not affect the actual
-> operations of the kernel (ie. it wont crash).
-> 
-> Unfortunately just reverting that will bring back the old bug. The real way
-> to fix that old bug is to create another counter to handle the depth, but
-> this means that we need to change all the architectures that implement
-> function graph tracing (that's 12 of them). Luckily, I need to do this
-> anyway in my re-design so this is a good thing.
-> 
-> Since all the archictectures do basicall the same thing to prepare the
-> function graph trace to be traced, I made a generic function that they all
-> can use and simplified the logic of all the architectures. Then I'm able to
-> fix the design problem in one place.
-> 
-> I pushed this code up to let zero-day have a whack at it, and I also
-> downloaded the latest 8.1.0 cross compilers for all the archs that are
-> affected and compiled tested them all (and got rid of all the warnings
-> I introduced as well).
-> 
-> I marked this all for stable, but in reality it may not need to be ported
-> as it will probably not be trivial to do so, becaues you'll need to also
-> fix the architectures that are no longer used (although do we care about
-> them?). But if someone really cares about correct timings of the function
-> graph profiler when the options/graph-time is set to zero, then be my
-> guest.
-> 
-> Feel free to test this! I'll be pushing this to linux-next and let it
-> sit there a week or so before pushing it to Linus.
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
-> ftrace/urgent
-> 
-> Head SHA1: 1ffd62e282a649483afb0bb4d76f7244b3c10075
-> 
-> 
-> Steven Rostedt (VMware) (18):
->       function_graph: Create function_graph_enter() to consolidate architecture code
->       x86/function_graph: Simplify with function_graph_entry()
->       ARM: function_graph: Simplify with function_graph_entry()
->       arm64: function_graph: Simplify with function_graph_entry()
->       microblaze: function_graph: Simplify with function_graph_entry()
->       MIPS: function_graph: Simplify with function_graph_entry()
->       nds32: function_graph: Simplify with function_graph_entry()
->       parisc: function_graph: Simplify with function_graph_entry()
->       powerpc/function_graph: Simplify with function_graph_entry()
->       riscv/function_graph: Simplify with function_graph_entry()
->       s390/function_graph: Simplify with function_graph_entry()
->       sh/function_graph: Simplify with function_graph_entry()
->       sparc/function_graph: Simplify with function_graph_entry()
->       function_graph: Make ftrace_push_return_trace() static
->       function_graph: Use new curr_ret_depth to manage depth instead of curr_ret_stack
->       function_graph: Move return callback before update of curr_ret_stack
->       function_graph: Reverse the order of pushing the ret_stack and the callback
->       function_graph: Have profiler use curr_ret_stack and not depth
-> 
-> ----
->  arch/arm/kernel/ftrace.c             | 17 +------------
->  arch/arm64/kernel/ftrace.c           | 15 +----------
->  arch/microblaze/kernel/ftrace.c      | 15 ++---------
->  arch/mips/kernel/ftrace.c            | 14 ++---------
->  arch/nds32/kernel/ftrace.c           | 18 ++-----------
->  arch/parisc/kernel/ftrace.c          | 17 +++----------
->  arch/powerpc/kernel/trace/ftrace.c   | 15 ++---------
->  arch/riscv/kernel/ftrace.c           | 14 ++---------
->  arch/s390/kernel/ftrace.c            | 13 ++--------
->  arch/sh/kernel/ftrace.c              | 16 ++----------
->  arch/sparc/kernel/ftrace.c           | 11 +-------
->  arch/x86/kernel/ftrace.c             | 15 +----------
->  include/linux/ftrace.h               |  4 +--
->  include/linux/sched.h                |  1 +
->  kernel/trace/ftrace.c                |  7 ++++--
->  kernel/trace/trace_functions_graph.c | 49 ++++++++++++++++++++++++++++--------
->  16 files changed, 67 insertions(+), 174 deletions(-)
-
-
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+> /Jarkko
