@@ -1,62 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:38238 "EHLO mga18.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726200AbeK0B3x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Nov 2018 20:29:53 -0500
-Date: Mon, 26 Nov 2018 06:35:34 -0800
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: RFC: userspace exception fixups
-Message-ID: <20181126143534.GA25719@linux.intel.com>
-References: <CALCETrWdpoDkbZjkucKL91GWpDPG9p=VqYrULade2pFDR7S=GQ@mail.gmail.com>
- <20181118071548.GA4795@linux.intel.com>
- <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
- <20181119160204.GD13298@linux.intel.com>
- <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
- <20181120101133.GA7319@linux.intel.com>
- <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
- <20181120225518.GE8391@linux.intel.com>
- <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
- <20181121151734.GA16564@linux.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181121151734.GA16564@linux.intel.com>
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:44835 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726253AbeK0Dm2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Nov 2018 22:42:28 -0500
+Received: by mail-pf1-f194.google.com with SMTP id u6so6840526pfh.11
+        for <linux-arch@vger.kernel.org>; Mon, 26 Nov 2018 08:47:48 -0800 (PST)
+Date: Mon, 26 Nov 2018 08:47:47 -0800 (PST)
+Subject: Re: [for-next][PATCH 10/18] riscv/function_graph: Simplify with function_graph_entry()
+In-Reply-To: <20181122003332.793493004@goodmis.org>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-b0e40c1e-307d-47cd-aba9-f7d648a4f8bc@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Cc: Jethro Beekman <jethro@fortanix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20181126143534.C1_tp5CzJ2cTV_rIJkBtml_NmId6pmdqoiR2V3IZFOY@z>
+To: rostedt@goodmis.org
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, mingo@kernel.org, akpm@linux-foundation.org, tglx@linutronix.de, peterz@infradead.org, linux-arch@vger.kernel.org, joel@joelfernandes.org, mhiramat@kernel.org, jpoimboe@redhat.com, luto@kernel.org, frederic@kernel.org, greentime@andestech.com, alankao@andestech.com, stable@kernel.org
+Message-ID: <20181126164747.T6rN9c8JDI31hyxrwxFEPIgmLPPzsZ35mxTxxAz-CoQ@z>
 
-On Wed, Nov 21, 2018 at 05:17:34PM +0200, Jarkko Sakkinen wrote:
-> On Wed, Nov 21, 2018 at 05:17:32AM +0000, Jethro Beekman wrote:
-> > Jarkko, can you please explain you solution in detail? The CPU receives an
-> > exception. This will be handled by the kernel exception handler. What
-> > information does the kernel exception handler use to determine whether to
-> > deliver the exception as a regular signal to the process, or whether to set
-> > the special registers values for userspace and just continue executing the
-> > process manually?
-> 
-> Now we throw SIGSEGV when PF_SGX set, right? In my solution that would
-> be turned just doing iret to AEP with the extra that three registers get
-> exception data (type, reason, addr). No decoding or RIP adjusting
-> involved.
-> 
-> That would mean that you would actually have to implement AEP handler
-> than just have enclu there.
-> 
-> I've also proposed that perhaps for SGX also #UD should be propagated
-> this way because for some instructions you need outside help to emulate
-> "non-enclave" environment.
+On Wed, 21 Nov 2018 16:28:11 PST (-0800), rostedt@goodmis.org wrote:
+> From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
+>
+> The function_graph_entry() function does the work of calling the function
+> graph hook function and the management of the shadow stack, simplifying the
+> work done in the architecture dependent prepare_ftrace_return().
+>
+> Have riscv use the new code, and remove the shadow stack management as well as
+> having to set up the trace structure.
+>
+> This is needed to prepare for a fix of a design bug on how the curr_ret_stack
+> is used.
+>
+> Cc: Greentime Hu <greentime@andestech.com>
+> Cc: Alan Kao <alankao@andestech.com>
+> Cc: Palmer Dabbelt <palmer@sifive.com>
+> Cc: stable@kernel.org
+> Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
+> Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> ---
+>  arch/riscv/kernel/ftrace.c | 14 ++------------
+>  1 file changed, 2 insertions(+), 12 deletions(-)
+>
+> diff --git a/arch/riscv/kernel/ftrace.c b/arch/riscv/kernel/ftrace.c
+> index 1157b6b52d25..c433f6d3dd64 100644
+> --- a/arch/riscv/kernel/ftrace.c
+> +++ b/arch/riscv/kernel/ftrace.c
+> @@ -132,7 +132,6 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
+>  {
+>  	unsigned long return_hooker = (unsigned long)&return_to_handler;
+>  	unsigned long old;
+> -	struct ftrace_graph_ent trace;
+>  	int err;
+>
+>  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
+> @@ -144,17 +143,8 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
+>  	 */
+>  	old = *parent;
+>
+> -	trace.func = self_addr;
+> -	trace.depth = current->curr_ret_stack + 1;
+> -
+> -	if (!ftrace_graph_entry(&trace))
+> -		return;
+> -
+> -	err = ftrace_push_return_trace(old, self_addr, &trace.depth,
+> -				       frame_pointer, parent);
+> -	if (err == -EBUSY)
+> -		return;
+> -	*parent = return_hooker;
+> +	if (function_graph_enter(old, self_addr, frame_pointer, parent))
+> +		*parent = return_hooker;
+>  }
+>
+>  #ifdef CONFIG_DYNAMIC_FTRACE
 
-And how would you determine the #UD is related to SGX?  Hardware doesn't
-provide any indication that a #UD (or any other fault) is related to SGX
-or occurred in an enclave.  The only fault that is special-cased in a
-non-virtualized environment is #PF signaled by the EPCM, which gets the
-PF_SGX bit set in the error code.
-
-> That is all I have drafted together so far. I'll try to finish v18 this
-> week with other stuff and refine further next week (unless someone gives
-> obvious reason why this doesn't work, which might well be because I
-> haven't went too deep with my analysis yet because of lack of time).
-> 
-> /Jarkko
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
