@@ -1,50 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53206 "EHLO mail.kernel.org"
+Received: from mga04.intel.com ([192.55.52.120]:60344 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725739AbeK0FYu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Nov 2018 00:24:50 -0500
-Received: from mail-wm1-f54.google.com (mail-wm1-f54.google.com [209.85.128.54])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 9D19020862
-        for <linux-arch@vger.kernel.org>; Mon, 26 Nov 2018 18:29:53 +0000 (UTC)
-Received: by mail-wm1-f54.google.com with SMTP id k198so19662488wmd.3
-        for <linux-arch@vger.kernel.org>; Mon, 26 Nov 2018 10:29:53 -0800 (PST)
+        id S1726315AbeK0JCC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Nov 2018 04:02:02 -0500
+Date: Mon, 26 Nov 2018 14:06:27 -0800
+From: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Subject: Re: RFC: userspace exception fixups
+Message-ID: <20181126220627.GD868@linux.intel.com>
+References: <20181118071548.GA4795@linux.intel.com>
+ <CALCETrXSpn7QGzPgO1BjMRQ75r2i0kmACrbUM+8PyT+xi3f3Hw@mail.gmail.com>
+ <20181119160204.GD13298@linux.intel.com>
+ <CALCETrWRVgPjnDd-CknskrXfNbke=rSnr_jezszNNWJUM_YJKQ@mail.gmail.com>
+ <20181120101133.GA7319@linux.intel.com>
+ <CALCETrU2dy7Oh+AHDGZ2omq9p7pNbjFd8ruv5CkfJXCp5nTYBQ@mail.gmail.com>
+ <20181120225518.GE8391@linux.intel.com>
+ <0a78772e-4f42-254b-d91a-f0f80a24ff90@fortanix.com>
+ <20181121151734.GA16564@linux.intel.com>
+ <20181126143534.GA25719@linux.intel.com>
 MIME-Version: 1.0
-References: <20181119214809.6086-1-yu-cheng.yu@intel.com> <CALCETrWLtpfkecfUAXJ64Z5xDeHPJxTQSci+T4RCem7vCqorTw@mail.gmail.com>
- <35b33f293bc392df71710102f38fa6a40d0bb996.camel@intel.com>
-In-Reply-To: <35b33f293bc392df71710102f38fa6a40d0bb996.camel@intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 26 Nov 2018 10:29:40 -0800
-Message-ID: <CALCETrV4BP6gTgVZos19WZrbgEH7t4PqPOeP2VJte1kE=ehokg@mail.gmail.com>
-Subject: Re: [RFC PATCH v6 00/26] Control-flow Enforcement: Shadow Stack
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20181126143534.GA25719@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Florian Weimer <fweimer@redhat.com>, Carlos O'Donell <carlos@redhat.com>, Rich Felker <dalias@libc.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181126182940.GfFaPH857nCnkqP5Dem17zVjYXjH_F9_AdVQoDbY9VY@z>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Jethro Beekman <jethro@fortanix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Rich Felker <dalias@libc.org>, "nhorman@redhat.com" <nhorman@redhat.com>, "npmccallum@redhat.com" <npmccallum@redhat.com>, "Ayoun, Serge" <serge.ayoun@intel.com>, "shay.katz-zamir@intel.com" <shay.katz-zamir@intel.com>, "linux-sgx@vger.kernel.org" <linux-sgx@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>
+Message-ID: <20181126220627.pizpCbcgF9N-UMTORw9pbv-rxQPP4Nhcfs3QQibSUN0@z>
 
-On Mon, Nov 26, 2018 at 9:44 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
->
-> On Thu, 2018-11-22 at 08:53 -0800, Andy Lutomirski wrote:
-> > [cc some more libc folks]
+On Mon, Nov 26, 2018 at 06:35:34AM -0800, Sean Christopherson wrote:
+> And how would you determine the #UD is related to SGX?  Hardware doesn't
+> provide any indication that a #UD (or any other fault) is related to SGX
+> or occurred in an enclave.  The only fault that is special-cased in a
+> non-virtualized environment is #PF signaled by the EPCM, which gets the
+> PF_SGX bit set in the error code.
 
->
-> >
-> > 2. I want to be able to modify the signal context from a signal
-> > handler such that, when the signal handler returns, it will return to
-> > a frame higher up on the call stack than where the signal started and
-> > to a different RIP value.  How can I do this?  I guess I can modify
-> > the shadow stack with WRSS if WR_SHSTK_EN=1, but how do I tell the
-> > kernel to kindly skip the frames I want to skip when I do sigreturn()?
-> >
-> > The reason I'm asking #2 is that I think it's time to resurrect my old
-> > vDSO syscall cancellation helper series here:
-> >
-> > https://lwn.net/Articles/679434/
->
-> If tools/testing/selftests/x86/unwind_vdso.c passes, can we say the kernel does
-> the right thing?  Or do you have other tests that I can run?
+Could you not detect #UD from address where it happened? Kernel knows
+where enclaves are mapped. BTW, how does Intel run-time emulate opcodes
+currently?
 
-I haven't written the relevant test yet.  Hopefully soon :)
+Anyway, I've fully discarded the whole idea because implementing single
+stepping w/o well defined AEP handler is nasty. I think vDSO's are the
+only viable path that at least I'm aware off...
+
+/Jarkko
