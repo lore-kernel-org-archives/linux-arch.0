@@ -1,49 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:36893 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728840AbeK0VcH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Nov 2018 16:32:07 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v2 16/15] syscall_get_arch: add "struct task_struct *" argument
-In-Reply-To: <20181121004422.GA29053@altlinux.org>
-References: <20181107042751.3b519062@akathisia> <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com> <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
-Date: Tue, 27 Nov 2018 21:34:29 +1100
-Message-ID: <87in0ihkqy.fsf@concordia.ellerman.id.au>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44586 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725883AbeK1FFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Nov 2018 00:05:48 -0500
+Date: Tue, 27 Nov 2018 18:07:23 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [for-next][PATCH 04/18] arm64: function_graph: Simplify with
+ function_graph_entry()
+Message-ID: <20181127180722.GB19216@arm.com>
+References: <20181122002801.501220343@goodmis.org>
+ <20181122003331.917870132@goodmis.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20181122003331.917870132@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>, Andy Lutomirski <luto@kernel.org>, Eric Paris <eparis@redhat.com>, Paul Moore <paul@paul-moore.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Eugene Syromyatnikov <esyr@redhat.com>, Elvira Khabirova <lineprinter@altlinux.org>, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-audit@redhat.com, linux-alpha@vger.kernel.org, nios2-dev@lists.rocketboards.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181127103429.lgAeChZNgUowVzf99hKIVfe0UDucyjeI6QCQFai6bS4@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, stable@kernel.org
+Message-ID: <20181127180723.thT2viM0fEqwkASXhLviVfV2g0AhbtrG5ktk3-w2_58@z>
 
-"Dmitry V. Levin" <ldv@altlinux.org> writes:
+On Wed, Nov 21, 2018 at 07:28:05PM -0500, Steven Rostedt wrote:
+> From: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
+> 
+> The function_graph_entry() function does the work of calling the function
+> graph hook function and the management of the shadow stack, simplifying the
+> work done in the architecture dependent prepare_ftrace_return().
+> 
+> Have arm64 use the new code, and remove the shadow stack management as well as
+> having to set up the trace structure.
+> 
+> This is needed to prepare for a fix of a design bug on how the curr_ret_stack
+> is used.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: stable@kernel.org
+> Fixes: 03274a3ffb449 ("tracing/fgraph: Adjust fgraph depth before calling trace return callback")
+> Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> ---
+>  arch/arm64/kernel/ftrace.c | 15 +--------------
+>  1 file changed, 1 insertion(+), 14 deletions(-)
 
-> diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-> index ab9f3f0a8637..d88b34179118 100644
-> --- a/arch/powerpc/include/asm/syscall.h
-> +++ b/arch/powerpc/include/asm/syscall.h
-> @@ -100,9 +100,15 @@ static inline void syscall_set_arguments(struct task_struct *task,
->  		regs->orig_gpr3 = args[0];
->  }
->  
-> -static inline int syscall_get_arch(void)
-> +static inline int syscall_get_arch(struct task_struct *task)
->  {
-> -	int arch = is_32bit_task() ? AUDIT_ARCH_PPC : AUDIT_ARCH_PPC64;
-> +	int arch;
-> +
-> +	if (IS_ENABLED(CONFIG_PPC64) && !test_tsk_thread_flag(task, TIF_32BIT))
-> +		arch = AUDIT_ARCH_PPC64;
-> +	else
-> +		arch = AUDIT_ARCH_PPC;
-> +
->  #ifdef __LITTLE_ENDIAN__
->  	arch |= __AUDIT_ARCH_LE;
->  #endif
+Minor nit: the subject refers to function_graph_entry(), but looks like
+you settled on function_graph_enter() in the end.
 
-LGTM.
+Anyway, looks like no change for us, so:
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+Acked-by: Will Deacon <will.deacon@arm.com>
 
-cheers
+Will
