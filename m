@@ -1,56 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:57128 "EHLO newverein.lst.de"
+Received: from ozlabs.org ([203.11.71.1]:36893 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728267AbeK0Sjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Nov 2018 13:39:53 -0500
-Date: Tue, 27 Nov 2018 08:42:53 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Message-ID: <20181127074253.GB30186@lst.de>
-References: <20181114082314.8965-1-hch@lst.de>
+        id S1728840AbeK0VcH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Nov 2018 16:32:07 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v2 16/15] syscall_get_arch: add "struct task_struct *" argument
+In-Reply-To: <20181121004422.GA29053@altlinux.org>
+References: <20181107042751.3b519062@akathisia> <CALCETrV1v-DPRfDRwiH=xn29bxWxiHdZtAH1nw=dsmDtnT0YGQ@mail.gmail.com> <20181120001128.GA11300@altlinux.org> <20181121004422.GA29053@altlinux.org>
+Date: Tue, 27 Nov 2018 21:34:29 +1100
+Message-ID: <87in0ihkqy.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181114082314.8965-1-hch@lst.de>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20181127074253.RHxnyx8DIelwBkFLDQKEFhfYXatb8WAiMknw_0egY7g@z>
+To: "Dmitry V. Levin" <ldv@altlinux.org>, Andy Lutomirski <luto@kernel.org>, Eric Paris <eparis@redhat.com>, Paul Moore <paul@paul-moore.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Eugene Syromyatnikov <esyr@redhat.com>, Elvira Khabirova <lineprinter@altlinux.org>, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-audit@redhat.com, linux-alpha@vger.kernel.org, nios2-dev@lists.rocketboards.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181127103429.lgAeChZNgUowVzf99hKIVfe0UDucyjeI6QCQFai6bS4@z>
 
-Any comments?  I'd like to at least get the ball moving on the easy
-bits.
+"Dmitry V. Levin" <ldv@altlinux.org> writes:
 
-On Wed, Nov 14, 2018 at 09:22:40AM +0100, Christoph Hellwig wrote:
-> Hi all,
-> 
-> this series switches the powerpc port to use the generic swiotlb and
-> noncoherent dma ops, and to use more generic code for the coherent
-> direct mapping, as well as removing a lot of dead code.
-> 
-> As this series is very large and depends on the dma-mapping tree I've
-> also published a git tree:
-> 
->     git://git.infradead.org/users/hch/misc.git powerpc-dma.4
-> 
-> Gitweb:
-> 
->     http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
-> 
-> Changes since v3:
->  - rebase on the powerpc fixes tree
->  - add a new patch to actually make the baseline amigaone config
->    configure without warnings
->  - only use ZONE_DMA for 64-bit embedded CPUs, on pseries an IOMMU is
->    always present
->  - fix compile in mem.c for one configuration
->  - drop the full npu removal for now, will be resent separately
->  - a few git bisection fixes
-> 
-> The changes since v1 are to big to list and v2 was not posted in public.
-> 
-> _______________________________________________
-> iommu mailing list
-> iommu@lists.linux-foundation.org
-> https://lists.linuxfoundation.org/mailman/listinfo/iommu
----end quoted text---
+> diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
+> index ab9f3f0a8637..d88b34179118 100644
+> --- a/arch/powerpc/include/asm/syscall.h
+> +++ b/arch/powerpc/include/asm/syscall.h
+> @@ -100,9 +100,15 @@ static inline void syscall_set_arguments(struct task_struct *task,
+>  		regs->orig_gpr3 = args[0];
+>  }
+>  
+> -static inline int syscall_get_arch(void)
+> +static inline int syscall_get_arch(struct task_struct *task)
+>  {
+> -	int arch = is_32bit_task() ? AUDIT_ARCH_PPC : AUDIT_ARCH_PPC64;
+> +	int arch;
+> +
+> +	if (IS_ENABLED(CONFIG_PPC64) && !test_tsk_thread_flag(task, TIF_32BIT))
+> +		arch = AUDIT_ARCH_PPC64;
+> +	else
+> +		arch = AUDIT_ARCH_PPC;
+> +
+>  #ifdef __LITTLE_ENDIAN__
+>  	arch |= __AUDIT_ARCH_LE;
+>  #endif
+
+LGTM.
+
+Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+
+cheers
