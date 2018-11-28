@@ -1,53 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35470 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726239AbeK2IDU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Nov 2018 03:03:20 -0500
-Date: Wed, 28 Nov 2018 16:00:21 -0500
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [for-next][PATCH 00/18] function_graph: Add separate depth
- counter to prevent trace corruption
-Message-ID: <20181128160021.09acd1af@gandalf.local.home>
-In-Reply-To: <20181128203931.ym2rkya7a6agzzy3@redhat.com>
-References: <20181122002801.501220343@goodmis.org>
-        <20181128203931.ym2rkya7a6agzzy3@redhat.com>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:55672 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726740AbeK2KEi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 05:04:38 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <CAHk-=wg5+rXK8dpjkSmK7tuz29VfxVWNEwmTVYB409mmyLkeew@mail.gmail.com>
+ <20181128174545.GJ30658@n2100.armlinux.org.uk> <CAHk-=whnz4Kty6cas11bc2Gh=9zTzeeRS2k=dV9Hfc4B=xnHkQ@mail.gmail.com>
+ <20181128.112717.149234960284639699.davem@davemloft.net> <20181128194708.GP30658@n2100.armlinux.org.uk>
+In-Reply-To: <20181128194708.GP30658@n2100.armlinux.org.uk>
+From: Shuah Khan <shuahkhan@gmail.com>
+Date: Wed, 28 Nov 2018 16:01:10 -0700
+Message-ID: <CAKocOOO2jELMaVh85m3V562ewCBDRUMJ1q_xoq7DgvUiagpTjQ@mail.gmail.com>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Lawrence <joe.lawrence@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>
-Message-ID: <20181128210021.kK-XBc09aA039mSZ7_itCZDg98hz6j7O7IAMQMi6GOE@z>
+To: linux@armlinux.org.uk
+Cc: David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, hch@lst.de, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, robin.murphy@arm.com, x86@kernel.org, LKML <linux-kernel@vger.kernel.org>, "open list:INTEL IOMMU (VT-d)" <iommu@lists.linux-foundation.org>, linux-alpha@vger.kernel.org, xen-devel@lists.xenproject.org, dwmw2@infradead.org, linux-arm-kernel@lists.infradead.org, Shuah Khan <shuahkhan@gmail.com>
+Message-ID: <20181128230110._gjzlj1HY3mvXE2B5Q-9BsCDPEGR2UYLik4daQ8R3Vc@z>
 
-On Wed, 28 Nov 2018 15:39:31 -0500
-Joe Lawrence <joe.lawrence@redhat.com> wrote:
+On Wed, Nov 28, 2018 at 12:48 PM Russell King - ARM Linux
+<linux@armlinux.org.uk> wrote:
+>
+> On Wed, Nov 28, 2018 at 11:27:17AM -0800, David Miller wrote:
+> > From: Linus Torvalds <torvalds@linux-foundation.org>
+> > Date: Wed, 28 Nov 2018 10:00:06 -0800
+> >
+> > > Not all memory is accessible even to the kernel. If you have memory
+> > > that shows up in the last page of phys_addr_t, you just mark it
+> > > reserved at boot-time.
+> >
+> > It's not the physical memory at the end that needs to be reserved.
+> >
+> > It's the IOMMU mapping arena.
+>
+> True, if and only if you have an IOMMU.
+>
+> Where there isn't an IOMMU, then we'd have to reserve every page that
+> that translates to a bus address in the top 4K of dma_addr_t on any
+> bus in the system - that means knowing early in the kernel
+> initialisation about all buses in the system so we can detect and
+> reserve these pages.
+>
 
-> Hi Steve,
-> 
-> With your ftrace/urgent branch linked above, if I try a quick
-> function_graph test like the following:
-> 
->   SYSFS=/sys/kernel/debug/tracing
-> 
->   echo 0 > "$SYSFS/tracing_on"
->   echo cmdline_proc_show > "$SYSFS/set_graph_function"
->   echo function_graph > "$SYSFS/current_tracer"
->   echo 1 > "$SYSFS/tracing_on"
-> 
-> I see a bunch of scheduler interrupt functions in the trace/trace_pipe
-> without even invoking cmdline_proc_show().
-> 
-> This tests works as expected with Linux 4.20-rc3 though:
-> 
->   % cat /sys/kernel/debug/tracing/trace_pipe
->    2)               |  cmdline_proc_show() {
->    2)   0.320 us    |    seq_puts();
->    2)   0.030 us    |    seq_putc();
->    2)   1.352 us    |  }
-> 
-> Operator error, or did the patchset break something?
+The arch and platform differences/confusion as to "what is DMA error
+value" is the reason why dma_mapping_error is part dma ops. I
+understand that iy would make sense to reduce the overhead of an
+additional call, however, I am not sure if would be trivial change to
+address this.
 
-Nope, that does seem to be a bug :-/
+I was down this path of trying to address the missing mapping error
+checks a few years ago and introduced dma_mapping_error checks in the
+DMA DEBUG API. As you might already know that there is no common
+definition for the mapping error.
 
--- Steve
+Quick look at the defines shows:
+
+#define CALGARY_MAPPING_ERROR 0
+#define S390_MAPPING_ERROR  (~(dma_addr_t) 0x0)
+#define SPARC_MAPPING_ERROR (~(dma_addr_t)0x0)
+
+This is the reason why there is a arch or in some cases bus specific
+mapping_error ops is needed.
+We could unify this and fix all these first. I haven't looked at the
+patch set closely, maybe you are already doing this.
+
+thanks,
+-- Shuah
