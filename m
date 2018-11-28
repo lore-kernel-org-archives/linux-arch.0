@@ -1,47 +1,54 @@
-From: Michal =?UTF-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Wed, 28 Nov 2018 21:35:10 +0100
-Message-ID: <20181128213510.543259e3@kitsune.suse.cz>
-References: <20181114082314.8965-1-hch@lst.de>
-        <20181127074253.GB30186@lst.de>
-        <87zhttfonk.fsf@concordia.ellerman.id.au>
-        <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+From: Joe Lawrence <joe.lawrence@redhat.com>
+Subject: Re: [for-next][PATCH 00/18] function_graph: Add separate depth
+ counter to prevent trace corruption
+Date: Wed, 28 Nov 2018 15:39:31 -0500
+Message-ID: <20181128203931.ym2rkya7a6agzzy3@redhat.com>
+References: <20181122002801.501220343@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+Content-Disposition: inline
+In-Reply-To: <20181122002801.501220343@goodmis.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 28 Nov 2018 16:55:30 +0100
-Christian Zigotzky <chzigotzky@xenosoft.de> wrote:
+On Wed, Nov 21, 2018 at 07:28:01PM -0500, Steven Rostedt wrote:
+>
+> [ ... snip ... ]
+>
+> Feel free to test this! I'll be pushing this to linux-next and let it
+> sit there a week or so before pushing it to Linus.
+>
+>   git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
+> ftrace/urgent
 
-> On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
-> > Nothing specific yet.
-> >
-> > I'm a bit worried it might break one of the many old obscure platforms
-> > we have that aren't well tested.
-> >  
-> Please don't apply the new DMA mapping code if you don't be sure if it 
-> works on all supported PowerPC machines. Is the new DMA mapping code 
-> really necessary? It's not really nice, to rewrote code if the old code 
-> works perfect. We must not forget, that we work for the end users. Does 
-> the end user have advantages with this new code? Is it faster? The old 
-> code works without any problems. 
+Hi Steve,
 
-There is another service provided to the users as well: new code that is
-cleaner and simpler which allows easier bug fixes and new features.
-Without being familiar with the DMA mapping code I cannot really say if
-that's the case here.
+With your ftrace/urgent branch linked above, if I try a quick
+function_graph test like the following:
 
-> I am also worried about this code. How 
-> can I test this new DMA mapping code?
+  SYSFS=/sys/kernel/debug/tracing
 
-I suppose if your machine works it works for you.
+  echo 0 > "$SYSFS/tracing_on"
+  echo cmdline_proc_show > "$SYSFS/set_graph_function"
+  echo function_graph > "$SYSFS/current_tracer"
+  echo 1 > "$SYSFS/tracing_on"
 
-Thanks
+I see a bunch of scheduler interrupt functions in the trace/trace_pipe
+without even invoking cmdline_proc_show().
 
-Michal
+This tests works as expected with Linux 4.20-rc3 though:
+
+  % cat /sys/kernel/debug/tracing/trace_pipe
+   2)               |  cmdline_proc_show() {
+   2)   0.320 us    |    seq_puts();
+   2)   0.030 us    |    seq_putc();
+   2)   1.352 us    |  }
+
+Operator error, or did the patchset break something?
+
+Regards,
+
+-- Joe
