@@ -1,44 +1,26 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: remove the ->mapping_error method from dma_map_ops V2
-Date: Wed, 28 Nov 2018 19:47:09 +0000
-Message-ID: <20181128194708.GP30658@n2100.armlinux.org.uk>
-References: <CAHk-=wg5+rXK8dpjkSmK7tuz29VfxVWNEwmTVYB409mmyLkeew@mail.gmail.com>
- <20181128174545.GJ30658@n2100.armlinux.org.uk>
- <CAHk-=whnz4Kty6cas11bc2Gh=9zTzeeRS2k=dV9Hfc4B=xnHkQ@mail.gmail.com>
- <20181128.112717.149234960284639699.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Wed, 28 Nov 2018 21:02:51 +0100
+Message-ID: <7B91760F-AFC3-4C8C-9B9F-FA0E9AD76B0C@xenosoft.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au> <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181128.112717.149234960284639699.davem@davemloft.net>
+In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@linux-foundation.org, hch@lst.de, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, robin.murphy@arm.com, x86@kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, linux-alpha@vger.kernel.org, xen-devel@lists.xenproject.org, dwmw2@infradead.org, linux-arm-kernel@lists.infradead.org
+To: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 28, 2018 at 11:27:17AM -0800, David Miller wrote:
-> From: Linus Torvalds <torvalds@linux-foundation.org>
-> Date: Wed, 28 Nov 2018 10:00:06 -0800
-> 
-> > Not all memory is accessible even to the kernel. If you have memory
-> > that shows up in the last page of phys_addr_t, you just mark it
-> > reserved at boot-time.
-> 
-> It's not the physical memory at the end that needs to be reserved.
-> 
-> It's the IOMMU mapping arena.
+I will compile and test the kernel from the following Git on my PowerPC mach=
+ines.
 
-True, if and only if you have an IOMMU.
+http://git.infradead.org/users/hch/misc.git
 
-Where there isn't an IOMMU, then we'd have to reserve every page that
-that translates to a bus address in the top 4K of dma_addr_t on any
-bus in the system - that means knowing early in the kernel
-initialisation about all buses in the system so we can detect and
-reserve these pages.
+On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
+Nothing specific yet.
 
-I don't think that's trivial to do.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
-According to speedtest.net: 11.9Mbps down 500kbps up
+I'm a bit worried it might break one of the many old obscure platforms
+we have that aren't well tested.
