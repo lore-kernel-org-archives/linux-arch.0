@@ -1,31 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.165]:13287 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725994AbeK2HGM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 02:06:12 -0500
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
+Received: from mx2.suse.de ([195.135.220.15]:60460 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725799AbeK2HiG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Nov 2018 02:38:06 -0500
+Date: Wed, 28 Nov 2018 21:35:10 +0100
+From: Michal =?UTF-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>
 Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <20181128213510.543259e3@kitsune.suse.cz>
 In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
-Date: Wed, 28 Nov 2018 21:02:51 +0100
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <7B91760F-AFC3-4C8C-9B9F-FA0E9AD76B0C@xenosoft.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au> <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+References: <20181114082314.8965-1-hch@lst.de>
+        <20181127074253.GB30186@lst.de>
+        <87zhttfonk.fsf@concordia.ellerman.id.au>
+        <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20181128200251.HLy_P77Q0JRbKc1weJ2gh0kF8pY33P_zTX0nB7K_2Xc@z>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+Message-ID: <20181128203510.4T_PzBMQfYhSBfkH4n5R6R0HO4Z1G2qa1rMUSrfx788@z>
 
-I will compile and test the kernel from the following Git on my PowerPC mach=
-ines.
+On Wed, 28 Nov 2018 16:55:30 +0100
+Christian Zigotzky <chzigotzky@xenosoft.de> wrote:
 
-http://git.infradead.org/users/hch/misc.git
+> On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
+> > Nothing specific yet.
+> >
+> > I'm a bit worried it might break one of the many old obscure platforms
+> > we have that aren't well tested.
+> >  
+> Please don't apply the new DMA mapping code if you don't be sure if it 
+> works on all supported PowerPC machines. Is the new DMA mapping code 
+> really necessary? It's not really nice, to rewrote code if the old code 
+> works perfect. We must not forget, that we work for the end users. Does 
+> the end user have advantages with this new code? Is it faster? The old 
+> code works without any problems. 
 
-On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
-Nothing specific yet.
+There is another service provided to the users as well: new code that is
+cleaner and simpler which allows easier bug fixes and new features.
+Without being familiar with the DMA mapping code I cannot really say if
+that's the case here.
 
-I'm a bit worried it might break one of the many old obscure platforms
-we have that aren't well tested.
+> I am also worried about this code. How 
+> can I test this new DMA mapping code?
+
+I suppose if your machine works it works for you.
+
+Thanks
+
+Michal
