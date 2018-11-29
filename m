@@ -1,28 +1,24 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 29 Nov 2018 18:03:51 +0100
-Message-ID: <20181129170351.GC27951@lst.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au> <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: scatterlist arch cleanups
+Date: Thu, 29 Nov 2018 09:06:09 -0800
+Message-ID: <20181129170609.GA790@infradead.org>
+References: <20181109090008.24150-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
+In-Reply-To: <20181109090008.24150-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 29, 2018 at 01:05:23PM +0100, Christian Zigotzky wrote:
-> I compiled a test kernel from the following Git today.
->
-> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
->
-> Command: git clone git://git.infradead.org/users/hch/misc.git -b 
-> powerpc-dma.4 a
->
-> Unfortunately I get some DMA error messages and the PASEMI ethernet doesn't 
-> work anymore.
+ping, any comments?
 
-What kind of machine is this (and your other one)?  Can you send me
-(or point me to) the .config files?
+On Fri, Nov 09, 2018 at 10:00:06AM +0100, Christoph Hellwig wrote:
+> Remove leftovers, and switch the default on enabling SG chaining.
+> _______________________________________________
+> iommu mailing list
+> iommu@lists.linux-foundation.org
+> https://lists.linuxfoundation.org/mailman/listinfo/iommu
+---end quoted text---
