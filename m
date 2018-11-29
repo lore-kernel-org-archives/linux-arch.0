@@ -1,52 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:46543 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728233AbeK3BQ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 20:16:29 -0500
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:38716 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731330AbeK3B2G (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 20:28:06 -0500
 MIME-Version: 1.0
-References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <1543481016-18500-7-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1543481016-18500-7-git-send-email-firoz.khan@linaro.org>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 29 Nov 2018 15:10:42 +0100
-Message-ID: <CAK8P3a1Pq=Y83p-cN9bf+m-2ZAmJdEYRaAY9FfEkVHvfSwNWNg@mail.gmail.com>
-Subject: Re: [PATCH v3 1/6] mips: add __NR_syscalls along with __NR_Linux_syscalls
+Date: Thu, 29 Nov 2018 15:22:16 +0100
+Message-ID: <CAK8P3a0rTwm_pCtQXyn_fyJttihKJ6Gpq97mw-r5ySUNBksCig@mail.gmail.com>
+Subject: Re: [PATCH v3 6/6] mips: generate uapi header and system call table files
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Firoz Khan <firoz.khan@linaro.org>
 Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181129141042.uLIBPmhe993WkDDRSktLfhux30IRJFejRzoos9T4eM0@z>
+Message-ID: <20181129142216.o7VyPvm3ddNEJqLGNPZGx5DaxtII6oJeaNL25mkFQiM@z>
 
-On Thu, Nov 29, 2018 at 9:44 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Thu, Nov 29, 2018 at 9:45 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 
->  arch/mips/include/uapi/asm/unistd.h | 17 ++++++++++++++---
->  1 file changed, 14 insertions(+), 3 deletions(-)
+> diff --git a/arch/mips/include/uapi/asm/Kbuild b/arch/mips/include/uapi/asm/Kbuild
+> index 7a4becd..ed4bd03 100644
+> --- a/arch/mips/include/uapi/asm/Kbuild
+> +++ b/arch/mips/include/uapi/asm/Kbuild
+> @@ -1,5 +1,11 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
 >
-> diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-> index f25dd1d..6914be5 100644
-> --- a/arch/mips/include/uapi/asm/unistd.h
-> +++ b/arch/mips/include/uapi/asm/unistd.h
-> @@ -391,11 +391,14 @@
->  #define __NR_rseq                      (__NR_Linux + 367)
->  #define __NR_io_pgetevents             (__NR_Linux + 368)
->
-> +#ifdef __KERNEL__
-> +#define __NR_syscalls                  368
-> +#endif
->
->  /*
->   * Offset of the last Linux o32 flavoured syscall
->   */
-> -#define __NR_Linux_syscalls            368
-> +#define __NR_Linux_syscalls            __NR_syscalls
+> +generated-y += unistd_n32.h
+> +generated-y += unistd_n64.h
+> +generated-y += unistd_o32.h
+> +generated-y += unistd_nr_n32.h
+> +generated-y += unistd_nr_n64.h
+> +generated-y += unistd_nr_o32.h
+>  generic-y += bpf_perf_event.h
+>  generic-y += ipcbuf.h
 
-This seems odd: you define __NR_Linux_syscalls outside of
-#ifdef __KERNEL__, but the definition only works
-with __NR_syscalls being defined first, which it isn't in
-user space.
+I'd argue that the unistd_nr_*.h headers should not be in the uapi directory
+but instead be included only from the in-kernel header.
 
-Since the macros are completely unused as well as unusable
-now, how about removing them together with the other
-ones removed in patch 2?
 
-      Arnd
+> diff --git a/arch/mips/kernel/scall64-n64.S b/arch/mips/kernel/scall64-n64.S
+> new file mode 100644
+> index 0000000..402a085
+> --- /dev/null
+> +++ b/arch/mips/kernel/scall64-n64.S
+> @@ -0,0 +1,117 @@
+> +/*
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License.  See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + *
+> + * Copyright (C) 1995, 96, 97, 98, 99, 2000, 01, 02 by Ralf Baechle
+> + * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
+> + * Copyright (C) 2001 MIPS Technologies, Inc.
+> + */
+> +#include <linux/errno.h>
+> +#include <asm/asm.h>
+> +#include <asm/asmmacro.h>
+> +#include <asm/irqflags.h>
+
+It looks like you change and rename this file at the same time.
+Generally speaking, I would not do that in one patch. Either
+leave the slightly inconsistent name unchanged, or rename
+it in a separate patch.
+
+         Arnd
