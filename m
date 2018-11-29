@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 1/6] mips: add __NR_syscalls along with __NR_Linux_syscalls
-Date: Thu, 29 Nov 2018 14:13:31 +0530
-Message-ID: <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 2/6] mips: remove unused macros
+Date: Thu, 29 Nov 2018 14:13:32 +0530
+Message-ID: <1543481016-18500-3-git-send-email-firoz.khan@linaro.org>
 References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
@@ -10,91 +10,51 @@ To: linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <
 Cc: y2038@lists.linaro.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-__NR_Linux_syscalls macro holds the number of system call
-exist in mips architecture. We have to change the value of
-__NR_Linux_syscalls, if we add or delete a system call.
+Remove NR_syscalls from asm/unistd.h as there is no
+users to use NR_syscalls macro in mips kernel.
 
-One of the patch in this patch series has a script which
-will generate a uapi header based on syscall.tbl file.
-The syscall.tbl file contains the total number of system
-calls information. So we have two option to update __NR-
-_Linux_syscalls value.
-
-1. Update __NR_Linux_syscalls in asm/unistd.h manually
-   by counting the no.of system calls. No need to update
-   __NR_Linux_syscalls until we either add a new system
-   call or delete existing system call.
-
-2. We can keep this feature it above mentioned script,
-   that will count the number of syscalls and keep it in
-   a generated file. In this case we don't need to expli-
-   citly update __NR_Linux_syscalls in asm/unistd.h file.
-
-The 2nd option will be the recommended one. For that, I
-added the __NR_syscalls macro in uapi/asm/unistd.h along
-with __NR_Linux_syscalls. The macro __NR_syscalls also
-added for making the name convention same across all
-architecture. While __NR_syscalls isn't strictly part of
-the uapi, having it as part of the generated header to
-simplifies the implementation. We also need to enclose
-this macro with #ifdef __KERNEL__ to avoid side effects.
+MAX_SYSCALL_NO can also remove as there is commit
+2957c9e61ee9 ("[MIPS] IRIX: Goodbye and thanks for
+all the fish"), eight years ago.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/uapi/asm/unistd.h | 17 ++++++++++++++---
- 1 file changed, 14 insertions(+), 3 deletions(-)
+ arch/mips/include/asm/unistd.h | 8 --------
+ arch/mips/kernel/scall32-o32.S | 3 ---
+ 2 files changed, 11 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index f25dd1d..6914be5 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -391,11 +391,14 @@
- #define __NR_rseq			(__NR_Linux + 367)
- #define __NR_io_pgetevents		(__NR_Linux + 368)
+diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
+index c68b8ae..d7ee846 100644
+--- a/arch/mips/include/asm/unistd.h
++++ b/arch/mips/include/asm/unistd.h
+@@ -14,14 +14,6 @@
  
-+#ifdef __KERNEL__
-+#define __NR_syscalls			368
-+#endif
+ #include <uapi/asm/unistd.h>
  
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		368
-+#define __NR_Linux_syscalls		__NR_syscalls
+-#ifdef CONFIG_MIPS32_N32
+-#define NR_syscalls  (__NR_N32_Linux + __NR_N32_Linux_syscalls)
+-#elif defined(CONFIG_64BIT)
+-#define NR_syscalls  (__NR_64_Linux + __NR_64_Linux_syscalls)
+-#else
+-#define NR_syscalls  (__NR_O32_Linux + __NR_O32_Linux_syscalls)
+-#endif
+-
+ #ifndef __ASSEMBLY__
  
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+ #define __ARCH_WANT_NEW_STAT
+diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
+index 91d3c8c..fea6edb 100644
+--- a/arch/mips/kernel/scall32-o32.S
++++ b/arch/mips/kernel/scall32-o32.S
+@@ -22,9 +22,6 @@
+ #include <asm/war.h>
+ #include <asm/asm-offsets.h>
  
-@@ -738,10 +741,14 @@
- #define __NR_rseq			(__NR_Linux + 327)
- #define __NR_io_pgetevents		(__NR_Linux + 328)
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls			328
-+#endif
-+
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		328
-+#define __NR_Linux_syscalls		__NR_syscalls
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
-@@ -1088,10 +1095,14 @@
- #define __NR_rseq			(__NR_Linux + 331)
- #define __NR_io_pgetevents		(__NR_Linux + 332)
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls			332
-+#endif
-+
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		332
-+#define __NR_Linux_syscalls		__NR_syscalls
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
+-/* Highest syscall used of any syscall flavour */
+-#define MAX_SYSCALL_NO	__NR_O32_Linux + __NR_O32_Linux_syscalls
+-
+ 	.align	5
+ NESTED(handle_sys, PT_SIZE, sp)
+ 	.set	noat
 -- 
 1.9.1
