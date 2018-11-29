@@ -1,46 +1,51 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: remove the ->mapping_error method from dma_map_ops V2
-Date: Thu, 29 Nov 2018 09:44:05 -0800
-Message-ID: <CAHk-=wi2K7_+dgCbc-sAK9CST5Zh+pOuH7sVT9WW-kqs50HSzQ@mail.gmail.com>
-References: <CAHk-=wgfGzXuDAKFQPdzMib3QCRHfSTsy5=gLU-WCoya+Ym+1A@mail.gmail.com>
- <11829e3c-7302-f821-cf5c-863e5267a17b@arm.com> <CAHk-=whxf0zqutExPr_j1A625Z3gcL6k_ABzKo1BtzN4F93hkA@mail.gmail.com>
- <20181123065511.GA17856@lst.de> <20181128074117.GA21126@lst.de>
- <CAHk-=wg5+rXK8dpjkSmK7tuz29VfxVWNEwmTVYB409mmyLkeew@mail.gmail.com>
- <20181128174545.GJ30658@n2100.armlinux.org.uk> <CAHk-=whnz4Kty6cas11bc2Gh=9zTzeeRS2k=dV9Hfc4B=xnHkQ@mail.gmail.com>
- <20181128180841.GM30658@n2100.armlinux.org.uk> <CAHk-=whcbiSxSUprsKjVPEdN5-+o8WnTGiKxEV-+HbKNDs=iNA@mail.gmail.com>
- <20181129162323.GA27068@lst.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8 0/8] arm64: untag user pointers passed to the kernel
+Date: Thu, 29 Nov 2018 18:16:51 +0000
+Message-ID: <20181129181650.GG22027@arrakis.emea.arm.com>
+References: <cover.1541687720.git.andreyknvl@google.com>
+ <CAAeHK+w1Qv6owkdWfjbXMFqOA8BURDN5gviw8vpgi3eon1dWmA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181129162323.GA27068@lst.de>
+Content-Disposition: inline
+In-Reply-To: <CAAeHK+w1Qv6owkdWfjbXMFqOA8BURDN5gviw8vpgi3eon1dWmA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, robin.murphy@arm.com, the arch/x86 maintainers <x86@kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, iommu@lists.linux-foundation.org, linux-alpha@vger.kernel.org, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>Linux Memory Management List <linux->
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 29, 2018 at 8:23 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> We can.  At least in theory.  The problem is that depending on the
-> crazy mapping from physical and kernel virtual address to dma addresses
-> these might be pages at pretty random places.  Look at fun like
-> arch/x86/pci/sta2x11-fixup.c for how ugly these mappings could look.
->
-> It also means that we might have setup swiotlb on just about every
-> 32-bit architecture, even if it has no real addressing limit except for
-> the one we imposed.
+Hi Andrey,
 
-No. Really. If there's no iotlb, then you just mark that one page
-reserved. It simply doesn't get used. It doesn't mean you suddenly
-need a swiotlb.
+On Thu, Nov 08, 2018 at 03:48:10PM +0100, Andrey Konovalov wrote:
+> On Thu, Nov 8, 2018 at 3:36 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> > Changes in v8:
+> > - Rebased onto 65102238 (4.20-rc1).
+> > - Added a note to the cover letter on why syscall wrappers/shims that untag
+> >   user pointers won't work.
+> > - Added a note to the cover letter that this patchset has been merged into
+> >   the Pixel 2 kernel tree.
+> > - Documentation fixes, in particular added a list of syscalls that don't
+> >   support tagged user pointers.
+> 
+> I've changed the documentation to be more specific, please take a look.
+> 
+> I haven't done anything about adding a way for the user to find out
+> that the kernel supports this ABI extension. I don't know what would
+> the the preferred way to do this, and we haven't received any comments
+> on that from anybody else. Probing "on some innocuous syscall
+> currently returning -EFAULT on tagged pointer arguments" works though,
+> as you mentioned.
 
-If there *is* a iotlb, none of this should matter, because you'd just
-never map anything into that page.
+We've had some internal discussions and also talked to some people at
+Plumbers. I think the best option is to introduce an AT_FLAGS bit to
+describe the ABI relaxation on tagged pointers. Vincenzo is going to
+propose a patch on top of this series.
 
-But whatever. It's independent from the patch series under discussion.
-Make dma_mapping_error() at least return a real error (eg -EINVAL, or
-whatever is the common error), and we can maybe do this later.
+> As mentioned in the cover letter, this patchset has been merged into
+> the Pixel 2 kernel tree.
 
-Or, better yet, plan on removing the single-page dma mappign entirely
-at a later date, and make the issue moot.
+I just hope it's not enabled on production kernels, it would introduce
+a user ABI that may differ from what ends up upstream.
 
-              Linus
+-- 
+Catalin
