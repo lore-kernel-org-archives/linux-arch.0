@@ -1,208 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:37445 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727608AbeK2TtM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 14:49:12 -0500
-Received: by mail-pf1-f194.google.com with SMTP id y126so679348pfb.4
-        for <linux-arch@vger.kernel.org>; Thu, 29 Nov 2018 00:44:35 -0800 (PST)
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:38053 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727608AbeK2TtF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 14:49:05 -0500
+Received: by mail-pf1-f195.google.com with SMTP id q1so675666pfi.5
+        for <linux-arch@vger.kernel.org>; Thu, 29 Nov 2018 00:44:28 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 3/6] mips: add +1 to __NR_syscalls in uapi header
-Date: Thu, 29 Nov 2018 14:13:33 +0530
-Message-ID: <1543481016-18500-4-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 2/6] mips: remove unused macros
+Date: Thu, 29 Nov 2018 14:13:32 +0530
+Message-ID: <1543481016-18500-3-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181129084333.wgnc9JxcgRtmo6BI9NX7OqnwWvGIomzfKjOoIVxeTsc@z>
+Message-ID: <20181129084332.dO_BQOwUNt4I53OFcnuC50azqLYgNJk-6QZKjNtaa1g@z>
 
-All other architectures are hold a value for __NR_syscalls will
-be equal to the last system call number +1.
+Remove NR_syscalls from asm/unistd.h as there is no
+users to use NR_syscalls macro in mips kernel.
 
-But in mips architecture, __NR_syscalls hold the value equal to
-total number of system exits in the architecture. One of the
-patch in this patch series will genarate uapi header files.
-
-In order to make the implementation common across all architect-
-ures, add +1 to __NR_syscalls, which will be equal to the last
-system call number +1.
+MAX_SYSCALL_NO can also remove as there is commit
+2957c9e61ee9 ("[MIPS] IRIX: Goodbye and thanks for
+all the fish"), eight years ago.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/uapi/asm/unistd.h | 12 ++++++------
- arch/mips/kernel/ftrace.c           |  6 +++---
- arch/mips/kernel/scall32-o32.S      |  4 ++--
- arch/mips/kernel/scall64-64.S       |  2 +-
- arch/mips/kernel/scall64-n32.S      |  4 ++--
- arch/mips/kernel/scall64-o32.S      |  6 +++---
- 6 files changed, 17 insertions(+), 17 deletions(-)
+ arch/mips/include/asm/unistd.h | 8 --------
+ arch/mips/kernel/scall32-o32.S | 3 ---
+ 2 files changed, 11 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index 6914be5..dac1335 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -392,7 +392,7 @@
- #define __NR_io_pgetevents		(__NR_Linux + 368)
+diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
+index c68b8ae..d7ee846 100644
+--- a/arch/mips/include/asm/unistd.h
++++ b/arch/mips/include/asm/unistd.h
+@@ -14,14 +14,6 @@
  
- #ifdef __KERNEL__
--#define __NR_syscalls			368
-+#define __NR_syscalls			369
- #endif
+ #include <uapi/asm/unistd.h>
  
- /*
-@@ -403,7 +403,7 @@
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+-#ifdef CONFIG_MIPS32_N32
+-#define NR_syscalls  (__NR_N32_Linux + __NR_N32_Linux_syscalls)
+-#elif defined(CONFIG_64BIT)
+-#define NR_syscalls  (__NR_64_Linux + __NR_64_Linux_syscalls)
+-#else
+-#define NR_syscalls  (__NR_O32_Linux + __NR_O32_Linux_syscalls)
+-#endif
+-
+ #ifndef __ASSEMBLY__
  
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		368
-+#define __NR_O32_Linux_syscalls		369
- 
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -742,7 +742,7 @@
- #define __NR_io_pgetevents		(__NR_Linux + 328)
- 
- #ifdef __KERNEL__
--#define __NR_syscalls			328
-+#define __NR_syscalls			329
- #endif
- 
- /*
-@@ -753,7 +753,7 @@
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		328
-+#define __NR_64_Linux_syscalls		329
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1096,7 +1096,7 @@
- #define __NR_io_pgetevents		(__NR_Linux + 332)
- 
- #ifdef __KERNEL__
--#define __NR_syscalls			332
-+#define __NR_syscalls			333
- #endif
- 
- /*
-@@ -1107,6 +1107,6 @@
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		332
-+#define __NR_N32_Linux_syscalls		333
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
-index 7f3dfdb..f32caaf 100644
---- a/arch/mips/kernel/ftrace.c
-+++ b/arch/mips/kernel/ftrace.c
-@@ -410,13 +410,13 @@ unsigned long __init arch_syscall_addr(int nr)
- unsigned long __init arch_syscall_addr(int nr)
- {
- #ifdef CONFIG_MIPS32_N32
--	if (nr >= __NR_N32_Linux && nr <= __NR_N32_Linux + __NR_N32_Linux_syscalls)
-+	if (nr >= __NR_N32_Linux && nr < __NR_N32_Linux + __NR_N32_Linux_syscalls)
- 		return (unsigned long)sysn32_call_table[nr - __NR_N32_Linux];
- #endif
--	if (nr >= __NR_64_Linux  && nr <= __NR_64_Linux + __NR_64_Linux_syscalls)
-+	if (nr >= __NR_64_Linux  && nr < __NR_64_Linux + __NR_64_Linux_syscalls)
- 		return (unsigned long)sys_call_table[nr - __NR_64_Linux];
- #ifdef CONFIG_MIPS32_O32
--	if (nr >= __NR_O32_Linux && nr <= __NR_O32_Linux + __NR_O32_Linux_syscalls)
-+	if (nr >= __NR_O32_Linux && nr < __NR_O32_Linux + __NR_O32_Linux_syscalls)
- 		return (unsigned long)sys32_call_table[nr - __NR_O32_Linux];
- #endif
- 
+ #define __ARCH_WANT_NEW_STAT
 diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index fea6edb..10f6367 100644
+index 91d3c8c..fea6edb 100644
 --- a/arch/mips/kernel/scall32-o32.S
 +++ b/arch/mips/kernel/scall32-o32.S
-@@ -86,7 +86,7 @@ loads_done:
- 	bnez	t0, syscall_trace_entry # -> yes
- syscall_common:
- 	subu	v0, v0, __NR_O32_Linux	# check syscall number
--	sltiu	t0, v0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, v0, __NR_O32_Linux_syscalls
- 	beqz	t0, illegal_syscall
+@@ -22,9 +22,6 @@
+ #include <asm/war.h>
+ #include <asm/asm-offsets.h>
  
- 	sll	t0, v0, 2
-@@ -182,7 +182,7 @@ illegal_syscall:
- 
- 	LEAF(sys_syscall)
- 	subu	t0, a0, __NR_O32_Linux	# check syscall number
--	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	v0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, einval		# do not recurse
- 	sll	t1, t0, 2
- 	beqz	v0, einval
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-index 358d959..0b67fed 100644
---- a/arch/mips/kernel/scall64-64.S
-+++ b/arch/mips/kernel/scall64-64.S
-@@ -54,7 +54,7 @@ NESTED(handle_sys64, PT_SIZE, sp)
- 
- syscall_common:
- 	dsubu	t2, v0, __NR_64_Linux
--	sltiu   t0, t2, __NR_64_Linux_syscalls + 1
-+	sltiu   t0, t2, __NR_64_Linux_syscalls
- 	beqz	t0, illegal_syscall
- 
- 	dsll	t0, t2, 3		# offset into table
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index c65eaac..6468546 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -33,7 +33,7 @@ NESTED(handle_sysn32, PT_SIZE, sp)
- #endif
- 
- 	dsubu	t0, v0, __NR_N32_Linux	# check syscall number
--	sltiu	t0, t0, __NR_N32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_N32_Linux_syscalls
- 
- #ifndef CONFIG_MIPS32_O32
- 	ld	t1, PT_EPC(sp)		# skip syscall on return
-@@ -87,7 +87,7 @@ n32_syscall_trace_entry:
- 	ld	a5, PT_R9(sp)
- 
- 	dsubu	t2, v0, __NR_N32_Linux	# check (new) syscall number
--	sltiu   t0, t2, __NR_N32_Linux_syscalls + 1
-+	sltiu   t0, t2, __NR_N32_Linux_syscalls
- 	beqz	t0, not_n32_scall
- 
- 	j	syscall_common
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index 73913f0..eb53d8ea 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -34,7 +34,7 @@ NESTED(handle_sys, PT_SIZE, sp)
- 	ld	t1, PT_EPC(sp)		# skip syscall on return
- 
- 	dsubu	t0, v0, __NR_O32_Linux	# check syscall number
--	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_O32_Linux_syscalls
- 	daddiu	t1, 4			# skip to next instruction
- 	sd	t1, PT_EPC(sp)
- 	beqz	t0, not_o32_scall
-@@ -144,7 +144,7 @@ trace_a_syscall:
- 	ld	a7, PT_R11(sp)		# For indirect syscalls
- 
- 	dsubu	t0, v0, __NR_O32_Linux	# check (new) syscall number
--	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, not_o32_scall
- 
- 	j	syscall_common
-@@ -193,7 +193,7 @@ not_o32_scall:
- 
- LEAF(sys32_syscall)
- 	subu	t0, a0, __NR_O32_Linux	# check syscall number
--	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	v0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, einval		# do not recurse
- 	dsll	t1, t0, 3
- 	beqz	v0, einval
+-/* Highest syscall used of any syscall flavour */
+-#define MAX_SYSCALL_NO	__NR_O32_Linux + __NR_O32_Linux_syscalls
+-
+ 	.align	5
+ NESTED(handle_sys, PT_SIZE, sp)
+ 	.set	noat
 -- 
 1.9.1
