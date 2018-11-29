@@ -1,29 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:38602 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728444AbeK3EMO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 23:12:14 -0500
-Date: Thu, 29 Nov 2018 09:06:09 -0800
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: scatterlist arch cleanups
-Message-ID: <20181129170609.GA790@infradead.org>
-References: <20181109090008.24150-1-hch@lst.de>
+Received: from foss.arm.com ([217.140.101.70]:39782 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730214AbeK3EMO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Nov 2018 23:12:14 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 07/28] arm64: Build vDSO with -ffixed-x18
+Date: Thu, 29 Nov 2018 17:05:09 +0000
+Message-ID: <20181129170530.37789-8-vincenzo.frascino@arm.com>
+In-Reply-To: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181109090008.24150-1-hch@lst.de>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181129170609.Hk31_qwpof6k6sZBjt9n-ZLNIiZCNxapbS-aJyYygAQ@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Mark Salyzyn <salyzyn@google.com>
+Message-ID: <20181129170509._V1-tbuV971z9mmJsJRq8QmCI7QNP2zqloRxpiNz7iU@z>
 
-ping, any comments?
+From: Peter Collingbourne <pcc@google.com>
 
-On Fri, Nov 09, 2018 at 10:00:06AM +0100, Christoph Hellwig wrote:
-> Remove leftovers, and switch the default on enabling SG chaining.
-> _______________________________________________
-> iommu mailing list
-> iommu@lists.linux-foundation.org
-> https://lists.linuxfoundation.org/mailman/listinfo/iommu
----end quoted text---
+The vDSO needs to be build with x18 reserved in order to accommodate
+userspace platform ABIs built on top of Linux that use the register
+to carry inter-procedural state, as provided for by the AAPCS.
+An example of such a platform ABI is the one that will be used by an
+upcoming version of Android.
+
+Although this change is currently a no-op due to the fact that the vDSO
+is currently implemented in pure assembly on arm64, it is necessary
+in order to prepare for another change [1] that will add C code to
+the vDSO.
+
+[1] https://patchwork.kernel.org/patch/10044501/
+
+Signed-off-by: Peter Collingbourne <pcc@google.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Mark Salyzyn <salyzyn@google.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+---
+ arch/arm64/kernel/vdso/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index b215c712d897..8cd4707f832a 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -12,7 +12,7 @@ obj-vdso := gettimeofday.o note.o sigreturn.o
+ targets := $(obj-vdso) vdso.so vdso.so.dbg
+ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+ 
+-ccflags-y := -shared -fno-common -fno-builtin
++ccflags-y := -shared -fno-common -fno-builtin -ffixed-x18
+ ccflags-y += -nostdlib -Wl,-soname=linux-vdso.so.1 \
+ 		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
+ 
+-- 
+2.19.2
