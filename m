@@ -1,67 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:38053 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727608AbeK2TtF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 14:49:05 -0500
-Received: by mail-pf1-f195.google.com with SMTP id q1so675666pfi.5
-        for <linux-arch@vger.kernel.org>; Thu, 29 Nov 2018 00:44:28 -0800 (PST)
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:46210 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726780AbeK2TtW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 14:49:22 -0500
+Received: by mail-pf1-f193.google.com with SMTP id c73so657865pfe.13
+        for <linux-arch@vger.kernel.org>; Thu, 29 Nov 2018 00:44:45 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 2/6] mips: remove unused macros
-Date: Thu, 29 Nov 2018 14:13:32 +0530
-Message-ID: <1543481016-18500-3-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 4/6] mips: remove syscall table entries
+Date: Thu, 29 Nov 2018 14:13:34 +0530
+Message-ID: <1543481016-18500-5-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181129084332.dO_BQOwUNt4I53OFcnuC50azqLYgNJk-6QZKjNtaa1g@z>
+Message-ID: <20181129084334.AcMvNYg8ofvv-u63IinwCWXADaztauLaECC4QSbGU5E@z>
 
-Remove NR_syscalls from asm/unistd.h as there is no
-users to use NR_syscalls macro in mips kernel.
+The config flag - CONFIG_MIPS_MT_FPAFF uses to check whether which
+syscall entries need to be used in scall32-o32.S file.
 
-MAX_SYSCALL_NO can also remove as there is commit
-2957c9e61ee9 ("[MIPS] IRIX: Goodbye and thanks for
-all the fish"), eight years ago.
+One of the patch in this patch series will generate syscall table
+file. But CONFIG_MIPS_MT_FPAFF flag will add more complexity in the
+script to generate the syscall table file.
+
+In order to come up with a common implementation across all archit-
+ecture, we need to remove mipsmt_sys_sched_setaffinity and mipsmt-
+_sys_sched_getaffinity from the table and define it in other way.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/asm/unistd.h | 8 --------
- arch/mips/kernel/scall32-o32.S | 3 ---
- 2 files changed, 11 deletions(-)
+ arch/mips/kernel/scall32-o32.S | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
-index c68b8ae..d7ee846 100644
---- a/arch/mips/include/asm/unistd.h
-+++ b/arch/mips/include/asm/unistd.h
-@@ -14,14 +14,6 @@
- 
- #include <uapi/asm/unistd.h>
- 
--#ifdef CONFIG_MIPS32_N32
--#define NR_syscalls  (__NR_N32_Linux + __NR_N32_Linux_syscalls)
--#elif defined(CONFIG_64BIT)
--#define NR_syscalls  (__NR_64_Linux + __NR_64_Linux_syscalls)
--#else
--#define NR_syscalls  (__NR_O32_Linux + __NR_O32_Linux_syscalls)
--#endif
--
- #ifndef __ASSEMBLY__
- 
- #define __ARCH_WANT_NEW_STAT
 diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 91d3c8c..fea6edb 100644
+index 10f6367..43fa5cd 100644
 --- a/arch/mips/kernel/scall32-o32.S
 +++ b/arch/mips/kernel/scall32-o32.S
-@@ -22,9 +22,6 @@
- #include <asm/war.h>
- #include <asm/asm-offsets.h>
+@@ -205,6 +205,18 @@ einval: li	v0, -ENOSYS
+ 	jr	ra
+ 	END(sys_syscall)
  
--/* Highest syscall used of any syscall flavour */
--#define MAX_SYSCALL_NO	__NR_O32_Linux + __NR_O32_Linux_syscalls
--
- 	.align	5
- NESTED(handle_sys, PT_SIZE, sp)
- 	.set	noat
++#ifdef CONFIG_MIPS_MT_FPAFF
++	/*
++	 * For FPU affinity scheduling on MIPS MT processors, we need to
++	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
++	 * in kernel/sched/core.c.  Considered only temporary we only support
++	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
++	 * atm.
++	 */
++#define sys_sched_setaffinity	mipsmt_sys_sched_setaffinity
++#define sys_sched_getaffinity	mipsmt_sys_sched_getaffinity
++#endif /* CONFIG_MIPS_MT_FPAFF */
++
+ 	.align	2
+ 	.type	sys_call_table, @object
+ EXPORT(sys_call_table)
+@@ -447,20 +459,8 @@ EXPORT(sys_call_table)
+ 	PTR	sys_tkill
+ 	PTR	sys_sendfile64
+ 	PTR	sys_futex
+-#ifdef CONFIG_MIPS_MT_FPAFF
+-	/*
+-	 * For FPU affinity scheduling on MIPS MT processors, we need to
+-	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
+-	 * in kernel/sched/core.c.  Considered only temporary we only support
+-	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
+-	 * atm.
+-	 */
+-	PTR	mipsmt_sys_sched_setaffinity
+-	PTR	mipsmt_sys_sched_getaffinity
+-#else
+ 	PTR	sys_sched_setaffinity
+ 	PTR	sys_sched_getaffinity		/* 4240 */
+-#endif /* CONFIG_MIPS_MT_FPAFF */
+ 	PTR	sys_io_setup
+ 	PTR	sys_io_destroy
+ 	PTR	sys_io_getevents
 -- 
 1.9.1
