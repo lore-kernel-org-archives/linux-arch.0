@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 13/28] arm64: compat: Add missing syscall numbers
-Date: Thu, 29 Nov 2018 17:05:15 +0000
-Message-ID: <20181129170530.37789-14-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 02/28] kernel: Add Monotonic boot time support
+Date: Thu, 29 Nov 2018 17:05:04 +0000
+Message-ID: <20181129170530.37789-3-vincenzo.frascino@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,34 +21,29 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-vDSO requires gettimeofday and clock_gettime syscalls to implement the
-fallback mechanism.
+Currently, datapage.h has no support for CLOCK_BOOTTIME.
+CLOCK_BOOTTIME is identical to CLOCK_MONOTONIC, but includes
+any time spent in suspend.
 
-This patch adds the missing syscall numbers to unistd.h for arm64.
+This patch adds monotonic boot time support (btm_nsec) to datapage.h.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/unistd.h | 3 +++
- 1 file changed, 3 insertions(+)
+ include/vdso/datapage.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index b13ca091f833..a85b30b766a1 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -33,8 +33,11 @@
- #define __NR_compat_exit		1
- #define __NR_compat_read		3
- #define __NR_compat_write		4
-+#define __NR_compat_gettimeofday	78
- #define __NR_compat_sigreturn		119
- #define __NR_compat_rt_sigreturn	173
-+#define __NR_compat_clock_getres	247
-+#define __NR_compat_clock_gettime	263
- 
- /*
-  * The following SVCs are ARM private.
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index a02ca170d56e..52189c21d422 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -32,6 +32,7 @@ struct vdso_data {
+ 	__u64 xtime_coarse_nsec;
+ 	__u64 wtm_clock_sec;	/* Wall to monotonic time */
+ 	__u64 wtm_clock_nsec;
++	__u64 btm_nsec;		/* Monotonic to boot time */
+ 	__u32 tb_seq_count;	/* Timebase sequence counter */
+ 	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
+ 	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
 -- 
 2.19.2
