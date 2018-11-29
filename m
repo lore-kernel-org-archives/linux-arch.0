@@ -1,86 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.83]:35653 "EHLO
-        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726949AbeK2XLK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 18:11:10 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
- <87zhttfonk.fsf@concordia.ellerman.id.au>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
-Date: Thu, 29 Nov 2018 13:05:23 +0100
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:46543 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728233AbeK3BQ3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2018 20:16:29 -0500
 MIME-Version: 1.0
-In-Reply-To: <87zhttfonk.fsf@concordia.ellerman.id.au>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 29 Nov 2018 15:10:42 +0100
+Message-ID: <CAK8P3a1Pq=Y83p-cN9bf+m-2ZAmJdEYRaAY9FfEkVHvfSwNWNg@mail.gmail.com>
+Subject: Re: [PATCH v3 1/6] mips: add __NR_syscalls along with __NR_Linux_syscalls
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
-Message-ID: <20181129120523.U6sm82kWwNeD-WJeKQJZov8-xKk83IcwqOt5FFw56rs@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181129141042.uLIBPmhe993WkDDRSktLfhux30IRJFejRzoos9T4eM0@z>
 
-On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
-> Christoph Hellwig <hch@lst.de> writes:
+On Thu, Nov 29, 2018 at 9:44 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+
+>  arch/mips/include/uapi/asm/unistd.h | 17 ++++++++++++++---
+>  1 file changed, 14 insertions(+), 3 deletions(-)
 >
->> Any comments?  I'd like to at least get the ball moving on the easy
->> bits.
-> Nothing specific yet.
+> diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
+> index f25dd1d..6914be5 100644
+> --- a/arch/mips/include/uapi/asm/unistd.h
+> +++ b/arch/mips/include/uapi/asm/unistd.h
+> @@ -391,11 +391,14 @@
+>  #define __NR_rseq                      (__NR_Linux + 367)
+>  #define __NR_io_pgetevents             (__NR_Linux + 368)
 >
-> I'm a bit worried it might break one of the many old obscure platforms
-> we have that aren't well tested.
+> +#ifdef __KERNEL__
+> +#define __NR_syscalls                  368
+> +#endif
 >
-> There's not much we can do about that, but I'll just try and test it on
-> everything I can find.
->
-> Is the plan that you take these via the dma-mapping tree or that they go
-> via powerpc?
->
-> cheers
->
-Hi All,
+>  /*
+>   * Offset of the last Linux o32 flavoured syscall
+>   */
+> -#define __NR_Linux_syscalls            368
+> +#define __NR_Linux_syscalls            __NR_syscalls
 
-I compiled a test kernel from the following Git today.
+This seems odd: you define __NR_Linux_syscalls outside of
+#ifdef __KERNEL__, but the definition only works
+with __NR_syscalls being defined first, which it isn't in
+user space.
 
-http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
+Since the macros are completely unused as well as unusable
+now, how about removing them together with the other
+ones removed in patch 2?
 
-Command: git clone git://git.infradead.org/users/hch/misc.git -b 
-powerpc-dma.4 a
-
-Unfortunately I get some DMA error messages and the PASEMI ethernet 
-doesn't work anymore.
-
-[  367.627623] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627631] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627639] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627647] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627655] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627686] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.628418] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.628505] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.628592] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.629324] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.629417] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.629495] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.629589] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-
-[  430.424732]pasemi_mac: rcmdsta error: 0x04ef3001
-
-I tested this kernel with the Nemo board (CPU: PWRficient PA6T-1682M). 
-The PASEMI ethernet works with the RC4 of kernel 4.20.
-
-Cheers,
-Christian
+      Arnd
