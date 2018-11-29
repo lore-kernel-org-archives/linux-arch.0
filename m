@@ -1,75 +1,47 @@
-From: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 29 Nov 2018 13:05:23 +0100
-Message-ID: <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
-	<87zhttfonk.fsf@concordia.ellerman.id.au>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 1/6] mips: add __NR_syscalls along with __NR_Linux_syscalls
+Date: Thu, 29 Nov 2018 15:10:42 +0100
+Message-ID: <CAK8P3a1Pq=Y83p-cN9bf+m-2ZAmJdEYRaAY9FfEkVHvfSwNWNg@mail.gmail.com>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <87zhttfonk.fsf-W0DJWXSxmBNbyGPkN3NxC2scP1bn1w/D@public.gmane.org>
-Content-Language: de-DE
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1543481016-18500-2-git-send-email-firoz.khan@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMjggTm92ZW1iZXIgMjAxOCBhdCAxMjowNVBNLCBNaWNoYWVsIEVsbGVybWFuIHdyb3RlOgo+
-IENocmlzdG9waCBIZWxsd2lnIDxoY2hAbHN0LmRlPiB3cml0ZXM6Cj4KPj4gQW55IGNvbW1lbnRz
-PyAgSSdkIGxpa2UgdG8gYXQgbGVhc3QgZ2V0IHRoZSBiYWxsIG1vdmluZyBvbiB0aGUgZWFzeQo+
-PiBiaXRzLgo+IE5vdGhpbmcgc3BlY2lmaWMgeWV0Lgo+Cj4gSSdtIGEgYml0IHdvcnJpZWQgaXQg
-bWlnaHQgYnJlYWsgb25lIG9mIHRoZSBtYW55IG9sZCBvYnNjdXJlIHBsYXRmb3Jtcwo+IHdlIGhh
-dmUgdGhhdCBhcmVuJ3Qgd2VsbCB0ZXN0ZWQuCj4KPiBUaGVyZSdzIG5vdCBtdWNoIHdlIGNhbiBk
-byBhYm91dCB0aGF0LCBidXQgSSdsbCBqdXN0IHRyeSBhbmQgdGVzdCBpdCBvbgo+IGV2ZXJ5dGhp
-bmcgSSBjYW4gZmluZC4KPgo+IElzIHRoZSBwbGFuIHRoYXQgeW91IHRha2UgdGhlc2UgdmlhIHRo
-ZSBkbWEtbWFwcGluZyB0cmVlIG9yIHRoYXQgdGhleSBnbwo+IHZpYSBwb3dlcnBjPwo+Cj4gY2hl
-ZXJzCj4KSGkgQWxsLAoKSSBjb21waWxlZCBhIHRlc3Qga2VybmVsIGZyb20gdGhlIGZvbGxvd2lu
-ZyBHaXQgdG9kYXkuCgpodHRwOi8vZ2l0LmluZnJhZGVhZC5vcmcvdXNlcnMvaGNoL21pc2MuZ2l0
-L3Nob3J0bG9nL3JlZnMvaGVhZHMvcG93ZXJwYy1kbWEuNAoKQ29tbWFuZDogZ2l0IGNsb25lIGdp
-dDovL2dpdC5pbmZyYWRlYWQub3JnL3VzZXJzL2hjaC9taXNjLmdpdCAtYiAKcG93ZXJwYy1kbWEu
-NCBhCgpVbmZvcnR1bmF0ZWx5IEkgZ2V0IHNvbWUgRE1BIGVycm9yIG1lc3NhZ2VzIGFuZCB0aGUg
-UEFTRU1JIGV0aGVybmV0IApkb2Vzbid0IHdvcmsgYW55bW9yZS4KClvCoCAzNjcuNjI3NjIzXSBw
-Y2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAw
-MjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcu
-NjI3NjMxXSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAK
-MHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAw
-ClvCoCAzNjcuNjI3NjM5XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBv
-dmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBi
-dXMgbWFzayAwClvCoCAzNjcuNjI3NjQ3XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21h
-cF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBm
-ZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI3NjU1XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFf
-ZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZp
-Y2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI3Njg2XSBwY2kgMDAwMDowMDox
-YS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzEx
-MCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI4NDE4XSBwY2kg
-MDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZi
-Y2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI4
-NTA1XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgw
-MDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvC
-oCAzNjcuNjI4NTkyXSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVy
-ZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMg
-bWFzayAwClvCoCAzNjcuNjI5MzI0XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9w
-YWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZm
-ZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI5NDE3XSBwY2kgMDAwMDowMDoxYS4wOiBkbWFfZGly
-ZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBvZiBkZXZpY2Ug
-bWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI5NDk1XSBwY2kgMDAwMDowMDoxYS4w
-OiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1MDAyKzExMCBv
-ZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwClvCoCAzNjcuNjI5NTg5XSBwY2kgMDAw
-MDowMDoxYS4wOiBkbWFfZGlyZWN0X21hcF9wYWdlOiBvdmVyZmxvdyAKMHgwMDAwMDAwMjZiY2I1
-MDAyKzExMCBvZiBkZXZpY2UgbWFzayBmZmZmZmZmZiBidXMgbWFzayAwCgpbwqAgNDMwLjQyNDcz
-Ml1wYXNlbWlfbWFjOiByY21kc3RhIGVycm9yOiAweDA0ZWYzMDAxCgpJIHRlc3RlZCB0aGlzIGtl
-cm5lbCB3aXRoIHRoZSBOZW1vIGJvYXJkIChDUFU6IFBXUmZpY2llbnQgUEE2VC0xNjgyTSkuIApU
-aGUgUEFTRU1JIGV0aGVybmV0IHdvcmtzIHdpdGggdGhlIFJDNCBvZiBrZXJuZWwgNC4yMC4KCkNo
-ZWVycywKQ2hyaXN0aWFuCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fCmlvbW11IG1haWxpbmcgbGlzdAppb21tdUBsaXN0cy5saW51eC1mb3VuZGF0aW9uLm9y
-ZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlvbi5vcmcvbWFpbG1hbi9saXN0aW5mby9pb21t
-dQ==
+On Thu, Nov 29, 2018 at 9:44 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+
+>  arch/mips/include/uapi/asm/unistd.h | 17 ++++++++++++++---
+>  1 file changed, 14 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
+> index f25dd1d..6914be5 100644
+> --- a/arch/mips/include/uapi/asm/unistd.h
+> +++ b/arch/mips/include/uapi/asm/unistd.h
+> @@ -391,11 +391,14 @@
+>  #define __NR_rseq                      (__NR_Linux + 367)
+>  #define __NR_io_pgetevents             (__NR_Linux + 368)
+>
+> +#ifdef __KERNEL__
+> +#define __NR_syscalls                  368
+> +#endif
+>
+>  /*
+>   * Offset of the last Linux o32 flavoured syscall
+>   */
+> -#define __NR_Linux_syscalls            368
+> +#define __NR_Linux_syscalls            __NR_syscalls
+
+This seems odd: you define __NR_Linux_syscalls outside of
+#ifdef __KERNEL__, but the definition only works
+with __NR_syscalls being defined first, which it isn't in
+user space.
+
+Since the macros are completely unused as well as unusable
+now, how about removing them together with the other
+ones removed in patch 2?
+
+      Arnd
