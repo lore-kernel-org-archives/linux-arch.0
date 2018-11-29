@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 04/28] kernel: Add masks support for Raw and NTP time
-Date: Thu, 29 Nov 2018 17:05:06 +0000
-Message-ID: <20181129170530.37789-5-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 13/28] arm64: compat: Add missing syscall numbers
+Date: Thu, 29 Nov 2018 17:05:15 +0000
+Message-ID: <20181129170530.37789-14-vincenzo.frascino@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,31 +21,34 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Depending on the clocksource selected there can be supported a
-different resolution hence we require a mask to be applied to the
-time calculation.
+vDSO requires gettimeofday and clock_gettime syscalls to implement the
+fallback mechanism.
 
-This patch exposes the mask in the datapage for Raw and NTP adjusted
-clock.
+This patch adds the missing syscall numbers to unistd.h for arm64.
 
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/vdso/datapage.h | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/include/asm/unistd.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-index d50a108afaed..0a7bdccf5773 100644
---- a/include/vdso/datapage.h
-+++ b/include/vdso/datapage.h
-@@ -34,6 +34,8 @@ struct vdso_data {
- 	__u64 wtm_clock_nsec;
- 	__u64 btm_nsec;		/* Monotonic to boot time */
- 	__u64 tai_sec;		/* International Atomic Time */
-+	__u64 cs_mono_mask;	/* NTP-adjusted clocksource mask */
-+	__u64 cs_raw_mask;	/* Raw clocksource mask */
- 	__u32 tb_seq_count;	/* Timebase sequence counter */
- 	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
- 	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index b13ca091f833..a85b30b766a1 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -33,8 +33,11 @@
+ #define __NR_compat_exit		1
+ #define __NR_compat_read		3
+ #define __NR_compat_write		4
++#define __NR_compat_gettimeofday	78
+ #define __NR_compat_sigreturn		119
+ #define __NR_compat_rt_sigreturn	173
++#define __NR_compat_clock_getres	247
++#define __NR_compat_clock_gettime	263
+ 
+ /*
+  * The following SVCs are ARM private.
 -- 
 2.19.2
