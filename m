@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 21/28] arm64: compat: Get sigreturn trampolines from vDSO
-Date: Thu, 29 Nov 2018 17:05:23 +0000
-Message-ID: <20181129170530.37789-22-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 19/28] arm64: compat: vDSO setup for compat layer
+Date: Thu, 29 Nov 2018 17:05:21 +0000
+Message-ID: <20181129170530.37789-20-vincenzo.frascino@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,93 +21,163 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-When the compat vDSO is enabled, the sigreturn trampolines are not
-anymore available through [sigpage] but through [vdso].
+If CONFIG_GENERIC_COMPAT_VDSO is enabled, compat vDSO are installed in a
+compat (32 bit) process instead of sigpage.
 
-This patch adds the relevant code the enable the feature.
+This patch adds the necessary code to setup the vDSO required pages.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/vdso.h |  3 +++
- arch/arm64/kernel/signal32.c  | 29 +++++++++++++++++++++++++++--
- 2 files changed, 30 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/vdso.c | 60 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 59 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
-index 839ce0031bd5..9b197e5ea759 100644
---- a/arch/arm64/include/asm/vdso.h
-+++ b/arch/arm64/include/asm/vdso.h
-@@ -28,6 +28,9 @@
- #ifndef __ASSEMBLY__
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index f8020db654db..c36290b46e84 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -40,10 +40,16 @@
+ #include <asm/vdso.h>
  
- #include <generated/vdso-offsets.h>
+ extern char vdso_start[], vdso_end[];
 +#ifdef CONFIG_COMPAT_VDSO
-+#include <generated/vdso32-offsets.h>
-+#endif
++extern char vdso32_start[], vdso32_end[];
++#endif /* CONFIG_COMPAT_VDSO */
  
- #define VDSO_SYMBOL(base, name)						   \
- ({									   \
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index 16c490a83131..be471a81084e 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -29,6 +29,7 @@
- #include <asm/traps.h>
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
-+#include <asm/vdso.h>
- 
- struct compat_vfp_sigframe {
- 	compat_ulong_t	magic;
-@@ -333,7 +334,6 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	compat_ulong_t retcode;
- 	compat_ulong_t spsr = regs->pstate & ~(PSR_f | PSR_AA32_E_BIT);
- 	int thumb;
--	void *sigreturn_base;
- 
- 	/* Check if the handler is written for ARM or Thumb */
- 	thumb = handler & 1;
-@@ -353,14 +353,39 @@ static void compat_setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 		retcode = ptr_to_compat(ka->sa.sa_restorer);
- 	} else {
- 		/* Set up sigreturn pointer */
+ /* vdso_lookup arch_index */
+ enum arch_vdso_type {
+ 	ARM64_VDSO = 0,
 +#ifdef CONFIG_COMPAT_VDSO
-+		void *vdso_base = current->mm->context.vdso;
-+		void *vdso_trampoline;
++	ARM64_VDSO32 = 1,
++#endif /* CONFIG_COMPAT_VDSO */
+ };
+ 
+ struct __vdso_lookup_t {
+@@ -63,6 +69,13 @@ static struct __vdso_lookup_t vdso_lookup[2] __ro_after_init = {
+ 		.vdso_code_start = vdso_start,
+ 		.vdso_code_end = vdso_end,
+ 	},
++#ifdef CONFIG_COMPAT_VDSO
++	{
++		.name = "vdso32",
++		.vdso_code_start = vdso32_start,
++		.vdso_code_end = vdso32_end,
++	},
++#endif /* CONFIG_COMPAT_VDSO */
+ };
+ 
+ /*
+@@ -178,23 +191,45 @@ static int __setup_additional_pages(enum arch_vdso_type arch_index,
+ /*
+  * Create and map the vectors page for AArch32 tasks.
+  */
++#ifdef CONFIG_COMPAT_VDSO
++static int aarch32_vdso_mremap(const struct vm_special_mapping *sm,
++		struct vm_area_struct *new_vma)
++{
++	return __vdso_remap(ARM64_VDSO32, sm, new_vma);
++}
++#endif /* CONFIG_COMPAT_VDSO */
 +
-+		if (ka->sa.sa_flags & SA_SIGINFO) {
-+			if (thumb) {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_rt_sigreturn_thumb);
-+			} else {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_rt_sigreturn_arm);
-+			}
-+		} else {
-+			if (thumb) {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_sigreturn_thumb);
-+			} else {
-+				vdso_trampoline = VDSO_SYMBOL(vdso_base,
-+							compat_sigreturn_arm);
-+			}
-+		}
-+
-+		retcode = ptr_to_compat(vdso_trampoline) + thumb;
+ /*
+  * aarch32_vdso_pages:
+  * 0 - kuser helpers
+  * 1 - sigreturn code
++ * or (CONFIG_COMPAT_VDSO):
++ * 0 - kuser helpers
++ * 1 - vdso data
++ * 2 - vdso code
+  */
+ static struct page *aarch32_vdso_pages[2] __ro_after_init;
+-static struct vm_special_mapping aarch32_vdso_spec[2] __ro_after_init = {
++static struct vm_special_mapping aarch32_vdso_spec[3] __ro_after_init = {
+ 	{
+ 		/* Must be named [vectors] for compatibility with arm. */
+ 		.name	= "[vectors]",
+ 		.pages	= &aarch32_vdso_pages[0],
+ 	},
++#ifdef CONFIG_COMPAT_VDSO
++	{
++		.name = "[vvar]",
++	},
++	{
++		.name = "[vdso]",
++		.mremap = aarch32_vdso_mremap,
++	},
 +#else
- 		unsigned int idx = thumb << 1;
--		sigreturn_base = current->mm->context.vdso;
-+		void *sigreturn_base = current->mm->context.vdso;
+ 	{
+ 		/* Must be named [sigpage] for compatibility with arm. */
+ 		.name	= "[sigpage]",
+ 		.pages	= &aarch32_vdso_pages[1],
+ 	},
++#endif /* CONFIG_COMPAT_VDSO */
+ };
  
- 		if (ka->sa.sa_flags & SA_SIGINFO)
- 			idx += 3;
+ #ifdef CONFIG_KUSER_HELPERS
+@@ -226,6 +261,15 @@ static int aarch32_alloc_kuser_vdso_page(void)
+ }
+ #endif /* CONFIG_KUSER_HELPER */
  
- 		retcode = ptr_to_compat(sigreturn_base) +
- 			  (idx << 2) + thumb;
-+#endif
- 	}
++#ifdef CONFIG_COMPAT_VDSO
++static int aarch32_vdso_init(void)
++{
++	vdso_lookup[ARM64_VDSO32].dm = &aarch32_vdso_spec[1];
++	vdso_lookup[ARM64_VDSO32].cm = &aarch32_vdso_spec[2];
++
++	return __vdso_init(ARM64_VDSO32);
++}
++#else
+ static int aarch32_alloc_sigreturn_vdso_page(void)
+ {
+ 	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
+@@ -248,11 +292,16 @@ static int aarch32_alloc_sigreturn_vdso_page(void)
+ 	return 0;
  
- 	regs->regs[0]	= usig;
+ }
++#endif /* CONFIG_COMPAT_VDSO */
+ 
+ static int __init aarch32_alloc_vdso_pages(void)
+ {
+ 	return aarch32_alloc_kuser_vdso_page() &
++#ifdef CONFIG_COMPAT_VDSO
++	       aarch32_vdso_init();
++#else
+ 	       aarch32_alloc_sigreturn_vdso_page();
++#endif /* CONFIG_COMPAT_VDSO */
+ }
+ arch_initcall(aarch32_alloc_vdso_pages);
+ 
+@@ -277,6 +326,7 @@ static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
+ }
+ #endif /* CONFIG_KUSER_HELPERS */
+ 
++#ifndef CONFIG_COMPAT_VDSO
+ static int aarch32_sigreturn_setup(struct mm_struct *mm)
+ {
+ 	unsigned long addr;
+@@ -300,6 +350,7 @@ static int aarch32_sigreturn_setup(struct mm_struct *mm)
+ out:
+ 	return PTR_ERR_OR_ZERO(ret);
+ }
++#endif /* !CONFIG_COMPAT_VDSO */
+ 
+ int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ {
+@@ -313,7 +364,14 @@ int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	if (ret)
+ 		goto out;
+ 
++#ifdef CONFIG_COMPAT_VDSO
++	ret = __setup_additional_pages(ARM64_VDSO32,
++				       mm,
++				       bprm,
++				       uses_interp);
++#else
+ 	ret = aarch32_sigreturn_setup(mm);
++#endif /* CONFIG_COMPAT_VDSO */
+ 
+ out:
+ 	up_write(&mm->mmap_sem);
 -- 
 2.19.2
