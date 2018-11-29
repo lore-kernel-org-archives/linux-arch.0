@@ -1,29 +1,33 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v8 3/8] arm64: untag user addresses in access_ok and
- __uaccess_mask_ptr
-Date: Thu, 29 Nov 2018 18:24:48 +0000
-Message-ID: <20181129182446.GJ22027@arrakis.emea.arm.com>
-References: <cover.1541687720.git.andreyknvl@google.com>
- <b23c2374235a33328817f2586cc055c69d91a2ec.1541687720.git.andreyknvl@google.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V2
+Date: Thu, 29 Nov 2018 19:31:32 +0100
+Message-ID: <20181129183132.GA30281@lst.de>
+References: <CAHk-=whxf0zqutExPr_j1A625Z3gcL6k_ABzKo1BtzN4F93hkA@mail.gmail.com> <20181123065511.GA17856@lst.de> <20181128074117.GA21126@lst.de> <CAHk-=wg5+rXK8dpjkSmK7tuz29VfxVWNEwmTVYB409mmyLkeew@mail.gmail.com> <20181128174545.GJ30658@n2100.armlinux.org.uk> <CAHk-=whnz4Kty6cas11bc2Gh=9zTzeeRS2k=dV9Hfc4B=xnHkQ@mail.gmail.com> <20181128180841.GM30658@n2100.armlinux.org.uk> <CAHk-=whcbiSxSUprsKjVPEdN5-+o8WnTGiKxEV-+HbKNDs=iNA@mail.gmail.com> <20181129162323.GA27068@lst.de> <CAHk-=wi2K7_+dgCbc-sAK9CST5Zh+pOuH7sVT9WW-kqs50HSzQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <b23c2374235a33328817f2586cc055c69d91a2ec.1541687720.git.andreyknvl@google.com>
+In-Reply-To: <CAHk-=wi2K7_+dgCbc-sAK9CST5Zh+pOuH7sVT9WW-kqs50HSzQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@goog>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, robin.murphy@arm.com, the arch/x86 maintainers <x86@kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, iommu@lists.linux-foundation.org, linux-alpha@vger.kernel.org, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 08, 2018 at 03:36:10PM +0100, Andrey Konovalov wrote:
-> copy_from_user (and a few other similar functions) are used to copy data
-> from user memory into the kernel memory or vice versa. Since a user can
-> provided a tagged pointer to one of the syscalls that use copy_from_user,
-> we need to correctly handle such pointers.
-> 
-> Do this by untagging user pointers in access_ok and in __uaccess_mask_ptr,
-> before performing access validity checks.
-> 
-> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+On Thu, Nov 29, 2018 at 09:44:05AM -0800, Linus Torvalds wrote:
+> No. Really. If there's no iotlb, then you just mark that one page
+> reserved. It simply doesn't get used. It doesn't mean you suddenly
+> need a swiotlb.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Sure, we could just skip that page entirely based on dma_to_phys.
+
+> But whatever. It's independent from the patch series under discussion.
+> Make dma_mapping_error() at least return a real error (eg -EINVAL, or
+> whatever is the common error), and we can maybe do this later.
+
+Ok, I'll do that.
+
+> Or, better yet, plan on removing the single-page dma mappign entirely
+> at a later date, and make the issue moot.
+
+What would be the replacement?  Build a S/G list for every single page
+mapping?  Not sure that would create a lot of happy campers..
