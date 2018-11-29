@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 05/28] kernel: Add clock_mode support
-Date: Thu, 29 Nov 2018 17:05:07 +0000
-Message-ID: <20181129170530.37789-6-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 14/28] arm64: compat: Expose signal related structures
+Date: Thu, 29 Nov 2018 17:05:16 +0000
+Message-ID: <20181129170530.37789-15-vincenzo.frascino@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,29 +21,140 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures store the clock mode into the vDSO datapage,
-consequently the generic datapage needs to be aligned to expose this
-information.
+The compat signal data structures are required as part of the compat
+vDSO implementation in order to provide the unwinding information for
+the sigreturn trampolines.
 
-This patch adds support for clock_mode in datapage.h.
+This patch exposes the mentioned data structures as part of signal32.h.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/vdso/datapage.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm64/include/asm/signal32.h | 46 +++++++++++++++++++++++++++++++
+ arch/arm64/kernel/signal32.c      | 46 -------------------------------
+ 2 files changed, 46 insertions(+), 46 deletions(-)
 
-diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-index 0a7bdccf5773..deed007f567d 100644
---- a/include/vdso/datapage.h
-+++ b/include/vdso/datapage.h
-@@ -43,6 +43,7 @@ struct vdso_data {
- 	__u32 tz_minuteswest;	/* Whacky timezone stuff */
- 	__u32 tz_dsttime;
- 	__u32 use_syscall;
-+	__u32 clock_mode;
- };
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index 58e288aaf0ba..1f05268f4c6d 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -20,6 +20,52 @@
+ #ifdef CONFIG_COMPAT
+ #include <linux/compat.h>
  
- #endif /* !__ASSEMBLY__ */
++struct compat_sigcontext {
++	/* We always set these two fields to 0 */
++	compat_ulong_t			trap_no;
++	compat_ulong_t			error_code;
++
++	compat_ulong_t			oldmask;
++	compat_ulong_t			arm_r0;
++	compat_ulong_t			arm_r1;
++	compat_ulong_t			arm_r2;
++	compat_ulong_t			arm_r3;
++	compat_ulong_t			arm_r4;
++	compat_ulong_t			arm_r5;
++	compat_ulong_t			arm_r6;
++	compat_ulong_t			arm_r7;
++	compat_ulong_t			arm_r8;
++	compat_ulong_t			arm_r9;
++	compat_ulong_t			arm_r10;
++	compat_ulong_t			arm_fp;
++	compat_ulong_t			arm_ip;
++	compat_ulong_t			arm_sp;
++	compat_ulong_t			arm_lr;
++	compat_ulong_t			arm_pc;
++	compat_ulong_t			arm_cpsr;
++	compat_ulong_t			fault_address;
++};
++
++struct compat_ucontext {
++	compat_ulong_t			uc_flags;
++	compat_uptr_t			uc_link;
++	compat_stack_t			uc_stack;
++	struct compat_sigcontext	uc_mcontext;
++	compat_sigset_t			uc_sigmask;
++	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
++	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
++};
++
++struct compat_sigframe {
++	struct compat_ucontext	uc;
++	compat_ulong_t		retcode[2];
++};
++
++struct compat_rt_sigframe {
++	struct compat_siginfo info;
++	struct compat_sigframe sig;
++};
++
+ int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 		       struct pt_regs *regs);
+ int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index 265a6fab331d..16c490a83131 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -30,42 +30,6 @@
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
+ 
+-struct compat_sigcontext {
+-	/* We always set these two fields to 0 */
+-	compat_ulong_t			trap_no;
+-	compat_ulong_t			error_code;
+-
+-	compat_ulong_t			oldmask;
+-	compat_ulong_t			arm_r0;
+-	compat_ulong_t			arm_r1;
+-	compat_ulong_t			arm_r2;
+-	compat_ulong_t			arm_r3;
+-	compat_ulong_t			arm_r4;
+-	compat_ulong_t			arm_r5;
+-	compat_ulong_t			arm_r6;
+-	compat_ulong_t			arm_r7;
+-	compat_ulong_t			arm_r8;
+-	compat_ulong_t			arm_r9;
+-	compat_ulong_t			arm_r10;
+-	compat_ulong_t			arm_fp;
+-	compat_ulong_t			arm_ip;
+-	compat_ulong_t			arm_sp;
+-	compat_ulong_t			arm_lr;
+-	compat_ulong_t			arm_pc;
+-	compat_ulong_t			arm_cpsr;
+-	compat_ulong_t			fault_address;
+-};
+-
+-struct compat_ucontext {
+-	compat_ulong_t			uc_flags;
+-	compat_uptr_t			uc_link;
+-	compat_stack_t			uc_stack;
+-	struct compat_sigcontext	uc_mcontext;
+-	compat_sigset_t			uc_sigmask;
+-	int		__unused[32 - (sizeof (compat_sigset_t) / sizeof (int))];
+-	compat_ulong_t	uc_regspace[128] __attribute__((__aligned__(8)));
+-};
+-
+ struct compat_vfp_sigframe {
+ 	compat_ulong_t	magic;
+ 	compat_ulong_t	size;
+@@ -92,16 +56,6 @@ struct compat_aux_sigframe {
+ 	unsigned long			end_magic;
+ } __attribute__((__aligned__(8)));
+ 
+-struct compat_sigframe {
+-	struct compat_ucontext	uc;
+-	compat_ulong_t		retcode[2];
+-};
+-
+-struct compat_rt_sigframe {
+-	struct compat_siginfo info;
+-	struct compat_sigframe sig;
+-};
+-
+ #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+ 
+ static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
 -- 
 2.19.2
