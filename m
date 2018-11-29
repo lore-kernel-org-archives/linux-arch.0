@@ -1,45 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49971 "EHLO mx1.redhat.com"
+Received: from verein.lst.de ([213.95.11.211]:44714 "EHLO newverein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729216AbeK3Dii (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Nov 2018 22:38:38 -0500
-Subject: Re: [for-next][PATCH 00/18] function_graph: Add separate depth
- counter to prevent trace corruption
-References: <20181122002801.501220343@goodmis.org>
- <20181128203931.ym2rkya7a6agzzy3@redhat.com>
- <20181128160021.09acd1af@gandalf.local.home>
- <20181128222936.74da7f54@vmware.local.home>
- <20181128232430.425f8b12@vmware.local.home>
- <044db9c0-a937-252f-b9e6-e4060bca3b0d@redhat.com>
- <20181129111708.766f35d6@gandalf.local.home>
-From: Joe Lawrence <joe.lawrence@redhat.com>
-Message-ID: <11879829-4827-8eda-7cb8-ddcfdc404120@redhat.com>
-Date: Thu, 29 Nov 2018 11:32:39 -0500
+        id S1729818AbeK3EIJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Nov 2018 23:08:09 -0500
+Date: Thu, 29 Nov 2018 18:02:06 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Message-ID: <20181129170206.GA27951@lst.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-In-Reply-To: <20181129111708.766f35d6@gandalf.local.home>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87zhttfonk.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Masami Hiramatsu <mhiramat@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Andy Lutomirski <luto@kernel.org>, Frederic Weisbecker <frederic@kernel.org>
-Message-ID: <20181129163239.xpi5oUa_hsDndaZeAluiuZYkSw7Y5mFfehQ9CpHQghQ@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+Message-ID: <20181129170206.pgraPAQ83FY0NYRH-tHbuG1tWGkX8TosxJKbAGe7Pe8@z>
 
-On 11/29/2018 11:17 AM, Steven Rostedt wrote:
-> On Thu, 29 Nov 2018 10:08:55 -0500
-> Joe Lawrence <joe.lawrence@redhat.com> wrote:
-> 
->> With the "take 2" patch, I only see smp_irq_work_interrupt() graph when
->> the graph_function is in progress..  for example:
-> 
-> In other words it works :-)
-> 
-> Can I get a Tested-by from you?
-> 
+On Wed, Nov 28, 2018 at 10:05:19PM +1100, Michael Ellerman wrote:
+> Is the plan that you take these via the dma-mapping tree or that they go
+> via powerpc?
 
-Yup, thanks for fixing!
-
-Tested-by: Joe Lawrence <joe.lawrence@redhat.com>
-
--- Joe
+In principle either way is fine with me.  If it goes through the powerpc
+tree we might run into a few minor conflicts with the dma-mapping tree
+depending on how some of the current discussions go.
