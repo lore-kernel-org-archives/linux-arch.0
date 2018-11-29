@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40016 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:39716 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730385AbeK3EMg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Nov 2018 23:12:36 -0500
+        id S1730214AbeK3EMH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Nov 2018 23:12:07 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 16/28] lib: vdso: Add compat support
-Date: Thu, 29 Nov 2018 17:05:18 +0000
-Message-ID: <20181129170530.37789-17-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 04/28] kernel: Add masks support for Raw and NTP time
+Date: Thu, 29 Nov 2018 17:05:06 +0000
+Message-ID: <20181129170530.37789-5-vincenzo.frascino@arm.com>
 In-Reply-To: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,36 +15,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20181129170518.rTuRjwkBIBbXs9BRQiIBoDXtupXwT9qx8qZG2uxlomI@z>
+Message-ID: <20181129170506.6WL-LAKwu49zldvkju9xqZyHJSB9J0ps-7UeVP5Jn5o@z>
 
-Some 64 bit architectures have support for 32 bit applications that
-require a separate version of the vDSOs.
+Depending on the clocksource selected there can be supported a
+different resolution hence we require a mask to be applied to the
+time calculation.
 
-This patch adds support to the generic code for compat fallback
-functions.
+This patch exposes the mask in the datapage for Raw and NTP adjusted
+clock.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- lib/vdso/gettimeofday.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ include/vdso/datapage.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index a8cfeeb1f40a..19a5337fd066 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -15,7 +15,11 @@
- #include <linux/hrtimer.h>
- #include <vdso/datapage.h>
- 
-+#ifdef ENABLE_COMPAT_VDSO
-+#include <asm/vdso/compat_gettimeofday.h>
-+#else
- #include <asm/vdso/gettimeofday.h>
-+#endif /* ENABLE_COMPAT_VDSO */
- 
- /* To improve performances, in this file, __always_inline it is used
-  * for the functions called multiple times.
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index d50a108afaed..0a7bdccf5773 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -34,6 +34,8 @@ struct vdso_data {
+ 	__u64 wtm_clock_nsec;
+ 	__u64 btm_nsec;		/* Monotonic to boot time */
+ 	__u64 tai_sec;		/* International Atomic Time */
++	__u64 cs_mono_mask;	/* NTP-adjusted clocksource mask */
++	__u64 cs_raw_mask;	/* Raw clocksource mask */
+ 	__u32 tb_seq_count;	/* Timebase sequence counter */
+ 	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
+ 	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
 -- 
 2.19.2
