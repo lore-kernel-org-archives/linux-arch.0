@@ -1,66 +1,65 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 10/23] arm64: remove the dummy_dma_ops mapping_error method
-Date: Fri, 30 Nov 2018 14:22:18 +0100
-Message-ID: <20181130132231.16512-11-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 18/23] iommu/intel: small map_page cleanup
+Date: Fri, 30 Nov 2018 14:22:26 +0100
+Message-ID: <20181130132231.16512-19-hch@lst.de>
 References: <20181130132231.16512-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20181130132231.16512-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181130132231.16512-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: iommu@lists.linux-foundation.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Just return DMA_MAPPING_ERROR from __dummy_map_page and let the core
-dma-mapping code handle the rest.
+Pass the page + offset to the low-level __iommu_map_single helper
+(which gets renamed to fit the new calling conventions) as both
+callers have the page at hand.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/mm/dma-mapping.c | 8 +-------
- 1 file changed, 1 insertion(+), 7 deletions(-)
+ drivers/iommu/intel-iommu.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
-index a3ac26284845..fdc26ea5036c 100644
---- a/arch/arm64/mm/dma-mapping.c
-+++ b/arch/arm64/mm/dma-mapping.c
-@@ -282,7 +282,7 @@ static dma_addr_t __dummy_map_page(struct device *dev, struct page *page,
- 				   enum dma_data_direction dir,
- 				   unsigned long attrs)
- {
--	return 0;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static void __dummy_unmap_page(struct device *dev, dma_addr_t dev_addr,
-@@ -317,11 +317,6 @@ static void __dummy_sync_sg(struct device *dev,
- {
- }
- 
--static int __dummy_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
--{
--	return 1;
--}
--
- static int __dummy_dma_supported(struct device *hwdev, u64 mask)
- {
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 41a4b8808802..66b4444398ae 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -3597,9 +3597,11 @@ static int iommu_no_mapping(struct device *dev)
  	return 0;
-@@ -339,7 +334,6 @@ const struct dma_map_ops dummy_dma_ops = {
- 	.sync_single_for_device = __dummy_sync_single,
- 	.sync_sg_for_cpu        = __dummy_sync_sg,
- 	.sync_sg_for_device     = __dummy_sync_sg,
--	.mapping_error          = __dummy_mapping_error,
- 	.dma_supported          = __dummy_dma_supported,
- };
- EXPORT_SYMBOL(dummy_dma_ops);
+ }
+ 
+-static dma_addr_t __intel_map_single(struct device *dev, phys_addr_t paddr,
+-				     size_t size, int dir, u64 dma_mask)
++static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
++				   unsigned long offset, size_t size, int dir,
++				   u64 dma_mask)
+ {
++	phys_addr_t paddr = page_to_phys(page) + offset;
+ 	struct dmar_domain *domain;
+ 	phys_addr_t start_paddr;
+ 	unsigned long iova_pfn;
+@@ -3661,8 +3663,7 @@ static dma_addr_t intel_map_page(struct device *dev, struct page *page,
+ 				 enum dma_data_direction dir,
+ 				 unsigned long attrs)
+ {
+-	return __intel_map_single(dev, page_to_phys(page) + offset, size,
+-				  dir, *dev->dma_mask);
++	return __intel_map_page(dev, page, offset, size, dir, *dev->dma_mask);
+ }
+ 
+ static void intel_unmap(struct device *dev, dma_addr_t dev_addr, size_t size)
+@@ -3753,9 +3754,8 @@ static void *intel_alloc_coherent(struct device *dev, size_t size,
+ 		return NULL;
+ 	memset(page_address(page), 0, size);
+ 
+-	*dma_handle = __intel_map_single(dev, page_to_phys(page), size,
+-					 DMA_BIDIRECTIONAL,
+-					 dev->coherent_dma_mask);
++	*dma_handle = __intel_map_page(dev, page, 0, size, DMA_BIDIRECTIONAL,
++				       dev->coherent_dma_mask);
+ 	if (*dma_handle)
+ 		return page_address(page);
+ 	if (!dma_release_from_contiguous(dev, page, size >> PAGE_SHIFT))
 -- 
 2.19.1
