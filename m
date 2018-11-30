@@ -1,152 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:46226 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726340AbeLAAce (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 19:32:34 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 02/23] dma-direct: remove the mapping_error dma_map_ops method
-Date: Fri, 30 Nov 2018 14:22:10 +0100
-Message-ID: <20181130132231.16512-3-hch@lst.de>
-In-Reply-To: <20181130132231.16512-1-hch@lst.de>
-References: <20181130132231.16512-1-hch@lst.de>
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:34676 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726340AbeLABjO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 20:39:14 -0500
+Received: by mail-qt1-f196.google.com with SMTP id r14so6102032qtp.1
+        for <linux-arch@vger.kernel.org>; Fri, 30 Nov 2018 06:29:45 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+ <20181129170530.37789-7-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
+In-Reply-To: <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 30 Nov 2018 15:29:25 +0100
+Message-ID: <CAK8P3a1hmsf2CKWfQ60aUQMoC1YxWhkRKY3GBRusGnQ2cDCJpQ@mail.gmail.com>
+Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181130132210.RRdOvnGEwdPgBRIRXTEUDXHcZ4WlF5vy-q0p06jmq0U@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181130142925.8kEF0sSjFenZ_DFkkzjNfy1hlT7NDUY-2rbvipW38VA@z>
 
-The dma-direct code already returns (~(dma_addr_t)0x0) on mapping
-failures, so we can switch over to returning DMA_MAPPING_ERROR and let
-the core dma-mapping code handle the rest.
+On Thu, Nov 29, 2018 at 11:12 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
+> > +if HAVE_GENERIC_VDSO
+> > +
+> > +config GENERIC_GETTIMEOFDAY
+> > +     bool
+> > +     help
+> > +       This is a generic implementation of gettimeofday vdso.
+> > +       Each architecture that enables this feature has to
+> > +       provide the fallback implementation.
+> > +
+> > +config GENERIC_VDSO_32
+> > +     bool
+> > +     depends on GENERIC_GETTIMEOFDAY && !64BIT
+> > +     help
+> > +       This config option helps to avoid possible performance issues
+> > +       in 32 bit only architectures.
+> > +
+> > +config HAVE_ARCH_TIMER
+> > +     bool
+> > +     depends on GENERIC_GETTIMEOFDAY
+> > +     help
+> > +       Select this configuration option if the architecture has an arch
+> > +       timer.
+>
+> Please don't add code which is architecture specific to the generic
+> implementation. There is really no reason to make ARCH_TIMER special.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/kernel/dma-swiotlb.c |  1 -
- include/linux/dma-direct.h        |  3 ---
- kernel/dma/direct.c               |  8 +-------
- kernel/dma/swiotlb.c              | 11 +++++------
- 4 files changed, 6 insertions(+), 17 deletions(-)
+I think it's just unfortunate naming based on what arm64 had, but
+conceptually it does the right thing, and just disable the clock_gettime
+fastpath on kernel builds that never have access to a clocksource
+from user space.
 
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 5fc335f4d9cd..3d8df2cf8be9 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -59,7 +59,6 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
- 	.sync_single_for_device = swiotlb_sync_single_for_device,
- 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
- 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.mapping_error = dma_direct_mapping_error,
- 	.get_required_mask = swiotlb_powerpc_get_required,
- };
- 
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index 9e66bfe369aa..e7600f92d876 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -5,8 +5,6 @@
- #include <linux/dma-mapping.h>
- #include <linux/mem_encrypt.h>
- 
--#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
--
- #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
- #include <asm/dma-direct.h>
- #else
-@@ -73,5 +71,4 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
- 		enum dma_data_direction dir, unsigned long attrs);
- int dma_direct_supported(struct device *dev, u64 mask);
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr);
- #endif /* _LINUX_DMA_DIRECT_H */
-diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
-index 22a12ab5a5e9..d4335a03193a 100644
---- a/kernel/dma/direct.c
-+++ b/kernel/dma/direct.c
-@@ -265,7 +265,7 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- 	dma_addr_t dma_addr = phys_to_dma(dev, phys);
- 
- 	if (!check_addr(dev, dma_addr, size, __func__))
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
- 		dma_direct_sync_single_for_device(dev, dma_addr, size, dir);
-@@ -312,11 +312,6 @@ int dma_direct_supported(struct device *dev, u64 mask)
- 	return mask >= phys_to_dma(dev, min_mask);
- }
- 
--int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == DIRECT_MAPPING_ERROR;
--}
--
- const struct dma_map_ops dma_direct_ops = {
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
-@@ -335,7 +330,6 @@ const struct dma_map_ops dma_direct_ops = {
- #endif
- 	.get_required_mask	= dma_direct_get_required_mask,
- 	.dma_supported		= dma_direct_supported,
--	.mapping_error		= dma_direct_mapping_error,
- 	.cache_sync		= arch_dma_cache_sync,
- };
- EXPORT_SYMBOL(dma_direct_ops);
-diff --git a/kernel/dma/swiotlb.c b/kernel/dma/swiotlb.c
-index 045930e32c0e..ff1ce81bb623 100644
---- a/kernel/dma/swiotlb.c
-+++ b/kernel/dma/swiotlb.c
-@@ -631,21 +631,21 @@ static dma_addr_t swiotlb_bounce_page(struct device *dev, phys_addr_t *phys,
- 	if (unlikely(swiotlb_force == SWIOTLB_NO_FORCE)) {
- 		dev_warn_ratelimited(dev,
- 			"Cannot do DMA to address %pa\n", phys);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	/* Oh well, have to allocate and map a bounce buffer. */
- 	*phys = swiotlb_tbl_map_single(dev, __phys_to_dma(dev, io_tlb_start),
- 			*phys, size, dir, attrs);
- 	if (*phys == SWIOTLB_MAP_ERROR)
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	/* Ensure that the address returned is DMA'ble */
- 	dma_addr = __phys_to_dma(dev, *phys);
- 	if (unlikely(!dma_capable(dev, dma_addr, size))) {
- 		swiotlb_tbl_unmap_single(dev, *phys, size, dir,
- 			attrs | DMA_ATTR_SKIP_CPU_SYNC);
--		return DIRECT_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	return dma_addr;
-@@ -680,7 +680,7 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 
- 	if (!dev_is_dma_coherent(dev) &&
- 	    (attrs & DMA_ATTR_SKIP_CPU_SYNC) == 0 &&
--	    dev_addr != DIRECT_MAPPING_ERROR)
-+	    dev_addr != DMA_MAPPING_ERROR)
- 		arch_sync_dma_for_device(dev, phys, size, dir);
- 
- 	return dev_addr;
-@@ -789,7 +789,7 @@ swiotlb_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nelems,
- 	for_each_sg(sgl, sg, nelems, i) {
- 		sg->dma_address = swiotlb_map_page(dev, sg_page(sg), sg->offset,
- 				sg->length, dir, attrs);
--		if (sg->dma_address == DIRECT_MAPPING_ERROR)
-+		if (sg->dma_address == DMA_MAPPING_ERROR)
- 			goto out_error;
- 		sg_dma_len(sg) = sg->length;
- 	}
-@@ -869,7 +869,6 @@ swiotlb_dma_supported(struct device *hwdev, u64 mask)
- }
- 
- const struct dma_map_ops swiotlb_dma_ops = {
--	.mapping_error		= dma_direct_mapping_error,
- 	.alloc			= dma_direct_alloc,
- 	.free			= dma_direct_free,
- 	.sync_single_for_cpu	= swiotlb_sync_single_for_cpu,
--- 
-2.19.1
+> > +static notrace int __cvdso_clock_getres(clockid_t clock_id,
+> > +                                     struct __vdso_timespec *res)
+> > +{
+> > +     u64 ns;
+> > +
+> > +     if (!__arch_valid_arg(res))
+> > +             return -EFAULT;
+> > +
+> > +     if (clock_id == CLOCK_REALTIME ||
+> > +         clock_id == CLOCK_TAI ||
+> > +         clock_id == CLOCK_BOOTTIME ||
+> > +         clock_id == CLOCK_MONOTONIC ||
+> > +         clock_id == CLOCK_MONOTONIC_RAW)
+> > +             ns = MONOTONIC_RES_NSEC;
+>
+> This is wrong. You cannot unconditionally set that. See what the syscall
+> based version does. You always need to verify that the syscall version and
+> the vdso version return the same information and not something randomly
+> different.
+
+Do you think we actually need the fastpath here? If not, the
+easy way to do it would be to always fall back to calling
+the syscall based version. Or was this originally added
+to deal with the syscall and vdso clock_gettime having
+different resolutions (which would sound like a bad idea, but
+might have to stay for compatibility)?
+
+      Arnd
