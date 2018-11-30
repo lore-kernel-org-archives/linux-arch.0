@@ -1,73 +1,63 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v24 1/6] iomap: Use non-raw io functions for io{read|write}XXbe
-Date: Fri, 30 Nov 2018 10:06:01 -0700
-Message-ID: <20181130170606.17252-2-logang@deltatee.com>
-References: <20181130170606.17252-1-logang@deltatee.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: remove the ->mapping_error method from dma_map_ops V3
+Date: Fri, 30 Nov 2018 18:59:20 +0000
+Message-ID: <20181130185920.GG30658@n2100.armlinux.org.uk>
+References: <20181130132231.16512-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181130170606.17252-1-logang@deltatee.com>
+Content-Disposition: inline
+In-Reply-To: <20181130132231.16512-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Jon Mason <jdmason@kudzu.us>, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
 List-Id: linux-arch.vger.kernel.org
 
-Fix an asymmetry in the io{read|write}XXbe functions in that the
-big-endian variants make use of the raw io accessors while the
-little-endian variants use the regular accessors. Some architectures
-implement barriers to order against both spinlocks and DMA accesses
-and for these case, the big-endian variant of the API would not be
-protected.
+On Fri, Nov 30, 2018 at 02:22:08PM +0100, Christoph Hellwig wrote:
+> Error reporting for the dma_map_single and dma_map_page operations is
+> currently a mess.  Both APIs directly return the dma_addr_t to be used for
+> the DMA, with a magic error escape that is specific to the instance and
+> checked by another method provided.  This has a few downsides:
+> 
+>  - the error check is easily forgotten and a __must_check marker doesn't
+>    help as the value always is consumed anyway
+>  - the error checking requires another indirect call, which have gotten
+>    incredibly expensive
+>  - a lot of code is wasted on implementing these methods
+> 
+> The historical reason for this is that people thought DMA mappings would
+> not fail when the API was created, which sounds like a really bad
+> assumption in retrospective, and then we tried to cram error handling
+> onto it later on.
+> 
+> There basically are two variants:  the error code is 0 because the
+> implementation will never return 0 as a valid DMA address, or the error
+> code is all-F as the implementation won't ever return an address that
+> high.  The old AMD GART is the only one not falling into these two camps
+> as it picks sort of a relative zero relative to where it is mapped.
+> 
+> The 0 return doesn't work for direct mappings that have ram at address
+> zero and a lot of IOMMUs that start allocating bus space from address
+> zero, so we can't consolidate on that, but I think we can move everyone
+> to all-Fs, which the patch here does.  The reason for that is that
+> there is only one way to ever get this address: by doing a 1-byte long,
+> 1-byte aligned mapping, but all our mappings are not only longer but
+> generally aligned, and the mappings have to keep at least the basic
+> alignment.
+> 
+> A git tree is also available here:
+> 
+>     git://git.infradead.org/users/hch/misc.git dma-mapping-error.3
 
-Thus, change the mmio_XXXXbe macros to use the appropriate swab() function
-wrapping the regular accessor. This is similar to what was done for PIO.
+Hi Chris,
 
-When this code was originally written, barriers in the IO accessors were
-not common and the accessors simply wrapped the raw functions in a
-conversion to CPU endianness. Since then, barriers have been added in
-some architectures and are now missing in the big endian variant of the
-API.
+For patches 1, 3 and 23,
 
-This also manages to silence a few sparse warnings that check
-for using the correct endian types which the original code did
-not annotate correctly.
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: Philippe Ombredanne <pombredanne@nexb.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Link: http://lkml.kernel.org/r/CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com
----
- lib/iomap.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Thanks.
 
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 541d926da95e..2c293b22569f 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const char *access)
- #endif
- 
- #ifndef mmio_read16be
--#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
--#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
-+#define mmio_read16be(addr) swab16(readw(addr))
-+#define mmio_read32be(addr) swab32(readl(addr))
- #endif
- 
- unsigned int ioread8(void __iomem *addr)
-@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
- #endif
- 
- #ifndef mmio_write16be
--#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
--#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
-+#define mmio_write16be(val,port) writew(swab16(val),port)
-+#define mmio_write32be(val,port) writel(swab32(val),port)
- #endif
- 
- void iowrite8(u8 val, void __iomem *addr)
 -- 
-2.19.0
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
+According to speedtest.net: 11.9Mbps down 500kbps up
