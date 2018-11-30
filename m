@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:46630 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:50554 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726666AbeLAAcn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 19:32:43 -0500
+        with ESMTP id S1726912AbeLAAdb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 19:33:31 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 06/23] s390: remove the mapping_error dma_map_ops method
-Date: Fri, 30 Nov 2018 14:22:14 +0100
-Message-ID: <20181130132231.16512-7-hch@lst.de>
+Subject: [PATCH 21/23] xen-swiotlb: remove the mapping_error dma_map_ops method
+Date: Fri, 30 Nov 2018 14:22:29 +0100
+Message-ID: <20181130132231.16512-22-hch@lst.de>
 In-Reply-To: <20181130132231.16512-1-hch@lst.de>
 References: <20181130132231.16512-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,94 +15,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181130132214.yOHuj8j_1FLC3JjOy3lykQQk-a8y9X-trcv3yT0xyrs@z>
+Message-ID: <20181130132229.RcOAy8x7BjE6FpZN_Wre2W9dMgzrEqt-xBIXb2_8_3s@z>
 
-S390 already returns (~(dma_addr_t)0x0) on mapping failures, so we can
-switch over to returning DMA_MAPPING_ERROR and let the core dma-mapping
-code handle the rest.
+Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
+the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/s390/pci/pci_dma.c | 18 +++++-------------
- 1 file changed, 5 insertions(+), 13 deletions(-)
+ drivers/xen/swiotlb-xen.c | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/arch/s390/pci/pci_dma.c b/arch/s390/pci/pci_dma.c
-index d387a0fbdd7e..346ba382193a 100644
---- a/arch/s390/pci/pci_dma.c
-+++ b/arch/s390/pci/pci_dma.c
-@@ -15,8 +15,6 @@
- #include <linux/pci.h>
- #include <asm/pci_dma.h>
+diff --git a/drivers/xen/swiotlb-xen.c b/drivers/xen/swiotlb-xen.c
+index 2a7f545bd0b5..6dc969d5ea2f 100644
+--- a/drivers/xen/swiotlb-xen.c
++++ b/drivers/xen/swiotlb-xen.c
+@@ -53,8 +53,6 @@
+  * API.
+  */
  
--#define S390_MAPPING_ERROR		(~(dma_addr_t) 0x0)
+-#define XEN_SWIOTLB_ERROR_CODE	(~(dma_addr_t)0x0)
 -
- static struct kmem_cache *dma_region_table_cache;
- static struct kmem_cache *dma_page_table_cache;
- static int s390_iommu_strict;
-@@ -301,7 +299,7 @@ static dma_addr_t dma_alloc_address(struct device *dev, int size)
+ static char *xen_io_tlb_start, *xen_io_tlb_end;
+ static unsigned long xen_io_tlb_nslabs;
+ /*
+@@ -406,7 +404,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+ 	map = swiotlb_tbl_map_single(dev, start_dma_addr, phys, size, dir,
+ 				     attrs);
+ 	if (map == SWIOTLB_MAP_ERROR)
+-		return XEN_SWIOTLB_ERROR_CODE;
++		return DMA_MAPPING_ERROR;
  
- out_error:
- 	spin_unlock_irqrestore(&zdev->iommu_bitmap_lock, flags);
--	return S390_MAPPING_ERROR;
+ 	dev_addr = xen_phys_to_bus(map);
+ 	xen_dma_map_page(dev, pfn_to_page(map >> PAGE_SHIFT),
+@@ -421,7 +419,7 @@ static dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+ 	attrs |= DMA_ATTR_SKIP_CPU_SYNC;
+ 	swiotlb_tbl_unmap_single(dev, map, size, dir, attrs);
+ 
+-	return XEN_SWIOTLB_ERROR_CODE;
 +	return DMA_MAPPING_ERROR;
  }
  
- static void dma_free_address(struct device *dev, dma_addr_t dma_addr, int size)
-@@ -349,7 +347,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
- 	/* This rounds up number of pages based on size and offset */
- 	nr_pages = iommu_num_pages(pa, size, PAGE_SIZE);
- 	dma_addr = dma_alloc_address(dev, nr_pages);
--	if (dma_addr == S390_MAPPING_ERROR) {
-+	if (dma_addr == DMA_MAPPING_ERROR) {
- 		ret = -ENOSPC;
- 		goto out_err;
- 	}
-@@ -372,7 +370,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
- out_err:
- 	zpci_err("map error:\n");
- 	zpci_err_dma(ret, pa);
--	return S390_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
+ /*
+@@ -700,11 +698,6 @@ xen_swiotlb_get_sgtable(struct device *dev, struct sg_table *sgt,
+ 	return dma_common_get_sgtable(dev, sgt, cpu_addr, handle, size, attrs);
  }
  
- static void s390_dma_unmap_pages(struct device *dev, dma_addr_t dma_addr,
-@@ -449,7 +447,7 @@ static int __s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 	int ret;
- 
- 	dma_addr_base = dma_alloc_address(dev, nr_pages);
--	if (dma_addr_base == S390_MAPPING_ERROR)
-+	if (dma_addr_base == DMA_MAPPING_ERROR)
- 		return -ENOMEM;
- 
- 	dma_addr = dma_addr_base;
-@@ -496,7 +494,7 @@ static int s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 	for (i = 1; i < nr_elements; i++) {
- 		s = sg_next(s);
- 
--		s->dma_address = S390_MAPPING_ERROR;
-+		s->dma_address = DMA_MAPPING_ERROR;
- 		s->dma_length = 0;
- 
- 		if (s->offset || (size & ~PAGE_MASK) ||
-@@ -546,11 +544,6 @@ static void s390_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
- 	}
- }
- 	
--static int s390_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int xen_swiotlb_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -{
--	return dma_addr == S390_MAPPING_ERROR;
+-	return dma_addr == XEN_SWIOTLB_ERROR_CODE;
 -}
 -
- int zpci_dma_init_device(struct zpci_dev *zdev)
- {
- 	int rc;
-@@ -675,7 +668,6 @@ const struct dma_map_ops s390_pci_dma_ops = {
- 	.unmap_sg	= s390_dma_unmap_sg,
- 	.map_page	= s390_dma_map_pages,
- 	.unmap_page	= s390_dma_unmap_pages,
--	.mapping_error	= s390_mapping_error,
- 	/* dma_supported is unconditionally true without a callback */
+ const struct dma_map_ops xen_swiotlb_dma_ops = {
+ 	.alloc = xen_swiotlb_alloc_coherent,
+ 	.free = xen_swiotlb_free_coherent,
+@@ -719,5 +712,4 @@ const struct dma_map_ops xen_swiotlb_dma_ops = {
+ 	.dma_supported = xen_swiotlb_dma_supported,
+ 	.mmap = xen_swiotlb_dma_mmap,
+ 	.get_sgtable = xen_swiotlb_get_sgtable,
+-	.mapping_error	= xen_swiotlb_mapping_error,
  };
- EXPORT_SYMBOL_GPL(s390_pci_dma_ops);
 -- 
 2.19.1
