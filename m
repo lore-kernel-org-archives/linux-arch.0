@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:55910 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:41836 "EHLO gate.crashing.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726111AbeLHLoB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 8 Dec 2018 06:44:01 -0500
-Message-ID: <b04e3f11bfe732dd46fc40c2e086d5e8d0572308.camel@kernel.crashing.org>
+        id S1726124AbeLHMs4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 8 Dec 2018 07:48:56 -0500
+Message-ID: <53c18168393e3134f7e4120a2528f972b1002c01.camel@kernel.crashing.org>
 Subject: Re: use generic DMA mapping code in powerpc V4
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 28 Nov 2018 09:05:37 +1100
+Date: Fri, 30 Nov 2018 14:17:42 +1100
 In-Reply-To: <20181127074253.GB30186@lst.de>
 References: <20181114082314.8965-1-hch@lst.de>
          <20181127074253.GB30186@lst.de>
@@ -17,16 +17,18 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20181127220537.PwJ-6XYLaCNGC3wEu1qTAbYId0Gnl9k6P4KafQzaCus@z>
+Message-ID: <20181130031742.Oapa6F8aIOJ9oCom7BdfWCPbpLsggmqKpkHBFJ8uOis@z>
 
 On Tue, 2018-11-27 at 08:42 +0100, Christoph Hellwig wrote:
 > Any comments?  I'd like to at least get the ball moving on the easy
 > bits.
 
-I completely missed your posting of V4 ! I was wondering what was
-taking you so long :)
+So I had to cleanup some dust but it works on G5 with and without iommu
+and 32-bit powermacs at least.
 
-I'll give it a spin & send acks over the next 2 or 3 days.
+We're doing more tests, hopefully mpe can dig out some PASemi and
+NXP/FSL HW as well. I'll try to review & ack the patches over the next
+few days too.
 
 Cheers,
 Ben.
