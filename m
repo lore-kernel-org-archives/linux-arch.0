@@ -1,177 +1,105 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 0/3] System call table generation support
-Date: Fri, 30 Nov 2018 15:10:46 +0530
-Message-ID: <CALxhOnisFiyE7vXNs4bR5A3jPgcR1sHywMQVbEs3B1w3b+T1_w@mail.gmail.com>
-References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
- <20181129063453.GA29271@sathnaga86.in.ibm.com> <CALxhOnho7Ad5mzTV-G12inKZbsteN-b706aFQiM9Di6j=6UgYQ@mail.gmail.com>
- <20181130070158.GA7014@sathnaga86.in.ibm.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Fri, 30 Nov 2018 11:53:46 +0100
+Message-ID: <20181130105346.GB26765@lst.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au> <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de> <20181129170351.GC27951@lst.de> <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181130070158.GA7014@sathnaga86.in.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: sathnaga@linux.vnet.ibm.com
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Boqun Feng <boqun.feng@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Ram Pai <linuxram@us.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Paul Mackerras <paulus@samba.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Breno Leitao <leitao@debian.org>, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Christoph Hellwig <hch@lst.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Satheesh,
+Hi Christian,
 
-On Fri, 30 Nov 2018 at 12:32, Satheesh Rajendran
-<sathnaga@linux.vnet.ibm.com> wrote:
->
-> On Thu, Nov 29, 2018 at 01:48:16PM +0530, Firoz Khan wrote:
-> > Hi Sathish,
-> >
-> > Thanks for your email.
-> >
-> > On Thu, 29 Nov 2018 at 12:05, Satheesh Rajendran
-> > <sathnaga@linux.vnet.ibm.com> wrote:
-> > >
-> > > On Fri, Sep 14, 2018 at 02:02:57PM +0530, Firoz Khan wrote:
-> > > > The purpose of this patch series is:
-> > > > 1. We can easily add/modify/delete system call by changing entry
-> > > > in syscall.tbl file. No need to manually edit many files.
-> > > >
-> > > > 2. It is easy to unify the system call implementation across all
-> > > > the architectures.
-> > > >
-> > > > The system call tables are in different format in all architecture
-> > > > and it will be difficult to manually add or modify the system calls
-> > > > in the respective files manually. To make it easy by keeping a script
-> > > > and which'll generate the header file and syscall table file so this
-> > > > change will unify them across all architectures.
-> > > >
-> > > > syscall.tbl contains the list of available system calls along with
-> > > > system call number and corresponding entry point. Add a new system
-> > > > call in this architecture will be possible by adding new entry in
-> > > > the syscall.tbl file.
-> > > >
-> > > > Adding a new table entry consisting of:
-> > > >         - System call number.
-> > > >         - ABI.
-> > > >         - System call name.
-> > > >         - Entry point name.
-> > > >         - Compat entry name, if required.
-> > > >
-> > > > ARM, s390 and x86 architecuture does exist the similar support. I
-> > > > leverage their implementation to come up with a generic solution.
-> > > >
-> > > > I have done the same support for work for alpha, m68k, microblaze,
-> > > > ia64, mips, parisc, sh, sparc, and xtensa. But I started sending
-> > > > the patch for one architecuture for review. Below mentioned git
-> > > > repository contains more details.
-> > > > Git repo:- https://github.com/frzkhn/system_call_table_generator/
-> > > >
-> > > > Finally, this is the ground work for solving the Y2038 issue. We
-> > > > need to add/change two dozen of system calls to solve Y2038 issue.
-> > > > So this patch series will help to easily modify from existing
-> > > > system call to Y2038 compatible system calls.
-> > > >
-> > > > I started working system call table generation on 4.17-rc1. I used
-> > > > marcin's script - https://github.com/hrw/syscalls-table to generate
-> > > > the syscall.tbl file. And this will be the input to the system call
-> > > > table generation script. But there are couple system call got add
-> > > > in the latest rc release. If run Marcin's script on latest release,
-> > > > It will generate a new syscall.tbl. But I still use the old file -
-> > > > syscall.tbl and once all review got over I'll update syscall.tbl
-> > > > alone w.r.to the tip of the kernel. The impact of this thing, few
-> > > > of the system call won't work.
-> > > >
-> > > > Firoz Khan (3):
-> > > >   powerpc: Replace NR_syscalls macro from asm/unistd.h
-> > > >   powerpc: Add system call table generation support
-> > > >   powerpc: uapi header and system call table file generation
-> > > >
-> > > >  arch/powerpc/Makefile                       |   3 +
-> > > >  arch/powerpc/include/asm/Kbuild             |   3 +
-> > > >  arch/powerpc/include/asm/unistd.h           |   3 +-
-> > > >  arch/powerpc/include/uapi/asm/Kbuild        |   2 +
-> > > >  arch/powerpc/include/uapi/asm/unistd.h      | 391 +---------------------------
-> > > >  arch/powerpc/kernel/Makefile                |   3 +-
-> > > >  arch/powerpc/kernel/syscall_table_32.S      |   9 +
-> > > >  arch/powerpc/kernel/syscall_table_64.S      |  17 ++
-> > > >  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
-> > > >  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 +++++++++++++++++++++++++++
-> > > >  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 ++++++++++++++++++++++++++
-> > > >  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
-> > > >  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
-> > > >  arch/powerpc/kernel/systbl.S                |  50 ----
-> > > >  14 files changed, 916 insertions(+), 441 deletions(-)
-> > > >  create mode 100644 arch/powerpc/kernel/syscall_table_32.S
-> > > >  create mode 100644 arch/powerpc/kernel/syscall_table_64.S
-> > > >  create mode 100644 arch/powerpc/kernel/syscalls/Makefile
-> > > >  create mode 100644 arch/powerpc/kernel/syscalls/syscall_32.tbl
-> > > >  create mode 100644 arch/powerpc/kernel/syscalls/syscall_64.tbl
-> > > >  create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
-> > > >  create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
-> > > >  delete mode 100644 arch/powerpc/kernel/systbl.S
-> > >
-> > > Hi,
-> > >
-> > > This patch series failed to boot in IBM Power8 box with below base commit and built with ppc64le_defconfig,
-> > > https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/commit/?h=merge&id=183cbf93be88d1a4fb572e27b1e08aa0ad85
-> >
-> > I think you are applied some old patch series. Could you please
-> > perform the boot test on powerpc v3 which I have sent few hour before.
->
-> Hi Firoz,
->
-> Looks like I chose a wrong mail to reply, but did test with v3 series itself.
+for such a diverse architecture like powerpc we'll have to rely on
+users / non core developers like you to help with testing.
 
-Thanks for the update. I'll have look into it and update you asap.
+Can you try the patch below for he cyrus config?
 
-Firoz
+For the nemo one I have no idea yet, there is no chance I could trick
+you into a git bisect to see which patch caused the problem, is there?
 
->
-> _v3,4_4__powerpc_generate_uapi_header_and_system_call_table_files_mbox_merge
->
-> Thanks,
-> -Satheesh.
-> >
-> > Thanks
-> > Firoz
-> >
-> > >
-> > > Complete boot log attached.
-> > >
-> > >
-> > > [    1.577383] SGI XFS with ACLs, security attributes, no debug enabled
-> > > [    1.581550] Bad kernel stack pointer 6e690000 at c000000000e2ceec
-> > > [    1.581558] Oops: Bad kernel stack pointer, sig: 6 [#1]
-> > > [    1.581562] LE SMP NR_CPUS=2048 NUMA PowerNV
-> > > [    1.581567] Modules linked in:
-> > > [    1.581572] CPU: 3 PID: 1937 Comm: modprobe Not tainted 4.20.0-rc4-gd35c78239 #1
-> > > [    1.581577] NIP:  c000000000e2ceec LR: c00000000000b9e4 CTR: c000000000e2cee0
-> > > [    1.581582] REGS: c0000007ffe77d30 TRAP: 0e40   Not tainted  (4.20.0-rc4-gd35c78239)
-> > > [    1.581586] MSR:  9000000000009033 <SF,HV,EE,ME,IR,DR,RI,LE>  CR: 48024488  XER: 00000000
-> > > [    1.5815
-> > > 94] CFAR: c00000000000b9e0 IRQMASK: c0000000014d1bd8
-> > > [    1.581594] GPR00: 00000000000011e0 000000006e690000 c000000001498900 ffffffffffffff9c
-> > > [    1.581594] GPR04: c00000006ecb0ff8 0000000000080000 0000000000000000 7f7f7f7f7f7f7f7f
-> > > [    1.581594] GPR08: 0000000000000000 c000001e5104fe90 0000000000000000 c000000000c30ff8
-> > > [    1.581594] GPR12: c000000000e2cee0 c0000007ffffd800 4f4c5f4543415254 00007fffb55927d0
-> > > [    1.581594] GPR16: 00007fffb55bfbf0 00007fffc087b160 c000000065b70ff8 00007fffc087b5c8
-> > > [    1.581594] GPR20: 000000000000000d 0000000000000000 0000000000000000 000000000000
-> > > 0000
-> > > [    1.581594] GPR24: 000000012b660d79 0000000000000000 00007fffb55c0000 0000000000000000
-> > > [    1.581594] GPR28: 00007fffb55c1110 0000000000000001 00007fffb55c1050 00007fffc087a880
-> > > [    1.58
-> > > 1637] NIP [c000000000e2ceec] str_spec.65753+0x147da0/0x1f1c5c
-> > > [    1.581643] LR [c00000000000b9e4] system_call+0x5c/0x70
-> > > [    1.581646] Call Trace:
-> > > [    1.581648] Instruction dump:
-> > > [    1.581652]
-> > > XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX
-> > > [    1.581657] XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX
-> > > [    1.581664] ---[ end trace 37e56b4
-> > > 4979b6992 ]---
-> > > [    1.582355]
-> > >
-> > > Regards,
-> > > -Satheesh.
-> > > >
-> > > > --
-> > > > 1.9.1
-> > > >
-> >
->
+
+diff --git a/arch/powerpc/include/asm/machdep.h b/arch/powerpc/include/asm/machdep.h
+index 7b70dcbce1b9..2f0ca6560e47 100644
+--- a/arch/powerpc/include/asm/machdep.h
++++ b/arch/powerpc/include/asm/machdep.h
+@@ -47,7 +47,7 @@ struct machdep_calls {
+ #endif
+ #endif /* CONFIG_PPC64 */
+ 
+-	int		(*dma_set_mask)(struct device *dev, u64 dma_mask);
++	void		(*dma_set_mask)(struct device *dev, u64 dma_mask);
+ 
+ 	int		(*probe)(void);
+ 	void		(*setup_arch)(void); /* Optional, may be NULL */
+diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
+index bded4127791a..2587eb0f3fde 100644
+--- a/arch/powerpc/kernel/dma-swiotlb.c
++++ b/arch/powerpc/kernel/dma-swiotlb.c
+@@ -22,11 +22,10 @@
+ #include <asm/swiotlb.h>
+ #include <asm/dma.h>
+ 
+-bool arch_dma_set_mask(struct device *dev, u64 dma_mask)
++void arch_dma_set_mask(struct device *dev, u64 dma_mask)
+ {
+-	if (!ppc_md.dma_set_mask)
+-		return 0;
+-	return ppc_md.dma_set_mask(dev, dma_mask);
++	if (ppc_md.dma_set_mask)
++		ppc_md.dma_set_mask(dev, dma_mask);
+ }
+ EXPORT_SYMBOL(arch_dma_set_mask);
+ 
+diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
+index 9584765dbe3b..8582a418516b 100644
+--- a/arch/powerpc/sysdev/fsl_pci.c
++++ b/arch/powerpc/sysdev/fsl_pci.c
+@@ -134,7 +134,7 @@ static void setup_swiotlb_ops(struct pci_controller *hose)
+ static inline void setup_swiotlb_ops(struct pci_controller *hose) {}
+ #endif
+ 
+-static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
++static void fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
+ {
+ 	/*
+ 	 * Fix up PCI devices that are able to DMA to the large inbound
+@@ -144,8 +144,6 @@ static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
+ 		dev->bus_dma_mask = 0;
+ 		dev->archdata.dma_offset = pci64_dma_offset;
+ 	}
+-
+-	return 0;
+ }
+ 
+ static int setup_one_atmu(struct ccsr_pci __iomem *pci,
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 8dd19e66c0e5..94a4db5f7ec3 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -599,17 +599,16 @@ static inline int dma_supported(struct device *dev, u64 mask)
+ }
+ 
+ #ifdef CONFIG_ARCH_HAS_DMA_SET_MASK
+-bool arch_dma_set_mask(struct device *dev, u64 mask);
++void arch_dma_set_mask(struct device *dev, u64 mask);
+ #else
+-#define arch_dma_set_mask(dev, mask)		true
++#define arch_dma_set_mask(dev, mask)	do { } while (0)
+ #endif
+ 
+ static inline int dma_set_mask(struct device *dev, u64 mask)
+ {
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
+-	if (!arch_dma_set_mask(dev, mask))
+-		return -EIO;
++	arch_dma_set_mask(dev, mask);
+ 	dma_check_mask(dev, mask);
+ 
+ 	*dev->dma_mask = mask;
