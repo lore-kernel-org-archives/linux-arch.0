@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 01/23] dma-mapping: provide a generic DMA_MAPPING_ERROR
-Date: Fri, 30 Nov 2018 14:22:09 +0100
-Message-ID: <20181130132231.16512-2-hch@lst.de>
+Subject: [PATCH 02/23] dma-direct: remove the mapping_error dma_map_ops method
+Date: Fri, 30 Nov 2018 14:22:10 +0100
+Message-ID: <20181130132231.16512-3-hch@lst.de>
 References: <20181130132231.16512-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,49 +21,136 @@ To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
 Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Error handling of the dma_map_single and dma_map_page APIs is a little
-problematic at the moment, in that we use different encodings in the
-returned dma_addr_t to indicate an error.  That means we require an
-additional indirect call to figure out if a dma mapping call returned
-an error, and a lot of boilerplate code to implement these semantics.
-
-Instead return the maximum addressable value as the error.  As long
-as we don't allow mapping single-byte ranges with single-byte alignment
-this value can never be a valid return.  Additionaly if drivers do
-not check the return value from the dma_map* routines this values means
-they will generally not be pointed to actual memory.
-
-Once the default value is added here we can start removing the
-various mapping_error methods and just rely on this generic check.
+The dma-direct code already returns (~(dma_addr_t)0x0) on mapping
+failures, so we can switch over to returning DMA_MAPPING_ERROR and let
+the core dma-mapping code handle the rest.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- include/linux/dma-mapping.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+ arch/powerpc/kernel/dma-swiotlb.c |  1 -
+ include/linux/dma-direct.h        |  3 ---
+ kernel/dma/direct.c               |  8 +-------
+ kernel/dma/swiotlb.c              | 11 +++++------
+ 4 files changed, 6 insertions(+), 17 deletions(-)
 
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 0f81c713f6e9..46bd612d929e 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -133,6 +133,8 @@ struct dma_map_ops {
- 	u64 (*get_required_mask)(struct device *dev);
+diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
+index 5fc335f4d9cd..3d8df2cf8be9 100644
+--- a/arch/powerpc/kernel/dma-swiotlb.c
++++ b/arch/powerpc/kernel/dma-swiotlb.c
+@@ -59,7 +59,6 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
+ 	.sync_single_for_device = swiotlb_sync_single_for_device,
+ 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
+ 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
+-	.mapping_error = dma_direct_mapping_error,
+ 	.get_required_mask = swiotlb_powerpc_get_required,
  };
  
-+#define DMA_MAPPING_ERROR		(~(dma_addr_t)0)
-+
- extern const struct dma_map_ops dma_direct_ops;
- extern const struct dma_map_ops dma_virt_ops;
+diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
+index 9e66bfe369aa..e7600f92d876 100644
+--- a/include/linux/dma-direct.h
++++ b/include/linux/dma-direct.h
+@@ -5,8 +5,6 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/mem_encrypt.h>
  
-@@ -576,6 +578,10 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
+-#define DIRECT_MAPPING_ERROR		(~(dma_addr_t)0)
+-
+ #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
+ #include <asm/dma-direct.h>
+ #else
+@@ -73,5 +71,4 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
+ int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
+ 		enum dma_data_direction dir, unsigned long attrs);
+ int dma_direct_supported(struct device *dev, u64 mask);
+-int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr);
+ #endif /* _LINUX_DMA_DIRECT_H */
+diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
+index 22a12ab5a5e9..d4335a03193a 100644
+--- a/kernel/dma/direct.c
++++ b/kernel/dma/direct.c
+@@ -265,7 +265,7 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
+ 	dma_addr_t dma_addr = phys_to_dma(dev, phys);
  
- 	debug_dma_mapping_error(dev, dma_addr);
-+
-+	if (dma_addr == DMA_MAPPING_ERROR)
-+		return 1;
-+
- 	if (ops->mapping_error)
- 		return ops->mapping_error(dev, dma_addr);
- 	return 0;
+ 	if (!check_addr(dev, dma_addr, size, __func__))
+-		return DIRECT_MAPPING_ERROR;
++		return DMA_MAPPING_ERROR;
+ 
+ 	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+ 		dma_direct_sync_single_for_device(dev, dma_addr, size, dir);
+@@ -312,11 +312,6 @@ int dma_direct_supported(struct device *dev, u64 mask)
+ 	return mask >= phys_to_dma(dev, min_mask);
+ }
+ 
+-int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return dma_addr == DIRECT_MAPPING_ERROR;
+-}
+-
+ const struct dma_map_ops dma_direct_ops = {
+ 	.alloc			= dma_direct_alloc,
+ 	.free			= dma_direct_free,
+@@ -335,7 +330,6 @@ const struct dma_map_ops dma_direct_ops = {
+ #endif
+ 	.get_required_mask	= dma_direct_get_required_mask,
+ 	.dma_supported		= dma_direct_supported,
+-	.mapping_error		= dma_direct_mapping_error,
+ 	.cache_sync		= arch_dma_cache_sync,
+ };
+ EXPORT_SYMBOL(dma_direct_ops);
+diff --git a/kernel/dma/swiotlb.c b/kernel/dma/swiotlb.c
+index 045930e32c0e..ff1ce81bb623 100644
+--- a/kernel/dma/swiotlb.c
++++ b/kernel/dma/swiotlb.c
+@@ -631,21 +631,21 @@ static dma_addr_t swiotlb_bounce_page(struct device *dev, phys_addr_t *phys,
+ 	if (unlikely(swiotlb_force == SWIOTLB_NO_FORCE)) {
+ 		dev_warn_ratelimited(dev,
+ 			"Cannot do DMA to address %pa\n", phys);
+-		return DIRECT_MAPPING_ERROR;
++		return DMA_MAPPING_ERROR;
+ 	}
+ 
+ 	/* Oh well, have to allocate and map a bounce buffer. */
+ 	*phys = swiotlb_tbl_map_single(dev, __phys_to_dma(dev, io_tlb_start),
+ 			*phys, size, dir, attrs);
+ 	if (*phys == SWIOTLB_MAP_ERROR)
+-		return DIRECT_MAPPING_ERROR;
++		return DMA_MAPPING_ERROR;
+ 
+ 	/* Ensure that the address returned is DMA'ble */
+ 	dma_addr = __phys_to_dma(dev, *phys);
+ 	if (unlikely(!dma_capable(dev, dma_addr, size))) {
+ 		swiotlb_tbl_unmap_single(dev, *phys, size, dir,
+ 			attrs | DMA_ATTR_SKIP_CPU_SYNC);
+-		return DIRECT_MAPPING_ERROR;
++		return DMA_MAPPING_ERROR;
+ 	}
+ 
+ 	return dma_addr;
+@@ -680,7 +680,7 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ 
+ 	if (!dev_is_dma_coherent(dev) &&
+ 	    (attrs & DMA_ATTR_SKIP_CPU_SYNC) == 0 &&
+-	    dev_addr != DIRECT_MAPPING_ERROR)
++	    dev_addr != DMA_MAPPING_ERROR)
+ 		arch_sync_dma_for_device(dev, phys, size, dir);
+ 
+ 	return dev_addr;
+@@ -789,7 +789,7 @@ swiotlb_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nelems,
+ 	for_each_sg(sgl, sg, nelems, i) {
+ 		sg->dma_address = swiotlb_map_page(dev, sg_page(sg), sg->offset,
+ 				sg->length, dir, attrs);
+-		if (sg->dma_address == DIRECT_MAPPING_ERROR)
++		if (sg->dma_address == DMA_MAPPING_ERROR)
+ 			goto out_error;
+ 		sg_dma_len(sg) = sg->length;
+ 	}
+@@ -869,7 +869,6 @@ swiotlb_dma_supported(struct device *hwdev, u64 mask)
+ }
+ 
+ const struct dma_map_ops swiotlb_dma_ops = {
+-	.mapping_error		= dma_direct_mapping_error,
+ 	.alloc			= dma_direct_alloc,
+ 	.free			= dma_direct_free,
+ 	.sync_single_for_cpu	= swiotlb_sync_single_for_cpu,
 -- 
 2.19.1
