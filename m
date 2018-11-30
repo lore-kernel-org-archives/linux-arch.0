@@ -1,274 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:46260 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:45746 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727009AbeLAAce (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 19:32:34 -0500
+        with ESMTP id S1726270AbeLAAc3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 19:32:29 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/23] arm: remove the mapping_error dma_map_ops method
-Date: Fri, 30 Nov 2018 14:22:11 +0100
-Message-ID: <20181130132231.16512-4-hch@lst.de>
-In-Reply-To: <20181130132231.16512-1-hch@lst.de>
-References: <20181130132231.16512-1-hch@lst.de>
+Subject: remove the ->mapping_error method from dma_map_ops V3
+Date: Fri, 30 Nov 2018 14:22:08 +0100
+Message-ID: <20181130132231.16512-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181130132211.9U45ehCmvvGjyXJdaHH2AbjyoGXpgRxkCXj3XZFiRyg@z>
+Message-ID: <20181130132208.Q5nfE4r5SmFwEqpeB1hGygSYY1TOT_yxIw10EtkiMrY@z>
 
-Arm already returns (~(dma_addr_t)0x0) on mapping failures, so we can
-switch over to returning DMA_MAPPING_ERROR and let the core dma-mapping
-code handle the rest.
+Error reporting for the dma_map_single and dma_map_page operations is
+currently a mess.  Both APIs directly return the dma_addr_t to be used for
+the DMA, with a magic error escape that is specific to the instance and
+checked by another method provided.  This has a few downsides:
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm/common/dmabounce.c      | 12 +++-------
- arch/arm/include/asm/dma-iommu.h |  2 --
- arch/arm/mm/dma-mapping.c        | 39 ++++++++++++--------------------
- 3 files changed, 18 insertions(+), 35 deletions(-)
+ - the error check is easily forgotten and a __must_check marker doesn't
+   help as the value always is consumed anyway
+ - the error checking requires another indirect call, which have gotten
+   incredibly expensive
+ - a lot of code is wasted on implementing these methods
 
-diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
-index 9a92de63426f..5ba4622030ca 100644
---- a/arch/arm/common/dmabounce.c
-+++ b/arch/arm/common/dmabounce.c
-@@ -257,7 +257,7 @@ static inline dma_addr_t map_single(struct device *dev, void *ptr, size_t size,
- 	if (buf == NULL) {
- 		dev_err(dev, "%s: unable to map unsafe buffer %p!\n",
- 		       __func__, ptr);
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
-@@ -327,7 +327,7 @@ static dma_addr_t dmabounce_map_page(struct device *dev, struct page *page,
- 
- 	ret = needs_bounce(dev, dma_addr, size);
- 	if (ret < 0)
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 
- 	if (ret == 0) {
- 		arm_dma_ops.sync_single_for_device(dev, dma_addr, size, dir);
-@@ -336,7 +336,7 @@ static dma_addr_t dmabounce_map_page(struct device *dev, struct page *page,
- 
- 	if (PageHighMem(page)) {
- 		dev_err(dev, "DMA buffer bouncing of HIGHMEM pages is not supported\n");
--		return ARM_MAPPING_ERROR;
-+		return DMA_MAPPING_ERROR;
- 	}
- 
- 	return map_single(dev, page_address(page) + offset, size, dir, attrs);
-@@ -453,11 +453,6 @@ static int dmabounce_dma_supported(struct device *dev, u64 dma_mask)
- 	return arm_dma_ops.dma_supported(dev, dma_mask);
- }
- 
--static int dmabounce_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return arm_dma_ops.mapping_error(dev, dma_addr);
--}
--
- static const struct dma_map_ops dmabounce_ops = {
- 	.alloc			= arm_dma_alloc,
- 	.free			= arm_dma_free,
-@@ -472,7 +467,6 @@ static const struct dma_map_ops dmabounce_ops = {
- 	.sync_sg_for_cpu	= arm_dma_sync_sg_for_cpu,
- 	.sync_sg_for_device	= arm_dma_sync_sg_for_device,
- 	.dma_supported		= dmabounce_dma_supported,
--	.mapping_error		= dmabounce_mapping_error,
- };
- 
- static int dmabounce_init_pool(struct dmabounce_pool *pool, struct device *dev,
-diff --git a/arch/arm/include/asm/dma-iommu.h b/arch/arm/include/asm/dma-iommu.h
-index 6821f1249300..772f48ef84b7 100644
---- a/arch/arm/include/asm/dma-iommu.h
-+++ b/arch/arm/include/asm/dma-iommu.h
-@@ -9,8 +9,6 @@
- #include <linux/dma-debug.h>
- #include <linux/kref.h>
- 
--#define ARM_MAPPING_ERROR		(~(dma_addr_t)0x0)
--
- struct dma_iommu_mapping {
- 	/* iommu specific data */
- 	struct iommu_domain	*domain;
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 661fe48ab78d..2cfb17bad1e6 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -179,11 +179,6 @@ static void arm_dma_sync_single_for_device(struct device *dev,
- 	__dma_page_cpu_to_dev(page, offset, size, dir);
- }
- 
--static int arm_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == ARM_MAPPING_ERROR;
--}
--
- const struct dma_map_ops arm_dma_ops = {
- 	.alloc			= arm_dma_alloc,
- 	.free			= arm_dma_free,
-@@ -197,7 +192,6 @@ const struct dma_map_ops arm_dma_ops = {
- 	.sync_single_for_device	= arm_dma_sync_single_for_device,
- 	.sync_sg_for_cpu	= arm_dma_sync_sg_for_cpu,
- 	.sync_sg_for_device	= arm_dma_sync_sg_for_device,
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- EXPORT_SYMBOL(arm_dma_ops);
-@@ -217,7 +211,6 @@ const struct dma_map_ops arm_coherent_dma_ops = {
- 	.get_sgtable		= arm_dma_get_sgtable,
- 	.map_page		= arm_coherent_dma_map_page,
- 	.map_sg			= arm_dma_map_sg,
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- EXPORT_SYMBOL(arm_coherent_dma_ops);
-@@ -774,7 +767,7 @@ static void *__dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 	gfp &= ~(__GFP_COMP);
- 	args.gfp = gfp;
- 
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 	allowblock = gfpflags_allow_blocking(gfp);
- 	cma = allowblock ? dev_get_cma_area(dev) : false;
- 
-@@ -1217,7 +1210,7 @@ static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping *mapping,
- 	if (i == mapping->nr_bitmaps) {
- 		if (extend_iommu_mapping(mapping)) {
- 			spin_unlock_irqrestore(&mapping->lock, flags);
--			return ARM_MAPPING_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 
- 		start = bitmap_find_next_zero_area(mapping->bitmaps[i],
-@@ -1225,7 +1218,7 @@ static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping *mapping,
- 
- 		if (start > mapping->bits) {
- 			spin_unlock_irqrestore(&mapping->lock, flags);
--			return ARM_MAPPING_ERROR;
-+			return DMA_MAPPING_ERROR;
- 		}
- 
- 		bitmap_set(mapping->bitmaps[i], start, count);
-@@ -1409,7 +1402,7 @@ __iommu_create_mapping(struct device *dev, struct page **pages, size_t size,
- 	int i;
- 
- 	dma_addr = __alloc_iova(mapping, size);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	iova = dma_addr;
-@@ -1436,7 +1429,7 @@ __iommu_create_mapping(struct device *dev, struct page **pages, size_t size,
- fail:
- 	iommu_unmap(mapping->domain, dma_addr, iova-dma_addr);
- 	__free_iova(mapping, dma_addr, size);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t size)
-@@ -1497,7 +1490,7 @@ static void *__iommu_alloc_simple(struct device *dev, size_t size, gfp_t gfp,
- 		return NULL;
- 
- 	*handle = __iommu_create_mapping(dev, &page, size, attrs);
--	if (*handle == ARM_MAPPING_ERROR)
-+	if (*handle == DMA_MAPPING_ERROR)
- 		goto err_mapping;
- 
- 	return addr;
-@@ -1525,7 +1518,7 @@ static void *__arm_iommu_alloc_attrs(struct device *dev, size_t size,
- 	struct page **pages;
- 	void *addr = NULL;
- 
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 	size = PAGE_ALIGN(size);
- 
- 	if (coherent_flag  == COHERENT || !gfpflags_allow_blocking(gfp))
-@@ -1546,7 +1539,7 @@ static void *__arm_iommu_alloc_attrs(struct device *dev, size_t size,
- 		return NULL;
- 
- 	*handle = __iommu_create_mapping(dev, pages, size, attrs);
--	if (*handle == ARM_MAPPING_ERROR)
-+	if (*handle == DMA_MAPPING_ERROR)
- 		goto err_buffer;
- 
- 	if (attrs & DMA_ATTR_NO_KERNEL_MAPPING)
-@@ -1696,10 +1689,10 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
- 	int prot;
- 
- 	size = PAGE_ALIGN(size);
--	*handle = ARM_MAPPING_ERROR;
-+	*handle = DMA_MAPPING_ERROR;
- 
- 	iova_base = iova = __alloc_iova(mapping, size);
--	if (iova == ARM_MAPPING_ERROR)
-+	if (iova == DMA_MAPPING_ERROR)
- 		return -ENOMEM;
- 
- 	for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s)) {
-@@ -1739,7 +1732,7 @@ static int __iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 	for (i = 1; i < nents; i++) {
- 		s = sg_next(s);
- 
--		s->dma_address = ARM_MAPPING_ERROR;
-+		s->dma_address = DMA_MAPPING_ERROR;
- 		s->dma_length = 0;
- 
- 		if (s->offset || (size & ~PAGE_MASK) || size + s->length > max) {
-@@ -1914,7 +1907,7 @@ static dma_addr_t arm_coherent_iommu_map_page(struct device *dev, struct page *p
- 	int ret, prot, len = PAGE_ALIGN(size + offset);
- 
- 	dma_addr = __alloc_iova(mapping, len);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	prot = __dma_info_to_prot(dir, attrs);
-@@ -1926,7 +1919,7 @@ static dma_addr_t arm_coherent_iommu_map_page(struct device *dev, struct page *p
- 	return dma_addr + offset;
- fail:
- 	__free_iova(mapping, dma_addr, len);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /**
-@@ -2020,7 +2013,7 @@ static dma_addr_t arm_iommu_map_resource(struct device *dev,
- 	size_t len = PAGE_ALIGN(size + offset);
- 
- 	dma_addr = __alloc_iova(mapping, len);
--	if (dma_addr == ARM_MAPPING_ERROR)
-+	if (dma_addr == DMA_MAPPING_ERROR)
- 		return dma_addr;
- 
- 	prot = __dma_info_to_prot(dir, attrs) | IOMMU_MMIO;
-@@ -2032,7 +2025,7 @@ static dma_addr_t arm_iommu_map_resource(struct device *dev,
- 	return dma_addr + offset;
- fail:
- 	__free_iova(mapping, dma_addr, len);
--	return ARM_MAPPING_ERROR;
-+	return DMA_MAPPING_ERROR;
- }
- 
- /**
-@@ -2105,7 +2098,6 @@ const struct dma_map_ops iommu_ops = {
- 	.map_resource		= arm_iommu_map_resource,
- 	.unmap_resource		= arm_iommu_unmap_resource,
- 
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- 
-@@ -2124,7 +2116,6 @@ const struct dma_map_ops iommu_coherent_ops = {
- 	.map_resource	= arm_iommu_map_resource,
- 	.unmap_resource	= arm_iommu_unmap_resource,
- 
--	.mapping_error		= arm_dma_mapping_error,
- 	.dma_supported		= arm_dma_supported,
- };
- 
--- 
-2.19.1
+The historical reason for this is that people thought DMA mappings would
+not fail when the API was created, which sounds like a really bad
+assumption in retrospective, and then we tried to cram error handling
+onto it later on.
+
+There basically are two variants:  the error code is 0 because the
+implementation will never return 0 as a valid DMA address, or the error
+code is all-F as the implementation won't ever return an address that
+high.  The old AMD GART is the only one not falling into these two camps
+as it picks sort of a relative zero relative to where it is mapped.
+
+The 0 return doesn't work for direct mappings that have ram at address
+zero and a lot of IOMMUs that start allocating bus space from address
+zero, so we can't consolidate on that, but I think we can move everyone
+to all-Fs, which the patch here does.  The reason for that is that
+there is only one way to ever get this address: by doing a 1-byte long,
+1-byte aligned mapping, but all our mappings are not only longer but
+generally aligned, and the mappings have to keep at least the basic
+alignment.
+
+A git tree is also available here:
+
+    git://git.infradead.org/users/hch/misc.git dma-mapping-error.3
+
+Gitweb:
+
+    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/dma-mapping-error.3
+
+Changes since v2:
+ - fix a compile error in the ia64 sba_iommu driver
+ - return an errno value from dma_mapping_error
+
+Changes since v1:
+ - dropped the signature change
+ - split into multiple patches
+ - fixed the iova allocator return check in amd-iommu
+ - remove EMERGENCY_PAGES in amd_gart and calgary
