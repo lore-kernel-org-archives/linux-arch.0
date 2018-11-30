@@ -1,63 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.165]:23779 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726519AbeLACjz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2018 21:39:55 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
- <87zhttfonk.fsf@concordia.ellerman.id.au>
- <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
- <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
-Date: Fri, 30 Nov 2018 16:29:40 +0100
+Received: from ale.deltatee.com ([207.54.116.67]:41066 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726736AbeLAEQJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Nov 2018 23:16:09 -0500
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Fri, 30 Nov 2018 10:06:05 -0700
+Message-ID: <20181130170606.17252-6-logang@deltatee.com>
+In-Reply-To: <20181130170606.17252-1-logang@deltatee.com>
+References: <20181130170606.17252-1-logang@deltatee.com>
 MIME-Version: 1.0
-In-Reply-To: <20181130131056.GA5211@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: de-DE
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v24 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, Darren Stevens <darren@stevens-zone.net>, Julian Margetson <runaway@candw.ms>
-Message-ID: <20181130152940.Rf0jXSnWCJ9oyr-u65LUcYm7jeIJvTgnuaG-aa6kSbE@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20181130170605.8_b72JQwgVypgc5IbqN0EJqR0fB-tli3N28AlAvApvQ@z>
 
-Hello Christoph,
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-Thanks for your reply.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-On 30 November 2018 at 2:10PM, Christoph Hellwig wrote:
-> On Fri, Nov 30, 2018 at 01:23:20PM +0100, Christian Zigotzky wrote:
->> Yes, of course. I patched your Git kernel and after that I compiled it
->> again. U-Boot loads the kernel and the dtb file. Then the kernel starts but
->> it doesn't find any hard disks (partitions).
-> Interesting.  Does it find the storage controller (what kind of
-> storage does it use?).
-It seems not. I don't see any infos about hard disks in the kernel ring 
-buffer. The two serial ATA (SATA 2.0) controllers are integrated in the 
-P5020 SoC and the hard disks are connected via SerDes lanes (PCIe) to 
-the SoC. LANE 16 = SATA 0 and LANE 17 = SATA 1.
-> For the PASEMI board can you test the attached patch?  Also are you
-> using Compact Flash cards on that system?
-Yes, we are using Compact Flash cards. The slot is wired to the CPU 
-local bus. It works with your kernel. :-)
-
-Where is the attached patch?
-
-I downloaded the version 5 of your Git kernel and compiled it today. 
-Unfortunately the PASEMI ethernet doesn't work.
-
-Error message: pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-
-@All
-Could you please also test Christoph's kernel on your PASEMI and NXP boards? Download:
-
-'git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.5 a'
-
-Thanks,
-Christian
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
+index c49ff8970ce3..e071e28bca3f 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.h
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
+@@ -53,6 +53,7 @@
+ 
+ #include <linux/ntb.h>
+ #include <linux/pci.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ /* PCI device IDs */
+ #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
+@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
+ 	return 0;
+ }
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #endif
+-- 
+2.19.0
