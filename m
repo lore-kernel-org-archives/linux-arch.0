@@ -1,75 +1,66 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/23] iommu/vt-d: remove the mapping_error dma_map_ops method
-Date: Fri, 30 Nov 2018 14:22:27 +0100
-Message-ID: <20181130132231.16512-20-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 10/23] arm64: remove the dummy_dma_ops mapping_error method
+Date: Fri, 30 Nov 2018 14:22:18 +0100
+Message-ID: <20181130132231.16512-11-hch@lst.de>
 References: <20181130132231.16512-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181130132231.16512-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: iommu@lists.linux-foundation.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jon Mason <jdmason@kudzu.us>, Joerg Roedel <joro@8bytes.org>, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20181130132231.16512-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Return DMA_MAPPING_ERROR instead of 0 on a dma mapping failure and let
-the core dma-mapping code handle the rest.
+Just return DMA_MAPPING_ERROR from __dummy_map_page and let the core
+dma-mapping code handle the rest.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- drivers/iommu/intel-iommu.c | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ arch/arm64/mm/dma-mapping.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 66b4444398ae..0ad67d65bbce 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -3617,7 +3617,7 @@ static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
- 
- 	domain = get_valid_domain_for_dev(dev);
- 	if (!domain)
--		return 0;
-+		return DMA_MAPPING_ERROR;
- 
- 	iommu = domain_get_iommu(domain);
- 	size = aligned_nrpages(paddr, size);
-@@ -3655,7 +3655,7 @@ static dma_addr_t __intel_map_page(struct device *dev, struct page *page,
- 		free_iova_fast(&domain->iovad, iova_pfn, dma_to_mm_pfn(size));
- 	pr_err("Device %s request: %zx@%llx dir %d --- failed\n",
- 		dev_name(dev), size, (unsigned long long)paddr, dir);
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index a3ac26284845..fdc26ea5036c 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -282,7 +282,7 @@ static dma_addr_t __dummy_map_page(struct device *dev, struct page *page,
+ 				   enum dma_data_direction dir,
+ 				   unsigned long attrs)
+ {
 -	return 0;
 +	return DMA_MAPPING_ERROR;
  }
  
- static dma_addr_t intel_map_page(struct device *dev, struct page *page,
-@@ -3756,7 +3756,7 @@ static void *intel_alloc_coherent(struct device *dev, size_t size,
- 
- 	*dma_handle = __intel_map_page(dev, page, 0, size, DMA_BIDIRECTIONAL,
- 				       dev->coherent_dma_mask);
--	if (*dma_handle)
-+	if (*dma_handle != DMA_MAPPING_ERROR)
- 		return page_address(page);
- 	if (!dma_release_from_contiguous(dev, page, size >> PAGE_SHIFT))
- 		__free_pages(page, order);
-@@ -3865,11 +3865,6 @@ static int intel_map_sg(struct device *dev, struct scatterlist *sglist, int nele
- 	return nelems;
+ static void __dummy_unmap_page(struct device *dev, dma_addr_t dev_addr,
+@@ -317,11 +317,6 @@ static void __dummy_sync_sg(struct device *dev,
+ {
  }
  
--static int intel_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static int __dummy_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
 -{
--	return !dma_addr;
+-	return 1;
 -}
 -
- static const struct dma_map_ops intel_dma_ops = {
- 	.alloc = intel_alloc_coherent,
- 	.free = intel_free_coherent,
-@@ -3877,7 +3872,6 @@ static const struct dma_map_ops intel_dma_ops = {
- 	.unmap_sg = intel_unmap_sg,
- 	.map_page = intel_map_page,
- 	.unmap_page = intel_unmap_page,
--	.mapping_error = intel_mapping_error,
- 	.dma_supported = dma_direct_supported,
+ static int __dummy_dma_supported(struct device *hwdev, u64 mask)
+ {
+ 	return 0;
+@@ -339,7 +334,6 @@ const struct dma_map_ops dummy_dma_ops = {
+ 	.sync_single_for_device = __dummy_sync_single,
+ 	.sync_sg_for_cpu        = __dummy_sync_sg,
+ 	.sync_sg_for_device     = __dummy_sync_sg,
+-	.mapping_error          = __dummy_mapping_error,
+ 	.dma_supported          = __dummy_dma_supported,
  };
- 
+ EXPORT_SYMBOL(dummy_dma_ops);
 -- 
 2.19.1
