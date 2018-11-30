@@ -1,105 +1,38 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Fri, 30 Nov 2018 11:53:46 +0100
-Message-ID: <20181130105346.GB26765@lst.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de> <87zhttfonk.fsf@concordia.ellerman.id.au> <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de> <20181129170351.GC27951@lst.de> <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v5 1/2] kernel/signal: Signal-based pre-coredump
+ notification
+Date: Fri, 30 Nov 2018 13:03:45 +0100
+Message-ID: <20181130120344.GA25998@redhat.com>
+References: <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
+ <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
+ <20181026082812.GA10581@redhat.com>
+ <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
+ <20181029111804.GA24820@redhat.com>
+ <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
+ <80e96710-f424-9b39-72ee-9cc7cbe7a5f7@cisco.com>
+ <20181128151911.GN3505@e103592.cambridge.arm.com>
+ <ad461da7-f0a6-7912-3201-e440dc372f89@cisco.com>
+ <20181129115520.GO3505@e103592.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+In-Reply-To: <20181129115520.GO3505@e103592.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Enke Chen <enkechen@cisco.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surr>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christian,
+On 11/29, Dave Martin wrote:
+>
+> SIGCHLD + wait() is immune to this problem for other child status
+> notifications (albeit with higher overhead).
+>
+> Unless I've missed something fundamental, signals simply aren't a
+> reliable data transport
 
-for such a diverse architecture like powerpc we'll have to rely on
-users / non core developers like you to help with testing.
+Yes. But I hope we are not going to implement WCOREDUMP.
 
-Can you try the patch below for he cyrus config?
+I am not fan of this patch, but at least it is simple.
 
-For the nemo one I have no idea yet, there is no chance I could trick
-you into a git bisect to see which patch caused the problem, is there?
-
-
-diff --git a/arch/powerpc/include/asm/machdep.h b/arch/powerpc/include/asm/machdep.h
-index 7b70dcbce1b9..2f0ca6560e47 100644
---- a/arch/powerpc/include/asm/machdep.h
-+++ b/arch/powerpc/include/asm/machdep.h
-@@ -47,7 +47,7 @@ struct machdep_calls {
- #endif
- #endif /* CONFIG_PPC64 */
- 
--	int		(*dma_set_mask)(struct device *dev, u64 dma_mask);
-+	void		(*dma_set_mask)(struct device *dev, u64 dma_mask);
- 
- 	int		(*probe)(void);
- 	void		(*setup_arch)(void); /* Optional, may be NULL */
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index bded4127791a..2587eb0f3fde 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -22,11 +22,10 @@
- #include <asm/swiotlb.h>
- #include <asm/dma.h>
- 
--bool arch_dma_set_mask(struct device *dev, u64 dma_mask)
-+void arch_dma_set_mask(struct device *dev, u64 dma_mask)
- {
--	if (!ppc_md.dma_set_mask)
--		return 0;
--	return ppc_md.dma_set_mask(dev, dma_mask);
-+	if (ppc_md.dma_set_mask)
-+		ppc_md.dma_set_mask(dev, dma_mask);
- }
- EXPORT_SYMBOL(arch_dma_set_mask);
- 
-diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
-index 9584765dbe3b..8582a418516b 100644
---- a/arch/powerpc/sysdev/fsl_pci.c
-+++ b/arch/powerpc/sysdev/fsl_pci.c
-@@ -134,7 +134,7 @@ static void setup_swiotlb_ops(struct pci_controller *hose)
- static inline void setup_swiotlb_ops(struct pci_controller *hose) {}
- #endif
- 
--static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
-+static void fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
- {
- 	/*
- 	 * Fix up PCI devices that are able to DMA to the large inbound
-@@ -144,8 +144,6 @@ static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
- 		dev->bus_dma_mask = 0;
- 		dev->archdata.dma_offset = pci64_dma_offset;
- 	}
--
--	return 0;
- }
- 
- static int setup_one_atmu(struct ccsr_pci __iomem *pci,
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 8dd19e66c0e5..94a4db5f7ec3 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -599,17 +599,16 @@ static inline int dma_supported(struct device *dev, u64 mask)
- }
- 
- #ifdef CONFIG_ARCH_HAS_DMA_SET_MASK
--bool arch_dma_set_mask(struct device *dev, u64 mask);
-+void arch_dma_set_mask(struct device *dev, u64 mask);
- #else
--#define arch_dma_set_mask(dev, mask)		true
-+#define arch_dma_set_mask(dev, mask)	do { } while (0)
- #endif
- 
- static inline int dma_set_mask(struct device *dev, u64 mask)
- {
- 	if (!dev->dma_mask || !dma_supported(dev, mask))
- 		return -EIO;
--	if (!arch_dma_set_mask(dev, mask))
--		return -EIO;
-+	arch_dma_set_mask(dev, mask);
- 	dma_check_mask(dev, mask);
- 
- 	*dev->dma_mask = mask;
+Oleg.
