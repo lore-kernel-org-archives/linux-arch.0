@@ -1,27 +1,37 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: remove the ->mapping_error method from dma_map_ops V3
-Date: Fri, 30 Nov 2018 11:43:18 -0800
-Message-ID: <CAHk-=wia7wykuDu-mzbhF+rL1M9FnJfnoidsvkz5TPMPHUep7g@mail.gmail.com>
-References: <20181130132231.16512-1-hch@lst.de>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: Re: [PATCH 2/8] sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
+Date: Fri, 30 Nov 2018 14:38:27 -0800
+Message-ID: <CABeXuvr7M4z6-7qsnBZqnXQEcGxfgVddGmsoV=iLwA-n=S5VkQ@mail.gmail.com>
+References: <20181124022035.17519-1-deepa.kernel@gmail.com>
+ <20181124022035.17519-3-deepa.kernel@gmail.com> <CAF=yD-KfxXK=Ta=+a8UYMcmUYzN=UokotfzSno2-xi=JeS6=0g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181130132231.16512-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, jdmason@kudzu.us, joro@8bytes.org, David Woodhouse <dwmw2@infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, robin.murphy@arm.com, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, xen-devel@lists.xenproject.org, linux-arch@vger.kernel.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAF=yD-KfxXK=Ta=+a8UYMcmUYzN=UokotfzSno2-xi=JeS6=0g@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: willemdebruijn.kernel@gmail.com
+Cc: "David S. Miller" <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Helge Deller <deller@gmx.de>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ralf Baechle <ralf@linux-mips.org>, rth@twiddle.net, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-rdma@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 30, 2018 at 5:23 AM Christoph Hellwig <hch@lst.de> wrote:
+On Sat, Nov 24, 2018 at 7:59 PM Willem de Bruijn
+<willemdebruijn.kernel@gmail.com> wrote:
 >
-> Error reporting for the dma_map_single and dma_map_page operations is
-> currently a mess. [..]
+> On Sat, Nov 24, 2018 at 3:58 AM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> >
+> > SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING options, the
+> > way they are currently defined, are not y2038 safe.
+> > Subsequent patches in the series add new y2038 safe versions
+> > of these options which provide 64 bit timestamps on all
+> > architectures uniformly.
+> > Hence, rename existing options with OLD tag suffixes.
+>
+> Why do the existing interfaces have to be renamed when new interfaces are added?
 
-I don't see anything objectionable there, but it's not like I checked
-any of the context of the patches. For all I know there are odd corner
-cases where some zero vs DMA_MAPPING_ERROR confusion lurks, but I
-guess we'll find out..
+Existing options need to be renamed because of the macro below:
 
-So you can add my acked-by, fwiw.
+#define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? \
+            SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
 
-                Linus
+SO_TIMESTAMP is now dependent on size of time_t because of the libc flag.
+
+-Deepa
