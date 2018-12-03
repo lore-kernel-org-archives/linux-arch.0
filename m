@@ -1,172 +1,64 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 1/3] tools/memory-model: Model smp_mb__after_unlock_lock()
-Date: Mon,  3 Dec 2018 15:04:49 -0800
-Message-ID: <20181203230451.28921-1-paulmck@linux.ibm.com>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: [PATCH memory-model 0/3] Updates to the formal memory model
+Date: Tue, 4 Dec 2018 08:28:03 +0900
+Message-ID: <802d5c17-74fd-86a1-efba-5ee2825a0c3c@gmail.com>
 References: <20181203230411.GA27476@linux.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181203230411.GA27476@linux.ibm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>, mingo@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+On 2018/12/03 15:04:11 -0800, Paul E. McKenney wrote:
+> Hello, Ingo!
+> 
+> This series contains updates to the Linux kernel's formal memory model
+> in tools/memory-model.  These patches are ready for inclusion into -tip.
+> 
+> 1.	Model smp_mb__after_unlock_lock(), courtesy of Andrea Parri.
+> 
+> 2.	Add scripts to check github litmus tests.
+> 
+> 3.	Make scripts take "-j" abbreviation for "--jobs".
+> 
+> There is another series in preparation to model SRCU, but this series
+> requires hot-off-the presses changes to the herd tool that have not yet
+> been released.  This SRCU series is therefore targeting the merge window
+> after the upcoming one.  People wishing to experiment with the prototype
+> SRCU model may obtain it from my -rcu tree at branch "dev", and use
+> a bleeding-edge herd7 built from https://github.com/herd/herdtools7/,
+> version 7.51+2(dev), which is (commit 10403b24070c) or later.
 
-From the header comment for smp_mb__after_unlock_lock():
+On the master branch of herdtools7, SRCU support was added in version
+7.51+4(dev), which is commit 6ec9da1f4d58, or later.
 
-  "Place this after a lock-acquisition primitive to guarantee that
-   an UNLOCK+LOCK pair acts as a full barrier.  This guarantee applies
-   if the UNLOCK and LOCK are executed by the same CPU or if the
-   UNLOCK and LOCK operate on the same lock variable."
+        Thanks, Akira
 
-This formalizes the above guarantee by defining (new) mb-links according
-to the law:
-
-  ([M] ; po ; [UL] ; (co | po) ; [LKW] ;
-	fencerel(After-unlock-lock) ; [M])
-
-where the component ([UL] ; co ; [LKW]) identifies "UNLOCK+LOCK pairs on
-the same lock variable" and the component ([UL] ; po ; [LKW]) identifies
-"UNLOCK+LOCK pairs executed by the same CPU".
-
-In particular, the LKMM forbids the following two behaviors (the second
-litmus test below is based on
-
-  Documentation/RCU/Design/Memory-Ordering/Tree-RCU-Memory-Ordering.html
-
-c.f., Section "Tree RCU Grace Period Memory Ordering Building Blocks"):
-
-C after-unlock-lock-same-cpu
-
-(*
- * Result: Never
- *)
-
-{}
-
-P0(spinlock_t *s, spinlock_t *t, int *x, int *y)
-{
-	int r0;
-
-	spin_lock(s);
-	WRITE_ONCE(*x, 1);
-	spin_unlock(s);
-	spin_lock(t);
-	smp_mb__after_unlock_lock();
-	r0 = READ_ONCE(*y);
-	spin_unlock(t);
-}
-
-P1(int *x, int *y)
-{
-	int r0;
-
-	WRITE_ONCE(*y, 1);
-	smp_mb();
-	r0 = READ_ONCE(*x);
-}
-
-exists (0:r0=0 /\ 1:r0=0)
-
-C after-unlock-lock-same-lock-variable
-
-(*
- * Result: Never
- *)
-
-{}
-
-P0(spinlock_t *s, int *x, int *y)
-{
-	int r0;
-
-	spin_lock(s);
-	WRITE_ONCE(*x, 1);
-	r0 = READ_ONCE(*y);
-	spin_unlock(s);
-}
-
-P1(spinlock_t *s, int *y, int *z)
-{
-	int r0;
-
-	spin_lock(s);
-	smp_mb__after_unlock_lock();
-	WRITE_ONCE(*y, 1);
-	r0 = READ_ONCE(*z);
-	spin_unlock(s);
-}
-
-P2(int *z, int *x)
-{
-	int r0;
-
-	WRITE_ONCE(*z, 1);
-	smp_mb();
-	r0 = READ_ONCE(*x);
-}
-
-exists (0:r0=0 /\ 1:r0=0 /\ 2:r0=0)
-
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
----
- tools/memory-model/linux-kernel.bell | 3 ++-
- tools/memory-model/linux-kernel.cat  | 4 +++-
- tools/memory-model/linux-kernel.def  | 1 +
- 3 files changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index b84fb2f67109..796513362c05 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -29,7 +29,8 @@ enum Barriers = 'wmb (*smp_wmb*) ||
- 		'sync-rcu (*synchronize_rcu*) ||
- 		'before-atomic (*smp_mb__before_atomic*) ||
- 		'after-atomic (*smp_mb__after_atomic*) ||
--		'after-spinlock (*smp_mb__after_spinlock*)
-+		'after-spinlock (*smp_mb__after_spinlock*) ||
-+		'after-unlock-lock (*smp_mb__after_unlock_lock*)
- instructions F[Barriers]
- 
- (* Compute matching pairs of nested Rcu-lock and Rcu-unlock *)
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 882fc33274ac..8f23c74a96fd 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -30,7 +30,9 @@ let wmb = [W] ; fencerel(Wmb) ; [W]
- let mb = ([M] ; fencerel(Mb) ; [M]) |
- 	([M] ; fencerel(Before-atomic) ; [RMW] ; po? ; [M]) |
- 	([M] ; po? ; [RMW] ; fencerel(After-atomic) ; [M]) |
--	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M])
-+	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
-+	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
-+		fencerel(After-unlock-lock) ; [M])
- let gp = po ; [Sync-rcu] ; po?
- 
- let strong-fence = mb | gp
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 6fa3eb28d40b..b27911cc087d 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -23,6 +23,7 @@ smp_wmb() { __fence{wmb}; }
- smp_mb__before_atomic() { __fence{before-atomic}; }
- smp_mb__after_atomic() { __fence{after-atomic}; }
- smp_mb__after_spinlock() { __fence{after-spinlock}; }
-+smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
- 
- // Exchange
- xchg(X,V)  __xchg{mb}(X,V)
--- 
-2.17.1
+> 
+> 							Thanx, Paul
+> 
+> ------------------------------------------------------------------------
+> 
+>  .gitignore                 |    1 
+>  README                     |    2 
+>  linux-kernel.bell          |    3 
+>  linux-kernel.cat           |    4 -
+>  linux-kernel.def           |    1 
+>  scripts/README             |   70 ++++++++++++++++++++++
+>  scripts/checkalllitmus.sh  |   53 +++++++----------
+>  scripts/checkghlitmus.sh   |   65 ++++++++++++++++++++
+>  scripts/checklitmus.sh     |   74 +++--------------------
+>  scripts/checklitmushist.sh |   60 +++++++++++++++++++
+>  scripts/cmplitmushist.sh   |   87 +++++++++++++++++++++++++++
+>  scripts/initlitmushist.sh  |   68 +++++++++++++++++++++
+>  scripts/judgelitmus.sh     |   78 +++++++++++++++++++++++++
+>  scripts/newlitmushist.sh   |   61 +++++++++++++++++++
+>  scripts/parseargs.sh       |  140 ++++++++++++++++++++++++++++++++++++++++++++-
+>  scripts/runlitmushist.sh   |   87 +++++++++++++++++++++++++++
+>  16 files changed, 757 insertions(+), 97 deletions(-)
+> 
