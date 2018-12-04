@@ -1,162 +1,59 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] powerpc: split compat syscall table out from native table
-Date: Tue,  4 Dec 2018 22:23:07 +0100
-Message-ID: <20181204212340.3915309-1-arnd@arndb.de>
-References: <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
+Subject: Re: [PATCH v3 4/4] powerpc: generate uapi header and system call
+ table files
+Date: Tue, 4 Dec 2018 22:33:13 +0100
+Message-ID: <CAK8P3a0DX6Eh0OwUh975RL2Pq_ux_AQeBPSakPFxZf+t62EJ=w@mail.gmail.com>
+References: <1543465611-17122-1-git-send-email-firoz.khan@linaro.org>
+ <1543465611-17122-5-git-send-email-firoz.khan@linaro.org> <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: firoz.khan@linaro.org
-Cc: y2038@lists.linaro.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Joel Stanley <joel@jms.id.au>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, linuxram@us.ibm.com, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-PowerPC uses a syscall table with native and compat calls interleaved,
-which is a slightly simpler way to define two matching tables.
+On Tue, Dec 4, 2018 at 10:17 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> > diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
+> > index 9ff1913..d756348 100644
+> > --- a/arch/powerpc/kernel/systbl.S
+> > +++ b/arch/powerpc/kernel/systbl.S
+>
+> >  #ifdef CONFIG_PPC64
+> > @@ -47,5 +25,17 @@
+> >  .globl sys_call_table
+> >  sys_call_table:
+> >
+> > +#if defined CONFIG_PPC64 && defined(CONFIG_COMPAT)
+> > +#define __SYSCALL(nr, entry, nargs) .8byte entry
+> >  #define compat_sys_sigsuspend  sys_sigsuspend
+> > -#include <asm/systbl.h>
+> > +#include <asm/syscall_table_c32.h>
+> > +#undef __SYSCALL
+> > +#elif defined CONFIG_PPC64 && !defined(CONFIG_COMPAT)
+> > +#define __SYSCALL(nr, entry, nargs) .8byte entry
+> > +#include <asm/syscall_table_64.h>
+> > +#undef __SYSCALL
+>
+> This part looks wrong: where the old sys_call_table contained
+> both the native and compat calls side by side, the new table
+> contains only the compat versions (note that CONFIG_COMPAT is
+> always set on PPC64). I think you copy-pasted this incorrectly from
+> one of the other architectures that uses a different layout for the
+> compat calls.
+>
+> The way I think this could work best is if you add a preparation
+> patch that splits out the 64-bit table into two separate ones
+> (and make sure that works). After that, you can add your
+> existing patch, rebased to use the two generated tables
+> instead of the old-style tables. I'll follow up with an untested
+> patch for illustration.
 
-As we move to having the tables generated, that advantage is no longer
-important, but the interleaved table gets in the way of using the
-same scripts as on the other architectures.
+One more thing I noticed while writing up that patch: you also need
+to use the DOTSYM() macro in __SYSCALL() to generate the correct
+symbol name for the old ELF ABI (when PPC64_ELF_ABI_v2 is
+not set).
 
-Split out a new compat_sys_call_table symbol that contains all the
-compat calls, and leave the main table for the native calls, to more
-closely match the method we use everywhere else.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
-This is completely untested, it's just for illustration and to
-get comments about whether this is a good idea.
-
-Firoz, can you try to get this working?
----
- arch/powerpc/include/asm/syscall.h |  3 +--
- arch/powerpc/kernel/entry_64.S     |  7 ++++--
- arch/powerpc/kernel/systbl.S       | 37 ++++++++++++++++++++++++------
- arch/powerpc/kernel/vdso.c         |  7 ++++--
- 4 files changed, 41 insertions(+), 13 deletions(-)
-
-diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-index ab9f3f0a8637..1a0e7a8b1c81 100644
---- a/arch/powerpc/include/asm/syscall.h
-+++ b/arch/powerpc/include/asm/syscall.h
-@@ -18,9 +18,8 @@
- #include <linux/thread_info.h>
- 
- /* ftrace syscalls requires exporting the sys_call_table */
--#ifdef CONFIG_FTRACE_SYSCALLS
- extern const unsigned long sys_call_table[];
--#endif /* CONFIG_FTRACE_SYSCALLS */
-+extern const unsigned long compat_sys_call_table[];
- 
- static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
- {
-diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index 7b1693adff2a..5574d92646f1 100644
---- a/arch/powerpc/kernel/entry_64.S
-+++ b/arch/powerpc/kernel/entry_64.S
-@@ -54,6 +54,9 @@
- SYS_CALL_TABLE:
- 	.tc sys_call_table[TC],sys_call_table
- 
-+COMPAT_SYS_CALL_TABLE:
-+	.tc compat_sys_call_table[TC],compat_sys_call_table
-+
- /* This value is used to mark exception frames on the stack. */
- exception_marker:
- 	.tc	ID_EXC_MARKER[TC],STACK_FRAME_REGS_MARKER
-@@ -173,7 +176,7 @@ system_call:			/* label this so stack traces look sane */
- 	ld	r11,SYS_CALL_TABLE@toc(2)
- 	andis.	r10,r10,_TIF_32BIT@h
- 	beq	15f
--	addi	r11,r11,8	/* use 32-bit syscall entries */
-+	ld	r11,COMPAT_SYS_CALL_TABLE@toc(2)
- 	clrldi	r3,r3,32
- 	clrldi	r4,r4,32
- 	clrldi	r5,r5,32
-@@ -181,7 +184,7 @@ system_call:			/* label this so stack traces look sane */
- 	clrldi	r7,r7,32
- 	clrldi	r8,r8,32
- 15:
--	slwi	r0,r0,4
-+	slwi	r0,r0,3
- 
- 	barrier_nospec_asm
- 	/*
-diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
-index 919a32746ede..883b8e36964c 100644
---- a/arch/powerpc/kernel/systbl.S
-+++ b/arch/powerpc/kernel/systbl.S
-@@ -17,13 +17,13 @@
- #include <asm/ppc_asm.h>
- 
- #ifdef CONFIG_PPC64
--#define SYSCALL(func)		.8byte	DOTSYM(sys_##func),DOTSYM(sys_##func)
--#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func),DOTSYM(compat_sys_##func)
--#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(ppc_##func)
--#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(sys_ni_syscall)
--#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(compat_sys_##func)
--#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(sys_ni_syscall)
--#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f),DOTSYM(f3264)
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f)
- #else
- #define SYSCALL(func)		.long	sys_##func
- #define COMPAT_SYS(func)	.long	sys_##func
-@@ -48,3 +48,26 @@
- sys_call_table:
- 
- #include <asm/systbl.h>
-+
-+#undef SYSCALL
-+#undef COMPAT_SYS
-+#undef PPC_SYS
-+#undef OLDSYS
-+#undef SYS32ONLY
-+#undef PPC64ONLY
-+#undef SYSX
-+
-+#ifdef CONFIG_COMPAT
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(compat_sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(compat_sys_##func)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f3264)
-+
-+.globl compat_sys_call_table
-+compat_sys_call_table:
-+
-+#include <asm/systbl.h>
-+#endif
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index 65b3bdb99f0b..7725a9714736 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -671,15 +671,18 @@ static void __init vdso_setup_syscall_map(void)
- {
- 	unsigned int i;
- 	extern unsigned long *sys_call_table;
-+#ifdef CONFIG_PPC64
-+	extern unsigned long *compat_sys_call_table;
-+#endif
- 	extern unsigned long sys_ni_syscall;
- 
- 
- 	for (i = 0; i < NR_syscalls; i++) {
- #ifdef CONFIG_PPC64
--		if (sys_call_table[i*2] != sys_ni_syscall)
-+		if (sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_64[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
--		if (sys_call_table[i*2+1] != sys_ni_syscall)
-+		if (compat_sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_32[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
- #else /* CONFIG_PPC64 */
--- 
-2.18.0
+       Arnd
