@@ -1,32 +1,51 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v6 04/26] x86/fpu/xstate: Introduce XSAVES system
- states
-Date: Tue, 4 Dec 2018 19:16:41 +0100
-Message-ID: <20181204181641.GA16705@zn.tnic>
-References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
- <20181119214809.6086-5-yu-cheng.yu@intel.com>
- <20181204160144.GG11803@zn.tnic>
- <752c38422a6536d8df99b619214f935e4bc882ad.camel@intel.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 4/4] powerpc: generate uapi header and system call
+ table files
+Date: Tue, 4 Dec 2018 22:17:18 +0100
+Message-ID: <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
+References: <1543465611-17122-1-git-send-email-firoz.khan@linaro.org> <1543465611-17122-5-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <752c38422a6536d8df99b619214f935e4bc882ad.camel@intel.com>
+In-Reply-To: <1543465611-17122-5-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, linuxram@us.ibm.com, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 04, 2018 at 09:08:11AM -0800, Yu-cheng Yu wrote:
-> Then we will do this very often.  Why don't we create all three in the
-> beginning: xfeatures_mask_all, xfeatures_mask_user, and xfeatures_mask_system?
+> diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
+> index 9ff1913..d756348 100644
+> --- a/arch/powerpc/kernel/systbl.S
+> +++ b/arch/powerpc/kernel/systbl.S
 
-Because the _all thing is the OR-ed product of the two and then you
-don't have to update it when the _user and the _system ones change
-because you'll be creating it on the fly each time.
+>  #ifdef CONFIG_PPC64
+> @@ -47,5 +25,17 @@
+>  .globl sys_call_table
+>  sys_call_table:
+>
+> +#if defined CONFIG_PPC64 && defined(CONFIG_COMPAT)
+> +#define __SYSCALL(nr, entry, nargs) .8byte entry
+>  #define compat_sys_sigsuspend  sys_sigsuspend
+> -#include <asm/systbl.h>
+> +#include <asm/syscall_table_c32.h>
+> +#undef __SYSCALL
+> +#elif defined CONFIG_PPC64 && !defined(CONFIG_COMPAT)
+> +#define __SYSCALL(nr, entry, nargs) .8byte entry
+> +#include <asm/syscall_table_64.h>
+> +#undef __SYSCALL
 
--- 
-Regards/Gruss,
-    Boris.
+This part looks wrong: where the old sys_call_table contained
+both the native and compat calls side by side, the new table
+contains only the compat versions (note that CONFIG_COMPAT is
+always set on PPC64). I think you copy-pasted this incorrectly from
+one of the other architectures that uses a different layout for the
+compat calls.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+The way I think this could work best is if you add a preparation
+patch that splits out the 64-bit table into two separate ones
+(and make sure that works). After that, you can add your
+existing patch, rebased to use the two generated tables
+instead of the old-style tables. I'll follow up with an untested
+patch for illustration.
+
+       Arnd
