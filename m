@@ -1,78 +1,149 @@
-From: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
-Subject: Re: [PATCH 1/2] vmalloc: New flag for flush before releasing pages
-Date: Tue, 4 Dec 2018 00:04:21 +0000
-Message-ID: <f00a7c0b99cb3dae3f42e144c0532a6a299c06a0.camel@intel.com>
-References: <20181128000754.18056-1-rick.p.edgecombe@intel.com>
-         <20181128000754.18056-2-rick.p.edgecombe@intel.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v5 2/3] m68k: add system call table generation support
+Date: Tue, 4 Dec 2018 08:52:04 +0530
+Message-ID: <CALxhOnggoJ8Ds-0AXxg5Tfa7QwccqjWExKuYRuNv+Km1FTVj1w@mail.gmail.com>
+References: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
+ <1542088829-19790-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVsBwL9vcqejfc47GN793wMXdQ=SwEsSUP1fbpMt-OoWw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181128000754.18056-2-rick.p.edgecombe@intel.com>
-Content-Language: en-US
-Content-ID: <DD455A0478EDF040A61027CE85944E93@intel.com>
+In-Reply-To: <CAMuHMdVsBwL9vcqejfc47GN793wMXdQ=SwEsSUP1fbpMt-OoWw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Dock, Deneen T" <deneen.t.dock@intel.com>, "daniel@iogearbox.net" <daniel@iogearbox.net>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "ast@kernel.org" <ast@kernel.org>, "jeyu@kernel.org" <jeyu@kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "jannh@google.com" <jannh@google.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "kristen@linux.intel.com" <kristen@linux.intel.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mingo@redhat.com" <mingo@redhat.com>, "luto@kernel.org" <luto@kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-SXQgbG9va3MgbGlrZSB0aGlzIG5ldyBmbGFnIGlzIGluIGxpbnV4LW5leHQgbm93LiBBcyBJIGFt
-IHJlYWRpbmcgaXQsIHRoZXNlDQphcmNoaXRlY3R1cmVzIGhhdmUgYSBtb2R1bGVfYWxsb2MgdGhh
-dCB1c2VzIHNvbWUgc29ydCBvZiBleGVjdXRhYmxlIGZsYWcgYW5kDQphcmUgbm90IHVzaW5nIHRo
-ZSBkZWZhdWx0IG1vZHVsZV9hbGxvYyB3aGljaCBpcyBhbHJlYWR5IGNvdmVyZWQsIGFuZCBzbyBt
-YXkgbmVlZA0KaXQgcGx1Z2dlZCBpbjoNCmFybQ0KYXJtNjQNCnBhcmlzYw0KczM5MA0KdW5pY29y
-ZTMyDQoNClRoYW5rcywNCg0KUmljaw0KDQpPbiBUdWUsIDIwMTgtMTEtMjcgYXQgMTY6MDcgLTA4
-MDAsIFJpY2sgRWRnZWNvbWJlIHdyb3RlOg0KPiBTaW5jZSB2ZnJlZSB3aWxsIGxhemlseSBmbHVz
-aCB0aGUgVExCLCBidXQgbm90IGxhemlseSBmcmVlIHRoZSB1bmRlcmx5aW5nDQo+IHBhZ2VzLA0K
-PiBpdCBvZnRlbiBsZWF2ZXMgc3RhbGUgVExCIGVudHJpZXMgdG8gZnJlZWQgcGFnZXMgdGhhdCBj
-b3VsZCBnZXQgcmUtdXNlZC4gVGhpcw0KPiBpcw0KPiB1bmRlc2lyYWJsZSBmb3IgY2FzZXMgd2hl
-cmUgdGhlIG1lbW9yeSBiZWluZyBmcmVlZCBoYXMgc3BlY2lhbCBwZXJtaXNzaW9ucw0KPiBzdWNo
-DQo+IGFzIGV4ZWN1dGFibGUuDQo+IA0KPiBIYXZpbmcgY2FsbGVycyBmbHVzaCB0aGUgVExCIGFm
-dGVyIGNhbGxpbmcgdmZyZWUgc3RpbGwgbGVhdmVzIGEgd2luZG93IHdoZXJlDQo+IHRoZSBwYWdl
-cyBhcmUgZnJlZWQsIGJ1dCB0aGUgVExCIGVudHJ5IHJlbWFpbnMuIEFsc28gdGhlIGVudGlyZSBv
-cGVyYXRpb24gY2FuDQo+IGJlDQo+IGRlZmVycmVkIGlmIHRoZSB2ZnJlZSBpcyBjYWxsZWQgZnJv
-bSBhbiBpbnRlcnJ1cHQgYW5kIHNvIGEgVExCIGZsdXNoIGFmdGVyDQo+IGNhbGxpbmcgdmZyZWUg
-d291bGQgbWlzcyB0aGUgZW50aXJlIG9wZXJhdGlvbi4gU28gaW4gb3JkZXIgdG8gc3VwcG9ydCB0
-aGlzIHVzZQ0KPiBjYXNlLCBhIG5ldyBmbGFnIFZNX0lNTUVESUFURV9VTk1BUCBpcyBhZGRlZCwg
-dGhhdCB3aWxsIGNhdXNlIHRoZSBmcmVlDQo+IG9wZXJhdGlvbg0KPiB0byB0YWtlIHBsYWNlIGxp
-a2UgdGhpczoNCj4gICAgICAgICAxLiBVbm1hcA0KPiAgICAgICAgIDIuIEZsdXNoIFRMQi9Vbm1h
-cCBhbGlhc2VzDQo+ICAgICAgICAgMy4gRnJlZSBwYWdlcw0KPiBJbiB0aGUgZGVmZXJyZWQgY2Fz
-ZSB0aGVzZSBzdGVwcyBhcmUgYWxsIGRvbmUgYnkgdGhlIHdvcmsgcXVldWUuDQo+IA0KPiBUaGlz
-IGltcGxlbWVudGF0aW9uIGRlcml2ZXMgZnJvbSB0d28gc2tldGNoZXMgZnJvbSBEYXZlIEhhbnNl
-biBhbmQNCj4gQW5keSBMdXRvbWlyc2tpLg0KPiANCj4gU3VnZ2VzdGVkLWJ5OiBEYXZlIEhhbnNl
-biA8ZGF2ZS5oYW5zZW5AaW50ZWwuY29tPg0KPiBTdWdnZXN0ZWQtYnk6IEFuZHkgTHV0b21pcnNr
-aSA8bHV0b0BrZXJuZWwub3JnPg0KPiBTdWdnZXN0ZWQtYnk6IFdpbGwgRGVhY29uIDx3aWxsLmRl
-YWNvbkBhcm0uY29tPg0KPiBTaWduZWQtb2ZmLWJ5OiBSaWNrIEVkZ2Vjb21iZSA8cmljay5wLmVk
-Z2Vjb21iZUBpbnRlbC5jb20+DQo+IC0tLQ0KPiAgaW5jbHVkZS9saW51eC92bWFsbG9jLmggfCAg
-MSArDQo+ICBtbS92bWFsbG9jLmMgICAgICAgICAgICB8IDEzICsrKysrKysrKysrLS0NCj4gIDIg
-ZmlsZXMgY2hhbmdlZCwgMTIgaW5zZXJ0aW9ucygrKSwgMiBkZWxldGlvbnMoLSkNCj4gDQo+IGRp
-ZmYgLS1naXQgYS9pbmNsdWRlL2xpbnV4L3ZtYWxsb2MuaCBiL2luY2x1ZGUvbGludXgvdm1hbGxv
-Yy5oDQo+IGluZGV4IDM5OGU5Yzk1Y2Q2MS4uY2NhNmI2YjgzY2YwIDEwMDY0NA0KPiAtLS0gYS9p
-bmNsdWRlL2xpbnV4L3ZtYWxsb2MuaA0KPiArKysgYi9pbmNsdWRlL2xpbnV4L3ZtYWxsb2MuaA0K
-PiBAQCAtMjEsNiArMjEsNyBAQCBzdHJ1Y3Qgbm90aWZpZXJfYmxvY2s7CQkvKiBpbiBub3RpZmll
-ci5oICovDQo+ICAjZGVmaW5lIFZNX1VOSU5JVElBTElaRUQJMHgwMDAwMDAyMAkvKiB2bV9zdHJ1
-Y3QgaXMgbm90IGZ1bGx5DQo+IGluaXRpYWxpemVkICovDQo+ICAjZGVmaW5lIFZNX05PX0dVQVJE
-CQkweDAwMDAwMDQwICAgICAgLyogZG9uJ3QgYWRkIGd1YXJkIHBhZ2UgKi8NCj4gICNkZWZpbmUg
-Vk1fS0FTQU4JCTB4MDAwMDAwODAgICAgICAvKiBoYXMgYWxsb2NhdGVkIGthc2FuIHNoYWRvdw0K
-PiBtZW1vcnkgKi8NCj4gKyNkZWZpbmUgVk1fSU1NRURJQVRFX1VOTUFQCTB4MDAwMDAyMDAJLyog
-Zmx1c2ggYmVmb3JlIHJlbGVhc2luZw0KPiBwYWdlcyAqLw0KPiAgLyogYml0cyBbMjAuLjMyXSBy
-ZXNlcnZlZCBmb3IgYXJjaCBzcGVjaWZpYyBpb3JlbWFwIGludGVybmFscyAqLw0KPiAgDQo+ICAv
-Kg0KPiBkaWZmIC0tZ2l0IGEvbW0vdm1hbGxvYy5jIGIvbW0vdm1hbGxvYy5jDQo+IGluZGV4IDk3
-ZDRiMjVkMDM3My4uNjg3NjY2NTFiNWE3IDEwMDY0NA0KPiAtLS0gYS9tbS92bWFsbG9jLmMNCj4g
-KysrIGIvbW0vdm1hbGxvYy5jDQo+IEBAIC0xNTE2LDYgKzE1MTYsMTQgQEAgc3RhdGljIHZvaWQg
-X192dW5tYXAoY29uc3Qgdm9pZCAqYWRkciwgaW50DQo+IGRlYWxsb2NhdGVfcGFnZXMpDQo+ICAJ
-ZGVidWdfY2hlY2tfbm9fb2JqX2ZyZWVkKGFyZWEtPmFkZHIsIGdldF92bV9hcmVhX3NpemUoYXJl
-YSkpOw0KPiAgDQo+ICAJcmVtb3ZlX3ZtX2FyZWEoYWRkcik7DQo+ICsNCj4gKwkvKg0KPiArCSAq
-IE5lZWQgdG8gZmx1c2ggdGhlIFRMQiBiZWZvcmUgZnJlZWluZyBwYWdlcyBpbiB0aGUgY2FzZSBv
-ZiB0aGlzIGZsYWcuDQo+ICsJICogQXMgbG9uZyBhcyB0aGF0J3MgaGFwcGVuaW5nLCB1bm1hcCBh
-bGlhc2VzLg0KPiArCSAqLw0KPiArCWlmIChhcmVhLT5mbGFncyAmIFZNX0lNTUVESUFURV9VTk1B
-UCkNCj4gKwkJdm1fdW5tYXBfYWxpYXNlcygpOw0KPiArDQo+ICAJaWYgKGRlYWxsb2NhdGVfcGFn
-ZXMpIHsNCj4gIAkJaW50IGk7DQo+ICANCj4gQEAgLTE5MjUsOCArMTkzMyw5IEBAIEVYUE9SVF9T
-WU1CT0wodnphbGxvY19ub2RlKTsNCj4gIA0KPiAgdm9pZCAqdm1hbGxvY19leGVjKHVuc2lnbmVk
-IGxvbmcgc2l6ZSkNCj4gIHsNCj4gLQlyZXR1cm4gX192bWFsbG9jX25vZGUoc2l6ZSwgMSwgR0ZQ
-X0tFUk5FTCwgUEFHRV9LRVJORUxfRVhFQywNCj4gLQkJCSAgICAgIE5VTUFfTk9fTk9ERSwgX19i
-dWlsdGluX3JldHVybl9hZGRyZXNzKDApKTsNCj4gKwlyZXR1cm4gX192bWFsbG9jX25vZGVfcmFu
-Z2Uoc2l6ZSwgMSwgVk1BTExPQ19TVEFSVCwgVk1BTExPQ19FTkQsDQo+ICsJCQlHRlBfS0VSTkVM
-LCBQQUdFX0tFUk5FTF9FWEVDLCBWTV9JTU1FRElBVEVfVU5NQVAsDQo+ICsJCQlOVU1BX05PX05P
-REUsIF9fYnVpbHRpbl9yZXR1cm5fYWRkcmVzcygwKSk7DQo+ICB9DQo+ICANCj4gICNpZiBkZWZp
-bmVkKENPTkZJR182NEJJVCkgJiYgZGVmaW5lZChDT05GSUdfWk9ORV9ETUEzMikNCg==
+Hi Geert,
+
+On Sun, 2 Dec 2018 at 19:27, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+> Hi Firoz,
+>
+> On Tue, Nov 13, 2018 at 7:01 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > The system call tables are in different format in all
+> > architecture and it will be difficult to manually add,
+> > modify or delete the syscall table entries in the res-
+> > pective files. To make it easy by keeping a script and
+> > which will generate the uapi header and syscall table
+> > file. This change will also help to unify the implemen-
+> > tation across all architectures.
+> >
+> > The system call table generation script is added in
+> > kernel/syscalls directory which contain the scripts to
+> > generate both uapi header file and system call table
+> > files. The syscall.tbl will be input for the scripts.
+> >
+> > syscall.tbl contains the list of available system calls
+> > along with system call number and corresponding entry
+> > point. Add a new system call in this architecture will
+> > be possible by adding new entry in the syscall.tbl file.
+> >
+> > Adding a new table entry consisting of:
+> >         - System call number.
+> >         - ABI.
+> >         - System call name.
+> >         - Entry point name.
+> >
+> > syscallhdr.sh and syscalltbl.sh will generate uapi header
+> > unistd_32.h and syscall_table.h files respectively. Both
+> > .sh files will parse the content syscall.tbl to generate
+> > the header and table files. unistd_32.h will be included
+> > by uapi/asm/unistd.h and syscall_table.h is included by
+> > kernel/syscall_table.S - the real system call table.
+> >
+> > ARM, s390 and x86 architecuture does have similar support.
+> > I leverage their implementation to come up with a generic
+> > solution.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+>
+> Thanks for your patch!
+>
+> > --- /dev/null
+> > +++ b/arch/m68k/kernel/syscalls/syscallhdr.sh
+> > @@ -0,0 +1,36 @@
+> > +#!/bin/sh
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +
+> > +in="$1"
+> > +out="$2"
+> > +my_abis=`echo "($3)" | tr ',' '|'`
+> > +prefix="$4"
+> > +offset="$5"
+> > +
+> > +fileguard=_UAPI_ASM_M68K_`basename "$out" | sed \
+> > +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+> > +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> > +       printf "#ifndef %s\n" "${fileguard}"
+> > +       printf "#define %s\n" "${fileguard}"
+> > +       printf "\n"
+> > +
+> > +       nxt=0
+> > +       while read nr abi name entry ; do
+> > +               if [ -z "$offset" ]; then
+> > +                       printf "#define __NR_%s%s\t%s\n" \
+> > +                               "${prefix}" "${name}" "${nr}"
+> > +               else
+> > +                       printf "#define __NR_%s%s\t(%s + %s)\n" \
+> > +                               "${prefix}" "${name}" "${offset}" "${nr}"
+> > +               fi
+> > +               nxt=$((nr+1))
+> > +       done
+> > +
+> > +       printf "\n"
+> > +       printf "#ifdef __KERNEL__\n"
+> > +       printf "#define __NR_syscalls\t%s\n" "${nxt}"
+> > +       printf "#endif\n"
+> > +       printf "\n"
+> > +       printf "#endif /* %s */" "${fileguard}"
+>
+> The above line is lacking a "\n", causing:
+>
+>     ./arch/m68k/include/generated/uapi/asm/unistd_32.h:370:42:
+> warning: no newline at end of file
+
+I was wondering, I haven't seen this warning when I compiled it.
+
+>
+> Changing it to:
+>
+>     printf "#endif /* %s */\n" "${fileguard}"
+>
+> fixes this.
+
+Yes.
+
+>
+> Interestingly, this issue seems to be present on powerpc, parisc, sparc,
+> sh, xtensa (and probably more, I gave up looking), too?
+
+I kept the script to generate files *almost* identical. so this will be present
+all 10 architecture.
+
+>
+> Apart from that, it seems to work fine on m68k.
+
+I have three options here to fix this;
+1. I can send v6 by fixing this one.
+2. I can post a single patch which add \n in the script.
+3. Could you able to add \n in the script.
+
+Please choose one, I can act accordingly.
+
+Thanks
+Firoz
+
+>
+> > +) > "$out"
+>
+> Gr{oetje,eeting}s,
+>
+>                         Geert
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
