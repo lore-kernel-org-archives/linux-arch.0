@@ -1,73 +1,132 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH 01/23] dma-mapping: provide a generic DMA_MAPPING_ERROR
-Date: Tue, 4 Dec 2018 16:41:34 +0000
-Message-ID: <653ca801-63a1-3c19-ee09-ade19fa2bbb8@arm.com>
-References: <20181130132231.16512-1-hch@lst.de>
- <20181130132231.16512-2-hch@lst.de>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v6 04/26] x86/fpu/xstate: Introduce XSAVES system
+ states
+Date: Tue, 04 Dec 2018 09:08:11 -0800
+Message-ID: <752c38422a6536d8df99b619214f935e4bc882ad.camel@intel.com>
+References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+         <20181119214809.6086-5-yu-cheng.yu@intel.com>
+         <20181204160144.GG11803@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181130132231.16512-2-hch@lst.de>
-Content-Language: en-GB
+In-Reply-To: <20181204160144.GG11803@zn.tnic>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-On 30/11/2018 13:22, Christoph Hellwig wrote:
-> Error handling of the dma_map_single and dma_map_page APIs is a little
-> problematic at the moment, in that we use different encodings in the
-> returned dma_addr_t to indicate an error.  That means we require an
-> additional indirect call to figure out if a dma mapping call returned
-> an error, and a lot of boilerplate code to implement these semantics.
+On Tue, 2018-12-04 at 17:01 +0100, Borislav Petkov wrote:
+> On Mon, Nov 19, 2018 at 01:47:47PM -0800, Yu-cheng Yu wrote:
+> > Control-flow Enforcement (CET) MSR contents are XSAVES system states.
+> > To support CET, introduce XSAVES system states first.
+> > 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > ---
+> >  arch/x86/include/asm/fpu/internal.h |  3 +-
+> >  arch/x86/include/asm/fpu/xstate.h   |  4 +-
+> >  arch/x86/kernel/fpu/core.c          |  6 +-
+> >  arch/x86/kernel/fpu/init.c          | 10 ---
+> >  arch/x86/kernel/fpu/xstate.c        | 94 +++++++++++++++++++----------
+> >  5 files changed, 69 insertions(+), 48 deletions(-)
 > 
-> Instead return the maximum addressable value as the error.  As long
-> as we don't allow mapping single-byte ranges with single-byte alignment
-> this value can never be a valid return.  Additionaly if drivers do
-> not check the return value from the dma_map* routines this values means
-> they will generally not be pointed to actual memory.
+> ...
 > 
-> Once the default value is added here we can start removing the
-> various mapping_error methods and just rely on this generic check.
+> > @@ -704,6 +710,7 @@ static int init_xstate_size(void)
+> >   */
+> >  static void fpu__init_disable_system_xstate(void)
+> >  {
+> > +	xfeatures_mask_all = 0;
+> >  	xfeatures_mask_user = 0;
+> >  	cr4_clear_bits(X86_CR4_OSXSAVE);
+> >  	fpu__xstate_clear_all_cpu_caps();
+> > @@ -717,6 +724,8 @@ void __init fpu__init_system_xstate(void)
+> >  {
+> >  	unsigned int eax, ebx, ecx, edx;
+> >  	static int on_boot_cpu __initdata = 1;
+> > +	u64 cpu_system_xfeatures_mask;
+> > +	u64 cpu_user_xfeatures_mask;
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->   include/linux/dma-mapping.h | 6 ++++++
->   1 file changed, 6 insertions(+)
+> So what I had in mind is to not have those local vars but use
+> xfeatures_mask_user and xfeatures_mask_system here directly...
+
+Ok, I will re-write it.
+
+...
+
+> >  
+> > @@ -739,10 +748,23 @@ void __init fpu__init_system_xstate(void)
+> >  		return;
+> >  	}
+> >  
+> > +	/*
+> > +	 * Find user states supported by the processor.
+> > +	 * Only these bits can be set in XCR0.
+> > +	 */
+> >  	cpuid_count(XSTATE_CPUID, 0, &eax, &ebx, &ecx, &edx);
+> > -	xfeatures_mask_user = eax + ((u64)edx << 32);
+> > +	cpu_user_xfeatures_mask = eax + ((u64)edx << 32);
+> >  
+> > -	if ((xfeatures_mask_user & XFEATURE_MASK_FPSSE) !=
+> > XFEATURE_MASK_FPSSE) {
+> > +	/*
+> > +	 * Find system states supported by the processor.
+> > +	 * Only these bits can be set in IA32_XSS MSR.
+> > +	 */
+> > +	cpuid_count(XSTATE_CPUID, 1, &eax, &ebx, &ecx, &edx);
+> > +	cpu_system_xfeatures_mask = ecx + ((u64)edx << 32);
+> > +
+> > +	xfeatures_mask_all = cpu_user_xfeatures_mask |
+> > cpu_system_xfeatures_mask;
 > 
-> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-> index 0f81c713f6e9..46bd612d929e 100644
-> --- a/include/linux/dma-mapping.h
-> +++ b/include/linux/dma-mapping.h
-> @@ -133,6 +133,8 @@ struct dma_map_ops {
->   	u64 (*get_required_mask)(struct device *dev);
->   };
->   
-> +#define DMA_MAPPING_ERROR		(~(dma_addr_t)0)
-> +
->   extern const struct dma_map_ops dma_direct_ops;
->   extern const struct dma_map_ops dma_virt_ops;
->   
-> @@ -576,6 +578,10 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
->   	const struct dma_map_ops *ops = get_dma_ops(dev);
->   
->   	debug_dma_mapping_error(dev, dma_addr);
-> +
-> +	if (dma_addr == DMA_MAPPING_ERROR)
-> +		return 1;
-> +
->   	if (ops->mapping_error)
->   		return ops->mapping_error(dev, dma_addr);
->   	return 0;
+> ... and not introduce xfeatures_mask_all at all but everywhere you need
+> all features, to do:
+> 
+> 	(xfeatures_mask_user | xfeatures_mask_system)
+> 
+> and work with that.
 
-I'd have been inclined to put the default check here, i.e.
+Then we will do this very often.  Why don't we create all three in the
+beginning: xfeatures_mask_all, xfeatures_mask_user, and xfeatures_mask_system?
 
--	return 0
-+	return dma_addr == DMA_MAPPING_ERROR
+> ...
+> 
+> > @@ -1178,7 +1208,7 @@ int copy_kernel_to_xstate(struct xregs_state *xsave,
+> > const void *kbuf)
+> >  	 * The state that came in from userspace was user-state only.
+> >  	 * Mask all the user states out of 'xfeatures':
+> >  	 */
+> > -	xsave->header.xfeatures &= XFEATURE_MASK_SUPERVISOR;
+> > +	xsave->header.xfeatures &= (xfeatures_mask_all &
+> > ~xfeatures_mask_user);
+> 
+> ... and this would be
+> 
+> 	xsave->header.xfeatures &= xfeatures_mask_system;
 
-such that the callback retains full precedence and we don't have to deal 
-with the non-trivial removals immediately if it comes to it. Not that it 
-makes a vast difference though, so either way,
+Yes.
 
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+> 
+> >  
+> >  	/*
+> >  	 * Add back in the features that came in from userspace:
+> > @@ -1234,7 +1264,7 @@ int copy_user_to_xstate(struct xregs_state *xsave,
+> > const void __user *ubuf)
+> >  	 * The state that came in from userspace was user-state only.
+> >  	 * Mask all the user states out of 'xfeatures':
+> >  	 */
+> > -	xsave->header.xfeatures &= XFEATURE_MASK_SUPERVISOR;
+> > +	xsave->header.xfeatures &= (xfeatures_mask_all &
+> > ~xfeatures_mask_user);
+> 
+> Ditto here.
+> 
+> This way you have *two* mask variables and code queries them only.
+> 
+> Hmmm?
+> 
+> Or am I missing something?
+
+We actually have three.
+
+Yu-cheng
