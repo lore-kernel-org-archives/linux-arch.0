@@ -1,64 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f196.google.com ([209.85.160.196]:38554 "EHLO
-        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725875AbeLDVdc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2018 16:33:32 -0500
+Received: from verein.lst.de ([213.95.11.211]:46499 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725925AbeLDWd5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Dec 2018 17:33:57 -0500
+Date: Tue, 4 Dec 2018 23:33:55 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 01/23] dma-mapping: provide a generic DMA_MAPPING_ERROR
+Message-ID: <20181204223355.GA12534@lst.de>
+References: <20181130132231.16512-1-hch@lst.de> <20181130132231.16512-2-hch@lst.de> <653ca801-63a1-3c19-ee09-ade19fa2bbb8@arm.com>
 MIME-Version: 1.0
-References: <1543465611-17122-1-git-send-email-firoz.khan@linaro.org>
- <1543465611-17122-5-git-send-email-firoz.khan@linaro.org> <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
-In-Reply-To: <CAK8P3a2SP0eX50NoFKaM2N85mgSejToQkD9ZOE_7V_RT__BCvg@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 4 Dec 2018 22:33:13 +0100
-Message-ID: <CAK8P3a0DX6Eh0OwUh975RL2Pq_ux_AQeBPSakPFxZf+t62EJ=w@mail.gmail.com>
-Subject: Re: [PATCH v3 4/4] powerpc: generate uapi header and system call
- table files
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <653ca801-63a1-3c19-ee09-ade19fa2bbb8@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, linuxram@us.ibm.com, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181204213313.95WGXx6vEIs5rMUBT6kZ0STUd4DR8S0wx_1lcrHSMlg@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20181204223355.v7YmZNTfrvIocXiYphpbpd1njhTQxQGPYSXU5yHMtyw@z>
 
-On Tue, Dec 4, 2018 at 10:17 PM Arnd Bergmann <arnd@arndb.de> wrote:
+On Tue, Dec 04, 2018 at 04:41:34PM +0000, Robin Murphy wrote:
+> I'd have been inclined to put the default check here, i.e.
 >
-> > diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
-> > index 9ff1913..d756348 100644
-> > --- a/arch/powerpc/kernel/systbl.S
-> > +++ b/arch/powerpc/kernel/systbl.S
+> -	return 0
+> +	return dma_addr == DMA_MAPPING_ERROR
 >
-> >  #ifdef CONFIG_PPC64
-> > @@ -47,5 +25,17 @@
-> >  .globl sys_call_table
-> >  sys_call_table:
-> >
-> > +#if defined CONFIG_PPC64 && defined(CONFIG_COMPAT)
-> > +#define __SYSCALL(nr, entry, nargs) .8byte entry
-> >  #define compat_sys_sigsuspend  sys_sigsuspend
-> > -#include <asm/systbl.h>
-> > +#include <asm/syscall_table_c32.h>
-> > +#undef __SYSCALL
-> > +#elif defined CONFIG_PPC64 && !defined(CONFIG_COMPAT)
-> > +#define __SYSCALL(nr, entry, nargs) .8byte entry
-> > +#include <asm/syscall_table_64.h>
-> > +#undef __SYSCALL
->
-> This part looks wrong: where the old sys_call_table contained
-> both the native and compat calls side by side, the new table
-> contains only the compat versions (note that CONFIG_COMPAT is
-> always set on PPC64). I think you copy-pasted this incorrectly from
-> one of the other architectures that uses a different layout for the
-> compat calls.
->
-> The way I think this could work best is if you add a preparation
-> patch that splits out the 64-bit table into two separate ones
-> (and make sure that works). After that, you can add your
-> existing patch, rebased to use the two generated tables
-> instead of the old-style tables. I'll follow up with an untested
-> patch for illustration.
+> such that the callback retains full precedence and we don't have to deal 
+> with the non-trivial removals immediately if it comes to it. Not that it 
+> makes a vast difference though, so either way,
 
-One more thing I noticed while writing up that patch: you also need
-to use the DOTSYM() macro in __SYSCALL() to generate the correct
-symbol name for the old ELF ABI (when PPC64_ELF_ABI_v2 is
-not set).
-
-       Arnd
+Ok, I've switched it around.
