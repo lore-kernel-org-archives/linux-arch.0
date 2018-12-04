@@ -1,87 +1,73 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH memory-model 0/3] Updates to the formal memory model
-Date: Tue, 4 Dec 2018 08:36:40 -0800
-Message-ID: <20181204163640.GX4170@linux.ibm.com>
-References: <20181203230411.GA27476@linux.ibm.com>
- <802d5c17-74fd-86a1-efba-5ee2825a0c3c@gmail.com>
- <20181203235127.GS4170@linux.ibm.com>
- <fbd7b1ed-7a4f-b877-e2f0-8dafca817f68@gmail.com>
-Reply-To: paulmck@linux.ibm.com
+From: Robin Murphy <robin.murphy@arm.com>
+Subject: Re: [PATCH 01/23] dma-mapping: provide a generic DMA_MAPPING_ERROR
+Date: Tue, 4 Dec 2018 16:41:34 +0000
+Message-ID: <653ca801-63a1-3c19-ee09-ade19fa2bbb8@arm.com>
+References: <20181130132231.16512-1-hch@lst.de>
+ <20181130132231.16512-2-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <fbd7b1ed-7a4f-b877-e2f0-8dafca817f68@gmail.com>
+In-Reply-To: <20181130132231.16512-2-hch@lst.de>
+Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
-To: Akira Yokosawa <akiyks@gmail.com>
-Cc: mingo@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 05, 2018 at 12:40:01AM +0900, Akira Yokosawa wrote:
-> On 2018/12/03 15:51:27 -0800, Paul E. McKenney wrote:
-> > On Tue, Dec 04, 2018 at 08:28:03AM +0900, Akira Yokosawa wrote:
-> >> On 2018/12/03 15:04:11 -0800, Paul E. McKenney wrote:
-> >>> Hello, Ingo!
-> >>>
-> >>> This series contains updates to the Linux kernel's formal memory model
-> >>> in tools/memory-model.  These patches are ready for inclusion into -tip.
-> >>>
-> >>> 1.	Model smp_mb__after_unlock_lock(), courtesy of Andrea Parri.
-> >>>
-> >>> 2.	Add scripts to check github litmus tests.
-> >>>
-> >>> 3.	Make scripts take "-j" abbreviation for "--jobs".
-> >>>
-> >>> There is another series in preparation to model SRCU, but this series
-> >>> requires hot-off-the presses changes to the herd tool that have not yet
-> >>> been released.  This SRCU series is therefore targeting the merge window
-> >>> after the upcoming one.  People wishing to experiment with the prototype
-> >>> SRCU model may obtain it from my -rcu tree at branch "dev", and use
-> >>> a bleeding-edge herd7 built from https://github.com/herd/herdtools7/,
-> >>> version 7.51+2(dev), which is (commit 10403b24070c) or later.
-> >>
-> >> On the master branch of herdtools7, SRCU support was added in version
-> >> 7.51+4(dev), which is commit 6ec9da1f4d58, or later.
-> > 
-> > It has been working for me with version 7.51+2(dev), but perhaps I
-> > have just been getting lucky.  It wouldn't be the first time!  ;-)
+On 30/11/2018 13:22, Christoph Hellwig wrote:
+> Error handling of the dma_map_single and dma_map_page APIs is a little
+> problematic at the moment, in that we use different encodings in the
+> returned dma_addr_t to indicate an error.  That means we require an
+> additional indirect call to figure out if a dma mapping call returned
+> an error, and a lot of boilerplate code to implement these semantics.
 > 
-> Sounds like you've been at the HEAD of topic branch "srcu".
-
-You are quite right.  And this situation does confirm the wisdom of
-waiting until a herd release containing the SRCU support.  ;-)
-
-							Thanx, Paul
-
->         Thanks, Akira
-> > 
-> > 							Thanx, Paul
-> > 
-> >>         Thanks, Akira
-> >>
-> >>>
-> >>> 							Thanx, Paul
-> >>>
-> >>> ------------------------------------------------------------------------
-> >>>
-> >>>  .gitignore                 |    1 
-> >>>  README                     |    2 
-> >>>  linux-kernel.bell          |    3 
-> >>>  linux-kernel.cat           |    4 -
-> >>>  linux-kernel.def           |    1 
-> >>>  scripts/README             |   70 ++++++++++++++++++++++
-> >>>  scripts/checkalllitmus.sh  |   53 +++++++----------
-> >>>  scripts/checkghlitmus.sh   |   65 ++++++++++++++++++++
-> >>>  scripts/checklitmus.sh     |   74 +++--------------------
-> >>>  scripts/checklitmushist.sh |   60 +++++++++++++++++++
-> >>>  scripts/cmplitmushist.sh   |   87 +++++++++++++++++++++++++++
-> >>>  scripts/initlitmushist.sh  |   68 +++++++++++++++++++++
-> >>>  scripts/judgelitmus.sh     |   78 +++++++++++++++++++++++++
-> >>>  scripts/newlitmushist.sh   |   61 +++++++++++++++++++
-> >>>  scripts/parseargs.sh       |  140 ++++++++++++++++++++++++++++++++++++++++++++-
-> >>>  scripts/runlitmushist.sh   |   87 +++++++++++++++++++++++++++
-> >>>  16 files changed, 757 insertions(+), 97 deletions(-)
-> >>>
-> >>
-> > 
+> Instead return the maximum addressable value as the error.  As long
+> as we don't allow mapping single-byte ranges with single-byte alignment
+> this value can never be a valid return.  Additionaly if drivers do
+> not check the return value from the dma_map* routines this values means
+> they will generally not be pointed to actual memory.
 > 
+> Once the default value is added here we can start removing the
+> various mapping_error methods and just rely on this generic check.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>   include/linux/dma-mapping.h | 6 ++++++
+>   1 file changed, 6 insertions(+)
+> 
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index 0f81c713f6e9..46bd612d929e 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -133,6 +133,8 @@ struct dma_map_ops {
+>   	u64 (*get_required_mask)(struct device *dev);
+>   };
+>   
+> +#define DMA_MAPPING_ERROR		(~(dma_addr_t)0)
+> +
+>   extern const struct dma_map_ops dma_direct_ops;
+>   extern const struct dma_map_ops dma_virt_ops;
+>   
+> @@ -576,6 +578,10 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+>   	const struct dma_map_ops *ops = get_dma_ops(dev);
+>   
+>   	debug_dma_mapping_error(dev, dma_addr);
+> +
+> +	if (dma_addr == DMA_MAPPING_ERROR)
+> +		return 1;
+> +
+>   	if (ops->mapping_error)
+>   		return ops->mapping_error(dev, dma_addr);
+>   	return 0;
+
+I'd have been inclined to put the default check here, i.e.
+
+-	return 0
++	return dma_addr == DMA_MAPPING_ERROR
+
+such that the callback retains full precedence and we don't have to deal 
+with the non-trivial removals immediately if it comes to it. Not that it 
+makes a vast difference though, so either way,
+
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
