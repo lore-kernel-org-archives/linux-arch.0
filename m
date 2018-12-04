@@ -1,88 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48020 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725994AbeLCXvc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2018 18:51:32 -0500
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wB3Nn0EI036554
-        for <linux-arch@vger.kernel.org>; Mon, 3 Dec 2018 18:51:31 -0500
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2p5c1jnkvp-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 03 Dec 2018 18:51:31 -0500
-Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 3 Dec 2018 23:51:31 -0000
-Date: Mon, 3 Dec 2018 15:51:27 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH memory-model 0/3] Updates to the formal memory model
-Reply-To: paulmck@linux.ibm.com
-References: <20181203230411.GA27476@linux.ibm.com>
- <802d5c17-74fd-86a1-efba-5ee2825a0c3c@gmail.com>
+Received: from mga11.intel.com ([192.55.52.93]:1266 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725903AbeLDAEW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Dec 2018 19:04:22 -0500
+From: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Subject: Re: [PATCH 1/2] vmalloc: New flag for flush before releasing pages
+Date: Tue, 4 Dec 2018 00:04:21 +0000
+Message-ID: <f00a7c0b99cb3dae3f42e144c0532a6a299c06a0.camel@intel.com>
+References: <20181128000754.18056-1-rick.p.edgecombe@intel.com>
+         <20181128000754.18056-2-rick.p.edgecombe@intel.com>
+In-Reply-To: <20181128000754.18056-2-rick.p.edgecombe@intel.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <DD455A0478EDF040A61027CE85944E93@intel.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <802d5c17-74fd-86a1-efba-5ee2825a0c3c@gmail.com>
-Message-ID: <20181203235127.GS4170@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akira Yokosawa <akiyks@gmail.com>
-Cc: mingo@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
-Message-ID: <20181203235127.q6LaspOVpE1sCk4bnUEfVnNdryh8T_-JwwxcmwlY_s0@z>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Dock, Deneen T" <deneen.t.dock@intel.com>, "daniel@iogearbox.net" <daniel@iogearbox.net>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "ast@kernel.org" <ast@kernel.org>, "jeyu@kernel.org" <jeyu@kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "jannh@google.com" <jannh@google.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "kristen@linux.intel.com" <kristen@linux.intel.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mingo@redhat.com" <mingo@redhat.com>, "luto@kernel.org" <luto@kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "Hansen, Dave" <dave.hansen@intel.com>, "mhiramat@kernel.org" <mhiramat@kernel.org>, "naveen.n.rao@linux.vnet.ibm.com" <naveen.n.rao@linux.vnet.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "Keshavamurthy, Anil S" <anil.s.keshavamurthy@intel.com>
+Message-ID: <20181204000421.grRJrgrvy6y0MydbmTq_lIGAtuBXmkMQxbf3SwiUHok@z>
 
-On Tue, Dec 04, 2018 at 08:28:03AM +0900, Akira Yokosawa wrote:
-> On 2018/12/03 15:04:11 -0800, Paul E. McKenney wrote:
-> > Hello, Ingo!
-> > 
-> > This series contains updates to the Linux kernel's formal memory model
-> > in tools/memory-model.  These patches are ready for inclusion into -tip.
-> > 
-> > 1.	Model smp_mb__after_unlock_lock(), courtesy of Andrea Parri.
-> > 
-> > 2.	Add scripts to check github litmus tests.
-> > 
-> > 3.	Make scripts take "-j" abbreviation for "--jobs".
-> > 
-> > There is another series in preparation to model SRCU, but this series
-> > requires hot-off-the presses changes to the herd tool that have not yet
-> > been released.  This SRCU series is therefore targeting the merge window
-> > after the upcoming one.  People wishing to experiment with the prototype
-> > SRCU model may obtain it from my -rcu tree at branch "dev", and use
-> > a bleeding-edge herd7 built from https://github.com/herd/herdtools7/,
-> > version 7.51+2(dev), which is (commit 10403b24070c) or later.
-> 
-> On the master branch of herdtools7, SRCU support was added in version
-> 7.51+4(dev), which is commit 6ec9da1f4d58, or later.
-
-It has been working for me with version 7.51+2(dev), but perhaps I
-have just been getting lucky.  It wouldn't be the first time!  ;-)
-
-							Thanx, Paul
-
->         Thanks, Akira
-> 
-> > 
-> > 							Thanx, Paul
-> > 
-> > ------------------------------------------------------------------------
-> > 
-> >  .gitignore                 |    1 
-> >  README                     |    2 
-> >  linux-kernel.bell          |    3 
-> >  linux-kernel.cat           |    4 -
-> >  linux-kernel.def           |    1 
-> >  scripts/README             |   70 ++++++++++++++++++++++
-> >  scripts/checkalllitmus.sh  |   53 +++++++----------
-> >  scripts/checkghlitmus.sh   |   65 ++++++++++++++++++++
-> >  scripts/checklitmus.sh     |   74 +++--------------------
-> >  scripts/checklitmushist.sh |   60 +++++++++++++++++++
-> >  scripts/cmplitmushist.sh   |   87 +++++++++++++++++++++++++++
-> >  scripts/initlitmushist.sh  |   68 +++++++++++++++++++++
-> >  scripts/judgelitmus.sh     |   78 +++++++++++++++++++++++++
-> >  scripts/newlitmushist.sh   |   61 +++++++++++++++++++
-> >  scripts/parseargs.sh       |  140 ++++++++++++++++++++++++++++++++++++++++++++-
-> >  scripts/runlitmushist.sh   |   87 +++++++++++++++++++++++++++
-> >  16 files changed, 757 insertions(+), 97 deletions(-)
-> > 
-> 
+SXQgbG9va3MgbGlrZSB0aGlzIG5ldyBmbGFnIGlzIGluIGxpbnV4LW5leHQgbm93LiBBcyBJIGFt
+IHJlYWRpbmcgaXQsIHRoZXNlDQphcmNoaXRlY3R1cmVzIGhhdmUgYSBtb2R1bGVfYWxsb2MgdGhh
+dCB1c2VzIHNvbWUgc29ydCBvZiBleGVjdXRhYmxlIGZsYWcgYW5kDQphcmUgbm90IHVzaW5nIHRo
+ZSBkZWZhdWx0IG1vZHVsZV9hbGxvYyB3aGljaCBpcyBhbHJlYWR5IGNvdmVyZWQsIGFuZCBzbyBt
+YXkgbmVlZA0KaXQgcGx1Z2dlZCBpbjoNCmFybQ0KYXJtNjQNCnBhcmlzYw0KczM5MA0KdW5pY29y
+ZTMyDQoNClRoYW5rcywNCg0KUmljaw0KDQpPbiBUdWUsIDIwMTgtMTEtMjcgYXQgMTY6MDcgLTA4
+MDAsIFJpY2sgRWRnZWNvbWJlIHdyb3RlOg0KPiBTaW5jZSB2ZnJlZSB3aWxsIGxhemlseSBmbHVz
+aCB0aGUgVExCLCBidXQgbm90IGxhemlseSBmcmVlIHRoZSB1bmRlcmx5aW5nDQo+IHBhZ2VzLA0K
+PiBpdCBvZnRlbiBsZWF2ZXMgc3RhbGUgVExCIGVudHJpZXMgdG8gZnJlZWQgcGFnZXMgdGhhdCBj
+b3VsZCBnZXQgcmUtdXNlZC4gVGhpcw0KPiBpcw0KPiB1bmRlc2lyYWJsZSBmb3IgY2FzZXMgd2hl
+cmUgdGhlIG1lbW9yeSBiZWluZyBmcmVlZCBoYXMgc3BlY2lhbCBwZXJtaXNzaW9ucw0KPiBzdWNo
+DQo+IGFzIGV4ZWN1dGFibGUuDQo+IA0KPiBIYXZpbmcgY2FsbGVycyBmbHVzaCB0aGUgVExCIGFm
+dGVyIGNhbGxpbmcgdmZyZWUgc3RpbGwgbGVhdmVzIGEgd2luZG93IHdoZXJlDQo+IHRoZSBwYWdl
+cyBhcmUgZnJlZWQsIGJ1dCB0aGUgVExCIGVudHJ5IHJlbWFpbnMuIEFsc28gdGhlIGVudGlyZSBv
+cGVyYXRpb24gY2FuDQo+IGJlDQo+IGRlZmVycmVkIGlmIHRoZSB2ZnJlZSBpcyBjYWxsZWQgZnJv
+bSBhbiBpbnRlcnJ1cHQgYW5kIHNvIGEgVExCIGZsdXNoIGFmdGVyDQo+IGNhbGxpbmcgdmZyZWUg
+d291bGQgbWlzcyB0aGUgZW50aXJlIG9wZXJhdGlvbi4gU28gaW4gb3JkZXIgdG8gc3VwcG9ydCB0
+aGlzIHVzZQ0KPiBjYXNlLCBhIG5ldyBmbGFnIFZNX0lNTUVESUFURV9VTk1BUCBpcyBhZGRlZCwg
+dGhhdCB3aWxsIGNhdXNlIHRoZSBmcmVlDQo+IG9wZXJhdGlvbg0KPiB0byB0YWtlIHBsYWNlIGxp
+a2UgdGhpczoNCj4gICAgICAgICAxLiBVbm1hcA0KPiAgICAgICAgIDIuIEZsdXNoIFRMQi9Vbm1h
+cCBhbGlhc2VzDQo+ICAgICAgICAgMy4gRnJlZSBwYWdlcw0KPiBJbiB0aGUgZGVmZXJyZWQgY2Fz
+ZSB0aGVzZSBzdGVwcyBhcmUgYWxsIGRvbmUgYnkgdGhlIHdvcmsgcXVldWUuDQo+IA0KPiBUaGlz
+IGltcGxlbWVudGF0aW9uIGRlcml2ZXMgZnJvbSB0d28gc2tldGNoZXMgZnJvbSBEYXZlIEhhbnNl
+biBhbmQNCj4gQW5keSBMdXRvbWlyc2tpLg0KPiANCj4gU3VnZ2VzdGVkLWJ5OiBEYXZlIEhhbnNl
+biA8ZGF2ZS5oYW5zZW5AaW50ZWwuY29tPg0KPiBTdWdnZXN0ZWQtYnk6IEFuZHkgTHV0b21pcnNr
+aSA8bHV0b0BrZXJuZWwub3JnPg0KPiBTdWdnZXN0ZWQtYnk6IFdpbGwgRGVhY29uIDx3aWxsLmRl
+YWNvbkBhcm0uY29tPg0KPiBTaWduZWQtb2ZmLWJ5OiBSaWNrIEVkZ2Vjb21iZSA8cmljay5wLmVk
+Z2Vjb21iZUBpbnRlbC5jb20+DQo+IC0tLQ0KPiAgaW5jbHVkZS9saW51eC92bWFsbG9jLmggfCAg
+MSArDQo+ICBtbS92bWFsbG9jLmMgICAgICAgICAgICB8IDEzICsrKysrKysrKysrLS0NCj4gIDIg
+ZmlsZXMgY2hhbmdlZCwgMTIgaW5zZXJ0aW9ucygrKSwgMiBkZWxldGlvbnMoLSkNCj4gDQo+IGRp
+ZmYgLS1naXQgYS9pbmNsdWRlL2xpbnV4L3ZtYWxsb2MuaCBiL2luY2x1ZGUvbGludXgvdm1hbGxv
+Yy5oDQo+IGluZGV4IDM5OGU5Yzk1Y2Q2MS4uY2NhNmI2YjgzY2YwIDEwMDY0NA0KPiAtLS0gYS9p
+bmNsdWRlL2xpbnV4L3ZtYWxsb2MuaA0KPiArKysgYi9pbmNsdWRlL2xpbnV4L3ZtYWxsb2MuaA0K
+PiBAQCAtMjEsNiArMjEsNyBAQCBzdHJ1Y3Qgbm90aWZpZXJfYmxvY2s7CQkvKiBpbiBub3RpZmll
+ci5oICovDQo+ICAjZGVmaW5lIFZNX1VOSU5JVElBTElaRUQJMHgwMDAwMDAyMAkvKiB2bV9zdHJ1
+Y3QgaXMgbm90IGZ1bGx5DQo+IGluaXRpYWxpemVkICovDQo+ICAjZGVmaW5lIFZNX05PX0dVQVJE
+CQkweDAwMDAwMDQwICAgICAgLyogZG9uJ3QgYWRkIGd1YXJkIHBhZ2UgKi8NCj4gICNkZWZpbmUg
+Vk1fS0FTQU4JCTB4MDAwMDAwODAgICAgICAvKiBoYXMgYWxsb2NhdGVkIGthc2FuIHNoYWRvdw0K
+PiBtZW1vcnkgKi8NCj4gKyNkZWZpbmUgVk1fSU1NRURJQVRFX1VOTUFQCTB4MDAwMDAyMDAJLyog
+Zmx1c2ggYmVmb3JlIHJlbGVhc2luZw0KPiBwYWdlcyAqLw0KPiAgLyogYml0cyBbMjAuLjMyXSBy
+ZXNlcnZlZCBmb3IgYXJjaCBzcGVjaWZpYyBpb3JlbWFwIGludGVybmFscyAqLw0KPiAgDQo+ICAv
+Kg0KPiBkaWZmIC0tZ2l0IGEvbW0vdm1hbGxvYy5jIGIvbW0vdm1hbGxvYy5jDQo+IGluZGV4IDk3
+ZDRiMjVkMDM3My4uNjg3NjY2NTFiNWE3IDEwMDY0NA0KPiAtLS0gYS9tbS92bWFsbG9jLmMNCj4g
+KysrIGIvbW0vdm1hbGxvYy5jDQo+IEBAIC0xNTE2LDYgKzE1MTYsMTQgQEAgc3RhdGljIHZvaWQg
+X192dW5tYXAoY29uc3Qgdm9pZCAqYWRkciwgaW50DQo+IGRlYWxsb2NhdGVfcGFnZXMpDQo+ICAJ
+ZGVidWdfY2hlY2tfbm9fb2JqX2ZyZWVkKGFyZWEtPmFkZHIsIGdldF92bV9hcmVhX3NpemUoYXJl
+YSkpOw0KPiAgDQo+ICAJcmVtb3ZlX3ZtX2FyZWEoYWRkcik7DQo+ICsNCj4gKwkvKg0KPiArCSAq
+IE5lZWQgdG8gZmx1c2ggdGhlIFRMQiBiZWZvcmUgZnJlZWluZyBwYWdlcyBpbiB0aGUgY2FzZSBv
+ZiB0aGlzIGZsYWcuDQo+ICsJICogQXMgbG9uZyBhcyB0aGF0J3MgaGFwcGVuaW5nLCB1bm1hcCBh
+bGlhc2VzLg0KPiArCSAqLw0KPiArCWlmIChhcmVhLT5mbGFncyAmIFZNX0lNTUVESUFURV9VTk1B
+UCkNCj4gKwkJdm1fdW5tYXBfYWxpYXNlcygpOw0KPiArDQo+ICAJaWYgKGRlYWxsb2NhdGVfcGFn
+ZXMpIHsNCj4gIAkJaW50IGk7DQo+ICANCj4gQEAgLTE5MjUsOCArMTkzMyw5IEBAIEVYUE9SVF9T
+WU1CT0wodnphbGxvY19ub2RlKTsNCj4gIA0KPiAgdm9pZCAqdm1hbGxvY19leGVjKHVuc2lnbmVk
+IGxvbmcgc2l6ZSkNCj4gIHsNCj4gLQlyZXR1cm4gX192bWFsbG9jX25vZGUoc2l6ZSwgMSwgR0ZQ
+X0tFUk5FTCwgUEFHRV9LRVJORUxfRVhFQywNCj4gLQkJCSAgICAgIE5VTUFfTk9fTk9ERSwgX19i
+dWlsdGluX3JldHVybl9hZGRyZXNzKDApKTsNCj4gKwlyZXR1cm4gX192bWFsbG9jX25vZGVfcmFu
+Z2Uoc2l6ZSwgMSwgVk1BTExPQ19TVEFSVCwgVk1BTExPQ19FTkQsDQo+ICsJCQlHRlBfS0VSTkVM
+LCBQQUdFX0tFUk5FTF9FWEVDLCBWTV9JTU1FRElBVEVfVU5NQVAsDQo+ICsJCQlOVU1BX05PX05P
+REUsIF9fYnVpbHRpbl9yZXR1cm5fYWRkcmVzcygwKSk7DQo+ICB9DQo+ICANCj4gICNpZiBkZWZp
+bmVkKENPTkZJR182NEJJVCkgJiYgZGVmaW5lZChDT05GSUdfWk9ORV9ETUEzMikNCg==
