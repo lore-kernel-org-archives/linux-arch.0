@@ -1,149 +1,120 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v5 2/3] m68k: add system call table generation support
-Date: Tue, 4 Dec 2018 08:52:04 +0530
-Message-ID: <CALxhOnggoJ8Ds-0AXxg5Tfa7QwccqjWExKuYRuNv+Km1FTVj1w@mail.gmail.com>
-References: <1542088829-19790-1-git-send-email-firoz.khan@linaro.org>
- <1542088829-19790-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVsBwL9vcqejfc47GN793wMXdQ=SwEsSUP1fbpMt-OoWw@mail.gmail.com>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+Date: Tue, 4 Dec 2018 09:33:08 +0530
+Message-ID: <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdVsBwL9vcqejfc47GN793wMXdQ=SwEsSUP1fbpMt-OoWw@mail.gmail.com>
+In-Reply-To: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Geert,
+Hi Paul,
 
-On Sun, 2 Dec 2018 at 19:27, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+On Thu, 29 Nov 2018 at 14:14, Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> Hi Firoz,
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the
+> system call table generation support implementation
+> across all the architectures.
 >
-> On Tue, Nov 13, 2018 at 7:01 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > The system call tables are in different format in all
-> > architecture and it will be difficult to manually add,
-> > modify or delete the syscall table entries in the res-
-> > pective files. To make it easy by keeping a script and
-> > which will generate the uapi header and syscall table
-> > file. This change will also help to unify the implemen-
-> > tation across all architectures.
-> >
-> > The system call table generation script is added in
-> > kernel/syscalls directory which contain the scripts to
-> > generate both uapi header file and system call table
-> > files. The syscall.tbl will be input for the scripts.
-> >
-> > syscall.tbl contains the list of available system calls
-> > along with system call number and corresponding entry
-> > point. Add a new system call in this architecture will
-> > be possible by adding new entry in the syscall.tbl file.
-> >
-> > Adding a new table entry consisting of:
-> >         - System call number.
-> >         - ABI.
-> >         - System call name.
-> >         - Entry point name.
-> >
-> > syscallhdr.sh and syscalltbl.sh will generate uapi header
-> > unistd_32.h and syscall_table.h files respectively. Both
-> > .sh files will parse the content syscall.tbl to generate
-> > the header and table files. unistd_32.h will be included
-> > by uapi/asm/unistd.h and syscall_table.h is included by
-> > kernel/syscall_table.S - the real system call table.
-> >
-> > ARM, s390 and x86 architecuture does have similar support.
-> > I leverage their implementation to come up with a generic
-> > solution.
-> >
-> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> The system call tables are in different format in
+> all architecture. It will be difficult to manually
+> add, modify or delete the system calls in the resp-
+> ective files manually. To make it easy by keeping a
+> script and which'll generate uapi header file and
+> syscall table file.
 >
-> Thanks for your patch!
+> syscall.tbl contains the list of available system
+> calls along with system call number and correspond-
+> ing entry point. Add a new system call in this arch-
+> itecture will be possible by adding new entry in
+> the syscall.tbl file.
 >
-> > --- /dev/null
-> > +++ b/arch/m68k/kernel/syscalls/syscallhdr.sh
-> > @@ -0,0 +1,36 @@
-> > +#!/bin/sh
-> > +# SPDX-License-Identifier: GPL-2.0
-> > +
-> > +in="$1"
-> > +out="$2"
-> > +my_abis=`echo "($3)" | tr ',' '|'`
-> > +prefix="$4"
-> > +offset="$5"
-> > +
-> > +fileguard=_UAPI_ASM_M68K_`basename "$out" | sed \
-> > +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-> > +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> > +       printf "#ifndef %s\n" "${fileguard}"
-> > +       printf "#define %s\n" "${fileguard}"
-> > +       printf "\n"
-> > +
-> > +       nxt=0
-> > +       while read nr abi name entry ; do
-> > +               if [ -z "$offset" ]; then
-> > +                       printf "#define __NR_%s%s\t%s\n" \
-> > +                               "${prefix}" "${name}" "${nr}"
-> > +               else
-> > +                       printf "#define __NR_%s%s\t(%s + %s)\n" \
-> > +                               "${prefix}" "${name}" "${offset}" "${nr}"
-> > +               fi
-> > +               nxt=$((nr+1))
-> > +       done
-> > +
-> > +       printf "\n"
-> > +       printf "#ifdef __KERNEL__\n"
-> > +       printf "#define __NR_syscalls\t%s\n" "${nxt}"
-> > +       printf "#endif\n"
-> > +       printf "\n"
-> > +       printf "#endif /* %s */" "${fileguard}"
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+>         - Compat entry name, if required.
 >
-> The above line is lacking a "\n", causing:
+> ARM, s390 and x86 architecuture does exist the sim-
+> ilar support. I leverage their implementation to
+> come up with a generic solution.
 >
->     ./arch/m68k/include/generated/uapi/asm/unistd_32.h:370:42:
-> warning: no newline at end of file
+> I have done the same support for work for alpha,
+> ia64, m68k, microblaze, parisc, powerpc, sh, sparc,
+> and xtensa. Below mentioned git repository contains
+> more details about the workflow.
+>
+> https://github.com/frzkhn/system_call_table_generator/
+>
+> Finally, this is the ground work to solve the Y2038
+> issue. We need to add two dozen of system calls to
+> solve Y2038 issue. So this patch series will help to
+> add new system calls easily by adding new entry in
+> the syscall.tbl.
+>
+> Changes since v2:
+>  - fixed __NR_syscalls assign issue.
+>
+> Changes since v1:
+>  - optimized/updated the syscall table generation
+>    scripts.
+>  - fixed all mixed indentation issues in syscall.tbl.
+>  - added "comments" in syscall_*.tbl.
+>  - changed from generic-y to generated-y in Kbuild.
+>
+> Firoz Khan (6):
+>   mips: add __NR_syscalls along with __NR_Linux_syscalls
+>   mips: remove unused macros
+>   mips: add +1 to __NR_syscalls in uapi header
+>   mips: remove syscall table entries
+>   mips: add system call table generation support
+>   mips: generate uapi header and system call table files
 
-I was wondering, I haven't seen this warning when I compiled it.
-
->
-> Changing it to:
->
->     printf "#endif /* %s */\n" "${fileguard}"
->
-> fixes this.
-
-Yes.
-
->
-> Interestingly, this issue seems to be present on powerpc, parisc, sparc,
-> sh, xtensa (and probably more, I gave up looking), too?
-
-I kept the script to generate files *almost* identical. so this will be present
-all 10 architecture.
-
->
-> Apart from that, it seems to work fine on m68k.
-
-I have three options here to fix this;
-1. I can send v6 by fixing this one.
-2. I can post a single patch which add \n in the script.
-3. Could you able to add \n in the script.
-
-Please choose one, I can act accordingly.
+Could you review this patch series. I would appreciate if you can
+perform the boot test on the actual platform.
 
 Thanks
 Firoz
 
 >
-> > +) > "$out"
->
-> Gr{oetje,eeting}s,
->
->                         Geert
+>  arch/mips/Makefile                        |    3 +
+>  arch/mips/include/asm/Kbuild              |    4 +
+>  arch/mips/include/asm/unistd.h            |    8 -
+>  arch/mips/include/uapi/asm/Kbuild         |    6 +
+>  arch/mips/include/uapi/asm/unistd.h       | 1065 +----------------------------
+>  arch/mips/kernel/Makefile                 |    2 +-
+>  arch/mips/kernel/ftrace.c                 |    8 +-
+>  arch/mips/kernel/scall32-o32.S            |  391 +----------
+>  arch/mips/kernel/scall64-64.S             |  444 ------------
+>  arch/mips/kernel/scall64-n32.S            |  341 +--------
+>  arch/mips/kernel/scall64-n64.S            |  117 ++++
+>  arch/mips/kernel/scall64-o32.S            |  379 +---------
+>  arch/mips/kernel/syscalls/Makefile        |   96 +++
+>  arch/mips/kernel/syscalls/syscall_n32.tbl |  343 ++++++++++
+>  arch/mips/kernel/syscalls/syscall_n64.tbl |  339 +++++++++
+>  arch/mips/kernel/syscalls/syscall_o32.tbl |  382 +++++++++++
+>  arch/mips/kernel/syscalls/syscallhdr.sh   |   36 +
+>  arch/mips/kernel/syscalls/syscallnr.sh    |   30 +
+>  arch/mips/kernel/syscalls/syscalltbl.sh   |   36 +
+>  19 files changed, 1430 insertions(+), 2600 deletions(-)
+>  delete mode 100644 arch/mips/kernel/scall64-64.S
+>  create mode 100644 arch/mips/kernel/scall64-n64.S
+>  create mode 100644 arch/mips/kernel/syscalls/Makefile
+>  create mode 100644 arch/mips/kernel/syscalls/syscall_n32.tbl
+>  create mode 100644 arch/mips/kernel/syscalls/syscall_n64.tbl
+>  create mode 100644 arch/mips/kernel/syscalls/syscall_o32.tbl
+>  create mode 100644 arch/mips/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/mips/kernel/syscalls/syscallnr.sh
+>  create mode 100644 arch/mips/kernel/syscalls/syscalltbl.sh
 >
 > --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 1.9.1
 >
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
