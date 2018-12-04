@@ -1,40 +1,79 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Tue, 4 Dec 2018 15:24:26 +0100
-Message-ID: <20181204142426.GA2743@lst.de>
-References: <87zhttfonk.fsf@concordia.ellerman.id.au>
-	<4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
-	<20181129170351.GC27951@lst.de>
-	<d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
-	<20181130105346.GB26765@lst.de>
-	<8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
-	<20181130131056.GA5211@lst.de>
-	<25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
-	<c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
-	<58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: [PATCH memory-model 0/3] Updates to the formal memory model
+Date: Wed, 5 Dec 2018 00:40:01 +0900
+Message-ID: <fbd7b1ed-7a4f-b877-e2f0-8dafca817f68@gmail.com>
+References: <20181203230411.GA27476@linux.ibm.com>
+ <802d5c17-74fd-86a1-efba-5ee2825a0c3c@gmail.com>
+ <20181203235127.GS4170@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <58c61afb-290f-6196-c72c-ac7b61b84718-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Julian Margetson <runaway-zqC88Q5qmK4@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181203235127.GS4170@linux.ibm.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: paulmck@linux.ibm.com
+Cc: mingo@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 04, 2018 at 10:53:39AM +0100, Christian Zigotzky wrote:
-> I don't know why this kernel doesn't recognize the hard disks connected to 
-> my physical P5020 board and why the onboard ethernet on my PASEMI board 
-> doesn't work. (dma_direct_map_page: overflow)
+On 2018/12/03 15:51:27 -0800, Paul E. McKenney wrote:
+> On Tue, Dec 04, 2018 at 08:28:03AM +0900, Akira Yokosawa wrote:
+>> On 2018/12/03 15:04:11 -0800, Paul E. McKenney wrote:
+>>> Hello, Ingo!
+>>>
+>>> This series contains updates to the Linux kernel's formal memory model
+>>> in tools/memory-model.  These patches are ready for inclusion into -tip.
+>>>
+>>> 1.	Model smp_mb__after_unlock_lock(), courtesy of Andrea Parri.
+>>>
+>>> 2.	Add scripts to check github litmus tests.
+>>>
+>>> 3.	Make scripts take "-j" abbreviation for "--jobs".
+>>>
+>>> There is another series in preparation to model SRCU, but this series
+>>> requires hot-off-the presses changes to the herd tool that have not yet
+>>> been released.  This SRCU series is therefore targeting the merge window
+>>> after the upcoming one.  People wishing to experiment with the prototype
+>>> SRCU model may obtain it from my -rcu tree at branch "dev", and use
+>>> a bleeding-edge herd7 built from https://github.com/herd/herdtools7/,
+>>> version 7.51+2(dev), which is (commit 10403b24070c) or later.
+>>
+>> On the master branch of herdtools7, SRCU support was added in version
+>> 7.51+4(dev), which is commit 6ec9da1f4d58, or later.
+> 
+> It has been working for me with version 7.51+2(dev), but perhaps I
+> have just been getting lucky.  It wouldn't be the first time!  ;-)
 
-Do you know if this actually works for the baseline before my patches?
-E.g. with commit 721c01ba8b46ddb5355bd6e6b3bbfdabfdf01e97 ?
+Sounds like you've been at the HEAD of topic branch "srcu".
+
+        Thanks, Akira
+> 
+> 							Thanx, Paul
+> 
+>>         Thanks, Akira
+>>
+>>>
+>>> 							Thanx, Paul
+>>>
+>>> ------------------------------------------------------------------------
+>>>
+>>>  .gitignore                 |    1 
+>>>  README                     |    2 
+>>>  linux-kernel.bell          |    3 
+>>>  linux-kernel.cat           |    4 -
+>>>  linux-kernel.def           |    1 
+>>>  scripts/README             |   70 ++++++++++++++++++++++
+>>>  scripts/checkalllitmus.sh  |   53 +++++++----------
+>>>  scripts/checkghlitmus.sh   |   65 ++++++++++++++++++++
+>>>  scripts/checklitmus.sh     |   74 +++--------------------
+>>>  scripts/checklitmushist.sh |   60 +++++++++++++++++++
+>>>  scripts/cmplitmushist.sh   |   87 +++++++++++++++++++++++++++
+>>>  scripts/initlitmushist.sh  |   68 +++++++++++++++++++++
+>>>  scripts/judgelitmus.sh     |   78 +++++++++++++++++++++++++
+>>>  scripts/newlitmushist.sh   |   61 +++++++++++++++++++
+>>>  scripts/parseargs.sh       |  140 ++++++++++++++++++++++++++++++++++++++++++++-
+>>>  scripts/runlitmushist.sh   |   87 +++++++++++++++++++++++++++
+>>>  16 files changed, 757 insertions(+), 97 deletions(-)
+>>>
+>>
+> 
