@@ -1,46 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f67.google.com ([209.85.166.67]:41845 "EHLO
-        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726952AbeLEHMZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Dec 2018 02:12:25 -0500
-Received: by mail-io1-f67.google.com with SMTP id s22so15844136ioc.8
-        for <linux-arch@vger.kernel.org>; Tue, 04 Dec 2018 23:12:24 -0800 (PST)
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.53]:36928 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729178AbeLEJoK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Dec 2018 04:44:10 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+References: <87zhttfonk.fsf@concordia.ellerman.id.au>
+ <4d4e3cdd-d1a9-affe-0f63-45b8c342bbd6@xenosoft.de>
+ <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+Date: Wed, 5 Dec 2018 10:44:05 +0100
 MIME-Version: 1.0
-References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
- <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com> <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
-In-Reply-To: <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Wed, 5 Dec 2018 12:42:13 +0530
-Message-ID: <CALxhOnhH8WmtBsJ_=qb03G-T4d+uZrc7xoOnjy9f8JunG-A-Jg@mail.gmail.com>
-Subject: Re: [PATCH v3 0/6] mips: system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20181204142426.GA2743@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Burton <paul.burton@mips.com>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181205071213.Kf1yeujhrRPfwllV0hFZpfPP1n5tdgLAx0mNXv4kBUg@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181205094405.AfvPdiy6Ex32EGzeEd7xdWh8B54abMRIu507YI4_geI@z>
 
-Hi Paul,
+On 04 December 2018 at 3:24PM, Christoph Hellwig wrote:
+> On Tue, Dec 04, 2018 at 10:53:39AM +0100, Christian Zigotzky wrote:
+>> I don't know why this kernel doesn't recognize the hard disks connected to
+>> my physical P5020 board and why the onboard ethernet on my PASEMI board
+>> doesn't work. (dma_direct_map_page: overflow)
+> Do you know if this actually works for the baseline before my patches?
+> E.g. with commit 721c01ba8b46ddb5355bd6e6b3bbfdabfdf01e97 ?
+>
+Hi Christoph,
 
-On Wed, 5 Dec 2018 at 12:04, Paul Burton <paul.burton@mips.com> wrote:
->
-> Hi Firoz,
->
-> On Tue, Dec 04, 2018 at 09:33:08AM +0530, Firoz Khan wrote:
-> > Could you review this patch series. I would appreciate if you can
-> > perform the boot test on the actual platform.
->
-> This is looking pretty good to me, so I look forward to v4 with Arnd's
-> comments addressed.
->
-> I've verified that the sys call tables are identical for both
-> 32r2el_defconfig & 64r6el_defconfig before & after this series, and that
-> both still boot fine.
+Thanks for your reply. I undid all dma mapping commits with the 
+following command:
 
-Great, thanks for the update. will send v4 asap.
+git checkout 721c01ba8b46ddb5355bd6e6b3bbfdabfdf01e97
 
-Firoz
+After that I compiled the kernels with this code for my P5020 board 
+(Cyrus) and for my PASEMI board (Nemo) today.
 
->
-> Thanks,
->     Paul
+Result: PASEMI onboard ethernet works again and the P5020 board boots.
+
+It seems the dma mapping commits are the problem.
+
+@All
+Could you please test Christoph's kernel on your PASEMI and NXP boards? 
+Download:
+
+'git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.5 a'
+
+Thanks,
+Christian
