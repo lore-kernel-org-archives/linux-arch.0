@@ -1,54 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:46350 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725875AbeLDWiD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2018 17:38:03 -0500
-Date: Tue, 4 Dec 2018 14:37:59 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v5 1/2] kernel/signal: Signal-based pre-coredump
- notification
-Message-ID: <20181204143759.fe24ee036a33000193339561@linux-foundation.org>
-In-Reply-To: <ad461da7-f0a6-7912-3201-e440dc372f89@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
-        <458c04d8-d189-4a26-729a-bb1d1d751534@cisco.com>
-        <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
-        <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
-        <20181026082812.GA10581@redhat.com>
-        <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
-        <20181029111804.GA24820@redhat.com>
-        <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
-        <80e96710-f424-9b39-72ee-9cc7cbe7a5f7@cisco.com>
-        <20181128151911.GN3505@e103592.cambridge.arm.com>
-        <ad461da7-f0a6-7912-3201-e440dc372f89@cisco.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-eopbgr760108.outbound.protection.outlook.com ([40.107.76.108]:13127
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726037AbeLEGeo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Dec 2018 01:34:44 -0500
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+Date: Wed, 5 Dec 2018 06:34:38 +0000
+Message-ID: <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>
+ <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com>
+In-Reply-To: <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <D9196FB1B3DCEF4AB42EA7080CB4923F@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Enke Chen <enkechen@cisco.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, "xe-linux-external@cisco.com" <xe-linux-external@cisco.com>, Stefan Strogin <sstrogin@cisco.com>
-Message-ID: <20181204223759.oKXb8WnzETgbEnba9HvoQaz3rPFZN594VFDLAunwZvk@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181205063438.ND2Kq__SjzNhpzre1fUES1m97ibr_v4p2Ge1PI8iA_s@z>
 
-On Wed, 28 Nov 2018 16:15:35 -0800 Enke Chen <enkechen@cisco.com> wrote:
+Hi Firoz,
 
-> Thanks for your comments. You have indeed missed some of the prior reviews
-> and discussions. But that is OK.
+On Tue, Dec 04, 2018 at 09:33:08AM +0530, Firoz Khan wrote:
+> Could you review this patch series. I would appreciate if you can
+> perform the boot test on the actual platform.
 
-This is why it is best to update the changelog in response to the
-review discussion - if person A was wondering about something then it
-is likely that person B will wonder about the same thing.  Take a
-reviewer's questioning as an indication that the changelog was lacking.
+This is looking pretty good to me, so I look forward to v4 with Arnd's
+comments addressed.
 
-I'm not sure what to make of this patchset, really.  Oleg sounds
-unhappy and that's always a bad sign.  And signals are rather ugly
-things.  Oleg, can you please expand on your concerns?
+I've verified that the sys call tables are identical for both
+32r2el_defconfig & 64r6el_defconfig before & after this series, and that
+both still boot fine.
 
-The arguments against using connector aren't very compelling.  Sure,
-connector is hard to use from shell scripts but so are signals?  And is
-there much of a usecase for managing these things with shell scripts
-anyway?
-
-Has an eventfd implementation been considered?
-
-I'm sure we've added other kernel->userspace comminication schemes, but
-I can't immediately recall them all :(
+Thanks,
+    Paul
