@@ -1,14 +1,15 @@
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH 19/34] cxl: drop the dma_set_mask callback from vphb
-Date: Thu, 6 Dec 2018 06:10:45 -0800
-Message-ID: <20181206141045.GI29741@infradead.org>
+Subject: Re: [PATCH 14/34] powerpc/dart: remove dead cleanup code in
+ iommu_init_early_dart
+Date: Thu, 6 Dec 2018 06:11:35 -0800
+Message-ID: <20181206141135.GA4770@infradead.org>
 References: <20181114082314.8965-1-hch@lst.de>
- <20181114082314.8965-20-hch@lst.de>
+ <20181114082314.8965-15-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181114082314.8965-20-hch@lst.de>
+In-Reply-To: <20181114082314.8965-15-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Christoph Hellwig <hch@lst.de>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
@@ -16,46 +17,44 @@ List-Id: linux-arch.vger.kernel.org
 
 ping?
 
-On Wed, Nov 14, 2018 at 09:22:59AM +0100, Christoph Hellwig wrote:
-> The CXL code never even looks at the dma mask, so there is no good
-> reason for this sanity check.  Remove it because it gets in the way
-> of the dma ops refactoring.
+On Wed, Nov 14, 2018 at 09:22:54AM +0100, Christoph Hellwig wrote:
+> If dart_init failed we didn't have a chance to setup dma or controller
+> ops yet, so there is no point in resetting them.
 > 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->  drivers/misc/cxl/vphb.c | 12 ------------
->  1 file changed, 12 deletions(-)
+>  arch/powerpc/sysdev/dart_iommu.c | 11 +----------
+>  1 file changed, 1 insertion(+), 10 deletions(-)
 > 
-> diff --git a/drivers/misc/cxl/vphb.c b/drivers/misc/cxl/vphb.c
-> index 7908633d9204..49da2f744bbf 100644
-> --- a/drivers/misc/cxl/vphb.c
-> +++ b/drivers/misc/cxl/vphb.c
-> @@ -11,17 +11,6 @@
->  #include <misc/cxl.h>
->  #include "cxl.h"
+> diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
+> index a5b40d1460f1..283ce04c5844 100644
+> --- a/arch/powerpc/sysdev/dart_iommu.c
+> +++ b/arch/powerpc/sysdev/dart_iommu.c
+> @@ -428,7 +428,7 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
 >  
-> -static int cxl_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
-> -{
-> -	if (dma_mask < DMA_BIT_MASK(64)) {
-> -		pr_info("%s only 64bit DMA supported on CXL", __func__);
-> -		return -EIO;
-> -	}
-> -
-> -	*(pdev->dev.dma_mask) = dma_mask;
-> -	return 0;
-> -}
-> -
->  static int cxl_pci_probe_mode(struct pci_bus *bus)
->  {
->  	return PCI_PROBE_NORMAL;
-> @@ -220,7 +209,6 @@ static struct pci_controller_ops cxl_pci_controller_ops =
->  	.reset_secondary_bus = cxl_pci_reset_secondary_bus,
->  	.setup_msi_irqs = cxl_setup_msi_irqs,
->  	.teardown_msi_irqs = cxl_teardown_msi_irqs,
-> -	.dma_set_mask = cxl_dma_set_mask,
->  };
+>  	/* Initialize the DART HW */
+>  	if (dart_init(dn) != 0)
+> -		goto bail;
+> +		return;
 >  
->  int cxl_pci_vphb_add(struct cxl_afu *afu)
+>  	/* Setup bypass if supported */
+>  	if (dart_is_u4)
+> @@ -439,15 +439,6 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+>  
+>  	/* Setup pci_dma ops */
+>  	set_pci_dma_ops(&dma_iommu_ops);
+> -	return;
+> -
+> - bail:
+> -	/* If init failed, use direct iommu and null setup functions */
+> -	controller_ops->dma_dev_setup = NULL;
+> -	controller_ops->dma_bus_setup = NULL;
+> -
+> -	/* Setup pci_dma ops */
+> -	set_pci_dma_ops(&dma_nommu_ops);
+>  }
+>  
+>  #ifdef CONFIG_PM
 > -- 
 > 2.19.1
 > 
