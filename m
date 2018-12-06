@@ -1,125 +1,100 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 0/7] mips: system call table generation support
-Date: Thu,  6 Dec 2018 10:48:21 +0530
-Message-ID: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 1/7] mips: add __NR_syscalls along with __NR_Linux_syscalls
+Date: Thu,  6 Dec 2018 10:48:22 +0530
+Message-ID: <1544073508-13720-2-git-send-email-firoz.khan@linaro.org>
+References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the 
-system call table generation support implementation 
-across all the architectures. 
+__NR_Linux_syscalls macro holds the number of system call
+exist in mips architecture. We have to change the value of
+__NR_Linux_syscalls, if we add or delete a system call.
 
-The system call tables are in different format in 
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a 
-script and which'll generate uapi header file and 
-syscall table file.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the total number of system
+calls information. So we have two option to update __NR-
+_Linux_syscalls value.
 
-syscall.tbl contains the list of available system 
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in 
-the syscall.tbl file.
+1. Update __NR_Linux_syscalls in asm/unistd.h manually
+   by counting the no.of system calls. No need to update
+   __NR_Linux_syscalls until we either add a new system
+   call or delete existing system call.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-	- Compat entry name, if required.
+2. We can keep this feature it above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update __NR_Linux_syscalls in asm/unistd.h file.
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to 
-come up with a generic solution.
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with __NR_Linux_syscalls. The macro __NR_syscalls also
+added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
 
-I have done the same support for work for alpha, 
-ia64, m68k, microblaze, parisc, powerpc, sh, sparc, 
-and xtensa. Below mentioned git repository contains
-more details about the workflow.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/mips/include/uapi/asm/unistd.h | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
 
-https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to 
-solve Y2038 issue. So this patch series will help to
-add new system calls easily by adding new entry in
-the syscall.tbl.
-
-Changes since v3:
- - rearranged the patches for '64' to 'n64' conver-
-   sion.
- - moved the unistd_nr_*.h files to asm/unistd.h
- - modified the *.sh files.
-
-Changes since v2:
- - fixed __NR_syscalls assign issue.
-
-Changes since v1:
- - optimized/updated the syscall table generation 
-   scripts.
- - fixed all mixed indentation issues in syscall.tbl.
- - added "comments" in syscall_*.tbl.
- - changed from generic-y to generated-y in Kbuild.
-
-Firoz Khan (7):
-  mips: add __NR_syscalls along with __NR_Linux_syscalls
-  mips: remove unused macros
-  mips: rename macros and files from '64' to 'n64'
-  mips: add +1 to __NR_syscalls in uapi header
-  mips: remove syscall table entries
-  mips: add system call table generation support
-  mips: generate uapi header and system call table files
-
- arch/mips/Makefile                        |    3 +
- arch/mips/include/asm/Kbuild              |    4 +
- arch/mips/include/asm/asm.h               |    6 +-
- arch/mips/include/asm/fpregdef.h          |    4 +-
- arch/mips/include/asm/fw/arc/hinv.h       |    2 +-
- arch/mips/include/asm/regdef.h            |    4 +-
- arch/mips/include/asm/sigcontext.h        |    4 +-
- arch/mips/include/asm/unistd.h            |   11 +-
- arch/mips/include/uapi/asm/Kbuild         |    6 +
- arch/mips/include/uapi/asm/fcntl.h        |    2 +-
- arch/mips/include/uapi/asm/reg.h          |    4 +-
- arch/mips/include/uapi/asm/sgidefs.h      |    2 +-
- arch/mips/include/uapi/asm/sigcontext.h   |    4 +-
- arch/mips/include/uapi/asm/stat.h         |    4 +-
- arch/mips/include/uapi/asm/statfs.h       |    4 +-
- arch/mips/include/uapi/asm/unistd.h       | 1069 +----------------------------
- arch/mips/kernel/Makefile                 |    2 +-
- arch/mips/kernel/ftrace.c                 |    8 +-
- arch/mips/kernel/scall32-o32.S            |  391 +----------
- arch/mips/kernel/scall64-64.S             |  444 ------------
- arch/mips/kernel/scall64-n32.S            |  341 +--------
- arch/mips/kernel/scall64-n64.S            |  117 ++++
- arch/mips/kernel/scall64-o32.S            |  379 +---------
- arch/mips/kernel/syscalls/Makefile        |   96 +++
- arch/mips/kernel/syscalls/syscall_n32.tbl |  343 +++++++++
- arch/mips/kernel/syscalls/syscall_n64.tbl |  339 +++++++++
- arch/mips/kernel/syscalls/syscall_o32.tbl |  382 +++++++++++
- arch/mips/kernel/syscalls/syscallhdr.sh   |   37 +
- arch/mips/kernel/syscalls/syscallnr.sh    |   28 +
- arch/mips/kernel/syscalls/syscalltbl.sh   |   36 +
- arch/mips/kvm/entry.c                     |    4 +-
- arch/mips/vdso/vdso.h                     |    2 +-
- arch/mips/vdso/vdso.lds.S                 |    2 +-
- 33 files changed, 1450 insertions(+), 2634 deletions(-)
- delete mode 100644 arch/mips/kernel/scall64-64.S
- create mode 100644 arch/mips/kernel/scall64-n64.S
- create mode 100644 arch/mips/kernel/syscalls/Makefile
- create mode 100644 arch/mips/kernel/syscalls/syscall_n32.tbl
- create mode 100644 arch/mips/kernel/syscalls/syscall_n64.tbl
- create mode 100644 arch/mips/kernel/syscalls/syscall_o32.tbl
- create mode 100644 arch/mips/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/mips/kernel/syscalls/syscallnr.sh
- create mode 100644 arch/mips/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
+index f25dd1d..6914be5 100644
+--- a/arch/mips/include/uapi/asm/unistd.h
++++ b/arch/mips/include/uapi/asm/unistd.h
+@@ -391,11 +391,14 @@
+ #define __NR_rseq			(__NR_Linux + 367)
+ #define __NR_io_pgetevents		(__NR_Linux + 368)
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			368
++#endif
+ 
+ /*
+  * Offset of the last Linux o32 flavoured syscall
+  */
+-#define __NR_Linux_syscalls		368
++#define __NR_Linux_syscalls		__NR_syscalls
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+ 
+@@ -738,10 +741,14 @@
+ #define __NR_rseq			(__NR_Linux + 327)
+ #define __NR_io_pgetevents		(__NR_Linux + 328)
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			328
++#endif
++
+ /*
+  * Offset of the last Linux 64-bit flavoured syscall
+  */
+-#define __NR_Linux_syscalls		328
++#define __NR_Linux_syscalls		__NR_syscalls
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
+ 
+@@ -1088,10 +1095,14 @@
+ #define __NR_rseq			(__NR_Linux + 331)
+ #define __NR_io_pgetevents		(__NR_Linux + 332)
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls			332
++#endif
++
+ /*
+  * Offset of the last N32 flavoured syscall
+  */
+-#define __NR_Linux_syscalls		332
++#define __NR_Linux_syscalls		__NR_syscalls
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+ 
 -- 
 1.9.1
