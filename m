@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 3/7] mips: rename macros and files from '64' to 'n64'
-Date: Thu,  6 Dec 2018 10:48:24 +0530
-Message-ID: <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 4/7] mips: add +1 to __NR_syscalls in uapi header
+Date: Thu,  6 Dec 2018 10:48:25 +0530
+Message-ID: <1544073508-13720-5-git-send-email-firoz.khan@linaro.org>
 References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
@@ -10,369 +10,186 @@ To: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton 
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-When we get nanoMIPS support we'll be introducing the p32
-ABI, and there's a reasonable chance that the equivalent
-p64 ABI may come along in the future. Using 'n64' now would
-avoid confusion in that case where we may have 2 different
-64-bit ABIs.
+All other architectures are hold a value for __NR_syscalls will
+be equal to the last system call number +1.
 
-Suggested-by: Paul Burton <paul.burton@mips.com>
+But in mips architecture, __NR_syscalls hold the value equal to
+total number of system exits in the architecture. One of the
+patch in this patch series will genarate uapi header files.
+
+In order to make the implementation common across all architect-
+ures, add +1 to __NR_syscalls, which will be equal to the last
+system call number +1.
+
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/asm/asm.h                      | 6 +++---
- arch/mips/include/asm/fpregdef.h                 | 4 ++--
- arch/mips/include/asm/fw/arc/hinv.h              | 2 +-
- arch/mips/include/asm/regdef.h                   | 4 ++--
- arch/mips/include/asm/sigcontext.h               | 4 ++--
- arch/mips/include/uapi/asm/fcntl.h               | 2 +-
- arch/mips/include/uapi/asm/reg.h                 | 4 ++--
- arch/mips/include/uapi/asm/sgidefs.h             | 2 +-
- arch/mips/include/uapi/asm/sigcontext.h          | 4 ++--
- arch/mips/include/uapi/asm/stat.h                | 4 ++--
- arch/mips/include/uapi/asm/statfs.h              | 4 ++--
- arch/mips/include/uapi/asm/unistd.h              | 8 ++++----
- arch/mips/kernel/Makefile                        | 2 +-
- arch/mips/kernel/ftrace.c                        | 4 ++--
- arch/mips/kernel/{scall64-64.S => scall64-n64.S} | 4 ++--
- arch/mips/kvm/entry.c                            | 4 ++--
- arch/mips/vdso/vdso.h                            | 2 +-
- arch/mips/vdso/vdso.lds.S                        | 2 +-
- 18 files changed, 33 insertions(+), 33 deletions(-)
- rename arch/mips/kernel/{scall64-64.S => scall64-n64.S} (99%)
+ arch/mips/include/uapi/asm/unistd.h | 12 ++++++------
+ arch/mips/kernel/ftrace.c           |  6 +++---
+ arch/mips/kernel/scall32-o32.S      |  4 ++--
+ arch/mips/kernel/scall64-n32.S      |  4 ++--
+ arch/mips/kernel/scall64-n64.S      |  2 +-
+ arch/mips/kernel/scall64-o32.S      |  6 +++---
+ 6 files changed, 17 insertions(+), 17 deletions(-)
 
-diff --git a/arch/mips/include/asm/asm.h b/arch/mips/include/asm/asm.h
-index c23527b..9244a87 100644
---- a/arch/mips/include/asm/asm.h
-+++ b/arch/mips/include/asm/asm.h
-@@ -110,7 +110,7 @@
- #define ALSZ	7
- #define ALMASK	~7
- #endif
--#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABI64)
-+#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABIN64)
- #define ALSZ	15
- #define ALMASK	~15
- #endif
-@@ -138,7 +138,7 @@
- #define REG_SUBU	subu
- #define REG_ADDU	addu
- #endif
--#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABI64)
-+#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABIN64)
- #define REG_S		sd
- #define REG_L		ld
- #define REG_SUBU	dsubu
-@@ -291,7 +291,7 @@
- #define MFC0		mfc0
- #define MTC0		mtc0
- #endif
--#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABI64)
-+#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABIN64)
- #define MFC0		dmfc0
- #define MTC0		dmtc0
- #endif
-diff --git a/arch/mips/include/asm/fpregdef.h b/arch/mips/include/asm/fpregdef.h
-index f184ba0..762ffeb 100644
---- a/arch/mips/include/asm/fpregdef.h
-+++ b/arch/mips/include/asm/fpregdef.h
-@@ -71,7 +71,7 @@
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- 
- #define fv0	$f0	/* return value */
- #define fv1	$f2
-@@ -108,6 +108,6 @@
- 
- #define fcr31	$31
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #endif /* _ASM_FPREGDEF_H */
-diff --git a/arch/mips/include/asm/fw/arc/hinv.h b/arch/mips/include/asm/fw/arc/hinv.h
-index d67b6a9..c9d0523 100644
---- a/arch/mips/include/asm/fw/arc/hinv.h
-+++ b/arch/mips/include/asm/fw/arc/hinv.h
-@@ -112,7 +112,7 @@
- 	ULONG FullKey;
- };
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64
- #define SGI_ARCS_VERS	64			/* sgi 64-bit version */
- #define SGI_ARCS_REV	0			/* rev .00 */
- #else
-diff --git a/arch/mips/include/asm/regdef.h b/arch/mips/include/asm/regdef.h
-index 3c687df..45911d8 100644
---- a/arch/mips/include/asm/regdef.h
-+++ b/arch/mips/include/asm/regdef.h
-@@ -60,7 +60,7 @@
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- 
- #define zero	$0	/* wired zero */
- #define AT	$at	/* assembler temp - uppercase because of ".set at" */
-@@ -101,6 +101,6 @@
- #define s8	$30	/* callee saved */
- #define ra	$31	/* return address */
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #endif /* _ASM_REGDEF_H */
-diff --git a/arch/mips/include/asm/sigcontext.h b/arch/mips/include/asm/sigcontext.h
-index eeeb0f4..e3a55d1 100644
---- a/arch/mips/include/asm/sigcontext.h
-+++ b/arch/mips/include/asm/sigcontext.h
-@@ -11,7 +11,7 @@
- 
- #include <uapi/asm/sigcontext.h>
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- 
- struct sigcontext32 {
- 	__u32		sc_regmask;	/* Unused */
-@@ -33,5 +33,5 @@ struct sigcontext32 {
- 	__u32		sc_hi3;
- 	__u32		sc_lo3;
- };
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
- #endif /* _ASM_SIGCONTEXT_H */
-diff --git a/arch/mips/include/uapi/asm/fcntl.h b/arch/mips/include/uapi/asm/fcntl.h
-index 42e13de..34effe6 100644
---- a/arch/mips/include/uapi/asm/fcntl.h
-+++ b/arch/mips/include/uapi/asm/fcntl.h
-@@ -57,7 +57,7 @@
-  * contain all the same fields as struct flock.
-  */
- 
--#if _MIPS_SIM != _MIPS_SIM_ABI64
-+#if _MIPS_SIM != _MIPS_SIM_ABIN64
- 
- #include <linux/types.h>
- 
-diff --git a/arch/mips/include/uapi/asm/reg.h b/arch/mips/include/uapi/asm/reg.h
-index 56d15cb..57fe259 100644
---- a/arch/mips/include/uapi/asm/reg.h
-+++ b/arch/mips/include/uapi/asm/reg.h
-@@ -160,7 +160,7 @@
- #define EF_UNUSED0		MIPS32_EF_UNUSED0
- #define EF_SIZE			MIPS32_EF_SIZE
- 
--#elif _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#elif _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- 
- #define EF_R0			MIPS64_EF_R0
- #define EF_R1			MIPS64_EF_R1
-@@ -202,6 +202,6 @@
- #define EF_CP0_CAUSE		MIPS64_EF_CP0_CAUSE
- #define EF_SIZE			MIPS64_EF_SIZE
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #endif /* __UAPI_ASM_MIPS_REG_H */
-diff --git a/arch/mips/include/uapi/asm/sgidefs.h b/arch/mips/include/uapi/asm/sgidefs.h
-index 26143e3..0364eec 100644
---- a/arch/mips/include/uapi/asm/sgidefs.h
-+++ b/arch/mips/include/uapi/asm/sgidefs.h
-@@ -40,6 +40,6 @@
-  */
- #define _MIPS_SIM_ABI32		1
- #define _MIPS_SIM_NABI32	2
--#define _MIPS_SIM_ABI64		3
-+#define _MIPS_SIM_ABIN64	3
- 
- #endif /* __ASM_SGIDEFS_H */
-diff --git a/arch/mips/include/uapi/asm/sigcontext.h b/arch/mips/include/uapi/asm/sigcontext.h
-index d0a540e..5e8a562 100644
---- a/arch/mips/include/uapi/asm/sigcontext.h
-+++ b/arch/mips/include/uapi/asm/sigcontext.h
-@@ -54,7 +54,7 @@ struct sigcontext {
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- 
- #include <linux/posix_types.h>
- /*
-@@ -86,6 +86,6 @@ struct sigcontext {
- };
- 
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #endif /* _UAPI_ASM_SIGCONTEXT_H */
-diff --git a/arch/mips/include/uapi/asm/stat.h b/arch/mips/include/uapi/asm/stat.h
-index 95416f3..c1f6433 100644
---- a/arch/mips/include/uapi/asm/stat.h
-+++ b/arch/mips/include/uapi/asm/stat.h
-@@ -87,7 +87,7 @@ struct stat64 {
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64
- 
- /* The memory layout is the same as of struct stat64 of the 32-bit kernel.  */
- struct stat {
-@@ -126,7 +126,7 @@ struct stat {
- 	unsigned long		st_blocks;
- };
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 */
- 
- #define STAT_HAVE_NSEC 1
- 
-diff --git a/arch/mips/include/uapi/asm/statfs.h b/arch/mips/include/uapi/asm/statfs.h
-index f4174dc..a9ca452 100644
---- a/arch/mips/include/uapi/asm/statfs.h
-+++ b/arch/mips/include/uapi/asm/statfs.h
-@@ -61,7 +61,7 @@ struct statfs64 {
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64
- 
- struct statfs64 {			/* Same as struct statfs */
- 	long		f_type;
-@@ -96,6 +96,6 @@ struct compat_statfs64 {
- 	__u32	f_spare[5];
- };
- 
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 */
- 
- #endif /* _ASM_STATFS_H */
 diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index c897195..b997f43 100644
+index b997f43..b10e94c 100644
 --- a/arch/mips/include/uapi/asm/unistd.h
 +++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -400,7 +400,7 @@
- #define __NR_O32_Linux			4000
- #define __NR_O32_Linux_syscalls		368
+@@ -392,13 +392,13 @@
+ #define __NR_io_pgetevents		(__NR_Linux + 368)
  
--#if _MIPS_SIM == _MIPS_SIM_ABI64
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64
- 
- /*
-  * Linux 64-bit syscalls are in the range from 5000 to 5999.
-@@ -740,10 +740,10 @@
- #define __NR_syscalls			328
+ #ifdef __KERNEL__
+-#define __NR_syscalls			368
++#define __NR_syscalls			369
  #endif
  
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 */
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
  
--#define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		328
-+#define __NR_N64_Linux			5000
-+#define __NR_N64_Linux_syscalls		328
+ #define __NR_O32_Linux			4000
+-#define __NR_O32_Linux_syscalls		368
++#define __NR_O32_Linux_syscalls		369
+ 
+ #if _MIPS_SIM == _MIPS_SIM_ABIN64
+ 
+@@ -737,13 +737,13 @@
+ #define __NR_io_pgetevents		(__NR_Linux + 328)
+ 
+ #ifdef __KERNEL__
+-#define __NR_syscalls			328
++#define __NR_syscalls			329
+ #endif
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 */
+ 
+ #define __NR_N64_Linux			5000
+-#define __NR_N64_Linux_syscalls		328
++#define __NR_N64_Linux_syscalls		329
  
  #if _MIPS_SIM == _MIPS_SIM_NABI32
  
-diff --git a/arch/mips/kernel/Makefile b/arch/mips/kernel/Makefile
-index 210c280..25af613 100644
---- a/arch/mips/kernel/Makefile
-+++ b/arch/mips/kernel/Makefile
-@@ -72,7 +72,7 @@ obj-$(CONFIG_IRQ_GT641XX)	+= irq-gt641xx.o
+@@ -1086,12 +1086,12 @@
+ #define __NR_io_pgetevents		(__NR_Linux + 332)
  
- obj-$(CONFIG_KPROBES)		+= kprobes.o
- obj-$(CONFIG_32BIT)		+= scall32-o32.o
--obj-$(CONFIG_64BIT)		+= scall64-64.o
-+obj-$(CONFIG_64BIT)		+= scall64-n64.o
- obj-$(CONFIG_MIPS32_COMPAT)	+= linux32.o ptrace32.o signal32.o
- obj-$(CONFIG_MIPS32_N32)	+= binfmt_elfn32.o scall64-n32.o signal_n32.o
- obj-$(CONFIG_MIPS32_O32)	+= binfmt_elfo32.o scall64-o32.o signal_o32.o
+ #ifdef __KERNEL__
+-#define __NR_syscalls			332
++#define __NR_syscalls			333
+ #endif
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+ 
+ #define __NR_N32_Linux			6000
+-#define __NR_N32_Linux_syscalls		332
++#define __NR_N32_Linux_syscalls		333
+ 
+ #endif /* _UAPI_ASM_UNISTD_H */
 diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
-index b122cbb..d91a6e7 100644
+index d91a6e7..be8e69f 100644
 --- a/arch/mips/kernel/ftrace.c
 +++ b/arch/mips/kernel/ftrace.c
-@@ -403,8 +403,8 @@ unsigned long __init arch_syscall_addr(int nr)
- 	if (nr >= __NR_N32_Linux && nr <= __NR_N32_Linux + __NR_N32_Linux_syscalls)
+@@ -400,13 +400,13 @@ unsigned long __init arch_syscall_addr(int nr)
+ unsigned long __init arch_syscall_addr(int nr)
+ {
+ #ifdef CONFIG_MIPS32_N32
+-	if (nr >= __NR_N32_Linux && nr <= __NR_N32_Linux + __NR_N32_Linux_syscalls)
++	if (nr >= __NR_N32_Linux && nr < __NR_N32_Linux + __NR_N32_Linux_syscalls)
  		return (unsigned long)sysn32_call_table[nr - __NR_N32_Linux];
  #endif
--	if (nr >= __NR_64_Linux  && nr <= __NR_64_Linux + __NR_64_Linux_syscalls)
--		return (unsigned long)sys_call_table[nr - __NR_64_Linux];
-+	if (nr >= __NR_N64_Linux  && nr <= __NR_N64_Linux + __NR_N64_Linux_syscalls)
-+		return (unsigned long)sys_call_table[nr - __NR_N64_Linux];
+-	if (nr >= __NR_N64_Linux  && nr <= __NR_N64_Linux + __NR_N64_Linux_syscalls)
++	if (nr >= __NR_N64_Linux  && nr < __NR_N64_Linux + __NR_N64_Linux_syscalls)
+ 		return (unsigned long)sys_call_table[nr - __NR_N64_Linux];
  #ifdef CONFIG_MIPS32_O32
- 	if (nr >= __NR_O32_Linux && nr <= __NR_O32_Linux + __NR_O32_Linux_syscalls)
+-	if (nr >= __NR_O32_Linux && nr <= __NR_O32_Linux + __NR_O32_Linux_syscalls)
++	if (nr >= __NR_O32_Linux && nr < __NR_O32_Linux + __NR_O32_Linux_syscalls)
  		return (unsigned long)sys32_call_table[nr - __NR_O32_Linux];
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-n64.S
-similarity index 99%
-rename from arch/mips/kernel/scall64-64.S
-rename to arch/mips/kernel/scall64-n64.S
-index 358d959..497cd62 100644
---- a/arch/mips/kernel/scall64-64.S
+ #endif
+ 
+diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
+index fea6edb..10f6367 100644
+--- a/arch/mips/kernel/scall32-o32.S
++++ b/arch/mips/kernel/scall32-o32.S
+@@ -86,7 +86,7 @@ loads_done:
+ 	bnez	t0, syscall_trace_entry # -> yes
+ syscall_common:
+ 	subu	v0, v0, __NR_O32_Linux	# check syscall number
+-	sltiu	t0, v0, __NR_O32_Linux_syscalls + 1
++	sltiu	t0, v0, __NR_O32_Linux_syscalls
+ 	beqz	t0, illegal_syscall
+ 
+ 	sll	t0, v0, 2
+@@ -182,7 +182,7 @@ illegal_syscall:
+ 
+ 	LEAF(sys_syscall)
+ 	subu	t0, a0, __NR_O32_Linux	# check syscall number
+-	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
++	sltiu	v0, t0, __NR_O32_Linux_syscalls
+ 	beqz	t0, einval		# do not recurse
+ 	sll	t1, t0, 2
+ 	beqz	v0, einval
+diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
+index c65eaac..6468546 100644
+--- a/arch/mips/kernel/scall64-n32.S
++++ b/arch/mips/kernel/scall64-n32.S
+@@ -33,7 +33,7 @@ NESTED(handle_sysn32, PT_SIZE, sp)
+ #endif
+ 
+ 	dsubu	t0, v0, __NR_N32_Linux	# check syscall number
+-	sltiu	t0, t0, __NR_N32_Linux_syscalls + 1
++	sltiu	t0, t0, __NR_N32_Linux_syscalls
+ 
+ #ifndef CONFIG_MIPS32_O32
+ 	ld	t1, PT_EPC(sp)		# skip syscall on return
+@@ -87,7 +87,7 @@ n32_syscall_trace_entry:
+ 	ld	a5, PT_R9(sp)
+ 
+ 	dsubu	t2, v0, __NR_N32_Linux	# check (new) syscall number
+-	sltiu   t0, t2, __NR_N32_Linux_syscalls + 1
++	sltiu   t0, t2, __NR_N32_Linux_syscalls
+ 	beqz	t0, not_n32_scall
+ 
+ 	j	syscall_common
+diff --git a/arch/mips/kernel/scall64-n64.S b/arch/mips/kernel/scall64-n64.S
+index 497cd62..0bded19 100644
+--- a/arch/mips/kernel/scall64-n64.S
 +++ b/arch/mips/kernel/scall64-n64.S
-@@ -53,8 +53,8 @@ NESTED(handle_sys64, PT_SIZE, sp)
- 	bnez	t0, syscall_trace_entry
+@@ -54,7 +54,7 @@ NESTED(handle_sys64, PT_SIZE, sp)
  
  syscall_common:
--	dsubu	t2, v0, __NR_64_Linux
--	sltiu   t0, t2, __NR_64_Linux_syscalls + 1
-+	dsubu	t2, v0, __NR_N64_Linux
-+	sltiu   t0, t2, __NR_N64_Linux_syscalls + 1
+ 	dsubu	t2, v0, __NR_N64_Linux
+-	sltiu   t0, t2, __NR_N64_Linux_syscalls + 1
++	sltiu   t0, t2, __NR_N64_Linux_syscalls
  	beqz	t0, illegal_syscall
  
  	dsll	t0, t2, 3		# offset into table
-diff --git a/arch/mips/kvm/entry.c b/arch/mips/kvm/entry.c
-index 16e1c93..d30f42c 100644
---- a/arch/mips/kvm/entry.c
-+++ b/arch/mips/kvm/entry.c
-@@ -34,12 +34,12 @@
- #define T3		11
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
+index 73913f0..eb53d8ea 100644
+--- a/arch/mips/kernel/scall64-o32.S
++++ b/arch/mips/kernel/scall64-o32.S
+@@ -34,7 +34,7 @@ NESTED(handle_sys, PT_SIZE, sp)
+ 	ld	t1, PT_EPC(sp)		# skip syscall on return
  
--#if _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32
- #define T0		12
- #define T1		13
- #define T2		14
- #define T3		15
--#endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
-+#endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
+ 	dsubu	t0, v0, __NR_O32_Linux	# check syscall number
+-	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
++	sltiu	t0, t0, __NR_O32_Linux_syscalls
+ 	daddiu	t1, 4			# skip to next instruction
+ 	sd	t1, PT_EPC(sp)
+ 	beqz	t0, not_o32_scall
+@@ -144,7 +144,7 @@ trace_a_syscall:
+ 	ld	a7, PT_R11(sp)		# For indirect syscalls
  
- #define S0		16
- #define S1		17
-diff --git a/arch/mips/vdso/vdso.h b/arch/mips/vdso/vdso.h
-index cfb1be4..1fd1692 100644
---- a/arch/mips/vdso/vdso.h
-+++ b/arch/mips/vdso/vdso.h
-@@ -10,7 +10,7 @@
+ 	dsubu	t0, v0, __NR_O32_Linux	# check (new) syscall number
+-	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
++	sltiu	t0, t0, __NR_O32_Linux_syscalls
+ 	beqz	t0, not_o32_scall
  
- #include <asm/sgidefs.h>
+ 	j	syscall_common
+@@ -193,7 +193,7 @@ not_o32_scall:
  
--#if _MIPS_SIM != _MIPS_SIM_ABI64 && defined(CONFIG_64BIT)
-+#if _MIPS_SIM != _MIPS_SIM_ABIN64 && defined(CONFIG_64BIT)
- 
- /* Building 32-bit VDSO for the 64-bit kernel. Fake a 32-bit Kconfig. */
- #undef CONFIG_64BIT
-diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
-index 8df7dd5..4d049e9 100644
---- a/arch/mips/vdso/vdso.lds.S
-+++ b/arch/mips/vdso/vdso.lds.S
-@@ -10,7 +10,7 @@
- 
- #include <asm/sgidefs.h>
- 
--#if _MIPS_SIM == _MIPS_SIM_ABI64
-+#if _MIPS_SIM == _MIPS_SIM_ABIN64
- OUTPUT_FORMAT("elf64-tradlittlemips", "elf64-tradbigmips", "elf64-tradlittlemips")
- #elif _MIPS_SIM == _MIPS_SIM_NABI32
- OUTPUT_FORMAT("elf32-ntradlittlemips", "elf32-ntradbigmips", "elf32-ntradlittlemips")
+ LEAF(sys32_syscall)
+ 	subu	t0, a0, __NR_O32_Linux	# check syscall number
+-	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
++	sltiu	v0, t0, __NR_O32_Linux_syscalls
+ 	beqz	t0, einval		# do not recurse
+ 	dsll	t1, t0, 3
+ 	beqz	v0, einval
 -- 
 1.9.1
