@@ -1,45 +1,52 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [GIT PULL] C-SKY update for 4.20-rc6
-Date: Thu,  6 Dec 2018 13:32:58 +0800
-Message-ID: <1544074378-5878-1-git-send-email-ren_guo@c-sky.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
+Date: Thu, 6 Dec 2018 10:44:51 +0100
+Message-ID: <20181206094451.GC13538@hirez.programming.kicks-ass.net>
+References: <20181204121805.4621-1-igor.stoppa@huawei.com>
+ <20181204121805.4621-3-igor.stoppa@huawei.com>
+ <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Igor Stoppa <igor.stoppa@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Linus,
+On Wed, Dec 05, 2018 at 03:13:56PM -0800, Andy Lutomirski wrote:
 
-Please pull.
+> > +       if (op == WR_MEMCPY)
+> > +               memcpy((void *)wr_poking_addr, (void *)src, len);
+> > +       else if (op == WR_MEMSET)
+> > +               memset((u8 *)wr_poking_addr, (u8)src, len);
+> > +       else if (op == WR_RCU_ASSIGN_PTR)
+> > +               /* generic version of rcu_assign_pointer */
+> > +               smp_store_release((void **)wr_poking_addr,
+> > +                                 RCU_INITIALIZER((void **)src));
+> > +       kasan_enable_current();
+> 
+> Hmm.  I suspect this will explode quite badly on sane architectures
+> like s390.  (In my book, despite how weird s390 is, it has a vastly
+> nicer model of "user" memory than any other architecture I know
+> of...).  I think you should use copy_to_user(), etc, instead.  I'm not
+> entirely sure what the best smp_store_release() replacement is.
+> Making this change may also mean you can get rid of the
+> kasan_disable_current().
 
-Best Regards
- Guo Ren
+If you make the MEMCPY one guarantee single-copy atomicity for native
+words then you're basically done.
 
------------------------------------------->
-The following changes since commit 651022382c7f8da46cb4872a545ee1da6d097d2a:
+smp_store_release() can be implemented with:
 
-  Linux 4.20-rc1 (2018-11-04 15:37:52 -0800)
+	smp_mb();
+	WRITE_ONCE();
 
-are available in the git repository at:
+So if we make MEMCPY provide the WRITE_ONCE(), all we need is that
+barrier, which we can easily place at the call site and not overly
+complicate our interface with this.
 
-  git@github.com:c-sky/csky-linux.git tags/csky-4.20-rc6
-
-for you to fetch changes up to 63e19c8216bb03a1b4d10f6637d1324ae7a2b612:
-
-  csky: bugfix tlb_get_pgd error. (2018-12-03 10:49:11 +0800)
-
-----------------------------------------------------------------
-C-SKY fixes/update for 4.20-rc6
-
- - Bugfix tlb_get_pgd error.
-
- - Update MAINTAINERS file for C-SKY drivers.
-
-----------------------------------------------------------------
-Guo Ren (2):
-      MAINTAINERS: add maintainer for C-SKY drivers
-      csky: bugfix tlb_get_pgd error.
-
- MAINTAINERS                         | 7 ++++++-
- arch/csky/include/asm/mmu_context.h | 4 ++--
- 2 files changed, 8 insertions(+), 3 deletions(-)
+Because performance is down the drain already, an additional full
+memory barrier is peanuts here (and in fact already implied by the x86
+CR3 munging).
