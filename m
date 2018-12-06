@@ -1,38 +1,54 @@
-From: "Maciej W. Rozycki" <macro@linux-mips.org>
-Subject: Re: [PATCH v3 0/6] mips: system call table generation support
-Date: Thu, 6 Dec 2018 12:15:41 +0000 (GMT)
-Message-ID: <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
-References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com> <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v8 1/8] arm64: add type casts to untagged_addr macro
+Date: Thu, 6 Dec 2018 13:34:28 +0100
+Message-ID: <CAAeHK+z3uJrkwunH6DDuJOVg_trk6pmKgN4QLx7LnDLEP1TSDw@mail.gmail.com>
+References: <cover.1541687720.git.andreyknvl@google.com> <4a4063a3e074608b99cf22ab447fecc36d056251.1541687720.git.andreyknvl@google.com>
+ <20181129182218.GH22027@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Received: (from localhost user: 'macro', uid#1010) by eddie.linux-mips.org
-        with ESMTP id S23990828AbeLFMPludY8u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org> + 1 other);
-        Thu, 6 Dec 2018 13:15:41 +0100
-In-Reply-To: <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
+In-Reply-To: <20181129182218.GH22027@arrakis.emea.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: Firoz Khan <firoz.khan@linaro.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, libc-alpha@sourceware.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jac
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 5 Dec 2018, Paul Burton wrote:
+On Thu, Nov 29, 2018 at 7:22 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> On Thu, Nov 08, 2018 at 03:36:08PM +0100, Andrey Konovalov wrote:
+> > This patch makes the untagged_addr macro accept all kinds of address types
+> > (void *, unsigned long, etc.) and allows not to specify type casts in each
+> > place where it is used. This is done by using __typeof__.
+> >
+> > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > ---
+> >  arch/arm64/include/asm/uaccess.h | 3 ++-
+> >  1 file changed, 2 insertions(+), 1 deletion(-)
+> >
+> > diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> > index 07c34087bd5e..c1325271e368 100644
+> > --- a/arch/arm64/include/asm/uaccess.h
+> > +++ b/arch/arm64/include/asm/uaccess.h
+> > @@ -101,7 +101,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
+> >   * up with a tagged userland pointer. Clear the tag to get a sane pointer to
+> >   * pass on to access_ok(), for instance.
+> >   */
+> > -#define untagged_addr(addr)          sign_extend64(addr, 55)
+> > +#define untagged_addr(addr)          \
+> > +     ((__typeof__(addr))sign_extend64((__u64)(addr), 55))
+>
+> Nitpick: same comment as here (use u64):
+>
+> http://lkml.kernel.org/r/20181123173739.osgvnnhmptdgtlnl@lakrids.cambridge.arm.com
 
-> > Could you review this patch series. I would appreciate if you can
-> > perform the boot test on the actual platform.
-> 
-> This is looking pretty good to me, so I look forward to v4 with Arnd's
-> comments addressed.
-> 
-> I've verified that the sys call tables are identical for both
-> 32r2el_defconfig & 64r6el_defconfig before & after this series, and that
-> both still boot fine.
+Will do in v9.
 
- I believe this file is used by the glibc build process to retrieve 
-syscall numbers for glibc's own use as well for <sys/syscall.h>.  Has the 
-change been verified not to break this process?
+>
+> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+>
+> (not acking the whole series just yet, only specific patches to remember
+> what I reviewed)
 
- Cc-ing <libc-alpha@sourceware.org> for information and possible further 
-input.
+OK.
 
-  Maciej
+Thanks!
