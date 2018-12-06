@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 4/7] mips: add +1 to __NR_syscalls in uapi header
-Date: Thu,  6 Dec 2018 10:48:25 +0530
-Message-ID: <1544073508-13720-5-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 5/7] mips: remove syscall table entries
+Date: Thu,  6 Dec 2018 10:48:26 +0530
+Message-ID: <1544073508-13720-6-git-send-email-firoz.khan@linaro.org>
 References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
@@ -10,186 +10,65 @@ To: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton 
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-All other architectures are hold a value for __NR_syscalls will
-be equal to the last system call number +1.
+The config flag - CONFIG_MIPS_MT_FPAFF uses to check whether which
+syscall entries need to be used in scall32-o32.S file.
 
-But in mips architecture, __NR_syscalls hold the value equal to
-total number of system exits in the architecture. One of the
-patch in this patch series will genarate uapi header files.
+One of the patch in this patch series will generate syscall table
+file. But CONFIG_MIPS_MT_FPAFF flag will add more complexity in the
+script to generate the syscall table file.
 
-In order to make the implementation common across all architect-
-ures, add +1 to __NR_syscalls, which will be equal to the last
-system call number +1.
+In order to come up with a common implementation across all archit-
+ecture, we need to remove mipsmt_sys_sched_setaffinity and mipsmt-
+_sys_sched_getaffinity from the table and define it in other way.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/uapi/asm/unistd.h | 12 ++++++------
- arch/mips/kernel/ftrace.c           |  6 +++---
- arch/mips/kernel/scall32-o32.S      |  4 ++--
- arch/mips/kernel/scall64-n32.S      |  4 ++--
- arch/mips/kernel/scall64-n64.S      |  2 +-
- arch/mips/kernel/scall64-o32.S      |  6 +++---
- 6 files changed, 17 insertions(+), 17 deletions(-)
+ arch/mips/kernel/scall32-o32.S | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index b997f43..b10e94c 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -392,13 +392,13 @@
- #define __NR_io_pgetevents		(__NR_Linux + 368)
- 
- #ifdef __KERNEL__
--#define __NR_syscalls			368
-+#define __NR_syscalls			369
- #endif
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		368
-+#define __NR_O32_Linux_syscalls		369
- 
- #if _MIPS_SIM == _MIPS_SIM_ABIN64
- 
-@@ -737,13 +737,13 @@
- #define __NR_io_pgetevents		(__NR_Linux + 328)
- 
- #ifdef __KERNEL__
--#define __NR_syscalls			328
-+#define __NR_syscalls			329
- #endif
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABIN64 */
- 
- #define __NR_N64_Linux			5000
--#define __NR_N64_Linux_syscalls		328
-+#define __NR_N64_Linux_syscalls		329
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1086,12 +1086,12 @@
- #define __NR_io_pgetevents		(__NR_Linux + 332)
- 
- #ifdef __KERNEL__
--#define __NR_syscalls			332
-+#define __NR_syscalls			333
- #endif
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		332
-+#define __NR_N32_Linux_syscalls		333
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
-index d91a6e7..be8e69f 100644
---- a/arch/mips/kernel/ftrace.c
-+++ b/arch/mips/kernel/ftrace.c
-@@ -400,13 +400,13 @@ unsigned long __init arch_syscall_addr(int nr)
- unsigned long __init arch_syscall_addr(int nr)
- {
- #ifdef CONFIG_MIPS32_N32
--	if (nr >= __NR_N32_Linux && nr <= __NR_N32_Linux + __NR_N32_Linux_syscalls)
-+	if (nr >= __NR_N32_Linux && nr < __NR_N32_Linux + __NR_N32_Linux_syscalls)
- 		return (unsigned long)sysn32_call_table[nr - __NR_N32_Linux];
- #endif
--	if (nr >= __NR_N64_Linux  && nr <= __NR_N64_Linux + __NR_N64_Linux_syscalls)
-+	if (nr >= __NR_N64_Linux  && nr < __NR_N64_Linux + __NR_N64_Linux_syscalls)
- 		return (unsigned long)sys_call_table[nr - __NR_N64_Linux];
- #ifdef CONFIG_MIPS32_O32
--	if (nr >= __NR_O32_Linux && nr <= __NR_O32_Linux + __NR_O32_Linux_syscalls)
-+	if (nr >= __NR_O32_Linux && nr < __NR_O32_Linux + __NR_O32_Linux_syscalls)
- 		return (unsigned long)sys32_call_table[nr - __NR_O32_Linux];
- #endif
- 
 diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index fea6edb..10f6367 100644
+index 10f6367..43fa5cd 100644
 --- a/arch/mips/kernel/scall32-o32.S
 +++ b/arch/mips/kernel/scall32-o32.S
-@@ -86,7 +86,7 @@ loads_done:
- 	bnez	t0, syscall_trace_entry # -> yes
- syscall_common:
- 	subu	v0, v0, __NR_O32_Linux	# check syscall number
--	sltiu	t0, v0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, v0, __NR_O32_Linux_syscalls
- 	beqz	t0, illegal_syscall
+@@ -205,6 +205,18 @@ einval: li	v0, -ENOSYS
+ 	jr	ra
+ 	END(sys_syscall)
  
- 	sll	t0, v0, 2
-@@ -182,7 +182,7 @@ illegal_syscall:
- 
- 	LEAF(sys_syscall)
- 	subu	t0, a0, __NR_O32_Linux	# check syscall number
--	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	v0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, einval		# do not recurse
- 	sll	t1, t0, 2
- 	beqz	v0, einval
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index c65eaac..6468546 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -33,7 +33,7 @@ NESTED(handle_sysn32, PT_SIZE, sp)
- #endif
- 
- 	dsubu	t0, v0, __NR_N32_Linux	# check syscall number
--	sltiu	t0, t0, __NR_N32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_N32_Linux_syscalls
- 
- #ifndef CONFIG_MIPS32_O32
- 	ld	t1, PT_EPC(sp)		# skip syscall on return
-@@ -87,7 +87,7 @@ n32_syscall_trace_entry:
- 	ld	a5, PT_R9(sp)
- 
- 	dsubu	t2, v0, __NR_N32_Linux	# check (new) syscall number
--	sltiu   t0, t2, __NR_N32_Linux_syscalls + 1
-+	sltiu   t0, t2, __NR_N32_Linux_syscalls
- 	beqz	t0, not_n32_scall
- 
- 	j	syscall_common
-diff --git a/arch/mips/kernel/scall64-n64.S b/arch/mips/kernel/scall64-n64.S
-index 497cd62..0bded19 100644
---- a/arch/mips/kernel/scall64-n64.S
-+++ b/arch/mips/kernel/scall64-n64.S
-@@ -54,7 +54,7 @@ NESTED(handle_sys64, PT_SIZE, sp)
- 
- syscall_common:
- 	dsubu	t2, v0, __NR_N64_Linux
--	sltiu   t0, t2, __NR_N64_Linux_syscalls + 1
-+	sltiu   t0, t2, __NR_N64_Linux_syscalls
- 	beqz	t0, illegal_syscall
- 
- 	dsll	t0, t2, 3		# offset into table
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index 73913f0..eb53d8ea 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -34,7 +34,7 @@ NESTED(handle_sys, PT_SIZE, sp)
- 	ld	t1, PT_EPC(sp)		# skip syscall on return
- 
- 	dsubu	t0, v0, __NR_O32_Linux	# check syscall number
--	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_O32_Linux_syscalls
- 	daddiu	t1, 4			# skip to next instruction
- 	sd	t1, PT_EPC(sp)
- 	beqz	t0, not_o32_scall
-@@ -144,7 +144,7 @@ trace_a_syscall:
- 	ld	a7, PT_R11(sp)		# For indirect syscalls
- 
- 	dsubu	t0, v0, __NR_O32_Linux	# check (new) syscall number
--	sltiu	t0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	t0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, not_o32_scall
- 
- 	j	syscall_common
-@@ -193,7 +193,7 @@ not_o32_scall:
- 
- LEAF(sys32_syscall)
- 	subu	t0, a0, __NR_O32_Linux	# check syscall number
--	sltiu	v0, t0, __NR_O32_Linux_syscalls + 1
-+	sltiu	v0, t0, __NR_O32_Linux_syscalls
- 	beqz	t0, einval		# do not recurse
- 	dsll	t1, t0, 3
- 	beqz	v0, einval
++#ifdef CONFIG_MIPS_MT_FPAFF
++	/*
++	 * For FPU affinity scheduling on MIPS MT processors, we need to
++	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
++	 * in kernel/sched/core.c.  Considered only temporary we only support
++	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
++	 * atm.
++	 */
++#define sys_sched_setaffinity	mipsmt_sys_sched_setaffinity
++#define sys_sched_getaffinity	mipsmt_sys_sched_getaffinity
++#endif /* CONFIG_MIPS_MT_FPAFF */
++
+ 	.align	2
+ 	.type	sys_call_table, @object
+ EXPORT(sys_call_table)
+@@ -447,20 +459,8 @@ EXPORT(sys_call_table)
+ 	PTR	sys_tkill
+ 	PTR	sys_sendfile64
+ 	PTR	sys_futex
+-#ifdef CONFIG_MIPS_MT_FPAFF
+-	/*
+-	 * For FPU affinity scheduling on MIPS MT processors, we need to
+-	 * intercept sys_sched_xxxaffinity() calls until we get a proper hook
+-	 * in kernel/sched/core.c.  Considered only temporary we only support
+-	 * these hooks for the 32-bit kernel - there is no MIPS64 MT processor
+-	 * atm.
+-	 */
+-	PTR	mipsmt_sys_sched_setaffinity
+-	PTR	mipsmt_sys_sched_getaffinity
+-#else
+ 	PTR	sys_sched_setaffinity
+ 	PTR	sys_sched_getaffinity		/* 4240 */
+-#endif /* CONFIG_MIPS_MT_FPAFF */
+ 	PTR	sys_io_setup
+ 	PTR	sys_io_destroy
+ 	PTR	sys_io_getevents
 -- 
 1.9.1
