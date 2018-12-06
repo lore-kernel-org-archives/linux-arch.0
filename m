@@ -1,41 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:44146 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725898AbeLFRkz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Dec 2018 12:40:55 -0500
-References: <20181107173859.24096-1-logang@deltatee.com>
- <20181107173859.24096-3-logang@deltatee.com>
- <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <71168447-7470-d2ba-d30e-200ff6202b35@deltatee.com>
-Date: Thu, 6 Dec 2018 10:40:31 -0700
+Received: from eddie.linux-mips.org ([148.251.95.138]:43242 "EHLO
+        cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725871AbeLFRna (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2018 12:43:30 -0500
+Received: (from localhost user: 'macro', uid#1010) by eddie.linux-mips.org
+        with ESMTP id S23990824AbeLFRn11ifyA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org> + 1 other);
+        Thu, 6 Dec 2018 18:43:27 +0100
+Date: Thu, 6 Dec 2018 17:43:27 +0000 (GMT)
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+In-Reply-To: <alpine.DEB.2.21.1812061719180.12167@digraph.polyomino.org.uk>
+Message-ID: <alpine.LFD.2.21.1812061729340.4294@eddie.linux-mips.org>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com> <20181205063436.kzxgnvgexcgq572k@pburton-laptop> <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
+ <alpine.DEB.2.21.1812061618110.12167@digraph.polyomino.org.uk> <alpine.LFD.2.21.1812061659210.4294@eddie.linux-mips.org> <alpine.DEB.2.21.1812061719180.12167@digraph.polyomino.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-CA
-Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH 2/2] mm/sparse: add common helper to mark all memblocks
- present
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
-Message-ID: <20181206174031.wzJBPdlX_LgOpRgovYsgA9W6xa5nhCrzJA0oPAnfb8Y@z>
+To: Joseph Myers <joseph@codesourcery.com>
+Cc: Paul Burton <paul.burton@mips.com>, Firoz Khan <firoz.khan@linaro.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, libc-alpha@sourceware.org
+Message-ID: <20181206174327.qxXdRjQJ3fQvaL_NYMtbThwzKkS4KgayPXc12-qcrzw@z>
 
-Hey Andrew,
+On Thu, 6 Dec 2018, Joseph Myers wrote:
 
-On 2018-11-07 1:12 p.m., Andrew Morton wrote:
-> Acked-by: Andrew Morton <akpm@linux-foundation.org>
+> >  So how are `SYS_<name>' macros generated that land in <bits/syscall.h>?
 > 
-> I can grab both patches and shall sneak them into 4.20-rcX, but feel
-> free to merge them into some git tree if you'd prefer.  If I see them
-> turn up in linux-next I shall drop my copy.
+> By gen-syscall-h.awk, which generates #ifdef conditionals for each 
+> possible __NR_* name (as listed in syscall-names.list in glibc).
 
-Just wanted to check if you are still planning to get these patches into
-4.20-rcX. It would really help us if you can do this seeing we then
-won't have to delay a cycle and can target the riscv sparsemem code for
-4.21.
+ I seem to remember having to take extra care with how the three MIPS ABIs 
+wire the syscalls to get it right in glibc, but I take it then this has 
+been now addressed reliably enough for the glibc not to care how exactly
+<asm/unistd.h> has been arranged.
 
-Thanks,
+ Given my current level of involvement with the MIPS architecture I take 
+your word for it and will not investigate it any further.  Thanks for your 
+input.
 
-Logan
+  Maciej
