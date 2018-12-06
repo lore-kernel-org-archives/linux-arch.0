@@ -1,57 +1,38 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 6 Dec 2018 11:55:54 +0100
-Message-ID: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+Date: Thu, 6 Dec 2018 12:15:41 +0000 (GMT)
+Message-ID: <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com> <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181205140550.GA27549@lst.de>
-Content-Language: de-DE
+Received: (from localhost user: 'macro', uid#1010) by eddie.linux-mips.org
+        with ESMTP id S23990828AbeLFMPludY8u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org> + 1 other);
+        Thu, 6 Dec 2018 13:15:41 +0100
+In-Reply-To: <20181205063436.kzxgnvgexcgq572k@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Paul Burton <paul.burton@mips.com>
+Cc: Firoz Khan <firoz.khan@linaro.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, libc-alpha@sourceware.org
 List-Id: linux-arch.vger.kernel.org
 
-On 05 December 2018 at 3:05PM, Christoph Hellwig wrote:
->
-> Thanks.  Can you try a few stepping points in the tree?
->
-> First just with commit 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6
-> (the first one) applied?
->
-> Second with all commits up to 5da11e49df21f21dac25a2491aa788307bdacb6b
->
-> And if that still works with commits up to
-> c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a
->
-Hi Christoph,
+On Wed, 5 Dec 2018, Paul Burton wrote:
 
-I undid the commit 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6 with the 
-following command:
+> > Could you review this patch series. I would appreciate if you can
+> > perform the boot test on the actual platform.
+> 
+> This is looking pretty good to me, so I look forward to v4 with Arnd's
+> comments addressed.
+> 
+> I've verified that the sys call tables are identical for both
+> 32r2el_defconfig & 64r6el_defconfig before & after this series, and that
+> both still boot fine.
 
-git checkout 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6
+ I believe this file is used by the glibc build process to retrieve 
+syscall numbers for glibc's own use as well for <sys/syscall.h>.  Has the 
+change been verified not to break this process?
 
-Result: PASEMI onboard ethernet works again and the P5020 board boots.
+ Cc-ing <libc-alpha@sourceware.org> for information and possible further 
+input.
 
-I will test the other commits in the next days.
-
-@All
-It is really important, that you also test Christoph's work on your 
-PASEMI and NXP boards. Could you please help us with solving the issues?
-
-'git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.5 a'
-
-Thanks,
-Christian
+  Maciej
