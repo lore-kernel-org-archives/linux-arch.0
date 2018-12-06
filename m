@@ -1,54 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37302 "EHLO mx1.redhat.com"
+Received: from ale.deltatee.com ([207.54.116.67]:44146 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726109AbeLFR3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Dec 2018 12:29:41 -0500
-Date: Thu, 6 Dec 2018 18:29:32 +0100
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v5 1/2] kernel/signal: Signal-based pre-coredump
- notification
-Message-ID: <20181206172931.GA12967@redhat.com>
-References: <7741efa7-a3f8-62a1-ba52-613883164643@cisco.com>
- <84460a77-a111-404e-4bad-88104a6e246e@cisco.com>
- <20181026082812.GA10581@redhat.com>
- <21f678a8-4001-df36-c26e-e96cf203b1b1@cisco.com>
- <20181029111804.GA24820@redhat.com>
- <0c197608-3b7e-ffd1-8943-801a60beb917@cisco.com>
- <80e96710-f424-9b39-72ee-9cc7cbe7a5f7@cisco.com>
- <20181128151911.GN3505@e103592.cambridge.arm.com>
- <ad461da7-f0a6-7912-3201-e440dc372f89@cisco.com>
- <20181204143759.fe24ee036a33000193339561@linux-foundation.org>
+        id S1725898AbeLFRkz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Dec 2018 12:40:55 -0500
+References: <20181107173859.24096-1-logang@deltatee.com>
+ <20181107173859.24096-3-logang@deltatee.com>
+ <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
+From: Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <71168447-7470-d2ba-d30e-200ff6202b35@deltatee.com>
+Date: Thu, 6 Dec 2018 10:40:31 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181204143759.fe24ee036a33000193339561@linux-foundation.org>
+In-Reply-To: <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-CA
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH 2/2] mm/sparse: add common helper to mark all memblocks
+ present
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Enke Chen <enkechen@cisco.com>, Dave Martin <Dave.Martin@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, "xe-linux-external@cisco.com" <xe-linux-external@cisco.com>, Stefan Strogin <sstrogin@cisco.com>
-Message-ID: <20181206172932.nZ-5gZ0WZSM6jcD26R4aTfTtJV9nh99m9J3sPs3276k@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
+Message-ID: <20181206174031.wzJBPdlX_LgOpRgovYsgA9W6xa5nhCrzJA0oPAnfb8Y@z>
 
-On 12/04, Andrew Morton wrote:
->
-> I'm not sure what to make of this patchset, really.  Oleg sounds
-> unhappy and that's always a bad sign.  And signals are rather ugly
-> things.  Oleg, can you please expand on your concerns?
+Hey Andrew,
 
-I don't really know what can I say...
+On 2018-11-07 1:12 p.m., Andrew Morton wrote:
+> Acked-by: Andrew Morton <akpm@linux-foundation.org>
+> 
+> I can grab both patches and shall sneak them into 4.20-rcX, but feel
+> free to merge them into some git tree if you'd prefer.  If I see them
+> turn up in linux-next I shall drop my copy.
 
-Yes the signals are ugly things, this is one reason. Worse, you need to
-use real-time predump_signal if parent has 2 or more children.
+Just wanted to check if you are still planning to get these patches into
+4.20-rcX. It would really help us if you can do this seeing we then
+won't have to delay a cycle and can target the riscv sparsemem code for
+4.21.
 
-And when it comes to child-parent notifications we already have do_wait().
-So probably it would be better to implement WCOREDUMP so that the parent
-could rely on SIGCHLD + waitpid(WCOREDUMP). Not that I think this is a
-good idea and this is much more complex especially if we want to report
-this event to ptracer too, while this patch is very simple.
+Thanks,
 
-In fact I think that we need something more generic, but I can't suggest
-any good idea :/
-
-May be we could simply add a tracepoint or perf_event_coredump, I dunno.
-Sure, the usage of perf events is not that simple...
-
-Oleg.
+Logan
