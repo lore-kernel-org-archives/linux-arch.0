@@ -1,70 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f67.google.com ([209.85.167.67]:34435 "EHLO
-        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725936AbeLFQOW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2018 11:14:22 -0500
+Received: from relay1.mentorg.com ([192.94.38.131]:59816 "EHLO
+        relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725862AbeLFQTb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2018 11:19:31 -0500
+Date: Thu, 6 Dec 2018 16:19:19 +0000
+From: Joseph Myers <joseph@codesourcery.com>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+In-Reply-To: <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
+Message-ID: <alpine.DEB.2.21.1812061618110.12167@digraph.polyomino.org.uk>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org> <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com> <20181205063436.kzxgnvgexcgq572k@pburton-laptop> <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
 MIME-Version: 1.0
-References: <1544062060-26875-1-git-send-email-ren_guo@c-sky.com>
-In-Reply-To: <1544062060-26875-1-git-send-email-ren_guo@c-sky.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 6 Dec 2018 17:14:02 +0100
-Message-ID: <CAK8P3a1UbR3bosJgKAJZVMn-5aJLS1u0t_OAYSU-dzum4EyVMw@mail.gmail.com>
-Subject: Re: [PATCH] asm-generic: unistd.h: fixup broken macro include.
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: Joseph Myers <joseph@codesourcery.com>, Mao Han <han_mao@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20181206161402.H0sPFZbGepfei_hVXQnYfYkNhPlhTbescb7vnEFuWNI@z>
+To: "Maciej W. Rozycki" <macro@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>, Firoz Khan <firoz.khan@linaro.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, libc-alpha@sourceware.org
+Message-ID: <20181206161919._RK0GDi6hijj1PPv7wPKgANUFmAWjzzoKFq8xlCr60c@z>
 
-On Thu, Dec 6, 2018 at 3:07 AM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> The broken macros make the glibc compile error. If there is no
-> __NR3264_fstat*, we should also removed related definitions.
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> Signed-off-by: Mao Han <han_mao@c-sky.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> ---
+On Thu, 6 Dec 2018, Maciej W. Rozycki wrote:
 
-Thanks for the reminder!
+>  I believe this file is used by the glibc build process to retrieve 
+> syscall numbers for glibc's own use as well for <sys/syscall.h>.  Has the 
+> change been verified not to break this process?
+> 
+>  Cc-ing <libc-alpha@sourceware.org> for information and possible further 
+> input.
 
-Marcin had already sent me the same patch a while ago
-and I forgot to apply it. I applied your version now, which
-as a slightly better changelog, so it will be in linux-next
-tomorrow, and I plan to send it after that shows no regressions.
+I'm not sure what "this file" is.  The glibc build uses the installed 
+<asm/unistd.h> (the results of #including it, not any other kind of 
+processing the file).
 
-     Arnd
-
->  include/uapi/asm-generic/unistd.h | 4 ++++
->  1 file changed, 4 insertions(+)
->
-> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> index 538546e..c7f3321 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -760,8 +760,10 @@ __SYSCALL(__NR_rseq, sys_rseq)
->  #define __NR_ftruncate __NR3264_ftruncate
->  #define __NR_lseek __NR3264_lseek
->  #define __NR_sendfile __NR3264_sendfile
-> +#if defined(__ARCH_WANT_NEW_STAT) || defined(__ARCH_WANT_STAT64)
->  #define __NR_newfstatat __NR3264_fstatat
->  #define __NR_fstat __NR3264_fstat
-> +#endif
->  #define __NR_mmap __NR3264_mmap
->  #define __NR_fadvise64 __NR3264_fadvise64
->  #ifdef __NR3264_stat
-> @@ -776,8 +778,10 @@ __SYSCALL(__NR_rseq, sys_rseq)
->  #define __NR_ftruncate64 __NR3264_ftruncate
->  #define __NR_llseek __NR3264_lseek
->  #define __NR_sendfile64 __NR3264_sendfile
-> +#if defined(__ARCH_WANT_NEW_STAT) || defined(__ARCH_WANT_STAT64)
->  #define __NR_fstatat64 __NR3264_fstatat
->  #define __NR_fstat64 __NR3264_fstat
-> +#endif
->  #define __NR_mmap2 __NR3264_mmap
->  #define __NR_fadvise64_64 __NR3264_fadvise64
->  #ifdef __NR3264_stat
-> --
-> 2.7.4
->
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
