@@ -1,15 +1,15 @@
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH 03/34] powerpc/dma: remove the unused
- ARCH_HAS_DMA_MMAP_COHERENT define
-Date: Thu, 6 Dec 2018 06:09:55 -0800
-Message-ID: <20181206140955.GC29741@infradead.org>
+Subject: Re: [PATCH 07/34] powerpc/dma: remove the no-op
+ dma_nommu_unmap_{page, sg} routines
+Date: Thu, 6 Dec 2018 06:10:10 -0800
+Message-ID: <20181206141010.GF29741@infradead.org>
 References: <20181114082314.8965-1-hch@lst.de>
- <20181114082314.8965-4-hch@lst.de>
+ <20181114082314.8965-8-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181114082314.8965-4-hch@lst.de>
+In-Reply-To: <20181114082314.8965-8-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Christoph Hellwig <hch@lst.de>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
@@ -17,25 +17,58 @@ List-Id: linux-arch.vger.kernel.org
 
 ping?
 
-On Wed, Nov 14, 2018 at 09:22:43AM +0100, Christoph Hellwig wrote:
+On Wed, Nov 14, 2018 at 09:22:47AM +0100, Christoph Hellwig wrote:
+> These methods are optional, no need to implement no-op versions.
+> 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 > ---
->  arch/powerpc/include/asm/dma-mapping.h | 2 --
->  1 file changed, 2 deletions(-)
+>  arch/powerpc/kernel/dma.c | 16 ----------------
+>  1 file changed, 16 deletions(-)
 > 
-> diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-> index 8fa394520af6..f2a4a7142b1e 100644
-> --- a/arch/powerpc/include/asm/dma-mapping.h
-> +++ b/arch/powerpc/include/asm/dma-mapping.h
-> @@ -112,7 +112,5 @@ extern int dma_set_mask(struct device *dev, u64 dma_mask);
+> diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
+> index d6deb458bb91..7078d72baec2 100644
+> --- a/arch/powerpc/kernel/dma.c
+> +++ b/arch/powerpc/kernel/dma.c
+> @@ -197,12 +197,6 @@ static int dma_nommu_map_sg(struct device *dev, struct scatterlist *sgl,
+>  	return nents;
+>  }
 >  
->  extern u64 __dma_get_required_mask(struct device *dev);
->  
-> -#define ARCH_HAS_DMA_MMAP_COHERENT
+> -static void dma_nommu_unmap_sg(struct device *dev, struct scatterlist *sg,
+> -				int nents, enum dma_data_direction direction,
+> -				unsigned long attrs)
+> -{
+> -}
 > -
->  #endif /* __KERNEL__ */
->  #endif	/* _ASM_DMA_MAPPING_H */
+>  static u64 dma_nommu_get_required_mask(struct device *dev)
+>  {
+>  	u64 end, mask;
+> @@ -228,14 +222,6 @@ static inline dma_addr_t dma_nommu_map_page(struct device *dev,
+>  	return page_to_phys(page) + offset + get_dma_offset(dev);
+>  }
+>  
+> -static inline void dma_nommu_unmap_page(struct device *dev,
+> -					 dma_addr_t dma_address,
+> -					 size_t size,
+> -					 enum dma_data_direction direction,
+> -					 unsigned long attrs)
+> -{
+> -}
+> -
+>  #ifdef CONFIG_NOT_COHERENT_CACHE
+>  static inline void dma_nommu_sync_sg(struct device *dev,
+>  		struct scatterlist *sgl, int nents,
+> @@ -261,10 +247,8 @@ const struct dma_map_ops dma_nommu_ops = {
+>  	.free				= dma_nommu_free_coherent,
+>  	.mmap				= dma_nommu_mmap_coherent,
+>  	.map_sg				= dma_nommu_map_sg,
+> -	.unmap_sg			= dma_nommu_unmap_sg,
+>  	.dma_supported			= dma_nommu_dma_supported,
+>  	.map_page			= dma_nommu_map_page,
+> -	.unmap_page			= dma_nommu_unmap_page,
+>  	.get_required_mask		= dma_nommu_get_required_mask,
+>  #ifdef CONFIG_NOT_COHERENT_CACHE
+>  	.sync_single_for_cpu 		= dma_nommu_sync_single,
 > -- 
 > 2.19.1
 > 
