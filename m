@@ -1,73 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.164]:15681 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725997AbeLGNpK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 08:45:10 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
- <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
-Message-ID: <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
-Date: Fri, 7 Dec 2018 14:45:06 +0100
+Received: from verein.lst.de ([213.95.11.211]:35490 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726029AbeLGOJM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Dec 2018 09:09:12 -0500
+Date: Fri, 7 Dec 2018 15:09:10 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 01/34] powerpc: use mm zones more sensibly
+Message-ID: <20181207140910.GA23609@lst.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-2-hch@lst.de> <20181206140948.GB29741@infradead.org> <87sgz9jzsl.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-In-Reply-To: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87sgz9jzsl.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181207134506.80tSCznM6_AwdfGKXjFVqjyGpV8oo6uoGXNEUcTxZgo@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christoph Hellwig <hch@infradead.org>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+Message-ID: <20181207140910.LDcUm3UvpczbdPDHWEekrQaTjEpSGm-s1Dqr91fRnbg@z>
 
-On 06 December 2018 at 11:55AM, Christian Zigotzky wrote:
-> On 05 December 2018 at 3:05PM, Christoph Hellwig wrote:
->>
->> Thanks.  Can you try a few stepping points in the tree?
->>
->> First just with commit 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6
->> (the first one) applied?
->>
->> Second with all commits up to 5da11e49df21f21dac25a2491aa788307bdacb6b
->>
->> And if that still works with commits up to
->> c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a
->>
-> Hi Christoph,
->
-> I undid the commit 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6 with the 
-> following command:
->
-> git checkout 7fd3bb05b73beea1f9840b505aa09beb9c75a8c6
->
-> Result: PASEMI onboard ethernet works again and the P5020 board boots.
->
-> I will test the other commits in the next days.
->
-> @All
-> It is really important, that you also test Christoph's work on your 
-> PASEMI and NXP boards. Could you please help us with solving the issues?
->
-> 'git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.5 a'
->
-> Thanks,
-> Christian
->
->
-Today I tested the commit 5da11e49df21f21dac25a2491aa788307bdacb6b.
+On Fri, Dec 07, 2018 at 11:18:18PM +1100, Michael Ellerman wrote:
+> Christoph Hellwig <hch@infradead.org> writes:
+> 
+> > Ben / Michael,
+> >
+> > can we get this one queued up for 4.21 to prepare for the DMA work later
+> > on?
+> 
+> I was hoping the PASEMI / NXP regressions could be solved before
+> merging.
+> 
+> My p5020ds is booting fine with this series, so I'm not sure why it's
+> causing problems on Christian's machine.
+> 
+> The last time I turned on my PASEMI board it tripped some breakers, so I
+> need to investigate that before I can help test that.
+> 
+> I'll see how things look on Monday and either merge the commits you
+> identified or the whole series depending on if there's any more info
+> from Christian.
 
-git checkout 5da11e49df21f21dac25a2491aa788307bdacb6b
-
-The PASEMI onboard ethernet works and the P5020 board boots.
-
--- Christian
+Christian just confirmed everything up to at least
+"powerpc/dma: stop overriding dma_get_required_mask" works for his
+setups.
