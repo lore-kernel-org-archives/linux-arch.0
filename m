@@ -1,113 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:38550 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726005AbeLGGMJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 01:12:09 -0500
-Received: by mail-pl1-f194.google.com with SMTP id e5so1340485plb.5
-        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2018 22:12:07 -0800 (PST)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:46104 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726005AbeLGGMU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 01:12:20 -0500
+Received: by mail-pg1-f196.google.com with SMTP id w7so1230199pgp.13
+        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2018 22:12:19 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 0/5] powerpc: system call table generation support
-Date: Fri,  7 Dec 2018 11:41:35 +0530
-Message-ID: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 2/5] powerpc: move macro definition from asm/systbl.h
+Date: Fri,  7 Dec 2018 11:41:37 +0530
+Message-ID: <1544163100-15510-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+References: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181207061135.kHLi3C-jTA63SHiB5JxIG-OV1vLK4cZxWcTrWaj5ANM@z>
+Message-ID: <20181207061137.8h26MeNbEO9OiDkAbm4TMz5GaH2Mu6Rp3qSUECEApms@z>
 
-The purpose of this patch series is, we can easily
-add/modify/delete system call table support by cha-
-nging entry in syscall.tbl file instead of manually
-changing many files. The other goal is to unify the 
-system call table generation support implementation 
-across all the architectures. 
+Move the macro definition for compat_sys_sigsuspend from
+asm/systbl.h to the file which it is getting included.
 
-The system call tables are in different format in 
-all architecture. It will be difficult to manually
-add, modify or delete the system calls in the resp-
-ective files manually. To make it easy by keeping a 
-script and which'll generate uapi header file and 
-syscall table file.
+One of the patch in this patch series is generating uapi
+header and syscall table files. In order to come up with
+a common implimentation across all architecture, we need
+to do this change.
 
-syscall.tbl contains the list of available system 
-calls along with system call number and correspond-
-ing entry point. Add a new system call in this arch-
-itecture will be possible by adding new entry in 
-the syscall.tbl file.
+This change will simplify the implementation of system
+call table generation script and help to come up a common
+implementation across all architecture.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-	- Compat entry name, if required.
-	- spu entry name, if required.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/powerpc/include/asm/systbl.h | 1 -
+ arch/powerpc/kernel/systbl.S      | 1 +
+ 2 files changed, 1 insertion(+), 1 deletion(-)
 
-ARM, s390 and x86 architecuture does exist the sim-
-ilar support. I leverage their implementation to 
-come up with a generic solution.
-
-I have done the same support for work for alpha, 
-ia64, m68k, microblaze, mips, parisc, sh, sparc, 
-and xtensa. Below mentioned git repository contains
-more details about the workflow.
-
-https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work to solve the Y2038
-issue. We need to add two dozen of system calls to 
-solve Y2038 issue. So this patch series will help to
-add new system calls easily by adding new entry in the
-syscall.tbl.
-
-Changes since v3:
- - split compat syscall table out from native table.
- - modified the script to add new line in the generated
-   file.
-
-Changes since v2:
- - modified/optimized the syscall.tbl to avoid duplicate
-   for the spu entries.
- - updated the syscalltbl.sh to meet the above point.
-
-Changes since v1:
- - optimized/updated the syscall table generation 
-   scripts.
- - fixed all mixed indentation issues in syscall.tbl.
- - added "comments" in syscall_*.tbl.
- - changed from generic-y to generated-y in Kbuild.
-
-Firoz Khan (5):
-  powerpc: add __NR_syscalls along with NR_syscalls
-  powerpc: move macro definition from asm/systbl.h
-  powerpc: add system call table generation support
-  powerpc: split compat syscall table out from native table
-  powerpc: generate uapi header and system call table files
-
- arch/powerpc/Makefile                       |   3 +
- arch/powerpc/include/asm/Kbuild             |   4 +
- arch/powerpc/include/asm/syscall.h          |   3 +-
- arch/powerpc/include/asm/systbl.h           | 396 --------------------------
- arch/powerpc/include/asm/unistd.h           |   3 +-
- arch/powerpc/include/uapi/asm/Kbuild        |   2 +
- arch/powerpc/include/uapi/asm/unistd.h      | 389 +------------------------
- arch/powerpc/kernel/Makefile                |  10 -
- arch/powerpc/kernel/entry_64.S              |   7 +-
- arch/powerpc/kernel/syscalls/Makefile       |  63 ++++
- arch/powerpc/kernel/syscalls/syscall.tbl    | 427 ++++++++++++++++++++++++++++
- arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
- arch/powerpc/kernel/syscalls/syscalltbl.sh  |  36 +++
- arch/powerpc/kernel/systbl.S                |  40 ++-
- arch/powerpc/kernel/systbl_chk.c            |  60 ----
- arch/powerpc/kernel/vdso.c                  |   7 +-
- arch/powerpc/platforms/cell/spu_callbacks.c |  17 +-
- 17 files changed, 606 insertions(+), 898 deletions(-)
- delete mode 100644 arch/powerpc/include/asm/systbl.h
- create mode 100644 arch/powerpc/kernel/syscalls/Makefile
- create mode 100644 arch/powerpc/kernel/syscalls/syscall.tbl
- create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
- delete mode 100644 arch/powerpc/kernel/systbl_chk.c
-
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 01b5171..c4321b9 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -76,7 +76,6 @@
+ SYSCALL_SPU(ssetmask)
+ SYSCALL_SPU(setreuid)
+ SYSCALL_SPU(setregid)
+-#define compat_sys_sigsuspend sys_sigsuspend
+ SYS32ONLY(sigsuspend)
+ SYSX(sys_ni_syscall,compat_sys_sigpending,sys_sigpending)
+ SYSCALL_SPU(sethostname)
+diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
+index 919a327..9ff1913 100644
+--- a/arch/powerpc/kernel/systbl.S
++++ b/arch/powerpc/kernel/systbl.S
+@@ -47,4 +47,5 @@
+ .globl sys_call_table
+ sys_call_table:
+ 
++#define compat_sys_sigsuspend	sys_sigsuspend
+ #include <asm/systbl.h>
 -- 
 1.9.1
