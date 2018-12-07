@@ -1,54 +1,156 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.54]:27862 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726034AbeLGPFA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 10:05:00 -0500
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH 01/34] powerpc: use mm zones more sensibly
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-In-Reply-To: <20181207140910.GA23609@lst.de>
-Date: Fri, 7 Dec 2018 16:04:16 +0100
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <037E87F4-38C7-4E5F-A132-B7BB30E3D69D@xenosoft.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-2-hch@lst.de> <20181206140948.GB29741@infradead.org> <87sgz9jzsl.fsf@concordia.ellerman.id.au> <20181207140910.GA23609@lst.de>
+Received: from foss.arm.com ([217.140.101.70]:50634 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726099AbeLGRxB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Dec 2018 12:53:01 -0500
+Date: Fri, 7 Dec 2018 17:53:22 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Message-ID: <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+ <20181129170530.37789-7-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181207150416.98j85lTCgWtBFtuhIJrAQx-G_iE4CQwkpWhH9F7TroY@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181207175322.nEX6KDeqIHm2RNSOLLmMRZ4JkB-oO17UJHOiUMGht4Y@z>
 
-I will work at the weekend to figure out where the problematic commit is.
+Hi Thomas,
 
-=E2=80=94 Christian
+You got me at this bit:
 
-Sent from my iPhone
+On Thu, Nov 29, 2018 at 11:11:52PM +0100, Thomas Gleixner wrote:
+> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
+> > +static __always_inline notrace int __do_realtime_or_tai(
+> > +		const struct vdso_data *vd,
+> > +		struct __vdso_timespec *ts,
+> > +		bool is_tai)
+> > +{
+> > +	u32 seq, cs_mono_mult, cs_shift;
+> > +	u64 ns, sec;
+> > +	u64 cycle_last, cs_mono_mask;
+> > +
+> > +	if (vd->use_syscall)
+> > +		return -1;
+> > +repeat:
+> > +	seq = vdso_read_begin(vd);
+> > +	cycle_last = vd->cs_cycle_last;
+> > +	cs_mono_mult = vd->cs_mono_mult;
+> > +	cs_shift = vd->cs_shift;
+> > +	cs_mono_mask = vd->cs_mono_mask;
+> > +
+> > +	if (is_tai)
+> > +		sec = vd->tai_sec;
+> > +	else
+> > +		sec = vd->xtime_clock_sec;
+> > +	ns = vd->xtime_clock_nsec;
+> > +
+> > +	if (unlikely(vdso_read_retry(vd, seq)))
+> > +		goto repeat;
+> > +
+> > +	ns += get_clock_shifted_nsec(cycle_last, cs_mono_mult, cs_mono_mask);
+> 
+> This is broken. You cannot read the counter outside the seq count protected
+> region. Please tell the ARM64 folks that their VDSO asm maze is broken.
 
-> On 7. Dec 2018, at 15:09, Christoph Hellwig <hch@lst.de> wrote:
->=20
->> On Fri, Dec 07, 2018 at 11:18:18PM +1100, Michael Ellerman wrote:
->> Christoph Hellwig <hch@infradead.org> writes:
->>=20
->>> Ben / Michael,
->>>=20
->>> can we get this one queued up for 4.21 to prepare for the DMA work later=
+We'll fix the maze, but could you explain a bit about the brokenness,
+please? The write side in update_vsyscall() is only touching the data page,
+so I think we've got those fields covered correctly with the seqlock. We'd
+only have to worry about protecting the counter if it could be written
+somehow.
 
->>> on?
->>=20
->> I was hoping the PASEMI / NXP regressions could be solved before
->> merging.
->>=20
->> My p5020ds is booting fine with this series, so I'm not sure why it's
->> causing problems on Christian's machine.
->>=20
->> The last time I turned on my PASEMI board it tripped some breakers, so I
->> need to investigate that before I can help test that.
->>=20
->> I'll see how things look on Monday and either merge the commits you
->> identified or the whole series depending on if there's any more info
->> from Christian.
->=20
-> Christian just confirmed everything up to at least
-> "powerpc/dma: stop overriding dma_get_required_mask" works for his
-> setups.
+Is your concern to do with migrating between systems, where the new system
+has a counter with a different offset? If so, what does the program flow
+look like when migrating in? I guess somehow we ensure that update_vsyscall()
+is invoked before userspace can resume.
+
+Anyway, moving the counter read into the protected region is a little fiddly
+because the memory barriers we have in there won't give us the ordering we
+need. We'll instead need to do something nasty, like create a dependency
+from the counter read to the read of the seqlock:
+
+Maybe the untested crufty hack below, although this will be a nightmare to
+implement in C.
+
+Will
+
+--->8
+
+diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
+index c39872a7b03c..2d1dfecae76b 100644
+--- a/arch/arm64/kernel/vdso/gettimeofday.S
++++ b/arch/arm64/kernel/vdso/gettimeofday.S
+@@ -73,6 +73,8 @@ x_tmp		.req	x8
+ 	movn	x_tmp, #0xff00, lsl #48
+ 	and	\res, x_tmp, \res
+ 	mul	\res, \res, \mult
++	and	x_tmp, x_tmp, xzr
++	add	vdso_data, vdso_data, x_tmp
+ 	.endm
+ 
+ 	/*
+@@ -147,12 +149,12 @@ ENTRY(__kernel_gettimeofday)
+ 	/* w11 = cs_mono_mult, w12 = cs_shift */
+ 	ldp	w11, w12, [vdso_data, #VDSO_CS_MONO_MULT]
+ 	ldp	x13, x14, [vdso_data, #VDSO_XTIME_CLK_SEC]
+-	seqcnt_check fail=1b
+ 
+ 	get_nsec_per_sec res=x9
+ 	lsl	x9, x9, x12
+ 
+ 	get_clock_shifted_nsec res=x15, cycle_last=x10, mult=x11
++	seqcnt_check fail=1b
+ 	get_ts_realtime res_sec=x10, res_nsec=x11, \
+ 		clock_nsec=x15, xtime_sec=x13, xtime_nsec=x14, nsec_to_sec=x9
+ 
+@@ -211,13 +213,13 @@ realtime:
+ 	/* w11 = cs_mono_mult, w12 = cs_shift */
+ 	ldp	w11, w12, [vdso_data, #VDSO_CS_MONO_MULT]
+ 	ldp	x13, x14, [vdso_data, #VDSO_XTIME_CLK_SEC]
+-	seqcnt_check fail=realtime
+ 
+ 	/* All computations are done with left-shifted nsecs. */
+ 	get_nsec_per_sec res=x9
+ 	lsl	x9, x9, x12
+ 
+ 	get_clock_shifted_nsec res=x15, cycle_last=x10, mult=x11
++	seqcnt_check fail=realtime
+ 	get_ts_realtime res_sec=x10, res_nsec=x11, \
+ 		clock_nsec=x15, xtime_sec=x13, xtime_nsec=x14, nsec_to_sec=x9
+ 	clock_gettime_return, shift=1
+@@ -231,7 +233,6 @@ monotonic:
+ 	ldp	w11, w12, [vdso_data, #VDSO_CS_MONO_MULT]
+ 	ldp	x13, x14, [vdso_data, #VDSO_XTIME_CLK_SEC]
+ 	ldp	x3, x4, [vdso_data, #VDSO_WTM_CLK_SEC]
+-	seqcnt_check fail=monotonic
+ 
+ 	/* All computations are done with left-shifted nsecs. */
+ 	lsl	x4, x4, x12
+@@ -239,6 +240,7 @@ monotonic:
+ 	lsl	x9, x9, x12
+ 
+ 	get_clock_shifted_nsec res=x15, cycle_last=x10, mult=x11
++	seqcnt_check fail=monotonic
+ 	get_ts_realtime res_sec=x10, res_nsec=x11, \
+ 		clock_nsec=x15, xtime_sec=x13, xtime_nsec=x14, nsec_to_sec=x9
+ 
+@@ -253,13 +255,13 @@ monotonic_raw:
+ 	/* w11 = cs_raw_mult, w12 = cs_shift */
+ 	ldp	w12, w11, [vdso_data, #VDSO_CS_SHIFT]
+ 	ldp	x13, x14, [vdso_data, #VDSO_RAW_TIME_SEC]
+-	seqcnt_check fail=monotonic_raw
+ 
+ 	/* All computations are done with left-shifted nsecs. */
+ 	get_nsec_per_sec res=x9
+ 	lsl	x9, x9, x12
+ 
+ 	get_clock_shifted_nsec res=x15, cycle_last=x10, mult=x11
++	seqcnt_check fail=monotonic_raw
+ 	get_ts_clock_raw res_sec=x10, res_nsec=x11, \
+ 		clock_nsec=x15, nsec_to_sec=x9
+ 
