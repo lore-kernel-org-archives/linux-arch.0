@@ -1,39 +1,51 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 01/34] powerpc: use mm zones more sensibly
-Date: Fri, 7 Dec 2018 15:09:10 +0100
-Message-ID: <20181207140910.GA23609@lst.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-2-hch@lst.de> <20181206140948.GB29741@infradead.org> <87sgz9jzsl.fsf@concordia.ellerman.id.au>
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: [PATCH v3 0/6] mips: system call table generation support
+Date: Fri, 7 Dec 2018 14:33:17 +0000 (GMT)
+Message-ID: <alpine.LFD.2.21.1812062141300.22112@eddie.linux-mips.org>
+References: <1543481016-18500-1-git-send-email-firoz.khan@linaro.org>        <CALxhOnjSEp++W5T3Sf0eX+8hPt08ER22M817M-Vhd24_96a_EQ@mail.gmail.com>        <20181205063436.kzxgnvgexcgq572k@pburton-laptop>        <alpine.LFD.2.21.1812061209220.7193@eddie.linux-mips.org>
+        <alpine.DEB.2.21.1812061618110.12167@digraph.polyomino.org.uk>        <alpine.LFD.2.21.1812061659210.4294@eddie.linux-mips.org>        <alpine.DEB.2.21.1812061719180.12167@digraph.polyomino.org.uk>        <alpine.LFD.2.21.1812061729340.4294@eddie.linux-mips.org>
+ <87mupiikzy.fsf@oldenburg2.str.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87sgz9jzsl.fsf@concordia.ellerman.id.au>
+Received: (from localhost user: 'macro', uid#1010) by eddie.linux-mips.org
+        with ESMTP id S23992798AbeLGOdRhC0sC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org> + 1 other);
+        Fri, 7 Dec 2018 15:33:17 +0100
+In-Reply-To: <87mupiikzy.fsf@oldenburg2.str.redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Christoph Hellwig <hch@infradead.org>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Joseph Myers <joseph@codesourcery.com>, Paul Burton <paul.burton@mips.com>, Firoz Khan <firoz.khan@linaro.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, libc-alpha@sourceware.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 07, 2018 at 11:18:18PM +1100, Michael Ellerman wrote:
-> Christoph Hellwig <hch@infradead.org> writes:
-> 
-> > Ben / Michael,
-> >
-> > can we get this one queued up for 4.21 to prepare for the DMA work later
-> > on?
-> 
-> I was hoping the PASEMI / NXP regressions could be solved before
-> merging.
-> 
-> My p5020ds is booting fine with this series, so I'm not sure why it's
-> causing problems on Christian's machine.
-> 
-> The last time I turned on my PASEMI board it tripped some breakers, so I
-> need to investigate that before I can help test that.
-> 
-> I'll see how things look on Monday and either merge the commits you
-> identified or the whole series depending on if there's any more info
-> from Christian.
+On Thu, 6 Dec 2018, Florian Weimer wrote:
 
-Christian just confirmed everything up to at least
-"powerpc/dma: stop overriding dma_get_required_mask" works for his
-setups.
+> >  I seem to remember having to take extra care with how the three MIPS ABIs 
+> > wire the syscalls to get it right in glibc, but I take it then this has 
+> > been now addressed reliably enough for the glibc not to care how exactly
+> > <asm/unistd.h> has been arranged.
+> 
+> This is a fairly recent change (commit
+> 2dba5ce7b8115d6a2789bf279892263621088e74, "<bits/syscall.h>: Use an
+> arch-independent system call list on Linux", first release with it is
+> glibc 2.27).  This patch is quite backportable; we have put it into our
+> 2.17-derived glibc, and the upstream work was originally driven by
+> downstream ordering requirements of kernel header and glibc builds.
+> Glad to see it's useful elsewhere.
+
+ Thanks for the pointer, and the work you have done to make this more 
+robust; it was that that I missed.
+
+> The test retains the old <asm/unistd.h>-based macro extraction for
+> testing purposes, but it needs that only for the actual target
+> architecture and only the *names*, so it's easy to implement.  Before
+> that, the generation would have to carefully take into account multiple
+> sub-targets (i386/x86-64/x32 is one of the more complicated scenarios).
+> Presumably, you saw problem with that part.
+
+ Yeah, the MIPS o32/n64/n32 ABI set is a corresponding situation, except 
+that somewhat longer-lived as we've had support for these three ABIs since 
+2001, including the ability to concurrently run user executables built for 
+any of these ABIs under a single 64-bit Linux kernel.
+
+  Maciej
