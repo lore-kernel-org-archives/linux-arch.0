@@ -1,263 +1,106 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Thu, 6 Dec 2018 13:54:05 -0800
-Message-ID: <20181206215405.GL4170@linux.ibm.com>
-References: <8736rldyzm.fsf@oldenburg.str.redhat.com>
- <1543444466.5493.220.camel@redhat.com>
- <87y39c2dsg.fsf@oldenburg.str.redhat.com>
- <1689938209.14804.1543502662882.JavaMail.zimbra@efficios.com>
- <20181129150433.GH4170@linux.ibm.com>
- <CAHD6eXcvx1bskbp-X+vuMYoMQiCLOt0PiCZ5FT1yFsda9Ud-yA@mail.gmail.com>
-Reply-To: paulmck@linux.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <libc-alpha-return-98065-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-Content-Disposition: inline
-In-Reply-To: <CAHD6eXcvx1bskbp-X+vuMYoMQiCLOt0PiCZ5FT1yFsda9Ud-yA@mail.gmail.com>
-To: David Goldblatt <davidtgoldblatt@gmail.com>
-Cc: mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v4 0/5] powerpc: system call table generation support
+Date: Fri,  7 Dec 2018 11:41:35 +0530
+Message-ID: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello, David,
+The purpose of this patch series is, we can easily
+add/modify/delete system call table support by cha-
+nging entry in syscall.tbl file instead of manually
+changing many files. The other goal is to unify the 
+system call table generation support implementation 
+across all the architectures. 
 
-I took a crack at extending LKMM to accommodate what I think would
-support what you have in your paper.  Please see the very end of this
-email for a patch against the "dev" branch of my -rcu tree.
+The system call tables are in different format in 
+all architecture. It will be difficult to manually
+add, modify or delete the system calls in the resp-
+ective files manually. To make it easy by keeping a 
+script and which'll generate uapi header file and 
+syscall table file.
 
-This gives the expected result for the following three litmus tests,
-but is probably deficient or otherwise misguided in other ways.  I have
-added the LKMM maintainers on CC for their amusement.  ;-)
+syscall.tbl contains the list of available system 
+calls along with system call number and correspond-
+ing entry point. Add a new system call in this arch-
+itecture will be possible by adding new entry in 
+the syscall.tbl file.
 
-Thoughts?
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+	- Compat entry name, if required.
+	- spu entry name, if required.
 
-						Thanx, Paul
+ARM, s390 and x86 architecuture does exist the sim-
+ilar support. I leverage their implementation to 
+come up with a generic solution.
 
-------------------------------------------------------------------------
+I have done the same support for work for alpha, 
+ia64, m68k, microblaze, mips, parisc, sh, sparc, 
+and xtensa. Below mentioned git repository contains
+more details about the workflow.
 
-C C-Goldblat-memb-1
-{
-}
+https://github.com/frzkhn/system_call_table_generator/
 
-P0(int *x0, int *x1)
-{
-	WRITE_ONCE(*x0, 1);
-	r1 = READ_ONCE(*x1);
-}
+Finally, this is the ground work to solve the Y2038
+issue. We need to add two dozen of system calls to 
+solve Y2038 issue. So this patch series will help to
+add new system calls easily by adding new entry in the
+syscall.tbl.
 
+Changes since v3:
+ - split compat syscall table out from native table.
+ - modified the script to add new line in the generated
+   file.
 
-P1(int *x0, int *x1)
-{
-	WRITE_ONCE(*x1, 1);
-	smp_memb();
-	r2 = READ_ONCE(*x0);
-}
+Changes since v2:
+ - modified/optimized the syscall.tbl to avoid duplicate
+   for the spu entries.
+ - updated the syscalltbl.sh to meet the above point.
 
-exists (0:r1=0 /\ 1:r2=0)
+Changes since v1:
+ - optimized/updated the syscall table generation 
+   scripts.
+ - fixed all mixed indentation issues in syscall.tbl.
+ - added "comments" in syscall_*.tbl.
+ - changed from generic-y to generated-y in Kbuild.
 
-------------------------------------------------------------------------
+Firoz Khan (5):
+  powerpc: add __NR_syscalls along with NR_syscalls
+  powerpc: move macro definition from asm/systbl.h
+  powerpc: add system call table generation support
+  powerpc: split compat syscall table out from native table
+  powerpc: generate uapi header and system call table files
 
-C C-Goldblat-memb-2
-{
-}
+ arch/powerpc/Makefile                       |   3 +
+ arch/powerpc/include/asm/Kbuild             |   4 +
+ arch/powerpc/include/asm/syscall.h          |   3 +-
+ arch/powerpc/include/asm/systbl.h           | 396 --------------------------
+ arch/powerpc/include/asm/unistd.h           |   3 +-
+ arch/powerpc/include/uapi/asm/Kbuild        |   2 +
+ arch/powerpc/include/uapi/asm/unistd.h      | 389 +------------------------
+ arch/powerpc/kernel/Makefile                |  10 -
+ arch/powerpc/kernel/entry_64.S              |   7 +-
+ arch/powerpc/kernel/syscalls/Makefile       |  63 ++++
+ arch/powerpc/kernel/syscalls/syscall.tbl    | 427 ++++++++++++++++++++++++++++
+ arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
+ arch/powerpc/kernel/syscalls/syscalltbl.sh  |  36 +++
+ arch/powerpc/kernel/systbl.S                |  40 ++-
+ arch/powerpc/kernel/systbl_chk.c            |  60 ----
+ arch/powerpc/kernel/vdso.c                  |   7 +-
+ arch/powerpc/platforms/cell/spu_callbacks.c |  17 +-
+ 17 files changed, 606 insertions(+), 898 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/systbl.h
+ create mode 100644 arch/powerpc/kernel/syscalls/Makefile
+ create mode 100644 arch/powerpc/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
+ delete mode 100644 arch/powerpc/kernel/systbl_chk.c
 
-P0(int *x0, int *x1)
-{
-	WRITE_ONCE(*x0, 1);
-	r1 = READ_ONCE(*x1);
-}
-
-
-P1(int *x1, int *x2)
-{
-	WRITE_ONCE(*x1, 1);
-	smp_memb();
-	r1 = READ_ONCE(*x2);
-}
-
-P2(int *x2, int *x0)
-{
-	WRITE_ONCE(*x2, 1);
-	r1 = READ_ONCE(*x0);
-}
-
-exists (0:r1=0 /\ 1:r1=0 /\ 2:r1=0)
-
-------------------------------------------------------------------------
-
-C C-Goldblat-memb-3
-{
-}
-
-P0(int *x0, int *x1)
-{
-	WRITE_ONCE(*x0, 1);
-	r1 = READ_ONCE(*x1);
-}
-
-
-P1(int *x1, int *x2)
-{
-	WRITE_ONCE(*x1, 1);
-	smp_memb();
-	r1 = READ_ONCE(*x2);
-}
-
-P2(int *x2, int *x3)
-{
-	WRITE_ONCE(*x2, 1);
-	r1 = READ_ONCE(*x3);
-}
-
-P3(int *x3, int *x0)
-{
-	WRITE_ONCE(*x3, 1);
-	smp_memb();
-	r1 = READ_ONCE(*x0);
-}
-
-exists (0:r1=0 /\ 1:r1=0 /\ 2:r1=0 /\ 3:r1=0)
-
-------------------------------------------------------------------------
-
-On Thu, Nov 29, 2018 at 11:02:17AM -0800, David Goldblatt wrote:
-> One note with the suggested patch is that
-> `atomic_thread_fence(memory_order_acq_rel)` should probably be
-> `atomic_thread_fence (memory_order_seq_cst)` (otherwise the call would
-> be a no-op on, say, x86, which it very much isn't).
-> 
-> The non-transitivity thing makes the resulting description arguably
-> incorrect, but this is informal enough that it might not be a big deal
-> to add something after "For these threads, the membarrier function
-> call turns an existing compiler barrier (see above) executed by these
-> threads into full memory barriers" that clarifies it. E.g. you could
-> make it into "turns an existing compiler barrier [...] into full
-> memory barriers, with respect to the calling thread".
-> 
-> Since this is targeting the description of the OS call (and doesn't
-> have to concern itself with also being implementable by other
-> asymmetric techniques or degrading to architectural barriers), I think
-> that the description in "approach 2" in P1202 would also make sense
-> for a formal description of the syscall. (Of course, without the
-> kernel itself committing to a rigorous semantics, anything specified
-> on top of it will be on slightly shaky ground).
-> 
-> - David
-> 
-> On Thu, Nov 29, 2018 at 7:04 AM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
-> >
-> > On Thu, Nov 29, 2018 at 09:44:22AM -0500, Mathieu Desnoyers wrote:
-> > > ----- On Nov 29, 2018, at 8:50 AM, Florian Weimer fweimer@redhat.com wrote:
-> > >
-> > > > * Torvald Riegel:
-> > > >
-> > > >> On Wed, 2018-11-28 at 16:05 +0100, Florian Weimer wrote:
-> > > >>> This is essentially a repost of last year's patch, rebased to the glibc
-> > > >>> 2.29 symbol version and reflecting the introduction of
-> > > >>> MEMBARRIER_CMD_GLOBAL.
-> > > >>>
-> > > >>> I'm not including any changes to manual/ here because the set of
-> > > >>> supported operations is evolving rapidly, we could not get consensus for
-> > > >>> the language I proposed the last time, and I do not want to contribute
-> > > >>> to the manual for the time being.
-> > > >>
-> > > >> Fair enough.  Nonetheless, can you summarize how far you're along with
-> > > >> properly defining the semantics (eg, based on the C/C++ memory model)?
-> > > >
-> > > > I wrote down what you could, but no one liked it.
-> > > >
-> > > > <https://sourceware.org/ml/libc-alpha/2017-12/msg00796.html>
-> > > >
-> > > > I expect that a formalization would interact in non-trivial ways with
-> > > > any potential formalization of usable relaxed memory order semantics,
-> > > > and I'm not sure if anyone knows how to do the latter today.
-> > >
-> > > Adding Paul E. McKenney in CC.
-> >
-> > There is some prototype C++ memory model wording from David Goldblatt (CCed)
-> > here (search for "Standarese"):
-> >
-> > http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1202r0.pdf
-> >
-> > David's key insight is that (in Linuxese) light fences cannot pair with
-> > each other.
-
-------------------------------------------------------------------------
-
-commit 17e3b6b60e57d1cb791f68a1a6a36e942cb2baad
-Author: Paul E. McKenney <paulmck@linux.ibm.com>
-Date:   Thu Dec 6 13:40:40 2018 -0800
-
-    EXP tools/memory-model: Add semantics for sys_membarrier()
-    
-    This prototype commit extends LKMM to accommodate sys_membarrier(),
-    which is a asymmetric barrier with a limited ability to insert full
-    ordering into tasks that provide only compiler ordering.  This commit
-    currently uses the "po" relation for this purpose, but something more
-    sophisticated will be required when plain accesses are added, which
-    the compiler can reorder.
-    
-    For more detail, please see David Goldblatt's C++ working paper:
-    http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1202r0.pdf
-    
-    Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index 9c42cd9ddcb4..4ef41453f569 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -24,6 +24,7 @@ instructions RMW[{'once,'acquire,'release}]
- enum Barriers = 'wmb (*smp_wmb*) ||
- 		'rmb (*smp_rmb*) ||
- 		'mb (*smp_mb*) ||
-+		'memb (*sys_membarrier*) ||
- 		'rcu-lock (*rcu_read_lock*)  ||
- 		'rcu-unlock (*rcu_read_unlock*) ||
- 		'sync-rcu (*synchronize_rcu*) ||
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 8dcb37835b61..837c3ee20bea 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -33,9 +33,10 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
- 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
- 	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
- 		fencerel(After-unlock-lock) ; [M])
-+let memb = [M] ; fencerel(Memb) ; [M]
- let gp = po ; [Sync-rcu | Sync-srcu] ; po?
- 
--let strong-fence = mb | gp
-+let strong-fence = mb | gp | memb
- 
- (* Release Acquire *)
- let acq-po = [Acquire] ; po ; [M]
-@@ -86,6 +87,13 @@ acyclic hb as happens-before
- let pb = prop ; strong-fence ; hb*
- acyclic pb as propagation
- 
-+(********************)
-+(* sys_membarrier() *)
-+(********************)
-+
-+let memb-step = ( prop ; po ; prop )? ; memb
-+acyclic memb-step as memb-before
-+
- (*******)
- (* RCU *)
- (*******)
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 1d6a120cde14..9ff0691c5f2c 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -17,6 +17,7 @@ rcu_dereference(X) __load{once}(X)
- smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
- 
- // Fences
-+smp_memb() { __fence{memb}; }
- smp_mb() { __fence{mb}; }
- smp_rmb() { __fence{rmb}; }
- smp_wmb() { __fence{wmb}; }
+-- 
+1.9.1
