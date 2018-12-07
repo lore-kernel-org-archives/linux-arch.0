@@ -1,169 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:39578 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726070AbeLGGMd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 01:12:33 -0500
-Received: by mail-pl1-f195.google.com with SMTP id 101so1337812pld.6
-        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2018 22:12:32 -0800 (PST)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 4/5] powerpc: split compat syscall table out from native table
-Date: Fri,  7 Dec 2018 11:41:39 +0530
-Message-ID: <1544163100-15510-5-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+Received: from mail-it1-f196.google.com ([209.85.166.196]:52380 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725952AbeLGGQn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 01:16:43 -0500
+Received: by mail-it1-f196.google.com with SMTP id g76so5336453itg.2
+        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2018 22:16:42 -0800 (PST)
+MIME-Version: 1.0
 References: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1544163100-15510-1-git-send-email-firoz.khan@linaro.org>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Fri, 7 Dec 2018 11:46:30 +0530
+Message-ID: <CALxhOnij8xO1yyZ87HX_jE8YdE-PbEe9a=yu50wvORnn-0_UvQ@mail.gmail.com>
+Subject: Re: [PATCH v4 0/5] powerpc: system call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181207061139.ihMFfkUvWmFdu-X6tTB98MnolmNjVl2CSej-6s0voAw@z>
+To: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181207061630.yvVRvHfyGsLbcHsOPJGMQ77nsNOm_02KhFs4TjLIsxo@z>
 
-PowerPC uses a syscall table with native and compat calls
-interleaved, which is a slightly simpler way to define two
-matching tables.
+++ sathnaga@linux.vnet.ibm.com,
 
-As we move to having the tables generated, that advantage
-is no longer important, but the interleaved table gets in
-the way of using the same scripts as on the other archit-
-ectures.
+Hi Satheesh,
 
-Split out a new compat_sys_call_table symbol that contains
-all the compat calls, and leave the main table for the nat-
-ive calls, to more closely match the method we use every-
-where else.
+On Fri, 7 Dec 2018 at 11:42, Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+>
+> Changes since v3:
+>  - split compat syscall table out from native table.
+>  - modified the script to add new line in the generated
+>    file.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/powerpc/include/asm/syscall.h |  3 +--
- arch/powerpc/kernel/entry_64.S     |  7 +++++--
- arch/powerpc/kernel/systbl.S       | 35 ++++++++++++++++++++++++++++-------
- arch/powerpc/kernel/vdso.c         |  7 +++++--
- 4 files changed, 39 insertions(+), 13 deletions(-)
+I have fixed few major issue. Could you perform boot test with v4
+on the platform.
 
-diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-index ab9f3f0..1a0e7a8 100644
---- a/arch/powerpc/include/asm/syscall.h
-+++ b/arch/powerpc/include/asm/syscall.h
-@@ -18,9 +18,8 @@
- #include <linux/thread_info.h>
- 
- /* ftrace syscalls requires exporting the sys_call_table */
--#ifdef CONFIG_FTRACE_SYSCALLS
- extern const unsigned long sys_call_table[];
--#endif /* CONFIG_FTRACE_SYSCALLS */
-+extern const unsigned long compat_sys_call_table[];
- 
- static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
- {
-diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index 7b1693a..5574d92 100644
---- a/arch/powerpc/kernel/entry_64.S
-+++ b/arch/powerpc/kernel/entry_64.S
-@@ -54,6 +54,9 @@
- SYS_CALL_TABLE:
- 	.tc sys_call_table[TC],sys_call_table
- 
-+COMPAT_SYS_CALL_TABLE:
-+	.tc compat_sys_call_table[TC],compat_sys_call_table
-+
- /* This value is used to mark exception frames on the stack. */
- exception_marker:
- 	.tc	ID_EXC_MARKER[TC],STACK_FRAME_REGS_MARKER
-@@ -173,7 +176,7 @@ system_call:			/* label this so stack traces look sane */
- 	ld	r11,SYS_CALL_TABLE@toc(2)
- 	andis.	r10,r10,_TIF_32BIT@h
- 	beq	15f
--	addi	r11,r11,8	/* use 32-bit syscall entries */
-+	ld	r11,COMPAT_SYS_CALL_TABLE@toc(2)
- 	clrldi	r3,r3,32
- 	clrldi	r4,r4,32
- 	clrldi	r5,r5,32
-@@ -181,7 +184,7 @@ system_call:			/* label this so stack traces look sane */
- 	clrldi	r7,r7,32
- 	clrldi	r8,r8,32
- 15:
--	slwi	r0,r0,4
-+	slwi	r0,r0,3
- 
- 	barrier_nospec_asm
- 	/*
-diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
-index 9ff1913..0fa84e1 100644
---- a/arch/powerpc/kernel/systbl.S
-+++ b/arch/powerpc/kernel/systbl.S
-@@ -17,13 +17,13 @@
- #include <asm/ppc_asm.h>
- 
- #ifdef CONFIG_PPC64
--#define SYSCALL(func)		.8byte	DOTSYM(sys_##func),DOTSYM(sys_##func)
--#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func),DOTSYM(compat_sys_##func)
--#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(ppc_##func)
--#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(sys_ni_syscall)
--#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(compat_sys_##func)
--#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(sys_ni_syscall)
--#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f),DOTSYM(f3264)
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f)
- #else
- #define SYSCALL(func)		.long	sys_##func
- #define COMPAT_SYS(func)	.long	sys_##func
-@@ -46,6 +46,27 @@
- 
- .globl sys_call_table
- sys_call_table:
-+#include <asm/systbl.h>
-+
-+#undef SYSCALL
-+#undef COMPAT_SYS
-+#undef PPC_SYS
-+#undef OLDSYS
-+#undef SYS32ONLY
-+#undef PPC64ONLY
-+#undef SYSX
- 
-+#ifdef CONFIG_COMPAT
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(compat_sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(compat_sys_##func)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f3264)
-+
-+.globl compat_sys_call_table
-+compat_sys_call_table:
- #define compat_sys_sigsuspend	sys_sigsuspend
- #include <asm/systbl.h>
-+#endif
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index 65b3bdb..7725a97 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -671,15 +671,18 @@ static void __init vdso_setup_syscall_map(void)
- {
- 	unsigned int i;
- 	extern unsigned long *sys_call_table;
-+#ifdef CONFIG_PPC64
-+	extern unsigned long *compat_sys_call_table;
-+#endif
- 	extern unsigned long sys_ni_syscall;
- 
- 
- 	for (i = 0; i < NR_syscalls; i++) {
- #ifdef CONFIG_PPC64
--		if (sys_call_table[i*2] != sys_ni_syscall)
-+		if (sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_64[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
--		if (sys_call_table[i*2+1] != sys_ni_syscall)
-+		if (compat_sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_32[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
- #else /* CONFIG_PPC64 */
--- 
-1.9.1
+Thanks
+Firoz
