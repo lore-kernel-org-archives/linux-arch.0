@@ -1,49 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:43204 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726047AbeLGT7Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2018 14:59:25 -0500
-Date: Fri, 7 Dec 2018 11:56:26 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 2/2] mm/sparse: add common helper to mark all memblocks
- present
-Message-ID: <20181207115626.dd578402f407e3df798aad0c@linux-foundation.org>
-In-Reply-To: <71168447-7470-d2ba-d30e-200ff6202b35@deltatee.com>
-References: <20181107173859.24096-1-logang@deltatee.com>
-        <20181107173859.24096-3-logang@deltatee.com>
-        <20181107121207.62cb37cf58484b7cc80a8fd8@linux-foundation.org>
-        <71168447-7470-d2ba-d30e-200ff6202b35@deltatee.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.53]:12799 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726107AbeLHK3K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Dec 2018 05:29:10 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+ <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+ <20181205140550.GA27549@lst.de>
+ <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+ <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+ <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+Message-ID: <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+Date: Sat, 8 Dec 2018 11:29:05 +0100
+MIME-Version: 1.0
+In-Reply-To: <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Stephen Bates <sbates@raithlin.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>
-Message-ID: <20181207195626.vBgP6awSYZuPsQHiSH6KjrRKU5hlvP-BMszN1d27mk0@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181208102905.jG7wK7ePoDJEzbZ32i5zjtOndQ1sBE8NtMTE4JA5z3Q@z>
 
-On Thu, 6 Dec 2018 10:40:31 -0700 Logan Gunthorpe <logang@deltatee.com> wrote:
+Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: remove 
+max_direct_dma_addr)
 
-> Hey Andrew,
-> 
-> On 2018-11-07 1:12 p.m., Andrew Morton wrote:
-> > Acked-by: Andrew Morton <akpm@linux-foundation.org>
-> > 
-> > I can grab both patches and shall sneak them into 4.20-rcX, but feel
-> > free to merge them into some git tree if you'd prefer.  If I see them
-> > turn up in linux-next I shall drop my copy.
-> 
-> Just wanted to check if you are still planning to get these patches into
-> 4.20-rcX. It would really help us if you can do this seeing we then
-> won't have to delay a cycle and can target the riscv sparsemem code for
-> 4.21.
-> 
+git checkout 7ebc44c535f6bd726d553756d38b137acc718443
 
-Ah, OK, I assumed that it would be merged via an arm tree.
+OK, the PASEMI onboard ethernet works and the P5020 board boots.
 
-I moved 
+-- Christian
 
-mm-introduce-common-struct_page_max_shift-define.patch
-mm-sparse-add-common-helper-to-mark-all-memblocks-present.patch
 
-to head-of-queue.  Shall send to Linus next week.
+On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
+> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: move pci_dma_dev_setup_swiotlb to fsl_pci.c)
+>
+> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
+>
+> Result: The PASEMI onboard ethernet works and the P5020 board boots.
+>
+> — Christian
