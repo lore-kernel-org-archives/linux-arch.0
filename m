@@ -1,68 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41836 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726124AbeLHMs4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 8 Dec 2018 07:48:56 -0500
-Message-ID: <53c18168393e3134f7e4120a2528f972b1002c01.camel@kernel.crashing.org>
+Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.165]:30348 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726124AbeLHNru (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Dec 2018 08:47:50 -0500
 Subject: Re: use generic DMA mapping code in powerpc V4
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 30 Nov 2018 14:17:42 +1100
-In-Reply-To: <20181127074253.GB30186@lst.de>
-References: <20181114082314.8965-1-hch@lst.de>
-         <20181127074253.GB30186@lst.de>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+ <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+ <20181205140550.GA27549@lst.de>
+ <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+ <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+ <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+ <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+Message-ID: <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+Date: Sat, 8 Dec 2018 14:47:44 +0100
+MIME-Version: 1.0
+In-Reply-To: <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
-Message-ID: <20181130031742.Oapa6F8aIOJ9oCom7BdfWCPbpLsggmqKpkHBFJ8uOis@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181208134744.sWcgAhXGlYm0suIGow9qdOP5DGPY4uKsEtYrljlyesc@z>
 
-On Tue, 2018-11-27 at 08:42 +0100, Christoph Hellwig wrote:
-> Any comments?  I'd like to at least get the ball moving on the easy
-> bits.
+Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: fix an 
+off-by-one in dma_capable)
 
-So I had to cleanup some dust but it works on G5 with and without iommu
-and 32-bit powermacs at least.
+git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
 
-We're doing more tests, hopefully mpe can dig out some PASemi and
-NXP/FSL HW as well. I'll try to review & ack the patches over the next
-few days too.
+The PASEMI onboard ethernet also works with this commit and the X5000 
+boots without any problems.
 
-Cheers,
-Ben.
+-- Christian
 
-> On Wed, Nov 14, 2018 at 09:22:40AM +0100, Christoph Hellwig wrote:
-> > Hi all,
-> > 
-> > this series switches the powerpc port to use the generic swiotlb and
-> > noncoherent dma ops, and to use more generic code for the coherent
-> > direct mapping, as well as removing a lot of dead code.
-> > 
-> > As this series is very large and depends on the dma-mapping tree I've
-> > also published a git tree:
-> > 
-> >     git://git.infradead.org/users/hch/misc.git powerpc-dma.4
-> > 
-> > Gitweb:
-> > 
-> >     http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.4
-> > 
-> > Changes since v3:
-> >  - rebase on the powerpc fixes tree
-> >  - add a new patch to actually make the baseline amigaone config
-> >    configure without warnings
-> >  - only use ZONE_DMA for 64-bit embedded CPUs, on pseries an IOMMU is
-> >    always present
-> >  - fix compile in mem.c for one configuration
-> >  - drop the full npu removal for now, will be resent separately
-> >  - a few git bisection fixes
-> > 
-> > The changes since v1 are to big to list and v2 was not posted in public.
-> > 
-> > _______________________________________________
-> > iommu mailing list
-> > iommu@lists.linux-foundation.org
-> > https://lists.linuxfoundation.org/mailman/listinfo/iommu
-> ---end quoted text---
+
+On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
+> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
+> remove max_direct_dma_addr)
+>
+> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
+>
+> OK, the PASEMI onboard ethernet works and the P5020 board boots.
+>
+> -- Christian
+>
+>
+> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
+>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
+>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
+>>
+>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
+>>
+>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
+>>
+>> — Christian
+>
+>
+>
