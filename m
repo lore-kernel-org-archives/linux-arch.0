@@ -1,118 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f65.google.com ([209.85.167.65]:44048 "EHLO
-        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727755AbeLIWJs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 17:09:48 -0500
-Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
-References: <20181204121805.4621-1-igor.stoppa@huawei.com>
- <20181204121805.4621-3-igor.stoppa@huawei.com>
- <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
-From: Igor Stoppa <igor.stoppa@gmail.com>
-Message-ID: <8c4c45a5-a4c9-7094-002e-9b6006eb2f9e@gmail.com>
-Date: Mon, 10 Dec 2018 00:09:40 +0200
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:34794 "EHLO
+        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726413AbeLIVzO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 16:55:14 -0500
+Content-Type: text/plain; charset="UTF-8"
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
-In-Reply-To: <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 09 Dec 2018 21:50:33 +0000
+Message-ID: <lsq.1544392233.677950644@decadent.org.uk>
+Subject: [PATCH 3.16 005/328] kprobes: Make list and blacklist root user
+ read only
+In-Reply-To: <lsq.1544392232.713909046@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181209220940.xlHASw5swf1u6smyBe807cT4El_nuj1kQ5BLuiGpLZU@z>
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, schwidefsky@de.ibm.com, linux-arch@vger.kernel.org, Jon Medhurst <tixy@linaro.org>, Thomas Richter <tmricht@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <mhiramat@kernel.org>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, rostedt@goodmis.org, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, brueckner@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Tobin C . Harding" <me@tobin.cc>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S . Miller" <davem@davemloft.net>, acme@kernel.org, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20181209215033.ded7RWvqRIg0U_EUPZMwBNIFvhYyYioDo6Psdn5swBY@z>
 
-On 06/12/2018 01:13, Andy Lutomirski wrote:
+3.16.62-rc1 review patch.  If anyone has any objections, please let me know.
 
->> +       kasan_disable_current();
->> +       if (op == WR_MEMCPY)
->> +               memcpy((void *)wr_poking_addr, (void *)src, len);
->> +       else if (op == WR_MEMSET)
->> +               memset((u8 *)wr_poking_addr, (u8)src, len);
->> +       else if (op == WR_RCU_ASSIGN_PTR)
->> +               /* generic version of rcu_assign_pointer */
->> +               smp_store_release((void **)wr_poking_addr,
->> +                                 RCU_INITIALIZER((void **)src));
->> +       kasan_enable_current();
-> 
-> Hmm.  I suspect this will explode quite badly on sane architectures
-> like s390.  (In my book, despite how weird s390 is, it has a vastly
-> nicer model of "user" memory than any other architecture I know
-> of...).
+------------------
 
-I see. I can try to setup also a qemu target for s390, for my tests.
-There seems to be a Debian image, to have a fully bootable system.
+From: Masami Hiramatsu <mhiramat@kernel.org>
 
-> I think you should use copy_to_user(), etc, instead.
+commit f2a3ab36077222437b4826fc76111caa14562b7c upstream.
 
-I'm having troubles with the "etc" part: as far as I can see, there are 
-both generic and specific support for both copying and clearing 
-user-space memory from kernel, however I couldn't find something that 
-looks like a memset_user().
+Since the blacklist and list files on debugfs indicates
+a sensitive address information to reader, it should be
+restricted to the root user.
 
-I can of course roll my own, for example iterating copy_to_user() with 
-the support of a pre-allocated static buffer (1 page should be enough).
+Suggested-by: Thomas Richter <tmricht@linux.ibm.com>
+Suggested-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>
+Cc: David S . Miller <davem@davemloft.net>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Jon Medhurst <tixy@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tobin C . Harding <me@tobin.cc>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: acme@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: brueckner@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org
+Cc: rostedt@goodmis.org
+Cc: schwidefsky@de.ibm.com
+Link: https://lkml.kernel.org/lkml/152491890171.9916.5183693615601334087.stgit@devbox
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ kernel/kprobes.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-But, before I go down this path, I wanted to confirm that there's really 
-nothing better that I could use.
-
-If that's really the case, the static buffer instance should be 
-replicated for each core, I think, since each core could be performing 
-its own memset_user() at the same time.
-
-Alternatively, I could do a loop of WRITE_ONCE(), however I'm not sure 
-how that would work with (lack-of) alignment and might require also a 
-preamble/epilogue to deal with unaligned data?
-
->  I'm not
-> entirely sure what the best smp_store_release() replacement is.
-> Making this change may also mean you can get rid of the
-> kasan_disable_current().
-> 
->> +
->> +       barrier(); /* XXX redundant? */
-> 
-> I think it's redundant.  If unuse_temporary_mm() allows earlier stores
-> to hit the wrong address space, then something is very very wrong, and
-> something is also very very wrong if the optimizer starts moving
-> stores across a function call that is most definitely a barrier.
-
-ok, thanks
-
->> +
->> +       unuse_temporary_mm(prev);
->> +       /* XXX make the verification optional? */
->> +       if (op == WR_MEMCPY)
->> +               BUG_ON(memcmp((void *)dst, (void *)src, len));
->> +       else if (op == WR_MEMSET)
->> +               BUG_ON(memtst((void *)dst, (u8)src, len));
->> +       else if (op == WR_RCU_ASSIGN_PTR)
->> +               BUG_ON(*(unsigned long *)dst != src);
-> 
-> Hmm.  If you allowed cmpxchg or even plain xchg, then these bug_ons
-> would be thoroughly buggy, but maybe they're okay.  But they should,
-> at most, be WARN_ON_ONCE(), 
-
-I have to confess that I do not understand why Nadav's patchset was 
-required to use BUG_ON(), while here it's not correct, not even for 
-memcopy or memset .
-
-Is it because it is single-threaded?
-Or is it because text_poke() is patching code, instead of data?
-I can turn to WARN_ON_ONCE(), but I'd like to understand the reason.
-
-> given that you can trigger them by writing
-> the same addresses from two threads at once, and this isn't even
-> entirely obviously bogus given the presence of smp_store_release().
-
-True, however would it be reasonable to require the use of an explicit 
-writer lock, from the user?
-
-This operation is not exactly fast and should happen seldom; I'm not 
-sure if it's worth supporting cmpxchg. The speedup would be minimal.
-
-I'd rather not implement the locking implicitly, even if it would be 
-possible to detect simultaneous writes, because it might lead to overall 
-inconsistent data.
-
---
-igor
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2414,7 +2414,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!dir)
+ 		return -ENOMEM;
+ 
+-	file = debugfs_create_file("list", 0444, dir, NULL,
++	file = debugfs_create_file("list", 0400, dir, NULL,
+ 				&debugfs_kprobes_operations);
+ 	if (!file)
+ 		goto error;
+@@ -2424,7 +2424,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!file)
+ 		goto error;
+ 
+-	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++	file = debugfs_create_file("blacklist", 0400, dir, NULL,
+ 				&debugfs_kprobe_blacklist_ops);
+ 	if (!file)
+ 		goto error;
