@@ -1,81 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:34794 "EHLO
-        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726413AbeLIVzO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 16:55:14 -0500
-Content-Type: text/plain; charset="UTF-8"
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:37621 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726304AbeLIWc0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 17:32:26 -0500
+Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
+References: <20181204121805.4621-1-igor.stoppa@huawei.com>
+ <20181204121805.4621-3-igor.stoppa@huawei.com>
+ <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
+ <20181206094451.GC13538@hirez.programming.kicks-ass.net>
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Message-ID: <d9382720-3c39-5f10-afcd-dc17727fe4dc@gmail.com>
+Date: Mon, 10 Dec 2018 00:32:21 +0200
 MIME-Version: 1.0
-From: Ben Hutchings <ben@decadent.org.uk>
-Date: Sun, 09 Dec 2018 21:50:33 +0000
-Message-ID: <lsq.1544392233.677950644@decadent.org.uk>
-Subject: [PATCH 3.16 005/328] kprobes: Make list and blacklist root user
- read only
-In-Reply-To: <lsq.1544392232.713909046@decadent.org.uk>
+In-Reply-To: <20181206094451.GC13538@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, schwidefsky@de.ibm.com, linux-arch@vger.kernel.org, Jon Medhurst <tixy@linaro.org>, Thomas Richter <tmricht@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <mhiramat@kernel.org>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, rostedt@goodmis.org, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, brueckner@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Tobin C . Harding" <me@tobin.cc>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S . Miller" <davem@davemloft.net>, acme@kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20181209215033.ded7RWvqRIg0U_EUPZMwBNIFvhYyYioDo6Psdn5swBY@z>
+To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181209223221.m9QBzwvKhz-vD40enBNxijckyJZTdnb46ofZ_GhRG3E@z>
 
-3.16.62-rc1 review patch.  If anyone has any objections, please let me know.
 
-------------------
 
-From: Masami Hiramatsu <mhiramat@kernel.org>
+On 06/12/2018 11:44, Peter Zijlstra wrote:
+> On Wed, Dec 05, 2018 at 03:13:56PM -0800, Andy Lutomirski wrote:
+> 
+>>> +       if (op == WR_MEMCPY)
+>>> +               memcpy((void *)wr_poking_addr, (void *)src, len);
+>>> +       else if (op == WR_MEMSET)
+>>> +               memset((u8 *)wr_poking_addr, (u8)src, len);
+>>> +       else if (op == WR_RCU_ASSIGN_PTR)
+>>> +               /* generic version of rcu_assign_pointer */
+>>> +               smp_store_release((void **)wr_poking_addr,
+>>> +                                 RCU_INITIALIZER((void **)src));
+>>> +       kasan_enable_current();
+>>
+>> Hmm.  I suspect this will explode quite badly on sane architectures
+>> like s390.  (In my book, despite how weird s390 is, it has a vastly
+>> nicer model of "user" memory than any other architecture I know
+>> of...).  I think you should use copy_to_user(), etc, instead.  I'm not
+>> entirely sure what the best smp_store_release() replacement is.
+>> Making this change may also mean you can get rid of the
+>> kasan_disable_current().
+> 
+> If you make the MEMCPY one guarantee single-copy atomicity for native
+> words then you're basically done.
+> 
+> smp_store_release() can be implemented with:
+> 
+> 	smp_mb();
+> 	WRITE_ONCE();
+> 
+> So if we make MEMCPY provide the WRITE_ONCE(), all we need is that
+> barrier, which we can easily place at the call site and not overly
+> complicate our interface with this.
 
-commit f2a3ab36077222437b4826fc76111caa14562b7c upstream.
+Ok, so the 3rd case (WR_RCU_ASSIGN_PTR) could be handled outside of this 
+function.
+But, since now memcpy() will be replaced by copy_to_user(), can I assume 
+that also copy_to_user() will be atomic, if the destination is properly 
+aligned? On x86_64 it seems yes, however it's not clear to me if this is 
+the outcome of an optimization or if I can expect it to be always true.
 
-Since the blacklist and list files on debugfs indicates
-a sensitive address information to reader, it should be
-restricted to the root user.
 
-Suggested-by: Thomas Richter <tmricht@linux.ibm.com>
-Suggested-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>
-Cc: David S . Miller <davem@davemloft.net>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Jon Medhurst <tixy@linaro.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tobin C . Harding <me@tobin.cc>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: acme@kernel.org
-Cc: akpm@linux-foundation.org
-Cc: brueckner@linux.vnet.ibm.com
-Cc: linux-arch@vger.kernel.org
-Cc: rostedt@goodmis.org
-Cc: schwidefsky@de.ibm.com
-Link: https://lkml.kernel.org/lkml/152491890171.9916.5183693615601334087.stgit@devbox
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
- kernel/kprobes.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2414,7 +2414,7 @@ static int __init debugfs_kprobe_init(vo
- 	if (!dir)
- 		return -ENOMEM;
- 
--	file = debugfs_create_file("list", 0444, dir, NULL,
-+	file = debugfs_create_file("list", 0400, dir, NULL,
- 				&debugfs_kprobes_operations);
- 	if (!file)
- 		goto error;
-@@ -2424,7 +2424,7 @@ static int __init debugfs_kprobe_init(vo
- 	if (!file)
- 		goto error;
- 
--	file = debugfs_create_file("blacklist", 0444, dir, NULL,
-+	file = debugfs_create_file("blacklist", 0400, dir, NULL,
- 				&debugfs_kprobe_blacklist_ops);
- 	if (!file)
- 		goto error;
+--
+igor
