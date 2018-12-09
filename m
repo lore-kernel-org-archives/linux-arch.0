@@ -1,91 +1,77 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Sun, 9 Dec 2018 19:26:57 +0100
-Message-ID: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
- <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
- <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
- <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
- <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: [PATCH 3.16 005/328] kprobes: Make list and blacklist root user
+ read only
+Date: Sun, 09 Dec 2018 21:50:33 +0000
+Message-ID: <lsq.1544392233.677950644@decadent.org.uk>
+References: <lsq.1544392232.713909046@decadent.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
-Content-Language: de-DE
+Content-Disposition: inline
+In-Reply-To: <lsq.1544392232.713909046@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, schwidefsky@de.ibm.com, linux-arch@vger.kernel.org, Jon Medhurst <tixy@linaro.org>, Thomas Richter <tmricht@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <mhiramat@kernel.org>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, rostedt@goodmis.org, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, brueckner@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Tobin C . Harding" <me@tobin.cc>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S . Miller" <davem@davemloft.net>, acme@kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
-powerpc: simplify the arch dma_set_mask override)
+3.16.62-rc1 review patch.  If anyone has any objections, please let me know.
 
-Result: No problems with the PASEMI onboard ethernet and with booting 
-the X5000 (P5020 board).
+------------------
 
--- Christian
+From: Masami Hiramatsu <mhiramat@kernel.org>
 
+commit f2a3ab36077222437b4826fc76111caa14562b7c upstream.
 
-On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
-> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 (powerpc/fsl_pci: 
-> simplify fsl_pci_dma_set_mask)
->
-> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
->
-> The PASEMI onboard ethernet works and the X5000 boots.
->
-> -- Christian
->
->
-> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
->> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: fix 
->> an off-by-one in dma_capable)
->>
->> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
->>
->> The PASEMI onboard ethernet also works with this commit and the X5000 
->> boots without any problems.
->>
->> -- Christian
->>
->>
->> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
->>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
->>> remove max_direct_dma_addr)
->>>
->>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
->>>
->>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
->>>
->>> -- Christian
->>>
->>>
->>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
->>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
->>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
->>>>
->>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
->>>>
->>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
->>>>
->>>> — Christian
->>>
->>>
->>>
->>
->>
->
->
+Since the blacklist and list files on debugfs indicates
+a sensitive address information to reader, it should be
+restricted to the root user.
+
+Suggested-by: Thomas Richter <tmricht@linux.ibm.com>
+Suggested-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>
+Cc: David S . Miller <davem@davemloft.net>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Jon Medhurst <tixy@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tobin C . Harding <me@tobin.cc>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: acme@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: brueckner@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org
+Cc: rostedt@goodmis.org
+Cc: schwidefsky@de.ibm.com
+Link: https://lkml.kernel.org/lkml/152491890171.9916.5183693615601334087.stgit@devbox
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ kernel/kprobes.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2414,7 +2414,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!dir)
+ 		return -ENOMEM;
+ 
+-	file = debugfs_create_file("list", 0444, dir, NULL,
++	file = debugfs_create_file("list", 0400, dir, NULL,
+ 				&debugfs_kprobes_operations);
+ 	if (!file)
+ 		goto error;
+@@ -2424,7 +2424,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!file)
+ 		goto error;
+ 
+-	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++	file = debugfs_create_file("blacklist", 0400, dir, NULL,
+ 				&debugfs_kprobe_blacklist_ops);
+ 	if (!file)
+ 		goto error;
