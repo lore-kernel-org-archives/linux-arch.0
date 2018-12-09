@@ -1,96 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.54]:32869 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726154AbeLIS1E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 13:27:04 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
- <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
- <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
- <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
- <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
-Message-ID: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
-Date: Sun, 9 Dec 2018 19:26:57 +0100
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:44048 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727755AbeLIWJs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2018 17:09:48 -0500
+Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
+References: <20181204121805.4621-1-igor.stoppa@huawei.com>
+ <20181204121805.4621-3-igor.stoppa@huawei.com>
+ <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Message-ID: <8c4c45a5-a4c9-7094-002e-9b6006eb2f9e@gmail.com>
+Date: Mon, 10 Dec 2018 00:09:40 +0200
 MIME-Version: 1.0
-In-Reply-To: <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+In-Reply-To: <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181209182657.e1d1ktbgrUZ7O-NarPFFhO3B7FocvZ7r7XM_ItaLkwc@z>
+To: Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181209220940.xlHASw5swf1u6smyBe807cT4El_nuj1kQ5BLuiGpLZU@z>
 
-Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
-powerpc: simplify the arch dma_set_mask override)
+On 06/12/2018 01:13, Andy Lutomirski wrote:
 
-Result: No problems with the PASEMI onboard ethernet and with booting 
-the X5000 (P5020 board).
+>> +       kasan_disable_current();
+>> +       if (op == WR_MEMCPY)
+>> +               memcpy((void *)wr_poking_addr, (void *)src, len);
+>> +       else if (op == WR_MEMSET)
+>> +               memset((u8 *)wr_poking_addr, (u8)src, len);
+>> +       else if (op == WR_RCU_ASSIGN_PTR)
+>> +               /* generic version of rcu_assign_pointer */
+>> +               smp_store_release((void **)wr_poking_addr,
+>> +                                 RCU_INITIALIZER((void **)src));
+>> +       kasan_enable_current();
+> 
+> Hmm.  I suspect this will explode quite badly on sane architectures
+> like s390.  (In my book, despite how weird s390 is, it has a vastly
+> nicer model of "user" memory than any other architecture I know
+> of...).
 
--- Christian
+I see. I can try to setup also a qemu target for s390, for my tests.
+There seems to be a Debian image, to have a fully bootable system.
 
+> I think you should use copy_to_user(), etc, instead.
 
-On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
-> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 (powerpc/fsl_pci: 
-> simplify fsl_pci_dma_set_mask)
->
-> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
->
-> The PASEMI onboard ethernet works and the X5000 boots.
->
-> -- Christian
->
->
-> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
->> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: fix 
->> an off-by-one in dma_capable)
->>
->> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
->>
->> The PASEMI onboard ethernet also works with this commit and the X5000 
->> boots without any problems.
->>
->> -- Christian
->>
->>
->> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
->>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
->>> remove max_direct_dma_addr)
->>>
->>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
->>>
->>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
->>>
->>> -- Christian
->>>
->>>
->>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
->>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
->>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
->>>>
->>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
->>>>
->>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
->>>>
->>>> — Christian
->>>
->>>
->>>
->>
->>
->
->
+I'm having troubles with the "etc" part: as far as I can see, there are 
+both generic and specific support for both copying and clearing 
+user-space memory from kernel, however I couldn't find something that 
+looks like a memset_user().
+
+I can of course roll my own, for example iterating copy_to_user() with 
+the support of a pre-allocated static buffer (1 page should be enough).
+
+But, before I go down this path, I wanted to confirm that there's really 
+nothing better that I could use.
+
+If that's really the case, the static buffer instance should be 
+replicated for each core, I think, since each core could be performing 
+its own memset_user() at the same time.
+
+Alternatively, I could do a loop of WRITE_ONCE(), however I'm not sure 
+how that would work with (lack-of) alignment and might require also a 
+preamble/epilogue to deal with unaligned data?
+
+>  I'm not
+> entirely sure what the best smp_store_release() replacement is.
+> Making this change may also mean you can get rid of the
+> kasan_disable_current().
+> 
+>> +
+>> +       barrier(); /* XXX redundant? */
+> 
+> I think it's redundant.  If unuse_temporary_mm() allows earlier stores
+> to hit the wrong address space, then something is very very wrong, and
+> something is also very very wrong if the optimizer starts moving
+> stores across a function call that is most definitely a barrier.
+
+ok, thanks
+
+>> +
+>> +       unuse_temporary_mm(prev);
+>> +       /* XXX make the verification optional? */
+>> +       if (op == WR_MEMCPY)
+>> +               BUG_ON(memcmp((void *)dst, (void *)src, len));
+>> +       else if (op == WR_MEMSET)
+>> +               BUG_ON(memtst((void *)dst, (u8)src, len));
+>> +       else if (op == WR_RCU_ASSIGN_PTR)
+>> +               BUG_ON(*(unsigned long *)dst != src);
+> 
+> Hmm.  If you allowed cmpxchg or even plain xchg, then these bug_ons
+> would be thoroughly buggy, but maybe they're okay.  But they should,
+> at most, be WARN_ON_ONCE(), 
+
+I have to confess that I do not understand why Nadav's patchset was 
+required to use BUG_ON(), while here it's not correct, not even for 
+memcopy or memset .
+
+Is it because it is single-threaded?
+Or is it because text_poke() is patching code, instead of data?
+I can turn to WARN_ON_ONCE(), but I'd like to understand the reason.
+
+> given that you can trigger them by writing
+> the same addresses from two threads at once, and this isn't even
+> entirely obviously bogus given the presence of smp_store_release().
+
+True, however would it be reasonable to require the use of an explicit 
+writer lock, from the user?
+
+This operation is not exactly fast and should happen seldom; I'm not 
+sure if it's worth supporting cmpxchg. The speedup would be minimal.
+
+I'd rather not implement the locking implicitly, even if it would be 
+possible to detect simultaneous writes, because it might lead to overall 
+inconsistent data.
+
+--
+igor
