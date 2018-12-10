@@ -1,30 +1,65 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v4 0/7] mips: system call table generation support
-Date: Mon, 10 Dec 2018 13:35:08 +0530
-Message-ID: <CALxhOnjWQRgE3rmoLr=J51Babys48kw5D6QiNF44mw=rY_AkjQ@mail.gmail.com>
-References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
- <CALxhOninHsCiB7puVOkU3i6W9gfhGqAA6EDT0kAEC9ZqMZPh7w@mail.gmail.com> <20181210054116.2hq5ykjfh5itcvqk@pburton-laptop>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
+Date: Mon, 10 Dec 2018 10:59:55 +0100
+Message-ID: <20181210095955.GI5289@hirez.programming.kicks-ass.net>
+References: <20181204121805.4621-1-igor.stoppa@huawei.com>
+ <20181204121805.4621-3-igor.stoppa@huawei.com>
+ <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
+ <20181206094451.GC13538@hirez.programming.kicks-ass.net>
+ <d9382720-3c39-5f10-afcd-dc17727fe4dc@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181210054116.2hq5ykjfh5itcvqk@pburton-laptop>
+Content-Disposition: inline
+In-Reply-To: <d9382720-3c39-5f10-afcd-dc17727fe4dc@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Igor Stoppa <igor.stoppa@gmail.com>
+Cc: Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 10 Dec 2018 at 11:11, Paul Burton <paul.burton@mips.com> wrote:
->
-> Hi Firoz,
->
-> On Mon, Dec 10, 2018 at 11:05:38AM +0530, Firoz Khan wrote:
-> > Please review this patch series and queue it for linux-next.
->
-> It's been ~4 days, 2 of which were a weekend. I'll get to it, but
-> pinging so often won't help.
+On Mon, Dec 10, 2018 at 12:32:21AM +0200, Igor Stoppa wrote:
+> 
+> 
+> On 06/12/2018 11:44, Peter Zijlstra wrote:
+> > On Wed, Dec 05, 2018 at 03:13:56PM -0800, Andy Lutomirski wrote:
+> > 
+> > > > +       if (op == WR_MEMCPY)
+> > > > +               memcpy((void *)wr_poking_addr, (void *)src, len);
+> > > > +       else if (op == WR_MEMSET)
+> > > > +               memset((u8 *)wr_poking_addr, (u8)src, len);
+> > > > +       else if (op == WR_RCU_ASSIGN_PTR)
+> > > > +               /* generic version of rcu_assign_pointer */
+> > > > +               smp_store_release((void **)wr_poking_addr,
+> > > > +                                 RCU_INITIALIZER((void **)src));
+> > > > +       kasan_enable_current();
+> > > 
+> > > Hmm.  I suspect this will explode quite badly on sane architectures
+> > > like s390.  (In my book, despite how weird s390 is, it has a vastly
+> > > nicer model of "user" memory than any other architecture I know
+> > > of...).  I think you should use copy_to_user(), etc, instead.  I'm not
+> > > entirely sure what the best smp_store_release() replacement is.
+> > > Making this change may also mean you can get rid of the
+> > > kasan_disable_current().
+> > 
+> > If you make the MEMCPY one guarantee single-copy atomicity for native
+> > words then you're basically done.
+> > 
+> > smp_store_release() can be implemented with:
+> > 
+> > 	smp_mb();
+> > 	WRITE_ONCE();
+> > 
+> > So if we make MEMCPY provide the WRITE_ONCE(), all we need is that
+> > barrier, which we can easily place at the call site and not overly
+> > complicate our interface with this.
+> 
+> Ok, so the 3rd case (WR_RCU_ASSIGN_PTR) could be handled outside of this
+> function.
+> But, since now memcpy() will be replaced by copy_to_user(), can I assume
+> that also copy_to_user() will be atomic, if the destination is properly
+> aligned? On x86_64 it seems yes, however it's not clear to me if this is the
+> outcome of an optimization or if I can expect it to be always true.
 
-Sure.
-
->
-> Thanks,
->     Paul
+This would be a new contraint; one that needs to be documented and
+verified by the various arch maintainers as they enable this feature on
+their platform.
