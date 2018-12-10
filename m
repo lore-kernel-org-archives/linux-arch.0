@@ -1,50 +1,98 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v4 3/7] mips: rename macros and files from '64'
-	to 'n64'
-Date: Mon, 10 Dec 2018 19:51:46 +0000
-Message-ID: <20181210195144.dvprpyxyddusyb5c@pburton-laptop>
-References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
- <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH v3 0/3] sh: system call table generation support
+Date: Mon, 10 Dec 2018 15:30:36 -0500
+Message-ID: <20181210203036.GM23599@brightrain.aerifal.cx>
+References: <1542169930-24118-1-git-send-email-firoz.khan@linaro.org>
+ <CALxhOnis61eCGyS22e0_s5PLOimsNX+mhgMa_-enLWQ=EarBfg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
-Content-Language: en-US
-Content-ID: <6994742102DF064DB805071693ED2AB2@namprd22.prod.outlook.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CALxhOnis61eCGyS22e0_s5PLOimsNX+mhgMa_-enLWQ=EarBfg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, James Hogan <jhogan@kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-sh@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgRmlyb3osCgpPbiBUaHUsIERlYyAwNiwgMjAxOCBhdCAxMDo0ODoyNEFNICswNTMwLCBGaXJv
-eiBLaGFuIHdyb3RlOgo+IGRpZmYgLS1naXQgYS9hcmNoL21pcHMvaW5jbHVkZS91YXBpL2FzbS9z
-Z2lkZWZzLmggYi9hcmNoL21pcHMvaW5jbHVkZS91YXBpL2FzbS9zZ2lkZWZzLmgKPiBpbmRleCAy
-NjE0M2UzLi4wMzY0ZWVjIDEwMDY0NAo+IC0tLSBhL2FyY2gvbWlwcy9pbmNsdWRlL3VhcGkvYXNt
-L3NnaWRlZnMuaAo+ICsrKyBiL2FyY2gvbWlwcy9pbmNsdWRlL3VhcGkvYXNtL3NnaWRlZnMuaAo+
-IEBAIC00MCw2ICs0MCw2IEBACj4gICAqLwo+ICAjZGVmaW5lIF9NSVBTX1NJTV9BQkkzMgkJMQo+
-ICAjZGVmaW5lIF9NSVBTX1NJTV9OQUJJMzIJMgo+IC0jZGVmaW5lIF9NSVBTX1NJTV9BQkk2NAkJ
-Mwo+ICsjZGVmaW5lIF9NSVBTX1NJTV9BQklONjQJMwoKV2hpbHN0IEkgYWdyZWUgd2l0aCBjaGFu
-Z2luZyBvdXIgb3duIGRlZmluaXRpb25zICYgZmlsZW5hbWVzIHRvIHVzZSBuNjQsCnRoaXMgbWFj
-cm8gYWN0dWFsbHkgcmVmbGVjdHMgbmFtaW5nIHVzZWQgYnkgdGhlIHRvb2xjaGFpbi4gaWU6Cgog
-ICAgJCBtaXBzLWxpbnV4LWdjYyAtbWlwczY0IC1tYWJpPTY0IC1kTSAtRSAtIDwvZGV2L251bGwg
-fCBncmVwIEFCSTY0CiAgICAjZGVmaW5lIF9BQkk2NCAzCiAgICAjZGVmaW5lIF9NSVBTX1NJTSBf
-QUJJNjQKCk91ciBtYWNybyBoZXJlIGlzIHVzZWQgdG8gY29tcGFyZSBhZ2FpbnN0IF9NSVBTX1NJ
-TSBwcm92aWRlZCBieSB0aGUKdG9vbGNoYWluLCBzbyBmb3IgY29uc2lzdGVuY3kgSSB0aGluayB3
-ZSBzaG91bGQga2VlcCB0aGUgc2FtZSBuYW1lIGZvcgp0aGUgbWFjcm8gdGhhdCB0aGUgdG9vbGNo
-YWluIHVzZXMuCgpBbmQgSSByZWFsaXNlIHRoYXQgdW5kb2luZyB0aGF0IGJ1dCBrZWVwaW5nIG42
-NCBpbiBvdXIgb3duIGZpbGVuYW1lcyAmCm1hY3JvcyBpcyBhbm90aGVyIHR5cGUgb2YgaW5jb25z
-aXN0ZW5jeSwgYnV0IHNvbWV0aGluZyBpbXBlcmZlY3QgaXMKdW5hdm9pZGFibGUgYXQgdGhpcyBw
-b2ludCBnaXZlbiB0aGF0IHRoZSBlbmdpbmVlcnMgd2F5IGJhY2sgd2hlbiBkZWNpZGVkCnRvIHVz
-ZSAiQUJJNjQiIGZvciBuNjQuCgpUaGFua3MsCiAgICBQYXVsCl9fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0
-cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3ky
-MDM4Cg==
+On Mon, Nov 19, 2018 at 10:38:20AM +0530, Firoz Khan wrote:
+> On Wed, 14 Nov 2018 at 10:02, Firoz Khan <firoz.khan@linaro.org> wrote:
+> >
+> > The purpose of this patch series is, we can easily
+> > add/modify/delete system call table support by cha-
+> > nging entry in syscall.tbl file instead of manually
+> > changing many files. The other goal is to unify the
+> > system call table generation support implementation
+> > across all the architectures.
+> >
+> > The system call tables are in different format in
+> > all architecture. It will be difficult to manually
+> > add, modify or delete the system calls in the resp-
+> > ective files manually. To make it easy by keeping a
+> > script and which'll generate uapi header file and
+> > syscall table file.
+> >
+> > syscall.tbl contains the list of available system
+> > calls along with system call number and correspond-
+> > ing entry point. Add a new system call in this arch-
+> > itecture will be possible by adding new entry in
+> > the syscall.tbl file.
+> >
+> > Adding a new table entry consisting of:
+> >         - System call number.
+> >         - ABI.
+> >         - System call name.
+> >         - Entry point name.
+> >
+> > Please note, this support is only available for 32-bit
+> > kernel, not 64-bit kernel. As I came across the 64-bit
+> > kernel is not active for long time.
+> >
+> > ARM, s390 and x86 architecuture does exist the sim-
+> > ilar support. I leverage their implementation to come
+> > up with a generic solution.
+> >
+> > I have done the same support for work for alpha, ia64,
+> > m68k, microblaze, mips, parisc, powerpc, sparc, and
+> > xtensa. Below mentioned git repository contains more
+> > details about the workflow.
+> >
+> > https://github.com/frzkhn/system_call_table_generator/
+> >
+> > Finally, this is the ground work to solve the Y2038
+> > issue. We need to add two dozen of system calls to solve
+> > Y2038 issue. So this patch series will help to add new
+> > system calls easily by adding new entry in the syscall-
+> > .tbl.
+> >
+> > Changes since v2:
+> >  - changed from generic-y to generated-y in Kbuild.
+> >
+> > Changes since v1:
+> >  - optimized/updated the syscall table generation
+> >    scripts.
+> >  - fixed all mixed indentation issues in syscall.tbl.
+> >  - added "comments" in syscall.tbl.
+> >
+> > Firoz Khan (3):
+> >   sh: add __NR_syscalls along with NR_syscalls
+> >   sh: add system call table generation support
+> >   sh: generate uapi header and syscall table header files
+> 
+> Gentle reminder!
+> 
+> Could someone review this patch series. I haven't received any
+> feedback till now.
+
+I'm way behind, but fine with it going upstream via whatever tree is
+appropriate. I think Arnd will take care of it.
+
+Acked-by: Rich Felker <dalias@libc.org>
+
+> FYI, this support is only available for 32-bit kernel, not 64-bit
+> kernel. As I came across the 64-bit kernel is not active for long time.
+
+Support for 64-bit, which AFAIK barely ever existed in hardware, was
+removed from GCC a long time ago. At some point it needs to be removed
+from the kernel too, and doing so should allow a lot of cleanup.
+
+Rich
