@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:55182 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:55240 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726791AbeLJObZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Dec 2018 09:31:25 -0500
+        id S1726791AbeLJObe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Dec 2018 09:31:34 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [RFC][PATCH 1/3] elf: Make AT_FLAGS arch configurable
-Date: Mon, 10 Dec 2018 14:30:42 +0000
-Message-ID: <20181210143044.12714-2-vincenzo.frascino@arm.com>
+Subject: [RFC][PATCH 3/3] arm64: elf: Advertise relaxed ABI
+Date: Mon, 10 Dec 2018 14:30:44 +0000
+Message-ID: <20181210143044.12714-4-vincenzo.frascino@arm.com>
 In-Reply-To: <20181210143044.12714-1-vincenzo.frascino@arm.com>
 References: <cover.1544445454.git.andreyknvl@google.com>
  <20181210143044.12714-1-vincenzo.frascino@arm.com>
@@ -16,90 +16,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Evgeniy Stepanov <eugenis@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20181210143042.EiW2nArkqaWiL5GkLkCp5fFShmO4yYTN8AE9iKRB-Ss@z>
+Message-ID: <20181210143044.GBBLgTkXuyJLHITgc4X6gQfXY11X5FRgdg6JEiZ-_tw@z>
 
-Currently, the AT_FLAGS in the elf auxiliary vector are set to 0
-by default by the kernel.
-Some architectures might need to expose to the userspace a non-zero
-value to advertise some platform specific ABI functionalities.
+On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+the userspace (EL0) is allowed to set a non-zero value in the top
+byte but the resulting pointers are not allowed at the user-kernel
+syscall ABI boundary.
 
-This patch makes AT_FLAGS configurable by the architectures that
-require it.
+This patch sets ARM64_AT_FLAGS_SYSCALL_TBI (bit[0]) in the AT_FLAGS
+to advertise the relaxation of the ABI to the userspace.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 CC: Andrey Konovalov <andreyknvl@google.com>
-CC: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- fs/binfmt_elf.c        | 6 +++++-
- fs/binfmt_elf_fdpic.c  | 6 +++++-
- fs/compat_binfmt_elf.c | 5 +++++
- 3 files changed, 15 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/atflags.h      | 7 +++++++
+ arch/arm64/include/asm/elf.h          | 5 +++++
+ arch/arm64/include/uapi/asm/atflags.h | 8 ++++++++
+ 3 files changed, 20 insertions(+)
+ create mode 100644 arch/arm64/include/asm/atflags.h
+ create mode 100644 arch/arm64/include/uapi/asm/atflags.h
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 54207327f98f..9fa20cc4a437 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -86,6 +86,10 @@ static int elf_core_dump(struct coredump_params *cprm);
- #define ELF_CORE_EFLAGS	0
- #endif
- 
-+#ifndef ELF_AT_FLAGS
-+#define ELF_AT_FLAGS	0
-+#endif
+diff --git a/arch/arm64/include/asm/atflags.h b/arch/arm64/include/asm/atflags.h
+new file mode 100644
+index 000000000000..b20093d61bf2
+--- /dev/null
++++ b/arch/arm64/include/asm/atflags.h
+@@ -0,0 +1,7 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_ATFLAGS_H
++#define __ASM_ATFLAGS_H
 +
- #define ELF_PAGESTART(_v) ((_v) & ~(unsigned long)(ELF_MIN_ALIGN-1))
- #define ELF_PAGEOFFSET(_v) ((_v) & (ELF_MIN_ALIGN-1))
- #define ELF_PAGEALIGN(_v) (((_v) + ELF_MIN_ALIGN - 1) & ~(ELF_MIN_ALIGN - 1))
-@@ -251,7 +255,7 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
- 	NEW_AUX_ENT(AT_PHENT, sizeof(struct elf_phdr));
- 	NEW_AUX_ENT(AT_PHNUM, exec->e_phnum);
- 	NEW_AUX_ENT(AT_BASE, interp_load_addr);
--	NEW_AUX_ENT(AT_FLAGS, 0);
-+	NEW_AUX_ENT(AT_FLAGS, ELF_AT_FLAGS);
- 	NEW_AUX_ENT(AT_ENTRY, exec->e_entry);
- 	NEW_AUX_ENT(AT_UID, from_kuid_munged(cred->user_ns, cred->uid));
- 	NEW_AUX_ENT(AT_EUID, from_kuid_munged(cred->user_ns, cred->euid));
-diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
-index b53bb3729ac1..cf1e680a6b88 100644
---- a/fs/binfmt_elf_fdpic.c
-+++ b/fs/binfmt_elf_fdpic.c
-@@ -82,6 +82,10 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *,
- static int elf_fdpic_core_dump(struct coredump_params *cprm);
- #endif
- 
-+#ifndef ELF_AT_FLAGS
-+#define ELF_AT_FLAGS	0
-+#endif
++#include <uapi/asm/atflags.h>
 +
- static struct linux_binfmt elf_fdpic_format = {
- 	.module		= THIS_MODULE,
- 	.load_binary	= load_elf_fdpic_binary,
-@@ -651,7 +655,7 @@ static int create_elf_fdpic_tables(struct linux_binprm *bprm,
- 	NEW_AUX_ENT(AT_PHENT,	sizeof(struct elf_phdr));
- 	NEW_AUX_ENT(AT_PHNUM,	exec_params->hdr.e_phnum);
- 	NEW_AUX_ENT(AT_BASE,	interp_params->elfhdr_addr);
--	NEW_AUX_ENT(AT_FLAGS,	0);
-+	NEW_AUX_ENT(AT_FLAGS,	ELF_AT_FLAGS);
- 	NEW_AUX_ENT(AT_ENTRY,	exec_params->entry_addr);
- 	NEW_AUX_ENT(AT_UID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->uid));
- 	NEW_AUX_ENT(AT_EUID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->euid));
-diff --git a/fs/compat_binfmt_elf.c b/fs/compat_binfmt_elf.c
-index 15f6e96b3bd9..a21cf99701ae 100644
---- a/fs/compat_binfmt_elf.c
-+++ b/fs/compat_binfmt_elf.c
-@@ -79,6 +79,11 @@
- #define	ELF_HWCAP2		COMPAT_ELF_HWCAP2
- #endif
- 
-+#ifdef	COMPAT_ELF_AT_FLAGS
-+#undef	ELF_AT_FLAGS
-+#define	ELF_AT_FLAGS		COMPAT_ELF_AT_FLAGS
 +#endif
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 433b9554c6a1..da5a6d310ff4 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -16,6 +16,7 @@
+ #ifndef __ASM_ELF_H
+ #define __ASM_ELF_H
+ 
++#include <asm/atflags.h>
+ #include <asm/hwcap.h>
+ 
+ /*
+@@ -163,6 +164,10 @@ do {									\
+ 		NEW_AUX_ENT(AT_IGNORE, 0);				\
+ } while (0)
+ 
++/* Platform specific AT_FLAGS */
++#define ELF_AT_FLAGS			ARM64_AT_FLAGS_SYSCALL_TBI
++#define COMPAT_ELF_AT_FLAGS		0
 +
- #ifdef	COMPAT_ARCH_DLINFO
- #undef	ARCH_DLINFO
- #define	ARCH_DLINFO		COMPAT_ARCH_DLINFO
+ #define ARCH_HAS_SETUP_ADDITIONAL_PAGES
+ struct linux_binprm;
+ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+diff --git a/arch/arm64/include/uapi/asm/atflags.h b/arch/arm64/include/uapi/asm/atflags.h
+new file mode 100644
+index 000000000000..1cf25692ffd6
+--- /dev/null
++++ b/arch/arm64/include/uapi/asm/atflags.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __UAPI_ASM_ATFLAGS_H
++#define __UAPI_ASM_ATFLAGS_H
++
++/* Platform specific AT_FLAGS */
++#define ARM64_AT_FLAGS_SYSCALL_TBI	(1 << 0)
++
++#endif
 -- 
 2.19.2
