@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:51850 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727835AbeLJMvW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2018 07:51:22 -0500
-Received: by mail-wm1-f66.google.com with SMTP id s14so10842414wmh.1
-        for <linux-arch@vger.kernel.org>; Mon, 10 Dec 2018 04:51:20 -0800 (PST)
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:39306 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727808AbeLJMvU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2018 07:51:20 -0500
+Received: by mail-wr1-f65.google.com with SMTP id t27so10336193wra.6
+        for <linux-arch@vger.kernel.org>; Mon, 10 Dec 2018 04:51:19 -0800 (PST)
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v9 7/8] arm64: update Documentation/arm64/tagged-pointers.txt
-Date: Mon, 10 Dec 2018 13:51:04 +0100
-Message-ID: <5b08153a9d69a5aa958071dcc5477c881f56dcde.1544445454.git.andreyknvl@google.com>
+Subject: [PATCH v9 6/8] fs, arm64: untag user address in copy_mount_options
+Date: Mon, 10 Dec 2018 13:51:03 +0100
+Message-ID: <07a4efa5983abec2355b2754812509a73f648332.1544445454.git.andreyknvl@google.com>
 In-Reply-To: <cover.1544445454.git.andreyknvl@google.com>
 References: <cover.1544445454.git.andreyknvl@google.com>
 MIME-Version: 1.0
@@ -17,59 +17,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
-Message-ID: <20181210125104.fUeNEx1XQpsMwAI3woMaWuCOSwQ6bLnbaqki7hALurA@z>
+Message-ID: <20181210125103.JC_CJyfWarGVZ76Wo58QNbc6JHD18xMJU_0EG1f6DeQ@z>
 
-Document the changes in Documentation/arm64/tagged-pointers.txt.
+In copy_mount_options a user address is being subtracted from TASK_SIZE.
+If the address is lower than TASK_SIZE, the size is calculated to not
+allow the exact_copy_from_user() call to cross TASK_SIZE boundary.
+However if the address is tagged, then the size will be calculated
+incorrectly.
+
+Untag the address before subtracting.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- Documentation/arm64/tagged-pointers.txt | 25 +++++++++++++++----------
- 1 file changed, 15 insertions(+), 10 deletions(-)
+ fs/namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..f4cf1f5cf362 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -17,13 +17,22 @@ this byte for application use.
- Passing tagged addresses to the kernel
- --------------------------------------
+diff --git a/fs/namespace.c b/fs/namespace.c
+index a7f91265ea67..694dcedb7e7d 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -2686,7 +2686,7 @@ void *copy_mount_options(const void __user * data)
+ 	 * the remainder of the page.
+ 	 */
+ 	/* copy_from_user cannot cross TASK_SIZE ! */
+-	size = TASK_SIZE - (unsigned long)data;
++	size = TASK_SIZE - (unsigned long)untagged_addr(data);
+ 	if (size > PAGE_SIZE)
+ 		size = PAGE_SIZE;
  
--All interpretation of userspace memory addresses by the kernel assumes
--an address tag of 0x00.
-+The kernel supports tags in pointer arguments (including pointers in
-+structures) for a limited set of syscalls, the exceptions are:
- 
--This includes, but is not limited to, addresses found in:
-+ - memory syscalls: brk, madvise, mbind, mincore, mlock, mlock2, move_pages,
-+   mprotect, mremap, msync, munlock, munmap, pkey_mprotect, process_vm_readv,
-+   process_vm_writev, remap_file_pages;
- 
-- - pointer arguments to system calls, including pointers in structures
--   passed to system calls,
-+ - ioctls that accept user pointers that describe virtual memory ranges;
-+
-+ - TCP_ZEROCOPY_RECEIVE setsockopt.
-+
-+The kernel supports tags in user fault addresses. However the fault_address
-+field in the sigcontext struct will contain an untagged address.
-+
-+All other interpretations of userspace memory addresses by the kernel
-+assume an address tag of 0x00, in particular:
- 
-  - the stack pointer (sp), e.g. when interpreting it to deliver a
-    signal,
-@@ -33,11 +42,7 @@ This includes, but is not limited to, addresses found in:
- 
- Using non-zero address tags in any of these locations may result in an
- error code being returned, a (fatal) signal being raised, or other modes
--of failure.
--
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
--strongly discouraged.
-+of failure. Using a non-zero address tag for sp is strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
- address tags may suffer impaired or inaccurate debug and profiling
 -- 
 2.20.0.rc2.403.gdbc3b29805-goog
