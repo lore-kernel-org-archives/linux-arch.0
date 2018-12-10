@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v9 1/8] arm64: add type casts to untagged_addr macro
-Date: Mon, 10 Dec 2018 13:50:58 +0100
-Message-ID: <07836d7852b5c2d9588e28e4081a6f783689377c.1544445454.git.andreyknvl@google.com>
+Subject: [PATCH v9 6/8] fs, arm64: untag user address in copy_mount_options
+Date: Mon, 10 Dec 2018 13:51:03 +0100
+Message-ID: <07a4efa5983abec2355b2754812509a73f648332.1544445454.git.andreyknvl@google.com>
 References: <cover.1544445454.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,29 +12,31 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch makes the untagged_addr macro accept all kinds of address types
-(void *, unsigned long, etc.) and allows not to specify type casts in each
-place where it is used. This is done by using __typeof__.
+In copy_mount_options a user address is being subtracted from TASK_SIZE.
+If the address is lower than TASK_SIZE, the size is calculated to not
+allow the exact_copy_from_user() call to cross TASK_SIZE boundary.
+However if the address is tagged, then the size will be calculated
+incorrectly.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Untag the address before subtracting.
+
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/include/asm/uaccess.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ fs/namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 07c34087bd5e..3c3864ba3cc1 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -101,7 +101,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
-  * up with a tagged userland pointer. Clear the tag to get a sane pointer to
-  * pass on to access_ok(), for instance.
-  */
--#define untagged_addr(addr)		sign_extend64(addr, 55)
-+#define untagged_addr(addr)		\
-+	((__typeof__(addr))sign_extend64((u64)(addr), 55))
+diff --git a/fs/namespace.c b/fs/namespace.c
+index a7f91265ea67..694dcedb7e7d 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -2686,7 +2686,7 @@ void *copy_mount_options(const void __user * data)
+ 	 * the remainder of the page.
+ 	 */
+ 	/* copy_from_user cannot cross TASK_SIZE ! */
+-	size = TASK_SIZE - (unsigned long)data;
++	size = TASK_SIZE - (unsigned long)untagged_addr(data);
+ 	if (size > PAGE_SIZE)
+ 		size = PAGE_SIZE;
  
- #define access_ok(type, addr, size)	__range_ok(addr, size)
- #define user_addr_max			get_fs
 -- 
 2.20.0.rc2.403.gdbc3b29805-goog
