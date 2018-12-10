@@ -1,78 +1,54 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v9 3/8] arm64: untag user addresses in access_ok and
- __uaccess_mask_ptr
-Date: Mon, 10 Dec 2018 13:51:00 +0100
-Message-ID: <674252952827b57f4259876cd4ddf802f3539356.1544445454.git.andreyknvl@google.com>
+Subject: [PATCH v9 5/8] lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+Date: Mon, 10 Dec 2018 13:51:02 +0100
+Message-ID: <2c573564b456327708d175f3124256bc71081bd8.1544445454.git.andreyknvl@google.com>
 References: <cover.1544445454.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1544445454.git.andreyknvl@google.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Evgeniy Stepanov <eugenis@google.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-copy_from_user (and a few other similar functions) are used to copy data
-from user memory into the kernel memory or vice versa. Since a user can
-provided a tagged pointer to one of the syscalls that use copy_from_user,
-we need to correctly handle such pointers.
+strncpy_from_user and strnlen_user accept user addresses as arguments, and
+do not go through the same path as copy_from_user and others, so here we
+need to handle the case of tagged user addresses separately.
 
-Do this by untagging user pointers in access_ok and in __uaccess_mask_ptr,
-before performing access validity checks.
+Untag user pointers passed to these functions.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/include/asm/uaccess.h | 11 +++++++----
- 1 file changed, 7 insertions(+), 4 deletions(-)
+ lib/strncpy_from_user.c | 2 ++
+ lib/strnlen_user.c      | 2 ++
+ 2 files changed, 4 insertions(+)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 3c3864ba3cc1..d28c3b1314ce 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -104,7 +104,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
- #define untagged_addr(addr)		\
- 	((__typeof__(addr))sign_extend64((u64)(addr), 55))
+diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+index b53e1b5d80f4..97467cd2bc59 100644
+--- a/lib/strncpy_from_user.c
++++ b/lib/strncpy_from_user.c
+@@ -106,6 +106,8 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
+ 	if (unlikely(count <= 0))
+ 		return 0;
  
--#define access_ok(type, addr, size)	__range_ok(addr, size)
-+#define access_ok(type, addr, size)	\
-+	__range_ok(untagged_addr(addr), size)
- #define user_addr_max			get_fs
++	src = untagged_addr(src);
++
+ 	max_addr = user_addr_max();
+ 	src_addr = (unsigned long)src;
+ 	if (likely(src_addr < max_addr)) {
+diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+index 60d0bbda8f5e..8b5f56466e00 100644
+--- a/lib/strnlen_user.c
++++ b/lib/strnlen_user.c
+@@ -108,6 +108,8 @@ long strnlen_user(const char __user *str, long count)
+ 	if (unlikely(count <= 0))
+ 		return 0;
  
- #define _ASM_EXTABLE(from, to)						\
-@@ -236,7 +237,8 @@ static inline void uaccess_enable_not_uao(void)
- 
- /*
-  * Sanitise a uaccess pointer such that it becomes NULL if above the
-- * current addr_limit.
-+ * current addr_limit. In case the pointer is tagged (has the top byte set),
-+ * untag the pointer before checking.
-  */
- #define uaccess_mask_ptr(ptr) (__typeof__(ptr))__uaccess_mask_ptr(ptr)
- static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
-@@ -244,10 +246,11 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
- 	void __user *safe_ptr;
- 
- 	asm volatile(
--	"	bics	xzr, %1, %2\n"
-+	"	bics	xzr, %3, %2\n"
- 	"	csel	%0, %1, xzr, eq\n"
- 	: "=&r" (safe_ptr)
--	: "r" (ptr), "r" (current_thread_info()->addr_limit)
-+	: "r" (ptr), "r" (current_thread_info()->addr_limit),
-+	  "r" (untagged_addr(ptr))
- 	: "cc");
- 
- 	csdb();
++	str = untagged_addr(str);
++
+ 	max_addr = user_addr_max();
+ 	src_addr = (unsigned long)str;
+ 	if (likely(src_addr < max_addr)) {
 -- 
 2.20.0.rc2.403.gdbc3b29805-goog
