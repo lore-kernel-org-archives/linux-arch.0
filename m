@@ -1,60 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47570 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727501AbeLJTdg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Dec 2018 14:33:36 -0500
-Message-ID: <20181210193007.655970639@goodmis.org>
-Date: Mon, 10 Dec 2018 14:30:07 -0500
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [PATCH 0/6] tracing / arch: Remove direct use of curr_ret_stack
+Received: from mail-eopbgr700115.outbound.protection.outlook.com ([40.107.70.115]:23520
+        "EHLO NAM04-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726677AbeLJTvu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Dec 2018 14:51:50 -0500
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v4 3/7] mips: rename macros and files from '64' to 'n64'
+Date: Mon, 10 Dec 2018 19:51:46 +0000
+Message-ID: <20181210195144.dvprpyxyddusyb5c@pburton-laptop>
+References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
+ <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <6994742102DF064DB805071693ED2AB2@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20181210193007.ssMcxrv3ZMFsj6m_hSohBUfPc5urljrCcz3cr-j6TNI@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181210195146.lRJ9G36UmiF99D6ht5daVsUjHUVaQPKqCyIvCto32CM@z>
 
+Hi Firoz,
 
-Folks, I'm working on rewriting the function graph tracer. In order to
-do so, some changes need to be done that affect architecture specific
-code. I'm only able to compile test these changes. I would like to
-have folks check out my repo and give them a test.
+On Thu, Dec 06, 2018 at 10:48:24AM +0530, Firoz Khan wrote:
+> diff --git a/arch/mips/include/uapi/asm/sgidefs.h b/arch/mips/include/uap=
+i/asm/sgidefs.h
+> index 26143e3..0364eec 100644
+> --- a/arch/mips/include/uapi/asm/sgidefs.h
+> +++ b/arch/mips/include/uapi/asm/sgidefs.h
+> @@ -40,6 +40,6 @@
+>   */
+>  #define _MIPS_SIM_ABI32		1
+>  #define _MIPS_SIM_NABI32	2
+> -#define _MIPS_SIM_ABI64		3
+> +#define _MIPS_SIM_ABIN64	3
 
-The shadow stack of ret_stack is going to be modified to allow multiple
-users of function graph tracer. It can no longer be referenced directly
-as an array. A new utility "ftrace_graph_ret_stack()" is available to
-get the ret_stack entry of a given frame of the shadow stack that
-architectures can now use. This series converts all users to use the
-new interface.
+Whilst I agree with changing our own definitions & filenames to use n64,
+this macro actually reflects naming used by the toolchain. ie:
 
+    $ mips-linux-gcc -mips64 -mabi=3D64 -dM -E - </dev/null | grep ABI64
+    #define _ABI64 3
+    #define _MIPS_SIM _ABI64
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
-ftrace/core
+Our macro here is used to compare against _MIPS_SIM provided by the
+toolchain, so for consistency I think we should keep the same name for
+the macro that the toolchain uses.
 
-Head SHA1: 51584396cff54aaf57ed0bd353767d71429f77b4
+And I realise that undoing that but keeping n64 in our own filenames &
+macros is another type of inconsistency, but something imperfect is
+unavoidable at this point given that the engineers way back when decided
+to use "ABI64" for n64.
 
-
-Steven Rostedt (VMware) (6):
-      fgraph: Add comment to describe ftrace_graph_get_ret_stack
-      x86/ftrace: Do not call function graph from dynamic trampolines
-      powerpc/frace: Use ftrace_graph_get_ret_stack() instead of curr_ret_stack
-      sparc64: Use ftrace_graph_get_ret_stack() instead of curr_ret_stack
-      sh: ftrace: Use ftrace_graph_get_ret_stack() instead of curr_ret_stack
-      arm64: Use ftrace_graph_get_ret_stack() instead of curr_ret_stack
-
-----
- arch/arm64/kernel/perf_callchain.c |  2 +-
- arch/arm64/kernel/process.c        |  2 +-
- arch/arm64/kernel/return_address.c |  2 +-
- arch/arm64/kernel/stacktrace.c     | 12 +++++++-----
- arch/arm64/kernel/time.c           |  2 +-
- arch/arm64/kernel/traps.c          |  2 +-
- arch/powerpc/kernel/process.c      | 13 +++++++++----
- arch/sh/kernel/dumpstack.c         | 11 +++++++----
- arch/sh/kernel/dwarf.c             |  9 +++++----
- arch/sparc/kernel/perf_event.c     |  8 +++++---
- arch/sparc/kernel/stacktrace.c     |  8 +++++---
- arch/sparc/kernel/traps_64.c       |  7 ++++---
- arch/x86/kernel/ftrace.c           | 40 +++++++++++++++++++++-----------------
- arch/x86/kernel/ftrace_64.S        |  8 ++++----
- kernel/trace/fgraph.c              | 11 +++++++++++
- 15 files changed, 84 insertions(+), 53 deletions(-)
+Thanks,
+    Paul
