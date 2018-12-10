@@ -1,103 +1,120 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Mon, 10 Dec 2018 16:54:05 +0100
-Message-ID: <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
- <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
- <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
- <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
- <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
- <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] Linux: Implement membarrier function
+Date: Mon, 10 Dec 2018 11:22:31 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.1812101113430.1562-100000@iolanthe.rowland.org>
+References: <20181206215405.GL4170@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
-Content-Language: de-DE
+In-Reply-To: <20181206215405.GL4170@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Next step: 64ecd2c160bbef31465c4d34efc0f076a2aad4df (powerpc/dma: use 
-phys_to_dma instead of get_dma_offset)
+On Thu, 6 Dec 2018, Paul E. McKenney wrote:
 
-The P5020 board boots and the PASEMI onboard ethernet works.
+> Hello, David,
+> 
+> I took a crack at extending LKMM to accommodate what I think would
+> support what you have in your paper.  Please see the very end of this
+> email for a patch against the "dev" branch of my -rcu tree.
+> 
+> This gives the expected result for the following three litmus tests,
+> but is probably deficient or otherwise misguided in other ways.  I have
+> added the LKMM maintainers on CC for their amusement.  ;-)
+> 
+> Thoughts?
 
--- Christian
+Since sys_membarrier() provides a heavyweight barrier comparable to 
+synchronize_rcu(), the memory model should treat the two in the same 
+way.  That's what this patch does.
+
+The corresponding critical section would be any region of code bounded
+by compiler barriers.  Since the LKMM doesn't currently handle plain
+accesses, the effect is the same as if a compiler barrier were present
+between each pair of instructions.  Basically, each instruction acts as
+its own critical section.  Therefore the patch below defines memb-rscsi
+as the trivial identity relation.  When plain accesses and compiler 
+barriers are added to the memory model, a different definition will be 
+needed.
+
+This gives the correct results for the three C-Goldblat-memb-* litmus 
+tests in Paul's email.
+
+Alan
+
+PS: The patch below is meant to apply on top of the SRCU patches, which
+are not yet in the mainline kernel.
 
 
-On 09 December 2018 at 7:26PM, Christian Zigotzky wrote:
-> Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
-> powerpc: simplify the arch dma_set_mask override)
->
-> Result: No problems with the PASEMI onboard ethernet and with booting 
-> the X5000 (P5020 board).
->
-> -- Christian
->
->
-> On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
->> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 (powerpc/fsl_pci: 
->> simplify fsl_pci_dma_set_mask)
->>
->> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
->>
->> The PASEMI onboard ethernet works and the X5000 boots.
->>
->> -- Christian
->>
->>
->> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
->>> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: 
->>> fix an off-by-one in dma_capable)
->>>
->>> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
->>>
->>> The PASEMI onboard ethernet also works with this commit and the 
->>> X5000 boots without any problems.
->>>
->>> -- Christian
->>>
->>>
->>> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
->>>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
->>>> remove max_direct_dma_addr)
->>>>
->>>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
->>>>
->>>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
->>>>
->>>> -- Christian
->>>>
->>>>
->>>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
->>>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
->>>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
->>>>>
->>>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
->>>>>
->>>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
->>>>>
->>>>> — Christian
->>>>
->>>>
->>>>
->>>
->>>
->>
->>
->
->
+
+Index: usb-4.x/tools/memory-model/linux-kernel.bell
+===================================================================
+--- usb-4.x.orig/tools/memory-model/linux-kernel.bell
++++ usb-4.x/tools/memory-model/linux-kernel.bell
+@@ -24,6 +24,7 @@ instructions RMW[{'once,'acquire,'releas
+ enum Barriers = 'wmb (*smp_wmb*) ||
+ 		'rmb (*smp_rmb*) ||
+ 		'mb (*smp_mb*) ||
++		'memb (*sys_membarrier*) ||
+ 		'rcu-lock (*rcu_read_lock*)  ||
+ 		'rcu-unlock (*rcu_read_unlock*) ||
+ 		'sync-rcu (*synchronize_rcu*) ||
+Index: usb-4.x/tools/memory-model/linux-kernel.cat
+===================================================================
+--- usb-4.x.orig/tools/memory-model/linux-kernel.cat
++++ usb-4.x/tools/memory-model/linux-kernel.cat
+@@ -33,7 +33,7 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
+ 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
+ 	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
+ 		fencerel(After-unlock-lock) ; [M])
+-let gp = po ; [Sync-rcu | Sync-srcu] ; po?
++let gp = po ; [Sync-rcu | Sync-srcu | Memb] ; po?
+ 
+ let strong-fence = mb | gp
+ 
+@@ -102,8 +102,10 @@ acyclic pb as propagation
+  *)
+ let rcu-gp = [Sync-rcu]		(* Compare with gp *)
+ let srcu-gp = [Sync-srcu]
++let memb-gp = [Memb]
+ let rcu-rscsi = rcu-rscs^-1
+ let srcu-rscsi = srcu-rscs^-1
++let memb-rscsi = id
+ 
+ (*
+  * The synchronize_rcu() strong fence is special in that it can order not
+@@ -119,15 +121,19 @@ let rcu-link = po? ; hb* ; pb* ; prop ;
+  * the synchronize_srcu() and srcu_read_[un]lock() calls refer to the same
+  * struct srcu_struct location.
+  *)
+-let rec rcu-fence = rcu-gp | srcu-gp |
++let rec rcu-fence = rcu-gp | srcu-gp | memb-gp |
+ 	(rcu-gp ; rcu-link ; rcu-rscsi) |
+ 	((srcu-gp ; rcu-link ; srcu-rscsi) & loc) |
++	(memb-gp ; rcu-link ; memb-rscsi) |
+ 	(rcu-rscsi ; rcu-link ; rcu-gp) |
+ 	((srcu-rscsi ; rcu-link ; srcu-gp) & loc) |
++	(memb-rscsi ; rcu-link ; memb-gp) |
+ 	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
+ 	((srcu-gp ; rcu-link ; rcu-fence ; rcu-link ; srcu-rscsi) & loc) |
++	(memb-gp ; rcu-link ; rcu-fence ; rcu-link ; memb-rscsi) |
+ 	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
+ 	((srcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; srcu-gp) & loc) |
++	(memb-rscsi ; rcu-link ; rcu-fence ; rcu-link ; memb-gp) |
+ 	(rcu-fence ; rcu-link ; rcu-fence)
+ 
+ (* rb orders instructions just as pb does *)
+Index: usb-4.x/tools/memory-model/linux-kernel.def
+===================================================================
+--- usb-4.x.orig/tools/memory-model/linux-kernel.def
++++ usb-4.x/tools/memory-model/linux-kernel.def
+@@ -20,6 +20,7 @@ smp_store_mb(X,V) { __store{once}(X,V);
+ smp_mb() { __fence{mb}; }
+ smp_rmb() { __fence{rmb}; }
+ smp_wmb() { __fence{wmb}; }
++smp_memb() { __fence{memb}; }
+ smp_mb__before_atomic() { __fence{before-atomic}; }
+ smp_mb__after_atomic() { __fence{after-atomic}; }
+ smp_mb__after_spinlock() { __fence{after-spinlock}; }
