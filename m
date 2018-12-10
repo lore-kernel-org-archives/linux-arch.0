@@ -1,87 +1,103 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [RFC][PATCH 3/3] arm64: elf: Advertise relaxed ABI
-Date: Mon, 10 Dec 2018 14:30:44 +0000
-Message-ID: <20181210143044.12714-4-vincenzo.frascino@arm.com>
-References: <cover.1544445454.git.andreyknvl@google.com>
- <20181210143044.12714-1-vincenzo.frascino@arm.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Mon, 10 Dec 2018 16:54:05 +0100
+Message-ID: <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+ <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+ <20181205140550.GA27549@lst.de>
+ <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+ <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+ <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+ <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+ <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+ <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+ <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181210143044.12714-1-vincenzo.frascino@arm.com>
+In-Reply-To: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakris>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
-the userspace (EL0) is allowed to set a non-zero value in the top
-byte but the resulting pointers are not allowed at the user-kernel
-syscall ABI boundary.
+Next step: 64ecd2c160bbef31465c4d34efc0f076a2aad4df (powerpc/dma: use 
+phys_to_dma instead of get_dma_offset)
 
-This patch sets ARM64_AT_FLAGS_SYSCALL_TBI (bit[0]) in the AT_FLAGS
-to advertise the relaxation of the ABI to the userspace.
+The P5020 board boots and the PASEMI onboard ethernet works.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-CC: Andrey Konovalov <andreyknvl@google.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/include/asm/atflags.h      | 7 +++++++
- arch/arm64/include/asm/elf.h          | 5 +++++
- arch/arm64/include/uapi/asm/atflags.h | 8 ++++++++
- 3 files changed, 20 insertions(+)
- create mode 100644 arch/arm64/include/asm/atflags.h
- create mode 100644 arch/arm64/include/uapi/asm/atflags.h
+-- Christian
 
-diff --git a/arch/arm64/include/asm/atflags.h b/arch/arm64/include/asm/atflags.h
-new file mode 100644
-index 000000000000..b20093d61bf2
---- /dev/null
-+++ b/arch/arm64/include/asm/atflags.h
-@@ -0,0 +1,7 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_ATFLAGS_H
-+#define __ASM_ATFLAGS_H
-+
-+#include <uapi/asm/atflags.h>
-+
-+#endif
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index 433b9554c6a1..da5a6d310ff4 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -16,6 +16,7 @@
- #ifndef __ASM_ELF_H
- #define __ASM_ELF_H
- 
-+#include <asm/atflags.h>
- #include <asm/hwcap.h>
- 
- /*
-@@ -163,6 +164,10 @@ do {									\
- 		NEW_AUX_ENT(AT_IGNORE, 0);				\
- } while (0)
- 
-+/* Platform specific AT_FLAGS */
-+#define ELF_AT_FLAGS			ARM64_AT_FLAGS_SYSCALL_TBI
-+#define COMPAT_ELF_AT_FLAGS		0
-+
- #define ARCH_HAS_SETUP_ADDITIONAL_PAGES
- struct linux_binprm;
- extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-diff --git a/arch/arm64/include/uapi/asm/atflags.h b/arch/arm64/include/uapi/asm/atflags.h
-new file mode 100644
-index 000000000000..1cf25692ffd6
---- /dev/null
-+++ b/arch/arm64/include/uapi/asm/atflags.h
-@@ -0,0 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __UAPI_ASM_ATFLAGS_H
-+#define __UAPI_ASM_ATFLAGS_H
-+
-+/* Platform specific AT_FLAGS */
-+#define ARM64_AT_FLAGS_SYSCALL_TBI	(1 << 0)
-+
-+#endif
--- 
-2.19.2
+
+On 09 December 2018 at 7:26PM, Christian Zigotzky wrote:
+> Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
+> powerpc: simplify the arch dma_set_mask override)
+>
+> Result: No problems with the PASEMI onboard ethernet and with booting 
+> the X5000 (P5020 board).
+>
+> -- Christian
+>
+>
+> On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
+>> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 (powerpc/fsl_pci: 
+>> simplify fsl_pci_dma_set_mask)
+>>
+>> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
+>>
+>> The PASEMI onboard ethernet works and the X5000 boots.
+>>
+>> -- Christian
+>>
+>>
+>> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
+>>> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: 
+>>> fix an off-by-one in dma_capable)
+>>>
+>>> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
+>>>
+>>> The PASEMI onboard ethernet also works with this commit and the 
+>>> X5000 boots without any problems.
+>>>
+>>> -- Christian
+>>>
+>>>
+>>> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
+>>>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
+>>>> remove max_direct_dma_addr)
+>>>>
+>>>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
+>>>>
+>>>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
+>>>>
+>>>> -- Christian
+>>>>
+>>>>
+>>>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
+>>>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
+>>>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
+>>>>>
+>>>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
+>>>>>
+>>>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
+>>>>>
+>>>>> — Christian
+>>>>
+>>>>
+>>>>
+>>>
+>>>
+>>
+>>
+>
+>
