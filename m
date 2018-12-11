@@ -1,205 +1,130 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Tue, 11 Dec 2018 15:09:33 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.1812111446150.1538-100000@iolanthe.rowland.org>
-References: <20181211190801.GO4170@linux.ibm.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181211190801.GO4170@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH v2 0/8] net: y2038-safe socket timestamps
+Date: Tue, 11 Dec 2018 12:25:12 -0800
+Message-ID: <20181211202520.16799-1-deepa.kernel@gmail.com>
+Return-path: <netdev-owner@vger.kernel.org>
+Sender: netdev-owner@vger.kernel.org
+To: davem@davemloft.net, linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, chris@zankel.net, deller@gmx.de, dhowells@redhat.com, fenghua.yu@intel.com, isdn@linux-pingi.de, jejb@parisc-linux.org, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, tglx@linutronix.de, ubraun@linux.ibm.com, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-rdma@vger.kernel.org, linux-s390@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 11 Dec 2018, Paul E. McKenney wrote:
+The series introduces new socket timestamps that are
+y2038 safe.
 
-> > Rewriting the litmus test in these terms gives:
-> > 
-> >         P0      P1      P2      P3      P4      P5
-> >         Wa=2    Wb=2    Wc=2    [mb23]  [mb14]  [mb05]
-> >         mb0s    mb1s    mb2s    Wd=2    We=2    Wf=2
-> >         mb0e    mb1e    mb2e    Re=0    Rf=0    Ra=0
-> >         Rb=0    Rc=0    Rd=0
-> > 
-> > Here the brackets in "[mb23]", "[mb14]", and "[mb05]" mean that the
-> > positions of these barriers in their respective threads' program
-> > orderings is undetermined; they need not come at the top as shown.
-> > 
-> > (Also, in case David is unfamiliar with it, the "Wa=2" notation is
-> > shorthand for "Write 2 to a" and "Rb=0" is short for "Read 0 from b".)
-> > 
-> > Finally, here are a few facts which may be well known and obvious, but
-> > I'll state them anyway:
-> > 
-> > 	A CPU cannot reorder instructions across a memory barrier.
-> > 	If x is po-after a barrier then x executes after the barrier
-> > 	is finished.
-> > 
-> > 	If a store is po-before a barrier then the store propagates
-> > 	to every CPU before the barrier finishes.
-> > 
-> > 	If a store propagates to some CPU before a load on that CPU
-> > 	reads from the same location, then the load will obtain the
-> > 	value from that store or a co-later store.  This implies that
-> > 	if a load obtains a value co-earlier than some store then the
-> > 	load must have executed before the store propagated to the
-> > 	load's CPU.
-> > 
-> > The proof consists of three main stages, each requiring three steps.
-> > Using the facts that b - f are all read as 0, I'll show that P1
-> > executes Rc before P3 executes Re, then that P0 executes Rb before P4
-> > executes Rf, and lastly that P5's Ra must obtain 2, not 0.  This will
-> > demonstrate that the litmus test is not allowed.
-> > 
-> > 1.	Suppose that mb23 ends up coming po-later than Wd in P3.
-> > 	Then we would have:
-> > 
-> > 		Wd propagates to P2 < mb23 < mb2e < Rd,
-> > 
-> > 	and so Rd would obtain 2, not 0.  Hence mb23 must come
-> > 	po-before Wd (as shown in the listing):  mb23 < Wd.
-> > 
-> > 2.	Since mb23 therefore occurs po-before Re and instructions
-> > 	cannot be reordered across barriers,  mb23 < Re.
-> > 
-> > 3.	Since Rc obtains 0, we must have:
-> > 
-> > 		Rc < Wc propagates to P1 < mb2s < mb23 < Re.
-> > 
-> > 	Thus Rc < Re.
-> > 
-> > 4.	Suppose that mb14 ends up coming po-later than We in P4.
-> > 	Then we would have:
-> > 
-> > 		We propagates to P3 < mb14 < mb1e < Rc < Re,
-> > 
-> > 	and so Re would obtain 2, not 0.  Hence mb14 must come
-> > 	po-before We (as shown in the listing):  mb14 < We.
-> > 
-> > 5.	Since mb14 therefore occurs po-before Rf and instructions
-> > 	cannot be reordered across barriers,  mb14 < Rf.
-> > 
-> > 6.	Since Rb obtains 0, we must have:
-> > 
-> > 		Rb < Wb propagates to P0 < mb1s < mb14 < Rf.
-> > 
-> > 	Thus Rb < Rf.
-> > 
-> > 7.	Suppose that mb05 ends up coming po-later than Wf in P5.
-> > 	Then we would have:
-> > 
-> > 		Wf propagates to P4 < mb05 < mb0e < Rb < Rf,
-> > 
-> > 	and so Rf would obtain 2, not 0.  Hence mb05 must come
-> > 	po-before Wf (as shown in the listing):  mb05 < Wf.
-> > 
-> > 8.	Since mb05 therefore occurs po-before Ra and instructions
-> > 	cannot be reordered across barriers,  mb05 < Ra.
-> > 
-> > 9.	Now we have:
-> > 
-> > 		Wa propagates to P5 < mb0s < mb05 < Ra,
-> > 
-> > 	and so Ra must obtain 2, not 0.  QED.
-> 
-> Like this, then, with maximal reordering of P3-P5's reads?
-> 
->          P0      P1      P2      P3      P4      P5
->          Wa=2
->          mb0s
->                                                  [mb05]
->          mb0e                                    Ra=0
->          Rb=0    Wb=2
->                  mb1s
->                                          [mb14]
->                  mb1e                    Rf=0
->                  Rc=0    Wc=2                    Wf=2
->                          mb2s
->                                  [mb23]
->                          mb2e    Re=0
->                          Rd=0            We=2
->                                  Wd=2
+The time data types used for the existing socket timestamp
+options: SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING
+are not y2038 safe. The series introduces SO_TIMESTAMP_NEW,
+SO_TIMESTAMPNS_NEW and SO_TIMESTAMPING_NEW to replace these.
+These new timestamps can be used on all architectures.
 
-Yes, that's right.  This shows how P5's Ra must obtain 2 instead of 0.
+The alternative considered was to extend the sys_setsockopt()
+by using the flags. We did not receive any strong opinions about
+either of the approaches. Hence, this was chosen, as glibc folks
+preferred this.
 
-> But don't the sys_membarrier() calls affect everyone, especially given
-> the shared-variable communication?
+The series does not deal with updating the internal kernel socket
+calls like rxrpc to make them y2038 safe. This will be dealt
+with separately.
 
-They do, but the other effects are irrelevant for this proof.
+Note that the timestamps behavior already does not match the
+man page specific behavior:
+SIOCGSTAMP
+    This ioctl should only be used if the socket option SO_TIMESTAMP
+	is not set on the socket. Otherwise, it returns the timestamp of
+	the last packet that was received while SO_TIMESTAMP was not set,
+	or it fails if no such packet has been received,
+	(i.e., ioctl(2) returns -1 with errno set to ENOENT).
+	
+The recommendation is to update the man page to remove the above statement.
 
->  If so, why wouldn't this more strict
-> variant hold?
-> 
->          P0      P1      P2      P3      P4      P5
->          Wa=2
->          mb0s
->                                  [mb05]  [mb05]  [mb05]
+The overview of the series is as below:
+1. Delete asm specific socket.h when possible.
+2. Support SO/SCM_TIMESTAMP* options only in userspace.
+3. Rename current SO/SCM_TIMESTAMP* to SO/SCM_TIMESTAMP*_OLD.
+3. Alter socket options so that SOCK_RCVTSTAMPNS does
+   not rely on SOCK_RCVTSTAMP.
+4. Introduce y2038 safe types for socket timestamp.
+5. Introduce new y2038 safe socket options SO/SCM_TIMESTAMP*_NEW.
 
-You have misunderstood the naming scheme.  mb05 is the barrier injected 
-by P0's sys_membarrier call into P5.  So the three barriers above 
-should be named "mb03", "mb04", and "mb05".  And you left out mb01 and 
-mb02.
+Changes since v1:
+* Dropped the change to disentangle sock flags
+* Renamed sock_timeval to __kernel_sock_timeval
+* Updated a few comments
+* Added documentation changes
 
->          mb0e
->          Rb=0    Wb=2
->                  mb1s
->                                  [mb14]  [mb14]  [mb14]
->                  mb1e
->                  Rc=0    Wc=2
->                          mb2s
->                                  [mb23]  [mb23]  [mb23]
->                          mb2e    Re=0    Rf=0    Ra=0
->                          Rd=0            We=2    Wf=2
->                                  Wd=2
+Deepa Dinamani (8):
+  arch: Use asm-generic/socket.h when possible
+  sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
+  arch: sparc: Override struct __kernel_old_timeval
+  socket: Use old_timeval types for socket timestamps
+  socket: Add struct __kernel_sock_timeval
+  socket: Add SO_TIMESTAMP[NS]_NEW
+  socket: Add SO_TIMESTAMPING_NEW
+  socket: Update timestamping Documentation
 
-Yes, this does hold.  But since it doesn't affect the end result, 
-there's no point in mentioning all those other barriers.
+ Documentation/networking/timestamping.txt |  43 ++++++-
+ arch/alpha/include/uapi/asm/socket.h      |  35 ++++--
+ arch/ia64/include/uapi/asm/Kbuild         |   1 +
+ arch/ia64/include/uapi/asm/socket.h       | 120 -------------------
+ arch/mips/include/uapi/asm/socket.h       |  34 ++++--
+ arch/parisc/include/uapi/asm/socket.h     |  34 ++++--
+ arch/s390/include/uapi/asm/Kbuild         |   1 +
+ arch/s390/include/uapi/asm/socket.h       | 117 ------------------
+ arch/sparc/include/uapi/asm/posix_types.h |  10 ++
+ arch/sparc/include/uapi/asm/socket.h      |  36 ++++--
+ arch/x86/include/uapi/asm/Kbuild          |   1 +
+ arch/x86/include/uapi/asm/socket.h        |   1 -
+ arch/xtensa/include/asm/Kbuild            |   1 +
+ arch/xtensa/include/uapi/asm/Kbuild       |   1 +
+ arch/xtensa/include/uapi/asm/socket.h     | 122 -------------------
+ drivers/isdn/mISDN/socket.c               |   2 +-
+ include/linux/skbuff.h                    |  24 +++-
+ include/linux/socket.h                    |   7 ++
+ include/net/sock.h                        |   1 +
+ include/uapi/asm-generic/socket.h         |  35 ++++--
+ include/uapi/linux/errqueue.h             |   4 +
+ include/uapi/linux/time.h                 |   7 ++
+ net/bluetooth/hci_sock.c                  |   4 +-
+ net/compat.c                              |  12 +-
+ net/core/scm.c                            |  27 +++++
+ net/core/sock.c                           | 138 ++++++++++++++--------
+ net/ipv4/tcp.c                            |  82 ++++++++-----
+ net/rds/af_rds.c                          |  10 +-
+ net/rds/recv.c                            |  18 ++-
+ net/rxrpc/local_object.c                  |   2 +-
+ net/smc/af_smc.c                          |   3 +-
+ net/socket.c                              |  64 +++++++---
+ 32 files changed, 478 insertions(+), 519 deletions(-)
+ delete mode 100644 arch/ia64/include/uapi/asm/socket.h
+ delete mode 100644 arch/s390/include/uapi/asm/socket.h
+ delete mode 100644 arch/x86/include/uapi/asm/socket.h
+ delete mode 100644 arch/xtensa/include/uapi/asm/socket.h
 
-> In which case, wouldn't this cycle be forbidden even if it had only one
-> sys_membarrier() call?
 
-No, it wouldn't.  I don't understand why you might think it would.  
+base-commit: b124b524bc97868cc2b5656e6ffa21a9b752b7e0
+-- 
+2.17.1
 
-This is just like RCU, if you imagine a tiny critical section between 
-each adjacent pair of instructions.  You wouldn't expect RCU to enforce 
-ordering among six CPUs with only one synchronize_rcu call.
+Cc: chris@zankel.net
+Cc: deller@gmx.de
+Cc: dhowells@redhat.com
+Cc: fenghua.yu@intel.com
+Cc: isdn@linux-pingi.de
+Cc: jejb@parisc-linux.org
+Cc: ralf@linux-mips.org
+Cc: rth@twiddle.net
+Cc: schwidefsky@de.ibm.com
+Cc: tglx@linutronix.de
+Cc: ubraun@linux.ibm.com
 
-> Ah, but the IPIs are not necessarily synchronized across the CPUs,
-> so that the following could happen:
-> 
->          P0      P1      P2      P3      P4      P5
->          Wa=2
->          mb0s
->                                  [mb05]  [mb05]  [mb05]
->          mb0e                                    Ra=0
->          Rb=0    Wb=2
->                  mb1s
->                                  [mb14]  [mb14]
->                                          Rf=0
->                                                  Wf=2
->                                                  [mb14]
->                  mb1e
->                  Rc=0    Wc=2
->                          mb2s
->                                  [mb23]
->                                  Re=0
->                                          We=2
->                                          [mb23]  [mb23]
->                          mb2e
->                          Rd=0
->                                  Wd=2
-
-Yes it could.  But even in this execution you would end up with Ra=2 
-instead of Ra=0.
-
-> I guess in light of this post in 2001, I really don't have an excuse,
-> do I?  ;-)
-> 
-> 	https://lists.gt.net/linux/kernel/223555
-> 
-> Or am I still missing something here?
-
-You tell me...
-
-Alan
+Cc: linux-afs@lists.infradead.org
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linux-rdma@vger.kernel.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: netdev@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
