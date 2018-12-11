@@ -1,292 +1,245 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+From: Alan Stern <stern@rowland.harvard.edu>
 Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Tue, 11 Dec 2018 06:49:00 -0800
-Message-ID: <20181211144900.GI4170@linux.ibm.com>
-References: <8736rldyzm.fsf@oldenburg.str.redhat.com>
- <1543444466.5493.220.camel@redhat.com>
- <87y39c2dsg.fsf@oldenburg.str.redhat.com>
- <1689938209.14804.1543502662882.JavaMail.zimbra@efficios.com>
- <20181129150433.GH4170@linux.ibm.com>
- <CAHD6eXcvx1bskbp-X+vuMYoMQiCLOt0PiCZ5FT1yFsda9Ud-yA@mail.gmail.com>
- <20181206215405.GL4170@linux.ibm.com>
- <CAHD6eXeoAXBhGJpx6wY6g9UV4G+zmqTbjbUHnqXnVh2xiNLvug@mail.gmail.com>
-Reply-To: paulmck@linux.ibm.com
+Date: Tue, 11 Dec 2018 11:21:15 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.1812111115020.1538-100000@iolanthe.rowland.org>
+References: <20181210182516.GV4170@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHD6eXeoAXBhGJpx6wY6g9UV4G+zmqTbjbUHnqXnVh2xiNLvug@mail.gmail.com>
+In-Reply-To: <20181210182516.GV4170@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Goldblatt <davidtgoldblatt@gmail.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 10, 2018 at 10:42:25PM -0800, David Goldblatt wrote:
-> Hi Paul, thank you for thinking about all this.
+On Mon, 10 Dec 2018, Paul E. McKenney wrote:
+
+> On Mon, Dec 10, 2018 at 11:22:31AM -0500, Alan Stern wrote:
+> > On Thu, 6 Dec 2018, Paul E. McKenney wrote:
+> > 
+> > > Hello, David,
+> > > 
+> > > I took a crack at extending LKMM to accommodate what I think would
+> > > support what you have in your paper.  Please see the very end of this
+> > > email for a patch against the "dev" branch of my -rcu tree.
+> > > 
+> > > This gives the expected result for the following three litmus tests,
+> > > but is probably deficient or otherwise misguided in other ways.  I have
+> > > added the LKMM maintainers on CC for their amusement.  ;-)
+> > > 
+> > > Thoughts?
+> > 
+> > Since sys_membarrier() provides a heavyweight barrier comparable to 
+> > synchronize_rcu(), the memory model should treat the two in the same 
+> > way.  That's what this patch does.
+> > 
+> > The corresponding critical section would be any region of code bounded
+> > by compiler barriers.  Since the LKMM doesn't currently handle plain
+> > accesses, the effect is the same as if a compiler barrier were present
+> > between each pair of instructions.  Basically, each instruction acts as
+> > its own critical section.  Therefore the patch below defines memb-rscsi
+> > as the trivial identity relation.  When plain accesses and compiler 
+> > barriers are added to the memory model, a different definition will be 
+> > needed.
+> > 
+> > This gives the correct results for the three C-Goldblat-memb-* litmus 
+> > tests in Paul's email.
 > 
-> I think the modelling you suggest captures most of the algorithms I
-> would want to write. I think it's slightly too weak, though, to
-> implement the model suggested in P1202R0[1], which permits the SC
-> outcome to be recovered in C-Goldblat-memb-2[2] by inserting a second
-> smp_memb() after the first, which is a rather nice property (and I
-> believe is supported by the underlying implementation options). I
-> afraid though that I'm not familiar enough with the Linux herd
-> definitions to suggest a tweak (or know how easy a tweak might be).
-
-Actually, there has been an offlist discussion on exactly this.
-
-What is the general rule?  Is it that a given cycle have at least as
-many heavy barriers as it does light ones?  Either way, why?
-
-Gah!  I updated the tests to add the second "t", apologies!!!
-
-							Thanx, Paul
-
-> - David
+> Yow!!!
 > 
-> [1] Which I think may be strengthened a little bit more even in R1.
-> [2] As a nit, my name has two "t"'s in it, although I'd throw into the
-> ring "memb-pairwise", "memb-nontransitive", and "memb-sequenced" if
-> these get non-placeholder names.
+> My first reaction was that this cannot possibly be correct because
+> sys_membarrier(), which is probably what we should call it, does not
+> wait for anything.  But your formulation has the corresponding readers
+> being "id", which as you say above is just a single event.
 > 
-> On Thu, Dec 6, 2018 at 1:54 PM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
-> >
-> > Hello, David,
-> >
-> > I took a crack at extending LKMM to accommodate what I think would
-> > support what you have in your paper.  Please see the very end of this
-> > email for a patch against the "dev" branch of my -rcu tree.
-> >
-> > This gives the expected result for the following three litmus tests,
-> > but is probably deficient or otherwise misguided in other ways.  I have
-> > added the LKMM maintainers on CC for their amusement.  ;-)
-> >
-> > Thoughts?
-> >
-> >                                                 Thanx, Paul
-> >
-> > ------------------------------------------------------------------------
-> >
-> > C C-Goldblat-memb-1
-> > {
-> > }
-> >
-> > P0(int *x0, int *x1)
-> > {
-> >         WRITE_ONCE(*x0, 1);
-> >         r1 = READ_ONCE(*x1);
-> > }
-> >
-> >
-> > P1(int *x0, int *x1)
-> > {
-> >         WRITE_ONCE(*x1, 1);
-> >         smp_memb();
-> >         r2 = READ_ONCE(*x0);
-> > }
-> >
-> > exists (0:r1=0 /\ 1:r2=0)
-> >
-> > ------------------------------------------------------------------------
-> >
-> > C C-Goldblat-memb-2
-> > {
-> > }
-> >
-> > P0(int *x0, int *x1)
-> > {
-> >         WRITE_ONCE(*x0, 1);
-> >         r1 = READ_ONCE(*x1);
-> > }
-> >
-> >
-> > P1(int *x1, int *x2)
-> > {
-> >         WRITE_ONCE(*x1, 1);
-> >         smp_memb();
-> >         r1 = READ_ONCE(*x2);
-> > }
-> >
-> > P2(int *x2, int *x0)
-> > {
-> >         WRITE_ONCE(*x2, 1);
-> >         r1 = READ_ONCE(*x0);
-> > }
-> >
-> > exists (0:r1=0 /\ 1:r1=0 /\ 2:r1=0)
-> >
-> > ------------------------------------------------------------------------
-> >
-> > C C-Goldblat-memb-3
-> > {
-> > }
-> >
-> > P0(int *x0, int *x1)
-> > {
-> >         WRITE_ONCE(*x0, 1);
-> >         r1 = READ_ONCE(*x1);
-> > }
-> >
-> >
-> > P1(int *x1, int *x2)
-> > {
-> >         WRITE_ONCE(*x1, 1);
-> >         smp_memb();
-> >         r1 = READ_ONCE(*x2);
-> > }
-> >
-> > P2(int *x2, int *x3)
-> > {
-> >         WRITE_ONCE(*x2, 1);
-> >         r1 = READ_ONCE(*x3);
-> > }
-> >
-> > P3(int *x3, int *x0)
-> > {
-> >         WRITE_ONCE(*x3, 1);
-> >         smp_memb();
-> >         r1 = READ_ONCE(*x0);
-> > }
-> >
-> > exists (0:r1=0 /\ 1:r1=0 /\ 2:r1=0 /\ 3:r1=0)
-> >
-> > ------------------------------------------------------------------------
-> >
-> > On Thu, Nov 29, 2018 at 11:02:17AM -0800, David Goldblatt wrote:
-> > > One note with the suggested patch is that
-> > > `atomic_thread_fence(memory_order_acq_rel)` should probably be
-> > > `atomic_thread_fence (memory_order_seq_cst)` (otherwise the call would
-> > > be a no-op on, say, x86, which it very much isn't).
-> > >
-> > > The non-transitivity thing makes the resulting description arguably
-> > > incorrect, but this is informal enough that it might not be a big deal
-> > > to add something after "For these threads, the membarrier function
-> > > call turns an existing compiler barrier (see above) executed by these
-> > > threads into full memory barriers" that clarifies it. E.g. you could
-> > > make it into "turns an existing compiler barrier [...] into full
-> > > memory barriers, with respect to the calling thread".
-> > >
-> > > Since this is targeting the description of the OS call (and doesn't
-> > > have to concern itself with also being implementable by other
-> > > asymmetric techniques or degrading to architectural barriers), I think
-> > > that the description in "approach 2" in P1202 would also make sense
-> > > for a formal description of the syscall. (Of course, without the
-> > > kernel itself committing to a rigorous semantics, anything specified
-> > > on top of it will be on slightly shaky ground).
-> > >
-> > > - David
-> > >
-> > > On Thu, Nov 29, 2018 at 7:04 AM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
-> > > >
-> > > > On Thu, Nov 29, 2018 at 09:44:22AM -0500, Mathieu Desnoyers wrote:
-> > > > > ----- On Nov 29, 2018, at 8:50 AM, Florian Weimer fweimer@redhat.com wrote:
-> > > > >
-> > > > > > * Torvald Riegel:
-> > > > > >
-> > > > > >> On Wed, 2018-11-28 at 16:05 +0100, Florian Weimer wrote:
-> > > > > >>> This is essentially a repost of last year's patch, rebased to the glibc
-> > > > > >>> 2.29 symbol version and reflecting the introduction of
-> > > > > >>> MEMBARRIER_CMD_GLOBAL.
-> > > > > >>>
-> > > > > >>> I'm not including any changes to manual/ here because the set of
-> > > > > >>> supported operations is evolving rapidly, we could not get consensus for
-> > > > > >>> the language I proposed the last time, and I do not want to contribute
-> > > > > >>> to the manual for the time being.
-> > > > > >>
-> > > > > >> Fair enough.  Nonetheless, can you summarize how far you're along with
-> > > > > >> properly defining the semantics (eg, based on the C/C++ memory model)?
-> > > > > >
-> > > > > > I wrote down what you could, but no one liked it.
-> > > > > >
-> > > > > > <https://sourceware.org/ml/libc-alpha/2017-12/msg00796.html>
-> > > > > >
-> > > > > > I expect that a formalization would interact in non-trivial ways with
-> > > > > > any potential formalization of usable relaxed memory order semantics,
-> > > > > > and I'm not sure if anyone knows how to do the latter today.
-> > > > >
-> > > > > Adding Paul E. McKenney in CC.
-> > > >
-> > > > There is some prototype C++ memory model wording from David Goldblatt (CCed)
-> > > > here (search for "Standarese"):
-> > > >
-> > > > http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1202r0.pdf
-> > > >
-> > > > David's key insight is that (in Linuxese) light fences cannot pair with
-> > > > each other.
-> >
-> > ------------------------------------------------------------------------
-> >
-> > commit 17e3b6b60e57d1cb791f68a1a6a36e942cb2baad
-> > Author: Paul E. McKenney <paulmck@linux.ibm.com>
-> > Date:   Thu Dec 6 13:40:40 2018 -0800
-> >
-> >     EXP tools/memory-model: Add semantics for sys_membarrier()
-> >
-> >     This prototype commit extends LKMM to accommodate sys_membarrier(),
-> >     which is a asymmetric barrier with a limited ability to insert full
-> >     ordering into tasks that provide only compiler ordering.  This commit
-> >     currently uses the "po" relation for this purpose, but something more
-> >     sophisticated will be required when plain accesses are added, which
-> >     the compiler can reorder.
-> >
-> >     For more detail, please see David Goldblatt's C++ working paper:
-> >     http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1202r0.pdf
-> >
-> >     Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-> >
-> > diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-> > index 9c42cd9ddcb4..4ef41453f569 100644
-> > --- a/tools/memory-model/linux-kernel.bell
-> > +++ b/tools/memory-model/linux-kernel.bell
-> > @@ -24,6 +24,7 @@ instructions RMW[{'once,'acquire,'release}]
-> >  enum Barriers = 'wmb (*smp_wmb*) ||
-> >                 'rmb (*smp_rmb*) ||
-> >                 'mb (*smp_mb*) ||
-> > +               'memb (*sys_membarrier*) ||
-> >                 'rcu-lock (*rcu_read_lock*)  ||
-> >                 'rcu-unlock (*rcu_read_unlock*) ||
-> >                 'sync-rcu (*synchronize_rcu*) ||
-> > diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-> > index 8dcb37835b61..837c3ee20bea 100644
-> > --- a/tools/memory-model/linux-kernel.cat
-> > +++ b/tools/memory-model/linux-kernel.cat
-> > @@ -33,9 +33,10 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
-> >         ([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
-> >         ([M] ; po ; [UL] ; (co | po) ; [LKW] ;
-> >                 fencerel(After-unlock-lock) ; [M])
-> > +let memb = [M] ; fencerel(Memb) ; [M]
-> >  let gp = po ; [Sync-rcu | Sync-srcu] ; po?
-> >
-> > -let strong-fence = mb | gp
-> > +let strong-fence = mb | gp | memb
-> >
-> >  (* Release Acquire *)
-> >  let acq-po = [Acquire] ; po ; [M]
-> > @@ -86,6 +87,13 @@ acyclic hb as happens-before
-> >  let pb = prop ; strong-fence ; hb*
-> >  acyclic pb as propagation
-> >
-> > +(********************)
-> > +(* sys_membarrier() *)
-> > +(********************)
-> > +
-> > +let memb-step = ( prop ; po ; prop )? ; memb
-> > +acyclic memb-step as memb-before
-> > +
-> >  (*******)
-> >  (* RCU *)
-> >  (*******)
-> > diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-> > index 1d6a120cde14..9ff0691c5f2c 100644
-> > --- a/tools/memory-model/linux-kernel.def
-> > +++ b/tools/memory-model/linux-kernel.def
-> > @@ -17,6 +17,7 @@ rcu_dereference(X) __load{once}(X)
-> >  smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
-> >
-> >  // Fences
-> > +smp_memb() { __fence{memb}; }
-> >  smp_mb() { __fence{mb}; }
-> >  smp_rmb() { __fence{rmb}; }
-> >  smp_wmb() { __fence{wmb}; }
-> >
+> But what makes this work for the following litmus test?
 > 
+> ------------------------------------------------------------------------
+> 
+> C membrcu
+> 
+> {
+> }
+> 
+> P0(intptr_t *x0, intptr_t *x1)
+> {
+> 	WRITE_ONCE(*x0, 2);
+> 	smp_memb();
+> 	intptr_t r2 = READ_ONCE(*x1);
+> }
+> 
+> 
+> P1(intptr_t *x1, intptr_t *x2)
+> {
+> 	WRITE_ONCE(*x1, 2);
+> 	smp_memb();
+> 	intptr_t r2 = READ_ONCE(*x2);
+> }
+> 
+> 
+> P2(intptr_t *x2, intptr_t *x3)
+> {
+> 	WRITE_ONCE(*x2, 2);
+> 	smp_memb();
+> 	intptr_t r2 = READ_ONCE(*x3);
+> }
+> 
+> 
+> P3(intptr_t *x3, intptr_t *x4)
+> {
+> 	rcu_read_lock();
+> 	WRITE_ONCE(*x3, 2);
+> 	intptr_t r2 = READ_ONCE(*x4);
+> 	rcu_read_unlock();
+> }
+> 
+> 
+> P4(intptr_t *x4, intptr_t *x5)
+> {
+> 	rcu_read_lock();
+> 	WRITE_ONCE(*x4, 2);
+> 	intptr_t r2 = READ_ONCE(*x5);
+> 	rcu_read_unlock();
+> }
+> 
+> 
+> P5(intptr_t *x0, intptr_t *x5)
+> {
+> 	rcu_read_lock();
+> 	WRITE_ONCE(*x5, 2);
+> 	intptr_t r2 = READ_ONCE(*x0);
+> 	rcu_read_unlock();
+> }
+> 
+> exists
+> (5:r2=0 /\ 0:r2=0 /\ 1:r2=0 /\ 2:r2=0 /\ 3:r2=0 /\ 4:r2=0)
+> 
+> ------------------------------------------------------------------------
+> 
+> For this, herd gives "Never".  Of course, if I reverse the write and
+> read in any of P3(), P4(), or P5(), I get "Sometimes", which does make
+> sense.  But what is preserving the order between P3() and P4() and
+> between P4() and P5()?  I am not immediately seeing how the analogy
+> with RCU carries over to this case.
+
+That isn't how it works.  Nothing preserves the orders you mentioned.
+It's more like: the order between P1 and P4 is preserved, as is the
+order between P0 and P5.  You'll see below...
+
+(I readily agree that this result is not simple or obvious.  It took me
+quite a while to formulate the following analysis.)
+
+To begin with, since there aren't any synchronize_rcu calls in the
+test, the rcu_read_lock and rcu_read_unlock calls do nothing.  They
+can be eliminated.
+
+Also, I find the variable names "x0" - "x5" to be a little hard to
+work with.  If you don't mind, I'll replace them with "a" - "f".
+
+Now, a little digression on how sys_membarrier works.  It starts by
+executing a full memory barrier.  Then it injects memory barriers into
+the instruction streams of all the other CPUs and waits for them all
+to complete.  Then it executes an ending memory barrier.
+
+These barriers are ordered as described.  Therefore we have
+
+	mb0s < mb05 < mb0e,
+	mb1s < mb14 < mb1e,  and
+	mb2s < mb23 < mb2e,
+
+where mb0s is the starting barrier of the sys_memb call on P0, mb05 is
+the barrier that it injects into P5, mb0e is the ending barrier of the
+call, and similarly for the other sys_memb calls.  The '<' signs mean
+that the thing on their left finishes before the thing on their right
+does.
+
+Rewriting the litmus test in these terms gives:
+
+        P0      P1      P2      P3      P4      P5
+        Wa=2    Wb=2    Wc=2    [mb23]  [mb14]  [mb05]
+        mb0s    mb1s    mb2s    Wd=2    We=2    Wf=2
+        mb0e    mb1e    mb2e    Re=0    Rf=0    Ra=0
+        Rb=0    Rc=0    Rd=0
+
+Here the brackets in "[mb23]", "[mb14]", and "[mb05]" mean that the
+positions of these barriers in their respective threads' program
+orderings is undetermined; they need not come at the top as shown.
+
+(Also, in case David is unfamiliar with it, the "Wa=2" notation is
+shorthand for "Write 2 to a" and "Rb=0" is short for "Read 0 from b".)
+
+Finally, here are a few facts which may be well known and obvious, but
+I'll state them anyway:
+
+	A CPU cannot reorder instructions across a memory barrier.
+	If x is po-after a barrier then x executes after the barrier
+	is finished.
+
+	If a store is po-before a barrier then the store propagates
+	to every CPU before the barrier finishes.
+
+	If a store propagates to some CPU before a load on that CPU
+	reads from the same location, then the load will obtain the
+	value from that store or a co-later store.  This implies that
+	if a load obtains a value co-earlier than some store then the
+	load must have executed before the store propagated to the
+	load's CPU.
+
+The proof consists of three main stages, each requiring three steps.
+Using the facts that b - f are all read as 0, I'll show that P1
+executes Rc before P3 executes Re, then that P0 executes Rb before P4
+executes Rf, and lastly that P5's Ra must obtain 2, not 0.  This will
+demonstrate that the litmus test is not allowed.
+
+1.	Suppose that mb23 ends up coming po-later than Wd in P3.
+	Then we would have:
+
+		Wd propagates to P2 < mb23 < mb2e < Rd,
+
+	and so Rd would obtain 2, not 0.  Hence mb23 must come
+	po-before Wd (as shown in the listing):  mb23 < Wd.
+
+2.	Since mb23 therefore occurs po-before Re and instructions
+	cannot be reordered across barriers,  mb23 < Re.
+
+3.	Since Rc obtains 0, we must have:
+
+		Rc < Wc propagates to P1 < mb2s < mb23 < Re.
+
+	Thus Rc < Re.
+
+4.	Suppose that mb14 ends up coming po-later than We in P4.
+	Then we would have:
+
+		We propagates to P3 < mb14 < mb1e < Rc < Re,
+
+	and so Re would obtain 2, not 0.  Hence mb14 must come
+	po-before We (as shown in the listing):  mb14 < We.
+
+5.	Since mb14 therefore occurs po-before Rf and instructions
+	cannot be reordered across barriers,  mb14 < Rf.
+
+6.	Since Rb obtains 0, we must have:
+
+		Rb < Wb propagates to P0 < mb1s < mb14 < Rf.
+
+	Thus Rb < Rf.
+
+7.	Suppose that mb05 ends up coming po-later than Wf in P5.
+	Then we would have:
+
+		Wf propagates to P4 < mb05 < mb0e < Rb < Rf,
+
+	and so Rf would obtain 2, not 0.  Hence mb05 must come
+	po-before Wf (as shown in the listing):  mb05 < Wf.
+
+8.	Since mb05 therefore occurs po-before Ra and instructions
+	cannot be reordered across barriers,  mb05 < Ra.
+
+9.	Now we have:
+
+		Wa propagates to P5 < mb0s < mb05 < Ra,
+
+	and so Ra must obtain 2, not 0.  QED.
+
+Alan
