@@ -1,51 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk1-f195.google.com ([209.85.221.195]:34668 "EHLO
-        mail-vk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726281AbeLKL0N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2018 06:26:13 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46988 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726203AbeLKNWm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Dec 2018 08:22:42 -0500
+Subject: Re: [PATCH v2 01/28] kernel: Standardize vdso_datapage
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+ <20181129170530.37789-2-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1811292333300.1657@nanos.tec.linutronix.de>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <b9ac0054-4246-35fc-918e-47f67b11a44f@arm.com>
+Date: Tue, 11 Dec 2018 13:22:38 +0000
 MIME-Version: 1.0
-References: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com> <1544526070-16690-22-git-send-email-yamada.masahiro@socionext.com>
-In-Reply-To: <1544526070-16690-22-git-send-email-yamada.masahiro@socionext.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 11 Dec 2018 12:25:59 +0100
-Message-ID: <CAMuHMdUcyzoMkiu-XaD5hM3uxhh+G3wMWWkVrFRNBkv5GbDGmA@mail.gmail.com>
-Subject: Re: [PATCH 21/27] treewide: surround file paths in Kconfig files with
- double quotes
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <alpine.DEB.2.21.1811292333300.1657@nanos.tec.linutronix.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Ulf Magnusson <ulfalizer@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, Wolfram Sang <wsa+renesas@sang-engineering.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20181211112559.vrYV7XqOEBkfx5L6VXRENSfAkOH1o4jb5MUgaibnfm0@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181211132238.HPFawhjW3vnDIfeF_oU1sKAK3ZhMxURn_MQ72XHHFHQ@z>
 
-On Tue, Dec 11, 2018 at 12:03 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
-> The Kconfig lexer supports special characters such as '.' and '/' in
-> the parameter context. In my understanding, the reason is just to
-> support bare file paths in the source statement.
->
-> I do not see a good reason to complicate Kconfig for the room of
-> ambiguity.
->
-> The majority of code already surround file paths with double quotes,
-> and it makes sense since the included file paths are constant string
-> literals.
->
-> Make it treewide consistent now.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Hi Thomas,
 
->  arch/m68k/Kconfig            |  6 +++---
+thank you for reviewing my patches.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+On 29/11/2018 22:39, Thomas Gleixner wrote:
+> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
+>> +/*
+>> + * Copyright (C) 2012 ARM Limited
+>> + *
+>> + * This program is free software; you can redistribute it and/or modify
+>> + * it under the terms of the GNU General Public License version 2 as
+>> + * published by the Free Software Foundation.
+>> + *
+>> + * This program is distributed in the hope that it will be useful,
+>> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + * GNU General Public License for more details.
+>> + *
+>> + * You should have received a copy of the GNU General Public License
+>> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> 
+> Please use SPDX identifier for the license and get rid of the boiler plate.
+> 
 
-Gr{oetje,eeting}s,
+Agreed, I will fix it in the next iteration.
 
-                        Geert
+>> +#include <linux/types.h>
+>> +
+>> +struct vdso_data {
+>> +	__u64 cs_cycle_last;	/* Timebase at clocksource init */
+> 
+> Why do you want to use the __u* variants? This is not a header exposed to
+> user space. It's part of the kernel.
+> 
+
+This patch contains the same datatypes of the file from which is copied. Said
+that, I agree with you and I will fix this in v3.
+
+>> +	__u64 raw_time_sec;	/* Raw time */
+>> +	__u64 raw_time_nsec;
+>> +	__u64 xtime_clock_sec;	/* Kernel time */
+>> +	__u64 xtime_clock_nsec;
+>> +	__u64 xtime_coarse_sec;	/* Coarse time */
+>> +	__u64 xtime_coarse_nsec;
+>> +	__u64 wtm_clock_sec;	/* Wall to monotonic time */
+>> +	__u64 wtm_clock_nsec;
+>> +	__u32 tb_seq_count;	/* Timebase sequence counter */
+>> +	__u32 cs_mono_mult;	/* NTP-adjusted clocksource multiplier */
+>> +	__u32 cs_shift;		/* Clocksource shift (mono = raw) */
+>> +	__u32 cs_raw_mult;	/* Raw clocksource multiplier */
+>> +	__u32 tz_minuteswest;	/* Whacky timezone stuff */
+>> +	__u32 tz_dsttime;
+>> +	__u32 use_syscall;
+> 
+> This struct is also suboptimal cache line and access pattern wise. Aside of
+> that please look at the x86 variant of this struct. It's optimized and
+> handles all the clock variants without adding randomly named struct
+> members.
+> 
+
+I had a look at the x86 implementation and I agree with you and Arnd that it is
+better than what I am proposing here. Therefore, in my v3, I will follow that
+model for the vdso unification. Thanks to both for pointing that out and for
+providing the rationale behind it.
+
+> Thanks,
+> 
+> 	tglx
+> 
 
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Regards,
+Vincenzo
