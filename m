@@ -1,16 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-Date: Tue, 11 Dec 2018 14:02:59 +0000
-Message-ID: <f374ad0f-18a8-d66e-00fa-cba4f25ed540@arm.com>
+Subject: Re: [PATCH v2 24/28] arm: Add support for generic vDSO
+Date: Tue, 11 Dec 2018 14:15:38 +0000
+Message-ID: <496b17ae-c6b1-92f4-201b-8420005ad6c6@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
- <CAK8P3a1hmsf2CKWfQ60aUQMoC1YxWhkRKY3GBRusGnQ2cDCJpQ@mail.gmail.com>
+ <20181129170530.37789-25-vincenzo.frascino@arm.com>
+ <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a1hmsf2CKWfQ60aUQMoC1YxWhkRKY3GBRusGnQ2cDCJpQ@mail.gmail.com>
+In-Reply-To: <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
 Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
@@ -21,87 +20,42 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Mark Salyzyn <salyzyn@android.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 30/11/2018 14:29, Arnd Bergmann wrote:
-> On Thu, Nov 29, 2018 at 11:12 PM Thomas Gleixner <tglx@linutronix.de> wrote:
->> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
->>> +if HAVE_GENERIC_VDSO
->>> +
->>> +config GENERIC_GETTIMEOFDAY
->>> +     bool
->>> +     help
->>> +       This is a generic implementation of gettimeofday vdso.
->>> +       Each architecture that enables this feature has to
->>> +       provide the fallback implementation.
->>> +
->>> +config GENERIC_VDSO_32
->>> +     bool
->>> +     depends on GENERIC_GETTIMEOFDAY && !64BIT
->>> +     help
->>> +       This config option helps to avoid possible performance issues
->>> +       in 32 bit only architectures.
->>> +
->>> +config HAVE_ARCH_TIMER
->>> +     bool
->>> +     depends on GENERIC_GETTIMEOFDAY
->>> +     help
->>> +       Select this configuration option if the architecture has an arch
->>> +       timer.
->>
->> Please don't add code which is architecture specific to the generic
->> implementation. There is really no reason to make ARCH_TIMER special.
-> 
-> I think it's just unfortunate naming based on what arm64 had, but
-> conceptually it does the right thing, and just disable the clock_gettime
-> fastpath on kernel builds that never have access to a clocksource
-> from user space.
-> 
-
-I agree with Arnd here, that was the spirit of this option. I will find a better
-name in v3.
-
->>> +static notrace int __cvdso_clock_getres(clockid_t clock_id,
->>> +                                     struct __vdso_timespec *res)
->>> +{
->>> +     u64 ns;
->>> +
->>> +     if (!__arch_valid_arg(res))
->>> +             return -EFAULT;
->>> +
->>> +     if (clock_id == CLOCK_REALTIME ||
->>> +         clock_id == CLOCK_TAI ||
->>> +         clock_id == CLOCK_BOOTTIME ||
->>> +         clock_id == CLOCK_MONOTONIC ||
->>> +         clock_id == CLOCK_MONOTONIC_RAW)
->>> +             ns = MONOTONIC_RES_NSEC;
->>
->> This is wrong. You cannot unconditionally set that. See what the syscall
->> based version does. You always need to verify that the syscall version and
->> the vdso version return the same information and not something randomly
->> different.
-> 
-> Do you think we actually need the fastpath here? If not, the
-> easy way to do it would be to always fall back to calling
-> the syscall based version. Or was this originally added
-> to deal with the syscall and vdso clock_gettime having
-> different resolutions (which would sound like a bad idea, but
-> might have to stay for compatibility)?
-> 
-
-Running ./vdsotest-bench on getres, these are the results:
-
-clock-getres-monotonic: syscall: 679 nsec/call
-clock-getres-monotonic:    libc: 701 nsec/call (using syscall)
-clock-getres-monotonic:    vdso: 14 nsec/call
-
-hence I think the fastpath for getres seems justified.
-
->       Arnd
-> 
-
--- 
-Regards,
-Vincenzo
+SGkgTWFyYywKCnRoYW5rIHlvdSB2ZXJ5IG11Y2ggZm9yIHRlc3RpbmcgdGhpcyBzZXQuIEkgcmVh
+bGx5IGFwcHJlY2lhdGUgaXQuCgpPbiAxMC8xMi8yMDE4IDIyOjEzLCBNYXJrIFNhbHl6eW4gd3Jv
+dGU6Cj4gT24gMTEvMjkvMjAxOCAwOTowNSBBTSwgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6Cj4+
+IFRoZSBhcm0gdkRTTyBsaWJyYXJ5IHJlcXVpcmVzIHNvbWUgYWRhcHRhdGlvbnMgdG8gdXNlIHRv
+IHRha2UgYWR2YW50YWdlCj4+IG9mIHRoZSBuZXdseSBpbnRyb2R1Y2VkIGdlbmVyaWMgdkRTTyBs
+aWJyYXJ5Lgo+IFRlc3RlZC1ieT8gV291bGQgbGlrZSB0byBub3RlIHRoYXQgdGhpcyBwYXRjaCBz
+ZXJpZXMgdXAgdG8gMjQvMjggd2FzIAo+IGJhY2stcG9ydGVkIHRvIGFuZHJvaWQtNC45IGFuZCB3
+b3JrZWQgc3VjY2Vzc2Z1bGx5IG9uIGEgSGlrZXkgYXJtNjQgZGV2aWNlLgo+IAoKSSB3aWxsIGFk
+ZCB5b3UgYXMgVGVzdGVkLWJ5IGluIHRoZSBuZXh0IHZlcnNpb24gb2YgdGhlIHBhdGNoZXMuIEkg
+YW0gZ29pbmcgdG8KcmUtaXNzdWUgYSB2MyBiYXNlZCBvbiB0aGUgY29tbWVudHMgdGhhdCBBcm5k
+IGFuZCBUaG9tYXMgcHJvdmlkZWQuIFdvdWxkIHlvdSBiZQppbnRlcmVzdGVkIGluIHRlc3Rpbmcg
+aXQgYXMgd2VsbD8gSWYgc28gSSBjYW4gaW50ZWdyYXRlIHRoZSBzdXBwb3J0IGZvciBjbGFuZwpi
+YXNlZCBvbiB3aGF0IHlvdXIgYXJlIHN1Z2dlc3RpbmcgYmVsb3cgdG8gbWFrZSBpdCBtb3JlIHN0
+cmFpZ2h0IGZvcndhcmQgZm9yCnlvdS4gTGV0IG1lIGtub3cuCgo+IE9ubHkgc2lnbmlmaWNhbnQg
+Y2hhbmdlIHdhcyB0byBhZGQgYmFjayBzdXBwb3J0IGZvciBjbGFuZyBpbiAKPiBhcmNoL2FybTY0
+L01ha2VmaWxlIChwc2V1ZG8gcGF0Y2gpOgo+IAo+ICDCoGlmZXEgKCQoQ09ORklHX0dFTkVSSUNf
+Q09NUEFUX1ZEU08pLCB5KQo+ICDCoMKgIENST1NTX0NPTVBJTEVfQVJNMzIgPz0gJChDT05GSUdf
+Q1JPU1NfQ09NUElMRV9DT01QQVRfVkRTTzoiJSI9JSkKPiAKPiAgwqDCoCBpZmVxICgkKENST1NT
+X0NPTVBJTEVfQVJNMzIpLCkKPiAgwqDCoCDCoCAkKGVycm9yIENST1NTX0NPTVBJTEVfQVJNMzIg
+bm90IGRlZmluZWQgb3IgZW1wdHksIHRoZSBjb21wYXQgdkRTTyAKPiB3aWxsIG5vdCBiZSBidWls
+dCkKPiArwqDCoCBlbHNlIGlmZXEgKCQoY2MtbmFtZSksY2xhbmcpCj4gK8KgwqAgwqAgZXhwb3J0
+IENMQU5HX1RSSVBMRV9BUk0zMiA/PSAkKENST1NTX0NPTVBJTEVfQVJNMzIpCj4gK8KgwqDCoMKg
+IGV4cG9ydCBDTEFOR19UQVJHRVRfQVJNMzIgOj0gLS10YXJnZXQ9JChub3RkaXIgCj4gJChDTEFO
+R19UUklQTEVfQVJNMzI6JS09JSkpCj4gK8KgwqDCoMKgIGV4cG9ydCBDT05GSUdfQ09NUEFUX1ZE
+U08gOj0geQo+ICvCoMKgwqDCoCBjb21wYXRfdmRzbyA6PSAtRENPTkZJR19DT01QQVRfVkRTTz0x
+Cj4gLSsgwqAgZWxzZSBpZmVxICgkKHNoZWxsIHdoaWNoICQoQ1JPU1NfQ09NUElMRV9BUk0zMikk
+KGNjLW5hbWUpIDI+IAo+IC9kZXYvbnVsbCksKQo+IC0rIMKgIMKgICQoZXJyb3IgJChDUk9TU19D
+T01QSUxFX0FSTTMyKSQoY2MtbmFtZSkgbm90IGZvdW5kLCBjaGVjayAKPiBDUk9TU19DT01QSUxF
+X0FSTTMyKQo+ICDCoMKgIGVsc2UKPiAgwqDCoCDCoCBleHBvcnQgQ1JPU1NfQ09NUElMRV9BUk0z
+Mgo+ICDCoMKgwqDCoCBleHBvcnQgQ09ORklHX0NPTVBBVF9WRFNPIDo9IHkKPiAgwqDCoMKgwqAg
+Y29tcGF0X3Zkc28gOj0gLURDT05GSUdfQ09NUEFUX1ZEU089MQo+ICDCoMKgIGVuZGlmCj4gIMKg
+ZW5kaWYKPiAKPiAtLSBNYXJrCj4gCgotLSAKUmVnYXJkcywKVmluY2Vuem8KCl9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFp
+bGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlz
+dHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
