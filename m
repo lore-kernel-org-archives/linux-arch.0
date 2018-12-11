@@ -1,73 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48146 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726448AbeLKOPm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Dec 2018 09:15:42 -0500
-Subject: Re: [PATCH v2 24/28] arm: Add support for generic vDSO
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-25-vincenzo.frascino@arm.com>
- <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <496b17ae-c6b1-92f4-201b-8420005ad6c6@arm.com>
-Date: Tue, 11 Dec 2018 14:15:38 +0000
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.52]:18036 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726231AbeLKO2w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2018 09:28:52 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+ <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+ <20181205140550.GA27549@lst.de>
+ <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+ <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+ <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+ <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+ <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+ <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+ <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+ <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+Message-ID: <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+Date: Tue, 11 Dec 2018 15:28:47 +0100
 MIME-Version: 1.0
-In-Reply-To: <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+In-Reply-To: <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salyzyn <salyzyn@android.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20181211141538.RhYPrEPhM0-NsC6m7fcnbbPsY920QPrFY3ccyB-JX_E@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181211142847.QLHuCh1VcjgoqRTXp1nJRPmQ6dSPX8f9ytcDFhgjwmQ@z>
 
-Hi Marc,
+Next step: 977706f9755d2d697aa6f45b4f9f0e07516efeda (powerpc/dma: remove 
+dma_nommu_mmap_coherent)
 
-thank you very much for testing this set. I really appreciate it.
+Result: The P5020 board boots and the PASEMI onboard ethernet works.
 
-On 10/12/2018 22:13, Mark Salyzyn wrote:
-> On 11/29/2018 09:05 AM, Vincenzo Frascino wrote:
->> The arm vDSO library requires some adaptations to use to take advantage
->> of the newly introduced generic vDSO library.
-> Tested-by? Would like to note that this patch series up to 24/28 was 
-> back-ported to android-4.9 and worked successfully on a Hikey arm64 device.
-> 
+-- Christian
 
-I will add you as Tested-by in the next version of the patches. I am going to
-re-issue a v3 based on the comments that Arnd and Thomas provided. Would you be
-interested in testing it as well? If so I can integrate the support for clang
-based on what your are suggesting below to make it more straight forward for
-you. Let me know.
 
-> Only significant change was to add back support for clang in 
-> arch/arm64/Makefile (pseudo patch):
-> 
->   ifeq ($(CONFIG_GENERIC_COMPAT_VDSO), y)
->     CROSS_COMPILE_ARM32 ?= $(CONFIG_CROSS_COMPILE_COMPAT_VDSO:"%"=%)
-> 
->     ifeq ($(CROSS_COMPILE_ARM32),)
->       $(error CROSS_COMPILE_ARM32 not defined or empty, the compat vDSO 
-> will not be built)
-> +   else ifeq ($(cc-name),clang)
-> +     export CLANG_TRIPLE_ARM32 ?= $(CROSS_COMPILE_ARM32)
-> +     export CLANG_TARGET_ARM32 := --target=$(notdir 
-> $(CLANG_TRIPLE_ARM32:%-=%))
-> +     export CONFIG_COMPAT_VDSO := y
-> +     compat_vdso := -DCONFIG_COMPAT_VDSO=1
-> -+   else ifeq ($(shell which $(CROSS_COMPILE_ARM32)$(cc-name) 2> 
-> /dev/null),)
-> -+     $(error $(CROSS_COMPILE_ARM32)$(cc-name) not found, check 
-> CROSS_COMPILE_ARM32)
->     else
->       export CROSS_COMPILE_ARM32
->       export CONFIG_COMPAT_VDSO := y
->       compat_vdso := -DCONFIG_COMPAT_VDSO=1
->     endif
->   endif
-> 
-> -- Mark
-> 
-
--- 
-Regards,
-Vincenzo
+On 10 December 2018 at 4:54PM, Christian Zigotzky wrote:
+> Next step: 64ecd2c160bbef31465c4d34efc0f076a2aad4df (powerpc/dma: use 
+> phys_to_dma instead of get_dma_offset)
+>
+> The P5020 board boots and the PASEMI onboard ethernet works.
+>
+> -- Christian
+>
+>
+> On 09 December 2018 at 7:26PM, Christian Zigotzky wrote:
+>> Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
+>> powerpc: simplify the arch dma_set_mask override)
+>>
+>> Result: No problems with the PASEMI onboard ethernet and with booting 
+>> the X5000 (P5020 board).
+>>
+>> -- Christian
+>>
+>>
+>> On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
+>>> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 
+>>> (powerpc/fsl_pci: simplify fsl_pci_dma_set_mask)
+>>>
+>>> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
+>>>
+>>> The PASEMI onboard ethernet works and the X5000 boots.
+>>>
+>>> -- Christian
+>>>
+>>>
+>>> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
+>>>> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: 
+>>>> fix an off-by-one in dma_capable)
+>>>>
+>>>> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
+>>>>
+>>>> The PASEMI onboard ethernet also works with this commit and the 
+>>>> X5000 boots without any problems.
+>>>>
+>>>> -- Christian
+>>>>
+>>>>
+>>>> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
+>>>>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
+>>>>> remove max_direct_dma_addr)
+>>>>>
+>>>>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
+>>>>>
+>>>>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
+>>>>>
+>>>>> -- Christian
+>>>>>
+>>>>>
+>>>>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
+>>>>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
+>>>>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
+>>>>>>
+>>>>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
+>>>>>>
+>>>>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
+>>>>>>
+>>>>>> — Christian
+>>>>>
+>>>>>
+>>>>>
+>>>>
+>>>>
+>>>
+>>>
+>>
+>>
+>
+>
