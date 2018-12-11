@@ -1,484 +1,244 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f193.google.com ([209.85.219.193]:37937 "EHLO
-        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726136AbeLKU2T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2018 15:28:19 -0500
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v2 2/8] sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
-Date: Tue, 11 Dec 2018 12:25:14 -0800
-Message-ID: <20181211202520.16799-3-deepa.kernel@gmail.com>
-In-Reply-To: <20181211202520.16799-1-deepa.kernel@gmail.com>
-References: <20181211202520.16799-1-deepa.kernel@gmail.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:46308 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726136AbeLKVWN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Dec 2018 16:22:13 -0500
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wBBLE5dr004778
+        for <linux-arch@vger.kernel.org>; Tue, 11 Dec 2018 16:22:11 -0500
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2paj95q71c-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 11 Dec 2018 16:22:11 -0500
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 11 Dec 2018 21:22:10 -0000
+Date: Tue, 11 Dec 2018 13:22:04 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH] Linux: Implement membarrier function
+Reply-To: paulmck@linux.ibm.com
+References: <20181211190801.GO4170@linux.ibm.com>
+ <Pine.LNX.4.44L0.1812111446150.1538-100000@iolanthe.rowland.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1812111446150.1538-100000@iolanthe.rowland.org>
+Message-ID: <20181211212204.GR4170@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: davem@davemloft.net, linux-kernel@vger.kernel.org
-Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, deller@gmx.de, dhowells@redhat.com, jejb@parisc-linux.org, ralf@linux-mips.org, rth@twiddle.net, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-rdma@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20181211202514.ieqvAL7apRz8hBJoyo0fHewHGafAI7eC4_Ga0LTucak@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181211212204.5cw9UUsoH7VuOWukD2QLI-8VJA60zwE6KFqGpfWBx9k@z>
 
-SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING options, the
-way they are currently defined, are not y2038 safe.
-Subsequent patches in the series add new y2038 safe versions
-of these options which provide 64 bit timestamps on all
-architectures uniformly.
-Hence, rename existing options with OLD tag suffixes.
+On Tue, Dec 11, 2018 at 03:09:33PM -0500, Alan Stern wrote:
+> On Tue, 11 Dec 2018, Paul E. McKenney wrote:
+> 
+> > > Rewriting the litmus test in these terms gives:
+> > > 
+> > >         P0      P1      P2      P3      P4      P5
+> > >         Wa=2    Wb=2    Wc=2    [mb23]  [mb14]  [mb05]
+> > >         mb0s    mb1s    mb2s    Wd=2    We=2    Wf=2
+> > >         mb0e    mb1e    mb2e    Re=0    Rf=0    Ra=0
+> > >         Rb=0    Rc=0    Rd=0
+> > > 
+> > > Here the brackets in "[mb23]", "[mb14]", and "[mb05]" mean that the
+> > > positions of these barriers in their respective threads' program
+> > > orderings is undetermined; they need not come at the top as shown.
+> > > 
+> > > (Also, in case David is unfamiliar with it, the "Wa=2" notation is
+> > > shorthand for "Write 2 to a" and "Rb=0" is short for "Read 0 from b".)
+> > > 
+> > > Finally, here are a few facts which may be well known and obvious, but
+> > > I'll state them anyway:
+> > > 
+> > > 	A CPU cannot reorder instructions across a memory barrier.
+> > > 	If x is po-after a barrier then x executes after the barrier
+> > > 	is finished.
+> > > 
+> > > 	If a store is po-before a barrier then the store propagates
+> > > 	to every CPU before the barrier finishes.
+> > > 
+> > > 	If a store propagates to some CPU before a load on that CPU
+> > > 	reads from the same location, then the load will obtain the
+> > > 	value from that store or a co-later store.  This implies that
+> > > 	if a load obtains a value co-earlier than some store then the
+> > > 	load must have executed before the store propagated to the
+> > > 	load's CPU.
+> > > 
+> > > The proof consists of three main stages, each requiring three steps.
+> > > Using the facts that b - f are all read as 0, I'll show that P1
+> > > executes Rc before P3 executes Re, then that P0 executes Rb before P4
+> > > executes Rf, and lastly that P5's Ra must obtain 2, not 0.  This will
+> > > demonstrate that the litmus test is not allowed.
+> > > 
+> > > 1.	Suppose that mb23 ends up coming po-later than Wd in P3.
+> > > 	Then we would have:
+> > > 
+> > > 		Wd propagates to P2 < mb23 < mb2e < Rd,
+> > > 
+> > > 	and so Rd would obtain 2, not 0.  Hence mb23 must come
+> > > 	po-before Wd (as shown in the listing):  mb23 < Wd.
+> > > 
+> > > 2.	Since mb23 therefore occurs po-before Re and instructions
+> > > 	cannot be reordered across barriers,  mb23 < Re.
+> > > 
+> > > 3.	Since Rc obtains 0, we must have:
+> > > 
+> > > 		Rc < Wc propagates to P1 < mb2s < mb23 < Re.
+> > > 
+> > > 	Thus Rc < Re.
+> > > 
+> > > 4.	Suppose that mb14 ends up coming po-later than We in P4.
+> > > 	Then we would have:
+> > > 
+> > > 		We propagates to P3 < mb14 < mb1e < Rc < Re,
+> > > 
+> > > 	and so Re would obtain 2, not 0.  Hence mb14 must come
+> > > 	po-before We (as shown in the listing):  mb14 < We.
+> > > 
+> > > 5.	Since mb14 therefore occurs po-before Rf and instructions
+> > > 	cannot be reordered across barriers,  mb14 < Rf.
+> > > 
+> > > 6.	Since Rb obtains 0, we must have:
+> > > 
+> > > 		Rb < Wb propagates to P0 < mb1s < mb14 < Rf.
+> > > 
+> > > 	Thus Rb < Rf.
+> > > 
+> > > 7.	Suppose that mb05 ends up coming po-later than Wf in P5.
+> > > 	Then we would have:
+> > > 
+> > > 		Wf propagates to P4 < mb05 < mb0e < Rb < Rf,
+> > > 
+> > > 	and so Rf would obtain 2, not 0.  Hence mb05 must come
+> > > 	po-before Wf (as shown in the listing):  mb05 < Wf.
+> > > 
+> > > 8.	Since mb05 therefore occurs po-before Ra and instructions
+> > > 	cannot be reordered across barriers,  mb05 < Ra.
+> > > 
+> > > 9.	Now we have:
+> > > 
+> > > 		Wa propagates to P5 < mb0s < mb05 < Ra,
+> > > 
+> > > 	and so Ra must obtain 2, not 0.  QED.
+> > 
+> > Like this, then, with maximal reordering of P3-P5's reads?
+> > 
+> >          P0      P1      P2      P3      P4      P5
+> >          Wa=2
+> >          mb0s
+> >                                                  [mb05]
+> >          mb0e                                    Ra=0
+> >          Rb=0    Wb=2
+> >                  mb1s
+> >                                          [mb14]
+> >                  mb1e                    Rf=0
+> >                  Rc=0    Wc=2                    Wf=2
+> >                          mb2s
+> >                                  [mb23]
+> >                          mb2e    Re=0
+> >                          Rd=0            We=2
+> >                                  Wd=2
+> 
+> Yes, that's right.  This shows how P5's Ra must obtain 2 instead of 0.
+> 
+> > But don't the sys_membarrier() calls affect everyone, especially given
+> > the shared-variable communication?
+> 
+> They do, but the other effects are irrelevant for this proof.
 
-Also note that kernel will not use the untagged SO_TIMESTAMP*
-and SCM_TIMESTAMP* options internally anymore.
+If I understand correctly, the shared-variable communication within
+sys_membarrier() is included in your proof in the form of ordering
+between memory barriers in the mainline sys_membarrier() code and
+in the IPI handlers.
 
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: deller@gmx.de
-Cc: dhowells@redhat.com
-Cc: jejb@parisc-linux.org
-Cc: ralf@linux-mips.org
-Cc: rth@twiddle.net
-Cc: linux-afs@lists.infradead.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linux-rdma@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
----
- arch/alpha/include/uapi/asm/socket.h  | 23 ++++++++++++++++-------
- arch/mips/include/uapi/asm/socket.h   | 23 ++++++++++++++++-------
- arch/parisc/include/uapi/asm/socket.h | 23 ++++++++++++++++-------
- arch/sparc/include/uapi/asm/socket.h  | 24 ++++++++++++++++--------
- include/uapi/asm-generic/socket.h     | 23 ++++++++++++++++-------
- net/compat.c                          |  6 +++---
- net/core/sock.c                       | 16 ++++++++--------
- net/ipv4/tcp.c                        |  6 +++---
- net/rds/af_rds.c                      |  2 +-
- net/rds/recv.c                        |  2 +-
- net/rxrpc/local_object.c              |  2 +-
- net/socket.c                          |  8 ++++----
- 12 files changed, 101 insertions(+), 57 deletions(-)
+> >  If so, why wouldn't this more strict
+> > variant hold?
+> > 
+> >          P0      P1      P2      P3      P4      P5
+> >          Wa=2
+> >          mb0s
+> >                                  [mb05]  [mb05]  [mb05]
+> 
+> You have misunderstood the naming scheme.  mb05 is the barrier injected 
+> by P0's sys_membarrier call into P5.  So the three barriers above 
+> should be named "mb03", "mb04", and "mb05".  And you left out mb01 and 
+> mb02.
 
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index 065fb372e355..00e45c80e574 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -51,13 +51,9 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		30
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- /* Security levels - as per NRL IPv6 - don't actually do anything */
- #define SO_SECURITY_AUTHENTICATION		19
-@@ -66,9 +62,6 @@
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             40
- 
- #define SO_WIFI_STATUS		41
-@@ -115,4 +108,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 71370fb3ceef..b9553f770346 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -65,21 +65,14 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		30
- #define SO_SNDBUFFORCE		31
- #define SO_RCVBUFFORCE		33
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL		40
- 
- #define SO_WIFI_STATUS		41
-@@ -126,4 +119,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index 061b9cf2a779..37cdfe64bb27 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -34,10 +34,6 @@
- #define SO_BSDCOMPAT	0x400e
- #define SO_PASSCRED	0x4010
- #define SO_PEERCRED	0x4011
--#define SO_TIMESTAMP	0x4012
--#define SCM_TIMESTAMP	SO_TIMESTAMP
--#define SO_TIMESTAMPNS	0x4013
--#define SCM_TIMESTAMPNS	SO_TIMESTAMPNS
- 
- /* Security levels - as per NRL IPv6 - don't actually do anything */
- #define SO_SECURITY_AUTHENTICATION		0x4016
-@@ -58,9 +54,6 @@
- 
- #define SO_MARK			0x401f
- 
--#define SO_TIMESTAMPING		0x4020
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             0x4021
- 
- #define SO_WIFI_STATUS		0x4022
-@@ -107,4 +100,20 @@
- #define SO_TXTIME		0x4036
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         0x4012
-+#define SO_TIMESTAMPNS_OLD       0x4013
-+#define SO_TIMESTAMPING_OLD      0x4020
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 7ea35e5601b6..ca573641fc6c 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -33,7 +33,6 @@
- #define SO_PROTOCOL	0x1028
- #define SO_DOMAIN	0x1029
- 
--
- /* Linux specific, keep the same. */
- #define SO_NO_CHECK	0x000b
- #define SO_PRIORITY	0x000c
-@@ -45,19 +44,12 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		0x001c
--#define SO_TIMESTAMP		0x001d
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		0x001e
- #define SO_PASSSEC		0x001f
--#define SO_TIMESTAMPNS		0x0021
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			0x0022
- 
--#define SO_TIMESTAMPING		0x0023
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             0x0024
- 
- #define SO_WIFI_STATUS		0x0025
-@@ -109,4 +101,20 @@
- #define SO_SECURITY_ENCRYPTION_TRANSPORT	0x5002
- #define SO_SECURITY_ENCRYPTION_NETWORK		0x5004
- 
-+#define SO_TIMESTAMP_OLD         0x001d
-+#define SO_TIMESTAMPNS_OLD       0x0021
-+#define SO_TIMESTAMPING_OLD      0x0023
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _ASM_SOCKET_H */
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index a12692e5f7a8..dc704e41203d 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -46,21 +46,14 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_ACCEPTCONN		30
- 
- #define SO_PEERSEC		31
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_PROTOCOL		38
- #define SO_DOMAIN		39
- 
-@@ -110,4 +103,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* __ASM_GENERIC_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index 47a614b370cd..720ab07276b0 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -219,7 +219,7 @@ int put_cmsg_compat(struct msghdr *kmsg, int level, int type, int len, void *dat
- 	}
- 
- 	if (!COMPAT_USE_64BIT_TIME) {
--		if (level == SOL_SOCKET && type == SCM_TIMESTAMP) {
-+		if (level == SOL_SOCKET && type == SO_TIMESTAMP_OLD) {
- 			struct timeval *tv = (struct timeval *)data;
- 			ctv.tv_sec = tv->tv_sec;
- 			ctv.tv_usec = tv->tv_usec;
-@@ -227,8 +227,8 @@ int put_cmsg_compat(struct msghdr *kmsg, int level, int type, int len, void *dat
- 			len = sizeof(ctv);
- 		}
- 		if (level == SOL_SOCKET &&
--		    (type == SCM_TIMESTAMPNS || type == SCM_TIMESTAMPING)) {
--			int count = type == SCM_TIMESTAMPNS ? 1 : 3;
-+		    (type == SO_TIMESTAMPNS_OLD || type == SO_TIMESTAMPING_OLD)) {
-+			int count = type == SO_TIMESTAMPNS_OLD ? 1 : 3;
- 			int i;
- 			struct timespec *ts = (struct timespec *)data;
- 			for (i = 0; i < count; i++) {
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 6d7e189e3cd9..cf990db9b2a0 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -814,10 +814,10 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 			clear_bit(SOCK_PASSCRED, &sock->flags);
- 		break;
- 
--	case SO_TIMESTAMP:
--	case SO_TIMESTAMPNS:
-+	case SO_TIMESTAMP_OLD:
-+	case SO_TIMESTAMPNS_OLD:
- 		if (valbool)  {
--			if (optname == SO_TIMESTAMP)
-+			if (optname == SO_TIMESTAMP_OLD)
- 				sock_reset_flag(sk, SOCK_RCVTSTAMPNS);
- 			else
- 				sock_set_flag(sk, SOCK_RCVTSTAMPNS);
-@@ -829,7 +829,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 		}
- 		break;
- 
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		if (val & ~SOF_TIMESTAMPING_MASK) {
- 			ret = -EINVAL;
- 			break;
-@@ -1182,16 +1182,16 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		sock_warn_obsolete_bsdism("getsockopt");
- 		break;
- 
--	case SO_TIMESTAMP:
-+	case SO_TIMESTAMP_OLD:
- 		v.val = sock_flag(sk, SOCK_RCVTSTAMP) &&
- 				!sock_flag(sk, SOCK_RCVTSTAMPNS);
- 		break;
- 
--	case SO_TIMESTAMPNS:
-+	case SO_TIMESTAMPNS_OLD:
- 		v.val = sock_flag(sk, SOCK_RCVTSTAMPNS);
- 		break;
- 
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		v.val = sk->sk_tsflags;
- 		break;
- 
-@@ -2118,7 +2118,7 @@ int __sock_cmsg_send(struct sock *sk, struct msghdr *msg, struct cmsghdr *cmsg,
- 			return -EINVAL;
- 		sockc->mark = *(u32 *)CMSG_DATA(cmsg);
- 		break;
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		if (cmsg->cmsg_len != CMSG_LEN(sizeof(u32)))
- 			return -EINVAL;
- 
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 252048776dbb..496848ab0269 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -1870,13 +1870,13 @@ static void tcp_recv_timestamp(struct msghdr *msg, const struct sock *sk,
- 	if (tss->ts[0].tv_sec || tss->ts[0].tv_nsec) {
- 		if (sock_flag(sk, SOCK_RCVTSTAMP)) {
- 			if (sock_flag(sk, SOCK_RCVTSTAMPNS)) {
--				put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS,
-+				put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 					 sizeof(tss->ts[0]), &tss->ts[0]);
- 			} else {
- 				tv.tv_sec = tss->ts[0].tv_sec;
- 				tv.tv_usec = tss->ts[0].tv_nsec / 1000;
- 
--				put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+				put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 					 sizeof(tv), &tv);
- 			}
- 		}
-@@ -1896,7 +1896,7 @@ static void tcp_recv_timestamp(struct msghdr *msg, const struct sock *sk,
- 
- 	if (has_timestamping) {
- 		tss->ts[1] = (struct timespec) {0};
--		put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPING,
-+		put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPING_OLD,
- 			 sizeof(*tss), tss);
- 	}
- }
-diff --git a/net/rds/af_rds.c b/net/rds/af_rds.c
-index 65387e1e6964..eeb4639adbe5 100644
---- a/net/rds/af_rds.c
-+++ b/net/rds/af_rds.c
-@@ -430,7 +430,7 @@ static int rds_setsockopt(struct socket *sock, int level, int optname,
- 		ret = rds_set_transport(rs, optval, optlen);
- 		release_sock(sock->sk);
- 		break;
--	case SO_TIMESTAMP:
-+	case SO_TIMESTAMP_OLD:
- 		lock_sock(sock->sk);
- 		ret = rds_enable_recvtstamp(sock->sk, optval, optlen);
- 		release_sock(sock->sk);
-diff --git a/net/rds/recv.c b/net/rds/recv.c
-index 727639dac8a7..04e30d63a159 100644
---- a/net/rds/recv.c
-+++ b/net/rds/recv.c
-@@ -550,7 +550,7 @@ static int rds_cmsg_recv(struct rds_incoming *inc, struct msghdr *msg,
- 	if ((inc->i_rx_tstamp != 0) &&
- 	    sock_flag(rds_rs_to_sk(rs), SOCK_RCVTSTAMP)) {
- 		struct timeval tv = ktime_to_timeval(inc->i_rx_tstamp);
--		ret = put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+		ret = put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 			       sizeof(tv), &tv);
- 		if (ret)
- 			goto out;
-diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
-index 0906e51d3cfb..15cf42d5b53a 100644
---- a/net/rxrpc/local_object.c
-+++ b/net/rxrpc/local_object.c
-@@ -202,7 +202,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
- 
- 		/* We want receive timestamps. */
- 		opt = 1;
--		ret = kernel_setsockopt(local->socket, SOL_SOCKET, SO_TIMESTAMPNS,
-+		ret = kernel_setsockopt(local->socket, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 					(char *)&opt, sizeof(opt));
- 		if (ret < 0) {
- 			_debug("setsockopt failed");
-diff --git a/net/socket.c b/net/socket.c
-index f1ede2a64985..dfc5742ccfbb 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -670,7 +670,7 @@ static bool skb_is_err_queue(const struct sk_buff *skb)
-  * before the software timestamp is received, a hardware TX timestamp may be
-  * returned only if there is no software TX timestamp. Ignore false software
-  * timestamps, which may be made in the __sock_recv_timestamp() call when the
-- * option SO_TIMESTAMP(NS) is enabled on the socket, even when the skb has a
-+ * option SO_TIMESTAMP_OLD(NS) is enabled on the socket, even when the skb has a
-  * hardware timestamp.
-  */
- static bool skb_is_swtx_tstamp(const struct sk_buff *skb, int false_tstamp)
-@@ -722,12 +722,12 @@ void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
- 		if (!sock_flag(sk, SOCK_RCVTSTAMPNS)) {
- 			struct timeval tv;
- 			skb_get_timestamp(skb, &tv);
--			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+			put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 				 sizeof(tv), &tv);
- 		} else {
- 			struct timespec ts;
- 			skb_get_timestampns(skb, &ts);
--			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS,
-+			put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 				 sizeof(ts), &ts);
- 		}
- 	}
-@@ -747,7 +747,7 @@ void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
- 	}
- 	if (!empty) {
- 		put_cmsg(msg, SOL_SOCKET,
--			 SCM_TIMESTAMPING, sizeof(tss), &tss);
-+			 SO_TIMESTAMPING_OLD, sizeof(tss), &tss);
- 
- 		if (skb_is_err_queue(skb) && skb->len &&
- 		    SKB_EXT_ERR(skb)->opt_stats)
--- 
-2.17.1
+The former is a copy-and-paste error on my part, the latter was
+intentional because the IPIs among P0, P1, and P2 don't seem to
+strengthen the ordering.
+
+> >          mb0e
+> >          Rb=0    Wb=2
+> >                  mb1s
+> >                                  [mb14]  [mb14]  [mb14]
+> >                  mb1e
+> >                  Rc=0    Wc=2
+> >                          mb2s
+> >                                  [mb23]  [mb23]  [mb23]
+> >                          mb2e    Re=0    Rf=0    Ra=0
+> >                          Rd=0            We=2    Wf=2
+> >                                  Wd=2
+> 
+> Yes, this does hold.  But since it doesn't affect the end result, 
+> there's no point in mentioning all those other barriers.
+> 
+> > In which case, wouldn't this cycle be forbidden even if it had only one
+> > sys_membarrier() call?
+> 
+> No, it wouldn't.  I don't understand why you might think it would.  
+
+Because I hadn't yet thought of the scenario I showed below.
+
+> This is just like RCU, if you imagine a tiny critical section between 
+> each adjacent pair of instructions.  You wouldn't expect RCU to enforce 
+> ordering among six CPUs with only one synchronize_rcu call.
+
+Yes, I do now agree in light of the scenario shown below.
+
+> > Ah, but the IPIs are not necessarily synchronized across the CPUs,
+> > so that the following could happen:
+> > 
+> >          P0      P1      P2      P3      P4      P5
+> >          Wa=2
+> >          mb0s
+> >                                  [mb05]  [mb05]  [mb05]
+> >          mb0e                                    Ra=0
+> >          Rb=0    Wb=2
+> >                  mb1s
+> >                                  [mb14]  [mb14]
+> >                                          Rf=0
+> >                                                  Wf=2
+> >                                                  [mb14]
+> >                  mb1e
+> >                  Rc=0    Wc=2
+> >                          mb2s
+> >                                  [mb23]
+> >                                  Re=0
+> >                                          We=2
+> >                                          [mb23]  [mb23]
+> >                          mb2e
+> >                          Rd=0
+> >                                  Wd=2
+> 
+> Yes it could.  But even in this execution you would end up with Ra=2 
+> instead of Ra=0.
+
+Agreed.  Or I should have said that the above execution is forbidden,
+either way.
+
+> > I guess in light of this post in 2001, I really don't have an excuse,
+> > do I?  ;-)
+> > 
+> > 	https://lists.gt.net/linux/kernel/223555
+> > 
+> > Or am I still missing something here?
+> 
+> You tell me...
+
+I think I am on board.  ;-)
+
+							Thanx, Paul
