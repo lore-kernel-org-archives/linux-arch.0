@@ -1,104 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-11.nifty.com ([210.131.2.78]:40153 "EHLO
-        conuserg-11.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726510AbeLKLD4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2018 06:03:56 -0500
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 00/27] kconfig: remove all reduce/shift conflicts, refactor lexer, fix various issues
-Date: Tue, 11 Dec 2018 20:00:43 +0900
-Message-ID: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from sauhun.de ([88.99.104.3]:41602 "EHLO pokefinder.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726170AbeLKLTw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Dec 2018 06:19:52 -0500
+Date: Tue, 11 Dec 2018 12:19:50 +0100
+From: Wolfram Sang <wsa@the-dreams.de>
+Subject: Re: [PATCH 21/27] treewide: surround file paths in Kconfig files
+ with double quotes
+Message-ID: <20181211111950.ewqhxaoitrrsxp7x@ninjato>
+References: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
+ <1544526070-16690-22-git-send-email-yamada.masahiro@socionext.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="mwbqm27pd7bahvul"
+Content-Disposition: inline
+In-Reply-To: <1544526070-16690-22-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kbuild@vger.kernel.org
-Cc: Ulf Magnusson <ulfalizer@gmail.com>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch <linux-arch@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Wolfram Sang <wsa+renesas@sang-engineering.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Herbert Xu <herbert@gondor.apana.org.au>, Michal Simek <monstr@monstr.eu>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20181211110043.uBlF_mI6fFePg91teq1OWtFZkJywO6KlYm7sJ3hb02w@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-kbuild@vger.kernel.org, Ulf Magnusson <ulfalizer@gmail.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Wolfram Sang <wsa+renesas@sang-engineering.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Herbert Xu <herbert@gondor.apana.org.au>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20181211111950.9Pp6e6IBUPLqps1dyB2vB9zkusJYigBDCXAuE-fqTj8@z>
 
 
-When I tryed to change something, I was often hit by annoying
-shift/reduce conflicts in the parser.
+--mwbqm27pd7bahvul
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The lexer and parser are too cluttered.
+On Tue, Dec 11, 2018 at 08:01:04PM +0900, Masahiro Yamada wrote:
+> The Kconfig lexer supports special characters such as '.' and '/' in
+> the parameter context. In my understanding, the reason is just to
+> support bare file paths in the source statement.
+>=20
+> I do not see a good reason to complicate Kconfig for the room of
+> ambiguity.
+>=20
+> The majority of code already surround file paths with double quotes,
+> and it makes sense since the included file paths are constant string
+> literals.
+>=20
+> Make it treewide consistent now.
+>=20
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 
-So, I decided to clean-up now.
-
-  - Fix all shift/reduce conflicts in the parser
-
-  - Rewrite the lexer. The linear keyword search was removed.
-    The number of states descreased from 6 to 4.
-
-  - Fix various subtle issues
+Acked-by: Wolfram Sang <wsa@the-dreams.de>
 
 
+--mwbqm27pd7bahvul
+Content-Type: application/pgp-signature; name="signature.asc"
 
-Masahiro Yamada (27):
-  kconfig: fix file name and line number of warn_ignored_character()
-  kconfig: fix memory leak when EOF is encountered in quotation
-  kconfig: require T_EOL to reduce visible statement
-  kconfig: remove unneeded pattern matching to whitespaces
-  kconfig: refactor pattern matching in STRING state
-  kconfig: fix ambiguous grammar in terms of new lines
-  kconfig: clean up EOF handling in the lexer
-  kconfig: warn no new line at end of file
-  kconfig: remove grammatically ambiguous "unexpected option" diagnostic
-  kconfig: remove grammatically ambiguous option_error
-  kconfig: remove redundant if_block rule
-  kconfig: remove redundant menu_block rule
-  kconfig: loosen the order of "visible" and "depends on" in menu entry
-  kconfig: rename depends_list to comment_option_list
-  kconfig: remove redundant token defines
-  kconfig: use distinct tokens for type and default properties
-  kconfig: refactor scanning and parsing "option" properties
-  kconfig: use specific tokens instead of T_ASSIGN for assignments
-  kconfig: use T_WORD instead of T_VARIABLE for variables
-  microblaze: surround string default in Kconfig with double quotes
-  treewide: surround file paths in Kconfig files with double quotes
-  kconfig: ban the use of '.' and '/' in unquoted words
-  kconfig: refactor end token rules
-  kconfig: stop associating kconf_id with yylval
-  kconfig: switch to ASSIGN_VAL state in the second lexer
-  kconfig: update current_pos in the second lexer
-  kconfig: remove keyword lookup table entirely
+-----BEGIN PGP SIGNATURE-----
 
- arch/arm/Kconfig                 |   2 +-
- arch/arm/kvm/Kconfig             |   2 +-
- arch/arm64/Kconfig               |   2 +-
- arch/arm64/kvm/Kconfig           |   2 +-
- arch/ia64/Kconfig                |   2 +-
- arch/m68k/Kconfig                |   6 +-
- arch/microblaze/Kconfig.platform |   2 +-
- arch/mips/kvm/Kconfig            |   2 +-
- arch/openrisc/Kconfig            |   2 +-
- arch/powerpc/Kconfig             |   4 +-
- arch/powerpc/kvm/Kconfig         |   2 +-
- arch/riscv/Kconfig               |   2 +-
- arch/s390/Kconfig                |   2 +-
- arch/s390/kvm/Kconfig            |   2 +-
- arch/sh/Kconfig                  |   2 +-
- arch/sparc/Kconfig               |   2 +-
- arch/x86/Kconfig                 |   2 +-
- arch/x86/kvm/Kconfig             |   2 +-
- block/Kconfig                    |   2 +-
- crypto/Kconfig                   |   4 +-
- drivers/crypto/Kconfig           |   2 +-
- drivers/gpu/drm/i915/Kconfig     |   2 +-
- drivers/hwmon/Kconfig            |   2 +-
- drivers/i2c/Kconfig              |   6 +-
- drivers/pps/Kconfig              |   4 +-
- drivers/ras/Kconfig              |   2 +-
- drivers/thermal/Kconfig          |   2 +-
- drivers/w1/Kconfig               |   4 +-
- kernel/Kconfig.preempt           |   2 +-
- lib/Kconfig.debug                |   4 +-
- scripts/kconfig/kconf_id.c       |  52 --------
- scripts/kconfig/lkc.h            |  19 +--
- scripts/kconfig/menu.c           |  43 +++---
- scripts/kconfig/preprocess.c     |   3 +-
- scripts/kconfig/zconf.l          | 232 +++++++++++++++++---------------
- scripts/kconfig/zconf.y          | 280 ++++++++++++++++-----------------------
- security/Kconfig                 |  16 +--
- security/integrity/Kconfig       |   4 +-
- 38 files changed, 313 insertions(+), 414 deletions(-)
- delete mode 100644 scripts/kconfig/kconf_id.c
+iQIzBAABCAAdFiEEOZGx6rniZ1Gk92RdFA3kzBSgKbYFAlwPnVYACgkQFA3kzBSg
+KbapthAAswtEQAelInCKg1PRZxmFeR9k5d7t4431idaQJttt0QpBw8aERjobozOf
+9QrWod/rn7R82mtt9TkSm89JAgla/b7+o2EfCj5niTwt8qyJC3MmeeyJ1ZEMXky9
+mu6ZYvA7+yIKO1kTGxaWj3FkeifJmYa9DSjvfk6YXCNjUEmwC71VBOz3kSriIaqp
+s1zjn3UYZyKomGiCTsv6652a4lWiRicqIkPBAFkRZ1ZhHszBHXfoPnSIt4z3tJLm
+LmRFjc5/J8M1lo/niOjbV9vnR4BerHDW3cO5tX/pt/jRnYmKxtI+wYk3M7jI98Du
+kq0XYBwC/2Q6AKUXp27m/BvndNykBB9A3cm85oxaORKoPhS+ZChz18o0Tu6oBlFf
+TZs9isju21V9ffcZWZHdmWt24UgRZl+OhRuvGREbNzoVKT+4vPJMzYlKnMNFWMxr
+afbBlfGz7RiSD5C+f96hWBPQr8cdP75QLH6myWNY6Hi0G8oYgB81zr9kD2qTrXSB
+B8rZiJhFbgnGbGBIcbCPRlOq4kQ5LZWBVCCsMZn7Rzwku7F+ZoVOqc8VKYx8ewUT
+is3rtS9tKu6xve/mLWyHqM2Rp2Gid4oQlLqomzCA7PK+k7YxpvEao4AIG51JbujC
+pUKib9TWNrPFCrIi6siIkbjlP4HOGTminSdOahxyGgK61Ev74U8=
+=6+ar
+-----END PGP SIGNATURE-----
 
--- 
-2.7.4
+--mwbqm27pd7bahvul--
