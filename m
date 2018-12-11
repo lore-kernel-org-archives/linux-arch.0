@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 04/28] kernel: Add masks support for Raw and NTP time
-Date: Tue, 11 Dec 2018 13:24:56 +0000
-Message-ID: <fe008742-6af4-35e9-131a-284bf3781dd0@arm.com>
+Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Date: Tue, 11 Dec 2018 13:39:50 +0000
+Message-ID: <64ff3b50-ce55-ff69-ac3a-61f221299895@arm.com>
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-5-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292339240.1657@nanos.tec.linutronix.de>
+ <20181129170530.37789-7-vincenzo.frascino@arm.com>
+ <CAK8P3a1njNBWiMExBevqbT+AuUHdU4T2sc1o1rRTn+Ji=y2SbA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <alpine.DEB.2.21.1811292339240.1657@nanos.tec.linutronix.de>
+In-Reply-To: <CAK8P3a1njNBWiMExBevqbT+AuUHdU4T2sc1o1rRTn+Ji=y2SbA@mail.gmail.com>
 Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
@@ -20,47 +20,116 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 29/11/2018 22:41, Thomas Gleixner wrote:
-> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
+Hi Arnd,
+
+thank you for reviewing my patches.
+
+On 29/11/2018 20:42, Arnd Bergmann wrote:
+> On Thu, Nov 29, 2018 at 6:06 PM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
 > 
->> Depending on the clocksource selected there can be supported a
->> different resolution hence we require a mask to be applied to the
->> time calculation.
+>> +/*
+>> + * The definitions below are required to overcome the limitations
+>> + * of time_t on 32 bit architectures, which overflows in 2038.
+>> + * The new code should use the replacements based on time64_t and
+>> + * timespec64.
+>> + *
+>> + * The abstraction below will be updated once the migration to
+>> + * time64_t is complete.
+>> + */
+>> +#ifdef CONFIG_GENERIC_VDSO_32
+>> +#define __vdso_timespec                old_timespec32
+>> +#define __vdso_timeval         old_timeval32
+>> +#else
+>> +#ifdef ENABLE_COMPAT_VDSO
+>> +#define __vdso_timespec                old_timespec32
+>> +#define __vdso_timeval         old_timeval32
+>> +#else
+>> +#define __vdso_timespec                __kernel_timespec
+>> +#define __vdso_timeval         __kernel_old_timeval
+>> +#endif /* CONFIG_COMPAT_VDSO */
+>> +#endif /* CONFIG_GENERIC_VDSO_32 */
 >>
->> This patch exposes the mask in the datapage for Raw and NTP adjusted
->> clock.
->>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->> ---
->>  include/vdso/datapage.h | 2 ++
->>  1 file changed, 2 insertions(+)
->>
->> diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
->> index d50a108afaed..0a7bdccf5773 100644
->> --- a/include/vdso/datapage.h
->> +++ b/include/vdso/datapage.h
->> @@ -34,6 +34,8 @@ struct vdso_data {
->>  	__u64 wtm_clock_nsec;
->>  	__u64 btm_nsec;		/* Monotonic to boot time */
->>  	__u64 tai_sec;		/* International Atomic Time */
->> +	__u64 cs_mono_mask;	/* NTP-adjusted clocksource mask */
->> +	__u64 cs_raw_mask;	/* Raw clocksource mask */
 > 
-> And why would they be different? The core timekeeper has them duplicated
-> purely for access pattern optimization and simplicity.
+> Have you considered doing this in the reverse way, by including
+> the common parts from multiple implementations (32 and 64
+> bit), instead of compiling the same source file multiple
+> times with different macros set? I think that would make it
+> easier to understand.
+> 
+
+The common code is never compiled as standalone. It includes arch specific code
+(for the fallbacks) and it is included in the arch specific vdso library (for
+both 32 and 64 bit where it makes sense). Hence it is built once or twice.
+
+If I understand correctly your question, seems inline with what I am doing.
+
+>> +
+>> +#ifdef CONFIG_HAVE_ARCH_TIMER
+>> +static __always_inline notrace int __do_realtime_or_tai(
+>> +               const struct vdso_data *vd,
+>> +               struct __vdso_timespec *ts,
+>> +               bool is_tai)
+>> +{
+>> +       u32 seq, cs_mono_mult, cs_shift;
+>> +       u64 ns, sec;
+>> +       u64 cycle_last, cs_mono_mask;
+>> +
+>> +       if (vd->use_syscall)
+>> +               return -1;
+>> +repeat:
+> 
+> Maybe instead of the #ifdef, do it like
+> 
+>      if (!IS_ENABLED(CONFIG_HAVE_ARCH_TIMER) ||
+>          vd->use_syscall)
+>                 return -1;
+> 
+
+Ok, thanks. I will change this in v3.
+
+>> +static notrace int __cvdso_clock_gettime(clockid_t clock,
+>> +                                        struct __vdso_timespec *ts)
+>> +{
+>> +       const struct vdso_data *vd = __arch_get_vdso_data();
+>> +
+>> +       if (!__arch_valid_arg(ts))
+>> +               return -EFAULT;
+>> +
+>> +       switch (clock) {
+>> +       case CLOCK_REALTIME:
+>> +               if (do_realtime(vd, ts))
+>> +                       goto fallback;
+>> +               break;
+>> +       case CLOCK_TAI:
+>> +               if (do_tai(vd, ts))
+>> +                       goto fallback;
+>> +               break;
+>> +       case CLOCK_MONOTONIC:
+>> +               if (do_monotonic(vd, ts))
+>> +                       goto fallback;
+>> +               break;
+>> +       case CLOCK_MONOTONIC_RAW:
+>> +               if (do_monotonic_raw(vd, ts))
+>> +                       goto fallback;
+>> +               break;
+> 
+> Please sync this up with the latest x86 version in
+> arch/x86/entry/vdso/vclock_gettime.c, that version has
+> seen a lot of improvements recently, so I'd recommend
+> using a copy of that file as the base, and then
+> modifying it as needed to make it work on the other
+> architectures.
 >
 
-As you pointed out I followed the pattern of core timekeeper, but looking at it
-after your comment, it seems obvious that one is enough.
+Thomas commented on my patches and from v3 I am going to port the recent
+improvements to the vdso common code.
 
-> Thanks,
-> 
-> 	tglx
+>       Arnd
 > 
 
 -- 
