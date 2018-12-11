@@ -1,102 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47978 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:48146 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726203AbeLKODE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Dec 2018 09:03:04 -0500
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+        id S1726448AbeLKOPm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Dec 2018 09:15:42 -0500
+Subject: Re: [PATCH v2 24/28] arm: Add support for generic vDSO
 References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
- <CAK8P3a1hmsf2CKWfQ60aUQMoC1YxWhkRKY3GBRusGnQ2cDCJpQ@mail.gmail.com>
+ <20181129170530.37789-25-vincenzo.frascino@arm.com>
+ <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <f374ad0f-18a8-d66e-00fa-cba4f25ed540@arm.com>
-Date: Tue, 11 Dec 2018 14:02:59 +0000
+Message-ID: <496b17ae-c6b1-92f4-201b-8420005ad6c6@arm.com>
+Date: Tue, 11 Dec 2018 14:15:38 +0000
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1hmsf2CKWfQ60aUQMoC1YxWhkRKY3GBRusGnQ2cDCJpQ@mail.gmail.com>
+In-Reply-To: <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20181211140259.ABsWIMI_TrT1zHC-Eepinb22tOUMykYFil3MJirVYGY@z>
+To: Mark Salyzyn <salyzyn@android.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181211141538.RhYPrEPhM0-NsC6m7fcnbbPsY920QPrFY3ccyB-JX_E@z>
 
-On 30/11/2018 14:29, Arnd Bergmann wrote:
-> On Thu, Nov 29, 2018 at 11:12 PM Thomas Gleixner <tglx@linutronix.de> wrote:
->> On Thu, 29 Nov 2018, Vincenzo Frascino wrote:
->>> +if HAVE_GENERIC_VDSO
->>> +
->>> +config GENERIC_GETTIMEOFDAY
->>> +     bool
->>> +     help
->>> +       This is a generic implementation of gettimeofday vdso.
->>> +       Each architecture that enables this feature has to
->>> +       provide the fallback implementation.
->>> +
->>> +config GENERIC_VDSO_32
->>> +     bool
->>> +     depends on GENERIC_GETTIMEOFDAY && !64BIT
->>> +     help
->>> +       This config option helps to avoid possible performance issues
->>> +       in 32 bit only architectures.
->>> +
->>> +config HAVE_ARCH_TIMER
->>> +     bool
->>> +     depends on GENERIC_GETTIMEOFDAY
->>> +     help
->>> +       Select this configuration option if the architecture has an arch
->>> +       timer.
->>
->> Please don't add code which is architecture specific to the generic
->> implementation. There is really no reason to make ARCH_TIMER special.
-> 
-> I think it's just unfortunate naming based on what arm64 had, but
-> conceptually it does the right thing, and just disable the clock_gettime
-> fastpath on kernel builds that never have access to a clocksource
-> from user space.
+Hi Marc,
+
+thank you very much for testing this set. I really appreciate it.
+
+On 10/12/2018 22:13, Mark Salyzyn wrote:
+> On 11/29/2018 09:05 AM, Vincenzo Frascino wrote:
+>> The arm vDSO library requires some adaptations to use to take advantage
+>> of the newly introduced generic vDSO library.
+> Tested-by? Would like to note that this patch series up to 24/28 was 
+> back-ported to android-4.9 and worked successfully on a Hikey arm64 device.
 > 
 
-I agree with Arnd here, that was the spirit of this option. I will find a better
-name in v3.
+I will add you as Tested-by in the next version of the patches. I am going to
+re-issue a v3 based on the comments that Arnd and Thomas provided. Would you be
+interested in testing it as well? If so I can integrate the support for clang
+based on what your are suggesting below to make it more straight forward for
+you. Let me know.
 
->>> +static notrace int __cvdso_clock_getres(clockid_t clock_id,
->>> +                                     struct __vdso_timespec *res)
->>> +{
->>> +     u64 ns;
->>> +
->>> +     if (!__arch_valid_arg(res))
->>> +             return -EFAULT;
->>> +
->>> +     if (clock_id == CLOCK_REALTIME ||
->>> +         clock_id == CLOCK_TAI ||
->>> +         clock_id == CLOCK_BOOTTIME ||
->>> +         clock_id == CLOCK_MONOTONIC ||
->>> +         clock_id == CLOCK_MONOTONIC_RAW)
->>> +             ns = MONOTONIC_RES_NSEC;
->>
->> This is wrong. You cannot unconditionally set that. See what the syscall
->> based version does. You always need to verify that the syscall version and
->> the vdso version return the same information and not something randomly
->> different.
+> Only significant change was to add back support for clang in 
+> arch/arm64/Makefile (pseudo patch):
 > 
-> Do you think we actually need the fastpath here? If not, the
-> easy way to do it would be to always fall back to calling
-> the syscall based version. Or was this originally added
-> to deal with the syscall and vdso clock_gettime having
-> different resolutions (which would sound like a bad idea, but
-> might have to stay for compatibility)?
+>   ifeq ($(CONFIG_GENERIC_COMPAT_VDSO), y)
+>     CROSS_COMPILE_ARM32 ?= $(CONFIG_CROSS_COMPILE_COMPAT_VDSO:"%"=%)
 > 
-
-Running ./vdsotest-bench on getres, these are the results:
-
-clock-getres-monotonic: syscall: 679 nsec/call
-clock-getres-monotonic:    libc: 701 nsec/call (using syscall)
-clock-getres-monotonic:    vdso: 14 nsec/call
-
-hence I think the fastpath for getres seems justified.
-
->       Arnd
+>     ifeq ($(CROSS_COMPILE_ARM32),)
+>       $(error CROSS_COMPILE_ARM32 not defined or empty, the compat vDSO 
+> will not be built)
+> +   else ifeq ($(cc-name),clang)
+> +     export CLANG_TRIPLE_ARM32 ?= $(CROSS_COMPILE_ARM32)
+> +     export CLANG_TARGET_ARM32 := --target=$(notdir 
+> $(CLANG_TRIPLE_ARM32:%-=%))
+> +     export CONFIG_COMPAT_VDSO := y
+> +     compat_vdso := -DCONFIG_COMPAT_VDSO=1
+> -+   else ifeq ($(shell which $(CROSS_COMPILE_ARM32)$(cc-name) 2> 
+> /dev/null),)
+> -+     $(error $(CROSS_COMPILE_ARM32)$(cc-name) not found, check 
+> CROSS_COMPILE_ARM32)
+>     else
+>       export CROSS_COMPILE_ARM32
+>       export CONFIG_COMPAT_VDSO := y
+>       compat_vdso := -DCONFIG_COMPAT_VDSO=1
+>     endif
+>   endif
+> 
+> -- Mark
 > 
 
 -- 
