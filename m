@@ -1,71 +1,64 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Tue, 11 Dec 2018 19:17:05 +0100
-Message-ID: <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
-References: <20181129170351.GC27951@lst.de>
- <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
- <20181130105346.GB26765@lst.de>
- <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
- <20181130131056.GA5211@lst.de>
- <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
- <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
- <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
- <20181204142426.GA2743@lst.de>
- <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
- <20181205140550.GA27549@lst.de>
- <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
- <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
- <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
- <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
- <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
- <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
- <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v4 3/7] mips: rename macros and files from '64' to 'n64'
+Date: Tue, 11 Dec 2018 18:59:49 +0000
+Message-ID: <20181211185947.gnaachztyh3ils7o@pburton-laptop>
+References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
+ <1544073508-13720-4-git-send-email-firoz.khan@linaro.org>
+ <20181210195144.dvprpyxyddusyb5c@pburton-laptop>
+ <CALxhOng7EzAd2zHKAOj3ipEd6y=DpS2JGo34s4V_cWVgmLjPwg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
-Content-Language: de-DE
+In-Reply-To: <CALxhOng7EzAd2zHKAOj3ipEd6y=DpS2JGo34s4V_cWVgmLjPwg@mail.gmail.com>
+Content-Language: en-US
+Content-ID: <B559AA0ECC8F3A43A0A5597C9EC3422C@namprd22.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Next step: 7decbcfc656805603ab97206b3f816f26cd2cf7d (powerpc/dma: use 
-generic direct and swiotlb ops)
+Hi Firoz,
 
-git checkout 7decbcfc656805603ab97206b3f816f26cd2cf7d
+On Tue, Dec 11, 2018 at 02:15:19PM +0530, Firoz Khan wrote:
+> > > diff --git a/arch/mips/include/uapi/asm/sgidefs.h b/arch/mips/include=
+/uapi/asm/sgidefs.h
+> > > index 26143e3..0364eec 100644
+> > > --- a/arch/mips/include/uapi/asm/sgidefs.h
+> > > +++ b/arch/mips/include/uapi/asm/sgidefs.h
+> > > @@ -40,6 +40,6 @@
+> > >   */
+> > >  #define _MIPS_SIM_ABI32              1
+> > >  #define _MIPS_SIM_NABI32     2
+> > > -#define _MIPS_SIM_ABI64              3
+> > > +#define _MIPS_SIM_ABIN64     3
+> >
+> > Whilst I agree with changing our own definitions & filenames to use n64=
+,
+> > this macro actually reflects naming used by the toolchain. ie:
+> >
+> >     $ mips-linux-gcc -mips64 -mabi=3D64 -dM -E - </dev/null | grep ABI6=
+4
+> >     #define _ABI64 3
+> >     #define _MIPS_SIM _ABI64
+> >
+> > Our macro here is used to compare against _MIPS_SIM provided by the
+> > toolchain, so for consistency I think we should keep the same name for
+> > the macro that the toolchain uses.
+>=20
+> Will this below change will help?
+>=20
+>  #define _MIPS_SIM_ABI32              1
+>  #define _MIPS_SIM_NABI32            2
+>  #define _MIPS_SIM_ABI64              3
+> +#define _MIPS_SIM_ABIN64           _MIPS_SIM_ABI64
 
-We have the bad commit! :-) The PASEMI onboard ethernet doesn't work 
-with this commit anymore.
+Hmm, I think I'd prefer that we just keep using _MIPS_SIM_ABI64.
 
-Error messages:
+Side note - this snippet of code shows another inconsistency... we have
+_MIPS_SIM_NABI32 whilst the toolchain uses _ABIN32... No need to worry
+about that here though. In short let's leave _MIPS_SIM_* alone in this
+series.
 
-[  367.627623] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627631] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627639] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-[  367.627647] pci 0000:00:1a.0: dma_direct_map_page: overflow 
-0x000000026bcb5002+110 of device mask ffffffff bus mask 0
-
-pci 0000:00:1a.0 = 00:1a.0 DMA controller: PA Semi, Inc PWRficient DMA 
-Controller (rev 12)
-
-X5000 (P5020 board): U-Boot loads the kernel and the dtb file. Then the 
-kernel starts but it doesn't find any hard disks (partitions). That 
-means this is also the bad commit for the P5020 board.
-
-Link to the bad commit: 
-http://git.infradead.org/users/hch/misc.git/commit/7decbcfc656805603ab97206b3f816f26cd2cf7d
-
-Link to the Git: 
-http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.5
-
-The commit before (977706f9755d2d697aa6f45b4f9f0e07516efeda - 
-powerpc/dma: remove dma_nommu_mmap_coherent) works without any problems.
-
--- Christian
+Thanks,
+    Paul
