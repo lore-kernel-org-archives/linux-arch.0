@@ -1,61 +1,115 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 24/28] arm: Add support for generic vDSO
-Date: Tue, 11 Dec 2018 14:15:38 +0000
-Message-ID: <496b17ae-c6b1-92f4-201b-8420005ad6c6@arm.com>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-25-vincenzo.frascino@arm.com>
- <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Tue, 11 Dec 2018 15:28:47 +0100
+Message-ID: <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+ <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+ <20181130105346.GB26765@lst.de>
+ <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+ <20181130131056.GA5211@lst.de>
+ <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+ <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+ <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+ <20181204142426.GA2743@lst.de>
+ <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+ <20181205140550.GA27549@lst.de>
+ <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+ <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+ <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+ <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+ <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+ <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+ <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+ <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1f5de1a7-04f0-152f-03ad-e581b0ec1b17@android.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Mark Salyzyn <salyzyn@android.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgTWFyYywKCnRoYW5rIHlvdSB2ZXJ5IG11Y2ggZm9yIHRlc3RpbmcgdGhpcyBzZXQuIEkgcmVh
-bGx5IGFwcHJlY2lhdGUgaXQuCgpPbiAxMC8xMi8yMDE4IDIyOjEzLCBNYXJrIFNhbHl6eW4gd3Jv
-dGU6Cj4gT24gMTEvMjkvMjAxOCAwOTowNSBBTSwgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6Cj4+
-IFRoZSBhcm0gdkRTTyBsaWJyYXJ5IHJlcXVpcmVzIHNvbWUgYWRhcHRhdGlvbnMgdG8gdXNlIHRv
-IHRha2UgYWR2YW50YWdlCj4+IG9mIHRoZSBuZXdseSBpbnRyb2R1Y2VkIGdlbmVyaWMgdkRTTyBs
-aWJyYXJ5Lgo+IFRlc3RlZC1ieT8gV291bGQgbGlrZSB0byBub3RlIHRoYXQgdGhpcyBwYXRjaCBz
-ZXJpZXMgdXAgdG8gMjQvMjggd2FzIAo+IGJhY2stcG9ydGVkIHRvIGFuZHJvaWQtNC45IGFuZCB3
-b3JrZWQgc3VjY2Vzc2Z1bGx5IG9uIGEgSGlrZXkgYXJtNjQgZGV2aWNlLgo+IAoKSSB3aWxsIGFk
-ZCB5b3UgYXMgVGVzdGVkLWJ5IGluIHRoZSBuZXh0IHZlcnNpb24gb2YgdGhlIHBhdGNoZXMuIEkg
-YW0gZ29pbmcgdG8KcmUtaXNzdWUgYSB2MyBiYXNlZCBvbiB0aGUgY29tbWVudHMgdGhhdCBBcm5k
-IGFuZCBUaG9tYXMgcHJvdmlkZWQuIFdvdWxkIHlvdSBiZQppbnRlcmVzdGVkIGluIHRlc3Rpbmcg
-aXQgYXMgd2VsbD8gSWYgc28gSSBjYW4gaW50ZWdyYXRlIHRoZSBzdXBwb3J0IGZvciBjbGFuZwpi
-YXNlZCBvbiB3aGF0IHlvdXIgYXJlIHN1Z2dlc3RpbmcgYmVsb3cgdG8gbWFrZSBpdCBtb3JlIHN0
-cmFpZ2h0IGZvcndhcmQgZm9yCnlvdS4gTGV0IG1lIGtub3cuCgo+IE9ubHkgc2lnbmlmaWNhbnQg
-Y2hhbmdlIHdhcyB0byBhZGQgYmFjayBzdXBwb3J0IGZvciBjbGFuZyBpbiAKPiBhcmNoL2FybTY0
-L01ha2VmaWxlIChwc2V1ZG8gcGF0Y2gpOgo+IAo+ICDCoGlmZXEgKCQoQ09ORklHX0dFTkVSSUNf
-Q09NUEFUX1ZEU08pLCB5KQo+ICDCoMKgIENST1NTX0NPTVBJTEVfQVJNMzIgPz0gJChDT05GSUdf
-Q1JPU1NfQ09NUElMRV9DT01QQVRfVkRTTzoiJSI9JSkKPiAKPiAgwqDCoCBpZmVxICgkKENST1NT
-X0NPTVBJTEVfQVJNMzIpLCkKPiAgwqDCoCDCoCAkKGVycm9yIENST1NTX0NPTVBJTEVfQVJNMzIg
-bm90IGRlZmluZWQgb3IgZW1wdHksIHRoZSBjb21wYXQgdkRTTyAKPiB3aWxsIG5vdCBiZSBidWls
-dCkKPiArwqDCoCBlbHNlIGlmZXEgKCQoY2MtbmFtZSksY2xhbmcpCj4gK8KgwqAgwqAgZXhwb3J0
-IENMQU5HX1RSSVBMRV9BUk0zMiA/PSAkKENST1NTX0NPTVBJTEVfQVJNMzIpCj4gK8KgwqDCoMKg
-IGV4cG9ydCBDTEFOR19UQVJHRVRfQVJNMzIgOj0gLS10YXJnZXQ9JChub3RkaXIgCj4gJChDTEFO
-R19UUklQTEVfQVJNMzI6JS09JSkpCj4gK8KgwqDCoMKgIGV4cG9ydCBDT05GSUdfQ09NUEFUX1ZE
-U08gOj0geQo+ICvCoMKgwqDCoCBjb21wYXRfdmRzbyA6PSAtRENPTkZJR19DT01QQVRfVkRTTz0x
-Cj4gLSsgwqAgZWxzZSBpZmVxICgkKHNoZWxsIHdoaWNoICQoQ1JPU1NfQ09NUElMRV9BUk0zMikk
-KGNjLW5hbWUpIDI+IAo+IC9kZXYvbnVsbCksKQo+IC0rIMKgIMKgICQoZXJyb3IgJChDUk9TU19D
-T01QSUxFX0FSTTMyKSQoY2MtbmFtZSkgbm90IGZvdW5kLCBjaGVjayAKPiBDUk9TU19DT01QSUxF
-X0FSTTMyKQo+ICDCoMKgIGVsc2UKPiAgwqDCoCDCoCBleHBvcnQgQ1JPU1NfQ09NUElMRV9BUk0z
-Mgo+ICDCoMKgwqDCoCBleHBvcnQgQ09ORklHX0NPTVBBVF9WRFNPIDo9IHkKPiAgwqDCoMKgwqAg
-Y29tcGF0X3Zkc28gOj0gLURDT05GSUdfQ09NUEFUX1ZEU089MQo+ICDCoMKgIGVuZGlmCj4gIMKg
-ZW5kaWYKPiAKPiAtLSBNYXJrCj4gCgotLSAKUmVnYXJkcywKVmluY2Vuem8KCl9fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFp
-bGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlz
-dHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+Next step: 977706f9755d2d697aa6f45b4f9f0e07516efeda (powerpc/dma: remove 
+dma_nommu_mmap_coherent)
+
+Result: The P5020 board boots and the PASEMI onboard ethernet works.
+
+-- Christian
+
+
+On 10 December 2018 at 4:54PM, Christian Zigotzky wrote:
+> Next step: 64ecd2c160bbef31465c4d34efc0f076a2aad4df (powerpc/dma: use 
+> phys_to_dma instead of get_dma_offset)
+>
+> The P5020 board boots and the PASEMI onboard ethernet works.
+>
+> -- Christian
+>
+>
+> On 09 December 2018 at 7:26PM, Christian Zigotzky wrote:
+>> Next step: c1bfcad4b0cf38ce5b00f7ad880d3a13484c123a (dma-mapping, 
+>> powerpc: simplify the arch dma_set_mask override)
+>>
+>> Result: No problems with the PASEMI onboard ethernet and with booting 
+>> the X5000 (P5020 board).
+>>
+>> -- Christian
+>>
+>>
+>> On 09 December 2018 at 3:20PM, Christian Zigotzky wrote:
+>>> Next step: 602307b034734ce77a05da4b99333a2eaf6b6482 
+>>> (powerpc/fsl_pci: simplify fsl_pci_dma_set_mask)
+>>>
+>>> git checkout 602307b034734ce77a05da4b99333a2eaf6b6482
+>>>
+>>> The PASEMI onboard ethernet works and the X5000 boots.
+>>>
+>>> -- Christian
+>>>
+>>>
+>>> On 08 December 2018 at 2:47PM, Christian Zigotzky wrote:
+>>>> Next step: e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615 (powerpc/dma: 
+>>>> fix an off-by-one in dma_capable)
+>>>>
+>>>> git checkout e15cd8173ef85e9cc3e2a9c7cc2982f5c1355615
+>>>>
+>>>> The PASEMI onboard ethernet also works with this commit and the 
+>>>> X5000 boots without any problems.
+>>>>
+>>>> -- Christian
+>>>>
+>>>>
+>>>> On 08 December 2018 at 11:29AM, Christian Zigotzky wrote:
+>>>>> Next step: 7ebc44c535f6bd726d553756d38b137acc718443 (powerpc/dma: 
+>>>>> remove max_direct_dma_addr)
+>>>>>
+>>>>> git checkout 7ebc44c535f6bd726d553756d38b137acc718443
+>>>>>
+>>>>> OK, the PASEMI onboard ethernet works and the P5020 board boots.
+>>>>>
+>>>>> -- Christian
+>>>>>
+>>>>>
+>>>>> On 07 December 2018 at 7:33PM, Christian Zigotzky wrote:
+>>>>>> Next step: 13c1fdec5682b6e13257277fa16aa31f342d167d (powerpc/dma: 
+>>>>>> move pci_dma_dev_setup_swiotlb to fsl_pci.c)
+>>>>>>
+>>>>>> git checkout 13c1fdec5682b6e13257277fa16aa31f342d167d
+>>>>>>
+>>>>>> Result: The PASEMI onboard ethernet works and the P5020 board boots.
+>>>>>>
+>>>>>> — Christian
+>>>>>
+>>>>>
+>>>>>
+>>>>
+>>>>
+>>>
+>>>
+>>
+>>
+>
+>
