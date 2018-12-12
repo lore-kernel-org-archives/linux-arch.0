@@ -1,256 +1,200 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Wed, 12 Dec 2018 09:07:06 -0800
-Message-ID: <20181212170706.GA17397@linux.ibm.com>
-References: <20181211190801.GO4170@linux.ibm.com>
- <Pine.LNX.4.44L0.1812111446150.1538-100000@iolanthe.rowland.org>
- <20181211212204.GR4170@linux.ibm.com>
-Reply-To: paulmck@linux.ibm.com
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC][PATCH 2/3] arm64: Define
+ Documentation/arm64/elf_at_flags.txt
+Date: Wed, 12 Dec 2018 17:34:57 +0000
+Message-ID: <20181212173457.GA3505@e103592.cambridge.arm.com>
+References: <cover.1544445454.git.andreyknvl@google.com>
+ <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <20181210143044.12714-3-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181211212204.GR4170@linux.ibm.com>
+In-Reply-To: <20181210143044.12714-3-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 11, 2018 at 01:22:04PM -0800, Paul E. McKenney wrote:
-> On Tue, Dec 11, 2018 at 03:09:33PM -0500, Alan Stern wrote:
-> > On Tue, 11 Dec 2018, Paul E. McKenney wrote:
-> > 
-> > > > Rewriting the litmus test in these terms gives:
-> > > > 
-> > > >         P0      P1      P2      P3      P4      P5
-> > > >         Wa=2    Wb=2    Wc=2    [mb23]  [mb14]  [mb05]
-> > > >         mb0s    mb1s    mb2s    Wd=2    We=2    Wf=2
-> > > >         mb0e    mb1e    mb2e    Re=0    Rf=0    Ra=0
-> > > >         Rb=0    Rc=0    Rd=0
-> > > > 
-> > > > Here the brackets in "[mb23]", "[mb14]", and "[mb05]" mean that the
-> > > > positions of these barriers in their respective threads' program
-> > > > orderings is undetermined; they need not come at the top as shown.
-> > > > 
-> > > > (Also, in case David is unfamiliar with it, the "Wa=2" notation is
-> > > > shorthand for "Write 2 to a" and "Rb=0" is short for "Read 0 from b".)
-> > > > 
-> > > > Finally, here are a few facts which may be well known and obvious, but
-> > > > I'll state them anyway:
-> > > > 
-> > > > 	A CPU cannot reorder instructions across a memory barrier.
-> > > > 	If x is po-after a barrier then x executes after the barrier
-> > > > 	is finished.
-> > > > 
-> > > > 	If a store is po-before a barrier then the store propagates
-> > > > 	to every CPU before the barrier finishes.
-> > > > 
-> > > > 	If a store propagates to some CPU before a load on that CPU
-> > > > 	reads from the same location, then the load will obtain the
-> > > > 	value from that store or a co-later store.  This implies that
-> > > > 	if a load obtains a value co-earlier than some store then the
-> > > > 	load must have executed before the store propagated to the
-> > > > 	load's CPU.
-> > > > 
-> > > > The proof consists of three main stages, each requiring three steps.
-> > > > Using the facts that b - f are all read as 0, I'll show that P1
-> > > > executes Rc before P3 executes Re, then that P0 executes Rb before P4
-> > > > executes Rf, and lastly that P5's Ra must obtain 2, not 0.  This will
-> > > > demonstrate that the litmus test is not allowed.
-> > > > 
-> > > > 1.	Suppose that mb23 ends up coming po-later than Wd in P3.
-> > > > 	Then we would have:
-> > > > 
-> > > > 		Wd propagates to P2 < mb23 < mb2e < Rd,
-> > > > 
-> > > > 	and so Rd would obtain 2, not 0.  Hence mb23 must come
-> > > > 	po-before Wd (as shown in the listing):  mb23 < Wd.
-> > > > 
-> > > > 2.	Since mb23 therefore occurs po-before Re and instructions
-> > > > 	cannot be reordered across barriers,  mb23 < Re.
-> > > > 
-> > > > 3.	Since Rc obtains 0, we must have:
-> > > > 
-> > > > 		Rc < Wc propagates to P1 < mb2s < mb23 < Re.
-> > > > 
-> > > > 	Thus Rc < Re.
-> > > > 
-> > > > 4.	Suppose that mb14 ends up coming po-later than We in P4.
-> > > > 	Then we would have:
-> > > > 
-> > > > 		We propagates to P3 < mb14 < mb1e < Rc < Re,
-> > > > 
-> > > > 	and so Re would obtain 2, not 0.  Hence mb14 must come
-> > > > 	po-before We (as shown in the listing):  mb14 < We.
-> > > > 
-> > > > 5.	Since mb14 therefore occurs po-before Rf and instructions
-> > > > 	cannot be reordered across barriers,  mb14 < Rf.
-> > > > 
-> > > > 6.	Since Rb obtains 0, we must have:
-> > > > 
-> > > > 		Rb < Wb propagates to P0 < mb1s < mb14 < Rf.
-> > > > 
-> > > > 	Thus Rb < Rf.
-> > > > 
-> > > > 7.	Suppose that mb05 ends up coming po-later than Wf in P5.
-> > > > 	Then we would have:
-> > > > 
-> > > > 		Wf propagates to P4 < mb05 < mb0e < Rb < Rf,
-> > > > 
-> > > > 	and so Rf would obtain 2, not 0.  Hence mb05 must come
-> > > > 	po-before Wf (as shown in the listing):  mb05 < Wf.
-> > > > 
-> > > > 8.	Since mb05 therefore occurs po-before Ra and instructions
-> > > > 	cannot be reordered across barriers,  mb05 < Ra.
-> > > > 
-> > > > 9.	Now we have:
-> > > > 
-> > > > 		Wa propagates to P5 < mb0s < mb05 < Ra,
-> > > > 
-> > > > 	and so Ra must obtain 2, not 0.  QED.
-> > > 
-> > > Like this, then, with maximal reordering of P3-P5's reads?
-> > > 
-> > >          P0      P1      P2      P3      P4      P5
-> > >          Wa=2
-> > >          mb0s
-> > >                                                  [mb05]
-> > >          mb0e                                    Ra=0
-> > >          Rb=0    Wb=2
-> > >                  mb1s
-> > >                                          [mb14]
-> > >                  mb1e                    Rf=0
-> > >                  Rc=0    Wc=2                    Wf=2
-> > >                          mb2s
-> > >                                  [mb23]
-> > >                          mb2e    Re=0
-> > >                          Rd=0            We=2
-> > >                                  Wd=2
-> > 
-> > Yes, that's right.  This shows how P5's Ra must obtain 2 instead of 0.
-> > 
-> > > But don't the sys_membarrier() calls affect everyone, especially given
-> > > the shared-variable communication?
-> > 
-> > They do, but the other effects are irrelevant for this proof.
+On Mon, Dec 10, 2018 at 02:30:43PM +0000, Vincenzo Frascino wrote:
+> On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> the userspace (EL0) is allowed to set a non-zero value in the
+> top byte but the resulting pointers are not allowed at the
+> user-kernel syscall ABI boundary.
 > 
-> If I understand correctly, the shared-variable communication within
-> sys_membarrier() is included in your proof in the form of ordering
-> between memory barriers in the mainline sys_membarrier() code and
-> in the IPI handlers.
-> 
-> > >  If so, why wouldn't this more strict
-> > > variant hold?
-> > > 
-> > >          P0      P1      P2      P3      P4      P5
-> > >          Wa=2
-> > >          mb0s
-> > >                                  [mb05]  [mb05]  [mb05]
-> > 
-> > You have misunderstood the naming scheme.  mb05 is the barrier injected 
-> > by P0's sys_membarrier call into P5.  So the three barriers above 
-> > should be named "mb03", "mb04", and "mb05".  And you left out mb01 and 
-> > mb02.
-> 
-> The former is a copy-and-paste error on my part, the latter was
-> intentional because the IPIs among P0, P1, and P2 don't seem to
-> strengthen the ordering.
-> 
-> > >          mb0e
-> > >          Rb=0    Wb=2
-> > >                  mb1s
-> > >                                  [mb14]  [mb14]  [mb14]
-> > >                  mb1e
-> > >                  Rc=0    Wc=2
-> > >                          mb2s
-> > >                                  [mb23]  [mb23]  [mb23]
-> > >                          mb2e    Re=0    Rf=0    Ra=0
-> > >                          Rd=0            We=2    Wf=2
-> > >                                  Wd=2
-> > 
-> > Yes, this does hold.  But since it doesn't affect the end result, 
-> > there's no point in mentioning all those other barriers.
-> > 
-> > > In which case, wouldn't this cycle be forbidden even if it had only one
-> > > sys_membarrier() call?
-> > 
-> > No, it wouldn't.  I don't understand why you might think it would.  
-> 
-> Because I hadn't yet thought of the scenario I showed below.
-> 
-> > This is just like RCU, if you imagine a tiny critical section between 
-> > each adjacent pair of instructions.  You wouldn't expect RCU to enforce 
-> > ordering among six CPUs with only one synchronize_rcu call.
-> 
-> Yes, I do now agree in light of the scenario shown below.
-> 
-> > > Ah, but the IPIs are not necessarily synchronized across the CPUs,
-> > > so that the following could happen:
-> > > 
-> > >          P0      P1      P2      P3      P4      P5
-> > >          Wa=2
-> > >          mb0s
-> > >                                  [mb05]  [mb05]  [mb05]
-> > >          mb0e                                    Ra=0
-> > >          Rb=0    Wb=2
-> > >                  mb1s
-> > >                                  [mb14]  [mb14]
-> > >                                          Rf=0
-> > >                                                  Wf=2
-> > >                                                  [mb14]
-> > >                  mb1e
-> > >                  Rc=0    Wc=2
-> > >                          mb2s
-> > >                                  [mb23]
-> > >                                  Re=0
-> > >                                          We=2
-> > >                                          [mb23]  [mb23]
-> > >                          mb2e
-> > >                          Rd=0
-> > >                                  Wd=2
-> > 
-> > Yes it could.  But even in this execution you would end up with Ra=2 
-> > instead of Ra=0.
-> 
-> Agreed.  Or I should have said that the above execution is forbidden,
-> either way.
-> 
-> > > I guess in light of this post in 2001, I really don't have an excuse,
-> > > do I?  ;-)
-> > > 
-> > > 	https://lists.gt.net/linux/kernel/223555
-> > > 
-> > > Or am I still missing something here?
-> > 
-> > You tell me...
-> 
-> I think I am on board.  ;-)
+> With the relaxed ABI proposed through this document, it is now possible
+> to pass tagged pointers to the syscalls, when these pointers are in
+> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap() or brk().
 
-And more to the point, here is a three-process variant showing a cycle
-that is permitted:
+What about other anonymous memory such as the process stack?
+
+What about MAP_PRIVATE mappings of /dev/zero (i.e., oldskool "anonymous"
+mappings)?
+
+I wonder whether this should really say MAP_PRIVATE rather than
+MAP_ANONYMOUS.  There are two requirements here:
+
+ * the memory must be the exclusive property of a single process,
+   otherwise tagging it on-the-fly could break some other process;
+
+ * the memory should be regular memory, i.e., not something like a
+   mapped device.  Since copy-on-write mappings of devices make little
+   sense, and we want writes to devices to propagate to the hardware
+   directly, MAP_PRIVATE doesn't make a lot of sense for such mappings.
+
+MAP_ANONYMOUS | MAP_SHARED is theoretically possible, and we should
+make sure that it does the expected thing.  Tagging such memory is
+probably a bad idea, just like any other MAP_SHARED memory.
+
+I'm assuming here that tagging some currently shared copy-on-write pages
+would throw a page fault and trigger a copy, so that we end up tagging
+the calling process's private copy of the page.
+
+I also don't see how the above requirements conflict with regular file-
+backed mappings (which would need to work if you want to be able to
+tag objects in .bss or .data etc.)
+
+> This change in the ABI requires a mechanism to inform the userspace
+> that such an option is available.
+> 
+> This patch specifies and documents the way on which AT_FLAGS can be
+> used to advertise this feature to the userspace.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> CC: Andrey Konovalov <andreyknvl@google.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
+>  Documentation/arm64/elf_at_flags.txt | 111 +++++++++++++++++++++++++++
+>  1 file changed, 111 insertions(+)
+>  create mode 100644 Documentation/arm64/elf_at_flags.txt
+> 
+> diff --git a/Documentation/arm64/elf_at_flags.txt b/Documentation/arm64/elf_at_flags.txt
+> new file mode 100644
+> index 000000000000..153e657c058a
+> --- /dev/null
+> +++ b/Documentation/arm64/elf_at_flags.txt
+> @@ -0,0 +1,111 @@
+> +ARM64 ELF AT_FLAGS
+> +==================
+> +
+> +This document describes the usage and semantics of AT_FLAGS on arm64.
+> +
+> +1. Introduction
+> +---------------
+> +
+> +AT_FLAGS is part of the Auxiliary Vector, contains the flags and it
+> +is currently set to zero by the kernel on arm64.
+> +
+> +The auxiliary vector can be accessed by the userspace using the
+> +getauxval() API provided by the C library.
+> +getauxval() returns an unsigned long and when a flag is present in
+> +the AT_FLAGS, the corresponding bit in the returned value is set to 1.
+> +
+> +The AT_FLAGS with a "defined semantic" on arm64 are exposed to the
+> +userspace via user API (uapi/asm/atflags.h).
+> +The AT_FLAGS bits with "undefined semantics" are set to zero by default.
+> +This means that the AT_FLAGS bits to which this document does not assign
+> +an explicit meaning are to be intended reserved for future use.
+> +The kernel will populate all such bits with zero until meanings are
+> +assigned to them. If and when meanings are assigned, it is guaranteed
+> +that they will not impact the functional operation of existing userspace
+> +software. Userspace software should ignore any AT_FLAGS bit whose meaning
+> +is not defined when the software is written.
+> +
+> +The userspace software can test for features by acquiring the AT_FLAGS
+> +entry of the auxiliary vector, and testing whether a relevant flag
+> +is set.
+> +
+> +Example of a userspace test function:
+> +
+> +bool feature_x_is_present(void)
+> +{
+> +	unsigned long at_flags = getauxval(AT_FLAGS);
+> +	if (at_flags & FEATURE_X)
+> +		return true;
+> +
+> +	return false;
+> +}
+> +
+> +Where the software relies on a feature advertised by AT_FLAGS, it
+> +should check that the feature is present before attempting to
+> +use it.
+> +
+> +2. Features exposed via AT_FLAGS
+> +--------------------------------
+> +
+> +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
+> +
+> +    On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> +    the userspace (EL0) is allowed to set a non-zero value in the top
+> +    byte but the resulting pointers are not allowed at the user-kernel
+> +    syscall ABI boundary.
+> +    When bit[0] is set to 1 the kernel is advertising to the userspace
+> +    that a relaxed ABI is supported hence this type of pointers are now
+> +    allowed to be passed to the syscalls, when these pointers are in
+> +    memory ranges obtained by anonymous (MAP_ANONYMOUS) mmap() or brk().
+
+"TBI" is a slightly odd name.
+
+The kernel seems not to be ignoring the top byte, otherwise how could
+it make a difference whehter the memory is anonymous or something else?
+
+(With memory tagging enabled, the top byte is also not architecturally
+ignored.)
+
+> +    In these cases the tag is preserved as the pointer goes through the
+> +    kernel. Only when the kernel needs to check if a pointer is coming
+> +    from userspace (i.e. access_ok()) an untag operation is required.
+
+Does the last sentence belong here?  That's about kernel internals,
+whereas the rest all seems user-facing.
+
+> +
+> +3. ARM64_AT_FLAGS_SYSCALL_TBI
+> +-----------------------------
+> +
+> +When ARM64_AT_FLAGS_SYSCALL_TBI is enabled every syscalls can accept tagged
+> +pointers, when these pointers are in memory ranges obtained by an anonymous
+> +(MAP_ANONYMOUS) mmap() or brk().
+> +
+> +A definition of the meaning of tagged pointers on arm64 can be found in:
+> +Documentation/arm64/tagged-pointers.txt.
+> +
+> +When a pointer does not are in a memory range obtained by an anonymous mmap()
+> +or brk(), this can not be passed to a syscall if it is tagged.
+> +
+> +To be more explicit: a syscall can accept pointers whose memory range is
+> +obtained by a non-anonymous mmap() or brk() if and only if the tag encoded in
+> +the top-byte is 0x00.
+> +
+> +When a new syscall is added, this can accept tagged pointers if and only if
+> +these pointers are in memory ranges obtained by an anonymous (MAP_ANONYMOUS)
+> +mmap() or brk(). In all the other cases, the tag encoded in the top-byte is
+> +expected to be 0x00.
+
+Does this apply to kernel interfaces that are not syscalls?
+
+And does it apply to ioctls in general (I think from discussions
+elsewhere that it can't).
+
+What about things that flow through the kernel, like an
+si_value.sival_ptr that propagates from sigqueue(2) to the signal frame
+of the signalled thread, or registered with the kernel via aio_read(2)?
+
+This kind of thing is why I would like to define a set of rules for
+making an educated guess about how the kernel should interpret
+arbitrary arguments (in an ideal world).
 
 
-         P0      P1      P2
-         Wa=2    Wb=2    Wc=2
-         mb0s
-                 [mb01]  [mb02]
-         mb0e
-         Rb=0    Rc=0    Ra=0
+With issues like this in the mix, it seems difficult to extract general
+guarantees from ARM64_AT_FLAGS_SYSCALL_TBI.  If it means that just
+certain specific uses of a few specific syscalls work with tagged
+pointers, that may not be very useful by ifself?  It sounds like if
+you are tagging memory at all, you suddenly need to port every random
+library you're using.
 
-As can be seen by reordering it as follows:
+[...]
 
-         P0      P1      P2
-                         Ra=0
-         Wa=2
-         mb0s
-                 [mb01]
-                 Rc=0
-                         Wc=2
-                         [mb02]
-         mb0e
-         Rb=0
-                 Wb=2
-
-Make sense?
-
-							Thanx, Paul
+Cheers
+---Dave
