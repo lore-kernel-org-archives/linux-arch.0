@@ -1,176 +1,136 @@
-From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-Subject: Re: [PATCH v2 7/8] socket: Add SO_TIMESTAMPING_NEW
-Date: Wed, 12 Dec 2018 10:25:04 -0500
-Message-ID: <CAF=yD-+mrKfq35g+EVkP-pNbBL=6BvYDdduks=yAxiADSRWvzg@mail.gmail.com>
-References: <20181211202520.16799-1-deepa.kernel@gmail.com> <20181211202520.16799-8-deepa.kernel@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20181211202520.16799-8-deepa.kernel@gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: David Miller <davem@davemloft.net>, LKML <linux-kernel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Chris Zankel <chris@zankel.net>, fenghua.yu@intel.com, rth@twiddle.net, Thomas Gleixner <tglx@linutronix.de>, ubraun@linux.ibm.com, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+From: Julien Thierry <julien.thierry@arm.com>
+Subject: [PATCH v7 01/25] arm64: Fix HCR.TGE status for NMI contexts
+Date: Wed, 12 Dec 2018 16:47:01 +0000
+Message-ID: <1544633245-6036-2-git-send-email-julien.thierry@arm.com>
+References: <1544633245-6036-1-git-send-email-julien.thierry@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1544633245-6036-1-git-send-email-julien.thierry@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, james.morse@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Julien Thierry <julien.thierry@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 11, 2018 at 3:30 PM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
->
-> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
-> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD
-> for all architectures.
->
-> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-> Cc: chris@zankel.net
-> Cc: fenghua.yu@intel.com
-> Cc: rth@twiddle.net
-> Cc: tglx@linutronix.de
-> Cc: ubraun@linux.ibm.com
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: sparclinux@vger.kernel.org
-> ---
->  arch/alpha/include/uapi/asm/socket.h  |  5 +-
->  arch/mips/include/uapi/asm/socket.h   |  5 +-
->  arch/parisc/include/uapi/asm/socket.h |  5 +-
->  arch/sparc/include/uapi/asm/socket.h  |  8 +--
->  include/linux/socket.h                |  7 +++
->  include/uapi/asm-generic/socket.h     |  5 +-
->  include/uapi/linux/errqueue.h         |  4 ++
->  net/core/scm.c                        | 27 ++++++++++
->  net/core/sock.c                       | 73 +++++++++++++++------------
->  net/ipv4/tcp.c                        | 29 ++++++-----
->  net/smc/af_smc.c                      |  3 +-
->  net/socket.c                          | 15 ++++--
->  12 files changed, 122 insertions(+), 64 deletions(-)
->
-> diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-> index 352e3dc0b3d9..8b9f6f7f8087 100644
-> --- a/arch/alpha/include/uapi/asm/socket.h
-> +++ b/arch/alpha/include/uapi/asm/socket.h
-> @@ -116,19 +116,20 @@
->
->  #define SO_TIMESTAMP_NEW         62
->  #define SO_TIMESTAMPNS_NEW       63
-> +#define SO_TIMESTAMPING_NEW      64
->
->  #if !defined(__KERNEL__)
->
->  #if __BITS_PER_LONG == 64
->  #define SO_TIMESTAMP           SO_TIMESTAMP_OLD
->  #define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-> +#define SO_TIMESTAMPING                SO_TIMESTAMPING_OLD
->  #else
->  #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
->  #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
-> +#define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
->  #endif
+When using VHE, the host needs to clear HCR_EL2.TGE bit in order
+to interract with guest TLBs, switching from EL2&0 translation regime
+to EL1&0.
 
-If the previous patch moves this block to a platform-independent
-header, that allows this patch to shrink considerably, too.
+However, some non-maskable asynchronous event could happen while TGE is
+cleared like SDEI. Because of this address translation operations
+relying on EL2&0 translation regime could fail (tlb invalidation,
+userspace access, ...).
 
-> +static int setsockopt_timestamping(struct sock *sk, int type, int val)
-> +{
-> +       if (type == SO_TIMESTAMPING_NEW)
-> +               sock_set_flag(sk, SOCK_TSTAMP_NEW);
-> +
-> +       if (val & ~SOF_TIMESTAMPING_MASK)
-> +               return -EINVAL;
-> +
-> +       if (val & SOF_TIMESTAMPING_OPT_ID &&
-> +           !(sk->sk_tsflags & SOF_TIMESTAMPING_OPT_ID)) {
-> +               if (sk->sk_protocol == IPPROTO_TCP &&
-> +                   sk->sk_type == SOCK_STREAM) {
-> +                       if ((1 << sk->sk_state) &
-> +                           (TCPF_CLOSE | TCPF_LISTEN))
-> +                               return -EINVAL;
-> +                       sk->sk_tskey = tcp_sk(sk)->snd_una;
-> +               } else {
-> +                       sk->sk_tskey = 0;
-> +               }
-> +       }
-> +
-> +       if (val & SOF_TIMESTAMPING_OPT_STATS &&
-> +           !(val & SOF_TIMESTAMPING_OPT_TSONLY))
-> +               return -EINVAL;
-> +
-> +       sk->sk_tsflags = val;
-> +       if (val & SOF_TIMESTAMPING_RX_SOFTWARE) {
-> +               sock_enable_timestamp(sk,
-> +                                     SOCK_TIMESTAMPING_RX_SOFTWARE);
-> +       } else {
-> +               if (type == SO_TIMESTAMPING_NEW)
-> +                       sock_reset_flag(sk, SOCK_TSTAMP_NEW);
-> +               sock_disable_timestamp(sk,
-> +                                      (1UL << SOCK_TIMESTAMPING_RX_SOFTWARE));
-> +       }
-> +
-> +       return 0;
-> +}
-> +
->  /*
->   *     This is meant for all protocols to use and covers goings on
->   *     at the socket level. Everything here is generic.
-> @@ -851,39 +890,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
->                 break;
->
->         case SO_TIMESTAMPING_OLD:
-> -               if (val & ~SOF_TIMESTAMPING_MASK) {
-> -                       ret = -EINVAL;
-> -                       break;
-> -               }
-> -
-> -               if (val & SOF_TIMESTAMPING_OPT_ID &&
-> -                   !(sk->sk_tsflags & SOF_TIMESTAMPING_OPT_ID)) {
-> -                       if (sk->sk_protocol == IPPROTO_TCP &&
-> -                           sk->sk_type == SOCK_STREAM) {
-> -                               if ((1 << sk->sk_state) &
-> -                                   (TCPF_CLOSE | TCPF_LISTEN)) {
-> -                                       ret = -EINVAL;
-> -                                       break;
-> -                               }
-> -                               sk->sk_tskey = tcp_sk(sk)->snd_una;
-> -                       } else {
-> -                               sk->sk_tskey = 0;
-> -                       }
-> -               }
-> -
-> -               if (val & SOF_TIMESTAMPING_OPT_STATS &&
-> -                   !(val & SOF_TIMESTAMPING_OPT_TSONLY)) {
-> -                       ret = -EINVAL;
-> -                       break;
-> -               }
-> -
-> -               sk->sk_tsflags = val;
-> -               if (val & SOF_TIMESTAMPING_RX_SOFTWARE)
-> -                       sock_enable_timestamp(sk,
-> -                                             SOCK_TIMESTAMPING_RX_SOFTWARE);
-> -               else
-> -                       sock_disable_timestamp(sk,
-> -                                              (1UL << SOCK_TIMESTAMPING_RX_SOFTWARE));
-> +               ret = setsockopt_timestamping(sk, optname, val);
+Fix this by properly setting HCR_EL2.TGE when entering NMI context and
+clear it if necessary when returning to the interrupted context.
 
-Once again a lot of needless code churn. The only functional change is adding
+Signed-off-by: Julien Thierry <julien.thierry@arm.com>
+Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Marc Zyngier <marc.zyngier@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: linux-arch@vger.kernel.org
+Cc: stable@vger.kernel.org
+---
+ arch/arm64/include/asm/hardirq.h | 28 ++++++++++++++++++++++++++++
+ arch/arm64/kernel/irq.c          |  3 +++
+ include/asm-generic/hardirq.h    |  3 +++
+ include/linux/hardirq.h          |  2 ++
+ 4 files changed, 36 insertions(+)
 
-   +       if (type == SO_TIMESTAMPING_NEW)
-   +               sock_set_flag(sk, SOCK_TSTAMP_NEW);
-
-
->  void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
->         struct sk_buff *skb)
->  {
-> +
->         int need_software_tstamp = sock_flag(sk, SOCK_RCVTSTAMP);
-> -       struct scm_timestamping tss;
-> +       struct scm_timestamping_internal tss;
-> +
-
-Unnecessary whitespace line
-
->         int empty = 1, false_tstamp = 0;
->         struct skb_shared_hwtstamps *shhwtstamps =
->                 skb_hwtstamps(skb);
-> @@ -755,20 +758,22 @@ void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
->
+diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
+index 1473fc2..94b7481 100644
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -19,6 +19,7 @@
+ #include <linux/cache.h>
+ #include <linux/threads.h>
+ #include <asm/irq.h>
++#include <asm/kvm_arm.h>
+ 
+ #define NR_IPI	7
+ 
+@@ -37,6 +38,33 @@
+ 
+ #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+ 
++struct nmi_ctx {
++	u64 hcr;
++};
++
++DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
++#define arch_nmi_enter()							\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
++			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
++				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
++				isb();						\
++			}							\
++		}								\
++	} while (0)
++
++#define arch_nmi_exit()								\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			if (!(nmi_ctx->hcr & HCR_TGE))				\
++				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
++		}								\
++	} while (0)
++
+ static inline void ack_bad_irq(unsigned int irq)
+ {
+ 	extern unsigned long irq_err_count;
+diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
+index 780a12f..92fa817 100644
+--- a/arch/arm64/kernel/irq.c
++++ b/arch/arm64/kernel/irq.c
+@@ -33,6 +33,9 @@
+ 
+ unsigned long irq_err_count;
+ 
++/* Only access this in an NMI enter/exit */
++DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
+ DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
+ 
+ int arch_show_interrupts(struct seq_file *p, int prec)
+diff --git a/include/asm-generic/hardirq.h b/include/asm-generic/hardirq.h
+index d14214d..c33b53f20 100644
+--- a/include/asm-generic/hardirq.h
++++ b/include/asm-generic/hardirq.h
+@@ -12,6 +12,9 @@
+ #include <linux/irq_cpustat.h>	/* Standard mappings for irq_cpustat_t above */
+ #include <linux/irq.h>
+ 
++#define arch_nmi_enter()	do { } while (0)
++#define arch_nmi_exit()		do { } while (0)
++
+ #ifndef ack_bad_irq
+ static inline void ack_bad_irq(unsigned int irq)
+ {
+diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
+index 0fbbcdf..776a60f 100644
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -62,6 +62,7 @@ static inline void rcu_nmi_exit(void)
+ 
+ #define nmi_enter()						\
+ 	do {							\
++		arch_nmi_enter();				\
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+@@ -80,6 +81,7 @@ static inline void rcu_nmi_exit(void)
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
++		arch_nmi_exit();				\
+ 	} while (0)
+ 
+ #endif /* LINUX_HARDIRQ_H */
+-- 
+1.9.1
