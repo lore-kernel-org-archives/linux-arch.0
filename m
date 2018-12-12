@@ -1,83 +1,39 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 12/34] powerpc/cell: move dma direct window setup out
- of dma_configure
-Date: Wed, 12 Dec 2018 15:36:04 +0100
-Message-ID: <20181212143604.GA5137@lst.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-13-hch@lst.de> <871s6r3sno.fsf@concordia.ellerman.id.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Wed, 12 Dec 2018 15:39:40 +0100
+Message-ID: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+References: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de> <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de> <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de> <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de> <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de> <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de> <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de> <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de> <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de> <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de> <20181212141556.GA4801@lst.de>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <871s6r3sno.fsf@concordia.ellerman.id.au>
+In-Reply-To: <20181212141556.GA4801@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Dec 09, 2018 at 09:23:39PM +1100, Michael Ellerman wrote:
-> Christoph Hellwig <hch@lst.de> writes:
-> 
-> > Configure the dma settings at device setup time, and stop playing games
-> > with get_pci_dma_ops.  This prepares for using the common dma_configure
-> > code later on.
-> >
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > ---
-> >  arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
-> >  1 file changed, 11 insertions(+), 9 deletions(-)
-> 
-> This one's crashing, haven't dug into why yet:
+Hi Christoph,
 
-Can you provide a gdb assembly of the exact crash site?  This looks
-like for some odd reason the DT structures aren't fully setup by the
-time we are probing the device, which seems odd.
+Thanks a lot for your reply. I will test your patches tomorrow.
 
-Either way, something like the patch below would ensure we call
-cell_iommu_get_fixed_address from a similar context as before, can you
-check if that fixes the issue?
+Cheers,
+Christian
 
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 93c7e4aef571..4891b338bf9f 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -569,19 +569,12 @@ static struct iommu_table *cell_get_iommu_table(struct device *dev)
- 	return &window->table;
- }
- 
--static u64 cell_iommu_get_fixed_address(struct device *dev);
--
- static void cell_dma_dev_setup(struct device *dev)
- {
--	if (cell_iommu_enabled) {
--		u64 addr = cell_iommu_get_fixed_address(dev);
--
--		if (addr != OF_BAD_ADDR)
--			set_dma_offset(dev, addr + dma_iommu_fixed_base);
-+	if (cell_iommu_enabled)
- 		set_iommu_table_base(dev, cell_get_iommu_table(dev));
--	} else {
-+	else
- 		set_dma_offset(dev, cell_dma_nommu_offset);
--	}
- }
- 
- static void cell_pci_dma_dev_setup(struct pci_dev *dev)
-@@ -865,8 +858,16 @@ static u64 cell_iommu_get_fixed_address(struct device *dev)
- 
- static bool cell_pci_iommu_bypass_supported(struct pci_dev *pdev, u64 mask)
- {
--	return mask == DMA_BIT_MASK(64) &&
--		cell_iommu_get_fixed_address(&pdev->dev) != OF_BAD_ADDR;
-+	if (mask == DMA_BIT_MASK(64)) {
-+		u64 addr = cell_iommu_get_fixed_address(&pdev->dev);
-+
-+		if (addr != OF_BAD_ADDR) {
-+			set_dma_offset(&pdev->dev, dma_iommu_fixed_base + addr);
-+			return true;
-+		}
-+	}
-+
-+	return true;
- }
- 
- static void insert_16M_pte(unsigned long addr, unsigned long *ptab,
+Sent from my iPhone
+
+> On 12. Dec 2018, at 15:15, Christoph Hellwig <hch@lst.de> wrote:
+>=20
+> Thanks for bisecting.  I've spent some time going over the conversion
+> but can't really pinpoint it.  I have three little patches that switch
+> parts of the code to the generic version.  This is on top of the
+> last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
+>=20
+> Can you check with wh=D1=96ch one things stop working?
+>=20
+>=20
+> <0001-get_required_mask.patch>
+> <0002-swiotlb-dma_supported.patch>
+> <0003-nommu-dma_supported.patch>
+> <0004-alloc-free.patch>
