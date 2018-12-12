@@ -1,157 +1,140 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Wed, 12 Dec 2018 15:15:56 +0100
-Message-ID: <20181212141556.GA4801@lst.de>
-References: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de> <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de> <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de> <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de> <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de> <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de> <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de> <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de> <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de> <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Wed, 12 Dec 2018 15:23:25 +0100
+Message-ID: <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+References: <cover.1544445454.git.andreyknvl@google.com> <20181210143044.12714-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="Qxx1br4bt0+wmkIi"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
+In-Reply-To: <20181210143044.12714-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>C
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, Dec 10, 2018 at 3:31 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
+>
+> On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> the userspace (EL0) is allowed to set a non-zero value in the top
+> byte but the resulting pointers are not allowed at the user-kernel
+> syscall ABI boundary.
+>
+> This patchset proposes a relaxation of the ABI and a mechanism to
+> advertise it to the userspace via an AT_FLAGS.
+>
+> The rationale behind the choice of AT_FLAGS is that the Unix System V
+> ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
+> interpretation.
+> There are two previous attempts of using AT_FLAGS in the Linux Kernel
+> for different reasons: the first was more generic and was used to expose
+> the support for the GNU STACK NX feature [1] and the second was done for
+> the MIPS architecture and was used to expose the support of "MIPS ABI
+> Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
+> Both the changes are currently _not_ merged in mainline.
+> The only architecture that reserves some of the bits in AT_FLAGS is
+> currently MIPS, which introduced the concept of platform specific ABI
+> (psABI) reserving the top-byte [3].
+>
+> When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
+> to the userspace that a relaxed ABI is supported hence this type
+> of pointers are now allowed to be passed to the syscalls when they are
+> in memory ranges obtained by anonymous mmap() or brk().
+>
+> The userspace _must_ verify that the flag is set before passing tagged
+> pointers to the syscalls allowed by this relaxation.
+>
+> More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
+> to the software to check that the feature is present, before using the
+> associated functionality, it provides a degree of control on the decision
+> of disabling such a feature in future without consequently breaking the
+> userspace.
+>
+> The change required a modification of the elf common code, because in Linux
+> the AT_FLAGS are currently set to zero by default by the kernel.
+>
+> The newly added flag has been verified on arm64 using the code below.
+> #include <stdio.h>
+> #include <stdbool.h>
+> #include <sys/auxv.h>
+>
+> #define ARM64_AT_FLAGS_SYSCALL_TBI     (1 << 0)
+>
+> bool arm64_syscall_tbi_is_present(void)
+> {
+>         unsigned long at_flags = getauxval(AT_FLAGS);
+>         if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
+>                 return true;
+>
+>         return false;
+> }
+>
+> void main()
+> {
+>         if (arm64_syscall_tbi_is_present())
+>                 printf("ARM64_AT_FLAGS_SYSCALL_TBI is present\n");
+> }
+>
+> This patchset should be merged together with [4].
+>
+> [1] https://patchwork.ozlabs.org/patch/579578/
+> [2] https://lore.kernel.org/patchwork/cover/618280/
+> [3] ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
+> [4] https://patchwork.kernel.org/cover/10674351/
+>
+> ABI References:
+> ---------------
+> Sco SysV ABI: http://www.sco.com/developers/gabi/2003-12-17/contents.html
+> PowerPC AUXV: http://openpowerfoundation.org/wp-content/uploads/resources/leabi/content/dbdoclet.50655242_98651.html
+> AMD64 ABI: https://www.cs.tufts.edu/comp/40-2012f/readings/amd64-abi.pdf
+> x86 ABI: https://www.uclibc.org/docs/psABI-i386.pdf
+> MIPS ABI: ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
+> ARM ABI: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0044f/IHI0044F_aaelf.pdf
+> SPARC ABI: http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
+>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Robin Murphy <robin.murphy@arm.com>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Kate Stewart <kstewart@linuxfoundation.org>
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+> Cc: Shuah Khan <shuah@kernel.org>
+> Cc: Chintan Pandya <cpandya@codeaurora.org>
+> Cc: Jacob Bramley <Jacob.Bramley@arm.com>
+> Cc: Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+> Cc: Andrey Konovalov <andreyknvl@google.com>
+> Cc: Lee Smith <Lee.Smith@arm.com>
+> Cc: Kostya Serebryany <kcc@google.com>
+> Cc: Dmitry Vyukov <dvyukov@google.com>,
+> Cc: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>
+> Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+> Cc: Evgeniy Stepanov <eugenis@google.com>
+> CC: Alexander Viro <viro@zeniv.linux.org.uk>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>
+> Vincenzo Frascino (3):
+>   elf: Make AT_FLAGS arch configurable
+>   arm64: Define Documentation/arm64/elf_at_flags.txt
+>   arm64: elf: Advertise relaxed ABI
+>
+>  Documentation/arm64/elf_at_flags.txt  | 111 ++++++++++++++++++++++++++
+>  arch/arm64/include/asm/atflags.h      |   7 ++
+>  arch/arm64/include/asm/elf.h          |   5 ++
+>  arch/arm64/include/uapi/asm/atflags.h |   8 ++
+>  fs/binfmt_elf.c                       |   6 +-
+>  fs/binfmt_elf_fdpic.c                 |   6 +-
+>  fs/compat_binfmt_elf.c                |   5 ++
+>  7 files changed, 146 insertions(+), 2 deletions(-)
+>  create mode 100644 Documentation/arm64/elf_at_flags.txt
+>  create mode 100644 arch/arm64/include/asm/atflags.h
+>  create mode 100644 arch/arm64/include/uapi/asm/atflags.h
+>
+> --
+> 2.19.2
+>
 
---Qxx1br4bt0+wmkIi
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-
-Thanks for bisecting.  I've spent some time going over the conversion
-but can't really pinpoint it.  I have three little patches that switch
-parts of the code to the generic version.  This is on top of the
-last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
-
-Can you check with whіch one things stop working?
-
-
-
---Qxx1br4bt0+wmkIi
-Content-Type: text/x-patch; charset=us-ascii
-Content-Disposition: attachment; filename="0001-get_required_mask.patch"
-
-From 83a4b87de6bc6a75b500c9959de88e2157fbcd7c Mon Sep 17 00:00:00 2001
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 12 Dec 2018 15:07:49 +0100
-Subject: get_required_mask
-
----
- arch/powerpc/kernel/dma-iommu.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
-index 5b15e53ee43d..2e682004959f 100644
---- a/arch/powerpc/kernel/dma-iommu.c
-+++ b/arch/powerpc/kernel/dma-iommu.c
-@@ -152,7 +152,7 @@ u64 dma_iommu_get_required_mask(struct device *dev)
- 		return 0;
- 
- 	if (dev_is_pci(dev)) {
--		u64 bypass_mask = dma_nommu_get_required_mask(dev);
-+		u64 bypass_mask = dma_direct_get_required_mask(dev);
- 
- 		if (dma_iommu_bypass_supported(dev, bypass_mask))
- 			return bypass_mask;
--- 
-2.19.2
-
-
---Qxx1br4bt0+wmkIi
-Content-Type: text/x-patch; charset=us-ascii
-Content-Disposition: attachment; filename="0002-swiotlb-dma_supported.patch"
-
-From c2579a3619575397929781a14895966cbc1d217b Mon Sep 17 00:00:00 2001
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 12 Dec 2018 15:08:52 +0100
-Subject: swiotlb dma_supported
-
----
- arch/powerpc/kernel/dma-swiotlb.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index aa11625c6691..52ee531c1a0d 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -36,7 +36,7 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
- 	.free = __dma_nommu_free_coherent,
- 	.map_sg = swiotlb_map_sg_attrs,
- 	.unmap_sg = swiotlb_unmap_sg_attrs,
--	.dma_supported = swiotlb_dma_supported,
-+	.dma_supported = dma_direct_supported,
- 	.map_page = swiotlb_map_page,
- 	.unmap_page = swiotlb_unmap_page,
- 	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
--- 
-2.19.2
-
-
---Qxx1br4bt0+wmkIi
-Content-Type: text/x-patch; charset=us-ascii
-Content-Disposition: attachment; filename="0003-nommu-dma_supported.patch"
-
-From 0105db9e6d8d031b4295116630fd0318fd146737 Mon Sep 17 00:00:00 2001
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 12 Dec 2018 15:10:36 +0100
-Subject: nommu dma_supported
-
----
- arch/powerpc/kernel/dma.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index a6590aa77181..f53d11d35230 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -179,7 +179,7 @@ const struct dma_map_ops dma_nommu_ops = {
- 	.alloc				= __dma_nommu_alloc_coherent,
- 	.free				= __dma_nommu_free_coherent,
- 	.map_sg				= dma_nommu_map_sg,
--	.dma_supported			= dma_nommu_dma_supported,
-+	.dma_supported			= dma_direct_supported,
- 	.map_page			= dma_nommu_map_page,
- #ifdef CONFIG_NOT_COHERENT_CACHE
- 	.sync_single_for_cpu 		= dma_nommu_sync_single,
--- 
-2.19.2
-
-
---Qxx1br4bt0+wmkIi
-Content-Type: text/x-patch; charset=us-ascii
-Content-Disposition: attachment; filename="0004-alloc-free.patch"
-
-From 4c5dd4d4a4b4e63be722fd29ada896c5962072b8 Mon Sep 17 00:00:00 2001
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed, 12 Dec 2018 15:11:38 +0100
-Subject: alloc/free
-
----
- arch/powerpc/kernel/dma.c | 5 +++++
- 1 file changed, 5 insertions(+)
-
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index f53d11d35230..d3db6d879559 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -176,8 +176,13 @@ static inline void dma_nommu_sync_single(struct device *dev,
- #endif
- 
- const struct dma_map_ops dma_nommu_ops = {
-+#ifdef CONFIG_NOT_COHERENT_CACHE
- 	.alloc				= __dma_nommu_alloc_coherent,
- 	.free				= __dma_nommu_free_coherent,
-+#else
-+	.alloc				= dma_direct_alloc,
-+	.free				= dma_direct_free,
-+#endif
- 	.map_sg				= dma_nommu_map_sg,
- 	.dma_supported			= dma_direct_supported,
- 	.map_page			= dma_nommu_map_page,
--- 
-2.19.2
-
-
---Qxx1br4bt0+wmkIi--
+Acked-by: Andrey Konovalov <andreyknvl@google.com>
