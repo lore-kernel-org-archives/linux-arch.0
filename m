@@ -1,110 +1,105 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Wed, 12 Dec 2018 16:32:50 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.1812121604430.1543-100000@iolanthe.rowland.org>
-References: <20181212194225.GB4170@linux.ibm.com>
+From: Sasha Levin <sashal@kernel.org>
+Subject: Re: [PATCH v7 01/25] arm64: Fix HCR.TGE status for NMI contexts
+Date: Wed, 12 Dec 2018 21:39:24 +0000
+Message-ID: <20181212213925.BFE1020839@mail.kernel.org>
+References: <1544633245-6036-2-git-send-email-julien.thierry@arm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181212194225.GB4170@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: multipart/mixed; boundary="===============0487969178506171221=="
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1544633245-6036-2-git-send-email-julien.thierry@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Sasha Levin <sashal@kernel.org>, Julien Thierry <julien.thierry@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, daniel.thompson@linaro.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, James Morse <james.morse@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 12 Dec 2018, Paul E. McKenney wrote:
+--===============0487969178506171221==
+Content-Type: text/plain
 
-> OK.  How about this one?
-> 
->          P0      P1                 P2      P3
->          Wa=2    rcu_read_lock()    Wc=2    Wd=2
->          memb    Wb=2               Rd=0    synchronize_rcu();
->          Rb=0    Rc=0                       Ra=0
-> 	         rcu_read_unlock()
-> 
-> The model should say that it is allowed.  Taking a look...
-> 
->          P0      P1                 P2      P3
-> 				    Rd=0
-> 					    Wd=2
-> 					    synchronize_rcu();
-> 	                                    Ra=0
-> 	 Wa=2
-> 	 membs
-> 	         rcu_read_lock()
-> 		 [m01]
-> 		 Rc=0
-> 		 		    Wc=2
-> 				    [m02]   [m03]
-> 	 membe
-> 	 Rb=0
-> 	         Wb=2
-> 		 rcu_read_unlock()
-> 
-> Looks allowed to me.  If the synchronization of P1 and P2 were
-> interchanged, it should be forbidden:
-> 
->          P0      P1      P2                 P3
->          Wa=2    Wb=2    rcu_read_lock()    Wd=2
->          memb    Rc=0    Wc=2               synchronize_rcu();
->          Rb=0            Rd=0               Ra=0
->                          rcu_read_unlock()
-> 
-> Taking a look...
-> 
->          P0      P1      P2                 P3
->                          rcu_read_lock()
->                          Rd=0
->          Wa=2    Wb=2                       Wd=2
->          membs                              synchronize_rcu();
->                  [m01]
->                  Rc=0
->                          Wc=2
->                          rcu_read_unlock()
-> 			 [m02]              Ra=0 [Forbidden?]
-> 	 membe
->          Rb=0
+Hi,
 
-Have you tried writing these as real litmus tests and running them 
-through herd?
+[This is an automated email]
 
-> I believe that this ordering forbids the cycle:
-> 
-> 	Wa=1 > membs -> [m01] -> Rc=0 -> Wc=2 -> rcu_read_unlock() ->
-> 		return from synchronize_rcu() -> Ra
-> 
-> Does this make sense, or am I missing something?
+This commit has been processed because it contains a -stable tag.
+The stable tag indicates that it's relevant for the following trees: all
 
-It's hard to tell.  What you have written here isn't justified by the
-litmus test source code, since the position of m01 in P1's program
-order is undetermined.  How do you justify m01 -> Rc, for example?
+The bot has tested the following trees: v4.19.8, v4.14.87, v4.9.144, v4.4.166, v3.18.128, 
 
-Write it this way instead, using the relations defined in the 
-sys_membarrier patch for linux-kernel.cat:
+v4.19.8: Build failed! Errors:
+    ./include/linux/hardirq.h:65:3: error: implicit declaration of function ‘arch_nmi_enter’; did you mean ‘rcu_nmi_enter’? [-Werror=implicit-function-declaration]
+    ./include/linux/hardirq.h:84:3: error: implicit declaration of function ‘arch_nmi_exit’; did you mean ‘rcu_nmi_exit’? [-Werror=implicit-function-declaration]
 
-	memb ->memb-gp memb ->rcu-link Rc ->memb-rscsi Rc ->rcu-link
-		
-		rcu_read_unlock ->rcu-rscsi rcu_read_lock ->rcu-link 
+v4.14.87: Build failed! Errors:
+    ./include/linux/hardirq.h:65:3: error: implicit declaration of function ‘arch_nmi_enter’; did you mean ‘rcu_nmi_enter’? [-Werror=implicit-function-declaration]
+    ./include/linux/hardirq.h:84:3: error: implicit declaration of function ‘arch_nmi_exit’; did you mean ‘rcu_nmi_exit’? [-Werror=implicit-function-declaration]
 
-		synchronize_rcu ->rcu-gp synchronize_rcu ->rcu-link memb
+v4.9.144: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    34be98f4944f ("arm64: kernel: remove {THREAD,IRQ_STACK}_START_SP")
+    a9ea0017ebe8 ("arm64: factor out current_stack_pointer")
+    c02433dd6de3 ("arm64: split thread_info from task stack")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    dbc9344a68e5 ("arm64: clean up THREAD_* definitions")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
 
-Recall that:
+v4.4.166: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    0a8ea52c3eb1 ("arm64: Add HAVE_REGS_AND_STACK_ACCESS_API feature")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    1ffe199b1c9b ("arm64: when walking onto the task stack, check sp & fp are in current->stack")
+    20380bb390a4 ("arm64: ftrace: fix a stack tracer's output under function graph tracer")
+    7596abf2e566 ("arm64: irq: fix walking from irq stack to task stack")
+    8e23dacd12a4 ("arm64: Add do_softirq_own_stack() and enable irq_stacks")
+    971c67ce37cf ("arm64: reduce stack use in irq_handler")
+    a80a0eb70c35 ("arm64: make irq_stack_ptr more robust")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+    fe13f95b7200 ("arm64: pass a task parameter to unwind_frame()")
 
-	memb-gp is the identity relation on sys_membarrier events,
+v3.18.128: Failed to apply! Possible dependencies:
+    020295b4cb5b ("ACPI / processor: Make it possible to get CPU hardware ID via GICC")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    13ca62b243f6 ("ACPI: Fix minor syntax issues in processor_core.c")
+    37655163ce1a ("ARM64 / ACPI: Get RSDP and ACPI boot-time tables")
+    587064b610c7 ("arm64: Add framework for legacy instruction emulation")
+    652261a7a86c ("ACPI: fix acpi_os_ioremap for arm64")
+    828aef376d7a ("ACPI / processor: Introduce phys_cpuid_t for CPU hardware ID")
+    96f0e00378d4 ("ARM: add basic support for on-demand backtrace of other CPUs")
+    af2c632e234f ("arm64/include/asm: Fixed a warning about 'struct pt_regs'")
+    af8f3f514d19 ("ACPI / processor: Convert apic_id to phys_id to make it arch agnostic")
+    b4ff8389ed14 ("xen/events: Always allocate legacy interrupts on PV guests")
+    d02dc27db0dc ("ACPI / processor: Rename acpi_(un)map_lsapic() to acpi_(un)map_cpu()")
+    d60fc3892c4d ("irqchip: Add GICv2 specific ACPI boot support")
+    ecf5636dcd59 ("ACPI: Add interfaces to parse IOAPIC ID for IOAPIC hotplug")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
 
-	rcu-link includes (po? ; fre ; po),
 
-	memb-rscsi is the identity relation on all events,
+How should we proceed with this patch?
 
-	rcu-rscsi links unlocks to their corresponding locks, and
+--
+Thanks,
+Sasha
 
-	rcu-gp is the identity relation on synchronize_rcu events.
 
-These facts justify the cycle above.
+--===============0487969178506171221==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 
-Leaving off the final rcu-link step, the sequence matches the
-definition of rcu-fence (the relations are memb-gp, memb-rscsi, 
-rcu-rscsi, rcu-gp with rcu-links in between).  Therefore the cycle is 
-forbidden.
+_______________________________________________
+linux-arm-kernel mailing list
+linux-arm-kernel@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
 
-Alan
+--===============0487969178506171221==--
