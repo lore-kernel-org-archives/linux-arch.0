@@ -1,39 +1,79 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Wed, 12 Dec 2018 15:39:40 +0100
-Message-ID: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
-References: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de> <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de> <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de> <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de> <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de> <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de> <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de> <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de> <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de> <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de> <20181212141556.GA4801@lst.de>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Wed, 12 Dec 2018 15:02:30 +0000
+Message-ID: <20181212150230.GH65138@arrakis.emea.arm.com>
+References: <cover.1544445454.git.andreyknvl@google.com>
+ <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181212141556.GA4801@lst.de>
+Content-Disposition: inline
+In-Reply-To: <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+Hi Andrey,
 
-Thanks a lot for your reply. I will test your patches tomorrow.
+On Wed, Dec 12, 2018 at 03:23:25PM +0100, Andrey Konovalov wrote:
+> On Mon, Dec 10, 2018 at 3:31 PM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
+> > On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> > the userspace (EL0) is allowed to set a non-zero value in the top
+> > byte but the resulting pointers are not allowed at the user-kernel
+> > syscall ABI boundary.
+> >
+> > This patchset proposes a relaxation of the ABI and a mechanism to
+> > advertise it to the userspace via an AT_FLAGS.
+> >
+> > The rationale behind the choice of AT_FLAGS is that the Unix System V
+> > ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
+> > interpretation.
+> > There are two previous attempts of using AT_FLAGS in the Linux Kernel
+> > for different reasons: the first was more generic and was used to expose
+> > the support for the GNU STACK NX feature [1] and the second was done for
+> > the MIPS architecture and was used to expose the support of "MIPS ABI
+> > Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
+> > Both the changes are currently _not_ merged in mainline.
+> > The only architecture that reserves some of the bits in AT_FLAGS is
+> > currently MIPS, which introduced the concept of platform specific ABI
+> > (psABI) reserving the top-byte [3].
+> >
+> > When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
+> > to the userspace that a relaxed ABI is supported hence this type
+> > of pointers are now allowed to be passed to the syscalls when they are
+> > in memory ranges obtained by anonymous mmap() or brk().
+> >
+> > The userspace _must_ verify that the flag is set before passing tagged
+> > pointers to the syscalls allowed by this relaxation.
+> >
+> > More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
+> > to the software to check that the feature is present, before using the
+> > associated functionality, it provides a degree of control on the decision
+> > of disabling such a feature in future without consequently breaking the
+> > userspace.
+[...]
+> Acked-by: Andrey Konovalov <andreyknvl@google.com>
 
-Cheers,
-Christian
+Thanks for the ack. However, if we go ahead with this ABI proposal it
+means that your patches need to be reworked to allow a non-zero top byte
+in all syscalls, including mmap() and friends, ioctl(). There are ABI
+concerns in either case but I'd rather have this discussion in the open.
+It doesn't necessarily mean that I endorse this proposal, I would like
+feedback and not just from kernel developers but user space ones.
 
-Sent from my iPhone
+The summary of our internal discussions (mostly between kernel
+developers) is that we can't properly describe a user ABI that covers
+future syscalls or syscall extensions while not all syscalls accept
+tagged pointers. So we tweaked the requirements slightly to only allow
+tagged pointers back into the kernel *if* the originating address is
+from an anonymous mmap() or below sbrk(0). This should cover some of the
+ioctls or getsockopt(TCP_ZEROCOPY_RECEIVE) where the user passes a
+pointer to a buffer obtained via mmap() on the device operations.
 
-> On 12. Dec 2018, at 15:15, Christoph Hellwig <hch@lst.de> wrote:
->=20
-> Thanks for bisecting.  I've spent some time going over the conversion
-> but can't really pinpoint it.  I have three little patches that switch
-> parts of the code to the generic version.  This is on top of the
-> last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
->=20
-> Can you check with wh=D1=96ch one things stop working?
->=20
->=20
-> <0001-get_required_mask.patch>
-> <0002-swiotlb-dma_supported.patch>
-> <0003-nommu-dma_supported.patch>
-> <0004-alloc-free.patch>
+(sorry for not being clear on what Vincenzo's proposal implies)
+
+-- 
+Catalin
