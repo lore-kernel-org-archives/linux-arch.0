@@ -1,79 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:37827 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726134AbeLKVlU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2018 16:41:20 -0500
-Received: by mail-qk1-f193.google.com with SMTP id 131so9551563qkd.4
-        for <linux-arch@vger.kernel.org>; Tue, 11 Dec 2018 13:41:19 -0800 (PST)
-MIME-Version: 1.0
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com> <CAK8P3a1njNBWiMExBevqbT+AuUHdU4T2sc1o1rRTn+Ji=y2SbA@mail.gmail.com>
- <64ff3b50-ce55-ff69-ac3a-61f221299895@arm.com>
-In-Reply-To: <64ff3b50-ce55-ff69-ac3a-61f221299895@arm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 11 Dec 2018 22:41:01 +0100
-Message-ID: <CAK8P3a0LgFuv_s4xiC_rD0X7-GxHRWfzmdDcxJ7vvHrEETApRw@mail.gmail.com>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Received: from gate.crashing.org ([63.228.1.57]:60066 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726201AbeLLAsE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Dec 2018 19:48:04 -0500
+Message-ID: <d447ac4e18bddd030aa2f56a0547c0132b3f8dcd.camel@kernel.crashing.org>
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Wed, 12 Dec 2018 11:47:16 +1100
+In-Reply-To: <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
+References: <20181129170351.GC27951@lst.de>
+         <d0e04a85-f17d-414e-6fea-971414417430@xenosoft.de>
+         <20181130105346.GB26765@lst.de>
+         <8694431d-c669-b7b9-99fa-e99db5d45a7d@xenosoft.de>
+         <20181130131056.GA5211@lst.de>
+         <25999587-2d91-a63c-ed38-c3fb0075d9f1@xenosoft.de>
+         <c5202d29-863d-1377-0e2d-762203b317e2@xenosoft.de>
+         <58c61afb-290f-6196-c72c-ac7b61b84718@xenosoft.de>
+         <20181204142426.GA2743@lst.de>
+         <ef56d279-f75d-008e-71ba-7068c1b37c48@xenosoft.de>
+         <20181205140550.GA27549@lst.de>
+         <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
+         <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
+         <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
+         <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+         <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+         <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+         <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+         <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+         <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+         <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20181211214101.bu83MxjzlIU7YzIeGGLpTWJ3X7VHNiC0T2MGM5TF6dI@z>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>, Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181212004716.CYiK7SudWBXh1lD8hrb_zPs_DE7E5KUD3T0yrT4w1v4@z>
 
-On Tue, Dec 11, 2018 at 2:39 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
-> On 29/11/2018 20:42, Arnd Bergmann wrote:
-> > On Thu, Nov 29, 2018 at 6:06 PM Vincenzo Frascino
-> > <vincenzo.frascino@arm.com> wrote:
-> >
-> >> +/*
-> >> + * The definitions below are required to overcome the limitations
-> >> + * of time_t on 32 bit architectures, which overflows in 2038.
-> >> + * The new code should use the replacements based on time64_t and
-> >> + * timespec64.
-> >> + *
-> >> + * The abstraction below will be updated once the migration to
-> >> + * time64_t is complete.
-> >> + */
-> >> +#ifdef CONFIG_GENERIC_VDSO_32
-> >> +#define __vdso_timespec                old_timespec32
-> >> +#define __vdso_timeval         old_timeval32
-> >> +#else
-> >> +#ifdef ENABLE_COMPAT_VDSO
-> >> +#define __vdso_timespec                old_timespec32
-> >> +#define __vdso_timeval         old_timeval32
-> >> +#else
-> >> +#define __vdso_timespec                __kernel_timespec
-> >> +#define __vdso_timeval         __kernel_old_timeval
-> >> +#endif /* CONFIG_COMPAT_VDSO */
-> >> +#endif /* CONFIG_GENERIC_VDSO_32 */
-> >>
-> >
-> > Have you considered doing this in the reverse way, by including
-> > the common parts from multiple implementations (32 and 64
-> > bit), instead of compiling the same source file multiple
-> > times with different macros set? I think that would make it
-> > easier to understand.
-> >
->
-> The common code is never compiled as standalone. It includes arch specific code
-> (for the fallbacks) and it is included in the arch specific vdso library (for
-> both 32 and 64 bit where it makes sense). Hence it is built once or twice.
->
-> If I understand correctly your question, seems inline with what I am doing.
+On Tue, 2018-12-11 at 19:17 +0100, Christian Zigotzky wrote:
+> X5000 (P5020 board): U-Boot loads the kernel and the dtb file. Then the 
+> kernel starts but it doesn't find any hard disks (partitions). That 
+> means this is also the bad commit for the P5020 board.
 
-The result is very similar, it's just a question of which file includes which
-other file. If I understand your current method right, you use Makefile
-logic to build multiple object files from a single source file, and setting
-ENABLE_COMPAT_VDSO on one of them, right?
+What are the disks hanging off ? A PCIe device of some sort ?
 
-My preference would be to keep that Makefile simpler and have one
-source file per object file, but have each one define a set of macros
-before including the common source file, similarly to how we deal
-with fs/compat_binfmt_elf.c. If that turns out to be worse than what
-you have here, I'm not overly attached to that solution since including
-C files is still ugly, but I think it's worth trying if that lets you end
-up with more easily understandable source code.
+Can you send good & bad dmesg logs ?
 
-       Arnd
+Ben.
