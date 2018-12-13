@@ -1,58 +1,53 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 13 Dec 2018 09:41:50 +0100
-Message-ID: <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
-References: <1948cf84-49ab-543c-472c-d18e27751903@xenosoft.de>
- <5a2ea855-b4b0-e48a-5c3e-c859a8451ca2@xenosoft.de>
- <7B6DDB28-8BF6-4589-84ED-F1D4D13BFED6@xenosoft.de>
- <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
- <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
- <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
- <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
- <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
- <20181212141556.GA4801@lst.de>
- <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v4 3/7] mips: rename macros and files from '64' to 'n64'
+Date: Thu, 13 Dec 2018 14:23:21 +0530
+Message-ID: <CALxhOnht8H6r38bwm7xqbHuJs6dvLB03GCKyws2cif1mEE+sKA@mail.gmail.com>
+References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
+ <1544073508-13720-4-git-send-email-firoz.khan@linaro.org> <20181210195144.dvprpyxyddusyb5c@pburton-laptop>
+ <CALxhOng7EzAd2zHKAOj3ipEd6y=DpS2JGo34s4V_cWVgmLjPwg@mail.gmail.com>
+ <20181211185947.gnaachztyh3ils7o@pburton-laptop> <CALxhOngErLD7+CEhgSPwQUnGg7YEFTcH-v6dhR0j55SvEg1FoA@mail.gmail.com>
+ <20181212222834.2zf3rb67fxfcmwuw@pburton-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
-Content-Language: de-DE
+In-Reply-To: <20181212222834.2zf3rb67fxfcmwuw@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Paul Burton <paul.burton@mips.com>
+Cc: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 12 December 2018 at 3:39PM, Christian Zigotzky wrote:
-> Hi Christoph,
->
-> Thanks a lot for your reply. I will test your patches tomorrow.
->
-> Cheers,
-> Christian
->
-> Sent from my iPhone
->
->> On 12. Dec 2018, at 15:15, Christoph Hellwig <hch@lst.de> wrote:
->>
->> Thanks for bisecting.  I've spent some time going over the conversion
->> but can't really pinpoint it.  I have three little patches that switch
->> parts of the code to the generic version.  This is on top of the
->> last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
->>
->> Can you check with whіch one things stop working?
->>
->>
->> <0001-get_required_mask.patch>
->> <0002-swiotlb-dma_supported.patch>
->> <0003-nommu-dma_supported.patch>
->> <0004-alloc-free.patch>
+Hi Paul,
 
-Today I tried the first patch (0001-get_required_mask.patch) with the 
-last good commit (977706f9755d2d697aa6f45b4f9f0e07516efeda). 
-Unfortunately this patch is already included in the last good commit 
-(977706f9755d2d697aa6f45b4f9f0e07516efeda). I will try the next patch.
+On Thu, 13 Dec 2018 at 03:58, Paul Burton <paul.burton@mips.com> wrote:
+>
+> Hi Firoz,
+>
+> On Wed, Dec 12, 2018 at 10:04:47AM +0530, Firoz Khan wrote:
+> >
+> > Sure, I think '64' to 'n64' conversion must be remove it from this patch
+> > series.I can send v5 without '64' to 'n64' conversion.
+> >
+> > If we rename '64' to 'n64' in half of the place and this _MIPS_SIM_ABI64
+> > if we half to keep it in same looks not good (according to me).
+> >
+> > (FYI, This macro name - _MIPS_SIM_ABIN64 must be _MIPS_SIM_NABI64
+> > and defintion will be:
+> > +#define _MIPS_SIM_NABI64           _MIPS_SIM_ABI64)
+> >
+> > So If you confirm I can send v5 without '64' to 'n64' conversion (not just above
+> > one, completely from this patch series). Or uou can take a call just
+> > keep this macro -
+> > _MIPS_SIM_ABI64 as it is and change it rest of the place.
+>
+> Let's just go ahead & leave everything as 64, and I'll do the 64 -> n64
+> rename later. I hoped whilst you were adding n64-specific code this
+> would be an easy change, but at this point let's just prioritize getting
+> the series applied without the naming change so it can sit in -next for
+> a while before the merge window.
 
--- Christian
+I'll keep the macro - _MIPS_SIM_ABI64 same and will not change the rest
+of the patch series. Unfortunately, reverting back to 64 from n64 has lots of
+work.
+
+Thanks
+Firoz
