@@ -1,169 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:38395 "EHLO
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:39939 "EHLO
         mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727296AbeLMJEh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2018 04:04:37 -0500
-Received: by mail-pl1-f196.google.com with SMTP id e5so762929plb.5
-        for <linux-arch@vger.kernel.org>; Thu, 13 Dec 2018 01:04:37 -0800 (PST)
+        with ESMTP id S1727254AbeLMJET (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2018 04:04:19 -0500
+Received: by mail-pl1-f196.google.com with SMTP id u18so754696plq.7
+        for <linux-arch@vger.kernel.org>; Thu, 13 Dec 2018 01:04:19 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 4/5] powerpc: split compat syscall table out from native table
-Date: Thu, 13 Dec 2018 14:32:49 +0530
-Message-ID: <1544691770-8938-5-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v5 1/5] powerpc: add __NR_syscalls along with NR_syscalls
+Date: Thu, 13 Dec 2018 14:32:46 +0530
+Message-ID: <1544691770-8938-2-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1544691770-8938-1-git-send-email-firoz.khan@linaro.org>
 References: <1544691770-8938-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Ram Pai <linuxram@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Breno Leitao <leitao@debian.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181213090249.6uYVcdTAdd33ZzE-WQbuluOUCYRRYqgqrHgAK1Vwt-0@z>
+Message-ID: <20181213090246.uBN0zGhEnozsAfw_2EC9s0ugpfhbv0q9_kzNbcklhbw@z>
 
-PowerPC uses a syscall table with native and compat calls
-interleaved, which is a slightly simpler way to define two
-matching tables.
+NR_syscalls macro holds the number of system call exist
+in powerpc architecture. We have to change the value of
+NR_syscalls, if we add or delete a system call.
 
-As we move to having the tables generated, that advantage
-is no longer important, but the interleaved table gets in
-the way of using the same scripts as on the other archit-
-ectures.
+One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file.
+The syscall.tbl file contains the number of system call
+information. So we have two option to update NR_syscalls
+value.
 
-Split out a new compat_sys_call_table symbol that contains
-all the compat calls, and leave the main table for the nat-
-ive calls, to more closely match the method we use every-
-where else.
+1. Update NR_syscalls in asm/unistd.h manually by count-
+   ing the no.of system calls. No need to update NR_sys-
+   calls until we either add a new system call or delete
+   existing system call.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
+2. We can keep this feature in above mentioned script,
+   that will count the number of syscalls and keep it in
+   a generated file. In this case we don't need to expli-
+   citly update NR_syscalls in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I
+added the __NR_syscalls macro in uapi/asm/unistd.h along
+with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+also added for making the name convention same across all
+architecture. While __NR_syscalls isn't strictly part of
+the uapi, having it as part of the generated header to
+simplifies the implementation. We also need to enclose
+this macro with #ifdef __KERNEL__ to avoid side effects.
+
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/powerpc/include/asm/syscall.h |  3 +--
- arch/powerpc/kernel/entry_64.S     |  7 +++++--
- arch/powerpc/kernel/systbl.S       | 35 ++++++++++++++++++++++++++++-------
- arch/powerpc/kernel/vdso.c         |  7 +++++--
- 4 files changed, 39 insertions(+), 13 deletions(-)
+ arch/powerpc/include/asm/unistd.h      | 3 +--
+ arch/powerpc/include/uapi/asm/unistd.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-index ab9f3f0..1a0e7a8 100644
---- a/arch/powerpc/include/asm/syscall.h
-+++ b/arch/powerpc/include/asm/syscall.h
-@@ -18,9 +18,8 @@
- #include <linux/thread_info.h>
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index b0de85b..a3c35e6 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -11,8 +11,7 @@
  
- /* ftrace syscalls requires exporting the sys_call_table */
--#ifdef CONFIG_FTRACE_SYSCALLS
- extern const unsigned long sys_call_table[];
--#endif /* CONFIG_FTRACE_SYSCALLS */
-+extern const unsigned long compat_sys_call_table[];
+ #include <uapi/asm/unistd.h>
  
- static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
- {
-diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index 7b1693a..5574d92 100644
---- a/arch/powerpc/kernel/entry_64.S
-+++ b/arch/powerpc/kernel/entry_64.S
-@@ -54,6 +54,9 @@
- SYS_CALL_TABLE:
- 	.tc sys_call_table[TC],sys_call_table
+-
+-#define NR_syscalls		389
++#define NR_syscalls	__NR_syscalls
  
-+COMPAT_SYS_CALL_TABLE:
-+	.tc compat_sys_call_table[TC],compat_sys_call_table
-+
- /* This value is used to mark exception frames on the stack. */
- exception_marker:
- 	.tc	ID_EXC_MARKER[TC],STACK_FRAME_REGS_MARKER
-@@ -173,7 +176,7 @@ system_call:			/* label this so stack traces look sane */
- 	ld	r11,SYS_CALL_TABLE@toc(2)
- 	andis.	r10,r10,_TIF_32BIT@h
- 	beq	15f
--	addi	r11,r11,8	/* use 32-bit syscall entries */
-+	ld	r11,COMPAT_SYS_CALL_TABLE@toc(2)
- 	clrldi	r3,r3,32
- 	clrldi	r4,r4,32
- 	clrldi	r5,r5,32
-@@ -181,7 +184,7 @@ system_call:			/* label this so stack traces look sane */
- 	clrldi	r7,r7,32
- 	clrldi	r8,r8,32
- 15:
--	slwi	r0,r0,4
-+	slwi	r0,r0,3
+ #define __NR__exit __NR_exit
  
- 	barrier_nospec_asm
- 	/*
-diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
-index 9ff1913..0fa84e1 100644
---- a/arch/powerpc/kernel/systbl.S
-+++ b/arch/powerpc/kernel/systbl.S
-@@ -17,13 +17,13 @@
- #include <asm/ppc_asm.h>
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index 985534d..7195868 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -10,7 +10,6 @@
+ #ifndef _UAPI_ASM_POWERPC_UNISTD_H_
+ #define _UAPI_ASM_POWERPC_UNISTD_H_
  
- #ifdef CONFIG_PPC64
--#define SYSCALL(func)		.8byte	DOTSYM(sys_##func),DOTSYM(sys_##func)
--#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func),DOTSYM(compat_sys_##func)
--#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(ppc_##func)
--#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(sys_ni_syscall)
--#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall),DOTSYM(compat_sys_##func)
--#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func),DOTSYM(sys_ni_syscall)
--#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f),DOTSYM(f3264)
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(ppc_##func)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f)
- #else
- #define SYSCALL(func)		.long	sys_##func
- #define COMPAT_SYS(func)	.long	sys_##func
-@@ -46,6 +46,27 @@
+-
+ #define __NR_restart_syscall	  0
+ #define __NR_exit		  1
+ #define __NR_fork		  2
+@@ -401,4 +400,8 @@
+ #define __NR_rseq		387
+ #define __NR_io_pgetevents	388
  
- .globl sys_call_table
- sys_call_table:
-+#include <asm/systbl.h>
-+
-+#undef SYSCALL
-+#undef COMPAT_SYS
-+#undef PPC_SYS
-+#undef OLDSYS
-+#undef SYS32ONLY
-+#undef PPC64ONLY
-+#undef SYSX
- 
-+#ifdef CONFIG_COMPAT
-+#define SYSCALL(func)		.8byte	DOTSYM(sys_##func)
-+#define COMPAT_SYS(func)	.8byte	DOTSYM(compat_sys_##func)
-+#define PPC_SYS(func)		.8byte	DOTSYM(ppc_##func)
-+#define OLDSYS(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYS32ONLY(func)		.8byte	DOTSYM(compat_sys_##func)
-+#define PPC64ONLY(func)		.8byte	DOTSYM(sys_ni_syscall)
-+#define SYSX(f, f3264, f32)	.8byte	DOTSYM(f3264)
-+
-+.globl compat_sys_call_table
-+compat_sys_call_table:
- #define compat_sys_sigsuspend	sys_sigsuspend
- #include <asm/systbl.h>
++#ifdef __KERNEL__
++#define __NR_syscalls		389
 +#endif
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index 65b3bdb..7725a97 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -671,15 +671,18 @@ static void __init vdso_setup_syscall_map(void)
- {
- 	unsigned int i;
- 	extern unsigned long *sys_call_table;
-+#ifdef CONFIG_PPC64
-+	extern unsigned long *compat_sys_call_table;
-+#endif
- 	extern unsigned long sys_ni_syscall;
- 
- 
- 	for (i = 0; i < NR_syscalls; i++) {
- #ifdef CONFIG_PPC64
--		if (sys_call_table[i*2] != sys_ni_syscall)
-+		if (sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_64[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
--		if (sys_call_table[i*2+1] != sys_ni_syscall)
-+		if (compat_sys_call_table[i] != sys_ni_syscall)
- 			vdso_data->syscall_map_32[i >> 5] |=
- 				0x80000000UL >> (i & 0x1f);
- #else /* CONFIG_PPC64 */
++
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.9.1
