@@ -1,74 +1,211 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from iolanthe.rowland.org ([192.131.102.54]:41180 "HELO
-        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1728964AbeLMPtu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2018 10:49:50 -0500
-Date: Thu, 13 Dec 2018 10:49:49 -0500 (EST)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-In-Reply-To: <20181212224931.GD4170@linux.ibm.com>
-Message-ID: <Pine.LNX.4.44L0.1812131026570.1586-100000@iolanthe.rowland.org>
+Received: from foss.arm.com ([217.140.101.70]:37486 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728069AbeLMQ6x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Dec 2018 11:58:53 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 00/24] Unify vDSOs across more architectures
+Date: Thu, 13 Dec 2018 16:57:22 +0000
+Message-ID: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181213154949.HcLc6vjbZtvjLUv6EUe6f70VNa-TJv4K6IUBHWVh5M4@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181213165722.Ok3TMLpx8EM3IkmTtdWZjw15S43z9TKDwlXlrx1GbNc@z>
 
-On Wed, 12 Dec 2018, Paul E. McKenney wrote:
+vDSO (virtual dynamic shared object) is a mechanism that the Linux
+kernel provides as an alternative to system calls to reduce where
+possible the costs in terms of cycles.
+This is possible because certain syscalls like gettimeofday() do
+not write any data and return one or more values that are stored
+in the kernel, which makes relatively safe calling them directly
+as a library function.
 
-> > Well, what are you trying to accomplish?  Do you want to find an 
-> > argument similar to the one I posted for the 6-CPU test to show that 
-> > this test should be forbidden?
-> 
-> I am trying to check odd corner cases.  Your sys_membarrier() model
-> is quite nice and certainly fits nicely with the rest of the model,
-> but where I come from, that is actually reason for suspicion.  ;-)
-> 
-> All kidding aside, your argument for the 6-CPU test was extremely
-> valuable, as it showed me a way to think of that test from an
-> implementation viewpoint.  Then the question is whether or not that
-> viewpoint actually matches the model, which seems to be the case thus far.
+Even if the mechanism is pretty much standard, every architecture
+in the last few years ended up implementing their own vDSO library
+in the architectural code.
 
-It should, since I formulated the reasoning behind that viewpoint 
-directly from the model.  The basic idea is this:
+The purpose of this patch-set is to identify the commonalities in
+between the architectures and try to consolidate the common code
+paths, starting with gettimeofday().
 
-	By induction, show that whenever we have A ->rcu-fence B then
-	anything po-before A executes before anything po-after B, and
-	furthermore, any write which propagates to A's CPU before A
-	executes will propagate to every CPU before B finishes (i.e.,
-	before anything po-after B executes).
+This implementation contains the following design choices:
+ * Every architecture defines the arch specific code in an header in
+   "asm/vdso/".
+ * The generic implementation includes the arch specific one and lives
+   in "lib/vdso".
+ * The arch specific code for gettimeofday lives in
+   "<arch path>/vdso/gettimeofday.c" and includes the generic code only.
+ * This approach allows to consolidate the common code in a single place
+   with the benefit of avoiding code duplication.
 
-	Using this, show that whenever X ->rb Y holds then X must
-	execute before Y.
+This implementation contains the portings to the common library for: arm64,
+compat mode for arm64, arm and mips.
 
-That's what the 6-CPU argument did.  In that litmus test we have
-mb2 ->rcu-fence mb23, Rc ->rb Re, mb1 ->rcu-fence mb14, Rb ->rb Rf,
-mb0 ->rcu-fence mb05, and lastly Ra ->rb Ra.  The last one is what 
-shows that the test is forbidden.
+The mips porting has been tested on qemu for mips32el. A configuration to
+repeat the tests can be found at [4].
 
-> A good next step would be to automatically generate random tests along
-> with an automatically generated prediction, like I did for RCU a few
-> years back.  I should be able to generalize my time-based cheat for RCU to
-> also cover SRCU, though sys_membarrier() will require a bit more thought.
-> (The time-based cheat was to have fixed duration RCU grace periods and
-> RCU read-side critical sections, with the grace period duration being
-> slightly longer than that of the critical sections.  The number of
-> processes is of course limited by the chosen durations, but that limit
-> can easily be made insanely large.)
+Last but not least from this porting arm64, compat arm64, arm and mips gain
+the support for:
+ * CLOCK_BOOTTIME that can be useful in certain scenarios since it keeps
+   track of the time during sleep as well.
+ * CLOCK_TAI that is like CLOCK_REALTIME, but uses the International
+   Atomic Time (TAI) reference instead of UTC to avoid jumping on leap
+   second updates.
+for both clock_gettime and clock_getres.
 
-Imagine that each sys_membarrier call takes a fixed duration and each 
-other instruction takes slightly less (the idea being that each 
-instruction is a critical section).  Instructions can be reordered 
-(although not across a sys_membarrier call), but no matter how the 
-reordering is done, the result is disallowed.
+The porting has been validated using the vdsotest test-suite [1] extended
+to cover all the clock ids [2].
 
-> I guess that I still haven't gotten over being a bit surprised that the
-> RCU counting rule also applies to sys_membarrier().  ;-)
+To simplify the testing, a copy of the patchset on top of a recent linux tree
+can be found at [3] and [4].
 
-Why not?  They are both synchronization mechanisms with heavy-weight
-write sides and light-weight read sides, and most importantly, they
-provide the same Guarantee.
+[1] https://github.com/nlynch-mentor/vdsotest
+[2] https://github.com/fvincenzo/vdsotest
+[3] git://linux-arm.org/linux-vf.git vdso/v3
+[4] git://linux-arm.org/linux-vf.git vdso-mips/v3
 
-Alan
+Changes:
+--------
+v3:
+  - Ported the latest fixes and optimizations done on the x86
+    architecture to the generic library.
+  - Addressed review comments.
+  - Improved the documentation of the interfaces.
+  - Changed the HAVE_ARCH_TIMER config option to a more generic
+    HAVE_HW_COUNTER.
+v2:
+  - Added -ffixed-x18 to arm64
+  - Repleced occurrences of timeval and timespec
+  - Modified datapage.h to be compliant with y2038 on all the architectures
+  - Removed __u_vdso type
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Mark Salyzyn <salyzyn@android.com>
+Cc: Peter Collingbourne <pcc@google.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Peter Collingbourne (1):
+  arm64: Build vDSO with -ffixed-x18
+
+Vincenzo Frascino (23):
+  kernel: Standardize vdso_datapage
+  kernel: Define gettimeofday vdso common code
+  arm64: Substitute gettimeofday with C implementation
+  arm64: compat: Alloc separate pages for vectors and sigpage
+  arm64: compat: Split kuser32
+  arm64: compat: Refactor aarch32_alloc_vdso_pages()
+  arm64: compat: Add KUSER_HELPERS config option
+  arm64: compat: Add missing syscall numbers
+  arm64: compat: Expose signal related structures
+  arm64: compat: Generate asm offsets for signals
+  lib: vdso: Add compat support
+  arm64: compat: Add vDSO
+  arm64: Refactor vDSO code
+  arm64: compat: vDSO setup for compat layer
+  arm64: elf: vDSO code page discovery
+  arm64: compat: Get sigreturn trampolines from vDSO
+  arm64: Add vDSO compat support
+  arm64: Enable compat vDSO support
+  arm: Add support for generic vDSO
+  mips: Introduce vdso_direct
+  clock: csrc-4k: Add support for vdso_direct
+  clock: gic-timer: Add support for vdso_direct
+  mips: Add support for generic vDSO
+
+ arch/arm/Kconfig                              |   4 +
+ arch/arm/include/asm/vdso/gettimeofday.h      |  85 +++
+ arch/arm/include/asm/vdso_datapage.h          |  25 +-
+ arch/arm/kernel/vdso.c                        | 100 ++--
+ arch/arm/vdso/Makefile                        |  13 +-
+ arch/arm/vdso/note.c                          |  15 +
+ arch/arm/vdso/vdso.lds.S                      |   1 +
+ arch/arm/vdso/vgettimeofday.c                 | 267 +---------
+ arch/arm64/Kconfig                            |  25 +
+ arch/arm64/Makefile                           |  21 +-
+ arch/arm64/configs/defconfig                  |   1 +
+ arch/arm64/include/asm/elf.h                  |  20 +-
+ arch/arm64/include/asm/processor.h            |   4 +-
+ arch/arm64/include/asm/signal32.h             |  58 +-
+ arch/arm64/include/asm/unistd.h               |   3 +
+ arch/arm64/include/asm/vdso.h                 |   3 +
+ arch/arm64/include/asm/vdso/compat_barrier.h  |  36 ++
+ .../include/asm/vdso/compat_gettimeofday.h    | 122 +++++
+ arch/arm64/include/asm/vdso/gettimeofday.h    |  88 ++++
+ arch/arm64/include/asm/vdso_datapage.h        |  47 --
+ arch/arm64/kernel/Makefile                    |   7 +-
+ arch/arm64/kernel/asm-offsets.c               |  41 +-
+ arch/arm64/kernel/kuser32.S                   |  65 +--
+ arch/arm64/kernel/signal32.c                  |  76 +--
+ arch/arm64/kernel/sigreturn32.S               |  46 ++
+ arch/arm64/kernel/vdso.c                      | 498 +++++++++++++-----
+ arch/arm64/kernel/vdso/Makefile               |  28 +-
+ arch/arm64/kernel/vdso/gettimeofday.S         | 328 ------------
+ arch/arm64/kernel/vdso/vgettimeofday.c        |  28 +
+ arch/arm64/kernel/vdso32/.gitignore           |   2 +
+ arch/arm64/kernel/vdso32/Makefile             | 184 +++++++
+ arch/arm64/kernel/vdso32/note.c               |  15 +
+ arch/arm64/kernel/vdso32/sigreturn.S          |  62 +++
+ arch/arm64/kernel/vdso32/vdso.S               |  19 +
+ arch/arm64/kernel/vdso32/vdso.lds.S           |  81 +++
+ arch/arm64/kernel/vdso32/vgettimeofday.c      |  41 ++
+ arch/mips/Kconfig                             |   3 +
+ arch/mips/include/asm/clocksource.h           |   1 +
+ arch/mips/include/asm/vdso.h                  |  60 +--
+ arch/mips/include/asm/vdso/gettimeofday.h     | 168 ++++++
+ arch/mips/{ => include/asm}/vdso/vdso.h       |   6 +-
+ arch/mips/kernel/csrc-r4k.c                   |   4 +-
+ arch/mips/kernel/vdso.c                       | 103 +++-
+ arch/mips/vdso/Makefile                       |  23 +-
+ arch/mips/vdso/elf.S                          |   2 +-
+ arch/mips/vdso/gettimeofday.c                 | 273 ----------
+ arch/mips/vdso/sigreturn.S                    |   2 +-
+ arch/mips/vdso/vdso.lds.S                     |   1 +
+ arch/mips/vdso/vgettimeofday.c                |  28 +
+ drivers/clocksource/mips-gic-timer.c          |   5 +-
+ include/vdso/datapage.h                       |  61 +++
+ include/vdso/helpers.h                        |  58 ++
+ include/vdso/types.h                          |  39 ++
+ lib/Kconfig                                   |   5 +
+ lib/vdso/Kconfig                              |  41 ++
+ lib/vdso/Makefile                             |  22 +
+ lib/vdso/gettimeofday.c                       | 192 +++++++
+ 57 files changed, 2253 insertions(+), 1303 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/arm/vdso/note.c
+ create mode 100644 arch/arm64/include/asm/vdso/compat_barrier.h
+ create mode 100644 arch/arm64/include/asm/vdso/compat_gettimeofday.h
+ create mode 100644 arch/arm64/include/asm/vdso/gettimeofday.h
+ delete mode 100644 arch/arm64/include/asm/vdso_datapage.h
+ create mode 100644 arch/arm64/kernel/sigreturn32.S
+ delete mode 100644 arch/arm64/kernel/vdso/gettimeofday.S
+ create mode 100644 arch/arm64/kernel/vdso/vgettimeofday.c
+ create mode 100644 arch/arm64/kernel/vdso32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso32/note.c
+ create mode 100644 arch/arm64/kernel/vdso32/sigreturn.S
+ create mode 100644 arch/arm64/kernel/vdso32/vdso.S
+ create mode 100644 arch/arm64/kernel/vdso32/vdso.lds.S
+ create mode 100644 arch/arm64/kernel/vdso32/vgettimeofday.c
+ create mode 100644 arch/mips/include/asm/vdso/gettimeofday.h
+ rename arch/mips/{ => include/asm}/vdso/vdso.h (90%)
+ delete mode 100644 arch/mips/vdso/gettimeofday.c
+ create mode 100644 arch/mips/vdso/vgettimeofday.c
+ create mode 100644 include/vdso/datapage.h
+ create mode 100644 include/vdso/helpers.h
+ create mode 100644 include/vdso/types.h
+ create mode 100644 lib/vdso/Kconfig
+ create mode 100644 lib/vdso/Makefile
+ create mode 100644 lib/vdso/gettimeofday.c
+
+-- 
+2.19.2
