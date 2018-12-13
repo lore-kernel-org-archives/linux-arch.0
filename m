@@ -1,70 +1,105 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Thu, 13 Dec 2018 10:49:49 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.1812131026570.1586-100000@iolanthe.rowland.org>
-References: <20181212224931.GD4170@linux.ibm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 01/24] kernel: Standardize vdso_datapage
+Date: Thu, 13 Dec 2018 16:57:23 +0000
+Message-ID: <20181213165746.56930-2-vincenzo.frascino@arm.com>
+References: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181212224931.GD4170@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20181213165746.56930-1-vincenzo.frascino@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 12 Dec 2018, Paul E. McKenney wrote:
+In an effort to unify the common code for managing the vdso library in
+between all the architectures that support it, this patch tries to
+provide a common format for the vdso datapage.
 
-> > Well, what are you trying to accomplish?  Do you want to find an 
-> > argument similar to the one I posted for the 6-CPU test to show that 
-> > this test should be forbidden?
-> 
-> I am trying to check odd corner cases.  Your sys_membarrier() model
-> is quite nice and certainly fits nicely with the rest of the model,
-> but where I come from, that is actually reason for suspicion.  ;-)
-> 
-> All kidding aside, your argument for the 6-CPU test was extremely
-> valuable, as it showed me a way to think of that test from an
-> implementation viewpoint.  Then the question is whether or not that
-> viewpoint actually matches the model, which seems to be the case thus far.
+As a result of this, this patch generalized the data structures in vgtod.h
+from x86 private includes to general includes (include/vdso).
 
-It should, since I formulated the reasoning behind that viewpoint 
-directly from the model.  The basic idea is this:
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/vdso/datapage.h | 60 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 include/vdso/datapage.h
 
-	By induction, show that whenever we have A ->rcu-fence B then
-	anything po-before A executes before anything po-after B, and
-	furthermore, any write which propagates to A's CPU before A
-	executes will propagate to every CPU before B finishes (i.e.,
-	before anything po-after B executes).
-
-	Using this, show that whenever X ->rb Y holds then X must
-	execute before Y.
-
-That's what the 6-CPU argument did.  In that litmus test we have
-mb2 ->rcu-fence mb23, Rc ->rb Re, mb1 ->rcu-fence mb14, Rb ->rb Rf,
-mb0 ->rcu-fence mb05, and lastly Ra ->rb Ra.  The last one is what 
-shows that the test is forbidden.
-
-> A good next step would be to automatically generate random tests along
-> with an automatically generated prediction, like I did for RCU a few
-> years back.  I should be able to generalize my time-based cheat for RCU to
-> also cover SRCU, though sys_membarrier() will require a bit more thought.
-> (The time-based cheat was to have fixed duration RCU grace periods and
-> RCU read-side critical sections, with the grace period duration being
-> slightly longer than that of the critical sections.  The number of
-> processes is of course limited by the chosen durations, but that limit
-> can easily be made insanely large.)
-
-Imagine that each sys_membarrier call takes a fixed duration and each 
-other instruction takes slightly less (the idea being that each 
-instruction is a critical section).  Instructions can be reordered 
-(although not across a sys_membarrier call), but no matter how the 
-reordering is done, the result is disallowed.
-
-> I guess that I still haven't gotten over being a bit surprised that the
-> RCU counting rule also applies to sys_membarrier().  ;-)
-
-Why not?  They are both synchronization mechanisms with heavy-weight
-write sides and light-weight read sides, and most importantly, they
-provide the same Guarantee.
-
-Alan
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+new file mode 100644
+index 000000000000..e88678f918e5
+--- /dev/null
++++ b/include/vdso/datapage.h
+@@ -0,0 +1,60 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_DATAPAGE_H
++#define __VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <linux/bits.h>
++#include <linux/types.h>
++#include <linux/time.h>
++
++#define VDSO_BASES	(CLOCK_TAI + 1)
++#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
++			 BIT(CLOCK_MONOTONIC)		| \
++			 BIT(CLOCK_MONOTONIC_RAW)	| \
++			 BIT(CLOCK_BOOTTIME)		| \
++			 BIT(CLOCK_TAI))
++#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
++			 BIT(CLOCK_MONOTONIC_COARSE))
++
++/*
++ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
++ * clock_id. For high-resolution clocks, this encodes the time
++ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
++ * the actual time.
++ *
++ * To be noticed that nsec is left-shifted by vdso_data.shift.
++ */
++struct vdso_timestamp {
++	u64 sec;
++	u64 nsec;
++};
++
++/*
++ * vdso_data will be accessed by 32 and 64 bit code at the same time
++ * so we should be careful before modifying this structure.
++ */
++struct vdso_data {
++	u32 seq;		/* Timebase sequence counter */
++
++	s32 clock_mode;
++	u64 cycle_last;		/* Timebase at clocksource init */
++	u64 mask;		/* Clocksource mask (mono = raw) */
++	u32 mult;		/* Clocksource multiplier */
++	u32 shift;		/* Clocksource shift (mono = raw) */
++
++	struct vdso_timestamp basetime[VDSO_BASES];
++
++	s32 tz_minuteswest;	/* Timezone definitions */
++	s32 tz_dsttime;
++	u32 use_syscall;
++	u32 __reserved;
++};
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __VDSO_DATAPAGE_H */
+-- 
+2.19.2
