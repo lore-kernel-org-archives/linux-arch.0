@@ -1,11 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 00/24] Unify vDSOs across more architectures
-Date: Thu, 13 Dec 2018 16:57:22 +0000
-Message-ID: <20181213165746.56930-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 02/24] kernel: Define gettimeofday vdso common code
+Date: Thu, 13 Dec 2018 16:57:24 +0000
+Message-ID: <20181213165746.56930-3-vincenzo.frascino@arm.com>
+References: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,197 +21,439 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-vDSO (virtual dynamic shared object) is a mechanism that the Linux
-kernel provides as an alternative to system calls to reduce where
-possible the costs in terms of cycles.
-This is possible because certain syscalls like gettimeofday() do
-not write any data and return one or more values that are stored
-in the kernel, which makes relatively safe calling them directly
-as a library function.
+In the last few years we assisted to an explosion of vdso
+implementations that mostly share similar code.
 
-Even if the mechanism is pretty much standard, every architecture
-in the last few years ended up implementing their own vDSO library
-in the architectural code.
+This patch tries to unify the gettimeofday vdso implementation
+introducing lib/vdso. The code contained in this library can
+ideally be reused by all the architectures avoiding, where
+possible, code duplication.
 
-The purpose of this patch-set is to identify the commonalities in
-between the architectures and try to consolidate the common code
-paths, starting with gettimeofday().
+In doing so, tries to maintain the performances using inlining
+as much as possible and consequently reduces the surface for
+ROP type of attacks.
 
-This implementation contains the following design choices:
- * Every architecture defines the arch specific code in an header in
-   "asm/vdso/".
- * The generic implementation includes the arch specific one and lives
-   in "lib/vdso".
- * The arch specific code for gettimeofday lives in
-   "<arch path>/vdso/gettimeofday.c" and includes the generic code only.
- * This approach allows to consolidate the common code in a single place
-   with the benefit of avoiding code duplication.
-
-This implementation contains the portings to the common library for: arm64,
-compat mode for arm64, arm and mips.
-
-The mips porting has been tested on qemu for mips32el. A configuration to
-repeat the tests can be found at [4].
-
-Last but not least from this porting arm64, compat arm64, arm and mips gain
-the support for:
- * CLOCK_BOOTTIME that can be useful in certain scenarios since it keeps
-   track of the time during sleep as well.
- * CLOCK_TAI that is like CLOCK_REALTIME, but uses the International
-   Atomic Time (TAI) reference instead of UTC to avoid jumping on leap
-   second updates.
-for both clock_gettime and clock_getres.
-
-The porting has been validated using the vdsotest test-suite [1] extended
-to cover all the clock ids [2].
-
-To simplify the testing, a copy of the patchset on top of a recent linux tree
-can be found at [3] and [4].
-
-[1] https://github.com/nlynch-mentor/vdsotest
-[2] https://github.com/fvincenzo/vdsotest
-[3] git://linux-arm.org/linux-vf.git vdso/v3
-[4] git://linux-arm.org/linux-vf.git vdso-mips/v3
-
-Changes:
---------
-v3:
-  - Ported the latest fixes and optimizations done on the x86
-    architecture to the generic library.
-  - Addressed review comments.
-  - Improved the documentation of the interfaces.
-  - Changed the HAVE_ARCH_TIMER config option to a more generic
-    HAVE_HW_COUNTER.
-v2:
-  - Added -ffixed-x18 to arm64
-  - Repleced occurrences of timeval and timespec
-  - Modified datapage.h to be compliant with y2038 on all the architectures
-  - Removed __u_vdso type
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Salyzyn <salyzyn@android.com>
-Cc: Peter Collingbourne <pcc@google.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Peter Collingbourne (1):
-  arm64: Build vDSO with -ffixed-x18
-
-Vincenzo Frascino (23):
-  kernel: Standardize vdso_datapage
-  kernel: Define gettimeofday vdso common code
-  arm64: Substitute gettimeofday with C implementation
-  arm64: compat: Alloc separate pages for vectors and sigpage
-  arm64: compat: Split kuser32
-  arm64: compat: Refactor aarch32_alloc_vdso_pages()
-  arm64: compat: Add KUSER_HELPERS config option
-  arm64: compat: Add missing syscall numbers
-  arm64: compat: Expose signal related structures
-  arm64: compat: Generate asm offsets for signals
-  lib: vdso: Add compat support
-  arm64: compat: Add vDSO
-  arm64: Refactor vDSO code
-  arm64: compat: vDSO setup for compat layer
-  arm64: elf: vDSO code page discovery
-  arm64: compat: Get sigreturn trampolines from vDSO
-  arm64: Add vDSO compat support
-  arm64: Enable compat vDSO support
-  arm: Add support for generic vDSO
-  mips: Introduce vdso_direct
-  clock: csrc-4k: Add support for vdso_direct
-  clock: gic-timer: Add support for vdso_direct
-  mips: Add support for generic vDSO
-
- arch/arm/Kconfig                              |   4 +
- arch/arm/include/asm/vdso/gettimeofday.h      |  85 +++
- arch/arm/include/asm/vdso_datapage.h          |  25 +-
- arch/arm/kernel/vdso.c                        | 100 ++--
- arch/arm/vdso/Makefile                        |  13 +-
- arch/arm/vdso/note.c                          |  15 +
- arch/arm/vdso/vdso.lds.S                      |   1 +
- arch/arm/vdso/vgettimeofday.c                 | 267 +---------
- arch/arm64/Kconfig                            |  25 +
- arch/arm64/Makefile                           |  21 +-
- arch/arm64/configs/defconfig                  |   1 +
- arch/arm64/include/asm/elf.h                  |  20 +-
- arch/arm64/include/asm/processor.h            |   4 +-
- arch/arm64/include/asm/signal32.h             |  58 +-
- arch/arm64/include/asm/unistd.h               |   3 +
- arch/arm64/include/asm/vdso.h                 |   3 +
- arch/arm64/include/asm/vdso/compat_barrier.h  |  36 ++
- .../include/asm/vdso/compat_gettimeofday.h    | 122 +++++
- arch/arm64/include/asm/vdso/gettimeofday.h    |  88 ++++
- arch/arm64/include/asm/vdso_datapage.h        |  47 --
- arch/arm64/kernel/Makefile                    |   7 +-
- arch/arm64/kernel/asm-offsets.c               |  41 +-
- arch/arm64/kernel/kuser32.S                   |  65 +--
- arch/arm64/kernel/signal32.c                  |  76 +--
- arch/arm64/kernel/sigreturn32.S               |  46 ++
- arch/arm64/kernel/vdso.c                      | 498 +++++++++++++-----
- arch/arm64/kernel/vdso/Makefile               |  28 +-
- arch/arm64/kernel/vdso/gettimeofday.S         | 328 ------------
- arch/arm64/kernel/vdso/vgettimeofday.c        |  28 +
- arch/arm64/kernel/vdso32/.gitignore           |   2 +
- arch/arm64/kernel/vdso32/Makefile             | 184 +++++++
- arch/arm64/kernel/vdso32/note.c               |  15 +
- arch/arm64/kernel/vdso32/sigreturn.S          |  62 +++
- arch/arm64/kernel/vdso32/vdso.S               |  19 +
- arch/arm64/kernel/vdso32/vdso.lds.S           |  81 +++
- arch/arm64/kernel/vdso32/vgettimeofday.c      |  41 ++
- arch/mips/Kconfig                             |   3 +
- arch/mips/include/asm/clocksource.h           |   1 +
- arch/mips/include/asm/vdso.h                  |  60 +--
- arch/mips/include/asm/vdso/gettimeofday.h     | 168 ++++++
- arch/mips/{ => include/asm}/vdso/vdso.h       |   6 +-
- arch/mips/kernel/csrc-r4k.c                   |   4 +-
- arch/mips/kernel/vdso.c                       | 103 +++-
- arch/mips/vdso/Makefile                       |  23 +-
- arch/mips/vdso/elf.S                          |   2 +-
- arch/mips/vdso/gettimeofday.c                 | 273 ----------
- arch/mips/vdso/sigreturn.S                    |   2 +-
- arch/mips/vdso/vdso.lds.S                     |   1 +
- arch/mips/vdso/vgettimeofday.c                |  28 +
- drivers/clocksource/mips-gic-timer.c          |   5 +-
- include/vdso/datapage.h                       |  61 +++
- include/vdso/helpers.h                        |  58 ++
- include/vdso/types.h                          |  39 ++
- lib/Kconfig                                   |   5 +
- lib/vdso/Kconfig                              |  41 ++
- lib/vdso/Makefile                             |  22 +
- lib/vdso/gettimeofday.c                       | 192 +++++++
- 57 files changed, 2253 insertions(+), 1303 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/gettimeofday.h
- create mode 100644 arch/arm/vdso/note.c
- create mode 100644 arch/arm64/include/asm/vdso/compat_barrier.h
- create mode 100644 arch/arm64/include/asm/vdso/compat_gettimeofday.h
- create mode 100644 arch/arm64/include/asm/vdso/gettimeofday.h
- delete mode 100644 arch/arm64/include/asm/vdso_datapage.h
- create mode 100644 arch/arm64/kernel/sigreturn32.S
- delete mode 100644 arch/arm64/kernel/vdso/gettimeofday.S
- create mode 100644 arch/arm64/kernel/vdso/vgettimeofday.c
- create mode 100644 arch/arm64/kernel/vdso32/.gitignore
- create mode 100644 arch/arm64/kernel/vdso32/Makefile
- create mode 100644 arch/arm64/kernel/vdso32/note.c
- create mode 100644 arch/arm64/kernel/vdso32/sigreturn.S
- create mode 100644 arch/arm64/kernel/vdso32/vdso.S
- create mode 100644 arch/arm64/kernel/vdso32/vdso.lds.S
- create mode 100644 arch/arm64/kernel/vdso32/vgettimeofday.c
- create mode 100644 arch/mips/include/asm/vdso/gettimeofday.h
- rename arch/mips/{ => include/asm}/vdso/vdso.h (90%)
- delete mode 100644 arch/mips/vdso/gettimeofday.c
- create mode 100644 arch/mips/vdso/vgettimeofday.c
- create mode 100644 include/vdso/datapage.h
+---
+ include/vdso/datapage.h |   1 +
+ include/vdso/helpers.h  |  58 +++++++++++++
+ include/vdso/types.h    |  39 +++++++++
+ lib/Kconfig             |   5 ++
+ lib/vdso/Kconfig        |  41 +++++++++
+ lib/vdso/Makefile       |  22 +++++
+ lib/vdso/gettimeofday.c | 188 ++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 354 insertions(+)
  create mode 100644 include/vdso/helpers.h
  create mode 100644 include/vdso/types.h
  create mode 100644 lib/vdso/Kconfig
  create mode 100644 lib/vdso/Makefile
  create mode 100644 lib/vdso/gettimeofday.c
 
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index e88678f918e5..bdc9648720eb 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -9,6 +9,7 @@
+ #include <linux/bits.h>
+ #include <linux/types.h>
+ #include <linux/time.h>
++#include <vdso/types.h>
+ 
+ #define VDSO_BASES	(CLOCK_TAI + 1)
+ #define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
+diff --git a/include/vdso/helpers.h b/include/vdso/helpers.h
+new file mode 100644
+index 000000000000..66ec7f6b459d
+--- /dev/null
++++ b/include/vdso/helpers.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_HELPERS_H
++#define __VDSO_HELPERS_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <vdso/datapage.h>
++
++/*
++ * To improve performances, in this file, __always_inline it is used
++ * for the functions called multiple times.
++ */
++static __always_inline notrace u32 vdso_read_begin(const struct vdso_data *vd)
++{
++	u32 seq;
++
++repeat:
++	/* Trying to access concurrent shared memory */
++	seq = READ_ONCE(vd->seq);
++	if (seq & 1) {
++		cpu_relax();
++		goto repeat;
++	}
++
++	smp_rmb();
++	return seq;
++}
++
++static __always_inline notrace u32 vdso_read_retry(const struct vdso_data *vd,
++						   u32 start)
++{
++	u32 seq;
++
++	smp_rmb();
++	/* Trying to access concurrent shared memory */
++	seq = READ_ONCE(vd->seq);
++	return seq != start;
++}
++
++static __always_inline notrace void vdso_write_begin(struct vdso_data *vd)
++{
++	++vd->seq;
++	smp_wmb();
++}
++
++static __always_inline notrace void vdso_write_end(struct vdso_data *vd)
++{
++	smp_wmb();
++	++vd->seq;
++}
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __VDSO_HELPERS_H */
+diff --git a/include/vdso/types.h b/include/vdso/types.h
+new file mode 100644
+index 000000000000..f456a0a6a2e1
+--- /dev/null
++++ b/include/vdso/types.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_TYPES_H
++#define __VDSO_TYPES_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <linux/types.h>
++#include <linux/time.h>
++
++/*
++ * The definitions below are required to overcome the limitations
++ * of time_t on 32 bit architectures, which overflows in 2038.
++ * The new code should use the replacements based on time64_t and
++ * timespec64.
++ *
++ * The abstraction below will be updated once the migration to
++ * time64_t is complete.
++ */
++#ifdef CONFIG_GENERIC_VDSO_32
++#define __vdso_timespec		old_timespec32
++#define __vdso_timeval		old_timeval32
++#else
++#ifdef ENABLE_COMPAT_VDSO
++#define __vdso_timespec		old_timespec32
++#define __vdso_timeval		old_timeval32
++#else
++#define __vdso_timespec		__kernel_timespec
++#define __vdso_timeval		__kernel_old_timeval
++#endif /* CONFIG_COMPAT_VDSO */
++#endif /* CONFIG_GENERIC_VDSO_32 */
++
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __VDSO_TYPES_H */
+diff --git a/lib/Kconfig b/lib/Kconfig
+index a9965f4af4dd..38a048e514a2 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -557,6 +557,11 @@ config OID_REGISTRY
+ config UCS2_STRING
+         tristate
+ 
++#
++# generic vdso
++#
++source "lib/vdso/Kconfig"
++
+ source "lib/fonts/Kconfig"
+ 
+ config SG_SPLIT
+diff --git a/lib/vdso/Kconfig b/lib/vdso/Kconfig
+new file mode 100644
+index 000000000000..55c453b95dcd
+--- /dev/null
++++ b/lib/vdso/Kconfig
+@@ -0,0 +1,41 @@
++# SPDX-License-Identifier: GPL-2.0
++
++config HAVE_GENERIC_VDSO
++	bool
++	default n
++
++if HAVE_GENERIC_VDSO
++
++config GENERIC_GETTIMEOFDAY
++	bool
++	help
++	  This is a generic implementation of gettimeofday vdso.
++	  Each architecture that enables this feature has to
++	  provide the fallback implementation.
++
++config GENERIC_VDSO_32
++	bool
++	depends on GENERIC_GETTIMEOFDAY && !64BIT
++	help
++	  This config option helps to avoid possible performance issues
++	  in 32 bit only architectures.
++
++config HAVE_HW_COUNTER
++	bool
++	depends on GENERIC_GETTIMEOFDAY
++	help
++	  Select this configuration option if the architecture has an arch
++	  timer.
++
++config GENERIC_COMPAT_VDSO
++	bool
++	help
++	  This config option enables the compat VDSO layer.
++
++config CROSS_COMPILE_COMPAT_VDSO
++	string "32 bit Toolchain prefix for compat vDSO"
++	depends on GENERIC_COMPAT_VDSO
++	help
++	  Defines the cross-compiler prefix for compiling compat vDSO.
++
++endif
+diff --git a/lib/vdso/Makefile b/lib/vdso/Makefile
+new file mode 100644
+index 000000000000..c415a685d61b
+--- /dev/null
++++ b/lib/vdso/Makefile
+@@ -0,0 +1,22 @@
++# SPDX-License-Identifier: GPL-2.0
++
++GENERIC_VDSO_MK_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
++GENERIC_VDSO_DIR := $(dir $(GENERIC_VDSO_MK_PATH))
++
++c-gettimeofday-$(CONFIG_GENERIC_GETTIMEOFDAY) := $(addprefix $(GENERIC_VDSO_DIR), gettimeofday.c)
++
++# This cmd checks that the vdso library does not contain absolute relocation
++# It has to be called after the linking of the vdso library and requires it
++# as a parameter.
++#
++# $(ARCH_REL_TYPE_ABS) is defined in the arch specific makefile and corresponds
++# to the absolute relocation types printed by "objdump -R" and accepted by the
++# dynamic linker.
++ifndef ARCH_REL_TYPE_ABS
++$(error ARCH_REL_TYPE_ABS is not set)
++endif
++
++quiet_cmd_vdso_check = VDSOCHK $@
++      cmd_vdso_check = if $(OBJDUMP) -R $@ | egrep -h "$(ARCH_REL_TYPE_ABS)"; \
++		       then (echo >&2 "$@: dynamic relocations are not supported"; \
++			     rm -f $@; /bin/false); fi
+diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+new file mode 100644
+index 000000000000..30010d25bf5b
+--- /dev/null
++++ b/lib/vdso/gettimeofday.c
+@@ -0,0 +1,188 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Generic userspace implementations of gettimeofday() and similar.
++ *
++ * Copyright (C) 2018 ARM Limited
++ * Copyright (C) 2017 Cavium, Inc.
++ * Copyright (C) 2015 Mentor Graphics Corporation
++ *
++ */
++#include <linux/compiler.h>
++#include <linux/math64.h>
++#include <linux/time.h>
++#include <linux/kernel.h>
++#include <linux/uaccess.h>
++#include <linux/hrtimer.h>
++#include <vdso/datapage.h>
++#include <vdso/helpers.h>
++
++/*
++ * The generic vDSO implementation requires that gettimeofday.h
++ * provides:
++ * - __arch_get_vdso_data(): to get the vdso datapage.
++ * - __arch_get_hw_counter(): to get the hw counter based on the
++ *   clock_mode.
++ * - __arch_get_realtime_res(): to get the correct realtime res.
++ * - __arch_get_coarse_res(): to get the correct coarse res.
++ * - gettimeofday_fallback(): fallback for gettimeofday.
++ * - clock_gettime_fallback(): fallback for clock_gettime.
++ * - clock_getres_fallback(): fallback for clock_getres.
++ */
++#include <asm/vdso/gettimeofday.h>
++
++#ifdef CONFIG_HAVE_HW_COUNTER
++static notrace int do_hres(const struct vdso_data *vd,
++			   clockid_t clk,
++			   struct __vdso_timespec *ts)
++{
++	const struct vdso_timestamp *vdso_ts = &vd->basetime[clk];
++	u64 cycles, last, sec, ns;
++	u32 seq;
++
++	if (vd->use_syscall)
++		return -1;
++
++	do {
++		seq = vdso_read_begin(vd);
++		cycles = __arch_get_hw_counter(vd->clock_mode) & vd->mask;
++		ns = vdso_ts->nsec;
++		last = vd->cycle_last;
++		if (unlikely((s64)cycles < 0))
++			return clock_gettime_fallback(clk, ts);
++		if (cycles > last)
++			ns += (cycles - last) * vd->mult;
++		ns >>= vd->shift;
++		sec = vdso_ts->sec;
++	} while (unlikely(vdso_read_retry(vd, seq)));
++
++	ts->tv_sec = sec + __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
++	ts->tv_nsec = ns;
++
++	return 0;
++}
++#else
++static notrace int do_hres(const struct vdso_data *vd,
++			   clockid_t clk,
++			   struct __vdso_timespec *ts)
++{
++	return -1;
++}
++#endif
++
++static notrace void do_coarse(const struct vdso_data *vd,
++			      clockid_t clk,
++			      struct __vdso_timespec *ts)
++{
++	const struct vdso_timestamp *vdso_ts = &vd->basetime[clk];
++	u32 seq;
++
++	do {
++		seq = vdso_read_begin(vd);
++		ts->tv_sec = vdso_ts->sec;
++		ts->tv_nsec = vdso_ts->nsec;
++	} while (unlikely(vdso_read_retry(vd, seq)));
++}
++
++static notrace int __cvdso_clock_gettime(clockid_t clock,
++					 struct __vdso_timespec *ts)
++{
++	const struct vdso_data *vd = __arch_get_vdso_data();
++	u32 msk;
++
++	/* Check for negative values or invalid clocks */
++	if (unlikely((u32) clock >= MAX_CLOCKS))
++		goto fallback;
++
++	/*
++	 * Convert the clockid to a bitmask and use it to check which
++	 * clocks are handled in the VDSO directly.
++	 */
++	msk = 1U << clock;
++	if (likely(msk & VDSO_HRES)) {
++		return do_hres(vd, clock, ts);
++	} else if (msk & VDSO_COARSE) {
++		do_coarse(vd, clock, ts);
++		return 0;
++	}
++fallback:
++	return clock_gettime_fallback(clock, ts);
++}
++
++static notrace int __cvdso_gettimeofday(struct __vdso_timeval *tv,
++					struct timezone *tz)
++{
++	const struct vdso_data *vd = __arch_get_vdso_data();
++
++	if (likely(tv != NULL)) {
++		struct __vdso_timespec ts;
++
++		if (do_hres(vd, CLOCK_REALTIME, &ts))
++			return gettimeofday_fallback(tv, tz);
++
++		tv->tv_sec = ts.tv_sec;
++		tv->tv_usec = ts.tv_nsec / 1000;
++	}
++
++	if (unlikely(tz != NULL)) {
++		tz->tz_minuteswest = vd->tz_minuteswest;
++		tz->tz_dsttime = vd->tz_dsttime;
++	}
++
++	return 0;
++}
++
++#ifdef VDSO_HAS_TIME
++static notrace time_t __cvdso_time(time_t *time)
++{
++	u32 seq;
++	time_t t;
++	const struct vdso_data *vd = __arch_get_vdso_data();
++	struct vdso_timestamp *vdso_ts = &vd->basetime[CLOCK_REALTIME];
++
++repeat:
++	seq = vdso_read_begin(vd);
++
++	t = vdso_ts->sec;
++
++	if (unlikely(vdso_read_retry(vd, seq)))
++		goto repeat;
++
++	if (unlikely(time != NULL))
++		*time = t;
++
++	return t;
++}
++#endif /* VDSO_HAS_TIME */
++
++static notrace int __cvdso_clock_getres(clockid_t clock,
++					struct __vdso_timespec *res)
++{
++	u64 ns;
++	u32 msk;
++
++	/* Check for negative values or invalid clocks */
++	if (unlikely((u32) clock >= MAX_CLOCKS))
++		goto fallback;
++
++	/*
++	 * Convert the clockid to a bitmask and use it to check which
++	 * clocks are handled in the VDSO directly.
++	 */
++	msk = 1U << clock;
++	if (msk & VDSO_HRES)
++		ns = __arch_get_realtime_res(clock);
++	else if (msk & VDSO_COARSE)
++		ns = __arch_get_coarse_res(clock);
++	else
++		goto fallback;
++
++	if (res) {
++		res->tv_sec = 0;
++		res->tv_nsec = ns;
++	}
++
++	return 0;
++
++fallback:
++	return clock_getres_fallback(clock, res);
++}
 -- 
 2.19.2
