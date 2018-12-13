@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 21/24] mips: Introduce vdso_direct
-Date: Thu, 13 Dec 2018 16:57:43 +0000
-Message-ID: <20181213165746.56930-22-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 23/24] clock: gic-timer: Add support for vdso_direct
+Date: Thu, 13 Dec 2018 16:57:45 +0000
+Message-ID: <20181213165746.56930-24-vincenzo.frascino@arm.com>
 References: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,33 +21,33 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-vdso_direct is an architectural clock configuration parameter that
-exposes the usage of not of the vDSO.
+This patch is a consequence of the introduction of vdso_direct on
+mips architectures.
 
-If vdso_direct is false, the time related syscalls will be used instead
-of the vDSO library.
+If the clock source is selected, vdso_direct is set to true.
 
-This patch introduces the parameter in the mips architecture to prepare
-the ground for the support of the generic vDSO library.
-
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/include/asm/clocksource.h | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/clocksource/mips-gic-timer.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/clocksource.h b/arch/mips/include/asm/clocksource.h
-index 3deb1d0c1a94..eab11ee4871a 100644
---- a/arch/mips/include/asm/clocksource.h
-+++ b/arch/mips/include/asm/clocksource.h
-@@ -23,6 +23,7 @@
-  * @vdso_clock_mode: Method the VDSO should use to access the clocksource.
-  */
- struct arch_clocksource_data {
-+	bool vdso_direct;
- 	u8 vdso_clock_mode;
+diff --git a/drivers/clocksource/mips-gic-timer.c b/drivers/clocksource/mips-gic-timer.c
+index 54f8a331b53a..e7e0789084cd 100644
+--- a/drivers/clocksource/mips-gic-timer.c
++++ b/drivers/clocksource/mips-gic-timer.c
+@@ -158,7 +158,10 @@ static struct clocksource gic_clocksource = {
+ 	.name		= "GIC",
+ 	.read		= gic_hpt_read,
+ 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+-	.archdata	= { .vdso_clock_mode = VDSO_CLOCK_GIC },
++	.archdata	= {
++			    .vdso_direct = true,
++			    .vdso_clock_mode = VDSO_CLOCK_GIC
++			  },
  };
  
+ static int __init __gic_clocksource_init(void)
 -- 
 2.19.2
