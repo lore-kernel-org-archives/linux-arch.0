@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 2/7] mips: remove unused macros
-Date: Thu, 13 Dec 2018 14:37:34 +0530
-Message-ID: <1544692059-9728-3-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v5 3/7] mips: rename macros and files from '64' to 'n64'
+Date: Thu, 13 Dec 2018 14:37:35 +0530
+Message-ID: <1544692059-9728-4-git-send-email-firoz.khan@linaro.org>
 References: <1544692059-9728-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1544692059-9728-1-git-send-email-firoz.khan@linaro.org>
@@ -10,96 +10,82 @@ To: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton 
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Remove NR_syscalls from asm/unistd.h as there is no
-users to use NR_syscalls macro in mips kernel.
+When we get nanoMIPS support we'll be introducing the p32
+ABI, and there's a reasonable chance that the equivalent
+p64 ABI may come along in the future. Using 'n64' now would
+avoid confusion in that case where we may have 2 different
+64-bit ABIs.
 
-Remove __NR_Linux_syscalls from uapi/asm/unistd.h as
-there is no users to use NR_syscalls macro in mips
-kernel.
-
-MAX_SYSCALL_NO can also remove as there is commit
-2957c9e61ee9 ("[MIPS] IRIX: Goodbye and thanks for
-all the fish"), eight years ago.
-
+Suggested-by: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/include/asm/unistd.h      |  8 --------
- arch/mips/include/uapi/asm/unistd.h | 15 ---------------
- arch/mips/kernel/scall32-o32.S      |  3 ---
- 3 files changed, 26 deletions(-)
+ arch/mips/include/uapi/asm/unistd.h              | 4 ++--
+ arch/mips/kernel/Makefile                        | 2 +-
+ arch/mips/kernel/ftrace.c                        | 4 ++--
+ arch/mips/kernel/{scall64-64.S => scall64-n64.S} | 4 ++--
+ 4 files changed, 7 insertions(+), 7 deletions(-)
+ rename arch/mips/kernel/{scall64-64.S => scall64-n64.S} (99%)
 
-diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
-index c68b8ae..d7ee846 100644
---- a/arch/mips/include/asm/unistd.h
-+++ b/arch/mips/include/asm/unistd.h
-@@ -14,14 +14,6 @@
- 
- #include <uapi/asm/unistd.h>
- 
--#ifdef CONFIG_MIPS32_N32
--#define NR_syscalls  (__NR_N32_Linux + __NR_N32_Linux_syscalls)
--#elif defined(CONFIG_64BIT)
--#define NR_syscalls  (__NR_64_Linux + __NR_64_Linux_syscalls)
--#else
--#define NR_syscalls  (__NR_O32_Linux + __NR_O32_Linux_syscalls)
--#endif
--
- #ifndef __ASSEMBLY__
- 
- #define __ARCH_WANT_NEW_STAT
 diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index 6914be5..c897195 100644
+index c897195..baea6e4 100644
 --- a/arch/mips/include/uapi/asm/unistd.h
 +++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -395,11 +395,6 @@
- #define __NR_syscalls			368
- #endif
+@@ -742,8 +742,8 @@
  
--/*
-- * Offset of the last Linux o32 flavoured syscall
-- */
--#define __NR_Linux_syscalls		__NR_syscalls
--
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
-@@ -745,11 +740,6 @@
- #define __NR_syscalls			328
- #endif
- 
--/*
-- * Offset of the last Linux 64-bit flavoured syscall
-- */
--#define __NR_Linux_syscalls		__NR_syscalls
--
  #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
  
- #define __NR_64_Linux			5000
-@@ -1099,11 +1089,6 @@
- #define __NR_syscalls			332
+-#define __NR_64_Linux			5000
+-#define __NR_64_Linux_syscalls		328
++#define __NR_N64_Linux			5000
++#define __NR_N64_Linux_syscalls		328
+ 
+ #if _MIPS_SIM == _MIPS_SIM_NABI32
+ 
+diff --git a/arch/mips/kernel/Makefile b/arch/mips/kernel/Makefile
+index 210c280..25af613 100644
+--- a/arch/mips/kernel/Makefile
++++ b/arch/mips/kernel/Makefile
+@@ -72,7 +72,7 @@ obj-$(CONFIG_IRQ_GT641XX)	+= irq-gt641xx.o
+ 
+ obj-$(CONFIG_KPROBES)		+= kprobes.o
+ obj-$(CONFIG_32BIT)		+= scall32-o32.o
+-obj-$(CONFIG_64BIT)		+= scall64-64.o
++obj-$(CONFIG_64BIT)		+= scall64-n64.o
+ obj-$(CONFIG_MIPS32_COMPAT)	+= linux32.o ptrace32.o signal32.o
+ obj-$(CONFIG_MIPS32_N32)	+= binfmt_elfn32.o scall64-n32.o signal_n32.o
+ obj-$(CONFIG_MIPS32_O32)	+= binfmt_elfo32.o scall64-o32.o signal_o32.o
+diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
+index b122cbb..d91a6e7 100644
+--- a/arch/mips/kernel/ftrace.c
++++ b/arch/mips/kernel/ftrace.c
+@@ -403,8 +403,8 @@ unsigned long __init arch_syscall_addr(int nr)
+ 	if (nr >= __NR_N32_Linux && nr <= __NR_N32_Linux + __NR_N32_Linux_syscalls)
+ 		return (unsigned long)sysn32_call_table[nr - __NR_N32_Linux];
  #endif
+-	if (nr >= __NR_64_Linux  && nr <= __NR_64_Linux + __NR_64_Linux_syscalls)
+-		return (unsigned long)sys_call_table[nr - __NR_64_Linux];
++	if (nr >= __NR_N64_Linux  && nr <= __NR_N64_Linux + __NR_N64_Linux_syscalls)
++		return (unsigned long)sys_call_table[nr - __NR_N64_Linux];
+ #ifdef CONFIG_MIPS32_O32
+ 	if (nr >= __NR_O32_Linux && nr <= __NR_O32_Linux + __NR_O32_Linux_syscalls)
+ 		return (unsigned long)sys32_call_table[nr - __NR_O32_Linux];
+diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-n64.S
+similarity index 99%
+rename from arch/mips/kernel/scall64-64.S
+rename to arch/mips/kernel/scall64-n64.S
+index 358d959..497cd62 100644
+--- a/arch/mips/kernel/scall64-64.S
++++ b/arch/mips/kernel/scall64-n64.S
+@@ -53,8 +53,8 @@ NESTED(handle_sys64, PT_SIZE, sp)
+ 	bnez	t0, syscall_trace_entry
  
--/*
-- * Offset of the last N32 flavoured syscall
-- */
--#define __NR_Linux_syscalls		__NR_syscalls
--
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+ syscall_common:
+-	dsubu	t2, v0, __NR_64_Linux
+-	sltiu   t0, t2, __NR_64_Linux_syscalls + 1
++	dsubu	t2, v0, __NR_N64_Linux
++	sltiu   t0, t2, __NR_N64_Linux_syscalls + 1
+ 	beqz	t0, illegal_syscall
  
- #define __NR_N32_Linux			6000
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 91d3c8c..fea6edb 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -22,9 +22,6 @@
- #include <asm/war.h>
- #include <asm/asm-offsets.h>
- 
--/* Highest syscall used of any syscall flavour */
--#define MAX_SYSCALL_NO	__NR_O32_Linux + __NR_O32_Linux_syscalls
--
- 	.align	5
- NESTED(handle_sys, PT_SIZE, sp)
- 	.set	noat
+ 	dsll	t0, t2, 3		# offset into table
 -- 
 1.9.1
