@@ -1,55 +1,56 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 13 Dec 2018 10:47:18 +0100
-Message-ID: <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
-References: <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
- <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
- <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
- <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
- <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
- <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
- <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
- <20181212141556.GA4801@lst.de>
- <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
+Date: Thu, 13 Dec 2018 11:51:46 +0100
+Message-ID: <20181213105146.GH5289@hirez.programming.kicks-ass.net>
+References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181213091021.GA2106@lst.de>
-Content-Language: de-DE
+Content-Disposition: inline
+In-Reply-To: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Richard Biener <rguenther@suse.de>, Nadav Amit <namit@vmware.com>, Logan Gunthorpe <logang@deltatee.com>, Sedat Dilek <sedat.dilek@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Michal Marek <michal.lkml@markovi.net>, linux-sparse@vger.kernel.org, Alok Kataria <akataria@vmware.com>, Juergen Gross <jgross@suse.com>, Andy Lutomirski <luto@kernel.org>, linux-kbuild@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 13 December 2018 at 10:10AM, Christoph Hellwig wrote:
-> On Thu, Dec 13, 2018 at 09:41:50AM +0100, Christian Zigotzky wrote:
->> Today I tried the first patch (0001-get_required_mask.patch) with the last
->> good commit (977706f9755d2d697aa6f45b4f9f0e07516efeda). Unfortunately this
->> patch is already included in the last good commit
->> (977706f9755d2d697aa6f45b4f9f0e07516efeda). I will try the next patch.
-> Hmm, I don't think this is the case.  This is my local git log output:
->
-> commit 83a4b87de6bc6a75b500c9959de88e2157fbcd7c
-> Author: Christoph Hellwig <hch@lst.de>
-> Date:   Wed Dec 12 15:07:49 2018 +0100
->
->      get_required_mask
->
-> commit 977706f9755d2d697aa6f45b4f9f0e07516efeda
-> Author: Christoph Hellwig <hch@lst.de>
-> Date:   Sat Nov 10 22:34:27 2018 +0100
->
->      powerpc/dma: remove dma_nommu_mmap_coherent
->
-> I've also pushed a git branch with these out to:
->
->      git://git.infradead.org/users/hch/misc.git powerpc-dma.5-debug
->
-Sorry Christioph. I was wrong. The first patch isn't included in the 
-last good commit. I will try it again. I can only test beside my main 
-work. That means it takes longer.
+On Thu, Dec 13, 2018 at 06:17:41PM +0900, Masahiro Yamada wrote:
+> Revert the following commits:
+> 
+> - 5bdcd510c2ac9efaf55c4cbd8d46421d8e2320cd
+>   ("x86/jump-labels: Macrofy inline assembly code to work around GCC inlining bugs")
+> 
+> - d5a581d84ae6b8a4a740464b80d8d9cf1e7947b2
+>   ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
+> 
+> - 0474d5d9d2f7f3b11262f7bf87d0e7314ead9200.
+>   ("x86/extable: Macrofy inline assembly code to work around GCC inlining bugs")
+> 
+> - 494b5168f2de009eb80f198f668da374295098dd.
+>   ("x86/paravirt: Work around GCC inlining bugs when compiling paravirt ops")
+> 
+> - f81f8ad56fd1c7b99b2ed1c314527f7d9ac447c6.
+>   ("x86/bug: Macrofy the BUG table section handling, to work around GCC inlining bugs")
+> 
+> - 77f48ec28e4ccff94d2e5f4260a83ac27a7f3099.
+>   ("x86/alternatives: Macrofy lock prefixes to work around GCC inlining bugs")
+> 
+> - 9e1725b410594911cc5981b6c7b4cea4ec054ca8.
+>   ("x86/refcount: Work around GCC inlining bug")
+>   (Conflicts: arch/x86/include/asm/refcount.h)
+> 
+> - c06c4d8090513f2974dfdbed2ac98634357ac475.
+>   ("x86/objtool: Use asm macros to work around GCC inlining bugs")
+> 
+> - 77b0bf55bc675233d22cd5df97605d516d64525e.
+>   ("kbuild/Makefile: Prepare for using macros in inline assembly code to work around asm() related GCC inlining bugs")
+> 
 
--- Christian
+I don't think we want to blindly revert all that. Some of them actually
+made sense and did clean up things irrespective of the asm-inline issue.
+
+In particular I like the jump-label one. The cpufeature one OTOh, yeah,
+I'd love to get that reverted.
+
+And as a note; the normal commit quoting style is:
+
+  d5a581d84ae6 ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
