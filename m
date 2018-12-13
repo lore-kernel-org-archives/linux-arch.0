@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 09/24] arm64: compat: Add missing syscall numbers
-Date: Thu, 13 Dec 2018 16:57:31 +0000
-Message-ID: <20181213165746.56930-10-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 07/24] arm64: compat: Refactor aarch32_alloc_vdso_pages()
+Date: Thu, 13 Dec 2018 16:57:29 +0000
+Message-ID: <20181213165746.56930-8-vincenzo.frascino@arm.com>
 References: <20181213165746.56930-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,34 +21,95 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-vDSO requires gettimeofday and clock_gettime syscalls to implement the
-fallback mechanism.
+aarch32_alloc_vdso_pages() needs to the refactored to make it
+easier to disable kuser helpers.
 
-This patch adds the missing syscall numbers to unistd.h for arm64.
+This patch divides the function in aarch32_alloc_kuser_vdso_page() and
+aarch32_alloc_sigreturn_vdso_page().
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/unistd.h | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/arm64/kernel/vdso.c | 49 ++++++++++++++++++++++++++--------------
+ 1 file changed, 32 insertions(+), 17 deletions(-)
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index b13ca091f833..a85b30b766a1 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -33,8 +33,11 @@
- #define __NR_compat_exit		1
- #define __NR_compat_read		3
- #define __NR_compat_write		4
-+#define __NR_compat_gettimeofday	78
- #define __NR_compat_sigreturn		119
- #define __NR_compat_rt_sigreturn	173
-+#define __NR_compat_clock_getres	247
-+#define __NR_compat_clock_gettime	263
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 5df7aeef324a..d438e65299a2 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -75,40 +75,55 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
+ 	},
+ };
  
- /*
-  * The following SVCs are ARM private.
+-static int __init aarch32_alloc_vdso_pages(void)
++static int aarch32_alloc_kuser_vdso_page(void)
+ {
+ 	extern char __kuser_helper_start[], __kuser_helper_end[];
+-	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
+-
+ 	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
+-	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
+-	unsigned long vdso_pages[2];
+-
+-	vdso_pages[0] = get_zeroed_page(GFP_ATOMIC);
+-	if (!vdso_pages[0])
+-		return -ENOMEM;
++	unsigned long vdso_page;
+ 
+-	vdso_pages[1] = get_zeroed_page(GFP_ATOMIC);
+-	if (!vdso_pages[1])
++	vdso_page = get_zeroed_page(GFP_ATOMIC);
++	if (!vdso_page)
+ 		return -ENOMEM;
+ 
+ 	/* kuser helpers */
+-	memcpy((void *)(vdso_pages[0] + 0x1000 - kuser_sz),
++	memcpy((void *)(vdso_page + 0x1000 - kuser_sz),
+ 	       __kuser_helper_start,
+ 	       kuser_sz);
+ 
++	flush_icache_range(vdso_page, vdso_page + PAGE_SIZE);
++
++	aarch32_vdso_pages[0] = virt_to_page(vdso_page);
++
++	return 0;
++}
++
++static int aarch32_alloc_sigreturn_vdso_page(void)
++{
++	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
++	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
++	unsigned long vdso_page;
++
++	vdso_page = get_zeroed_page(GFP_ATOMIC);
++	if (!vdso_page)
++		return -ENOMEM;
++
+ 	/* sigreturn code */
+-	memcpy((void *)vdso_pages[1],
++	memcpy((void *)vdso_page,
+ 	       __aarch32_sigret_code_start,
+ 	       sigret_sz);
+ 
+-	flush_icache_range(vdso_pages[0], vdso_pages[0] + PAGE_SIZE);
+-	flush_icache_range(vdso_pages[1], vdso_pages[1] + PAGE_SIZE);
++	flush_icache_range(vdso_page, vdso_page + PAGE_SIZE);
+ 
+-	aarch32_vdso_pages[0] = virt_to_page(vdso_pages[0]);
+-	aarch32_vdso_pages[1] = virt_to_page(vdso_pages[1]);
++	aarch32_vdso_pages[1] = virt_to_page(vdso_page);
+ 
+ 	return 0;
++
++}
++
++static int __init aarch32_alloc_vdso_pages(void)
++{
++	return aarch32_alloc_kuser_vdso_page() &
++	       aarch32_alloc_sigreturn_vdso_page();
+ }
+ arch_initcall(aarch32_alloc_vdso_pages);
+ 
 -- 
 2.19.2
