@@ -1,115 +1,55 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-Date: Thu, 13 Dec 2018 09:46:48 +0000
-Message-ID: <1071a68e-f671-b56e-e627-e83bb97da8bf@arm.com>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <CAK8P3a1njNBWiMExBevqbT+AuUHdU4T2sc1o1rRTn+Ji=y2SbA@mail.gmail.com>
- <64ff3b50-ce55-ff69-ac3a-61f221299895@arm.com>
- <CAK8P3a0LgFuv_s4xiC_rD0X7-GxHRWfzmdDcxJ7vvHrEETApRw@mail.gmail.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Thu, 13 Dec 2018 10:47:18 +0100
+Message-ID: <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
+References: <8a2c4581-0c85-8065-f37e-984755eb31ab@xenosoft.de>
+ <424bb228-c9e5-6593-1ab7-5950d9b2bd4e@xenosoft.de>
+ <c86d76b4-b199-557e-bc64-4235729c1e72@xenosoft.de>
+ <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+ <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+ <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+ <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
+ <20181212141556.GA4801@lst.de>
+ <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+ <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
+ <20181213091021.GA2106@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a0LgFuv_s4xiC_rD0X7-GxHRWfzmdDcxJ7vvHrEETApRw@mail.gmail.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181213091021.GA2106@lst.de>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On 13 December 2018 at 10:10AM, Christoph Hellwig wrote:
+> On Thu, Dec 13, 2018 at 09:41:50AM +0100, Christian Zigotzky wrote:
+>> Today I tried the first patch (0001-get_required_mask.patch) with the last
+>> good commit (977706f9755d2d697aa6f45b4f9f0e07516efeda). Unfortunately this
+>> patch is already included in the last good commit
+>> (977706f9755d2d697aa6f45b4f9f0e07516efeda). I will try the next patch.
+> Hmm, I don't think this is the case.  This is my local git log output:
+>
+> commit 83a4b87de6bc6a75b500c9959de88e2157fbcd7c
+> Author: Christoph Hellwig <hch@lst.de>
+> Date:   Wed Dec 12 15:07:49 2018 +0100
+>
+>      get_required_mask
+>
+> commit 977706f9755d2d697aa6f45b4f9f0e07516efeda
+> Author: Christoph Hellwig <hch@lst.de>
+> Date:   Sat Nov 10 22:34:27 2018 +0100
+>
+>      powerpc/dma: remove dma_nommu_mmap_coherent
+>
+> I've also pushed a git branch with these out to:
+>
+>      git://git.infradead.org/users/hch/misc.git powerpc-dma.5-debug
+>
+Sorry Christioph. I was wrong. The first patch isn't included in the 
+last good commit. I will try it again. I can only test beside my main 
+work. That means it takes longer.
 
-On 11/12/2018 21:41, Arnd Bergmann wrote:
-> On Tue, Dec 11, 2018 at 2:39 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->> On 29/11/2018 20:42, Arnd Bergmann wrote:
->>> On Thu, Nov 29, 2018 at 6:06 PM Vincenzo Frascino
->>> <vincenzo.frascino@arm.com> wrote:
->>>
->>>> +/*
->>>> + * The definitions below are required to overcome the limitations
->>>> + * of time_t on 32 bit architectures, which overflows in 2038.
->>>> + * The new code should use the replacements based on time64_t and
->>>> + * timespec64.
->>>> + *
->>>> + * The abstraction below will be updated once the migration to
->>>> + * time64_t is complete.
->>>> + */
->>>> +#ifdef CONFIG_GENERIC_VDSO_32
->>>> +#define __vdso_timespec                old_timespec32
->>>> +#define __vdso_timeval         old_timeval32
->>>> +#else
->>>> +#ifdef ENABLE_COMPAT_VDSO
->>>> +#define __vdso_timespec                old_timespec32
->>>> +#define __vdso_timeval         old_timeval32
->>>> +#else
->>>> +#define __vdso_timespec                __kernel_timespec
->>>> +#define __vdso_timeval         __kernel_old_timeval
->>>> +#endif /* CONFIG_COMPAT_VDSO */
->>>> +#endif /* CONFIG_GENERIC_VDSO_32 */
->>>>
->>>
->>> Have you considered doing this in the reverse way, by including
->>> the common parts from multiple implementations (32 and 64
->>> bit), instead of compiling the same source file multiple
->>> times with different macros set? I think that would make it
->>> easier to understand.
->>>
->>
->> The common code is never compiled as standalone. It includes arch specific code
->> (for the fallbacks) and it is included in the arch specific vdso library (for
->> both 32 and 64 bit where it makes sense). Hence it is built once or twice.
->>
->> If I understand correctly your question, seems inline with what I am doing.
-> 
-> The result is very similar, it's just a question of which file includes which
-> other file. If I understand your current method right, you use Makefile
-> logic to build multiple object files from a single source file, and setting
-> ENABLE_COMPAT_VDSO on one of them, right?
-> 
-
-First of all, thank you for explaining this further.
-
-My approach seems currently in line with what happens in fs/compat_binfmt_elf.c,
-the only differences are:
-- Instead of doing (pseudo-code):
-
-#ifdef CONFIG_XYZ
-#include "../../../../../xyz.c"
-#endif
-
-inside of the C file, I am using the Makefile logic (-include of xyz.c) to
-include the C file upon checking the config option and to generate the correct
-include path. The object (from: lib/vdso/gettimeofday.c) is never built as a
-standalone multiple times.
-
-- The chain of inclusion is <arch>/include/asm/vdso/gettimeofday.h -->
-lib/vdso/gettimeofday.c --> vdso/vgettimeofday.c (this is the only object that
-we are building) and this is to keep the Makefile as simple as possible. In fact
-the other way around would have resulted in copying the objects around (to not
-override them when compat is present) with the implication of more complicated
-Makefiles.
-
-> My preference would be to keep that Makefile simpler and have one
-> source file per object file, but have each one define a set of macros
-> before including the common source file, similarly to how we deal
-> with fs/compat_binfmt_elf.c. If that turns out to be worse than what
-> you have here, I'm not overly attached to that solution since including
-> C files is still ugly, but I think it's worth trying if that lets you end
-> up with more easily understandable source code.
-> 
->        Arnd
-> 
-
--- 
-Regards,
-Vincenzo
+-- Christian
