@@ -1,46 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:48558 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729465AbeLNQpa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Dec 2018 11:45:30 -0500
-Date: Fri, 14 Dec 2018 17:45:28 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Message-ID: <20181214164528.GB27074@lst.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de> <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de> <20181213091021.GA2106@lst.de> <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de> <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de> <20181213112511.GA4574@lst.de> <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de> <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de> <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de> <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:45840 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728388AbeLNSPz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Dec 2018 13:15:55 -0500
+Received: by mail-pg1-f196.google.com with SMTP id y4so3027678pgc.12
+        for <linux-arch@vger.kernel.org>; Fri, 14 Dec 2018 10:15:55 -0800 (PST)
+Subject: Re: [PATCH v3 02/24] kernel: Define gettimeofday vdso common code
+References: <20181213165746.56930-1-vincenzo.frascino@arm.com>
+ <20181213165746.56930-3-vincenzo.frascino@arm.com>
+From: Mark Salyzyn <salyzyn@android.com>
+Message-ID: <51d9b642-d44e-1995-0bd0-91ce00a8526b@android.com>
+Date: Fri, 14 Dec 2018 10:15:53 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+In-Reply-To: <20181213165746.56930-3-vincenzo.frascino@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-GB
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181214164528.4gZgco9UXasZWmUzUSId4TaSjp794GpA_wsBmUeB7Qc@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20181214181553.hh-vdmjC6Vcu-Yu8v7B2e4eQWTetOmq74TCCD_2_ELQ@z>
 
-On Fri, Dec 14, 2018 at 01:00:26PM +0100, Christian Zigotzky wrote:
-> On 12 December 2018 at 3:15PM, Christoph Hellwig wrote:
-> > Thanks for bisecting.  I've spent some time going over the conversion
-> > but can't really pinpoint it.  I have three little patches that switch
-> > parts of the code to the generic version.  This is on top of the
-> > last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
-> >
-> > Can you check with whіch one things stop working?
+On 12/13/2018 08:57 AM, Vincenzo Frascino wrote:
+> In the last few years we assisted to an explosion of vdso
+> implementations that mostly share similar code.
 >
-> Hello Christoph,
->
-> Great news! All your patches work!
+> . . .
+> +}
+> +
+> +#ifdef VDSO_HAS_TIME
+> +static notrace time_t __cvdso_time(time_t *time)
+> +{
+> +	u32 seq;
+> +	time_t t;
+> +	const struct vdso_data *vd = __arch_get_vdso_data();
+> +	struct vdso_timestamp *vdso_ts = &vd->basetime[CLOCK_REALTIME];
+const struct vdso_timestamp *vdso_ts = &vd->basetime[CLOCK_REALTIME];
 
-No so great because that means I still have no idea what broke..
-
-> I tested all your patches (including the patch '0004-alloc-free.patch' 
-> today) and the PASEMI onboard ethernet works and the P5020 board boots 
-> without any problems. Thank you for your work!
-> I have a few days off. That means, I will work less and only for the A-EON 
-> first level Linux support. I can test again on Thursday next week.
-
-Enjoy your days off!
-
-I think I'll need to prepare something new that is better bisectable,
-and use that opportunity to reason about the changes a little more.
+-- Mark
