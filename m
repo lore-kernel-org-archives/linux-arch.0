@@ -1,97 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:37288 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726997AbeLNFUS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Dec 2018 00:20:18 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wBE5JO1D107272
-        for <linux-arch@vger.kernel.org>; Fri, 14 Dec 2018 00:20:17 -0500
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2pc5rwh79d-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 14 Dec 2018 00:20:17 -0500
-Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 14 Dec 2018 05:20:15 -0000
-Date: Thu, 13 Dec 2018 21:20:08 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Reply-To: paulmck@linux.ibm.com
-References: <20181214002043.GP4170@linux.ibm.com>
- <Pine.LNX.4.44L0.1812132110100.26937-100000@netrider.rowland.org>
+Received: from mail-it1-f196.google.com ([209.85.166.196]:33100 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726494AbeLNFvK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Dec 2018 00:51:10 -0500
+Received: by mail-it1-f196.google.com with SMTP id m8so18146195itk.0
+        for <linux-arch@vger.kernel.org>; Thu, 13 Dec 2018 21:51:10 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1812132110100.26937-100000@netrider.rowland.org>
-Message-ID: <20181214052008.GT4170@linux.ibm.com>
+References: <1544073508-13720-1-git-send-email-firoz.khan@linaro.org>
+ <1544073508-13720-4-git-send-email-firoz.khan@linaro.org> <20181210195144.dvprpyxyddusyb5c@pburton-laptop>
+ <CALxhOng7EzAd2zHKAOj3ipEd6y=DpS2JGo34s4V_cWVgmLjPwg@mail.gmail.com>
+ <20181211185947.gnaachztyh3ils7o@pburton-laptop> <CALxhOngErLD7+CEhgSPwQUnGg7YEFTcH-v6dhR0j55SvEg1FoA@mail.gmail.com>
+ <20181212222834.2zf3rb67fxfcmwuw@pburton-laptop> <CALxhOnht8H6r38bwm7xqbHuJs6dvLB03GCKyws2cif1mEE+sKA@mail.gmail.com>
+ <20181213201540.ae6pxtm2xmrxnaaa@pburton-laptop>
+In-Reply-To: <20181213201540.ae6pxtm2xmrxnaaa@pburton-laptop>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Fri, 14 Dec 2018 11:20:58 +0530
+Message-ID: <CALxhOnhAP0TRSH=otZNHdLJgy7=Q=hWOXZSNYBvWAuAzEeBzhw@mail.gmail.com>
+Subject: Re: [PATCH v4 3/7] mips: rename macros and files from '64' to 'n64'
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181214052008.dWt1e0t4d3vqKKo3o7iOMczup4EhHXYtgMJ01r5zB0o@z>
+To: Paul Burton <paul.burton@mips.com>
+Cc: linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181214055058.Wvp_oh_HHivAVgUouYE0V4KsOEjvdX5Jh0C_maK3QDw@z>
 
-On Thu, Dec 13, 2018 at 09:26:47PM -0500, Alan Stern wrote:
-> On Thu, 13 Dec 2018, Paul E. McKenney wrote:
-> 
-> > > > A good next step would be to automatically generate random tests along
-> > > > with an automatically generated prediction, like I did for RCU a few
-> > > > years back.  I should be able to generalize my time-based cheat for RCU to
-> > > > also cover SRCU, though sys_membarrier() will require a bit more thought.
-> > > > (The time-based cheat was to have fixed duration RCU grace periods and
-> > > > RCU read-side critical sections, with the grace period duration being
-> > > > slightly longer than that of the critical sections.  The number of
-> > > > processes is of course limited by the chosen durations, but that limit
-> > > > can easily be made insanely large.)
-> > > 
-> > > Imagine that each sys_membarrier call takes a fixed duration and each 
-> > > other instruction takes slightly less (the idea being that each 
-> > > instruction is a critical section).  Instructions can be reordered 
-> > > (although not across a sys_membarrier call), but no matter how the 
-> > > reordering is done, the result is disallowed.
-> 
-> This turns out not to be right.  Instead, imagine that each 
-> sys_membarrier call takes a fixed duration, T.  Other instructions can 
-> take arbitrary amounts of time and can be reordered abitrarily, with 
-> two restrictions:
-> 
-> 	Instructions cannot be reordered past a sys_membarrier call;
-> 
-> 	If instructions A and B are reordered then the time duration
-> 	from B to A must be less than T.
-> 
-> If you prefer, you can replace the second restriction with something a 
-> little more liberal:
-> 
-> 	If A and B are reordered and A ends up executing after a 
-> 	sys_membarrier call (on any CPU) then B cannot execute before 
-> 	that sys_membarrier call.
-> 
-> Of course, this form is a consequence of the more restrictive form.
+Hi Paul,
 
-Makes sense.  And the zero-size critical sections are why sys_membarrier()
-cannot be directly used for classic deferred reclamation.
+On Fri, 14 Dec 2018 at 01:45, Paul Burton <paul.burton@mips.com> wrote:
+> I've applied v5 but undone the change from __NR_64_* to __NR_N64_*
+> because it's part of the UAPI & a github code search showed that it's
+> actually used.
+>
+> Could you take a look at this branch & check that you're OK with it
+> before I push it to mips-next?
+>
+>   git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git test-syscalls
+>
+>   https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/?h=test-syscalls
 
-> > It gets a bit trickier with interleavings of different combinations
-> > of RCU, SRCU, and sys_membarrier().  Yes, your cat code very elegantly
-> > sorts this out, but my goal is to be able to explain a given example
-> > to someone.
-> 
-> I don't think you're going to be able to fit different combinations of
-> RCU, SRCU, and sys_membarrier into this picture.  How would you allow
-> tests with incorrect interleaving, such as GP - memb - RSCS - nothing,
-> while forbidding similar tests with correct interleaving?
+This looks good to me. Please push to mips-next.
 
-Well, no, I cannot do a simple linear scan tracking time, which is what
-the current scripts do.  I must instead find longest sequence with all
-operations of the same type (RCU, SRCU, or memb) and work out their
-worst-case timing.  If the overall effect of a given sequence is to
-go backwards in time, the result is allowed.  Otherwise eliminate that
-sequence from the cycle and repeat.  If everything is eliminated, the
-cycle is forbidden.
-
-Which can be thought of as an iterative process similar to something
-called "rcu-fence", can't it?  ;-)
-
-							Thanx, Paul
+Thanks
+Firoz
