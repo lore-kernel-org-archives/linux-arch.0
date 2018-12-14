@@ -1,70 +1,51 @@
-From: Benjamin Poirier <bpoirier@suse.com>
-Subject: [PATCH] mm/page_alloc.c: Allow error injection
-Date: Fri, 14 Dec 2018 16:43:30 +0900
-Message-ID: <20181214074330.18917-1-bpoirier@suse.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Fri, 14 Dec 2018 13:00:26 +0100
+Message-ID: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+References: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
+ <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
+ <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
+ <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
+ <20181212141556.GA4801@lst.de>
+ <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+ <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
+ <20181213091021.GA2106@lst.de>
+ <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
+ <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
+ <20181213112511.GA4574@lst.de>
+ <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
+ <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
+ <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Pavel Tatashin <pavel.tatashin@microsoft.com>, Vlastimil Babka <vbabka@suse.cz>, Oscar Salvador <osalvador@suse.de>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Alexander Duyck <alexander.h.duyck@linux.intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-Model call chain after should_failslab(). Likewise, we can now use a kprobe
-to override the return value of should_fail_alloc_page() and inject
-allocation failures into alloc_page*().
+On 12 December 2018 at 3:15PM, Christoph Hellwig wrote:
+ > Thanks for bisecting.  I've spent some time going over the conversion
+ > but can't really pinpoint it.  I have three little patches that switch
+ > parts of the code to the generic version.  This is on top of the
+ > last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
+ >
+ > Can you check with whіch one things stop working?
 
-Signed-off-by: Benjamin Poirier <bpoirier@suse.com>
----
- include/asm-generic/error-injection.h |  1 +
- mm/page_alloc.c                       | 10 ++++++++--
- 2 files changed, 9 insertions(+), 2 deletions(-)
+Hello Christoph,
 
-diff --git a/include/asm-generic/error-injection.h b/include/asm-generic/error-injection.h
-index 296c65442f00..95a159a4137f 100644
---- a/include/asm-generic/error-injection.h
-+++ b/include/asm-generic/error-injection.h
-@@ -8,6 +8,7 @@ enum {
- 	EI_ETYPE_NULL,		/* Return NULL if failure */
- 	EI_ETYPE_ERRNO,		/* Return -ERRNO if failure */
- 	EI_ETYPE_ERRNO_NULL,	/* Return -ERRNO or NULL if failure */
-+	EI_ETYPE_TRUE,		/* Return true if failure */
- };
- 
- struct error_injection_entry {
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 2ec9cc407216..64861d79dc2d 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -3053,7 +3053,7 @@ static int __init setup_fail_page_alloc(char *str)
- }
- __setup("fail_page_alloc=", setup_fail_page_alloc);
- 
--static bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
-+static bool __should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
- {
- 	if (order < fail_page_alloc.min_order)
- 		return false;
-@@ -3103,13 +3103,19 @@ late_initcall(fail_page_alloc_debugfs);
- 
- #else /* CONFIG_FAIL_PAGE_ALLOC */
- 
--static inline bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
-+static inline bool __should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
- {
- 	return false;
- }
- 
- #endif /* CONFIG_FAIL_PAGE_ALLOC */
- 
-+static noinline bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
-+{
-+	return __should_fail_alloc_page(gfp_mask, order);
-+}
-+ALLOW_ERROR_INJECTION(should_fail_alloc_page, TRUE);
-+
- /*
-  * Return true if free base pages are above 'mark'. For high-order checks it
-  * will return true of the order-0 watermark is reached and there is at least
--- 
-2.19.2
+Great news! All your patches work!
+
+I tested all your patches (including the patch '0004-alloc-free.patch' 
+today) and the PASEMI onboard ethernet works and the P5020 board boots 
+without any problems. Thank you for your work!
+I have a few days off. That means, I will work less and only for the 
+A-EON first level Linux support. I can test again on Thursday next week.
+
+Have a nice weekend!
+
+Cheers,
+Christian
