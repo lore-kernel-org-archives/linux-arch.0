@@ -1,139 +1,96 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 54/88] x86/usercopy: Replace open coded stac/clac with __uaccess_{begin, end}
-Date: Fri, 14 Dec 2018 13:00:28 +0100
-Message-ID: <20181214115706.840772097@linuxfoundation.org>
-References: <20181214115702.151309521@linuxfoundation.org>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 12/34] powerpc/cell: move dma direct window setup out of dma_configure
+Date: Sat, 15 Dec 2018 00:29:11 +1100
+Message-ID: <87mup8uti0.fsf@concordia.ellerman.id.au>
+References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-13-hch@lst.de> <871s6r3sno.fsf@concordia.ellerman.id.au> <20181212143604.GA5137@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-14736-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20181214115702.151309521@linuxfoundation.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, Ben Hutchings <ben.hutchings@codethink.co.uk>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181212143604.GA5137@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+Christoph Hellwig <hch@lst.de> writes:
+> On Sun, Dec 09, 2018 at 09:23:39PM +1100, Michael Ellerman wrote:
+>> Christoph Hellwig <hch@lst.de> writes:
+>> 
+>> > Configure the dma settings at device setup time, and stop playing games
+>> > with get_pci_dma_ops.  This prepares for using the common dma_configure
+>> > code later on.
+>> >
+>> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+>> > ---
+>> >  arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
+>> >  1 file changed, 11 insertions(+), 9 deletions(-)
+>> 
+>> This one's crashing, haven't dug into why yet:
+>
+> Can you provide a gdb assembly of the exact crash site?  This looks
+> like for some odd reason the DT structures aren't fully setup by the
+> time we are probing the device, which seems odd.
 
-------------------
+It's dev->of_node which is NULL.
 
-From: Dan Williams <dan.j.williams@intel.com>
+Because we were passed a platform_device which doesn't have an of_node.
 
-commit b5c4ae4f35325d520b230bab6eb3310613b72ac1 upstream.
+It's the cbe-mic device created in cell_publish_devices().
 
-In preparation for converting some __uaccess_begin() instances to
-__uacess_begin_nospec(), make sure all 'from user' uaccess paths are
-using the _begin(), _end() helpers rather than open-coded stac() and
-clac().
+I can fix that by simply checking for a NULL node, then the system boots
+but then I have no network devices, due to:
 
-No functional changes.
+  tg3 0000:00:01.0: enabling device (0140 -> 0142)
+  tg3 0000:00:01.0: DMA engine test failed, aborting
+  tg3: probe of 0000:00:01.0 failed with error -12
+  tg3 0000:00:01.1: enabling device (0140 -> 0142)
+  tg3 0000:00:01.1: DMA engine test failed, aborting
+  tg3: probe of 0000:00:01.1 failed with error -12
 
-Suggested-by: Ingo Molnar <mingo@redhat.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: torvalds@linux-foundation.org
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727416438.33451.17309465232057176966.stgit@dwillia2-desk3.amr.corp.intel.com
-[bwh: Backported to 4.4:
- - Convert several more functions to use __uaccess_begin_nospec(), that
-   are just wrappers in mainline
- - Adjust context]
-Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/lib/usercopy_32.c |   20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
 
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -570,12 +570,12 @@ do {									\
- unsigned long __copy_to_user_ll(void __user *to, const void *from,
- 				unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
- 		n = __copy_user_intel(to, from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_to_user_ll);
-@@ -583,12 +583,12 @@ EXPORT_SYMBOL(__copy_to_user_ll);
- unsigned long __copy_from_user_ll(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user_zeroing(to, from, n);
- 	else
- 		n = __copy_user_zeroing_intel(to, from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll);
-@@ -596,13 +596,13 @@ EXPORT_SYMBOL(__copy_from_user_ll);
- unsigned long __copy_from_user_ll_nozero(void *to, const void __user *from,
- 					 unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
- 		n = __copy_user_intel((void __user *)to,
- 				      (const void *)from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nozero);
-@@ -610,7 +610,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nozero
- unsigned long __copy_from_user_ll_nocache(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_zeroing_intel_nocache(to, from, n);
-@@ -619,7 +619,7 @@ unsigned long __copy_from_user_ll_nocach
- #else
- 	__copy_user_zeroing(to, from, n);
- #endif
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nocache);
-@@ -627,7 +627,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocach
- unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_intel_nocache(to, from, n);
-@@ -636,7 +636,7 @@ unsigned long __copy_from_user_ll_nocach
- #else
- 	__copy_user(to, from, n);
- #endif
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
+I think the problem is that we don't want to set iommu_bypass_supported
+unless cell_iommu_fixed_mapping_init() succeeds.
+
+Yep. This makes it work for me on cell on top of your v5.
+
+cheers
+
+
+diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
+index 348a815779c1..8329fda17cc8 100644
+--- a/arch/powerpc/platforms/cell/iommu.c
++++ b/arch/powerpc/platforms/cell/iommu.c
+@@ -813,6 +813,10 @@ static u64 cell_iommu_get_fixed_address(struct device *dev)
+ 	int i, len, best, naddr, nsize, pna, range_size;
+ 
+ 	np = of_node_get(dev->of_node);
++	if (!np)
++		/* We can be called for platform devices that have no of_node */
++		goto out;
++
+ 	while (1) {
+ 		naddr = of_n_addr_cells(np);
+ 		nsize = of_n_size_cells(np);
+@@ -1065,8 +1069,11 @@ static int __init cell_iommu_init(void)
+ 	/* Setup various callbacks */
+ 	cell_pci_controller_ops.dma_dev_setup = cell_pci_dma_dev_setup;
+ 
+-	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0)
++	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0) {
++		cell_pci_controller_ops.iommu_bypass_supported =
++			cell_pci_iommu_bypass_supported;
+ 		goto done;
++	}
+ 
+ 	/* Create an iommu for each /axon node.  */
+ 	for_each_node_by_name(np, "axon") {
+@@ -1085,10 +1092,6 @@ static int __init cell_iommu_init(void)
+ 	}
+  done:
+ 	/* Setup default PCI iommu ops */
+-	if (!iommu_fixed_disabled) {
+-		cell_pci_controller_ops.iommu_bypass_supported =
+-				cell_pci_iommu_bypass_supported;
+-	}
+ 	set_pci_dma_ops(&dma_iommu_ops);
+ 	cell_iommu_enabled = true;
+  bail:
