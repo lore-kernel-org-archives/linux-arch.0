@@ -1,51 +1,94 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Fri, 14 Dec 2018 13:00:26 +0100
-Message-ID: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
-References: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
- <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
- <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
- <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
- <20181212141556.GA4801@lst.de>
- <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
- <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
- <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
- <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 53/88] x86: Introduce __uaccess_begin_nospec() and uaccess_try_nospec
+Date: Fri, 14 Dec 2018 13:00:27 +0100
+Message-ID: <20181214115706.737688974@linuxfoundation.org>
+References: <20181214115702.151309521@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
-Content-Language: de-DE
+In-Reply-To: <20181214115702.151309521@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, Ben Hutchings <ben.hutchings@codethink.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On 12 December 2018 at 3:15PM, Christoph Hellwig wrote:
- > Thanks for bisecting.  I've spent some time going over the conversion
- > but can't really pinpoint it.  I have three little patches that switch
- > parts of the code to the generic version.  This is on top of the
- > last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
- >
- > Can you check with whіch one things stop working?
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-Hello Christoph,
+------------------
 
-Great news! All your patches work!
+From: Dan Williams <dan.j.williams@intel.com>
 
-I tested all your patches (including the patch '0004-alloc-free.patch' 
-today) and the PASEMI onboard ethernet works and the P5020 board boots 
-without any problems. Thank you for your work!
-I have a few days off. That means, I will work less and only for the 
-A-EON first level Linux support. I can test again on Thursday next week.
+commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd upstream.
 
-Have a nice weekend!
+For __get_user() paths, do not allow the kernel to speculate on the value
+of a user controlled pointer. In addition to the 'stac' instruction for
+Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
+access_ok() result to resolve in the pipeline before the CPU might take any
+speculative action on the pointer value. Given the cost of 'stac' the
+speculation barrier is placed after 'stac' to hopefully overlap the cost of
+disabling SMAP with the cost of flushing the instruction pipeline.
 
-Cheers,
-Christian
+Since __get_user is a major kernel interface that deals with user
+controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
+speculative execution past an access_ok() permission check. While
+speculative execution past access_ok() is not enough to lead to a kernel
+memory leak, it is a necessary precondition.
+
+To be clear, __uaccess_begin_nospec() is addressing a class of potential
+problems near __get_user() usages.
+
+Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
+to protect __get_user(), pointer masking similar to array_index_nospec()
+will be used for get_user() since it incorporates a bounds check near the
+usage.
+
+uaccess_try_nospec provides the same mechanism for get_user_try.
+
+No functional changes.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
+[bwh: Backported to 4.4: use current_thread_info()]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/include/asm/uaccess.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -146,6 +146,11 @@ extern int __get_user_bad(void);
+ 
+ #define __uaccess_begin() stac()
+ #define __uaccess_end()   clac()
++#define __uaccess_begin_nospec()	\
++({					\
++	stac();				\
++	barrier_nospec();		\
++})
+ 
+ /*
+  * This is a type: either unsigned long, if the argument fits into
+@@ -473,6 +478,10 @@ struct __large_struct { unsigned long bu
+ 	__uaccess_begin();						\
+ 	barrier();
+ 
++#define uaccess_try_nospec do {						\
++	current_thread_info()->uaccess_err = 0;				\
++	__uaccess_begin_nospec();					\
++
+ #define uaccess_catch(err)						\
+ 	__uaccess_end();						\
+ 	(err) |= (current_thread_info()->uaccess_err ? -EFAULT : 0);	\
