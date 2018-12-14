@@ -1,56 +1,323 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.53]:24848 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726281AbeLNMAb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Dec 2018 07:00:31 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <1ecb7692-f3fb-a246-91f9-2db1b9496305@xenosoft.de>
- <6c997c03-e072-97a9-8ae0-38a4363df919@xenosoft.de>
- <4cfb3f26-74e1-db01-b014-759f188bb5a6@xenosoft.de>
- <82879d3f-83de-6438-c1d6-49c571dcb671@xenosoft.de>
- <20181212141556.GA4801@lst.de>
- <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
- <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
- <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
- <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
-Message-ID: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
-Date: Fri, 14 Dec 2018 13:00:26 +0100
+Received: from mail.kernel.org ([198.145.29.99]:35930 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732640AbeLNMPv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 14 Dec 2018 07:15:51 -0500
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 55/88] x86/uaccess: Use __uaccess_begin_nospec() and uaccess_try_nospec
+Date: Fri, 14 Dec 2018 13:00:29 +0100
+Message-ID: <20181214115707.004243853@linuxfoundation.org>
+In-Reply-To: <20181214115702.151309521@linuxfoundation.org>
+References: <20181214115702.151309521@linuxfoundation.org>
 MIME-Version: 1.0
-In-Reply-To: <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181214120026.0wvjnzm7cxh-TkP6RiS74W3pdid_Xdv79oWV3ToShv0@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, Ben Hutchings <ben.hutchings@codethink.co.uk>
+Message-ID: <20181214120029.lGRv1DTng56penPXeyN3ap70WGE0P7mlndUDUMrCugM@z>
 
-On 12 December 2018 at 3:15PM, Christoph Hellwig wrote:
- > Thanks for bisecting.  I've spent some time going over the conversion
- > but can't really pinpoint it.  I have three little patches that switch
- > parts of the code to the generic version.  This is on top of the
- > last good commmit (977706f9755d2d697aa6f45b4f9f0e07516efeda).
- >
- > Can you check with whіch one things stop working?
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-Hello Christoph,
+------------------
 
-Great news! All your patches work!
+From: Dan Williams <dan.j.williams@intel.com>
 
-I tested all your patches (including the patch '0004-alloc-free.patch' 
-today) and the PASEMI onboard ethernet works and the P5020 board boots 
-without any problems. Thank you for your work!
-I have a few days off. That means, I will work less and only for the 
-A-EON first level Linux support. I can test again on Thursday next week.
+commit 304ec1b050310548db33063e567123fae8fd0301 upstream.
 
-Have a nice weekend!
+Quoting Linus:
 
-Cheers,
-Christian
+    I do think that it would be a good idea to very expressly document
+    the fact that it's not that the user access itself is unsafe. I do
+    agree that things like "get_user()" want to be protected, but not
+    because of any direct bugs or problems with get_user() and friends,
+    but simply because get_user() is an excellent source of a pointer
+    that is obviously controlled from a potentially attacking user
+    space. So it's a prime candidate for then finding _subsequent_
+    accesses that can then be used to perturb the cache.
+
+__uaccess_begin_nospec() covers __get_user() and copy_from_iter() where the
+limit check is far away from the user pointer de-reference. In those cases
+a barrier_nospec() prevents speculation with a potential pointer to
+privileged memory. uaccess_try_nospec covers get_user_try.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727416953.33451.10508284228526170604.stgit@dwillia2-desk3.amr.corp.intel.com
+[bwh: Backported to 4.4:
+ - Convert several more functions to use __uaccess_begin_nospec(), that
+   are just wrappers in mainline
+ - Adjust context]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/include/asm/uaccess.h    |    6 +++---
+ arch/x86/include/asm/uaccess_32.h |   26 +++++++++++++-------------
+ arch/x86/include/asm/uaccess_64.h |   20 ++++++++++----------
+ arch/x86/lib/usercopy_32.c        |   10 +++++-----
+ 4 files changed, 31 insertions(+), 31 deletions(-)
+
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -436,7 +436,7 @@ do {									\
+ ({									\
+ 	int __gu_err;							\
+ 	unsigned long __gu_val;						\
+-	__uaccess_begin();						\
++	__uaccess_begin_nospec();					\
+ 	__get_user_size(__gu_val, (ptr), (size), __gu_err, -EFAULT);	\
+ 	__uaccess_end();						\
+ 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+@@ -546,7 +546,7 @@ struct __large_struct { unsigned long bu
+  *	get_user_ex(...);
+  * } get_user_catch(err)
+  */
+-#define get_user_try		uaccess_try
++#define get_user_try		uaccess_try_nospec
+ #define get_user_catch(err)	uaccess_catch(err)
+ 
+ #define get_user_ex(x, ptr)	do {					\
+@@ -581,7 +581,7 @@ extern void __cmpxchg_wrong_size(void)
+ 	__typeof__(ptr) __uval = (uval);				\
+ 	__typeof__(*(ptr)) __old = (old);				\
+ 	__typeof__(*(ptr)) __new = (new);				\
+-	__uaccess_begin();						\
++	__uaccess_begin_nospec();					\
+ 	switch (size) {							\
+ 	case 1:								\
+ 	{								\
+--- a/arch/x86/include/asm/uaccess_32.h
++++ b/arch/x86/include/asm/uaccess_32.h
+@@ -48,25 +48,25 @@ __copy_to_user_inatomic(void __user *to,
+ 
+ 		switch (n) {
+ 		case 1:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__put_user_size(*(u8 *)from, (u8 __user *)to,
+ 					1, ret, 1);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 2:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__put_user_size(*(u16 *)from, (u16 __user *)to,
+ 					2, ret, 2);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 4:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__put_user_size(*(u32 *)from, (u32 __user *)to,
+ 					4, ret, 4);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 8:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__put_user_size(*(u64 *)from, (u64 __user *)to,
+ 					8, ret, 8);
+ 			__uaccess_end();
+@@ -111,17 +111,17 @@ __copy_from_user_inatomic(void *to, cons
+ 
+ 		switch (n) {
+ 		case 1:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 2:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 4:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
+ 			__uaccess_end();
+ 			return ret;
+@@ -162,17 +162,17 @@ __copy_from_user(void *to, const void __
+ 
+ 		switch (n) {
+ 		case 1:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 2:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 4:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
+ 			__uaccess_end();
+ 			return ret;
+@@ -190,17 +190,17 @@ static __always_inline unsigned long __c
+ 
+ 		switch (n) {
+ 		case 1:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 2:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 4:
+-			__uaccess_begin();
++			__uaccess_begin_nospec();
+ 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
+ 			__uaccess_end();
+ 			return ret;
+--- a/arch/x86/include/asm/uaccess_64.h
++++ b/arch/x86/include/asm/uaccess_64.h
+@@ -57,31 +57,31 @@ int __copy_from_user_nocheck(void *dst,
+ 		return copy_user_generic(dst, (__force void *)src, size);
+ 	switch (size) {
+ 	case 1:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u8 *)dst, (u8 __user *)src,
+ 			      ret, "b", "b", "=q", 1);
+ 		__uaccess_end();
+ 		return ret;
+ 	case 2:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u16 *)dst, (u16 __user *)src,
+ 			      ret, "w", "w", "=r", 2);
+ 		__uaccess_end();
+ 		return ret;
+ 	case 4:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u32 *)dst, (u32 __user *)src,
+ 			      ret, "l", "k", "=r", 4);
+ 		__uaccess_end();
+ 		return ret;
+ 	case 8:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
+ 			      ret, "q", "", "=r", 8);
+ 		__uaccess_end();
+ 		return ret;
+ 	case 10:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
+ 			       ret, "q", "", "=r", 10);
+ 		if (likely(!ret))
+@@ -91,7 +91,7 @@ int __copy_from_user_nocheck(void *dst,
+ 		__uaccess_end();
+ 		return ret;
+ 	case 16:
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
+ 			       ret, "q", "", "=r", 16);
+ 		if (likely(!ret))
+@@ -190,7 +190,7 @@ int __copy_in_user(void __user *dst, con
+ 	switch (size) {
+ 	case 1: {
+ 		u8 tmp;
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(tmp, (u8 __user *)src,
+ 			       ret, "b", "b", "=q", 1);
+ 		if (likely(!ret))
+@@ -201,7 +201,7 @@ int __copy_in_user(void __user *dst, con
+ 	}
+ 	case 2: {
+ 		u16 tmp;
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(tmp, (u16 __user *)src,
+ 			       ret, "w", "w", "=r", 2);
+ 		if (likely(!ret))
+@@ -213,7 +213,7 @@ int __copy_in_user(void __user *dst, con
+ 
+ 	case 4: {
+ 		u32 tmp;
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(tmp, (u32 __user *)src,
+ 			       ret, "l", "k", "=r", 4);
+ 		if (likely(!ret))
+@@ -224,7 +224,7 @@ int __copy_in_user(void __user *dst, con
+ 	}
+ 	case 8: {
+ 		u64 tmp;
+-		__uaccess_begin();
++		__uaccess_begin_nospec();
+ 		__get_user_asm(tmp, (u64 __user *)src,
+ 			       ret, "q", "", "=r", 8);
+ 		if (likely(!ret))
+--- a/arch/x86/lib/usercopy_32.c
++++ b/arch/x86/lib/usercopy_32.c
+@@ -570,7 +570,7 @@ do {									\
+ unsigned long __copy_to_user_ll(void __user *to, const void *from,
+ 				unsigned long n)
+ {
+-	__uaccess_begin();
++	__uaccess_begin_nospec();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user(to, from, n);
+ 	else
+@@ -583,7 +583,7 @@ EXPORT_SYMBOL(__copy_to_user_ll);
+ unsigned long __copy_from_user_ll(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	__uaccess_begin();
++	__uaccess_begin_nospec();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user_zeroing(to, from, n);
+ 	else
+@@ -596,7 +596,7 @@ EXPORT_SYMBOL(__copy_from_user_ll);
+ unsigned long __copy_from_user_ll_nozero(void *to, const void __user *from,
+ 					 unsigned long n)
+ {
+-	__uaccess_begin();
++	__uaccess_begin_nospec();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user(to, from, n);
+ 	else
+@@ -610,7 +610,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nozero
+ unsigned long __copy_from_user_ll_nocache(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	__uaccess_begin();
++	__uaccess_begin_nospec();
+ #ifdef CONFIG_X86_INTEL_USERCOPY
+ 	if (n > 64 && cpu_has_xmm2)
+ 		n = __copy_user_zeroing_intel_nocache(to, from, n);
+@@ -627,7 +627,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocach
+ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	__uaccess_begin();
++	__uaccess_begin_nospec();
+ #ifdef CONFIG_X86_INTEL_USERCOPY
+ 	if (n > 64 && cpu_has_xmm2)
+ 		n = __copy_user_intel_nocache(to, from, n);
