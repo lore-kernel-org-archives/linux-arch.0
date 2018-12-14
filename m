@@ -1,99 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35448 "EHLO mail.kernel.org"
+Received: from ozlabs.org ([203.11.71.1]:39777 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732554AbeLNMP2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Dec 2018 07:15:28 -0500
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 53/88] x86: Introduce __uaccess_begin_nospec() and uaccess_try_nospec
-Date: Fri, 14 Dec 2018 13:00:27 +0100
-Message-ID: <20181214115706.737688974@linuxfoundation.org>
-In-Reply-To: <20181214115702.151309521@linuxfoundation.org>
-References: <20181214115702.151309521@linuxfoundation.org>
+        id S1728731AbeLNN3U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 14 Dec 2018 08:29:20 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 12/34] powerpc/cell: move dma direct window setup out of dma_configure
+In-Reply-To: <20181212143604.GA5137@lst.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-13-hch@lst.de> <871s6r3sno.fsf@concordia.ellerman.id.au> <20181212143604.GA5137@lst.de>
+Date: Sat, 15 Dec 2018 00:29:11 +1100
+Message-ID: <87mup8uti0.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, Ben Hutchings <ben.hutchings@codethink.co.uk>
-Message-ID: <20181214120027.slIYUj11R0M_BEmkTshJlp_aJ1N07kqubLSSl7ZJkis@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181214132911.48bg0ZUdao9_BfZyei5jRj2cyPKlncMtzHBWyz7Avio@z>
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+Christoph Hellwig <hch@lst.de> writes:
+> On Sun, Dec 09, 2018 at 09:23:39PM +1100, Michael Ellerman wrote:
+>> Christoph Hellwig <hch@lst.de> writes:
+>> 
+>> > Configure the dma settings at device setup time, and stop playing games
+>> > with get_pci_dma_ops.  This prepares for using the common dma_configure
+>> > code later on.
+>> >
+>> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+>> > ---
+>> >  arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
+>> >  1 file changed, 11 insertions(+), 9 deletions(-)
+>> 
+>> This one's crashing, haven't dug into why yet:
+>
+> Can you provide a gdb assembly of the exact crash site?  This looks
+> like for some odd reason the DT structures aren't fully setup by the
+> time we are probing the device, which seems odd.
 
-------------------
+It's dev->of_node which is NULL.
 
-From: Dan Williams <dan.j.williams@intel.com>
+Because we were passed a platform_device which doesn't have an of_node.
 
-commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd upstream.
+It's the cbe-mic device created in cell_publish_devices().
 
-For __get_user() paths, do not allow the kernel to speculate on the value
-of a user controlled pointer. In addition to the 'stac' instruction for
-Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
-access_ok() result to resolve in the pipeline before the CPU might take any
-speculative action on the pointer value. Given the cost of 'stac' the
-speculation barrier is placed after 'stac' to hopefully overlap the cost of
-disabling SMAP with the cost of flushing the instruction pipeline.
+I can fix that by simply checking for a NULL node, then the system boots
+but then I have no network devices, due to:
 
-Since __get_user is a major kernel interface that deals with user
-controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
-speculative execution past an access_ok() permission check. While
-speculative execution past access_ok() is not enough to lead to a kernel
-memory leak, it is a necessary precondition.
+  tg3 0000:00:01.0: enabling device (0140 -> 0142)
+  tg3 0000:00:01.0: DMA engine test failed, aborting
+  tg3: probe of 0000:00:01.0 failed with error -12
+  tg3 0000:00:01.1: enabling device (0140 -> 0142)
+  tg3 0000:00:01.1: DMA engine test failed, aborting
+  tg3: probe of 0000:00:01.1 failed with error -12
 
-To be clear, __uaccess_begin_nospec() is addressing a class of potential
-problems near __get_user() usages.
 
-Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
-to protect __get_user(), pointer masking similar to array_index_nospec()
-will be used for get_user() since it incorporates a bounds check near the
-usage.
+I think the problem is that we don't want to set iommu_bypass_supported
+unless cell_iommu_fixed_mapping_init() succeeds.
 
-uaccess_try_nospec provides the same mechanism for get_user_try.
+Yep. This makes it work for me on cell on top of your v5.
 
-No functional changes.
+cheers
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Suggested-by: Ingo Molnar <mingo@redhat.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
-[bwh: Backported to 4.4: use current_thread_info()]
-Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/include/asm/uaccess.h |    9 +++++++++
- 1 file changed, 9 insertions(+)
 
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -146,6 +146,11 @@ extern int __get_user_bad(void);
+diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
+index 348a815779c1..8329fda17cc8 100644
+--- a/arch/powerpc/platforms/cell/iommu.c
++++ b/arch/powerpc/platforms/cell/iommu.c
+@@ -813,6 +813,10 @@ static u64 cell_iommu_get_fixed_address(struct device *dev)
+ 	int i, len, best, naddr, nsize, pna, range_size;
  
- #define __uaccess_begin() stac()
- #define __uaccess_end()   clac()
-+#define __uaccess_begin_nospec()	\
-+({					\
-+	stac();				\
-+	barrier_nospec();		\
-+})
- 
- /*
-  * This is a type: either unsigned long, if the argument fits into
-@@ -473,6 +478,10 @@ struct __large_struct { unsigned long bu
- 	__uaccess_begin();						\
- 	barrier();
- 
-+#define uaccess_try_nospec do {						\
-+	current_thread_info()->uaccess_err = 0;				\
-+	__uaccess_begin_nospec();					\
+ 	np = of_node_get(dev->of_node);
++	if (!np)
++		/* We can be called for platform devices that have no of_node */
++		goto out;
 +
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
- 	(err) |= (current_thread_info()->uaccess_err ? -EFAULT : 0);	\
+ 	while (1) {
+ 		naddr = of_n_addr_cells(np);
+ 		nsize = of_n_size_cells(np);
+@@ -1065,8 +1069,11 @@ static int __init cell_iommu_init(void)
+ 	/* Setup various callbacks */
+ 	cell_pci_controller_ops.dma_dev_setup = cell_pci_dma_dev_setup;
+ 
+-	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0)
++	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0) {
++		cell_pci_controller_ops.iommu_bypass_supported =
++			cell_pci_iommu_bypass_supported;
+ 		goto done;
++	}
+ 
+ 	/* Create an iommu for each /axon node.  */
+ 	for_each_node_by_name(np, "axon") {
+@@ -1085,10 +1092,6 @@ static int __init cell_iommu_init(void)
+ 	}
+  done:
+ 	/* Setup default PCI iommu ops */
+-	if (!iommu_fixed_disabled) {
+-		cell_pci_controller_ops.iommu_bypass_supported =
+-				cell_pci_iommu_bypass_supported;
+-	}
+ 	set_pci_dma_ops(&dma_iommu_ops);
+ 	cell_iommu_enabled = true;
+  bail:
