@@ -1,96 +1,88 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 12/34] powerpc/cell: move dma direct window setup out of dma_configure
-Date: Sat, 15 Dec 2018 00:29:11 +1100
-Message-ID: <87mup8uti0.fsf@concordia.ellerman.id.au>
-References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-13-hch@lst.de> <871s6r3sno.fsf@concordia.ellerman.id.au> <20181212143604.GA5137@lst.de>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH] mm/page_alloc.c: Allow error injection
+Date: Fri, 14 Dec 2018 15:24:06 +0100
+Message-ID: <f9dd5000-f83a-a102-2695-362e93fdfdea@suse.cz>
+References: <20181214074330.18917-1-bpoirier@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181212143604.GA5137@lst.de>
+In-Reply-To: <20181214074330.18917-1-bpoirier@suse.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Benjamin Poirier <bpoirier@suse.com>, linux-mm@kvack.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Pavel Tatashin <pavel.tatashin@microsoft.com>, Oscar Salvador <osalvador@suse.de>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Alexander Duyck <alexander.h.duyck@linux.intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mel Gorman <mgorman@techsingularity.net>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-Christoph Hellwig <hch@lst.de> writes:
-> On Sun, Dec 09, 2018 at 09:23:39PM +1100, Michael Ellerman wrote:
->> Christoph Hellwig <hch@lst.de> writes:
->> 
->> > Configure the dma settings at device setup time, and stop playing games
->> > with get_pci_dma_ops.  This prepares for using the common dma_configure
->> > code later on.
->> >
->> > Signed-off-by: Christoph Hellwig <hch@lst.de>
->> > ---
->> >  arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
->> >  1 file changed, 11 insertions(+), 9 deletions(-)
->> 
->> This one's crashing, haven't dug into why yet:
->
-> Can you provide a gdb assembly of the exact crash site?  This looks
-> like for some odd reason the DT structures aren't fully setup by the
-> time we are probing the device, which seems odd.
+On 12/14/18 8:43 AM, Benjamin Poirier wrote:
+> Model call chain after should_failslab(). Likewise, we can now use a kprobe
+> to override the return value of should_fail_alloc_page() and inject
+> allocation failures into alloc_page*().
 
-It's dev->of_node which is NULL.
+I'd be more explicit about both the advantages and disadvantages, as we
+discussed internally. E.g. something along:
 
-Because we were passed a platform_device which doesn't have an of_node.
+This will allow injecting allocation failures using the BCC tools even
+without building kernel with CONFIG_FAIL_PAGE_ALLOC and booting it with
+a fail_page_alloc= parameter, which incurs some overhead even when
+failures are not being injected. On the other hand, this patch adds an
+unconditional call to should_fail_alloc_page() from page allocation
+hotpath. That overhead should be rather negligible with
+CONFIG_FAIL_PAGE_ALLOC=n when there's no kprobe attached, though.
 
-It's the cbe-mic device created in cell_publish_devices().
+> Signed-off-by: Benjamin Poirier <bpoirier@suse.com>
 
-I can fix that by simply checking for a NULL node, then the system boots
-but then I have no network devices, due to:
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
 
-  tg3 0000:00:01.0: enabling device (0140 -> 0142)
-  tg3 0000:00:01.0: DMA engine test failed, aborting
-  tg3: probe of 0000:00:01.0 failed with error -12
-  tg3 0000:00:01.1: enabling device (0140 -> 0142)
-  tg3 0000:00:01.1: DMA engine test failed, aborting
-  tg3: probe of 0000:00:01.1 failed with error -12
-
-
-I think the problem is that we don't want to set iommu_bypass_supported
-unless cell_iommu_fixed_mapping_init() succeeds.
-
-Yep. This makes it work for me on cell on top of your v5.
-
-cheers
-
-
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 348a815779c1..8329fda17cc8 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -813,6 +813,10 @@ static u64 cell_iommu_get_fixed_address(struct device *dev)
- 	int i, len, best, naddr, nsize, pna, range_size;
- 
- 	np = of_node_get(dev->of_node);
-+	if (!np)
-+		/* We can be called for platform devices that have no of_node */
-+		goto out;
-+
- 	while (1) {
- 		naddr = of_n_addr_cells(np);
- 		nsize = of_n_size_cells(np);
-@@ -1065,8 +1069,11 @@ static int __init cell_iommu_init(void)
- 	/* Setup various callbacks */
- 	cell_pci_controller_ops.dma_dev_setup = cell_pci_dma_dev_setup;
- 
--	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0)
-+	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0) {
-+		cell_pci_controller_ops.iommu_bypass_supported =
-+			cell_pci_iommu_bypass_supported;
- 		goto done;
-+	}
- 
- 	/* Create an iommu for each /axon node.  */
- 	for_each_node_by_name(np, "axon") {
-@@ -1085,10 +1092,6 @@ static int __init cell_iommu_init(void)
- 	}
-  done:
- 	/* Setup default PCI iommu ops */
--	if (!iommu_fixed_disabled) {
--		cell_pci_controller_ops.iommu_bypass_supported =
--				cell_pci_iommu_bypass_supported;
--	}
- 	set_pci_dma_ops(&dma_iommu_ops);
- 	cell_iommu_enabled = true;
-  bail:
+> ---
+>  include/asm-generic/error-injection.h |  1 +
+>  mm/page_alloc.c                       | 10 ++++++++--
+>  2 files changed, 9 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/asm-generic/error-injection.h b/include/asm-generic/error-injection.h
+> index 296c65442f00..95a159a4137f 100644
+> --- a/include/asm-generic/error-injection.h
+> +++ b/include/asm-generic/error-injection.h
+> @@ -8,6 +8,7 @@ enum {
+>  	EI_ETYPE_NULL,		/* Return NULL if failure */
+>  	EI_ETYPE_ERRNO,		/* Return -ERRNO if failure */
+>  	EI_ETYPE_ERRNO_NULL,	/* Return -ERRNO or NULL if failure */
+> +	EI_ETYPE_TRUE,		/* Return true if failure */
+>  };
+>  
+>  struct error_injection_entry {
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 2ec9cc407216..64861d79dc2d 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -3053,7 +3053,7 @@ static int __init setup_fail_page_alloc(char *str)
+>  }
+>  __setup("fail_page_alloc=", setup_fail_page_alloc);
+>  
+> -static bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
+> +static bool __should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
+>  {
+>  	if (order < fail_page_alloc.min_order)
+>  		return false;
+> @@ -3103,13 +3103,19 @@ late_initcall(fail_page_alloc_debugfs);
+>  
+>  #else /* CONFIG_FAIL_PAGE_ALLOC */
+>  
+> -static inline bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
+> +static inline bool __should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
+>  {
+>  	return false;
+>  }
+>  
+>  #endif /* CONFIG_FAIL_PAGE_ALLOC */
+>  
+> +static noinline bool should_fail_alloc_page(gfp_t gfp_mask, unsigned int order)
+> +{
+> +	return __should_fail_alloc_page(gfp_mask, order);
+> +}
+> +ALLOW_ERROR_INJECTION(should_fail_alloc_page, TRUE);
+> +
+>  /*
+>   * Return true if free base pages are above 'mark'. For high-order checks it
+>   * will return true of the order-0 watermark is reached and there is at least
+> 
