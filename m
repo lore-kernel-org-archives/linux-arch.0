@@ -1,86 +1,96 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
-Date: Fri, 14 Dec 2018 20:47:51 +0530
-Message-ID: <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
-References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] Linux: Implement membarrier function
+Date: Fri, 14 Dec 2018 10:31:51 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.1812141013070.1570-100000@iolanthe.rowland.org>
+References: <20181214002043.GP4170@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <20181214002043.GP4170@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Folks,
+On Thu, 13 Dec 2018, Paul E. McKenney wrote:
 
-On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> The purpose of this patch series is, we can easily
-> add/modify/delete system call table support by cha-
-> nging entry in syscall.tbl file instead of manually
-> changing many files. The other goal is to unify the
-> system call table generation support implementation
-> across all the architectures.
->
-> The system call tables are in different format in
-> all architecture. It will be difficult to manually
-> add, modify or delete the system calls in the resp-
-> ective files manually. To make it easy by keeping a
-> script and which'll generate uapi header file and
-> syscall table file.
->
-> syscall.tbl contains the list of available system
-> calls along with system call number and correspond-
-> ing entry point. Add a new system call in this arch-
-> itecture will be possible by adding new entry in the
-> syscall.tbl file.
->
-> Adding a new table entry consisting of:
->         - System call number.
->         - ABI.
->         - System call name.
->         - Entry point name.
->
-> ARM, s390 and x86 architecuture does exist the sim-
-> ilar support. I leverage their implementation to
-> come up with a generic solution.
->
-> I have done the same support for work for ia64, m68k,
-> microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
-> Below mentioned git repository contains more details
-> about the workflow.
->
-> https://github.com/frzkhn/system_call_table_generator/
->
-> Finally, this is the ground work to solve the Y2038
-> issue. We need to add two dozen of system calls to
-> solve Y2038 issue. So this patch series will help to
-> add new system calls easily by adding new entry in
-> the syscall.tbl.
->
-> changes since v2:
->  - changed from generic-y to generated-y in Kbuild.
->  - made changes in syscall.tbl for removing entry -
->    alpha_ni_syscall.
->
-> changes since v1:
->  - optimized/updated the syscall table generation
->    scripts.
->  - fixed all mixed indentation issues in syscall.tbl.
->  - added "comments" in syscall.tbl.
->  - enclosed __NR_sycalls macro with __KERNEL__.
->  - added missing new line.
->
-> Firoz Khan (5):
->   alpha: move __IGNORE* entries to non uapi header
->   alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
->   alpha: add __NR_syscalls along with NR_SYSCALLS
->   alpha: add system call table generation support
->   alpha: generate uapi header and syscall table header files
+> > > I guess that I still haven't gotten over being a bit surprised that the
+> > > RCU counting rule also applies to sys_membarrier().  ;-)
+> > 
+> > Why not?  They are both synchronization mechanisms with heavy-weight
+> > write sides and light-weight read sides, and most importantly, they
+> > provide the same Guarantee.
+> 
+> True, but I do feel the need to poke at it.
+> 
+> The zero-size sys_membarrier() read-side critical sections do make
+> things act a bit differently, for example, interchanging the accesses
+> in an RCU read-side critical section has no effect, while doing so in
+> a sys_membarrier() reader can cause the result to be allowed.  One key
+> point is that everything before the end of a read-side critical section
+> of any type is ordered before any later grace period of that same type,
+> and vice versa.
+> 
+> This is why reordering accesses matters for sys_membarrier() readers but
+> not for RCU and SRCU readers -- in the case of RCU and SRCU readers,
+> the accesses are inside the read-side critical section, while for
+> sys_membarrier() readers, the read-side critical sections don't have
+> an inside.  So yes, ordering also matters in the case of SRCU and
+> RCU readers for accesses outside of the read-side critical sections.
+> The reason sys_membarrier() seems surprising to me isn't because it is
+> any different in theoretical structure, but rather because the practice
+> is to put RCU and SRCU read-side accesses inside a read-side critical
+> sections, which is impossible for sys_membarrier().
 
-Could someone review this patch series and queue it for 4.21
-through alpha tree would be great.
+RCU and sys_membarrier are more similar than you might think at first.  
+For one thing, if there were primitives for blocking and unblocking
+reception of IPIs, those primitives would delimit critical sections for
+sys_membarrier.  (Maybe such things do exist; I wouldn't know.)
 
-Thanks
-Firoz
+For another, the way we model RCU isn't fully accurate for the Linux
+kernel, as you know.  Since individual instructions cannot be
+preempted, each instruction is a tiny read-side critical section.
+Thus, litmus tests like this one:
+
+	P0			P1
+	Wa=1			Wb=1
+	synchronize_rcu()	Ra=0
+	Rb=0
+
+actually are forbidden in the kernel (provided P1 isn't part of the
+idle loop!), even though the LKMM allows them.  However, it wouldn't
+be forbidden if the accesses in P1 were swapped -- just like with
+sys_membarrier.
+
+Put these two observations together and you see that sys_membarrier is
+almost exactly the same as RCU without explicit read-side critical
+sections. Perhaps this isn't surprising, given that the initial
+implementation of sys_membarrier() was pretty much the same as
+synchronize_rcu().
+
+> The other thing that took some time to get used to is the possibility
+> of long delays during sys_membarrier() execution, allowing significant
+> execution and reordering between different CPUs' IPIs.  This was key
+> to my understanding of the six-process example, and probably needs to
+> be clearly called out, including in an example or two.
+
+In all the examples I'm aware of, no more than one of the IPIs
+generated by each sys_membarrier call really matters.  (Of course,
+there's no way to know in advance which one it will be, so you have to
+send an IPI to every CPU.)  The execution delays and reordering
+between different CPUs' IPIs don't appear to be significant.
+
+> The interleaving restrictions are straightforward for me, but the
+> fixed-time approach does have some interesting cross-talk potential
+> between sys_membarrier() and RCU read-side critical sections whose
+> accesses have been reversed.  I don't believe that it is possible to
+> leverage this "order the other guy's read-side critical sections" effect
+> in the general case, but I could be missing something.
+
+I regard the fixed-time approach as nothing more than a heuristic
+aid.  It's not an accurate explaination of what's really going on.
+
+> If you are claiming that I am worrying unnecessarily, you are probably
+> right.  But if I didn't worry unnecessarily, RCU wouldn't work at all!  ;-)
+
+Alan
