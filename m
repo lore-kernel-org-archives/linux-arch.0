@@ -1,96 +1,24 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Fri, 14 Dec 2018 10:31:51 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.1812141013070.1570-100000@iolanthe.rowland.org>
-References: <20181214002043.GP4170@linux.ibm.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 12/34] powerpc/cell: move dma direct window setup out
+ of dma_configure
+Date: Fri, 14 Dec 2018 17:42:33 +0100
+Message-ID: <20181214164233.GA27074@lst.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181114082314.8965-13-hch@lst.de> <871s6r3sno.fsf@concordia.ellerman.id.au> <20181212143604.GA5137@lst.de> <87mup8uti0.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181214002043.GP4170@linux.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <87mup8uti0.fsf@concordia.ellerman.id.au>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 13 Dec 2018, Paul E. McKenney wrote:
-
-> > > I guess that I still haven't gotten over being a bit surprised that the
-> > > RCU counting rule also applies to sys_membarrier().  ;-)
-> > 
-> > Why not?  They are both synchronization mechanisms with heavy-weight
-> > write sides and light-weight read sides, and most importantly, they
-> > provide the same Guarantee.
+On Sat, Dec 15, 2018 at 12:29:11AM +1100, Michael Ellerman wrote:
+> I think the problem is that we don't want to set iommu_bypass_supported
+> unless cell_iommu_fixed_mapping_init() succeeds.
 > 
-> True, but I do feel the need to poke at it.
-> 
-> The zero-size sys_membarrier() read-side critical sections do make
-> things act a bit differently, for example, interchanging the accesses
-> in an RCU read-side critical section has no effect, while doing so in
-> a sys_membarrier() reader can cause the result to be allowed.  One key
-> point is that everything before the end of a read-side critical section
-> of any type is ordered before any later grace period of that same type,
-> and vice versa.
-> 
-> This is why reordering accesses matters for sys_membarrier() readers but
-> not for RCU and SRCU readers -- in the case of RCU and SRCU readers,
-> the accesses are inside the read-side critical section, while for
-> sys_membarrier() readers, the read-side critical sections don't have
-> an inside.  So yes, ordering also matters in the case of SRCU and
-> RCU readers for accesses outside of the read-side critical sections.
-> The reason sys_membarrier() seems surprising to me isn't because it is
-> any different in theoretical structure, but rather because the practice
-> is to put RCU and SRCU read-side accesses inside a read-side critical
-> sections, which is impossible for sys_membarrier().
+> Yep. This makes it work for me on cell on top of your v5.
 
-RCU and sys_membarrier are more similar than you might think at first.  
-For one thing, if there were primitives for blocking and unblocking
-reception of IPIs, those primitives would delimit critical sections for
-sys_membarrier.  (Maybe such things do exist; I wouldn't know.)
-
-For another, the way we model RCU isn't fully accurate for the Linux
-kernel, as you know.  Since individual instructions cannot be
-preempted, each instruction is a tiny read-side critical section.
-Thus, litmus tests like this one:
-
-	P0			P1
-	Wa=1			Wb=1
-	synchronize_rcu()	Ra=0
-	Rb=0
-
-actually are forbidden in the kernel (provided P1 isn't part of the
-idle loop!), even though the LKMM allows them.  However, it wouldn't
-be forbidden if the accesses in P1 were swapped -- just like with
-sys_membarrier.
-
-Put these two observations together and you see that sys_membarrier is
-almost exactly the same as RCU without explicit read-side critical
-sections. Perhaps this isn't surprising, given that the initial
-implementation of sys_membarrier() was pretty much the same as
-synchronize_rcu().
-
-> The other thing that took some time to get used to is the possibility
-> of long delays during sys_membarrier() execution, allowing significant
-> execution and reordering between different CPUs' IPIs.  This was key
-> to my understanding of the six-process example, and probably needs to
-> be clearly called out, including in an example or two.
-
-In all the examples I'm aware of, no more than one of the IPIs
-generated by each sys_membarrier call really matters.  (Of course,
-there's no way to know in advance which one it will be, so you have to
-send an IPI to every CPU.)  The execution delays and reordering
-between different CPUs' IPIs don't appear to be significant.
-
-> The interleaving restrictions are straightforward for me, but the
-> fixed-time approach does have some interesting cross-talk potential
-> between sys_membarrier() and RCU read-side critical sections whose
-> accesses have been reversed.  I don't believe that it is possible to
-> leverage this "order the other guy's read-side critical sections" effect
-> in the general case, but I could be missing something.
-
-I regard the fixed-time approach as nothing more than a heuristic
-aid.  It's not an accurate explaination of what's really going on.
-
-> If you are claiming that I am worrying unnecessarily, you are probably
-> right.  But if I didn't worry unnecessarily, RCU wouldn't work at all!  ;-)
-
-Alan
+Thanks, this looks good.  I've folded it with the slight change of moving
+the iommu_bypass_supported setup into cell_iommu_fixed_mapping_init.
