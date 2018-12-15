@@ -1,84 +1,49 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
-Date: Sat, 15 Dec 2018 09:51:12 +0900
-Message-ID: <CAK7LNASB=HvU8DwUQQkz_r3sY1DN8Vv-qfNa54-ZDXSpfvEYpg@mail.gmail.com>
-References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com> <20181213105146.GH5289@hirez.programming.kicks-ass.net>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH 6/6] arm64: Use ftrace_graph_get_ret_stack() instead of
+ curr_ret_stack
+Date: Fri, 14 Dec 2018 22:00:54 -0500
+Message-ID: <20181214220054.101f9e4c@vmware.local.home>
+References: <20181210193007.655970639@goodmis.org>
+        <20181210193335.417173167@goodmis.org>
+        <f0613902-80ac-5865-26ee-f0aac4d3b906@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181213105146.GH5289@hirez.programming.kicks-ass.net>
+In-Reply-To: <f0613902-80ac-5865-26ee-f0aac4d3b906@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Richard Biener <rguenther@suse.de>, Nadav Amit <namit@vmware.com>, Logan Gunthorpe <logang@deltatee.com>, Sedat Dilek <sedat.dilek@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Michal Marek <michal.lkml@markovi.net>, linux-sparse@vger.kernel.org, Alok Kataria <akataria@vmware.com>, Juergen Gross <jgross@suse.com>, Andy Lutomirski <luto@kernel.org>L
+To: James Morse <james.morse@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+On Thu, 13 Dec 2018 17:09:35 +0000
+James Morse <james.morse@arm.com> wrote:
 
-On Thu, Dec 13, 2018 at 7:53 PM Peter Zijlstra <peterz@infradead.org> wrote:
->
-> On Thu, Dec 13, 2018 at 06:17:41PM +0900, Masahiro Yamada wrote:
-> > Revert the following commits:
-> >
-> > - 5bdcd510c2ac9efaf55c4cbd8d46421d8e2320cd
-> >   ("x86/jump-labels: Macrofy inline assembly code to work around GCC inlining bugs")
-> >
-> > - d5a581d84ae6b8a4a740464b80d8d9cf1e7947b2
-> >   ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
-> >
-> > - 0474d5d9d2f7f3b11262f7bf87d0e7314ead9200.
-> >   ("x86/extable: Macrofy inline assembly code to work around GCC inlining bugs")
-> >
-> > - 494b5168f2de009eb80f198f668da374295098dd.
-> >   ("x86/paravirt: Work around GCC inlining bugs when compiling paravirt ops")
-> >
-> > - f81f8ad56fd1c7b99b2ed1c314527f7d9ac447c6.
-> >   ("x86/bug: Macrofy the BUG table section handling, to work around GCC inlining bugs")
-> >
-> > - 77f48ec28e4ccff94d2e5f4260a83ac27a7f3099.
-> >   ("x86/alternatives: Macrofy lock prefixes to work around GCC inlining bugs")
-> >
-> > - 9e1725b410594911cc5981b6c7b4cea4ec054ca8.
-> >   ("x86/refcount: Work around GCC inlining bug")
-> >   (Conflicts: arch/x86/include/asm/refcount.h)
-> >
-> > - c06c4d8090513f2974dfdbed2ac98634357ac475.
-> >   ("x86/objtool: Use asm macros to work around GCC inlining bugs")
-> >
-> > - 77b0bf55bc675233d22cd5df97605d516d64525e.
-> >   ("kbuild/Makefile: Prepare for using macros in inline assembly code to work around asm() related GCC inlining bugs")
-> >
->
-> I don't think we want to blindly revert all that. Some of them actually
-> made sense and did clean up things irrespective of the asm-inline issue.
->
-> In particular I like the jump-label one.
+> Hi Steven,
+> 
 
-[1] The #error message is unnecessary.
+> I gave this branch a spin, but I hit the WARN_ON() fairly easily:
 
-[2] keep STATC_BRANCH_NOP/JMP instead of STATIC_JUMP_IF_TRUE/FALSE
+Thanks for testing!
 
+Can you see if this patch fixes it for you?
 
+-- Steve
 
-In v2, I will make sure to not re-add [1].
-I am not sure about [2].
-
-
-Do you mean only [1],
-or both of them?
-
-
-
-> The cpufeature one OTOh, yeah,
-> I'd love to get that reverted.
->
-> And as a note; the normal commit quoting style is:
->
->   d5a581d84ae6 ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
-
-
-OK. I will do so in v2.
-
-
---
-Best Regards
-Masahiro Yamada
+diff --git a/kernel/trace/fgraph.c b/kernel/trace/fgraph.c
+index d4f04f0ca646..8dfd5021b933 100644
+--- a/kernel/trace/fgraph.c
++++ b/kernel/trace/fgraph.c
+@@ -246,10 +246,10 @@ unsigned long ftrace_return_to_handler(unsigned long frame_pointer)
+ struct ftrace_ret_stack *
+ ftrace_graph_get_ret_stack(struct task_struct *task, int idx)
+ {
+-	idx = current->curr_ret_stack - idx;
++	idx = task->curr_ret_stack - idx;
+ 
+ 	if (idx >= 0 && idx <= task->curr_ret_stack)
+-		return &current->ret_stack[idx];
++		return &task->ret_stack[idx];
+ 
+ 	return NULL;
+ }
