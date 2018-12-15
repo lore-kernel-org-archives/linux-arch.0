@@ -1,29 +1,84 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 0/8] net: y2038-safe socket timestamps
-Date: Fri, 14 Dec 2018 15:24:24 -0800 (PST)
-Message-ID: <20181214.152424.610334997107326314.davem@davemloft.net>
-References: <20181211202520.16799-1-deepa.kernel@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
+Date: Sat, 15 Dec 2018 09:51:12 +0900
+Message-ID: <CAK7LNASB=HvU8DwUQQkz_r3sY1DN8Vv-qfNa54-ZDXSpfvEYpg@mail.gmail.com>
+References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com> <20181213105146.GH5289@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20181211202520.16799-1-deepa.kernel@gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: deepa.kernel@gmail.com
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-xtensa@linux-xtensa.org, dhowells@redhat.com, sparclinux@vger.kernel.org, linux-afs@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, y2038@lists.linaro.org, deller@gmx.de, jejb@parisc-linux.org, fenghua.yu@intel.com, arnd@arndb.de, ubraun@linux.ibm.com, tglx@linutronix.de, rth@twiddle.net, chris@zankel.net, isdn@linux-pingi.de, linux-parisc@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, linux-rdma@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181213105146.GH5289@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Richard Biener <rguenther@suse.de>, Nadav Amit <namit@vmware.com>, Logan Gunthorpe <logang@deltatee.com>, Sedat Dilek <sedat.dilek@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Michal Marek <michal.lkml@markovi.net>, linux-sparse@vger.kernel.org, Alok Kataria <akataria@vmware.com>, Juergen Gross <jgross@suse.com>, Andy Lutomirski <luto@kernel.org>L
 List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogRGVlcGEgRGluYW1hbmkgPGRlZXBhLmtlcm5lbEBnbWFpbC5jb20+CkRhdGU6IFR1ZSwg
-MTEgRGVjIDIwMTggMTI6MjU6MTIgLTA4MDAKCj4gVGhlIHNlcmllcyBpbnRyb2R1Y2VzIG5ldyBz
-b2NrZXQgdGltZXN0YW1wcyB0aGF0IGFyZQo+IHkyMDM4IHNhZmUuCgpQbGVhc2UgYWRkcmVzcyBX
-aWxsZW0ncyBmZWVkYmFjaywgdGhhbmsgeW91LgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJv
-Lm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+Hi Peter,
+
+On Thu, Dec 13, 2018 at 7:53 PM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Thu, Dec 13, 2018 at 06:17:41PM +0900, Masahiro Yamada wrote:
+> > Revert the following commits:
+> >
+> > - 5bdcd510c2ac9efaf55c4cbd8d46421d8e2320cd
+> >   ("x86/jump-labels: Macrofy inline assembly code to work around GCC inlining bugs")
+> >
+> > - d5a581d84ae6b8a4a740464b80d8d9cf1e7947b2
+> >   ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
+> >
+> > - 0474d5d9d2f7f3b11262f7bf87d0e7314ead9200.
+> >   ("x86/extable: Macrofy inline assembly code to work around GCC inlining bugs")
+> >
+> > - 494b5168f2de009eb80f198f668da374295098dd.
+> >   ("x86/paravirt: Work around GCC inlining bugs when compiling paravirt ops")
+> >
+> > - f81f8ad56fd1c7b99b2ed1c314527f7d9ac447c6.
+> >   ("x86/bug: Macrofy the BUG table section handling, to work around GCC inlining bugs")
+> >
+> > - 77f48ec28e4ccff94d2e5f4260a83ac27a7f3099.
+> >   ("x86/alternatives: Macrofy lock prefixes to work around GCC inlining bugs")
+> >
+> > - 9e1725b410594911cc5981b6c7b4cea4ec054ca8.
+> >   ("x86/refcount: Work around GCC inlining bug")
+> >   (Conflicts: arch/x86/include/asm/refcount.h)
+> >
+> > - c06c4d8090513f2974dfdbed2ac98634357ac475.
+> >   ("x86/objtool: Use asm macros to work around GCC inlining bugs")
+> >
+> > - 77b0bf55bc675233d22cd5df97605d516d64525e.
+> >   ("kbuild/Makefile: Prepare for using macros in inline assembly code to work around asm() related GCC inlining bugs")
+> >
+>
+> I don't think we want to blindly revert all that. Some of them actually
+> made sense and did clean up things irrespective of the asm-inline issue.
+>
+> In particular I like the jump-label one.
+
+[1] The #error message is unnecessary.
+
+[2] keep STATC_BRANCH_NOP/JMP instead of STATIC_JUMP_IF_TRUE/FALSE
+
+
+
+In v2, I will make sure to not re-add [1].
+I am not sure about [2].
+
+
+Do you mean only [1],
+or both of them?
+
+
+
+> The cpufeature one OTOh, yeah,
+> I'd love to get that reverted.
+>
+> And as a note; the normal commit quoting style is:
+>
+>   d5a581d84ae6 ("x86/cpufeature: Macrofy inline assembly code to work around GCC inlining bugs")
+
+
+OK. I will do so in v2.
+
+
+--
+Best Regards
+Masahiro Yamada
