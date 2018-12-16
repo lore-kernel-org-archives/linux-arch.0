@@ -1,36 +1,21 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] bpf: promote bpf_perf_event.h to mandatory UAPI header
-Date: Mon, 17 Dec 2018 00:04:40 +0900
-Message-ID: <1544972680-4105-1-git-send-email-yamada.masahiro@socionext.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Sun, 16 Dec 2018 17:51:57 +0100
+Message-ID: <20181216165157.GA14652@lst.de>
+References: <20181114082314.8965-1-hch@lst.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20181114082314.8965-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, netdev@vger.kernel.org
-Cc: Thomas Richter <tmricht@linux.vnet.ibm.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since commit c895f6f703ad ("bpf: correct broken uapi for
-BPF_PROG_TYPE_PERF_EVENT program type"), all architectures
-(except um) are required to have bpf_perf_event.h in uapi/asm.
+FYI, given that we are one week before the expected 4.20 release
+date and I haven't found the bug plaging Christians setups I think
+we need to defer most of this to the next merge window.
 
-Add it to mandatory-y so "make headers_install" can check it.
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
- include/uapi/asm-generic/Kbuild.asm | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/include/uapi/asm-generic/Kbuild.asm b/include/uapi/asm-generic/Kbuild.asm
-index 2138144..355c4ac 100644
---- a/include/uapi/asm-generic/Kbuild.asm
-+++ b/include/uapi/asm-generic/Kbuild.asm
-@@ -3,6 +3,7 @@
- #
- mandatory-y += auxvec.h
- mandatory-y += bitsperlong.h
-+mandatory-y += bpf_perf_event.h
- mandatory-y += byteorder.h
- mandatory-y += errno.h
- mandatory-y += fcntl.h
--- 
-2.7.4
+I'd still like to get a few bits in earlier, which I will send out
+separately now.
