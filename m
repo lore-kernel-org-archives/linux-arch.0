@@ -1,111 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-07.nifty.com ([210.131.2.74]:65254 "EHLO
-        conuserg-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388235AbeLQQLQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Dec 2018 11:11:16 -0500
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v3 00/12] x86, kbuild: revert macrofying inline assembly code
-Date: Tue, 18 Dec 2018 01:03:15 +0900
-Message-ID: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48374 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2387786AbeLQSck (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Dec 2018 13:32:40 -0500
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wBHIStEr127820
+        for <linux-arch@vger.kernel.org>; Mon, 17 Dec 2018 13:32:39 -0500
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2pef79nmj7-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 17 Dec 2018 13:32:39 -0500
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 17 Dec 2018 18:32:37 -0000
+Date: Mon, 17 Dec 2018 10:32:34 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH] Linux: Implement membarrier function
+Reply-To: paulmck@linux.ibm.com
+References: <20181216185130.GB4170@linux.ibm.com>
+ <Pine.LNX.4.44L0.1812171054090.1630-100000@iolanthe.rowland.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1812171054090.1630-100000@iolanthe.rowland.org>
+Message-ID: <20181217183234.GL4170@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>
-Cc: Richard Biener <rguenther@suse.de>, Segher Boessenkool <segher@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Juergen Gross <jgross@suse.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, virtualization@lists.linux-foundation.org, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Alok Kataria <akataria@vmware.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jann Horn <jannh@google.com>, linux-arch@vger.kernel.org, Alexey Dobriyan <adobriyan@gmail.com>, linux-sparse@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild@vger.kernel.org, Yonghong Song <yhs@fb.com>, Michal Marek <michal.lkml@markovi.net>, Arnaldo Carvalho de Melo <acme@redhat.com>, Jan Beulich <JBeulich@suse.com>, Nadav Amit <namit@vmware.com>, David Woodhouse <dwmw@amazon.co.uk>, Alexei Starovoitov <ast@kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20181217160315.N49M-c2qRopBg971VTEZbH5mNFuDAlkyCm2QbR4TWF8@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181217183234.yj2FLFLGdqVYDSdJPyvzGCatRXpTBUlqHuRyRBXsdYc@z>
 
-This series reverts the in-kernel workarounds for inlining issues.
+On Mon, Dec 17, 2018 at 11:02:40AM -0500, Alan Stern wrote:
+> On Sun, 16 Dec 2018, Paul E. McKenney wrote:
+> 
+> > OK, so "simultaneous" IPIs could be emulated in a real implementation by
+> > having sys_membarrier() send each IPI (but not wait for a response), then
+> > execute a full memory barrier and set a shared variable.  Each IPI handler
+> > would spin waiting for the shared variable to be set, then execute a full
+> > memory barrier and atomically increment yet another shared variable and
+> > return from interrupt.  When that other shared variable's value reached
+> > the number of IPIs sent, the sys_membarrier() would execute its final
+> > (already existing) full memory barrier and return.  Horribly expensive
+> > and definitely not recommended, but eminently doable.
+> 
+> I don't think that's right.  What would make the IPIs "simultaneous"  
+> would be if none of the handlers return until all of them have started
+> executing.  For example, you could have each handler increment a shared
+> variable and then spin, waiting for the variable to reach the number of
+> CPUs, before returning.
+> 
+> What you wrote was to have each handler wait until all the IPIs had 
+> been sent, which is not the same thing at all.
 
-The commit description of 77b0bf55bc67 mentioned
-"We also hope that GCC will eventually get fixed,..."
+You are right, the handlers need to do the atomic increment before
+waiting for the shared variable to be set, and the sys_membarrier()
+must wait for the incremented variable to reach its final value before
+setting the shared variable.
 
-Now, GCC provides a solution.
+> > The difference between current sys_membarrier() and the "simultaneous"
+> > variant described above is similar to the difference between
+> > non-multicopy-atomic and multicopy-atomic memory ordering.  So, after
+> > thinking it through, my guess is that pretty much any litmus test that
+> > can discern between multicopy-atomic and  non-multicopy-atomic should
+> > be transformable into something that can distinguish between the current
+> > and the "simultaneous" sys_membarrier() implementation.
+> > 
+> > Seem reasonable?
+> 
+> Yes.
+> 
+> > Or alternatively, may I please apply your Signed-off-by to your earlier
+> > sys_membarrier() patch so that I can queue it?  I will probably also
+> > change smp_memb() to membarrier() or some such.  Again, within the
+> > Linux kernel, membarrier() can be emulated with smp_call_function()
+> > invoking a handler that does smp_mb().
+> 
+> Do you really want to put sys_membarrier into the LKMM?  I'm not so 
+> sure it's appropriate.
 
-https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
-explains the new "asm inline" syntax.
+We do need it for the benefit of the C++ folks, but you are right that
+it need not be accepted into the kernel to be useful to them.
 
-The performance issue will be eventually solved.
+So agreed, let's hold off for the time being.
 
-[About Code cleanups]
-
-I know Nadam Amit is opposed to the full revert.
-He also claims his motivation for macrofying was not only
-performance, but also cleanups.
-
-IIUC, the criticism addresses the code duplication between C and ASM.
-
-If so, I'd like to suggest a different approach for cleanups.
-Please see the last 3 patches.
-IMHO, preprocessor approach is more straight-forward, and readable.
-Basically, this idea should work because it is what we already do for
-__ASM_FORM() etc.
-
-[Quick Test of "asm inline" of GCC 9]
-
-If you want to try "asm inline" feature, the patch is available:
-https://lore.kernel.org/patchwork/patch/1024590/
-
-The number of symbols for arch/x86/configs/x86_64_defconfig:
-
-                            nr_symbols
-  [1]    v4.20-rc7       :   96502
-  [2]    [1]+full revert :   96705   (+203)
-  [3]    [2]+"asm inline":   96568   (-137)
-
-[3]: apply my patch, then replace "asm" -> "asm_inline"
-    for _BUG_FLAGS(), refcount_add(), refcount_inc(), refcount_dec(),
-        annotate_reachable(), annotate_unreachable()
-
-
-Changes in v3:
-  - Split into per-commit revert (per Nadav Amit)
-  - Add some cleanups with preprocessor approach
-
-Changes in v2:
-  - Revive clean-ups made by 5bdcd510c2ac (per Peter Zijlstra)
-  - Fix commit quoting style (per Peter Zijlstra)
-
-Masahiro Yamada (12):
-  Revert "x86/jump-labels: Macrofy inline assembly code to work around
-    GCC inlining bugs"
-  Revert "x86/cpufeature: Macrofy inline assembly code to work around
-    GCC inlining bugs"
-  Revert "x86/extable: Macrofy inline assembly code to work around GCC
-    inlining bugs"
-  Revert "x86/paravirt: Work around GCC inlining bugs when compiling
-    paravirt ops"
-  Revert "x86/bug: Macrofy the BUG table section handling, to work
-    around GCC inlining bugs"
-  Revert "x86/alternatives: Macrofy lock prefixes to work around GCC
-    inlining bugs"
-  Revert "x86/refcount: Work around GCC inlining bug"
-  Revert "x86/objtool: Use asm macros to work around GCC inlining bugs"
-  Revert "kbuild/Makefile: Prepare for using macros in inline assembly
-    code to work around asm() related GCC inlining bugs"
-  linux/linkage: add ASM() macro to reduce duplication between C/ASM
-    code
-  x86/alternatives: consolidate LOCK_PREFIX macro
-  x86/asm: consolidate ASM_EXTABLE_* macros
-
- Makefile                                  |  9 +--
- arch/x86/Makefile                         |  7 ---
- arch/x86/include/asm/alternative-asm.h    | 22 +------
- arch/x86/include/asm/alternative-common.h | 47 +++++++++++++++
- arch/x86/include/asm/alternative.h        | 30 +---------
- arch/x86/include/asm/asm.h                | 46 +++++----------
- arch/x86/include/asm/bug.h                | 98 +++++++++++++------------------
- arch/x86/include/asm/cpufeature.h         | 82 +++++++++++---------------
- arch/x86/include/asm/jump_label.h         | 22 +++++--
- arch/x86/include/asm/paravirt_types.h     | 56 +++++++++---------
- arch/x86/include/asm/refcount.h           | 81 +++++++++++--------------
- arch/x86/kernel/macros.S                  | 16 -----
- include/asm-generic/bug.h                 |  8 +--
- include/linux/compiler.h                  | 56 ++++--------------
- include/linux/linkage.h                   |  8 +++
- scripts/Kbuild.include                    |  4 +-
- scripts/mod/Makefile                      |  2 -
- 17 files changed, 249 insertions(+), 345 deletions(-)
- create mode 100644 arch/x86/include/asm/alternative-common.h
- delete mode 100644 arch/x86/kernel/macros.S
-
--- 
-2.7.4
+							Thanx, Paul
