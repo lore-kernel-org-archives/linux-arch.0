@@ -1,172 +1,150 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v2] x86, kbuild: revert macrofying inline assembly code
-Date: Mon, 17 Dec 2018 11:54:13 +0900
-Message-ID: <CAK7LNARcSYvc-3xhdwFMk=q20LYW2i1ahscofYsYka2hg0Oszw@mail.gmail.com>
-References: <1544928632-9717-1-git-send-email-yamada.masahiro@socionext.com> <9691ECB6-D659-4E88-B8AF-4947B9431AF1@vmware.com>
+From: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 0/5] powerpc: system call table generation support
+Date: Mon, 17 Dec 2018 13:38:46 +0530
+Message-ID: <20181217080846.GA28424@sathnaga86.in.ibm.com>
+References: <1544691770-8938-1-git-send-email-firoz.khan@linaro.org>
+Reply-To: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <9691ECB6-D659-4E88-B8AF-4947B9431AF1@vmware.com>
+Content-Disposition: inline
+In-Reply-To: <1544691770-8938-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>
-Cc: X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Richard Biener <rguenther@suse.de>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Michal Marek <michal.lkml@markovi.net>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>, Alok Kataria <akataria@vmware.com>, Juergen Gross <jgross@suse.com>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Ram Pai <linuxram@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Breno Leitao <leitao@debian.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Dec 16, 2018 at 12:29 PM Nadav Amit <namit@vmware.com> wrote:
->
-> > On Dec 15, 2018, at 6:50 PM, Masahiro Yamada <yamada.masahiro@socionext=
-.com> wrote:
-> >
-> > Revert the following 9 commits:
-> >
-> > [1] 5bdcd510c2ac ("x86/jump-labels: Macrofy inline assembly code to
-> >    work around GCC inlining bugs")
-> >
-> >    This was partially reverted because it made good cleanups
-> >    irrespective of the inlining issue; the error message is still
-> >    unneeded, and the conversion to STATIC_BRANCH_{NOP,JUMP} should
-> >    be kept.
-> >
-> > [2] d5a581d84ae6 ("x86/cpufeature: Macrofy inline assembly code to
-> >    work around GCC inlining bugs")
-> >
-> > [3] 0474d5d9d2f7 ("x86/extable: Macrofy inline assembly code to work
-> >    around GCC inlining bugs")
-> >
-> > [4] 494b5168f2de ("x86/paravirt: Work around GCC inlining bugs when
-> >    compiling paravirt ops")
-> >
-> > [5] f81f8ad56fd1 ("x86/bug: Macrofy the BUG table section handling,
-> >    to work around GCC inlining bugs")
-> >
-> > [6] 77f48ec28e4c ("x86/alternatives: Macrofy lock prefixes to work
-> >   around GCC inlining bugs")
-> >
-> > [7] 9e1725b41059 ("x86/refcount: Work around GCC inlining bug")
-> >
-> >    Resolved conflicts in arch/x86/include/asm/refcount.h caused by
-> >    288e4521f0f6 ("x86/asm: 'Simplify' GEN_*_RMWcc() macros").
-> >
-> > [8] c06c4d809051 ("x86/objtool: Use asm macros to work around GCC
-> >    inlining bugs")
-> >
-> > [9] 77b0bf55bc67 ("kbuild/Makefile: Prepare for using macros in inline
-> >    assembly code to work around asm() related GCC inlining bugs")
-> >
-> > A few days after those commits applied, discussion started to solve
-> > the issue more elegantly with the help of compiler:
-> >
-> >  https://na01.safelinks.protection.outlook.com/?url=3Dhttps%3A%2F%2Flkm=
-l.org%2Flkml%2F2018%2F10%2F7%2F92&amp;data=3D02%7C01%7Cnamit%40vmware.com%7=
-Ce893ce88065e4c59236308d663019424%7Cb39138ca3cee4b4aa4d6cd83d9dd62f0%7C0%7C=
-0%7C636805255787607178&amp;sdata=3DmiiUndmPfGNKvrzD5mttC1%2Bn6rNaoIFebjZOAk=
-Br24Y%3D&amp;reserved=3D0
-> >
-> > The new syntax "asm inline" was implemented by Segher Boessenkool, and
-> > now queued up for GCC 9. (People were positive even for back-porting it
-> > to older compilers).
-> >
-> > Since the in-kernel workarounds merged, some issues have been reported:
-> > breakage of building with distcc/icecc, breakage of distro packages for
-> > module building. (More fundamentally, we cannot build external modules
-> > after 'make clean'.)
-> >
-> > I do not want to mess up the build system any more.
-> >
-> > Given that this issue will be solved in a cleaner way sooner or later,
-> > let's revert the in-kernel workarounds, and wait for GCC 9.
-> >
-> > Reported-by: Logan Gunthorpe <logang@deltatee.com> # distcc
-> > Reported-by: Sedat Dilek <sedat.dilek@gmail.com> # deb/rpm package
->
-> It is customary to cc those who report an issue.
+Hi Firoz,
 
-OK.
+On Thu, Dec 13, 2018 at 02:32:45PM +0530, Firoz Khan wrote:
+> The purpose of this patch series is, we can easily
+> add/modify/delete system call table support by cha-
+> nging entry in syscall.tbl file instead of manually
+> changing many files. The other goal is to unify the 
+> system call table generation support implementation 
+> across all the architectures. 
+> 
+> The system call tables are in different format in 
+> all architecture. It will be difficult to manually
+> add, modify or delete the system calls in the resp-
+> ective files manually. To make it easy by keeping a 
+> script and which'll generate uapi header file and 
+> syscall table file.
+> 
+> syscall.tbl contains the list of available system 
+> calls along with system call number and correspond-
+> ing entry point. Add a new system call in this arch-
+> itecture will be possible by adding new entry in 
+> the syscall.tbl file.
+> 
+> Adding a new table entry consisting of:
+>         - System call number.
+>         - ABI.
+>         - System call name.
+>         - Entry point name.
+> 	- Compat entry name, if required.
+> 	- spu entry name, if required.
+> 
+> ARM, s390 and x86 architecuture does exist the sim-
+> ilar support. I leverage their implementation to 
+> come up with a generic solution.
+> 
+> I have done the same support for work for alpha, 
+> ia64, m68k, microblaze, mips, parisc, sh, sparc, 
+> and xtensa. Below mentioned git repository contains
+> more details about the workflow.
+> 
+> https://github.com/frzkhn/system_call_table_generator/
+> 
+> Finally, this is the ground work to solve the Y2038
+> issue. We need to add two dozen of system calls to 
+> solve Y2038 issue. So this patch series will help to
+> add new system calls easily by adding new entry in the
+> syscall.tbl.
+> 
+> Changes since v4:
+>  - DOTSYM macro removed for ppc32, which was causing
+>    the compilation error.
+> 
+> Changes since v3:
+>  - split compat syscall table out from native table.
+>  - modified the script to add new line in the generated
+>    file.
+> 
+> Changes since v2:
+>  - modified/optimized the syscall.tbl to avoid duplicate
+>    for the spu entries.
+>  - updated the syscalltbl.sh to meet the above point.
+> 
+> Changes since v1:
+>  - optimized/updated the syscall table generation 
+>    scripts.
+>  - fixed all mixed indentation issues in syscall.tbl.
+>  - added "comments" in syscall_*.tbl.
+>  - changed from generic-y to generated-y in Kbuild.
+> 
+> Firoz Khan (5):
+>   powerpc: add __NR_syscalls along with NR_syscalls
+>   powerpc: move macro definition from asm/systbl.h
+>   powerpc: add system call table generation support
+>   powerpc: split compat syscall table out from native table
+>   powerpc: generate uapi header and system call table files
 
-> The distcc issue has already been resolved both in distcc
+Tried to apply on linus "master" and linuxppc-dev(https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git) "merge" branch,
+both failed to apply series.
 
-Precisely, the fix-up was submitted,
-but not pulled yet as of writing.
-https://github.com/distcc/distcc/pull/313
+# git am mbox
+Applying: powerpc: add __NR_syscalls along with NR_syscalls
+Applying: powerpc: move macro definition from asm/systbl.h
+Applying: powerpc: add system call table generation support
+Applying: powerpc: split compat syscall table out from native table
+Applying: powerpc: generate uapi header and system call table files
+error: patch failed: arch/powerpc/include/uapi/asm/Kbuild:1
+error: arch/powerpc/include/uapi/asm/Kbuild: patch does not apply
+Patch failed at 0005 powerpc: generate uapi header and system call table files
+Use 'git am --show-current-patch' to see the failed patch
+When you have resolved this problem, run "git am --continue".
+If you prefer to skip this patch, run "git am --skip" instead.
+To restore the original branch and stop patching, run "git am --abort".
 
+Then, tried with linuxppc-dev(https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git) "next" branch,
+patch got applied, compiled with ppc64le_defconfig and booted on IBM Power8 box.
 
-> and in the patches
-> I=E2=80=99ve sent: https://lkml.org/lkml/2018/11/15/467 .
+# uname -r
+4.20.0-rc2-gdd2690d2c
 
-I was scared by this ugly fix-up, so I rejected it.
-
-
-
-> So I cannot understand why
-> it is mentioned as a motivation.
->
-> It sounds that the external modules can easily be resolved. Can you pleas=
-e
-> provide a link for the bug report?
-
-
-https://www.spinics.net/lists/linux-kbuild/msg20037.html
-
-We can fix it under circumstances "we can do anything"
-although I am scared by endless Makefile hacks.
-
-
-
-> Please regard my comments regarding v1.
-
-I will try my best, although I felt some of your requests were too much.
-I am not an x86 developer.
+Looks like patch series needs a rebase against the latest kernel versions.
 
 
-I posted this so people can play with 'asm inline'
-https://lore.kernel.org/patchwork/patch/1024590/
+Thanks,
+-Satheesh.
 
-You can confirm vmlinux size is increased,
-and some symbols disappears.
-
-
-
-> I must admit that I=E2=80=99m very surprised
-> that you don=E2=80=99t like the patches since you ack=E2=80=99d the origi=
-nal patch-set
-
-
-I think ack and "I like it" are different.
-
-There are situations where we had to accept something reluctantly.
-
-
-Without my ack, your patch series would not have been
-merged via x86 tree.
-
-There was no other solution at that time.
-Also, I could not predict potential problems, which turned out later.
-
-So I let it go.
-
-It would have been better if
-the following discussion had stared earlier.
-https://lkml.org/lkml/2018/10/7/92
-
-
-Now, we got a much cleaner solution.
-
-I believe we should replace the workarounds with it.
-
-
-
-> (and
-> actually assisted me in changing the Makefile).
-
-You were clearly breaking the build system.
-So, I provided a less ugly solution.
-
-Again, the in-kernel hack was the only solution at that time,
-but the situation has changed then.
-
-
-
---=20
-Best Regards
-Masahiro Yamada
+> 
+>  arch/powerpc/Makefile                       |   3 +
+>  arch/powerpc/include/asm/Kbuild             |   4 +
+>  arch/powerpc/include/asm/syscall.h          |   3 +-
+>  arch/powerpc/include/asm/systbl.h           | 396 --------------------------
+>  arch/powerpc/include/asm/unistd.h           |   3 +-
+>  arch/powerpc/include/uapi/asm/Kbuild        |   2 +
+>  arch/powerpc/include/uapi/asm/unistd.h      | 389 +------------------------
+>  arch/powerpc/kernel/Makefile                |  10 -
+>  arch/powerpc/kernel/entry_64.S              |   7 +-
+>  arch/powerpc/kernel/syscalls/Makefile       |  63 ++++
+>  arch/powerpc/kernel/syscalls/syscall.tbl    | 427 ++++++++++++++++++++++++++++
+>  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
+>  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  36 +++
+>  arch/powerpc/kernel/systbl.S                |  40 ++-
+>  arch/powerpc/kernel/systbl_chk.c            |  60 ----
+>  arch/powerpc/kernel/vdso.c                  |   7 +-
+>  arch/powerpc/platforms/cell/spu_callbacks.c |  17 +-
+>  17 files changed, 606 insertions(+), 898 deletions(-)
+>  delete mode 100644 arch/powerpc/include/asm/systbl.h
+>  create mode 100644 arch/powerpc/kernel/syscalls/Makefile
+>  create mode 100644 arch/powerpc/kernel/syscalls/syscall.tbl
+>  create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
+>  create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
+>  delete mode 100644 arch/powerpc/kernel/systbl_chk.c
+> 
+> -- 
+> 1.9.1
+> 
