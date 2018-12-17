@@ -1,88 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48374 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2387786AbeLQSck (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Dec 2018 13:32:40 -0500
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id wBHIStEr127820
-        for <linux-arch@vger.kernel.org>; Mon, 17 Dec 2018 13:32:39 -0500
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2pef79nmj7-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 17 Dec 2018 13:32:39 -0500
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 17 Dec 2018 18:32:37 -0000
-Date: Mon, 17 Dec 2018 10:32:34 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Reply-To: paulmck@linux.ibm.com
-References: <20181216185130.GB4170@linux.ibm.com>
- <Pine.LNX.4.44L0.1812171054090.1630-100000@iolanthe.rowland.org>
+Received: from www62.your-server.de ([213.133.104.62]:55378 "EHLO
+        www62.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388589AbeLQVDa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Dec 2018 16:03:30 -0500
+Subject: Re: [PATCH] bpf: promote bpf_perf_event.h to mandatory UAPI header
+References: <1544972680-4105-1-git-send-email-yamada.masahiro@socionext.com>
+From: Daniel Borkmann <daniel@iogearbox.net>
+Message-ID: <ffa7d3a4-62be-fb24-b727-8acb029b68fd@iogearbox.net>
+Date: Mon, 17 Dec 2018 22:03:23 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1812171054090.1630-100000@iolanthe.rowland.org>
-Message-ID: <20181217183234.GL4170@linux.ibm.com>
+In-Reply-To: <1544972680-4105-1-git-send-email-yamada.masahiro@socionext.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181217183234.yj2FLFLGdqVYDSdJPyvzGCatRXpTBUlqHuRyRBXsdYc@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>, Alexei Starovoitov <ast@kernel.org>, netdev@vger.kernel.org
+Cc: Thomas Richter <tmricht@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+Message-ID: <20181217210323.62lRgQOJaLFcl6ca09bp2JuM9Pbkk4avQNQbdf2YfVA@z>
 
-On Mon, Dec 17, 2018 at 11:02:40AM -0500, Alan Stern wrote:
-> On Sun, 16 Dec 2018, Paul E. McKenney wrote:
+On 12/16/2018 04:04 PM, Masahiro Yamada wrote:
+> Since commit c895f6f703ad ("bpf: correct broken uapi for
+> BPF_PROG_TYPE_PERF_EVENT program type"), all architectures
+> (except um) are required to have bpf_perf_event.h in uapi/asm.
 > 
-> > OK, so "simultaneous" IPIs could be emulated in a real implementation by
-> > having sys_membarrier() send each IPI (but not wait for a response), then
-> > execute a full memory barrier and set a shared variable.  Each IPI handler
-> > would spin waiting for the shared variable to be set, then execute a full
-> > memory barrier and atomically increment yet another shared variable and
-> > return from interrupt.  When that other shared variable's value reached
-> > the number of IPIs sent, the sys_membarrier() would execute its final
-> > (already existing) full memory barrier and return.  Horribly expensive
-> > and definitely not recommended, but eminently doable.
+> Add it to mandatory-y so "make headers_install" can check it.
 > 
-> I don't think that's right.  What would make the IPIs "simultaneous"  
-> would be if none of the handlers return until all of them have started
-> executing.  For example, you could have each handler increment a shared
-> variable and then spin, waiting for the variable to reach the number of
-> CPUs, before returning.
-> 
-> What you wrote was to have each handler wait until all the IPIs had 
-> been sent, which is not the same thing at all.
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 
-You are right, the handlers need to do the atomic increment before
-waiting for the shared variable to be set, and the sys_membarrier()
-must wait for the incremented variable to reach its final value before
-setting the shared variable.
-
-> > The difference between current sys_membarrier() and the "simultaneous"
-> > variant described above is similar to the difference between
-> > non-multicopy-atomic and multicopy-atomic memory ordering.  So, after
-> > thinking it through, my guess is that pretty much any litmus test that
-> > can discern between multicopy-atomic and  non-multicopy-atomic should
-> > be transformable into something that can distinguish between the current
-> > and the "simultaneous" sys_membarrier() implementation.
-> > 
-> > Seem reasonable?
-> 
-> Yes.
-> 
-> > Or alternatively, may I please apply your Signed-off-by to your earlier
-> > sys_membarrier() patch so that I can queue it?  I will probably also
-> > change smp_memb() to membarrier() or some such.  Again, within the
-> > Linux kernel, membarrier() can be emulated with smp_call_function()
-> > invoking a handler that does smp_mb().
-> 
-> Do you really want to put sys_membarrier into the LKMM?  I'm not so 
-> sure it's appropriate.
-
-We do need it for the benefit of the C++ folks, but you are right that
-it need not be accepted into the kernel to be useful to them.
-
-So agreed, let's hold off for the time being.
-
-							Thanx, Paul
+Applied to bpf, thanks Masahiro!
