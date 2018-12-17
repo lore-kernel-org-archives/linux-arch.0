@@ -1,57 +1,190 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] Linux: Implement membarrier function
-Date: Mon, 17 Dec 2018 11:02:40 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.1812171054090.1630-100000@iolanthe.rowland.org>
-References: <20181216185130.GB4170@linux.ibm.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v3 05/12] Revert "x86/bug: Macrofy the BUG table section handling, to work around GCC inlining bugs"
+Date: Tue, 18 Dec 2018 01:03:20 +0900
+Message-ID: <1545062607-8599-6-git-send-email-yamada.masahiro@socionext.com>
+References: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181216185130.GB4170@linux.ibm.com>
+In-Reply-To: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: David Goldblatt <davidtgoldblatt@gmail.com>, mathieu.desnoyers@efficios.com, Florian Weimer <fweimer@redhat.com>, triegel@redhat.com, libc-alpha@sourceware.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>
+Cc: Richard Biener <rguenther@suse.de>, Segher Boessenkool <segher@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Juergen Gross <jgross@suse.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Nadav Amit <namit@vmware.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 16 Dec 2018, Paul E. McKenney wrote:
+This reverts commit f81f8ad56fd1c7b99b2ed1c314527f7d9ac447c6.
 
-> OK, so "simultaneous" IPIs could be emulated in a real implementation by
-> having sys_membarrier() send each IPI (but not wait for a response), then
-> execute a full memory barrier and set a shared variable.  Each IPI handler
-> would spin waiting for the shared variable to be set, then execute a full
-> memory barrier and atomically increment yet another shared variable and
-> return from interrupt.  When that other shared variable's value reached
-> the number of IPIs sent, the sys_membarrier() would execute its final
-> (already existing) full memory barrier and return.  Horribly expensive
-> and definitely not recommended, but eminently doable.
+The in-kernel workarounds will be replaced with GCC's new
+"asm inline" syntax.
 
-I don't think that's right.  What would make the IPIs "simultaneous"  
-would be if none of the handlers return until all of them have started
-executing.  For example, you could have each handler increment a shared
-variable and then spin, waiting for the variable to reach the number of
-CPUs, before returning.
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
-What you wrote was to have each handler wait until all the IPIs had 
-been sent, which is not the same thing at all.
+ arch/x86/include/asm/bug.h | 98 ++++++++++++++++++++--------------------------
+ arch/x86/kernel/macros.S   |  1 -
+ include/asm-generic/bug.h  |  8 ++--
+ 3 files changed, 46 insertions(+), 61 deletions(-)
 
-> The difference between current sys_membarrier() and the "simultaneous"
-> variant described above is similar to the difference between
-> non-multicopy-atomic and multicopy-atomic memory ordering.  So, after
-> thinking it through, my guess is that pretty much any litmus test that
-> can discern between multicopy-atomic and  non-multicopy-atomic should
-> be transformable into something that can distinguish between the current
-> and the "simultaneous" sys_membarrier() implementation.
-> 
-> Seem reasonable?
-
-Yes.
-
-> Or alternatively, may I please apply your Signed-off-by to your earlier
-> sys_membarrier() patch so that I can queue it?  I will probably also
-> change smp_memb() to membarrier() or some such.  Again, within the
-> Linux kernel, membarrier() can be emulated with smp_call_function()
-> invoking a handler that does smp_mb().
-
-Do you really want to put sys_membarrier into the LKMM?  I'm not so 
-sure it's appropriate.
-
-Alan
+diff --git a/arch/x86/include/asm/bug.h b/arch/x86/include/asm/bug.h
+index 5090035..6804d66 100644
+--- a/arch/x86/include/asm/bug.h
++++ b/arch/x86/include/asm/bug.h
+@@ -4,8 +4,6 @@
+ 
+ #include <linux/stringify.h>
+ 
+-#ifndef __ASSEMBLY__
+-
+ /*
+  * Despite that some emulators terminate on UD2, we use it for WARN().
+  *
+@@ -22,15 +20,53 @@
+ 
+ #define LEN_UD2		2
+ 
++#ifdef CONFIG_GENERIC_BUG
++
++#ifdef CONFIG_X86_32
++# define __BUG_REL(val)	".long " __stringify(val)
++#else
++# define __BUG_REL(val)	".long " __stringify(val) " - 2b"
++#endif
++
++#ifdef CONFIG_DEBUG_BUGVERBOSE
++
++#define _BUG_FLAGS(ins, flags)						\
++do {									\
++	asm volatile("1:\t" ins "\n"					\
++		     ".pushsection __bug_table,\"aw\"\n"		\
++		     "2:\t" __BUG_REL(1b) "\t# bug_entry::bug_addr\n"	\
++		     "\t"  __BUG_REL(%c0) "\t# bug_entry::file\n"	\
++		     "\t.word %c1"        "\t# bug_entry::line\n"	\
++		     "\t.word %c2"        "\t# bug_entry::flags\n"	\
++		     "\t.org 2b+%c3\n"					\
++		     ".popsection"					\
++		     : : "i" (__FILE__), "i" (__LINE__),		\
++			 "i" (flags),					\
++			 "i" (sizeof(struct bug_entry)));		\
++} while (0)
++
++#else /* !CONFIG_DEBUG_BUGVERBOSE */
++
+ #define _BUG_FLAGS(ins, flags)						\
+ do {									\
+-	asm volatile("ASM_BUG ins=\"" ins "\" file=%c0 line=%c1 "	\
+-		     "flags=%c2 size=%c3"				\
+-		     : : "i" (__FILE__), "i" (__LINE__),                \
+-			 "i" (flags),                                   \
++	asm volatile("1:\t" ins "\n"					\
++		     ".pushsection __bug_table,\"aw\"\n"		\
++		     "2:\t" __BUG_REL(1b) "\t# bug_entry::bug_addr\n"	\
++		     "\t.word %c0"        "\t# bug_entry::flags\n"	\
++		     "\t.org 2b+%c1\n"					\
++		     ".popsection"					\
++		     : : "i" (flags),					\
+ 			 "i" (sizeof(struct bug_entry)));		\
+ } while (0)
+ 
++#endif /* CONFIG_DEBUG_BUGVERBOSE */
++
++#else
++
++#define _BUG_FLAGS(ins, flags)  asm volatile(ins)
++
++#endif /* CONFIG_GENERIC_BUG */
++
+ #define HAVE_ARCH_BUG
+ #define BUG()							\
+ do {								\
+@@ -46,54 +82,4 @@ do {								\
+ 
+ #include <asm-generic/bug.h>
+ 
+-#else /* __ASSEMBLY__ */
+-
+-#ifdef CONFIG_GENERIC_BUG
+-
+-#ifdef CONFIG_X86_32
+-.macro __BUG_REL val:req
+-	.long \val
+-.endm
+-#else
+-.macro __BUG_REL val:req
+-	.long \val - 2b
+-.endm
+-#endif
+-
+-#ifdef CONFIG_DEBUG_BUGVERBOSE
+-
+-.macro ASM_BUG ins:req file:req line:req flags:req size:req
+-1:	\ins
+-	.pushsection __bug_table,"aw"
+-2:	__BUG_REL val=1b	# bug_entry::bug_addr
+-	__BUG_REL val=\file	# bug_entry::file
+-	.word \line		# bug_entry::line
+-	.word \flags		# bug_entry::flags
+-	.org 2b+\size
+-	.popsection
+-.endm
+-
+-#else /* !CONFIG_DEBUG_BUGVERBOSE */
+-
+-.macro ASM_BUG ins:req file:req line:req flags:req size:req
+-1:	\ins
+-	.pushsection __bug_table,"aw"
+-2:	__BUG_REL val=1b	# bug_entry::bug_addr
+-	.word \flags		# bug_entry::flags
+-	.org 2b+\size
+-	.popsection
+-.endm
+-
+-#endif /* CONFIG_DEBUG_BUGVERBOSE */
+-
+-#else /* CONFIG_GENERIC_BUG */
+-
+-.macro ASM_BUG ins:req file:req line:req flags:req size:req
+-	\ins
+-.endm
+-
+-#endif /* CONFIG_GENERIC_BUG */
+-
+-#endif /* __ASSEMBLY__ */
+-
+ #endif /* _ASM_X86_BUG_H */
+diff --git a/arch/x86/kernel/macros.S b/arch/x86/kernel/macros.S
+index 66ccb8e..852487a 100644
+--- a/arch/x86/kernel/macros.S
++++ b/arch/x86/kernel/macros.S
+@@ -9,4 +9,3 @@
+ #include <linux/compiler.h>
+ #include <asm/refcount.h>
+ #include <asm/alternative-asm.h>
+-#include <asm/bug.h>
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index cdafa5e..20561a6 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -17,8 +17,10 @@
+ #ifndef __ASSEMBLY__
+ #include <linux/kernel.h>
+ 
+-struct bug_entry {
++#ifdef CONFIG_BUG
++
+ #ifdef CONFIG_GENERIC_BUG
++struct bug_entry {
+ #ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
+ 	unsigned long	bug_addr;
+ #else
+@@ -33,10 +35,8 @@ struct bug_entry {
+ 	unsigned short	line;
+ #endif
+ 	unsigned short	flags;
+-#endif	/* CONFIG_GENERIC_BUG */
+ };
+-
+-#ifdef CONFIG_BUG
++#endif	/* CONFIG_GENERIC_BUG */
+ 
+ /*
+  * Don't use BUG() or BUG_ON() unless there's really no way out; one
+-- 
+2.7.4
