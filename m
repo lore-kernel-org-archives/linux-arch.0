@@ -1,79 +1,30 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
-Date: Mon, 17 Dec 2018 01:00:50 +0000
-Message-ID: <834EC537-EC42-4563-AA39-3326681ED968@vmware.com>
-References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com>
- <20181213105146.GH5289@hirez.programming.kicks-ass.net>
- <CAK7LNASB=HvU8DwUQQkz_r3sY1DN8Vv-qfNa54-ZDXSpfvEYpg@mail.gmail.com>
- <07BE39B2-1F99-4AE4-97F3-0871A39C5E7D@vmware.com>
- <20181216100042.GA815@zn.tnic>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Mon, 17 Dec 2018 12:14:47 +1100
+Message-ID: <87d0q1uf7c.fsf@concordia.ellerman.id.au>
+References: <20181114082314.8965-1-hch@lst.de> <20181216165157.GA14652@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181216100042.GA815@zn.tnic>
-Content-Language: en-US
-Content-ID: <89DD256D3BD73D4C90A72BA26FA76DBB@namprd05.prod.outlook.com>
+In-Reply-To: <20181216165157.GA14652@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Richard Biener <rguenther@suse.de>, Logan Gunthorpe <logang@deltatee.com>, Sedat Dilek <sedat.dilek@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Michal Marek <michal.lkml@markovi.net>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>, Alok
+To: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-PiBPbiBEZWMgMTYsIDIwMTgsIGF0IDI6MDAgQU0sIEJvcmlzbGF2IFBldGtvdiA8YnBAYWxpZW44
-LmRlPiB3cm90ZToNCj4gDQo+IE9uIFN1biwgRGVjIDE2LCAyMDE4IGF0IDAyOjMzOjM5QU0gKzAw
-MDAsIE5hZGF2IEFtaXQgd3JvdGU6DQo+PiBJbiBnZW5lcmFsLCBJIHRoaW5rIHRoYXQgZnJvbSB0
-aGUgc3RhcnQgaXQgd2FzIGNsZWFyIHRoYXQgdGhlIG1vdGl2YXRpb24gZm9yDQo+PiB0aGUgcGF0
-Y2gtc2V0IGlzIG5vdCBqdXN0IHBlcmZvcm1hbmNlIGFuZCBhbHNvIGJldHRlciBjb2RlLiBGb3Ig
-ZXhhbXBsZSwgSQ0KPj4gc2VlIG5vIHJlYXNvbiB0byByZXZlcnQgdGhlIFBWLWNoYW5nZXMgb3Ig
-dGhlIGxvY2stcHJlZml4IGNoYW5nZXMgdGhhdA0KPj4gaW1wcm92ZWQgdGhlIGNvZGUgcmVhZGFi
-aWxpdHkuDQo+IA0KPiBPbmUgdGhpbmcgdGhhdCBoYXMgY2F1Z2h0IG15IGV5ZSB3aXRoIHRoZSBh
-c20gbWFjcm9zLCB3aGljaCBhY3R1YWxseQ0KPiBkZWNyZWFzZXMgcmVhZGFiaWxpdHksIGlzIHRo
-YXQgSSBjYW4ndCBzZWUgdGhlIG1hY3JvIHByb3Blcmx5IGV4cGFuZGVkDQo+IHdoZW4gSSBkbw0K
-PiANCj4gbWFrZSA8ZmlsZW5hbWU+LnMNCj4gDQo+IEZvciBleGFtcGxlLCBJIGdldA0KPiANCj4g
-I0FQUA0KPiAjIDE2NCAiLi9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9jcHVmZWF0dXJlLmgiIDENCj4g
-ICAgICAgIFNUQVRJQ19DUFVfSEFTIGJpdG51bT0kOCBjYXBfYnl0ZT0iYm9vdF9jcHVfZGF0YSsz
-NSglcmlwKSIgZmVhdHVyZT0xMjMgdF95ZXM9Lkw3NSB0X25vPS5MNzggYWx3YXlzPTExNyAgIywg
-TUVNWyhjb25zdCBjaGFyICopJmJvb3RfY3B1X2RhdGEgKyAzNUJdLCwsLA0KPiAjIDAgIiIgMg0K
-PiAgICAgICAgLmxvYyAxMSAxNjQgMiB2aWV3IC5MVlU0ODANCj4gI05PX0FQUA0KPiANCj4gYnV0
-IEknZCBsaWtlIHRvIHNlZSB0aGUgYWN0dWFsIGFzbSBhcyBpdCBpcyByZWFsbHkgaGVscGZ1bCB3
-aGVuIGhhY2tpbmcNCj4gb24gaW5saW5lIGFzbSBzdHVmZi4gQW5kIEkgaGF2ZW4ndCBmb3VuZCBh
-IHdheSB0byBtYWtlIGdjYyBleHBhbmQgYXNtDQo+IG1hY3JvcyBpbiAucyBvdXRwdXQuDQoNCllv
-deKAmXJlIHJpZ2h0LCBhbHRob3VnaCB0aGVyZSB3ZXJlIGFscmVhZHkgNzIgYXNzZW1ibHkgbWFj
-cm9zIGZvciBkZWZpbmVkIGluDQp4ODYgLmggZmlsZXMsIGFuZCBzb21lIG1heSBmaW5kIHRoZSB1
-bmV4cGFuZGVkIG1hY3JvIGluIHRoZSDigJguc+KAmSBmaWxlIG1vcmUNCmZyaWVuZGx5ICh3ZWxs
-LCBhIHNtYWxsIGNvbW1lbnQgaW4gaW5saW5lIGFzc2VtYmx5IGNvdWxkIGhhdmUgcmVzb2x2ZWQg
-dGhpcw0KaXNzdWUpLg0KDQpBbnlob3csIHVzaW5nIGdudSBhc20gbGlzdGluZ3Mgc2hvdWxkIGJl
-IGEgcmVsYXRpdmVseSByZWFzb25hYmxlIHdvcmthcm91bmQNCmZvciB0aGlzIGxpbWl0YXRpb24g
-KHVubGVzcyB5b3Ugd2FudCB0byBoYWNrIHRoZSBjb2RlIGJlZm9yZSBhc3NlbWJseSkuDQoNCkZv
-ciBleGFtcGxlLCB1c2luZyBgIGFzIC1hbG0gYXJjaC94ODYva2VybmVsL21hY3Jvcy5zIGFyY2gv
-eDg2L2t2bS92bXgucyBgDQoNCndvdWxkIGdpdmUgeW91Og0KDQogNDIxICAgICAgICAgICAgICAg
-ICAgICAjIC4vYXJjaC94ODYvaW5jbHVkZS9hc20vY3B1ZmVhdHVyZS5oOjE2NDogICAgICBhc21f
-dm9sYXRpbGVfZ290bygiU1RBVElDX0NQVV9IQVMgYml0bnVtPSVbYml0bnVtXSAiDQogNDIyICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgIC5maWxlIDggIi4vYXJjaC94ODYvaW5jbHVkZS9hc20v
-Y3B1ZmVhdHVyZS5oIg0KIDQyMyAgICAgICAgICAgICAgICAgICAgICAgICAgICAubG9jIDggMTY0
-IDANCiA0MjQgICAgICAgICAgICAgICAgICAgICNBUFANCiA0MjUgICAgICAgICAgICAgICAgICAg
-ICMgMTY0ICIuL2FyY2gveDg2L2luY2x1ZGUvYXNtL2NwdWZlYXR1cmUuaCIgMQ0KIDQyNiAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICBTVEFUSUNfQ1BVX0hBUyBiaXRudW09JDIgY2FwX2J5dGU9
-ImJvb3RfY3B1X2RhdGErMzgoJXJpcCkiIGZlYXR1cmU9MTQ1IHRfeWVzPS5MMTcgdF9ubz0uTDE4
-IGFsd2F5cw0KIDQyNiAgICAgICAgICAgICAgICAgICAgPiAxOg0KIDQyNiAwMGQ4IEU5MDAwMDAw
-ICAgICAgPiAgam1wIDZmDQogNDI2ICAgICAgMDANCiA0MjYgICAgICAgICAgICAgICAgICAgID4g
-MjoNCiA0MjYgICAgICAgICAgICAgICAgICAgID4gIC5za2lwIC0oKCg1Zi00ZiktICgyYi0xYikp
-PjApKiAoKDVmLTRmKS0gKDJiLTFiKSksMHg5MA0KIDQyNiAgICAgICAgICAgICAgICAgICAgPiAz
-Og0KIDQyNiAgICAgICAgICAgICAgICAgICAgPiAgLnNlY3Rpb24gLmFsdGluc3RydWN0aW9ucywi
-YSINCiA0MjYgMDAwZCAwMDAwMDAwMCAgICAgID4gIC5sb25nIDFiIC0gLg0KIDQyNiAwMDExIDAw
-MDAwMDAwICAgICAgPiAgLmxvbmcgNGYgLSAuDQogNDI2IDAwMTUgNzUwMCAgICAgICAgICA+ICAu
-d29yZCAxMTcNCg0K4oCmDQoNClRoaXMgY2FuIGJlIGluY29ycG9yYXRlZCBpbnRvIGEgbWFrZWZp
-bGUgb3B0aW9uLCBJIHN1cHBvc2UuDQoNCg0KPiBOb3csIGFzc3VtaW5nIHRoZSBnY2MgaW5saW5l
-IHBhdGNoIHdpbGwgYmUgYmFja3BvcnRlZCB0byBnY2M4LCBJIHRoaW5rDQo+IHdlIHNob3VsZCBi
-ZSBjb3ZlcmVkIG9uIGFsbCBtb2Rlcm4gZGlzdHJvcyBnb2luZyBmb3J3YXJkLiBTbyBJIHRoaW5r
-IHdlDQo+IHNob3VsZCByZXZlcnQgYXQgbGVhc3QgdGhlIG1vcmUgY29tcGxleCBtYWNyb3MuDQoN
-CkkgdW5kZXJzdGFuZCwgYW5kIHBlcmhhcHMgU1RBVElDX0NQVV9IQVMgaXMgbm90IGEgZ29vZCB1
-c2UtY2FzZSAob25jZQ0KaW5saW5pbmcgaXMgcmVzb2x2ZWQgaW4gYSBkaWZmZXJlbnQgbWFubmVy
-KS4gSSB0aGluayB0aGF0IHRoZSBtYWluIHF1ZXN0aW9uDQpzaG91bGQgYmUgd2hldGhlciB0aGUg
-d2hvbGUgaW5mcmFzdHJ1Y3R1cmUgc2hvdWxkIGJlIHJlbW92ZWQgb3IgdG8gYmUNCnNlbGVjdGl2
-ZS4gDQoNCkluIHRoZSBjYXNlIG9mIGV4Y2VwdGlvbiB0YWJsZXMsIGZvciBpbnN0YW5jZSwgdGhl
-IHJlc3VsdCBpcyBtdWNoIGNsZWFuZXIsDQphcyBpdCBhbGxvd3MgdG8gY29uc29saWRhdGUgdGhl
-IEMgYW5kIGFzc2VtYmx5IGltcGxlbWVudGF0aW9ucy4gVGhlcmUgaXMgYW4NCmFsdGVybmF0aXZl
-IHNvbHV0aW9uIG9mIHR1cm5pbmcgdGhlIGFzc2VtYmx5IG1hY3JvcyBpbnRvIEMgbWFjcm9zLCB3
-aGljaA0Kd291bGQgbWFrZSB0aGUgTWFrZSBzeXN0ZW0gaGFja3MgZ28gYXdheSwgYnV0IHdvdWxk
-IG1ha2UgdGhlIGNvZGUgbm90IGFzDQpuaWNlLg0KDQo=
+Christoph Hellwig <hch@lst.de> writes:
+
+> FYI, given that we are one week before the expected 4.20 release
+> date and I haven't found the bug plaging Christians setups I think
+> we need to defer most of this to the next merge window.
+
+OK, sorry I couldn't help. I tried powering up my pasemi board last week
+but it just gives me a couple of status leds and nothing else, the fan
+never spins up.
+
+> I'd still like to get a few bits in earlier, which I will send out
+> separately now.
+
+OK.
+
+cheers
