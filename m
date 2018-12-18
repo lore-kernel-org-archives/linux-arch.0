@@ -1,181 +1,86 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v5 8/8] gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
-Date: Tue, 18 Dec 2018 19:14:08 +0900
-Message-ID: <ffb25b258c0d4ad53cd18e6a11e35964be3d07ba.1545126272.git.vilhelm.gray@gmail.com>
-References: <cover.1545126272.git.vilhelm.gray@gmail.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Tue, 18 Dec 2018 16:03:38 +0100
+Message-ID: <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+References: <cover.1544445454.git.andreyknvl@google.com> <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com> <20181212150230.GH65138@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1545126272.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20181212150230.GH65138@arrakis.emea.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+On Wed, Dec 12, 2018 at 4:02 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> Hi Andrey,
+>
+> On Wed, Dec 12, 2018 at 03:23:25PM +0100, Andrey Konovalov wrote:
+> > On Mon, Dec 10, 2018 at 3:31 PM Vincenzo Frascino
+> > <vincenzo.frascino@arm.com> wrote:
+> > > On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> > > the userspace (EL0) is allowed to set a non-zero value in the top
+> > > byte but the resulting pointers are not allowed at the user-kernel
+> > > syscall ABI boundary.
+> > >
+> > > This patchset proposes a relaxation of the ABI and a mechanism to
+> > > advertise it to the userspace via an AT_FLAGS.
+> > >
+> > > The rationale behind the choice of AT_FLAGS is that the Unix System V
+> > > ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
+> > > interpretation.
+> > > There are two previous attempts of using AT_FLAGS in the Linux Kernel
+> > > for different reasons: the first was more generic and was used to expose
+> > > the support for the GNU STACK NX feature [1] and the second was done for
+> > > the MIPS architecture and was used to expose the support of "MIPS ABI
+> > > Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
+> > > Both the changes are currently _not_ merged in mainline.
+> > > The only architecture that reserves some of the bits in AT_FLAGS is
+> > > currently MIPS, which introduced the concept of platform specific ABI
+> > > (psABI) reserving the top-byte [3].
+> > >
+> > > When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
+> > > to the userspace that a relaxed ABI is supported hence this type
+> > > of pointers are now allowed to be passed to the syscalls when they are
+> > > in memory ranges obtained by anonymous mmap() or brk().
+> > >
+> > > The userspace _must_ verify that the flag is set before passing tagged
+> > > pointers to the syscalls allowed by this relaxation.
+> > >
+> > > More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
+> > > to the software to check that the feature is present, before using the
+> > > associated functionality, it provides a degree of control on the decision
+> > > of disabling such a feature in future without consequently breaking the
+> > > userspace.
+> [...]
+> > Acked-by: Andrey Konovalov <andreyknvl@google.com>
+>
+> Thanks for the ack. However, if we go ahead with this ABI proposal it
+> means that your patches need to be reworked to allow a non-zero top byte
+> in all syscalls, including mmap() and friends, ioctl(). There are ABI
+> concerns in either case but I'd rather have this discussion in the open.
+> It doesn't necessarily mean that I endorse this proposal, I would like
+> feedback and not just from kernel developers but user space ones.
+>
+> The summary of our internal discussions (mostly between kernel
+> developers) is that we can't properly describe a user ABI that covers
+> future syscalls or syscall extensions while not all syscalls accept
+> tagged pointers. So we tweaked the requirements slightly to only allow
+> tagged pointers back into the kernel *if* the originating address is
+> from an anonymous mmap() or below sbrk(0). This should cover some of the
+> ioctls or getsockopt(TCP_ZEROCOPY_RECEIVE) where the user passes a
+> pointer to a buffer obtained via mmap() on the device operations.
+>
+> (sorry for not being clear on what Vincenzo's proposal implies)
 
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pcie-idio-24.c | 109 ++++++++++++-------------------
- 1 file changed, 40 insertions(+), 69 deletions(-)
+OK, I see. So I need to make the following changes to my patchset AFAIU.
 
-diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
-index 52f1647a46fd..b1686b052633 100644
---- a/drivers/gpio/gpio-pcie-idio-24.c
-+++ b/drivers/gpio/gpio-pcie-idio-24.c
-@@ -198,52 +198,34 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
--	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	unsigned int offset;
-+	unsigned long gpio_mask;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
- 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
- 	};
-+	size_t index;
-+	unsigned long port_state;
- 	const unsigned long out_mode_mask = BIT(1);
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
- 
- 		/* read bits from current gpio port (port 6 is TTL GPIO) */
--		if (i < 6)
--			port_state = ioread8(ports[i]);
-+		if (index < 6)
-+			port_state = ioread8(ports[index]);
- 		else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask)
- 			port_state = ioread8(&idio24gpio->reg->ttl_out0_7);
- 		else
- 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
- 
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		port_state &= gpio_mask;
-+
-+		bitmap_set_value8(bits, &port_state, offset);
- 	}
- 
- 	return 0;
-@@ -294,59 +276,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
--	size_t i;
--	unsigned long bits_offset;
-+	unsigned int offset;
- 	unsigned long gpio_mask;
--	const unsigned int gpio_reg_size = 8;
--	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
--	unsigned long flags;
--	unsigned int out_state;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23
- 	};
-+	size_t index;
-+	unsigned int bitmask;
-+	unsigned long flags;
-+	unsigned int out_state;
- 	const unsigned long out_mode_mask = BIT(1);
--	const unsigned int ttl_offset = 48;
--	const size_t ttl_i = BIT_WORD(ttl_offset);
--	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
--	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
--	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
--
--	/* set bits are processed a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* check if any set bits for current port */
--		gpio_mask = (*mask >> bits_offset) & port_mask;
--		if (!gpio_mask) {
--			/* no set bits for this port so move on to next port */
--			continue;
--		}
- 
--		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
- 
--		/* process output lines */
--		out_state = ioread8(ports[i]) & ~gpio_mask;
--		out_state |= (*bits >> bits_offset) & gpio_mask;
--		iowrite8(out_state, ports[i]);
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
- 
--		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
--	}
-+		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
- 
--	/* check if setting TTL lines and if they are in output mode */
--	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
--		return;
-+		/* read bits from current gpio port (port 6 is TTL GPIO) */
-+		if (index < 6) {
-+			out_state = ioread8(ports[index]);
-+		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
-+			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
-+		} else {
-+			/* skip TTL GPIO if set for input */
-+			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+			continue;
-+		}
- 
--	/* handle TTL output */
--	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+		/* set requested bit states */
-+		out_state &= ~gpio_mask;
-+		out_state |= bitmask;
- 
--	/* process output lines */
--	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
--	out_state |= ttl_bits;
--	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
-+		/* write bits for current gpio port (port 6 is TTL GPIO) */
-+		if (index < 6)
-+			iowrite8(out_state, ports[index]);
-+		else
-+			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
- 
--	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+	}
- }
- 
- static void idio_24_irq_ack(struct irq_data *data)
--- 
-2.20.1
+1. Make sure that we only allow tagged user addresses that originate
+from an anonymous mmap() or below sbrk(0). How exactly should this
+check be performed?
+
+2. Allow tagged addressed passed to memory syscalls (as long as (1) is
+satisfied). Do I understand correctly that this means that I need to
+locate all find_vma() callers outside of mm/ and fix them up as well?
