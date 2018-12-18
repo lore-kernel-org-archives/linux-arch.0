@@ -1,136 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:39837 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726391AbeLRKNY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Dec 2018 05:13:24 -0500
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v5 7/8] gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-Date: Tue, 18 Dec 2018 19:13:51 +0900
-Message-ID: <fc6a5fdb4c5368f081b2efc012a384e9acfc010d.1545126272.git.vilhelm.gray@gmail.com>
-In-Reply-To: <cover.1545126272.git.vilhelm.gray@gmail.com>
-References: <cover.1545126272.git.vilhelm.gray@gmail.com>
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:39276 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726912AbeLRPDw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Dec 2018 10:03:52 -0500
+Received: by mail-pl1-f195.google.com with SMTP id 101so7951516pld.6
+        for <linux-arch@vger.kernel.org>; Tue, 18 Dec 2018 07:03:50 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <cover.1544445454.git.andreyknvl@google.com> <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com> <20181212150230.GH65138@arrakis.emea.arm.com>
+In-Reply-To: <20181212150230.GH65138@arrakis.emea.arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Tue, 18 Dec 2018 16:03:38 +0100
+Message-ID: <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linus.walleij@linaro.org
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20181218101351.AG8PwVS6AvFgNqE1deHG_5rMqetldmhymp-PdTR5ecs@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20181218150338.fw2Qp4xjE3WGrrsF4v1EwkiNQyqMnTBVKSkmtpUCQh0@z>
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+On Wed, Dec 12, 2018 at 4:02 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> Hi Andrey,
+>
+> On Wed, Dec 12, 2018 at 03:23:25PM +0100, Andrey Konovalov wrote:
+> > On Mon, Dec 10, 2018 at 3:31 PM Vincenzo Frascino
+> > <vincenzo.frascino@arm.com> wrote:
+> > > On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+> > > the userspace (EL0) is allowed to set a non-zero value in the top
+> > > byte but the resulting pointers are not allowed at the user-kernel
+> > > syscall ABI boundary.
+> > >
+> > > This patchset proposes a relaxation of the ABI and a mechanism to
+> > > advertise it to the userspace via an AT_FLAGS.
+> > >
+> > > The rationale behind the choice of AT_FLAGS is that the Unix System V
+> > > ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
+> > > interpretation.
+> > > There are two previous attempts of using AT_FLAGS in the Linux Kernel
+> > > for different reasons: the first was more generic and was used to expose
+> > > the support for the GNU STACK NX feature [1] and the second was done for
+> > > the MIPS architecture and was used to expose the support of "MIPS ABI
+> > > Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
+> > > Both the changes are currently _not_ merged in mainline.
+> > > The only architecture that reserves some of the bits in AT_FLAGS is
+> > > currently MIPS, which introduced the concept of platform specific ABI
+> > > (psABI) reserving the top-byte [3].
+> > >
+> > > When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
+> > > to the userspace that a relaxed ABI is supported hence this type
+> > > of pointers are now allowed to be passed to the syscalls when they are
+> > > in memory ranges obtained by anonymous mmap() or brk().
+> > >
+> > > The userspace _must_ verify that the flag is set before passing tagged
+> > > pointers to the syscalls allowed by this relaxation.
+> > >
+> > > More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
+> > > to the software to check that the feature is present, before using the
+> > > associated functionality, it provides a degree of control on the decision
+> > > of disabling such a feature in future without consequently breaking the
+> > > userspace.
+> [...]
+> > Acked-by: Andrey Konovalov <andreyknvl@google.com>
+>
+> Thanks for the ack. However, if we go ahead with this ABI proposal it
+> means that your patches need to be reworked to allow a non-zero top byte
+> in all syscalls, including mmap() and friends, ioctl(). There are ABI
+> concerns in either case but I'd rather have this discussion in the open.
+> It doesn't necessarily mean that I endorse this proposal, I would like
+> feedback and not just from kernel developers but user space ones.
+>
+> The summary of our internal discussions (mostly between kernel
+> developers) is that we can't properly describe a user ABI that covers
+> future syscalls or syscall extensions while not all syscalls accept
+> tagged pointers. So we tweaked the requirements slightly to only allow
+> tagged pointers back into the kernel *if* the originating address is
+> from an anonymous mmap() or below sbrk(0). This should cover some of the
+> ioctls or getsockopt(TCP_ZEROCOPY_RECEIVE) where the user passes a
+> pointer to a buffer obtained via mmap() on the device operations.
+>
+> (sorry for not being clear on what Vincenzo's proposal implies)
 
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pci-idio-16.c | 73 ++++++++++++---------------------
- 1 file changed, 26 insertions(+), 47 deletions(-)
+OK, I see. So I need to make the following changes to my patchset AFAIU.
 
-diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
-index 6b7349783223..4eb89f8b5f9b 100644
---- a/drivers/gpio/gpio-pci-idio-16.c
-+++ b/drivers/gpio/gpio-pci-idio-16.c
-@@ -108,45 +108,23 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
--	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	unsigned int offset;
-+	unsigned long gpio_mask;
- 	void __iomem *ports[] = {
- 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
- 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
- 	};
-+	void __iomem *port_addr;
-+	unsigned long port_state;
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = ports[offset / 8];
-+		port_state = ioread8(port_addr) & gpio_mask;
- 
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
--		/* read bits from current gpio port */
--		port_state = ioread8(ports[i]);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, &port_state, offset);
- 	}
- 
- 	return 0;
-@@ -186,30 +164,31 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
-+	unsigned int offset;
-+	unsigned long gpio_mask;
-+	void __iomem *ports[] = {
-+		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
-+	};
-+	size_t index;
-+	void __iomem *port_addr;
-+	unsigned int bitmask;
- 	unsigned long flags;
- 	unsigned int out_state;
- 
--	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
-+		port_addr = ports[index];
- 
--	/* process output lines 0-7 */
--	if (*mask & 0xFF) {
--		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out0_7);
--	}
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
-+
-+		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
- 
--	/* shift to next output line word */
--	*mask >>= 8;
-+		out_state = ioread8(port_addr) & ~gpio_mask;
-+		out_state |= bitmask;
-+		iowrite8(out_state, port_addr);
- 
--	/* process output lines 8-15 */
--	if (*mask & 0xFF) {
--		*bits >>= 8;
--		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out8_15);
-+		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- 	}
--
--	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- }
- 
- static void idio_16_irq_ack(struct irq_data *data)
--- 
-2.20.1
+1. Make sure that we only allow tagged user addresses that originate
+from an anonymous mmap() or below sbrk(0). How exactly should this
+check be performed?
+
+2. Allow tagged addressed passed to memory syscalls (as long as (1) is
+satisfied). Do I understand correctly that this means that I need to
+locate all find_vma() callers outside of mm/ and fix them up as well?
