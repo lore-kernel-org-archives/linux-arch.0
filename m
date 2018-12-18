@@ -1,129 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:55830 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726860AbeLRSyN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Dec 2018 13:54:13 -0500
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: [PATCH 1/2] ARC: show_regs: avoid page allocator
-Date: Tue, 18 Dec 2018 10:53:58 -0800
-Message-ID: <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
-References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+Received: from mail-eopbgr710060.outbound.protection.outlook.com ([40.107.71.60]:12925
+        "EHLO NAM05-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726740AbeLRTdM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Dec 2018 14:33:12 -0500
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
+Date: Tue, 18 Dec 2018 19:33:07 +0000
+Message-ID: <A6321F73-0084-423B-8BEE-C23BF6BD1544@vmware.com>
+References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com>
+ <CA+icZUUnkGBp-3pJxE_s_Oc+pdNBrVc_ngYUwpv7zLEbtE_eVg@mail.gmail.com>
+In-Reply-To: <CA+icZUUnkGBp-3pJxE_s_Oc+pdNBrVc_ngYUwpv7zLEbtE_eVg@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <9A9EC197CE14A34A9CB0F37FE152FCC3@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vineet.gupta1@synopsys.com>
-Message-ID: <20181218185358.oSAQrN0rpTYVTCoK6gigfbs0ndNEZ-XgKdQbfWYkf5Q@z>
+To: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Richard Biener <rguenther@suse.de>, Peter Zijlstra <peterz@infradead.org>, Logan Gunthorpe <logang@deltatee.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Michal Marek <michal.lkml@markovi.net>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>, Alok Kataria <akataria@vmware.com>, Juergen Gross <jgross@suse.com>, Andy Lutomirski <luto@kernel.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
+Message-ID: <20181218193307.D_ZjPw7fqwVR47QVljluAxktGxY6f9Zmcax0RK8N5BA@z>
 
-Use on-stack smaller buffers instead of dynamic pages.
-
-The motivation for this change was to address lockdep splat when
-signal handling code calls show_regs (with preemption disabled) and
-ARC show_regs calls into sleepable page allocator.
-
-| potentially unexpected fatal signal 11.
-| BUG: sleeping function called from invalid context at ../mm/page_alloc.c:4317
-| in_atomic(): 1, irqs_disabled(): 0, pid: 57, name: segv
-| no locks held by segv/57.
-| Preemption disabled at:
-| [<8182f17e>] get_signal+0x4a6/0x7c4
-| CPU: 0 PID: 57 Comm: segv Not tainted 4.17.0+ #23
-|
-| Stack Trace:
-|  arc_unwind_core.constprop.1+0xd0/0xf4
-|  __might_sleep+0x1f6/0x234
-|  __get_free_pages+0x174/0xca0
-|  show_regs+0x22/0x330
-|  get_signal+0x4ac/0x7c4     # print_fatal_signals() -> preempt_disable()
-|  do_signal+0x30/0x224
-|  resume_user_mode_begin+0x90/0xd8
-
-Despite this, lockdep still barfs (see next change), but this patch
-still has merit as in we use smaller/localized buffers now and there's
-less instructoh trace to sift thru when debugging pesky issues.
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/kernel/troubleshoot.c | 22 +++++++++-------------
- 1 file changed, 9 insertions(+), 13 deletions(-)
-
-diff --git a/arch/arc/kernel/troubleshoot.c b/arch/arc/kernel/troubleshoot.c
-index e8d9fb452346..2885bec71fb8 100644
---- a/arch/arc/kernel/troubleshoot.c
-+++ b/arch/arc/kernel/troubleshoot.c
-@@ -58,11 +58,12 @@ static void show_callee_regs(struct callee_regs *cregs)
- 	print_reg_file(&(cregs->r13), 13);
- }
- 
--static void print_task_path_n_nm(struct task_struct *tsk, char *buf)
-+static void print_task_path_n_nm(struct task_struct *tsk)
- {
- 	char *path_nm = NULL;
- 	struct mm_struct *mm;
- 	struct file *exe_file;
-+	char buf[256];
- 
- 	mm = get_task_mm(tsk);
- 	if (!mm)
-@@ -80,10 +81,9 @@ static void print_task_path_n_nm(struct task_struct *tsk, char *buf)
- 	pr_info("Path: %s\n", !IS_ERR(path_nm) ? path_nm : "?");
- }
- 
--static void show_faulting_vma(unsigned long address, char *buf)
-+static void show_faulting_vma(unsigned long address)
- {
- 	struct vm_area_struct *vma;
--	char *nm = buf;
- 	struct mm_struct *active_mm = current->active_mm;
- 
- 	/* can't use print_vma_addr() yet as it doesn't check for
-@@ -96,8 +96,11 @@ static void show_faulting_vma(unsigned long address, char *buf)
- 	 * if the container VMA is not found
- 	 */
- 	if (vma && (vma->vm_start <= address)) {
-+		char buf[256];
-+		char *nm = "?";
-+
- 		if (vma->vm_file) {
--			nm = file_path(vma->vm_file, buf, PAGE_SIZE - 1);
-+			nm = file_path(vma->vm_file, buf, 256-1);
- 			if (IS_ERR(nm))
- 				nm = "?";
- 		}
-@@ -173,13 +176,8 @@ void show_regs(struct pt_regs *regs)
- {
- 	struct task_struct *tsk = current;
- 	struct callee_regs *cregs;
--	char *buf;
--
--	buf = (char *)__get_free_page(GFP_KERNEL);
--	if (!buf)
--		return;
- 
--	print_task_path_n_nm(tsk, buf);
-+	print_task_path_n_nm(tsk);
- 	show_regs_print_info(KERN_INFO);
- 
- 	show_ecr_verbose(regs);
-@@ -189,7 +187,7 @@ void show_regs(struct pt_regs *regs)
- 		(void *)regs->blink, (void *)regs->ret);
- 
- 	if (user_mode(regs))
--		show_faulting_vma(regs->ret, buf); /* faulting code, not data */
-+		show_faulting_vma(regs->ret); /* faulting code, not data */
- 
- 	pr_info("[STAT32]: 0x%08lx", regs->status32);
- 
-@@ -221,8 +219,6 @@ void show_regs(struct pt_regs *regs)
- 	cregs = (struct callee_regs *)current->thread.callee_reg;
- 	if (cregs)
- 		show_callee_regs(cregs);
--
--	free_page((unsigned long)buf);
- }
- 
- void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
--- 
-2.7.4
+PiBPbiBEZWMgMTcsIDIwMTgsIGF0IDE6MTYgQU0sIFNlZGF0IERpbGVrIDxzZWRhdC5kaWxla0Bn
+bWFpbC5jb20+IHdyb3RlOg0KPiANCj4gT24gVGh1LCBEZWMgMTMsIDIwMTggYXQgMTA6MTkgQU0g
+TWFzYWhpcm8gWWFtYWRhDQo+IDx5YW1hZGEubWFzYWhpcm9Ac29jaW9uZXh0LmNvbT4gd3JvdGU6
+DQo+PiBSZXZlcnQgdGhlIGZvbGxvd2luZyBjb21taXRzOg0KPj4gDQo+PiAtIDViZGNkNTEwYzJh
+YzllZmFmNTVjNGNiZDhkNDY0MjFkOGUyMzIwY2QNCj4+ICAoIng4Ni9qdW1wLWxhYmVsczogTWFj
+cm9meSBpbmxpbmUgYXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVn
+cyIpDQo+PiANCj4+IC0gZDVhNTgxZDg0YWU2YjhhNGE3NDA0NjRiODBkOGQ5Y2YxZTc5NDdiMg0K
+Pj4gICgieDg2L2NwdWZlYXR1cmU6IE1hY3JvZnkgaW5saW5lIGFzc2VtYmx5IGNvZGUgdG8gd29y
+ayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3MiKQ0KPj4gDQo+PiAtIDA0NzRkNWQ5ZDJmN2YzYjEx
+MjYyZjdiZjg3ZDBlNzMxNGVhZDkyMDAuDQo+PiAgKCJ4ODYvZXh0YWJsZTogTWFjcm9meSBpbmxp
+bmUgYXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVncyIpDQo+PiAN
+Cj4+IC0gNDk0YjUxNjhmMmRlMDA5ZWI4MGYxOThmNjY4ZGEzNzQyOTUwOThkZC4NCj4+ICAoIng4
+Ni9wYXJhdmlydDogV29yayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3Mgd2hlbiBjb21waWxpbmcg
+cGFyYXZpcnQgb3BzIikNCj4+IA0KPj4gLSBmODFmOGFkNTZmZDFjN2I5OWIyZWQxYzMxNDUyN2Y3
+ZDlhYzQ0N2M2Lg0KPj4gICgieDg2L2J1ZzogTWFjcm9meSB0aGUgQlVHIHRhYmxlIHNlY3Rpb24g
+aGFuZGxpbmcsIHRvIHdvcmsgYXJvdW5kIEdDQyBpbmxpbmluZyBidWdzIikNCj4+IA0KPj4gLSA3
+N2Y0OGVjMjhlNGNjZmY5NGQyZTVmNDI2MGE4M2FjMjdhN2YzMDk5Lg0KPj4gICgieDg2L2FsdGVy
+bmF0aXZlczogTWFjcm9meSBsb2NrIHByZWZpeGVzIHRvIHdvcmsgYXJvdW5kIEdDQyBpbmxpbmlu
+ZyBidWdzIikNCj4+IA0KPj4gLSA5ZTE3MjViNDEwNTk0OTExY2M1OTgxYjZjN2I0Y2VhNGVjMDU0
+Y2E4Lg0KPj4gICgieDg2L3JlZmNvdW50OiBXb3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVnIikN
+Cj4+ICAoQ29uZmxpY3RzOiBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9yZWZjb3VudC5oKQ0KPj4gDQo+
+PiAtIGMwNmM0ZDgwOTA1MTNmMjk3NGRmZGJlZDJhYzk4NjM0MzU3YWM0NzUuDQo+PiAgKCJ4ODYv
+b2JqdG9vbDogVXNlIGFzbSBtYWNyb3MgdG8gd29yayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3Mi
+KQ0KPj4gDQo+PiAtIDc3YjBiZjU1YmM2NzUyMzNkMjJjZDVkZjk3NjA1ZDUxNmQ2NDUyNWUuDQo+
+PiAgKCJrYnVpbGQvTWFrZWZpbGU6IFByZXBhcmUgZm9yIHVzaW5nIG1hY3JvcyBpbiBpbmxpbmUg
+YXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBhc20oKSByZWxhdGVkIEdDQyBpbmxpbmluZyBi
+dWdzIikNCj4+IA0KPj4gQSBmZXcgZGF5cyBhZnRlciB0aG9zZSBjb21taXRzIGFwcGxpZWQsIGRp
+c2N1c3Npb24gc3RhcnRlZCB0byBzb2x2ZQ0KPj4gdGhlIGlzc3VlIG1vcmUgZWxlZ2FudGx5IG9u
+IHRoZSBjb21waWxlciBzaWRlOg0KPj4gDQo+PiAgaHR0cHM6Ly9uYTAxLnNhZmVsaW5rcy5wcm90
+ZWN0aW9uLm91dGxvb2suY29tLz91cmw9aHR0cHMlM0ElMkYlMkZsa21sLm9yZyUyRmxrbWwlMkYy
+MDE4JTJGMTAlMkY3JTJGOTImYW1wO2RhdGE9MDIlN0MwMSU3Q25hbWl0JTQwdm13YXJlLmNvbSU3
+QzQwYjVkZjhhMzhlNTRmMzEwYWI3MDhkNjY0MDA1ZWUwJTdDYjM5MTM4Y2EzY2VlNGI0YWE0ZDZj
+ZDgzZDlkZDYyZjAlN0MwJTdDMSU3QzYzNjgwNjM1MDExMzEzNjIyMyZhbXA7c2RhdGE9UmxZWFN5
+aHpNNkhMUXVLQzJOdXlEcXZrZTlxWjExdHZNRE5kMzJOaUYyVSUzRCZhbXA7cmVzZXJ2ZWQ9MA0K
+Pj4gDQo+PiBUaGUgImFzbSBpbmxpbmUiIHdhcyBpbXBsZW1lbnRlZCBieSBTZWdoZXIgQm9lc3Nl
+bmtvb2wsIGFuZCBub3cgcXVldWVkDQo+PiB1cCBmb3IgR0NDIDkuIChQZW9wbGUgd2VyZSBwb3Np
+dGl2ZSBldmVuIGZvciBiYWNrLXBvcnRpbmcgaXQgdG8gb2xkZXINCj4+IGNvbXBpbGVycykuDQo+
+PiANCj4+IFNpbmNlIHRoZSBpbi1rZXJuZWwgd29ya2Fyb3VuZHMgbWVyZ2VkLCBzb21lIGlzc3Vl
+cyBoYXZlIGJlZW4gcmVwb3J0ZWQ6DQo+PiBicmVha2FnZSBvZiBidWlsZGluZyB3aXRoIGRpc3Rj
+Yy9pY2VjYywgYnJlYWthZ2Ugb2YgZGlzdHJvIHBhY2thZ2VzIGZvcg0KPj4gbW9kdWxlIGJ1aWxk
+aW5nLiAoTW9yZSBmdW5kYW1lbnRhbGx5LCB3ZSBjYW5ub3QgYnVpbGQgZXh0ZXJuYWwgbW9kdWxl
+cw0KPj4gYWZ0ZXIgJ21ha2UgY2xlYW4nKQ0KPj4gDQo+PiBQYXRjaGluZyBhcm91bmQgdGhlIGJ1
+aWxkIHN5c3RlbSB3b3VsZCBtYWtlIHRoZSBjb2RlIGV2ZW4gdWdsaWVyLg0KPj4gDQo+PiBHaXZl
+biB0aGF0IHRoaXMgaXNzdWUgd2lsbCBiZSBzb2x2ZWQgaW4gYSBjbGVhbmVyIHdheSBzb29uZXIg
+b3IgbGF0ZXIsDQo+PiBsZXQncyByZXZlcnQgdGhlIGluLWtlcm5lbCB3b3JrYXJvdW5kcywgYW5k
+IHdhaXQgZm9yIEdDQyA5Lg0KPj4gDQo+PiBSZXBvcnRlZC1ieTogTG9nYW4gR3VudGhvcnBlIDxs
+b2dhbmdAZGVsdGF0ZWUuY29tPiAjIGRpc3RjYw0KPj4gUmVwb3J0ZWQtYnk6IFNlZGF0IERpbGVr
+IDxzZWRhdC5kaWxla0BnbWFpbC5jb20+ICMgZGViaWFuL3JwbSBwYWNrYWdlDQo+IA0KPiBIaSwN
+Cj4gDQo+IEkgcmVwb3J0ZWQgdGhlIGlzc3VlIHdpdGggZGViaWFuIHBhY2thZ2UgYnJlYWthZ2Ug
+aW4gWzFdLg0KPiANCj4gSSBhbSBub3Qgc3Vic2NyaWJlZCB0byBhbnkgaW52b2x2ZWQgbWFpbGlu
+Zy1saXN0IGFuZCBub3QgZm9sbG93aW5nIGFsbA0KPiB0aGUgZGlzY3Vzc2lvbnMuDQo+IEkgc2Vl
+IHRoZSBzaXR1YXRpb24gaXMgbm90IGVhc3kgYXMgdGhlcmUgaXMgZXNwZWNpYWxseSBsaW51eC1r
+YnVpbGQNCj4gYW5kIGxpbnV4L3g4NiBpbnZvbHZlZCBhbmQgbWF5YmUgb3RoZXIgaW50ZXJlc3Rz
+Lg0KPiBCdXQgSSBhbSBpbnRlcmVzdGVkIGluIGhhdmluZyBhIGZpeCBpbiB2NC4yMCBmaW5hbCBh
+bmQgaG9wZSB0aGlzIGFsbA0KPiBzdGlsbCB3b3JrcyB3aXRoIExMVk0vQ2xhbmcuDQo+IA0KPiBJ
+IGNhbiBvZmZlciBteSBoZWxwIGluIHRlc3RpbmcgLSBhZ2FpbnN0IExpbnV4IHY0LjIwLXJjNy4N
+Cj4gTm90IHN1cmUgaWYgYWxsIGRpc2N1c3NlZCBtYXRlcmlhbCBpcyBpbiB1cHN0cmVhbSBvciBl
+bHNld2hlcmUuDQo+IFdoYXQgaXMgeW91ciBzdWdnZXN0aW9uIGZvciBtZSBhcyBhIHRlc3Rlcj8N
+Cj4gDQo+IFdpbGwgd2UgaGF2ZSBhIHNvbHV0aW9uIGluIExpbnV4IHY0LjIwIGZpbmFsPw0KDQpU
+aGFua3MgZm9yIHRoZSByZWZlcmVuY2UuIEkgc2VlIHNvbHV0aW9ucyBoYXZlIGFscmVhZHkgYmVl
+biBkZXZlbG9wZWQuIFNvDQppdOKAmXMgTWFzYWhpcm/igJlzIGNhbGwuDQoNCg==
