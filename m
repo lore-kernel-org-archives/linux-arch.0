@@ -1,26 +1,92 @@
-From: Daniel Borkmann <daniel@iogearbox.net>
-Subject: Re: [PATCH] bpf: promote bpf_perf_event.h to mandatory UAPI header
-Date: Mon, 17 Dec 2018 22:03:23 +0100
-Message-ID: <ffa7d3a4-62be-fb24-b727-8acb029b68fd@iogearbox.net>
-References: <1544972680-4105-1-git-send-email-yamada.masahiro@socionext.com>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v5 0/8] Introduce the for_each_set_clump8 macro
+Date: Tue, 18 Dec 2018 19:11:32 +0900
+Message-ID: <cover.1545126272.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1544972680-4105-1-git-send-email-yamada.masahiro@socionext.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Alexei Starovoitov <ast@kernel.org>, netdev@vger.kernel.org
-Cc: Thomas Richter <tmricht@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+To: linus.walleij@linaro.org
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/16/2018 04:04 PM, Masahiro Yamada wrote:
-> Since commit c895f6f703ad ("bpf: correct broken uapi for
-> BPF_PROG_TYPE_PERF_EVENT program type"), all architectures
-> (except um) are required to have bpf_perf_event.h in uapi/asm.
-> 
-> Add it to mandatory-y so "make headers_install" can check it.
-> 
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Changes in v5:
+  - Restrict the function of the for_each_set_clump macro to handle only
+    8-bit clumps (i.e. for_each_set_clump8)
+  - Introduce the bitmap_get_value8 and bitmap_set_value8 functions to
+    get and set 8-bit values respectively
+  - Reimplement the for_each_set_clump macro to return the bit offset
+    and clump value; this simplifies the arguments list and aligns the
+    macro use to similar macros such as find_next_bit et al.
 
-Applied to bpf, thanks Masahiro!
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
+
+This patchset introduces the for_each_set_clump8 macro and utilizes it
+in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
+
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
+
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
+
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+The for_each_set_clump8 macro has four parameters:
+
+    * start: set to the bit offset of the current clump
+    * clump: set to the current clump value
+    * bits: bitmap to search within
+    * size: bitmap size in number of bits
+
+In this version of the patchset, the for_each_set_clump macro has been
+reimplemented and simplified based on the suggestions provided by Rasmus
+Villemoes and Andy Shevchenko in the version 4 submission.
+
+In particular, the function of the for_each_set_clump macro has been
+restricted to handle only 8-bit clumps; the drivers that use the
+for_each_set_clump macro only handle 8-bit ports so a generic
+for_each_set_clump implementation is not necessary. Thus, a solution for
+odd-sized clumps (e.g. 3-bit, 7-bit, etc.) mismatching word boundaries
+can be postponed until a driver appears that actually requires a generic
+for_each_set_clump implementation.
+
+In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+introduced to get and set 8-bit values respectively. Their use is based
+on the behavior suggested in the previous patchset version review.
+Similarly, the implementation of the find_next_clump function has been
+simplified in order for the function to match the syntax and use of the
+find_next_bit function.
+
+William Breathitt Gray (8):
+  bitops: Introduce the for_each_set_clump8 macro
+  lib/test_bitmap.c: Add for_each_set_clump8 test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+  gpio: gpio-mm: Utilize for_each_set_clump8 macro
+  gpio: ws16c48: Utilize for_each_set_clump8 macro
+  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  71 ++++++-------------
+ drivers/gpio/gpio-104-idi-48.c    |  36 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  71 ++++++-------------
+ drivers/gpio/gpio-pci-idio-16.c   |  73 +++++++-------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 109 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  71 ++++++-------------
+ include/asm-generic/bitops/find.h |  14 ++++
+ include/linux/bitops.h            |   5 ++
+ lib/find_bit.c                    |  63 +++++++++++++++++
+ lib/test_bitmap.c                 |  67 ++++++++++++++++++
+ 10 files changed, 281 insertions(+), 299 deletions(-)
+
+-- 
+2.20.1
