@@ -1,56 +1,79 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
-Date: Tue, 18 Dec 2018 10:53:59 -0800
-Message-ID: <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
-References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH] kbuild, x86: revert macros in extended asm workarounds
+Date: Tue, 18 Dec 2018 19:33:07 +0000
+Message-ID: <A6321F73-0084-423B-8BEE-C23BF6BD1544@vmware.com>
+References: <1544692661-9455-1-git-send-email-yamada.masahiro@socionext.com>
+ <CA+icZUUnkGBp-3pJxE_s_Oc+pdNBrVc_ngYUwpv7zLEbtE_eVg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <CA+icZUUnkGBp-3pJxE_s_Oc+pdNBrVc_ngYUwpv7zLEbtE_eVg@mail.gmail.com>
+Content-Language: en-US
+Content-ID: <9A9EC197CE14A34A9CB0F37FE152FCC3@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vineet.gupta1@synopsys.com>
+To: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Richard Biener <rguenther@suse.de>, Peter Zijlstra <peterz@infradead.org>, Logan Gunthorpe <logang@deltatee.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Michal Marek <michal.lkml@markovi.net>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>, Alok
 List-Id: linux-arch.vger.kernel.org
 
-signal handling core calls ARCH show_regs() with preemption disabled
-which causes __might_sleep functions such as mmput leading to lockdep
-splat.  Workaround by re-enabling preemption temporarily.
-
-This may not be as bad as it sounds since the preemption disabling
-itself was introduced for a supressing smp_processor_id() warning in x86
-code by commit 3a9f84d354ce ("signals, debug: fix BUG: using
-smp_processor_id() in preemptible code in print_fatal_signal()")
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/kernel/troubleshoot.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/arch/arc/kernel/troubleshoot.c b/arch/arc/kernel/troubleshoot.c
-index 2885bec71fb8..c650d3de13e1 100644
---- a/arch/arc/kernel/troubleshoot.c
-+++ b/arch/arc/kernel/troubleshoot.c
-@@ -177,6 +177,12 @@ void show_regs(struct pt_regs *regs)
- 	struct task_struct *tsk = current;
- 	struct callee_regs *cregs;
- 
-+	/*
-+	 * generic code calls us with preemption disabled, but some calls
-+	 * here could sleep, so re-enable to avoid lockdep splat
-+	 */
-+	preempt_enable();
-+
- 	print_task_path_n_nm(tsk);
- 	show_regs_print_info(KERN_INFO);
- 
-@@ -219,6 +225,8 @@ void show_regs(struct pt_regs *regs)
- 	cregs = (struct callee_regs *)current->thread.callee_reg;
- 	if (cregs)
- 		show_callee_regs(cregs);
-+
-+	preempt_disable();
- }
- 
- void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
--- 
-2.7.4
+PiBPbiBEZWMgMTcsIDIwMTgsIGF0IDE6MTYgQU0sIFNlZGF0IERpbGVrIDxzZWRhdC5kaWxla0Bn
+bWFpbC5jb20+IHdyb3RlOg0KPiANCj4gT24gVGh1LCBEZWMgMTMsIDIwMTggYXQgMTA6MTkgQU0g
+TWFzYWhpcm8gWWFtYWRhDQo+IDx5YW1hZGEubWFzYWhpcm9Ac29jaW9uZXh0LmNvbT4gd3JvdGU6
+DQo+PiBSZXZlcnQgdGhlIGZvbGxvd2luZyBjb21taXRzOg0KPj4gDQo+PiAtIDViZGNkNTEwYzJh
+YzllZmFmNTVjNGNiZDhkNDY0MjFkOGUyMzIwY2QNCj4+ICAoIng4Ni9qdW1wLWxhYmVsczogTWFj
+cm9meSBpbmxpbmUgYXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVn
+cyIpDQo+PiANCj4+IC0gZDVhNTgxZDg0YWU2YjhhNGE3NDA0NjRiODBkOGQ5Y2YxZTc5NDdiMg0K
+Pj4gICgieDg2L2NwdWZlYXR1cmU6IE1hY3JvZnkgaW5saW5lIGFzc2VtYmx5IGNvZGUgdG8gd29y
+ayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3MiKQ0KPj4gDQo+PiAtIDA0NzRkNWQ5ZDJmN2YzYjEx
+MjYyZjdiZjg3ZDBlNzMxNGVhZDkyMDAuDQo+PiAgKCJ4ODYvZXh0YWJsZTogTWFjcm9meSBpbmxp
+bmUgYXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVncyIpDQo+PiAN
+Cj4+IC0gNDk0YjUxNjhmMmRlMDA5ZWI4MGYxOThmNjY4ZGEzNzQyOTUwOThkZC4NCj4+ICAoIng4
+Ni9wYXJhdmlydDogV29yayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3Mgd2hlbiBjb21waWxpbmcg
+cGFyYXZpcnQgb3BzIikNCj4+IA0KPj4gLSBmODFmOGFkNTZmZDFjN2I5OWIyZWQxYzMxNDUyN2Y3
+ZDlhYzQ0N2M2Lg0KPj4gICgieDg2L2J1ZzogTWFjcm9meSB0aGUgQlVHIHRhYmxlIHNlY3Rpb24g
+aGFuZGxpbmcsIHRvIHdvcmsgYXJvdW5kIEdDQyBpbmxpbmluZyBidWdzIikNCj4+IA0KPj4gLSA3
+N2Y0OGVjMjhlNGNjZmY5NGQyZTVmNDI2MGE4M2FjMjdhN2YzMDk5Lg0KPj4gICgieDg2L2FsdGVy
+bmF0aXZlczogTWFjcm9meSBsb2NrIHByZWZpeGVzIHRvIHdvcmsgYXJvdW5kIEdDQyBpbmxpbmlu
+ZyBidWdzIikNCj4+IA0KPj4gLSA5ZTE3MjViNDEwNTk0OTExY2M1OTgxYjZjN2I0Y2VhNGVjMDU0
+Y2E4Lg0KPj4gICgieDg2L3JlZmNvdW50OiBXb3JrIGFyb3VuZCBHQ0MgaW5saW5pbmcgYnVnIikN
+Cj4+ICAoQ29uZmxpY3RzOiBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9yZWZjb3VudC5oKQ0KPj4gDQo+
+PiAtIGMwNmM0ZDgwOTA1MTNmMjk3NGRmZGJlZDJhYzk4NjM0MzU3YWM0NzUuDQo+PiAgKCJ4ODYv
+b2JqdG9vbDogVXNlIGFzbSBtYWNyb3MgdG8gd29yayBhcm91bmQgR0NDIGlubGluaW5nIGJ1Z3Mi
+KQ0KPj4gDQo+PiAtIDc3YjBiZjU1YmM2NzUyMzNkMjJjZDVkZjk3NjA1ZDUxNmQ2NDUyNWUuDQo+
+PiAgKCJrYnVpbGQvTWFrZWZpbGU6IFByZXBhcmUgZm9yIHVzaW5nIG1hY3JvcyBpbiBpbmxpbmUg
+YXNzZW1ibHkgY29kZSB0byB3b3JrIGFyb3VuZCBhc20oKSByZWxhdGVkIEdDQyBpbmxpbmluZyBi
+dWdzIikNCj4+IA0KPj4gQSBmZXcgZGF5cyBhZnRlciB0aG9zZSBjb21taXRzIGFwcGxpZWQsIGRp
+c2N1c3Npb24gc3RhcnRlZCB0byBzb2x2ZQ0KPj4gdGhlIGlzc3VlIG1vcmUgZWxlZ2FudGx5IG9u
+IHRoZSBjb21waWxlciBzaWRlOg0KPj4gDQo+PiAgaHR0cHM6Ly9uYTAxLnNhZmVsaW5rcy5wcm90
+ZWN0aW9uLm91dGxvb2suY29tLz91cmw9aHR0cHMlM0ElMkYlMkZsa21sLm9yZyUyRmxrbWwlMkYy
+MDE4JTJGMTAlMkY3JTJGOTImYW1wO2RhdGE9MDIlN0MwMSU3Q25hbWl0JTQwdm13YXJlLmNvbSU3
+QzQwYjVkZjhhMzhlNTRmMzEwYWI3MDhkNjY0MDA1ZWUwJTdDYjM5MTM4Y2EzY2VlNGI0YWE0ZDZj
+ZDgzZDlkZDYyZjAlN0MwJTdDMSU3QzYzNjgwNjM1MDExMzEzNjIyMyZhbXA7c2RhdGE9UmxZWFN5
+aHpNNkhMUXVLQzJOdXlEcXZrZTlxWjExdHZNRE5kMzJOaUYyVSUzRCZhbXA7cmVzZXJ2ZWQ9MA0K
+Pj4gDQo+PiBUaGUgImFzbSBpbmxpbmUiIHdhcyBpbXBsZW1lbnRlZCBieSBTZWdoZXIgQm9lc3Nl
+bmtvb2wsIGFuZCBub3cgcXVldWVkDQo+PiB1cCBmb3IgR0NDIDkuIChQZW9wbGUgd2VyZSBwb3Np
+dGl2ZSBldmVuIGZvciBiYWNrLXBvcnRpbmcgaXQgdG8gb2xkZXINCj4+IGNvbXBpbGVycykuDQo+
+PiANCj4+IFNpbmNlIHRoZSBpbi1rZXJuZWwgd29ya2Fyb3VuZHMgbWVyZ2VkLCBzb21lIGlzc3Vl
+cyBoYXZlIGJlZW4gcmVwb3J0ZWQ6DQo+PiBicmVha2FnZSBvZiBidWlsZGluZyB3aXRoIGRpc3Rj
+Yy9pY2VjYywgYnJlYWthZ2Ugb2YgZGlzdHJvIHBhY2thZ2VzIGZvcg0KPj4gbW9kdWxlIGJ1aWxk
+aW5nLiAoTW9yZSBmdW5kYW1lbnRhbGx5LCB3ZSBjYW5ub3QgYnVpbGQgZXh0ZXJuYWwgbW9kdWxl
+cw0KPj4gYWZ0ZXIgJ21ha2UgY2xlYW4nKQ0KPj4gDQo+PiBQYXRjaGluZyBhcm91bmQgdGhlIGJ1
+aWxkIHN5c3RlbSB3b3VsZCBtYWtlIHRoZSBjb2RlIGV2ZW4gdWdsaWVyLg0KPj4gDQo+PiBHaXZl
+biB0aGF0IHRoaXMgaXNzdWUgd2lsbCBiZSBzb2x2ZWQgaW4gYSBjbGVhbmVyIHdheSBzb29uZXIg
+b3IgbGF0ZXIsDQo+PiBsZXQncyByZXZlcnQgdGhlIGluLWtlcm5lbCB3b3JrYXJvdW5kcywgYW5k
+IHdhaXQgZm9yIEdDQyA5Lg0KPj4gDQo+PiBSZXBvcnRlZC1ieTogTG9nYW4gR3VudGhvcnBlIDxs
+b2dhbmdAZGVsdGF0ZWUuY29tPiAjIGRpc3RjYw0KPj4gUmVwb3J0ZWQtYnk6IFNlZGF0IERpbGVr
+IDxzZWRhdC5kaWxla0BnbWFpbC5jb20+ICMgZGViaWFuL3JwbSBwYWNrYWdlDQo+IA0KPiBIaSwN
+Cj4gDQo+IEkgcmVwb3J0ZWQgdGhlIGlzc3VlIHdpdGggZGViaWFuIHBhY2thZ2UgYnJlYWthZ2Ug
+aW4gWzFdLg0KPiANCj4gSSBhbSBub3Qgc3Vic2NyaWJlZCB0byBhbnkgaW52b2x2ZWQgbWFpbGlu
+Zy1saXN0IGFuZCBub3QgZm9sbG93aW5nIGFsbA0KPiB0aGUgZGlzY3Vzc2lvbnMuDQo+IEkgc2Vl
+IHRoZSBzaXR1YXRpb24gaXMgbm90IGVhc3kgYXMgdGhlcmUgaXMgZXNwZWNpYWxseSBsaW51eC1r
+YnVpbGQNCj4gYW5kIGxpbnV4L3g4NiBpbnZvbHZlZCBhbmQgbWF5YmUgb3RoZXIgaW50ZXJlc3Rz
+Lg0KPiBCdXQgSSBhbSBpbnRlcmVzdGVkIGluIGhhdmluZyBhIGZpeCBpbiB2NC4yMCBmaW5hbCBh
+bmQgaG9wZSB0aGlzIGFsbA0KPiBzdGlsbCB3b3JrcyB3aXRoIExMVk0vQ2xhbmcuDQo+IA0KPiBJ
+IGNhbiBvZmZlciBteSBoZWxwIGluIHRlc3RpbmcgLSBhZ2FpbnN0IExpbnV4IHY0LjIwLXJjNy4N
+Cj4gTm90IHN1cmUgaWYgYWxsIGRpc2N1c3NlZCBtYXRlcmlhbCBpcyBpbiB1cHN0cmVhbSBvciBl
+bHNld2hlcmUuDQo+IFdoYXQgaXMgeW91ciBzdWdnZXN0aW9uIGZvciBtZSBhcyBhIHRlc3Rlcj8N
+Cj4gDQo+IFdpbGwgd2UgaGF2ZSBhIHNvbHV0aW9uIGluIExpbnV4IHY0LjIwIGZpbmFsPw0KDQpU
+aGFua3MgZm9yIHRoZSByZWZlcmVuY2UuIEkgc2VlIHNvbHV0aW9ucyBoYXZlIGFscmVhZHkgYmVl
+biBkZXZlbG9wZWQuIFNvDQppdOKAmXMgTWFzYWhpcm/igJlzIGNhbGwuDQoNCg==
