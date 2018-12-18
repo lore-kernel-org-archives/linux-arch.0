@@ -1,92 +1,144 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v5 0/8] Introduce the for_each_set_clump8 macro
-Date: Tue, 18 Dec 2018 19:11:32 +0900
-Message-ID: <cover.1545126272.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v5 1/8] bitops: Introduce the for_each_set_clump8 macro
+Date: Tue, 18 Dec 2018 19:12:09 +0900
+Message-ID: <40f8a86600f6c741b8c577dc821042d5a250f95f.1545126272.git.vilhelm.gray@gmail.com>
+References: <cover.1545126272.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1545126272.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Changes in v5:
-  - Restrict the function of the for_each_set_clump macro to handle only
-    8-bit clumps (i.e. for_each_set_clump8)
-  - Introduce the bitmap_get_value8 and bitmap_set_value8 functions to
-    get and set 8-bit values respectively
-  - Reimplement the for_each_set_clump macro to return the bit offset
-    and clump value; this simplifies the arguments list and aligns the
-    macro use to similar macros such as find_next_bit et al.
+This macro iterates for each 8-bit group of bits (clump) with set bits,
+within a bitmap memory region. For each iteration, "start" is set to the
+bit offset of the found clump, while the respective clump value is
+stored to the location pointed by "clump". Additionally, the
+bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+respectively get and set an 8-bit value in a bitmap memory region.
 
-While adding GPIO get_multiple/set_multiple callback support for various
-drivers, I noticed a pattern of looping manifesting that would be useful
-standardized as a macro.
+Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ include/asm-generic/bitops/find.h | 14 +++++++
+ include/linux/bitops.h            |  5 +++
+ lib/find_bit.c                    | 63 +++++++++++++++++++++++++++++++
+ 3 files changed, 82 insertions(+)
 
-This patchset introduces the for_each_set_clump8 macro and utilizes it
-in several GPIO drivers. The for_each_set_clump macro8 facilitates a
-for-loop syntax that iterates over a memory region entire groups of set
-bits at a time.
-
-For example, suppose you would like to iterate over a 32-bit integer 8
-bits at a time, skipping over 8-bit groups with no set bit, where
-XXXXXXXX represents the current 8-bit group:
-
-    Example:        10111110 00000000 11111111 00110011
-    First loop:     10111110 00000000 11111111 XXXXXXXX
-    Second loop:    10111110 00000000 XXXXXXXX 00110011
-    Third loop:     XXXXXXXX 00000000 11111111 00110011
-
-Each iteration of the loop returns the next 8-bit group that has at
-least one set bit.
-
-The for_each_set_clump8 macro has four parameters:
-
-    * start: set to the bit offset of the current clump
-    * clump: set to the current clump value
-    * bits: bitmap to search within
-    * size: bitmap size in number of bits
-
-In this version of the patchset, the for_each_set_clump macro has been
-reimplemented and simplified based on the suggestions provided by Rasmus
-Villemoes and Andy Shevchenko in the version 4 submission.
-
-In particular, the function of the for_each_set_clump macro has been
-restricted to handle only 8-bit clumps; the drivers that use the
-for_each_set_clump macro only handle 8-bit ports so a generic
-for_each_set_clump implementation is not necessary. Thus, a solution for
-odd-sized clumps (e.g. 3-bit, 7-bit, etc.) mismatching word boundaries
-can be postponed until a driver appears that actually requires a generic
-for_each_set_clump implementation.
-
-In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
-introduced to get and set 8-bit values respectively. Their use is based
-on the behavior suggested in the previous patchset version review.
-Similarly, the implementation of the find_next_clump function has been
-simplified in order for the function to match the syntax and use of the
-find_next_bit function.
-
-William Breathitt Gray (8):
-  bitops: Introduce the for_each_set_clump8 macro
-  lib/test_bitmap.c: Add for_each_set_clump8 test cases
-  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
-  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
-  gpio: gpio-mm: Utilize for_each_set_clump8 macro
-  gpio: ws16c48: Utilize for_each_set_clump8 macro
-  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
-
- drivers/gpio/gpio-104-dio-48e.c   |  71 ++++++-------------
- drivers/gpio/gpio-104-idi-48.c    |  36 ++--------
- drivers/gpio/gpio-gpio-mm.c       |  71 ++++++-------------
- drivers/gpio/gpio-pci-idio-16.c   |  73 +++++++-------------
- drivers/gpio/gpio-pcie-idio-24.c  | 109 +++++++++++-------------------
- drivers/gpio/gpio-ws16c48.c       |  71 ++++++-------------
- include/asm-generic/bitops/find.h |  14 ++++
- include/linux/bitops.h            |   5 ++
- lib/find_bit.c                    |  63 +++++++++++++++++
- lib/test_bitmap.c                 |  67 ++++++++++++++++++
- 10 files changed, 281 insertions(+), 299 deletions(-)
-
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 8a1ee10014de..457b93e6f5c9 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -80,4 +80,18 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+ 
+ #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ 
++unsigned int bitmap_get_value8(const unsigned long *const bitmap,
++			       const unsigned int start);
++
++void bitmap_set_value8(unsigned long *const bitmap,
++		       const unsigned long *const value,
++		       const unsigned int start);
++
++unsigned int find_next_clump8(unsigned long *const clump,
++			      const unsigned long *const addr,
++			      unsigned int offset, const unsigned int size);
++
++#define find_first_clump8(clump, bits, size) \
++	find_next_clump8((clump), (bits), 0, (size))
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 705f7c442691..850af60d36b9 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -40,6 +40,11 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (bit) < (size);					\
+ 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+ 
++#define for_each_set_clump8(start, clump, bits, size) \
++	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
++	     (start) < (size); \
++	     (start) = find_next_clump8(&(clump), (bits), (offset) + 1, (size)))
++
+ static inline int get_bitmask_order(unsigned int count)
+ {
+ 	int order;
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index ee3df93ba69a..2e56d2b907bc 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -218,3 +218,66 @@ EXPORT_SYMBOL(find_next_bit_le);
+ #endif
+ 
+ #endif /* __BIG_ENDIAN */
++
++/**
++ * bitmap_get_value8 - get an 8-bit value within a memory region
++ * @bitmap: address to the bitmap memory region
++ * @start: bit offset of the 8-bit value
++ *
++ * Returns the 8-bit value located at the @start bit offset within the @bitmap
++ * memory region.
++ */
++unsigned int bitmap_get_value8(const unsigned long *const bitmap,
++			       const unsigned int start)
++{
++	const size_t index = BIT_WORD(start);
++	const unsigned int offset = start % BITS_PER_LONG;
++
++	return (bitmap[index] >> offset) & 0xFF;
++}
++EXPORT_SYMBOL(bitmap_get_value8);
++
++/**
++ * bitmap_set_value8 - set an 8-bit value within a memory region
++ * @bitmap: address to the bitmap memory region
++ * @value: the 8-bit value
++ * @start: bit offset of the 8-bit value
++ */
++void bitmap_set_value8(unsigned long *const bitmap,
++		       const unsigned long *const value,
++		       const unsigned int start)
++{
++	const size_t index = BIT_WORD(start);
++	const unsigned int offset = start % BITS_PER_LONG;
++	const unsigned long mask = GENMASK(7, offset);
++
++	bitmap[index] &= ~mask;
++	bitmap[index] |= (*value << offset) & mask;
++}
++EXPORT_SYMBOL(bitmap_set_value8);
++
++/**
++ * find_next_clump8 - find next 8-bit clump with set bits in a memory region
++ * @clump: location to store copy of found clump
++ * @addr: address to base the search on
++ * @offset: bit offset at which to start searching
++ * @size: bitmap size in number of bits
++ *
++ * Returns the bit offset for the next set clump; the found clump value is
++ * copied to the location pointed by @clump. If no bits are set, returns @size.
++ */
++unsigned int find_next_clump8(unsigned long *const clump,
++			      const unsigned long *const addr,
++			      unsigned int offset, const unsigned int size)
++{
++	for (; offset < size; offset += 8) {
++		*clump = bitmap_get_value8(addr, offset);
++		if (!*clump)
++			continue;
++
++		return offset;
++	}
++
++	return size;
++}
++EXPORT_SYMBOL(find_next_clump8);
 -- 
 2.20.1
