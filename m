@@ -1,143 +1,52 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v9 0/8] arm64: untag user pointers passed to the kernel
-Date: Tue, 18 Dec 2018 18:17:31 +0100
-Message-ID: <CAAeHK+zf=qxfk0yRp-yb7rAJLFdUXJdidq5tA-x8-EBdV7kE7A@mail.gmail.com>
-References: <cover.1544445454.git.andreyknvl@google.com> <20181212170108.GZ3505@e103592.cambridge.arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Tue, 18 Dec 2018 17:59:38 +0000
+Message-ID: <20181218175938.GD20197@arrakis.emea.arm.com>
+References: <cover.1544445454.git.andreyknvl@google.com>
+ <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+ <20181212150230.GH65138@arrakis.emea.arm.com>
+ <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181212170108.GZ3505@e103592.cambridge.arm.com>
+Content-Disposition: inline
+In-Reply-To: <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>C
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 12, 2018 at 6:01 PM Dave Martin <Dave.Martin@arm.com> wrote:
->
-> On Mon, Dec 10, 2018 at 01:50:57PM +0100, Andrey Konovalov wrote:
-> > arm64 has a feature called Top Byte Ignore, which allows to embed pointer
-> > tags into the top byte of each pointer. Userspace programs (such as
-> > HWASan, a memory debugging tool [1]) might use this feature and pass
-> > tagged user pointers to the kernel through syscalls or other interfaces.
+On Tue, Dec 18, 2018 at 04:03:38PM +0100, Andrey Konovalov wrote:
+> On Wed, Dec 12, 2018 at 4:02 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> > The summary of our internal discussions (mostly between kernel
+> > developers) is that we can't properly describe a user ABI that covers
+> > future syscalls or syscall extensions while not all syscalls accept
+> > tagged pointers. So we tweaked the requirements slightly to only allow
+> > tagged pointers back into the kernel *if* the originating address is
+> > from an anonymous mmap() or below sbrk(0). This should cover some of the
+> > ioctls or getsockopt(TCP_ZEROCOPY_RECEIVE) where the user passes a
+> > pointer to a buffer obtained via mmap() on the device operations.
 > >
-> > Right now the kernel is already able to handle user faults with tagged
-> > pointers, due to these patches:
-> >
-> > 1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
-> >              tagged pointer")
-> > 2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
-> >               pointers")
-> > 3. 276e9327 ("arm64: entry: improve data abort handling of tagged
-> >               pointers")
-> >
-> > When passing tagged pointers to syscalls, there's a special case of such a
-> > pointer being passed to one of the memory syscalls (mmap, mprotect, etc.).
-> > These syscalls don't do memory accesses but rather deal with memory
-> > ranges, hence an untagged pointer is better suited.
-> >
-> > This patchset extends tagged pointer support to non-memory syscalls. This
-> > is done by reusing the untagged_addr macro to untag user pointers when the
-> > kernel performs pointer checking to find out whether the pointer comes
-> > from userspace (most notably in access_ok). The untagging is done only
-> > when the pointer is being checked, the tag is preserved as the pointer
-> > makes its way through the kernel.
-> >
-> > One of the alternative approaches to untagging that was considered is to
-> > completely strip the pointer tag as the pointer enters the kernel with
-> > some kind of a syscall wrapper, but that won't work with the countless
-> > number of different ioctl calls. With this approach we would need a custom
-> > wrapper for each ioctl variation, which doesn't seem practical.
-> >
-> > The following testing approaches has been taken to find potential issues
-> > with user pointer untagging:
-> >
-> > 1. Static testing (with sparse [2] and separately with a custom static
-> >    analyzer based on Clang) to track casts of __user pointers to integer
-> >    types to find places where untagging needs to be done.
-> >
-> > 2. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
-> >    a modified syzkaller version that passes tagged pointers to the kernel.
-> >
-> > Based on the results of the testing the requried patches have been added
-> > to the patchset.
-> >
-> > This patchset has been merged into the Pixel 2 kernel tree and is now
-> > being used to enable testing of Pixel 2 phones with HWASan.
+> > (sorry for not being clear on what Vincenzo's proposal implies)
+> 
+> OK, I see. So I need to make the following changes to my patchset AFAIU.
+> 
+> 1. Make sure that we only allow tagged user addresses that originate
+> from an anonymous mmap() or below sbrk(0). How exactly should this
+> check be performed?
 
-Hi, Dave,
+I don't think we should perform such checks. That's rather stating that
+the kernel only guarantees that the tagged pointers work if they
+originated from these memory ranges.
 
->
-> Do you have an idea of how much of the user/kernel interface is covered
-> by this workload?
+> 2. Allow tagged addressed passed to memory syscalls (as long as (1) is
+> satisfied). Do I understand correctly that this means that I need to
+> locate all find_vma() callers outside of mm/ and fix them up as well?
 
-Not really. I don't even know what kind of measurements can be used to
-obtain this estimate. But Pixel 2 kernel with these patches + Android
-runtime instrumented with HWASan works.
+Yes (unless anyone as a better idea or objections to this approach).
 
->
-> > This patchset is a prerequisite for ARM's memory tagging hardware feature
-> > support [3].
->
-> It looks like there's been a lot of progress made here towards smoking
-> out most of the sites in the kernel where pointers need to be untagged.
->
-> However, I do think that we need a clear policy for how existing kernel
-> interfaces are to be interpreted in the presence of tagged pointers.
-> Unless we have that nailed down, we are likely to be able to make only
-> vague guarantees to userspace about what works, and the ongoing risk
-> of ABI regressions and inconsistencies seems high.
->
-> I don't really see how we can advertise a full system interface if we
-> know some subset of it doesn't work for foreseeable userspace
-> environments.  I feel that presenting the current changes as an ABI
-> relaxation may be a recipe for future problems, since the forwards
-> compatibility guarantees we're able to make today are few and rather
-> vague.
->
-> Can we define an opt-in for tagged-pointer userspace, that rejects all
-> syscalls that we haven't checked and whitelisted (or that are
-> uncheckable like ioctl)?  This reflects the reality that we don't have
-> a regular userspace environment in which standards-compliant software
-> that uses address tags in a reasonable way will just work.
->
-> It might be feasible to promote this to be enabled by default later on,
-> if it becomes sufficiently complete.
->
->
-> In the meantime, I think we really need to nail down the kernel's
-> policies on
->
->  * in the default configuration (without opt-in), is the presence of
-> non-address bits in pointers exchanged with the kernel simply
-> considered broken?  (Even with this series, the de factor answer
-> generally seems to be "yes", although many specific things will now
-> work fine)
->
->  * if not, how do we tighten syscall / interface specifications to
-> describe what happens with pointers containing non-address bits, while
-> keeping the existing behaviour for untagged pointers?
->
-> We would want a general recipe that gives clear guidance on what
-> userspace should expect an arbitrarily chosen syscall to do with its
-> pointers, without having to enumerate each and every case.
->
-> To be sustainable, we would also need to solve that in a way that
-> doesn't need to be reintented per-arch.
+BTW, I'll be off until the new year, so won't be able to follow up.
 
-As I understand your main concern is userspace/kernel ABI changes
-these patches introduce. This concern was already pointed out by
-Catalin, and working out the details is still in progress.
-
->
-> There may already be some background on these topics -- can you throw me
-> a link if so?
-
-I don't have a single link, I would suggest to look at the comments
-for all the previous versions of this patchset. I see you saw the
-pathset by Vincenzo, it also has some information about this.
-
->
-> Cheers
-> ---Dave
-
-Thanks!
+-- 
+Catalin
