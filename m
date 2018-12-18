@@ -1,42 +1,72 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH v3 00/12] x86, kbuild: revert macrofying inline assembly
- code
-Date: Tue, 18 Dec 2018 19:43:29 +0000
-Message-ID: <C6D4A9B6-EED6-4DF7-8085-B1D3D221D25A@vmware.com>
-References: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: Re: [PATCH v2 7/8] socket: Add SO_TIMESTAMPING_NEW
+Date: Tue, 18 Dec 2018 13:22:05 -0800
+Message-ID: <CABeXuvofQQ6GoL9TEgaNRkkFE5RDdrWUmkKOPQUP4f9Zg1KBXA@mail.gmail.com>
+References: <20181211202520.16799-1-deepa.kernel@gmail.com>
+ <20181211202520.16799-8-deepa.kernel@gmail.com> <CAF=yD-+mrKfq35g+EVkP-pNbBL=6BvYDdduks=yAxiADSRWvzg@mail.gmail.com>
+ <CAK8P3a1xeZsrOv4+xhL5dbi02zfQcPEJvWDzmUNkFKmQubMkSA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
-Content-Language: en-US
-Content-ID: <71ABF3FD62F14A44B735806BFEA43BC6@namprd05.prod.outlook.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Richard Biener <rguenther@suse.de>, Segher Boessenkool <segher@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Juergen Gross <jgross@suse.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Alok Kataria <akataria@vmware.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jann Horn <jannh@google.co>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1xeZsrOv4+xhL5dbi02zfQcPEJvWDzmUNkFKmQubMkSA@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Willem de Bruijn <willemdebruijn.kernel@gmail.com>, David Miller <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Networking <netdev@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Chris Zankel <chris@zankel.net>, Fenghua Yu <fenghua.yu@intel.com>, Richard Henderson <rth@twiddle.net>, Thomas Gleixner <tglx@linutronix.de>, ubraun@linux.ibm.com, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-ia64@vger.kernel.org, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux <sparclinux@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-PiBPbiBEZWMgMTcsIDIwMTgsIGF0IDg6MDMgQU0sIE1hc2FoaXJvIFlhbWFkYSA8eWFtYWRhLm1h
-c2FoaXJvQHNvY2lvbmV4dC5jb20+IHdyb3RlOg0KPiANCj4gVGhpcyBzZXJpZXMgcmV2ZXJ0cyB0
-aGUgaW4ta2VybmVsIHdvcmthcm91bmRzIGZvciBpbmxpbmluZyBpc3N1ZXMuDQo+IA0KPiBUaGUg
-Y29tbWl0IGRlc2NyaXB0aW9uIG9mIDc3YjBiZjU1YmM2NyBtZW50aW9uZWQNCj4gIldlIGFsc28g
-aG9wZSB0aGF0IEdDQyB3aWxsIGV2ZW50dWFsbHkgZ2V0IGZpeGVkLC4uLiINCj4gDQo+IE5vdywg
-R0NDIHByb3ZpZGVzIGEgc29sdXRpb24uDQo+IA0KPiBodHRwczovL25hMDEuc2FmZWxpbmtzLnBy
-b3RlY3Rpb24ub3V0bG9vay5jb20vP3VybD1odHRwcyUzQSUyRiUyRmdjYy5nbnUub3JnJTJGb25s
-aW5lZG9jcyUyRmdjYyUyRkV4dGVuZGVkLUFzbS5odG1sJmFtcDtkYXRhPTAyJTdDMDElN0NuYW1p
-dCU0MHZtd2FyZS5jb20lN0NjNDNmNDMzZDhjNjI0NGRlMTVmMTA4ZDY2NDNhNDllNCU3Q2IzOTEz
-OGNhM2NlZTRiNGFhNGQ2Y2Q4M2Q5ZGQ2MmYwJTdDMCU3QzAlN0M2MzY4MDY1OTg4OTk5NjI2Njkm
-YW1wO3NkYXRhPTg4VUoyNVJvaUhpazl2VENKS1pWNiUyRjd4cHpDR3N2S2I5TEZnMWtmRVlMMCUz
-RCZhbXA7cmVzZXJ2ZWQ9MA0KPiBleHBsYWlucyB0aGUgbmV3ICJhc20gaW5saW5lIiBzeW50YXgu
-DQo+IA0KPiBUaGUgcGVyZm9ybWFuY2UgaXNzdWUgd2lsbCBiZSBldmVudHVhbGx5IHNvbHZlZC4N
-Cj4gDQo+IFtBYm91dCBDb2RlIGNsZWFudXBzXQ0KPiANCj4gSSBrbm93IE5hZGFtIEFtaXQgaXMg
-b3Bwb3NlZCB0byB0aGUgZnVsbCByZXZlcnQuDQoNCk15IG5hbWUgaXMgTmFkYXYuDQoNCj4gSGUg
-YWxzbyBjbGFpbXMgaGlzIG1vdGl2YXRpb24gZm9yIG1hY3JvZnlpbmcgd2FzIG5vdCBvbmx5DQo+
-IHBlcmZvcm1hbmNlLCBidXQgYWxzbyBjbGVhbnVwcy4NCg0KTWFzYWhpcm8sIEkgdW5kZXJzdGFu
-ZCB5b3VyIGNvbmNlcm5zIGFuZCBjcml0aWNpc20sIGFuZCBpbmRlZWQgdmFyaW91cw0KYWx0ZXJu
-YXRpdmUgc29sdXRpb25zIGV4aXN0LiBJIGRvIGhhdmUgbXkgcmVzZXJ2YXRpb25zIGFib3V0IHRo
-ZSBvbmUgeW91DQpwcm9wb3NlLCBzaW5jZSBpdCBtYWtlcyBjb2RpbmcgbW9yZSBjb21wbGljYXRl
-ZCB0byBzaW1wbGlmeSB0aGUgTWFrZSBzeXN0ZW0uDQpZZXQsIG1vcmUgaW1wb3J0YW50LCBzdGFy
-dGluZyB0aGlzIGRpc2N1c3Npb24gc3VkZGVubHkgbm93IGFmdGVyIFJDNyBpcw0Kc3RyYW5nZS4g
-QW55aG93LCBzaW5jZSBpdOKAmXMgb2J2aW91c2x5IG5vdCBteSBjYWxsLCBwbGVhc2UgZG9u4oCZ
-dCBtYWtlIGl0DQpzb3VuZCBhcyBpZiBJIGFtIGEgc2lkZSBpbiB0aGUgZGVjaXNpb24uDQoNCg==
+On Tue, Dec 18, 2018 at 8:16 AM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Dec 12, 2018 at 4:25 PM Willem de Bruijn
+> <willemdebruijn.kernel@gmail.com> wrote:
+> > On Tue, Dec 11, 2018 at 3:30 PM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+>
+> > > @@ -851,39 +890,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+> > >                 break;
+> > >
+> > >         case SO_TIMESTAMPING_OLD:
+> > > -               if (val & ~SOF_TIMESTAMPING_MASK) {
+> > > -                       ret = -EINVAL;
+> > > -                       break;
+> > > -               }
+> > > -
+> > > -               if (val & SOF_TIMESTAMPING_OPT_ID &&
+> > > -                   !(sk->sk_tsflags & SOF_TIMESTAMPING_OPT_ID)) {
+> > > -                       if (sk->sk_protocol == IPPROTO_TCP &&
+> > > -                           sk->sk_type == SOCK_STREAM) {
+> > > -                               if ((1 << sk->sk_state) &
+> > > -                                   (TCPF_CLOSE | TCPF_LISTEN)) {
+> > > -                                       ret = -EINVAL;
+> > > -                                       break;
+> > > -                               }
+> > > -                               sk->sk_tskey = tcp_sk(sk)->snd_una;
+> > > -                       } else {
+> > > -                               sk->sk_tskey = 0;
+> > > -                       }
+> > > -               }
+> > > -
+> > > -               if (val & SOF_TIMESTAMPING_OPT_STATS &&
+> > > -                   !(val & SOF_TIMESTAMPING_OPT_TSONLY)) {
+> > > -                       ret = -EINVAL;
+> > > -                       break;
+> > > -               }
+> > > -
+> > > -               sk->sk_tsflags = val;
+> > > -               if (val & SOF_TIMESTAMPING_RX_SOFTWARE)
+> > > -                       sock_enable_timestamp(sk,
+> > > -                                             SOCK_TIMESTAMPING_RX_SOFTWARE);
+> > > -               else
+> > > -                       sock_disable_timestamp(sk,
+> > > -                                              (1UL << SOCK_TIMESTAMPING_RX_SOFTWARE));
+> > > +               ret = setsockopt_timestamping(sk, optname, val);
+> >
+> > Once again a lot of needless code churn. The only functional change is adding
+>
+> I think moving the code out into a separate function is a useful cleanup,
+> but if we want to do that, it may be better done in another patch, to
+> make it easier to review.
+
+I already removed this addition of function. I have open coded all the
+logic here and in the patch 6.
+I will post an update.
+
+-Deepa
