@@ -1,246 +1,69 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v3 00/12] x86,
-	kbuild: revert macrofying inline assembly code
-Date: Wed, 19 Dec 2018 23:33:59 +0900
-Message-ID: <CAK7LNAQjZP8mYD02+=uvzO135fTB5GyU7_snV7ymFAjMBsep8w@mail.gmail.com>
-References: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com>
-	<20181219112028.GA38175@gmail.com>
+Subject: Re: [PATCH 00/27] kconfig: remove all reduce/shift conflicts,
+ refactor lexer, fix various issues
+Date: Wed, 19 Dec 2018 23:59:06 +0900
+Message-ID: <CAK7LNAQigp+cnH18w6iYKjix3oZtOOjOF=e1RKiJPdBFr3TwPw@mail.gmail.com>
+References: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20181219112028.GA38175@gmail.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Yonghong Song <yhs@fb.com>, Alexei Starovoitov <ast@kernel.org>, virtualization@lists.linux-foundation.org, Nadav Amit <namit@vmware.com>, Jan Beulich <JBeulich@suse.com>, "H . Peter Anvin" <hpa@zytor.com>, Alok Kataria <akataria@vmware.com>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-sparse@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Kees Cook <keescook@chromium.org>, Segher Boessenkool <segher@kernel.crashing.org>, Jann Horn <jannh@google.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Borislav Petkov <bp@alien8.de>, Josh Poimboeuf <jpoimboe@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Juergen Gross <jgross@suse.com>M
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Cc: Ulf Magnusson <ulfalizer@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Wolfram Sang <wsa+renesas@sang-engineering.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Herbert Xu <herbert@gondor.apana.org.au>, Michal Simek <monstr@monstr.eu>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 19, 2018 at 9:44 PM Ingo Molnar <mingo@kernel.org> wrote:
+On Tue, Dec 11, 2018 at 8:04 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
 >
 >
-> * Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+> When I tryed to change something, I was often hit by annoying
+> shift/reduce conflicts in the parser.
 >
-> > This series reverts the in-kernel workarounds for inlining issues.
-> >
-> > The commit description of 77b0bf55bc67 mentioned
-> > "We also hope that GCC will eventually get fixed,..."
-> >
-> > Now, GCC provides a solution.
-> >
-> > https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
-> > explains the new "asm inline" syntax.
-> >
-> > The performance issue will be eventually solved.
-> >
-> > [About Code cleanups]
-> >
-> > I know Nadam Amit is opposed to the full revert.
-> > He also claims his motivation for macrofying was not only
-> > performance, but also cleanups.
-> >
-> > IIUC, the criticism addresses the code duplication between C and ASM.
-> >
-> > If so, I'd like to suggest a different approach for cleanups.
-> > Please see the last 3 patches.
-> > IMHO, preprocessor approach is more straight-forward, and readable.
-> > Basically, this idea should work because it is what we already do for
-> > __ASM_FORM() etc.
-> >
-> > [Quick Test of "asm inline" of GCC 9]
-> >
-> > If you want to try "asm inline" feature, the patch is available:
-> > https://lore.kernel.org/patchwork/patch/1024590/
-> >
-> > The number of symbols for arch/x86/configs/x86_64_defconfig:
-> >
-> >                             nr_symbols
-> >   [1]    v4.20-rc7       :   96502
-> >   [2]    [1]+full revert :   96705   (+203)
-> >   [3]    [2]+"asm inline":   96568   (-137)
-> >
-> > [3]: apply my patch, then replace "asm" -> "asm_inline"
-> >     for _BUG_FLAGS(), refcount_add(), refcount_inc(), refcount_dec(),
-> >         annotate_reachable(), annotate_unreachable()
-> >
-> >
-> > Changes in v3:
-> >   - Split into per-commit revert (per Nadav Amit)
-> >   - Add some cleanups with preprocessor approach
-> >
-> > Changes in v2:
-> >   - Revive clean-ups made by 5bdcd510c2ac (per Peter Zijlstra)
-> >   - Fix commit quoting style (per Peter Zijlstra)
-> >
-> > Masahiro Yamada (12):
-> >   Revert "x86/jump-labels: Macrofy inline assembly code to work around
-> >     GCC inlining bugs"
-> >   Revert "x86/cpufeature: Macrofy inline assembly code to work around
-> >     GCC inlining bugs"
-> >   Revert "x86/extable: Macrofy inline assembly code to work around GCC
-> >     inlining bugs"
-> >   Revert "x86/paravirt: Work around GCC inlining bugs when compiling
-> >     paravirt ops"
-> >   Revert "x86/bug: Macrofy the BUG table section handling, to work
-> >     around GCC inlining bugs"
-> >   Revert "x86/alternatives: Macrofy lock prefixes to work around GCC
-> >     inlining bugs"
-> >   Revert "x86/refcount: Work around GCC inlining bug"
-> >   Revert "x86/objtool: Use asm macros to work around GCC inlining bugs"
-> >   Revert "kbuild/Makefile: Prepare for using macros in inline assembly
-> >     code to work around asm() related GCC inlining bugs"
-> >   linux/linkage: add ASM() macro to reduce duplication between C/ASM
-> >     code
-> >   x86/alternatives: consolidate LOCK_PREFIX macro
-> >   x86/asm: consolidate ASM_EXTABLE_* macros
-> >
-> >  Makefile                                  |  9 +--
-> >  arch/x86/Makefile                         |  7 ---
-> >  arch/x86/include/asm/alternative-asm.h    | 22 +------
-> >  arch/x86/include/asm/alternative-common.h | 47 +++++++++++++++
-> >  arch/x86/include/asm/alternative.h        | 30 +---------
-> >  arch/x86/include/asm/asm.h                | 46 +++++----------
-> >  arch/x86/include/asm/bug.h                | 98 +++++++++++++------------------
-> >  arch/x86/include/asm/cpufeature.h         | 82 +++++++++++---------------
-> >  arch/x86/include/asm/jump_label.h         | 22 +++++--
-> >  arch/x86/include/asm/paravirt_types.h     | 56 +++++++++---------
-> >  arch/x86/include/asm/refcount.h           | 81 +++++++++++--------------
-> >  arch/x86/kernel/macros.S                  | 16 -----
-> >  include/asm-generic/bug.h                 |  8 +--
-> >  include/linux/compiler.h                  | 56 ++++--------------
-> >  include/linux/linkage.h                   |  8 +++
-> >  scripts/Kbuild.include                    |  4 +-
-> >  scripts/mod/Makefile                      |  2 -
-> >  17 files changed, 249 insertions(+), 345 deletions(-)
-> >  create mode 100644 arch/x86/include/asm/alternative-common.h
-> >  delete mode 100644 arch/x86/kernel/macros.S
+> The lexer and parser are too cluttered.
 >
-> I absolutely agree that this needs to be resolved in v4.20.
+> So, I decided to clean-up now.
 >
-> So I did the 1-9 reverts manually myself as well, because I think the
-> first commit should be reverted fully to get as close to the starting
-> point as possible (we are late in the cycle) - and came to the attached
-> interdiff between your series and mine.
+>   - Fix all shift/reduce conflicts in the parser
 >
-> Does this approach look OK to you, or did I miss something?
+>   - Rewrite the lexer. The linear keyword search was removed.
+>     The number of states descreased from 6 to 4.
+>
+>   - Fix various subtle issues
+>
+>
+>
+> Masahiro Yamada (27):
+>   kconfig: fix file name and line number of warn_ignored_character()
+>   kconfig: fix memory leak when EOF is encountered in quotation
+>   kconfig: require T_EOL to reduce visible statement
+>   kconfig: remove unneeded pattern matching to whitespaces
+>   kconfig: refactor pattern matching in STRING state
+>   kconfig: fix ambiguous grammar in terms of new lines
+>   kconfig: clean up EOF handling in the lexer
+>   kconfig: warn no new line at end of file
+>   kconfig: remove grammatically ambiguous "unexpected option" diagnostic
+>   kconfig: remove grammatically ambiguous option_error
+>   kconfig: remove redundant if_block rule
+>   kconfig: remove redundant menu_block rule
+>   kconfig: loosen the order of "visible" and "depends on" in menu entry
+>   kconfig: rename depends_list to comment_option_list
+>   kconfig: remove redundant token defines
+>   kconfig: use distinct tokens for type and default properties
+>   kconfig: refactor scanning and parsing "option" properties
+>   kconfig: use specific tokens instead of T_ASSIGN for assignments
+>   kconfig: use T_WORD instead of T_VARIABLE for variables
+>   microblaze: surround string default in Kconfig with double quotes
+>   treewide: surround file paths in Kconfig files with double quotes
+>   kconfig: ban the use of '.' and '/' in unquoted words
+>   kconfig: refactor end token rules
+>   kconfig: stop associating kconf_id with yylval
+>   kconfig: switch to ASSIGN_VAL state in the second lexer
+>   kconfig: update current_pos in the second lexer
+>   kconfig: remove keyword lookup table entirely
 
 
-It looks OK to me.
-
-I thought the diff was a good cleanup part,
-but we can deal with it later on,
-so I do not mind it.
-
-Thanks!
-
-
-
-> Thanks,
->
->         Ingo
->
-> =============>
->
->  entry/calling.h          |    2 -
->  include/asm/jump_label.h |   50 ++++++++++++++++++++++++++++++++++-------------
->  2 files changed, 38 insertions(+), 14 deletions(-)
->
-> diff --git a/arch/x86/entry/calling.h b/arch/x86/entry/calling.h
-> index 25e5a6bda8c3..20d0885b00fb 100644
-> --- a/arch/x86/entry/calling.h
-> +++ b/arch/x86/entry/calling.h
-> @@ -352,7 +352,7 @@ For 32-bit we have the following conventions - kernel is built with
->  .macro CALL_enter_from_user_mode
->  #ifdef CONFIG_CONTEXT_TRACKING
->  #ifdef HAVE_JUMP_LABEL
-> -       STATIC_BRANCH_JMP l_yes=.Lafter_call_\@, key=context_tracking_enabled, branch=1
-> +       STATIC_JUMP_IF_FALSE .Lafter_call_\@, context_tracking_enabled, def=0
->  #endif
->         call enter_from_user_mode
->  .Lafter_call_\@:
-> diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
-> index cf88ebf9a4ca..21efc9d07ed9 100644
-> --- a/arch/x86/include/asm/jump_label.h
-> +++ b/arch/x86/include/asm/jump_label.h
-> @@ -2,6 +2,19 @@
->  #ifndef _ASM_X86_JUMP_LABEL_H
->  #define _ASM_X86_JUMP_LABEL_H
->
-> +#ifndef HAVE_JUMP_LABEL
-> +/*
-> + * For better or for worse, if jump labels (the gcc extension) are missing,
-> + * then the entire static branch patching infrastructure is compiled out.
-> + * If that happens, the code in here will malfunction.  Raise a compiler
-> + * error instead.
-> + *
-> + * In theory, jump labels and the static branch patching infrastructure
-> + * could be decoupled to fix this.
-> + */
-> +#error asm/jump_label.h included on a non-jump-label kernel
-> +#endif
-> +
->  #define JUMP_LABEL_NOP_SIZE 5
->
->  #ifdef CONFIG_X86_64
-> @@ -53,26 +66,37 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
->
->  #else  /* __ASSEMBLY__ */
->
-> -.macro STATIC_BRANCH_NOP l_yes:req key:req branch:req
-> -.Lstatic_branch_nop_\@:
-> -       .byte STATIC_KEY_INIT_NOP
-> -.Lstatic_branch_no_after_\@:
-> +.macro STATIC_JUMP_IF_TRUE target, key, def
-> +.Lstatic_jump_\@:
-> +       .if \def
-> +       /* Equivalent to "jmp.d32 \target" */
-> +       .byte           0xe9
-> +       .long           \target - .Lstatic_jump_after_\@
-> +.Lstatic_jump_after_\@:
-> +       .else
-> +       .byte           STATIC_KEY_INIT_NOP
-> +       .endif
->         .pushsection __jump_table, "aw"
->         _ASM_ALIGN
-> -       .long           .Lstatic_branch_nop_\@ - ., \l_yes - .
-> -       _ASM_PTR        \key + \branch - .
-> +       .long           .Lstatic_jump_\@ - ., \target - .
-> +       _ASM_PTR        \key - .
->         .popsection
->  .endm
->
-> -.macro STATIC_BRANCH_JMP l_yes:req key:req branch:req
-> -.Lstatic_branch_jmp_\@:
-> -       .byte 0xe9
-> -       .long \l_yes - .Lstatic_branch_jmp_after_\@
-> -.Lstatic_branch_jmp_after_\@:
-> +.macro STATIC_JUMP_IF_FALSE target, key, def
-> +.Lstatic_jump_\@:
-> +       .if \def
-> +       .byte           STATIC_KEY_INIT_NOP
-> +       .else
-> +       /* Equivalent to "jmp.d32 \target" */
-> +       .byte           0xe9
-> +       .long           \target - .Lstatic_jump_after_\@
-> +.Lstatic_jump_after_\@:
-> +       .endif
->         .pushsection __jump_table, "aw"
->         _ASM_ALIGN
-> -       .long           .Lstatic_branch_jmp_\@ - ., \l_yes - .
-> -       _ASM_PTR        \key + \branch - .
-> +       .long           .Lstatic_jump_\@ - ., \target - .
-> +       _ASM_PTR        \key + 1 - .
->         .popsection
->  .endm
->
->
+Series, applied to kbuild/kconfig.
 
 
 -- 
