@@ -1,39 +1,44 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Re: [PATCH 1/2] ARC: show_regs: avoid page allocator
-Date: Wed, 19 Dec 2018 13:36:43 -0800
-Message-ID: <d58e8389-3e27-b1cf-7787-52808a0c22a7@synopsys.com>
-References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
- <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
- <114881A8-8960-4436-AAE4-DE40BFFCFB4B@oracle.com>
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
+Date: Thu, 20 Dec 2018 00:50:12 +0200
+Message-ID: <cff2bb8d-bd61-c4a0-4e63-4de2133a7b38@gmail.com>
+References: <20181204121805.4621-1-igor.stoppa@huawei.com>
+ <20181204121805.4621-3-igor.stoppa@huawei.com>
+ <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
+ <20181212104900.0af52c34@mschwideX1>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <114881A8-8960-4436-AAE4-DE40BFFCFB4B@oracle.com>
+In-Reply-To: <20181212104900.0af52c34@mschwideX1>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: William Kucharski <william.kucharski@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, Peter Zijlstra <peterz@infradead.org>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/19/18 12:46 PM, William Kucharski wrote:
-> I would rather see 256 as a #define somewhere rather than a magic number sprinkled
-> around arch/arc/kernel/troubleshoot.c.
 
-That bothered me as well, but I was too lazy to define one and the existing ones
-don't apply. PATH_MAX is 4K which will blow up the stack usage.
+
+On 12/12/2018 11:49, Martin Schwidefsky wrote:
+> On Wed, 5 Dec 2018 15:13:56 -0800
+> Andy Lutomirski <luto@kernel.org> wrote:
+
+>> Hi s390 and powerpc people: it would be nice if this generic
+>> implementation *worked* on your architectures and that it will allow
+>> you to add some straightforward way to add a better arch-specific
+>> implementation if you think that would be better.
 > 
-> Still, that's what the existing code does, so I suppose it's OK.
+> As the code is right now I can guarantee that it will not work on s390.
 
-I'll define one locally.
+OK, I have thrown the towel wrt developing at the same time for multiple 
+architectures.
 
-> Otherwise the change looks good.
+ATM I'm oriented toward getting support for one (x86_64), leaving the 
+actual mechanism as architecture specific.
 
-Thx for taking a look.
+Then I can add another one or two and see what makes sense to refactor.
+This approach should minimize the churning, overall.
 
-> Reviewed-by: William Kucharski <william.kucharski@oracle.com>
 
-I'll add this to the patch.
-
-Thx,
--Vineet
+--
+igor
