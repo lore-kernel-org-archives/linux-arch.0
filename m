@@ -1,71 +1,87 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 00/27] kconfig: remove all reduce/shift conflicts,
- refactor lexer, fix various issues
-Date: Wed, 19 Dec 2018 23:59:06 +0900
-Message-ID: <CAK7LNAQigp+cnH18w6iYKjix3oZtOOjOF=e1RKiJPdBFr3TwPw@mail.gmail.com>
-References: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
+From: Matt Turner <mattst88@gmail.com>
+Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
+Date: Wed, 19 Dec 2018 10:59:10 -0500
+Message-ID: <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com>
+References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org> <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1544526070-16690-1-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
-Cc: Ulf Magnusson <ulfalizer@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Wolfram Sang <wsa+renesas@sang-engineering.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Herbert Xu <herbert@gondor.apana.org.au>, Michal Simek <monstr@monstr.eu>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 11, 2018 at 8:04 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
+On Fri, Dec 14, 2018 at 10:18 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
+> Hi Folks,
 >
-> When I tryed to change something, I was often hit by annoying
-> shift/reduce conflicts in the parser.
+> On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
+> >
+> > The purpose of this patch series is, we can easily
+> > add/modify/delete system call table support by cha-
+> > nging entry in syscall.tbl file instead of manually
+> > changing many files. The other goal is to unify the
+> > system call table generation support implementation
+> > across all the architectures.
+> >
+> > The system call tables are in different format in
+> > all architecture. It will be difficult to manually
+> > add, modify or delete the system calls in the resp-
+> > ective files manually. To make it easy by keeping a
+> > script and which'll generate uapi header file and
+> > syscall table file.
+> >
+> > syscall.tbl contains the list of available system
+> > calls along with system call number and correspond-
+> > ing entry point. Add a new system call in this arch-
+> > itecture will be possible by adding new entry in the
+> > syscall.tbl file.
+> >
+> > Adding a new table entry consisting of:
+> >         - System call number.
+> >         - ABI.
+> >         - System call name.
+> >         - Entry point name.
+> >
+> > ARM, s390 and x86 architecuture does exist the sim-
+> > ilar support. I leverage their implementation to
+> > come up with a generic solution.
+> >
+> > I have done the same support for work for ia64, m68k,
+> > microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
+> > Below mentioned git repository contains more details
+> > about the workflow.
+> >
+> > https://github.com/frzkhn/system_call_table_generator/
+> >
+> > Finally, this is the ground work to solve the Y2038
+> > issue. We need to add two dozen of system calls to
+> > solve Y2038 issue. So this patch series will help to
+> > add new system calls easily by adding new entry in
+> > the syscall.tbl.
+> >
+> > changes since v2:
+> >  - changed from generic-y to generated-y in Kbuild.
+> >  - made changes in syscall.tbl for removing entry -
+> >    alpha_ni_syscall.
+> >
+> > changes since v1:
+> >  - optimized/updated the syscall table generation
+> >    scripts.
+> >  - fixed all mixed indentation issues in syscall.tbl.
+> >  - added "comments" in syscall.tbl.
+> >  - enclosed __NR_sycalls macro with __KERNEL__.
+> >  - added missing new line.
+> >
+> > Firoz Khan (5):
+> >   alpha: move __IGNORE* entries to non uapi header
+> >   alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
+> >   alpha: add __NR_syscalls along with NR_SYSCALLS
+> >   alpha: add system call table generation support
+> >   alpha: generate uapi header and syscall table header files
 >
-> The lexer and parser are too cluttered.
->
-> So, I decided to clean-up now.
->
->   - Fix all shift/reduce conflicts in the parser
->
->   - Rewrite the lexer. The linear keyword search was removed.
->     The number of states descreased from 6 to 4.
->
->   - Fix various subtle issues
->
->
->
-> Masahiro Yamada (27):
->   kconfig: fix file name and line number of warn_ignored_character()
->   kconfig: fix memory leak when EOF is encountered in quotation
->   kconfig: require T_EOL to reduce visible statement
->   kconfig: remove unneeded pattern matching to whitespaces
->   kconfig: refactor pattern matching in STRING state
->   kconfig: fix ambiguous grammar in terms of new lines
->   kconfig: clean up EOF handling in the lexer
->   kconfig: warn no new line at end of file
->   kconfig: remove grammatically ambiguous "unexpected option" diagnostic
->   kconfig: remove grammatically ambiguous option_error
->   kconfig: remove redundant if_block rule
->   kconfig: remove redundant menu_block rule
->   kconfig: loosen the order of "visible" and "depends on" in menu entry
->   kconfig: rename depends_list to comment_option_list
->   kconfig: remove redundant token defines
->   kconfig: use distinct tokens for type and default properties
->   kconfig: refactor scanning and parsing "option" properties
->   kconfig: use specific tokens instead of T_ASSIGN for assignments
->   kconfig: use T_WORD instead of T_VARIABLE for variables
->   microblaze: surround string default in Kconfig with double quotes
->   treewide: surround file paths in Kconfig files with double quotes
->   kconfig: ban the use of '.' and '/' in unquoted words
->   kconfig: refactor end token rules
->   kconfig: stop associating kconf_id with yylval
->   kconfig: switch to ASSIGN_VAL state in the second lexer
->   kconfig: update current_pos in the second lexer
->   kconfig: remove keyword lookup table entirely
+> Could someone review this patch series and queue it for 4.21
+> through alpha tree would be great.
 
-
-Series, applied to kbuild/kconfig.
-
-
--- 
-Best Regards
-Masahiro Yamada
+Thank you! I'll take a look.
