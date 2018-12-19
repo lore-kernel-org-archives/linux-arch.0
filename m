@@ -1,114 +1,92 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v3 00/12] x86, kbuild: revert macrofying inline assembly code
-Date: Wed, 19 Dec 2018 12:19:13 +0900
-Message-ID: <CAK7LNAR-uayGwbzmvezVO1w6N4AJaLe07ctYt-P6VHQv3PczZw@mail.gmail.com>
-References: <1545062607-8599-1-git-send-email-yamada.masahiro@socionext.com> <C6D4A9B6-EED6-4DF7-8085-B1D3D221D25A@vmware.com>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v6 0/8] Introduce the for_each_set_clump8 macro
+Date: Wed, 19 Dec 2018 14:59:58 +0900
+Message-ID: <cover.1545198260.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <C6D4A9B6-EED6-4DF7-8085-B1D3D221D25A@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>
-Cc: Richard Biener <rguenther@suse.de>, Segher Boessenkool <segher@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Juergen Gross <jgross@suse.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Alok Kataria <akataria@vmware.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jann Horn <jannh@google.com>, linux-arch <linux-arch@vger.kernel.org>, Alexey Dobriyan <adobriyan@gmail.com>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>, Andrew
+To: linus.walleij@linaro.org
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 19, 2018 at 5:26 AM Nadav Amit <namit@vmware.com> wrote:
->
-> > On Dec 17, 2018, at 8:03 AM, Masahiro Yamada <yamada.masahiro@socionext=
-.com> wrote:
-> >
-> > This series reverts the in-kernel workarounds for inlining issues.
-> >
-> > The commit description of 77b0bf55bc67 mentioned
-> > "We also hope that GCC will eventually get fixed,..."
-> >
-> > Now, GCC provides a solution.
-> >
-> > https://na01.safelinks.protection.outlook.com/?url=3Dhttps%3A%2F%2Fgcc.=
-gnu.org%2Fonlinedocs%2Fgcc%2FExtended-Asm.html&amp;data=3D02%7C01%7Cnamit%4=
-0vmware.com%7Cc43f433d8c6244de15f108d6643a49e4%7Cb39138ca3cee4b4aa4d6cd83d9=
-dd62f0%7C0%7C0%7C636806598899962669&amp;sdata=3D88UJ25RoiHik9vTCJKZV6%2F7xp=
-zCGsvKb9LFg1kfEYL0%3D&amp;reserved=3D0
-> > explains the new "asm inline" syntax.
-> >
-> > The performance issue will be eventually solved.
-> >
-> > [About Code cleanups]
-> >
-> > I know Nadam Amit is opposed to the full revert.
->
-> My name is Nadav.
+Changes in v6:
+  - Fix typo in for_each_set_clump8 macro definition ('offset' should be
+    'start')
+  - Fix data type mismatch for format specifier of warning print
+    statements in __check_eq_clump8
+  - Fix typo in symbol suffix for definition of __check_eq_clump8
+  - Fix typo in parameter passed to expect_eq_clump8 (missing '&' for
+    clump argument)
 
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
-Sorry about that.
+This patchset introduces the for_each_set_clump8 macro and utilizes it
+in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
-(I relied on a spell checker. I should be careful about typos in people's n=
-ame.)
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
 
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
 
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
 
-> > He also claims his motivation for macrofying was not only
-> > performance, but also cleanups.
->
-> Masahiro, I understand your concerns and criticism, and indeed various
-> alternative solutions exist. I do have my reservations about the one you
-> propose, since it makes coding more complicated to simplify the Make syst=
-em.
-> Yet, more important, starting this discussion suddenly now after RC7 is
-> strange.
+The for_each_set_clump8 macro has four parameters:
 
+    * start: set to the bit offset of the current clump
+    * clump: set to the current clump value
+    * bits: bitmap to search within
+    * size: bitmap size in number of bits
 
+In this version of the patchset, the for_each_set_clump macro has been
+reimplemented and simplified based on the suggestions provided by Rasmus
+Villemoes and Andy Shevchenko in the version 4 submission.
 
-I did not think this was so sudden.
+In particular, the function of the for_each_set_clump macro has been
+restricted to handle only 8-bit clumps; the drivers that use the
+for_each_set_clump macro only handle 8-bit ports so a generic
+for_each_set_clump implementation is not necessary. Thus, a solution for
+odd-sized clumps (e.g. 3-bit, 7-bit, etc.) mismatching word boundaries
+can be postponed until a driver appears that actually requires a generic
+for_each_set_clump implementation.
 
-When I suggested the revert a few weeks ago,
-Borislav was for it.
-I did not hear from the other x86 maintainers.
+In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+introduced to get and set 8-bit values respectively. Their use is based
+on the behavior suggested in the patchset version 4 review. Similarly,
+the implementation of the find_next_clump function has been simplified
+in order for the function to match the syntax and use of the
+find_next_bit function.
 
-Anyway, it is true we are running out of time for the release.
+William Breathitt Gray (8):
+  bitops: Introduce the for_each_set_clump8 macro
+  lib/test_bitmap.c: Add for_each_set_clump8 test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+  gpio: gpio-mm: Utilize for_each_set_clump8 macro
+  gpio: ws16c48: Utilize for_each_set_clump8 macro
+  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
 
+ drivers/gpio/gpio-104-dio-48e.c   |  71 ++++++-------------
+ drivers/gpio/gpio-104-idi-48.c    |  36 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  71 ++++++-------------
+ drivers/gpio/gpio-pci-idio-16.c   |  73 +++++++-------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 109 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  71 ++++++-------------
+ include/asm-generic/bitops/find.h |  14 ++++
+ include/linux/bitops.h            |   5 ++
+ lib/find_bit.c                    |  63 +++++++++++++++++
+ lib/test_bitmap.c                 |  65 ++++++++++++++++++
+ 10 files changed, 279 insertions(+), 299 deletions(-)
 
-> Anyhow, since it=E2=80=99s obviously not my call, please don=E2=80=99t ma=
-ke it
-> sound as if I am a side in the decision.
->
-
-Not my call, either.
-
-That's why I put the x86 maintainers in the TO list,
-and other people in CC.
-
-The original patch set went in via x86 tree.
-So, its revert set, if we want,
-should go in the same path.
-
-
-
-Anyway, we have to do something for v4.20.
-Maybe, discussing short-term / long-term solutions
-separately could move things forward.
-
-
-[1] Solution for v4.20
-
-[2] Solution for future kernel
-
-
-
-If we do not want to see the revert for [1],
-the best I can suggest is to copy arch/x86/kernel/macros.s
-to include/generated/macros.h
-so that it is kept for the external module build.
-(It is not literally included by anyone, but should work at least.)
-
-
-
-For [2], what do we want to see?
-
-
-
-
---=20
-Best Regards
-Masahiro Yamada
+-- 
+2.20.1
