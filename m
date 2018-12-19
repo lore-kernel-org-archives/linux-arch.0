@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v6 6/8] gpio: ws16c48: Utilize for_each_set_clump8 macro
-Date: Wed, 19 Dec 2018 15:02:05 +0900
-Message-ID: <ea51e84de1e3d19f89a5607654c6db2a6abf0525.1545198260.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v6 7/8] gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+Date: Wed, 19 Dec 2018 15:02:21 +0900
+Message-ID: <20f43bb1c4b9d7b5f0a0cd044258f2eec8c68a2a.1545198260.git.vilhelm.gray@gmail.com>
 References: <cover.1545198260.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,47 +17,51 @@ with for_each_set_clump8 macro to simplify code and improve clarity.
 
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-ws16c48.c | 71 ++++++++++---------------------------
- 1 file changed, 19 insertions(+), 52 deletions(-)
+ drivers/gpio/gpio-pci-idio-16.c | 73 ++++++++++++---------------------
+ 1 file changed, 26 insertions(+), 47 deletions(-)
 
-diff --git a/drivers/gpio/gpio-ws16c48.c b/drivers/gpio/gpio-ws16c48.c
-index 5cf3697bfb15..b4c544d5da18 100644
---- a/drivers/gpio/gpio-ws16c48.c
-+++ b/drivers/gpio/gpio-ws16c48.c
-@@ -134,42 +134,19 @@ static int ws16c48_gpio_get_multiple(struct gpio_chip *chip,
+diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
+index 6b7349783223..4eb89f8b5f9b 100644
+--- a/drivers/gpio/gpio-pci-idio-16.c
++++ b/drivers/gpio/gpio-pci-idio-16.c
+@@ -108,45 +108,23 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
  	unsigned long *mask, unsigned long *bits)
  {
- 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
--	const unsigned int gpio_reg_size = 8;
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
 -	size_t i;
--	const size_t num_ports = chip->ngpio / gpio_reg_size;
+-	const unsigned int gpio_reg_size = 8;
 -	unsigned int bits_offset;
 -	size_t word_index;
 -	unsigned int word_offset;
 -	unsigned long word_mask;
 -	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
+-	unsigned long port_state;
 +	unsigned int offset;
 +	unsigned long gpio_mask;
-+	unsigned int port_addr;
- 	unsigned long port_state;
+ 	void __iomem *ports[] = {
+ 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
+ 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
+ 	};
++	void __iomem *port_addr;
++	unsigned long port_state;
  
  	/* clear bits array to a clean slate */
  	bitmap_zero(bits, chip->ngpio);
  
 -	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < num_ports; i++) {
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
 -		/* gpio offset in bits array */
 -		bits_offset = i * gpio_reg_size;
-+	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
-+		port_addr = ws16c48gpio->base + offset / 8;
-+		port_state = inb(port_addr) & gpio_mask;
- 
+-
 -		/* word index for bits array */
 -		word_index = BIT_WORD(bits_offset);
 -
 -		/* gpio offset within current word of bits array */
 -		word_offset = bits_offset % BITS_PER_LONG;
--
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		port_addr = ports[offset / 8];
++		port_state = ioread8(port_addr) & gpio_mask;
+ 
 -		/* mask of get bits for current gpio within current word */
 -		word_mask = mask[word_index] & (port_mask << word_offset);
 -		if (!word_mask) {
@@ -66,7 +70,7 @@ index 5cf3697bfb15..b4c544d5da18 100644
 -		}
 -
 -		/* read bits from current gpio port */
--		port_state = inb(ws16c48gpio->base + i);
+-		port_state = ioread8(ports[i]);
 -
 -		/* store acquired bits at respective bits array offset */
 -		bits[word_index] |= (port_state << word_offset) & word_mask;
@@ -74,57 +78,54 @@ index 5cf3697bfb15..b4c544d5da18 100644
  	}
  
  	return 0;
-@@ -203,39 +180,29 @@ static void ws16c48_gpio_set_multiple(struct gpio_chip *chip,
+@@ -186,30 +164,31 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
  	unsigned long *mask, unsigned long *bits)
  {
- 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
--	unsigned int i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int port;
--	unsigned int iomask;
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
 +	unsigned int offset;
 +	unsigned long gpio_mask;
++	void __iomem *ports[] = {
++		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
++	};
 +	size_t index;
-+	unsigned int port_addr;
- 	unsigned int bitmask;
++	void __iomem *port_addr;
++	unsigned int bitmask;
  	unsigned long flags;
+ 	unsigned int out_state;
  
--	/* set bits are evaluated a gpio register size at a time */
--	for (i = 0; i < chip->ngpio; i += gpio_reg_size) {
--		/* no more set bits in this mask word; skip to the next word */
--		if (!mask[BIT_WORD(i)]) {
--			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
--			continue;
--		}
--
--		port = i / gpio_reg_size;
-+	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
+-	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
 +		index = offset / 8;
-+		port_addr = ws16c48gpio->base + index;
++		port_addr = ports[index];
  
- 		/* mask out GPIO configured for input */
--		iomask = mask[BIT_WORD(i)] & ~ws16c48gpio->io_state[port];
--		bitmask = iomask & bits[BIT_WORD(i)];
-+		gpio_mask &= ~ws16c48gpio->io_state[index];
+-	/* process output lines 0-7 */
+-	if (*mask & 0xFF) {
+-		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out0_7);
+-	}
 +		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
++
++		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
  
- 		raw_spin_lock_irqsave(&ws16c48gpio->lock, flags);
+-	/* shift to next output line word */
+-	*mask >>= 8;
++		out_state = ioread8(port_addr) & ~gpio_mask;
++		out_state |= bitmask;
++		iowrite8(out_state, port_addr);
  
- 		/* update output state data and set device gpio register */
--		ws16c48gpio->out_state[port] &= ~iomask;
--		ws16c48gpio->out_state[port] |= bitmask;
--		outb(ws16c48gpio->out_state[port], ws16c48gpio->base + port);
-+		ws16c48gpio->out_state[index] &= ~gpio_mask;
-+		ws16c48gpio->out_state[index] |= bitmask;
-+		outb(ws16c48gpio->out_state[index], port_addr);
- 
- 		raw_spin_unlock_irqrestore(&ws16c48gpio->lock, flags);
--
--		/* prepare for next gpio register set */
--		mask[BIT_WORD(i)] >>= gpio_reg_size;
--		bits[BIT_WORD(i)] >>= gpio_reg_size;
+-	/* process output lines 8-15 */
+-	if (*mask & 0xFF) {
+-		*bits >>= 8;
+-		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out8_15);
++		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
  	}
+-
+-	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
  }
  
+ static void idio_16_irq_ack(struct irq_data *data)
 -- 
 2.20.1
