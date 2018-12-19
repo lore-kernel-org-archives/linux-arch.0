@@ -1,87 +1,92 @@
-From: Matt Turner <mattst88@gmail.com>
-Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
-Date: Wed, 19 Dec 2018 10:59:10 -0500
-Message-ID: <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com>
-References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org> <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
+From: Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>
+Subject: Re: [PATCH 1/2] ARC: show_regs: avoid page allocator
+Date: Wed, 19 Dec 2018 17:04:09 +0000
+Message-ID: <1545239047.14089.13.camel@synopsys.com>
+References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+         <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
+In-Reply-To: <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
+Content-Language: en-US
+Content-ID: <33B02DA585641B4EB2CBE3B47E62EC35@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: "vineet.gupta1@synopsys.com" <vineet.gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 14, 2018 at 10:18 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> Hi Folks,
->
-> On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
-> >
-> > The purpose of this patch series is, we can easily
-> > add/modify/delete system call table support by cha-
-> > nging entry in syscall.tbl file instead of manually
-> > changing many files. The other goal is to unify the
-> > system call table generation support implementation
-> > across all the architectures.
-> >
-> > The system call tables are in different format in
-> > all architecture. It will be difficult to manually
-> > add, modify or delete the system calls in the resp-
-> > ective files manually. To make it easy by keeping a
-> > script and which'll generate uapi header file and
-> > syscall table file.
-> >
-> > syscall.tbl contains the list of available system
-> > calls along with system call number and correspond-
-> > ing entry point. Add a new system call in this arch-
-> > itecture will be possible by adding new entry in the
-> > syscall.tbl file.
-> >
-> > Adding a new table entry consisting of:
-> >         - System call number.
-> >         - ABI.
-> >         - System call name.
-> >         - Entry point name.
-> >
-> > ARM, s390 and x86 architecuture does exist the sim-
-> > ilar support. I leverage their implementation to
-> > come up with a generic solution.
-> >
-> > I have done the same support for work for ia64, m68k,
-> > microblaze, mips, parisc, powerpc, sh, sparc and xtensa.
-> > Below mentioned git repository contains more details
-> > about the workflow.
-> >
-> > https://github.com/frzkhn/system_call_table_generator/
-> >
-> > Finally, this is the ground work to solve the Y2038
-> > issue. We need to add two dozen of system calls to
-> > solve Y2038 issue. So this patch series will help to
-> > add new system calls easily by adding new entry in
-> > the syscall.tbl.
-> >
-> > changes since v2:
-> >  - changed from generic-y to generated-y in Kbuild.
-> >  - made changes in syscall.tbl for removing entry -
-> >    alpha_ni_syscall.
-> >
-> > changes since v1:
-> >  - optimized/updated the syscall table generation
-> >    scripts.
-> >  - fixed all mixed indentation issues in syscall.tbl.
-> >  - added "comments" in syscall.tbl.
-> >  - enclosed __NR_sycalls macro with __KERNEL__.
-> >  - added missing new line.
-> >
-> > Firoz Khan (5):
-> >   alpha: move __IGNORE* entries to non uapi header
-> >   alpha: remove CONFIG_OSF4_COMPAT flag from syscall table
-> >   alpha: add __NR_syscalls along with NR_SYSCALLS
-> >   alpha: add system call table generation support
-> >   alpha: generate uapi header and syscall table header files
->
-> Could someone review this patch series and queue it for 4.21
-> through alpha tree would be great.
-
-Thank you! I'll take a look.
+SGkgVmluZWV0LA0KDQpKdXN0IGN1cmlvdXM6IGlzbid0IHRoYXQgZW5vdWdoIHRvIHVzZSBHRlBf
+Tk9XQUlUIGluc3RlYWQNCm9mIEdGUF9LRVJORUwgd2hlbiB3ZSBhbGxvY2F0ZSBwYWdlIGluIHNo
+b3dfcmVncygpPw0KDQpBcyBJIGNhbiBzZWUgeDg2IHVzZSBwcmludF92bWFfYWRkcigpIGluIHRo
+ZWlyIHNob3dfc2lnbmFsX21zZygpDQpmdW5jdGlvbiB3aGljaCBhbGxvY2F0ZSBwYWdlIHdpdGgg
+X19nZXRfZnJlZV9wYWdlKEdGUF9OT1dBSVQpOw0KDQpPbiBUdWUsIDIwMTgtMTItMTggYXQgMTA6
+NTMgLTA4MDAsIFZpbmVldCBHdXB0YSB3cm90ZToNCj4gVXNlIG9uLXN0YWNrIHNtYWxsZXIgYnVm
+ZmVycyBpbnN0ZWFkIG9mIGR5bmFtaWMgcGFnZXMuDQo+IA0KPiBUaGUgbW90aXZhdGlvbiBmb3Ig
+dGhpcyBjaGFuZ2Ugd2FzIHRvIGFkZHJlc3MgbG9ja2RlcCBzcGxhdCB3aGVuDQo+IHNpZ25hbCBo
+YW5kbGluZyBjb2RlIGNhbGxzIHNob3dfcmVncyAod2l0aCBwcmVlbXB0aW9uIGRpc2FibGVkKSBh
+bmQNCj4gQVJDIHNob3dfcmVncyBjYWxscyBpbnRvIHNsZWVwYWJsZSBwYWdlIGFsbG9jYXRvci4N
+Cj4gDQo+ID4gcG90ZW50aWFsbHkgdW5leHBlY3RlZCBmYXRhbCBzaWduYWwgMTEuDQo+ID4gQlVH
+OiBzbGVlcGluZyBmdW5jdGlvbiBjYWxsZWQgZnJvbSBpbnZhbGlkIGNvbnRleHQgYXQgLi4vbW0v
+cGFnZV9hbGxvYy5jOjQzMTcNCj4gPiBpbl9hdG9taWMoKTogMSwgaXJxc19kaXNhYmxlZCgpOiAw
+LCBwaWQ6IDU3LCBuYW1lOiBzZWd2DQo+ID4gbm8gbG9ja3MgaGVsZCBieSBzZWd2LzU3Lg0KPiA+
+IFByZWVtcHRpb24gZGlzYWJsZWQgYXQ6DQo+ID4gWzw4MTgyZjE3ZT5dIGdldF9zaWduYWwrMHg0
+YTYvMHg3YzQNCj4gPiBDUFU6IDAgUElEOiA1NyBDb21tOiBzZWd2IE5vdCB0YWludGVkIDQuMTcu
+MCsgIzIzDQo+ID4gDQo+ID4gU3RhY2sgVHJhY2U6DQo+ID4gIGFyY191bndpbmRfY29yZS5jb25z
+dHByb3AuMSsweGQwLzB4ZjQNCj4gPiAgX19taWdodF9zbGVlcCsweDFmNi8weDIzNA0KPiA+ICBf
+X2dldF9mcmVlX3BhZ2VzKzB4MTc0LzB4Y2EwDQo+ID4gIHNob3dfcmVncysweDIyLzB4MzMwDQo+
+ID4gIGdldF9zaWduYWwrMHg0YWMvMHg3YzQgICAgICMgcHJpbnRfZmF0YWxfc2lnbmFscygpIC0+
+IHByZWVtcHRfZGlzYWJsZSgpDQo+ID4gIGRvX3NpZ25hbCsweDMwLzB4MjI0DQo+ID4gIHJlc3Vt
+ZV91c2VyX21vZGVfYmVnaW4rMHg5MC8weGQ4DQo+IA0KPiBEZXNwaXRlIHRoaXMsIGxvY2tkZXAg
+c3RpbGwgYmFyZnMgKHNlZSBuZXh0IGNoYW5nZSksIGJ1dCB0aGlzIHBhdGNoDQo+IHN0aWxsIGhh
+cyBtZXJpdCBhcyBpbiB3ZSB1c2Ugc21hbGxlci9sb2NhbGl6ZWQgYnVmZmVycyBub3cgYW5kIHRo
+ZXJlJ3MNCj4gbGVzcyBpbnN0cnVjdG9oIHRyYWNlIHRvIHNpZnQgdGhydSB3aGVuIGRlYnVnZ2lu
+ZyBwZXNreSBpc3N1ZXMuDQo+IA0KPiBTaWduZWQtb2ZmLWJ5OiBWaW5lZXQgR3VwdGEgPHZndXB0
+YUBzeW5vcHN5cy5jb20+DQo+IC0tLQ0KPiAgYXJjaC9hcmMva2VybmVsL3Ryb3VibGVzaG9vdC5j
+IHwgMjIgKysrKysrKysrLS0tLS0tLS0tLS0tLQ0KPiAgMSBmaWxlIGNoYW5nZWQsIDkgaW5zZXJ0
+aW9ucygrKSwgMTMgZGVsZXRpb25zKC0pDQo+IA0KPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcmMva2Vy
+bmVsL3Ryb3VibGVzaG9vdC5jIGIvYXJjaC9hcmMva2VybmVsL3Ryb3VibGVzaG9vdC5jDQo+IGlu
+ZGV4IGU4ZDlmYjQ1MjM0Ni4uMjg4NWJlYzcxZmI4IDEwMDY0NA0KPiAtLS0gYS9hcmNoL2FyYy9r
+ZXJuZWwvdHJvdWJsZXNob290LmMNCj4gKysrIGIvYXJjaC9hcmMva2VybmVsL3Ryb3VibGVzaG9v
+dC5jDQo+IEBAIC01OCwxMSArNTgsMTIgQEAgc3RhdGljIHZvaWQgc2hvd19jYWxsZWVfcmVncyhz
+dHJ1Y3QgY2FsbGVlX3JlZ3MgKmNyZWdzKQ0KPiAgCXByaW50X3JlZ19maWxlKCYoY3JlZ3MtPnIx
+MyksIDEzKTsNCj4gIH0NCj4gIA0KPiAtc3RhdGljIHZvaWQgcHJpbnRfdGFza19wYXRoX25fbm0o
+c3RydWN0IHRhc2tfc3RydWN0ICp0c2ssIGNoYXIgKmJ1ZikNCj4gK3N0YXRpYyB2b2lkIHByaW50
+X3Rhc2tfcGF0aF9uX25tKHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrKQ0KPiAgew0KPiAgCWNoYXIg
+KnBhdGhfbm0gPSBOVUxMOw0KPiAgCXN0cnVjdCBtbV9zdHJ1Y3QgKm1tOw0KPiAgCXN0cnVjdCBm
+aWxlICpleGVfZmlsZTsNCj4gKwljaGFyIGJ1ZlsyNTZdOw0KPiAgDQo+ICAJbW0gPSBnZXRfdGFz
+a19tbSh0c2spOw0KPiAgCWlmICghbW0pDQo+IEBAIC04MCwxMCArODEsOSBAQCBzdGF0aWMgdm9p
+ZCBwcmludF90YXNrX3BhdGhfbl9ubShzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRzaywgY2hhciAqYnVm
+KQ0KPiAgCXByX2luZm8oIlBhdGg6ICVzXG4iLCAhSVNfRVJSKHBhdGhfbm0pID8gcGF0aF9ubSA6
+ICI/Iik7DQo+ICB9DQo+ICANCj4gLXN0YXRpYyB2b2lkIHNob3dfZmF1bHRpbmdfdm1hKHVuc2ln
+bmVkIGxvbmcgYWRkcmVzcywgY2hhciAqYnVmKQ0KPiArc3RhdGljIHZvaWQgc2hvd19mYXVsdGlu
+Z192bWEodW5zaWduZWQgbG9uZyBhZGRyZXNzKQ0KPiAgew0KPiAgCXN0cnVjdCB2bV9hcmVhX3N0
+cnVjdCAqdm1hOw0KPiAtCWNoYXIgKm5tID0gYnVmOw0KPiAgCXN0cnVjdCBtbV9zdHJ1Y3QgKmFj
+dGl2ZV9tbSA9IGN1cnJlbnQtPmFjdGl2ZV9tbTsNCj4gIA0KPiAgCS8qIGNhbid0IHVzZSBwcmlu
+dF92bWFfYWRkcigpIHlldCBhcyBpdCBkb2Vzbid0IGNoZWNrIGZvcg0KPiBAQCAtOTYsOCArOTYs
+MTEgQEAgc3RhdGljIHZvaWQgc2hvd19mYXVsdGluZ192bWEodW5zaWduZWQgbG9uZyBhZGRyZXNz
+LCBjaGFyICpidWYpDQo+ICAJICogaWYgdGhlIGNvbnRhaW5lciBWTUEgaXMgbm90IGZvdW5kDQo+
+ICAJICovDQo+ICAJaWYgKHZtYSAmJiAodm1hLT52bV9zdGFydCA8PSBhZGRyZXNzKSkgew0KPiAr
+CQljaGFyIGJ1ZlsyNTZdOw0KPiArCQljaGFyICpubSA9ICI/IjsNCj4gKw0KPiAgCQlpZiAodm1h
+LT52bV9maWxlKSB7DQo+IC0JCQlubSA9IGZpbGVfcGF0aCh2bWEtPnZtX2ZpbGUsIGJ1ZiwgUEFH
+RV9TSVpFIC0gMSk7DQo+ICsJCQlubSA9IGZpbGVfcGF0aCh2bWEtPnZtX2ZpbGUsIGJ1ZiwgMjU2
+LTEpOw0KPiAgCQkJaWYgKElTX0VSUihubSkpDQo+ICAJCQkJbm0gPSAiPyI7DQo+ICAJCX0NCj4g
+QEAgLTE3MywxMyArMTc2LDggQEAgdm9pZCBzaG93X3JlZ3Moc3RydWN0IHB0X3JlZ3MgKnJlZ3Mp
+DQo+ICB7DQo+ICAJc3RydWN0IHRhc2tfc3RydWN0ICp0c2sgPSBjdXJyZW50Ow0KPiAgCXN0cnVj
+dCBjYWxsZWVfcmVncyAqY3JlZ3M7DQo+IC0JY2hhciAqYnVmOw0KPiAtDQo+IC0JYnVmID0gKGNo
+YXIgKilfX2dldF9mcmVlX3BhZ2UoR0ZQX0tFUk5FTCk7DQo+IC0JaWYgKCFidWYpDQo+IC0JCXJl
+dHVybjsNCj4gIA0KPiAtCXByaW50X3Rhc2tfcGF0aF9uX25tKHRzaywgYnVmKTsNCj4gKwlwcmlu
+dF90YXNrX3BhdGhfbl9ubSh0c2spOw0KPiAgCXNob3dfcmVnc19wcmludF9pbmZvKEtFUk5fSU5G
+Tyk7DQo+ICANCj4gIAlzaG93X2Vjcl92ZXJib3NlKHJlZ3MpOw0KPiBAQCAtMTg5LDcgKzE4Nyw3
+IEBAIHZvaWQgc2hvd19yZWdzKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KPiAgCQkodm9pZCAqKXJl
+Z3MtPmJsaW5rLCAodm9pZCAqKXJlZ3MtPnJldCk7DQo+ICANCj4gIAlpZiAodXNlcl9tb2RlKHJl
+Z3MpKQ0KPiAtCQlzaG93X2ZhdWx0aW5nX3ZtYShyZWdzLT5yZXQsIGJ1Zik7IC8qIGZhdWx0aW5n
+IGNvZGUsIG5vdCBkYXRhICovDQo+ICsJCXNob3dfZmF1bHRpbmdfdm1hKHJlZ3MtPnJldCk7IC8q
+IGZhdWx0aW5nIGNvZGUsIG5vdCBkYXRhICovDQo+ICANCj4gIAlwcl9pbmZvKCJbU1RBVDMyXTog
+MHglMDhseCIsIHJlZ3MtPnN0YXR1czMyKTsNCj4gIA0KPiBAQCAtMjIxLDggKzIxOSw2IEBAIHZv
+aWQgc2hvd19yZWdzKHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KPiAgCWNyZWdzID0gKHN0cnVjdCBj
+YWxsZWVfcmVncyAqKWN1cnJlbnQtPnRocmVhZC5jYWxsZWVfcmVnOw0KPiAgCWlmIChjcmVncykN
+Cj4gIAkJc2hvd19jYWxsZWVfcmVncyhjcmVncyk7DQo+IC0NCj4gLQlmcmVlX3BhZ2UoKHVuc2ln
+bmVkIGxvbmcpYnVmKTsNCj4gIH0NCj4gIA0KPiAgdm9pZCBzaG93X2tlcm5lbF9mYXVsdF9kaWFn
+KGNvbnN0IGNoYXIgKnN0ciwgc3RydWN0IHB0X3JlZ3MgKnJlZ3MsDQotLSANCiBFdWdlbml5IFBh
+bHRzZXY=
