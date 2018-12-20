@@ -1,49 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:42688 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728355AbeLSWuV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Dec 2018 17:50:21 -0500
-Subject: Re: [PATCH 2/6] __wr_after_init: write rare for static allocation
-References: <20181204121805.4621-1-igor.stoppa@huawei.com>
- <20181204121805.4621-3-igor.stoppa@huawei.com>
- <CALCETrVvoui0vksdt0Y9rdGL5ipEn_FtSXVVUFdH03ZC93cy_A@mail.gmail.com>
- <20181212104900.0af52c34@mschwideX1>
-From: Igor Stoppa <igor.stoppa@gmail.com>
-Message-ID: <cff2bb8d-bd61-c4a0-4e63-4de2133a7b38@gmail.com>
-Date: Thu, 20 Dec 2018 00:50:12 +0200
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:58258 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726716AbeLTBQz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Dec 2018 20:16:55 -0500
+Subject: Re: [PATCH 1/2] ARC: show_regs: avoid page allocator
+References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+ <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
+ <1545239047.14089.13.camel@synopsys.com>
+From: Vineet Gupta <vineet.gupta1@synopsys.com>
+Message-ID: <49f9edc9-87ee-1efc-58f8-b0d9a52c8a49@synopsys.com>
+Date: Wed, 19 Dec 2018 17:16:39 -0800
 MIME-Version: 1.0
-In-Reply-To: <20181212104900.0af52c34@mschwideX1>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <1545239047.14089.13.camel@synopsys.com>
+Content-Type: text/plain; charset="utf-8"
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kees Cook <keescook@chromium.org>, Matthew Wilcox <willy@infradead.org>, Igor Stoppa <igor.stoppa@huawei.com>, Nadav Amit <nadav.amit@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-integrity <linux-integrity@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181219225012.-sfZslRR3BSx0Q9_OzIWir56bWl9gkXbJehgFSs5vGU@z>
+To: Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, "vineet.gupta1@synopsys.com" <vineet.gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20181220011639.iSK_PuN_YNFqGnGgmtQn1ZSEve8NhnHdminpv7tzmlI@z>
 
+On 12/19/18 9:04 AM, Eugeniy Paltsev wrote:
+> As I can see x86 use print_vma_addr() in their show_signal_msg()
+> function which allocate page with __get_free_page(GFP_NOWAIT);
 
+Indeed with that the __get_free_page() lockdep splat is gone.
 
-On 12/12/2018 11:49, Martin Schwidefsky wrote:
-> On Wed, 5 Dec 2018 15:13:56 -0800
-> Andy Lutomirski <luto@kernel.org> wrote:
+There's a different one now hence my other patch.
 
->> Hi s390 and powerpc people: it would be nice if this generic
->> implementation *worked* on your architectures and that it will allow
->> you to add some straightforward way to add a better arch-specific
->> implementation if you think that would be better.
-> 
-> As the code is right now I can guarantee that it will not work on s390.
-
-OK, I have thrown the towel wrt developing at the same time for multiple 
-architectures.
-
-ATM I'm oriented toward getting support for one (x86_64), leaving the 
-actual mechanism as architecture specific.
-
-Then I can add another one or two and see what makes sense to refactor.
-This approach should minimize the churning, overall.
-
-
---
-igor
+| [ARCLinux]# ./segv-null-ptr
+| potentially unexpected fatal signal 11.
+| BUG: sleeping function called from invalid context at kernel/fork.c:1011
+| in_atomic(): 1, irqs_disabled(): 0, pid: 70, name: segv-null-ptr
+| no locks held by segv-null-ptr/70.
+| CPU: 0 PID: 70 Comm: segv-null-ptr Not tainted 4.18.0+ #69
+|
+| Stack Trace:
+|  arc_unwind_core+0xcc/0x100
+|  ___might_sleep+0x17a/0x190
+|  mmput+0x16/0xb8
+|  show_regs+0x52/0x310
+|  get_signal+0x5ee/0x610
+|  do_signal+0x2c/0x218
+|  resume_user_mode_begin+0x90/0xd8
