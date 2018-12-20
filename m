@@ -1,44 +1,60 @@
 From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Re: [PATCH 1/2] ARC: show_regs: avoid page allocator
-Date: Thu, 20 Dec 2018 18:43:08 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075014642388B@US01WEMBX2.internal.synopsys.com>
+Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
+Date: Thu, 20 Dec 2018 18:45:48 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
 References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
- <1545159239-30628-2-git-send-email-vgupta@synopsys.com>
- <1545239047.14089.13.camel@synopsys.com>
- <49f9edc9-87ee-1efc-58f8-b0d9a52c8a49@synopsys.com>
- <e2d2c160-0ef6-5504-7824-032a5c70fa7f@I-love.SAKURA.ne.jp>
+ <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
+ <20181220130450.GB17350@dhcp22.suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@kernel.org>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/20/18 5:30 AM, Tetsuo Handa wrote:=0A=
->> | Stack Trace:=0A=
->> |  arc_unwind_core+0xcc/0x100=0A=
->> |  ___might_sleep+0x17a/0x190=0A=
->> |  mmput+0x16/0xb8=0A=
-> Then, does mmput_async() help?=0A=
->=0A=
+On 12/20/18 5:04 AM, Michal Hocko wrote:=0A=
+> On Tue 18-12-18 10:53:59, Vineet Gupta wrote:=0A=
+>> signal handling core calls ARCH show_regs() with preemption disabled=0A=
+>> which causes __might_sleep functions such as mmput leading to lockdep=0A=
+>> splat.  Workaround by re-enabling preemption temporarily.=0A=
+>>=0A=
+>> This may not be as bad as it sounds since the preemption disabling=0A=
+>> itself was introduced for a supressing smp_processor_id() warning in x86=
 =0A=
-It helps, but then we get the next one (w/o my patch 2/2)=0A=
+>> code by commit 3a9f84d354ce ("signals, debug: fix BUG: using=0A=
+>> smp_processor_id() in preemptible code in print_fatal_signal()")=0A=
+> The commit you are referring to here sounds dubious in itself.=0A=
 =0A=
-BUG: sleeping function called from invalid context at kernel/locking/rwsem.=
-c:23=0A=
-in_atomic(): 1, irqs_disabled(): 0, pid: 69, name: segv-null-ptr=0A=
-no locks held by segv-null-ptr/69.=0A=
-CPU: 0 PID: 69 Comm: segv-null-ptr Not tainted 4.18.0+ #72=0A=
+Indeed that was my thought as well, but it did introduce the preemption dis=
+abling=0A=
+logic aroung core calling show_regs() !=0A=
 =0A=
-Stack Trace:=0A=
-  arc_unwind_core+0xcc/0x100=0A=
-  ___might_sleep+0x17a/0x190=0A=
-  down_read+0x18/0x38=0A=
-  show_regs+0x102/0x310=0A=
-  get_signal+0x5ee/0x610=0A=
-  do_signal+0x2c/0x218=0A=
-  resume_user_mode_begin+0x90/0xd8=0A=
-    @off 0x103d4 in [/segv-null-pt=0A=
+> We do not=0A=
+> want to stick a preempt_disable just to silence a warning.=0A=
+=0A=
+I presume you are referring to original commit, not my anti-change in ARC c=
+ode,=0A=
+which is actually re-enabling it.=0A=
+=0A=
+> show_regs is=0A=
+> called from preemptible context at several places (e.g. __warn).=0A=
+=0A=
+Right, but do we have other reports which show this, perhaps not too many d=
+istros=0A=
+have CONFIG__PREEMPT enabled ?=0A=
+=0A=
+> Maybe=0A=
+> this was not the case in 2009 when the change was introduced but this=0A=
+> seems like a relict from the past. So can we fix the actual problem=0A=
+> rather than build on top of it instead?=0A=
+=0A=
+The best/correct fix is to remove the preempt diabling in core code, but th=
+at=0A=
+affects every arch out there and will likely trip dormant land mines, neede=
+d=0A=
+localized fixes like I'm dealing with now.=0A=
+=0A=
+-Vineet=0A=
