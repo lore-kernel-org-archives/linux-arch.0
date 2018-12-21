@@ -1,38 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44674 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1729293AbeLUN14 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Dec 2018 08:27:56 -0500
-Date: Fri, 21 Dec 2018 14:27:53 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
-Message-ID: <20181221132753.GB4842@dhcp22.suse.cz>
-References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
- <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
- <20181220130450.GB17350@dhcp22.suse.cz>
- <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
- <20181221130404.GF16107@dhcp22.suse.cz>
+Received: from mail-io1-f67.google.com ([209.85.166.67]:33931 "EHLO
+        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725868AbeLUQrM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2018 11:47:12 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181221130404.GF16107@dhcp22.suse.cz>
+References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
+ <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
+ <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com> <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
+From: Matt Turner <mattst88@gmail.com>
+Date: Fri, 21 Dec 2018 11:46:59 -0500
+Message-ID: <CAEdQ38EY3ix6XAwAjY8H4OhFwRcT1Yuvk4ofLa_GVyh5COpkRA@mail.gmail.com>
+Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <vineet.gupta1@synopsys.com>
-Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20181221132753.51zxcDvYi5vVRGo2Pf7pW7ZIejdibi8i_JBhlMgHeWw@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Firoz Khan <firoz.khan@linaro.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20181221164659.-i556lPxgxcqIHu0ilsce3x1Ulmu76DVYnWAz8OTl2U@z>
 
-On Fri 21-12-18 14:04:04, Michal Hocko wrote:
-[...]
-> Yes, but you are building on a broken concept I believe. What
-> implications does re-enabling really have? Now you could reschedule and
-> you can move to another CPU. Is this really safe? I believe that yes
-> because the preemption disabling is simply bogus. Which doesn't sound
-> like a proper justification, does it?
+On Wed, Dec 19, 2018 at 12:08 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Dec 19, 2018 at 4:59 PM Matt Turner <mattst88@gmail.com> wrote:
+> > On Fri, Dec 14, 2018 at 10:18 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > > On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
+> > >
+> > > Could someone review this patch series and queue it for 4.21
+> > > through alpha tree would be great.
+> >
+> > Thank you! I'll take a look.
+>
+> Hi Matt,
+>
+> I see that you merged the changes a while ago into
+>
+> git://git.kernel.org/pub/scm/linux/kernel/git/mattst88/alpha#for-linus
+>
+> This all seems fine, but they never showed up in linux-next,
+> which his what had both Firoz and me confused.
+>
+> Is that intentional, or should it be added there?
 
-Well, thinking about it a bit more. What is the result of calling
-preempt_enable outside of preempt_disabled section? E.g. __warn which
-doesn't disable preemption AFAICS.
--- 
-Michal Hocko
-SUSE Labs
+Probably so. This is just a super part-time thing for me, so I've
+never figured out what I needed to do to be included in linux-next.
+
+> Added Stephen to Cc here in case you want it added.
+
+Thanks!
