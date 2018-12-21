@@ -1,49 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f67.google.com ([209.85.166.67]:33931 "EHLO
-        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725868AbeLUQrM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2018 11:47:12 -0500
+Received: from smtprelay.synopsys.com ([198.182.47.9]:43358 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731150AbeLURzo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2018 12:55:44 -0500
+Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
+References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+ <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
+ <20181220130450.GB17350@dhcp22.suse.cz>
+ <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
+ <20181221130404.GF16107@dhcp22.suse.cz>
+From: Vineet Gupta <vineet.gupta1@synopsys.com>
+Message-ID: <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
+Date: Fri, 21 Dec 2018 09:55:34 -0800
 MIME-Version: 1.0
-References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
- <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
- <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com> <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
-From: Matt Turner <mattst88@gmail.com>
-Date: Fri, 21 Dec 2018 11:46:59 -0500
-Message-ID: <CAEdQ38EY3ix6XAwAjY8H4OhFwRcT1Yuvk4ofLa_GVyh5COpkRA@mail.gmail.com>
-Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20181221130404.GF16107@dhcp22.suse.cz>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20181221164659.-i556lPxgxcqIHu0ilsce3x1Ulmu76DVYnWAz8OTl2U@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20181221175534.ZogA1DoSlp7KTi0KvaWEuUj7JINUrZjFAgfNasvYWIo@z>
 
-On Wed, Dec 19, 2018 at 12:08 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Wed, Dec 19, 2018 at 4:59 PM Matt Turner <mattst88@gmail.com> wrote:
-> > On Fri, Dec 14, 2018 at 10:18 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > > On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
-> > >
-> > > Could someone review this patch series and queue it for 4.21
-> > > through alpha tree would be great.
-> >
-> > Thank you! I'll take a look.
->
-> Hi Matt,
->
-> I see that you merged the changes a while ago into
->
-> git://git.kernel.org/pub/scm/linux/kernel/git/mattst88/alpha#for-linus
->
-> This all seems fine, but they never showed up in linux-next,
-> which his what had both Firoz and me confused.
->
-> Is that intentional, or should it be added there?
+On 12/21/18 5:04 AM, Michal Hocko wrote:
+>> I presume you are referring to original commit, not my anti-change in ARC code,
+>> which is actually re-enabling it.
+> 
+> Yes, but you are building on a broken concept I believe.
 
-Probably so. This is just a super part-time thing for me, so I've
-never figured out what I needed to do to be included in linux-next.
+Not sure where this is heading. Broken concept was introduced by disabling
+preemption around show_regs() to silence x86 smp_processor_id() splat in 2009.
 
-> Added Stephen to Cc here in case you want it added.
-
-Thanks!
+> What
+> implications does re-enabling really have ? Now you could reschedule and> you can move to another CPU. Is this really safe?
