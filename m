@@ -1,44 +1,58 @@
-From: Matt Turner <mattst88@gmail.com>
-Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
-Date: Fri, 21 Dec 2018 11:46:59 -0500
-Message-ID: <CAEdQ38EY3ix6XAwAjY8H4OhFwRcT1Yuvk4ofLa_GVyh5COpkRA@mail.gmail.com>
-References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
- <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
- <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com> <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
+From: Vineet Gupta <vineet.gupta1@synopsys.com>
+Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
+Date: Fri, 21 Dec 2018 09:55:34 -0800
+Message-ID: <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
+References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+ <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
+ <20181220130450.GB17350@dhcp22.suse.cz>
+ <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
+ <20181221130404.GF16107@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
+In-Reply-To: <20181221130404.GF16107@dhcp22.suse.cz>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 19, 2018 at 12:08 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Wed, Dec 19, 2018 at 4:59 PM Matt Turner <mattst88@gmail.com> wrote:
-> > On Fri, Dec 14, 2018 at 10:18 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > > On Tue, 13 Nov 2018 at 15:02, Firoz Khan <firoz.khan@linaro.org> wrote:
-> > >
-> > > Could someone review this patch series and queue it for 4.21
-> > > through alpha tree would be great.
-> >
-> > Thank you! I'll take a look.
->
-> Hi Matt,
->
-> I see that you merged the changes a while ago into
->
-> git://git.kernel.org/pub/scm/linux/kernel/git/mattst88/alpha#for-linus
->
-> This all seems fine, but they never showed up in linux-next,
-> which his what had both Firoz and me confused.
->
-> Is that intentional, or should it be added there?
+On 12/21/18 5:04 AM, Michal Hocko wrote:
+>> I presume you are referring to original commit, not my anti-change in ARC code,
+>> which is actually re-enabling it.
+> 
+> Yes, but you are building on a broken concept I believe.
 
-Probably so. This is just a super part-time thing for me, so I've
-never figured out what I needed to do to be included in linux-next.
+Not sure where this is heading. Broken concept was introduced by disabling
+preemption around show_regs() to silence x86 smp_processor_id() splat in 2009.
 
-> Added Stephen to Cc here in case you want it added.
+> What
+> implications does re-enabling really have ? Now you could reschedule and> you can move to another CPU. Is this really safe?
 
-Thanks!
+From initial testing, none so far. show_regs() is simply pretty printing the
+passed pt_regs and decoding the current task, which agreed could move to a
+different CPU (likely will due to console/printk calls), but I don't see how that
+could mess up its mm or othe rinternal plumbing which it prints.
+
+
+> I believe that yes
+> because the preemption disabling is simply bogus. Which doesn't sound
+> like a proper justification, does it?
+
+[snip]
+
+> I do not follow. If there is some path to require show_regs to run with
+> preemption disabled while others don't then something is clearly wrong.
+
+[snip]
+
+> Yes, the fix might be more involved but I would much rather prefer a
+> correct code which builds on solid assumptions.
+
+Right so the first step is reverting the disabled semantics for ARC and do some
+heavy testing to make sure any fallouts are addressed etc. And if that works, then
+propagate this change to core itself. Low risk strategy IMO - agree ?
+
+Thx,
+-Vineet
