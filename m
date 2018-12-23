@@ -1,42 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56988 "EHLO gate.crashing.org"
+Received: from ozlabs.org ([203.11.71.1]:45771 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731280AbeLVSFh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Dec 2018 13:05:37 -0500
-Message-ID: <a99ff76069ab6559a5664382a9079b5fddfee945.camel@kernel.crashing.org>
-Subject: Re: [PATCH 16/33] powerpc/powernv: remove dead npu-dma code
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Mon, 15 Oct 2018 13:45:26 +1100
-In-Reply-To: <7709932d-efb8-2c9b-5128-99cc491c302b@ozlabs.ru>
-References: <20181009132500.17643-1-hch@lst.de>
-         <20181009132500.17643-17-hch@lst.de>
-         <7709932d-efb8-2c9b-5128-99cc491c302b@ozlabs.ru>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1728706AbeLWN2G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 23 Dec 2018 08:28:06 -0500
+In-Reply-To: <1545043236-11649-2-git-send-email-firoz.khan@linaro.org>
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [v6,1/5] powerpc: add __NR_syscalls along with NR_syscalls
+Message-ID: <43N38M4cw7z9sNJ@ozlabs.org>
+Date: Mon, 24 Dec 2018 00:28:03 +1100 (AEDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Kardashevskiy <aik@ozlabs.ru>, Christoph Hellwig <hch@lst.de>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181015024526.9ww3Qm7qHvgxJO4MRbRiU3FAltKQy5m-YKH7SfgmOJY@z>
+To: Firoz Khan <firoz.khan@linaro.org>, linuxppc-dev@lists.ozlabs.org, sathnaga@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Ram Pai <linuxram@us.ibm.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Boqun Feng <boqun.feng@gmail.com>, Breno Leitao <leitao@debian.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, deepa.kernel@gmail.com
+Message-ID: <20181223132803.EwBnad94x4d9ki9utecGljCV42bzrrVO-B0lOZF7NX4@z>
 
-On Mon, 2018-10-15 at 12:34 +1100, Alexey Kardashevskiy wrote:
-> On 10/10/2018 00:24, Christoph Hellwig wrote:
-> > This code has been unused since it was merged and is in the way of
-> > cleaning up the DMA code, thus remove it.
-> > 
-> > This effectively reverts commit 5d2aa710 ("powerpc/powernv: Add support
-> > for Nvlink NPUs").
+On Mon, 2018-12-17 at 10:40:32 UTC, Firoz Khan wrote:
+> NR_syscalls macro holds the number of system call exist
+> in powerpc architecture. We have to change the value of
+> NR_syscalls, if we add or delete a system call.
 > 
+> One of the patch in this patch series has a script which
+> will generate a uapi header based on syscall.tbl file.
+> The syscall.tbl file contains the number of system call
+> information. So we have two option to update NR_syscalls
+> value.
 > 
-> This code is heavily used by the NVIDIA GPU driver.
+> 1. Update NR_syscalls in asm/unistd.h manually by count-
+>    ing the no.of system calls. No need to update NR_sys-
+>    calls until we either add a new system call or delete
+>    existing system call.
+> 
+> 2. We can keep this feature in above mentioned script,
+>    that will count the number of syscalls and keep it in
+>    a generated file. In this case we don't need to expli-
+>    citly update NR_syscalls in asm/unistd.h file.
+> 
+> The 2nd option will be the recommended one. For that, I
+> added the __NR_syscalls macro in uapi/asm/unistd.h along
+> with NR_syscalls asm/unistd.h. The macro __NR_syscalls
+> also added for making the name convention same across all
+> architecture. While __NR_syscalls isn't strictly part of
+> the uapi, having it as part of the generated header to
+> simplifies the implementation. We also need to enclose
+> this macro with #ifdef __KERNEL__ to avoid side effects.
+> 
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 
-Some of it is, yes. And while I don't want to be involved in the
-discussion about that specific can of worms, there is code in this file
-related to the custom "always error" DMA ops that I suppose we could
-remove, which is what is getting in the way of Christoph cleanups. It's
-just meant as a debug stuff to catch incorrect attempts at doing the
-dma mappings on the wrong "side" of the GPU.
+Series applied to powerpc next, thanks.
 
-Cheers,
-Ben.
+https://git.kernel.org/powerpc/c/8a19eeeab66dfdd7c67bc8e3048ac0
+
+cheers
