@@ -1,46 +1,35 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v5 0/7] mips: system call table generation support
-Date: Mon, 24 Dec 2018 10:50:21 +0530
-Message-ID: <CALxhOngUrF5+hFwt5-hhivATQTUc9eqjP=oPjOH5vwA33hTa1A@mail.gmail.com>
-References: <1544692059-9728-1-git-send-email-firoz.khan@linaro.org>
- <MWHPR2201MB1277088F42DB7C2850037098C1BA0@MWHPR2201MB1277.namprd22.prod.outlook.com>
- <20181223162108.c6tzowjcgii5f3ev@pburton-laptop>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
+Date: Mon, 24 Dec 2018 20:10:04 +0100
+Message-ID: <20181224191004.GE16738@dhcp22.suse.cz>
+References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
+ <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
+ <20181220130450.GB17350@dhcp22.suse.cz>
+ <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
+ <20181221130404.GF16107@dhcp22.suse.cz>
+ <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181223162108.c6tzowjcgii5f3ev@pburton-laptop>
+Content-Disposition: inline
+In-Reply-To: <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
+To: Vineet Gupta <vineet.gupta1@synopsys.com>
+Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 23 Dec 2018 at 21:51, Paul Burton <paul.burton@mips.com> wrote:
->
-> Hi Firoz,
->
-> On Sun, Dec 23, 2018 at 08:15:48AM -0800, Paul Burton wrote:
-> > Hello,
-> >
-> > Firoz Khan wrote:
-> > > The purpose of this patch series is, we can easily
-> > > add/modify/delete system call table support by cha-
-> > > nging entry in syscall.tbl file instead of manually
-> > > changing many files. The other goal is to unify the
-> > > system call table generation support implementation
-> > > across all the architectures.
-> >%
-> > Series applied to mips-fixes.
-> >
-> > Thanks,
-> >     Paul
-> >
-> > [ This message was auto-generated; if you believe anything is incorrect
-> >   then please email paul.burton@mips.com to report it. ]
->
-> FYI this was actually applied to mips-next on the 14th & is part of the
-> pull request I'm about to send for 4.21, but running my ack-email script
-> is still a manual step & clearly still could be improved :)
+On Fri 21-12-18 09:55:34, Vineet Gupta wrote:
+> On 12/21/18 5:04 AM, Michal Hocko wrote:
+[...]
+> > Yes, the fix might be more involved but I would much rather prefer a
+> > correct code which builds on solid assumptions.
+> 
+> Right so the first step is reverting the disabled semantics for ARC and do some
+> heavy testing to make sure any fallouts are addressed etc. And if that works, then
+> propagate this change to core itself. Low risk strategy IMO - agree ?
 
-Thanks Paul!
-
-Firoz
+Yeah, I would simply remove the preempt_disable and see what falls out.
+smp_processor_id could be converted to the raw version etc...
+-- 
+Michal Hocko
+SUSE Labs
