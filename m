@@ -1,47 +1,39 @@
 From: Mathias Krause <minipli@googlemail.com>
-Subject: [PATCH] kallsyms: lower alignment on ARM
-Date: Sun, 30 Dec 2018 13:36:00 +0100
-Message-ID: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
+Subject: [PATCH] vmlinux.lds.h: drop unused __vermagic
+Date: Sun, 30 Dec 2018 13:40:04 +0100
+Message-ID: <1546173604-26066-1-git-send-email-minipli@googlemail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>, Rusty Russell <rusty@rustcorp.com.au>, Jessica Yu <jeyu@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-As mentioned in the info pages of gas, the '.align' pseudo op's
-interpretation of the alignment value is architecture specific.
-It might either be a byte value or taken to the power of two.
+The reference to '__vermagic' is a relict from v2.5 times. And even
+there it had a very short life time, from v2.5.59 (commit 1d411b80ee18
+("Module Sanity Check") in the historic tree) to v2.5.69 (commit
+67ac5b866bda ("[PATCH] complete modinfo section")).
 
-On ARM it's actually the latter which leads to unnecessary large
-alignments of 16 bytes for 32 bit builds or 256 bytes for 64 bit
-builds.
-
-Fix this by switching to '.balign' instead which is consistent
-across all architectures.
+Neither current kernels nor modules contain a '__vermagic' section any
+more, so get rid of it.
 
 Signed-off-by: Mathias Krause <minipli@googlemail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Jessica Yu <jeyu@kernel.org>
 ---
- scripts/kallsyms.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
-index 109a1af7e444..77cebad0474e 100644
---- a/scripts/kallsyms.c
-+++ b/scripts/kallsyms.c
-@@ -334,10 +334,10 @@ static void write_src(void)
- 	printf("#include <asm/types.h>\n");
- 	printf("#if BITS_PER_LONG == 64\n");
- 	printf("#define PTR .quad\n");
--	printf("#define ALGN .align 8\n");
-+	printf("#define ALGN .balign 8\n");
- 	printf("#else\n");
- 	printf("#define PTR .long\n");
--	printf("#define ALGN .align 4\n");
-+	printf("#define ALGN .balign 4\n");
- 	printf("#endif\n");
- 
- 	printf("\t.section .rodata, \"a\"\n");
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 3d7a6a9c2370..530ce1e7a1ec 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -332,7 +332,6 @@
+ 		__start_rodata = .;					\
+ 		*(.rodata) *(.rodata.*)					\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+-		KEEP(*(__vermagic))	/* Kernel version magic */	\
+ 		. = ALIGN(8);						\
+ 		__start___tracepoints_ptrs = .;				\
+ 		KEEP(*(__tracepoints_ptrs)) /* Tracepoints: pointer array */ \
 -- 
 2.19.2
