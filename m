@@ -1,35 +1,47 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 2/2] ARC: show_regs: fix lockdep splat for good
-Date: Mon, 24 Dec 2018 20:10:04 +0100
-Message-ID: <20181224191004.GE16738@dhcp22.suse.cz>
-References: <1545159239-30628-1-git-send-email-vgupta@synopsys.com>
- <1545159239-30628-3-git-send-email-vgupta@synopsys.com>
- <20181220130450.GB17350@dhcp22.suse.cz>
- <C2D7FE5348E1B147BCA15975FBA23075014642389B@US01WEMBX2.internal.synopsys.com>
- <20181221130404.GF16107@dhcp22.suse.cz>
- <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mathias Krause <minipli@googlemail.com>
+Subject: [PATCH] kallsyms: lower alignment on ARM
+Date: Sun, 30 Dec 2018 13:36:00 +0100
+Message-ID: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <8b3739f1-a7d5-7253-362a-3a1c707b0f6d@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <vineet.gupta1@synopsys.com>
-Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri 21-12-18 09:55:34, Vineet Gupta wrote:
-> On 12/21/18 5:04 AM, Michal Hocko wrote:
-[...]
-> > Yes, the fix might be more involved but I would much rather prefer a
-> > correct code which builds on solid assumptions.
-> 
-> Right so the first step is reverting the disabled semantics for ARC and do some
-> heavy testing to make sure any fallouts are addressed etc. And if that works, then
-> propagate this change to core itself. Low risk strategy IMO - agree ?
+As mentioned in the info pages of gas, the '.align' pseudo op's
+interpretation of the alignment value is architecture specific.
+It might either be a byte value or taken to the power of two.
 
-Yeah, I would simply remove the preempt_disable and see what falls out.
-smp_processor_id could be converted to the raw version etc...
+On ARM it's actually the latter which leads to unnecessary large
+alignments of 16 bytes for 32 bit builds or 256 bytes for 64 bit
+builds.
+
+Fix this by switching to '.balign' instead which is consistent
+across all architectures.
+
+Signed-off-by: Mathias Krause <minipli@googlemail.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+---
+ scripts/kallsyms.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+index 109a1af7e444..77cebad0474e 100644
+--- a/scripts/kallsyms.c
++++ b/scripts/kallsyms.c
+@@ -334,10 +334,10 @@ static void write_src(void)
+ 	printf("#include <asm/types.h>\n");
+ 	printf("#if BITS_PER_LONG == 64\n");
+ 	printf("#define PTR .quad\n");
+-	printf("#define ALGN .align 8\n");
++	printf("#define ALGN .balign 8\n");
+ 	printf("#else\n");
+ 	printf("#define PTR .long\n");
+-	printf("#define ALGN .align 4\n");
++	printf("#define ALGN .balign 4\n");
+ 	printf("#endif\n");
+ 
+ 	printf("\t.section .rodata, \"a\"\n");
 -- 
-Michal Hocko
-SUSE Labs
+2.19.2
