@@ -1,7 +1,7 @@
 From: guoren@kernel.org
-Subject: [PATCH 03/14] csky: fixup remove vdsp implement for kernel.
-Date: Mon, 31 Dec 2018 23:32:55 +0800
-Message-ID: <1546270384-4590-3-git-send-email-guoren@kernel.org>
+Subject: [PATCH 04/14] csky: remove syscall_exit_work
+Date: Mon, 31 Dec 2018 23:32:56 +0800
+Message-ID: <1546270384-4590-4-git-send-email-guoren@kernel.org>
 References: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1546270384-4590-1-git-send-email-guoren@kernel.org>
@@ -12,33 +12,39 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-The vr regs for vdsp only saved in task_switch not in every
-exception trap-in. The memcpy with vdsp instructions will
-destroy the vr regs for user space applications.
+Remove syscall_exit_work and union all to ret_from_exception.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv2/memcpy.S | 8 +-------
- 1 file changed, 1 insertion(+), 7 deletions(-)
+ arch/csky/kernel/entry.S | 16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
 
-diff --git a/arch/csky/abiv2/memcpy.S b/arch/csky/abiv2/memcpy.S
-index 987fec6..145bf3a 100644
---- a/arch/csky/abiv2/memcpy.S
-+++ b/arch/csky/abiv2/memcpy.S
-@@ -27,13 +27,7 @@ ENTRY(memcpy)
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index 79f92b8..2b4a851 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -183,18 +183,10 @@ ENTRY(csky_systemcall)
+ #endif
+ 	stw	a0, (sp, LSAVE_A0)	/* Save return value */
  
- 	LABLE_ALIGN
- .L_len_larger_16bytes:
--#if defined(__CSKY_VDSPV2__)
--	vldx.8	vr0, (r1), r19
--	PRE_BNEZAD (r18)
--	addi	r1, 16
--	vstx.8	vr0, (r0), r19
--	addi	r0, 16
--#elif defined(__CK860__)
-+#if defined(__CK860__)
- 	ldw	r3, (r1, 0)
- 	stw	r3, (r0, 0)
- 	ldw	r3, (r1, 4)
+-	movi	a0, 1			/* leave system call */
+-	mov	a1, sp			/* sp = pt_regs pointer */
+-	jbsr	syscall_trace
+-
+-syscall_exit_work:
+-	ld	syscallid, (sp, LSAVE_PSR)
+-	btsti	syscallid, 31
+-	bt	2f
+-
+-	jmpi	resume_userspace
+-
+-2:      RESTORE_ALL
++	movi    a0, 1                   /* leave system call */
++	mov     a1, sp                  /* right now, sp --> pt_regs */
++	jbsr    syscall_trace
++	br	ret_from_exception
+ 
+ ENTRY(ret_from_kernel_thread)
+ 	jbsr	schedule_tail
 -- 
 2.7.4
