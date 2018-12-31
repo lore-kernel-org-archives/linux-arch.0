@@ -1,149 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60386 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:60222 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726722AbeLaPfN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 31 Dec 2018 10:35:13 -0500
+        id S1726722AbeLaPe7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 31 Dec 2018 10:34:59 -0500
 From: guoren@kernel.org
-Subject: [PATCH 11/14] csky: basic ftrace supported
-Date: Mon, 31 Dec 2018 23:33:02 +0800
-Message-ID: <1546270384-4590-10-git-send-email-guoren@kernel.org>
+Subject: [PATCH 09/14] csky: optimize kernel panic print.
+Date: Mon, 31 Dec 2018 23:33:00 +0800
+Message-ID: <1546270384-4590-8-git-send-email-guoren@kernel.org>
 In-Reply-To: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 References: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: guoren@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, oleg@redhat.com, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20181231153302.CUl1C3Vae0AZufvv4TemXkdldUI_N507nnOWD_9E2c8@z>
+Message-ID: <20181231153300.fyCv13SfYVyl_MC9utzZ6taiKTdLKlmN4FqyDQTHBio@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-When gcc with -pg, it'll add _mcount stub in every function. We need
-implement the _mcount in kernel and ftrace depends on stackstrace.
-
-To do: call-graph, dynamic ftrace
+Use STACKTRACE to optimize panic print more pretty and align registers
+printing.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/Kconfig              |  1 +
- arch/csky/abiv2/Makefile       |  1 +
- arch/csky/abiv2/mcount.S       | 24 ++++++++++++++++++++++++
- arch/csky/include/asm/ftrace.h |  9 +++++++++
- arch/csky/kernel/Makefile      |  5 +++++
- arch/csky/kernel/ftrace.c      | 24 ++++++++++++++++++++++++
- 6 files changed, 64 insertions(+)
- create mode 100644 arch/csky/abiv2/mcount.S
- create mode 100644 arch/csky/include/asm/ftrace.h
- create mode 100644 arch/csky/kernel/ftrace.c
+ arch/csky/kernel/dumpstack.c | 59 ++++++++++++++------------------------------
+ arch/csky/kernel/ptrace.c    | 34 ++++++++++++++-----------
+ arch/csky/mm/fault.c         |  4 +--
+ 3 files changed, 41 insertions(+), 56 deletions(-)
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 65804d1..0b9a290 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -29,6 +29,7 @@ config CSKY
- 	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_FUNCTION_TRACER
- 	select HAVE_GENERIC_DMA_COHERENT
- 	select HAVE_KERNEL_GZIP
- 	select HAVE_KERNEL_LZO
-diff --git a/arch/csky/abiv2/Makefile b/arch/csky/abiv2/Makefile
-index 069ca72..b1d44f6 100644
---- a/arch/csky/abiv2/Makefile
-+++ b/arch/csky/abiv2/Makefile
-@@ -8,3 +8,4 @@ obj-y				+= strcmp.o
- obj-y				+= strcpy.o
- obj-y				+= strlen.o
- obj-y				+= strksyms.o
-+obj-$(CONFIG_FUNCTION_TRACER)	+= mcount.o
-diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
-new file mode 100644
-index 0000000..73377d5
---- /dev/null
-+++ b/arch/csky/abiv2/mcount.S
-@@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+
-+ENTRY (_mcount)
-+	subi	sp, 20
-+	stw	a0, (sp, 0)
-+	stw	a1, (sp, 4)
-+	stw	a2, (sp, 8)
-+	stw	a3, (sp, 12)
-+	stw	lr, (sp, 16)
-+	mov	a1, lr
-+	ldw	a0, (sp, 20)
-+	jsri    csky_mcount
-+	ldw	a0, (sp, 0)
-+	ldw	a1, (sp, 4)
-+	ldw	a2, (sp, 8)
-+	ldw	a3, (sp, 12)
-+	ldw	t1, (sp, 16)
-+	ldw	lr, (sp, 20)
-+	addi	sp, 24
-+	jmp	t1
-+END (_mcount)
-diff --git a/arch/csky/include/asm/ftrace.h b/arch/csky/include/asm/ftrace.h
-new file mode 100644
-index 0000000..1d22a17
---- /dev/null
-+++ b/arch/csky/include/asm/ftrace.h
-@@ -0,0 +1,9 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_FTRACE_H
-+#define __ASM_CSKY_FTRACE_H
-+
-+extern void _mcount(unsigned long from_pc);
-+
-+#endif /* __ASM_CSKY_FTRACE_H */
-diff --git a/arch/csky/kernel/Makefile b/arch/csky/kernel/Makefile
-index ba5ca48..3c0e2d1 100644
---- a/arch/csky/kernel/Makefile
-+++ b/arch/csky/kernel/Makefile
-@@ -6,4 +6,9 @@ obj-y += process.o cpu-probe.o ptrace.o dumpstack.o
+diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
+index a9a03ac..659253e 100644
+--- a/arch/csky/kernel/dumpstack.c
++++ b/arch/csky/kernel/dumpstack.c
+@@ -7,60 +7,39 @@ int kstack_depth_to_print = 48;
  
- obj-$(CONFIG_MODULES)			+= module.o
- obj-$(CONFIG_SMP)			+= smp.o
-+obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o
- obj-$(CONFIG_STACKTRACE)		+= stacktrace.o
+ void show_trace(unsigned long *stack)
+ {
+-	unsigned long *endstack;
++	unsigned long *stack_end;
++	unsigned long *stack_start;
++	unsigned long *fp;
+ 	unsigned long addr;
+-	int i;
+ 
+-	pr_info("Call Trace:\n");
+-	addr = (unsigned long)stack + THREAD_SIZE - 1;
+-	endstack = (unsigned long *)(addr & -THREAD_SIZE);
+-	i = 0;
+-	while (stack + 1 <= endstack) {
+-		addr = *stack++;
+-		/*
+-		 * If the address is either in the text segment of the
+-		 * kernel, or in the region which contains vmalloc'ed
+-		 * memory, it *may* be the address of a calling
+-		 * routine; if so, print it so that someone tracing
+-		 * down the cause of the crash will be able to figure
+-		 * out the call path that was taken.
+-		 */
+-		if (__kernel_text_address(addr)) {
+-#ifndef CONFIG_KALLSYMS
+-			if (i % 5 == 0)
+-				pr_cont("\n       ");
++	addr = (unsigned long) stack & THREAD_MASK;
++	stack_start = (unsigned long *) addr;
++	stack_end = (unsigned long *) (addr + THREAD_SIZE);
 +
-+ifdef CONFIG_FUNCTION_TRACER
-+CFLAGS_REMOVE_ftrace.o = $(CC_FLAGS_FTRACE)
-+endif
-diff --git a/arch/csky/kernel/ftrace.c b/arch/csky/kernel/ftrace.c
-new file mode 100644
-index 0000000..ad054f719
---- /dev/null
-+++ b/arch/csky/kernel/ftrace.c
-@@ -0,0 +1,24 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++	fp = stack;
++	pr_info("\nCall Trace:");
 +
-+#include <linux/ftrace.h>
-+#include <linux/uaccess.h>
++	while (fp > stack_start && fp < stack_end) {
++#ifdef CONFIG_STACKTRACE
++		addr	= fp[1];
++		fp	= (unsigned long *) fp[0];
++#else
++		addr	= *fp++;
+ #endif
+-			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
+-			i++;
+-		}
++		if (__kernel_text_address(addr))
++			pr_cont("\n[<%08lx>] %pS", addr, (void *)addr);
+ 	}
+ 	pr_cont("\n");
+ }
+ 
+ void show_stack(struct task_struct *task, unsigned long *stack)
+ {
+-	unsigned long *p;
+-	unsigned long *endstack;
+-	int i;
+-
+ 	if (!stack) {
+ 		if (task)
+-			stack = (unsigned long *)task->thread.esp0;
++			stack = (unsigned long *)thread_saved_fp(task);
+ 		else
+ 			stack = (unsigned long *)&stack;
+ 	}
+-	endstack = (unsigned long *)
+-		(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
+ 
+-	pr_info("Stack from %08lx:", (unsigned long)stack);
+-	p = stack;
+-	for (i = 0; i < kstack_depth_to_print; i++) {
+-		if (p + 1 > endstack)
+-			break;
+-		if (i % 8 == 0)
+-			pr_cont("\n       ");
+-		pr_cont(" %08lx", *p++);
+-	}
+-	pr_cont("\n");
+ 	show_trace(stack);
+ }
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+index a76d466..eb62e07 100644
+--- a/arch/csky/kernel/ptrace.c
++++ b/arch/csky/kernel/ptrace.c
+@@ -241,6 +241,7 @@ asmlinkage void syscall_trace(int why, struct pt_regs *regs)
+ 	regs->regs[SYSTRACE_SAVENUM] = saved_why;
+ }
+ 
++extern void show_stack(struct task_struct *task, unsigned long *stack);
+ void show_regs(struct pt_regs *fp)
+ {
+ 	unsigned long   *sp;
+@@ -263,35 +264,37 @@ void show_regs(struct pt_regs *fp)
+ 		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
+ 	}
+ 
+-	pr_info("PC: 0x%08lx\n", (long)fp->pc);
++	pr_info("PC: 0x%08lx (%pS)\n", (long)fp->pc, (void *)fp->pc);
++	pr_info("LR: 0x%08lx (%pS)\n", (long)fp->lr, (void *)fp->lr);
++	pr_info("SP: 0x%08lx\n", (long)fp);
+ 	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
+ 	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
+ 
+-	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
+-	       fp->a0, fp->a1, fp->a2, fp->a3);
++	pr_info(" a0: 0x%08lx   a1: 0x%08lx   a2: 0x%08lx   a3: 0x%08lx\n",
++		fp->a0, fp->a1, fp->a2, fp->a3);
+ #if defined(__CSKYABIV2__)
+-	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
++	pr_info(" r4: 0x%08lx   r5: 0x%08lx   r6: 0x%08lx   r7: 0x%08lx\n",
+ 		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
+-	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
++	pr_info(" r8: 0x%08lx   r9: 0x%08lx  r10: 0x%08lx  r11: 0x%08lx\n",
+ 		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
+-	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
++	pr_info("r12: 0x%08lx  r13: 0x%08lx  r15: 0x%08lx\n",
+ 		fp->regs[8], fp->regs[9], fp->lr);
+-	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
++	pr_info("r16: 0x%08lx  r17: 0x%08lx  r18: 0x%08lx  r19: 0x%08lx\n",
+ 		fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
+-	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
++	pr_info("r20: 0x%08lx  r21: 0x%08lx  r22: 0x%08lx  r23: 0x%08lx\n",
+ 		fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
+-	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
++	pr_info("r24: 0x%08lx  r25: 0x%08lx  r26: 0x%08lx  r27: 0x%08lx\n",
+ 		fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
+-	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
++	pr_info("r28: 0x%08lx  r29: 0x%08lx  r30: 0x%08lx  tls: 0x%08lx\n",
+ 		fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
+-	pr_info("hi 0x%08lx    lo: 0x%08lx\n",
++	pr_info(" hi: 0x%08lx   lo: 0x%08lx\n",
+ 		fp->rhi, fp->rlo);
+ #else
+-	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
++	pr_info(" r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
+ 		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
+-	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
++	pr_info("r10: 0x%08lx  r11: 0x%08lx  r12: 0x%08lx  r13: 0x%08lx\n",
+ 		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
+-	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
++	pr_info("r14: 0x%08lx   r1: 0x%08lx  r15: 0x%08lx\n",
+ 		fp->regs[8], fp->regs[9], fp->lr);
+ #endif
+ 
+@@ -313,4 +316,7 @@ void show_regs(struct pt_regs *fp)
+ 		pr_cont("%08x ", (int) *sp++);
+ 	}
+ 	pr_cont("\n");
 +
-+extern void (*ftrace_trace_function)(unsigned long, unsigned long,
-+				     struct ftrace_ops*, struct pt_regs*);
-+
-+
-+noinline void __naked ftrace_stub(unsigned long ip, unsigned long parent_ip,
-+				  struct ftrace_ops *op, struct pt_regs *regs)
-+{
-+	asm volatile ("\n");
-+}
-+
-+noinline void csky_mcount(unsigned long from_pc, unsigned long self_pc)
-+{
-+	if (ftrace_trace_function != ftrace_stub)
-+		ftrace_trace_function(self_pc, from_pc, NULL, NULL);
-+}
-+
-+/* _mcount is defined in abi's mcount.S */
-+EXPORT_SYMBOL(_mcount);
++	show_stack(NULL, (unsigned long *)fp->regs[4]);
++	return;
+ }
+diff --git a/arch/csky/mm/fault.c b/arch/csky/mm/fault.c
+index 7df57f9..6a94661 100644
+--- a/arch/csky/mm/fault.c
++++ b/arch/csky/mm/fault.c
+@@ -188,8 +188,8 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
+ 	 * terminate things with extreme prejudice.
+ 	 */
+ 	bust_spinlocks(1);
+-	pr_alert("Unable to %s at vaddr: %08lx, epc: %08lx\n",
+-		 __func__, address, regs->pc);
++	pr_alert("Unable to handle kernel paging request at virtual "
++		 "address 0x%08lx, pc: 0x%08lx\n", address, regs->pc);
+ 	die_if_kernel("Oops", regs, write);
+ 
+ out_of_memory:
 -- 
 2.7.4
