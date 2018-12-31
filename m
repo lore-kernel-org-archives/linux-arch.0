@@ -1,8 +1,10 @@
 From: guoren@kernel.org
-Subject: [PATCH 01/14] csky: fixup abiv2 mmap(... O_SYNC) failed.
-Date: Mon, 31 Dec 2018 23:32:53 +0800
-Message-ID: <1546270384-4590-1-git-send-email-guoren@kernel.org>
+Subject: [PATCH 02/14] csky: bugfix gdb coredump error.
+Date: Mon, 31 Dec 2018 23:32:54 +0800
+Message-ID: <1546270384-4590-2-git-send-email-guoren@kernel.org>
+References: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de
 Cc: guoren@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, oleg@redhat.com, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
@@ -10,56 +12,34 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-Glibc function mmap(... O_SYNC) will make page to _PAGE_UNCACHE +
-_PAGE_SO and strong-order page couldn't support unalignment access.
-So remove _PAGE_SO from _PAGE_UNCACHE, also sync abiv1 with the macro
-of _PAGE_SO.
+In gdb/bfd elf32-csky.c, csky_elf_grok_prstatus() use fixed size of
+elf_prstatus. It's 148 for abiv1 and 220 for abiv2, the size is enough
+for coredump and no need full sizeof(struct pt_regs).
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Reported-by: Liu Renwei <Renwei.Liu@verisilicon.com>
-Tested-by: Yuan Qiyun <qiyun_yuan@c-sky.com>
+Reported-by: Lu Baoquan <lu.baoquan@intellif.com>
+Reported-by: Liu Mao <liu.mao@intellif.com>
 ---
- arch/csky/abiv1/inc/abi/pgtable-bits.h | 1 +
- arch/csky/abiv2/inc/abi/pgtable-bits.h | 2 +-
- arch/csky/mm/ioremap.c                 | 2 +-
- 3 files changed, 3 insertions(+), 2 deletions(-)
+ arch/csky/include/asm/elf.h | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/csky/abiv1/inc/abi/pgtable-bits.h b/arch/csky/abiv1/inc/abi/pgtable-bits.h
-index 455075b..d605445 100644
---- a/arch/csky/abiv1/inc/abi/pgtable-bits.h
-+++ b/arch/csky/abiv1/inc/abi/pgtable-bits.h
-@@ -26,6 +26,7 @@
+diff --git a/arch/csky/include/asm/elf.h b/arch/csky/include/asm/elf.h
+index 48b5366..d6dbc00 100644
+--- a/arch/csky/include/asm/elf.h
++++ b/arch/csky/include/asm/elf.h
+@@ -31,7 +31,12 @@ typedef unsigned long elf_greg_t;
  
- #define _PAGE_CACHE		(3<<9)
- #define _PAGE_UNCACHE		(2<<9)
-+#define _PAGE_SO		_PAGE_UNCACHE
+ typedef struct user_fp elf_fpregset_t;
  
- #define _CACHE_MASK		(7<<9)
+-#define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
++/*
++ * In gdb/bfd elf32-csky.c, csky_elf_grok_prstatus() use fixed size of
++ * elf_prstatus. It's 148 for abiv1 and 220 for abiv2, the size is enough
++ * for coredump and no need full sizeof(struct pt_regs).
++ */
++#define ELF_NGREG ((sizeof(struct pt_regs) / sizeof(elf_greg_t)) - 2)
  
-diff --git a/arch/csky/abiv2/inc/abi/pgtable-bits.h b/arch/csky/abiv2/inc/abi/pgtable-bits.h
-index b20ae19..137f793 100644
---- a/arch/csky/abiv2/inc/abi/pgtable-bits.h
-+++ b/arch/csky/abiv2/inc/abi/pgtable-bits.h
-@@ -32,6 +32,6 @@
- #define _CACHE_MASK		_PAGE_CACHE
+ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
  
- #define _CACHE_CACHED		(_PAGE_VALID | _PAGE_CACHE | _PAGE_BUF)
--#define _CACHE_UNCACHED		(_PAGE_VALID | _PAGE_SO)
-+#define _CACHE_UNCACHED		(_PAGE_VALID)
- 
- #endif /* __ASM_CSKY_PGTABLE_BITS_H */
-diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
-index 7ad3ff1..cb7c03e 100644
---- a/arch/csky/mm/ioremap.c
-+++ b/arch/csky/mm/ioremap.c
-@@ -30,7 +30,7 @@ void __iomem *ioremap(phys_addr_t addr, size_t size)
- 	vaddr = (unsigned long)area->addr;
- 
- 	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
--			_PAGE_GLOBAL | _CACHE_UNCACHED);
-+			_PAGE_GLOBAL | _CACHE_UNCACHED | _PAGE_SO);
- 
- 	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
- 		free_vm_area(area);
 -- 
 2.7.4
