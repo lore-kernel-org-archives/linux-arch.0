@@ -1,52 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:55608 "EHLO
-        bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726321AbeL3TkW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 30 Dec 2018 14:40:22 -0500
-Message-ID: <1546198819.2844.16.camel@HansenPartnership.com>
-Subject: Re: [git pull] device mapper changes for 4.21
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Sun, 30 Dec 2018 11:40:19 -0800
-In-Reply-To: <20181230090646.GB1022@infradead.org>
-References: <20181227160944.GA12190@redhat.com>
-         <20181230090646.GB1022@infradead.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail.kernel.org ([198.145.29.99]:59458 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726722AbeLaPdl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 31 Dec 2018 10:33:41 -0500
+From: guoren@kernel.org
+Subject: [PATCH 01/14] csky: fixup abiv2 mmap(... O_SYNC) failed.
+Date: Mon, 31 Dec 2018 23:32:53 +0800
+Message-ID: <1546270384-4590-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>, Mike Snitzer <snitzer@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, dm-devel@redhat.com, linux-block@vger.kernel.org, Alasdair G Kergon <agk@redhat.com>, AliOS system security <alios_sys_security@linux.alibaba.com>, Colin Ian King <colin.king@canonical.com>, Eric Biggers <ebiggers@google.com>, Heinz Mauelshagen <heinzm@redhat.com>, Jaegeuk Kim <jaegeuk@kernel.org>, Mikulas Patocka <mpatocka@redhat.com>, Milan Broz <gmazyland@gmail.com>, Nikos Tsironis <ntsironis@arrikto.com>, Shenghui Wang <shhuiw@foxmail.com>, Sweet Tea <sweettea@redhat.com>, wuzhouhui <wuzhouhui14@mails.ucas.ac.cn>, linux-arch@vger.kernel.org
-Message-ID: <20181230194019.OEGh_cyEp7eh8FkrS7w8R2jA5spFe5ZHj8N84vq98LY@z>
+To: arnd@arndb.de
+Cc: guoren@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, mingo@redhat.com, oleg@redhat.com, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20181231153253.qqQhyeKnj1p4RK_FwOjr3p7ZC-QBW-BB9rjQA3-q4YA@z>
 
-On Sun, 2018-12-30 at 01:06 -0800, Christoph Hellwig wrote:
-> On Thu, Dec 27, 2018 at 11:09:44AM -0500, Mike Snitzer wrote:
-> > - Fix various DM targets to check for device sector overflow if
-> >   CONFIG_LBDAF is not set.
-> 
-> Question to Jens and Linus:
-> 
-> is there any good reason to keep the CONFIG_LBDAF=n option around?
-> Less than 2gig block devices seem to be an absolutele niche, and I
-> wonder if it is still worth maintaining the special case just for
-> that.
+From: Guo Ren <ren_guo@c-sky.com>
 
-It's really a question for embedded isn't it? since they're the ones
-with this set to 'n' in their default configs (linux-arch cc added). 
-What LBDAF=n does is make sector_t and blkcnt_t unsigned long instead
-of u64.  The maintenance burden to us is we have to use sector_div
-instead of do_div in the code and remember that sector_t may be 32 bit
-(the current problem in LVM).  The benefit to embedded architectures is
-that they don't have to do 64 bit arithmetic for every block
-transaction and the price is they can't support block devices larger
-than 2TB (not 2GB, although the AF part means we can't support file
-sizes bigger than 2GB).
+Glibc function mmap(... O_SYNC) will make page to _PAGE_UNCACHE +
+_PAGE_SO and strong-order page couldn't support unalignment access.
+So remove _PAGE_SO from _PAGE_UNCACHE, also sync abiv1 with the macro
+of _PAGE_SO.
 
-So the first question is: is there an embedded platform where anyone
-thinks the cost of the 64 bit arithmetic is important?  and if there is
-can they benchmark it so we get an idea of the value of keeping LBDAF
-(i.e. if it's just a few percent then likely it's not worth it, if it's
-in the tens of percent, it might be).
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Reported-by: Liu Renwei <Renwei.Liu@verisilicon.com>
+Tested-by: Yuan Qiyun <qiyun_yuan@c-sky.com>
+---
+ arch/csky/abiv1/inc/abi/pgtable-bits.h | 1 +
+ arch/csky/abiv2/inc/abi/pgtable-bits.h | 2 +-
+ arch/csky/mm/ioremap.c                 | 2 +-
+ 3 files changed, 3 insertions(+), 2 deletions(-)
 
-James
+diff --git a/arch/csky/abiv1/inc/abi/pgtable-bits.h b/arch/csky/abiv1/inc/abi/pgtable-bits.h
+index 455075b..d605445 100644
+--- a/arch/csky/abiv1/inc/abi/pgtable-bits.h
++++ b/arch/csky/abiv1/inc/abi/pgtable-bits.h
+@@ -26,6 +26,7 @@
+ 
+ #define _PAGE_CACHE		(3<<9)
+ #define _PAGE_UNCACHE		(2<<9)
++#define _PAGE_SO		_PAGE_UNCACHE
+ 
+ #define _CACHE_MASK		(7<<9)
+ 
+diff --git a/arch/csky/abiv2/inc/abi/pgtable-bits.h b/arch/csky/abiv2/inc/abi/pgtable-bits.h
+index b20ae19..137f793 100644
+--- a/arch/csky/abiv2/inc/abi/pgtable-bits.h
++++ b/arch/csky/abiv2/inc/abi/pgtable-bits.h
+@@ -32,6 +32,6 @@
+ #define _CACHE_MASK		_PAGE_CACHE
+ 
+ #define _CACHE_CACHED		(_PAGE_VALID | _PAGE_CACHE | _PAGE_BUF)
+-#define _CACHE_UNCACHED		(_PAGE_VALID | _PAGE_SO)
++#define _CACHE_UNCACHED		(_PAGE_VALID)
+ 
+ #endif /* __ASM_CSKY_PGTABLE_BITS_H */
+diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
+index 7ad3ff1..cb7c03e 100644
+--- a/arch/csky/mm/ioremap.c
++++ b/arch/csky/mm/ioremap.c
+@@ -30,7 +30,7 @@ void __iomem *ioremap(phys_addr_t addr, size_t size)
+ 	vaddr = (unsigned long)area->addr;
+ 
+ 	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
+-			_PAGE_GLOBAL | _CACHE_UNCACHED);
++			_PAGE_GLOBAL | _CACHE_UNCACHED | _PAGE_SO);
+ 
+ 	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
+ 		free_vm_area(area);
+-- 
+2.7.4
