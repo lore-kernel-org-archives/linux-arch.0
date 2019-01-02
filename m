@@ -1,40 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44632 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727139AbfABVYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Jan 2019 16:24:22 -0500
-Date: Wed, 2 Jan 2019 16:24:15 -0500
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 3/4] barriers: convert a control to a data dependency
-Message-ID: <20190102162400-mutt-send-email-mst@kernel.org>
-References: <20190102205715.14054-1-mst@redhat.com>
- <20190102205715.14054-4-mst@redhat.com>
- <20190102210024.GJ6310@bombadil.infradead.org>
+Received: from iolanthe.rowland.org ([192.131.102.54]:53778 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1725879AbfABVgl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 16:36:41 -0500
+Date: Wed, 2 Jan 2019 16:36:40 -0500 (EST)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC 0/4] barriers using data dependency
+In-Reply-To: <20190102205715.14054-1-mst@redhat.com>
+Message-ID: <Pine.LNX.4.44L0.1901021629150.1375-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190102210024.GJ6310@bombadil.infradead.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org, Jonathan Corbet <corbet@lwn.net>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190102212415.2FMBek_lfHxugs-VEVgTm5rtNvJv9mKbt3RoeWdBoBg@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Jason Wang <jasowang@redhat.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org
+Message-ID: <20190102213640.VIrMcE8yDoFYvmh8QlUMH1BXFN4nRVoE7KPusCeV7dY@z>
 
-On Wed, Jan 02, 2019 at 01:00:24PM -0800, Matthew Wilcox wrote:
-> On Wed, Jan 02, 2019 at 03:57:58PM -0500, Michael S. Tsirkin wrote:
-> > @@ -875,6 +893,8 @@ to the CPU containing it.  See the section on "Multicopy atomicity"
-> >  for more information.
-> >  
-> >  
-> > +
-> > +
-> >  In summary:
-> >  
-> >    (*) Control dependencies can order prior loads against later stores.
+On Wed, 2 Jan 2019, Michael S. Tsirkin wrote:
+
+> So as explained in Documentation/memory-barriers.txt e.g.
+> a load followed by a store require a full memory barrier,
+> to avoid store being ordered before the load.
+> Similarly load-load requires a read memory barrier.
 > 
-> Was this hunk intentional?
+> Thinking about it, we can actually create a data dependency
+> by mixing the first loaded value into the pointer being
+> accessed.
+> 
+> This adds an API for this and uses it in virtio.
+> 
+> Written over the holiday and build tested only so far.
 
-Nope, thanks for catching this.
+You are using the terminology from memory-barriers.txt, referring to
+the new dependency you create as a data dependency.  However,
+tools/memory-model/* uses a more precise name, calling it an address
+dependency.  Could you change the comments in the patches to use this
+name instead?
 
--- 
-MST
+> This patchset is also suboptimal on e.g. x86 where e.g. smp_rmb is a nop.
+
+This should be easy to fix with an architecture-specific override.
+
+Alan Stern
+
+> Sending out for early feedback/flames.
+> 
+> Michael S. Tsirkin (4):
+>   include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
+>   include/linux/compiler.h: allow memory operands
+>   barriers: convert a control to a data dependency
+>   virtio: use dependent_ptr_mb
+> 
+>  Documentation/memory-barriers.txt | 20 ++++++++++++++++++++
+>  arch/alpha/include/asm/barrier.h  |  1 +
+>  drivers/virtio/virtio_ring.c      |  6 ++++--
+>  include/asm-generic/barrier.h     | 18 ++++++++++++++++++
+>  include/linux/compiler-clang.h    |  5 ++---
+>  include/linux/compiler-gcc.h      |  4 ----
+>  include/linux/compiler-intel.h    |  4 +---
+>  include/linux/compiler.h          |  8 +++++++-
+>  8 files changed, 53 insertions(+), 13 deletions(-)
