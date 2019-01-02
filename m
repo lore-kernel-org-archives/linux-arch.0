@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35662 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:40882 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728953AbfABU6G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Jan 2019 15:58:06 -0500
-Date: Wed, 2 Jan 2019 15:57:58 -0500
+        id S1728327AbfABU5z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Jan 2019 15:57:55 -0500
+Date: Wed, 2 Jan 2019 15:57:49 -0500
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH RFC 3/4] barriers: convert a control to a data dependency
-Message-ID: <20190102205715.14054-4-mst@redhat.com>
+Subject: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
+Message-ID: <20190102205715.14054-2-mst@redhat.com>
 References: <20190102205715.14054-1-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,128 +15,95 @@ In-Reply-To: <20190102205715.14054-1-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org, Jonathan Corbet <corbet@lwn.net>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190102205758.zhuywCBVhMFBRU1gzk-qqTlnIflU3aW0vkPE0nL4Et4@z>
+Cc: Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>, Joe Perches <joe@perches.com>, Nick Desaulniers <ndesaulniers@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-sparse@vger.kernel.org
+Message-ID: <20190102205749.KfdKm8hLvDB7PWO_Y1Ny9pfKol4xeoyXRmATFxqMgms@z>
 
-It's not uncommon to have two access two unrelated memory locations in a
-specific order.  At the moment one has to use a memory barrier for this.
+Since commit 815f0ddb346c ("include/linux/compiler*.h: make compiler-*.h
+mutually exclusive") clang no longer reuses the OPTIMIZER_HIDE_VAR macro
+from compiler-gcc - instead it gets the version in
+include/linux/compiler.h.  Unfortunately that version doesn't actually
+prevent compiler from optimizing out the variable.
 
-However, if the first access was a read and the second used an address
-depending on the first one we would have a data dependency and no
-barrier would be necessary.
+Fix up by moving the macro out from compiler-gcc.h to compiler.h.
+Compilers without incline asm support will keep working
+since it's protected by an ifdef.
 
-This adds a new interface: dependent_ptr_mb which does exactly this: it
-returns a pointer with a data dependency on the supplied value.
+Also fix up comments to match reality since we are no longer overriding
+any macros.
 
+Build-tested with gcc and clang.
+
+Fixes: 815f0ddb346c ("include/linux/compiler*.h: make compiler-*.h mutually exclusive")
+Cc: Eli Friedman <efriedma@codeaurora.org>
+Cc: Joe Perches <joe@perches.com>
+Cc: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- Documentation/memory-barriers.txt | 20 ++++++++++++++++++++
- arch/alpha/include/asm/barrier.h  |  1 +
- include/asm-generic/barrier.h     | 18 ++++++++++++++++++
- include/linux/compiler.h          |  4 ++++
- 4 files changed, 43 insertions(+)
+ include/linux/compiler-clang.h | 5 ++---
+ include/linux/compiler-gcc.h   | 4 ----
+ include/linux/compiler-intel.h | 4 +---
+ include/linux/compiler.h       | 4 +++-
+ 4 files changed, 6 insertions(+), 11 deletions(-)
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index c1d913944ad8..9dbaa2e1dbf6 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -691,6 +691,18 @@ case what's actually required is:
- 		p = READ_ONCE(b);
- 	}
- 
-+Alternatively, a control dependency can be converted to a data dependency,
-+e.g.:
-+
-+	q = READ_ONCE(a);
-+	if (q) {
-+		b = dependent_ptr_mb(b, q);
-+		p = READ_ONCE(b);
-+	}
-+
-+Note how the result of dependent_ptr_mb must be used with the following
-+accesses in order to have an effect.
-+
- However, stores are not speculated.  This means that ordering -is- provided
- for load-store control dependencies, as in the following example:
- 
-@@ -836,6 +848,12 @@ out-guess your code.  More generally, although READ_ONCE() does force
- the compiler to actually emit code for a given load, it does not force
- the compiler to use the results.
- 
-+Converting to a data dependency helps with this too:
-+
-+	q = READ_ONCE(a);
-+	b = dependent_ptr_mb(b, q);
-+	WRITE_ONCE(b, 1);
-+
- In addition, control dependencies apply only to the then-clause and
- else-clause of the if-statement in question.  In particular, it does
- not necessarily apply to code following the if-statement:
-@@ -875,6 +893,8 @@ to the CPU containing it.  See the section on "Multicopy atomicity"
- for more information.
- 
- 
-+
-+
- In summary:
- 
-   (*) Control dependencies can order prior loads against later stores.
-diff --git a/arch/alpha/include/asm/barrier.h b/arch/alpha/include/asm/barrier.h
-index 92ec486a4f9e..b4934e8c551b 100644
---- a/arch/alpha/include/asm/barrier.h
-+++ b/arch/alpha/include/asm/barrier.h
-@@ -59,6 +59,7 @@
-  * as Alpha, "y" could be set to 3 and "x" to 0.  Use rmb()
-  * in cases like this where there are no data dependencies.
-  */
-+#define ARCH_NEEDS_READ_BARRIER_DEPENDS 1
- #define read_barrier_depends() __asm__ __volatile__("mb": : :"memory")
- 
- #ifdef CONFIG_SMP
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 2cafdbb9ae4c..fa2e2ef72b68 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -70,6 +70,24 @@
- #define __smp_read_barrier_depends()	read_barrier_depends()
+diff --git a/include/linux/compiler-clang.h b/include/linux/compiler-clang.h
+index 3e7dafb3ea80..7ddaeb5182e3 100644
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@ -3,9 +3,8 @@
+ #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
  #endif
  
-+#if defined(COMPILER_HAS_OPTIMIZER_HIDE_VAR) && \
-+	!defined(ARCH_NEEDS_READ_BARRIER_DEPENDS)
+-/* Some compiler specific definitions are overwritten here
+- * for Clang compiler
+- */
++/* Compiler specific definitions for Clang compiler */
 +
-+#define dependent_ptr_mb(ptr, val) ({					\
-+	long dependent_ptr_mb_val = (long)(val);			\
-+	long dependent_ptr_mb_ptr = (long)(ptr) - dependent_ptr_mb_val;	\
-+									\
-+	BUILD_BUG_ON(sizeof(val) > sizeof(long));			\
-+	OPTIMIZER_HIDE_VAR(dependent_ptr_mb_val);			\
-+	(typeof(ptr))(dependent_ptr_mb_ptr + dependent_ptr_mb_val);	\
-+})
-+
-+#else
-+
-+#define dependent_ptr_mb(ptr, val) ({ mb(); (ptr); })
-+
-+#endif
-+
- #ifdef CONFIG_SMP
+ #define uninitialized_var(x) x = *(&(x))
  
- #ifndef smp_mb
+ /* same as gcc, this was present in clang-2.6 so we can assume it works
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 2010493e1040..72054d9f0eaa 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -58,10 +58,6 @@
+ 	(typeof(ptr)) (__ptr + (off));					\
+ })
+ 
+-/* Make the optimizer believe the variable can be manipulated arbitrarily. */
+-#define OPTIMIZER_HIDE_VAR(var)						\
+-	__asm__ ("" : "=r" (var) : "0" (var))
+-
+ /*
+  * A trick to suppress uninitialized variable warning without generating any
+  * code
+diff --git a/include/linux/compiler-intel.h b/include/linux/compiler-intel.h
+index 517bd14e1222..b17f3cd18334 100644
+--- a/include/linux/compiler-intel.h
++++ b/include/linux/compiler-intel.h
+@@ -5,9 +5,7 @@
+ 
+ #ifdef __ECC
+ 
+-/* Some compiler specific definitions are overwritten here
+- * for Intel ECC compiler
+- */
++/* Compiler specific definitions for Intel ECC compiler */
+ 
+ #include <asm/intrinsics.h>
+ 
 diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 6601d39e8c48..f599c30f1b28 100644
+index 06396c1cf127..1ad367b4cd8d 100644
 --- a/include/linux/compiler.h
 +++ b/include/linux/compiler.h
-@@ -152,9 +152,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+@@ -152,7 +152,9 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
  #endif
  
  #ifndef OPTIMIZER_HIDE_VAR
-+
- /* Make the optimizer believe the variable can be manipulated arbitrarily. */
- #define OPTIMIZER_HIDE_VAR(var)						\
- 	__asm__ ("" : "=rm" (var) : "0" (var))
-+
-+#define COMPILER_HAS_OPTIMIZER_HIDE_VAR 1
-+
+-#define OPTIMIZER_HIDE_VAR(var) barrier()
++/* Make the optimizer believe the variable can be manipulated arbitrarily. */
++#define OPTIMIZER_HIDE_VAR(var)						\
++	__asm__ ("" : "=r" (var) : "0" (var))
  #endif
  
  /* Not-quite-unique ID. */
