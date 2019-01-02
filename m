@@ -1,38 +1,88 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/2] powerpc: Unify the system call scripts
-Date: Wed,  2 Jan 2019 20:32:02 +0530
-Message-ID: <1546441324-19774-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/2] powerpc: remove nargs from __SYSCALL
+Date: Wed,  2 Jan 2019 20:32:03 +0530
+Message-ID: <1546441324-19774-2-git-send-email-firoz.khan@linaro.org>
+References: <1546441324-19774-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1546441324-19774-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Al Viro <viro@zeniv.linux.org.uk>, linuxppc-dev@lists.ozlabs.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-System call table generation support is provided for
-alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
-sh, sparc and xtensa architectures. The implementat-
-ions are almost similar across all the above archte-
-ctures. In order to reduce the source code across all
-the above architectures, create common ".sh" files and
-keep it in the common directory, script/. This will 
-be a generic scripts which can use for all the above
-architectures.
+The __SYSCALL macro's arguments are system call number,
+system call entry name and number of arguments for the
+system call.
 
-This patch depends on;
- https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
+Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
+calculated nor used anywhere. So it would be better to
+keep the implementaion as  __SYSCALL(nr, entry). This will
+unifies the implementation with some other architetures
+too.
 
-Firoz Khan (2):
-  powerpc: remove nargs from __SYSCALL
-  powerpc: generate uapi header and system call table files
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/powerpc/kernel/syscalls/syscalltbl.sh  | 4 ++--
+ arch/powerpc/kernel/systbl.S                | 6 +++---
+ arch/powerpc/platforms/cell/spu_callbacks.c | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
- arch/powerpc/kernel/syscalls/Makefile       | 11 +++++++--
- arch/powerpc/kernel/syscalls/syscallhdr.sh  | 37 -----------------------------
- arch/powerpc/kernel/syscalls/syscalltbl.sh  | 36 ----------------------------
- arch/powerpc/kernel/systbl.S                |  6 ++---
- arch/powerpc/platforms/cell/spu_callbacks.c |  2 +-
- 5 files changed, 13 insertions(+), 79 deletions(-)
- delete mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
- delete mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/powerpc/kernel/syscalls/syscalltbl.sh b/arch/powerpc/kernel/syscalls/syscalltbl.sh
+index fd62049..f7393a7 100644
+--- a/arch/powerpc/kernel/syscalls/syscalltbl.sh
++++ b/arch/powerpc/kernel/syscalls/syscalltbl.sh
+@@ -13,10 +13,10 @@ emit() {
+ 	t_entry="$3"
+ 
+ 	while [ $t_nxt -lt $t_nr ]; do
+-		printf "__SYSCALL(%s,sys_ni_syscall, )\n" "${t_nxt}"
++		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
+ 		t_nxt=$((t_nxt+1))
+ 	done
+-	printf "__SYSCALL(%s,%s, )\n" "${t_nxt}" "${t_entry}"
++	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
+ }
+ 
+ grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+diff --git a/arch/powerpc/kernel/systbl.S b/arch/powerpc/kernel/systbl.S
+index 23265a2..02f28fa 100644
+--- a/arch/powerpc/kernel/systbl.S
++++ b/arch/powerpc/kernel/systbl.S
+@@ -25,11 +25,11 @@
+ .globl sys_call_table
+ sys_call_table:
+ #ifdef CONFIG_PPC64
+-#define __SYSCALL(nr, entry, nargs) .8byte DOTSYM(entry)
++#define __SYSCALL(nr, entry)	.8byte DOTSYM(entry)
+ #include <asm/syscall_table_64.h>
+ #undef __SYSCALL
+ #else
+-#define __SYSCALL(nr, entry, nargs) .long entry
++#define __SYSCALL(nr, entry)	.long entry
+ #include <asm/syscall_table_32.h>
+ #undef __SYSCALL
+ #endif
+@@ -38,7 +38,7 @@ sys_call_table:
+ .globl compat_sys_call_table
+ compat_sys_call_table:
+ #define compat_sys_sigsuspend	sys_sigsuspend
+-#define __SYSCALL(nr, entry, nargs) .8byte DOTSYM(entry)
++#define __SYSCALL(nr, entry)	.8byte DOTSYM(entry)
+ #include <asm/syscall_table_c32.h>
+ #undef __SYSCALL
+ #endif
+diff --git a/arch/powerpc/platforms/cell/spu_callbacks.c b/arch/powerpc/platforms/cell/spu_callbacks.c
+index 125f2a5..b5f35cb 100644
+--- a/arch/powerpc/platforms/cell/spu_callbacks.c
++++ b/arch/powerpc/platforms/cell/spu_callbacks.c
+@@ -34,7 +34,7 @@
+  */
+ 
+ static void *spu_syscall_table[] = {
+-#define __SYSCALL(nr, entry, nargs) entry,
++#define __SYSCALL(nr, entry)	entry,
+ #include <asm/syscall_table_spu.h>
+ #undef __SYSCALL
+ };
 -- 
 1.9.1
