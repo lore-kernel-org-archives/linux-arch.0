@@ -1,67 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:35045 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729647AbfABPTE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 10:19:04 -0500
-Received: by mail-pg1-f195.google.com with SMTP id s198so14717019pgs.2
-        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 07:19:04 -0800 (PST)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:40790 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729450AbfABPXS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 10:23:18 -0500
+Received: by mail-pf1-f196.google.com with SMTP id i12so15311267pfo.7
+        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 07:23:18 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 1/2] m68k: remove nargs from __SYSCALL
-Date: Wed,  2 Jan 2019 20:48:38 +0530
-Message-ID: <1546442319-20461-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1546442319-20461-1-git-send-email-firoz.khan@linaro.org>
-References: <1546442319-20461-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 0/2] ia64: Unify the system call scripts
+Date: Wed,  2 Jan 2019 20:52:45 +0530
+Message-ID: <1546442567-20637-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20190102151838.4GdFAOT5rTCxcJkU1I1KEP4WV7VHSgOldNgWRuPzFBM@z>
+Message-ID: <20190102152245.b3evq8r4j6o4G2PBlXudaKns3uJCR7shF9FNX-a1pOE@z>
 
-The __SYSCALL macro's arguments are system call number,
-system call entry name and number of arguments for the
-system call.
+System call table generation support is provided for
+alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
+sh, sparc and xtensa architectures. The implementat-
+ions are almost similar across all the above archte-
+ctures. In order to reduce the source code across all
+the above architectures, create common ".sh" files and
+keep it in the common directory, script/. This will 
+be a generic scripts which can use for all the above
+architectures.
 
-Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
-calculated nor used anywhere. So it would be better to
-keep the implementaion as  __SYSCALL(nr, entry). This will
-unifies the implementation with some other architetures
-too.
+This patch depends on;
+ https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/m68k/kernel/syscalls/syscalltbl.sh | 4 ++--
- arch/m68k/kernel/syscalltable.S         | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+Firoz Khan (2):
+  ia64: remove nargs from __SYSCALL
+  ia64: generate uapi header and system call table files
 
-diff --git a/arch/m68k/kernel/syscalls/syscalltbl.sh b/arch/m68k/kernel/syscalls/syscalltbl.sh
-index 85d78d9..904b8e6 100644
---- a/arch/m68k/kernel/syscalls/syscalltbl.sh
-+++ b/arch/m68k/kernel/syscalls/syscalltbl.sh
-@@ -13,10 +13,10 @@ emit() {
- 	t_entry="$3"
- 
- 	while [ $t_nxt -lt $t_nr ]; do
--		printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
-+		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
- 		t_nxt=$((t_nxt+1))
- 	done
--	printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
-+	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
- }
- 
- grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-diff --git a/arch/m68k/kernel/syscalltable.S b/arch/m68k/kernel/syscalltable.S
-index d329cc7..0082664 100644
---- a/arch/m68k/kernel/syscalltable.S
-+++ b/arch/m68k/kernel/syscalltable.S
-@@ -18,7 +18,7 @@
- #define sys_mmap2	sys_mmap_pgoff
- #endif
- 
--#define __SYSCALL(nr, entry, nargs) .long entry
-+#define __SYSCALL(nr, entry)	.long entry
- 	.section .rodata
- ALIGN
- ENTRY(sys_call_table)
+ arch/ia64/kernel/entry.S                |  2 +-
+ arch/ia64/kernel/syscalls/Makefile      | 11 ++++++++--
+ arch/ia64/kernel/syscalls/syscallhdr.sh | 36 ---------------------------------
+ arch/ia64/kernel/syscalls/syscalltbl.sh | 32 -----------------------------
+ 4 files changed, 10 insertions(+), 71 deletions(-)
+ delete mode 100644 arch/ia64/kernel/syscalls/syscallhdr.sh
+ delete mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
+
 -- 
 1.9.1
