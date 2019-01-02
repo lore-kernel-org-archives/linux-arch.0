@@ -1,151 +1,51 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 2/2] parisc: generate uapi header and system call table files
-Date: Wed,  2 Jan 2019 21:32:33 +0530
-Message-ID: <1546444953-21630-3-git-send-email-firoz.khan@linaro.org>
-References: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: [PATCH] vmlinux.lds.h: drop unused __vermagic
+Date: Wed, 2 Jan 2019 21:29:39 +0100
+Message-ID: <20190102202938.GA26600@linux-8ccs>
+References: <1546173604-26066-1-git-send-email-minipli@googlemail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
+Content-Disposition: inline
+In-Reply-To: <1546173604-26066-1-git-send-email-minipli@googlemail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, John David Anglin <dave.anglin@bell.net>, Matthew Wilcox <willy@infradead.org>, linux-parisc@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, Firoz Khan <firozk@codeaurora.org>
+To: Mathias Krause <minipli@googlemail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>
 List-Id: linux-arch.vger.kernel.org
 
-From: Firoz Khan <firozk@codeaurora.org>
++++ Mathias Krause [30/12/18 13:40 +0100]:
+>The reference to '__vermagic' is a relict from v2.5 times. And even
+>there it had a very short life time, from v2.5.59 (commit 1d411b80ee18
+>("Module Sanity Check") in the historic tree) to v2.5.69 (commit
+>67ac5b866bda ("[PATCH] complete modinfo section")).
+>
+>Neither current kernels nor modules contain a '__vermagic' section any
+>more, so get rid of it.
+>
+>Signed-off-by: Mathias Krause <minipli@googlemail.com>
+>Cc: Rusty Russell <rusty@rustcorp.com.au>
+>Cc: Jessica Yu <jeyu@kernel.org>
 
-Unified system call table generation script must be run to
-generate unistd_32/64.h and syscall_table_32/64/c32.h files.
-This patch will have changes which will invokes the script.
+Thanks for the cleanup.
 
-This patch will generate unistd_32/64.h and syscall_table-
-_32/64/c32.h files by the syscall table generation script
-invoked by parisc/Makefile and the generated files against
-the removed files must be identical.
+Reviewed-by: Jessica Yu <jeyu@kernel.org>
 
-The generated uapi header file will be included in uapi/-
-asm/unistd.h and generated system call table header file
-will be included by kernel/syscall.S file.
-
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/parisc/kernel/syscalls/Makefile      | 11 ++++++++--
- arch/parisc/kernel/syscalls/syscallhdr.sh | 36 -------------------------------
- arch/parisc/kernel/syscalls/syscalltbl.sh | 36 -------------------------------
- 3 files changed, 9 insertions(+), 74 deletions(-)
- delete mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
- delete mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
-
-diff --git a/arch/parisc/kernel/syscalls/Makefile b/arch/parisc/kernel/syscalls/Makefile
-index c22a21c..e24272d 100644
---- a/arch/parisc/kernel/syscalls/Makefile
-+++ b/arch/parisc/kernel/syscalls/Makefile
-@@ -6,8 +6,9 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
- 	  $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
- 
- syscall := $(srctree)/$(src)/syscall.tbl
--syshdr := $(srctree)/$(src)/syscallhdr.sh
--systbl := $(srctree)/$(src)/syscalltbl.sh
-+syshdr := $(srctree)/scripts/syscallhdr.sh
-+sysnr := $(srctree)/scripts/syscallnr.sh
-+systbl := $(srctree)/scripts/syscalltbl.sh
- 
- quiet_cmd_syshdr = SYSHDR  $@
-       cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
-@@ -15,6 +16,12 @@ quiet_cmd_syshdr = SYSHDR  $@
- 		   '$(syshdr_pfx_$(basetarget))'		\
- 		   '$(syshdr_offset_$(basetarget))'
- 
-+quiet_cmd_sysnr = SYSNR  $@
-+      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'		\
-+		  '$(sysnr_abis_$(basetarget))'			\
-+		  '$(sysnr_pfx_$(basetarget))'			\
-+		  '$(sysnr_offset_$(basetarget))'
-+
- quiet_cmd_systbl = SYSTBL  $@
-       cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
- 		   '$(systbl_abis_$(basetarget))'		\
-diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh b/arch/parisc/kernel/syscalls/syscallhdr.sh
-deleted file mode 100644
-index 50242b7..0000000
---- a/arch/parisc/kernel/syscalls/syscallhdr.sh
-+++ /dev/null
-@@ -1,36 +0,0 @@
--#!/bin/sh
--# SPDX-License-Identifier: GPL-2.0
--
--in="$1"
--out="$2"
--my_abis=`echo "($3)" | tr ',' '|'`
--prefix="$4"
--offset="$5"
--
--fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
--	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
--	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
--grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
--	printf "#ifndef %s\n" "${fileguard}"
--	printf "#define %s\n" "${fileguard}"
--	printf "\n"
--
--	nxt=0
--	while read nr abi name entry compat ; do
--		if [ -z "$offset" ]; then
--			printf "#define __NR_%s%s\t%s\n" \
--				"${prefix}" "${name}" "${nr}"
--		else
--			printf "#define __NR_%s%s\t(%s + %s)\n" \
--				"${prefix}" "${name}" "${offset}" "${nr}"
--		fi
--		nxt=$((nr+1))
--	done
--
--	printf "\n"
--	printf "#ifdef __KERNEL__\n"
--	printf "#define __NR_syscalls\t%s\n" "${nxt}"
--	printf "#endif\n"
--	printf "\n"
--	printf "#endif /* %s */" "${fileguard}"
--) > "$out"
-diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
-deleted file mode 100644
-index f7393a7..0000000
---- a/arch/parisc/kernel/syscalls/syscalltbl.sh
-+++ /dev/null
-@@ -1,36 +0,0 @@
--#!/bin/sh
--# SPDX-License-Identifier: GPL-2.0
--
--in="$1"
--out="$2"
--my_abis=`echo "($3)" | tr ',' '|'`
--my_abi="$4"
--offset="$5"
--
--emit() {
--	t_nxt="$1"
--	t_nr="$2"
--	t_entry="$3"
--
--	while [ $t_nxt -lt $t_nr ]; do
--		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
--		t_nxt=$((t_nxt+1))
--	done
--	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
--}
--
--grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
--	nxt=0
--	if [ -z "$offset" ]; then
--		offset=0
--	fi
--
--	while read nr abi name entry compat ; do
--		if [ "$my_abi" = "c32" ] && [ ! -z "$compat" ]; then
--			emit $((nxt+offset)) $((nr+offset)) $compat
--		else
--			emit $((nxt+offset)) $((nr+offset)) $entry
--		fi
--		nxt=$((nr+1))
--	done
--) > "$out"
--- 
-1.9.1
+>---
+> include/asm-generic/vmlinux.lds.h | 1 -
+> 1 file changed, 1 deletion(-)
+>
+>diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>index 3d7a6a9c2370..530ce1e7a1ec 100644
+>--- a/include/asm-generic/vmlinux.lds.h
+>+++ b/include/asm-generic/vmlinux.lds.h
+>@@ -332,7 +332,6 @@
+> 		__start_rodata = .;					\
+> 		*(.rodata) *(.rodata.*)					\
+> 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+>-		KEEP(*(__vermagic))	/* Kernel version magic */	\
+> 		. = ALIGN(8);						\
+> 		__start___tracepoints_ptrs = .;				\
+> 		KEEP(*(__tracepoints_ptrs)) /* Tracepoints: pointer array */ \
+>-- 
+>2.19.2
+>
