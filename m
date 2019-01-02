@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 1/2] mips: remove nargs from __SYSCALL
-Date: Wed,  2 Jan 2019 20:26:17 +0530
-Message-ID: <1546440978-19569-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 2/2] mips: generate uapi header and system call table files
+Date: Wed,  2 Jan 2019 20:26:18 +0530
+Message-ID: <1546440978-19569-3-git-send-email-firoz.khan@linaro.org>
 References: <1546440978-19569-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1546440978-19569-1-git-send-email-firoz.khan@linaro.org>
@@ -10,93 +10,168 @@ To: Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>, Jame
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The __SYSCALL macro's arguments are system call number,
-system call entry name and number of arguments for the
-system call.
+Unified system call table generation script must be run
+to generate unistd_(nr_)n64/n32/o32.h and syscall_table-
+_32_o32/64_n64/64_n32/64-o32.h files. This patch will
+have changes which will invokes the script.
 
-Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
-calculated nor used anywhere. So it would be better to
-keep the implementaion as  __SYSCALL(nr, entry). This will
-unifies the implementation with some other architetures
-too.
+This patch will generate unistd_(nr_)n64/n32/o32.h and
+syscall_table_32_o32/64_n64/64-n32/64-o32.h files by the
+syscall table generation script invoked by parisc/Make-
+file and the generated files against the removed files
+must be identical.
+
+The generated uapi header file will be included in uapi/-
+asm/unistd.h and generated system call table header file
+will be included by kernel/scall32-o32/64-n64/64-n32/-
+64-o32.Sfile.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/mips/kernel/scall32-o32.S          | 2 +-
- arch/mips/kernel/scall64-n32.S          | 2 +-
- arch/mips/kernel/scall64-n64.S          | 2 +-
- arch/mips/kernel/scall64-o32.S          | 2 +-
- arch/mips/kernel/syscalls/syscalltbl.sh | 4 ++--
- 5 files changed, 6 insertions(+), 6 deletions(-)
+ arch/mips/kernel/syscalls/Makefile      |  6 +++---
+ arch/mips/kernel/syscalls/syscallhdr.sh | 37 ---------------------------------
+ arch/mips/kernel/syscalls/syscallnr.sh  | 28 -------------------------
+ arch/mips/kernel/syscalls/syscalltbl.sh | 36 --------------------------------
+ 4 files changed, 3 insertions(+), 104 deletions(-)
+ delete mode 100644 arch/mips/kernel/syscalls/syscallhdr.sh
+ delete mode 100644 arch/mips/kernel/syscalls/syscallnr.sh
+ delete mode 100644 arch/mips/kernel/syscalls/syscalltbl.sh
 
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index d9434cd..b449b68 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -217,7 +217,7 @@ einval: li	v0, -ENOSYS
- #define sys_sched_getaffinity	mipsmt_sys_sched_getaffinity
- #endif /* CONFIG_MIPS_MT_FPAFF */
+diff --git a/arch/mips/kernel/syscalls/Makefile b/arch/mips/kernel/syscalls/Makefile
+index a3d4bec..8b7013e 100644
+--- a/arch/mips/kernel/syscalls/Makefile
++++ b/arch/mips/kernel/syscalls/Makefile
+@@ -8,9 +8,9 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
+ syscalln32 := $(srctree)/$(src)/syscall_n32.tbl
+ syscalln64 := $(srctree)/$(src)/syscall_n64.tbl
+ syscallo32 := $(srctree)/$(src)/syscall_o32.tbl
+-syshdr := $(srctree)/$(src)/syscallhdr.sh
+-sysnr := $(srctree)/$(src)/syscallnr.sh
+-systbl := $(srctree)/$(src)/syscalltbl.sh
++syshdr := $(srctree)/scripts/syscallhdr.sh
++sysnr := $(srctree)/scripts/syscallnr.sh
++systbl := $(srctree)/scripts/syscalltbl.sh
  
--#define __SYSCALL(nr, entry, nargs)	PTR entry
-+#define __SYSCALL(nr, entry) 	PTR entry
- 	.align	2
- 	.type	sys_call_table, @object
- EXPORT(sys_call_table)
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index c761ddf..35d8c86 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -101,7 +101,7 @@ not_n32_scall:
- 
- 	END(handle_sysn32)
- 
--#define __SYSCALL(nr, entry, nargs) PTR entry
-+#define __SYSCALL(nr, entry)	PTR entry
- 	.type	sysn32_call_table, @object
- EXPORT(sysn32_call_table)
- #include <asm/syscall_table_64_n32.h>
-diff --git a/arch/mips/kernel/scall64-n64.S b/arch/mips/kernel/scall64-n64.S
-index 727fb8a..23b2e2b 100644
---- a/arch/mips/kernel/scall64-n64.S
-+++ b/arch/mips/kernel/scall64-n64.S
-@@ -109,7 +109,7 @@ illegal_syscall:
- 	j	n64_syscall_exit
- 	END(handle_sys64)
- 
--#define __SYSCALL(nr, entry, nargs) PTR entry
-+#define __SYSCALL(nr, entry)	PTR entry
- 	.align	3
- 	.type	sys_call_table, @object
- EXPORT(sys_call_table)
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index f158c58..e229155 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -213,7 +213,7 @@ einval: li	v0, -ENOSYS
- 	jr	ra
- 	END(sys32_syscall)
- 
--#define __SYSCALL(nr, entry, nargs) PTR entry
-+#define __SYSCALL(nr, entry)	PTR entry
- 	.align	3
- 	.type	sys32_call_table,@object
- EXPORT(sys32_call_table)
+ quiet_cmd_syshdr = SYSHDR  $@
+       cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
+diff --git a/arch/mips/kernel/syscalls/syscallhdr.sh b/arch/mips/kernel/syscalls/syscallhdr.sh
+deleted file mode 100644
+index d2bcfa8..0000000
+--- a/arch/mips/kernel/syscalls/syscallhdr.sh
++++ /dev/null
+@@ -1,37 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-in="$1"
+-out="$2"
+-my_abis=`echo "($3)" | tr ',' '|'`
+-prefix="$4"
+-offset="$5"
+-
+-fileguard=_UAPI_ASM_MIPS_`basename "$out" | sed \
+-	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+-	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+-grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+-	printf "#ifndef %s\n" "${fileguard}"
+-	printf "#define %s\n" "${fileguard}"
+-	printf "\n"
+-
+-	nxt=0
+-	while read nr abi name entry compat ; do
+-		if [ -z "$offset" ]; then
+-			printf "#define __NR_%s%s\t%s\n" \
+-				"${prefix}" "${name}" "${nr}"
+-		else
+-			printf "#define __NR_%s%s\t(%s + %s)\n" \
+-				"${prefix}" "${name}" "${offset}" "${nr}"
+-		fi
+-		nxt=$((nr+1))
+-	done
+-
+-	printf "\n"
+-	printf "#ifdef __KERNEL__\n"
+-	printf "#define __NR_syscalls\t%s\n" "${nxt}"
+-	printf "#endif\n"
+-	printf "\n"
+-	printf "#endif /* %s */" "${fileguard}"
+-	printf "\n"
+-) > "$out"
+diff --git a/arch/mips/kernel/syscalls/syscallnr.sh b/arch/mips/kernel/syscalls/syscallnr.sh
+deleted file mode 100644
+index 60bbdb3..0000000
+--- a/arch/mips/kernel/syscalls/syscallnr.sh
++++ /dev/null
+@@ -1,28 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-in="$1"
+-out="$2"
+-my_abis=`echo "($3)" | tr ',' '|'`
+-prefix="$4"
+-offset="$5"
+-
+-fileguard=_UAPI_ASM_MIPS_`basename "$out" | sed \
+-	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+-	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+-grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+-	printf "#ifndef %s\n" "${fileguard}"
+-	printf "#define %s\n" "${fileguard}"
+-	printf "\n"
+-
+-	nxt=0
+-	while read nr abi name entry compat ; do
+-		nxt=$((nr+1))
+-	done
+-
+-	printf "#define __NR_%s_Linux\t%s\n" "${prefix}" "${offset}"
+-	printf "#define __NR_%s_Linux_syscalls\t%s\n" "${prefix}" "${nxt}"
+-	printf "\n"
+-	printf "#endif /* %s */" "${fileguard}"
+-	printf "\n"
+-) > "$out"
 diff --git a/arch/mips/kernel/syscalls/syscalltbl.sh b/arch/mips/kernel/syscalls/syscalltbl.sh
-index acd338d..1e25707 100644
+deleted file mode 100644
+index 1e25707..0000000
 --- a/arch/mips/kernel/syscalls/syscalltbl.sh
-+++ b/arch/mips/kernel/syscalls/syscalltbl.sh
-@@ -13,10 +13,10 @@ emit() {
- 	t_entry="$3"
- 
- 	while [ $t_nxt -lt $t_nr ]; do
--		printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
-+		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
- 		t_nxt=$((t_nxt+1))
- 	done
--	printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
-+	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
- }
- 
- grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-in="$1"
+-out="$2"
+-my_abis=`echo "($3)" | tr ',' '|'`
+-my_abi="$4"
+-offset="$5"
+-
+-emit() {
+-	t_nxt="$1"
+-	t_nr="$2"
+-	t_entry="$3"
+-
+-	while [ $t_nxt -lt $t_nr ]; do
+-		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
+-		t_nxt=$((t_nxt+1))
+-	done
+-	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
+-}
+-
+-grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+-	nxt=0
+-	if [ -z "$offset" ]; then
+-		offset=0
+-	fi
+-
+-	while read nr abi name entry compat ; do
+-		if [ "$my_abi" = "64_o32" ] && [ ! -z "$compat" ]; then
+-			emit $((nxt+offset)) $((nr+offset)) $compat
+-		else
+-			emit $((nxt+offset)) $((nr+offset)) $entry
+-		fi
+-		nxt=$((nr+1))
+-	done
+-) > "$out"
 -- 
 1.9.1
