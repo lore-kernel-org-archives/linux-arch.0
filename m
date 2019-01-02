@@ -1,44 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:38761 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729042AbfABQC4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 11:02:56 -0500
-Received: by mail-pl1-f195.google.com with SMTP id e5so14676077plb.5
-        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 08:02:56 -0800 (PST)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:33514 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730322AbfABQDH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 11:03:07 -0500
+Received: by mail-pg1-f196.google.com with SMTP id z11so14768830pgu.0
+        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 08:03:06 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/2] parisc: Unify the system call scripts
-Date: Wed,  2 Jan 2019 21:32:31 +0530
-Message-ID: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 2/2] parisc: generate uapi header and system call table files
+Date: Wed,  2 Jan 2019 21:32:33 +0530
+Message-ID: <1546444953-21630-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
+References: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, John David Anglin <dave.anglin@bell.net>, Matthew Wilcox <willy@infradead.org>, linux-parisc@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20190102160231.7WMk2KRjVLXyu8ioH-gncvKX4yqrx0XjBIqeC03xPxc@z>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, Firoz Khan <firozk@codeaurora.org>
+Message-ID: <20190102160233.hXdaDWbqTybMn_8LLsef3H4IfHU8-B5Tkqci4-aI9Jw@z>
 
-System call table generation support is provided for
-alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
-sh, sparc and xtensa architectures. The implementat-
-ions are almost similar across all the above archte-
-ctures. In order to reduce the source code across all
-the above architectures, create common ".sh" files and
-keep it in the common directory, script/. This will 
-be a generic scripts which can use for all the above
-architectures.
+From: Firoz Khan <firozk@codeaurora.org>
 
-This patch depends on;
- https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
+Unified system call table generation script must be run to
+generate unistd_32/64.h and syscall_table_32/64/c32.h files.
+This patch will have changes which will invokes the script.
 
-Firoz Khan (2):
-  parisc: remove nargs from __SYSCALL
-  parisc: generate uapi header and system call table files
+This patch will generate unistd_32/64.h and syscall_table-
+_32/64/c32.h files by the syscall table generation script
+invoked by parisc/Makefile and the generated files against
+the removed files must be identical.
 
- arch/parisc/kernel/syscall.S              |  2 +-
+The generated uapi header file will be included in uapi/-
+asm/unistd.h and generated system call table header file
+will be included by kernel/syscall.S file.
+
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
  arch/parisc/kernel/syscalls/Makefile      | 11 ++++++++--
  arch/parisc/kernel/syscalls/syscallhdr.sh | 36 -------------------------------
  arch/parisc/kernel/syscalls/syscalltbl.sh | 36 -------------------------------
- 4 files changed, 10 insertions(+), 75 deletions(-)
+ 3 files changed, 9 insertions(+), 74 deletions(-)
  delete mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
  delete mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
 
+diff --git a/arch/parisc/kernel/syscalls/Makefile b/arch/parisc/kernel/syscalls/Makefile
+index c22a21c..e24272d 100644
+--- a/arch/parisc/kernel/syscalls/Makefile
++++ b/arch/parisc/kernel/syscalls/Makefile
+@@ -6,8 +6,9 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
+ 	  $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
+ 
+ syscall := $(srctree)/$(src)/syscall.tbl
+-syshdr := $(srctree)/$(src)/syscallhdr.sh
+-systbl := $(srctree)/$(src)/syscalltbl.sh
++syshdr := $(srctree)/scripts/syscallhdr.sh
++sysnr := $(srctree)/scripts/syscallnr.sh
++systbl := $(srctree)/scripts/syscalltbl.sh
+ 
+ quiet_cmd_syshdr = SYSHDR  $@
+       cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
+@@ -15,6 +16,12 @@ quiet_cmd_syshdr = SYSHDR  $@
+ 		   '$(syshdr_pfx_$(basetarget))'		\
+ 		   '$(syshdr_offset_$(basetarget))'
+ 
++quiet_cmd_sysnr = SYSNR  $@
++      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'		\
++		  '$(sysnr_abis_$(basetarget))'			\
++		  '$(sysnr_pfx_$(basetarget))'			\
++		  '$(sysnr_offset_$(basetarget))'
++
+ quiet_cmd_systbl = SYSTBL  $@
+       cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
+ 		   '$(systbl_abis_$(basetarget))'		\
+diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh b/arch/parisc/kernel/syscalls/syscallhdr.sh
+deleted file mode 100644
+index 50242b7..0000000
+--- a/arch/parisc/kernel/syscalls/syscallhdr.sh
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-in="$1"
+-out="$2"
+-my_abis=`echo "($3)" | tr ',' '|'`
+-prefix="$4"
+-offset="$5"
+-
+-fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
+-	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+-	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+-grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+-	printf "#ifndef %s\n" "${fileguard}"
+-	printf "#define %s\n" "${fileguard}"
+-	printf "\n"
+-
+-	nxt=0
+-	while read nr abi name entry compat ; do
+-		if [ -z "$offset" ]; then
+-			printf "#define __NR_%s%s\t%s\n" \
+-				"${prefix}" "${name}" "${nr}"
+-		else
+-			printf "#define __NR_%s%s\t(%s + %s)\n" \
+-				"${prefix}" "${name}" "${offset}" "${nr}"
+-		fi
+-		nxt=$((nr+1))
+-	done
+-
+-	printf "\n"
+-	printf "#ifdef __KERNEL__\n"
+-	printf "#define __NR_syscalls\t%s\n" "${nxt}"
+-	printf "#endif\n"
+-	printf "\n"
+-	printf "#endif /* %s */" "${fileguard}"
+-) > "$out"
+diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
+deleted file mode 100644
+index f7393a7..0000000
+--- a/arch/parisc/kernel/syscalls/syscalltbl.sh
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-in="$1"
+-out="$2"
+-my_abis=`echo "($3)" | tr ',' '|'`
+-my_abi="$4"
+-offset="$5"
+-
+-emit() {
+-	t_nxt="$1"
+-	t_nr="$2"
+-	t_entry="$3"
+-
+-	while [ $t_nxt -lt $t_nr ]; do
+-		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
+-		t_nxt=$((t_nxt+1))
+-	done
+-	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
+-}
+-
+-grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+-	nxt=0
+-	if [ -z "$offset" ]; then
+-		offset=0
+-	fi
+-
+-	while read nr abi name entry compat ; do
+-		if [ "$my_abi" = "c32" ] && [ ! -z "$compat" ]; then
+-			emit $((nxt+offset)) $((nr+offset)) $compat
+-		else
+-			emit $((nxt+offset)) $((nr+offset)) $entry
+-		fi
+-		nxt=$((nr+1))
+-	done
+-) > "$out"
 -- 
 1.9.1
