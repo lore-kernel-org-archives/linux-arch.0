@@ -1,40 +1,159 @@
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Subject: Re: jump_label: move 'asm goto' support test to Kconfig
-Date: Wed, 2 Jan 2019 13:14:18 +0100
-Message-ID: <CA+icZUU=1S0Xg3+zWNU-60eknfWyL2kjEPm2BNNTK8Eu-tkTEg@mail.gmail.com>
-Reply-To: sedat.dilek@gmail.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH] scripts: unify system call table generation scripts
+Date: Wed,  2 Jan 2019 19:58:51 +0530
+Message-ID: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: masahiroy@kernel.org
-Cc: linux-kbuild@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "David S . Miller" <davem@davemloft.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+System call table generation support is provided for
+alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
+sh, sparc and xtensa architectures. The implementat-
+ions are almost similar across all the above archte-
+ctures.
 
-I was not aware that CONFIG_JUMP_LABEL Kconfig setting depends on the
-support of asm-goto.
+In order to reduce the source code across all the
+above architectures, create common ".sh" files and
+keep it in the common directory, script/.
 
-Currently, I am doing experiments with clang-7 and a snapshot of
-clang-8 on Linux/x86.
-These compilers have no asm-goto support.
+This will be a generic scripts which can use for all
+the above architectures.
 
-What is your recommendation for Linux >= v4.20?
-I am asking as it is possible to set CONFIG_JUMP_LABEL=y when
-compiling with clang - which has no effect.
-This is confusing.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ scripts/syscallhdr.sh | 37 +++++++++++++++++++++++++++++++++++++
+ scripts/syscallnr.sh  | 32 ++++++++++++++++++++++++++++++++
+ scripts/syscalltbl.sh | 37 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 106 insertions(+)
+ create mode 100644 scripts/syscallhdr.sh
+ create mode 100644 scripts/syscallnr.sh
+ create mode 100644 scripts/syscalltbl.sh
 
-Thanks, this patch makes things clearer and protects users from
-setting "wrong" in the sense of non-functional settings.
-
-I have tested this against recent Linus tree where kbuild/kconfig Git
-pulls were latest commits.
-
-Tested-by: Sedat Dilek <sedat.dilek@gmail.com> [ x86 with LLVM/Clang
-v7 and v8 (snapshot) ]
-
-Thanks.
-
-Regards,
-- Sedat -
+diff --git a/scripts/syscallhdr.sh b/scripts/syscallhdr.sh
+new file mode 100644
+index 0000000..d03fe3d
+--- /dev/null
++++ b/scripts/syscallhdr.sh
+@@ -0,0 +1,37 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++in="$1"
++out="$2"
++my_abis=`echo "($3)" | tr ',' '|'`
++prefix="$4"
++offset="$5"
++
++fileguard=_UAPI_ASM_`basename "$out" | sed \
++	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
++	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
++grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++	printf "#ifndef %s\n" "${fileguard}"
++	printf "#define %s\n" "${fileguard}"
++	printf "\n"
++
++	nxt=0
++	while read nr abi name entry compat ; do
++		if [ -z "$offset" ]; then
++			printf "#define __NR_%s%s\t%s\n" \
++				"${prefix}" "${name}" "${nr}"
++		else
++			printf "#define __NR_%s%s\t(%s + %s)\n" \
++				"${prefix}" "${name}" "${offset}" "${nr}"
++		fi
++		nxt=$((nr+1))
++	done
++
++	printf "\n"
++	printf "#ifdef __KERNEL__\n"
++	printf "#define __NR_syscalls\t%s\n" "${nxt}"
++	printf "#endif\n"
++	printf "\n"
++	printf "#endif /* %s */" "${fileguard}"
++	printf "\n"
++) > "$out"
+diff --git a/scripts/syscallnr.sh b/scripts/syscallnr.sh
+new file mode 100644
+index 0000000..8cf33fa
+--- /dev/null
++++ b/scripts/syscallnr.sh
+@@ -0,0 +1,32 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++in="$1"
++out="$2"
++my_abis=`echo "($3)" | tr ',' '|'`
++prefix="$4"
++offset="$5"
++
++fileguard=_UAPI_ASM_`basename "$out" | sed \
++	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
++	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
++grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++	printf "#ifndef %s\n" "${fileguard}"
++	printf "#define %s\n" "${fileguard}"
++	printf "\n"
++
++	nxt=0
++	while read nr abi name entry compat ; do
++		nxt=$((nr+1))
++	done
++
++	if [ ! -z "$prefix" ]; then
++		printf "#define __NR_%s_Linux_syscalls\t%s\n" "${prefix}" "${nxt}"
++		if [ ! -z "$offset" ]; then
++			printf "#define __NR_%s_Linux\t%s\n" "${prefix}" "${offset}"
++		fi
++	fi
++	printf "\n"
++	printf "#endif /* %s */" "${fileguard}"
++	printf "\n"
++) > "$out"
+diff --git a/scripts/syscalltbl.sh b/scripts/syscalltbl.sh
+new file mode 100644
+index 0000000..f60f762
+--- /dev/null
++++ b/scripts/syscalltbl.sh
+@@ -0,0 +1,37 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++in="$1"
++out="$2"
++my_abis=`echo "($3)" | tr ',' '|'`
++my_abi="$4"
++offset="$5"
++
++emit() {
++	t_nxt="$1"
++	t_nr="$2"
++	t_entry="$3"
++
++	while [ $t_nxt -lt $t_nr ]; do
++		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
++		t_nxt=$((t_nxt+1))
++	done
++	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
++}
++
++grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
++	nxt=0
++	if [ -z "$offset" ]; then
++		offset=0
++	fi
++
++	while read nr abi name entry compat ; do
++		if [ "$my_abi" = "c32" -o "$my_abi" = "64_o32" ] &&
++			[ ! -z "$compat" ]; then
++			emit $((nxt+offset)) $((nr+offset)) $compat
++		else
++			emit $((nxt+offset)) $((nr+offset)) $entry
++		fi
++		nxt=$((nr+1))
++	done
++) > "$out"
+-- 
+1.9.1
