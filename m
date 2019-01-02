@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:46180 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730275AbfABPxU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 10:53:20 -0500
-Received: by mail-pl1-f194.google.com with SMTP id t13so14648978ply.13
-        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 07:53:19 -0800 (PST)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:42345 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730207AbfABQDC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 11:03:02 -0500
+Received: by mail-pg1-f196.google.com with SMTP id d72so14742922pga.9
+        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 08:03:01 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 1/3] sparc: remove nargs from __SYSCALL
-Date: Wed,  2 Jan 2019 21:22:51 +0530
-Message-ID: <1546444373-21386-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1546444373-21386-1-git-send-email-firoz.khan@linaro.org>
-References: <1546444373-21386-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/2] parisc: remove nargs from __SYSCALL
+Date: Wed,  2 Jan 2019 21:32:32 +0530
+Message-ID: <1546444953-21630-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
+References: <1546444953-21630-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S . Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>, sparclinux@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, John David Anglin <dave.anglin@bell.net>, Matthew Wilcox <willy@infradead.org>, linux-parisc@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20190102155251.Tg-KzCWZK7Z8c_CI82dlbN8J5bcOyaqdoBtNoy0N0Fs@z>
+Message-ID: <20190102160232.78i1DNnEp36Am6OQXcSiCQ0TUtj8DJBitSvxh48TUcU@z>
 
 The __SYSCALL macro's arguments are system call number,
 system call entry name and number of arguments for the
@@ -29,21 +29,33 @@ too.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/sparc/kernel/syscalls/syscalltbl.sh | 4 ++--
- arch/sparc/kernel/systbls_32.S           | 2 +-
- arch/sparc/kernel/systbls_64.S           | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
+ arch/parisc/kernel/syscall.S              | 2 +-
+ arch/parisc/kernel/syscalls/syscalltbl.sh | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sparc/kernel/syscalls/syscalltbl.sh b/arch/sparc/kernel/syscalls/syscalltbl.sh
-index 77cf014..ffe954b 100644
---- a/arch/sparc/kernel/syscalls/syscalltbl.sh
-+++ b/arch/sparc/kernel/syscalls/syscalltbl.sh
+diff --git a/arch/parisc/kernel/syscall.S b/arch/parisc/kernel/syscall.S
+index 4f77bd9..e843151 100644
+--- a/arch/parisc/kernel/syscall.S
++++ b/arch/parisc/kernel/syscall.S
+@@ -923,7 +923,7 @@ ENTRY(lws_table)
+ END(lws_table)
+ 	/* End of lws table */
+ 
+-#define __SYSCALL(nr, entry, nargs) ASM_ULONG_INSN entry
++#define __SYSCALL(nr, entry)	ASM_ULONG_INSN entry
+ 	.align 8
+ ENTRY(sys_call_table)
+ 	.export sys_call_table,data
+diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
+index 45b5bae..f7393a7 100644
+--- a/arch/parisc/kernel/syscalls/syscalltbl.sh
++++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
 @@ -13,10 +13,10 @@ emit() {
  	t_entry="$3"
  
  	while [ $t_nxt -lt $t_nr ]; do
--		printf "__SYSCALL(%s, sys_nis_syscall, )\n" "${t_nxt}"
-+		printf "__SYSCALL(%s,sys_nis_syscall)\n" "${t_nxt}"
+-		printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
++		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
  		t_nxt=$((t_nxt+1))
  	done
 -	printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
@@ -51,31 +63,5 @@ index 77cf014..ffe954b 100644
  }
  
  grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-diff --git a/arch/sparc/kernel/systbls_32.S b/arch/sparc/kernel/systbls_32.S
-index ab9e4d5..391a49a 100644
---- a/arch/sparc/kernel/systbls_32.S
-+++ b/arch/sparc/kernel/systbls_32.S
-@@ -9,7 +9,7 @@
-  * Copyright (C) 1995 Adrian M. Rodriguez (adrian@remus.rutgers.edu)
-  */
- 
--#define __SYSCALL(nr, entry, nargs) .long entry
-+#define __SYSCALL(nr, entry)	.long entry
- 	.data
- 	.align 4
- 	.globl sys_call_table
-diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
-index a27394b..08ce7cb 100644
---- a/arch/sparc/kernel/systbls_64.S
-+++ b/arch/sparc/kernel/systbls_64.S
-@@ -10,7 +10,7 @@
-  * Copyright (C) 1995 Adrian M. Rodriguez (adrian@remus.rutgers.edu)
-  */
- 
--#define __SYSCALL(nr, entry, nargs) .word entry
-+#define __SYSCALL(nr, entry)	.word entry
- 	.text
- 	.align	4
- #ifdef CONFIG_COMPAT
 -- 
 1.9.1
