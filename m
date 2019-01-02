@@ -1,166 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:44921 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726934AbfABO3t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 09:29:49 -0500
-Received: by mail-pf1-f196.google.com with SMTP id u6so15243900pfh.11
-        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 06:29:48 -0800 (PST)
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:43367 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726855AbfABO4p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2019 09:56:45 -0500
+Received: by mail-pl1-f194.google.com with SMTP id gn14so14618050plb.10
+        for <linux-arch@vger.kernel.org>; Wed, 02 Jan 2019 06:56:45 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH] scripts: unify system call table generation scripts
-Date: Wed,  2 Jan 2019 19:58:51 +0530
-Message-ID: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 0/2] Unify the system call scripts
+Date: Wed,  2 Jan 2019 20:26:16 +0530
+Message-ID: <1546440978-19569-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20190102142851.OHBuvGn8D7709G7kjzO2oIlEnNqi6uYwAVzELDrDRnI@z>
+Message-ID: <20190102145616.pd3jP8vEdGCMpUjZtf8v9saULRA8f-zn52p6q5mV5xI@z>
 
 System call table generation support is provided for
 alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
 sh, sparc and xtensa architectures. The implementat-
 ions are almost similar across all the above archte-
-ctures.
+ctures. In order to reduce the source code across all
+the above architectures, create common ".sh" files and
+keep it in the common directory, script/. This will 
+be a generic scripts which can use for all the above
+architectures.
 
-In order to reduce the source code across all the
-above architectures, create common ".sh" files and
-keep it in the common directory, script/.
+This patch depends on;
+ https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
 
-This will be a generic scripts which can use for all
-the above architectures.
+Firoz Khan (2):
+  mips: remove nargs from __SYSCALL
+  mips: generate uapi header and system call table files
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- scripts/syscallhdr.sh | 37 +++++++++++++++++++++++++++++++++++++
- scripts/syscallnr.sh  | 32 ++++++++++++++++++++++++++++++++
- scripts/syscalltbl.sh | 37 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 106 insertions(+)
- create mode 100644 scripts/syscallhdr.sh
- create mode 100644 scripts/syscallnr.sh
- create mode 100644 scripts/syscalltbl.sh
+ arch/mips/kernel/scall32-o32.S          |  2 +-
+ arch/mips/kernel/scall64-n32.S          |  2 +-
+ arch/mips/kernel/scall64-n64.S          |  2 +-
+ arch/mips/kernel/scall64-o32.S          |  2 +-
+ arch/mips/kernel/syscalls/Makefile      |  6 +++---
+ arch/mips/kernel/syscalls/syscallhdr.sh | 37 ---------------------------------
+ arch/mips/kernel/syscalls/syscallnr.sh  | 28 -------------------------
+ arch/mips/kernel/syscalls/syscalltbl.sh | 36 --------------------------------
+ 8 files changed, 7 insertions(+), 108 deletions(-)
+ delete mode 100644 arch/mips/kernel/syscalls/syscallhdr.sh
+ delete mode 100644 arch/mips/kernel/syscalls/syscallnr.sh
+ delete mode 100644 arch/mips/kernel/syscalls/syscalltbl.sh
 
-diff --git a/scripts/syscallhdr.sh b/scripts/syscallhdr.sh
-new file mode 100644
-index 0000000..d03fe3d
---- /dev/null
-+++ b/scripts/syscallhdr.sh
-@@ -0,0 +1,37 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+in="$1"
-+out="$2"
-+my_abis=`echo "($3)" | tr ',' '|'`
-+prefix="$4"
-+offset="$5"
-+
-+fileguard=_UAPI_ASM_`basename "$out" | sed \
-+	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-+	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-+grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-+	printf "#ifndef %s\n" "${fileguard}"
-+	printf "#define %s\n" "${fileguard}"
-+	printf "\n"
-+
-+	nxt=0
-+	while read nr abi name entry compat ; do
-+		if [ -z "$offset" ]; then
-+			printf "#define __NR_%s%s\t%s\n" \
-+				"${prefix}" "${name}" "${nr}"
-+		else
-+			printf "#define __NR_%s%s\t(%s + %s)\n" \
-+				"${prefix}" "${name}" "${offset}" "${nr}"
-+		fi
-+		nxt=$((nr+1))
-+	done
-+
-+	printf "\n"
-+	printf "#ifdef __KERNEL__\n"
-+	printf "#define __NR_syscalls\t%s\n" "${nxt}"
-+	printf "#endif\n"
-+	printf "\n"
-+	printf "#endif /* %s */" "${fileguard}"
-+	printf "\n"
-+) > "$out"
-diff --git a/scripts/syscallnr.sh b/scripts/syscallnr.sh
-new file mode 100644
-index 0000000..8cf33fa
---- /dev/null
-+++ b/scripts/syscallnr.sh
-@@ -0,0 +1,32 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+in="$1"
-+out="$2"
-+my_abis=`echo "($3)" | tr ',' '|'`
-+prefix="$4"
-+offset="$5"
-+
-+fileguard=_UAPI_ASM_`basename "$out" | sed \
-+	-e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-+	-e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-+grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-+	printf "#ifndef %s\n" "${fileguard}"
-+	printf "#define %s\n" "${fileguard}"
-+	printf "\n"
-+
-+	nxt=0
-+	while read nr abi name entry compat ; do
-+		nxt=$((nr+1))
-+	done
-+
-+	if [ ! -z "$prefix" ]; then
-+		printf "#define __NR_%s_Linux_syscalls\t%s\n" "${prefix}" "${nxt}"
-+		if [ ! -z "$offset" ]; then
-+			printf "#define __NR_%s_Linux\t%s\n" "${prefix}" "${offset}"
-+		fi
-+	fi
-+	printf "\n"
-+	printf "#endif /* %s */" "${fileguard}"
-+	printf "\n"
-+) > "$out"
-diff --git a/scripts/syscalltbl.sh b/scripts/syscalltbl.sh
-new file mode 100644
-index 0000000..f60f762
---- /dev/null
-+++ b/scripts/syscalltbl.sh
-@@ -0,0 +1,37 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+in="$1"
-+out="$2"
-+my_abis=`echo "($3)" | tr ',' '|'`
-+my_abi="$4"
-+offset="$5"
-+
-+emit() {
-+	t_nxt="$1"
-+	t_nr="$2"
-+	t_entry="$3"
-+
-+	while [ $t_nxt -lt $t_nr ]; do
-+		printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
-+		t_nxt=$((t_nxt+1))
-+	done
-+	printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
-+}
-+
-+grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-+	nxt=0
-+	if [ -z "$offset" ]; then
-+		offset=0
-+	fi
-+
-+	while read nr abi name entry compat ; do
-+		if [ "$my_abi" = "c32" -o "$my_abi" = "64_o32" ] &&
-+			[ ! -z "$compat" ]; then
-+			emit $((nxt+offset)) $((nr+offset)) $compat
-+		else
-+			emit $((nxt+offset)) $((nr+offset)) $entry
-+		fi
-+		nxt=$((nr+1))
-+	done
-+) > "$out"
 -- 
 1.9.1
