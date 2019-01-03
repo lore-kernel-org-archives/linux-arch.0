@@ -1,169 +1,93 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH] scripts: unify system call table generation scripts
-Date: Thu, 3 Jan 2019 17:04:57 +0530
-Message-ID: <CALxhOnjz3Qd-a0OWMDV9ShfPOUB8gNB5Ltp9HGZi01mauaxkuw@mail.gmail.com>
-References: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/2] m68k: generate uapi header and syscall table header files
+Date: Thu, 3 Jan 2019 12:43:13 +0100
+Message-ID: <CAMuHMdUT3B2JLkijM5Ofd3TUYa8TZJaj1NWaEJvU_19B-naF-w@mail.gmail.com>
+References: <1546442319-20461-1-git-send-email-firoz.khan@linaro.org> <1546442319-20461-3-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546442319-20461-3-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Tony Luck <tony.luck@intel.com>, Helge Deller <deller@gmx.de>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Richard Henderson <rth@twiddle.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S . Miller" <davem@davemloft.net>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-++ adding more folks I closely worked with :)
+Hi Firoz,
 
+Thanks for your patch!
 
-On Wed, 2 Jan 2019 at 19:59, Firoz Khan <firoz.khan@linaro.org> wrote:
+On Wed, Jan 2, 2019 at 4:19 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> Subject: m68k: generate uapi header and syscall table header files
 >
-> System call table generation support is provided for
-> alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
-> sh, sparc and xtensa architectures. The implementat-
-> ions are almost similar across all the above archte-
-> ctures.
+> Unified system call table generation script must be run to
+> generate unistd_32.h and syscall_table.h files. This patch
+> will have changes which will invokes the script.
 >
-> In order to reduce the source code across all the
-> above architectures, create common ".sh" files and
-> keep it in the common directory, script/.
+> This patch will generate unistd_32.h and syscall_table.h
+> files by the syscall table generation script invoked by
+> m68k/Makefile and the generated files against the removed
+> files must be identical.
 >
-> This will be a generic scripts which can use for all
-> the above architectures.
->
+> The generated uapi header file will be included in uapi/-
+> asm/unistd.h and generated system call table header file
+> will be included by kernel/syscalltable.S file.
+
+This doesn't really describe what this patch is doing.
+This patch switches m68k over to use the common scripts for
+system call header file generation.
+
 > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 > ---
->  scripts/syscallhdr.sh | 37 +++++++++++++++++++++++++++++++++++++
->  scripts/syscallnr.sh  | 32 ++++++++++++++++++++++++++++++++
->  scripts/syscalltbl.sh | 37 +++++++++++++++++++++++++++++++++++++
->  3 files changed, 106 insertions(+)
->  create mode 100644 scripts/syscallhdr.sh
->  create mode 100644 scripts/syscallnr.sh
->  create mode 100644 scripts/syscalltbl.sh
+>  arch/m68k/kernel/syscalls/Makefile      | 11 ++++++++--
+>  arch/m68k/kernel/syscalls/syscallhdr.sh | 36 ---------------------------------
+>  arch/m68k/kernel/syscalls/syscalltbl.sh | 32 -----------------------------
+>  3 files changed, 9 insertions(+), 70 deletions(-)
+>  delete mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
+>  delete mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
 >
-> diff --git a/scripts/syscallhdr.sh b/scripts/syscallhdr.sh
-> new file mode 100644
-> index 0000000..d03fe3d
-> --- /dev/null
-> +++ b/scripts/syscallhdr.sh
-> @@ -0,0 +1,37 @@
-> +#!/bin/sh
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +in="$1"
-> +out="$2"
-> +my_abis=`echo "($3)" | tr ',' '|'`
-> +prefix="$4"
-> +offset="$5"
-> +
-> +fileguard=_UAPI_ASM_`basename "$out" | sed \
-> +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-> +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> +       printf "#ifndef %s\n" "${fileguard}"
-> +       printf "#define %s\n" "${fileguard}"
-> +       printf "\n"
-> +
-> +       nxt=0
-> +       while read nr abi name entry compat ; do
-> +               if [ -z "$offset" ]; then
-> +                       printf "#define __NR_%s%s\t%s\n" \
-> +                               "${prefix}" "${name}" "${nr}"
-> +               else
-> +                       printf "#define __NR_%s%s\t(%s + %s)\n" \
-> +                               "${prefix}" "${name}" "${offset}" "${nr}"
-> +               fi
-> +               nxt=$((nr+1))
-> +       done
-> +
-> +       printf "\n"
-> +       printf "#ifdef __KERNEL__\n"
-> +       printf "#define __NR_syscalls\t%s\n" "${nxt}"
-> +       printf "#endif\n"
-> +       printf "\n"
-> +       printf "#endif /* %s */" "${fileguard}"
-> +       printf "\n"
-> +) > "$out"
-> diff --git a/scripts/syscallnr.sh b/scripts/syscallnr.sh
-> new file mode 100644
-> index 0000000..8cf33fa
-> --- /dev/null
-> +++ b/scripts/syscallnr.sh
-> @@ -0,0 +1,32 @@
-> +#!/bin/sh
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +in="$1"
-> +out="$2"
-> +my_abis=`echo "($3)" | tr ',' '|'`
-> +prefix="$4"
-> +offset="$5"
-> +
-> +fileguard=_UAPI_ASM_`basename "$out" | sed \
-> +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-> +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> +       printf "#ifndef %s\n" "${fileguard}"
-> +       printf "#define %s\n" "${fileguard}"
-> +       printf "\n"
-> +
-> +       nxt=0
-> +       while read nr abi name entry compat ; do
-> +               nxt=$((nr+1))
-> +       done
-> +
-> +       if [ ! -z "$prefix" ]; then
-> +               printf "#define __NR_%s_Linux_syscalls\t%s\n" "${prefix}" "${nxt}"
-> +               if [ ! -z "$offset" ]; then
-> +                       printf "#define __NR_%s_Linux\t%s\n" "${prefix}" "${offset}"
-> +               fi
-> +       fi
-> +       printf "\n"
-> +       printf "#endif /* %s */" "${fileguard}"
-> +       printf "\n"
-> +) > "$out"
-> diff --git a/scripts/syscalltbl.sh b/scripts/syscalltbl.sh
-> new file mode 100644
-> index 0000000..f60f762
-> --- /dev/null
-> +++ b/scripts/syscalltbl.sh
-> @@ -0,0 +1,37 @@
-> +#!/bin/sh
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +in="$1"
-> +out="$2"
-> +my_abis=`echo "($3)" | tr ',' '|'`
-> +my_abi="$4"
-> +offset="$5"
-> +
-> +emit() {
-> +       t_nxt="$1"
-> +       t_nr="$2"
-> +       t_entry="$3"
-> +
-> +       while [ $t_nxt -lt $t_nr ]; do
-> +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
-> +               t_nxt=$((t_nxt+1))
-> +       done
-> +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
-> +}
-> +
-> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> +       nxt=0
-> +       if [ -z "$offset" ]; then
-> +               offset=0
-> +       fi
-> +
-> +       while read nr abi name entry compat ; do
-> +               if [ "$my_abi" = "c32" -o "$my_abi" = "64_o32" ] &&
-> +                       [ ! -z "$compat" ]; then
-> +                       emit $((nxt+offset)) $((nr+offset)) $compat
-> +               else
-> +                       emit $((nxt+offset)) $((nr+offset)) $entry
-> +               fi
-> +               nxt=$((nr+1))
-> +       done
-> +) > "$out"
-> --
-> 1.9.1
+> diff --git a/arch/m68k/kernel/syscalls/Makefile b/arch/m68k/kernel/syscalls/Makefile
+> index 659faef..75c7421 100644
+> --- a/arch/m68k/kernel/syscalls/Makefile
+> +++ b/arch/m68k/kernel/syscalls/Makefile
+> @@ -6,8 +6,9 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')       \
+>           $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
 >
+>  syscall := $(srctree)/$(src)/syscall.tbl
+> -syshdr := $(srctree)/$(src)/syscallhdr.sh
+> -systbl := $(srctree)/$(src)/syscalltbl.sh
+> +syshdr := $(srctree)/scripts/syscallhdr.sh
+> +sysnr := $(srctree)/scripts/syscallnr.sh
+
+What's the purpose of adding sysnr?
+
+> +systbl := $(srctree)/scripts/syscalltbl.sh
+>
+>  quiet_cmd_syshdr = SYSHDR  $@
+>        cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'       \
+> @@ -15,6 +16,12 @@ quiet_cmd_syshdr = SYSHDR  $@
+>                    '$(syshdr_pfx_$(basetarget))'                \
+>                    '$(syshdr_offset_$(basetarget))'
+>
+> +quiet_cmd_sysnr = SYSNR  $@
+> +      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'         \
+> +                 '$(sysnr_abis_$(basetarget))'                 \
+> +                 '$(sysnr_pfx_$(basetarget))'                  \
+> +                 '$(sysnr_offset_$(basetarget))'
+> +
+
+What's the purpose of adding this build rule, which is unused?
+
+The patch works fine though.
+
+I assume the common build rules will be moved to a common place later?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
