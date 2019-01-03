@@ -1,100 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:34575 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725976AbfACFp6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 00:45:58 -0500
-Date: Wed, 2 Jan 2019 21:45:55 -0800
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH] RISC-V: Add _TIF_NEED_RESCHED check for kernel thread
- when CONFIG_PREEMPT=y
-Message-ID: <20190103054555.GA30904@roeck-us.net>
-References: <1546486353-23115-1-git-send-email-vincentc@andestech.com>
+Received: from verein.lst.de ([213.95.11.211]:60819 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726036AbfACHgY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 Jan 2019 02:36:24 -0500
+Date: Thu, 3 Jan 2019 08:36:22 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Message-ID: <20190103073622.GA24323@lst.de>
+References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de> <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de> <20181213091021.GA2106@lst.de> <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de> <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de> <20181213112511.GA4574@lst.de> <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de> <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de> <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de> <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1546486353-23115-1-git-send-email-vincentc@andestech.com>
+In-Reply-To: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincent Chen <vincentc@andestech.com>
-Cc: palmer@sifive.com, aou@eecs.berkeley.edu, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20190103054555.TkPt3EO8SKAVWI-5jDhVKDlZpNLv4Gbu96rdm2vxpRQ@z>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190103073622.FkANH9x9o_4TLk2eXOx1yzFPQTpfjs_6rZK6PoS28gc@z>
 
-On Thu, Jan 03, 2019 at 11:32:33AM +0800, Vincent Chen wrote:
-> The cond_resched() can be used to yield the CPU resource if
-> CONFIG_PREEMPT is not defined. Otherwise, cond_resched() is a dummy
-> function. In order to avoid kernel thread occupying entire CPU,
-> when CONFIG_PREEMPT=y, the kernel thread needs to follow the
-> rescheduling mechanism like a user thread.
-> 
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Hi Christian,
 
-This patch seems to do the trick. I no longer see a problem with
-CONFIG_PREEMPT=y and the various lock torture tests enabled, as
-previously reported.
+happy new year and I hope you had a few restful deays off.
 
-Nice catch and fix.
+I've pushed a new tree to:
 
-Tested-by: Guenter Roeck <linux@roeck-us.net>
+   git://git.infradead.org/users/hch/misc.git powerpc-dma.6
 
-Guenter
+Gitweb:
 
-> ---
->  arch/riscv/kernel/asm-offsets.c |    1 +
->  arch/riscv/kernel/entry.S       |   18 +++++++++++++++++-
->  2 files changed, 18 insertions(+), 1 deletions(-)
-> 
-> diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
-> index 6a92a2f..dac9834 100644
-> --- a/arch/riscv/kernel/asm-offsets.c
-> +++ b/arch/riscv/kernel/asm-offsets.c
-> @@ -39,6 +39,7 @@ void asm_offsets(void)
->  	OFFSET(TASK_STACK, task_struct, stack);
->  	OFFSET(TASK_TI, task_struct, thread_info);
->  	OFFSET(TASK_TI_FLAGS, task_struct, thread_info.flags);
-> +	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
->  	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
->  	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
->  	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
-> diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
-> index 13d4826..728b72d 100644
-> --- a/arch/riscv/kernel/entry.S
-> +++ b/arch/riscv/kernel/entry.S
-> @@ -144,6 +144,10 @@ _save_context:
->  	REG_L x2,  PT_SP(sp)
->  	.endm
->  
-> +#if !IS_ENABLED(CONFIG_PREEMPT)
-> +#define resume_kernel restore_all
-> +#endif
-> +
->  ENTRY(handle_exception)
->  	SAVE_ALL
->  
-> @@ -228,7 +232,7 @@ ret_from_exception:
->  	REG_L s0, PT_SSTATUS(sp)
->  	csrc sstatus, SR_SIE
->  	andi s0, s0, SR_SPP
-> -	bnez s0, restore_all
-> +	bnez s0, resume_kernel
->  
->  resume_userspace:
->  	/* Interrupts must be disabled here so flags are checked atomically */
-> @@ -250,6 +254,18 @@ restore_all:
->  	RESTORE_ALL
->  	sret
->  
-> +#if IS_ENABLED(CONFIG_PREEMPT)
-> +resume_kernel:
-> +	REG_L s0, TASK_TI_PREEMPT_COUNT(tp)
-> +	bnez s0, restore_all
-> +need_resched:
-> +	REG_L s0, TASK_TI_FLAGS(tp)
-> +	andi s0, s0, _TIF_NEED_RESCHED
-> +	beqz s0, restore_all
-> +	call preempt_schedule_irq
-> +	j need_resched
-> +#endif
-> +
->  work_pending:
->  	/* Enter slow path for supplementary processing */
->  	la ra, ret_from_exception
+   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+
+Which has been rebased to the latests Linus tree, which has a lot of
+changes, and has also changed the patch split a bit to aid bisection.
+
+I think 
+
+   http://git.infradead.org/users/hch/misc.git/commitdiff/c446404b041130fbd9d1772d184f24715cf2362f
+
+might be a good commit to re-start testing, then bisecting up to the
+last commit using git bisect.
