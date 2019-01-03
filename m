@@ -1,123 +1,78 @@
-From: guoren@kernel.org
-Subject: [GIT PULL] csky patches for the 4.21 merge window
-Date: Thu,  3 Jan 2019 17:26:00 +0800
-Message-ID: <1546507560-2486-1-git-send-email-guoren@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/2] m68k: remove nargs from __SYSCALL
+Date: Thu, 3 Jan 2019 11:45:17 +0100
+Message-ID: <CAMuHMdXD5PpF0VswotPP=DQUZ6Rcx0jUq1Czo_WFdGAUrkddyw@mail.gmail.com>
+References: <1546442319-20461-1-git-send-email-firoz.khan@linaro.org> <1546442319-20461-2-git-send-email-firoz.khan@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1546442319-20461-2-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Linus,
+Hi Firoz,
 
-The following changes since commit 7566ec393f4161572ba6f11ad5171fd5d59b0fbd:
+Thanks for your patch!
 
-  Linux 4.20-rc7 (2018-12-16 15:46:55 -0800)
+On Wed, Jan 2, 2019 at 4:19 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> The __SYSCALL macro's arguments are system call number,
+> system call entry name and number of arguments for the
 
-are available in the git repository at:
+name,
 
-  git@github.com:c-sky/csky-linux.git tags/csky-for-linus-4.21
+> system call.
+>
+> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
 
-for you to fetch changes up to f50fd2d8524c15b08da9e7e9d84752f0f1be7172:
+Argument nargs
 
-  csky: Add perf support for C-SKY (2019-01-02 22:17:11 +0800)
+> calculated nor used anywhere. So it would be better to
+> keep the implementaion as  __SYSCALL(nr, entry). This will
 
-----------------------------------------------------------------
-arch/csky patches for 4.21-rc1
+implementation
 
-Here is the arch/csky patch set for the 4.21-rc1 merge window.
-Contianed in here is some features (cpu_hotplug, basic ftrace,
-basic perf ...) and some bugfixes.
+> unifies the implementation with some other architetures
 
-Features:
- - Add CPU-hotplug support for SMP
- - Add ftrace with function trace and function graph trace
- - Add Perf support
- - Add EM_CSKY_OLD 39
- - optimize kernel panic print.
- - remove syscall_exit_work
+unify
+architectures
 
-Bugfixes:
- - fixup abiv2 mmap(... O_SYNC) failed.
- - fixup gdb coredump error.
- - fixup remove vdsp implement for kernel.
- - fixup qemu fail to bootup sometimes.
- - fixup ftrace call-graph panic
- - fixup leak device tree node reference
- - fixup remove meaningless header-y
- - fixup save hi,lo,dspcr regs in switch_stack.
- - fixup unused members in processor.h
+> too.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/m68k/kernel/syscalls/syscalltbl.sh | 4 ++--
+>  arch/m68k/kernel/syscalltable.S         | 2 +-
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/m68k/kernel/syscalls/syscalltbl.sh b/arch/m68k/kernel/syscalls/syscalltbl.sh
+> index 85d78d9..904b8e6 100644
+> --- a/arch/m68k/kernel/syscalls/syscalltbl.sh
+> +++ b/arch/m68k/kernel/syscalls/syscalltbl.sh
+> @@ -13,10 +13,10 @@ emit() {
+>         t_entry="$3"
+>
+>         while [ $t_nxt -lt $t_nr ]; do
+> -               printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
+> +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
 
-----------------------------------------------------------------
-Dmitry V. Levin (2):
-      elf-em.h: add EM_CSKY
-      csky: define syscall_get_arch()
+Please keep the space after the comma.
 
-Guo Ren (15):
-      csky: fixup abiv2 mmap(... O_SYNC) failed.
-      csky: bugfix gdb coredump error.
-      csky: fixup remove vdsp implement for kernel.
-      csky: remove syscall_exit_work
-      csky: fixup save hi,lo,dspcr regs in switch_stack.
-      clocksource/drivers/c-sky: fixup qemu fail to bootup sometimes.
-      csky: CPU-hotplug supported for SMP
-      csky: stacktrace supported.
-      csky: optimize kernel panic print.
-      csky: remove unused members in processor.h
-      csky: basic ftrace supported
-      csky: ftrace call graph supported.
-      clocksource/drivers/c-sky: fixup ftrace call-graph panic
-      csky: Add EM_CSKY_OLD 39
-      csky: Add perf support for C-SKY
+>                 t_nxt=$((t_nxt+1))
+>         done
+> -       printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
+> +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
 
-Masahiro Yamada (1):
-      csky: remove meaningless header-y
+Idem ditto.
 
-Yangtao Li (1):
-      csky: Don't leak device tree node reference
+Gr{oetje,eeting}s,
 
- arch/csky/Kconfig                        |   30 +-
- arch/csky/Makefile                       |    4 +
- arch/csky/abiv1/inc/abi/pgtable-bits.h   |    1 +
- arch/csky/abiv1/inc/abi/switch_context.h |   17 +
- arch/csky/abiv2/Makefile                 |    1 +
- arch/csky/abiv2/inc/abi/entry.h          |   28 +-
- arch/csky/abiv2/inc/abi/pgtable-bits.h   |    2 +-
- arch/csky/abiv2/inc/abi/switch_context.h |   32 +
- arch/csky/abiv2/mcount.S                 |  124 ++++
- arch/csky/abiv2/memcpy.S                 |    8 +-
- arch/csky/include/asm/elf.h              |   13 +-
- arch/csky/include/asm/ftrace.h           |   13 +
- arch/csky/include/asm/perf_event.h       |    7 +
- arch/csky/include/asm/processor.h        |   15 +-
- arch/csky/include/asm/smp.h              |    4 +
- arch/csky/include/asm/syscall.h          |    7 +
- arch/csky/include/asm/thread_info.h      |    4 +
- arch/csky/include/uapi/asm/Kbuild        |    2 -
- arch/csky/include/uapi/asm/ptrace.h      |   39 +-
- arch/csky/kernel/Makefile                |    7 +
- arch/csky/kernel/asm-offsets.c           |    3 -
- arch/csky/kernel/dumpstack.c             |   59 +-
- arch/csky/kernel/entry.S                 |   50 +-
- arch/csky/kernel/ftrace.c                |   50 ++
- arch/csky/kernel/perf_event.c            | 1031 ++++++++++++++++++++++++++++++
- arch/csky/kernel/process.c               |   29 +-
- arch/csky/kernel/ptrace.c                |   42 +-
- arch/csky/kernel/signal.c                |    2 -
- arch/csky/kernel/smp.c                   |   73 ++-
- arch/csky/kernel/stacktrace.c            |   57 ++
- arch/csky/kernel/traps.c                 |    6 -
- arch/csky/mm/fault.c                     |    7 +-
- arch/csky/mm/ioremap.c                   |    2 +-
- drivers/clocksource/timer-mp-csky.c      |    6 +-
- include/uapi/linux/audit.h               |    1 +
- include/uapi/linux/elf-em.h              |    1 +
- 36 files changed, 1555 insertions(+), 222 deletions(-)
- create mode 100644 arch/csky/abiv1/inc/abi/switch_context.h
- create mode 100644 arch/csky/abiv2/inc/abi/switch_context.h
- create mode 100644 arch/csky/abiv2/mcount.S
- create mode 100644 arch/csky/include/asm/ftrace.h
- create mode 100644 arch/csky/include/asm/perf_event.h
- create mode 100644 arch/csky/kernel/ftrace.c
- create mode 100644 arch/csky/kernel/perf_event.c
- create mode 100644 arch/csky/kernel/stacktrace.c
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
