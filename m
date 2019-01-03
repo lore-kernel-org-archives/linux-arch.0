@@ -1,272 +1,216 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 2/5] arch: remove stale comments "UAPI Header export list"
-Date: Thu,  3 Jan 2019 10:10:37 +0900
-Message-ID: <1546477840-14278-2-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 5/5] kbuild: warn redundant generic-y
+Date: Thu,  3 Jan 2019 10:10:40 +0900
+Message-ID: <1546477840-14278-5-git-send-email-yamada.masahiro@socionext.com>
 References: <1546477840-14278-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1546477840-14278-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kbuild@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-These comments are leftovers of commit fcc8487d477a ("uapi: export all
-headers under uapi directories").
+The generic-y is redundant under the following condition:
 
-Prior to that commit, exported headers must be explicitly added to
-header-y. Now, all headers under the uapi/ directories are exported.
+ - arch has its own implementation
 
+ - the same header is added to generated-y
+
+ - the same header is added to mandatory-y
+
+If a redundant generic-y is found, the warning like follows is displayed:
+
+  scripts/Makefile.asm-generic:20: redundant generic-y found in arch/arm/include/asm/Kbuild: timex.h
+
+I fixed up arch Kbuild files found by this.
+
+Suggested-by: Sam Ravnborg <sam@ravnborg.org>
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
 Changes in v2: None
 
- arch/alpha/include/uapi/asm/Kbuild      | 1 -
- arch/arc/include/uapi/asm/Kbuild        | 1 -
- arch/arm/include/uapi/asm/Kbuild        | 1 -
- arch/arm64/include/uapi/asm/Kbuild      | 1 -
- arch/c6x/include/uapi/asm/Kbuild        | 1 -
- arch/h8300/include/uapi/asm/Kbuild      | 1 -
- arch/hexagon/include/uapi/asm/Kbuild    | 1 -
- arch/ia64/include/uapi/asm/Kbuild       | 1 -
- arch/m68k/include/uapi/asm/Kbuild       | 1 -
- arch/microblaze/include/uapi/asm/Kbuild | 1 -
- arch/mips/include/uapi/asm/Kbuild       | 1 -
- arch/nds32/include/uapi/asm/Kbuild      | 1 -
- arch/nios2/include/uapi/asm/Kbuild      | 1 -
- arch/openrisc/include/uapi/asm/Kbuild   | 1 -
- arch/parisc/include/uapi/asm/Kbuild     | 1 -
- arch/powerpc/include/uapi/asm/Kbuild    | 1 -
- arch/riscv/include/uapi/asm/Kbuild      | 1 -
- arch/s390/include/uapi/asm/Kbuild       | 1 -
- arch/sh/include/uapi/asm/Kbuild         | 1 -
- arch/sparc/include/uapi/asm/Kbuild      | 1 -
- arch/unicore32/include/uapi/asm/Kbuild  | 1 -
- arch/x86/include/uapi/asm/Kbuild        | 1 -
- arch/xtensa/include/uapi/asm/Kbuild     | 1 -
- include/uapi/linux/Kbuild               | 2 --
- 24 files changed, 25 deletions(-)
+ arch/arc/include/asm/Kbuild      | 4 ----
+ arch/arm/include/asm/Kbuild      | 1 -
+ arch/h8300/include/asm/Kbuild    | 1 -
+ arch/openrisc/include/asm/Kbuild | 2 --
+ arch/parisc/include/asm/Kbuild   | 2 --
+ arch/powerpc/include/asm/Kbuild  | 1 -
+ arch/s390/include/asm/Kbuild     | 1 -
+ arch/um/include/asm/Kbuild       | 2 --
+ arch/xtensa/include/asm/Kbuild   | 1 -
+ scripts/Makefile.asm-generic     | 6 ++++++
+ 10 files changed, 6 insertions(+), 15 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/Kbuild b/arch/alpha/include/uapi/asm/Kbuild
-index 6a3a0ce..50dea7f 100644
---- a/arch/alpha/include/uapi/asm/Kbuild
-+++ b/arch/alpha/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index feed50c..caa2702 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -3,23 +3,19 @@ generic-y += bugs.h
+ generic-y += compat.h
+ generic-y += device.h
+ generic-y += div64.h
+-generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += extable.h
+-generic-y += fb.h
+ generic-y += ftrace.h
+ generic-y += hardirq.h
+ generic-y += hw_irq.h
+ generic-y += irq_regs.h
+ generic-y += irq_work.h
+-generic-y += kmap_types.h
+ generic-y += local.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+ generic-y += msi.h
+ generic-y += parport.h
+-generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += topology.h
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index 1d66db9..a8a4eb7 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -18,7 +18,6 @@ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += simd.h
+ generic-y += sizes.h
+-generic-y += timex.h
+ generic-y += trace_clock.h
  
- generated-y += unistd_32.h
-diff --git a/arch/arc/include/uapi/asm/Kbuild b/arch/arc/include/uapi/asm/Kbuild
-index 170b5db..42ac23e 100644
---- a/arch/arc/include/uapi/asm/Kbuild
-+++ b/arch/arc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+ generated-y += mach-types.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index a5d0b29..ed6f2bf 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -17,7 +17,6 @@ generic-y += fb.h
+ generic-y += ftrace.h
+ generic-y += futex.h
+ generic-y += hardirq.h
+-generic-y += hash.h
+ generic-y += hw_irq.h
+ generic-y += irq_regs.h
+ generic-y += irq_work.h
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index eb87cd8..5be3f32 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -15,7 +15,6 @@ generic-y += fb.h
+ generic-y += ftrace.h
+ generic-y += hardirq.h
+ generic-y += hw_irq.h
+-generic-y += irq.h
+ generic-y += irq_regs.h
+ generic-y += irq_work.h
+ generic-y += kdebug.h
+@@ -34,7 +33,6 @@ generic-y += qrwlock_types.h
+ generic-y += qrwlock.h
+ generic-y += sections.h
+ generic-y += segment.h
+-generic-y += string.h
+ generic-y += switch_to.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
+index 0b1e354..6f49e77 100644
+--- a/arch/parisc/include/asm/Kbuild
++++ b/arch/parisc/include/asm/Kbuild
+@@ -1,7 +1,6 @@
+ generated-y += syscall_table_32.h
+ generated-y += syscall_table_64.h
+ generated-y += syscall_table_c32.h
+-generic-y += barrier.h
+ generic-y += current.h
+ generic-y += device.h
+ generic-y += div64.h
+@@ -20,7 +19,6 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += seccomp.h
+ generic-y += segment.h
+-generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += user.h
+ generic-y += vga.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index 77ff7fb..a0c132b 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -5,7 +5,6 @@ generated-y += syscall_table_spu.h
+ generic-y += div64.h
+ generic-y += export.h
+ generic-y += irq_regs.h
+-generic-y += irq_work.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += preempt.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index e323977..12d77cb 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -20,7 +20,6 @@ generic-y += local.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+-generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+index b10dde6..00bcbe2 100644
+--- a/arch/um/include/asm/Kbuild
++++ b/arch/um/include/asm/Kbuild
+@@ -10,9 +10,7 @@ generic-y += exec.h
+ generic-y += extable.h
+ generic-y += ftrace.h
+ generic-y += futex.h
+-generic-y += hardirq.h
+ generic-y += hw_irq.h
+-generic-y += io.h
+ generic-y += irq_regs.h
+ generic-y += irq_work.h
+ generic-y += kdebug.h
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index e255683..322b2fd 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -15,7 +15,6 @@ generic-y += irq_work.h
+ generic-y += kdebug.h
+ generic-y += kmap_types.h
+ generic-y += kprobes.h
+-generic-y += linkage.h
+ generic-y += local.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+index a62d282..c7d2b7a 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -14,6 +14,12 @@ src := $(subst /generated,,$(obj))
  
- generic-y += auxvec.h
-diff --git a/arch/arm/include/uapi/asm/Kbuild b/arch/arm/include/uapi/asm/Kbuild
-index 4d1cc18..393fe32 100644
---- a/arch/arm/include/uapi/asm/Kbuild
-+++ b/arch/arm/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+ include scripts/Kbuild.include
  
- generated-y += unistd-common.h
-diff --git a/arch/arm64/include/uapi/asm/Kbuild b/arch/arm64/include/uapi/asm/Kbuild
-index 6c5adf4..eb43543 100644
---- a/arch/arm64/include/uapi/asm/Kbuild
-+++ b/arch/arm64/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += errno.h
-diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
-index 26644e1..633f386 100644
---- a/arch/c6x/include/uapi/asm/Kbuild
-+++ b/arch/c6x/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
-index 2f65f78..c1a994e 100644
---- a/arch/h8300/include/uapi/asm/Kbuild
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
-index 41a176d..bcc65a2 100644
---- a/arch/hexagon/include/uapi/asm/Kbuild
-+++ b/arch/hexagon/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/ia64/include/uapi/asm/Kbuild b/arch/ia64/include/uapi/asm/Kbuild
-index ccce0ea..3536c78 100644
---- a/arch/ia64/include/uapi/asm/Kbuild
-+++ b/arch/ia64/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_64.h
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index b645291..2d75dbc 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-index b6656d9..c95da41 100644
---- a/arch/microblaze/include/uapi/asm/Kbuild
-+++ b/arch/microblaze/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/mips/include/uapi/asm/Kbuild b/arch/mips/include/uapi/asm/Kbuild
-index ed4bd03..215d808 100644
---- a/arch/mips/include/uapi/asm/Kbuild
-+++ b/arch/mips/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_n32.h
-diff --git a/arch/nds32/include/uapi/asm/Kbuild b/arch/nds32/include/uapi/asm/Kbuild
-index 40be972..ddd2a28 100644
---- a/arch/nds32/include/uapi/asm/Kbuild
-+++ b/arch/nds32/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += bpf_perf_event.h
-diff --git a/arch/nios2/include/uapi/asm/Kbuild b/arch/nios2/include/uapi/asm/Kbuild
-index 13a3d77..37bec5d 100644
---- a/arch/nios2/include/uapi/asm/Kbuild
-+++ b/arch/nios2/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
-index 130c16c..bb850fa 100644
---- a/arch/openrisc/include/uapi/asm/Kbuild
-+++ b/arch/openrisc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
-index d31b426..99c0c73 100644
---- a/arch/parisc/include/uapi/asm/Kbuild
-+++ b/arch/parisc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/powerpc/include/uapi/asm/Kbuild b/arch/powerpc/include/uapi/asm/Kbuild
-index 8ab8ba1..6e7574e 100644
---- a/arch/powerpc/include/uapi/asm/Kbuild
-+++ b/arch/powerpc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/riscv/include/uapi/asm/Kbuild b/arch/riscv/include/uapi/asm/Kbuild
-index 5511b99..5945a59 100644
---- a/arch/riscv/include/uapi/asm/Kbuild
-+++ b/arch/riscv/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += setup.h
-diff --git a/arch/s390/include/uapi/asm/Kbuild b/arch/s390/include/uapi/asm/Kbuild
-index dc38a90..89b4582 100644
---- a/arch/s390/include/uapi/asm/Kbuild
-+++ b/arch/s390/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/sh/include/uapi/asm/Kbuild b/arch/sh/include/uapi/asm/Kbuild
-index dcb9354..7ef099e 100644
---- a/arch/sh/include/uapi/asm/Kbuild
-+++ b/arch/sh/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/sparc/include/uapi/asm/Kbuild b/arch/sparc/include/uapi/asm/Kbuild
-index ae72977..7064bfb 100644
---- a/arch/sparc/include/uapi/asm/Kbuild
-+++ b/arch/sparc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-index 8611ef9..3620f6a 100644
---- a/arch/unicore32/include/uapi/asm/Kbuild
-+++ b/arch/unicore32/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += auxvec.h
-diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
-index 3226816..d15343a 100644
---- a/arch/x86/include/uapi/asm/Kbuild
-+++ b/arch/x86/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += bpf_perf_event.h
-diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
-index f95cad3..3ae1bbd 100644
---- a/arch/xtensa/include/uapi/asm/Kbuild
-+++ b/arch/xtensa/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
--# UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
-diff --git a/include/uapi/linux/Kbuild b/include/uapi/linux/Kbuild
-index ca2787d..5f24b50 100644
---- a/include/uapi/linux/Kbuild
-+++ b/include/uapi/linux/Kbuild
-@@ -1,5 +1,3 @@
--# UAPI Header export list
--
- ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/uapi/asm/a.out.h),)
- no-export-headers += a.out.h
- endif
++redundant := $(filter $(mandatory-y) $(generated-y), $(generic-y))
++redundant += $(foreach f, $(generic-y), $(if $(wildcard $(srctree)/$(src)/$(f)),$(f)))
++redundant := $(sort $(redundant))
++$(if $(redundant),\
++	$(warning redundant generic-y found in $(src)/Kbuild: $(redundant)))
++
+ # If arch does not implement mandatory headers, fallback to asm-generic ones.
+ mandatory-y := $(filter-out $(generated-y), $(mandatory-y))
+ generic-y   += $(foreach f, $(mandatory-y), $(if $(wildcard $(srctree)/$(src)/$(f)),,$(f)))
 -- 
 2.7.4
