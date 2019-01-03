@@ -1,60 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.52]:21533 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726784AbfACT0a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 14:26:30 -0500
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-In-Reply-To: <20190103073622.GA24323@lst.de>
-Date: Thu, 3 Jan 2019 20:26:15 +0100
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de> <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de> <20181213091021.GA2106@lst.de> <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de> <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de> <20181213112511.GA4574@lst.de> <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de> <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de> <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de> <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de> <20190103073622.GA24323@lst.de>
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:35321 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728419AbfACWou (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 17:44:50 -0500
+MIME-Version: 1.0
+References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org> <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Date: Thu, 3 Jan 2019 14:44:37 -0800
+Message-ID: <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
+Subject: Re: [PATCH 2/2] xtensa: generate uapi header and syscall table header files
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190103192615.Al6FYomhWlYsukqOXu_LON-P_49XF8tON4Hc0BpgfhI@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
+Message-ID: <20190103224437._6qJqOGET7VqVDMcZLSOSDSH7doE-qa8qMfMy-GGKcQ@z>
 
-Hi Christoph,
+Hi Firoz,
 
-Happy new year for you too. Unfortunately we have some problems with the lat=
-est DRM patches. They modified a lot and some graphics cards don=E2=80=99t w=
-ork anymore. During the holidays we tried to figure out where the problems a=
-re but without any success.
+On Wed, Jan 2, 2019 at 7:29 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> Unified system call table generation script must be run to
+> generate unistd_32.h and syscall_table.h files. This patch
+> will have changes which will invokes the script.
+>
+> This patch will generate unistd_32.h and syscall_table.h
+> files by the syscall table generation script invoked by
+> xtensa/Makefile and the generated files against the removed
+> files must be identical.
+>
+> The generated uapi header file will be included in uapi/-
+> asm/unistd.h and generated system call table header file
+> will be included by kernel/syscall.c file.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/xtensa/kernel/syscalls/Makefile      | 11 ++++++++--
+>  arch/xtensa/kernel/syscalls/syscallhdr.sh | 36 -------------------------------
+>  arch/xtensa/kernel/syscalls/syscalltbl.sh | 32 ---------------------------
+>  3 files changed, 9 insertions(+), 70 deletions(-)
+>  delete mode 100644 arch/xtensa/kernel/syscalls/syscallhdr.sh
+>  delete mode 100644 arch/xtensa/kernel/syscalls/syscalltbl.sh
+>
+> diff --git a/arch/xtensa/kernel/syscalls/Makefile b/arch/xtensa/kernel/syscalls/Makefile
+> index 659faef..75c7421 100644
+> --- a/arch/xtensa/kernel/syscalls/Makefile
+> +++ b/arch/xtensa/kernel/syscalls/Makefile
+> @@ -6,8 +6,9 @@ _dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')       \
+>           $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
+>
+>  syscall := $(srctree)/$(src)/syscall.tbl
+> -syshdr := $(srctree)/$(src)/syscallhdr.sh
+> -systbl := $(srctree)/$(src)/syscalltbl.sh
+> +syshdr := $(srctree)/scripts/syscallhdr.sh
+> +sysnr := $(srctree)/scripts/syscallnr.sh
+> +systbl := $(srctree)/scripts/syscalltbl.sh
+>
+>  quiet_cmd_syshdr = SYSHDR  $@
+>        cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'       \
+> @@ -15,6 +16,12 @@ quiet_cmd_syshdr = SYSHDR  $@
+>                    '$(syshdr_pfx_$(basetarget))'                \
+>                    '$(syshdr_offset_$(basetarget))'
+>
+> +quiet_cmd_sysnr = SYSNR  $@
+> +      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'         \
+> +                 '$(sysnr_abis_$(basetarget))'                 \
+> +                 '$(sysnr_pfx_$(basetarget))'                  \
+> +                 '$(sysnr_offset_$(basetarget))'
+> +
 
-I will try to test your patches next week.
+This patch seems to do more than it says in the description.
+Perhaps adding cmd_sysnr needs a separate patch with its
+own description?
 
-Cheers,
-Christian
-
-Sent from my iPhone
-
-> On 3. Jan 2019, at 08:36, Christoph Hellwig <hch@lst.de> wrote:
->=20
-> Hi Christian,
->=20
-> happy new year and I hope you had a few restful deays off.
->=20
-> I've pushed a new tree to:
->=20
->   git://git.infradead.org/users/hch/misc.git powerpc-dma.6
->=20
-> Gitweb:
->=20
->   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-=
-dma.6
->=20
-> Which has been rebased to the latests Linus tree, which has a lot of
-> changes, and has also changed the patch split a bit to aid bisection.
->=20
-> I think=20
->=20
->   http://git.infradead.org/users/hch/misc.git/commitdiff/c446404b041130fbd=
-9d1772d184f24715cf2362f
->=20
-> might be a good commit to re-start testing, then bisecting up to the
-> last commit using git bisect.
+-- 
+Thanks.
+-- Max
