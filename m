@@ -1,80 +1,65 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 0/4] barriers using data dependency
-Date: Wed, 2 Jan 2019 18:04:31 -0500
-Message-ID: <20190102175247-mutt-send-email-mst@kernel.org>
-References: <20190102205715.14054-1-mst@redhat.com>
-	<Pine.LNX.4.44L0.1901021629150.1375-100000@iolanthe.rowland.org>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] kallsyms: lower alignment on ARM
+Date: Thu, 3 Jan 2019 09:30:12 +0900
+Message-ID: <CAK7LNATr9N=e26QQ=ks7ub-YhDPX5tfy7LY41m5oLSXpLLxxLw@mail.gmail.com>
+References: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1901021629150.1375-100000@iolanthe.rowland.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Daniel Lustig <dlustig@nvidia.com>, Akira Yokosawa <akiyks@gmail.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, virtualization@lists.linux-foundation.org, David Howells <dhowells@redhat.com>, netdev@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Jade Alglave <j.alglave@ucl.ac.uk>, Boqun Feng <boqun.feng@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mathias Krause <minipli@googlemail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 02, 2019 at 04:36:40PM -0500, Alan Stern wrote:
-> On Wed, 2 Jan 2019, Michael S. Tsirkin wrote:
-> 
-> > So as explained in Documentation/memory-barriers.txt e.g.
-> > a load followed by a store require a full memory barrier,
-> > to avoid store being ordered before the load.
-> > Similarly load-load requires a read memory barrier.
-> > 
-> > Thinking about it, we can actually create a data dependency
-> > by mixing the first loaded value into the pointer being
-> > accessed.
-> > 
-> > This adds an API for this and uses it in virtio.
-> > 
-> > Written over the holiday and build tested only so far.
-> 
-> You are using the terminology from memory-barriers.txt, referring to
-> the new dependency you create as a data dependency.  However,
-> tools/memory-model/* uses a more precise name, calling it an address
-> dependency.  Could you change the comments in the patches to use this
-> name instead?
+On Sun, Dec 30, 2018 at 9:37 PM Mathias Krause <minipli@googlemail.com> wrote:
+>
+> As mentioned in the info pages of gas, the '.align' pseudo op's
+> interpretation of the alignment value is architecture specific.
+> It might either be a byte value or taken to the power of two.
+>
+> On ARM it's actually the latter which leads to unnecessary large
+> alignments of 16 bytes for 32 bit builds or 256 bytes for 64 bit
+> builds.
+>
+> Fix this by switching to '.balign' instead which is consistent
+> across all architectures.
+>
+> Signed-off-by: Mathias Krause <minipli@googlemail.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
 
-Sure, sounds good. While I'm at it, should memory-barriers.txt be
-switched over too?
 
-> > This patchset is also suboptimal on e.g. x86 where e.g. smp_rmb is a nop.
-> 
-> This should be easy to fix with an architecture-specific override.
-> 
-> Alan Stern
+Applied to linux-kbuild.
+Thanks!
 
-Absolutely. It does however mean that we'll need several
-variants: mb/rmb, smp/dma/virt/mandatory.
 
-I am still trying to decide whether it's good since it documents the
-kind of barrier that we are trying to use - or bad since it's more
-verbose and makes you choose one where they are all pretty cheap.
+> ---
+>  scripts/kallsyms.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+> index 109a1af7e444..77cebad0474e 100644
+> --- a/scripts/kallsyms.c
+> +++ b/scripts/kallsyms.c
+> @@ -334,10 +334,10 @@ static void write_src(void)
+>         printf("#include <asm/types.h>\n");
+>         printf("#if BITS_PER_LONG == 64\n");
+>         printf("#define PTR .quad\n");
+> -       printf("#define ALGN .align 8\n");
+> +       printf("#define ALGN .balign 8\n");
+>         printf("#else\n");
+>         printf("#define PTR .long\n");
+> -       printf("#define ALGN .align 4\n");
+> +       printf("#define ALGN .balign 4\n");
+>         printf("#endif\n");
+>
+>         printf("\t.section .rodata, \"a\"\n");
+> --
+> 2.19.2
+>
 
-> > Sending out for early feedback/flames.
-> > 
-> > Michael S. Tsirkin (4):
-> >   include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-> >   include/linux/compiler.h: allow memory operands
-> >   barriers: convert a control to a data dependency
-> >   virtio: use dependent_ptr_mb
-> > 
-> >  Documentation/memory-barriers.txt | 20 ++++++++++++++++++++
-> >  arch/alpha/include/asm/barrier.h  |  1 +
-> >  drivers/virtio/virtio_ring.c      |  6 ++++--
-> >  include/asm-generic/barrier.h     | 18 ++++++++++++++++++
-> >  include/linux/compiler-clang.h    |  5 ++---
-> >  include/linux/compiler-gcc.h      |  4 ----
-> >  include/linux/compiler-intel.h    |  4 +---
-> >  include/linux/compiler.h          |  8 +++++++-
-> >  8 files changed, 53 insertions(+), 13 deletions(-)
+
+-- 
+Best Regards
+Masahiro Yamada
