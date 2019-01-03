@@ -1,95 +1,91 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 3/5] kbuild: generate asm-generic wrappers if mandatory headers are missing
-Date: Thu,  3 Jan 2019 10:10:38 +0900
-Message-ID: <1546477840-14278-3-git-send-email-yamada.masahiro@socionext.com>
-References: <1546477840-14278-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546477840-14278-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kbuild@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, Masahiro Yamada <yamada.masahiro@socionext.com>
+From: Vincent Chen <vincentc@andestech.com>
+Subject: [PATCH] RISC-V: Add _TIF_NEED_RESCHED check for kernel thread when
+ CONFIG_PREEMPT=y
+Date: Thu, 3 Jan 2019 11:32:33 +0800
+Message-ID: <1546486353-23115-1-git-send-email-vincentc@andestech.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
+To: palmer@sifive.com, aou@eecs.berkeley.edu, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
+Cc: Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-Some time ago, Sam pointed out a certain degree of overwrap between
-generic-y and mandatory-y. (https://lkml.org/lkml/2017/7/10/121)
+The cond_resched() can be used to yield the CPU resource if
+CONFIG_PREEMPT is not defined. Otherwise, cond_resched() is a dummy
+function. In order to avoid kernel thread occupying entire CPU,
+when CONFIG_PREEMPT=y, the kernel thread needs to follow the
+rescheduling mechanism like a user thread.
 
-I tweaked the meaning of mandatory-y a little bit; now it defines the
-minimum set of ASM headers that all architectures must have.
-
-If arch does not have specific implementation of a mandatory header,
-Kbuild will let it fallback to the asm-generic one by automatically
-generating a wrapper. This will allow to drop lots of redundant
-generic-y defines.
-
-Previously, "mandatory" was used in the context of UAPI, but I guess
-this can be extended to kernel space ASM headers.
-
-Suggested-by: Sam Ravnborg <sam@ravnborg.org>
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
 ---
+ arch/riscv/kernel/asm-offsets.c |    1 +
+ arch/riscv/kernel/entry.S       |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
-Changes in v2:
-  - Filter-out $(generiated-y) from $(mandatory-y) because
-    ARCH may generate mandatory headers by other means
-
- Documentation/kbuild/makefiles.txt | 9 ++++++---
- scripts/Makefile.asm-generic       | 4 ++++
- scripts/Makefile.headersinst       | 7 -------
- 3 files changed, 10 insertions(+), 10 deletions(-)
-
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 8da26c6..bf28c47 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -1296,9 +1296,12 @@ See subsequent chapter for the syntax of the Kbuild file.
+diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
+index 6a92a2f..dac9834 100644
+--- a/arch/riscv/kernel/asm-offsets.c
++++ b/arch/riscv/kernel/asm-offsets.c
+@@ -39,6 +39,7 @@ void asm_offsets(void)
+ 	OFFSET(TASK_STACK, task_struct, stack);
+ 	OFFSET(TASK_TI, task_struct, thread_info);
+ 	OFFSET(TASK_TI_FLAGS, task_struct, thread_info.flags);
++	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
+ 	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
+ 	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
+ 	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
+diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
+index 13d4826..728b72d 100644
+--- a/arch/riscv/kernel/entry.S
++++ b/arch/riscv/kernel/entry.S
+@@ -144,6 +144,10 @@ _save_context:
+ 	REG_L x2,  PT_SP(sp)
+ 	.endm
  
- --- 7.4 mandatory-y
- 
--	mandatory-y is essentially used by include/uapi/asm-generic/Kbuild.asm
--	to define the minimum set of headers that must be exported in
--	include/asm.
-+	mandatory-y is essentially used by include/(uapi/)asm-generic/Kbuild.asm
-+	to define the minimum set of ASM headers that all architectures must have.
++#if !IS_ENABLED(CONFIG_PREEMPT)
++#define resume_kernel restore_all
++#endif
 +
-+	This works like optional generic-y. If a mandatory header is missing
-+	in arch/$(ARCH)/include/(uapi/)/asm, Kbuild will automatically generate
-+	a wrapper of the asm-generic one.
+ ENTRY(handle_exception)
+ 	SAVE_ALL
  
- 	The convention is to list one subdir per line and
- 	preferably in alphabetic order.
-diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
-index 760323e..a62d282 100644
---- a/scripts/Makefile.asm-generic
-+++ b/scripts/Makefile.asm-generic
-@@ -14,6 +14,10 @@ src := $(subst /generated,,$(obj))
+@@ -228,7 +232,7 @@ ret_from_exception:
+ 	REG_L s0, PT_SSTATUS(sp)
+ 	csrc sstatus, SR_SIE
+ 	andi s0, s0, SR_SPP
+-	bnez s0, restore_all
++	bnez s0, resume_kernel
  
- include scripts/Kbuild.include
+ resume_userspace:
+ 	/* Interrupts must be disabled here so flags are checked atomically */
+@@ -250,6 +254,18 @@ restore_all:
+ 	RESTORE_ALL
+ 	sret
  
-+# If arch does not implement mandatory headers, fallback to asm-generic ones.
-+mandatory-y := $(filter-out $(generated-y), $(mandatory-y))
-+generic-y   += $(foreach f, $(mandatory-y), $(if $(wildcard $(srctree)/$(src)/$(f)),,$(f)))
++#if IS_ENABLED(CONFIG_PREEMPT)
++resume_kernel:
++	REG_L s0, TASK_TI_PREEMPT_COUNT(tp)
++	bnez s0, restore_all
++need_resched:
++	REG_L s0, TASK_TI_FLAGS(tp)
++	andi s0, s0, _TIF_NEED_RESCHED
++	beqz s0, restore_all
++	call preempt_schedule_irq
++	j need_resched
++#endif
 +
- generic-y   := $(addprefix $(obj)/, $(generic-y))
- generated-y := $(addprefix $(obj)/, $(generated-y))
- 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 45927fc..3d1ebaa 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -56,13 +56,6 @@ check-file    := $(installdir)/.check
- all-files     := $(header-files) $(genhdr-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
- 
--ifneq ($(mandatory-y),)
--missing       := $(filter-out $(all-files),$(mandatory-y))
--ifneq ($(missing),)
--$(error Some mandatory headers ($(missing)) are missing in $(obj))
--endif
--endif
--
- # Work out what needs to be removed
- oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
- unwanted      := $(filter-out $(all-files),$(oldheaders))
+ work_pending:
+ 	/* Enter slow path for supplementary processing */
+ 	la ra, ret_from_exception
 -- 
-2.7.4
+1.7.1
