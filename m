@@ -1,33 +1,63 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
-Date: Thu, 3 Jan 2019 18:39:53 +0530
-Message-ID: <CALxhOnhxyz03xvwXXUoZ8Gk=NrgdHU5CVoEXMFh77R4saWJyPg@mail.gmail.com>
-References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org> <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC 0/4] barriers using data dependency
+Date: Thu, 3 Jan 2019 10:11:34 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.1901031007290.1460-100000@iolanthe.rowland.org>
+References: <20190102175247-mutt-send-email-mst@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <monstr@monstr.eu>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20190102175247-mutt-send-email-mst@kernel.org>
+Sender: netdev-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Jason Wang <jasowang@redhat.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michal,
+On Wed, 2 Jan 2019, Michael S. Tsirkin wrote:
 
-On Thu, 3 Jan 2019 at 18:00, Michal Simek <monstr@monstr.eu> wrote:
-> >  arch/microblaze/kernel/syscall_table.S        |  2 +-
-> >  arch/microblaze/kernel/syscalls/Makefile      | 11 ++++++--
-> >  arch/microblaze/kernel/syscalls/syscallhdr.sh | 36 ---------------------------
-> >  arch/microblaze/kernel/syscalls/syscalltbl.sh | 32 ------------------------
-> >  4 files changed, 10 insertions(+), 71 deletions(-)
-> >  delete mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
-> >  delete mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
-> >
->
-> Looks good. Will keep this in my queue till depending patch is applied.
+> On Wed, Jan 02, 2019 at 04:36:40PM -0500, Alan Stern wrote:
+> > On Wed, 2 Jan 2019, Michael S. Tsirkin wrote:
+> > 
+> > > So as explained in Documentation/memory-barriers.txt e.g.
+> > > a load followed by a store require a full memory barrier,
+> > > to avoid store being ordered before the load.
+> > > Similarly load-load requires a read memory barrier.
+> > > 
+> > > Thinking about it, we can actually create a data dependency
+> > > by mixing the first loaded value into the pointer being
+> > > accessed.
+> > > 
+> > > This adds an API for this and uses it in virtio.
+> > > 
+> > > Written over the holiday and build tested only so far.
+> > 
+> > You are using the terminology from memory-barriers.txt, referring to
+> > the new dependency you create as a data dependency.  However,
+> > tools/memory-model/* uses a more precise name, calling it an address
+> > dependency.  Could you change the comments in the patches to use this
+> > name instead?
+> 
+> Sure, sounds good. While I'm at it, should memory-barriers.txt be
+> switched over too?
 
-Thanks for the feedback. As Geert shared few feedback while m68k review,
-Hopefully, I may have to include those changes here also.
+If you want to take care of that, great!  I never seem to get around to 
+doing it.
 
+> > > This patchset is also suboptimal on e.g. x86 where e.g. smp_rmb is a nop.
+> > 
+> > This should be easy to fix with an architecture-specific override.
+> > 
+> > Alan Stern
+> 
+> Absolutely. It does however mean that we'll need several
+> variants: mb/rmb, smp/dma/virt/mandatory.
+> 
+> I am still trying to decide whether it's good since it documents the
+> kind of barrier that we are trying to use - or bad since it's more
+> verbose and makes you choose one where they are all pretty cheap.
 
-Firoz
+How many places can these things be used?  My guess is not very many,
+or at least, there aren't very many different _types_ of usage.  So
+start only with variants you know will be used.  More can be added
+later if we want.
+
+Alan Stern
