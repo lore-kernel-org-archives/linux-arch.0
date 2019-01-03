@@ -1,55 +1,71 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 3 Jan 2019 20:26:15 +0100
-Message-ID: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de> <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de> <20181213091021.GA2106@lst.de> <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de> <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de> <20181213112511.GA4574@lst.de> <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de> <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de> <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de> <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de> <20190103073622.GA24323@lst.de>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190103073622.GA24323@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH 2/2] xtensa: generate uapi header and syscall
+	table header files
+Date: Thu, 3 Jan 2019 14:44:37 -0800
+Message-ID: <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
+References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org>
+ <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Chris Zankel <chris@zankel.net>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, marcin.juszkiewicz@linaro.org, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
-
-Happy new year for you too. Unfortunately we have some problems with the lat=
-est DRM patches. They modified a lot and some graphics cards don=E2=80=99t w=
-ork anymore. During the holidays we tried to figure out where the problems a=
-re but without any success.
-
-I will try to test your patches next week.
-
-Cheers,
-Christian
-
-Sent from my iPhone
-
-> On 3. Jan 2019, at 08:36, Christoph Hellwig <hch@lst.de> wrote:
->=20
-> Hi Christian,
->=20
-> happy new year and I hope you had a few restful deays off.
->=20
-> I've pushed a new tree to:
->=20
->   git://git.infradead.org/users/hch/misc.git powerpc-dma.6
->=20
-> Gitweb:
->=20
->   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-=
-dma.6
->=20
-> Which has been rebased to the latests Linus tree, which has a lot of
-> changes, and has also changed the patch split a bit to aid bisection.
->=20
-> I think=20
->=20
->   http://git.infradead.org/users/hch/misc.git/commitdiff/c446404b041130fbd=
-9d1772d184f24715cf2362f
->=20
-> might be a good commit to re-start testing, then bisecting up to the
-> last commit using git bisect.
+SGkgRmlyb3osCgpPbiBXZWQsIEphbiAyLCAyMDE5IGF0IDc6MjkgQU0gRmlyb3ogS2hhbiA8Zmly
+b3oua2hhbkBsaW5hcm8ub3JnPiB3cm90ZToKPiBVbmlmaWVkIHN5c3RlbSBjYWxsIHRhYmxlIGdl
+bmVyYXRpb24gc2NyaXB0IG11c3QgYmUgcnVuIHRvCj4gZ2VuZXJhdGUgdW5pc3RkXzMyLmggYW5k
+IHN5c2NhbGxfdGFibGUuaCBmaWxlcy4gVGhpcyBwYXRjaAo+IHdpbGwgaGF2ZSBjaGFuZ2VzIHdo
+aWNoIHdpbGwgaW52b2tlcyB0aGUgc2NyaXB0Lgo+Cj4gVGhpcyBwYXRjaCB3aWxsIGdlbmVyYXRl
+IHVuaXN0ZF8zMi5oIGFuZCBzeXNjYWxsX3RhYmxlLmgKPiBmaWxlcyBieSB0aGUgc3lzY2FsbCB0
+YWJsZSBnZW5lcmF0aW9uIHNjcmlwdCBpbnZva2VkIGJ5Cj4geHRlbnNhL01ha2VmaWxlIGFuZCB0
+aGUgZ2VuZXJhdGVkIGZpbGVzIGFnYWluc3QgdGhlIHJlbW92ZWQKPiBmaWxlcyBtdXN0IGJlIGlk
+ZW50aWNhbC4KPgo+IFRoZSBnZW5lcmF0ZWQgdWFwaSBoZWFkZXIgZmlsZSB3aWxsIGJlIGluY2x1
+ZGVkIGluIHVhcGkvLQo+IGFzbS91bmlzdGQuaCBhbmQgZ2VuZXJhdGVkIHN5c3RlbSBjYWxsIHRh
+YmxlIGhlYWRlciBmaWxlCj4gd2lsbCBiZSBpbmNsdWRlZCBieSBrZXJuZWwvc3lzY2FsbC5jIGZp
+bGUuCj4KPiBTaWduZWQtb2ZmLWJ5OiBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5vcmc+
+Cj4gLS0tCj4gIGFyY2gveHRlbnNhL2tlcm5lbC9zeXNjYWxscy9NYWtlZmlsZSAgICAgIHwgMTEg
+KysrKysrKystLQo+ICBhcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaCB8
+IDM2IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KPiAgYXJjaC94dGVuc2Eva2VybmVs
+L3N5c2NhbGxzL3N5c2NhbGx0Ymwuc2ggfCAzMiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0K
+PiAgMyBmaWxlcyBjaGFuZ2VkLCA5IGluc2VydGlvbnMoKyksIDcwIGRlbGV0aW9ucygtKQo+ICBk
+ZWxldGUgbW9kZSAxMDA2NDQgYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL3N5c2NhbGxoZHIu
+c2gKPiAgZGVsZXRlIG1vZGUgMTAwNjQ0IGFyY2gveHRlbnNhL2tlcm5lbC9zeXNjYWxscy9zeXNj
+YWxsdGJsLnNoCj4KPiBkaWZmIC0tZ2l0IGEvYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL01h
+a2VmaWxlIGIvYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL01ha2VmaWxlCj4gaW5kZXggNjU5
+ZmFlZi4uNzVjNzQyMSAxMDA2NDQKPiAtLS0gYS9hcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMv
+TWFrZWZpbGUKPiArKysgYi9hcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMvTWFrZWZpbGUKPiBA
+QCAtNiw4ICs2LDkgQEAgX2R1bW15IDo9ICQoc2hlbGwgWyAtZCAnJCh1YXBpKScgXSB8fCBta2Rp
+ciAtcCAnJCh1YXBpKScpICAgICAgIFwKPiAgICAgICAgICAgJChzaGVsbCBbIC1kICckKGthcGkp
+JyBdIHx8IG1rZGlyIC1wICckKGthcGkpJykKPgo+ICBzeXNjYWxsIDo9ICQoc3JjdHJlZSkvJChz
+cmMpL3N5c2NhbGwudGJsCj4gLXN5c2hkciA6PSAkKHNyY3RyZWUpLyQoc3JjKS9zeXNjYWxsaGRy
+LnNoCj4gLXN5c3RibCA6PSAkKHNyY3RyZWUpLyQoc3JjKS9zeXNjYWxsdGJsLnNoCj4gK3N5c2hk
+ciA6PSAkKHNyY3RyZWUpL3NjcmlwdHMvc3lzY2FsbGhkci5zaAo+ICtzeXNuciA6PSAkKHNyY3Ry
+ZWUpL3NjcmlwdHMvc3lzY2FsbG5yLnNoCj4gK3N5c3RibCA6PSAkKHNyY3RyZWUpL3NjcmlwdHMv
+c3lzY2FsbHRibC5zaAo+Cj4gIHF1aWV0X2NtZF9zeXNoZHIgPSBTWVNIRFIgICRACj4gICAgICAg
+IGNtZF9zeXNoZHIgPSAkKENPTkZJR19TSEVMTCkgJyQoc3lzaGRyKScgJyQ8JyAnJEAnICAgICAg
+IFwKPiBAQCAtMTUsNiArMTYsMTIgQEAgcXVpZXRfY21kX3N5c2hkciA9IFNZU0hEUiAgJEAKPiAg
+ICAgICAgICAgICAgICAgICAgJyQoc3lzaGRyX3BmeF8kKGJhc2V0YXJnZXQpKScgICAgICAgICAg
+ICAgICAgXAo+ICAgICAgICAgICAgICAgICAgICAnJChzeXNoZHJfb2Zmc2V0XyQoYmFzZXRhcmdl
+dCkpJwo+Cj4gK3F1aWV0X2NtZF9zeXNuciA9IFNZU05SICAkQAo+ICsgICAgICBjbWRfc3lzbnIg
+PSAkKENPTkZJR19TSEVMTCkgJyQoc3lzbnIpJyAnJDwnICckQCcgICAgICAgICBcCj4gKyAgICAg
+ICAgICAgICAgICAgJyQoc3lzbnJfYWJpc18kKGJhc2V0YXJnZXQpKScgICAgICAgICAgICAgICAg
+IFwKPiArICAgICAgICAgICAgICAgICAnJChzeXNucl9wZnhfJChiYXNldGFyZ2V0KSknICAgICAg
+ICAgICAgICAgICAgXAo+ICsgICAgICAgICAgICAgICAgICckKHN5c25yX29mZnNldF8kKGJhc2V0
+YXJnZXQpKScKPiArCgpUaGlzIHBhdGNoIHNlZW1zIHRvIGRvIG1vcmUgdGhhbiBpdCBzYXlzIGlu
+IHRoZSBkZXNjcmlwdGlvbi4KUGVyaGFwcyBhZGRpbmcgY21kX3N5c25yIG5lZWRzIGEgc2VwYXJh
+dGUgcGF0Y2ggd2l0aCBpdHMKb3duIGRlc2NyaXB0aW9uPwoKLS0gClRoYW5rcy4KLS0gTWF4Cl9f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxp
+bmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9t
+YWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
