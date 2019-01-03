@@ -1,100 +1,47 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
-Date: Thu, 3 Jan 2019 13:29:58 +0100
-Message-ID: <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
-References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
-Reply-To: monstr@monstr.eu
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] scripts: unify system call table generation scripts
+Date: Thu, 3 Jan 2019 13:33:36 +0100
+Message-ID: <CAMuHMdV=Bv8+_4AOCv5s8b=Azn7eO+g_KBoSWw8DAunZmR_QiQ@mail.gmail.com>
+References: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
+ <CALxhOnjz3Qd-a0OWMDV9ShfPOUB8gNB5Ltp9HGZi01mauaxkuw@mail.gmail.com> <CALxhOni1b0hS1a7EHFBkzcCx9cT-Z+jy4azrLcFveu6KG944jg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo"
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <CALxhOni1b0hS1a7EHFBkzcCx9cT-Z+jy4azrLcFveu6KG944jg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, Helge Deller <deller@gmx.de>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Richard Henderson <rth@twiddle.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S . Miller" <davem@davemloft.net>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszki>
 List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo
-Content-Type: multipart/mixed; boundary="hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-To: Firoz Khan <firoz.khan@linaro.org>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Philippe Ombredanne <pombredanne@nexb.com>,
- Thomas Gleixner <tglx@linutronix.de>,
- Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com,
- marcin.juszkiewicz@linaro.org
-Message-ID: <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
-Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
-References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
+Hi Firoz,
 
---hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+On Thu, Jan 3, 2019 at 12:55 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On Thu, 3 Jan 2019 at 17:04, Firoz Khan <firoz.khan@linaro.org> wrote:
+> > > +fileguard=_UAPI_ASM_`basename "$out" | sed \
+> >
+> > Currently, all but MIPS have the architecture name included in
+> > the file guard.  Shouldn't that be retained?
+>
+> I was planning to do something similar to this:
+> -fileguard=_UAPI_ASM_`basename "$out" | sed \
+> +fileguard=_UAPI_ASM_${ARCH}_`basename "$out" | sed \
+>
+> But later I thought, the generated file will present inside arch
+> directory (eg: arch/m68k/include/generated/uapi/asm/unistd.h).
+> So Is that required to mention the architecture name in the file
+> guard as it is generated inside the respective arch directory?
 
-On 02. 01. 19 16:12, Firoz Khan wrote:
-> System call table generation support is provided for
-> alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
-> sh, sparc and xtensa architectures. The implementat-
-> ions are almost similar across all the above archte-
-> ctures. In order to reduce the source code across all
-> the above architectures, create common ".sh" files and
-> keep it in the common directory, script/. This will=20
-> be a generic scripts which can use for all the above
-> architectures.
->=20
-> This patch depends on;
->  https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.k=
-han@linaro.org/
->=20
-> Firoz Khan (2):
->   microblaze: remove nargs from __SYSCALL
->   microblaze: generate uapi header and system call table files
->=20
->  arch/microblaze/kernel/syscall_table.S        |  2 +-
->  arch/microblaze/kernel/syscalls/Makefile      | 11 ++++++--
->  arch/microblaze/kernel/syscalls/syscallhdr.sh | 36 -------------------=
---------
->  arch/microblaze/kernel/syscalls/syscalltbl.sh | 32 -------------------=
------
->  4 files changed, 10 insertions(+), 71 deletions(-)
->  delete mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
->  delete mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
->=20
+unistd_32.h is copied to /usr/include/asm/unistd_32.h by
+"make headers_install", after which the architecture name is no longer present
+in the path.
 
-Looks good. Will keep this in my queue till depending patch is applied.
+Gr{oetje,eeting}s,
 
-M
+                        Geert
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
-
---hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY--
-
---8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iEYEARECAAYFAlwuAEYACgkQykllyylKDCGkpQCeJuPtXudWSjQ5SC3PovSg16fv
-u6oAoJD6DVXLGJD6NwsObKbBpiyhbxKs
-=tV6x
------END PGP SIGNATURE-----
-
---8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo--
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
