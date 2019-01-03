@@ -1,63 +1,57 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH] kallsyms: lower alignment on ARM
-Date: Thu, 3 Jan 2019 09:30:12 +0900
-Message-ID: <CAK7LNATr9N=e26QQ=ks7ub-YhDPX5tfy7LY41m5oLSXpLLxxLw@mail.gmail.com>
-References: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
+Subject: Re: jump_label: move 'asm goto' support test to Kconfig
+Date: Thu, 3 Jan 2019 09:35:49 +0900
+Message-ID: <CAK7LNASWScb7Qt0kmV8RyBdix2GPA24gv=eRNYVWu5dGGePbfQ@mail.gmail.com>
+References: <CA+icZUU=1S0Xg3+zWNU-60eknfWyL2kjEPm2BNNTK8Eu-tkTEg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546173360-25573-1-git-send-email-minipli@googlemail.com>
+In-Reply-To: <CA+icZUU=1S0Xg3+zWNU-60eknfWyL2kjEPm2BNNTK8Eu-tkTEg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mathias Krause <minipli@googlemail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+To: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, "David S . Miller" <davem@davemloft.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, X86 ML <x86@kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Dec 30, 2018 at 9:37 PM Mathias Krause <minipli@googlemail.com> wrote:
+On Wed, Jan 2, 2019 at 9:14 PM Sedat Dilek <sedat.dilek@gmail.com> wrote:
 >
-> As mentioned in the info pages of gas, the '.align' pseudo op's
-> interpretation of the alignment value is architecture specific.
-> It might either be a byte value or taken to the power of two.
+> Hi,
 >
-> On ARM it's actually the latter which leads to unnecessary large
-> alignments of 16 bytes for 32 bit builds or 256 bytes for 64 bit
-> builds.
+> I was not aware that CONFIG_JUMP_LABEL Kconfig setting depends on the
+> support of asm-goto.
 >
-> Fix this by switching to '.balign' instead which is consistent
-> across all architectures.
+> Currently, I am doing experiments with clang-7 and a snapshot of
+> clang-8 on Linux/x86.
+> These compilers have no asm-goto support.
 >
-> Signed-off-by: Mathias Krause <minipli@googlemail.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
+> What is your recommendation for Linux >= v4.20?
+> I am asking as it is possible to set CONFIG_JUMP_LABEL=y when
+> compiling with clang - which has no effect.
+> This is confusing.
+>
+> Thanks, this patch makes things clearer and protects users from
+> setting "wrong" in the sense of non-functional settings.
+>
+> I have tested this against recent Linus tree where kbuild/kconfig Git
+> pulls were latest commits.
+>
+> Tested-by: Sedat Dilek <sedat.dilek@gmail.com> [ x86 with LLVM/Clang
+> v7 and v8 (snapshot) ]
 
 
-Applied to linux-kbuild.
-Thanks!
+Which part was tested?
+
+x86 kernel cannot be compiled with Clang
+since it lacks the asm-goto support.
 
 
-> ---
->  scripts/kallsyms.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
-> index 109a1af7e444..77cebad0474e 100644
-> --- a/scripts/kallsyms.c
-> +++ b/scripts/kallsyms.c
-> @@ -334,10 +334,10 @@ static void write_src(void)
->         printf("#include <asm/types.h>\n");
->         printf("#if BITS_PER_LONG == 64\n");
->         printf("#define PTR .quad\n");
-> -       printf("#define ALGN .align 8\n");
-> +       printf("#define ALGN .balign 8\n");
->         printf("#else\n");
->         printf("#define PTR .long\n");
-> -       printf("#define ALGN .align 4\n");
-> +       printf("#define ALGN .balign 4\n");
->         printf("#endif\n");
->
->         printf("\t.section .rodata, \"a\"\n");
-> --
-> 2.19.2
->
+$ make CC=clang
+Compiler lacks asm-goto support.
+arch/x86/Makefile:293: recipe for target 'checkbin' failed
+make: *** [checkbin] Error 1
+
+
+
+
 
 
 -- 
