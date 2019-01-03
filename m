@@ -1,44 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f68.google.com ([209.85.217.68]:46672 "EHLO
-        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726814AbfACLej (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 06:34:39 -0500
+Received: from mail-it1-f196.google.com ([209.85.166.196]:37468 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726814AbfACLfJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 06:35:09 -0500
+Received: by mail-it1-f196.google.com with SMTP id b5so42289503iti.2
+        for <linux-arch@vger.kernel.org>; Thu, 03 Jan 2019 03:35:08 -0800 (PST)
 MIME-Version: 1.0
 References: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1546439331-18646-1-git-send-email-firoz.khan@linaro.org>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 3 Jan 2019 12:34:25 +0100
-Message-ID: <CAMuHMdUS5rSmPaA75JEc-D0CKH5DkX6dfzu8n0CYy5O_JVAycg@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Thu, 3 Jan 2019 17:04:57 +0530
+Message-ID: <CALxhOnjz3Qd-a0OWMDV9ShfPOUB8gNB5Ltp9HGZi01mauaxkuw@mail.gmail.com>
 Subject: Re: [PATCH] scripts: unify system call table generation scripts
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
-Message-ID: <20190103113425.nLOeR8r3jIF9_ws2Pc-kb_DZ1aA-nD2HEVRV1PrgJDQ@z>
+To: Paul Burton <paul.burton@mips.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Tony Luck <tony.luck@intel.com>, Helge Deller <deller@gmx.de>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Michal Simek <monstr@monstr.eu>, Michael Ellerman <mpe@ellerman.id.au>, Richard Henderson <rth@twiddle.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S . Miller" <davem@davemloft.net>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20190103113457.xuvv2LaWpItcgz6diXnbWNSlEar_vuJq2RJDmi-RugI@z>
 
-Hi Firoz,
+++ adding more folks I closely worked with :)
 
-Thanks for your patch!
 
-On Wed, Jan 2, 2019 at 3:30 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Wed, 2 Jan 2019 at 19:59, Firoz Khan <firoz.khan@linaro.org> wrote:
+>
 > System call table generation support is provided for
 > alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
 > sh, sparc and xtensa architectures. The implementat-
 > ions are almost similar across all the above archte-
 > ctures.
-
-architectures
-
 >
 > In order to reduce the source code across all the
 > above architectures, create common ".sh" files and
 > keep it in the common directory, script/.
 >
 > This will be a generic scripts which can use for all
-
-be generic scripts which can be used for all of
-
 > the above architectures.
 >
 > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
@@ -67,10 +63,6 @@ be generic scripts which can be used for all of
 > +offset="$5"
 > +
 > +fileguard=_UAPI_ASM_`basename "$out" | sed \
-
-Currently, all but MIPS have the architecture name included in
-the file guard.  Shouldn't that be retained?
-
 > +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
 > +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
 > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
@@ -97,10 +89,6 @@ the file guard.  Shouldn't that be retained?
 > +       printf "\n"
 > +       printf "#endif /* %s */" "${fileguard}"
 > +       printf "\n"
-
-I think this "\n" should be integrated into the previous printf,
-as it terminates the previous output line.
-
 > +) > "$out"
 > diff --git a/scripts/syscallnr.sh b/scripts/syscallnr.sh
 > new file mode 100644
@@ -118,9 +106,6 @@ as it terminates the previous output line.
 > +offset="$5"
 > +
 > +fileguard=_UAPI_ASM_`basename "$out" | sed \
-
-Don't you want the architecture name in the file guard here, too?
-
 > +       -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
 > +       -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
 > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
@@ -165,16 +150,9 @@ Don't you want the architecture name in the file guard here, too?
 > +
 > +       while [ $t_nxt -lt $t_nr ]; do
 > +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
-
-Please add a space after the comma.
-
 > +               t_nxt=$((t_nxt+1))
 > +       done
 > +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
-
-Idem ditto.
-
-
 > +}
 > +
 > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
@@ -196,16 +174,3 @@ Idem ditto.
 > --
 > 1.9.1
 >
-
-
---
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
