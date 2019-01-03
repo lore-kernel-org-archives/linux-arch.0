@@ -1,62 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f68.google.com ([209.85.166.68]:37856 "EHLO
-        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730122AbfACMA6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 07:00:58 -0500
-Received: by mail-io1-f68.google.com with SMTP id g8so15473832iok.4
-        for <linux-arch@vger.kernel.org>; Thu, 03 Jan 2019 04:00:57 -0800 (PST)
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:40723 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730703AbfACMaJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 07:30:09 -0500
+Received: by mail-wm1-f67.google.com with SMTP id f188so30120342wmf.5
+        for <linux-arch@vger.kernel.org>; Thu, 03 Jan 2019 04:30:06 -0800 (PST)
+Reply-To: monstr@monstr.eu
+Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
+References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
+From: Michal Simek <monstr@monstr.eu>
+Message-ID: <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
+Date: Thu, 3 Jan 2019 13:29:58 +0100
 MIME-Version: 1.0
-References: <1546442319-20461-1-git-send-email-firoz.khan@linaro.org>
- <1546442319-20461-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdUT3B2JLkijM5Ofd3TUYa8TZJaj1NWaEJvU_19B-naF-w@mail.gmail.com>
-In-Reply-To: <CAMuHMdUT3B2JLkijM5Ofd3TUYa8TZJaj1NWaEJvU_19B-naF-w@mail.gmail.com>
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Thu, 3 Jan 2019 17:30:46 +0530
-Message-ID: <CALxhOnhhHy2ztRiCn4400UweHU_+O_t2Wf5862Rc_Dyh3NtNPQ@mail.gmail.com>
-Subject: Re: [PATCH 2/2] m68k: generate uapi header and syscall table header files
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20190103120046.67zuJMGTxXIAbX7h4w_mB_QtVFKX-erYMi2neW6VrUw@z>
+To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20190103122958.hktK2ZIjGD-rA_HCBC4gZv2hgbTYHfEtnPBdsNDj2Fs@z>
 
-Hi Geert,
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo
+Content-Type: multipart/mixed; boundary="hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+To: Firoz Khan <firoz.khan@linaro.org>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Philippe Ombredanne <pombredanne@nexb.com>,
+ Thomas Gleixner <tglx@linutronix.de>,
+ Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com,
+ marcin.juszkiewicz@linaro.org
+Message-ID: <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
+Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
+References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
 
-Thanks for your feedback!
+--hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, 3 Jan 2019 at 17:13, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> > The generated uapi header file will be included in uapi/-
-> > asm/unistd.h and generated system call table header file
-> > will be included by kernel/syscalltable.S file.
->
-> This doesn't really describe what this patch is doing.
-> This patch switches m68k over to use the common scripts for
-> system call header file generation.
+On 02. 01. 19 16:12, Firoz Khan wrote:
+> System call table generation support is provided for
+> alpha, ia64, m68k, microblaze, mips, parisc, powerpc,
+> sh, sparc and xtensa architectures. The implementat-
+> ions are almost similar across all the above archte-
+> ctures. In order to reduce the source code across all
+> the above architectures, create common ".sh" files and
+> keep it in the common directory, script/. This will=20
+> be a generic scripts which can use for all the above
+> architectures.
+>=20
+> This patch depends on;
+>  https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.k=
+han@linaro.org/
+>=20
+> Firoz Khan (2):
+>   microblaze: remove nargs from __SYSCALL
+>   microblaze: generate uapi header and system call table files
+>=20
+>  arch/microblaze/kernel/syscall_table.S        |  2 +-
+>  arch/microblaze/kernel/syscalls/Makefile      | 11 ++++++--
+>  arch/microblaze/kernel/syscalls/syscallhdr.sh | 36 -------------------=
+--------
+>  arch/microblaze/kernel/syscalls/syscalltbl.sh | 32 -------------------=
+-----
+>  4 files changed, 10 insertions(+), 71 deletions(-)
+>  delete mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+>  delete mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
+>=20
 
-Sure. I'll compose new commit message.
+Looks good. Will keep this in my queue till depending patch is applied.
 
-> >  syscall := $(srctree)/$(src)/syscall.tbl
-> > -syshdr := $(srctree)/$(src)/syscallhdr.sh
-> > -systbl := $(srctree)/$(src)/syscalltbl.sh
-> > +syshdr := $(srctree)/scripts/syscallhdr.sh
-> > +sysnr := $(srctree)/scripts/syscallnr.sh
->
-> What's the purpose of adding sysnr?
+M
 
-Yes. This is not really required here. I planned to change the
-implementation in some other way, but didn't looks perfect and
-this was left here unnoticed.
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
 
-> >
-> > +quiet_cmd_sysnr = SYSNR  $@
-> > +      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'         \
-> > +                 '$(sysnr_abis_$(basetarget))'                 \
-> > +                 '$(sysnr_pfx_$(basetarget))'                  \
-> > +                 '$(sysnr_offset_$(basetarget))'
-> > +
->
-> What's the purpose of adding this build rule, which is unused?
 
-Sure.
 
-Firoz
+--hSIc05f9hS763wqpGzHgxqU4y0Zd3R2dY--
+
+--8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iEYEARECAAYFAlwuAEYACgkQykllyylKDCGkpQCeJuPtXudWSjQ5SC3PovSg16fv
+u6oAoJD6DVXLGJD6NwsObKbBpiyhbxKs
+=tV6x
+-----END PGP SIGNATURE-----
+
+--8n8VULyadcUqxx3MDfw2fsoYW4RGNnHgo--
