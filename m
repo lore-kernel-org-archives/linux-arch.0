@@ -1,243 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:57720 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727301AbfACX0o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 18:26:44 -0500
-Date: Thu, 03 Jan 2019 15:26:41 -0800
-From: akpm@linux-foundation.org
-Subject: [patch 13/58] fls: change parameter to unsigned int
-Message-ID: <20190103232641.3EIEQP8Ig%akpm@linux-foundation.org>
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:33163 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726418AbfADC6m (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2019 21:58:42 -0500
+MIME-Version: 1.0
+References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org> <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Date: Thu, 3 Jan 2019 18:58:30 -0800
+Message-ID: <CAMo8BfJcKGBytDQMFU7XO50uYZcwCftzsLkxLa6aDRPWJ0wW4Q@mail.gmail.com>
+Subject: Re: [PATCH 1/2] xtensa: remove nargs from __SYSCALL
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, geert@linux-m68k.org, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, willy@infradead.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
+Message-ID: <20190104025830.OZ5PPSNo3A0CB9kyNkyuJdRevMgbZVkMXK1HcEuBEMU@z>
 
-From: Matthew Wilcox <willy@infradead.org>
-Subject: fls: change parameter to unsigned int
+On Wed, Jan 2, 2019 at 7:29 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+> The __SYSCALL macro's arguments are system call number,
+> system call entry name and number of arguments for the
+> system call.
+>
+> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
+> calculated nor used anywhere. So it would be better to
+> keep the implementaion as  __SYSCALL(nr, entry). This will
+> unifies the implementation with some other architetures
+> too.
 
-When testing in userspace, UBSAN pointed out that shifting into the sign
-bit is undefined behaviour.  It doesn't really make sense to ask for the
-highest set bit of a negative value, so just turn the argument type into
-an unsigned int.
+Perhaps "This will help unify the implementation with other architectures"?
 
-Some architectures (eg ppc) already had it declared as an unsigned int, so
-I don't expect too many problems.
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/xtensa/kernel/syscall.c              | 2 +-
+>  arch/xtensa/kernel/syscalls/syscalltbl.sh | 4 ++--
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/xtensa/kernel/syscall.c b/arch/xtensa/kernel/syscall.c
+> index 2c415fc..0665339 100644
+> --- a/arch/xtensa/kernel/syscall.c
+> +++ b/arch/xtensa/kernel/syscall.c
+> @@ -31,7 +31,7 @@
+>  syscall_t sys_call_table[__NR_syscalls] /* FIXME __cacheline_aligned */= {
+>         [0 ... __NR_syscalls - 1] = (syscall_t)&sys_ni_syscall,
+>
+> -#define __SYSCALL(nr, entry, nargs)[nr] = (syscall_t)entry,
+> +#define __SYSCALL(nr, entry)[nr] = (syscall_t)entry,
+>  #include <asm/syscall_table.h>
+>  #undef __SYSCALL
+>  };
+> diff --git a/arch/xtensa/kernel/syscalls/syscalltbl.sh b/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> index 85d78d9..904b8e6 100644
+> --- a/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> +++ b/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> @@ -13,10 +13,10 @@ emit() {
+>         t_entry="$3"
+>
+>         while [ $t_nxt -lt $t_nr ]; do
+> -               printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
+> +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
 
-Link: http://lkml.kernel.org/r/20181105221117.31828-1-willy@infradead.org
-Signed-off-by: Matthew Wilcox <willy@infradead.org>
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Please add space after the comma.
 
- arch/alpha/include/asm/bitops.h          |    4 ++--
- arch/arc/include/asm/bitops.h            |    4 ++--
- arch/c6x/include/asm/bitops.h            |    2 +-
- arch/csky/include/asm/bitops.h           |    2 +-
- arch/hexagon/include/asm/bitops.h        |    2 +-
- arch/ia64/include/asm/bitops.h           |    3 +--
- arch/m68k/include/asm/bitops.h           |    2 +-
- arch/mips/include/asm/bitops.h           |    2 +-
- arch/openrisc/include/asm/bitops/fls.h   |    2 +-
- arch/parisc/include/asm/bitops.h         |    2 +-
- arch/s390/include/asm/bitops.h           |    4 ++--
- arch/unicore32/include/asm/bitops.h      |    2 +-
- arch/x86/include/asm/bitops.h            |    2 +-
- include/asm-generic/bitops/builtin-fls.h |    2 +-
- include/asm-generic/bitops/fls.h         |    2 +-
- tools/include/asm-generic/bitops/fls.h   |    2 +-
- 16 files changed, 19 insertions(+), 20 deletions(-)
+>                 t_nxt=$((t_nxt+1))
+>         done
+> -       printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
+> +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
 
---- a/arch/alpha/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/alpha/include/asm/bitops.h
-@@ -391,9 +391,9 @@ static inline unsigned long __fls(unsign
- 	return fls64(x) - 1;
- }
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
--	return fls64((unsigned int) x);
-+	return fls64(x);
- }
- 
- /*
---- a/arch/arc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/arc/include/asm/bitops.h
-@@ -278,7 +278,7 @@ static inline __attribute__ ((const)) in
- 	return res;
- }
- 
--static inline int constant_fls(int x)
-+static inline int constant_fls(unsigned int x)
- {
- 	int r = 32;
- 
-@@ -312,7 +312,7 @@ static inline int constant_fls(int x)
-  * @result: [1-32]
-  * fls(1) = 1, fls(0x80000000) = 32, fls(0) = 0
-  */
--static inline __attribute__ ((const)) int fls(unsigned long x)
-+static inline __attribute__ ((const)) int fls(unsigned int x)
- {
- 	if (__builtin_constant_p(x))
- 	       return constant_fls(x);
---- a/arch/c6x/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/c6x/include/asm/bitops.h
-@@ -54,7 +54,7 @@ static inline unsigned long __ffs(unsign
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	if (!x)
- 		return 0;
---- a/arch/csky/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/csky/include/asm/bitops.h
-@@ -40,7 +40,7 @@ static __always_inline unsigned long __f
- /*
-  * asm-generic/bitops/fls.h
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	asm volatile(
- 		"ff1 %0\n"
---- a/arch/hexagon/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/hexagon/include/asm/bitops.h
-@@ -211,7 +211,7 @@ static inline long ffz(int x)
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/arch/ia64/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/ia64/include/asm/bitops.h
-@@ -388,8 +388,7 @@ ia64_fls (unsigned long x)
-  * Find the last (most significant) bit set.  Returns 0 for x==0 and
-  * bits are numbered from 1..32 (e.g., fls(9) == 4).
-  */
--static inline int
--fls (int t)
-+static inline int fls(unsigned int t)
- {
- 	unsigned long x = t & 0xffffffffu;
- 
---- a/arch/m68k/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/m68k/include/asm/bitops.h
-@@ -502,7 +502,7 @@ static inline unsigned long __ffs(unsign
- /*
-  *	fls: find last bit set.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int cnt;
- 
---- a/arch/mips/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/mips/include/asm/bitops.h
-@@ -555,7 +555,7 @@ static inline unsigned long __ffs(unsign
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/arch/openrisc/include/asm/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/openrisc/include/asm/bitops/fls.h
-@@ -15,7 +15,7 @@
- 
- #ifdef CONFIG_OPENRISC_HAVE_INST_FL1
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int ret;
- 
---- a/arch/parisc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/parisc/include/asm/bitops.h
-@@ -188,7 +188,7 @@ static __inline__ int ffs(int x)
-  * fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __inline__ int fls(int x)
-+static __inline__ int fls(unsigned int x)
- {
- 	int ret;
- 	if (!x)
---- a/arch/s390/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/s390/include/asm/bitops.h
-@@ -397,9 +397,9 @@ static inline int fls64(unsigned long wo
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int word)
-+static inline int fls(unsigned int word)
- {
--	return fls64((unsigned int)word);
-+	return fls64(word);
- }
- 
- #else /* CONFIG_HAVE_MARCH_Z9_109_FEATURES */
---- a/arch/unicore32/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/unicore32/include/asm/bitops.h
-@@ -22,7 +22,7 @@
-  * the cntlz instruction for much better code efficiency.
-  */
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int ret;
- 
---- a/arch/x86/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/x86/include/asm/bitops.h
-@@ -448,7 +448,7 @@ static __always_inline int ffs(int x)
-  * set bit if value is nonzero. The last (most significant) bit is
-  * at position 32.
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/include/asm-generic/bitops/builtin-fls.h~fls-change-parameter-to-unsigned-int
-+++ a/include/asm-generic/bitops/builtin-fls.h
-@@ -9,7 +9,7 @@
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	return x ? sizeof(x) * 8 - __builtin_clz(x) : 0;
- }
---- a/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/include/asm-generic/bitops/fls.h
-@@ -10,7 +10,7 @@
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r = 32;
- 
---- a/tools/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/tools/include/asm-generic/bitops/fls.h
-@@ -10,7 +10,7 @@
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r = 32;
- 
-_
+Ditto.
+
+>  }
+>
+>  grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> --
+> 1.9.1
+
+With the above changes:
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+
+-- 
+Thanks.
+-- Max
