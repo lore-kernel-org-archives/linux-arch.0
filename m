@@ -1,71 +1,79 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 2/2] xtensa: generate uapi header and syscall
-	table header files
-Date: Thu, 3 Jan 2019 14:44:37 -0800
-Message-ID: <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
-References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org>
- <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
+Subject: Re: [PATCH 1/2] xtensa: remove nargs from __SYSCALL
+Date: Thu, 3 Jan 2019 18:58:30 -0800
+Message-ID: <CAMo8BfJcKGBytDQMFU7XO50uYZcwCftzsLkxLa6aDRPWJ0wW4Q@mail.gmail.com>
+References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org> <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1546442912-20818-3-git-send-email-firoz.khan@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Chris Zankel <chris@zankel.net>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, marcin.juszkiewicz@linaro.org, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgRmlyb3osCgpPbiBXZWQsIEphbiAyLCAyMDE5IGF0IDc6MjkgQU0gRmlyb3ogS2hhbiA8Zmly
-b3oua2hhbkBsaW5hcm8ub3JnPiB3cm90ZToKPiBVbmlmaWVkIHN5c3RlbSBjYWxsIHRhYmxlIGdl
-bmVyYXRpb24gc2NyaXB0IG11c3QgYmUgcnVuIHRvCj4gZ2VuZXJhdGUgdW5pc3RkXzMyLmggYW5k
-IHN5c2NhbGxfdGFibGUuaCBmaWxlcy4gVGhpcyBwYXRjaAo+IHdpbGwgaGF2ZSBjaGFuZ2VzIHdo
-aWNoIHdpbGwgaW52b2tlcyB0aGUgc2NyaXB0Lgo+Cj4gVGhpcyBwYXRjaCB3aWxsIGdlbmVyYXRl
-IHVuaXN0ZF8zMi5oIGFuZCBzeXNjYWxsX3RhYmxlLmgKPiBmaWxlcyBieSB0aGUgc3lzY2FsbCB0
-YWJsZSBnZW5lcmF0aW9uIHNjcmlwdCBpbnZva2VkIGJ5Cj4geHRlbnNhL01ha2VmaWxlIGFuZCB0
-aGUgZ2VuZXJhdGVkIGZpbGVzIGFnYWluc3QgdGhlIHJlbW92ZWQKPiBmaWxlcyBtdXN0IGJlIGlk
-ZW50aWNhbC4KPgo+IFRoZSBnZW5lcmF0ZWQgdWFwaSBoZWFkZXIgZmlsZSB3aWxsIGJlIGluY2x1
-ZGVkIGluIHVhcGkvLQo+IGFzbS91bmlzdGQuaCBhbmQgZ2VuZXJhdGVkIHN5c3RlbSBjYWxsIHRh
-YmxlIGhlYWRlciBmaWxlCj4gd2lsbCBiZSBpbmNsdWRlZCBieSBrZXJuZWwvc3lzY2FsbC5jIGZp
-bGUuCj4KPiBTaWduZWQtb2ZmLWJ5OiBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5vcmc+
-Cj4gLS0tCj4gIGFyY2gveHRlbnNhL2tlcm5lbC9zeXNjYWxscy9NYWtlZmlsZSAgICAgIHwgMTEg
-KysrKysrKystLQo+ICBhcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaCB8
-IDM2IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KPiAgYXJjaC94dGVuc2Eva2VybmVs
-L3N5c2NhbGxzL3N5c2NhbGx0Ymwuc2ggfCAzMiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0K
-PiAgMyBmaWxlcyBjaGFuZ2VkLCA5IGluc2VydGlvbnMoKyksIDcwIGRlbGV0aW9ucygtKQo+ICBk
-ZWxldGUgbW9kZSAxMDA2NDQgYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL3N5c2NhbGxoZHIu
-c2gKPiAgZGVsZXRlIG1vZGUgMTAwNjQ0IGFyY2gveHRlbnNhL2tlcm5lbC9zeXNjYWxscy9zeXNj
-YWxsdGJsLnNoCj4KPiBkaWZmIC0tZ2l0IGEvYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL01h
-a2VmaWxlIGIvYXJjaC94dGVuc2Eva2VybmVsL3N5c2NhbGxzL01ha2VmaWxlCj4gaW5kZXggNjU5
-ZmFlZi4uNzVjNzQyMSAxMDA2NDQKPiAtLS0gYS9hcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMv
-TWFrZWZpbGUKPiArKysgYi9hcmNoL3h0ZW5zYS9rZXJuZWwvc3lzY2FsbHMvTWFrZWZpbGUKPiBA
-QCAtNiw4ICs2LDkgQEAgX2R1bW15IDo9ICQoc2hlbGwgWyAtZCAnJCh1YXBpKScgXSB8fCBta2Rp
-ciAtcCAnJCh1YXBpKScpICAgICAgIFwKPiAgICAgICAgICAgJChzaGVsbCBbIC1kICckKGthcGkp
-JyBdIHx8IG1rZGlyIC1wICckKGthcGkpJykKPgo+ICBzeXNjYWxsIDo9ICQoc3JjdHJlZSkvJChz
-cmMpL3N5c2NhbGwudGJsCj4gLXN5c2hkciA6PSAkKHNyY3RyZWUpLyQoc3JjKS9zeXNjYWxsaGRy
-LnNoCj4gLXN5c3RibCA6PSAkKHNyY3RyZWUpLyQoc3JjKS9zeXNjYWxsdGJsLnNoCj4gK3N5c2hk
-ciA6PSAkKHNyY3RyZWUpL3NjcmlwdHMvc3lzY2FsbGhkci5zaAo+ICtzeXNuciA6PSAkKHNyY3Ry
-ZWUpL3NjcmlwdHMvc3lzY2FsbG5yLnNoCj4gK3N5c3RibCA6PSAkKHNyY3RyZWUpL3NjcmlwdHMv
-c3lzY2FsbHRibC5zaAo+Cj4gIHF1aWV0X2NtZF9zeXNoZHIgPSBTWVNIRFIgICRACj4gICAgICAg
-IGNtZF9zeXNoZHIgPSAkKENPTkZJR19TSEVMTCkgJyQoc3lzaGRyKScgJyQ8JyAnJEAnICAgICAg
-IFwKPiBAQCAtMTUsNiArMTYsMTIgQEAgcXVpZXRfY21kX3N5c2hkciA9IFNZU0hEUiAgJEAKPiAg
-ICAgICAgICAgICAgICAgICAgJyQoc3lzaGRyX3BmeF8kKGJhc2V0YXJnZXQpKScgICAgICAgICAg
-ICAgICAgXAo+ICAgICAgICAgICAgICAgICAgICAnJChzeXNoZHJfb2Zmc2V0XyQoYmFzZXRhcmdl
-dCkpJwo+Cj4gK3F1aWV0X2NtZF9zeXNuciA9IFNZU05SICAkQAo+ICsgICAgICBjbWRfc3lzbnIg
-PSAkKENPTkZJR19TSEVMTCkgJyQoc3lzbnIpJyAnJDwnICckQCcgICAgICAgICBcCj4gKyAgICAg
-ICAgICAgICAgICAgJyQoc3lzbnJfYWJpc18kKGJhc2V0YXJnZXQpKScgICAgICAgICAgICAgICAg
-IFwKPiArICAgICAgICAgICAgICAgICAnJChzeXNucl9wZnhfJChiYXNldGFyZ2V0KSknICAgICAg
-ICAgICAgICAgICAgXAo+ICsgICAgICAgICAgICAgICAgICckKHN5c25yX29mZnNldF8kKGJhc2V0
-YXJnZXQpKScKPiArCgpUaGlzIHBhdGNoIHNlZW1zIHRvIGRvIG1vcmUgdGhhbiBpdCBzYXlzIGlu
-IHRoZSBkZXNjcmlwdGlvbi4KUGVyaGFwcyBhZGRpbmcgY21kX3N5c25yIG5lZWRzIGEgc2VwYXJh
-dGUgcGF0Y2ggd2l0aCBpdHMKb3duIGRlc2NyaXB0aW9uPwoKLS0gClRoYW5rcy4KLS0gTWF4Cl9f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxp
-bmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9t
-YWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
+On Wed, Jan 2, 2019 at 7:29 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+> The __SYSCALL macro's arguments are system call number,
+> system call entry name and number of arguments for the
+> system call.
+>
+> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
+> calculated nor used anywhere. So it would be better to
+> keep the implementaion as  __SYSCALL(nr, entry). This will
+> unifies the implementation with some other architetures
+> too.
+
+Perhaps "This will help unify the implementation with other architectures"?
+
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/xtensa/kernel/syscall.c              | 2 +-
+>  arch/xtensa/kernel/syscalls/syscalltbl.sh | 4 ++--
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/xtensa/kernel/syscall.c b/arch/xtensa/kernel/syscall.c
+> index 2c415fc..0665339 100644
+> --- a/arch/xtensa/kernel/syscall.c
+> +++ b/arch/xtensa/kernel/syscall.c
+> @@ -31,7 +31,7 @@
+>  syscall_t sys_call_table[__NR_syscalls] /* FIXME __cacheline_aligned */= {
+>         [0 ... __NR_syscalls - 1] = (syscall_t)&sys_ni_syscall,
+>
+> -#define __SYSCALL(nr, entry, nargs)[nr] = (syscall_t)entry,
+> +#define __SYSCALL(nr, entry)[nr] = (syscall_t)entry,
+>  #include <asm/syscall_table.h>
+>  #undef __SYSCALL
+>  };
+> diff --git a/arch/xtensa/kernel/syscalls/syscalltbl.sh b/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> index 85d78d9..904b8e6 100644
+> --- a/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> +++ b/arch/xtensa/kernel/syscalls/syscalltbl.sh
+> @@ -13,10 +13,10 @@ emit() {
+>         t_entry="$3"
+>
+>         while [ $t_nxt -lt $t_nr ]; do
+> -               printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
+> +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
+
+Please add space after the comma.
+
+>                 t_nxt=$((t_nxt+1))
+>         done
+> -       printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
+> +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
+
+Ditto.
+
+>  }
+>
+>  grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> --
+> 1.9.1
+
+With the above changes:
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+
+-- 
+Thanks.
+-- Max
