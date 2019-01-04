@@ -1,13 +1,13 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 2/2] xtensa: generate uapi header and syscall table header files
-Date: Fri, 4 Jan 2019 10:43:04 +0530
-Message-ID: <CALxhOnhgAEeEFhL2fgjDSCBMJo7dF5jiuGKCXjWYjMJmHefMgA@mail.gmail.com>
+Subject: Re: [PATCH 1/2] xtensa: remove nargs from __SYSCALL
+Date: Fri, 4 Jan 2019 10:47:46 +0530
+Message-ID: <CALxhOnhy6nh3ycW5kBwqZ4o0EfoFm4MoCJ2453rDCRaX3Z-z7Q@mail.gmail.com>
 References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org>
- <1546442912-20818-3-git-send-email-firoz.khan@linaro.org> <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
+ <1546442912-20818-2-git-send-email-firoz.khan@linaro.org> <CAMo8BfJcKGBytDQMFU7XO50uYZcwCftzsLkxLa6aDRPWJ0wW4Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
+In-Reply-To: <CAMo8BfJcKGBytDQMFU7XO50uYZcwCftzsLkxLa6aDRPWJ0wW4Q@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
@@ -15,24 +15,18 @@ List-Id: linux-arch.vger.kernel.org
 
 Hi Max,
 
-Thanks for your feedback.
+Thanks for your reply.
 
-On Fri, 4 Jan 2019 at 04:14, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> >
-> > +quiet_cmd_sysnr = SYSNR  $@
-> > +      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'         \
-> > +                 '$(sysnr_abis_$(basetarget))'                 \
-> > +                 '$(sysnr_pfx_$(basetarget))'                  \
-> > +                 '$(sysnr_offset_$(basetarget))'
-> > +
+On Fri, 4 Jan 2019 at 08:28, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> On Wed, Jan 2, 2019 at 7:29 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >         while [ $t_nxt -lt $t_nr ]; do
+> > -               printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
+> > +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
 >
-> This patch seems to do more than it says in the description.
-> Perhaps adding cmd_sysnr needs a separate patch with its
-> own description?
+> Please add space after the comma.
 
-This build rule is unused now as I was tried to implement
-something else. Hopefully I'll remove the the above change
-in my v2.
+This was intentional as I was trying compile other one architecture with the
+previous implementation, it was giving the error. So I modified without space
+after comma.
 
-Thanks
 Firoz
