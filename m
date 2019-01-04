@@ -1,79 +1,38 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 1/2] xtensa: remove nargs from __SYSCALL
-Date: Thu, 3 Jan 2019 18:58:30 -0800
-Message-ID: <CAMo8BfJcKGBytDQMFU7XO50uYZcwCftzsLkxLa6aDRPWJ0wW4Q@mail.gmail.com>
-References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org> <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH 2/2] xtensa: generate uapi header and syscall table header files
+Date: Fri, 4 Jan 2019 10:43:04 +0530
+Message-ID: <CALxhOnhgAEeEFhL2fgjDSCBMJo7dF5jiuGKCXjWYjMJmHefMgA@mail.gmail.com>
+References: <1546442912-20818-1-git-send-email-firoz.khan@linaro.org>
+ <1546442912-20818-3-git-send-email-firoz.khan@linaro.org> <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546442912-20818-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <CAMo8Bf+qK=k33boeNOeL69sLC3e-M07QK9ErhYm-byuQ2UnVnw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-xtensa@linux-xtensa.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 2, 2019 at 7:29 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+Hi Max,
+
+Thanks for your feedback.
+
+On Fri, 4 Jan 2019 at 04:14, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> >
+> > +quiet_cmd_sysnr = SYSNR  $@
+> > +      cmd_sysnr = $(CONFIG_SHELL) '$(sysnr)' '$<' '$@'         \
+> > +                 '$(sysnr_abis_$(basetarget))'                 \
+> > +                 '$(sysnr_pfx_$(basetarget))'                  \
+> > +                 '$(sysnr_offset_$(basetarget))'
+> > +
 >
-> The __SYSCALL macro's arguments are system call number,
-> system call entry name and number of arguments for the
-> system call.
->
-> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
-> calculated nor used anywhere. So it would be better to
-> keep the implementaion as  __SYSCALL(nr, entry). This will
-> unifies the implementation with some other architetures
-> too.
+> This patch seems to do more than it says in the description.
+> Perhaps adding cmd_sysnr needs a separate patch with its
+> own description?
 
-Perhaps "This will help unify the implementation with other architectures"?
+This build rule is unused now as I was tried to implement
+something else. Hopefully I'll remove the the above change
+in my v2.
 
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> ---
->  arch/xtensa/kernel/syscall.c              | 2 +-
->  arch/xtensa/kernel/syscalls/syscalltbl.sh | 4 ++--
->  2 files changed, 3 insertions(+), 3 deletions(-)
->
-> diff --git a/arch/xtensa/kernel/syscall.c b/arch/xtensa/kernel/syscall.c
-> index 2c415fc..0665339 100644
-> --- a/arch/xtensa/kernel/syscall.c
-> +++ b/arch/xtensa/kernel/syscall.c
-> @@ -31,7 +31,7 @@
->  syscall_t sys_call_table[__NR_syscalls] /* FIXME __cacheline_aligned */= {
->         [0 ... __NR_syscalls - 1] = (syscall_t)&sys_ni_syscall,
->
-> -#define __SYSCALL(nr, entry, nargs)[nr] = (syscall_t)entry,
-> +#define __SYSCALL(nr, entry)[nr] = (syscall_t)entry,
->  #include <asm/syscall_table.h>
->  #undef __SYSCALL
->  };
-> diff --git a/arch/xtensa/kernel/syscalls/syscalltbl.sh b/arch/xtensa/kernel/syscalls/syscalltbl.sh
-> index 85d78d9..904b8e6 100644
-> --- a/arch/xtensa/kernel/syscalls/syscalltbl.sh
-> +++ b/arch/xtensa/kernel/syscalls/syscalltbl.sh
-> @@ -13,10 +13,10 @@ emit() {
->         t_entry="$3"
->
->         while [ $t_nxt -lt $t_nr ]; do
-> -               printf "__SYSCALL(%s, sys_ni_syscall, )\n" "${t_nxt}"
-> +               printf "__SYSCALL(%s,sys_ni_syscall)\n" "${t_nxt}"
-
-Please add space after the comma.
-
->                 t_nxt=$((t_nxt+1))
->         done
-> -       printf "__SYSCALL(%s, %s, )\n" "${t_nxt}" "${t_entry}"
-> +       printf "__SYSCALL(%s,%s)\n" "${t_nxt}" "${t_entry}"
-
-Ditto.
-
->  }
->
->  grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> --
-> 1.9.1
-
-With the above changes:
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-
--- 
-Thanks.
--- Max
+Thanks
+Firoz
