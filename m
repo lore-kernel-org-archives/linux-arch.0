@@ -1,103 +1,106 @@
-From: G SatishKumar <gsatish.ldd@gmail.com>
-Subject: [PATCH] RISCV:IRQ: Support IRQ_WORK interrupts with self IPI
-Date: Sun,  6 Jan 2019 19:02:58 +0530
-Message-ID: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [URGENT FIX PATCH] arch: restore generic-y += shmparam.h for some architectures
+Date: Mon,  7 Jan 2019 11:08:08 +0900
+Message-ID: <1546826888-29197-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-riscv@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, palmer@sifive.com, linux-arch@vger.kernel.org, G SatishKumar <gsatish.ldd@gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Michal Simek <monstr@monstr.eu>, Stafford Horne <shorne@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Guan Xuetao <gxt@pku.edu.cn>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org
 List-Id: linux-arch.vger.kernel.org
 
-	This patch adds, IRQ Work interrupts support to RISCV arch.
+For some reasons, I accidentally got rid of "generic-y += shmparam.h"
+from some architectures.
 
-	This patch is based on the arm32 patch ARM 7872/1
-	which ports cleanly.
+Restore them to fix building c6x, h8300, hexagon, m68k, microblaze,
+openrisc, and unicore32.
 
-	Done set of changes based on RISCV SMP process.
-
-	commit bf18525fd793 ("ARM: 7872/1: Support arch_irq_work_raise()
-		via self IPIs")
-	Author: Stephen Boyd <sboyd at codeaurora.org>
-	Date:   Tue Oct 29 20:32:56 2013 +0100
-
-	By default, IRQ work is run from the tick interrupt (see
-	irq_work_run() in update_process_times()). When we're in full
-	NOHZ mode, restarting the tick requires the use of IRQ work and
-	if the only place we run IRQ work is in the tick interrupt we
-	have an unbreakable cycle. Implement arch_irq_work_raise() via
-	self IPIs to break this cycle and get the tick started again.
-	Note that we implement this via IPIs which are only available on
-	SMP builds. This shouldn't be a problem because full NOHZ is only
-	supported on SMP builds anyway.
-
-root@(none):~# cat /proc/interrupts
-           CPU0       CPU1       CPU2       CPU3
-  8:        134        112         73         75  SiFive PLIC   8  virtio0
- 10:        123        131        142        126  SiFive PLIC  10  ttyS0
-IPI0:       798        549        285        373  Rescheduling interrupts
-IPI1:        53          8        101        181  Function call interrupts
-IPI2:         0          0          0          0  IRQ work interrupts
-Err:          0
-
-Signed-off-by: G SatishKumar <gsatish.ldd@gmail.com>
+Fixes: d6e4b3e326d8 ("arch: remove redundant UAPI generic-y defines")
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
- arch/riscv/kernel/smp.c | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
 
-diff --git a/arch/riscv/kernel/smp.c b/arch/riscv/kernel/smp.c
-index 57b1383..8953e73 100644
---- a/arch/riscv/kernel/smp.c
-+++ b/arch/riscv/kernel/smp.c
-@@ -23,6 +23,7 @@
- #include <linux/smp.h>
- #include <linux/sched.h>
- #include <linux/seq_file.h>
-+#include <linux/irq_work.h>
+Hi Linus,
+
+Could you pick up this directly?
+Apology for breakage.
+
+
+
+ arch/c6x/include/uapi/asm/Kbuild        | 1 +
+ arch/h8300/include/uapi/asm/Kbuild      | 1 +
+ arch/hexagon/include/uapi/asm/Kbuild    | 1 +
+ arch/m68k/include/uapi/asm/Kbuild       | 1 +
+ arch/microblaze/include/uapi/asm/Kbuild | 1 +
+ arch/openrisc/include/uapi/asm/Kbuild   | 1 +
+ arch/unicore32/include/uapi/asm/Kbuild  | 1 +
+ 7 files changed, 7 insertions(+)
+
+diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/c6x/include/uapi/asm/Kbuild
++++ b/arch/c6x/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
  
- #include <asm/sbi.h>
- #include <asm/tlbflush.h>
-@@ -31,6 +32,7 @@
- enum ipi_message_type {
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
-+	IPI_IRQ_WORK,
- 	IPI_MAX
- };
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/h8300/include/uapi/asm/Kbuild
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
  
-@@ -94,6 +96,11 @@ void riscv_software_interrupt(void)
- 			generic_smp_call_function_interrupt();
- 		}
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
+index c1b06dc..61d955c 100644
+--- a/arch/hexagon/include/uapi/asm/Kbuild
++++ b/arch/hexagon/include/uapi/asm/Kbuild
+@@ -1,3 +1,4 @@
+ include include/uapi/asm-generic/Kbuild.asm
  
-+		if (ops & (1 << IPI_IRQ_WORK)) {
-+			stats[IPI_IRQ_WORK]++;
-+			irq_work_run();
-+		}
-+
- 		BUG_ON((ops >> IPI_MAX) != 0);
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
+index 960bf1e..b8b3525 100644
+--- a/arch/m68k/include/uapi/asm/Kbuild
++++ b/arch/m68k/include/uapi/asm/Kbuild
+@@ -2,3 +2,4 @@ include include/uapi/asm-generic/Kbuild.asm
  
- 		/* Order data access and bit testing. */
-@@ -121,6 +128,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
- static const char * const ipi_names[] = {
- 	[IPI_RESCHEDULE]	= "Rescheduling interrupts",
- 	[IPI_CALL_FUNC]		= "Function call interrupts",
-+	[IPI_IRQ_WORK]		= "IRQ work interrupts"
- };
+ generated-y += unistd_32.h
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+index 97823ec..28823e3 100644
+--- a/arch/microblaze/include/uapi/asm/Kbuild
++++ b/arch/microblaze/include/uapi/asm/Kbuild
+@@ -2,4 +2,5 @@ include include/uapi/asm-generic/Kbuild.asm
  
- void show_ipi_stats(struct seq_file *p, int prec)
-@@ -162,6 +170,14 @@ void smp_send_reschedule(int cpu)
- 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
- }
+ generated-y += unistd_32.h
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/openrisc/include/uapi/asm/Kbuild
++++ b/arch/openrisc/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
  
-+#ifdef CONFIG_IRQ_WORK
-+void arch_irq_work_raise(void)
-+{
-+	send_ipi_message(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
-+}
-+#endif
-+
-+
- /*
-  * Performs an icache flush for the given MM context.  RISC-V has no direct
-  * mechanism for instruction cache shoot downs, so instead we send an IPI that
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/unicore32/include/uapi/asm/Kbuild
++++ b/arch/unicore32/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
 -- 
 2.7.4
