@@ -1,108 +1,258 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:45915 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726336AbfAFNdI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jan 2019 08:33:08 -0500
-From: G SatishKumar <gsatish.ldd@gmail.com>
-Subject: [PATCH] RISCV:IRQ: Support IRQ_WORK interrupts with self IPI
-Date: Sun,  6 Jan 2019 19:02:58 +0530
-Message-ID: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:36932 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726135AbfAGBCc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jan 2019 20:02:32 -0500
+Date: Sun, 06 Jan 2019 17:02:30 -0800
+From: akpm@linux-foundation.org
+Subject: [merged] fls-change-parameter-to-unsigned-int.patch
+ removed from -mm tree
+Message-ID: <20190107010230.ormZEvzjH%akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-riscv@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, palmer@sifive.com, linux-arch@vger.kernel.org, G SatishKumar <gsatish.ldd@gmail.com>
-Message-ID: <20190106133258.T2zsgQx3-_tqVGuGcqRenFOFmY2EWnwXw1IMwDYR2Ic@z>
+To: geert@linux-m68k.org, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org, tglx@linutronix.de, willy@infradead.org
 
-	This patch adds, IRQ Work interrupts support to RISCV arch.
 
-	This patch is based on the arm32 patch ARM 7872/1
-	which ports cleanly.
+The patch titled
+     Subject: fls: change parameter to unsigned int
+has been removed from the -mm tree.  Its filename was
+     fls-change-parameter-to-unsigned-int.patch
 
-	Done set of changes based on RISCV SMP process.
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-	commit bf18525fd793 ("ARM: 7872/1: Support arch_irq_work_raise()
-		via self IPIs")
-	Author: Stephen Boyd <sboyd at codeaurora.org>
-	Date:   Tue Oct 29 20:32:56 2013 +0100
+------------------------------------------------------
+From: Matthew Wilcox <willy@infradead.org>
+Subject: fls: change parameter to unsigned int
 
-	By default, IRQ work is run from the tick interrupt (see
-	irq_work_run() in update_process_times()). When we're in full
-	NOHZ mode, restarting the tick requires the use of IRQ work and
-	if the only place we run IRQ work is in the tick interrupt we
-	have an unbreakable cycle. Implement arch_irq_work_raise() via
-	self IPIs to break this cycle and get the tick started again.
-	Note that we implement this via IPIs which are only available on
-	SMP builds. This shouldn't be a problem because full NOHZ is only
-	supported on SMP builds anyway.
+When testing in userspace, UBSAN pointed out that shifting into the sign
+bit is undefined behaviour.  It doesn't really make sense to ask for the
+highest set bit of a negative value, so just turn the argument type into
+an unsigned int.
 
-root@(none):~# cat /proc/interrupts
-           CPU0       CPU1       CPU2       CPU3
-  8:        134        112         73         75  SiFive PLIC   8  virtio0
- 10:        123        131        142        126  SiFive PLIC  10  ttyS0
-IPI0:       798        549        285        373  Rescheduling interrupts
-IPI1:        53          8        101        181  Function call interrupts
-IPI2:         0          0          0          0  IRQ work interrupts
-Err:          0
+Some architectures (eg ppc) already had it declared as an unsigned int, so
+I don't expect too many problems.
 
-Signed-off-by: G SatishKumar <gsatish.ldd@gmail.com>
+Link: http://lkml.kernel.org/r/20181105221117.31828-1-willy@infradead.org
+Signed-off-by: Matthew Wilcox <willy@infradead.org>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/riscv/kernel/smp.c | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
 
-diff --git a/arch/riscv/kernel/smp.c b/arch/riscv/kernel/smp.c
-index 57b1383..8953e73 100644
---- a/arch/riscv/kernel/smp.c
-+++ b/arch/riscv/kernel/smp.c
-@@ -23,6 +23,7 @@
- #include <linux/smp.h>
- #include <linux/sched.h>
- #include <linux/seq_file.h>
-+#include <linux/irq_work.h>
- 
- #include <asm/sbi.h>
- #include <asm/tlbflush.h>
-@@ -31,6 +32,7 @@
- enum ipi_message_type {
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
-+	IPI_IRQ_WORK,
- 	IPI_MAX
- };
- 
-@@ -94,6 +96,11 @@ void riscv_software_interrupt(void)
- 			generic_smp_call_function_interrupt();
- 		}
- 
-+		if (ops & (1 << IPI_IRQ_WORK)) {
-+			stats[IPI_IRQ_WORK]++;
-+			irq_work_run();
-+		}
-+
- 		BUG_ON((ops >> IPI_MAX) != 0);
- 
- 		/* Order data access and bit testing. */
-@@ -121,6 +128,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
- static const char * const ipi_names[] = {
- 	[IPI_RESCHEDULE]	= "Rescheduling interrupts",
- 	[IPI_CALL_FUNC]		= "Function call interrupts",
-+	[IPI_IRQ_WORK]		= "IRQ work interrupts"
- };
- 
- void show_ipi_stats(struct seq_file *p, int prec)
-@@ -162,6 +170,14 @@ void smp_send_reschedule(int cpu)
- 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
+ arch/alpha/include/asm/bitops.h          |    4 ++--
+ arch/arc/include/asm/bitops.h            |    4 ++--
+ arch/c6x/include/asm/bitops.h            |    2 +-
+ arch/csky/include/asm/bitops.h           |    2 +-
+ arch/hexagon/include/asm/bitops.h        |    2 +-
+ arch/ia64/include/asm/bitops.h           |    3 +--
+ arch/m68k/include/asm/bitops.h           |    2 +-
+ arch/mips/include/asm/bitops.h           |    2 +-
+ arch/openrisc/include/asm/bitops/fls.h   |    2 +-
+ arch/parisc/include/asm/bitops.h         |    2 +-
+ arch/s390/include/asm/bitops.h           |    4 ++--
+ arch/unicore32/include/asm/bitops.h      |    2 +-
+ arch/x86/include/asm/bitops.h            |    2 +-
+ include/asm-generic/bitops/builtin-fls.h |    2 +-
+ include/asm-generic/bitops/fls.h         |    2 +-
+ tools/include/asm-generic/bitops/fls.h   |    2 +-
+ 16 files changed, 19 insertions(+), 20 deletions(-)
+
+--- a/arch/alpha/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/alpha/include/asm/bitops.h
+@@ -391,9 +391,9 @@ static inline unsigned long __fls(unsign
+ 	return fls64(x) - 1;
  }
  
-+#ifdef CONFIG_IRQ_WORK
-+void arch_irq_work_raise(void)
-+{
-+	send_ipi_message(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
-+}
-+#endif
-+
-+
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+-	return fls64((unsigned int) x);
++	return fls64(x);
+ }
+ 
  /*
-  * Performs an icache flush for the given MM context.  RISC-V has no direct
-  * mechanism for instruction cache shoot downs, so instead we send an IPI that
--- 
-2.7.4
+--- a/arch/arc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/arc/include/asm/bitops.h
+@@ -278,7 +278,7 @@ static inline __attribute__ ((const)) in
+ 	return res;
+ }
+ 
+-static inline int constant_fls(int x)
++static inline int constant_fls(unsigned int x)
+ {
+ 	int r = 32;
+ 
+@@ -312,7 +312,7 @@ static inline int constant_fls(int x)
+  * @result: [1-32]
+  * fls(1) = 1, fls(0x80000000) = 32, fls(0) = 0
+  */
+-static inline __attribute__ ((const)) int fls(unsigned long x)
++static inline __attribute__ ((const)) int fls(unsigned int x)
+ {
+ 	if (__builtin_constant_p(x))
+ 	       return constant_fls(x);
+--- a/arch/c6x/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/c6x/include/asm/bitops.h
+@@ -54,7 +54,7 @@ static inline unsigned long __ffs(unsign
+  * This is defined the same way as ffs.
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	if (!x)
+ 		return 0;
+--- a/arch/csky/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/csky/include/asm/bitops.h
+@@ -40,7 +40,7 @@ static __always_inline unsigned long __f
+ /*
+  * asm-generic/bitops/fls.h
+  */
+-static __always_inline int fls(int x)
++static __always_inline int fls(unsigned int x)
+ {
+ 	asm volatile(
+ 		"ff1 %0\n"
+--- a/arch/hexagon/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/hexagon/include/asm/bitops.h
+@@ -211,7 +211,7 @@ static inline long ffz(int x)
+  * This is defined the same way as ffs.
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	int r;
+ 
+--- a/arch/ia64/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/ia64/include/asm/bitops.h
+@@ -388,8 +388,7 @@ ia64_fls (unsigned long x)
+  * Find the last (most significant) bit set.  Returns 0 for x==0 and
+  * bits are numbered from 1..32 (e.g., fls(9) == 4).
+  */
+-static inline int
+-fls (int t)
++static inline int fls(unsigned int t)
+ {
+ 	unsigned long x = t & 0xffffffffu;
+ 
+--- a/arch/m68k/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/m68k/include/asm/bitops.h
+@@ -502,7 +502,7 @@ static inline unsigned long __ffs(unsign
+ /*
+  *	fls: find last bit set.
+  */
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	int cnt;
+ 
+--- a/arch/mips/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/mips/include/asm/bitops.h
+@@ -555,7 +555,7 @@ static inline unsigned long __ffs(unsign
+  * This is defined the same way as ffs.
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	int r;
+ 
+--- a/arch/openrisc/include/asm/bitops/fls.h~fls-change-parameter-to-unsigned-int
++++ a/arch/openrisc/include/asm/bitops/fls.h
+@@ -15,7 +15,7 @@
+ 
+ #ifdef CONFIG_OPENRISC_HAVE_INST_FL1
+ 
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	int ret;
+ 
+--- a/arch/parisc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/parisc/include/asm/bitops.h
+@@ -188,7 +188,7 @@ static __inline__ int ffs(int x)
+  * fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+ 
+-static __inline__ int fls(int x)
++static __inline__ int fls(unsigned int x)
+ {
+ 	int ret;
+ 	if (!x)
+--- a/arch/s390/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/s390/include/asm/bitops.h
+@@ -397,9 +397,9 @@ static inline int fls64(unsigned long wo
+  * This is defined the same way as ffs.
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+-static inline int fls(int word)
++static inline int fls(unsigned int word)
+ {
+-	return fls64((unsigned int)word);
++	return fls64(word);
+ }
+ 
+ #else /* CONFIG_HAVE_MARCH_Z9_109_FEATURES */
+--- a/arch/unicore32/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/unicore32/include/asm/bitops.h
+@@ -22,7 +22,7 @@
+  * the cntlz instruction for much better code efficiency.
+  */
+ 
+-static inline int fls(int x)
++static inline int fls(unsigned int x)
+ {
+ 	int ret;
+ 
+--- a/arch/x86/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
++++ a/arch/x86/include/asm/bitops.h
+@@ -448,7 +448,7 @@ static __always_inline int ffs(int x)
+  * set bit if value is nonzero. The last (most significant) bit is
+  * at position 32.
+  */
+-static __always_inline int fls(int x)
++static __always_inline int fls(unsigned int x)
+ {
+ 	int r;
+ 
+--- a/include/asm-generic/bitops/builtin-fls.h~fls-change-parameter-to-unsigned-int
++++ a/include/asm-generic/bitops/builtin-fls.h
+@@ -9,7 +9,7 @@
+  * This is defined the same way as ffs.
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+-static __always_inline int fls(int x)
++static __always_inline int fls(unsigned int x)
+ {
+ 	return x ? sizeof(x) * 8 - __builtin_clz(x) : 0;
+ }
+--- a/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
++++ a/include/asm-generic/bitops/fls.h
+@@ -10,7 +10,7 @@
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+ 
+-static __always_inline int fls(int x)
++static __always_inline int fls(unsigned int x)
+ {
+ 	int r = 32;
+ 
+--- a/tools/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
++++ a/tools/include/asm-generic/bitops/fls.h
+@@ -10,7 +10,7 @@
+  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
+  */
+ 
+-static __always_inline int fls(int x)
++static __always_inline int fls(unsigned int x)
+ {
+ 	int r = 32;
+ 
+_
+
+Patches currently in -mm which might be from willy@infradead.org are
+
+initialise-mmu_notifier_range-correctly.patch
+mm-remove-sysctl_extfrag_handler.patch
