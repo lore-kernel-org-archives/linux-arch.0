@@ -1,258 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:36932 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726135AbfAGBCc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jan 2019 20:02:32 -0500
-Date: Sun, 06 Jan 2019 17:02:30 -0800
-From: akpm@linux-foundation.org
-Subject: [merged] fls-change-parameter-to-unsigned-int.patch
- removed from -mm tree
-Message-ID: <20190107010230.ormZEvzjH%akpm@linux-foundation.org>
+Received: from conuserg-12.nifty.com ([210.131.2.79]:40743 "EHLO
+        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726106AbfAGCKP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jan 2019 21:10:15 -0500
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [URGENT FIX PATCH] arch: restore generic-y += shmparam.h for some architectures
+Date: Mon,  7 Jan 2019 11:08:08 +0900
+Message-ID: <1546826888-29197-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: geert@linux-m68k.org, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org, tglx@linutronix.de, willy@infradead.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, Michal Simek <monstr@monstr.eu>, Stafford Horne <shorne@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Guan Xuetao <gxt@pku.edu.cn>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org
+Message-ID: <20190107020808.scjSUKEtbA0zLrz6BnNReg3G-UM8MZCG29Yy60jHtWY@z>
 
+For some reasons, I accidentally got rid of "generic-y += shmparam.h"
+from some architectures.
 
-The patch titled
-     Subject: fls: change parameter to unsigned int
-has been removed from the -mm tree.  Its filename was
-     fls-change-parameter-to-unsigned-int.patch
+Restore them to fix building c6x, h8300, hexagon, m68k, microblaze,
+openrisc, and unicore32.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-------------------------------------------------------
-From: Matthew Wilcox <willy@infradead.org>
-Subject: fls: change parameter to unsigned int
-
-When testing in userspace, UBSAN pointed out that shifting into the sign
-bit is undefined behaviour.  It doesn't really make sense to ask for the
-highest set bit of a negative value, so just turn the argument type into
-an unsigned int.
-
-Some architectures (eg ppc) already had it declared as an unsigned int, so
-I don't expect too many problems.
-
-Link: http://lkml.kernel.org/r/20181105221117.31828-1-willy@infradead.org
-Signed-off-by: Matthew Wilcox <willy@infradead.org>
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Fixes: d6e4b3e326d8 ("arch: remove redundant UAPI generic-y defines")
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/alpha/include/asm/bitops.h          |    4 ++--
- arch/arc/include/asm/bitops.h            |    4 ++--
- arch/c6x/include/asm/bitops.h            |    2 +-
- arch/csky/include/asm/bitops.h           |    2 +-
- arch/hexagon/include/asm/bitops.h        |    2 +-
- arch/ia64/include/asm/bitops.h           |    3 +--
- arch/m68k/include/asm/bitops.h           |    2 +-
- arch/mips/include/asm/bitops.h           |    2 +-
- arch/openrisc/include/asm/bitops/fls.h   |    2 +-
- arch/parisc/include/asm/bitops.h         |    2 +-
- arch/s390/include/asm/bitops.h           |    4 ++--
- arch/unicore32/include/asm/bitops.h      |    2 +-
- arch/x86/include/asm/bitops.h            |    2 +-
- include/asm-generic/bitops/builtin-fls.h |    2 +-
- include/asm-generic/bitops/fls.h         |    2 +-
- tools/include/asm-generic/bitops/fls.h   |    2 +-
- 16 files changed, 19 insertions(+), 20 deletions(-)
+Hi Linus,
 
---- a/arch/alpha/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/alpha/include/asm/bitops.h
-@@ -391,9 +391,9 @@ static inline unsigned long __fls(unsign
- 	return fls64(x) - 1;
- }
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
--	return fls64((unsigned int) x);
-+	return fls64(x);
- }
- 
- /*
---- a/arch/arc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/arc/include/asm/bitops.h
-@@ -278,7 +278,7 @@ static inline __attribute__ ((const)) in
- 	return res;
- }
- 
--static inline int constant_fls(int x)
-+static inline int constant_fls(unsigned int x)
- {
- 	int r = 32;
- 
-@@ -312,7 +312,7 @@ static inline int constant_fls(int x)
-  * @result: [1-32]
-  * fls(1) = 1, fls(0x80000000) = 32, fls(0) = 0
-  */
--static inline __attribute__ ((const)) int fls(unsigned long x)
-+static inline __attribute__ ((const)) int fls(unsigned int x)
- {
- 	if (__builtin_constant_p(x))
- 	       return constant_fls(x);
---- a/arch/c6x/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/c6x/include/asm/bitops.h
-@@ -54,7 +54,7 @@ static inline unsigned long __ffs(unsign
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	if (!x)
- 		return 0;
---- a/arch/csky/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/csky/include/asm/bitops.h
-@@ -40,7 +40,7 @@ static __always_inline unsigned long __f
- /*
-  * asm-generic/bitops/fls.h
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	asm volatile(
- 		"ff1 %0\n"
---- a/arch/hexagon/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/hexagon/include/asm/bitops.h
-@@ -211,7 +211,7 @@ static inline long ffz(int x)
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/arch/ia64/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/ia64/include/asm/bitops.h
-@@ -388,8 +388,7 @@ ia64_fls (unsigned long x)
-  * Find the last (most significant) bit set.  Returns 0 for x==0 and
-  * bits are numbered from 1..32 (e.g., fls(9) == 4).
-  */
--static inline int
--fls (int t)
-+static inline int fls(unsigned int t)
- {
- 	unsigned long x = t & 0xffffffffu;
- 
---- a/arch/m68k/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/m68k/include/asm/bitops.h
-@@ -502,7 +502,7 @@ static inline unsigned long __ffs(unsign
- /*
-  *	fls: find last bit set.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int cnt;
- 
---- a/arch/mips/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/mips/include/asm/bitops.h
-@@ -555,7 +555,7 @@ static inline unsigned long __ffs(unsign
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/arch/openrisc/include/asm/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/openrisc/include/asm/bitops/fls.h
-@@ -15,7 +15,7 @@
- 
- #ifdef CONFIG_OPENRISC_HAVE_INST_FL1
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int ret;
- 
---- a/arch/parisc/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/parisc/include/asm/bitops.h
-@@ -188,7 +188,7 @@ static __inline__ int ffs(int x)
-  * fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __inline__ int fls(int x)
-+static __inline__ int fls(unsigned int x)
- {
- 	int ret;
- 	if (!x)
---- a/arch/s390/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/s390/include/asm/bitops.h
-@@ -397,9 +397,9 @@ static inline int fls64(unsigned long wo
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static inline int fls(int word)
-+static inline int fls(unsigned int word)
- {
--	return fls64((unsigned int)word);
-+	return fls64(word);
- }
- 
- #else /* CONFIG_HAVE_MARCH_Z9_109_FEATURES */
---- a/arch/unicore32/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/unicore32/include/asm/bitops.h
-@@ -22,7 +22,7 @@
-  * the cntlz instruction for much better code efficiency.
-  */
- 
--static inline int fls(int x)
-+static inline int fls(unsigned int x)
- {
- 	int ret;
- 
---- a/arch/x86/include/asm/bitops.h~fls-change-parameter-to-unsigned-int
-+++ a/arch/x86/include/asm/bitops.h
-@@ -448,7 +448,7 @@ static __always_inline int ffs(int x)
-  * set bit if value is nonzero. The last (most significant) bit is
-  * at position 32.
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r;
- 
---- a/include/asm-generic/bitops/builtin-fls.h~fls-change-parameter-to-unsigned-int
-+++ a/include/asm-generic/bitops/builtin-fls.h
-@@ -9,7 +9,7 @@
-  * This is defined the same way as ffs.
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	return x ? sizeof(x) * 8 - __builtin_clz(x) : 0;
- }
---- a/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/include/asm-generic/bitops/fls.h
-@@ -10,7 +10,7 @@
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r = 32;
- 
---- a/tools/include/asm-generic/bitops/fls.h~fls-change-parameter-to-unsigned-int
-+++ a/tools/include/asm-generic/bitops/fls.h
-@@ -10,7 +10,7 @@
-  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-  */
- 
--static __always_inline int fls(int x)
-+static __always_inline int fls(unsigned int x)
- {
- 	int r = 32;
- 
-_
+Could you pick up this directly?
+Apology for breakage.
 
-Patches currently in -mm which might be from willy@infradead.org are
 
-initialise-mmu_notifier_range-correctly.patch
-mm-remove-sysctl_extfrag_handler.patch
+
+ arch/c6x/include/uapi/asm/Kbuild        | 1 +
+ arch/h8300/include/uapi/asm/Kbuild      | 1 +
+ arch/hexagon/include/uapi/asm/Kbuild    | 1 +
+ arch/m68k/include/uapi/asm/Kbuild       | 1 +
+ arch/microblaze/include/uapi/asm/Kbuild | 1 +
+ arch/openrisc/include/uapi/asm/Kbuild   | 1 +
+ arch/unicore32/include/uapi/asm/Kbuild  | 1 +
+ 7 files changed, 7 insertions(+)
+
+diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/c6x/include/uapi/asm/Kbuild
++++ b/arch/c6x/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/h8300/include/uapi/asm/Kbuild
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
+index c1b06dc..61d955c 100644
+--- a/arch/hexagon/include/uapi/asm/Kbuild
++++ b/arch/hexagon/include/uapi/asm/Kbuild
+@@ -1,3 +1,4 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
+index 960bf1e..b8b3525 100644
+--- a/arch/m68k/include/uapi/asm/Kbuild
++++ b/arch/m68k/include/uapi/asm/Kbuild
+@@ -2,3 +2,4 @@ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generated-y += unistd_32.h
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+index 97823ec..28823e3 100644
+--- a/arch/microblaze/include/uapi/asm/Kbuild
++++ b/arch/microblaze/include/uapi/asm/Kbuild
+@@ -2,4 +2,5 @@ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generated-y += unistd_32.h
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/openrisc/include/uapi/asm/Kbuild
++++ b/arch/openrisc/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
+index 0febf1a..6c6f630 100644
+--- a/arch/unicore32/include/uapi/asm/Kbuild
++++ b/arch/unicore32/include/uapi/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += kvm_para.h
++generic-y += shmparam.h
+ generic-y += ucontext.h
+-- 
+2.7.4
