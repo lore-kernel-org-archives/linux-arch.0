@@ -1,47 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:46739 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727548AbfAGOxS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2019 09:53:18 -0500
-Received: by mail-pl1-f195.google.com with SMTP id t13so240837ply.13
-        for <linux-arch@vger.kernel.org>; Mon, 07 Jan 2019 06:53:17 -0800 (PST)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:44747 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729159AbfAGOxX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2019 09:53:23 -0500
+Received: by mail-pg1-f194.google.com with SMTP id t13so228042pgr.11
+        for <linux-arch@vger.kernel.org>; Mon, 07 Jan 2019 06:53:22 -0800 (PST)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/3] c6x: system call table generation for asm-generic
-Date: Mon,  7 Jan 2019 20:22:43 +0530
-Message-ID: <1546872766-3354-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/3] c6x: add Makefile to invoke syscall table generation script
+Date: Mon,  7 Jan 2019 20:22:44 +0530
+Message-ID: <1546872766-3354-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1546872766-3354-1-git-send-email-firoz.khan@linaro.org>
+References: <1546872766-3354-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Michal Simek <michal.simek@xilinx.com>, linux-c6x-dev@linux-c6x.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20190107145243.omFsg1r3wfUclREM4i8XRc9Ncr8NwS7LHBpbfoWAALI@z>
+Message-ID: <20190107145244.Q3pNyRDGSOCXDg2JmkmtRVD0vUsG5RewwtsHz3Ceq3Y@z>
 
-This will be an automated scripts to provide easy support
-for add/modify/delete the system call entry by add entry 
-in respective syscall.tbl file.
+Add Makefile to invoke the system call table generation script
+which is placed in scripts directory as a common location acc-
+essible for all the architectures.
 
-System call table generation support for asm-generic is
-provide for c6x architecture which will use the common
-scripts resides in scripts directory and use syscall.tbl
-as inputs. This implementation will replace asm-generic-
-/unistd.h.
+scripts/syscallhdr.sh will generate uapi header and scripts-
+/syscalltbl.sh will generate kapi header respectively. There
+is another scripts scripts/syscallnr.sh can generate total
+number of syscall which doesn't invoke from this Makefile.
 
-This patch depends on:
- https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
- https://lore.kernel.org/lkml/1546520681-24453-1-git-send-email-firoz.khan@linaro.org/
-
-Firoz Khan (3):
-  c6x: add Makefile to invoke syscall table generation script
-  c6x: add __ARCH_NOMMU as a bugfix
-  c6x: generate uapi and kapi headers
-
- arch/c6x/Makefile                  |  3 +++
- arch/c6x/include/asm/Kbuild        |  1 +
- arch/c6x/include/uapi/asm/Kbuild   |  1 +
- arch/c6x/include/uapi/asm/unistd.h | 15 +++++++++-----
- arch/c6x/kernel/sys_c6x.c          |  3 ++-
- arch/c6x/kernel/syscalls/Makefile  | 41 ++++++++++++++++++++++++++++++++++++++
- 6 files changed, 58 insertions(+), 6 deletions(-)
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/c6x/kernel/syscalls/Makefile | 41 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
  create mode 100644 arch/c6x/kernel/syscalls/Makefile
 
+diff --git a/arch/c6x/kernel/syscalls/Makefile b/arch/c6x/kernel/syscalls/Makefile
+new file mode 100644
+index 0000000..1865a80
+--- /dev/null
++++ b/arch/c6x/kernel/syscalls/Makefile
+@@ -0,0 +1,41 @@
++# SPDX-License-Identifier: GPL-2.0
++kapi := arch/$(SRCARCH)/include/generated/asm
++uapi := arch/$(SRCARCH)/include/generated/uapi/asm
++
++_dummy := $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')	\
++	  $(shell [ -d '$(kapi)' ] || mkdir -p '$(kapi)')
++
++syscall := $(srctree)/scripts/syscalls/syscall.tbl
++syshdr := $(srctree)/scripts/syscallhdr.sh
++systbl := $(srctree)/scripts/syscalltbl.sh
++
++quiet_cmd_syshdr = SYSHDR  $@
++      cmd_syshdr = $(CONFIG_SHELL) '$(syshdr)' '$<' '$@'	\
++		   '$(syshdr_abis_$(basetarget))'		\
++		   '$(syshdr_pfx_$(basetarget))'		\
++		   '$(syshdr_offset_$(basetarget))'
++
++quiet_cmd_systbl = SYSTBL  $@
++      cmd_systbl = $(CONFIG_SHELL) '$(systbl)' '$<' '$@'	\
++		   '$(systbl_abis_$(basetarget))'		\
++		   '$(systbl_abi_$(basetarget))'		\
++		   '$(systbl_offset_$(basetarget))'
++
++syshdr_abis_unistd_32 := common,32,rename,stat64,archs0
++$(uapi)/unistd_32.h: $(syscall) $(syshdr)
++	$(call if_changed,syshdr)
++
++systbl_abis_syscall_table := common,32,rename,stat64,archs0
++systbl_abi_syscall_table := 32
++$(kapi)/syscall_table.h: $(syscall) $(systbl)
++	$(call if_changed,systbl)
++
++uapisyshdr-y		+= unistd_32.h
++kapisyshdr-y		+= syscall_table.h
++
++targets	+= $(uapisyshdr-y) $(kapisyshdr-y)
++
++PHONY += all
++all: $(addprefix $(uapi)/,$(uapisyshdr-y))
++all: $(addprefix $(kapi)/,$(kapisyshdr-y))
++	@:
 -- 
 1.9.1
