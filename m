@@ -1,154 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52892 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726246AbfAGD6o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 6 Jan 2019 22:58:44 -0500
-Subject: Re: [PATCH RFC 3/4] barriers: convert a control to a data dependency
-References: <20190102205715.14054-1-mst@redhat.com>
- <20190102205715.14054-4-mst@redhat.com>
-From: Jason Wang <jasowang@redhat.com>
-Message-ID: <86023cbe-d1ae-a0d6-7b75-26556f1a0c1f@redhat.com>
-Date: Mon, 7 Jan 2019 11:58:23 +0800
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:45680 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726246AbfAGEFs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Jan 2019 23:05:48 -0500
+Received: by mail-pf1-f194.google.com with SMTP id g62so21160367pfd.12
+        for <linux-arch@vger.kernel.org>; Sun, 06 Jan 2019 20:05:48 -0800 (PST)
+Subject: Re: [PATCH] make 'user_access_begin()' do 'access_ok()'
+References: <20190106180927.GA11993@roeck-us.net>
+ <CAHk-=whyNbpBtPyoS=wh4nVgBtUBpihcOT+LFdEw369kYjATaQ@mail.gmail.com>
+ <CAHk-=wiSVm6j1Ga8gra6hSQQSK8WF5bW4DtRi4V7mCtCUkTaQw@mail.gmail.com>
+From: Guenter Roeck <linux@roeck-us.net>
+Message-ID: <78e3717b-0604-3d5f-38b8-c523e392fc76@roeck-us.net>
+Date: Sun, 6 Jan 2019 20:05:44 -0800
 MIME-Version: 1.0
-In-Reply-To: <20190102205715.14054-4-mst@redhat.com>
+In-Reply-To: <CAHk-=wiSVm6j1Ga8gra6hSQQSK8WF5bW4DtRi4V7mCtCUkTaQw@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
 Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org, Jonathan Corbet <corbet@lwn.net>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190107035823.KAlEwi0WajPmaDkaVMhRm-oWRbvJgHEqUt10y3YqRmA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Matt Turner <mattst88@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Paul Burton <paul.burton@mips.com>, Greentime Hu <green.hu@gmail.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-kernel@vger.kenrel.org, linux-arch <linux-arch@vger.kernel.org>
 
+On 1/6/19 6:39 PM, Linus Torvalds wrote:
+> On Sun, Jan 6, 2019 at 11:15 AM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>>
+>> But I think I see what may be the problem. I think the alpha version
+>> of "access_ok()" is buggy.
+> 
+> Ok, so the alpha and SH cases got fixed (hopefully correctly) by
+> commit 94bd8a05cd4d ("Fix 'acccess_ok()' on alpha and SH") but I'm
+> looking around, and finding some suspicious access_ok() cases
+> elsewhere too.
+> 
+> Adding a few more people just to ask them to check their situation..
+> 
+> MIPS does a very similar
+> 
+>        return (get_fs().seg & (addr | (addr + size) | __ua_size(size))) == 0;
+> 
+> thing to what alpha used to do, where "addr+size" may have the same
+> off-by-one error. At least MIPS uses an inline function, so it doesn't
+> have the "arguments used twice" issue.
+> 
+> nds32 seems to get the range check right, but has the "macro arguments
+> used twice" problem.
+> 
+> nios2 seems to have all the bugs alpha had.
+> 
+> openrisc has the "macro arguments used twice" problem. And also gets
+> the parenthesis *completely* wrong when casting, resulting in random
+> behavior. This code:
+> 
+>    #define access_ok(addr, size) \
+>        __range_ok((unsigned long)addr, (unsigned long)size)
+> 
+> does all kinds of odd things if "addr" or "size" is not a simple
+> expression, since the cast tends to have higher precedence than pretty
+> much anything else.
+> 
+> xtensa has the "macro arguments used twice" problem.
+> 
+> So it looks like a lot of architectures have problems in access_ok.
+> Can we have people look at it?
+> 
 
-On 2019/1/3 上午4:57, Michael S. Tsirkin wrote:
-> It's not uncommon to have two access two unrelated memory locations in a
-> specific order.  At the moment one has to use a memory barrier for this.
->
-> However, if the first access was a read and the second used an address
-> depending on the first one we would have a data dependency and no
-> barrier would be necessary.
->
-> This adds a new interface: dependent_ptr_mb which does exactly this: it
-> returns a pointer with a data dependency on the supplied value.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->   Documentation/memory-barriers.txt | 20 ++++++++++++++++++++
->   arch/alpha/include/asm/barrier.h  |  1 +
->   include/asm-generic/barrier.h     | 18 ++++++++++++++++++
->   include/linux/compiler.h          |  4 ++++
->   4 files changed, 43 insertions(+)
->
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index c1d913944ad8..9dbaa2e1dbf6 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -691,6 +691,18 @@ case what's actually required is:
->   		p = READ_ONCE(b);
->   	}
->   
-> +Alternatively, a control dependency can be converted to a data dependency,
-> +e.g.:
-> +
-> +	q = READ_ONCE(a);
-> +	if (q) {
-> +		b = dependent_ptr_mb(b, q);
-> +		p = READ_ONCE(b);
-> +	}
-> +
-> +Note how the result of dependent_ptr_mb must be used with the following
-> +accesses in order to have an effect.
-> +
->   However, stores are not speculated.  This means that ordering -is- provided
->   for load-store control dependencies, as in the following example:
->   
-> @@ -836,6 +848,12 @@ out-guess your code.  More generally, although READ_ONCE() does force
->   the compiler to actually emit code for a given load, it does not force
->   the compiler to use the results.
->   
-> +Converting to a data dependency helps with this too:
-> +
-> +	q = READ_ONCE(a);
-> +	b = dependent_ptr_mb(b, q);
-> +	WRITE_ONCE(b, 1);
-> +
->   In addition, control dependencies apply only to the then-clause and
->   else-clause of the if-statement in question.  In particular, it does
->   not necessarily apply to code following the if-statement:
-> @@ -875,6 +893,8 @@ to the CPU containing it.  See the section on "Multicopy atomicity"
->   for more information.
->   
->   
-> +
-> +
->   In summary:
->   
->     (*) Control dependencies can order prior loads against later stores.
-> diff --git a/arch/alpha/include/asm/barrier.h b/arch/alpha/include/asm/barrier.h
-> index 92ec486a4f9e..b4934e8c551b 100644
-> --- a/arch/alpha/include/asm/barrier.h
-> +++ b/arch/alpha/include/asm/barrier.h
-> @@ -59,6 +59,7 @@
->    * as Alpha, "y" could be set to 3 and "x" to 0.  Use rmb()
->    * in cases like this where there are no data dependencies.
->    */
-> +#define ARCH_NEEDS_READ_BARRIER_DEPENDS 1
->   #define read_barrier_depends() __asm__ __volatile__("mb": : :"memory")
->   
->   #ifdef CONFIG_SMP
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index 2cafdbb9ae4c..fa2e2ef72b68 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
-> @@ -70,6 +70,24 @@
->   #define __smp_read_barrier_depends()	read_barrier_depends()
->   #endif
->   
-> +#if defined(COMPILER_HAS_OPTIMIZER_HIDE_VAR) && \
-> +	!defined(ARCH_NEEDS_READ_BARRIER_DEPENDS)
-> +
-> +#define dependent_ptr_mb(ptr, val) ({					\
-> +	long dependent_ptr_mb_val = (long)(val);			\
-> +	long dependent_ptr_mb_ptr = (long)(ptr) - dependent_ptr_mb_val;	\
-> +									\
-> +	BUILD_BUG_ON(sizeof(val) > sizeof(long));			\
-> +	OPTIMIZER_HIDE_VAR(dependent_ptr_mb_val);			\
-> +	(typeof(ptr))(dependent_ptr_mb_ptr + dependent_ptr_mb_val);	\
-> +})
-> +
-> +#else
-> +
-> +#define dependent_ptr_mb(ptr, val) ({ mb(); (ptr); })
+Of the above, my test system boots images for the following architectures
+in qemu.
 
+- mips (32/64 bit, big/little endian)
+- nios2
+- openrisc
+- xtensa (mmu and nommu)
 
-So for the example of patch 4, we'd better fall back to rmb() or need a 
-dependent_ptr_rmb()?
+None of those experiences boot failures, so whatever is wrong there
+doesn't cause an immediate crash. I'll be happy to run some manual
+tests if someone tells me what to do.
 
-Thanks
+Also, I'll be happy to provide configurations, root file systems,
+and qemu command lines as needed.
 
+Guenter
 
-> +
-> +#endif
-> +
->   #ifdef CONFIG_SMP
->   
->   #ifndef smp_mb
-> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> index 6601d39e8c48..f599c30f1b28 100644
-> --- a/include/linux/compiler.h
-> +++ b/include/linux/compiler.h
-> @@ -152,9 +152,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
->   #endif
->   
->   #ifndef OPTIMIZER_HIDE_VAR
-> +
->   /* Make the optimizer believe the variable can be manipulated arbitrarily. */
->   #define OPTIMIZER_HIDE_VAR(var)						\
->   	__asm__ ("" : "=rm" (var) : "0" (var))
-> +
-> +#define COMPILER_HAS_OPTIMIZER_HIDE_VAR 1
-> +
->   #endif
->   
->   /* Not-quite-unique ID. */
+> See that commit 94bd8a05cd4d for a longer explanation of what alpha
+> and SH got wrong.
+> 
+> NOTE! I only took a very quick look, the above may be incomplete
+> and/or actively wrong. Maybe I claimed something was buggy that
+> wasn't, but please take a look.
+> 
+>                Linus
+> 
