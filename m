@@ -1,52 +1,62 @@
-From: kbuild test robot <lkp@intel.com>
-Subject: Re: [PATCH 3/3] c6x: generate uapi and kapi headers
-Date: Tue, 8 Jan 2019 12:15:42 +0800
-Message-ID: <201901081216.dL5x4R5h%fengguang.wu@intel.com>
-References: <1546872766-3354-4-git-send-email-firoz.khan@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1546872766-3354-4-git-send-email-firoz.khan@linaro.org>
-Content-Disposition: inline
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, arnd@arndb.de, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Michal Simek <michal.simek@xilinx.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, kbuild-all@01.org, Mark Salter <msalter@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, deepa.kernel@gmail.com
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH 0/3] net: y2038-safe socket timeout options
+Date: Mon,  7 Jan 2019 21:22:52 -0800
+Message-ID: <20190108052255.10699-1-deepa.kernel@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: davem@davemloft.net, linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, ccaulfie@redhat.com, cluster-devel@redhat.com, deller@gmx.de, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, paulus@samba.org, ralf@linux-mips.org, rth@twiddle.net, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgRmlyb3osCgpUaGFuayB5b3UgZm9yIHRoZSBwYXRjaCEgWWV0IHNvbWV0aGluZyB0byBpbXBy
-b3ZlOgoKW2F1dG8gYnVpbGQgdGVzdCBFUlJPUiBvbiBsaW51cy9tYXN0ZXJdClthbHNvIGJ1aWxk
-IHRlc3QgRVJST1Igb24gdjUuMC1yYzFdCltjYW5ub3QgYXBwbHkgdG8gbmV4dC0yMDE5MDEwN10K
-W2lmIHlvdXIgcGF0Y2ggaXMgYXBwbGllZCB0byB0aGUgd3JvbmcgZ2l0IHRyZWUsIHBsZWFzZSBk
-cm9wIHVzIGEgbm90ZSB0byBoZWxwIGltcHJvdmUgdGhlIHN5c3RlbV0KCnVybDogICAgaHR0cHM6
-Ly9naXRodWIuY29tLzBkYXktY2kvbGludXgvY29tbWl0cy9GaXJvei1LaGFuL2M2eC1zeXN0ZW0t
-Y2FsbC10YWJsZS1nZW5lcmF0aW9uLWZvci1hc20tZ2VuZXJpYy8yMDE5MDEwOC0xMDAzNTMKY29u
-ZmlnOiBjNngtZXZtYzY2NzhfZGVmY29uZmlnIChhdHRhY2hlZCBhcyAuY29uZmlnKQpjb21waWxl
-cjogYzZ4LWVsZi1nY2MgKEdDQykgOC4xLjAKcmVwcm9kdWNlOgogICAgICAgIHdnZXQgaHR0cHM6
-Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2ludGVsL2xrcC10ZXN0cy9tYXN0ZXIvc2Jpbi9t
-YWtlLmNyb3NzIC1PIH4vYmluL21ha2UuY3Jvc3MKICAgICAgICBjaG1vZCAreCB+L2Jpbi9tYWtl
-LmNyb3NzCiAgICAgICAgIyBzYXZlIHRoZSBhdHRhY2hlZCAuY29uZmlnIHRvIGxpbnV4IGJ1aWxk
-IHRyZWUKICAgICAgICBHQ0NfVkVSU0lPTj04LjEuMCBtYWtlLmNyb3NzIEFSQ0g9YzZ4IAoKQWxs
-IGVycm9ycyAobmV3IG9uZXMgcHJlZml4ZWQgYnkgPj4pOgoKPj4gbWFrZVsyXTogKioqIE5vIHJ1
-bGUgdG8gbWFrZSB0YXJnZXQgJ3NjcmlwdHMvc3lzY2FsbHMvc3lzY2FsbC50YmwnLCBuZWVkZWQg
-YnkgJ2FyY2gvYzZ4L2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9zeXNjYWxsX3RhYmxlLmgnLgo+PiBt
-YWtlWzJdOiAqKiogTm8gcnVsZSB0byBtYWtlIHRhcmdldCAnc2NyaXB0cy9zeXNjYWxsdGJsLnNo
-JywgbmVlZGVkIGJ5ICdhcmNoL2M2eC9pbmNsdWRlL2dlbmVyYXRlZC9hc20vc3lzY2FsbF90YWJs
-ZS5oJy4KPj4gbWFrZVsyXTogKioqIE5vIHJ1bGUgdG8gbWFrZSB0YXJnZXQgJ3NjcmlwdHMvc3lz
-Y2FsbGhkci5zaCcsIG5lZWRlZCBieSAnYXJjaC9jNngvaW5jbHVkZS9nZW5lcmF0ZWQvdWFwaS9h
-c20vdW5pc3RkXzMyLmgnLgogICBtYWtlWzJdOiBUYXJnZXQgJ2FsbCcgbm90IHJlbWFkZSBiZWNh
-dXNlIG9mIGVycm9ycy4KICAgbWFrZVsxXTogKioqIFthcmNoaGVhZGVyc10gRXJyb3IgMgogICBt
-YWtlWzFdOiBUYXJnZXQgJ3ByZXBhcmUnIG5vdCByZW1hZGUgYmVjYXVzZSBvZiBlcnJvcnMuCiAg
-IG1ha2U6ICoqKiBbc3ViLW1ha2VdIEVycm9yIDIKCi0tLQowLURBWSBrZXJuZWwgdGVzdCBpbmZy
-YXN0cnVjdHVyZSAgICAgICAgICAgICAgICBPcGVuIFNvdXJjZSBUZWNobm9sb2d5IENlbnRlcgpo
-dHRwczovL2xpc3RzLjAxLm9yZy9waXBlcm1haWwva2J1aWxkLWFsbCAgICAgICAgICAgICAgICAg
-ICBJbnRlbCBDb3Jwb3JhdGlvbgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRw
-czovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+The series is aimed at adding y2038-safe timeout options:
+SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW.
+
+This is similar to the previous series adding y2038-safe
+SO_TIMESTAMP* options.
+
+The series needs to be applied after the socket timestamp series:
+https://lore.kernel.org/lkml/20190108032657.8331-1-deepa.kernel@gmail.com
+
+Deepa Dinamani (3):
+  socket: Use old_timeval types for socket timeouts
+  socket: Rename SO_RCVTIMEO/ SO_SNDTIMEO with _OLD suffixes
+  sock: Add SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW
+
+ arch/alpha/include/uapi/asm/socket.h   | 13 ++++-
+ arch/mips/include/uapi/asm/socket.h    | 13 ++++-
+ arch/parisc/include/uapi/asm/socket.h  | 13 ++++-
+ arch/powerpc/include/uapi/asm/socket.h |  4 +-
+ arch/sparc/include/uapi/asm/socket.h   | 13 ++++-
+ fs/dlm/lowcomms.c                      |  4 +-
+ include/uapi/asm-generic/socket.h      | 13 ++++-
+ net/compat.c                           | 14 ++---
+ net/core/sock.c                        | 78 +++++++++++++++++++-------
+ net/vmw_vsock/af_vsock.c               |  4 +-
+ 10 files changed, 126 insertions(+), 43 deletions(-)
+
+
+base-commit: a4983672f9ca4c8393f26b6b80710e6c78886b8c
+prerequisite-patch-id: a03ec6afbdd328cd90557f7ee6675016a5f5c653
+prerequisite-patch-id: 724d26c3036e6f3a38f810c2f10db3f7ddbf843b
+prerequisite-patch-id: 14017867b6eb4d5231eec1b563edcd840a1be26e
+prerequisite-patch-id: 8df0edfd9b973ff5aae91c7709c8223be096a5bc
+prerequisite-patch-id: 9850ad48d41bf068f074c0dd3c7610fb7177c89f
+prerequisite-patch-id: bd31f35bba11902d1cc3e8726492b54df34b5c59
+prerequisite-patch-id: ea4b005c5ad188a4e0899d728357c114710a3a8e
+prerequisite-patch-id: cc3ee912c1ee1ea502ca079de81236a467950501
+-- 
+2.17.1
+
+Cc: ccaulfie@redhat.com
+Cc: cluster-devel@redhat.com
+Cc: davem@davemloft.net
+Cc: deller@gmx.de
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: paulus@samba.org
+Cc: ralf@linux-mips.org
+Cc: rth@twiddle.net
+Cc: sparclinux@vger.kernel.org
