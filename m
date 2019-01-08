@@ -1,115 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f195.google.com ([209.85.166.195]:39431 "EHLO
-        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727764AbfAHQ4x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:56:53 -0500
-Received: by mail-it1-f195.google.com with SMTP id a6so6926773itl.4
-        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:56:53 -0800 (PST)
+Received: from mail-it1-f194.google.com ([209.85.166.194]:39433 "EHLO
+        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728186AbfAHQ44 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:56:56 -0500
+Received: by mail-it1-f194.google.com with SMTP id a6so6926910itl.4
+        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:56:55 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCHSET v1] io_uring IO interface
-Date: Tue,  8 Jan 2019 09:56:29 -0700
-Message-ID: <20190108165645.19311-1-axboe@kernel.dk>
+Subject: [PATCH 01/16] fs: add an iopoll method to struct file_operations
+Date: Tue,  8 Jan 2019 09:56:30 -0700
+Message-ID: <20190108165645.19311-2-axboe@kernel.dk>
+In-Reply-To: <20190108165645.19311-1-axboe@kernel.dk>
+References: <20190108165645.19311-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
-Message-ID: <20190108165629.pTE9KEvSvhuE4yuCrAbeLtMFbU3-VFOmdMfeGPdUUxI@z>
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
+Message-ID: <20190108165630.dsul2Wc_BQMWEI6FjeAfHaATzg2mPDKmVhK3b9P1rgg@z>
 
-After some arm twisting from Christoph, I finally caved and divorced the
-aio-poll patches from aio/libaio itself. The io_uring interface itself
-is useful and efficient, and after rebasing all the new goodies on top
-of that, there was little reason to retail the aio connection.
+From: Christoph Hellwig <hch@lst.de>
 
-Hence io_uring was born. This is what I previously called scqring for
-aio, but now as a standalone entity. Patch #5 adds the core of this
-interface, but in short, it has two main data structures:
+This new methods is used to explicitly poll for I/O completion for an
+iocb.  It must be called for any iocb submitted asynchronously (that
+is with a non-null ki_complete) which has the IOCB_HIPRI flag set.
 
-struct io_uring_iocb {
-	__u8	opcode;
-	__u8	flags;
-	__u16	ioprio;
-	__s32	fd;
-	__u64	off;
-	union {
-		void	*addr;
-		__u64	__pad;
-	};
-	__u32	len;
-	union {
-		__kernel_rwf_t	rw_flags;
-		__u32		__resv;
-	};
-};
+The method is assisted by a new ki_cookie field in struct iocb to store
+the polling cookie.
 
-struct io_uring_event {
-	__u64	index;		/* what iocb this event came from */
-	__s32	res;		/* result code for this event */
-	__u32	flags;
-};
+TODO: we can probably union ki_cookie with the existing hint and I/O
+priority fields to avoid struct kiocb growth.
 
-The SQ ring is an array of indexes into an array of io_uring_iocbs,
-which describe the IO to be done. The SQ ring is an array of
-io_uring_events, which describe a completion event. Both of these rings
-are mapped into the application through mmap(2), at special magic
-offsets. The application manipulates the ring directly, and then
-communicates with the kernel through these two system calls:
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ Documentation/filesystems/vfs.txt | 3 +++
+ include/linux/fs.h                | 2 ++
+ 2 files changed, 5 insertions(+)
 
-io_uring_setup(entries, iovecs, params)
-	Sets up a context for doing async IO. On success, returns a file
-	descriptor that the application can mmap to gain access to the
-	SQ ring, CQ ring, and io_uring_iocbs.
-
-io_uring_enter(fd, to_submit, min_complete, flags)
-	Initiates IO against the rings mapped to this fd, or waits for
-	them to complete, or both The behavior is controlled by the
-	parameters passed in. If 'min_complete' is non-zero, then we'll
-	try and submit new IO. If IORING_ENTER_GETEVENTS is set, the
-	kernel will wait for 'min_complete' events, if they aren't
-	already available.
-
-I've started a liburing git repo for this, which contains some helpers
-for doing IO without having to muck with the ring directly, setting up
-an io_uring context, etc. Clone that here:
-
-git://git.kernel.dk/liburing
-
-In terms of usage, there's also a small test app here:
-
-http://git.kernel.dk/cgit/fio/plain/t/io_uring.c
-
-and if you're into fio, there's a io_uring engine included with that as
-well for test purposes.
-
-In terms of features, this has everything that the prior aio-poll
-postings did. Later patches add support for polled IO, fixed buffers,
-kernel side submission and polling, buffered aio, etc. Also a number of
-bug fixes in here from previous postings.
-
-Series is against 5.0-rc1, and can also be found in my io_uring branch.
-For now just x86-64 has the system calls wired up, and liburing also
-only supports x86-64. The latter just needs system call numbers and
-reasonable read/write barrier defines to work, however.
-
- Documentation/filesystems/vfs.txt      |    3 +
- arch/x86/entry/syscalls/syscall_64.tbl |    2 +
- block/bio.c                            |   59 +-
- fs/Makefile                            |    2 +-
- fs/block_dev.c                         |   19 +-
- fs/file.c                              |   15 +-
- fs/file_table.c                        |    9 +-
- fs/gfs2/file.c                         |    2 +
- fs/io_uring.c                          | 1907 ++++++++++++++++++++++++
- fs/iomap.c                             |   48 +-
- fs/xfs/xfs_file.c                      |    1 +
- include/linux/bio.h                    |   14 +
- include/linux/blk_types.h              |    1 +
- include/linux/file.h                   |    2 +
- include/linux/fs.h                     |    6 +-
- include/linux/iomap.h                  |    1 +
- include/linux/syscalls.h               |    5 +
- include/uapi/linux/io_uring.h          |  115 ++
- kernel/sys_ni.c                        |    2 +
- 19 files changed, 2173 insertions(+), 40 deletions(-)
-
+diff --git a/Documentation/filesystems/vfs.txt b/Documentation/filesystems/vfs.txt
+index 8dc8e9c2913f..761c6fd24a53 100644
+--- a/Documentation/filesystems/vfs.txt
++++ b/Documentation/filesystems/vfs.txt
+@@ -857,6 +857,7 @@ struct file_operations {
+ 	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+ 	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+ 	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
++	int (*iopoll)(struct kiocb *kiocb, bool spin);
+ 	int (*iterate) (struct file *, struct dir_context *);
+ 	int (*iterate_shared) (struct file *, struct dir_context *);
+ 	__poll_t (*poll) (struct file *, struct poll_table_struct *);
+@@ -902,6 +903,8 @@ otherwise noted.
+ 
+   write_iter: possibly asynchronous write with iov_iter as source
+ 
++  iopoll: called when aio wants to poll for completions on HIPRI iocbs
++
+   iterate: called when the VFS needs to read the directory contents
+ 
+   iterate_shared: called when the VFS needs to read the directory contents
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 811c77743dad..ccb0b7a63aa5 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -310,6 +310,7 @@ struct kiocb {
+ 	int			ki_flags;
+ 	u16			ki_hint;
+ 	u16			ki_ioprio; /* See linux/ioprio.h */
++	unsigned int		ki_cookie; /* for ->iopoll */
+ } __randomize_layout;
+ 
+ static inline bool is_sync_kiocb(struct kiocb *kiocb)
+@@ -1786,6 +1787,7 @@ struct file_operations {
+ 	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+ 	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+ 	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
++	int (*iopoll)(struct kiocb *kiocb, bool spin);
+ 	int (*iterate) (struct file *, struct dir_context *);
+ 	int (*iterate_shared) (struct file *, struct dir_context *);
+ 	__poll_t (*poll) (struct file *, struct poll_table_struct *);
 -- 
-Jens Axboe
+2.17.1
