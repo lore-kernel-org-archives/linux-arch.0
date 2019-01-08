@@ -1,62 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:45280 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729320AbfAHVUB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 16:20:01 -0500
-From: Yuri Norov <ynorov@marvell.com>
-Subject: [PATCH] arm64: introduce AUDIT_ARCH_AARCH64ILP32 for ilp32
-Date: Tue, 8 Jan 2019 21:18:56 +0000
-Message-ID: <20190108211840.GA13838@yury-thinkpad>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20190107155028.GA25178@yury-thinkpad>
-In-Reply-To: <20190107155028.GA25178@yury-thinkpad>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <ECFB331D797AC1488D832907AB4C052F@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-io1-f66.google.com ([209.85.166.66]:37144 "EHLO
+        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729415AbfAHV3U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 16:29:20 -0500
 MIME-Version: 1.0
+References: <CAK8P3a2T=dWgD1mvi77fbdKEsm=ZUwsQENv-btjhECjf+Y5wcg@mail.gmail.com>
+ <20190108200959.1686520-1-arnd@arndb.de>
+In-Reply-To: <20190108200959.1686520-1-arnd@arndb.de>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Date: Tue, 8 Jan 2019 13:29:09 -0800
+Message-ID: <CABeXuvpprn_AXF0ama9CsHyZ1yb8FuUH25MXauLzHyahxr+Vwg@mail.gmail.com>
+Subject: Re: [PATCH] socket: move compat timeout handling into sock.c
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "yury.norov@gmail.com" <yury.norov@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20190108211856.1VHXuU2bt9SPZKxs3VAKW_lEZLUO7R8gmdN6xGSQJWc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Miller <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Networking <netdev@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, ccaulfie@redhat.com, Helge Deller <deller@gmx.de>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, cluster-devel <cluster-devel@redhat.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>
+Message-ID: <20190108212909.m7FtokL_tx_xMyUbFOJOMfUgG5jFdgH_f_s8UjZI-kQ@z>
 
-Make syscall_get_arch() distinguish arm64 and arm64/ilp32 by adding
-AUDIT_ARCH_AARCH64ILP32.
+On Tue, Jan 8, 2019 at 12:10 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> This is a cleanup to prepare for the addition of 64-bit time_t
+> in O_SNDTIMEO/O_RCVTIMEO. The existing compat handler seems
+> unnecessarily complex and error-prone, moving it all into the
+> main setsockopt()/getsockopt() implementation requires half
+> as much code and is easier to extend.
+>
+> 32-bit user space can now use old_timeval32 on both 32-bit
+> and 64-bit machines, while 64-bit code can use
+> __old_kernel_timeval.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Sugested-by: Andy Lutomirski <luto@amacapital.net>
-Signed-off-by: Yury Norov <ynorov@marvell.com>
----
- arch/arm64/include/asm/syscall.h | 3 +++
- include/uapi/linux/audit.h       | 1 +
- 2 files changed, 4 insertions(+)
+This will make the other series so much nicer. Thank you.
 
-diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/sysc=
-all.h
-index 73fbe08763b0..77578d703cb1 100644
---- a/arch/arm64/include/asm/syscall.h
-+++ b/arch/arm64/include/asm/syscall.h
-@@ -126,6 +126,9 @@ static inline int syscall_get_arch(void)
- 	if (is_a32_compat_task())
- 		return AUDIT_ARCH_ARM;
-=20
-+	if (is_ilp32_compat_task())
-+		return AUDIT_ARCH_AARCH64ILP32;
-+
- 	return AUDIT_ARCH_AARCH64;
- }
-=20
-diff --git a/include/uapi/linux/audit.h b/include/uapi/linux/audit.h
-index 818ae690ab79..624127147404 100644
---- a/include/uapi/linux/audit.h
-+++ b/include/uapi/linux/audit.h
-@@ -374,6 +374,7 @@ enum {
- #define __AUDIT_ARCH_LE	   0x40000000
-=20
- #define AUDIT_ARCH_AARCH64	(EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
-+#define AUDIT_ARCH_AARCH64ILP32	(EM_AARCH64|__AUDIT_ARCH_LE)
- #define AUDIT_ARCH_ALPHA	(EM_ALPHA|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
- #define AUDIT_ARCH_ARM		(EM_ARM|__AUDIT_ARCH_LE)
- #define AUDIT_ARCH_ARMEB	(EM_ARM)
---=20
-2.17.1
+Acked-by: Deepa Dinamani <deepa.kernel@gmail.com>
