@@ -1,484 +1,162 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:33706 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727423AbfAHD1p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2019 22:27:45 -0500
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v3 2/8] sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
-Date: Mon,  7 Jan 2019 19:26:51 -0800
-Message-ID: <20190108032657.8331-3-deepa.kernel@gmail.com>
-In-Reply-To: <20190108032657.8331-1-deepa.kernel@gmail.com>
-References: <20190108032657.8331-1-deepa.kernel@gmail.com>
+Received: from mga12.intel.com ([192.55.52.136]:63041 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727246AbfAHEP4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 Jan 2019 23:15:56 -0500
+Date: Tue, 8 Jan 2019 12:15:42 +0800
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH 3/3] c6x: generate uapi and kapi headers
+Message-ID: <201901081216.dL5x4R5h%fengguang.wu@intel.com>
+References: <1546872766-3354-4-git-send-email-firoz.khan@linaro.org>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="VbJkn9YxBvnuCH5J"
+Content-Disposition: inline
+In-Reply-To: <1546872766-3354-4-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: davem@davemloft.net, linux-kernel@vger.kernel.org
-Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, deller@gmx.de, dhowells@redhat.com, jejb@parisc-linux.org, ralf@linux-mips.org, rth@twiddle.net, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-rdma@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20190108032651.-Z7KRIatUZHIMtFEcTaSS8TtTImCA4VIkNQQr6NM1t8@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: kbuild-all@01.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Michal Simek <michal.simek@xilinx.com>, linux-c6x-dev@linux-c6x.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20190108041542.Z4sx_UP6EWtAsKA9E88DPlmEF6-zEJfJY0pDMiUwOwE@z>
 
-SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING options, the
-way they are currently defined, are not y2038 safe.
-Subsequent patches in the series add new y2038 safe versions
-of these options which provide 64 bit timestamps on all
-architectures uniformly.
-Hence, rename existing options with OLD tag suffixes.
 
-Also note that kernel will not use the untagged SO_TIMESTAMP*
-and SCM_TIMESTAMP* options internally anymore.
+--VbJkn9YxBvnuCH5J
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: deller@gmx.de
-Cc: dhowells@redhat.com
-Cc: jejb@parisc-linux.org
-Cc: ralf@linux-mips.org
-Cc: rth@twiddle.net
-Cc: linux-afs@lists.infradead.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linux-rdma@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
+Hi Firoz,
+
+Thank you for the patch! Yet something to improve:
+
+[auto build test ERROR on linus/master]
+[also build test ERROR on v5.0-rc1]
+[cannot apply to next-20190107]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+
+url:    https://github.com/0day-ci/linux/commits/Firoz-Khan/c6x-system-call-table-generation-for-asm-generic/20190108-100353
+config: c6x-evmc6678_defconfig (attached as .config)
+compiler: c6x-elf-gcc (GCC) 8.1.0
+reproduce:
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        GCC_VERSION=8.1.0 make.cross ARCH=c6x 
+
+All errors (new ones prefixed by >>):
+
+>> make[2]: *** No rule to make target 'scripts/syscalls/syscall.tbl', needed by 'arch/c6x/include/generated/asm/syscall_table.h'.
+>> make[2]: *** No rule to make target 'scripts/syscalltbl.sh', needed by 'arch/c6x/include/generated/asm/syscall_table.h'.
+>> make[2]: *** No rule to make target 'scripts/syscallhdr.sh', needed by 'arch/c6x/include/generated/uapi/asm/unistd_32.h'.
+   make[2]: Target 'all' not remade because of errors.
+   make[1]: *** [archheaders] Error 2
+   make[1]: Target 'prepare' not remade because of errors.
+   make: *** [sub-make] Error 2
+
 ---
- arch/alpha/include/uapi/asm/socket.h  | 23 ++++++++++++++++-------
- arch/mips/include/uapi/asm/socket.h   | 23 ++++++++++++++++-------
- arch/parisc/include/uapi/asm/socket.h | 23 ++++++++++++++++-------
- arch/sparc/include/uapi/asm/socket.h  | 24 ++++++++++++++++--------
- include/uapi/asm-generic/socket.h     | 23 ++++++++++++++++-------
- net/compat.c                          |  6 +++---
- net/core/sock.c                       | 16 ++++++++--------
- net/ipv4/tcp.c                        |  6 +++---
- net/rds/af_rds.c                      |  2 +-
- net/rds/recv.c                        |  2 +-
- net/rxrpc/local_object.c              |  2 +-
- net/socket.c                          |  8 ++++----
- 12 files changed, 101 insertions(+), 57 deletions(-)
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index 065fb372e355..00e45c80e574 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -51,13 +51,9 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		30
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- /* Security levels - as per NRL IPv6 - don't actually do anything */
- #define SO_SECURITY_AUTHENTICATION		19
-@@ -66,9 +62,6 @@
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             40
- 
- #define SO_WIFI_STATUS		41
-@@ -115,4 +108,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 71370fb3ceef..b9553f770346 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -65,21 +65,14 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		30
- #define SO_SNDBUFFORCE		31
- #define SO_RCVBUFFORCE		33
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL		40
- 
- #define SO_WIFI_STATUS		41
-@@ -126,4 +119,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index 061b9cf2a779..37cdfe64bb27 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -34,10 +34,6 @@
- #define SO_BSDCOMPAT	0x400e
- #define SO_PASSCRED	0x4010
- #define SO_PEERCRED	0x4011
--#define SO_TIMESTAMP	0x4012
--#define SCM_TIMESTAMP	SO_TIMESTAMP
--#define SO_TIMESTAMPNS	0x4013
--#define SCM_TIMESTAMPNS	SO_TIMESTAMPNS
- 
- /* Security levels - as per NRL IPv6 - don't actually do anything */
- #define SO_SECURITY_AUTHENTICATION		0x4016
-@@ -58,9 +54,6 @@
- 
- #define SO_MARK			0x401f
- 
--#define SO_TIMESTAMPING		0x4020
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             0x4021
- 
- #define SO_WIFI_STATUS		0x4022
-@@ -107,4 +100,20 @@
- #define SO_TXTIME		0x4036
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         0x4012
-+#define SO_TIMESTAMPNS_OLD       0x4013
-+#define SO_TIMESTAMPING_OLD      0x4020
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _UAPI_ASM_SOCKET_H */
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 7ea35e5601b6..ca573641fc6c 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -33,7 +33,6 @@
- #define SO_PROTOCOL	0x1028
- #define SO_DOMAIN	0x1029
- 
--
- /* Linux specific, keep the same. */
- #define SO_NO_CHECK	0x000b
- #define SO_PRIORITY	0x000c
-@@ -45,19 +44,12 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		0x001c
--#define SO_TIMESTAMP		0x001d
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_PEERSEC		0x001e
- #define SO_PASSSEC		0x001f
--#define SO_TIMESTAMPNS		0x0021
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			0x0022
- 
--#define SO_TIMESTAMPING		0x0023
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_RXQ_OVFL             0x0024
- 
- #define SO_WIFI_STATUS		0x0025
-@@ -109,4 +101,20 @@
- #define SO_SECURITY_ENCRYPTION_TRANSPORT	0x5002
- #define SO_SECURITY_ENCRYPTION_NETWORK		0x5004
- 
-+#define SO_TIMESTAMP_OLD         0x001d
-+#define SO_TIMESTAMPNS_OLD       0x0021
-+#define SO_TIMESTAMPING_OLD      0x0023
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* _ASM_SOCKET_H */
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index a12692e5f7a8..dc704e41203d 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -46,21 +46,14 @@
- #define SO_GET_FILTER		SO_ATTACH_FILTER
- 
- #define SO_PEERNAME		28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
- 
- #define SO_ACCEPTCONN		30
- 
- #define SO_PEERSEC		31
- #define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
- 
- #define SO_MARK			36
- 
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
- #define SO_PROTOCOL		38
- #define SO_DOMAIN		39
- 
-@@ -110,4 +103,20 @@
- #define SO_TXTIME		61
- #define SCM_TXTIME		SO_TXTIME
- 
-+#define SO_TIMESTAMP_OLD         29
-+#define SO_TIMESTAMPNS_OLD       35
-+#define SO_TIMESTAMPING_OLD      37
-+
-+#if !defined(__KERNEL__)
-+
-+#define SO_TIMESTAMP           SO_TIMESTAMP_OLD
-+#define SO_TIMESTAMPNS         SO_TIMESTAMPNS_OLD
-+#define SO_TIMESTAMPING        SO_TIMESTAMPING_OLD
-+
-+#define SCM_TIMESTAMP          SO_TIMESTAMP
-+#define SCM_TIMESTAMPNS        SO_TIMESTAMPNS
-+#define SCM_TIMESTAMPING       SO_TIMESTAMPING
-+
-+#endif
-+
- #endif /* __ASM_GENERIC_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index c3a2f868e8af..ad24c1c0f0a1 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -219,7 +219,7 @@ int put_cmsg_compat(struct msghdr *kmsg, int level, int type, int len, void *dat
- 	}
- 
- 	if (!COMPAT_USE_64BIT_TIME) {
--		if (level == SOL_SOCKET && type == SCM_TIMESTAMP) {
-+		if (level == SOL_SOCKET && type == SO_TIMESTAMP_OLD) {
- 			struct timeval *tv = (struct timeval *)data;
- 			ctv.tv_sec = tv->tv_sec;
- 			ctv.tv_usec = tv->tv_usec;
-@@ -227,8 +227,8 @@ int put_cmsg_compat(struct msghdr *kmsg, int level, int type, int len, void *dat
- 			len = sizeof(ctv);
- 		}
- 		if (level == SOL_SOCKET &&
--		    (type == SCM_TIMESTAMPNS || type == SCM_TIMESTAMPING)) {
--			int count = type == SCM_TIMESTAMPNS ? 1 : 3;
-+		    (type == SO_TIMESTAMPNS_OLD || type == SO_TIMESTAMPING_OLD)) {
-+			int count = type == SO_TIMESTAMPNS_OLD ? 1 : 3;
- 			int i;
- 			struct timespec *ts = (struct timespec *)data;
- 			for (i = 0; i < count; i++) {
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 6aa2e7e0b4fb..492a8407130a 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -815,10 +815,10 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 			clear_bit(SOCK_PASSCRED, &sock->flags);
- 		break;
- 
--	case SO_TIMESTAMP:
--	case SO_TIMESTAMPNS:
-+	case SO_TIMESTAMP_OLD:
-+	case SO_TIMESTAMPNS_OLD:
- 		if (valbool)  {
--			if (optname == SO_TIMESTAMP)
-+			if (optname == SO_TIMESTAMP_OLD)
- 				sock_reset_flag(sk, SOCK_RCVTSTAMPNS);
- 			else
- 				sock_set_flag(sk, SOCK_RCVTSTAMPNS);
-@@ -830,7 +830,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 		}
- 		break;
- 
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		if (val & ~SOF_TIMESTAMPING_MASK) {
- 			ret = -EINVAL;
- 			break;
-@@ -1186,16 +1186,16 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		sock_warn_obsolete_bsdism("getsockopt");
- 		break;
- 
--	case SO_TIMESTAMP:
-+	case SO_TIMESTAMP_OLD:
- 		v.val = sock_flag(sk, SOCK_RCVTSTAMP) &&
- 				!sock_flag(sk, SOCK_RCVTSTAMPNS);
- 		break;
- 
--	case SO_TIMESTAMPNS:
-+	case SO_TIMESTAMPNS_OLD:
- 		v.val = sock_flag(sk, SOCK_RCVTSTAMPNS);
- 		break;
- 
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		v.val = sk->sk_tsflags;
- 		break;
- 
-@@ -2122,7 +2122,7 @@ int __sock_cmsg_send(struct sock *sk, struct msghdr *msg, struct cmsghdr *cmsg,
- 			return -EINVAL;
- 		sockc->mark = *(u32 *)CMSG_DATA(cmsg);
- 		break;
--	case SO_TIMESTAMPING:
-+	case SO_TIMESTAMPING_OLD:
- 		if (cmsg->cmsg_len != CMSG_LEN(sizeof(u32)))
- 			return -EINVAL;
- 
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 27e2f6837062..95eebe94ecf0 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -1870,13 +1870,13 @@ static void tcp_recv_timestamp(struct msghdr *msg, const struct sock *sk,
- 	if (tss->ts[0].tv_sec || tss->ts[0].tv_nsec) {
- 		if (sock_flag(sk, SOCK_RCVTSTAMP)) {
- 			if (sock_flag(sk, SOCK_RCVTSTAMPNS)) {
--				put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS,
-+				put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 					 sizeof(tss->ts[0]), &tss->ts[0]);
- 			} else {
- 				tv.tv_sec = tss->ts[0].tv_sec;
- 				tv.tv_usec = tss->ts[0].tv_nsec / 1000;
- 
--				put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+				put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 					 sizeof(tv), &tv);
- 			}
- 		}
-@@ -1896,7 +1896,7 @@ static void tcp_recv_timestamp(struct msghdr *msg, const struct sock *sk,
- 
- 	if (has_timestamping) {
- 		tss->ts[1] = (struct timespec) {0};
--		put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPING,
-+		put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPING_OLD,
- 			 sizeof(*tss), tss);
- 	}
- }
-diff --git a/net/rds/af_rds.c b/net/rds/af_rds.c
-index 65387e1e6964..eeb4639adbe5 100644
---- a/net/rds/af_rds.c
-+++ b/net/rds/af_rds.c
-@@ -430,7 +430,7 @@ static int rds_setsockopt(struct socket *sock, int level, int optname,
- 		ret = rds_set_transport(rs, optval, optlen);
- 		release_sock(sock->sk);
- 		break;
--	case SO_TIMESTAMP:
-+	case SO_TIMESTAMP_OLD:
- 		lock_sock(sock->sk);
- 		ret = rds_enable_recvtstamp(sock->sk, optval, optlen);
- 		release_sock(sock->sk);
-diff --git a/net/rds/recv.c b/net/rds/recv.c
-index 727639dac8a7..04e30d63a159 100644
---- a/net/rds/recv.c
-+++ b/net/rds/recv.c
-@@ -550,7 +550,7 @@ static int rds_cmsg_recv(struct rds_incoming *inc, struct msghdr *msg,
- 	if ((inc->i_rx_tstamp != 0) &&
- 	    sock_flag(rds_rs_to_sk(rs), SOCK_RCVTSTAMP)) {
- 		struct timeval tv = ktime_to_timeval(inc->i_rx_tstamp);
--		ret = put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+		ret = put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 			       sizeof(tv), &tv);
- 		if (ret)
- 			goto out;
-diff --git a/net/rxrpc/local_object.c b/net/rxrpc/local_object.c
-index 0906e51d3cfb..15cf42d5b53a 100644
---- a/net/rxrpc/local_object.c
-+++ b/net/rxrpc/local_object.c
-@@ -202,7 +202,7 @@ static int rxrpc_open_socket(struct rxrpc_local *local, struct net *net)
- 
- 		/* We want receive timestamps. */
- 		opt = 1;
--		ret = kernel_setsockopt(local->socket, SOL_SOCKET, SO_TIMESTAMPNS,
-+		ret = kernel_setsockopt(local->socket, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 					(char *)&opt, sizeof(opt));
- 		if (ret < 0) {
- 			_debug("setsockopt failed");
-diff --git a/net/socket.c b/net/socket.c
-index e89884e2197b..5087f9e40f3a 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -669,7 +669,7 @@ static bool skb_is_err_queue(const struct sk_buff *skb)
-  * before the software timestamp is received, a hardware TX timestamp may be
-  * returned only if there is no software TX timestamp. Ignore false software
-  * timestamps, which may be made in the __sock_recv_timestamp() call when the
-- * option SO_TIMESTAMP(NS) is enabled on the socket, even when the skb has a
-+ * option SO_TIMESTAMP_OLD(NS) is enabled on the socket, even when the skb has a
-  * hardware timestamp.
-  */
- static bool skb_is_swtx_tstamp(const struct sk_buff *skb, int false_tstamp)
-@@ -721,12 +721,12 @@ void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
- 		if (!sock_flag(sk, SOCK_RCVTSTAMPNS)) {
- 			struct timeval tv;
- 			skb_get_timestamp(skb, &tv);
--			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
-+			put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMP_OLD,
- 				 sizeof(tv), &tv);
- 		} else {
- 			struct timespec ts;
- 			skb_get_timestampns(skb, &ts);
--			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS,
-+			put_cmsg(msg, SOL_SOCKET, SO_TIMESTAMPNS_OLD,
- 				 sizeof(ts), &ts);
- 		}
- 	}
-@@ -746,7 +746,7 @@ void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
- 	}
- 	if (!empty) {
- 		put_cmsg(msg, SOL_SOCKET,
--			 SCM_TIMESTAMPING, sizeof(tss), &tss);
-+			 SO_TIMESTAMPING_OLD, sizeof(tss), &tss);
- 
- 		if (skb_is_err_queue(skb) && skb->len &&
- 		    SKB_EXT_ERR(skb)->opt_stats)
--- 
-2.17.1
+--VbJkn9YxBvnuCH5J
+Content-Type: application/gzip
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--VbJkn9YxBvnuCH5J--
