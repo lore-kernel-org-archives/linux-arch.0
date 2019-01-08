@@ -1,104 +1,66 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: Re: [PATCH 2/3] socket: Rename SO_RCVTIMEO/ SO_SNDTIMEO with _OLD suffixes
-Date: Tue, 8 Jan 2019 13:19:05 -0800
-Message-ID: <CABeXuvptd3G0kZ7K7j78cSGOnxBOkCoDe8Tzhfu4BQcYVtJNPg@mail.gmail.com>
-References: <20190108052255.10699-1-deepa.kernel@gmail.com>
- <20190108052255.10699-3-deepa.kernel@gmail.com> <CAK8P3a2T=dWgD1mvi77fbdKEsm=ZUwsQENv-btjhECjf+Y5wcg@mail.gmail.com>
+From: Yuri Norov <ynorov@marvell.com>
+Subject: [PATCH] arm64: introduce AUDIT_ARCH_AARCH64ILP32 for ilp32
+Date: Tue, 8 Jan 2019 21:18:56 +0000
+Message-ID: <20190108211840.GA13838@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20190107155028.GA25178@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2T=dWgD1mvi77fbdKEsm=ZUwsQENv-btjhECjf+Y5wcg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Miller <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Networking <netdev@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, ccaulfie@redhat.com, Helge Deller <deller@gmx.de>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, cluster-devel <cluster-devel@redhat.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190107155028.GA25178@yury-thinkpad>
+Content-Language: en-US
+Content-ID: <ECFB331D797AC1488D832907AB4C052F@namprd18.prod.outlook.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph
+ Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian
+ Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Cars
+Cc: Andy Lutomirski <luto@amacapital.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 8, 2019 at 12:04 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Tue, Jan 8, 2019 at 6:24 AM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
-> >
-> > SO_RCVTIMEO and SO_SNDTIMEO socket options use struct timeval
-> > as the time format. struct timeval is not y2038 safe.
-> > The subsequent patches in the series add support for new socket
-> > timeout options with _NEW suffix that are y2038 safe.
-> > Rename the existing options with _OLD suffix forms so that the
-> > right option is enabled for userspace applications according
-> > to the architecture and time_t definition of libc.
-> >
-> > Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
->
-> Looks good overall. A few minor concerns:
->
-> The description above makes it sound like there is a bug with y2038-safety
-> in this particular interface, which I think is just not what you meant,
-> as the change is only needed for compatiblity with new C libraries
-> that work around the y2038 problem in general by changing their
-> timeval definition.
+Make syscall_get_arch() distinguish arm64 and arm64/ilp32 by adding
+AUDIT_ARCH_AARCH64ILP32.
 
-Right, there is y2038 safety issue, just the libc part that needs to be handled.
-I will fix the commit text.
+Sugested-by: Andy Lutomirski <luto@amacapital.net>
+Signed-off-by: Yury Norov <ynorov@marvell.com>
+---
+ arch/arm64/include/asm/syscall.h | 3 +++
+ include/uapi/linux/audit.h       | 1 +
+ 2 files changed, 4 insertions(+)
 
-> > diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
-> > index 76976d6e50f9..c98ad9777ad9 100644
-> > --- a/fs/dlm/lowcomms.c
-> > +++ b/fs/dlm/lowcomms.c
-> > @@ -1089,12 +1089,12 @@ static void sctp_connect_to_sock(struct connection *con)
-> >          * since O_NONBLOCK argument in connect() function does not work here,
-> >          * then, we should restore the default value of this attribute.
-> >          */
-> > -       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv,
-> > +       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO_OLD, (char *)&tv,
-> >                           sizeof(tv));
-> >         result = sock->ops->connect(sock, (struct sockaddr *)&daddr, addr_len,
-> >                                    0);
-> >         memset(&tv, 0, sizeof(tv));
-> > -       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv,
-> > +       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO_OLD, (char *)&tv,
-> >                           sizeof(tv));
-> >
-> >         if (result == -EINPROGRESS)
->
-> It took me a bit to realize there that this is safe as well even if
-> we don't use SO_SNDTIMEO_NEW, for the same reason.
-
-Correct.
-
-> > --- a/net/compat.c
-> > +++ b/net/compat.c
-> > @@ -378,7 +378,7 @@ static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
-> >                 return do_set_attach_filter(sock, level, optname,
-> >                                             optval, optlen);
-> >         if (!COMPAT_USE_64BIT_TIME &&
-> > -           (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO))
-> > +           (optname == SO_RCVTIMEO_OLD || optname == SO_SNDTIMEO_OLD))
-> >                 return do_set_sock_timeout(sock, level, optname, optval, optlen);
-> >
-> >         return sock_setsockopt(sock, level, optname, optval, optlen);
-> > @@ -450,7 +450,7 @@ static int compat_sock_getsockopt(struct socket *sock, int level, int optname,
-> >                                 char __user *optval, int __user *optlen)
-> >  {
-> >         if (!COMPAT_USE_64BIT_TIME &&
-> > -           (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO))
-> > +           (optname == SO_RCVTIMEO_OLD || optname == SO_SNDTIMEO_OLD))
-> >                 return do_get_sock_timeout(sock, level, optname, optval, optlen);
-> >         return sock_getsockopt(sock, level, optname, optval, optlen);
-> >  }
->
-> I looked at the original code and noticed that it's horrible, which of course
-> is not your fault, but I wonder if we should just fix it now to avoid that
-> get_fs()/set_fs() hack, since that code mostly implements what you
-> also have in your patch 3 (which is done more nicely).
-
-I did think of getting rid of set_fs()/ get_fs() here.
-But, I wasn't sure as the maintainers seemed to prefer to leave to the
-old code as is in the other series for timestamps.
-
-> I'll follow up with a patch to demonstrate what I mean here. Your third
-> patch will then just have to add another code path so we can handle
-> all of old_timespec32 (for existing 32-bit user space), __kernel_old_timespec
-> (for sparc64) and __kernel_sock_timeval (for everything else).
-
-Cool, I will rebase on top of your patch.
-
-Thanks,
-Deepa
+diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/syscall.h
+index 73fbe08763b0..77578d703cb1 100644
+--- a/arch/arm64/include/asm/syscall.h
++++ b/arch/arm64/include/asm/syscall.h
+@@ -126,6 +126,9 @@ static inline int syscall_get_arch(void)
+ 	if (is_a32_compat_task())
+ 		return AUDIT_ARCH_ARM;
+ 
++	if (is_ilp32_compat_task())
++		return AUDIT_ARCH_AARCH64ILP32;
++
+ 	return AUDIT_ARCH_AARCH64;
+ }
+ 
+diff --git a/include/uapi/linux/audit.h b/include/uapi/linux/audit.h
+index 818ae690ab79..624127147404 100644
+--- a/include/uapi/linux/audit.h
++++ b/include/uapi/linux/audit.h
+@@ -374,6 +374,7 @@ enum {
+ #define __AUDIT_ARCH_LE	   0x40000000
+ 
+ #define AUDIT_ARCH_AARCH64	(EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
++#define AUDIT_ARCH_AARCH64ILP32	(EM_AARCH64|__AUDIT_ARCH_LE)
+ #define AUDIT_ARCH_ALPHA	(EM_ALPHA|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
+ #define AUDIT_ARCH_ARM		(EM_ARM|__AUDIT_ARCH_LE)
+ #define AUDIT_ARCH_ARMEB	(EM_ARM)
+-- 
+2.17.1
