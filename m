@@ -1,60 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f196.google.com ([209.85.166.196]:54702 "EHLO
-        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729168AbfAHQ5M (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:57:12 -0500
-Received: by mail-it1-f196.google.com with SMTP id i145so7231498ita.4
-        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:57:11 -0800 (PST)
+Received: from mail-it1-f195.google.com ([209.85.166.195]:51871 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729279AbfAHQ5W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:57:22 -0500
+Received: by mail-it1-f195.google.com with SMTP id w18so7248354ite.1
+        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:57:21 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 10/16] io_uring: split kiocb init from allocation
-Date: Tue,  8 Jan 2019 09:56:39 -0700
-Message-ID: <20190108165645.19311-11-axboe@kernel.dk>
+Subject: [PATCH 16/16] io_uring: add io_uring_event cache hit information
+Date: Tue,  8 Jan 2019 09:56:45 -0700
+Message-ID: <20190108165645.19311-17-axboe@kernel.dk>
 In-Reply-To: <20190108165645.19311-1-axboe@kernel.dk>
 References: <20190108165645.19311-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190108165639.PJs7HVTXaILCuO1c7SE1SZ5SFnNUBOca3LR_eqJEkwo@z>
+Message-ID: <20190108165645.2e8-ZwzcKokq5e98a7QWy5F-4mfF3jGjX1bvuK2j4ac@z>
 
-In preparation from having pre-allocated requests, that we then just
-need to initialize before use.
+Add hint on whether a read was served out of the page cache, or if it
+hit media. This is useful for buffered async IO, O_DIRECT reads would
+never have this set (for obvious reasons).
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/io_uring.c | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ fs/io_uring.c                 | 6 +++++-
+ include/uapi/linux/io_uring.h | 5 +++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
 
 diff --git a/fs/io_uring.c b/fs/io_uring.c
-index afbaebb63012..11d045f0f799 100644
+index 6c10841e4342..50b9cfa8c861 100644
 --- a/fs/io_uring.c
 +++ b/fs/io_uring.c
-@@ -202,6 +202,14 @@ static struct io_uring_event *io_peek_cqring(struct io_ring_ctx *ctx)
- 	return &ring->events[tail & ctx->cq_ring.ring_mask];
- }
- 
-+static void io_req_init(struct io_ring_ctx *ctx, struct io_kiocb *req)
-+{
-+	percpu_ref_get(&ctx->refs);
-+	req->ki_ctx = ctx;
-+	INIT_LIST_HEAD(&req->ki_list);
-+	req->ki_flags = 0;
-+}
-+
- static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx)
+@@ -524,12 +524,16 @@ static void io_fill_cq_error(struct io_ring_ctx *ctx, unsigned ki_index,
+ static void io_complete_scqring_rw(struct kiocb *kiocb, long res, long res2)
  {
- 	struct io_kiocb *req;
-@@ -210,10 +218,7 @@ static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx)
- 	if (!req)
- 		return NULL;
+ 	struct io_kiocb *iocb = container_of(kiocb, struct io_kiocb, rw);
++	unsigned ev_flags = 0;
  
--	percpu_ref_get(&ctx->refs);
--	req->ki_ctx = ctx;
--	INIT_LIST_HEAD(&req->ki_list);
--	req->ki_flags = 0;
-+	io_req_init(ctx, req);
- 	return req;
+ 	kiocb_end_write(kiocb);
+ 
+ 	fput(kiocb->ki_filp);
+ 
+-	io_complete_scqring(iocb, res, 0);
++	if (res > 0 && test_bit(KIOCB_F_FORCE_NONBLOCK, &iocb->ki_flags))
++		ev_flags = IOEV_FLAG_CACHEHIT;
++
++	io_complete_scqring(iocb, res, ev_flags);
  }
  
+ static void io_complete_scqring_iopoll(struct kiocb *kiocb, long res, long res2)
+diff --git a/include/uapi/linux/io_uring.h b/include/uapi/linux/io_uring.h
+index bd665d38dd97..7dd21126f142 100644
+--- a/include/uapi/linux/io_uring.h
++++ b/include/uapi/linux/io_uring.h
+@@ -56,6 +56,11 @@ struct io_uring_event {
+ 	__u32	flags;
+ };
+ 
++/*
++ * io_uring_event->flags
++ */
++#define IOEV_FLAG_CACHEHIT	(1 << 0)	/* IO did not hit media */
++
+ /*
+  * Magic offsets for the application to mmap the data it needs
+  */
 -- 
 2.17.1
