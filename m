@@ -1,250 +1,132 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] arch: unexport asm/shmparam.h for all architectures
-Date: Tue,  8 Jan 2019 08:38:27 +0900
-Message-ID: <1546904307-11124-1-git-send-email-yamada.masahiro@socionext.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Guo Ren <guoren@kernel.org>, linux-riscv@lists.infradead.org, Vincent Chen <deanbo422@gmail.com>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Mark Salter <msalter@redhat.com>, uclinux-h8-devel@lists.sourceforge.jp, Jonas Bonn <jonas@southpole.se>, Albert Ou <aou@eecs.berkeley.edu>, Arnd Bergmann <arnd@arndb.de>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, Stafford Horne <shorne@gmail.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Michal Simek <monstr@monstr.eu>linu
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH v3 0/8] net: y2038-safe socket timestamps
+Date: Mon,  7 Jan 2019 19:26:49 -0800
+Message-ID: <20190108032657.8331-1-deepa.kernel@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: davem@davemloft.net, linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, chris@zankel.net, deller@gmx.de, dhowells@redhat.com, fenghua.yu@intel.com, isdn@linux-pingi.de, jejb@parisc-linux.org, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-rdma@vger.kernel.org, linux-s390@vger.kernel.org, linux-xtensa@linux-xtensa.org, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, sparclinux@vger.kernel.org, tglx@linutronix.de, ubraun@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Most architectures do not export shmparam.h to user-space.
+The series introduces new socket timestamps that are
+y2038 safe.
 
-  $ find arch -name shmparam.h  | sort
-  arch/alpha/include/asm/shmparam.h
-  arch/arc/include/asm/shmparam.h
-  arch/arm64/include/asm/shmparam.h
-  arch/arm/include/asm/shmparam.h
-  arch/csky/include/asm/shmparam.h
-  arch/ia64/include/asm/shmparam.h
-  arch/mips/include/asm/shmparam.h
-  arch/nds32/include/asm/shmparam.h
-  arch/nios2/include/asm/shmparam.h
-  arch/parisc/include/asm/shmparam.h
-  arch/powerpc/include/asm/shmparam.h
-  arch/s390/include/asm/shmparam.h
-  arch/sh/include/asm/shmparam.h
-  arch/sparc/include/asm/shmparam.h
-  arch/x86/include/asm/shmparam.h
-  arch/xtensa/include/asm/shmparam.h
+The time data types used for the existing socket timestamp
+options: SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING
+are not y2038 safe. The series introduces SO_TIMESTAMP_NEW,
+SO_TIMESTAMPNS_NEW and SO_TIMESTAMPING_NEW to replace these.
+These new timestamps can be used on all architectures.
 
-Strangely, some users of the asm-generic wrapper export shmparam.h
+The alternative considered was to extend the sys_setsockopt()
+by using the flags. We did not receive any strong opinions about
+either of the approaches. Hence, this was chosen, as glibc folks
+preferred this.
 
-  $ git grep 'generic-y += shmparam.h'
-  arch/c6x/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/h8300/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/hexagon/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/m68k/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/microblaze/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/openrisc/include/uapi/asm/Kbuild:generic-y += shmparam.h
-  arch/riscv/include/asm/Kbuild:generic-y += shmparam.h
-  arch/unicore32/include/uapi/asm/Kbuild:generic-y += shmparam.h
+The series does not deal with updating the internal kernel socket
+calls like rxrpc to make them y2038 safe. This will be dealt
+with separately.
 
-The newly added riscv correctly creates the asm-generic wrapper
-in the kernel space, but the others (c6x, h8300, hexagon, m68k,
-microblaze, openrisc, unicore32) create the one in the uapi directory.
+Note that the timestamps behavior already does not match the
+man page specific behavior:
+SIOCGSTAMP
+    This ioctl should only be used if the socket option SO_TIMESTAMP
+	is not set on the socket. Otherwise, it returns the timestamp of
+	the last packet that was received while SO_TIMESTAMP was not set,
+	or it fails if no such packet has been received,
+	(i.e., ioctl(2) returns -1 with errno set to ENOENT).
+	
+The recommendation is to update the man page to remove the above statement.
 
-Digging into the git history, now I guess fcc8487d477a ("uapi:
-export all headers under uapi directories") was the misconversion.
-Prior to that commit, no architecture exported to shmparam.h
-As its commit description said, that commit exported shmparam.h
-for c6x, h8300, hexagon, m68k, openrisc, unicore32.
+The overview of the series is as below:
+1. Delete asm specific socket.h when possible.
+2. Support SO/SCM_TIMESTAMP* options only in userspace.
+3. Rename current SO/SCM_TIMESTAMP* to SO/SCM_TIMESTAMP*_OLD.
+3. Alter socket options so that SOCK_RCVTSTAMPNS does
+   not rely on SOCK_RCVTSTAMP.
+4. Introduce y2038 safe types for socket timestamp.
+5. Introduce new y2038 safe socket options SO/SCM_TIMESTAMP*_NEW.
 
-83f0124ad81e ("microblaze: remove asm-generic wrapper headers")
-accidentally exported shmparam.h for microblaze.
+Changes since v2:
+* Removed extra functions to reduce diff churn as per code review
 
-This commit unexports shmparam.h for those architectures.
+Changes since v1:
+* Dropped the change to disentangle sock flags
+* Renamed sock_timeval to __kernel_sock_timeval
+* Updated a few comments
+* Added documentation changes
 
-There is no more reason to export include/uapi/asm-generic/shmparam.h,
-so it has been moved to include/asm-generic/shmparam.h
+Deepa Dinamani (8):
+  arch: Use asm-generic/socket.h when possible
+  sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
+  arch: sparc: Override struct __kernel_old_timeval
+  socket: Use old_timeval types for socket timestamps
+  socket: Add struct __kernel_sock_timeval
+  socket: Add SO_TIMESTAMP[NS]_NEW
+  socket: Add SO_TIMESTAMPING_NEW
+  socket: Update timestamping Documentation
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+ Documentation/networking/timestamping.txt |  43 +++++++-
+ arch/alpha/include/uapi/asm/socket.h      |  35 +++++--
+ arch/ia64/include/uapi/asm/Kbuild         |   1 +
+ arch/ia64/include/uapi/asm/socket.h       | 120 ---------------------
+ arch/mips/include/uapi/asm/socket.h       |  34 ++++--
+ arch/parisc/include/uapi/asm/socket.h     |  34 ++++--
+ arch/s390/include/uapi/asm/Kbuild         |   1 +
+ arch/s390/include/uapi/asm/socket.h       | 117 ---------------------
+ arch/sparc/include/uapi/asm/posix_types.h |  10 ++
+ arch/sparc/include/uapi/asm/socket.h      |  36 +++++--
+ arch/x86/include/uapi/asm/Kbuild          |   1 +
+ arch/x86/include/uapi/asm/socket.h        |   1 -
+ arch/xtensa/include/asm/Kbuild            |   1 +
+ arch/xtensa/include/uapi/asm/Kbuild       |   1 +
+ arch/xtensa/include/uapi/asm/socket.h     | 122 ----------------------
+ drivers/isdn/mISDN/socket.c               |   2 +-
+ include/linux/skbuff.h                    |  24 ++++-
+ include/linux/socket.h                    |   8 ++
+ include/net/sock.h                        |   1 +
+ include/uapi/asm-generic/socket.h         |  35 +++++--
+ include/uapi/linux/errqueue.h             |   4 +
+ include/uapi/linux/time.h                 |   7 ++
+ net/bluetooth/hci_sock.c                  |   4 +-
+ net/compat.c                              |  14 +--
+ net/core/scm.c                            |  27 +++++
+ net/core/sock.c                           |  43 ++++++--
+ net/ipv4/tcp.c                            |  61 +++++++----
+ net/rds/af_rds.c                          |  10 +-
+ net/rds/recv.c                            |  18 +++-
+ net/rxrpc/local_object.c                  |   2 +-
+ net/smc/af_smc.c                          |   3 +-
+ net/socket.c                              |  50 ++++++---
+ 32 files changed, 404 insertions(+), 466 deletions(-)
+ delete mode 100644 arch/ia64/include/uapi/asm/socket.h
+ delete mode 100644 arch/s390/include/uapi/asm/socket.h
+ delete mode 100644 arch/x86/include/uapi/asm/socket.h
+ delete mode 100644 arch/xtensa/include/uapi/asm/socket.h
 
- arch/c6x/include/asm/Kbuild               | 1 +
- arch/c6x/include/uapi/asm/Kbuild          | 1 -
- arch/h8300/include/asm/Kbuild             | 1 +
- arch/h8300/include/uapi/asm/Kbuild        | 1 -
- arch/hexagon/include/asm/Kbuild           | 1 +
- arch/hexagon/include/uapi/asm/Kbuild      | 1 -
- arch/m68k/include/asm/Kbuild              | 1 +
- arch/m68k/include/uapi/asm/Kbuild         | 1 -
- arch/microblaze/include/asm/Kbuild        | 1 +
- arch/microblaze/include/uapi/asm/Kbuild   | 1 -
- arch/openrisc/include/asm/Kbuild          | 1 +
- arch/openrisc/include/uapi/asm/Kbuild     | 1 -
- arch/unicore32/include/asm/Kbuild         | 1 +
- arch/unicore32/include/uapi/asm/Kbuild    | 1 -
- include/{uapi => }/asm-generic/shmparam.h | 0
- 15 files changed, 7 insertions(+), 7 deletions(-)
- rename include/{uapi => }/asm-generic/shmparam.h (100%)
 
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index 33a2c94..63b4a17 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -30,6 +30,7 @@ generic-y += pgalloc.h
- generic-y += preempt.h
- generic-y += segment.h
- generic-y += serial.h
-+generic-y += shmparam.h
- generic-y += tlbflush.h
- generic-y += topology.h
- generic-y += trace_clock.h
-diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
-index 6c6f630..0febf1a 100644
---- a/arch/c6x/include/uapi/asm/Kbuild
-+++ b/arch/c6x/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += kvm_para.h
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index cd400d3..961c1dc 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -40,6 +40,7 @@ generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
- generic-y += serial.h
-+generic-y += shmparam.h
- generic-y += sizes.h
- generic-y += spinlock.h
- generic-y += timex.h
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
-index 6c6f630..0febf1a 100644
---- a/arch/h8300/include/uapi/asm/Kbuild
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += kvm_para.h
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index 47c4da3..b25fd42 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -30,6 +30,7 @@ generic-y += rwsem.h
- generic-y += sections.h
- generic-y += segment.h
- generic-y += serial.h
-+generic-y += shmparam.h
- generic-y += sizes.h
- generic-y += topology.h
- generic-y += trace_clock.h
-diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
-index 61d955c..c1b06dc 100644
---- a/arch/hexagon/include/uapi/asm/Kbuild
-+++ b/arch/hexagon/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 9f1dd26..95f8f63 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -20,6 +20,7 @@ generic-y += mm-arch-hooks.h
- generic-y += percpu.h
- generic-y += preempt.h
- generic-y += sections.h
-+generic-y += shmparam.h
- generic-y += spinlock.h
- generic-y += topology.h
- generic-y += trace_clock.h
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index b8b3525..960bf1e 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -2,4 +2,3 @@ include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
- generic-y += kvm_para.h
--generic-y += shmparam.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 9c7d1d2..791cc8d5 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -26,6 +26,7 @@ generic-y += parport.h
- generic-y += percpu.h
- generic-y += preempt.h
- generic-y += serial.h
-+generic-y += shmparam.h
- generic-y += syscalls.h
- generic-y += topology.h
- generic-y += trace_clock.h
-diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-index 28823e3..97823ec 100644
---- a/arch/microblaze/include/uapi/asm/Kbuild
-+++ b/arch/microblaze/include/uapi/asm/Kbuild
-@@ -2,5 +2,4 @@ include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
- generic-y += kvm_para.h
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index eb87cd8..1f04844b 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -34,6 +34,7 @@ generic-y += qrwlock_types.h
- generic-y += qrwlock.h
- generic-y += sections.h
- generic-y += segment.h
-+generic-y += shmparam.h
- generic-y += string.h
- generic-y += switch_to.h
- generic-y += topology.h
-diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
-index 6c6f630..0febf1a 100644
---- a/arch/openrisc/include/uapi/asm/Kbuild
-+++ b/arch/openrisc/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += kvm_para.h
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 1372553..1d1544b 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -28,6 +28,7 @@ generic-y += preempt.h
- generic-y += sections.h
- generic-y += segment.h
- generic-y += serial.h
-+generic-y += shmparam.h
- generic-y += sizes.h
- generic-y += syscalls.h
- generic-y += topology.h
-diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-index 6c6f630..0febf1a 100644
---- a/arch/unicore32/include/uapi/asm/Kbuild
-+++ b/arch/unicore32/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += kvm_para.h
--generic-y += shmparam.h
- generic-y += ucontext.h
-diff --git a/include/uapi/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
-similarity index 100%
-rename from include/uapi/asm-generic/shmparam.h
-rename to include/asm-generic/shmparam.h
+base-commit: a4983672f9ca4c8393f26b6b80710e6c78886b8c
 -- 
-2.7.4
+2.17.1
+
+Cc: chris@zankel.net
+Cc: deller@gmx.de
+Cc: dhowells@redhat.com
+Cc: fenghua.yu@intel.com
+Cc: isdn@linux-pingi.de
+Cc: jejb@parisc-linux.org
+Cc: linux-afs@lists.infradead.org
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linux-rdma@vger.kernel.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: netdev@vger.kernel.org
+Cc: ralf@linux-mips.org
+Cc: rth@twiddle.net
+Cc: schwidefsky@de.ibm.com
+Cc: sparclinux@vger.kernel.org
+Cc: tglx@linutronix.de
+Cc: ubraun@linux.ibm.com
