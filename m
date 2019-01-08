@@ -1,101 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36054 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36250 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729389AbfAHQ06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Jan 2019 11:26:58 -0500
+        id S1728238AbfAHQ1K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Jan 2019 11:27:10 -0500
 From: guoren@kernel.org
-Subject: [PATCH 2/5] csky: fixup relocation error with 807 & 860
-Date: Wed,  9 Jan 2019 00:26:35 +0800
-Message-ID: <1546964798-30067-2-git-send-email-guoren@kernel.org>
+Subject: [PATCH 4/5] csky: fixup compile error with pte_alloc
+Date: Wed,  9 Jan 2019 00:26:37 +0800
+Message-ID: <1546964798-30067-4-git-send-email-guoren@kernel.org>
 In-Reply-To: <1546964798-30067-1-git-send-email-guoren@kernel.org>
 References: <1546964798-30067-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, marc.zyngier@arm.com, arnd@arndb.de
-Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@kernel.org, torvalds@linux-foundation.org, linux@roeck-us.net, Guo Ren <ren_guo@c-sky.com>, Hui Kai <huikai@acoinfo.com>
-Message-ID: <20190108162635.rOkM_xIqf_15XfalfR0MPCxkYDjaMSUeLk56Yevqq8Q@z>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@kernel.org, torvalds@linux-foundation.org, linux@roeck-us.net, Guo Ren <ren_guo@c-sky.com>, Joel Fernandes <joel@joelfernandes.org>
+Message-ID: <20190108162637.C6FZhCmarqcq8Q7Ii8phuJZF8ywHT0Wlnv7bwO000lU@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-810 doesn't support jsri instruction and csky-as will leave
-jsri + nop for relocation. Module-probe need replace them with
-lrw + jsr.
+Commit: 4cf58924951e remove the address argument of pte_alloc without
+modify csky related code. linux-5.0-rc1 compile failed with csky.
+
+Remove the unnecessary address testing in pte_alloc().
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Hui Kai <huikai@acoinfo.com>
+Cc: Joel Fernandes (Google) <joel@joelfernandes.org>
+Cc: Guenter Roeck <linux@roeck-us.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 ---
- arch/csky/kernel/module.c | 38 ++++++++++++++++++++++----------------
- 1 file changed, 22 insertions(+), 16 deletions(-)
+ arch/csky/include/asm/pgalloc.h | 43 +++++++++++++++++------------------------
+ 1 file changed, 18 insertions(+), 25 deletions(-)
 
-diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
-index 65abab0..0b028ee 100644
---- a/arch/csky/kernel/module.c
-+++ b/arch/csky/kernel/module.c
-@@ -12,7 +12,7 @@
- #include <linux/spinlock.h>
- #include <asm/pgtable.h>
+diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
+index bf4f4a0..d213bb4 100644
+--- a/arch/csky/include/asm/pgalloc.h
++++ b/arch/csky/include/asm/pgalloc.h
+@@ -24,41 +24,34 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
  
--#if defined(__CSKYABIV2__)
-+#ifdef CONFIG_CPU_CK810
- #define IS_BSR32(hi16, lo16)		(((hi16) & 0xFC00) == 0xE000)
- #define IS_JSRI32(hi16, lo16)		((hi16) == 0xEAE0)
+ extern void pgd_init(unsigned long *p);
  
-@@ -25,6 +25,26 @@
- 	*(uint16_t *)(addr) = 0xE8Fa;		\
- 	*((uint16_t *)(addr) + 1) = 0x0000;	\
- } while (0)
+-static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+-					unsigned long address)
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
+ {
+ 	pte_t *pte;
+-	unsigned long *kaddr, i;
++	unsigned long i;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL,
+-					 PTE_ORDER);
+-	kaddr = (unsigned long *)pte;
+-	if (address & 0x80000000)
+-		for (i = 0; i < (PAGE_SIZE/4); i++)
+-			*(kaddr + i) = 0x1;
+-	else
+-		clear_page(kaddr);
++	pte = (pte_t *) __get_free_page(GFP_KERNEL);
++	if (!pte)
++		return NULL;
 +
-+static void jsri_2_lrw_jsr(uint32_t *location)
-+{
-+	uint16_t location_tmp = (uint16_t *)location;
-+
-+	if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
-+		return;
-+
-+	if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
-+		/* jsri 0x...  --> lrw r26, 0x... */
-+		CHANGE_JSRI_TO_LRW(location);
-+		/* lsli r0, r0 --> jsr r26 */
-+		SET_JSR32_R26(location + 1);
-+	}
-+}
-+#else
-+static void inline jsri_2_lrw_jsr(uint32_t *location)
-+{
-+	return;
-+}
- #endif
++	for (i = 0; i < PAGE_SIZE/sizeof(pte_t); i++)
++		(pte + i)->pte_low = _PAGE_GLOBAL;
  
- int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
-@@ -35,9 +55,6 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
- 	Elf32_Sym	*sym;
- 	uint32_t	*location;
- 	short		*temp;
--#if defined(__CSKYABIV2__)
--	uint16_t	*location_tmp;
--#endif
+ 	return pte;
+ }
  
- 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
- 		/* This is where to make the change */
-@@ -59,18 +76,7 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
- 		case R_CSKY_PCRELJSR_IMM11BY2:
- 			break;
- 		case R_CSKY_PCRELJSR_IMM26BY2:
--#if defined(__CSKYABIV2__)
--			location_tmp = (uint16_t *)location;
--			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
--				break;
+-static inline struct page *pte_alloc_one(struct mm_struct *mm,
+-						unsigned long address)
++static inline struct page *pte_alloc_one(struct mm_struct *mm)
+ {
+ 	struct page *pte;
+-	unsigned long *kaddr, i;
 -
--			if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
--				/* jsri 0x...  --> lrw r26, 0x... */
--				CHANGE_JSRI_TO_LRW(location);
--				/* lsli r0, r0 --> jsr r26 */
--				SET_JSR32_R26(location + 1);
--			}
--#endif
-+			jsri_2_lrw_jsr(location);
- 			break;
- 		case R_CSKY_ADDR_HI16:
- 			temp = ((short  *)location) + 1;
+-	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
+-	if (pte) {
+-		kaddr = kmap_atomic(pte);
+-		if (address & 0x80000000) {
+-			for (i = 0; i < (PAGE_SIZE/4); i++)
+-				*(kaddr + i) = 0x1;
+-		} else
+-			clear_page(kaddr);
+-		kunmap_atomic(kaddr);
+-		pgtable_page_ctor(pte);
++
++	pte = alloc_pages(GFP_KERNEL | __GFP_ZERO, 0);
++	if (!pte)
++		return NULL;
++
++	if (!pgtable_page_ctor(pte)) {
++		__free_page(pte);
++		return NULL;
+ 	}
++
+ 	return pte;
+ }
+ 
 -- 
 2.7.4
