@@ -1,68 +1,128 @@
-From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-Subject: Re: [PATCH v3 0/8] net: y2038-safe socket timestamps
-Date: Tue, 8 Jan 2019 08:53:03 -0500
-Message-ID: <CAF=yD-LvYLA0u+HCzZv3++7=0bcNJyPv+SDAJENQYVBqEToBeA@mail.gmail.com>
-References: <20190108032657.8331-1-deepa.kernel@gmail.com>
- <CAF=yD-JuXHnp-5TvPSq87PDvHD1hkrUEWHQ9Uxwhbsd08vszHw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <CAF=yD-JuXHnp-5TvPSq87PDvHD1hkrUEWHQ9Uxwhbsd08vszHw@mail.gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, linux-ia64@vger.kernel.org, linux-xtensa@linux-xtensa.org, David Howells <dhowells@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, linux-afs@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, fenghua.yu@intel.com, Arnd Bergmann <arnd@arndb.de>, ubraun@linux.ibm.com, Thomas Gleixner <tglx@linutronix.de>, rth@twiddle.net, Chris Zankel <chris@zankel.net>, isdn@linux-pingi.de, Parisc List <linux-parisc@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-rdma@vger.kernel.org, linux-alpha@vger.kernel.org, schwidefsky@de.ibm.com, David Miller <davem@davemlof>
+From: Julien Thierry <julien.thierry@arm.com>
+Subject: [PATCH v8 01/26] arm64: Fix HCR.TGE status for NMI contexts
+Date: Tue,  8 Jan 2019 14:07:19 +0000
+Message-ID: <1546956464-48825-2-git-send-email-julien.thierry@arm.com>
+References: <1546956464-48825-1-git-send-email-julien.thierry@arm.com>
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <1546956464-48825-1-git-send-email-julien.thierry@arm.com>
+Sender: stable-owner@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, james.morse@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Julien Thierry <julien.thierry@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVHVlLCBKYW4gOCwgMjAxOSBhdCA4OjM3IEFNIFdpbGxlbSBkZSBCcnVpam4KPHdpbGxlbWRl
-YnJ1aWpuLmtlcm5lbEBnbWFpbC5jb20+IHdyb3RlOgo+Cj4gT24gTW9uLCBKYW4gNywgMjAxOSBh
-dCAxMDoyOSBQTSBEZWVwYSBEaW5hbWFuaSA8ZGVlcGEua2VybmVsQGdtYWlsLmNvbT4gd3JvdGU6
-Cj4gPgo+ID4gVGhlIHNlcmllcyBpbnRyb2R1Y2VzIG5ldyBzb2NrZXQgdGltZXN0YW1wcyB0aGF0
-IGFyZQo+ID4geTIwMzggc2FmZS4KPiA+Cj4gPiBUaGUgdGltZSBkYXRhIHR5cGVzIHVzZWQgZm9y
-IHRoZSBleGlzdGluZyBzb2NrZXQgdGltZXN0YW1wCj4gPiBvcHRpb25zOiBTT19USU1FU1RBTVAs
-IFNPX1RJTUVTVEFNUE5TIGFuZCBTT19USU1FU1RBTVBJTkcKPiA+IGFyZSBub3QgeTIwMzggc2Fm
-ZS4gVGhlIHNlcmllcyBpbnRyb2R1Y2VzIFNPX1RJTUVTVEFNUF9ORVcsCj4gPiBTT19USU1FU1RB
-TVBOU19ORVcgYW5kIFNPX1RJTUVTVEFNUElOR19ORVcgdG8gcmVwbGFjZSB0aGVzZS4KPiA+IFRo
-ZXNlIG5ldyB0aW1lc3RhbXBzIGNhbiBiZSB1c2VkIG9uIGFsbCBhcmNoaXRlY3R1cmVzLgo+ID4K
-PiA+IFRoZSBhbHRlcm5hdGl2ZSBjb25zaWRlcmVkIHdhcyB0byBleHRlbmQgdGhlIHN5c19zZXRz
-b2Nrb3B0KCkKPiA+IGJ5IHVzaW5nIHRoZSBmbGFncy4gV2UgZGlkIG5vdCByZWNlaXZlIGFueSBz
-dHJvbmcgb3BpbmlvbnMgYWJvdXQKPiA+IGVpdGhlciBvZiB0aGUgYXBwcm9hY2hlcy4gSGVuY2Us
-IHRoaXMgd2FzIGNob3NlbiwgYXMgZ2xpYmMgZm9sa3MKPiA+IHByZWZlcnJlZCB0aGlzLgo+ID4K
-PiA+IFRoZSBzZXJpZXMgZG9lcyBub3QgZGVhbCB3aXRoIHVwZGF0aW5nIHRoZSBpbnRlcm5hbCBr
-ZXJuZWwgc29ja2V0Cj4gPiBjYWxscyBsaWtlIHJ4cnBjIHRvIG1ha2UgdGhlbSB5MjAzOCBzYWZl
-LiBUaGlzIHdpbGwgYmUgZGVhbHQKPiA+IHdpdGggc2VwYXJhdGVseS4KPiA+Cj4gPiBOb3RlIHRo
-YXQgdGhlIHRpbWVzdGFtcHMgYmVoYXZpb3IgYWxyZWFkeSBkb2VzIG5vdCBtYXRjaCB0aGUKPiA+
-IG1hbiBwYWdlIHNwZWNpZmljIGJlaGF2aW9yOgo+ID4gU0lPQ0dTVEFNUAo+ID4gICAgIFRoaXMg
-aW9jdGwgc2hvdWxkIG9ubHkgYmUgdXNlZCBpZiB0aGUgc29ja2V0IG9wdGlvbiBTT19USU1FU1RB
-TVAKPiA+ICAgICAgICAgaXMgbm90IHNldCBvbiB0aGUgc29ja2V0LiBPdGhlcndpc2UsIGl0IHJl
-dHVybnMgdGhlIHRpbWVzdGFtcCBvZgo+ID4gICAgICAgICB0aGUgbGFzdCBwYWNrZXQgdGhhdCB3
-YXMgcmVjZWl2ZWQgd2hpbGUgU09fVElNRVNUQU1QIHdhcyBub3Qgc2V0LAo+ID4gICAgICAgICBv
-ciBpdCBmYWlscyBpZiBubyBzdWNoIHBhY2tldCBoYXMgYmVlbiByZWNlaXZlZCwKPiA+ICAgICAg
-ICAgKGkuZS4sIGlvY3RsKDIpIHJldHVybnMgLTEgd2l0aCBlcnJubyBzZXQgdG8gRU5PRU5UKS4K
-PiA+Cj4gPiBUaGUgcmVjb21tZW5kYXRpb24gaXMgdG8gdXBkYXRlIHRoZSBtYW4gcGFnZSB0byBy
-ZW1vdmUgdGhlIGFib3ZlIHN0YXRlbWVudC4KPiA+Cj4gPiBUaGUgb3ZlcnZpZXcgb2YgdGhlIHNl
-cmllcyBpcyBhcyBiZWxvdzoKPiA+IDEuIERlbGV0ZSBhc20gc3BlY2lmaWMgc29ja2V0Lmggd2hl
-biBwb3NzaWJsZS4KPiA+IDIuIFN1cHBvcnQgU08vU0NNX1RJTUVTVEFNUCogb3B0aW9ucyBvbmx5
-IGluIHVzZXJzcGFjZS4KPiA+IDMuIFJlbmFtZSBjdXJyZW50IFNPL1NDTV9USU1FU1RBTVAqIHRv
-IFNPL1NDTV9USU1FU1RBTVAqX09MRC4KPiA+IDMuIEFsdGVyIHNvY2tldCBvcHRpb25zIHNvIHRo
-YXQgU09DS19SQ1ZUU1RBTVBOUyBkb2VzCj4gPiAgICBub3QgcmVseSBvbiBTT0NLX1JDVlRTVEFN
-UC4KPiA+IDQuIEludHJvZHVjZSB5MjAzOCBzYWZlIHR5cGVzIGZvciBzb2NrZXQgdGltZXN0YW1w
-Lgo+ID4gNS4gSW50cm9kdWNlIG5ldyB5MjAzOCBzYWZlIHNvY2tldCBvcHRpb25zIFNPL1NDTV9U
-SU1FU1RBTVAqX05FVy4KPiA+Cj4gPiBDaGFuZ2VzIHNpbmNlIHYyOgo+ID4gKiBSZW1vdmVkIGV4
-dHJhIGZ1bmN0aW9ucyB0byByZWR1Y2UgZGlmZiBjaHVybiBhcyBwZXIgY29kZSByZXZpZXcKPgo+
-IFRoYW5rcywgRGVlcGEuIFRoaXMgc2V0IGxvb2tzIGdyZWF0IHRvIG1lLgo+Cj4gT25lIGlzc3Vl
-LCBpdCBkb2VzIG5vdCBhcHBseSBjbGVhbmx5IHRvIGN1cnJlbnQgZGF2ZW0tbmV0LW5leHQvbWFz
-dGVyCj4gZm9yIG1lLiBBIGNvbmZsaWN0IG9uIHBhdGNoIDcuIEl0IGRvZXMgYXBwbHkgY2xlYW5s
-eSBvbiBkYXZlbS1uZXQKPiBtYXN0ZXIuIFBsZWFzZSByZWJhc2UgYW5kIGFsc28gc2VuZCB3aXRo
-IFtQQVRDSCBuZXQtbmV4dF0uCgp0byBiZSBjbGVhciwgd2l0aCB0aGUgdmVyc2lvbiwgc28gdGhp
-cyB3aWxsIGJlIFtQQVRDSCBuZXQtbmV4dCB2NF0uCl9fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5h
-cm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
+When using VHE, the host needs to clear HCR_EL2.TGE bit in order
+to interract with guest TLBs, switching from EL2&0 translation regime
+to EL1&0.
+
+However, some non-maskable asynchronous event could happen while TGE is
+cleared like SDEI. Because of this address translation operations
+relying on EL2&0 translation regime could fail (tlb invalidation,
+userspace access, ...).
+
+Fix this by properly setting HCR_EL2.TGE when entering NMI context and
+clear it if necessary when returning to the interrupted context.
+
+Signed-off-by: Julien Thierry <julien.thierry@arm.com>
+Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Marc Zyngier <marc.zyngier@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: linux-arch@vger.kernel.org
+Cc: stable@vger.kernel.org
+---
+ arch/arm64/include/asm/hardirq.h | 28 ++++++++++++++++++++++++++++
+ arch/arm64/kernel/irq.c          |  3 +++
+ include/linux/hardirq.h          |  7 +++++++
+ 3 files changed, 38 insertions(+)
+
+diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
+index 1473fc2..94b7481 100644
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -19,6 +19,7 @@
+ #include <linux/cache.h>
+ #include <linux/threads.h>
+ #include <asm/irq.h>
++#include <asm/kvm_arm.h>
+ 
+ #define NR_IPI	7
+ 
+@@ -37,6 +38,33 @@
+ 
+ #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+ 
++struct nmi_ctx {
++	u64 hcr;
++};
++
++DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
++#define arch_nmi_enter()							\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
++			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
++				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
++				isb();						\
++			}							\
++		}								\
++	} while (0)
++
++#define arch_nmi_exit()								\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			if (!(nmi_ctx->hcr & HCR_TGE))				\
++				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
++		}								\
++	} while (0)
++
+ static inline void ack_bad_irq(unsigned int irq)
+ {
+ 	extern unsigned long irq_err_count;
+diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
+index 780a12f..92fa817 100644
+--- a/arch/arm64/kernel/irq.c
++++ b/arch/arm64/kernel/irq.c
+@@ -33,6 +33,9 @@
+ 
+ unsigned long irq_err_count;
+ 
++/* Only access this in an NMI enter/exit */
++DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
+ DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
+ 
+ int arch_show_interrupts(struct seq_file *p, int prec)
+diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
+index 0fbbcdf..da0af63 100644
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -60,8 +60,14 @@ static inline void rcu_nmi_exit(void)
+  */
+ extern void irq_exit(void);
+ 
++#ifndef arch_nmi_enter
++#define arch_nmi_enter()	do { } while (0)
++#define arch_nmi_exit()		do { } while (0)
++#endif
++
+ #define nmi_enter()						\
+ 	do {							\
++		arch_nmi_enter();				\
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+@@ -80,6 +86,7 @@ static inline void rcu_nmi_exit(void)
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
++		arch_nmi_exit();				\
+ 	} while (0)
+ 
+ #endif /* LINUX_HARDIRQ_H */
+-- 
+1.9.1
