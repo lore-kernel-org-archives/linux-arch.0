@@ -1,94 +1,184 @@
 From: guoren@kernel.org
-Subject: [PATCH 4/5] csky: fixup compile error with pte_alloc
-Date: Wed,  9 Jan 2019 00:26:37 +0800
-Message-ID: <1546964798-30067-4-git-send-email-guoren@kernel.org>
+Subject: [PATCH 5/5] irqchip/csky: fixup handle_irq_perbit break irq
+Date: Wed,  9 Jan 2019 00:26:38 +0800
+Message-ID: <1546964798-30067-5-git-send-email-guoren@kernel.org>
 References: <1546964798-30067-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1546964798-30067-1-git-send-email-guoren@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, marc.zyngier@arm.com, arnd@arndb.de
-Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@kernel.org, torvalds@linux-foundation.org, linux@roeck-us.net, Guo Ren <ren_guo@c-sky.com>, Joel Fernandes <joel@joelfernandes.org>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@kernel.org, torvalds@linux-foundation.org, linux@roeck-us.net, Guo Ren <ren_guo@c-sky.com>, Lu Baoquan <lu.baoquan@intellif.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-Commit: 4cf58924951e remove the address argument of pte_alloc without
-modify csky related code. linux-5.0-rc1 compile failed with csky.
+The handle_irq_perbit function loop every bit in hwirq local variable.
 
-Remove the unnecessary address testing in pte_alloc().
+handle_irq_perbit(hwirq) {
+  for_everyt_bit_in(hwirq) {
+	handle_domain_irq()
+		->irq_exit()
+		->invoke_softirq()
+		->__do_softirq()
+		->local_irq_enable() // Here will cause new interrupt.
+  }
+}
+
+When new interrupt coming at local_irq_enable, it will finish another
+interrupt handler and pull down the interrupt source. But hwirq is the
+local variable for handle_irq_perbit(), it can't get new interrupt
+controller pending reg status. So we need update hwirq with pending reg
+in every loop.
+
+Also change write_relax to writel could prevent stw from fast retire.
+When local_irq is enabled, intc regs is really set-in.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Joel Fernandes (Google) <joel@joelfernandes.org>
-Cc: Guenter Roeck <linux@roeck-us.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Lu Baoquan <lu.baoquan@intellif.com>
 ---
- arch/csky/include/asm/pgalloc.h | 43 +++++++++++++++++------------------------
- 1 file changed, 18 insertions(+), 25 deletions(-)
+ drivers/irqchip/irq-csky-apb-intc.c | 77 ++++++++++++++++++++-----------------
+ 1 file changed, 42 insertions(+), 35 deletions(-)
 
-diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
-index bf4f4a0..d213bb4 100644
---- a/arch/csky/include/asm/pgalloc.h
-+++ b/arch/csky/include/asm/pgalloc.h
-@@ -24,41 +24,34 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+diff --git a/drivers/irqchip/irq-csky-apb-intc.c b/drivers/irqchip/irq-csky-apb-intc.c
+index 2543bab..5a2ec43 100644
+--- a/drivers/irqchip/irq-csky-apb-intc.c
++++ b/drivers/irqchip/irq-csky-apb-intc.c
+@@ -95,7 +95,7 @@ static inline void setup_irq_channel(u32 magic, void __iomem *reg_addr)
  
- extern void pgd_init(unsigned long *p);
- 
--static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
--					unsigned long address)
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
- {
- 	pte_t *pte;
--	unsigned long *kaddr, i;
-+	unsigned long i;
- 
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL,
--					 PTE_ORDER);
--	kaddr = (unsigned long *)pte;
--	if (address & 0x80000000)
--		for (i = 0; i < (PAGE_SIZE/4); i++)
--			*(kaddr + i) = 0x1;
--	else
--		clear_page(kaddr);
-+	pte = (pte_t *) __get_free_page(GFP_KERNEL);
-+	if (!pte)
-+		return NULL;
-+
-+	for (i = 0; i < PAGE_SIZE/sizeof(pte_t); i++)
-+		(pte + i)->pte_low = _PAGE_GLOBAL;
- 
- 	return pte;
+ 	/* Setup 64 channel slots */
+ 	for (i = 0; i < INTC_IRQS; i += 4)
+-		writel_relaxed(build_channel_val(i, magic), reg_addr + i);
++		writel(build_channel_val(i, magic), reg_addr + i);
  }
  
--static inline struct page *pte_alloc_one(struct mm_struct *mm,
--						unsigned long address)
-+static inline struct page *pte_alloc_one(struct mm_struct *mm)
+ static int __init
+@@ -135,16 +135,10 @@ ck_intc_init_comm(struct device_node *node, struct device_node *parent)
+ static inline bool handle_irq_perbit(struct pt_regs *regs, u32 hwirq,
+ 				     u32 irq_base)
  {
- 	struct page *pte;
--	unsigned long *kaddr, i;
+-	u32 irq;
 -
--	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
--	if (pte) {
--		kaddr = kmap_atomic(pte);
--		if (address & 0x80000000) {
--			for (i = 0; i < (PAGE_SIZE/4); i++)
--				*(kaddr + i) = 0x1;
--		} else
--			clear_page(kaddr);
--		kunmap_atomic(kaddr);
--		pgtable_page_ctor(pte);
+ 	if (hwirq == 0)
+ 		return 0;
+ 
+-	while (hwirq) {
+-		irq = __ffs(hwirq);
+-		hwirq &= ~BIT(irq);
+-		handle_domain_irq(root_domain, irq_base + irq, regs);
+-	}
++	handle_domain_irq(root_domain, irq_base + __fls(hwirq), regs);
+ 
+ 	return 1;
+ }
+@@ -154,12 +148,16 @@ static void gx_irq_handler(struct pt_regs *regs)
+ {
+ 	bool ret;
+ 
+-	do {
+-		ret  = handle_irq_perbit(regs,
+-				readl_relaxed(reg_base + GX_INTC_PEN31_00), 0);
+-		ret |= handle_irq_perbit(regs,
+-				readl_relaxed(reg_base + GX_INTC_PEN63_32), 32);
+-	} while (ret);
++retry:
++	ret = handle_irq_perbit(regs,
++			readl(reg_base + GX_INTC_PEN63_32), 32);
++	if (ret)
++		goto retry;
 +
-+	pte = alloc_pages(GFP_KERNEL | __GFP_ZERO, 0);
-+	if (!pte)
-+		return NULL;
-+
-+	if (!pgtable_page_ctor(pte)) {
-+		__free_page(pte);
-+		return NULL;
- 	}
-+
- 	return pte;
++	ret = handle_irq_perbit(regs,
++			readl(reg_base + GX_INTC_PEN31_00), 0);
++	if (ret)
++		goto retry;
  }
  
+ static int __init
+@@ -174,14 +172,14 @@ gx_intc_init(struct device_node *node, struct device_node *parent)
+ 	/*
+ 	 * Initial enable reg to disable all interrupts
+ 	 */
+-	writel_relaxed(0x0, reg_base + GX_INTC_NEN31_00);
+-	writel_relaxed(0x0, reg_base + GX_INTC_NEN63_32);
++	writel(0x0, reg_base + GX_INTC_NEN31_00);
++	writel(0x0, reg_base + GX_INTC_NEN63_32);
+ 
+ 	/*
+ 	 * Initial mask reg with all unmasked, because we only use enalbe reg
+ 	 */
+-	writel_relaxed(0x0, reg_base + GX_INTC_NMASK31_00);
+-	writel_relaxed(0x0, reg_base + GX_INTC_NMASK63_32);
++	writel(0x0, reg_base + GX_INTC_NMASK31_00);
++	writel(0x0, reg_base + GX_INTC_NMASK63_32);
+ 
+ 	setup_irq_channel(0x03020100, reg_base + GX_INTC_SOURCE);
+ 
+@@ -204,20 +202,29 @@ static void ck_irq_handler(struct pt_regs *regs)
+ 	void __iomem *reg_pen_lo = reg_base + CK_INTC_PEN31_00;
+ 	void __iomem *reg_pen_hi = reg_base + CK_INTC_PEN63_32;
+ 
+-	do {
+-		/* handle 0 - 31 irqs */
+-		ret  = handle_irq_perbit(regs, readl_relaxed(reg_pen_lo), 0);
+-		ret |= handle_irq_perbit(regs, readl_relaxed(reg_pen_hi), 32);
++retry:
++	/* handle 0 - 63 irqs */
++	ret = handle_irq_perbit(regs, readl(reg_pen_hi), 32);
++	if (ret)
++		goto retry;
+ 
+-		if (nr_irq == INTC_IRQS)
+-			continue;
++	ret = handle_irq_perbit(regs, readl(reg_pen_lo), 0);
++	if (ret)
++		goto retry;
++
++	if (nr_irq == INTC_IRQS)
++		return;
+ 
+-		/* handle 64 - 127 irqs */
+-		ret |= handle_irq_perbit(regs,
+-			readl_relaxed(reg_pen_lo + CK_INTC_DUAL_BASE), 64);
+-		ret |= handle_irq_perbit(regs,
+-			readl_relaxed(reg_pen_hi + CK_INTC_DUAL_BASE), 96);
+-	} while (ret);
++	/* handle 64 - 127 irqs */
++	ret = handle_irq_perbit(regs,
++			readl(reg_pen_hi + CK_INTC_DUAL_BASE), 96);
++	if (ret)
++		goto retry;
++
++	ret = handle_irq_perbit(regs,
++			readl(reg_pen_lo + CK_INTC_DUAL_BASE), 64);
++	if (ret)
++		goto retry;
+ }
+ 
+ static int __init
+@@ -230,11 +237,11 @@ ck_intc_init(struct device_node *node, struct device_node *parent)
+ 		return ret;
+ 
+ 	/* Initial enable reg to disable all interrupts */
+-	writel_relaxed(0, reg_base + CK_INTC_NEN31_00);
+-	writel_relaxed(0, reg_base + CK_INTC_NEN63_32);
++	writel(0, reg_base + CK_INTC_NEN31_00);
++	writel(0, reg_base + CK_INTC_NEN63_32);
+ 
+ 	/* Enable irq intc */
+-	writel_relaxed(BIT(31), reg_base + CK_INTC_ICR);
++	writel(BIT(31), reg_base + CK_INTC_ICR);
+ 
+ 	ck_set_gc(node, reg_base, CK_INTC_NEN31_00, 0);
+ 	ck_set_gc(node, reg_base, CK_INTC_NEN63_32, 32);
+@@ -260,8 +267,8 @@ ck_dual_intc_init(struct device_node *node, struct device_node *parent)
+ 		return ret;
+ 
+ 	/* Initial enable reg to disable all interrupts */
+-	writel_relaxed(0, reg_base + CK_INTC_NEN31_00 + CK_INTC_DUAL_BASE);
+-	writel_relaxed(0, reg_base + CK_INTC_NEN63_32 + CK_INTC_DUAL_BASE);
++	writel(0, reg_base + CK_INTC_NEN31_00 + CK_INTC_DUAL_BASE);
++	writel(0, reg_base + CK_INTC_NEN63_32 + CK_INTC_DUAL_BASE);
+ 
+ 	ck_set_gc(node, reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN31_00, 64);
+ 	ck_set_gc(node, reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN63_32, 96);
 -- 
 2.7.4
