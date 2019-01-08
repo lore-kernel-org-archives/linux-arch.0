@@ -1,249 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f67.google.com ([209.85.166.67]:36888 "EHLO
-        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728475AbfAHQ5K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:57:10 -0500
-Received: by mail-io1-f67.google.com with SMTP id g8so3680616iok.4
-        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:57:09 -0800 (PST)
+Received: from mail-io1-f65.google.com ([209.85.166.65]:42210 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729156AbfAHQ5O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2019 11:57:14 -0500
+Received: by mail-io1-f65.google.com with SMTP id x6so3665054ioa.9
+        for <linux-arch@vger.kernel.org>; Tue, 08 Jan 2019 08:57:13 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 09/16] io_uring: use fget/fput_many() for file references
-Date: Tue,  8 Jan 2019 09:56:38 -0700
-Message-ID: <20190108165645.19311-10-axboe@kernel.dk>
+Subject: [PATCH 11/16] io_uring: batch io_kiocb allocation
+Date: Tue,  8 Jan 2019 09:56:40 -0700
+Message-ID: <20190108165645.19311-12-axboe@kernel.dk>
 In-Reply-To: <20190108165645.19311-1-axboe@kernel.dk>
 References: <20190108165645.19311-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190108165638.JAloNgI2kwBhY7RMFCKja8rC2ex7d7C6imrUuGAOl0A@z>
+Message-ID: <20190108165640.2M3KKkaWkneR4TahKJF5JaQdIfCTPLFJJIBqPe0rZ88@z>
 
-On the submission side, add file reference batching to the
-io_submit_state. We get as many references as the number of iocbs we
-are submitting, and drop unused ones if we end up switching files. The
-assumption here is that we're usually only dealing with one fd, and if
-there are multiple, hopefuly they are at least somewhat ordered. Could
-trivially be extended to cover multiple fds, if needed.
-
-On the completion side we do the same thing, except this is trivially
-done just locally in io_iopoll_reap().
+Similarly to how we use the state->ios_left to know how many references
+to get to a file, we can use it to allocate the io_kiocb's we need in
+bulk.
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/io_uring.c | 105 +++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 92 insertions(+), 13 deletions(-)
+ fs/io_uring.c | 41 +++++++++++++++++++++++++++++++++++------
+ 1 file changed, 35 insertions(+), 6 deletions(-)
 
 diff --git a/fs/io_uring.c b/fs/io_uring.c
-index 9f36eb728208..afbaebb63012 100644
+index 11d045f0f799..62778d7ffb8d 100644
 --- a/fs/io_uring.c
 +++ b/fs/io_uring.c
-@@ -134,6 +134,15 @@ struct io_submit_state {
- 	 */
+@@ -135,6 +135,13 @@ struct io_submit_state {
  	struct list_head req_list;
  	unsigned int req_count;
-+
+ 
 +	/*
-+	 * File reference cache
++	 * io_kiocb alloc cache
 +	 */
-+	struct file *file;
-+	unsigned int fd;
-+	unsigned int has_refs;
-+	unsigned int used_refs;
-+	unsigned int ios_left;
- };
++	void *iocbs[IO_IOPOLL_BATCH];
++	unsigned int free_iocbs;
++	unsigned int cur_iocb;
++
+ 	/*
+ 	 * File reference cache
+ 	 */
+@@ -210,15 +217,33 @@ static void io_req_init(struct io_ring_ctx *ctx, struct io_kiocb *req)
+ 	req->ki_flags = 0;
+ }
  
- static struct kmem_cache *kiocb_cachep, *ioctx_cachep;
-@@ -237,7 +246,8 @@ static void io_iopoll_reap(struct io_ring_ctx *ctx, unsigned int *nr_events)
+-static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx)
++static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
++				   struct io_submit_state *state)
  {
- 	void *iocbs[IO_IOPOLL_BATCH];
- 	struct io_kiocb *iocb, *n;
--	int to_free = 0;
-+	int file_count, to_free = 0;
-+	struct file *file = NULL;
+ 	struct io_kiocb *req;
  
- 	list_for_each_entry_safe(iocb, n, &ctx->poll_completing, ki_list) {
- 		if (!test_bit(KIOCB_F_IOPOLL_COMPLETED, &iocb->ki_flags))
-@@ -248,10 +258,27 @@ static void io_iopoll_reap(struct io_ring_ctx *ctx, unsigned int *nr_events)
- 		list_del(&iocb->ki_list);
- 		iocbs[to_free++] = iocb;
- 
--		fput(iocb->rw.ki_filp);
-+		/*
-+		 * Batched puts of the same file, to avoid dirtying the
-+		 * file usage count multiple times, if avoidable.
-+		 */
-+		if (!file) {
-+			file = iocb->rw.ki_filp;
-+			file_count = 1;
-+		} else if (file == iocb->rw.ki_filp) {
-+			file_count++;
-+		} else {
-+			fput_many(file, file_count);
-+			file = iocb->rw.ki_filp;
-+			file_count = 1;
-+		}
-+
- 		(*nr_events)++;
- 	}
- 
-+	if (file)
-+		fput_many(file, file_count);
-+
- 	if (to_free)
- 		iocb_put_many(ctx, iocbs, &to_free);
- }
-@@ -433,13 +460,60 @@ static void io_complete_scqring_iopoll(struct kiocb *kiocb, long res, long res2)
- 	}
- }
- 
--static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb)
-+static void io_file_put(struct io_submit_state *state, struct file *file)
-+{
-+	if (!state) {
-+		fput(file);
-+	} else if (state->file) {
-+		int diff = state->has_refs - state->used_refs;
-+
-+		if (diff)
-+			fput_many(state->file, diff);
-+		state->file = NULL;
-+	}
-+}
-+
-+/*
-+ * Get as many references to a file as we have IOs left in this submission,
-+ * assuming most submissions are for one file, or at least that each file
-+ * has more than one submission.
-+ */
-+static struct file *io_file_get(struct io_submit_state *state, int fd)
-+{
+-	req = kmem_cache_alloc(kiocb_cachep, GFP_KERNEL);
+-	if (!req)
+-		return NULL;
 +	if (!state)
-+		return fget(fd);
++		req = kmem_cache_alloc(kiocb_cachep, GFP_KERNEL);
++	else if (!state->free_iocbs) {
++		size_t size;
++		int ret;
 +
-+	if (!state->file) {
-+get_file:
-+		state->file = fget_many(fd, state->ios_left);
-+		if (!state->file)
-+			return NULL;
-+
-+		state->fd = fd;
-+		state->has_refs = state->ios_left;
-+		state->used_refs = 1;
-+		state->ios_left--;
-+		return state->file;
++		size = min_t(size_t, state->ios_left, ARRAY_SIZE(state->iocbs));
++		ret = kmem_cache_alloc_bulk(kiocb_cachep, GFP_KERNEL, size,
++						state->iocbs);
++		if (ret <= 0)
++			return ERR_PTR(-ENOMEM);
++		state->free_iocbs = ret - 1;
++		state->cur_iocb = 1;
++		req = state->iocbs[0];
++	} else {
++		req = state->iocbs[state->cur_iocb];
++		state->free_iocbs--;
++		state->cur_iocb++;
 +	}
-+
-+	if (state->fd == fd) {
-+		state->used_refs++;
-+		state->ios_left--;
-+		return state->file;
-+	}
-+
-+	io_file_put(state, NULL);
-+	goto get_file;
-+}
-+
-+static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb,
-+		      struct io_submit_state *state)
- {
- 	struct io_ring_ctx *ctx = kiocb->ki_ctx;
- 	struct kiocb *req = &kiocb->rw;
- 	int ret;
  
--	req->ki_filp = fget(iocb->fd);
-+	req->ki_filp = io_file_get(state, iocb->fd);
- 	if (unlikely(!req->ki_filp))
- 		return -EBADF;
- 	req->ki_pos = iocb->off;
-@@ -473,7 +547,7 @@ static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb)
- 	}
- 	return 0;
- out_fput:
--	fput(req->ki_filp);
-+	io_file_put(state, req->ki_filp);
- 	return ret;
+-	io_req_init(ctx, req);
++	if (req)
++		io_req_init(ctx, req);
+ 	return req;
  }
  
-@@ -567,7 +641,8 @@ static void io_iopoll_iocb_issued(struct io_submit_state *state,
- 		io_iopoll_iocb_add_state(state, kiocb);
- }
+@@ -773,7 +798,7 @@ static int __io_submit_one(struct io_ring_ctx *ctx,
+ 	if (unlikely(iocb->flags))
+ 		return -EINVAL;
  
--static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb)
-+static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb,
-+		       struct io_submit_state *state)
- {
- 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
- 	struct kiocb *req = &kiocb->rw;
-@@ -575,7 +650,7 @@ static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb)
- 	struct file *file;
- 	ssize_t ret;
+-	req = io_get_req(ctx);
++	req = io_get_req(ctx, state);
+ 	if (unlikely(!req))
+ 		return -EAGAIN;
  
--	ret = io_prep_rw(kiocb, iocb);
-+	ret = io_prep_rw(kiocb, iocb, state);
- 	if (ret)
- 		return ret;
- 	file = req->ki_filp;
-@@ -602,7 +677,8 @@ static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_iocb *iocb)
- }
- 
- static ssize_t io_write(struct io_kiocb *kiocb,
--			const struct io_uring_iocb *iocb)
-+			const struct io_uring_iocb *iocb,
-+			struct io_submit_state *state)
- {
- 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
- 	struct kiocb *req = &kiocb->rw;
-@@ -610,7 +686,7 @@ static ssize_t io_write(struct io_kiocb *kiocb,
- 	struct file *file;
- 	ssize_t ret;
- 
--	ret = io_prep_rw(kiocb, iocb);
-+	ret = io_prep_rw(kiocb, iocb, state);
- 	if (ret)
- 		return ret;
- 	file = req->ki_filp;
-@@ -704,10 +780,10 @@ static int __io_submit_one(struct io_ring_ctx *ctx,
- 	ret = -EINVAL;
- 	switch (iocb->opcode) {
- 	case IORING_OP_READ:
--		ret = io_read(req, iocb);
-+		ret = io_read(req, iocb, state);
- 		break;
- 	case IORING_OP_WRITE:
--		ret = io_write(req, iocb);
-+		ret = io_write(req, iocb, state);
- 		break;
- 	case IORING_OP_FSYNC:
- 		if (ctx->flags & IORING_SETUP_IOPOLL)
-@@ -762,17 +838,20 @@ static void io_submit_state_end(struct io_submit_state *state)
- 	blk_finish_plug(&state->plug);
+@@ -844,6 +869,9 @@ static void io_submit_state_end(struct io_submit_state *state)
  	if (!list_empty(&state->req_list))
  		io_flush_state_reqs(state->ctx, state);
-+	io_file_put(state, NULL);
+ 	io_file_put(state, NULL);
++	if (state->free_iocbs)
++		kmem_cache_free_bulk(kiocb_cachep, state->free_iocbs,
++					&state->iocbs[state->cur_iocb]);
  }
  
  /*
-  * Start submission side cache.
-  */
- static void io_submit_state_start(struct io_submit_state *state,
--				  struct io_ring_ctx *ctx)
-+				  struct io_ring_ctx *ctx, unsigned max_ios)
- {
+@@ -855,6 +883,7 @@ static void io_submit_state_start(struct io_submit_state *state,
  	state->ctx = ctx;
  	INIT_LIST_HEAD(&state->req_list);
  	state->req_count = 0;
-+	state->file = NULL;
-+	state->ios_left = max_ios;
++	state->free_iocbs = 0;
+ 	state->file = NULL;
+ 	state->ios_left = max_ios;
  #ifdef CONFIG_BLOCK
- 	state->plug_cb.callback = io_state_unplug;
- 	blk_start_plug(&state->plug);
-@@ -818,7 +897,7 @@ static int io_ring_submit(struct io_ring_ctx *ctx, unsigned int to_submit)
- 	int i, ret = 0, submit = 0;
- 
- 	if (to_submit > IO_PLUG_THRESHOLD) {
--		io_submit_state_start(&state, ctx);
-+		io_submit_state_start(&state, ctx, to_submit);
- 		statep = &state;
- 	}
- 
 -- 
 2.17.1
