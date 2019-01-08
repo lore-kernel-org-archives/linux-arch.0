@@ -1,150 +1,89 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Date: Tue, 8 Jan 2019 13:50:58 -0500
-Message-ID: <20190108134549-mutt-send-email-mst@kernel.org>
-References: <20190102205715.14054-1-mst@redhat.com>
- <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/3] socket: Rename SO_RCVTIMEO/ SO_SNDTIMEO with _OLD suffixes
+Date: Tue, 8 Jan 2019 21:03:49 +0100
+Message-ID: <CAK8P3a2T=dWgD1mvi77fbdKEsm=ZUwsQENv-btjhECjf+Y5wcg@mail.gmail.com>
+References: <20190108052255.10699-1-deepa.kernel@gmail.com> <20190108052255.10699-3-deepa.kernel@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
+In-Reply-To: <20190108052255.10699-3-deepa.kernel@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>, Joe Perches <joe@perches.com>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: David Miller <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Networking <netdev@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, ccaulfie@redhat.com, Helge Deller <deller@gmx.de>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, cluster-devel@redhat.com, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 08, 2019 at 09:44:28AM -0800, Nick Desaulniers wrote:
-> Thanks for the patch and sorry for the delay; was totally unplugged
-> for the holidays.
-> On Wed, Jan 2, 2019 at 12:57 PM Michael S. Tsirkin <mst@redhat.com> wrote:
-> >
-> > Since commit 815f0ddb346c ("include/linux/compiler*.h: make compiler-*.h
-> > mutually exclusive") clang no longer reuses the OPTIMIZER_HIDE_VAR macro
-> > from compiler-gcc - instead it gets the version in
-> > include/linux/compiler.h.  Unfortunately that version doesn't actually
-> > prevent compiler from optimizing out the variable.
-> 
-> Good catch. Did you find this via eyeballing the code, a test, or some
-> other way?
+On Tue, Jan 8, 2019 at 6:24 AM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+>
+> SO_RCVTIMEO and SO_SNDTIMEO socket options use struct timeval
+> as the time format. struct timeval is not y2038 safe.
+> The subsequent patches in the series add support for new socket
+> timeout options with _NEW suffix that are y2038 safe.
+> Rename the existing options with _OLD suffix forms so that the
+> right option is enabled for userspace applications according
+> to the architecture and time_t definition of libc.
+>
+> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
 
-eyeballing
+Looks good overall. A few minor concerns:
 
-> >
-> > Fix up by moving the macro out from compiler-gcc.h to compiler.h.
-> > Compilers without incline asm support will keep working
-> > since it's protected by an ifdef.
-> >
-> > Also fix up comments to match reality since we are no longer overriding
-> > any macros.
-> >
-> > Build-tested with gcc and clang.
-> >
-> > Fixes: 815f0ddb346c ("include/linux/compiler*.h: make compiler-*.h mutually exclusive")
-> > Cc: Eli Friedman <efriedma@codeaurora.org>
-> > Cc: Joe Perches <joe@perches.com>
-> > Cc: Nick Desaulniers <ndesaulniers@google.com>
-> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> 
-> Also for more context, see:
-> commit 7829fb09a2b4 ("lib: make memzero_explicit more robust against
-> dead store elimination")
+The description above makes it sound like there is a bug with y2038-safety
+in this particular interface, which I think is just not what you meant,
+as the change is only needed for compatiblity with new C libraries
+that work around the y2038 problem in general by changing their
+timeval definition.
 
+> diff --git a/fs/dlm/lowcomms.c b/fs/dlm/lowcomms.c
+> index 76976d6e50f9..c98ad9777ad9 100644
+> --- a/fs/dlm/lowcomms.c
+> +++ b/fs/dlm/lowcomms.c
+> @@ -1089,12 +1089,12 @@ static void sctp_connect_to_sock(struct connection *con)
+>          * since O_NONBLOCK argument in connect() function does not work here,
+>          * then, we should restore the default value of this attribute.
+>          */
+> -       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv,
+> +       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO_OLD, (char *)&tv,
+>                           sizeof(tv));
+>         result = sock->ops->connect(sock, (struct sockaddr *)&daddr, addr_len,
+>                                    0);
+>         memset(&tv, 0, sizeof(tv));
+> -       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv,
+> +       kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO_OLD, (char *)&tv,
+>                           sizeof(tv));
+>
+>         if (result == -EINPROGRESS)
 
-Interesting. That added this text:
+It took me a bit to realize there that this is safe as well even if
+we don't use SO_SNDTIMEO_NEW, for the same reason.
 
- * while gcc behavior gets along with a normal
- * barrier(), llvm needs an explicit input variable to be assumed
- * clobbered.
+> --- a/net/compat.c
+> +++ b/net/compat.c
+> @@ -378,7 +378,7 @@ static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
+>                 return do_set_attach_filter(sock, level, optname,
+>                                             optval, optlen);
+>         if (!COMPAT_USE_64BIT_TIME &&
+> -           (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO))
+> +           (optname == SO_RCVTIMEO_OLD || optname == SO_SNDTIMEO_OLD))
+>                 return do_set_sock_timeout(sock, level, optname, optval, optlen);
+>
+>         return sock_setsockopt(sock, level, optname, optval, optlen);
+> @@ -450,7 +450,7 @@ static int compat_sock_getsockopt(struct socket *sock, int level, int optname,
+>                                 char __user *optval, int __user *optlen)
+>  {
+>         if (!COMPAT_USE_64BIT_TIME &&
+> -           (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO))
+> +           (optname == SO_RCVTIMEO_OLD || optname == SO_SNDTIMEO_OLD))
+>                 return do_get_sock_timeout(sock, level, optname, optval, optlen);
+>         return sock_getsockopt(sock, level, optname, optval, optlen);
+>  }
 
-however:
-#define barrier_data(ptr) __asm__ __volatile__("": :"r"(ptr) :"memory")
+I looked at the original code and noticed that it's horrible, which of course
+is not your fault, but I wonder if we should just fix it now to avoid that
+get_fs()/set_fs() hack, since that code mostly implements what you
+also have in your patch 3 (which is done more nicely).
 
-So no explicit variable is clobbered.
-Weird isn't it?
+I'll follow up with a patch to demonstrate what I mean here. Your third
+patch will then just have to add another code path so we can handle
+all of old_timespec32 (for existing 32-bit user space), __kernel_old_timespec
+(for sparc64) and __kernel_sock_timeval (for everything else).
 
-
-
-> > ---
-> >  include/linux/compiler-clang.h | 5 ++---
-> >  include/linux/compiler-gcc.h   | 4 ----
-> >  include/linux/compiler-intel.h | 4 +---
-> >  include/linux/compiler.h       | 4 +++-
-> >  4 files changed, 6 insertions(+), 11 deletions(-)
-> >
-> > diff --git a/include/linux/compiler-clang.h b/include/linux/compiler-clang.h
-> > index 3e7dafb3ea80..7ddaeb5182e3 100644
-> > --- a/include/linux/compiler-clang.h
-> > +++ b/include/linux/compiler-clang.h
-> > @@ -3,9 +3,8 @@
-> >  #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
-> >  #endif
-> >
-> > -/* Some compiler specific definitions are overwritten here
-> > - * for Clang compiler
-> > - */
-> > +/* Compiler specific definitions for Clang compiler */
-> > +
-> >  #define uninitialized_var(x) x = *(&(x))
-> >
-> >  /* same as gcc, this was present in clang-2.6 so we can assume it works
-> > diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-> > index 2010493e1040..72054d9f0eaa 100644
-> > --- a/include/linux/compiler-gcc.h
-> > +++ b/include/linux/compiler-gcc.h
-> > @@ -58,10 +58,6 @@
-> >         (typeof(ptr)) (__ptr + (off));                                  \
-> >  })
-> >
-> > -/* Make the optimizer believe the variable can be manipulated arbitrarily. */
-> > -#define OPTIMIZER_HIDE_VAR(var)                                                \
-> > -       __asm__ ("" : "=r" (var) : "0" (var))
-> > -
-> >  /*
-> >   * A trick to suppress uninitialized variable warning without generating any
-> >   * code
-> > diff --git a/include/linux/compiler-intel.h b/include/linux/compiler-intel.h
-> > index 517bd14e1222..b17f3cd18334 100644
-> > --- a/include/linux/compiler-intel.h
-> > +++ b/include/linux/compiler-intel.h
-> > @@ -5,9 +5,7 @@
-> >
-> >  #ifdef __ECC
-> >
-> > -/* Some compiler specific definitions are overwritten here
-> > - * for Intel ECC compiler
-> > - */
-> > +/* Compiler specific definitions for Intel ECC compiler */
-> >
-> >  #include <asm/intrinsics.h>
-> >
-> > diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> > index 06396c1cf127..1ad367b4cd8d 100644
-> > --- a/include/linux/compiler.h
-> > +++ b/include/linux/compiler.h
-> > @@ -152,7 +152,9 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
-> >  #endif
-> >
-> >  #ifndef OPTIMIZER_HIDE_VAR
-> > -#define OPTIMIZER_HIDE_VAR(var) barrier()
-> > +/* Make the optimizer believe the variable can be manipulated arbitrarily. */
-> > +#define OPTIMIZER_HIDE_VAR(var)                                                \
-> > +       __asm__ ("" : "=r" (var) : "0" (var))
-> >  #endif
-> 
-> This should be fine, thanks for the cleanup!  For now, we're not yet
-> confident to turn on Clang's integrated assembler for the kernel, but
-> I'll make sure to revisit this should we, in case Clang is then able
-> to optimize this out.
-> + Eric, who might know of a better trick for what we're trying to
-> accomplish with this macro.
-> 
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> 
-> + Miguel
-> Miguel, would you mind taking this into your compiler-attributes tree?
-> -- 
-> Thanks,
-> ~Nick Desaulniers
+       Arnd
