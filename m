@@ -1,41 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:43542 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727722AbfAITGk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Jan 2019 14:06:40 -0500
-Date: Wed, 9 Jan 2019 20:06:38 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 14/16] io_uring: support kernel side submission
-Message-ID: <20190109190638.GB22645@lst.de>
-References: <20190108165645.19311-1-axboe@kernel.dk> <20190108165645.19311-15-axboe@kernel.dk>
+Received: from mail-io1-f67.google.com ([209.85.166.67]:45041 "EHLO
+        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728612AbfAIUF0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 15:05:26 -0500
+Received: by mail-io1-f67.google.com with SMTP id r200so7020910iod.11
+        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 12:05:26 -0800 (PST)
+Date: Wed, 9 Jan 2019 15:05:21 -0500
+From: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
+Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
+Message-ID: <20190109200521.GE30131@pure.paranoia.local>
+References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
+ <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
+ <20190109182955.GC30131@pure.paranoia.local>
+ <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20190108165645.19311-15-axboe@kernel.dk>
+In-Reply-To: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: pr-tracker-bot@kernel.org, Guo Ren <guoren@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190109200521._g-ESr5OuvpCiNcVUIc8tI4drOjCotfIn4sdommXWjs@z>
 
-> +struct iocb_submit {
-> +	const struct io_uring_iocb *iocb;
-> +	unsigned int index;
-> +};
-> +
-> +struct io_work {
-> +	struct work_struct work;
-> +	struct io_ring_ctx *ctx;
-> +	struct io_uring_iocb iocb;
-> +	unsigned iocb_index;
-> +};
+On Wed, Jan 09, 2019 at 10:40:20AM -0800, Linus Torvalds wrote:
+> Side note: I do wish people would use the proper _public_ access.
 
-I think we should use struct iocb_submit everywhere where we pass
-an iocb + index, including in the io_work structure.  Here is how
-I did that to my old tree:
+I'm wondering if this largely happens due to people's insteadOf rules.
+We've established that git-request-pull will quietly substitute URLs in
+the emails it generates if a matching insteadOf rule is found. I started
+a discussion related to this on the git list, but it veered a bit
+sideways:
 
-http://git.infradead.org/users/hch/misc.git/commitdiff/65929ed6f143a1c996305a10a15fd7f64d32595f
+https://public-inbox.org/git/20181115182826.GB25806@pure.paranoia.local/T/#u
 
-Btw, I think we can also remove the separate io_work allocation,
-just do the io_get_req in the submission context, and overlay
-the io_work onto the iocb in a union of some sort.  This avoids
-a whole memory allocation.
+> Maybe the pr-tracker-bot might even send the person who did a pull
+> request a (private) notice that there is something odd when that isn't
+> the case?
+
+I'm not sure that would be very effective. Folks tend to ignore bots,
+and with this one we're specifically recommending "add it to your ignore
+list if you don't want notifications." I think an email from you for
+such (rare) cases would be a better way to indicate that something in
+the pull request needs to be changed.
+
+-K
