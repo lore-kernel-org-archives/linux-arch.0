@@ -1,55 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:49990 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726876AbfAIWVz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 17:21:55 -0500
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id x09MJM2g019610
-        for <linux-arch@vger.kernel.org>; Wed, 9 Jan 2019 17:21:54 -0500
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2pwrhytvdb-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 17:21:54 -0500
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 9 Jan 2019 22:21:53 -0000
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 1/2] include/asm-generic: Remove spin_is_locked() comment
-Date: Wed,  9 Jan 2019 14:21:43 -0800
-In-Reply-To: <20190109222120.GA13904@linux.ibm.com>
-References: <20190109222120.GA13904@linux.ibm.com>
-Message-ID: <20190109222144.14270-1-paulmck@linux.ibm.com>
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:37011 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726072AbfAIXTC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 18:19:02 -0500
+Received: by mail-ed1-f67.google.com with SMTP id h15so8707993edb.4
+        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 15:19:01 -0800 (PST)
+Date: Thu, 10 Jan 2019 00:18:53 +0100
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
+Message-ID: <20190109231852.GA4494@andrea>
+References: <20190109210706.GA27268@linux.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190109210706.GA27268@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: mingo@kernel.org, jiangshanlai@gmail.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, fweisbec@gmail.com, oleg@redhat.com, joel@joelfernandes.org, "Paul E. McKenney" <paulmck@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20190109222143.GXWl1BBj2SvuYly6ybTV4d-lCetpHXaSR-WJOKYroBI@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
+Message-ID: <20190109231853.6RgXhnj3NGNtjv-k7b1qPz4-070SOiVAr6UUtEnM7CQ@z>
 
-The WARN_ON_SMP() comment header suggests using spin_is_locked() to
-check for locks being held.  But these days we prefer lockdep_assert_held(),
-so this commit removes that suggestion.
+On Wed, Jan 09, 2019 at 01:07:06PM -0800, Paul E. McKenney wrote:
+> Hello!
+> 
+> This series contains updates for the Linux-kernel memory model:
+> 
+> 1-3.	Add SRCU support, courtesy of Alan Stern.
+> 
+> 4.	Update README for adding of SRCU support.
+> 
+> 5.	Update memory-barriers.txt on enforcing heavy ordering for
+> 	port-I/O accesses, courtesy of Will Deacon.  This one needs
+> 	an ack, preferably by someone from Intel.  Matthew Wilcox
+> 	posted some feedback from an Intel manual here, which might
+> 	be considered to be a close substitute, but...  ;-)
+> 
+> 	http://lkml.kernel.org/r/20181127192234.GF10377@bombadil.infradead.org
+> 
+> 6.	Update Documentation/explanation.txt to include SRCU support,
+> 	courtesy of Alan Stern.
+> 
+> 7.	Dynamically check SRCU lock-to-unlock matching, courtesy of
+> 	Luc Maranget.  This needs an ack.
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: <linux-arch@vger.kernel.org>
----
- include/asm-generic/bug.h | 3 ---
- 1 file changed, 3 deletions(-)
+It seems that
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 20561a60db9c..0e9bd9c83870 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -211,9 +211,6 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- /*
-  * WARN_ON_SMP() is for cases that the warning is either
-  * meaningless for !SMP or may even cause failures.
-- * This is usually used for cases that we have
-- * WARN_ON(!spin_is_locked(&lock)) checks, as spin_is_locked()
-- * returns 0 for uniprocessor settings.
-  * It can also be used with values that are only defined
-  * on SMP:
-  *
--- 
-2.17.1
+  1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+  
+from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
+considered that, IIRC, you introduced the primitive and RCU is currently
+its only user.)
+
+  Andrea
+
+
+> 
+> 							Thanx, Paul
+> 
+> ------------------------------------------------------------------------
+> 
+>  Documentation/memory-barriers.txt                |    6 
+>  tools/memory-model/Documentation/explanation.txt |  289 ++++++++++++-----------
+>  tools/memory-model/README                        |   25 +
+>  tools/memory-model/linux-kernel.bell             |   37 ++
+>  tools/memory-model/linux-kernel.cat              |   55 ++--
+>  tools/memory-model/linux-kernel.def              |    7 
+>  6 files changed, 250 insertions(+), 169 deletions(-)
+> 
