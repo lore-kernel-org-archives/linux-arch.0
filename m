@@ -1,86 +1,59 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC LKMM 2/7] tools/memory-model: Refactor some RCU relations
-Date: Wed,  9 Jan 2019 13:07:43 -0800
-Message-ID: <20190109210748.29074-2-paulmck@linux.ibm.com>
+Subject: [PATCH RFC LKMM 5/7] docs/memory-barriers.txt: Enforce heavy ordering for port I/O accesses
+Date: Wed,  9 Jan 2019 13:07:46 -0800
+Message-ID: <20190109210748.29074-5-paulmck@linux.ibm.com>
 References: <20190109210706.GA27268@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190109210706.GA27268@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, David Laight <David.Laight@ACULAB.COM>, linux-doc@vger.kernel.org, "Paul E . McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Alan Stern <stern@rowland.harvard.edu>
+From: Will Deacon <will.deacon@arm.com>
 
-In preparation for adding support for SRCU, refactor the definitions
-of rcu-fence, rcu-rscsi, rcu-link, and rb by moving the po and po?
-terms from the first two to the second two.  An rcu-gp relation is
-added; it is equivalent to gp with the po and po? terms removed.
+David Laight explains:
 
-This is necessary because for SRCU, we will have to use the loc
-relation to check that the terms at the start and end of each disjunct
-in the definition of rcu-fence refer to the same srcu_struct
-location.  If these terms are hidden behind po and po?, there's no way
-to carry out this check.
+  | A long time ago there was a document from Intel that said that
+  | inb/outb weren't necessarily synchronised wrt memory accesses.
+  | (Might be P-pro era). However no processors actually behaved that
+  | way and more recent docs say that inb/outb are fully ordered.
 
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+This also reflects the situation on other architectures, the the port
+accessor macros tend to be implemented in terms of readX/writeX.
+
+Update Documentation/memory-barriers.txt to reflect reality.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Laight <David.Laight@ACULAB.COM>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: <linux-doc@vger.kernel.org>
+Cc: <linux-kernel@vger.kernel.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/linux-kernel.cat | 25 +++++++++++++++----------
- 1 file changed, 15 insertions(+), 10 deletions(-)
+ Documentation/memory-barriers.txt | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index ab9de9c1234b..b8e6197f05af 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -91,32 +91,37 @@ acyclic pb as propagation
- (*******)
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 1c22b21ae922..a70104e2a087 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -2619,10 +2619,8 @@ functions:
+      intermediary bridges (such as the PCI host bridge) may not fully honour
+      that.
  
- (*
-- * Effect of read-side critical section proceeds from the rcu_read_lock()
-- * onward on the one hand and from the rcu_read_unlock() backwards on the
-+ * Effects of read-side critical sections proceed from the rcu_read_unlock()
-+ * backwards on the one hand, and from the rcu_read_lock() forwards on the
-  * other hand.
-+ *
-+ * In the definition of rcu-fence below, the po term at the left-hand side
-+ * of each disjunct and the po? term at the right-hand end have been factored
-+ * out.  They have been moved into the definitions of rcu-link and rb.
-  *)
--let rcu-rscsi = po ; rcu-rscs^-1 ; po?
-+let rcu-gp = [Sync-rcu]		(* Compare with gp *)
-+let rcu-rscsi = rcu-rscs^-1
+-     They are guaranteed to be fully ordered with respect to each other.
+-
+-     They are not guaranteed to be fully ordered with respect to other types of
+-     memory and I/O operation.
++     They are guaranteed to be fully ordered with respect to each other and
++     also with respect to other types of memory and I/O operation.
  
- (*
-  * The synchronize_rcu() strong fence is special in that it can order not
-  * one but two non-rf relations, but only in conjunction with an RCU
-  * read-side critical section.
-  *)
--let rcu-link = hb* ; pb* ; prop
-+let rcu-link = po? ; hb* ; pb* ; prop ; po
- 
- (*
-  * Any sequence containing at least as many grace periods as RCU read-side
-  * critical sections (joined by rcu-link) acts as a generalized strong fence.
-  *)
--let rec rcu-fence = gp |
--	(gp ; rcu-link ; rcu-rscsi) |
--	(rcu-rscsi ; rcu-link ; gp) |
--	(gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
--	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; gp) |
-+let rec rcu-fence = rcu-gp |
-+	(rcu-gp ; rcu-link ; rcu-rscsi) |
-+	(rcu-rscsi ; rcu-link ; rcu-gp) |
-+	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
-+	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
- 	(rcu-fence ; rcu-link ; rcu-fence)
- 
- (* rb orders instructions just as pb does *)
--let rb = prop ; rcu-fence ; hb* ; pb*
-+let rb = prop ; po ; rcu-fence ; po? ; hb* ; pb*
- 
- irreflexive rb as rcu
+  (*) readX(), writeX():
  
 -- 
 2.17.1
