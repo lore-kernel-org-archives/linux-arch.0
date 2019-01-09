@@ -1,37 +1,47 @@
-From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Date: Wed, 9 Jan 2019 11:35:52 +0100
-Message-ID: <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
-References: <20190102205715.14054-1-mst@redhat.com> <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 10/16] io_uring: split kiocb init from allocation
+Date: Wed, 9 Jan 2019 13:12:50 +0100
+Message-ID: <20190109121250.GC13779@lst.de>
+References: <20190108165645.19311-1-axboe@kernel.dk> <20190108165645.19311-11-axboe@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>, Joe Perches <joe@p>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-aio@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20190108165645.19311-11-axboe@kernel.dk>
+Sender: owner-linux-aio@kvack.org
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 8, 2019 at 6:44 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
->
-> Also for more context, see:
-> commit 7829fb09a2b4 ("lib: make memzero_explicit more robust against
-> dead store elimination")
+On Tue, Jan 08, 2019 at 09:56:39AM -0700, Jens Axboe wrote:
+> In preparation from having pre-allocated requests, that we then just
+> need to initialize before use.
+> 
+> Signed-off-by: Jens Axboe <axboe@kernel.dk>
+> ---
+>  fs/io_uring.c | 13 +++++++++----
+>  1 file changed, 9 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/io_uring.c b/fs/io_uring.c
+> index afbaebb63012..11d045f0f799 100644
+> --- a/fs/io_uring.c
+> +++ b/fs/io_uring.c
+> @@ -202,6 +202,14 @@ static struct io_uring_event *io_peek_cqring(struct io_ring_ctx *ctx)
+>  	return &ring->events[tail & ctx->cq_ring.ring_mask];
+>  }
+>  
+> +static void io_req_init(struct io_ring_ctx *ctx, struct io_kiocb *req)
+> +{
+> +	percpu_ref_get(&ctx->refs);
+> +	req->ki_ctx = ctx;
+> +	INIT_LIST_HEAD(&req->ki_list);
+> +	req->ki_flags = 0;
 
-By the way, shouldn't that barrier_data() be directly in compiler.h
-too, since it is for both gcc & clang?
+We still only have a single caller of this in the final tree, and
+I don't think this function helps.  So I'd just drop the patch.
 
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
->
-> + Miguel
-> Miguel, would you mind taking this into your compiler-attributes tree?
-
-Sure, at least we get quickly some linux-next time.
-
-Note it would be nice to separate the patch into two (one for the
-comments, another for OPTIMIZER_HIDE_VAR), and also possibly another
-for barrier_data().
-
-Cheers,
-Miguel
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
