@@ -1,53 +1,47 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 14/16] io_uring: support kernel side submission
-Date: Wed, 9 Jan 2019 13:49:01 -0700
-Message-ID: <205e9c21-e524-f56d-3684-26db6e87b54e@kernel.dk>
-References: <20190108165645.19311-1-axboe@kernel.dk>
- <20190108165645.19311-15-axboe@kernel.dk> <20190109190638.GB22645@lst.de>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 0/6] LKMM updates
+Date: Wed, 9 Jan 2019 13:07:06 -0800
+Message-ID: <20190109210706.GA27268@linux.ibm.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20190109190638.GB22645@lst.de>
-Content-Language: en-US
-Sender: owner-linux-aio@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1/9/19 12:06 PM, Christoph Hellwig wrote:
->> +struct iocb_submit {
->> +	const struct io_uring_iocb *iocb;
->> +	unsigned int index;
->> +};
->> +
->> +struct io_work {
->> +	struct work_struct work;
->> +	struct io_ring_ctx *ctx;
->> +	struct io_uring_iocb iocb;
->> +	unsigned iocb_index;
->> +};
-> 
-> I think we should use struct iocb_submit everywhere where we pass
-> an iocb + index, including in the io_work structure.  Here is how
-> I did that to my old tree:
-> 
-> http://git.infradead.org/users/hch/misc.git/commitdiff/65929ed6f143a1c996305a10a15fd7f64d32595f
+Hello!
 
-I like that unification.
+This series contains updates for the Linux-kernel memory model:
 
-> Btw, I think we can also remove the separate io_work allocation,
-> just do the io_get_req in the submission context, and overlay
-> the io_work onto the iocb in a union of some sort.  This avoids
-> a whole memory allocation.
+1-3.	Add SRCU support, courtesy of Alan Stern.
 
-I'll take a look at that.
+4.	Update README for adding of SRCU support.
 
--- 
-Jens Axboe
+5.	Update memory-barriers.txt on enforcing heavy ordering for
+	port-I/O accesses, courtesy of Will Deacon.  This one needs
+	an ack, preferably by someone from Intel.  Matthew Wilcox
+	posted some feedback from an Intel manual here, which might
+	be considered to be a close substitute, but...  ;-)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+	http://lkml.kernel.org/r/20181127192234.GF10377@bombadil.infradead.org
+
+6.	Update Documentation/explanation.txt to include SRCU support,
+	courtesy of Alan Stern.
+
+7.	Dynamically check SRCU lock-to-unlock matching, courtesy of
+	Luc Maranget.  This needs an ack.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/memory-barriers.txt                |    6 
+ tools/memory-model/Documentation/explanation.txt |  289 ++++++++++++-----------
+ tools/memory-model/README                        |   25 +
+ tools/memory-model/linux-kernel.bell             |   37 ++
+ tools/memory-model/linux-kernel.cat              |   55 ++--
+ tools/memory-model/linux-kernel.def              |    7 
+ 6 files changed, 250 insertions(+), 169 deletions(-)
