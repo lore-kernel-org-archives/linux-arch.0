@@ -1,47 +1,40 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
 Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Date: Wed, 9 Jan 2019 10:40:20 -0800
-Message-ID: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
+Date: Wed, 9 Jan 2019 15:05:21 -0500
+Message-ID: <20190109200521.GE30131@pure.paranoia.local>
 References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
  <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
  <20190109182955.GC30131@pure.paranoia.local>
+ <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190109182955.GC30131@pure.paranoia.local>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: pr-tracker-bot@kernel.org, Guo Ren <guoren@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 9, 2019 at 10:30 AM Konstantin Ryabitsev
-<konstantin@linuxfoundation.org> wrote:
->
-> On Wed, Jan 09, 2019 at 06:05:01PM +0000, pr-tracker-bot@kernel.org wrote:
-> > The pull request you sent on Wed,  9 Jan 2019 22:49:57 +0800:
-> >
-> > > (unable to parse the git remote)
->
-> I just committed a fix for this. We weren't expecting URLs without ://
-> in them.
+On Wed, Jan 09, 2019 at 10:40:20AM -0800, Linus Torvalds wrote:
+> Side note: I do wish people would use the proper _public_ access.
 
-Side note: I do wish people would use the proper _public_ access.
-Maybe the pr-tracker-bot might even send the person who did a pull
-request a (private) notice that there is something odd when that isn't
-the case?
+I'm wondering if this largely happens due to people's insteadOf rules.
+We've established that git-request-pull will quietly substitute URLs in
+the emails it generates if a matching insteadOf rule is found. I started
+a discussion related to this on the git list, but it veered a bit
+sideways:
 
-Pull requests shouldn't use the ssh address. Yes, it may be where you
-_push_ things to, and yes, I can pull from it too (since I have ssh
-access to both github and kernel.org), but it's still not the proper
-"public-facing" repository address. Not everybody can use those
-addresses.
+https://public-inbox.org/git/20181115182826.GB25806@pure.paranoia.local/T/#u
 
-When I remember, I actually end up editing these things up by hand as
-I do the pull, because I want the git history to show the publicly
-accessible tree. I don't always remember (but I did for the csky
-case).
+> Maybe the pr-tracker-bot might even send the person who did a pull
+> request a (private) notice that there is something odd when that isn't
+> the case?
 
-[ In fact, for the ssh://gitolite.kernel.org case, the fixup is
-automatic in my git hooks, but for github I have to do it manually ]
+I'm not sure that would be very effective. Folks tend to ignore bots,
+and with this one we're specifically recommending "add it to your ignore
+list if you don't want notifications." I think an email from you for
+such (rare) cases would be a better way to indicate that something in
+the pull request needs to be changed.
 
-               Linus
+-K
