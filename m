@@ -1,570 +1,262 @@
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH 14/14] syscall_get_arch: add "struct task_struct *" argument
-Date: Wed, 9 Jan 2019 15:43:53 +0300
-Message-ID: <20190109124353.GN11981@altlinux.org>
-References: <20190109124044.GA11935@altlinux.org>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [RFC][PATCH 2/3] arm64: Define
+ Documentation/arm64/elf_at_flags.txt
+Date: Wed, 9 Jan 2019 13:05:08 +0000
+Message-ID: <0947d735-c572-834a-efd3-8377d698ac8c@arm.com>
+References: <cover.1544445454.git.andreyknvl@google.com>
+ <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <20181210143044.12714-3-vincenzo.frascino@arm.com>
+ <20181212173457.GA3505@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Paul Moore <paul@paul-moore.com>
-Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Eugene Syromyatnikov <esyr@redhat.com>, Elvira Khabirova <lineprinter@altlinux.org>, Mark Salter <msalter@redhat.com>, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Kees Cook <keescook@chromium.org>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Andy Lutomirski <luto@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, Paul
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181212173457.GA3505@e103592.cambridge.arm.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-This argument is required to extend the generic ptrace API with
-PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going
-to be called from ptrace_request() along with syscall_get_nr(),
-syscall_get_arguments(), syscall_get_error(), and
-syscall_get_return_value() functions with a tracee as their argument.
+On 12/12/2018 17:34, Dave Martin wrote:
+> On Mon, Dec 10, 2018 at 02:30:43PM +0000, Vincenzo Frascino wrote:
+>> On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+>> the userspace (EL0) is allowed to set a non-zero value in the
+>> top byte but the resulting pointers are not allowed at the
+>> user-kernel syscall ABI boundary.
+>>
+>> With the relaxed ABI proposed through this document, it is now possible
+>> to pass tagged pointers to the syscalls, when these pointers are in
+>> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap() or brk().
+> 
+> What about other anonymous memory such as the process stack?
+>
 
-The primary intent is that the triple (audit_arch, syscall_nr, arg1..arg6)
-should describe what system call is being called and what its arguments
-are.
+The process stack is set up by the kernel as a consequence of the exec* family
+of system calls in a way that should be transparent to the userspace.
+For what concerns the userspace applications, the ones that are aware of the
+AT_FLAGS[0] should assume that the stack is always tagged.
 
-Reverts: 5e937a9ae913 ("syscall_get_arch: remove useless function arguments")
-Reverts: 1002d94d3076 ("syscall.h: fix doc text for syscall_get_arch()")
-Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
-Acked-by: Paul Moore <paul@paul-moore.com>
-Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
-Acked-by: Kees Cook <keescook@chromium.org> # seccomp parts
-Acked-by: Mark Salter <msalter@redhat.com> # for the c6x bit
-Cc: Elvira Khabirova <lineprinter@altlinux.org>
-Cc: Eugene Syromyatnikov <esyr@redhat.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: x86@kernel.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-c6x-dev@linux-c6x.org
-Cc: uclinux-h8-devel@lists.sourceforge.jp
-Cc: linux-hexagon@vger.kernel.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-mips@vger.kernel.org
-Cc: nios2-dev@lists.rocketboards.org
-Cc: openrisc@lists.librecores.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-riscv@lists.infradead.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-um@lists.infradead.org
-Cc: linux-xtensa@linux-xtensa.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-audit@redhat.com
-Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
----
- arch/alpha/include/asm/syscall.h      |  2 +-
- arch/arc/include/asm/syscall.h        |  2 +-
- arch/arm/include/asm/syscall.h        |  2 +-
- arch/arm64/include/asm/syscall.h      |  4 ++--
- arch/c6x/include/asm/syscall.h        |  2 +-
- arch/csky/include/asm/syscall.h       |  2 +-
- arch/h8300/include/asm/syscall.h      |  2 +-
- arch/hexagon/include/asm/syscall.h    |  2 +-
- arch/ia64/include/asm/syscall.h       |  2 +-
- arch/m68k/include/asm/syscall.h       |  2 +-
- arch/microblaze/include/asm/syscall.h |  2 +-
- arch/mips/include/asm/syscall.h       |  6 +++---
- arch/mips/kernel/ptrace.c             |  2 +-
- arch/nds32/include/asm/syscall.h      |  2 +-
- arch/nios2/include/asm/syscall.h      |  2 +-
- arch/openrisc/include/asm/syscall.h   |  2 +-
- arch/parisc/include/asm/syscall.h     |  4 ++--
- arch/powerpc/include/asm/syscall.h    | 10 ++++++++--
- arch/riscv/include/asm/syscall.h      |  2 +-
- arch/s390/include/asm/syscall.h       |  4 ++--
- arch/sh/include/asm/syscall_32.h      |  2 +-
- arch/sh/include/asm/syscall_64.h      |  2 +-
- arch/sparc/include/asm/syscall.h      |  5 +++--
- arch/unicore32/include/asm/syscall.h  |  2 +-
- arch/x86/include/asm/syscall.h        |  8 +++++---
- arch/x86/um/asm/syscall.h             |  2 +-
- arch/xtensa/include/asm/syscall.h     |  2 +-
- include/asm-generic/syscall.h         |  5 +++--
- kernel/auditsc.c                      |  4 ++--
- kernel/seccomp.c                      |  4 ++--
- 30 files changed, 52 insertions(+), 42 deletions(-)
+> What about MAP_PRIVATE mappings of /dev/zero (i.e., oldskool "anonymous"
+> mappings)?
+> 
 
-diff --git a/arch/alpha/include/asm/syscall.h b/arch/alpha/include/asm/syscall.h
-index d73a6fcb519c..11c688c1d7ec 100644
---- a/arch/alpha/include/asm/syscall.h
-+++ b/arch/alpha/include/asm/syscall.h
-@@ -4,7 +4,7 @@
- 
- #include <uapi/linux/audit.h>
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_ALPHA;
- }
-diff --git a/arch/arc/include/asm/syscall.h b/arch/arc/include/asm/syscall.h
-index c7fc4c0c3bcb..caf2697ef5b7 100644
---- a/arch/arc/include/asm/syscall.h
-+++ b/arch/arc/include/asm/syscall.h
-@@ -70,7 +70,7 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
- }
- 
- static inline int
--syscall_get_arch(void)
-+syscall_get_arch(struct task_struct *task)
- {
- 	return IS_ENABLED(CONFIG_ISA_ARCOMPACT)
- 		? (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN)
-diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
-index 06dea6bce293..3940ceac0bdc 100644
---- a/arch/arm/include/asm/syscall.h
-+++ b/arch/arm/include/asm/syscall.h
-@@ -104,7 +104,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->ARM_r0 + i, args, n * sizeof(args[0]));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	/* ARM tasks don't change audit architectures on the fly. */
- 	return AUDIT_ARCH_ARM;
-diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/syscall.h
-index ad8be16a39c9..1870df03f774 100644
---- a/arch/arm64/include/asm/syscall.h
-+++ b/arch/arm64/include/asm/syscall.h
-@@ -117,9 +117,9 @@ static inline void syscall_set_arguments(struct task_struct *task,
-  * We don't care about endianness (__AUDIT_ARCH_LE bit) here because
-  * AArch64 has the same system calls both on little- and big- endian.
-  */
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
--	if (is_compat_task())
-+	if (is_compat_thread(task_thread_info(task)))
- 		return AUDIT_ARCH_ARM;
- 
- 	return AUDIT_ARCH_AARCH64;
-diff --git a/arch/c6x/include/asm/syscall.h b/arch/c6x/include/asm/syscall.h
-index 39dbd1ef994c..595057191c9c 100644
---- a/arch/c6x/include/asm/syscall.h
-+++ b/arch/c6x/include/asm/syscall.h
-@@ -121,7 +121,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	}
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return IS_ENABLED(CONFIG_CPU_BIG_ENDIAN)
- 		? AUDIT_ARCH_C6XBE : AUDIT_ARCH_C6X;
-diff --git a/arch/csky/include/asm/syscall.h b/arch/csky/include/asm/syscall.h
-index d637445737b7..150ffb894fa2 100644
---- a/arch/csky/include/asm/syscall.h
-+++ b/arch/csky/include/asm/syscall.h
-@@ -70,7 +70,7 @@ syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- }
- 
- static inline int
--syscall_get_arch(void)
-+syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_CSKY;
- }
-diff --git a/arch/h8300/include/asm/syscall.h b/arch/h8300/include/asm/syscall.h
-index 5135910616e2..d316c3d40d4e 100644
---- a/arch/h8300/include/asm/syscall.h
-+++ b/arch/h8300/include/asm/syscall.h
-@@ -49,7 +49,7 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
- }
- 
- static inline int
--syscall_get_arch(void)
-+syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_H8300;
- }
-diff --git a/arch/hexagon/include/asm/syscall.h b/arch/hexagon/include/asm/syscall.h
-index de3917aad3fd..47b0bc3f16be 100644
---- a/arch/hexagon/include/asm/syscall.h
-+++ b/arch/hexagon/include/asm/syscall.h
-@@ -46,7 +46,7 @@ static inline void syscall_get_arguments(struct task_struct *task,
- 	memcpy(args, &(&regs->r00)[i], n * sizeof(args[0]));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_HEXAGON;
- }
-diff --git a/arch/ia64/include/asm/syscall.h b/arch/ia64/include/asm/syscall.h
-index 1d0b875fec44..47ab33f5448a 100644
---- a/arch/ia64/include/asm/syscall.h
-+++ b/arch/ia64/include/asm/syscall.h
-@@ -81,7 +81,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	ia64_syscall_get_set_arguments(task, regs, i, n, args, 1);
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_IA64;
- }
-diff --git a/arch/m68k/include/asm/syscall.h b/arch/m68k/include/asm/syscall.h
-index d4d7deda8d50..465ac039be09 100644
---- a/arch/m68k/include/asm/syscall.h
-+++ b/arch/m68k/include/asm/syscall.h
-@@ -4,7 +4,7 @@
- 
- #include <uapi/linux/audit.h>
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_M68K;
- }
-diff --git a/arch/microblaze/include/asm/syscall.h b/arch/microblaze/include/asm/syscall.h
-index 220decd605a4..77a86fafa974 100644
---- a/arch/microblaze/include/asm/syscall.h
-+++ b/arch/microblaze/include/asm/syscall.h
-@@ -101,7 +101,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- asmlinkage unsigned long do_syscall_trace_enter(struct pt_regs *regs);
- asmlinkage void do_syscall_trace_leave(struct pt_regs *regs);
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_MICROBLAZE;
- }
-diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
-index 6cf8ffb5367e..6a22c9352ef6 100644
---- a/arch/mips/include/asm/syscall.h
-+++ b/arch/mips/include/asm/syscall.h
-@@ -140,14 +140,14 @@ extern const unsigned long sys_call_table[];
- extern const unsigned long sys32_call_table[];
- extern const unsigned long sysn32_call_table[];
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	int arch = AUDIT_ARCH_MIPS;
- #ifdef CONFIG_64BIT
--	if (!test_thread_flag(TIF_32BIT_REGS)) {
-+	if (!test_tsk_thread_flag(task, TIF_32BIT_REGS)) {
- 		arch |= __AUDIT_ARCH_64BIT;
- 		/* N32 sets only TIF_32BIT_ADDR */
--		if (test_thread_flag(TIF_32BIT_ADDR))
-+		if (test_tsk_thread_flag(task, TIF_32BIT_ADDR))
- 			arch |= __AUDIT_ARCH_CONVENTION_MIPS64_N32;
- 	}
- #endif
-diff --git a/arch/mips/kernel/ptrace.c b/arch/mips/kernel/ptrace.c
-index 0057c910bc2f..2ead6ff919b7 100644
---- a/arch/mips/kernel/ptrace.c
-+++ b/arch/mips/kernel/ptrace.c
-@@ -1418,7 +1418,7 @@ asmlinkage long syscall_trace_enter(struct pt_regs *regs, long syscall)
- 		unsigned long args[6];
- 
- 		sd.nr = syscall;
--		sd.arch = syscall_get_arch();
-+		sd.arch = syscall_get_arch(current);
- 		syscall_get_arguments(current, regs, 0, 6, args);
- 		for (i = 0; i < 6; i++)
- 			sd.args[i] = args[i];
-diff --git a/arch/nds32/include/asm/syscall.h b/arch/nds32/include/asm/syscall.h
-index cc56a3962f8b..7501e376a6b1 100644
---- a/arch/nds32/include/asm/syscall.h
-+++ b/arch/nds32/include/asm/syscall.h
-@@ -188,7 +188,7 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- }
- 
- static inline int
--syscall_get_arch(void)
-+syscall_get_arch(struct task_struct *task)
- {
- 	return IS_ENABLED(CONFIG_CPU_BIG_ENDIAN)
- 		? AUDIT_ARCH_NDS32BE : AUDIT_ARCH_NDS32;
-diff --git a/arch/nios2/include/asm/syscall.h b/arch/nios2/include/asm/syscall.h
-index cf35e210fc4d..f0f6ae208e78 100644
---- a/arch/nios2/include/asm/syscall.h
-+++ b/arch/nios2/include/asm/syscall.h
-@@ -136,7 +136,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	}
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_NIOS2;
- }
-diff --git a/arch/openrisc/include/asm/syscall.h b/arch/openrisc/include/asm/syscall.h
-index 2db9f1cf0694..46b10c674bd2 100644
---- a/arch/openrisc/include/asm/syscall.h
-+++ b/arch/openrisc/include/asm/syscall.h
-@@ -72,7 +72,7 @@ syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 	memcpy(&regs->gpr[3 + i], args, n * sizeof(args[0]));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_OPENRISC;
- }
-diff --git a/arch/parisc/include/asm/syscall.h b/arch/parisc/include/asm/syscall.h
-index 8bff1a58c97f..c04ffc6ac928 100644
---- a/arch/parisc/include/asm/syscall.h
-+++ b/arch/parisc/include/asm/syscall.h
-@@ -62,11 +62,11 @@ static inline void syscall_rollback(struct task_struct *task,
- 	/* do nothing */
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	int arch = AUDIT_ARCH_PARISC;
- #ifdef CONFIG_64BIT
--	if (!is_compat_task())
-+	if (!__is_compat_task(task))
- 		arch = AUDIT_ARCH_PARISC64;
- #endif
- 	return arch;
-diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-index 1a0e7a8b1c81..efb50429c9f4 100644
---- a/arch/powerpc/include/asm/syscall.h
-+++ b/arch/powerpc/include/asm/syscall.h
-@@ -99,9 +99,15 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		regs->orig_gpr3 = args[0];
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
--	int arch = is_32bit_task() ? AUDIT_ARCH_PPC : AUDIT_ARCH_PPC64;
-+	int arch;
-+
-+	if (IS_ENABLED(CONFIG_PPC64) && !test_tsk_thread_flag(task, TIF_32BIT))
-+		arch = AUDIT_ARCH_PPC64;
-+	else
-+		arch = AUDIT_ARCH_PPC;
-+
- #ifdef __LITTLE_ENDIAN__
- 	arch |= __AUDIT_ARCH_LE;
- #endif
-diff --git a/arch/riscv/include/asm/syscall.h b/arch/riscv/include/asm/syscall.h
-index bba3da6ef157..ca120a36a037 100644
---- a/arch/riscv/include/asm/syscall.h
-+++ b/arch/riscv/include/asm/syscall.h
-@@ -100,7 +100,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- #ifdef CONFIG_64BIT
- 	return AUDIT_ARCH_RISCV64;
-diff --git a/arch/s390/include/asm/syscall.h b/arch/s390/include/asm/syscall.h
-index 96f9a9151fde..5a40ea8b90ea 100644
---- a/arch/s390/include/asm/syscall.h
-+++ b/arch/s390/include/asm/syscall.h
-@@ -92,10 +92,10 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		regs->orig_gpr2 = args[0];
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- #ifdef CONFIG_COMPAT
--	if (test_tsk_thread_flag(current, TIF_31BIT))
-+	if (test_tsk_thread_flag(task, TIF_31BIT))
- 		return AUDIT_ARCH_S390;
- #endif
- 	return AUDIT_ARCH_S390X;
-diff --git a/arch/sh/include/asm/syscall_32.h b/arch/sh/include/asm/syscall_32.h
-index 6e118799831c..08de429eccd4 100644
---- a/arch/sh/include/asm/syscall_32.h
-+++ b/arch/sh/include/asm/syscall_32.h
-@@ -95,7 +95,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	}
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	int arch = AUDIT_ARCH_SH;
- 
-diff --git a/arch/sh/include/asm/syscall_64.h b/arch/sh/include/asm/syscall_64.h
-index 43882580c7f9..9b62a2404531 100644
---- a/arch/sh/include/asm/syscall_64.h
-+++ b/arch/sh/include/asm/syscall_64.h
-@@ -63,7 +63,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->regs[2 + i], args, n * sizeof(args[0]));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	int arch = AUDIT_ARCH_SH;
- 
-diff --git a/arch/sparc/include/asm/syscall.h b/arch/sparc/include/asm/syscall.h
-index 053989e3f6a6..9ffb367c17fd 100644
---- a/arch/sparc/include/asm/syscall.h
-+++ b/arch/sparc/include/asm/syscall.h
-@@ -128,10 +128,11 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		regs->u_regs[UREG_I0 + i + j] = args[j];
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- #if defined(CONFIG_SPARC64) && defined(CONFIG_COMPAT)
--	return in_compat_syscall() ? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
-+	return test_tsk_thread_flag(task, TIF_32BIT)
-+		? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
- #elif defined(CONFIG_SPARC64)
- 	return AUDIT_ARCH_SPARC64;
- #else
-diff --git a/arch/unicore32/include/asm/syscall.h b/arch/unicore32/include/asm/syscall.h
-index 3a6b885476b4..607961797fff 100644
---- a/arch/unicore32/include/asm/syscall.h
-+++ b/arch/unicore32/include/asm/syscall.h
-@@ -4,7 +4,7 @@
- 
- #include <uapi/linux/audit.h>
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_UNICORE;
- }
-diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
-index d653139857af..435f3f09279c 100644
---- a/arch/x86/include/asm/syscall.h
-+++ b/arch/x86/include/asm/syscall.h
-@@ -107,7 +107,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->bx + i, args, n * sizeof(args[0]));
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_I386;
- }
-@@ -236,10 +236,12 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		}
- }
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	/* x32 tasks should be considered AUDIT_ARCH_X86_64. */
--	return in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
-+	return (IS_ENABLED(CONFIG_IA32_EMULATION) &&
-+		task->thread_info.status & TS_COMPAT)
-+		? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
- }
- #endif	/* CONFIG_X86_32 */
- 
-diff --git a/arch/x86/um/asm/syscall.h b/arch/x86/um/asm/syscall.h
-index ef898af102d1..56a2f0913e3c 100644
---- a/arch/x86/um/asm/syscall.h
-+++ b/arch/x86/um/asm/syscall.h
-@@ -9,7 +9,7 @@ typedef asmlinkage long (*sys_call_ptr_t)(unsigned long, unsigned long,
- 					  unsigned long, unsigned long,
- 					  unsigned long, unsigned long);
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- #ifdef CONFIG_X86_32
- 	return AUDIT_ARCH_I386;
-diff --git a/arch/xtensa/include/asm/syscall.h b/arch/xtensa/include/asm/syscall.h
-index a168bf81c7f4..0681ca656809 100644
---- a/arch/xtensa/include/asm/syscall.h
-+++ b/arch/xtensa/include/asm/syscall.h
-@@ -14,7 +14,7 @@
- #include <asm/ptrace.h>
- #include <uapi/linux/audit.h>
- 
--static inline int syscall_get_arch(void)
-+static inline int syscall_get_arch(struct task_struct *task)
- {
- 	return AUDIT_ARCH_XTENSA;
- }
-diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
-index 0c938a4354f6..e0d060b43321 100644
---- a/include/asm-generic/syscall.h
-+++ b/include/asm-generic/syscall.h
-@@ -144,14 +144,15 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 
- /**
-  * syscall_get_arch - return the AUDIT_ARCH for the current system call
-+ * @task:	task of interest, must be blocked
-  *
-  * Returns the AUDIT_ARCH_* based on the system call convention in use.
-  *
-- * It's only valid to call this when current is stopped on entry to a system
-+ * It's only valid to call this when @task is stopped on entry to a system
-  * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
-  *
-  * Architectures which permit CONFIG_HAVE_ARCH_SECCOMP_FILTER must
-  * provide an implementation of this.
-  */
--int syscall_get_arch(void);
-+int syscall_get_arch(struct task_struct *task);
- #endif	/* _ASM_SYSCALL_H */
-diff --git a/kernel/auditsc.c b/kernel/auditsc.c
-index 6593a5207fb0..919fe4ef4314 100644
---- a/kernel/auditsc.c
-+++ b/kernel/auditsc.c
-@@ -1505,7 +1505,7 @@ void __audit_syscall_entry(int major, unsigned long a1, unsigned long a2,
- 			return;
- 	}
- 
--	context->arch	    = syscall_get_arch();
-+	context->arch	    = syscall_get_arch(current);
- 	context->major      = major;
- 	context->argv[0]    = a1;
- 	context->argv[1]    = a2;
-@@ -2480,7 +2480,7 @@ void audit_seccomp(unsigned long syscall, long signr, int code)
- 		return;
- 	audit_log_task(ab);
- 	audit_log_format(ab, " sig=%ld arch=%x syscall=%ld compat=%d ip=0x%lx code=0x%x",
--			 signr, syscall_get_arch(), syscall,
-+			 signr, syscall_get_arch(current), syscall,
- 			 in_compat_syscall(), KSTK_EIP(current), code);
- 	audit_log_end(ab);
- }
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index d7f538847b84..803a69e6af37 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -148,7 +148,7 @@ static void populate_seccomp_data(struct seccomp_data *sd)
- 	unsigned long args[6];
- 
- 	sd->nr = syscall_get_nr(task, regs);
--	sd->arch = syscall_get_arch();
-+	sd->arch = syscall_get_arch(task);
- 	syscall_get_arguments(task, regs, 0, 6, args);
- 	sd->args[0] = args[0];
- 	sd->args[1] = args[1];
-@@ -589,7 +589,7 @@ static void seccomp_init_siginfo(kernel_siginfo_t *info, int syscall, int reason
- 	info->si_code = SYS_SECCOMP;
- 	info->si_call_addr = (void __user *)KSTK_EIP(current);
- 	info->si_errno = reason;
--	info->si_arch = syscall_get_arch();
-+	info->si_arch = syscall_get_arch(current);
- 	info->si_syscall = syscall;
- }
- 
+MAP_PRIVATE of /dev/zero is equivalent to MAP_ANONYMOUS | MAP_PRIVATE, hence it
+should follow the same rule of MAP_ANONYMOUS obtained memory ranges.
+
+> I wonder whether this should really say MAP_PRIVATE rather than
+> MAP_ANONYMOUS.  There are two requirements here:
+> 
+>  * the memory must be the exclusive property of a single process,
+>    otherwise tagging it on-the-fly could break some other process;
+> 
+
+I think that it is responsibility of the userspace to tag or not a shared area.
+I do not think that we should exclude MAP_ANONYMOUS | MAP_SHARED because if such
+an area is tagged improperly by a userspace process, the kernel will be able to
+detect the issue and report it.
+
+>  * the memory should be regular memory, i.e., not something like a
+>    mapped device.  Since copy-on-write mappings of devices make little
+>    sense, and we want writes to devices to propagate to the hardware
+>    directly, MAP_PRIVATE doesn't make a lot of sense for such mappings.
+> 
+
+What we are trying to target with this ABI change are only pointers in NORMAL
+memory ranges. DEVICE memory should be untagged.
+
+...
+
+> I'm assuming here that tagging some currently shared copy-on-write pages
+> would throw a page fault and trigger a copy, so that we end up tagging
+> the calling process's private copy of the page.
+> 
+> I also don't see how the above requirements conflict with regular file-
+> backed mappings (which would need to work if you want to be able to
+> tag objects in .bss or .data etc.)
+>
+
+I agree that we should look at the more general cases to make sure that we will
+not face any incompatibility in future, but, what I am proposing here, assumes
+that the memory areas that can be tagged are only the stack and the heap. This
+is because the features that will use it will be mostly looking for memory
+related errors in these areas.
+
+>> This change in the ABI requires a mechanism to inform the userspace
+>> that such an option is available.
+>>
+>> This patch specifies and documents the way on which AT_FLAGS can be
+>> used to advertise this feature to the userspace.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> CC: Andrey Konovalov <andreyknvl@google.com>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>  Documentation/arm64/elf_at_flags.txt | 111 +++++++++++++++++++++++++++
+>>  1 file changed, 111 insertions(+)
+>>  create mode 100644 Documentation/arm64/elf_at_flags.txt
+>>
+>> diff --git a/Documentation/arm64/elf_at_flags.txt b/Documentation/arm64/elf_at_flags.txt
+>> new file mode 100644
+>> index 000000000000..153e657c058a
+>> --- /dev/null
+>> +++ b/Documentation/arm64/elf_at_flags.txt
+>> @@ -0,0 +1,111 @@
+>> +ARM64 ELF AT_FLAGS
+>> +==================
+>> +
+>> +This document describes the usage and semantics of AT_FLAGS on arm64.
+>> +
+>> +1. Introduction
+>> +---------------
+>> +
+>> +AT_FLAGS is part of the Auxiliary Vector, contains the flags and it
+>> +is currently set to zero by the kernel on arm64.
+>> +
+>> +The auxiliary vector can be accessed by the userspace using the
+>> +getauxval() API provided by the C library.
+>> +getauxval() returns an unsigned long and when a flag is present in
+>> +the AT_FLAGS, the corresponding bit in the returned value is set to 1.
+>> +
+>> +The AT_FLAGS with a "defined semantic" on arm64 are exposed to the
+>> +userspace via user API (uapi/asm/atflags.h).
+>> +The AT_FLAGS bits with "undefined semantics" are set to zero by default.
+>> +This means that the AT_FLAGS bits to which this document does not assign
+>> +an explicit meaning are to be intended reserved for future use.
+>> +The kernel will populate all such bits with zero until meanings are
+>> +assigned to them. If and when meanings are assigned, it is guaranteed
+>> +that they will not impact the functional operation of existing userspace
+>> +software. Userspace software should ignore any AT_FLAGS bit whose meaning
+>> +is not defined when the software is written.
+>> +
+>> +The userspace software can test for features by acquiring the AT_FLAGS
+>> +entry of the auxiliary vector, and testing whether a relevant flag
+>> +is set.
+>> +
+>> +Example of a userspace test function:
+>> +
+>> +bool feature_x_is_present(void)
+>> +{
+>> +	unsigned long at_flags = getauxval(AT_FLAGS);
+>> +	if (at_flags & FEATURE_X)
+>> +		return true;
+>> +
+>> +	return false;
+>> +}
+>> +
+>> +Where the software relies on a feature advertised by AT_FLAGS, it
+>> +should check that the feature is present before attempting to
+>> +use it.
+>> +
+>> +2. Features exposed via AT_FLAGS
+>> +--------------------------------
+>> +
+>> +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
+>> +
+>> +    On arm64 the TCR_EL1.TBI0 bit has been set since Linux 3.x hence
+>> +    the userspace (EL0) is allowed to set a non-zero value in the top
+>> +    byte but the resulting pointers are not allowed at the user-kernel
+>> +    syscall ABI boundary.
+>> +    When bit[0] is set to 1 the kernel is advertising to the userspace
+>> +    that a relaxed ABI is supported hence this type of pointers are now
+>> +    allowed to be passed to the syscalls, when these pointers are in
+>> +    memory ranges obtained by anonymous (MAP_ANONYMOUS) mmap() or brk().
+> 
+> "TBI" is a slightly odd name.
+> 
+> The kernel seems not to be ignoring the top byte, otherwise how could
+> it make a difference whehter the memory is anonymous or something else?
+> 
+> (With memory tagging enabled, the top byte is also not architecturally
+> ignored.)
+> 
+
+The top-byte is ignored for MMU translations hence it can carry information that
+are relevant for other aspects. This means that the kernel can not ignore that
+the top-byte could be set.
+
+>> +    In these cases the tag is preserved as the pointer goes through the
+>> +    kernel. Only when the kernel needs to check if a pointer is coming
+>> +    from userspace (i.e. access_ok()) an untag operation is required.
+> 
+> Does the last sentence belong here?  That's about kernel internals,
+> whereas the rest all seems user-facing.
+> 
+
+I put it here just to give an idea to the user on when the kernel is going to
+perform an untag operation. But if we want to keep the document completely
+user-facing, I am fine with removing it.
+
+>> +
+>> +3. ARM64_AT_FLAGS_SYSCALL_TBI
+>> +-----------------------------
+>> +
+>> +When ARM64_AT_FLAGS_SYSCALL_TBI is enabled every syscalls can accept tagged
+>> +pointers, when these pointers are in memory ranges obtained by an anonymous
+>> +(MAP_ANONYMOUS) mmap() or brk().
+>> +
+>> +A definition of the meaning of tagged pointers on arm64 can be found in:
+>> +Documentation/arm64/tagged-pointers.txt.
+>> +
+>> +When a pointer does not are in a memory range obtained by an anonymous mmap()
+>> +or brk(), this can not be passed to a syscall if it is tagged.
+>> +
+>> +To be more explicit: a syscall can accept pointers whose memory range is
+>> +obtained by a non-anonymous mmap() or brk() if and only if the tag encoded in
+>> +the top-byte is 0x00.
+>> +
+>> +When a new syscall is added, this can accept tagged pointers if and only if
+>> +these pointers are in memory ranges obtained by an anonymous (MAP_ANONYMOUS)
+>> +mmap() or brk(). In all the other cases, the tag encoded in the top-byte is
+>> +expected to be 0x00.
+> 
+> Does this apply to kernel interfaces that are not syscalls?
+> 
+
+Not at the moment, but it does not seem incompatible with a future extension.
+
+> And does it apply to ioctls in general (I think from discussions
+> elsewhere that it can't).
+> 
+
+Requiring that the pointers accepted by the syscalls belong to ranges that are
+obtained by anonymous mappings, should cover the drivers mmap() cases.
+
+> What about things that flow through the kernel, like an
+> si_value.sival_ptr that propagates from sigqueue(2) to the signal frame
+> of the signalled thread, or registered with the kernel via aio_read(2)?
+> 
+> This kind of thing is why I would like to define a set of rules for
+> making an educated guess about how the kernel should interpret
+> arbitrary arguments (in an ideal world).
+> 
+
+I think that to make an educated choice we need to restrict the problem we are
+trying to target (making sure that we do not take any assumption that could be
+incompatible with the general case) as a first step. Once we are confident that
+it works as expected we can try to extend it progressively.
+
+> 
+> With issues like this in the mix, it seems difficult to extract general
+> guarantees from ARM64_AT_FLAGS_SYSCALL_TBI.  If it means that just
+> certain specific uses of a few specific syscalls work with tagged
+> pointers, that may not be very useful by ifself?  It sounds like if
+> you are tagging memory at all, you suddenly need to port every random
+> library you're using.
+> 
+
+The ABI presented in this document seems quite general (it is not confined to
+specific syscalls). This means that an application that tags the memory can use
+any non tag aware random library as is (without porting it), as far as it
+sanitizes the pointers before and after calling it.
+
+> [...]
+> 
+> Cheers
+> ---Dave
+> 
+
 -- 
-ldv
+Regards,
+Vincenzo
