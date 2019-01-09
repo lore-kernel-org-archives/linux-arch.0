@@ -1,76 +1,53 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: [PATCH] mm: shuffle GFP_* flags
-Date: Wed, 9 Jan 2019 23:18:38 +0300
-Message-ID: <20190109201838.GA9140@avx2>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 14/16] io_uring: support kernel side submission
+Date: Wed, 9 Jan 2019 13:49:01 -0700
+Message-ID: <205e9c21-e524-f56d-3684-26db6e87b54e@kernel.dk>
+References: <20190108165645.19311-1-axboe@kernel.dk>
+ <20190108165645.19311-15-axboe@kernel.dk> <20190109190638.GB22645@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190109190638.GB22645@lst.de>
+Content-Language: en-US
+Sender: owner-linux-aio@kvack.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-GFP_KERNEL is one of the most used constant but on archs like arm
-with fixed length instruction some constants are more equal than
-the others. Constants with tightly packed bits can be injected directly
-into instruction stream:
+On 1/9/19 12:06 PM, Christoph Hellwig wrote:
+>> +struct iocb_submit {
+>> +	const struct io_uring_iocb *iocb;
+>> +	unsigned int index;
+>> +};
+>> +
+>> +struct io_work {
+>> +	struct work_struct work;
+>> +	struct io_ring_ctx *ctx;
+>> +	struct io_uring_iocb iocb;
+>> +	unsigned iocb_index;
+>> +};
+> 
+> I think we should use struct iocb_submit everywhere where we pass
+> an iocb + index, including in the io_work structure.  Here is how
+> I did that to my old tree:
+> 
+> http://git.infradead.org/users/hch/misc.git/commitdiff/65929ed6f143a1c996305a10a15fd7f64d32595f
 
-	   0:   e3a00d33        mov     r0, #3264       ; 0xcc0
+I like that unification.
 
-Others require multiple instructions or even loading out of instruction
-stream:
+> Btw, I think we can also remove the separate io_work allocation,
+> just do the io_get_req in the submission context, and overlay
+> the io_work onto the iocb in a union of some sort.  This avoids
+> a whole memory allocation.
 
-	   0:   e3a000c0        mov     r0, #192        ; 0xc0
-	   4:   e3400060        movt    r0, #96		; 0x60
+I'll take a look at that.
 
-Shuffle GFP_* flags so that GFP_KERNEL/GFP_ATOMIC + __GFP_ZERO bits are
-close to each other.
+-- 
+Jens Axboe
 
-Savings on arm configs are ~0.1%.
-
-Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
----
-
- include/linux/gfp.h |   30 +++++++++++++++---------------
- 1 file changed, 15 insertions(+), 15 deletions(-)
-
---- a/include/linux/gfp.h
-+++ b/include/linux/gfp.h
-@@ -24,21 +24,21 @@ struct vm_area_struct;
- #define ___GFP_HIGH		0x20u
- #define ___GFP_IO		0x40u
- #define ___GFP_FS		0x80u
--#define ___GFP_WRITE		0x100u
--#define ___GFP_NOWARN		0x200u
--#define ___GFP_RETRY_MAYFAIL	0x400u
--#define ___GFP_NOFAIL		0x800u
--#define ___GFP_NORETRY		0x1000u
--#define ___GFP_MEMALLOC		0x2000u
--#define ___GFP_COMP		0x4000u
--#define ___GFP_ZERO		0x8000u
--#define ___GFP_NOMEMALLOC	0x10000u
--#define ___GFP_HARDWALL		0x20000u
--#define ___GFP_THISNODE		0x40000u
--#define ___GFP_ATOMIC		0x80000u
--#define ___GFP_ACCOUNT		0x100000u
--#define ___GFP_DIRECT_RECLAIM	0x200000u
--#define ___GFP_KSWAPD_RECLAIM	0x400000u
-+#define ___GFP_ZERO		0x100u
-+#define ___GFP_ATOMIC		0x200u
-+#define ___GFP_DIRECT_RECLAIM	0x400u
-+#define ___GFP_KSWAPD_RECLAIM	0x800u
-+#define ___GFP_WRITE		0x1000u
-+#define ___GFP_NOWARN		0x2000u
-+#define ___GFP_RETRY_MAYFAIL	0x4000u
-+#define ___GFP_NOFAIL		0x8000u
-+#define ___GFP_NORETRY		0x10000u
-+#define ___GFP_MEMALLOC		0x20000u
-+#define ___GFP_COMP		0x40000u
-+#define ___GFP_NOMEMALLOC	0x80000u
-+#define ___GFP_HARDWALL		0x100000u
-+#define ___GFP_THISNODE		0x200000u
-+#define ___GFP_ACCOUNT		0x400000u
- #ifdef CONFIG_LOCKDEP
- #define ___GFP_NOLOCKDEP	0x800000u
- #else
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
