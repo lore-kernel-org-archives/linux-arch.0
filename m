@@ -1,40 +1,56 @@
-From: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
-Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Date: Wed, 9 Jan 2019 15:05:21 -0500
-Message-ID: <20190109200521.GE30131@pure.paranoia.local>
-References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
- <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
- <20190109182955.GC30131@pure.paranoia.local>
- <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 05/16] Add io_uring IO interface
+Date: Wed, 9 Jan 2019 13:07:31 -0700
+Message-ID: <762caadb-1deb-19c4-705b-c11abd8c1abf@kernel.dk>
+References: <20190108165645.19311-1-axboe@kernel.dk>
+ <20190108165645.19311-6-axboe@kernel.dk> <20190109121030.GA13779@lst.de>
+ <1576557b-a65f-86eb-5fcc-00f332ec2dd5@kernel.dk>
+ <20190109183059.GA21824@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: pr-tracker-bot@kernel.org, Guo Ren <guoren@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190109183059.GA21824@lst.de>
+Content-Language: en-US
+Sender: owner-linux-aio@kvack.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 09, 2019 at 10:40:20AM -0800, Linus Torvalds wrote:
-> Side note: I do wish people would use the proper _public_ access.
+On 1/9/19 11:30 AM, Christoph Hellwig wrote:
+> On Wed, Jan 09, 2019 at 08:53:31AM -0700, Jens Axboe wrote:
+>>>> +static int io_setup_rw(int rw, const struct io_uring_iocb *iocb,
+>>>> +		       struct iovec **iovec, struct iov_iter *iter)
+>>>> +{
+>>>> +	void __user *buf = (void __user *)(uintptr_t)iocb->addr;
+>>>> +	size_t ret;
+>>>> +
+>>>> +	ret = import_single_range(rw, buf, iocb->len, *iovec, iter);
+>>>> +	*iovec = NULL;
+>>>> +	return ret;
+>>>> +}
+>>>
+>>> Is there any point in supporting non-vectored operations here?
+>>
+>> Not sure I follow?
+> 
+> This version only supports non-vectored read and write, that is
+> the equivalent of pread/pwrite.  Many AIO users really need vectored
+> operations, that is preadv/pwritev semantics indirecting through
+> a struct iovec array.  The non-vectored version can be trivially
+> emulated using a vector of 1, which is what we do in the kernel
+> I/O stack everywhere.  So I think we should just support the vectored
+> version here, and not the non-vectored one.  See my io_uring branch
+> for the sketeched implementation.
 
-I'm wondering if this largely happens due to people's insteadOf rules.
-We've established that git-request-pull will quietly substitute URLs in
-the emails it generates if a matching insteadOf rule is found. I started
-a discussion related to this on the git list, but it veered a bit
-sideways:
+OK, I see what you mean, so only supported the vectored version.
+Probably makes more sense, I'll make the change.
 
-https://public-inbox.org/git/20181115182826.GB25806@pure.paranoia.local/T/#u
+-- 
+Jens Axboe
 
-> Maybe the pr-tracker-bot might even send the person who did a pull
-> request a (private) notice that there is something odd when that isn't
-> the case?
-
-I'm not sure that would be very effective. Folks tend to ignore bots,
-and with this one we're specifically recommending "add it to your ignore
-list if you don't want notifications." I think an email from you for
-such (rare) cases would be a better way to indicate that something in
-the pull request needs to be changed.
-
--K
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
