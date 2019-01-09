@@ -1,45 +1,47 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 05/16] Add io_uring IO interface
-Date: Wed, 9 Jan 2019 19:30:59 +0100
-Message-ID: <20190109183059.GA21824@lst.de>
-References: <20190108165645.19311-1-axboe@kernel.dk> <20190108165645.19311-6-axboe@kernel.dk> <20190109121030.GA13779@lst.de> <1576557b-a65f-86eb-5fcc-00f332ec2dd5@kernel.dk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
+Date: Wed, 9 Jan 2019 10:40:20 -0800
+Message-ID: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
+References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
+ <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
+ <20190109182955.GC30131@pure.paranoia.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1576557b-a65f-86eb-5fcc-00f332ec2dd5@kernel.dk>
-Sender: owner-linux-aio@kvack.org
-To: Jens Axboe <axboe@kernel.dk>
-Cc: Christoph Hellwig <hch@lst.de>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190109182955.GC30131@pure.paranoia.local>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
+Cc: pr-tracker-bot@kernel.org, Guo Ren <guoren@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 09, 2019 at 08:53:31AM -0700, Jens Axboe wrote:
-> >> +static int io_setup_rw(int rw, const struct io_uring_iocb *iocb,
-> >> +		       struct iovec **iovec, struct iov_iter *iter)
-> >> +{
-> >> +	void __user *buf = (void __user *)(uintptr_t)iocb->addr;
-> >> +	size_t ret;
-> >> +
-> >> +	ret = import_single_range(rw, buf, iocb->len, *iovec, iter);
-> >> +	*iovec = NULL;
-> >> +	return ret;
-> >> +}
-> > 
-> > Is there any point in supporting non-vectored operations here?
-> 
-> Not sure I follow?
+On Wed, Jan 9, 2019 at 10:30 AM Konstantin Ryabitsev
+<konstantin@linuxfoundation.org> wrote:
+>
+> On Wed, Jan 09, 2019 at 06:05:01PM +0000, pr-tracker-bot@kernel.org wrote:
+> > The pull request you sent on Wed,  9 Jan 2019 22:49:57 +0800:
+> >
+> > > (unable to parse the git remote)
+>
+> I just committed a fix for this. We weren't expecting URLs without ://
+> in them.
 
-This version only supports non-vectored read and write, that is
-the equivalent of pread/pwrite.  Many AIO users really need vectored
-operations, that is preadv/pwritev semantics indirecting through
-a struct iovec array.  The non-vectored version can be trivially
-emulated using a vector of 1, which is what we do in the kernel
-I/O stack everywhere.  So I think we should just support the vectored
-version here, and not the non-vectored one.  See my io_uring branch
-for the sketeched implementation.
+Side note: I do wish people would use the proper _public_ access.
+Maybe the pr-tracker-bot might even send the person who did a pull
+request a (private) notice that there is something odd when that isn't
+the case?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Pull requests shouldn't use the ssh address. Yes, it may be where you
+_push_ things to, and yes, I can pull from it too (since I have ssh
+access to both github and kernel.org), but it's still not the proper
+"public-facing" repository address. Not everybody can use those
+addresses.
+
+When I remember, I actually end up editing these things up by hand as
+I do the pull, because I want the git history to show the publicly
+accessible tree. I don't always remember (but I did for the csky
+case).
+
+[ In fact, for the ssh://gitolite.kernel.org case, the fixup is
+automatic in my git hooks, but for github I have to do it manually ]
+
+               Linus
