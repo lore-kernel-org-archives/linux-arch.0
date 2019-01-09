@@ -1,61 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f65.google.com ([209.85.167.65]:40109 "EHLO
-        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727037AbfAISkl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 13:40:41 -0500
-Received: by mail-lf1-f65.google.com with SMTP id v5so6416450lfe.7
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 10:40:39 -0800 (PST)
-Received: from mail-lj1-f180.google.com (mail-lj1-f180.google.com. [209.85.208.180])
-        by smtp.gmail.com with ESMTPSA id w12sm13866041lfe.80.2019.01.09.10.40.37
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Wed, 09 Jan 2019 10:40:37 -0800 (PST)
-Received: by mail-lj1-f180.google.com with SMTP id u89-v6so7400411lje.1
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 10:40:37 -0800 (PST)
+Received: from verein.lst.de ([213.95.11.211]:43534 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728044AbfAITDW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Jan 2019 14:03:22 -0500
+Date: Wed, 9 Jan 2019 20:03:21 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 11/16] io_uring: batch io_kiocb allocation
+Message-ID: <20190109190321.GA22645@lst.de>
+References: <20190108165645.19311-1-axboe@kernel.dk> <20190108165645.19311-12-axboe@kernel.dk> <20190109121340.GD13779@lst.de> <0a91dd38-69b8-84ab-f96a-225f09a54ec9@kernel.dk>
 MIME-Version: 1.0
-References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
- <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
- <20190109182955.GC30131@pure.paranoia.local>
-In-Reply-To: <20190109182955.GC30131@pure.paranoia.local>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 9 Jan 2019 10:40:20 -0800
-Message-ID: <CAHk-=wi-4DfZDM2xE2qDnj0acEfgfW5wPWxcps-V5XD8TNAw5w@mail.gmail.com>
-Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0a91dd38-69b8-84ab-f96a-225f09a54ec9@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
-Cc: pr-tracker-bot@kernel.org, Guo Ren <guoren@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190109184020.tlCTSCu7nFOBOtCHstRPdZit4lf-HmR7zh26Tazqp3Y@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Christoph Hellwig <hch@lst.de>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
 
-On Wed, Jan 9, 2019 at 10:30 AM Konstantin Ryabitsev
-<konstantin@linuxfoundation.org> wrote:
->
-> On Wed, Jan 09, 2019 at 06:05:01PM +0000, pr-tracker-bot@kernel.org wrote:
-> > The pull request you sent on Wed,  9 Jan 2019 22:49:57 +0800:
-> >
-> > > (unable to parse the git remote)
->
-> I just committed a fix for this. We weren't expecting URLs without ://
-> in them.
+On Wed, Jan 09, 2019 at 09:57:59AM -0700, Jens Axboe wrote:
+> On 1/9/19 5:13 AM, Christoph Hellwig wrote:
+> >> +	if (!state)
+> >> +		req = kmem_cache_alloc(kiocb_cachep, GFP_KERNEL);
+> > 
+> > Just return an error here if kmem_cache_alloc fails.
+> > 
+> >> +	if (req)
+> >> +		io_req_init(ctx, req);
+> > 
+> > Because all the other ones can't reached this with a NULL req.
+> 
+> This is different in the current tree, since I properly fixed the
+> ctx ref issue.
 
-Side note: I do wish people would use the proper _public_ access.
-Maybe the pr-tracker-bot might even send the person who did a pull
-request a (private) notice that there is something odd when that isn't
-the case?
+Your tree does a percpu_ref_tryget very first, and then leaks that if
+kmem_cache_alloc_bulk fails, and also is inconsistent for NULL vs
+ERR_PTR returns.  I think you want something like this on top:
 
-Pull requests shouldn't use the ssh address. Yes, it may be where you
-_push_ things to, and yes, I can pull from it too (since I have ssh
-access to both github and kernel.org), but it's still not the proper
-"public-facing" repository address. Not everybody can use those
-addresses.
-
-When I remember, I actually end up editing these things up by hand as
-I do the pull, because I want the git history to show the publicly
-accessible tree. I don't always remember (but I did for the csky
-case).
-
-[ In fact, for the ssh://gitolite.kernel.org case, the fixup is
-automatic in my git hooks, but for github I have to do it manually ]
-
-               Linus
+diff --git a/fs/io_uring.c b/fs/io_uring.c
+index 35d055dcbc22..6c95749e9601 100644
+--- a/fs/io_uring.c
++++ b/fs/io_uring.c
+@@ -250,14 +250,6 @@ static struct io_uring_event *io_peek_cqring(struct io_ring_ctx *ctx)
+ 	return &ring->events[tail & ctx->cq_ring.ring_mask];
+ }
+ 
+-static bool io_req_init(struct io_ring_ctx *ctx, struct io_kiocb *req)
+-{
+-	req->ki_ctx = ctx;
+-	INIT_LIST_HEAD(&req->ki_list);
+-	req->ki_flags = 0;
+-	return true;
+-}
+-
+ static void io_ring_drop_ctx_ref(struct io_ring_ctx *ctx, unsigned refs)
+ {
+ 	percpu_ref_put_many(&ctx->refs, refs);
+@@ -274,9 +266,11 @@ static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
+ 	if (!percpu_ref_tryget(&ctx->refs))
+ 		return NULL;
+ 
+-	if (!state)
++	if (!state) {
+ 		req = kmem_cache_alloc(kiocb_cachep, GFP_KERNEL);
+-	else if (!state->free_iocbs) {
++		if (!req)
++			goto out_drop_ref;
++	} else if (!state->free_iocbs) {
+ 		size_t size;
+ 		int ret;
+ 
+@@ -284,7 +278,7 @@ static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
+ 		ret = kmem_cache_alloc_bulk(kiocb_cachep, GFP_KERNEL, size,
+ 						state->iocbs);
+ 		if (ret <= 0)
+-			return ERR_PTR(-ENOMEM);
++			goto out_drop_ref;
+ 		state->free_iocbs = ret - 1;
+ 		state->cur_iocb = 1;
+ 		req = state->iocbs[0];
+@@ -294,11 +288,11 @@ static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
+ 		state->cur_iocb++;
+ 	}
+ 
+-	if (req) {
+-		io_req_init(ctx, req);
+-		return req;
+-	}
++	req->ki_ctx = ctx;
++	req->ki_flags = 0;
++	return req;
+ 
++out_drop_ref:
+ 	io_ring_drop_ctx_ref(ctx, 1);
+ 	return NULL;
+ }
