@@ -1,50 +1,44 @@
 From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 05/16] Add io_uring IO interface
-Date: Wed, 9 Jan 2019 13:07:31 -0700
-Message-ID: <762caadb-1deb-19c4-705b-c11abd8c1abf@kernel.dk>
+Subject: Re: [PATCH 11/16] io_uring: batch io_kiocb allocation
+Date: Wed, 9 Jan 2019 13:08:17 -0700
+Message-ID: <68c5faf6-913b-e94f-ccf7-a1fe158091f7@kernel.dk>
 References: <20190108165645.19311-1-axboe@kernel.dk>
- <20190108165645.19311-6-axboe@kernel.dk> <20190109121030.GA13779@lst.de>
- <1576557b-a65f-86eb-5fcc-00f332ec2dd5@kernel.dk>
- <20190109183059.GA21824@lst.de>
+ <20190108165645.19311-12-axboe@kernel.dk> <20190109121340.GD13779@lst.de>
+ <0a91dd38-69b8-84ab-f96a-225f09a54ec9@kernel.dk>
+ <20190109190321.GA22645@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20190109183059.GA21824@lst.de>
+In-Reply-To: <20190109190321.GA22645@lst.de>
 Content-Language: en-US
 Sender: owner-linux-aio@kvack.org
 To: Christoph Hellwig <hch@lst.de>
 Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On 1/9/19 11:30 AM, Christoph Hellwig wrote:
-> On Wed, Jan 09, 2019 at 08:53:31AM -0700, Jens Axboe wrote:
->>>> +static int io_setup_rw(int rw, const struct io_uring_iocb *iocb,
->>>> +		       struct iovec **iovec, struct iov_iter *iter)
->>>> +{
->>>> +	void __user *buf = (void __user *)(uintptr_t)iocb->addr;
->>>> +	size_t ret;
->>>> +
->>>> +	ret = import_single_range(rw, buf, iocb->len, *iovec, iter);
->>>> +	*iovec = NULL;
->>>> +	return ret;
->>>> +}
+On 1/9/19 12:03 PM, Christoph Hellwig wrote:
+> On Wed, Jan 09, 2019 at 09:57:59AM -0700, Jens Axboe wrote:
+>> On 1/9/19 5:13 AM, Christoph Hellwig wrote:
+>>>> +	if (!state)
+>>>> +		req = kmem_cache_alloc(kiocb_cachep, GFP_KERNEL);
 >>>
->>> Is there any point in supporting non-vectored operations here?
+>>> Just return an error here if kmem_cache_alloc fails.
+>>>
+>>>> +	if (req)
+>>>> +		io_req_init(ctx, req);
+>>>
+>>> Because all the other ones can't reached this with a NULL req.
 >>
->> Not sure I follow?
+>> This is different in the current tree, since I properly fixed the
+>> ctx ref issue.
 > 
-> This version only supports non-vectored read and write, that is
-> the equivalent of pread/pwrite.  Many AIO users really need vectored
-> operations, that is preadv/pwritev semantics indirecting through
-> a struct iovec array.  The non-vectored version can be trivially
-> emulated using a vector of 1, which is what we do in the kernel
-> I/O stack everywhere.  So I think we should just support the vectored
-> version here, and not the non-vectored one.  See my io_uring branch
-> for the sketeched implementation.
+> Your tree does a percpu_ref_tryget very first, and then leaks that if
+> kmem_cache_alloc_bulk fails, and also is inconsistent for NULL vs
+> ERR_PTR returns.  I think you want something like this on top:
 
-OK, I see what you mean, so only supported the vectored version.
-Probably makes more sense, I'll make the change.
+I fixed it up while doing the rebase already. Just haven't pushed anything
+out until I've had a chance to run it through testing.
 
 -- 
 Jens Axboe
