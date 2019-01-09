@@ -1,80 +1,172 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43790 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726425AbfAIVH6 (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56228 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726420AbfAIVH6 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 16:07:58 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id x09Kn2o2012559
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id x09Kn4rD060034
         for <linux-arch@vger.kernel.org>; Wed, 9 Jan 2019 16:07:57 -0500
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2pwq4rm3wa-1
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2pwnayh3uh-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 16:07:57 -0500
+        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 16:07:56 -0500
 Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Wed, 9 Jan 2019 21:07:56 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC LKMM 4/7] tools/memory-model: Update README for addition of SRCU
-Date: Wed,  9 Jan 2019 13:07:45 -0800
+Subject: [PATCH RFC LKMM 3/7] tools/memory-model: Add SRCU support
+Date: Wed,  9 Jan 2019 13:07:44 -0800
 In-Reply-To: <20190109210706.GA27268@linux.ibm.com>
 References: <20190109210706.GA27268@linux.ibm.com>
-Message-ID: <20190109210748.29074-4-paulmck@linux.ibm.com>
+Message-ID: <20190109210748.29074-3-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190109210745.5LVjMOl3_-3dZnkAuPipCfDLEeLp5KVyDrsHcV65v_0@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190109210744.qsPF8poqdw0OBQw3LzLVBngio_MMSljyOP7Q_HHgMZQ@z>
 
-This commit updates the section on LKMM limitations to no longer say
-that SRCU is not modeled, but instead describe how LKMM's modeling of
-SRCU departs from the Linux-kernel implementation.
+From: Alan Stern <stern@rowland.harvard.edu>
 
-TL;DR:  There is no known valid use case that cares about the Linux
-kernel's ability to have partially overlapping SRCU read-side critical
-sections.
+Add support for SRCU.  Herd creates srcu events and linux-kernel.def
+associates them with three possible annotations (srcu-lock,
+srcu-unlock, and sync-srcu) corresponding to the API routines
+srcu_read_lock(), srcu_read_unlock(), and synchronize_srcu().
 
+The linux-kernel.bell file now declares the annotations
+and determines matching lock/unlock pairs delimiting SRCU read-side
+critical sections, and it also checks for synchronize_srcu() calls
+inside an RCU critical section (which would generate a "sleeping in
+atomic context" error in real kernel code).  The linux-kernel.cat file
+now adds SRCU-induced ordering, analogous to the existing RCU-induced
+ordering, to the gp and rcu-fence relations.
+
+Curiously enough, these small changes to the model's .cat code are all
+that is needed to describe SRCU.
+
+Portions of this patch (linux-kernel.def and the first hunk in
+linux-kernel.bell) were written by Luc Maranget.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+CC: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/README | 25 +++++++++++++++++++++++--
- 1 file changed, 23 insertions(+), 2 deletions(-)
+ tools/memory-model/linux-kernel.bell | 25 +++++++++++++++++++++++++
+ tools/memory-model/linux-kernel.cat  | 18 ++++++++++++++----
+ tools/memory-model/linux-kernel.def  |  5 +++++
+ 3 files changed, 44 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 0f2c366518c6..9d7d4f23503f 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -221,8 +221,29 @@ The Linux-kernel memory model has the following limitations:
- 		additional call_rcu() process to the site of the
- 		emulated rcu-barrier().
+diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
+index 353c8d68e030..9c42cd9ddcb4 100644
+--- a/tools/memory-model/linux-kernel.bell
++++ b/tools/memory-model/linux-kernel.bell
+@@ -33,6 +33,12 @@ enum Barriers = 'wmb (*smp_wmb*) ||
+ 		'after-unlock-lock (*smp_mb__after_unlock_lock*)
+ instructions F[Barriers]
  
--	e.	Sleepable RCU (SRCU) is not modeled.  It can be
--		emulated, but perhaps not simply.
-+	e.	Although sleepable RCU (SRCU) is now modeled, there
-+		are some subtle differences between its semantics and
-+		those in the Linux kernel.  For example, the kernel
-+		might interpret the following sequence as two partially
-+		overlapping SRCU read-side critical sections:
++(* SRCU *)
++enum SRCU = 'srcu-lock || 'srcu-unlock || 'sync-srcu
++instructions SRCU[SRCU]
++(* All srcu events *)
++let Srcu = Srcu-lock | Srcu-unlock | Sync-srcu
 +
-+			 1  r1 = srcu_read_lock(&my_srcu);
-+			 2  do_something_1();
-+			 3  r2 = srcu_read_lock(&my_srcu);
-+			 4  do_something_2();
-+			 5  srcu_read_unlock(&my_srcu, r1);
-+			 6  do_something_3();
-+			 7  srcu_read_unlock(&my_srcu, r2);
+ (* Compute matching pairs of nested Rcu-lock and Rcu-unlock *)
+ let rcu-rscs = let rec
+ 	    unmatched-locks = Rcu-lock \ domain(matched)
+@@ -48,3 +54,22 @@ let rcu-rscs = let rec
+ (* Validate nesting *)
+ flag ~empty Rcu-lock \ domain(rcu-rscs) as unbalanced-rcu-locking
+ flag ~empty Rcu-unlock \ range(rcu-rscs) as unbalanced-rcu-locking
 +
-+		In contrast, LKMM will interpret this as a nested pair of
-+		SRCU read-side critical sections, with the outer critical
-+		section spanning lines 1-7 and the inner critical section
-+		spanning lines 3-5.
++(* Compute matching pairs of nested Srcu-lock and Srcu-unlock *)
++let srcu-rscs = let rec
++	    unmatched-locks = Srcu-lock \ domain(matched)
++	and unmatched-unlocks = Srcu-unlock \ range(matched)
++	and unmatched = unmatched-locks | unmatched-unlocks
++	and unmatched-po = ([unmatched] ; po ; [unmatched]) & loc
++	and unmatched-locks-to-unlocks =
++		([unmatched-locks] ; po ; [unmatched-unlocks]) & loc
++	and matched = matched | (unmatched-locks-to-unlocks \
++		(unmatched-po ; unmatched-po))
++	in matched
 +
-+		This difference would be more of a concern had anyone
-+		identified a reasonable use case for partially overlapping
-+		SRCU read-side critical sections.  For more information,
-+		please see: https://paulmck.livejournal.com/40593.html
++(* Validate nesting *)
++flag ~empty Srcu-lock \ domain(srcu-rscs) as unbalanced-srcu-locking
++flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
++
++(* Check for use of synchronize_srcu() inside an RCU critical section *)
++flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index b8e6197f05af..8dcb37835b61 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -33,7 +33,7 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
+ 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
+ 	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
+ 		fencerel(After-unlock-lock) ; [M])
+-let gp = po ; [Sync-rcu] ; po?
++let gp = po ; [Sync-rcu | Sync-srcu] ; po?
  
- 	f.	Reader-writer locking is not modeled.  It can be
- 		emulated in litmus tests using atomic read-modify-write
+ let strong-fence = mb | gp
+ 
+@@ -92,15 +92,18 @@ acyclic pb as propagation
+ 
+ (*
+  * Effects of read-side critical sections proceed from the rcu_read_unlock()
+- * backwards on the one hand, and from the rcu_read_lock() forwards on the
+- * other hand.
++ * or srcu_read_unlock() backwards on the one hand, and from the
++ * rcu_read_lock() or srcu_read_lock() forwards on the other hand.
+  *
+  * In the definition of rcu-fence below, the po term at the left-hand side
+  * of each disjunct and the po? term at the right-hand end have been factored
+  * out.  They have been moved into the definitions of rcu-link and rb.
++ * This was necessary in order to apply the "& loc" tests correctly.
+  *)
+ let rcu-gp = [Sync-rcu]		(* Compare with gp *)
++let srcu-gp = [Sync-srcu]
+ let rcu-rscsi = rcu-rscs^-1
++let srcu-rscsi = srcu-rscs^-1
+ 
+ (*
+  * The synchronize_rcu() strong fence is special in that it can order not
+@@ -112,12 +115,19 @@ let rcu-link = po? ; hb* ; pb* ; prop ; po
+ (*
+  * Any sequence containing at least as many grace periods as RCU read-side
+  * critical sections (joined by rcu-link) acts as a generalized strong fence.
++ * Likewise for SRCU grace periods and read-side critical sections, provided
++ * the synchronize_srcu() and srcu_read_[un]lock() calls refer to the same
++ * struct srcu_struct location.
+  *)
+-let rec rcu-fence = rcu-gp |
++let rec rcu-fence = rcu-gp | srcu-gp |
+ 	(rcu-gp ; rcu-link ; rcu-rscsi) |
++	((srcu-gp ; rcu-link ; srcu-rscsi) & loc) |
+ 	(rcu-rscsi ; rcu-link ; rcu-gp) |
++	((srcu-rscsi ; rcu-link ; srcu-gp) & loc) |
+ 	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
++	((srcu-gp ; rcu-link ; rcu-fence ; rcu-link ; srcu-rscsi) & loc) |
+ 	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
++	((srcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; srcu-gp) & loc) |
+ 	(rcu-fence ; rcu-link ; rcu-fence)
+ 
+ (* rb orders instructions just as pb does *)
+diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+index b27911cc087d..1d6a120cde14 100644
+--- a/tools/memory-model/linux-kernel.def
++++ b/tools/memory-model/linux-kernel.def
+@@ -47,6 +47,11 @@ rcu_read_unlock() { __fence{rcu-unlock}; }
+ synchronize_rcu() { __fence{sync-rcu}; }
+ synchronize_rcu_expedited() { __fence{sync-rcu}; }
+ 
++// SRCU
++srcu_read_lock(X)  __srcu{srcu-lock}(X)
++srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
++synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
++
+ // Atomic
+ atomic_read(X) READ_ONCE(*X)
+ atomic_set(X,V) { WRITE_ONCE(*X,V); }
 -- 
 2.17.1
