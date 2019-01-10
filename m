@@ -1,100 +1,132 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 03/16] block: add bio_set_polled() helper
-Date: Thu, 10 Jan 2019 09:05:23 -0700
-Message-ID: <f1a6ae88-1436-e947-1124-41e10b3ea9bc@kernel.dk>
-References: <20190108165645.19311-1-axboe@kernel.dk>
- <20190108165645.19311-4-axboe@kernel.dk> <20190110094355.GA13512@ming.t460p>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
+Date: Thu, 10 Jan 2019 08:31:26 -0800
+Message-ID: <20190110163126.GS1215@linux.ibm.com>
+References: <20190110143137.GJ1215@linux.ibm.com>
+ <Pine.LNX.4.44L0.1901101039360.1497-100000@iolanthe.rowland.org>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20190110094355.GA13512@ming.t460p>
-Content-Language: en-US
-Sender: owner-linux-aio@kvack.org
-To: Ming Lei <ming.lei@redhat.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1901101039360.1497-100000@iolanthe.rowland.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1/10/19 2:43 AM, Ming Lei wrote:
-> On Tue, Jan 08, 2019 at 09:56:32AM -0700, Jens Axboe wrote:
->> For the upcoming async polled IO, we can't sleep allocating requests.
->> If we do, then we introduce a deadlock where the submitter already
->> has async polled IO in-flight, but can't wait for them to complete
->> since polled requests must be active found and reaped.
->>
->> Utilize the helper in the blockdev DIRECT_IO code.
->>
->> Signed-off-by: Jens Axboe <axboe@kernel.dk>
->> ---
->>  fs/block_dev.c      |  4 ++--
->>  include/linux/bio.h | 14 ++++++++++++++
->>  2 files changed, 16 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/block_dev.c b/fs/block_dev.c
->> index 5415579f3e14..2ebd2a0d7789 100644
->> --- a/fs/block_dev.c
->> +++ b/fs/block_dev.c
->> @@ -233,7 +233,7 @@ __blkdev_direct_IO_simple(struct kiocb *iocb, struct iov_iter *iter,
->>  		task_io_account_write(ret);
->>  	}
->>  	if (iocb->ki_flags & IOCB_HIPRI)
->> -		bio.bi_opf |= REQ_HIPRI;
->> +		bio_set_polled(&bio, iocb);
->>  
->>  	qc = submit_bio(&bio);
->>  	for (;;) {
->> @@ -401,7 +401,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
->>  		nr_pages = iov_iter_npages(iter, BIO_MAX_PAGES);
->>  		if (!nr_pages) {
->>  			if (iocb->ki_flags & IOCB_HIPRI)
->> -				bio->bi_opf |= REQ_HIPRI;
->> +				bio_set_polled(bio, iocb);
->>  
->>  			qc = submit_bio(bio);
->>  			WRITE_ONCE(iocb->ki_cookie, qc);
->> diff --git a/include/linux/bio.h b/include/linux/bio.h
->> index 7380b094dcca..f6f0a2b3cbc8 100644
->> --- a/include/linux/bio.h
->> +++ b/include/linux/bio.h
->> @@ -823,5 +823,19 @@ static inline int bio_integrity_add_page(struct bio *bio, struct page *page,
->>  
->>  #endif /* CONFIG_BLK_DEV_INTEGRITY */
->>  
->> +/*
->> + * Mark a bio as polled. Note that for async polled IO, the caller must
->> + * expect -EWOULDBLOCK if we cannot allocate a request (or other resources).
->> + * We cannot block waiting for requests on polled IO, as those completions
->> + * must be found by the caller. This is different than IRQ driven IO, where
->> + * it's safe to wait for IO to complete.
->> + */
->> +static inline void bio_set_polled(struct bio *bio, struct kiocb *kiocb)
->> +{
->> +	bio->bi_opf |= REQ_HIPRI;
->> +	if (!is_sync_kiocb(kiocb))
->> +		bio->bi_opf |= REQ_NOWAIT;
->> +}
->> +
+On Thu, Jan 10, 2019 at 10:41:23AM -0500, Alan Stern wrote:
+> On Thu, 10 Jan 2019, Paul E. McKenney wrote:
 > 
-> REQ_NOWAIT doesn't cover allocating split bio, is that a issue?
+> > On Thu, Jan 10, 2019 at 09:40:24AM +0100, Andrea Parri wrote:
+> > > > > > > It seems that
+> > > > > > > 
+> > > > > > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > > > > >   
+> > > > > > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
+> > > > > > > considered that, IIRC, you introduced the primitive and RCU is currently
+> > > > > > > its only user.)
+> > > > > > 
+> > > > > > That commit is in -tip:
+> > > > > > 
+> > > > > > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > > > > 
+> > > > > > So it has already left my -rcu tree.  ;-)
+> > > > > 
+> > > > > Oh, you're right: now I see the commit (e.g., with "git show"), but I
+> > > > > don't see the corresponding changes applied to the tree.
+> > > > > 
+> > > > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
+> > > > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
+> > > > > 
+> > > > > Is this expected?
+> > > > 
+> > > > Are you asking why it is in -tip but not in mainline?  I am not sure,
+> > > > but given that the merge window was over the holiday season and that
+> > > > the length of the merge window proved to be shorter than many people
+> > > > expected it to be, I am not too surprised.  ;-)
+> > > 
+> > > Mmh, let me try again:
+> > > 
+> > >   $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+> > >   $ cd tip
+> > >   $ git checkout -b locking/core origin/locking/core
+> > > 
+> > >   $ git show 4607abbcf464
+> > >   commit 4607abbcf464ea2be14da444215d05c73025cf6e
+> > >   Author: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > >   Date:   Mon Dec 3 15:04:49 2018 -0800
+> > > 
+> > >       tools/memory-model: Model smp_mb__after_unlock_lock()
+> > > 
+> > >   $ cd tools/memory-model
+> > >   $ herd7 -conf linux-kernel.cfg after-unlock-lock-same-cpu.litmus
+> > >   File "after-unlock-lock-same-cpu.litmus": Unknown macro smp_mb__after_unlock_lock (User error)
+> > > 
+> > >   [aka, linux-kernel.def in tip:locking/core does not have the
+> > >    smp_mb__after_unlock_lock() added by 4607abbcf464]
+> > 
+> > Color me confused:
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > $ git checkout 4607abbcf464Checking out files: 100% (18397/18397), done.
+> > Previous HEAD position was 4e284b1bf15a rcu: Remove wrapper definitions for obsolete RCU update functions
+> > HEAD is now at 4607abbcf464 tools/memory-model: Model smp_mb__after_unlock_lock()
+> > $ grep smp_mb__after_unlock_lock tools/memory-model/linux-kernel.def 
+> > smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > In addition, it handles this litmus test just fine:
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > C MP+polocks
+> > 
+> > (*
+> >  * Result: Never
+> >  *
+> >  * This litmus test demonstrates how lock acquisitions and releases can
+> >  * stand in for smp_load_acquire() and smp_store_release(), respectively.
+> >  * In other words, when holding a given lock (or indeed after releasing a
+> >  * given lock), a CPU is not only guaranteed to see the accesses that other
+> >  * CPUs made while previously holding that lock, it is also guaranteed
+> >  * to see all prior accesses by those other CPUs.
+> >  *)
+> > 
+> > {}
+> > 
+> > P0(int *x, int *y, spinlock_t *mylock)
+> > {
+> > 	WRITE_ONCE(*x, 1);
+> > 	spin_lock(mylock);
+> > 	smp_mb__after_unlock_lock();
+> > 	WRITE_ONCE(*y, 1);
+> > 	spin_unlock(mylock);
+> > }
+> > 
+> > P1(int *x, int *y, spinlock_t *mylock)
+> > {
+> > 	int r0;
+> > 	int r1;
+> > 
+> > 	spin_lock(mylock);
+> > 	r0 = READ_ONCE(*y);
+> > 	spin_unlock(mylock);
+> > 	r1 = READ_ONCE(*x);
+> > }
+> > 
+> > exists (1:r0=1 /\ 1:r1=0)
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > Again, color me confused.
+> 
+> Andrea's point is that while the 1b52d0186177 commit is present in the
+> tip repository, it isn't in the locking/core branch.
 
-Yes, that might be an issue. I'll look into what we should do about that,
-for now it's not a huge problem.
+That commit is still in tip/master, so it has not been lost or
+forgotten.  ;-)
 
-> BTW, could you explain a bit about the deadlock in case of sleep from
-> request allocation?
-
-It's more a live lock I guess, but the issue is that with polled IO, we don't
-get an IRQ. For normal IO, if you run out, you can just sleep and wait for
-an IRQ to come in, trigger a completion (or multiple), which will then wake
-you up. For polled IO, you have to find those completions. Hence if you just
-go to sleep, nobody is going to find those completions for you. You'll then
-be waiting forever for an event, that will never trigger.
-
--- 
-Jens Axboe
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+							Thanx, Paul
