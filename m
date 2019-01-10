@@ -1,72 +1,139 @@
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
-Date: Thu, 10 Jan 2019 09:40:24 +0100
-Message-ID: <20190110084024.GA10280@andrea>
+Subject: Re: [PATCH RFC LKMM 7/7] tools/memory-model: Dynamically check SRCU
+ lock-to-unlock matching
+Date: Thu, 10 Jan 2019 10:41:31 +0100
+Message-ID: <20190110094131.GA11647@andrea>
 References: <20190109210706.GA27268@linux.ibm.com>
- <20190109231852.GA4494@andrea>
- <20190109234043.GD1215@linux.ibm.com>
- <20190110003952.GA4354@andrea>
- <20190110042027.GG1215@linux.ibm.com>
+ <20190109210748.29074-7-paulmck@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190110042027.GG1215@linux.ibm.com>
+In-Reply-To: <20190109210748.29074-7-paulmck@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-> > > > It seems that
-> > > > 
-> > > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > > >   
-> > > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
-> > > > considered that, IIRC, you introduced the primitive and RCU is currently
-> > > > its only user.)
-> > > 
-> > > That commit is in -tip:
-> > > 
-> > > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > > 
-> > > So it has already left my -rcu tree.  ;-)
-> > 
-> > Oh, you're right: now I see the commit (e.g., with "git show"), but I
-> > don't see the corresponding changes applied to the tree.
-> > 
-> >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
-> >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
-> > 
-> > Is this expected?
+On Wed, Jan 09, 2019 at 01:07:48PM -0800, Paul E. McKenney wrote:
+> From: Luc Maranget <Luc.Maranget@inria.fr>
 > 
-> Are you asking why it is in -tip but not in mainline?  I am not sure,
-> but given that the merge window was over the holiday season and that
-> the length of the merge window proved to be shorter than many people
-> expected it to be, I am not too surprised.  ;-)
+> This commit checks that the return value of srcu_read_lock() is passed
+> to the matching srcu_read_unlock(), where "matching" is determined by
+> nesting.  This check operates as follows:
+> 
+>    1. srcu_read_lock() creates an integer token, which is stored into
+>       the generated events.
+>    2. srcu_read_unlock() records its second (token) argument into the
+>       generated event.
+>    3. A new herd primitive 'different-values' filters out pairs of events
+>       with identical values from the relation passed as its argument.
+>    4. The bell file applies the above primitive to the (srcu)
+>       read-side-critical-section relation 'srcu-rscs' and flags non-empty
+>       results.
+> 
+> BEWARE: Works only with herd version 7.51+6 and onwards.
+> 
+> Signed-off-by: Luc Maranget <Luc.Maranget@inria.fr>
+> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+> [ paulmck: Apply Andrea Parri's off-list feedback. ]
+> ---
+>  tools/memory-model/linux-kernel.bell | 3 +++
+>  tools/memory-model/linux-kernel.cat  | 2 ++
+>  tools/memory-model/linux-kernel.def  | 2 +-
+>  3 files changed, 6 insertions(+), 1 deletion(-)
+> 
+> diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
+> index 9c42cd9ddcb4..def9131d3d8e 100644
+> --- a/tools/memory-model/linux-kernel.bell
+> +++ b/tools/memory-model/linux-kernel.bell
+> @@ -73,3 +73,6 @@ flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
+>  
+>  (* Check for use of synchronize_srcu() inside an RCU critical section *)
+>  flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
+> +
+> +(* Validate SRCU dynamic match *)
+> +flag ~empty different-values(srcu-rscs) as srcu-bad-nesting
+> diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+> index 8dcb37835b61..95bf45f1215f 100644
+> --- a/tools/memory-model/linux-kernel.cat
+> +++ b/tools/memory-model/linux-kernel.cat
+> @@ -1,5 +1,7 @@
+>  // SPDX-License-Identifier: GPL-2.0+
+>  (*
+> + * Requires herd version 7.51+6 or higher.
 
-Mmh, let me try again:
-
-  $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
-  $ cd tip
-  $ git checkout -b locking/core origin/locking/core
-
-  $ git show 4607abbcf464
-  commit 4607abbcf464ea2be14da444215d05c73025cf6e
-  Author: Andrea Parri <andrea.parri@amarulasolutions.com>
-  Date:   Mon Dec 3 15:04:49 2018 -0800
-
-      tools/memory-model: Model smp_mb__after_unlock_lock()
-
-  $ cd tools/memory-model
-  $ herd7 -conf linux-kernel.cfg after-unlock-lock-same-cpu.litmus
-  File "after-unlock-lock-same-cpu.litmus": Unknown macro smp_mb__after_unlock_lock (User error)
-
-  [aka, linux-kernel.def in tip:locking/core does not have the
-   smp_mb__after_unlock_lock() added by 4607abbcf464]
+I'm not all that exited about spreading version requirements in the
+source: we report this requirement in our README, and apparently we
+already struggle to keep this information up-to-date.  So what about
+squashing something like the below (assume that 7.52 will be released
+by the time this patch hit mainline; if this won't be the case, we
+may consider using the development version 7.51+6)? notice that this
+also removes an (obsolete, at this point) comment from lock.cat.
 
   Andrea
 
+diff --git a/tools/memory-model/README b/tools/memory-model/README
+index 9d7d4f23503fd..b362a41358fa1 100644
+--- a/tools/memory-model/README
++++ b/tools/memory-model/README
+@@ -20,8 +20,8 @@ that litmus test to be exercised within the Linux kernel.
+ REQUIREMENTS
+ ============
+ 
+-Version 7.49 of the "herd7" and "klitmus7" tools must be downloaded
+-separately:
++Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
++downloaded separately:
+ 
+   https://github.com/herd/herdtools7
+ 
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 95bf45f1215fc..8dcb37835b613 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -1,7 +1,5 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ (*
+- * Requires herd version 7.51+6 or higher.
+- *
+  * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+  * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
+diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+index 305ded17e7411..a059d1a6d8a29 100644
+--- a/tools/memory-model/lock.cat
++++ b/tools/memory-model/lock.cat
+@@ -6,9 +6,6 @@
+ 
+ (*
+  * Generate coherence orders and handle lock operations
+- *
+- * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
+- * spin_is_locked() is functional from herd7 version 7.49.
+  *)
+ 
+ include "cross.cat"
 
-> 
-> 							Thanx, Paul
+
+
+> + *
+>   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+>   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+>   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
+> diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+> index 1d6a120cde14..0c3f0ef486f4 100644
+> --- a/tools/memory-model/linux-kernel.def
+> +++ b/tools/memory-model/linux-kernel.def
+> @@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
+>  
+>  // SRCU
+>  srcu_read_lock(X)  __srcu{srcu-lock}(X)
+> -srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
+> +srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
+>  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
+>  
+>  // Atomic
+> -- 
+> 2.17.1
 > 
