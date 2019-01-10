@@ -1,37 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38968 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726149AbfAJXMu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Jan 2019 18:12:50 -0500
-From: Jeff Moyer <jmoyer@redhat.com>
-Subject: Re: [PATCH 15/15] io_uring: add io_uring_event cache hit information
-References: <20190110024404.25372-1-axboe@kernel.dk>
-        <20190110024404.25372-16-axboe@kernel.dk>
-Date: Thu, 10 Jan 2019 18:12:49 -0500
-In-Reply-To: <20190110024404.25372-16-axboe@kernel.dk> (Jens Axboe's message
-        of "Wed, 9 Jan 2019 19:44:04 -0700")
-Message-ID: <x4936q0ds3y.fsf@segfault.boston.devel.redhat.com>
+Received: from mail-ed1-f68.google.com ([209.85.208.68]:44964 "EHLO
+        mail-ed1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729504AbfAJXUz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jan 2019 18:20:55 -0500
+Received: by mail-ed1-f68.google.com with SMTP id y56so11606322edd.11
+        for <linux-arch@vger.kernel.org>; Thu, 10 Jan 2019 15:20:53 -0800 (PST)
+Date: Fri, 11 Jan 2019 00:20:45 +0100
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 7/7] tools/memory-model: Dynamically check SRCU
+ lock-to-unlock matching
+Message-ID: <20190110232045.GA3908@andrea>
+References: <20190109210706.GA27268@linux.ibm.com>
+ <20190109210748.29074-7-paulmck@linux.ibm.com>
+ <20190110094131.GA11647@andrea>
+ <20190110144049.GK1215@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190110144049.GK1215@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, avi@scylladb.com
-Message-ID: <20190110231249.RD67BcWZWRPBbNou_RkOZSdyQ3x8IZk_XXwH2tsvchc@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org
+Message-ID: <20190110232045.252LY5sLwaDG9JCBT6Eu0Xab9Dn8Ywm1MIeMk0PF0E8@z>
 
-Jens Axboe <axboe@kernel.dk> writes:
+> > I'm not all that exited about spreading version requirements in the
+> > source: we report this requirement in our README, and apparently we
+> > already struggle to keep this information up-to-date.  So what about
+> > squashing something like the below (assume that 7.52 will be released
+> > by the time this patch hit mainline; if this won't be the case, we
+> > may consider using the development version 7.51+6)? notice that this
+> > also removes an (obsolete, at this point) comment from lock.cat.
+> 
+> Sounds like a very good point to me!
+> 
+> Should have pointers in the various files to the README file?  Or maybe
+> get people used to using scripting that checks versions?  Or maybe
+> after answering questions for some time, people will get used to
+> checking versions?
 
-> Add hint on whether a read was served out of the page cache, or if it
-> hit media. This is useful for buffered async IO, O_DIRECT reads would
-> never have this set (for obvious reasons).
->
-> If the read hit page cache, cqe->flags will have IOCQE_FLAG_CACHEHIT
-> set.
+As discussed off-list: I have no strong opinion on this regard, well,
+except that I think we ought to fix the README, somehow (consider my
+diff below as a first proposal).  Akira actually preceded me on this
+and suggested another solution [1].
 
-We may want to hold off on this one until the whole mincore/RWF_NOWAIT
-debate is sorted. [1]
+  Andrea
 
-Cheers,
-Jeff
+[1] http://lkml.kernel.org/r/04d15c18-d210-e3da-01e2-483eff135cb7@gmail.com
 
-[1] https://lore.kernel.org/lkml/20190109022430.GE27534@dastard/
+
+> 
+> 							Thanx, Paul
+> 
+> >   Andrea
+> > 
+> > diff --git a/tools/memory-model/README b/tools/memory-model/README
+> > index 9d7d4f23503fd..b362a41358fa1 100644
+> > --- a/tools/memory-model/README
+> > +++ b/tools/memory-model/README
+> > @@ -20,8 +20,8 @@ that litmus test to be exercised within the Linux kernel.
+> >  REQUIREMENTS
+> >  ============
+> >  
+> > -Version 7.49 of the "herd7" and "klitmus7" tools must be downloaded
+> > -separately:
+> > +Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
+> > +downloaded separately:
+> >  
+> >    https://github.com/herd/herdtools7
+> >  
+> > diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+> > index 95bf45f1215fc..8dcb37835b613 100644
+> > --- a/tools/memory-model/linux-kernel.cat
+> > +++ b/tools/memory-model/linux-kernel.cat
+> > @@ -1,7 +1,5 @@
+> >  // SPDX-License-Identifier: GPL-2.0+
+> >  (*
+> > - * Requires herd version 7.51+6 or higher.
+> > - *
+> >   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+> >   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+> >   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
+> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+> > index 305ded17e7411..a059d1a6d8a29 100644
+> > --- a/tools/memory-model/lock.cat
+> > +++ b/tools/memory-model/lock.cat
+> > @@ -6,9 +6,6 @@
+> >  
+> >  (*
+> >   * Generate coherence orders and handle lock operations
+> > - *
+> > - * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
+> > - * spin_is_locked() is functional from herd7 version 7.49.
+> >   *)
+> >  
+> >  include "cross.cat"
+> > 
+> > 
+> > 
+> > > + *
+> > >   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+> > >   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+> > >   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
+> > > diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+> > > index 1d6a120cde14..0c3f0ef486f4 100644
+> > > --- a/tools/memory-model/linux-kernel.def
+> > > +++ b/tools/memory-model/linux-kernel.def
+> > > @@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
+> > >  
+> > >  // SRCU
+> > >  srcu_read_lock(X)  __srcu{srcu-lock}(X)
+> > > -srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
+> > > +srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
+> > >  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
+> > >  
+> > >  // Atomic
+> > > -- 
+> > > 2.17.1
+> > > 
+> > 
+> 
