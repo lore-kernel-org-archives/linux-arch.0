@@ -1,53 +1,127 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Date: Thu, 10 Jan 2019 09:08:22 -0500
-Message-ID: <20190110090804-mutt-send-email-mst@kernel.org>
-References: <20190102205715.14054-1-mst@redhat.com>
- <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
- <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
- <20190109213543-mutt-send-email-mst@kernel.org>
- <20190110134139.GE1743@kadam>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
+Date: Thu, 10 Jan 2019 06:31:37 -0800
+Message-ID: <20190110143137.GJ1215@linux.ibm.com>
+References: <20190109210706.GA27268@linux.ibm.com>
+ <20190109231852.GA4494@andrea>
+ <20190109234043.GD1215@linux.ibm.com>
+ <20190110003952.GA4354@andrea>
+ <20190110042027.GG1215@linux.ibm.com>
+ <20190110084024.GA10280@andrea>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190110134139.GE1743@kadam>
+In-Reply-To: <20190110084024.GA10280@andrea>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Carpenter <dan.carpenter@oracle.com>
-Cc: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, Nick Desaulniers <ndesaulniers@google.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 10, 2019 at 04:41:39PM +0300, Dan Carpenter wrote:
-> On Wed, Jan 09, 2019 at 09:36:41PM -0500, Michael S. Tsirkin wrote:
-> > On Wed, Jan 09, 2019 at 11:35:52AM +0100, Miguel Ojeda wrote:
-> > > On Tue, Jan 8, 2019 at 6:44 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
-> > > >
-> > > > Also for more context, see:
-> > > > commit 7829fb09a2b4 ("lib: make memzero_explicit more robust against
-> > > > dead store elimination")
+On Thu, Jan 10, 2019 at 09:40:24AM +0100, Andrea Parri wrote:
+> > > > > It seems that
+> > > > > 
+> > > > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > > >   
+> > > > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
+> > > > > considered that, IIRC, you introduced the primitive and RCU is currently
+> > > > > its only user.)
+> > > > 
+> > > > That commit is in -tip:
+> > > > 
+> > > > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > > 
+> > > > So it has already left my -rcu tree.  ;-)
 > > > 
-> > > By the way, shouldn't that barrier_data() be directly in compiler.h
-> > > too, since it is for both gcc & clang?
+> > > Oh, you're right: now I see the commit (e.g., with "git show"), but I
+> > > don't see the corresponding changes applied to the tree.
 > > > 
-> > > > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> > > >
-> > > > + Miguel
-> > > > Miguel, would you mind taking this into your compiler-attributes tree?
+> > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
+> > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
 > > > 
-> > > Sure, at least we get quickly some linux-next time.
+> > > Is this expected?
 > > 
-> > 
-> > BTW why linux-next? shouldn't this go into 5.0 and stable? It's a bugfix after all.
-> > 
+> > Are you asking why it is in -tip but not in mainline?  I am not sure,
+> > but given that the merge window was over the holiday season and that
+> > the length of the merge window proved to be shorter than many people
+> > expected it to be, I am not too surprised.  ;-)
 > 
-> It doesn't hurt to put things in linux-next for a week and then 5.0 and
-> -stable.  Not a lot of testing happens on linux-next, but some does.
+> Mmh, let me try again:
 > 
-> regards,
-> dan carpenter
+>   $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+>   $ cd tip
+>   $ git checkout -b locking/core origin/locking/core
+> 
+>   $ git show 4607abbcf464
+>   commit 4607abbcf464ea2be14da444215d05c73025cf6e
+>   Author: Andrea Parri <andrea.parri@amarulasolutions.com>
+>   Date:   Mon Dec 3 15:04:49 2018 -0800
+> 
+>       tools/memory-model: Model smp_mb__after_unlock_lock()
+> 
+>   $ cd tools/memory-model
+>   $ herd7 -conf linux-kernel.cfg after-unlock-lock-same-cpu.litmus
+>   File "after-unlock-lock-same-cpu.litmus": Unknown macro smp_mb__after_unlock_lock (User error)
+> 
+>   [aka, linux-kernel.def in tip:locking/core does not have the
+>    smp_mb__after_unlock_lock() added by 4607abbcf464]
 
-I misunderstood. Sure that makes sense.
+Color me confused:
 
--- 
-MST
+------------------------------------------------------------------------
+
+$ git checkout 4607abbcf464Checking out files: 100% (18397/18397), done.
+Previous HEAD position was 4e284b1bf15a rcu: Remove wrapper definitions for obsolete RCU update functions
+HEAD is now at 4607abbcf464 tools/memory-model: Model smp_mb__after_unlock_lock()
+$ grep smp_mb__after_unlock_lock tools/memory-model/linux-kernel.def 
+smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
+
+------------------------------------------------------------------------
+
+In addition, it handles this litmus test just fine:
+
+------------------------------------------------------------------------
+
+C MP+polocks
+
+(*
+ * Result: Never
+ *
+ * This litmus test demonstrates how lock acquisitions and releases can
+ * stand in for smp_load_acquire() and smp_store_release(), respectively.
+ * In other words, when holding a given lock (or indeed after releasing a
+ * given lock), a CPU is not only guaranteed to see the accesses that other
+ * CPUs made while previously holding that lock, it is also guaranteed
+ * to see all prior accesses by those other CPUs.
+ *)
+
+{}
+
+P0(int *x, int *y, spinlock_t *mylock)
+{
+	WRITE_ONCE(*x, 1);
+	spin_lock(mylock);
+	smp_mb__after_unlock_lock();
+	WRITE_ONCE(*y, 1);
+	spin_unlock(mylock);
+}
+
+P1(int *x, int *y, spinlock_t *mylock)
+{
+	int r0;
+	int r1;
+
+	spin_lock(mylock);
+	r0 = READ_ONCE(*y);
+	spin_unlock(mylock);
+	r1 = READ_ONCE(*x);
+}
+
+exists (1:r0=1 /\ 1:r1=0)
+
+------------------------------------------------------------------------
+
+Again, color me confused.
+
+							Thanx, Paul
