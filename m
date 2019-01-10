@@ -1,115 +1,43 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 7/7] tools/memory-model: Dynamically check SRCU
- lock-to-unlock matching
-Date: Fri, 11 Jan 2019 00:20:45 +0100
-Message-ID: <20190110232045.GA3908@andrea>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109210748.29074-7-paulmck@linux.ibm.com>
- <20190110094131.GA11647@andrea>
- <20190110144049.GK1215@linux.ibm.com>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 15/15] io_uring: add io_uring_event cache hit information
+Date: Thu, 10 Jan 2019 16:47:28 -0700
+Message-ID: <cf92044f-1672-1354-b1c4-b86de52f55b9@kernel.dk>
+References: <20190110024404.25372-1-axboe@kernel.dk>
+ <20190110024404.25372-16-axboe@kernel.dk>
+ <x4936q0ds3y.fsf@segfault.boston.devel.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190110144049.GK1215@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <x4936q0ds3y.fsf@segfault.boston.devel.redhat.com>
+Content-Language: en-US
+Sender: owner-linux-aio@kvack.org
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-> > I'm not all that exited about spreading version requirements in the
-> > source: we report this requirement in our README, and apparently we
-> > already struggle to keep this information up-to-date.  So what about
-> > squashing something like the below (assume that 7.52 will be released
-> > by the time this patch hit mainline; if this won't be the case, we
-> > may consider using the development version 7.51+6)? notice that this
-> > also removes an (obsolete, at this point) comment from lock.cat.
+On 1/10/19 4:12 PM, Jeff Moyer wrote:
+> Jens Axboe <axboe@kernel.dk> writes:
 > 
-> Sounds like a very good point to me!
+>> Add hint on whether a read was served out of the page cache, or if it
+>> hit media. This is useful for buffered async IO, O_DIRECT reads would
+>> never have this set (for obvious reasons).
+>>
+>> If the read hit page cache, cqe->flags will have IOCQE_FLAG_CACHEHIT
+>> set.
 > 
-> Should have pointers in the various files to the README file?  Or maybe
-> get people used to using scripting that checks versions?  Or maybe
-> after answering questions for some time, people will get used to
-> checking versions?
+> We may want to hold off on this one until the whole mincore/RWF_NOWAIT
+> debate is sorted. [1]
 
-As discussed off-list: I have no strong opinion on this regard, well,
-except that I think we ought to fix the README, somehow (consider my
-diff below as a first proposal).  Akira actually preceded me on this
-and suggested another solution [1].
+Definitely, it's why it's separate and at the end of the series. But
+in reality, this doesn't leak anything that timing doesn't already
+tell you. So it's kind of a moot point.
 
-  Andrea
+-- 
+Jens Axboe
 
-[1] http://lkml.kernel.org/r/04d15c18-d210-e3da-01e2-483eff135cb7@gmail.com
-
-
-> 
-> 							Thanx, Paul
-> 
-> >   Andrea
-> > 
-> > diff --git a/tools/memory-model/README b/tools/memory-model/README
-> > index 9d7d4f23503fd..b362a41358fa1 100644
-> > --- a/tools/memory-model/README
-> > +++ b/tools/memory-model/README
-> > @@ -20,8 +20,8 @@ that litmus test to be exercised within the Linux kernel.
-> >  REQUIREMENTS
-> >  ============
-> >  
-> > -Version 7.49 of the "herd7" and "klitmus7" tools must be downloaded
-> > -separately:
-> > +Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
-> > +downloaded separately:
-> >  
-> >    https://github.com/herd/herdtools7
-> >  
-> > diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-> > index 95bf45f1215fc..8dcb37835b613 100644
-> > --- a/tools/memory-model/linux-kernel.cat
-> > +++ b/tools/memory-model/linux-kernel.cat
-> > @@ -1,7 +1,5 @@
-> >  // SPDX-License-Identifier: GPL-2.0+
-> >  (*
-> > - * Requires herd version 7.51+6 or higher.
-> > - *
-> >   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
-> >   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
-> >   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
-> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-> > index 305ded17e7411..a059d1a6d8a29 100644
-> > --- a/tools/memory-model/lock.cat
-> > +++ b/tools/memory-model/lock.cat
-> > @@ -6,9 +6,6 @@
-> >  
-> >  (*
-> >   * Generate coherence orders and handle lock operations
-> > - *
-> > - * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
-> > - * spin_is_locked() is functional from herd7 version 7.49.
-> >   *)
-> >  
-> >  include "cross.cat"
-> > 
-> > 
-> > 
-> > > + *
-> > >   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
-> > >   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
-> > >   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
-> > > diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-> > > index 1d6a120cde14..0c3f0ef486f4 100644
-> > > --- a/tools/memory-model/linux-kernel.def
-> > > +++ b/tools/memory-model/linux-kernel.def
-> > > @@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
-> > >  
-> > >  // SRCU
-> > >  srcu_read_lock(X)  __srcu{srcu-lock}(X)
-> > > -srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
-> > > +srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
-> > >  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
-> > >  
-> > >  // Atomic
-> > > -- 
-> > > 2.17.1
-> > > 
-> > 
-> 
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
