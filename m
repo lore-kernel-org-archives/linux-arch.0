@@ -1,139 +1,88 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 7/7] tools/memory-model: Dynamically check SRCU
- lock-to-unlock matching
-Date: Thu, 10 Jan 2019 10:41:31 +0100
-Message-ID: <20190110094131.GA11647@andrea>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109210748.29074-7-paulmck@linux.ibm.com>
+From: Ming Lei <ming.lei@redhat.com>
+Subject: Re: [PATCH 03/16] block: add bio_set_polled() helper
+Date: Thu, 10 Jan 2019 17:43:56 +0800
+Message-ID: <20190110094355.GA13512@ming.t460p>
+References: <20190108165645.19311-1-axboe@kernel.dk>
+ <20190108165645.19311-4-axboe@kernel.dk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-aio@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20190109210748.29074-7-paulmck@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org
+In-Reply-To: <20190108165645.19311-4-axboe@kernel.dk>
+Sender: owner-linux-aio@kvack.org
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 09, 2019 at 01:07:48PM -0800, Paul E. McKenney wrote:
-> From: Luc Maranget <Luc.Maranget@inria.fr>
+On Tue, Jan 08, 2019 at 09:56:32AM -0700, Jens Axboe wrote:
+> For the upcoming async polled IO, we can't sleep allocating requests.
+> If we do, then we introduce a deadlock where the submitter already
+> has async polled IO in-flight, but can't wait for them to complete
+> since polled requests must be active found and reaped.
 > 
-> This commit checks that the return value of srcu_read_lock() is passed
-> to the matching srcu_read_unlock(), where "matching" is determined by
-> nesting.  This check operates as follows:
+> Utilize the helper in the blockdev DIRECT_IO code.
 > 
->    1. srcu_read_lock() creates an integer token, which is stored into
->       the generated events.
->    2. srcu_read_unlock() records its second (token) argument into the
->       generated event.
->    3. A new herd primitive 'different-values' filters out pairs of events
->       with identical values from the relation passed as its argument.
->    4. The bell file applies the above primitive to the (srcu)
->       read-side-critical-section relation 'srcu-rscs' and flags non-empty
->       results.
-> 
-> BEWARE: Works only with herd version 7.51+6 and onwards.
-> 
-> Signed-off-by: Luc Maranget <Luc.Maranget@inria.fr>
-> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-> [ paulmck: Apply Andrea Parri's off-list feedback. ]
+> Signed-off-by: Jens Axboe <axboe@kernel.dk>
 > ---
->  tools/memory-model/linux-kernel.bell | 3 +++
->  tools/memory-model/linux-kernel.cat  | 2 ++
->  tools/memory-model/linux-kernel.def  | 2 +-
->  3 files changed, 6 insertions(+), 1 deletion(-)
+>  fs/block_dev.c      |  4 ++--
+>  include/linux/bio.h | 14 ++++++++++++++
+>  2 files changed, 16 insertions(+), 2 deletions(-)
 > 
-> diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-> index 9c42cd9ddcb4..def9131d3d8e 100644
-> --- a/tools/memory-model/linux-kernel.bell
-> +++ b/tools/memory-model/linux-kernel.bell
-> @@ -73,3 +73,6 @@ flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
+> diff --git a/fs/block_dev.c b/fs/block_dev.c
+> index 5415579f3e14..2ebd2a0d7789 100644
+> --- a/fs/block_dev.c
+> +++ b/fs/block_dev.c
+> @@ -233,7 +233,7 @@ __blkdev_direct_IO_simple(struct kiocb *iocb, struct iov_iter *iter,
+>  		task_io_account_write(ret);
+>  	}
+>  	if (iocb->ki_flags & IOCB_HIPRI)
+> -		bio.bi_opf |= REQ_HIPRI;
+> +		bio_set_polled(&bio, iocb);
 >  
->  (* Check for use of synchronize_srcu() inside an RCU critical section *)
->  flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
+>  	qc = submit_bio(&bio);
+>  	for (;;) {
+> @@ -401,7 +401,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
+>  		nr_pages = iov_iter_npages(iter, BIO_MAX_PAGES);
+>  		if (!nr_pages) {
+>  			if (iocb->ki_flags & IOCB_HIPRI)
+> -				bio->bi_opf |= REQ_HIPRI;
+> +				bio_set_polled(bio, iocb);
+>  
+>  			qc = submit_bio(bio);
+>  			WRITE_ONCE(iocb->ki_cookie, qc);
+> diff --git a/include/linux/bio.h b/include/linux/bio.h
+> index 7380b094dcca..f6f0a2b3cbc8 100644
+> --- a/include/linux/bio.h
+> +++ b/include/linux/bio.h
+> @@ -823,5 +823,19 @@ static inline int bio_integrity_add_page(struct bio *bio, struct page *page,
+>  
+>  #endif /* CONFIG_BLK_DEV_INTEGRITY */
+>  
+> +/*
+> + * Mark a bio as polled. Note that for async polled IO, the caller must
+> + * expect -EWOULDBLOCK if we cannot allocate a request (or other resources).
+> + * We cannot block waiting for requests on polled IO, as those completions
+> + * must be found by the caller. This is different than IRQ driven IO, where
+> + * it's safe to wait for IO to complete.
+> + */
+> +static inline void bio_set_polled(struct bio *bio, struct kiocb *kiocb)
+> +{
+> +	bio->bi_opf |= REQ_HIPRI;
+> +	if (!is_sync_kiocb(kiocb))
+> +		bio->bi_opf |= REQ_NOWAIT;
+> +}
 > +
-> +(* Validate SRCU dynamic match *)
-> +flag ~empty different-values(srcu-rscs) as srcu-bad-nesting
-> diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-> index 8dcb37835b61..95bf45f1215f 100644
-> --- a/tools/memory-model/linux-kernel.cat
-> +++ b/tools/memory-model/linux-kernel.cat
-> @@ -1,5 +1,7 @@
->  // SPDX-License-Identifier: GPL-2.0+
->  (*
-> + * Requires herd version 7.51+6 or higher.
 
-I'm not all that exited about spreading version requirements in the
-source: we report this requirement in our README, and apparently we
-already struggle to keep this information up-to-date.  So what about
-squashing something like the below (assume that 7.52 will be released
-by the time this patch hit mainline; if this won't be the case, we
-may consider using the development version 7.51+6)? notice that this
-also removes an (obsolete, at this point) comment from lock.cat.
+REQ_NOWAIT doesn't cover allocating split bio, is that a issue?
 
-  Andrea
+BTW, could you explain a bit about the deadlock in case of sleep from
+request allocation?
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 9d7d4f23503fd..b362a41358fa1 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -20,8 +20,8 @@ that litmus test to be exercised within the Linux kernel.
- REQUIREMENTS
- ============
- 
--Version 7.49 of the "herd7" and "klitmus7" tools must be downloaded
--separately:
-+Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
-+downloaded separately:
- 
-   https://github.com/herd/herdtools7
- 
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 95bf45f1215fc..8dcb37835b613 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -1,7 +1,5 @@
- // SPDX-License-Identifier: GPL-2.0+
- (*
-- * Requires herd version 7.51+6 or higher.
-- *
-  * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
-  * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
-  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index 305ded17e7411..a059d1a6d8a29 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -6,9 +6,6 @@
- 
- (*
-  * Generate coherence orders and handle lock operations
-- *
-- * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
-- * spin_is_locked() is functional from herd7 version 7.49.
-  *)
- 
- include "cross.cat"
+Thanks,
+Ming
 
-
-
-> + *
->   * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
->   * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
->   * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
-> diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-> index 1d6a120cde14..0c3f0ef486f4 100644
-> --- a/tools/memory-model/linux-kernel.def
-> +++ b/tools/memory-model/linux-kernel.def
-> @@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
->  
->  // SRCU
->  srcu_read_lock(X)  __srcu{srcu-lock}(X)
-> -srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
-> +srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
->  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
->  
->  // Atomic
-> -- 
-> 2.17.1
-> 
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
