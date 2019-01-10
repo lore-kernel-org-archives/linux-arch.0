@@ -1,106 +1,72 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Date: Thu, 10 Jan 2019 16:10:52 +0800
-Message-ID: <20190110081052.GB13262@guoren-Inspiron-7460>
-References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
+Date: Thu, 10 Jan 2019 09:40:24 +0100
+Message-ID: <20190110084024.GA10280@andrea>
+References: <20190109210706.GA27268@linux.ibm.com>
+ <20190109231852.GA4494@andrea>
+ <20190109234043.GD1215@linux.ibm.com>
+ <20190110003952.GA4354@andrea>
+ <20190110042027.GG1215@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1547045397-24388-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <20190110042027.GG1215@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Sorry Linus,
+> > > > It seems that
+> > > > 
+> > > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > >   
+> > > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
+> > > > considered that, IIRC, you introduced the primitive and RCU is currently
+> > > > its only user.)
+> > > 
+> > > That commit is in -tip:
+> > > 
+> > > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > > 
+> > > So it has already left my -rcu tree.  ;-)
+> > 
+> > Oh, you're right: now I see the commit (e.g., with "git show"), but I
+> > don't see the corresponding changes applied to the tree.
+> > 
+> >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
+> >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
+> > 
+> > Is this expected?
+> 
+> Are you asking why it is in -tip but not in mainline?  I am not sure,
+> but given that the merge window was over the holiday season and that
+> the length of the merge window proved to be shorter than many people
+> expected it to be, I am not too surprised.  ;-)
 
-This pull-request is wrong on the patch:
-"csky: fixup module relocation error with 807 & 860".
-diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
--       uint16_t location_tmp = (uint16_t *)location;
-+       uint16_t *location_tmp = (uint16_t *)location;
+Mmh, let me try again:
 
-Please drop it if possible and I'll send another [GIT PULL].
+  $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+  $ cd tip
+  $ git checkout -b locking/core origin/locking/core
 
-Best Regards
- Guo Ren
+  $ git show 4607abbcf464
+  commit 4607abbcf464ea2be14da444215d05c73025cf6e
+  Author: Andrea Parri <andrea.parri@amarulasolutions.com>
+  Date:   Mon Dec 3 15:04:49 2018 -0800
 
-On Wed, Jan 09, 2019 at 10:49:57PM +0800, guoren@kernel.org wrote:
-> The following changes since commit bfeffd155283772bbe78c6a05dec7c0128ee500c:
+      tools/memory-model: Model smp_mb__after_unlock_lock()
+
+  $ cd tools/memory-model
+  $ herd7 -conf linux-kernel.cfg after-unlock-lock-same-cpu.litmus
+  File "after-unlock-lock-same-cpu.litmus": Unknown macro smp_mb__after_unlock_lock (User error)
+
+  [aka, linux-kernel.def in tip:locking/core does not have the
+   smp_mb__after_unlock_lock() added by 4607abbcf464]
+
+  Andrea
+
+
 > 
->   Linux 5.0-rc1 (2019-01-06 17:08:20 -0800)
+> 							Thanx, Paul
 > 
-> are available in the git repository at:
-> 
->   git@github.com:c-sky/csky-linux.git tags/csky-for-linus-5.0-rc1
-> 
-> for you to fetch changes up to 56752b21755aef598709d143684cb363db98a7d2:
-> 
->   irqchip/csky: fixup handle_irq_perbit break irq (2019-01-09 00:18:46 +0800)
-> 
-> ----------------------------------------------------------------
-> arch/csky patches for 5.0-rc1
-> 
-> Here is some fixup patches for 5.0-rc1:
-> 
->  - fixup compile error with pte_alloc
->  - fixup handle_irq_perbit break irq flow
->  - fixup CACHEV1 store instruction fast retire
->  - fixup module relocation error with 807 & 860
->  - add csky kernel features
-> 
-> ----------------------------------------------------------------
-> Guo Ren (5):
->       Documentation/features: Add csky kernel features
->       csky: fixup relocation error with 807 & 860
->       csky: fixup CACHEV1 store instruction fast retire
->       csky: fixup compile error with pte_alloc
->       irqchip/csky: fixup handle_irq_perbit break irq
-> 
->  .../features/core/cBPF-JIT/arch-support.txt        |  1 +
->  .../features/core/eBPF-JIT/arch-support.txt        |  1 +
->  .../core/generic-idle-thread/arch-support.txt      |  1 +
->  .../features/core/jump-labels/arch-support.txt     |  1 +
->  .../features/core/tracehook/arch-support.txt       |  1 +
->  .../features/debug/KASAN/arch-support.txt          |  1 +
->  .../debug/gcov-profile-all/arch-support.txt        |  1 +
->  Documentation/features/debug/kgdb/arch-support.txt |  1 +
->  .../debug/kprobes-on-ftrace/arch-support.txt       |  1 +
->  .../features/debug/kprobes/arch-support.txt        |  1 +
->  .../features/debug/kretprobes/arch-support.txt     |  1 +
->  .../features/debug/optprobes/arch-support.txt      |  1 +
->  .../features/debug/stackprotector/arch-support.txt |  1 +
->  .../features/debug/uprobes/arch-support.txt        |  1 +
->  .../debug/user-ret-profiler/arch-support.txt       |  1 +
->  .../features/io/dma-contiguous/arch-support.txt    |  1 +
->  .../locking/cmpxchg-local/arch-support.txt         |  1 +
->  .../features/locking/lockdep/arch-support.txt      |  1 +
->  .../locking/queued-rwlocks/arch-support.txt        |  1 +
->  .../locking/queued-spinlocks/arch-support.txt      |  1 +
->  .../locking/rwsem-optimized/arch-support.txt       |  1 +
->  .../features/perf/kprobes-event/arch-support.txt   |  1 +
->  .../features/perf/perf-regs/arch-support.txt       |  1 +
->  .../features/perf/perf-stackdump/arch-support.txt  |  1 +
->  .../sched/membarrier-sync-core/arch-support.txt    |  1 +
->  .../features/sched/numa-balancing/arch-support.txt |  1 +
->  .../seccomp/seccomp-filter/arch-support.txt        |  1 +
->  .../time/arch-tick-broadcast/arch-support.txt      |  1 +
->  .../features/time/clockevents/arch-support.txt     |  1 +
->  .../time/context-tracking/arch-support.txt         |  1 +
->  .../features/time/irq-time-acct/arch-support.txt   |  1 +
->  .../time/modern-timekeeping/arch-support.txt       |  1 +
->  .../features/time/virt-cpuacct/arch-support.txt    |  1 +
->  .../features/vm/ELF-ASLR/arch-support.txt          |  1 +
->  .../features/vm/PG_uncached/arch-support.txt       |  1 +
->  Documentation/features/vm/THP/arch-support.txt     |  1 +
->  Documentation/features/vm/TLB/arch-support.txt     |  1 +
->  .../features/vm/huge-vmap/arch-support.txt         |  1 +
->  .../features/vm/ioremap_prot/arch-support.txt      |  1 +
->  .../features/vm/numa-memblock/arch-support.txt     |  1 +
->  .../features/vm/pte_special/arch-support.txt       |  1 +
->  arch/csky/include/asm/io.h                         | 25 +++++++
->  arch/csky/include/asm/pgalloc.h                    | 43 +++++-------
->  arch/csky/kernel/module.c                          | 38 ++++++-----
->  drivers/irqchip/irq-csky-apb-intc.c                | 77 ++++++++++++----------
->  45 files changed, 148 insertions(+), 76 deletions(-)
