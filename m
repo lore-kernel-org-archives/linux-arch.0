@@ -1,149 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:33578 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727750AbfAJQbf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Jan 2019 11:31:35 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id x0AGTenS075663
-        for <linux-arch@vger.kernel.org>; Thu, 10 Jan 2019 11:31:34 -0500
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2px6mbhtre-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 10 Jan 2019 11:31:34 -0500
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 10 Jan 2019 16:31:33 -0000
-Date: Thu, 10 Jan 2019 08:31:26 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
-Reply-To: paulmck@linux.ibm.com
-References: <20190110143137.GJ1215@linux.ibm.com>
- <Pine.LNX.4.44L0.1901101039360.1497-100000@iolanthe.rowland.org>
+Received: from mout.kundenserver.de ([217.72.192.73]:41757 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729671AbfAJRXc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jan 2019 12:23:32 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 02/11] time: Add struct __kernel_timex
+Date: Thu, 10 Jan 2019 18:22:07 +0100
+Message-ID: <20190110172216.313063-3-arnd@arndb.de>
+In-Reply-To: <20190110172216.313063-1-arnd@arndb.de>
+References: <20190110172216.313063-1-arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1901101039360.1497-100000@iolanthe.rowland.org>
-Message-ID: <20190110163126.GS1215@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
-Message-ID: <20190110163126.Dxn1DbTrV9dFroMwBKJfKS4CKt04xRnzBr1d4pouuiI@z>
+To: y2038@lists.linaro.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, mattst88@gmail.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, monstr@monstr.eu, paul.burton@mips.com, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jcmvbkbc@gmail.com, akpm@linux-foundation.org, deepa.kernel@gmail.com, ebiederm@xmission.com, firoz.khan@linaro.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190110172207.-FkJIp7aMkSK-ONh_uOOnijA5CK6Qpd4O7ObZiTZyNg@z>
 
-On Thu, Jan 10, 2019 at 10:41:23AM -0500, Alan Stern wrote:
-> On Thu, 10 Jan 2019, Paul E. McKenney wrote:
-> 
-> > On Thu, Jan 10, 2019 at 09:40:24AM +0100, Andrea Parri wrote:
-> > > > > > > It seems that
-> > > > > > > 
-> > > > > > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > > > > > >   
-> > > > > > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
-> > > > > > > considered that, IIRC, you introduced the primitive and RCU is currently
-> > > > > > > its only user.)
-> > > > > > 
-> > > > > > That commit is in -tip:
-> > > > > > 
-> > > > > > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > > > > > 
-> > > > > > So it has already left my -rcu tree.  ;-)
-> > > > > 
-> > > > > Oh, you're right: now I see the commit (e.g., with "git show"), but I
-> > > > > don't see the corresponding changes applied to the tree.
-> > > > > 
-> > > > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
-> > > > >   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
-> > > > > 
-> > > > > Is this expected?
-> > > > 
-> > > > Are you asking why it is in -tip but not in mainline?  I am not sure,
-> > > > but given that the merge window was over the holiday season and that
-> > > > the length of the merge window proved to be shorter than many people
-> > > > expected it to be, I am not too surprised.  ;-)
-> > > 
-> > > Mmh, let me try again:
-> > > 
-> > >   $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
-> > >   $ cd tip
-> > >   $ git checkout -b locking/core origin/locking/core
-> > > 
-> > >   $ git show 4607abbcf464
-> > >   commit 4607abbcf464ea2be14da444215d05c73025cf6e
-> > >   Author: Andrea Parri <andrea.parri@amarulasolutions.com>
-> > >   Date:   Mon Dec 3 15:04:49 2018 -0800
-> > > 
-> > >       tools/memory-model: Model smp_mb__after_unlock_lock()
-> > > 
-> > >   $ cd tools/memory-model
-> > >   $ herd7 -conf linux-kernel.cfg after-unlock-lock-same-cpu.litmus
-> > >   File "after-unlock-lock-same-cpu.litmus": Unknown macro smp_mb__after_unlock_lock (User error)
-> > > 
-> > >   [aka, linux-kernel.def in tip:locking/core does not have the
-> > >    smp_mb__after_unlock_lock() added by 4607abbcf464]
-> > 
-> > Color me confused:
-> > 
-> > ------------------------------------------------------------------------
-> > 
-> > $ git checkout 4607abbcf464Checking out files: 100% (18397/18397), done.
-> > Previous HEAD position was 4e284b1bf15a rcu: Remove wrapper definitions for obsolete RCU update functions
-> > HEAD is now at 4607abbcf464 tools/memory-model: Model smp_mb__after_unlock_lock()
-> > $ grep smp_mb__after_unlock_lock tools/memory-model/linux-kernel.def 
-> > smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
-> > 
-> > ------------------------------------------------------------------------
-> > 
-> > In addition, it handles this litmus test just fine:
-> > 
-> > ------------------------------------------------------------------------
-> > 
-> > C MP+polocks
-> > 
-> > (*
-> >  * Result: Never
-> >  *
-> >  * This litmus test demonstrates how lock acquisitions and releases can
-> >  * stand in for smp_load_acquire() and smp_store_release(), respectively.
-> >  * In other words, when holding a given lock (or indeed after releasing a
-> >  * given lock), a CPU is not only guaranteed to see the accesses that other
-> >  * CPUs made while previously holding that lock, it is also guaranteed
-> >  * to see all prior accesses by those other CPUs.
-> >  *)
-> > 
-> > {}
-> > 
-> > P0(int *x, int *y, spinlock_t *mylock)
-> > {
-> > 	WRITE_ONCE(*x, 1);
-> > 	spin_lock(mylock);
-> > 	smp_mb__after_unlock_lock();
-> > 	WRITE_ONCE(*y, 1);
-> > 	spin_unlock(mylock);
-> > }
-> > 
-> > P1(int *x, int *y, spinlock_t *mylock)
-> > {
-> > 	int r0;
-> > 	int r1;
-> > 
-> > 	spin_lock(mylock);
-> > 	r0 = READ_ONCE(*y);
-> > 	spin_unlock(mylock);
-> > 	r1 = READ_ONCE(*x);
-> > }
-> > 
-> > exists (1:r0=1 /\ 1:r1=0)
-> > 
-> > ------------------------------------------------------------------------
-> > 
-> > Again, color me confused.
-> 
-> Andrea's point is that while the 1b52d0186177 commit is present in the
-> tip repository, it isn't in the locking/core branch.
+From: Deepa Dinamani <deepa.kernel@gmail.com>
 
-That commit is still in tip/master, so it has not been lost or
-forgotten.  ;-)
+struct timex uses struct timeval internally.
+struct timeval is not y2038 safe.
+Introduce a new UAPI type struct __kernel_timex
+that is y2038 safe.
 
-							Thanx, Paul
+struct __kernel_timex uses a timeval type that is
+similar to struct __kernel_timespec which preserves the
+same structure size across 32 bit and 64 bit ABIs.
+struct __kernel_timex also restructures other members of the
+structure to make the structure the same on 64 bit and 32 bit
+architectures.
+Note that struct __kernel_timex is the same as struct timex
+on a 64 bit architecture.
+
+The above solution is similar to other new y2038 syscalls
+that are being introduced: both 32 bit and 64 bit ABIs
+have a common entry, and the compat entry supports the old 32 bit
+syscall interface.
+
+Alternatives considered were:
+1. Add new time type to struct timex that makes use of padded
+   bits. This time type could be based on the struct __kernel_timespec.
+   modes will use a flag to notify which time structure should be
+   used internally.
+   This needs some application level changes on both 64 bit and 32 bit
+   architectures. Although 64 bit machines could continue to use the
+   older timeval structure without any changes.
+
+2. Add a new u8 type to struct timex that makes use of padded bits. This
+   can be used to save higher order tv_sec bits. modes will use a flag to
+   notify presence of such a type.
+   This will need some application level changes on 32 bit architectures.
+
+3. Add a new compat_timex structure that differs in only the size of the
+   time type; keep rest of struct timex the same.
+   This requires extra syscalls to manage all 3 cases on 64 bit
+   architectures. This will not need any application level changes but will
+   add more complexity from kernel side.
+
+Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
+---
+ include/linux/timex.h      |  7 +++++++
+ include/uapi/linux/timex.h | 41 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/include/linux/timex.h b/include/linux/timex.h
+index 39c25dbebfe8..7f40e9e42ecc 100644
+--- a/include/linux/timex.h
++++ b/include/linux/timex.h
+@@ -53,6 +53,13 @@
+ #ifndef _LINUX_TIMEX_H
+ #define _LINUX_TIMEX_H
+ 
++/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
++ * and 32-bit emulation.
++ */
++#ifndef CONFIG_64BIT_TIME
++#define __kernel_timex timex
++#endif
++
+ #include <uapi/linux/timex.h>
+ 
+ #define ADJ_ADJTIME		0x8000	/* switch between adjtime/adjtimex modes */
+diff --git a/include/uapi/linux/timex.h b/include/uapi/linux/timex.h
+index 92685d826444..a1c6b73016a5 100644
+--- a/include/uapi/linux/timex.h
++++ b/include/uapi/linux/timex.h
+@@ -92,6 +92,47 @@ struct timex {
+ 	int  :32; int  :32; int  :32;
+ };
+ 
++struct __kernel_timex_timeval {
++	__kernel_time64_t       tv_sec;
++	long long		tv_usec;
++};
++
++#ifndef __kernel_timex
++struct __kernel_timex {
++	unsigned int modes;	/* mode selector */
++	int :32;            /* pad */
++	long long offset;	/* time offset (usec) */
++	long long freq;	/* frequency offset (scaled ppm) */
++	long long maxerror;/* maximum error (usec) */
++	long long esterror;/* estimated error (usec) */
++	int status;		/* clock command/status */
++	int :32;            /* pad */
++	long long constant;/* pll time constant */
++	long long precision;/* clock precision (usec) (read only) */
++	long long tolerance;/* clock frequency tolerance (ppm)
++				   * (read only)
++				   */
++	struct __kernel_timex_timeval time;	/* (read only, except for ADJ_SETOFFSET) */
++	long long tick;	/* (modified) usecs between clock ticks */
++
++	long long ppsfreq;/* pps frequency (scaled ppm) (ro) */
++	long long jitter; /* pps jitter (us) (ro) */
++	int shift;              /* interval duration (s) (shift) (ro) */
++	int :32;            /* pad */
++	long long stabil;            /* pps stability (scaled ppm) (ro) */
++	long long jitcnt; /* jitter limit exceeded (ro) */
++	long long calcnt; /* calibration intervals (ro) */
++	long long errcnt; /* calibration errors (ro) */
++	long long stbcnt; /* stability limit exceeded (ro) */
++
++	int tai;		/* TAI offset (ro) */
++
++	int  :32; int  :32; int  :32; int  :32;
++	int  :32; int  :32; int  :32; int  :32;
++	int  :32; int  :32; int  :32;
++};
++#endif
++
+ /*
+  * Mode codes (timex.mode)
+  */
+-- 
+2.20.0
