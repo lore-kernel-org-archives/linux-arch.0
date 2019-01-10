@@ -1,42 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49276 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727214AbfAJMfr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Jan 2019 07:35:47 -0500
-Date: Thu, 10 Jan 2019 20:35:41 +0800
-From: Guo Ren <guoren@kernel.org>
+Received: from mail-io1-f48.google.com ([209.85.166.48]:41398 "EHLO
+        mail-io1-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728857AbfAJN0R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jan 2019 08:26:17 -0500
+Received: by mail-io1-f48.google.com with SMTP id s22so8890925ioc.8
+        for <linux-arch@vger.kernel.org>; Thu, 10 Jan 2019 05:26:16 -0800 (PST)
+Date: Thu, 10 Jan 2019 08:26:13 -0500
+From: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
 Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Message-ID: <20190110123541.GB15390@guoren-Inspiron-7460>
+Message-ID: <20190110132613.GB22569@pure.paranoia.local>
 References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
- <20190110081052.GB13262@guoren-Inspiron-7460>
- <CAHk-=whE1Gea=216t=1OfEUrsEYRq2wn27OaPE8HBD4mSUDaOQ@mail.gmail.com>
+ <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
+ <20190109182955.GC30131@pure.paranoia.local>
+ <20190110080203.GA13262@guoren-Inspiron-7460>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <CAHk-=whE1Gea=216t=1OfEUrsEYRq2wn27OaPE8HBD4mSUDaOQ@mail.gmail.com>
+In-Reply-To: <20190110080203.GA13262@guoren-Inspiron-7460>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190110123541.glCx3fiPiYrlGVxw5cyZNCODUsqbHvx-eNwCPcPUWS8@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: pr-tracker-bot@kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190110132613.hGYoTj2XBYTVUstbor7j2E2y5LntxJa-87o2zl-n9tI@z>
 
-On Thu, Jan 10, 2019 at 03:59:22AM -0800, Linus Torvalds wrote:
-> On Thu, Jan 10, 2019 at 12:11 AM Guo Ren <guoren@kernel.org> wrote:
-> >
-> > This pull-request is wrong on the patch:
-> > "csky: fixup module relocation error with 807 & 860".
-> > diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
-> > -       uint16_t location_tmp = (uint16_t *)location;
-> > +       uint16_t *location_tmp = (uint16_t *)location;
-> >
-> > Please drop it if possible and I'll send another [GIT PULL].
-> 
-> Too late, already pulled.
-> 
-> Send a patch, and I'll apply it. Or send a pull request with updates
-> if there's more than that oneliner..
-Thx, I've sent a patch for you:
-"[PATCH V2] csky: fixup compile error with CPU 810."
+On Thu, Jan 10, 2019 at 04:02:03PM +0800, Guo Ren wrote:
+> Can I take back this pull request and send a new pull request with
+> https:// URLs ?
 
-Best Regards
- Guo Ren
+It's not necessary at this point, as the pull request has already been
+processed. However, your future emails should have the public URL of the
+git repository.
+
+Best,
+-K
