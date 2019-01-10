@@ -1,31 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
-Date: Thu, 10 Jan 2019 12:22:46 +0100
-Message-ID: <CAK8P3a3OS2Y3_B04z5shaT+CHZ3isQYj-GO+G9kxeY4aGkQmUA@mail.gmail.com>
-References: <1547045397-24388-1-git-send-email-guoren@kernel.org> <20190110081052.GB13262@guoren-Inspiron-7460>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: guoren@kernel.org
+Subject: [PATCH] csky: fixup compile error with CPU 810.
+Date: Thu, 10 Jan 2019 19:54:47 +0800
+Message-ID: <1547121287-12824-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190110081052.GB13262@guoren-Inspiron-7460>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <guoren@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: arnd@arndb.de, guoren@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 10, 2019 at 9:11 AM Guo Ren <guoren@kernel.org> wrote:
->
-> Sorry Linus,
->
-> This pull-request is wrong on the patch:
-> "csky: fixup module relocation error with 807 & 860".
-> diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
-> -       uint16_t location_tmp = (uint16_t *)location;
-> +       uint16_t *location_tmp = (uint16_t *)location;
->
-> Please drop it if possible and I'll send another [GIT PULL].
+From: Guo Ren <ren_guo@c-sky.com>
 
-It's already pulled into mainline, so it can't be undone, you have
-to send a separate pull request, based on top of the patches
-that got pulled.
+This bug is from commit f553aa1c13cb:
+  "csky: fixup relocation error with 807 & 860".
 
-       Arnd
+I forgot to compile with 810 for that patch.
+
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/kernel/module.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
+index 0b028ee..b5ad7d9 100644
+--- a/arch/csky/kernel/module.c
++++ b/arch/csky/kernel/module.c
+@@ -28,7 +28,7 @@
+ 
+ static void jsri_2_lrw_jsr(uint32_t *location)
+ {
+-	uint16_t location_tmp = (uint16_t *)location;
++	uint16_t *location_tmp = (uint16_t *)location;
+ 
+ 	if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
+ 		return;
+-- 
+2.7.4
