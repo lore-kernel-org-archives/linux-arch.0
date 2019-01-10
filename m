@@ -1,70 +1,44 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
-Date: Thu, 10 Jan 2019 01:39:52 +0100
-Message-ID: <20190110003952.GA4354@andrea>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109231852.GA4494@andrea>
- <20190109234043.GD1215@linux.ibm.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
+Date: Wed, 9 Jan 2019 21:36:41 -0500
+Message-ID: <20190109213543-mutt-send-email-mst@kernel.org>
+References: <20190102205715.14054-1-mst@redhat.com>
+ <20190102205715.14054-2-mst@redhat.com>
+ <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
+ <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190109234043.GD1215@linux.ibm.com>
+In-Reply-To: <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
+To: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 09, 2019 at 03:40:43PM -0800, Paul E. McKenney wrote:
-> On Thu, Jan 10, 2019 at 12:18:53AM +0100, Andrea Parri wrote:
-> > On Wed, Jan 09, 2019 at 01:07:06PM -0800, Paul E. McKenney wrote:
-> > > Hello!
-> > > 
-> > > This series contains updates for the Linux-kernel memory model:
-> > > 
-> > > 1-3.	Add SRCU support, courtesy of Alan Stern.
-> > > 
-> > > 4.	Update README for adding of SRCU support.
-> > > 
-> > > 5.	Update memory-barriers.txt on enforcing heavy ordering for
-> > > 	port-I/O accesses, courtesy of Will Deacon.  This one needs
-> > > 	an ack, preferably by someone from Intel.  Matthew Wilcox
-> > > 	posted some feedback from an Intel manual here, which might
-> > > 	be considered to be a close substitute, but...  ;-)
-> > > 
-> > > 	http://lkml.kernel.org/r/20181127192234.GF10377@bombadil.infradead.org
-> > > 
-> > > 6.	Update Documentation/explanation.txt to include SRCU support,
-> > > 	courtesy of Alan Stern.
-> > > 
-> > > 7.	Dynamically check SRCU lock-to-unlock matching, courtesy of
-> > > 	Luc Maranget.  This needs an ack.
-> > 
-> > It seems that
-> > 
-> >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> >   
-> > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
-> > considered that, IIRC, you introduced the primitive and RCU is currently
-> > its only user.)
+On Wed, Jan 09, 2019 at 11:35:52AM +0100, Miguel Ojeda wrote:
+> On Tue, Jan 8, 2019 at 6:44 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
+> >
+> > Also for more context, see:
+> > commit 7829fb09a2b4 ("lib: make memzero_explicit more robust against
+> > dead store elimination")
 > 
-> That commit is in -tip:
+> By the way, shouldn't that barrier_data() be directly in compiler.h
+> too, since it is for both gcc & clang?
 > 
-> 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
+> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+> >
+> > + Miguel
+> > Miguel, would you mind taking this into your compiler-attributes tree?
 > 
-> So it has already left my -rcu tree.  ;-)
-
-Oh, you're right: now I see the commit (e.g., with "git show"), but I
-don't see the corresponding changes applied to the tree.
-
-  https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
-  https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
-
-Is this expected?
-
-  Andrea
+> Sure, at least we get quickly some linux-next time.
 
 
+BTW why linux-next? shouldn't this go into 5.0 and stable? It's a bugfix after all.
+
+> Note it would be nice to separate the patch into two (one for the
+> comments, another for OPTIMIZER_HIDE_VAR), and also possibly another
+> for barrier_data().
 > 
-> 							Thanx, Paul
-> 
+> Cheers,
+> Miguel
