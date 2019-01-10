@@ -1,73 +1,30 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH RFC memory-model 0/6] LKMM updates
-Date: Wed, 9 Jan 2019 20:20:27 -0800
-Message-ID: <20190110042027.GG1215@linux.ibm.com>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109231852.GA4494@andrea>
- <20190109234043.GD1215@linux.ibm.com>
- <20190110003952.GA4354@andrea>
-Reply-To: paulmck@linux.ibm.com
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [GIT PULL] csky fixup for linux-5.0-rc1
+Date: Thu, 10 Jan 2019 16:02:03 +0800
+Message-ID: <20190110080203.GA13262@guoren-Inspiron-7460>
+References: <1547045397-24388-1-git-send-email-guoren@kernel.org>
+ <20190109180501.12290.85607.pr-tracker-bot@pdx-korg-gitolite-1.ci.codeaurora.org>
+ <20190109182955.GC30131@pure.paranoia.local>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190110003952.GA4354@andrea>
+In-Reply-To: <20190109182955.GC30131@pure.paranoia.local>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, willy@infradead.org
+To: Konstantin Ryabitsev <konstantin@linuxfoundation.org>
+Cc: pr-tracker-bot@kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 10, 2019 at 01:39:52AM +0100, Andrea Parri wrote:
-> On Wed, Jan 09, 2019 at 03:40:43PM -0800, Paul E. McKenney wrote:
-> > On Thu, Jan 10, 2019 at 12:18:53AM +0100, Andrea Parri wrote:
-> > > On Wed, Jan 09, 2019 at 01:07:06PM -0800, Paul E. McKenney wrote:
-> > > > Hello!
-> > > > 
-> > > > This series contains updates for the Linux-kernel memory model:
-> > > > 
-> > > > 1-3.	Add SRCU support, courtesy of Alan Stern.
-> > > > 
-> > > > 4.	Update README for adding of SRCU support.
-> > > > 
-> > > > 5.	Update memory-barriers.txt on enforcing heavy ordering for
-> > > > 	port-I/O accesses, courtesy of Will Deacon.  This one needs
-> > > > 	an ack, preferably by someone from Intel.  Matthew Wilcox
-> > > > 	posted some feedback from an Intel manual here, which might
-> > > > 	be considered to be a close substitute, but...  ;-)
-> > > > 
-> > > > 	http://lkml.kernel.org/r/20181127192234.GF10377@bombadil.infradead.org
-> > > > 
-> > > > 6.	Update Documentation/explanation.txt to include SRCU support,
-> > > > 	courtesy of Alan Stern.
-> > > > 
-> > > > 7.	Dynamically check SRCU lock-to-unlock matching, courtesy of
-> > > > 	Luc Maranget.  This needs an ack.
-> > > 
-> > > It seems that
-> > > 
-> > >   1b52d0186177 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > >   
-> > > from linux-rcu/dev got lost; this also needs an ack (probably yours! ;D,
-> > > considered that, IIRC, you introduced the primitive and RCU is currently
-> > > its only user.)
-> > 
-> > That commit is in -tip:
-> > 
-> > 4607abbcf464 ("tools/memory-model: Model smp_mb__after_unlock_lock()")
-> > 
-> > So it has already left my -rcu tree.  ;-)
-> 
-> Oh, you're right: now I see the commit (e.g., with "git show"), but I
-> don't see the corresponding changes applied to the tree.
-> 
->   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=locking/core&id=4607abbcf464ea2be14da444215d05c73025cf6e
->   https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/tree/tools/memory-model/linux-kernel.bell?h=locking/core
-> 
-> Is this expected?
+Can I take back this pull request and send a new pull request with
+https:// URLs ?
 
-Are you asking why it is in -tip but not in mainline?  I am not sure,
-but given that the merge window was over the holiday season and that
-the length of the merge window proved to be shorter than many people
-expected it to be, I am not too surprised.  ;-)
-
-							Thanx, Paul
+On Wed, Jan 09, 2019 at 01:29:55PM -0500, Konstantin Ryabitsev wrote:
+> On Wed, Jan 09, 2019 at 06:05:01PM +0000, pr-tracker-bot@kernel.org wrote:
+> > The pull request you sent on Wed,  9 Jan 2019 22:49:57 +0800:
+> > 
+> > > (unable to parse the git remote)
+> 
+> I just committed a fix for this. We weren't expecting URLs without ://
+> in them.
+> 
+> -K
