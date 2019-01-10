@@ -1,44 +1,99 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Date: Wed, 9 Jan 2019 21:36:41 -0500
-Message-ID: <20190109213543-mutt-send-email-mst@kernel.org>
-References: <20190102205715.14054-1-mst@redhat.com>
- <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
- <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: [PATCHSET v2] io_uring IO interface
+Date: Wed,  9 Jan 2019 19:43:49 -0700
+Message-ID: <20190110024404.25372-1-axboe@kernel.dk>
+Return-path: <owner-linux-aio@kvack.org>
+Sender: owner-linux-aio@kvack.org
+To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 09, 2019 at 11:35:52AM +0100, Miguel Ojeda wrote:
-> On Tue, Jan 8, 2019 at 6:44 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
-> >
-> > Also for more context, see:
-> > commit 7829fb09a2b4 ("lib: make memzero_explicit more robust against
-> > dead store elimination")
-> 
-> By the way, shouldn't that barrier_data() be directly in compiler.h
-> too, since it is for both gcc & clang?
-> 
-> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> >
-> > + Miguel
-> > Miguel, would you mind taking this into your compiler-attributes tree?
-> 
-> Sure, at least we get quickly some linux-next time.
+Here's v2 of the io_uring interface. See the v1 posting for some more info:
+
+https://lore.kernel.org/linux-block/20190108165645.19311-1-axboe@kernel.dk/
+
+The data structures changed, to improve the symmetry of the submission
+and completion side. The io_uring_iocb is now io_uring_sqe, but it
+otherwise remains the same as before. Ditto on the completion side,
+where io_uring_event is now io_uring_cqe.
+
+I've updated the fio io_uring test app, and the io_uring engine. The
+liburing git repo has also been adapted to the various changes since the
+v1 posting. As a reminder, the liburing git repo contains some helpers
+for doing IO without having to muck with the ring directly, setting up
+an io_uring context, etc. Clone that here:
+
+git://git.kernel.dk/liburing
+
+In terms of usage, there's also a small test app here:
+
+http://git.kernel.dk/cgit/fio/plain/t/io_uring.c
+
+and the liburing repo has a few test apps in test/ as well.
+
+Patches are aginst 5.0-rc1, but can also be found here:
+
+git://git.kernel.dk/linux-block io_uring
+
+Changes since v1:
+
+- Fail IORING_OP_{READ,WRITE}_FIXED if not configured
+- Fix ctx drop ref issue on failure to close ring_fd when sq thread/wq
+  are in use
+- Move to separate Kconfig entry (CONFIG_IO_URING)
+- Add SPDX headers
+- Drop gcc ism of zero sized arrays
+- Rename io_uring_iocb -> io_uring_sqe
+- Rename io_uring_event -> io_uring_cqe
+- Drop needless io_event_ring and io_iocb_ring structures
+- Drop ctx->max_reqs, use ->sq_entries
+- Drop unused ->ring_lock
+- Drop io_ring_ctx slab cache
+- Fix state batched kiocb alloc failure to put ctx
+- Fix missing write ordering barrier when filling in the cqe
+- Drop io_req_init()
+- Various renames
+- Fix a few lines that were too long
+- Address other minor review comments
+- Fix IORING_SETUP_SQPOLL being set without IORING_SETUP_SQTHREAD
+- Drop IORING_SETUP_FIXEDBUFS, iovecs being non-NULL is enough
+- Fix error handling free of ctx in setup path
+- Change standard read/write commands to be iov based READV/WRITEV
+- Pass in struct sqe_submit instead of separate sqe/index everywhere
+- Fix reap of polled events on fops->release()
+- Lock uring for sq thread polling
+- Don't grab ->completion_lock for polled IO cqe filling
+- Fix ev_flags vs flags typo
+- Consolidate parts of the io_ring_ctx alignment
+
+ Documentation/filesystems/vfs.txt      |    3 +
+ arch/x86/entry/syscalls/syscall_64.tbl |    2 +
+ block/bio.c                            |   59 +-
+ fs/Makefile                            |    1 +
+ fs/block_dev.c                         |   19 +-
+ fs/file.c                              |   15 +-
+ fs/file_table.c                        |    9 +-
+ fs/gfs2/file.c                         |    2 +
+ fs/io_uring.c                          | 1890 ++++++++++++++++++++++++
+ fs/iomap.c                             |   48 +-
+ fs/xfs/xfs_file.c                      |    1 +
+ include/linux/bio.h                    |   14 +
+ include/linux/blk_types.h              |    1 +
+ include/linux/file.h                   |    2 +
+ include/linux/fs.h                     |    6 +-
+ include/linux/iomap.h                  |    1 +
+ include/linux/syscalls.h               |    5 +
+ include/uapi/linux/io_uring.h          |  114 ++
+ init/Kconfig                           |    8 +
+ kernel/sys_ni.c                        |    2 +
+ 20 files changed, 2163 insertions(+), 39 deletions(-)
+
+-- 
+Jens Axboe
 
 
-BTW why linux-next? shouldn't this go into 5.0 and stable? It's a bugfix after all.
-
-> Note it would be nice to separate the patch into two (one for the
-> comments, another for OPTIMIZER_HIDE_VAR), and also possibly another
-> for barrier_data().
-> 
-> Cheers,
-> Miguel
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
