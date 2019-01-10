@@ -1,96 +1,64 @@
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCHSET v2] io_uring IO interface
-Date: Wed,  9 Jan 2019 19:43:49 -0700
-Message-ID: <20190110024404.25372-1-axboe@kernel.dk>
+Subject: [PATCH 02/15] block: wire up block device iopoll method
+Date: Wed,  9 Jan 2019 19:43:51 -0700
+Message-ID: <20190110024404.25372-3-axboe@kernel.dk>
+References: <20190110024404.25372-1-axboe@kernel.dk>
 Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190110024404.25372-1-axboe@kernel.dk>
 Sender: owner-linux-aio@kvack.org
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
 List-Id: linux-arch.vger.kernel.org
 
-Here's v2 of the io_uring interface. See the v1 posting for some more info:
+From: Christoph Hellwig <hch@lst.de>
 
-https://lore.kernel.org/linux-block/20190108165645.19311-1-axboe@kernel.dk/
+Just call blk_poll on the iocb cookie, we can derive the block device
+from the inode trivially.
 
-The data structures changed, to improve the symmetry of the submission
-and completion side. The io_uring_iocb is now io_uring_sqe, but it
-otherwise remains the same as before. Ditto on the completion side,
-where io_uring_event is now io_uring_cqe.
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ fs/block_dev.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-I've updated the fio io_uring test app, and the io_uring engine. The
-liburing git repo has also been adapted to the various changes since the
-v1 posting. As a reminder, the liburing git repo contains some helpers
-for doing IO without having to muck with the ring directly, setting up
-an io_uring context, etc. Clone that here:
-
-git://git.kernel.dk/liburing
-
-In terms of usage, there's also a small test app here:
-
-http://git.kernel.dk/cgit/fio/plain/t/io_uring.c
-
-and the liburing repo has a few test apps in test/ as well.
-
-Patches are aginst 5.0-rc1, but can also be found here:
-
-git://git.kernel.dk/linux-block io_uring
-
-Changes since v1:
-
-- Fail IORING_OP_{READ,WRITE}_FIXED if not configured
-- Fix ctx drop ref issue on failure to close ring_fd when sq thread/wq
-  are in use
-- Move to separate Kconfig entry (CONFIG_IO_URING)
-- Add SPDX headers
-- Drop gcc ism of zero sized arrays
-- Rename io_uring_iocb -> io_uring_sqe
-- Rename io_uring_event -> io_uring_cqe
-- Drop needless io_event_ring and io_iocb_ring structures
-- Drop ctx->max_reqs, use ->sq_entries
-- Drop unused ->ring_lock
-- Drop io_ring_ctx slab cache
-- Fix state batched kiocb alloc failure to put ctx
-- Fix missing write ordering barrier when filling in the cqe
-- Drop io_req_init()
-- Various renames
-- Fix a few lines that were too long
-- Address other minor review comments
-- Fix IORING_SETUP_SQPOLL being set without IORING_SETUP_SQTHREAD
-- Drop IORING_SETUP_FIXEDBUFS, iovecs being non-NULL is enough
-- Fix error handling free of ctx in setup path
-- Change standard read/write commands to be iov based READV/WRITEV
-- Pass in struct sqe_submit instead of separate sqe/index everywhere
-- Fix reap of polled events on fops->release()
-- Lock uring for sq thread polling
-- Don't grab ->completion_lock for polled IO cqe filling
-- Fix ev_flags vs flags typo
-- Consolidate parts of the io_ring_ctx alignment
-
- Documentation/filesystems/vfs.txt      |    3 +
- arch/x86/entry/syscalls/syscall_64.tbl |    2 +
- block/bio.c                            |   59 +-
- fs/Makefile                            |    1 +
- fs/block_dev.c                         |   19 +-
- fs/file.c                              |   15 +-
- fs/file_table.c                        |    9 +-
- fs/gfs2/file.c                         |    2 +
- fs/io_uring.c                          | 1890 ++++++++++++++++++++++++
- fs/iomap.c                             |   48 +-
- fs/xfs/xfs_file.c                      |    1 +
- include/linux/bio.h                    |   14 +
- include/linux/blk_types.h              |    1 +
- include/linux/file.h                   |    2 +
- include/linux/fs.h                     |    6 +-
- include/linux/iomap.h                  |    1 +
- include/linux/syscalls.h               |    5 +
- include/uapi/linux/io_uring.h          |  114 ++
- init/Kconfig                           |    8 +
- kernel/sys_ni.c                        |    2 +
- 20 files changed, 2163 insertions(+), 39 deletions(-)
-
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index c546cdce77e6..5415579f3e14 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -279,6 +279,14 @@ struct blkdev_dio {
+ 
+ static struct bio_set blkdev_dio_pool;
+ 
++static int blkdev_iopoll(struct kiocb *kiocb, bool wait)
++{
++	struct block_device *bdev = I_BDEV(kiocb->ki_filp->f_mapping->host);
++	struct request_queue *q = bdev_get_queue(bdev);
++
++	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), wait);
++}
++
+ static void blkdev_bio_end_io(struct bio *bio)
+ {
+ 	struct blkdev_dio *dio = bio->bi_private;
+@@ -396,6 +404,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
+ 				bio->bi_opf |= REQ_HIPRI;
+ 
+ 			qc = submit_bio(bio);
++			WRITE_ONCE(iocb->ki_cookie, qc);
+ 			break;
+ 		}
+ 
+@@ -2068,6 +2077,7 @@ const struct file_operations def_blk_fops = {
+ 	.llseek		= block_llseek,
+ 	.read_iter	= blkdev_read_iter,
+ 	.write_iter	= blkdev_write_iter,
++	.iopoll		= blkdev_iopoll,
+ 	.mmap		= generic_file_mmap,
+ 	.fsync		= blkdev_fsync,
+ 	.unlocked_ioctl	= block_ioctl,
 -- 
-Jens Axboe
-
+2.17.1
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
