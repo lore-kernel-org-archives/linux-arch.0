@@ -1,7 +1,7 @@
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 08/15] fs: add fget_many() and fput_many()
-Date: Wed,  9 Jan 2019 19:43:57 -0700
-Message-ID: <20190110024404.25372-9-axboe@kernel.dk>
+Subject: [PATCH 09/15] io_uring: use fget/fput_many() for file references
+Date: Wed,  9 Jan 2019 19:43:58 -0700
+Message-ID: <20190110024404.25372-10-axboe@kernel.dk>
 References: <20190110024404.25372-1-axboe@kernel.dk>
 Return-path: <owner-linux-aio@kvack.org>
 In-Reply-To: <20190110024404.25372-1-axboe@kernel.dk>
@@ -10,139 +10,233 @@ To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
 List-Id: linux-arch.vger.kernel.org
 
-Some uses cases repeatedly get and put references to the same file, but
-the only exposed interface is doing these one at the time. As each of
-these entail an atomic inc or dec on a shared structure, that cost can
-add up.
+On the submission side, add file reference batching to the
+io_submit_state. We get as many references as the number of iocbs we
+are submitting, and drop unused ones if we end up switching files. The
+assumption here is that we're usually only dealing with one fd, and if
+there are multiple, hopefuly they are at least somewhat ordered. Could
+trivially be extended to cover multiple fds, if needed.
 
-Add fget_many(), which works just like fget(), except it takes an
-argument for how many references to get on the file. Ditto fput_many(),
-which can drop an arbitrary number of references to a file.
+On the completion side we do the same thing, except this is trivially
+done just locally in io_iopoll_reap().
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/file.c            | 15 ++++++++++-----
- fs/file_table.c      |  9 +++++++--
- include/linux/file.h |  2 ++
- include/linux/fs.h   |  4 +++-
- 4 files changed, 22 insertions(+), 8 deletions(-)
+ fs/io_uring.c | 105 +++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 92 insertions(+), 13 deletions(-)
 
-diff --git a/fs/file.c b/fs/file.c
-index 3209ee271c41..e0d7ce70e860 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -705,7 +705,7 @@ void do_close_on_exec(struct files_struct *files)
- 	spin_unlock(&files->file_lock);
+diff --git a/fs/io_uring.c b/fs/io_uring.c
+index f7938156552f..cd2dfc153338 100644
+--- a/fs/io_uring.c
++++ b/fs/io_uring.c
+@@ -126,6 +126,15 @@ struct io_submit_state {
+ 	 */
+ 	struct list_head req_list;
+ 	unsigned int req_count;
++
++	/*
++	 * File reference cache
++	 */
++	struct file *file;
++	unsigned int fd;
++	unsigned int has_refs;
++	unsigned int used_refs;
++	unsigned int ios_left;
+ };
+ 
+ static struct kmem_cache *kiocb_cachep;
+@@ -234,7 +243,8 @@ static void io_iopoll_reap(struct io_ring_ctx *ctx, unsigned int *nr_events)
+ {
+ 	void *iocbs[IO_IOPOLL_BATCH];
+ 	struct io_kiocb *iocb, *n;
+-	int to_free = 0;
++	int file_count, to_free = 0;
++	struct file *file = NULL;
+ 
+ 	list_for_each_entry_safe(iocb, n, &ctx->poll_completing, ki_list) {
+ 		if (!test_bit(KIOCB_F_IOPOLL_COMPLETED, &iocb->ki_flags))
+@@ -245,10 +255,27 @@ static void io_iopoll_reap(struct io_ring_ctx *ctx, unsigned int *nr_events)
+ 		list_del(&iocb->ki_list);
+ 		iocbs[to_free++] = iocb;
+ 
+-		fput(iocb->rw.ki_filp);
++		/*
++		 * Batched puts of the same file, to avoid dirtying the
++		 * file usage count multiple times, if avoidable.
++		 */
++		if (!file) {
++			file = iocb->rw.ki_filp;
++			file_count = 1;
++		} else if (file == iocb->rw.ki_filp) {
++			file_count++;
++		} else {
++			fput_many(file, file_count);
++			file = iocb->rw.ki_filp;
++			file_count = 1;
++		}
++
+ 		(*nr_events)++;
+ 	}
+ 
++	if (file)
++		fput_many(file, file_count);
++
+ 	if (to_free)
+ 		io_free_kiocb_many(ctx, iocbs, &to_free);
+ }
+@@ -428,13 +455,60 @@ static void io_complete_scqring_iopoll(struct kiocb *kiocb, long res, long res2)
+ 	}
  }
  
--static struct file *__fget(unsigned int fd, fmode_t mask)
-+static struct file *__fget(unsigned int fd, fmode_t mask, unsigned int refs)
+-static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
++static void io_file_put(struct io_submit_state *state, struct file *file)
++{
++	if (!state) {
++		fput(file);
++	} else if (state->file) {
++		int diff = state->has_refs - state->used_refs;
++
++		if (diff)
++			fput_many(state->file, diff);
++		state->file = NULL;
++	}
++}
++
++/*
++ * Get as many references to a file as we have IOs left in this submission,
++ * assuming most submissions are for one file, or at least that each file
++ * has more than one submission.
++ */
++static struct file *io_file_get(struct io_submit_state *state, int fd)
++{
++	if (!state)
++		return fget(fd);
++
++	if (!state->file) {
++get_file:
++		state->file = fget_many(fd, state->ios_left);
++		if (!state->file)
++			return NULL;
++
++		state->fd = fd;
++		state->has_refs = state->ios_left;
++		state->used_refs = 1;
++		state->ios_left--;
++		return state->file;
++	}
++
++	if (state->fd == fd) {
++		state->used_refs++;
++		state->ios_left--;
++		return state->file;
++	}
++
++	io_file_put(state, NULL);
++	goto get_file;
++}
++
++static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe,
++		      struct io_submit_state *state)
  {
- 	struct files_struct *files = current->files;
+ 	struct io_ring_ctx *ctx = kiocb->ki_ctx;
+ 	struct kiocb *req = &kiocb->rw;
+ 	int ret;
+ 
+-	req->ki_filp = fget(sqe->fd);
++	req->ki_filp = io_file_get(state, sqe->fd);
+ 	if (unlikely(!req->ki_filp))
+ 		return -EBADF;
+ 	req->ki_pos = sqe->off;
+@@ -470,7 +544,7 @@ static int io_prep_rw(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
+ 	}
+ 	return 0;
+ out_fput:
+-	fput(req->ki_filp);
++	io_file_put(state, req->ki_filp);
+ 	return ret;
+ }
+ 
+@@ -553,7 +627,8 @@ static void io_iopoll_kiocb_issued(struct io_submit_state *state,
+ 		io_iopoll_iocb_add_state(state, kiocb);
+ }
+ 
+-static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
++static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe,
++		       struct io_submit_state *state)
+ {
+ 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
+ 	void __user *buf = (void __user *) (uintptr_t) sqe->addr;
+@@ -562,7 +637,7 @@ static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
  	struct file *file;
-@@ -720,7 +720,7 @@ static struct file *__fget(unsigned int fd, fmode_t mask)
- 		 */
- 		if (file->f_mode & mask)
- 			file = NULL;
--		else if (!get_file_rcu(file))
-+		else if (!get_file_rcu_many(file, refs))
- 			goto loop;
- 	}
- 	rcu_read_unlock();
-@@ -728,15 +728,20 @@ static struct file *__fget(unsigned int fd, fmode_t mask)
- 	return file;
+ 	ssize_t ret;
+ 
+-	ret = io_prep_rw(kiocb, sqe);
++	ret = io_prep_rw(kiocb, sqe, state);
+ 	if (ret)
+ 		return ret;
+ 	file = req->ki_filp;
+@@ -588,7 +663,8 @@ static ssize_t io_read(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
+ 	return ret;
  }
  
-+struct file *fget_many(unsigned int fd, unsigned int refs)
-+{
-+	return __fget(fd, FMODE_PATH, refs);
-+}
-+
- struct file *fget(unsigned int fd)
+-static ssize_t io_write(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
++static ssize_t io_write(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe,
++			struct io_submit_state *state)
  {
--	return __fget(fd, FMODE_PATH);
-+	return fget_many(fd, 1);
- }
- EXPORT_SYMBOL(fget);
+ 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
+ 	void __user *buf = (void __user *) (uintptr_t) sqe->addr;
+@@ -597,7 +673,7 @@ static ssize_t io_write(struct io_kiocb *kiocb, const struct io_uring_sqe *sqe)
+ 	struct file *file;
+ 	ssize_t ret;
  
- struct file *fget_raw(unsigned int fd)
- {
--	return __fget(fd, 0);
-+	return __fget(fd, 0, 1);
- }
- EXPORT_SYMBOL(fget_raw);
- 
-@@ -767,7 +772,7 @@ static unsigned long __fget_light(unsigned int fd, fmode_t mask)
- 			return 0;
- 		return (unsigned long)file;
- 	} else {
--		file = __fget(fd, mask);
-+		file = __fget(fd, mask, 1);
- 		if (!file)
- 			return 0;
- 		return FDPUT_FPUT | (unsigned long)file;
-diff --git a/fs/file_table.c b/fs/file_table.c
-index 5679e7fcb6b0..155d7514a094 100644
---- a/fs/file_table.c
-+++ b/fs/file_table.c
-@@ -326,9 +326,9 @@ void flush_delayed_fput(void)
- 
- static DECLARE_DELAYED_WORK(delayed_fput_work, delayed_fput);
- 
--void fput(struct file *file)
-+void fput_many(struct file *file, unsigned int refs)
- {
--	if (atomic_long_dec_and_test(&file->f_count)) {
-+	if (atomic_long_sub_and_test(refs, &file->f_count)) {
- 		struct task_struct *task = current;
- 
- 		if (likely(!in_interrupt() && !(task->flags & PF_KTHREAD))) {
-@@ -347,6 +347,11 @@ void fput(struct file *file)
- 	}
+-	ret = io_prep_rw(kiocb, sqe);
++	ret = io_prep_rw(kiocb, sqe, state);
+ 	if (ret)
+ 		return ret;
+ 	file = req->ki_filp;
+@@ -697,10 +773,10 @@ static int io_submit_sqe(struct io_ring_ctx *ctx, struct sqe_submit *s,
+ 	ret = -EINVAL;
+ 	switch (sqe->opcode) {
+ 	case IORING_OP_READV:
+-		ret = io_read(req, sqe);
++		ret = io_read(req, sqe, state);
+ 		break;
+ 	case IORING_OP_WRITEV:
+-		ret = io_write(req, sqe);
++		ret = io_write(req, sqe, state);
+ 		break;
+ 	case IORING_OP_FSYNC:
+ 		ret = io_fsync(req, sqe, false);
+@@ -751,17 +827,20 @@ static void io_submit_state_end(struct io_submit_state *state)
+ 	blk_finish_plug(&state->plug);
+ 	if (!list_empty(&state->req_list))
+ 		io_flush_state_reqs(state->ctx, state);
++	io_file_put(state, NULL);
  }
  
-+void fput(struct file *file)
-+{
-+	fput_many(file, 1);
-+}
-+
  /*
-  * synchronous analog of fput(); for kernel threads that might be needed
-  * in some umount() (and thus can't use flush_delayed_fput() without
-diff --git a/include/linux/file.h b/include/linux/file.h
-index 6b2fb032416c..3fcddff56bc4 100644
---- a/include/linux/file.h
-+++ b/include/linux/file.h
-@@ -13,6 +13,7 @@
- struct file;
+  * Start submission side cache.
+  */
+ static void io_submit_state_start(struct io_submit_state *state,
+-				  struct io_ring_ctx *ctx)
++				  struct io_ring_ctx *ctx, unsigned max_ios)
+ {
+ 	state->ctx = ctx;
+ 	INIT_LIST_HEAD(&state->req_list);
+ 	state->req_count = 0;
++	state->file = NULL;
++	state->ios_left = max_ios;
+ #ifdef CONFIG_BLOCK
+ 	state->plug_cb.callback = io_state_unplug;
+ 	blk_start_plug(&state->plug);
+@@ -807,7 +886,7 @@ static int io_ring_submit(struct io_ring_ctx *ctx, unsigned int to_submit)
+ 	int i, ret = 0, submit = 0;
  
- extern void fput(struct file *);
-+extern void fput_many(struct file *, unsigned int);
- 
- struct file_operations;
- struct vfsmount;
-@@ -44,6 +45,7 @@ static inline void fdput(struct fd fd)
- }
- 
- extern struct file *fget(unsigned int fd);
-+extern struct file *fget_many(unsigned int fd, unsigned int refs);
- extern struct file *fget_raw(unsigned int fd);
- extern unsigned long __fdget(unsigned int fd);
- extern unsigned long __fdget_raw(unsigned int fd);
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index ccb0b7a63aa5..acaad78b6781 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -952,7 +952,9 @@ static inline struct file *get_file(struct file *f)
- 	atomic_long_inc(&f->f_count);
- 	return f;
- }
--#define get_file_rcu(x) atomic_long_inc_not_zero(&(x)->f_count)
-+#define get_file_rcu_many(x, cnt)	\
-+	atomic_long_add_unless(&(x)->f_count, (cnt), 0)
-+#define get_file_rcu(x) get_file_rcu_many((x), 1)
- #define fput_atomic(x)	atomic_long_add_unless(&(x)->f_count, -1, 1)
- #define file_count(x)	atomic_long_read(&(x)->f_count)
+ 	if (to_submit > IO_PLUG_THRESHOLD) {
+-		io_submit_state_start(&state, ctx);
++		io_submit_state_start(&state, ctx, to_submit);
+ 		statep = &state;
+ 	}
  
 -- 
 2.17.1
