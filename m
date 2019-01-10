@@ -1,155 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:41734 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727091AbfAJCod (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 21:44:33 -0500
-Received: by mail-pg1-f193.google.com with SMTP id m1so4173513pgq.8
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 18:44:33 -0800 (PST)
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:35541 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727040AbfAJCoY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2019 21:44:24 -0500
+Received: by mail-pl1-f193.google.com with SMTP id p8so4512300plo.2
+        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2019 18:44:24 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 08/15] fs: add fget_many() and fput_many()
-Date: Wed,  9 Jan 2019 19:43:57 -0700
-Message-ID: <20190110024404.25372-9-axboe@kernel.dk>
+Subject: [PATCH 04/15] iomap: wire up the iopoll method
+Date: Wed,  9 Jan 2019 19:43:53 -0700
+Message-ID: <20190110024404.25372-5-axboe@kernel.dk>
 In-Reply-To: <20190110024404.25372-1-axboe@kernel.dk>
 References: <20190110024404.25372-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190110024357.Kd4PU7Cjw4QJy8kBP2PLdULW3biFCaOd7HXwUmEu1I4@z>
+Message-ID: <20190110024353.EDk3DAaQRCpa8KWbphq_Ex7XwHNwqpzqi63eVsf6aMc@z>
 
-Some uses cases repeatedly get and put references to the same file, but
-the only exposed interface is doing these one at the time. As each of
-these entail an atomic inc or dec on a shared structure, that cost can
-add up.
+From: Christoph Hellwig <hch@lst.de>
 
-Add fget_many(), which works just like fget(), except it takes an
-argument for how many references to get on the file. Ditto fput_many(),
-which can drop an arbitrary number of references to a file.
+Store the request queue the last bio was submitted to in the iocb
+private data in addition to the cookie so that we find the right block
+device.  Also refactor the common direct I/O bio submission code into a
+nice little helper.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Modified to use bio_set_polled().
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/file.c            | 15 ++++++++++-----
- fs/file_table.c      |  9 +++++++--
- include/linux/file.h |  2 ++
- include/linux/fs.h   |  4 +++-
- 4 files changed, 22 insertions(+), 8 deletions(-)
+ fs/gfs2/file.c        |  2 ++
+ fs/iomap.c            | 43 ++++++++++++++++++++++++++++---------------
+ fs/xfs/xfs_file.c     |  1 +
+ include/linux/iomap.h |  1 +
+ 4 files changed, 32 insertions(+), 15 deletions(-)
 
-diff --git a/fs/file.c b/fs/file.c
-index 3209ee271c41..e0d7ce70e860 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -705,7 +705,7 @@ void do_close_on_exec(struct files_struct *files)
- 	spin_unlock(&files->file_lock);
- }
+diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
+index a2dea5bc0427..58a768e59712 100644
+--- a/fs/gfs2/file.c
++++ b/fs/gfs2/file.c
+@@ -1280,6 +1280,7 @@ const struct file_operations gfs2_file_fops = {
+ 	.llseek		= gfs2_llseek,
+ 	.read_iter	= gfs2_file_read_iter,
+ 	.write_iter	= gfs2_file_write_iter,
++	.iopoll		= iomap_dio_iopoll,
+ 	.unlocked_ioctl	= gfs2_ioctl,
+ 	.mmap		= gfs2_mmap,
+ 	.open		= gfs2_open,
+@@ -1310,6 +1311,7 @@ const struct file_operations gfs2_file_fops_nolock = {
+ 	.llseek		= gfs2_llseek,
+ 	.read_iter	= gfs2_file_read_iter,
+ 	.write_iter	= gfs2_file_write_iter,
++	.iopoll		= iomap_dio_iopoll,
+ 	.unlocked_ioctl	= gfs2_ioctl,
+ 	.mmap		= gfs2_mmap,
+ 	.open		= gfs2_open,
+diff --git a/fs/iomap.c b/fs/iomap.c
+index a3088fae567b..4ee50b76b4a1 100644
+--- a/fs/iomap.c
++++ b/fs/iomap.c
+@@ -1454,6 +1454,28 @@ struct iomap_dio {
+ 	};
+ };
  
--static struct file *__fget(unsigned int fd, fmode_t mask)
-+static struct file *__fget(unsigned int fd, fmode_t mask, unsigned int refs)
- {
- 	struct files_struct *files = current->files;
- 	struct file *file;
-@@ -720,7 +720,7 @@ static struct file *__fget(unsigned int fd, fmode_t mask)
- 		 */
- 		if (file->f_mode & mask)
- 			file = NULL;
--		else if (!get_file_rcu(file))
-+		else if (!get_file_rcu_many(file, refs))
- 			goto loop;
- 	}
- 	rcu_read_unlock();
-@@ -728,15 +728,20 @@ static struct file *__fget(unsigned int fd, fmode_t mask)
- 	return file;
- }
- 
-+struct file *fget_many(unsigned int fd, unsigned int refs)
++int iomap_dio_iopoll(struct kiocb *kiocb, bool spin)
 +{
-+	return __fget(fd, FMODE_PATH, refs);
++	struct request_queue *q = READ_ONCE(kiocb->private);
++
++	if (!q)
++		return 0;
++	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), spin);
++}
++EXPORT_SYMBOL_GPL(iomap_dio_iopoll);
++
++static void iomap_dio_submit_bio(struct iomap_dio *dio, struct iomap *iomap,
++		struct bio *bio)
++{
++	atomic_inc(&dio->ref);
++
++	if (dio->iocb->ki_flags & IOCB_HIPRI)
++		bio_set_polled(bio, dio->iocb);
++
++	dio->submit.last_queue = bdev_get_queue(iomap->bdev);
++	dio->submit.cookie = submit_bio(bio);
 +}
 +
- struct file *fget(unsigned int fd)
+ static ssize_t iomap_dio_complete(struct iomap_dio *dio)
  {
--	return __fget(fd, FMODE_PATH);
-+	return fget_many(fd, 1);
- }
- EXPORT_SYMBOL(fget);
- 
- struct file *fget_raw(unsigned int fd)
- {
--	return __fget(fd, 0);
-+	return __fget(fd, 0, 1);
- }
- EXPORT_SYMBOL(fget_raw);
- 
-@@ -767,7 +772,7 @@ static unsigned long __fget_light(unsigned int fd, fmode_t mask)
- 			return 0;
- 		return (unsigned long)file;
- 	} else {
--		file = __fget(fd, mask);
-+		file = __fget(fd, mask, 1);
- 		if (!file)
- 			return 0;
- 		return FDPUT_FPUT | (unsigned long)file;
-diff --git a/fs/file_table.c b/fs/file_table.c
-index 5679e7fcb6b0..155d7514a094 100644
---- a/fs/file_table.c
-+++ b/fs/file_table.c
-@@ -326,9 +326,9 @@ void flush_delayed_fput(void)
- 
- static DECLARE_DELAYED_WORK(delayed_fput_work, delayed_fput);
- 
--void fput(struct file *file)
-+void fput_many(struct file *file, unsigned int refs)
- {
--	if (atomic_long_dec_and_test(&file->f_count)) {
-+	if (atomic_long_sub_and_test(refs, &file->f_count)) {
- 		struct task_struct *task = current;
- 
- 		if (likely(!in_interrupt() && !(task->flags & PF_KTHREAD))) {
-@@ -347,6 +347,11 @@ void fput(struct file *file)
+ 	struct kiocb *iocb = dio->iocb;
+@@ -1566,7 +1588,7 @@ static void iomap_dio_bio_end_io(struct bio *bio)
  	}
  }
  
-+void fput(struct file *file)
-+{
-+	fput_many(file, 1);
-+}
+-static blk_qc_t
++static void
+ iomap_dio_zero(struct iomap_dio *dio, struct iomap *iomap, loff_t pos,
+ 		unsigned len)
+ {
+@@ -1580,15 +1602,10 @@ iomap_dio_zero(struct iomap_dio *dio, struct iomap *iomap, loff_t pos,
+ 	bio->bi_private = dio;
+ 	bio->bi_end_io = iomap_dio_bio_end_io;
+ 
+-	if (dio->iocb->ki_flags & IOCB_HIPRI)
+-		flags |= REQ_HIPRI;
+-
+ 	get_page(page);
+ 	__bio_add_page(bio, page, len, 0);
+ 	bio_set_op_attrs(bio, REQ_OP_WRITE, flags);
+-
+-	atomic_inc(&dio->ref);
+-	return submit_bio(bio);
++	iomap_dio_submit_bio(dio, iomap, bio);
+ }
+ 
+ static loff_t
+@@ -1691,9 +1708,6 @@ iomap_dio_bio_actor(struct inode *inode, loff_t pos, loff_t length,
+ 				bio_set_pages_dirty(bio);
+ 		}
+ 
+-		if (dio->iocb->ki_flags & IOCB_HIPRI)
+-			bio->bi_opf |= REQ_HIPRI;
+-
+ 		iov_iter_advance(dio->submit.iter, n);
+ 
+ 		dio->size += n;
+@@ -1701,11 +1715,7 @@ iomap_dio_bio_actor(struct inode *inode, loff_t pos, loff_t length,
+ 		copied += n;
+ 
+ 		nr_pages = iov_iter_npages(&iter, BIO_MAX_PAGES);
+-
+-		atomic_inc(&dio->ref);
+-
+-		dio->submit.last_queue = bdev_get_queue(iomap->bdev);
+-		dio->submit.cookie = submit_bio(bio);
++		iomap_dio_submit_bio(dio, iomap, bio);
+ 	} while (nr_pages);
+ 
+ 	/*
+@@ -1916,6 +1926,9 @@ iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
+ 	if (dio->flags & IOMAP_DIO_WRITE_FUA)
+ 		dio->flags &= ~IOMAP_DIO_NEED_SYNC;
+ 
++	WRITE_ONCE(iocb->ki_cookie, dio->submit.cookie);
++	WRITE_ONCE(iocb->private, dio->submit.last_queue);
 +
- /*
-  * synchronous analog of fput(); for kernel threads that might be needed
-  * in some umount() (and thus can't use flush_delayed_fput() without
-diff --git a/include/linux/file.h b/include/linux/file.h
-index 6b2fb032416c..3fcddff56bc4 100644
---- a/include/linux/file.h
-+++ b/include/linux/file.h
-@@ -13,6 +13,7 @@
+ 	if (!atomic_dec_and_test(&dio->ref)) {
+ 		if (!dio->wait_for_completion)
+ 			return -EIOCBQUEUED;
+diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
+index e47425071e65..60c2da41f0fc 100644
+--- a/fs/xfs/xfs_file.c
++++ b/fs/xfs/xfs_file.c
+@@ -1203,6 +1203,7 @@ const struct file_operations xfs_file_operations = {
+ 	.write_iter	= xfs_file_write_iter,
+ 	.splice_read	= generic_file_splice_read,
+ 	.splice_write	= iter_file_splice_write,
++	.iopoll		= iomap_dio_iopoll,
+ 	.unlocked_ioctl	= xfs_file_ioctl,
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl	= xfs_file_compat_ioctl,
+diff --git a/include/linux/iomap.h b/include/linux/iomap.h
+index 9a4258154b25..0fefb5455bda 100644
+--- a/include/linux/iomap.h
++++ b/include/linux/iomap.h
+@@ -162,6 +162,7 @@ typedef int (iomap_dio_end_io_t)(struct kiocb *iocb, ssize_t ret,
+ 		unsigned flags);
+ ssize_t iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
+ 		const struct iomap_ops *ops, iomap_dio_end_io_t end_io);
++int iomap_dio_iopoll(struct kiocb *kiocb, bool spin);
+ 
+ #ifdef CONFIG_SWAP
  struct file;
- 
- extern void fput(struct file *);
-+extern void fput_many(struct file *, unsigned int);
- 
- struct file_operations;
- struct vfsmount;
-@@ -44,6 +45,7 @@ static inline void fdput(struct fd fd)
- }
- 
- extern struct file *fget(unsigned int fd);
-+extern struct file *fget_many(unsigned int fd, unsigned int refs);
- extern struct file *fget_raw(unsigned int fd);
- extern unsigned long __fdget(unsigned int fd);
- extern unsigned long __fdget_raw(unsigned int fd);
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index ccb0b7a63aa5..acaad78b6781 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -952,7 +952,9 @@ static inline struct file *get_file(struct file *f)
- 	atomic_long_inc(&f->f_count);
- 	return f;
- }
--#define get_file_rcu(x) atomic_long_inc_not_zero(&(x)->f_count)
-+#define get_file_rcu_many(x, cnt)	\
-+	atomic_long_add_unless(&(x)->f_count, (cnt), 0)
-+#define get_file_rcu(x) get_file_rcu_many((x), 1)
- #define fput_atomic(x)	atomic_long_add_unless(&(x)->f_count, -1, 1)
- #define file_count(x)	atomic_long_read(&(x)->f_count)
- 
 -- 
 2.17.1
