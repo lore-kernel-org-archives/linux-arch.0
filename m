@@ -1,74 +1,119 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH 2/2] sh: generate uapi header and syscall table header
- files
-Date: Thu, 10 Jan 2019 15:54:28 -0800
-Message-ID: <20190110235428.GA10016@roeck-us.net>
-References: <1546443445-21075-1-git-send-email-firoz.khan@linaro.org>
- <1546443445-21075-3-git-send-email-firoz.khan@linaro.org>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Fri, 11 Jan 2019 03:10:13 +0100
+Message-ID: <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
+References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+ <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
+ <20181213091021.GA2106@lst.de>
+ <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
+ <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
+ <20181213112511.GA4574@lst.de>
+ <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
+ <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
+ <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
+ <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+ <20190103073622.GA24323@lst.de>
+ <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
+ <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
+ <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1546443445-21075-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andrew Morton <akpm@linux-foundation.org>, Simon Horman <horms+renesas@verge.net.au>, Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>, linux-sh@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 02, 2019 at 09:07:25PM +0530, Firoz Khan wrote:
-> Unified system call table generation script must be run to
-> generate unistd_32.h and syscall_table.h files. This patch
-> will have changes which will invokes the script.
-> 
-> This patch will generate unistd_32.h and syscall_table.h
-> files by the syscall table generation script invoked by
-> sh/Makefile and the generated files against the removed
-> files must be identical.
-> 
-> The generated uapi header file will be included in uapi/-
-> asm/unistd.h and generated system call table header file
-> will be included by kernel/syscall_32.S file.
-> 
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+Next step: 891dcc1072f1fa27a83da920d88daff6ca08fc02 (powerpc/dma: remove 
+dma_nommu_dma_supported)
 
-Have you tested this patch ?
+git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
 
-Building sh:defconfig ... failed
---------------
-Error log:
-make[2]: *** No rule to make target
-'/opt/buildbot/slave/next-next/build/scripts/syscalltbl.sh',
-	needed by 'arch/sh/include/generated/asm/syscall_table.h'.  Stop.
+git checkout 891dcc1072f1fa27a83da920d88daff6ca08fc02
 
-This affects all 'sh' builds. Not surprisingly, reverting the patch fixes
-the problem.
+Output:
 
-Guenter
+Note: checking out '891dcc1072f1fa27a83da920d88daff6ca08fc02'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+git checkout -b <new-branch-name>
+
+HEAD is now at 891dcc1... powerpc/dma: remove dma_nommu_dma_supported
 
 ---
-# bad: [6cab33afc3dd17bd9922c99a828f5680b4667cd9] Add linux-next specific files for 20190110
-# good: [bfeffd155283772bbe78c6a05dec7c0128ee500c] Linux 5.0-rc1
-git bisect start 'HEAD' 'v5.0-rc1'
-# good: [45daa05b201d684d42a186970731a9e39f75beb7] Merge remote-tracking branch 'mtd/mtd/next'
-git bisect good 45daa05b201d684d42a186970731a9e39f75beb7
-# good: [62d9bf7cbfd16d41f30de4439d7349c70d99923b] Merge remote-tracking branch 'tip/auto-latest'
-git bisect good 62d9bf7cbfd16d41f30de4439d7349c70d99923b
-# good: [cff8f6ab40ac1f5681ba37a663382d0c5d1b07d1] Merge remote-tracking branch 'vhost/linux-next'
-git bisect good cff8f6ab40ac1f5681ba37a663382d0c5d1b07d1
-# bad: [ed7209d69de4c01d589b030c34412d093aac3801] mm: initialize MAX_ORDER_NR_PAGES at a time instead of doing larger sections
-git bisect bad ed7209d69de4c01d589b030c34412d093aac3801
-# bad: [8fd9cdac0385dcec3534d79bf6ad29e33a6cfe1f] vmalloc: add test driver to analyse vmalloc allocator
-git bisect bad 8fd9cdac0385dcec3534d79bf6ad29e33a6cfe1f
-# good: [e804aa1e321d349514c121c3bff66dee1cff3dd5] sh: remove nargs from __SYSCALL
-git bisect good e804aa1e321d349514c121c3bff66dee1cff3dd5
-# bad: [7f3303ead0bd6fc02ca0d5a2e6a3ce8f653afbea] mm: reuse only-pte-mapped KSM page in do_wp_page()
-git bisect bad 7f3303ead0bd6fc02ca0d5a2e6a3ce8f653afbea
-# bad: [7dc035ee0653362ae11187152ac5942e230fb523] fs/file.c: initialize init_files.resize_wait
-git bisect bad 7dc035ee0653362ae11187152ac5942e230fb523
-# bad: [539eec285bc3a61570493f08fca6d84e09e77d3c] ocfs2: clear zero in unaligned direct IO
-git bisect bad 539eec285bc3a61570493f08fca6d84e09e77d3c
-# bad: [63ef58895f79a7dea083dff346a6504b87e1a7dc] lib/debugobjects.c: move printk out of db lock critical sections
-git bisect bad 63ef58895f79a7dea083dff346a6504b87e1a7dc
-# bad: [60a47bb1b736b2be71ff6f256693595af5c707e8] sh: generate uapi header and syscall table header files
-git bisect bad 60a47bb1b736b2be71ff6f256693595af5c707e8
-# first bad commit: [60a47bb1b736b2be71ff6f256693595af5c707e8] sh: generate uapi header and syscall table header files
+
+Link to the Git: 
+http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+
+Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
+boots. I also successfully tested sound, hardware 3D acceleration, 
+Bluetooth, network, booting with a label etc. The uImages work also in a 
+virtual e5500 quad-core QEMU machine.
+
+-- Christian
+
+
+On 09 January 2019 at 10:31AM, Christian Zigotzky wrote:
+> Next step: a64e18ba191ba9102fb174f27d707485ffd9389c (powerpc/dma: 
+> remove dma_nommu_get_required_mask)
+>
+> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>
+> git checkout a64e18ba191ba9102fb174f27d707485ffd9389c
+>
+> Link to the Git: 
+> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>
+> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
+> boots. I also successfully tested sound, hardware 3D acceleration, 
+> Bluetooth, network, booting with a label etc. The uImages work also in 
+> a virtual e5500 quad-core QEMU machine.
+>
+> -- Christian
+>
+>
+> On 05 January 2019 at 5:03PM, Christian Zigotzky wrote:
+>> Next step: c446404b041130fbd9d1772d184f24715cf2362f (powerpc/dma: 
+>> remove dma_nommu_mmap_coherent)
+>>
+>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>
+>> git checkout c446404b041130fbd9d1772d184f24715cf2362f
+>>
+>> Output:
+>>
+>> Note: checking out 'c446404b041130fbd9d1772d184f24715cf2362f'.
+>>
+>> You are in 'detached HEAD' state. You can look around, make experimental
+>> changes and commit them, and you can discard any commits you make in 
+>> this
+>> state without impacting any branches by performing another checkout.
+>>
+>> If you want to create a new branch to retain commits you create, you may
+>> do so (now or later) by using -b with the checkout command again. 
+>> Example:
+>>
+>>   git checkout -b <new-branch-name>
+>>
+>> HEAD is now at c446404... powerpc/dma: remove dma_nommu_mmap_coherent
+>>
+>> -----
+>>
+>> Link to the Git: 
+>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>>
+>> Result: PASEMI onboard ethernet works and the X5000 (P5020 board) boots.
+>>
+>> -- Christian
+>>
+>
+>
