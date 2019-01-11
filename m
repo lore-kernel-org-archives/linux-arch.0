@@ -1,39 +1,46 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCHSET v2] io_uring IO interface
-Date: Fri, 11 Jan 2019 11:05:35 -0700
-Message-ID: <4a4a23c7-7842-0a12-2d46-c892cf2082bd@kernel.dk>
+From: "Martin K. Petersen" <martin.petersen@oracle.com>
+Subject: Re: [PATCH 05/15] Add io_uring IO interface
+Date: Fri, 11 Jan 2019 13:19:35 -0500
+Message-ID: <yq1sgxzys3s.fsf@oracle.com>
 References: <20190110024404.25372-1-axboe@kernel.dk>
- <fe686e4316f9746c46b91fd58c984531@suse.de>
+	<20190110024404.25372-6-axboe@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <fe686e4316f9746c46b91fd58c984531@suse.de>
-Content-Language: en-US
+In-Reply-To: <20190110024404.25372-6-axboe@kernel.dk> (Jens Axboe's message of
+	"Wed, 9 Jan 2019 19:43:54 -0700")
 Sender: owner-linux-aio@kvack.org
-To: Roman Penyaev <rpenyaev@suse.de>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On 1/11/19 2:46 AM, Roman Penyaev wrote:
-> Hi Jens,
-> 
-> That is interesting.  Recently I sent an rfc related to epoll uring:
-> 
-> https://lore.kernel.org/lkml/20190109164025.24554-1-rpenyaev@suse.de
-> 
-> which can be mapped to userspace and all ready events can be consumed
-> from it directly.  I am wondering, is it possible to make some common
-> API for all kind of ready events / urings, or it doesn't make any
-> sense?
 
-Not sure that's easily possible, even out of the two rings in io_uring,
-the sq and cq rings aren't the same. The latter is sequentially
-written, as completions come in. The former ring is actually indexes
-into the array, so you can submit things out of order when needed.
+Jens,
+
+> +struct io_uring_sqe {
+> +	__u8	opcode;
+> +	__u8	flags;
+> +	__u16	ioprio;
+> +	__s32	fd;
+> +	__u64	off;
+> +	union {
+> +		void	*addr;
+> +		__u64	__pad;
+> +	};
+> +	__u32	len;
+> +	union {
+> +		__kernel_rwf_t	rw_flags;
+> +		__u32		__resv;
+> +	};
+> +};
+
+A bit tongue in cheek and yet somewhat serious: While I'm super excited
+about the 4 x 64 bitness of the sqe, where does the integrity buffer go?
+Or the 128-bit KV store key. How do we extend this interface beyond the
+flags?
 
 -- 
-Jens Axboe
+Martin K. Petersen	Oracle Linux Engineering
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
