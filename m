@@ -1,43 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f181.google.com ([209.85.210.181]:36486 "EHLO
-        mail-pf1-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733210AbfAKSFj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jan 2019 13:05:39 -0500
-Received: by mail-pf1-f181.google.com with SMTP id b85so7302046pfc.3
-        for <linux-arch@vger.kernel.org>; Fri, 11 Jan 2019 10:05:39 -0800 (PST)
-Subject: Re: [PATCHSET v2] io_uring IO interface
+Received: from aserp2130.oracle.com ([141.146.126.79]:36478 "EHLO
+        aserp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725446AbfAKSTs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jan 2019 13:19:48 -0500
+Subject: Re: [PATCH 05/15] Add io_uring IO interface
+From: "Martin K. Petersen" <martin.petersen@oracle.com>
 References: <20190110024404.25372-1-axboe@kernel.dk>
- <fe686e4316f9746c46b91fd58c984531@suse.de>
-From: Jens Axboe <axboe@kernel.dk>
-Message-ID: <4a4a23c7-7842-0a12-2d46-c892cf2082bd@kernel.dk>
-Date: Fri, 11 Jan 2019 11:05:35 -0700
+        <20190110024404.25372-6-axboe@kernel.dk>
+Date: Fri, 11 Jan 2019 13:19:35 -0500
+In-Reply-To: <20190110024404.25372-6-axboe@kernel.dk> (Jens Axboe's message of
+        "Wed, 9 Jan 2019 19:43:54 -0700")
+Message-ID: <yq1sgxzys3s.fsf@oracle.com>
 MIME-Version: 1.0
-In-Reply-To: <fe686e4316f9746c46b91fd58c984531@suse.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roman Penyaev <rpenyaev@suse.de>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
-Message-ID: <20190111180535.mm63rw09tUgVmubQiT5gaMeuoUSP8lIze9St0pKyPN8@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+Message-ID: <20190111181935.J52VfvtHWm0s2lzOyjkMQCUhYVH8_AWB_ow3iTWHt5M@z>
 
-On 1/11/19 2:46 AM, Roman Penyaev wrote:
-> Hi Jens,
-> 
-> That is interesting.  Recently I sent an rfc related to epoll uring:
-> 
-> https://lore.kernel.org/lkml/20190109164025.24554-1-rpenyaev@suse.de
-> 
-> which can be mapped to userspace and all ready events can be consumed
-> from it directly.  I am wondering, is it possible to make some common
-> API for all kind of ready events / urings, or it doesn't make any
-> sense?
 
-Not sure that's easily possible, even out of the two rings in io_uring,
-the sq and cq rings aren't the same. The latter is sequentially
-written, as completions come in. The former ring is actually indexes
-into the array, so you can submit things out of order when needed.
+Jens,
+
+> +struct io_uring_sqe {
+> +	__u8	opcode;
+> +	__u8	flags;
+> +	__u16	ioprio;
+> +	__s32	fd;
+> +	__u64	off;
+> +	union {
+> +		void	*addr;
+> +		__u64	__pad;
+> +	};
+> +	__u32	len;
+> +	union {
+> +		__kernel_rwf_t	rw_flags;
+> +		__u32		__resv;
+> +	};
+> +};
+
+A bit tongue in cheek and yet somewhat serious: While I'm super excited
+about the 4 x 64 bitness of the sqe, where does the integrity buffer go?
+Or the 128-bit KV store key. How do we extend this interface beyond the
+flags?
 
 -- 
-Jens Axboe
+Martin K. Petersen	Oracle Linux Engineering
