@@ -1,41 +1,43 @@
-From: Linus Walleij <linus.walleij@linaro.org>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 Subject: Re: [PATCH v6 1/8] bitops: Introduce the for_each_set_clump8 macro
-Date: Fri, 11 Jan 2019 09:42:46 +0100
-Message-ID: <CACRpkdaL3LY6esgBfpJcox7AzQ8RoreqV0_gzM-AmQ_mYQHueQ@mail.gmail.com>
-References: <cover.1545198260.git.vilhelm.gray@gmail.com> <9fb3981cbcfbce3fb8b42bf419d734c0e5a44d0e.1545198260.git.vilhelm.gray@gmail.com>
+Date: Fri, 11 Jan 2019 10:00:46 +0100
+Message-ID: <81f3038e-301b-7c0d-a6ef-90b9dadcab51@rasmusvillemoes.dk>
+References: <cover.1545198260.git.vilhelm.gray@gmail.com>
+ <9fb3981cbcfbce3fb8b42bf419d734c0e5a44d0e.1545198260.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <9fb3981cbcfbce3fb8b42bf419d734c0e5a44d0e.1545198260.git.vilhelm.gray@gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: William Breathitt Gray <vilhelm.gray@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andy Shevchenko <andy.shevchenko@gmail.com>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 19, 2018 at 7:00 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
+On 19/12/2018 07.00, William Breathitt Gray wrote:
+> +/**
+> + * bitmap_set_value8 - set an 8-bit value within a memory region
+> + * @bitmap: address to the bitmap memory region
+> + * @value: the 8-bit value
+> + * @start: bit offset of the 8-bit value
+> + */
+> +void bitmap_set_value8(unsigned long *const bitmap,
+> +		       const unsigned long *const value,
+> +		       const unsigned int start)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned int offset = start % BITS_PER_LONG;
+> +	const unsigned long mask = GENMASK(7, offset);
+> +
+> +	bitmap[index] &= ~mask;
+> +	bitmap[index] |= (*value << offset) & mask;
+> +}
 
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
->
-> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+errh, why pass the value by reference? That seems rather odd. Also, if
+anybody passes a value that doesn't fit in 8 bits, they get what they
+deserve; IOW I don't see a reason for the masking in the last line, but
+if its convenient for the users, keep it. In any case, please change the
+type of value.
 
-I am still waiting for feedback from the core lib maintainers on this patch.
-If I just get an ACK I can apply it to the GPIO tree, if noone else cares
-I might just go in and apply it, but it feels slightly outside of my
-jurisdiction.
-
-Maybe people were just a bit stressed out around christmas?
-
-What about looking at it now?
-
-Yours,
-Linus Walleij
+Rasmus
