@@ -1,37 +1,42 @@
-From: guoren@kernel.org
-Subject: [PATCH] csky: fixup _PAGE_GLOBAL bit for 610 tlb entry
-Date: Sat, 12 Jan 2019 00:09:04 +0800
-Message-ID: <1547222944-5808-1-git-send-email-guoren@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, ren_guo@c-sky.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Ilya Dryomov <idryomov@gmail.com>
+Subject: Re: [PATCHSET v2] io_uring IO interface
+Date: Fri, 11 Jan 2019 17:11:57 +0100
+Message-ID: <CAOi1vP9B7Z5jm4vcLux8eOvixgWmC7V=zKBzGnOOJHYO1AhVwA@mail.gmail.com>
+References: <20190110024404.25372-1-axboe@kernel.dk> <fe686e4316f9746c46b91fd58c984531@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <fe686e4316f9746c46b91fd58c984531@suse.de>
+Sender: owner-linux-aio@kvack.org
+To: Roman Penyaev <rpenyaev@suse.de>
+Cc: Jens Axboe <axboe@kernel.dk>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-aio@kvack.org, linux-block <linux-block@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Fri, Jan 11, 2019 at 10:51 AM Roman Penyaev <rpenyaev@suse.de> wrote:
+>
+> Hi Jens,
+>
+> That is interesting.  Recently I sent an rfc related to epoll uring:
+>
+> https://lore.kernel.org/lkml/20190109164025.24554-1-rpenyaev@suse.de
+>
+> which can be mapped to userspace and all ready events can be consumed
+> from it directly.  I am wondering, is it possible to make some common
+> API for all kind of ready events / urings, or it doesn't make any
+> sense?
 
-C-SKY CPU 8xx's _PAGE_GLOBAL is BIT(0), but 610's _PAGE_GLOBAL is
-BIT(6). Use _PAGE_GLOBAL macro instead of bad magic number.
+I think you can use the new IOCB_CMD_POLL from Christoph and avoid
+epoll_wait() in favor of aio/io_uring interface, at least in new high
+performance applications.  Reaping events entirely in userspace (i.e.
+performing io_getevents() without entering the kernel) has been
+possible for a long time even with the existing aio interface.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/include/asm/pgtable.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Thanks,
 
-diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
-index edfcbb2..af7a7fa 100644
---- a/arch/csky/include/asm/pgtable.h
-+++ b/arch/csky/include/asm/pgtable.h
-@@ -45,8 +45,8 @@
- 	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset_t(address))
- #define pmd_page(pmd)	(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
- #define pte_clear(mm, addr, ptep)	set_pte((ptep), \
--			(((unsigned int)addr&0x80000000)?__pte(1):__pte(0)))
--#define pte_none(pte)	(!(pte_val(pte)&0xfffffffe))
-+	(((unsigned int) addr & PAGE_OFFSET) ? __pte(_PAGE_GLOBAL) : __pte(0)))
-+#define pte_none(pte)		(!(pte_val(pte) & ~_PAGE_GLOBAL))
- #define pte_present(pte)	(pte_val(pte) & _PAGE_PRESENT)
- #define pte_pfn(x)	((unsigned long)((x).pte_low >> PAGE_SHIFT))
- #define pfn_pte(pfn, prot) __pte(((unsigned long long)(pfn) << PAGE_SHIFT) \
--- 
-2.7.4
+                Ilya
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
