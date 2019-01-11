@@ -1,119 +1,41 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Fri, 11 Jan 2019 03:10:13 +0100
-Message-ID: <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
- <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
- <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
- <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
- <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v6 1/8] bitops: Introduce the for_each_set_clump8 macro
+Date: Fri, 11 Jan 2019 09:42:46 +0100
+Message-ID: <CACRpkdaL3LY6esgBfpJcox7AzQ8RoreqV0_gzM-AmQ_mYQHueQ@mail.gmail.com>
+References: <cover.1545198260.git.vilhelm.gray@gmail.com> <9fb3981cbcfbce3fb8b42bf419d734c0e5a44d0e.1545198260.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
-Content-Language: de-DE
+In-Reply-To: <9fb3981cbcfbce3fb8b42bf419d734c0e5a44d0e.1545198260.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: William Breathitt Gray <vilhelm.gray@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andy Shevchenko <andy.shevchenko@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Next step: 891dcc1072f1fa27a83da920d88daff6ca08fc02 (powerpc/dma: remove 
-dma_nommu_dma_supported)
+On Wed, Dec 19, 2018 at 7:00 AM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
 
-git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
-
-git checkout 891dcc1072f1fa27a83da920d88daff6ca08fc02
-
-Output:
-
-Note: checking out '891dcc1072f1fa27a83da920d88daff6ca08fc02'.
-
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by performing another checkout.
-
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -b with the checkout command again. Example:
-
-git checkout -b <new-branch-name>
-
-HEAD is now at 891dcc1... powerpc/dma: remove dma_nommu_dma_supported
-
----
-
-Link to the Git: 
-http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
-
-Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
-boots. I also successfully tested sound, hardware 3D acceleration, 
-Bluetooth, network, booting with a label etc. The uImages work also in a 
-virtual e5500 quad-core QEMU machine.
-
--- Christian
-
-
-On 09 January 2019 at 10:31AM, Christian Zigotzky wrote:
-> Next step: a64e18ba191ba9102fb174f27d707485ffd9389c (powerpc/dma: 
-> remove dma_nommu_get_required_mask)
+> This macro iterates for each 8-bit group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to the
+> bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> respectively get and set an 8-bit value in a bitmap memory region.
 >
-> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->
-> git checkout a64e18ba191ba9102fb174f27d707485ffd9389c
->
-> Link to the Git: 
-> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->
-> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
-> boots. I also successfully tested sound, hardware 3D acceleration, 
-> Bluetooth, network, booting with a label etc. The uImages work also in 
-> a virtual e5500 quad-core QEMU machine.
->
-> -- Christian
->
->
-> On 05 January 2019 at 5:03PM, Christian Zigotzky wrote:
->> Next step: c446404b041130fbd9d1772d184f24715cf2362f (powerpc/dma: 
->> remove dma_nommu_mmap_coherent)
->>
->> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>
->> git checkout c446404b041130fbd9d1772d184f24715cf2362f
->>
->> Output:
->>
->> Note: checking out 'c446404b041130fbd9d1772d184f24715cf2362f'.
->>
->> You are in 'detached HEAD' state. You can look around, make experimental
->> changes and commit them, and you can discard any commits you make in 
->> this
->> state without impacting any branches by performing another checkout.
->>
->> If you want to create a new branch to retain commits you create, you may
->> do so (now or later) by using -b with the checkout command again. 
->> Example:
->>
->>   git checkout -b <new-branch-name>
->>
->> HEAD is now at c446404... powerpc/dma: remove dma_nommu_mmap_coherent
->>
->> -----
->>
->> Link to the Git: 
->> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->>
->> Result: PASEMI onboard ethernet works and the X5000 (P5020 board) boots.
->>
->> -- Christian
->>
->
->
+> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+
+I am still waiting for feedback from the core lib maintainers on this patch.
+If I just get an ACK I can apply it to the GPIO tree, if noone else cares
+I might just go in and apply it, but it feels slightly outside of my
+jurisdiction.
+
+Maybe people were just a bit stressed out around christmas?
+
+What about looking at it now?
+
+Yours,
+Linus Walleij
