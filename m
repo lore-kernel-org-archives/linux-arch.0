@@ -1,56 +1,50 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v7 1/8] bitops: Introduce the for_each_set_clump8 macro
-Date: Sat, 12 Jan 2019 10:36:57 +0200
-Message-ID: <CAHp75VftRq7ABe_0dABN=XjTSNjMTROgh2n0YNoGOai+C1xOjg@mail.gmail.com>
-References: <cover.1547257386.git.vilhelm.gray@gmail.com> <cca4dc59b4eb0a65fca8c6954059b71f305d28c9.1547257386.git.vilhelm.gray@gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/2] sh: generate uapi header and syscall table header files
+Date: Sat, 12 Jan 2019 10:22:56 +0100
+Message-ID: <CAMuHMdXuo1wMvwx-FZB6uBJahSSbqrmnxEAfepnhAS_odQkHDA@mail.gmail.com>
+References: <1546443445-21075-1-git-send-email-firoz.khan@linaro.org>
+ <1546443445-21075-3-git-send-email-firoz.khan@linaro.org> <20190110235428.GA10016@roeck-us.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cca4dc59b4eb0a65fca8c6954059b71f305d28c9.1547257386.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20190110235428.GA10016@roeck-us.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Firoz Khan <firoz.khan@linaro.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andrew Morton <akpm@linux-foundation.org>, Simon Horman <horms+renesas@verge.net.au>, Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>, Linux-sh list <linux-sh@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jan 12, 2019 at 3:47 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
+On Fri, Jan 11, 2019 at 1:37 AM Guenter Roeck <linux@roeck-us.net> wrote:
+> On Wed, Jan 02, 2019 at 09:07:25PM +0530, Firoz Khan wrote:
+> > Unified system call table generation script must be run to
+> > generate unistd_32.h and syscall_table.h files. This patch
+> > will have changes which will invokes the script.
+> >
+> > This patch will generate unistd_32.h and syscall_table.h
+> > files by the syscall table generation script invoked by
+> > sh/Makefile and the generated files against the removed
+> > files must be identical.
+> >
+> > The generated uapi header file will be included in uapi/-
+> > asm/unistd.h and generated system call table header file
+> > will be included by kernel/syscall_32.S file.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 >
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
+> Have you tested this patch ?
 
-> +unsigned int bitmap_get_value8(const unsigned long *const bitmap,
-> +                              const unsigned int start);
+All these series depend on "scripts: unify system call table generation
+scripts"
+https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
 
-Hmm... Shouldn't be returned value of type unsigned long for sake of
-consistency?
+Yeah, 0day also didn't know that.
 
-> +/**
-> + * bitmap_set_value8 - set an 8-bit value within a memory region
-> + * @bitmap: address to the bitmap memory region
+Gr{oetje,eeting}s,
 
-> + * @value: the 8-bit value
-
-Put the same warning here as you did in cover letter
-
-> + * @start: bit offset of the 8-bit value
-> + */
-> +void bitmap_set_value8(unsigned long *const bitmap,
-> +                      const unsigned long value,
-> +                      const unsigned int start)
-> +{
-> +       const size_t index = BIT_WORD(start);
-> +       const unsigned int offset = start % BITS_PER_LONG;
-> +       const unsigned long mask = GENMASK(7, offset);
-> +
-> +       bitmap[index] &= ~mask;
-> +       bitmap[index] |= value << offset;
-> +}
-
+                        Geert
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
