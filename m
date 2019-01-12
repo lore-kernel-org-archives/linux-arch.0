@@ -1,160 +1,81 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Sat, 12 Jan 2019 19:14:53 +0100
-Message-ID: <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
- <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
- <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
- <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
- <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
-Content-Language: de-DE
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+From: Jens Axboe <axboe@kernel.dk>
+Subject: [PATCH 01/16] fs: add an iopoll method to struct file_operations
+Date: Sat, 12 Jan 2019 14:29:56 -0700
+Message-ID: <20190112213011.1439-2-axboe@kernel.dk>
+References: <20190112213011.1439-1-axboe@kernel.dk>
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190112213011.1439-1-axboe@kernel.dk>
+Sender: owner-linux-aio@kvack.org
+To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
 List-Id: linux-arch.vger.kernel.org
 
-Next step: 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39 (swiotlb: remove 
-swiotlb_dma_supported)
+From: Christoph Hellwig <hch@lst.de>
 
-git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+This new methods is used to explicitly poll for I/O completion for an
+iocb.  It must be called for any iocb submitted asynchronously (that
+is with a non-null ki_complete) which has the IOCB_HIPRI flag set.
 
-git checkout 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39
+The method is assisted by a new ki_cookie field in struct iocb to store
+the polling cookie.
 
-Output:
+TODO: we can probably union ki_cookie with the existing hint and I/O
+priority fields to avoid struct kiocb growth.
 
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by performing another checkout.
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ Documentation/filesystems/vfs.txt | 3 +++
+ include/linux/fs.h                | 2 ++
+ 2 files changed, 5 insertions(+)
 
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -b with the checkout command again. Example:
+diff --git a/Documentation/filesystems/vfs.txt b/Documentation/filesystems/vfs.txt
+index 8dc8e9c2913f..761c6fd24a53 100644
+--- a/Documentation/filesystems/vfs.txt
++++ b/Documentation/filesystems/vfs.txt
+@@ -857,6 +857,7 @@ struct file_operations {
+ 	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+ 	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+ 	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
++	int (*iopoll)(struct kiocb *kiocb, bool spin);
+ 	int (*iterate) (struct file *, struct dir_context *);
+ 	int (*iterate_shared) (struct file *, struct dir_context *);
+ 	__poll_t (*poll) (struct file *, struct poll_table_struct *);
+@@ -902,6 +903,8 @@ otherwise noted.
+ 
+   write_iter: possibly asynchronous write with iov_iter as source
+ 
++  iopoll: called when aio wants to poll for completions on HIPRI iocbs
++
+   iterate: called when the VFS needs to read the directory contents
+ 
+   iterate_shared: called when the VFS needs to read the directory contents
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 811c77743dad..ccb0b7a63aa5 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -310,6 +310,7 @@ struct kiocb {
+ 	int			ki_flags;
+ 	u16			ki_hint;
+ 	u16			ki_ioprio; /* See linux/ioprio.h */
++	unsigned int		ki_cookie; /* for ->iopoll */
+ } __randomize_layout;
+ 
+ static inline bool is_sync_kiocb(struct kiocb *kiocb)
+@@ -1786,6 +1787,7 @@ struct file_operations {
+ 	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+ 	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+ 	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
++	int (*iopoll)(struct kiocb *kiocb, bool spin);
+ 	int (*iterate) (struct file *, struct dir_context *);
+ 	int (*iterate_shared) (struct file *, struct dir_context *);
+ 	__poll_t (*poll) (struct file *, struct poll_table_struct *);
+-- 
+2.17.1
 
-   git checkout -b <new-branch-name>
-
-HEAD is now at 4558b6e... swiotlb: remove swiotlb_dma_supported
-
-----
-
-Link to the Git: 
-http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
-
-Results: PASEMI onboard ethernet (X1000) works and the X5000 (P5020 
-board) boots. I also successfully tested sound, hardware 3D 
-acceleration, Bluetooth, network, booting with a label etc. The uImages 
-work also in a virtual e5500 quad-core QEMU machine.
-
--- Christian
-
-
-On 11 January 2019 at 03:10AM, Christian Zigotzky wrote:
-> Next step: 891dcc1072f1fa27a83da920d88daff6ca08fc02 (powerpc/dma: 
-> remove dma_nommu_dma_supported)
->
-> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->
-> git checkout 891dcc1072f1fa27a83da920d88daff6ca08fc02
->
-> Output:
->
-> Note: checking out '891dcc1072f1fa27a83da920d88daff6ca08fc02'.
->
-> You are in 'detached HEAD' state. You can look around, make experimental
-> changes and commit them, and you can discard any commits you make in this
-> state without impacting any branches by performing another checkout.
->
-> If you want to create a new branch to retain commits you create, you may
-> do so (now or later) by using -b with the checkout command again. 
-> Example:
->
-> git checkout -b <new-branch-name>
->
-> HEAD is now at 891dcc1... powerpc/dma: remove dma_nommu_dma_supported
->
-> ---
->
-> Link to the Git: 
-> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->
-> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
-> boots. I also successfully tested sound, hardware 3D acceleration, 
-> Bluetooth, network, booting with a label etc. The uImages work also in 
-> a virtual e5500 quad-core QEMU machine.
->
-> -- Christian
->
->
-> On 09 January 2019 at 10:31AM, Christian Zigotzky wrote:
->> Next step: a64e18ba191ba9102fb174f27d707485ffd9389c (powerpc/dma: 
->> remove dma_nommu_get_required_mask)
->>
->> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>
->> git checkout a64e18ba191ba9102fb174f27d707485ffd9389c
->>
->> Link to the Git: 
->> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->>
->> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
->> boots. I also successfully tested sound, hardware 3D acceleration, 
->> Bluetooth, network, booting with a label etc. The uImages work also 
->> in a virtual e5500 quad-core QEMU machine.
->>
->> -- Christian
->>
->>
->> On 05 January 2019 at 5:03PM, Christian Zigotzky wrote:
->>> Next step: c446404b041130fbd9d1772d184f24715cf2362f (powerpc/dma: 
->>> remove dma_nommu_mmap_coherent)
->>>
->>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>>
->>> git checkout c446404b041130fbd9d1772d184f24715cf2362f
->>>
->>> Output:
->>>
->>> Note: checking out 'c446404b041130fbd9d1772d184f24715cf2362f'.
->>>
->>> You are in 'detached HEAD' state. You can look around, make 
->>> experimental
->>> changes and commit them, and you can discard any commits you make in 
->>> this
->>> state without impacting any branches by performing another checkout.
->>>
->>> If you want to create a new branch to retain commits you create, you 
->>> may
->>> do so (now or later) by using -b with the checkout command again. 
->>> Example:
->>>
->>>   git checkout -b <new-branch-name>
->>>
->>> HEAD is now at c446404... powerpc/dma: remove dma_nommu_mmap_coherent
->>>
->>> -----
->>>
->>> Link to the Git: 
->>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->>>
->>> Result: PASEMI onboard ethernet works and the X5000 (P5020 board) 
->>> boots.
->>>
->>> -- Christian
->>>
->>
->>
->
->
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
