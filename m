@@ -1,63 +1,56 @@
-From: guoren@kernel.org
-Subject: [PATCH] riscv: fixup max_low_pfn with PFN_DOWN.
-Date: Sat, 12 Jan 2019 16:16:27 +0800
-Message-ID: <1547280987-7630-1-git-send-email-guoren@kernel.org>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v7 1/8] bitops: Introduce the for_each_set_clump8 macro
+Date: Sat, 12 Jan 2019 10:36:57 +0200
+Message-ID: <CAHp75VftRq7ABe_0dABN=XjTSNjMTROgh2n0YNoGOai+C1xOjg@mail.gmail.com>
+References: <cover.1547257386.git.vilhelm.gray@gmail.com> <cca4dc59b4eb0a65fca8c6954059b71f305d28c9.1547257386.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
-To: palmer@sifive.com, aou@eecs.berkeley.edu
-Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>, Mao Han <mao_han@c-sky.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cca4dc59b4eb0a65fca8c6954059b71f305d28c9.1547257386.git.vilhelm.gray@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Sat, Jan 12, 2019 at 3:47 AM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
+>
+> This macro iterates for each 8-bit group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to the
+> bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> respectively get and set an 8-bit value in a bitmap memory region.
 
-max_low_pfn should be pfn_size not byte_size.
+> +unsigned int bitmap_get_value8(const unsigned long *const bitmap,
+> +                              const unsigned int start);
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Signed-off-by: Mao Han <mao_han@c-sky.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Albert Ou <aou@eecs.berkeley.edu>
----
- arch/riscv/kernel/setup.c | 2 +-
- arch/riscv/mm/init.c      | 3 ++-
- 2 files changed, 3 insertions(+), 2 deletions(-)
+Hmm... Shouldn't be returned value of type unsigned long for sake of
+consistency?
 
-diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
-index fc8006a..5463e67 100644
---- a/arch/riscv/kernel/setup.c
-+++ b/arch/riscv/kernel/setup.c
-@@ -174,7 +174,7 @@ static void __init setup_bootmem(void)
- 	BUG_ON(mem_size == 0);
- 
- 	set_max_mapnr(PFN_DOWN(mem_size));
--	max_low_pfn = memblock_end_of_DRAM();
-+	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 	setup_initrd();
-diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-index 1d9bfaf..658ebf6 100644
---- a/arch/riscv/mm/init.c
-+++ b/arch/riscv/mm/init.c
-@@ -28,7 +28,8 @@ static void __init zone_sizes_init(void)
- 	unsigned long max_zone_pfns[MAX_NR_ZONES] = { 0, };
- 
- #ifdef CONFIG_ZONE_DMA32
--	max_zone_pfns[ZONE_DMA32] = PFN_DOWN(min(4UL * SZ_1G, max_low_pfn));
-+	max_zone_pfns[ZONE_DMA32] = PFN_DOWN(min(4UL * SZ_1G,
-+			(unsigned long) PFN_PHYS(max_low_pfn)));
- #endif
- 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
- 
+> +/**
+> + * bitmap_set_value8 - set an 8-bit value within a memory region
+> + * @bitmap: address to the bitmap memory region
+
+> + * @value: the 8-bit value
+
+Put the same warning here as you did in cover letter
+
+> + * @start: bit offset of the 8-bit value
+> + */
+> +void bitmap_set_value8(unsigned long *const bitmap,
+> +                      const unsigned long value,
+> +                      const unsigned int start)
+> +{
+> +       const size_t index = BIT_WORD(start);
+> +       const unsigned int offset = start % BITS_PER_LONG;
+> +       const unsigned long mask = GENMASK(7, offset);
+> +
+> +       bitmap[index] &= ~mask;
+> +       bitmap[index] |= value << offset;
+> +}
+
+
 -- 
-2.7.4
+With Best Regards,
+Andy Shevchenko
