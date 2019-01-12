@@ -1,165 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p02-ob.smtp.rzone.de ([81.169.146.171]:14119 "EHLO
-        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725843AbfALSPC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jan 2019 13:15:02 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
- <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
- <20181213091021.GA2106@lst.de>
- <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
- <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
- <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
- <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
-Message-ID: <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
-Date: Sat, 12 Jan 2019 19:14:53 +0100
-MIME-Version: 1.0
-In-Reply-To: <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:36042 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725959AbfALVaU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jan 2019 16:30:20 -0500
+Received: by mail-pf1-f194.google.com with SMTP id b85so8564518pfc.3
+        for <linux-arch@vger.kernel.org>; Sat, 12 Jan 2019 13:30:19 -0800 (PST)
+From: Jens Axboe <axboe@kernel.dk>
+Subject: [PATCHSET v3] io_uring IO interface
+Date: Sat, 12 Jan 2019 14:29:55 -0700
+Message-ID: <20190112213011.1439-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190112181453.ZWMuSOoiIjS2QxDbsTR1xqcf3ay8ft7iCaTj_wr6lEQ@z>
+To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+Message-ID: <20190112212955.dZqoPGRjhUshwd1ZvgNlDQYqp3DalJIU-sSFw3Lfsqg@z>
 
-Next step: 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39 (swiotlb: remove 
-swiotlb_dma_supported)
+Here's v3 of the io_uring interface. Since data structures etc have
+changed since the v1 posting, here's a refresher of what io_uring
+is and how it works.
 
-git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+io_uring is a submission queue (SQ) and completion queue (CQ) pair that
+an application can use to communicate with the kernel for doing IO. This
+isn't aio/libaio, but it provides a similar set of features, as well as
+some new ones:
 
-git checkout 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39
+- io_uring is a lot more efficient than aio. A lot, and in many ways.
 
-Output:
+- io_uring supports buffered aio. Not just that, but efficiently as
+  well. Cached data isn't punted to an async context.
 
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by performing another checkout.
+- io_uring supports polled IO, it takes advantage of the blk-mq polling
+  work that went into 5.0-rc.
 
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -b with the checkout command again. Example:
+- io_uring supports kernel side submissions for polled IO. This enables
+  IO without ever having to do a system call.
 
-   git checkout -b <new-branch-name>
+- io_uring supports fixed buffers for O_DIRECT. Buffers can be
+  registered after an io_uring context has been setup, which eliminates
+  the need to do get_user_pages() / put_pages() for each and every IO.
 
-HEAD is now at 4558b6e... swiotlb: remove swiotlb_dma_supported
+To use io_uring, you must first setup an io_uring context. This is done
+through the first of three new system calls:
 
-----
+io_uring_setup(entries, params)
+	Sets up a context for doing async IO. On success, returns a file
+	descriptor that the application can mmap to gain access to the
+	SQ ring, CQ ring, and io_uring_sqe's.
 
-Link to the Git: 
-http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+Once the rings are setup, the application then mmap's these rings to
+communicate with the kernel. See a sample application I wrote that
+natively does this:
 
-Results: PASEMI onboard ethernet (X1000) works and the X5000 (P5020 
-board) boots. I also successfully tested sound, hardware 3D 
-acceleration, Bluetooth, network, booting with a label etc. The uImages 
-work also in a virtual e5500 quad-core QEMU machine.
+http://git.kernel.dk/cgit/fio/plain/t/io_uring.c
 
--- Christian
+IO is done by filling out an io_uring_sqe, and updating the SQ ring. The
+format of the sqe is as follows:
+
+struct io_uring_sqe {
+	__u8	opcode;		/* type of operation for this sqe */
+	__u8	flags;		/* IOSQE_ flags */
+	__u16	ioprio;		/* ioprio for the request */
+	__s32	fd;		/* file descriptor to do IO on */
+	__u64	off;		/* offset into file */
+	union {
+		void	*addr;	/* buffer or iovecs */
+		__u64	__pad;
+	};
+	__u32	len;		/* buffer size or number of iovecs */
+	union {
+		__kernel_rwf_t	rw_flags;
+		__u32		fsync_flags;
+	};
+	__u16	buf_index;	/* index into fixed buffers, if used */
+	__u16	__pad2;
+	__u32	__pad3;
+	__u64	user_data;	/* data to be passed back at completion time */
+};
+
+Most of this is self explanatory. The ->user_data field is passed back
+through a completion event, so the application can track IOs
+individually.
+
+Completions are posted on the CQ ring when an sqe completes, they are a
+struct io_uring_cqe and the format is as follows:
+
+struct io_uring_cqe {
+	__u64	user_data;	/* sqe->data submission passed back */
+	__s32	res;		/* result code for this event */
+	__u32	flags;
+};
+
+To either submit IO or reap completions, there's a 2nd new system call:
+
+io_uring_enter(fd, to_submit, min_complete, flags)
+	Initiates IO against the rings mapped to this fd, or waits for
+	them to complete, or both The behavior is controlled by the
+	parameters passed in. If 'min_complete' is non-zero, then we'll
+	try and submit new IO. If IORING_ENTER_GETEVENTS is set, the
+	kernel will wait for 'min_complete' events, if they aren't
+	already available.
+
+The sample application mentioned above uses the rings directly, but for
+most uses cases, I intend to have the necessary support in a liburing
+library that abstracts it enough for application to use in a performant
+way, without having to deal with the intricacies of the ring. There's
+already some basic support there and a few test applications, but that
+side definitely needs some work. Find that repo here:
+
+git://git.kernel.dk/liburing
+
+io_uring is designed to be fast and scalable. I've demonstrated 1.6M 4k
+IOPS from a single core on my aging test box, and on the latency front,
+we're also doing extremely well. It's designed to both be async and
+batching, if you wish, the application gets to control how to use that
+side.
+
+If you want to play with io_uring, see the sample app above, the
+liburing repo, or the fio io_uring engine as well.
+
+Patches are against 5.0-rc1 (ish), and can also be found in my
+'io_uring' git branch:
+
+git://git.kernel.dk/linux-block io_uring
 
 
-On 11 January 2019 at 03:10AM, Christian Zigotzky wrote:
-> Next step: 891dcc1072f1fa27a83da920d88daff6ca08fc02 (powerpc/dma: 
-> remove dma_nommu_dma_supported)
->
-> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->
-> git checkout 891dcc1072f1fa27a83da920d88daff6ca08fc02
->
-> Output:
->
-> Note: checking out '891dcc1072f1fa27a83da920d88daff6ca08fc02'.
->
-> You are in 'detached HEAD' state. You can look around, make experimental
-> changes and commit them, and you can discard any commits you make in this
-> state without impacting any branches by performing another checkout.
->
-> If you want to create a new branch to retain commits you create, you may
-> do so (now or later) by using -b with the checkout command again. 
-> Example:
->
-> git checkout -b <new-branch-name>
->
-> HEAD is now at 891dcc1... powerpc/dma: remove dma_nommu_dma_supported
->
-> ---
->
-> Link to the Git: 
-> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->
-> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
-> boots. I also successfully tested sound, hardware 3D acceleration, 
-> Bluetooth, network, booting with a label etc. The uImages work also in 
-> a virtual e5500 quad-core QEMU machine.
->
-> -- Christian
->
->
-> On 09 January 2019 at 10:31AM, Christian Zigotzky wrote:
->> Next step: a64e18ba191ba9102fb174f27d707485ffd9389c (powerpc/dma: 
->> remove dma_nommu_get_required_mask)
->>
->> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>
->> git checkout a64e18ba191ba9102fb174f27d707485ffd9389c
->>
->> Link to the Git: 
->> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->>
->> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
->> boots. I also successfully tested sound, hardware 3D acceleration, 
->> Bluetooth, network, booting with a label etc. The uImages work also 
->> in a virtual e5500 quad-core QEMU machine.
->>
->> -- Christian
->>
->>
->> On 05 January 2019 at 5:03PM, Christian Zigotzky wrote:
->>> Next step: c446404b041130fbd9d1772d184f24715cf2362f (powerpc/dma: 
->>> remove dma_nommu_mmap_coherent)
->>>
->>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>>
->>> git checkout c446404b041130fbd9d1772d184f24715cf2362f
->>>
->>> Output:
->>>
->>> Note: checking out 'c446404b041130fbd9d1772d184f24715cf2362f'.
->>>
->>> You are in 'detached HEAD' state. You can look around, make 
->>> experimental
->>> changes and commit them, and you can discard any commits you make in 
->>> this
->>> state without impacting any branches by performing another checkout.
->>>
->>> If you want to create a new branch to retain commits you create, you 
->>> may
->>> do so (now or later) by using -b with the checkout command again. 
->>> Example:
->>>
->>>   git checkout -b <new-branch-name>
->>>
->>> HEAD is now at c446404... powerpc/dma: remove dma_nommu_mmap_coherent
->>>
->>> -----
->>>
->>> Link to the Git: 
->>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
->>>
->>> Result: PASEMI onboard ethernet works and the X5000 (P5020 board) 
->>> boots.
->>>
->>> -- Christian
->>>
->>
->>
->
->
+Since v2
+- Separate fixed buffers from sqe entries. register/unregister them
+  through the new io_uring_register(2) system call
+- sqe->index is now sqe->buf_index to make it clearer
+- fixed buffers require sqe->flags to have IOSQE_FIXED_BUFFER set
+- Add sqe field that is passed back at completion through the cqe, instead
+  of passing back the original sqe index. This is more useful as it allows
+  per-life of IO data, ->index did not.
+- Cleanup async IO punting
+- Don't punt O_DIRECT writes to async handling
+- Make sq thread just for polling (submissions and completions)
+- Always enable sq workqueue for async offload
+- Use GFP_ATOMIC for req allocation
+- Fix bio_vec being an unknown type on some kconfigs
+- New IORING_OP_FSYNC implementation
+- Add fixed fileset support through io_uring_register(2)
+- Integrate workqueue support into main patchset
+- Fix io_sq_thread() logic for when to grab current->mm
+- Fix io_sq_thread() off-by-one
+- Improve polling performance for multiple files in an io_uring context
+- Have CONFIG_IO_URING select ANON_INODES
+- Don't make io_kiocb->ki_flags atomic
+- Be fully consistent in naming, for some reason we used the same
+  mess that aio.c is, where io_kiocb,kiocb,iocb are used interchangably.
+  'req' is now always io_kiocb, 'kiocb' is always kiocb.
+- Rename KIOCB_F_* flags as they are req flags, REQ_F_*.
+
+
+ Documentation/filesystems/vfs.txt      |    3 +
+ arch/x86/entry/syscalls/syscall_64.tbl |    3 +
+ block/bio.c                            |   59 +-
+ fs/Makefile                            |    1 +
+ fs/block_dev.c                         |   19 +-
+ fs/file.c                              |   15 +-
+ fs/file_table.c                        |    9 +-
+ fs/gfs2/file.c                         |    2 +
+ fs/io_uring.c                          | 2023 ++++++++++++++++++++++++
+ fs/iomap.c                             |   48 +-
+ fs/xfs/xfs_file.c                      |    1 +
+ include/linux/bio.h                    |   14 +
+ include/linux/blk_types.h              |    1 +
+ include/linux/file.h                   |    2 +
+ include/linux/fs.h                     |    6 +-
+ include/linux/iomap.h                  |    1 +
+ include/linux/syscalls.h               |    7 +
+ include/uapi/linux/io_uring.h          |  147 ++
+ init/Kconfig                           |    9 +
+ kernel/sys_ni.c                        |    3 +
+ 20 files changed, 2334 insertions(+), 39 deletions(-)
+
+-- 
+Jens Axboe
