@@ -1,181 +1,45 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v7 8/8] gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
-Date: Sat, 12 Jan 2019 10:50:14 +0900
-Message-ID: <1c82bec73e574b11504c1244d6f3d099a1cbb66c.1547257386.git.vilhelm.gray@gmail.com>
-References: <cover.1547257386.git.vilhelm.gray@gmail.com>
+From: Rob Landley <rob@landley.net>
+Subject: Re: [PATCH 2/2] sh: generate uapi header and syscall table
+ header files
+Date: Fri, 11 Jan 2019 22:21:30 -0600
+Message-ID: <d329d7b8-62fb-9cb0-521e-ee7887f122a1@landley.net>
+References: <1546443445-21075-1-git-send-email-firoz.khan@linaro.org>
+ <1546443445-21075-3-git-send-email-firoz.khan@linaro.org>
+ <20190110235428.GA10016@roeck-us.net>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1547257386.git.vilhelm.gray@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <20190110235428.GA10016@roeck-us.net>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Guenter Roeck <linux@roeck-us.net>, Firoz Khan <firoz.khan@linaro.org>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, Rich Felker <dalias@libc.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>, linux-sh@vger.kernel.org, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, arnd@arndb.de, deepa.kernel@gmail.com, Philippe Ombredanne <pombredanne@nexb.com>, Simon Horman <horms+renesas@verge.net.au>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
-
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pcie-idio-24.c | 109 ++++++++++++-------------------
- 1 file changed, 40 insertions(+), 69 deletions(-)
-
-diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
-index 52f1647a46fd..1cfe39fb8e9e 100644
---- a/drivers/gpio/gpio-pcie-idio-24.c
-+++ b/drivers/gpio/gpio-pcie-idio-24.c
-@@ -198,52 +198,34 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
--	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	unsigned int offset;
-+	unsigned long gpio_mask;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
- 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
- 	};
-+	size_t index;
-+	unsigned long port_state;
- 	const unsigned long out_mode_mask = BIT(1);
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
- 
- 		/* read bits from current gpio port (port 6 is TTL GPIO) */
--		if (i < 6)
--			port_state = ioread8(ports[i]);
-+		if (index < 6)
-+			port_state = ioread8(ports[index]);
- 		else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask)
- 			port_state = ioread8(&idio24gpio->reg->ttl_out0_7);
- 		else
- 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
- 
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		port_state &= gpio_mask;
-+
-+		bitmap_set_value8(bits, port_state, offset);
- 	}
- 
- 	return 0;
-@@ -294,59 +276,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
--	size_t i;
--	unsigned long bits_offset;
-+	unsigned int offset;
- 	unsigned long gpio_mask;
--	const unsigned int gpio_reg_size = 8;
--	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
--	unsigned long flags;
--	unsigned int out_state;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23
- 	};
-+	size_t index;
-+	unsigned int bitmask;
-+	unsigned long flags;
-+	unsigned int out_state;
- 	const unsigned long out_mode_mask = BIT(1);
--	const unsigned int ttl_offset = 48;
--	const size_t ttl_i = BIT_WORD(ttl_offset);
--	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
--	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
--	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
--
--	/* set bits are processed a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* check if any set bits for current port */
--		gpio_mask = (*mask >> bits_offset) & port_mask;
--		if (!gpio_mask) {
--			/* no set bits for this port so move on to next port */
--			continue;
--		}
- 
--		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
- 
--		/* process output lines */
--		out_state = ioread8(ports[i]) & ~gpio_mask;
--		out_state |= (*bits >> bits_offset) & gpio_mask;
--		iowrite8(out_state, ports[i]);
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
- 
--		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
--	}
-+		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
- 
--	/* check if setting TTL lines and if they are in output mode */
--	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
--		return;
-+		/* read bits from current gpio port (port 6 is TTL GPIO) */
-+		if (index < 6) {
-+			out_state = ioread8(ports[index]);
-+		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
-+			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
-+		} else {
-+			/* skip TTL GPIO if set for input */
-+			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+			continue;
-+		}
- 
--	/* handle TTL output */
--	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+		/* set requested bit states */
-+		out_state &= ~gpio_mask;
-+		out_state |= bitmask;
- 
--	/* process output lines */
--	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
--	out_state |= ttl_bits;
--	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
-+		/* write bits for current gpio port (port 6 is TTL GPIO) */
-+		if (index < 6)
-+			iowrite8(out_state, ports[index]);
-+		else
-+			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
- 
--	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
-+	}
- }
- 
- static void idio_24_irq_ack(struct irq_data *data)
--- 
-2.20.1
+T24gMS8xMC8xOSA1OjU0IFBNLCBHdWVudGVyIFJvZWNrIHdyb3RlOgo+IE9uIFdlZCwgSmFuIDAy
+LCAyMDE5IGF0IDA5OjA3OjI1UE0gKzA1MzAsIEZpcm96IEtoYW4gd3JvdGU6Cj4+IFVuaWZpZWQg
+c3lzdGVtIGNhbGwgdGFibGUgZ2VuZXJhdGlvbiBzY3JpcHQgbXVzdCBiZSBydW4gdG8KPj4gZ2Vu
+ZXJhdGUgdW5pc3RkXzMyLmggYW5kIHN5c2NhbGxfdGFibGUuaCBmaWxlcy4gVGhpcyBwYXRjaAo+
+PiB3aWxsIGhhdmUgY2hhbmdlcyB3aGljaCB3aWxsIGludm9rZXMgdGhlIHNjcmlwdC4KPj4KPj4g
+VGhpcyBwYXRjaCB3aWxsIGdlbmVyYXRlIHVuaXN0ZF8zMi5oIGFuZCBzeXNjYWxsX3RhYmxlLmgK
+Pj4gZmlsZXMgYnkgdGhlIHN5c2NhbGwgdGFibGUgZ2VuZXJhdGlvbiBzY3JpcHQgaW52b2tlZCBi
+eQo+PiBzaC9NYWtlZmlsZSBhbmQgdGhlIGdlbmVyYXRlZCBmaWxlcyBhZ2FpbnN0IHRoZSByZW1v
+dmVkCj4+IGZpbGVzIG11c3QgYmUgaWRlbnRpY2FsLgo+Pgo+PiBUaGUgZ2VuZXJhdGVkIHVhcGkg
+aGVhZGVyIGZpbGUgd2lsbCBiZSBpbmNsdWRlZCBpbiB1YXBpLy0KPj4gYXNtL3VuaXN0ZC5oIGFu
+ZCBnZW5lcmF0ZWQgc3lzdGVtIGNhbGwgdGFibGUgaGVhZGVyIGZpbGUKPj4gd2lsbCBiZSBpbmNs
+dWRlZCBieSBrZXJuZWwvc3lzY2FsbF8zMi5TIGZpbGUuCj4+Cj4+IFNpZ25lZC1vZmYtYnk6IEZp
+cm96IEtoYW4gPGZpcm96LmtoYW5AbGluYXJvLm9yZz4KPiAKPiBIYXZlIHlvdSB0ZXN0ZWQgdGhp
+cyBwYXRjaCA/CgpJIHRlc3RlZCBpdCBhdCBvbmUgcG9pbnQsIGJ1dCBub3QgcmVjZW50bHkuIChJ
+dCB3YXMgYmVmb3JlIDQuMjAgY2FtZSBvdXQuLi4pCgpSb2IKX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3Rz
+LmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIw
+MzgK
