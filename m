@@ -1,72 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:43442 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726696AbfALVau (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jan 2019 16:30:50 -0500
-Received: by mail-pg1-f196.google.com with SMTP id v28so7784646pgk.10
-        for <linux-arch@vger.kernel.org>; Sat, 12 Jan 2019 13:30:49 -0800 (PST)
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:40887 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726560AbfAMQWV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jan 2019 11:22:21 -0500
+Received: by mail-pf1-f195.google.com with SMTP id i12so9210917pfo.7
+        for <linux-arch@vger.kernel.org>; Sun, 13 Jan 2019 08:22:20 -0800 (PST)
+Subject: Re: [PATCH 05/15] Add io_uring IO interface
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 16/16] io_uring: add io_uring_event cache hit information
-Date: Sat, 12 Jan 2019 14:30:11 -0700
-Message-ID: <20190112213011.1439-17-axboe@kernel.dk>
-In-Reply-To: <20190112213011.1439-1-axboe@kernel.dk>
-References: <20190112213011.1439-1-axboe@kernel.dk>
+References: <20190110024404.25372-1-axboe@kernel.dk>
+ <20190110024404.25372-6-axboe@kernel.dk> <yq1sgxzys3s.fsf@oracle.com>
+ <f97a5b9f-68f3-c4af-649d-7dffbc35e37f@kernel.dk>
+Message-ID: <54976aac-bef2-880f-dc10-e3030189a08a@kernel.dk>
+Date: Sun, 13 Jan 2019 09:22:16 -0700
+MIME-Version: 1.0
+In-Reply-To: <f97a5b9f-68f3-c4af-649d-7dffbc35e37f@kernel.dk>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190112213011.bin4UWKloPFRs9txxFP3vn9pT0Os2j8xUIA6x1mTXkQ@z>
+To: "Martin K. Petersen" <martin.petersen@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+Message-ID: <20190113162216.yXufHPs2sv7OLY3vR7akNOOSlctULEYBnGKRZOKJatc@z>
 
-Add hint on whether a read was served out of the page cache, or if it
-hit media. This is useful for buffered async IO, O_DIRECT reads would
-never have this set (for obvious reasons).
+On 1/11/19 11:34 AM, Jens Axboe wrote:
+> On 1/11/19 11:19 AM, Martin K. Petersen wrote:
+>>
+>> Jens,
+>>
+>>> +struct io_uring_sqe {
+>>> +	__u8	opcode;
+>>> +	__u8	flags;
+>>> +	__u16	ioprio;
+>>> +	__s32	fd;
+>>> +	__u64	off;
+>>> +	union {
+>>> +		void	*addr;
+>>> +		__u64	__pad;
+>>> +	};
+>>> +	__u32	len;
+>>> +	union {
+>>> +		__kernel_rwf_t	rw_flags;
+>>> +		__u32		__resv;
+>>> +	};
+>>> +};
+>>
+>> A bit tongue in cheek and yet somewhat serious: While I'm super excited
+>> about the 4 x 64 bitness of the sqe, where does the integrity buffer go?
+>> Or the 128-bit KV store key. How do we extend this interface beyond the
+>> flags?
+> 
+> For integrity buffers, how about we stash them on the side? The newer
+> series has an extra system call, io_uring_register(), which is currently
+> used for registering files and buffers for IO on the side. You could
+> trivially tie an integrity buffer to an sqe through that.
+> 
+> For KV, I thint that's an actually interesting use case (sorry,
+> integrity), and we might just want to bite the bullet and extend the sqe
+> to full 64 bytes.  We're currently at 48 bytes, which leaves us with 16
+> bytes of space for KV, and other use cases.
 
-If the read hit page cache, cqe->flags will have IOCQE_FLAG_CACHEHIT
-set.
+I bit the bullet and bumped the size. 64 bytes is a nicer size in terms
+of cachelines anyway, and I really doubt that 48 vs 64 bytes makes a
+size consumption problem for anyone.
 
-Signed-off-by: Jens Axboe <axboe@kernel.dk>
----
- fs/io_uring.c                 | 7 ++++++-
- include/uapi/linux/io_uring.h | 5 +++++
- 2 files changed, 11 insertions(+), 1 deletion(-)
+The buf_index is only used for the fixed buffers, which means that we have
+16 bytes / 128 bits that we can grab for things like KV.
 
-diff --git a/fs/io_uring.c b/fs/io_uring.c
-index 66a76f9fa7af..5074cdd85f43 100644
---- a/fs/io_uring.c
-+++ b/fs/io_uring.c
-@@ -573,11 +573,16 @@ static void io_fput(struct io_kiocb *req)
- static void io_complete_scqring_rw(struct kiocb *kiocb, long res, long res2)
- {
- 	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
-+	unsigned ev_flags = 0;
- 
- 	kiocb_end_write(kiocb);
- 
- 	io_fput(req);
--	io_cqring_fill_event(req->ki_ctx, req->ki_user_data, res, 0);
-+
-+	if (res > 0 && (req->ki_flags & REQ_F_FORCE_NONBLOCK))
-+		ev_flags = IOCQE_FLAG_CACHEHIT;
-+
-+	io_cqring_fill_event(req->ki_ctx, req->ki_user_data, res, ev_flags);
- 	io_free_req(req);
- }
- 
-diff --git a/include/uapi/linux/io_uring.h b/include/uapi/linux/io_uring.h
-index ffdaf46f19dd..74370aed5f71 100644
---- a/include/uapi/linux/io_uring.h
-+++ b/include/uapi/linux/io_uring.h
-@@ -67,6 +67,11 @@ struct io_uring_cqe {
- 	__u32	flags;
- };
- 
-+/*
-+ * io_uring_event->flags
-+ */
-+#define IOCQE_FLAG_CACHEHIT	(1 << 0)	/* IO did not hit media */
-+
- /*
-  * Magic offsets for the application to mmap the data it needs
-  */
 -- 
-2.17.1
+Jens Axboe
