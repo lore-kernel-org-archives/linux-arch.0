@@ -1,94 +1,31 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
-Date: Mon, 14 Jan 2019 10:21:22 +0100
-Message-ID: <a734e605-3e1e-1e14-de6f-cb59cbb17291@monstr.eu>
-References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
- <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
- <CALxhOnhxyz03xvwXXUoZ8Gk=NrgdHU5CVoEXMFh77R4saWJyPg@mail.gmail.com>
- <CALxhOnjY7Ea2FrxpwMy-ETnfGCvyc8-Ds0LR2J2Tp9CQft9N5A@mail.gmail.com>
-Reply-To: monstr@monstr.eu
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8 01/26] arm64: Fix HCR.TGE status for NMI contexts
+Date: Mon, 14 Jan 2019 15:56:35 +0000
+Message-ID: <20190114155634.GB84430@arrakis.emea.arm.com>
+References: <1546956464-48825-1-git-send-email-julien.thierry@arm.com>
+ <1546956464-48825-2-git-send-email-julien.thierry@arm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="sfwDWT7OSH4wy7qjfPu0BCkBuHRAYje9f"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOnjY7Ea2FrxpwMy-ETnfGCvyc8-Ds0LR2J2Tp9CQft9N5A@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <1546956464-48825-2-git-send-email-julien.thierry@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Julien Thierry <julien.thierry@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, mark.rutland@arm.com, linux-arch@vger.kernel.org, daniel.thompson@linaro.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, stable@vger.kernel.org, christoffer.dall@arm.com, james.morse@arm.com, joel@joelfernandes.org
 List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---sfwDWT7OSH4wy7qjfPu0BCkBuHRAYje9f
-Content-Type: multipart/mixed; boundary="pggHkskJhx44hcO1obsKlFZfDZW0lcmKP";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Philippe Ombredanne <pombredanne@nexb.com>,
- Thomas Gleixner <tglx@linutronix.de>,
- Kate Stewart <kstewart@linuxfoundation.org>,
- y2038 Mailman List <y2038@lists.linaro.org>,
- Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
- Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- Deepa Dinamani <deepa.kernel@gmail.com>,
- Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <a734e605-3e1e-1e14-de6f-cb59cbb17291@monstr.eu>
-Subject: Re: [PATCH 0/2] microblaze: Unify the system call scripts
-References: <1546441924-20262-1-git-send-email-firoz.khan@linaro.org>
- <86b91768-2a3d-eb58-c9a5-641be473f301@monstr.eu>
- <CALxhOnhxyz03xvwXXUoZ8Gk=NrgdHU5CVoEXMFh77R4saWJyPg@mail.gmail.com>
- <CALxhOnjY7Ea2FrxpwMy-ETnfGCvyc8-Ds0LR2J2Tp9CQft9N5A@mail.gmail.com>
-In-Reply-To: <CALxhOnjY7Ea2FrxpwMy-ETnfGCvyc8-Ds0LR2J2Tp9CQft9N5A@mail.gmail.com>
+On Tue, Jan 08, 2019 at 02:07:19PM +0000, Julien Thierry wrote:
+> When using VHE, the host needs to clear HCR_EL2.TGE bit in order
+> to interract with guest TLBs, switching from EL2&0 translation regime
+> to EL1&0.
+> 
+> However, some non-maskable asynchronous event could happen while TGE is
+> cleared like SDEI. Because of this address translation operations
+> relying on EL2&0 translation regime could fail (tlb invalidation,
+> userspace access, ...).
 
---pggHkskJhx44hcO1obsKlFZfDZW0lcmKP
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Why would an NMI context need to access user space? (just curious what
+breaks exactly without this patch; otherwise it looks fine)
 
-On 14. 01. 19 9:03, Firoz Khan wrote:
-> Hi Michal,
->=20
-> On Thu, 3 Jan 2019 at 18:39, Firoz Khan <firoz.khan@linaro.org> wrote:
->>> Looks good. Will keep this in my queue till depending patch is applie=
-d.
->>
->> Thanks for the feedback. As Geert shared few feedback while m68k revie=
-w,
->> Hopefully, I may have to include those changes here also.
->=20
-> FYI, I'm going to abandon this patch series (for other 9 architecture
-> also) and planning to come up with asm-generic support along with\
-> this one. That can be single patch series and everything can be landed
-> in upstream in the same time.
-
-ok. Thanks for letting me know.
-Michal
-
-
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
-
-
---pggHkskJhx44hcO1obsKlFZfDZW0lcmKP--
-
---sfwDWT7OSH4wy7qjfPu0BCkBuHRAYje9f
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iEYEARECAAYFAlw8VJIACgkQykllyylKDCGg4gCfb383L1CrtKZdwuQOWEBWKqGg
-oDUAn3hHnqiRNbPS9LNxDL7VkHMTttjF
-=cAJS
------END PGP SIGNATURE-----
-
---sfwDWT7OSH4wy7qjfPu0BCkBuHRAYje9f--
+-- 
+Catalin
