@@ -1,55 +1,77 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Tue, 15 Jan 2019 16:17:32 +0100
-Message-ID: <20190115151732.GA2325@lst.de>
-References: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de> <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de> <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de> <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de> <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de> <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de> <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de> <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de> <20190115133558.GA29225@lst.de> <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v4 01/24] kernel: Standardize vdso_datapage
+Date: Tue, 15 Jan 2019 15:26:50 +0000
+Message-ID: <7b0c86a9-b22b-ec89-436e-c8a6a69146b6@arm.com>
+References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
+ <20190115135539.24762-2-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1901151554260.1561@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <alpine.DEB.2.21.1901151554260.1561@nanos.tec.linutronix.de>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 15, 2019 at 02:56:34PM +0100, Christian Zigotzky wrote:
-> On 15 January 2019 at 2:35PM, Christoph Hellwig wrote:
->> On Tue, Jan 15, 2019 at 11:55:25AM +0100, Christian Zigotzky wrote:
->>> Next step: 21074ef03c0816ae158721a78cabe9035938dddd (powerpc/dma: use the
->>> generic direct mapping bypass)
->>>
->>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>>
->>> git checkout 21074ef03c0816ae158721a78cabe9035938dddd
->>>
->>> I was able to compile the kernel for the AmigaOne X1000 (Nemo board with PA
->>> Semi PA6T-1682M SoC). It boots but the PA Semi onboard ethernet doesn't
->>> work.
->> Thanks.  But we are exactly missing the steps that are relevant.  I've
->> pushed a fixed up powerpc-dma.6 tree, which will only change starting from
->> the first commit that didn't link.
->>
->> The first commit that changed from the old one is this one:
->>
->> http://git.infradead.org/users/hch/misc.git/commitdiff/257002094bc5935dd63207a380d9698ab81f0775
->>
->> which was that one that your compile failed on first.
->>
->> Thanks again for all your work!
->>
-> Thank you! I tried the commit 240d7ecd7f6fa62e074e8a835e620047954f0b28 
-> (powerpc/dma: use the dma-direct allocator for coherent platforms) again.
+On 15/01/2019 14:57, Thomas Gleixner wrote:
+> On Tue, 15 Jan 2019, Vincenzo Frascino wrote:
+> 
+>> +/*
+>> + * There is one vdso_timestamp object in vvar for each vDSO-accelerated
+>> + * clock_id. For high-resolution clocks, this encodes the time
+>> + * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
+>> + * the actual time.
+>> + *
+>> + * To be noticed that nsec is left-shifted by vdso_data.shift.
+> 
+> This is only true for highres clocks. For coarse the nsec value is not
+> shifted.
 >
-> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->
-> git checkout 240d7ecd7f6fa62e074e8a835e620047954f0b28
->
-> I modified the 'dma.c' patch because of the undefined references to 
-> '__dma_nommu_free_coherent' and '__dma_nommu_alloc_coherent':
 
-So 257002094bc5935dd63207a380d9698ab81f0775 above is the fixed version
-for the commit - this switched the ifdef in dma.c around that I had
-inverted.  Can you try that one instead?  And then move on with the
-commits after it in the updated powerpc-dma.6 branch - they are
-identical to the original branch except for carrying this fix forward.
+Agreed, missed part of the comment here. I will fix it in v5.
+
+>> + */
+>> +struct vdso_timestamp {
+>> +	u64 sec;
+>> +	u64 nsec;
+>> +};
+>> +
+>> +/*
+>> + * vdso_data will be accessed by 32 and 64 bit code at the same time
+>> + * so we should be careful before modifying this structure.
+>> + */
+>> +struct vdso_data {
+>> +	u32 seq;		/* Timebase sequence counter */
+>> +
+>> +	s32 clock_mode;
+>> +	u64 cycle_last;		/* Timebase at clocksource init */
+>> +	u64 mask;		/* Clocksource mask (mono = raw) */
+> 
+> mono = raw? This is broken. The VDSO cannot define time different from the
+> regular syscall interfaces.
+> 
+
+On v2 of this series I had the masks for mono and raw separate, but based on
+your comment (the core timekeeper has them duplicated purely for access pattern
+optimization and simplicity). I unified them. Could you please provide more
+details on what should be done in this case?
+
+> Thanks,
+> 
+> 	tglx
+> 
+
+-- 
+Regards,
+Vincenzo
