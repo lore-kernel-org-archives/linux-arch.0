@@ -1,246 +1,181 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:37573 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727970AbfAOCz6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:55:58 -0500
-Received: by mail-pf1-f195.google.com with SMTP id y126so583496pfb.4
-        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:55:57 -0800 (PST)
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:35304 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727610AbfAOC4B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:56:01 -0500
+Received: by mail-pl1-f194.google.com with SMTP id p8so583771plo.2
+        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:56:01 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 10/16] io_uring: use fget/fput_many() for file references
-Date: Mon, 14 Jan 2019 19:55:25 -0700
-Message-ID: <20190115025531.13985-11-axboe@kernel.dk>
+Subject: [PATCH 12/16] block: implement bio helper to add iter bvec pages to bio
+Date: Mon, 14 Jan 2019 19:55:27 -0700
+Message-ID: <20190115025531.13985-13-axboe@kernel.dk>
 In-Reply-To: <20190115025531.13985-1-axboe@kernel.dk>
 References: <20190115025531.13985-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190115025525.0yHfrYC5e2RiO3xp6JprBl8KsoVUzc4kA9RHdxlRwd8@z>
+Message-ID: <20190115025527.JWvMBcb3aUEteF9xWv0C9lFzKgReHlXEIhwwa6wTvfc@z>
 
-On the submission side, add file reference batching to the
-io_submit_state. We get as many references as the number of iocbs we
-are submitting, and drop unused ones if we end up switching files. The
-assumption here is that we're usually only dealing with one fd, and if
-there are multiple, hopefuly they are at least somewhat ordered. Could
-trivially be extended to cover multiple fds, if needed.
+For an ITER_BVEC, we can just iterate the iov and add the pages
+to the bio directly. This requires that the caller doesn't releases
+the pages on IO completion, we add a BIO_HOLD_PAGES flag for that.
 
-On the completion side we do the same thing, except this is trivially
-done just locally in io_iopoll_reap().
+The current two callers of bio_iov_iter_get_pages() are updated to
+check if they need to release pages on completion. This makes them
+work with bvecs that contain kernel mapped pages already.
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/io_uring.c | 98 ++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 85 insertions(+), 13 deletions(-)
+ block/bio.c               | 59 ++++++++++++++++++++++++++++++++-------
+ fs/block_dev.c            |  5 ++--
+ fs/iomap.c                |  5 ++--
+ include/linux/blk_types.h |  1 +
+ 4 files changed, 56 insertions(+), 14 deletions(-)
 
-diff --git a/fs/io_uring.c b/fs/io_uring.c
-index 62f31f20f3d5..0d7c44a2d424 100644
---- a/fs/io_uring.c
-+++ b/fs/io_uring.c
-@@ -139,6 +139,15 @@ struct io_submit_state {
- 	 */
- 	struct list_multi req_list;
- 	unsigned int req_count;
-+
-+	/*
-+	 * File reference cache
-+	 */
-+	struct file *file;
-+	unsigned int fd;
-+	unsigned int has_refs;
-+	unsigned int used_refs;
-+	unsigned int ios_left;
- };
- 
- static struct kmem_cache *req_cachep;
-@@ -316,9 +325,11 @@ static void io_iopoll_complete(struct io_ring_ctx *ctx, unsigned int *nr_events,
- 			       struct list_head *done)
- {
- 	void *reqs[IO_IOPOLL_BATCH];
-+	int file_count, to_free;
-+	struct file *file = NULL;
- 	struct io_kiocb *req;
--	int to_free = 0;
- 
-+	file_count = to_free = 0;
- 	while (!list_empty(done)) {
- 		req = list_first_entry(done, struct io_kiocb, list);
- 		list_del(&req->list);
-@@ -328,11 +339,27 @@ static void io_iopoll_complete(struct io_ring_ctx *ctx, unsigned int *nr_events,
- 		reqs[to_free++] = req;
- 		(*nr_events)++;
- 
--		fput(req->rw.ki_filp);
-+		/*
-+		 * Batched puts of the same file, to avoid dirtying the
-+		 * file usage count multiple times, if avoidable.
-+		 */
-+		if (!file) {
-+			file = req->rw.ki_filp;
-+			file_count = 1;
-+		} else if (file == req->rw.ki_filp) {
-+			file_count++;
-+		} else {
-+			fput_many(file, file_count);
-+			file = req->rw.ki_filp;
-+			file_count = 1;
-+		}
-+
- 		if (to_free == ARRAY_SIZE(reqs))
- 			io_free_req_many(ctx, reqs, &to_free);
- 	}
- 
-+	if (file)
-+		fput_many(file, file_count);
- 	if (to_free)
- 		io_free_req_many(ctx, reqs, &to_free);
+diff --git a/block/bio.c b/block/bio.c
+index 4db1008309ed..7af4f45d2ed6 100644
+--- a/block/bio.c
++++ b/block/bio.c
+@@ -828,6 +828,23 @@ int bio_add_page(struct bio *bio, struct page *page,
  }
-@@ -522,14 +549,56 @@ static void io_iopoll_req_issued(struct io_submit_state *state,
- 		io_iopoll_req_add_state(state, req);
- }
+ EXPORT_SYMBOL(bio_add_page);
  
-+static void io_file_put(struct io_submit_state *state, struct file *file)
++static int __bio_iov_bvec_add_pages(struct bio *bio, struct iov_iter *iter)
 +{
-+	if (!state) {
-+		fput(file);
-+	} else if (state->file) {
-+		int diff = state->has_refs - state->used_refs;
++	const struct bio_vec *bv = iter->bvec;
++	unsigned int len;
++	size_t size;
 +
-+		if (diff)
-+			fput_many(state->file, diff);
-+		state->file = NULL;
++	len = min_t(size_t, bv->bv_len, iter->count);
++	size = bio_add_page(bio, bv->bv_page, len,
++				bv->bv_offset + iter->iov_offset);
++	if (size == len) {
++		iov_iter_advance(iter, size);
++		return 0;
 +	}
++
++	return -EINVAL;
 +}
 +
-+/*
-+ * Get as many references to a file as we have IOs left in this submission,
-+ * assuming most submissions are for one file, or at least that each file
-+ * has more than one submission.
-+ */
-+static struct file *io_file_get(struct io_submit_state *state, int fd)
-+{
-+	if (!state)
-+		return fget(fd);
-+
-+	if (state->file) {
-+		if (state->fd == fd) {
-+			state->used_refs++;
-+			state->ios_left--;
-+			return state->file;
-+		}
-+		io_file_put(state, NULL);
-+	}
-+	state->file = fget_many(fd, state->ios_left);
-+	if (!state->file)
-+		return NULL;
-+
-+	state->fd = fd;
-+	state->has_refs = state->ios_left;
-+	state->used_refs = 1;
-+	state->ios_left--;
-+	return state->file;
-+}
-+
- static int io_prep_rw(struct io_kiocb *req, const struct io_uring_sqe *sqe,
--		      bool force_nonblock)
-+		      bool force_nonblock, struct io_submit_state *state)
- {
- 	struct io_ring_ctx *ctx = req->ctx;
- 	struct kiocb *kiocb = &req->rw;
- 	int ret;
+ #define PAGE_PTRS_PER_BVEC     (sizeof(struct bio_vec) / sizeof(struct page *))
  
--	kiocb->ki_filp = fget(sqe->fd);
-+	kiocb->ki_filp = io_file_get(state, sqe->fd);
- 	if (unlikely(!kiocb->ki_filp))
- 		return -EBADF;
- 	kiocb->ki_pos = sqe->off;
-@@ -568,7 +637,7 @@ static int io_prep_rw(struct io_kiocb *req, const struct io_uring_sqe *sqe,
- 	}
- 	return 0;
- out_fput:
--	fput(kiocb->ki_filp);
-+	io_file_put(state, kiocb->ki_filp);
- 	return ret;
+ /**
+@@ -876,23 +893,43 @@ static int __bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
  }
  
-@@ -607,7 +676,7 @@ static int io_import_iovec(struct io_ring_ctx *ctx, int rw,
- }
- 
- static ssize_t io_read(struct io_kiocb *req, const struct io_uring_sqe *sqe,
--		       bool force_nonblock)
-+		       bool force_nonblock, struct io_submit_state *state)
- {
- 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
- 	struct kiocb *kiocb = &req->rw;
-@@ -615,7 +684,7 @@ static ssize_t io_read(struct io_kiocb *req, const struct io_uring_sqe *sqe,
- 	struct file *file;
- 	ssize_t ret;
- 
--	ret = io_prep_rw(req, sqe, force_nonblock);
-+	ret = io_prep_rw(req, sqe, force_nonblock, state);
- 	if (ret)
- 		return ret;
- 	file = kiocb->ki_filp;
-@@ -650,7 +719,7 @@ static ssize_t io_read(struct io_kiocb *req, const struct io_uring_sqe *sqe,
- }
- 
- static ssize_t io_write(struct io_kiocb *req, const struct io_uring_sqe *sqe,
--			bool force_nonblock)
-+			bool force_nonblock, struct io_submit_state *state)
- {
- 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
- 	struct kiocb *kiocb = &req->rw;
-@@ -658,7 +727,7 @@ static ssize_t io_write(struct io_kiocb *req, const struct io_uring_sqe *sqe,
- 	struct file *file;
- 	ssize_t ret;
- 
--	ret = io_prep_rw(req, sqe, force_nonblock);
-+	ret = io_prep_rw(req, sqe, force_nonblock, state);
- 	if (ret)
- 		return ret;
- 	file = kiocb->ki_filp;
-@@ -771,10 +840,10 @@ static int __io_submit_sqe(struct io_ring_ctx *ctx, struct io_kiocb *req,
- 		ret = io_nop(req, sqe);
- 		break;
- 	case IORING_OP_READV:
--		ret = io_read(req, sqe, force_nonblock);
-+		ret = io_read(req, sqe, force_nonblock, state);
- 		break;
- 	case IORING_OP_WRITEV:
--		ret = io_write(req, sqe, force_nonblock);
-+		ret = io_write(req, sqe, force_nonblock, state);
- 		break;
- 	case IORING_OP_FSYNC:
- 		ret = io_fsync(req, sqe, force_nonblock);
-@@ -877,17 +946,20 @@ static void io_submit_state_end(struct io_submit_state *state)
- 	blk_finish_plug(&state->plug);
- 	if (!list_empty(&state->req_list.list))
- 		io_flush_state_reqs(state->ctx, state);
-+	io_file_put(state, NULL);
- }
- 
- /*
-  * Start submission side cache.
+ /**
+- * bio_iov_iter_get_pages - pin user or kernel pages and add them to a bio
++ * bio_iov_iter_get_pages - add user or kernel pages to a bio
+  * @bio: bio to add pages to
+- * @iter: iov iterator describing the region to be mapped
++ * @iter: iov iterator describing the region to be added
++ *
++ * This takes either an iterator pointing to user memory, or one pointing to
++ * kernel pages (BVEC iterator). If we're adding user pages, we pin them and
++ * map them into the kernel. On IO completion, the caller should put those
++ * pages. If we're adding kernel pages, we just have to add the pages to the
++ * bio directly. We don't grab an extra reference to those pages (the user
++ * should already have that), and we don't put the page on IO completion.
++ * The caller needs to check if the bio is flagged BIO_HOLD_PAGES on IO
++ * completion. If it isn't, then pages should be released.
+  *
+- * Pins pages from *iter and appends them to @bio's bvec array. The
+- * pages will have to be released using put_page() when done.
+  * The function tries, but does not guarantee, to pin as many pages as
+- * fit into the bio, or are requested in *iter, whatever is smaller.
+- * If MM encounters an error pinning the requested pages, it stops.
+- * Error is returned only if 0 pages could be pinned.
++ * fit into the bio, or are requested in *iter, whatever is smaller. If
++ * MM encounters an error pinning the requested pages, it stops. Error
++ * is returned only if 0 pages could be pinned.
   */
- static void io_submit_state_start(struct io_submit_state *state,
--				  struct io_ring_ctx *ctx)
-+				  struct io_ring_ctx *ctx, unsigned max_ios)
+ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
  {
- 	state->ctx = ctx;
- 	INIT_LIST_HEAD(&state->req_list.list);
- 	state->req_count = 0;
-+	state->file = NULL;
-+	state->ios_left = max_ios;
- #ifdef CONFIG_BLOCK
- 	state->plug_cb.callback = io_state_unplug;
- 	blk_start_plug(&state->plug);
-@@ -933,7 +1005,7 @@ static int io_ring_submit(struct io_ring_ctx *ctx, unsigned int to_submit)
- 	int i, ret = 0, submit = 0;
++	const bool is_bvec = iov_iter_is_bvec(iter);
+ 	unsigned short orig_vcnt = bio->bi_vcnt;
  
- 	if (to_submit > IO_PLUG_THRESHOLD) {
--		io_submit_state_start(&state, ctx);
-+		io_submit_state_start(&state, ctx, to_submit);
- 		statep = &state;
++	/*
++	 * If this is a BVEC iter, then the pages are kernel pages. Don't
++	 * release them on IO completion.
++	 */
++	if (is_bvec)
++		bio_set_flag(bio, BIO_HOLD_PAGES);
++
+ 	do {
+-		int ret = __bio_iov_iter_get_pages(bio, iter);
++		int ret;
++
++		if (is_bvec)
++			ret = __bio_iov_bvec_add_pages(bio, iter);
++		else
++			ret = __bio_iov_iter_get_pages(bio, iter);
+ 
+ 		if (unlikely(ret))
+ 			return bio->bi_vcnt > orig_vcnt ? 0 : ret;
+@@ -1634,7 +1671,8 @@ static void bio_dirty_fn(struct work_struct *work)
+ 		next = bio->bi_private;
+ 
+ 		bio_set_pages_dirty(bio);
+-		bio_release_pages(bio);
++		if (!bio_flagged(bio, BIO_HOLD_PAGES))
++			bio_release_pages(bio);
+ 		bio_put(bio);
+ 	}
+ }
+@@ -1650,7 +1688,8 @@ void bio_check_pages_dirty(struct bio *bio)
+ 			goto defer;
  	}
  
+-	bio_release_pages(bio);
++	if (!bio_flagged(bio, BIO_HOLD_PAGES))
++		bio_release_pages(bio);
+ 	bio_put(bio);
+ 	return;
+ defer:
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index 2ebd2a0d7789..b7742014c9de 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -324,8 +324,9 @@ static void blkdev_bio_end_io(struct bio *bio)
+ 		struct bio_vec *bvec;
+ 		int i;
+ 
+-		bio_for_each_segment_all(bvec, bio, i)
+-			put_page(bvec->bv_page);
++		if (!bio_flagged(bio, BIO_HOLD_PAGES))
++			bio_for_each_segment_all(bvec, bio, i)
++				put_page(bvec->bv_page);
+ 		bio_put(bio);
+ 	}
+ }
+diff --git a/fs/iomap.c b/fs/iomap.c
+index 4ee50b76b4a1..0a64c9c51203 100644
+--- a/fs/iomap.c
++++ b/fs/iomap.c
+@@ -1582,8 +1582,9 @@ static void iomap_dio_bio_end_io(struct bio *bio)
+ 		struct bio_vec *bvec;
+ 		int i;
+ 
+-		bio_for_each_segment_all(bvec, bio, i)
+-			put_page(bvec->bv_page);
++		if (!bio_flagged(bio, BIO_HOLD_PAGES))
++			bio_for_each_segment_all(bvec, bio, i)
++				put_page(bvec->bv_page);
+ 		bio_put(bio);
+ 	}
+ }
+diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
+index 5c7e7f859a24..97e206855cd3 100644
+--- a/include/linux/blk_types.h
++++ b/include/linux/blk_types.h
+@@ -215,6 +215,7 @@ struct bio {
+ /*
+  * bio flags
+  */
++#define BIO_HOLD_PAGES	0	/* don't put O_DIRECT pages */
+ #define BIO_SEG_VALID	1	/* bi_phys_segments valid */
+ #define BIO_CLONED	2	/* doesn't own data */
+ #define BIO_BOUNCED	3	/* bio is a bounce bio */
 -- 
 2.17.1
