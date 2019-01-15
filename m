@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51110 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730116AbfAON4i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Jan 2019 08:56:38 -0500
+Received: from foss.arm.com ([217.140.101.70]:50976 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730112AbfAON40 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Jan 2019 08:56:26 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 06/24] arm64: compat: Split kuser32
-Date: Tue, 15 Jan 2019 13:55:21 +0000
-Message-ID: <20190115135539.24762-7-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 01/24] kernel: Standardize vdso_datapage
+Date: Tue, 15 Jan 2019 13:55:16 +0000
+Message-ID: <20190115135539.24762-2-vincenzo.frascino@arm.com>
 In-Reply-To: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,162 +15,87 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20190115135521.qZLNvyztNYLjhNxaXl1nZ2E1NjuWbF2PdeCpFH8DbBQ@z>
+Message-ID: <20190115135516.sYblS1DrMU5YZ0MEYrC28kZPz1dOHZoQ-hHr-2xFrMQ@z>
 
-To make it possible to disable kuser helpers in aarch32 we need to
-divide the kuser and the sigreturn functionalities.
+In an effort to unify the common code for managing the vdso library in
+between all the architectures that support it, this patch tries to
+provide a common format for the vdso datapage.
 
-This patch splits the current version of kuser32 in kuser32 (for kuser
-helpers) and sigreturn32 (for sigreturn helpers).
+As a result of this, this patch generalized the data structures in vgtod.h
+from x86 private includes to general includes (include/vdso).
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/Makefile      |  2 +-
- arch/arm64/kernel/kuser32.S     | 58 ++-------------------------------
- arch/arm64/kernel/sigreturn32.S | 46 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 57 deletions(-)
- create mode 100644 arch/arm64/kernel/sigreturn32.S
+ include/vdso/datapage.h | 60 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 include/vdso/datapage.h
 
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index cd434d0719c1..50f76b88a967 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
- 
- obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
--					   sys_compat.o
-+					   sigreturn32.o sys_compat.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
- obj-$(CONFIG_MODULES)			+= module.o
- obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
-diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-index 997e6b27ff6a..f19e2b015097 100644
---- a/arch/arm64/kernel/kuser32.S
-+++ b/arch/arm64/kernel/kuser32.S
-@@ -1,24 +1,9 @@
- /*
-- * Low-level user helpers placed in the vectors page for AArch32.
-+ * AArch32 user helpers.
-  * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-  *
-  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-- * Copyright (C) 2012 ARM Ltd.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-- *
-- *
-- * AArch32 user helpers.
-+ * Copyright (C) 2012-2018 ARM Ltd.
-  *
-  * Each segment is 32-byte aligned and will be moved to the top of the high
-  * vector page.  New segments (if ever needed) must be added in front of
-@@ -77,42 +62,3 @@ __kuser_helper_version:			// 0xffff0ffc
- 	.word	((__kuser_helper_end - __kuser_helper_start) >> 5)
- 	.globl	__kuser_helper_end
- __kuser_helper_end:
--
--/*
-- * AArch32 sigreturn code
-- *
-- * For ARM syscalls, the syscall number has to be loaded into r7.
-- * We do not support an OABI userspace.
-- *
-- * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-- * need two 16-bit instructions.
-- */
--	.globl __aarch32_sigret_code_start
--__aarch32_sigret_code_start:
--
--	/*
--	 * ARM Code
--	 */
--	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
--
--	/*
--	 * ARM code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
--
--        .globl __aarch32_sigret_code_end
--__aarch32_sigret_code_end:
-diff --git a/arch/arm64/kernel/sigreturn32.S b/arch/arm64/kernel/sigreturn32.S
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
 new file mode 100644
-index 000000000000..475d30d471ac
+index 000000000000..e88678f918e5
 --- /dev/null
-+++ b/arch/arm64/kernel/sigreturn32.S
-@@ -0,0 +1,46 @@
++++ b/include/vdso/datapage.h
+@@ -0,0 +1,60 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_DATAPAGE_H
++#define __VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <linux/bits.h>
++#include <linux/types.h>
++#include <linux/time.h>
++
++#define VDSO_BASES	(CLOCK_TAI + 1)
++#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
++			 BIT(CLOCK_MONOTONIC)		| \
++			 BIT(CLOCK_MONOTONIC_RAW)	| \
++			 BIT(CLOCK_BOOTTIME)		| \
++			 BIT(CLOCK_TAI))
++#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
++			 BIT(CLOCK_MONOTONIC_COARSE))
++
 +/*
-+ * AArch32 sigreturn code.
-+ * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
++ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
++ * clock_id. For high-resolution clocks, this encodes the time
++ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
++ * the actual time.
 + *
-+ * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-+ * Copyright (C) 2012-2018 ARM Ltd.
-+ *
-+ * For ARM syscalls, the syscall number has to be loaded into r7.
-+ * We do not support an OABI userspace.
-+ *
-+ * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-+ * need two 16-bit instructions.
++ * To be noticed that nsec is left-shifted by vdso_data.shift.
 + */
++struct vdso_timestamp {
++	u64 sec;
++	u64 nsec;
++};
 +
-+#include <asm/unistd.h>
++/*
++ * vdso_data will be accessed by 32 and 64 bit code at the same time
++ * so we should be careful before modifying this structure.
++ */
++struct vdso_data {
++	u32 seq;		/* Timebase sequence counter */
 +
-+	.globl __aarch32_sigret_code_start
-+__aarch32_sigret_code_start:
++	s32 clock_mode;
++	u64 cycle_last;		/* Timebase at clocksource init */
++	u64 mask;		/* Clocksource mask (mono = raw) */
++	u32 mult;		/* Clocksource multiplier */
++	u32 shift;		/* Clocksource shift (mono = raw) */
 +
-+	/*
-+	 * ARM Code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3		// mov	r7, #__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef		// svc	#__NR_compat_sigreturn
++	struct vdso_timestamp basetime[VDSO_BASES];
 +
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
++	s32 tz_minuteswest;	/* Timezone definitions */
++	s32 tz_dsttime;
++	u32 use_syscall;
++	u32 __reserved;
++};
 +
-+	/*
-+	 * ARM code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
++#endif /* !__ASSEMBLY__ */
 +
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
++#endif /* __KERNEL__ */
 +
-+        .globl __aarch32_sigret_code_end
-+__aarch32_sigret_code_end:
++#endif /* __VDSO_DATAPAGE_H */
 -- 
 2.20.1
