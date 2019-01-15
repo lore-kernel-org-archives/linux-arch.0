@@ -1,105 +1,80 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 01/24] kernel: Standardize vdso_datapage
-Date: Tue, 15 Jan 2019 13:55:16 +0000
-Message-ID: <20190115135539.24762-2-vincenzo.frascino@arm.com>
-References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Tue, 15 Jan 2019 14:56:34 +0100
+Message-ID: <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
+References: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+ <20190103073622.GA24323@lst.de>
+ <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
+ <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
+ <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+ <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
+ <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
+ <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de>
+ <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de>
+ <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de>
+ <20190115133558.GA29225@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190115135539.24762-1-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190115133558.GA29225@lst.de>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-In an effort to unify the common code for managing the vdso library in
-between all the architectures that support it, this patch tries to
-provide a common format for the vdso datapage.
+On 15 January 2019 at 2:35PM, Christoph Hellwig wrote:
+> On Tue, Jan 15, 2019 at 11:55:25AM +0100, Christian Zigotzky wrote:
+>> Next step: 21074ef03c0816ae158721a78cabe9035938dddd (powerpc/dma: use the
+>> generic direct mapping bypass)
+>>
+>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>
+>> git checkout 21074ef03c0816ae158721a78cabe9035938dddd
+>>
+>> I was able to compile the kernel for the AmigaOne X1000 (Nemo board with PA
+>> Semi PA6T-1682M SoC). It boots but the PA Semi onboard ethernet doesn't
+>> work.
+> Thanks.  But we are exactly missing the steps that are relevant.  I've
+> pushed a fixed up powerpc-dma.6 tree, which will only change starting from
+> the first commit that didn't link.
+>
+> The first commit that changed from the old one is this one:
+>
+> http://git.infradead.org/users/hch/misc.git/commitdiff/257002094bc5935dd63207a380d9698ab81f0775
+>
+> which was that one that your compile failed on first.
+>
+> Thanks again for all your work!
+>
+Thank you! I tried the commit 240d7ecd7f6fa62e074e8a835e620047954f0b28 
+(powerpc/dma: use the dma-direct allocator for coherent platforms) again.
 
-As a result of this, this patch generalized the data structures in vgtod.h
-from x86 private includes to general includes (include/vdso).
+git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+git checkout 240d7ecd7f6fa62e074e8a835e620047954f0b28
+
+I modified the 'dma.c' patch because of the undefined references to 
+'__dma_nommu_free_coherent' and '__dma_nommu_alloc_coherent':
+
 ---
- include/vdso/datapage.h | 60 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 60 insertions(+)
- create mode 100644 include/vdso/datapage.h
 
-diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-new file mode 100644
-index 000000000000..e88678f918e5
---- /dev/null
-+++ b/include/vdso/datapage.h
-@@ -0,0 +1,60 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_DATAPAGE_H
-+#define __VDSO_DATAPAGE_H
-+
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/bits.h>
-+#include <linux/types.h>
-+#include <linux/time.h>
-+
-+#define VDSO_BASES	(CLOCK_TAI + 1)
-+#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
-+			 BIT(CLOCK_MONOTONIC)		| \
-+			 BIT(CLOCK_MONOTONIC_RAW)	| \
-+			 BIT(CLOCK_BOOTTIME)		| \
-+			 BIT(CLOCK_TAI))
-+#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
-+			 BIT(CLOCK_MONOTONIC_COARSE))
-+
-+/*
-+ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
-+ * clock_id. For high-resolution clocks, this encodes the time
-+ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
-+ * the actual time.
-+ *
-+ * To be noticed that nsec is left-shifted by vdso_data.shift.
-+ */
-+struct vdso_timestamp {
-+	u64 sec;
-+	u64 nsec;
-+};
-+
-+/*
-+ * vdso_data will be accessed by 32 and 64 bit code at the same time
-+ * so we should be careful before modifying this structure.
-+ */
-+struct vdso_data {
-+	u32 seq;		/* Timebase sequence counter */
-+
-+	s32 clock_mode;
-+	u64 cycle_last;		/* Timebase at clocksource init */
-+	u64 mask;		/* Clocksource mask (mono = raw) */
-+	u32 mult;		/* Clocksource multiplier */
-+	u32 shift;		/* Clocksource shift (mono = raw) */
-+
-+	struct vdso_timestamp basetime[VDSO_BASES];
-+
-+	s32 tz_minuteswest;	/* Timezone definitions */
-+	s32 tz_dsttime;
-+	u32 use_syscall;
-+	u32 __reserved;
-+};
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __VDSO_DATAPAGE_H */
--- 
-2.20.1
+@@ -163,8 +99,13 @@ static inline void dma_nommu_sync_single(struct 
+device *dev,
+  #endif
+
+  const struct dma_map_ops dma_nommu_ops = {
++       .alloc                          = dma_direct_alloc,
++       .free                           = dma_direct_free,
+         .map_sg                         = dma_nommu_map_sg,
+         .unmap_sg                       = dma_nommu_unmap_sg,
+         .dma_supported                  = dma_direct_supported,
+
+---
+
+The X1000 boots and the PASEMI onboard ethernet works! X5000 (P5020 
+board): U-Boot loads the kernel and the dtb file. Then the kernel starts 
+but it doesn't find any hard disks (partitions).
+
+-- Christian
