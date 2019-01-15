@@ -1,49 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51512 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730061AbfAON5S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Jan 2019 08:57:18 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 23/24] clock: gic-timer: Add support for vdso_direct
-Date: Tue, 15 Jan 2019 13:55:38 +0000
-Message-ID: <20190115135539.24762-24-vincenzo.frascino@arm.com>
-In-Reply-To: <20190115135539.24762-1-vincenzo.frascino@arm.com>
-References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
+Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.82]:14698 "EHLO
+        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730117AbfAON4j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2019 08:56:39 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+References: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+ <20190103073622.GA24323@lst.de>
+ <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
+ <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
+ <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+ <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
+ <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
+ <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de>
+ <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de>
+ <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de>
+ <20190115133558.GA29225@lst.de>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
+Date: Tue, 15 Jan 2019 14:56:34 +0100
 MIME-Version: 1.0
+In-Reply-To: <20190115133558.GA29225@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20190115135538.UASOOiWc58GtmV51G0nxzjzSHnz38PnXm16mN5lZtZ4@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190115135634.UfxDd4345R6lBIbH8qNf6SWgMovuyRk4ZDhFqWLFijA@z>
 
-This patch is a consequence of the introduction of vdso_direct on
-mips architectures.
+On 15 January 2019 at 2:35PM, Christoph Hellwig wrote:
+> On Tue, Jan 15, 2019 at 11:55:25AM +0100, Christian Zigotzky wrote:
+>> Next step: 21074ef03c0816ae158721a78cabe9035938dddd (powerpc/dma: use the
+>> generic direct mapping bypass)
+>>
+>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>
+>> git checkout 21074ef03c0816ae158721a78cabe9035938dddd
+>>
+>> I was able to compile the kernel for the AmigaOne X1000 (Nemo board with PA
+>> Semi PA6T-1682M SoC). It boots but the PA Semi onboard ethernet doesn't
+>> work.
+> Thanks.  But we are exactly missing the steps that are relevant.  I've
+> pushed a fixed up powerpc-dma.6 tree, which will only change starting from
+> the first commit that didn't link.
+>
+> The first commit that changed from the old one is this one:
+>
+> http://git.infradead.org/users/hch/misc.git/commitdiff/257002094bc5935dd63207a380d9698ab81f0775
+>
+> which was that one that your compile failed on first.
+>
+> Thanks again for all your work!
+>
+Thank you! I tried the commit 240d7ecd7f6fa62e074e8a835e620047954f0b28 
+(powerpc/dma: use the dma-direct allocator for coherent platforms) again.
 
-If the clock source is selected, vdso_direct is set to true.
+git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
 
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+git checkout 240d7ecd7f6fa62e074e8a835e620047954f0b28
+
+I modified the 'dma.c' patch because of the undefined references to 
+'__dma_nommu_free_coherent' and '__dma_nommu_alloc_coherent':
+
 ---
- drivers/clocksource/mips-gic-timer.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/clocksource/mips-gic-timer.c b/drivers/clocksource/mips-gic-timer.c
-index 54f8a331b53a..e7e0789084cd 100644
---- a/drivers/clocksource/mips-gic-timer.c
-+++ b/drivers/clocksource/mips-gic-timer.c
-@@ -158,7 +158,10 @@ static struct clocksource gic_clocksource = {
- 	.name		= "GIC",
- 	.read		= gic_hpt_read,
- 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
--	.archdata	= { .vdso_clock_mode = VDSO_CLOCK_GIC },
-+	.archdata	= {
-+			    .vdso_direct = true,
-+			    .vdso_clock_mode = VDSO_CLOCK_GIC
-+			  },
- };
- 
- static int __init __gic_clocksource_init(void)
--- 
-2.20.1
+@@ -163,8 +99,13 @@ static inline void dma_nommu_sync_single(struct 
+device *dev,
+  #endif
+
+  const struct dma_map_ops dma_nommu_ops = {
++       .alloc                          = dma_direct_alloc,
++       .free                           = dma_direct_free,
+         .map_sg                         = dma_nommu_map_sg,
+         .unmap_sg                       = dma_nommu_unmap_sg,
+         .dma_supported                  = dma_direct_supported,
+
+---
+
+The X1000 boots and the PASEMI onboard ethernet works! X5000 (P5020 
+board): U-Boot loads the kernel and the dtb file. Then the kernel starts 
+but it doesn't find any hard disks (partitions).
+
+-- Christian
