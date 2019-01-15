@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 12/24] lib: vdso: Add compat support
-Date: Tue, 15 Jan 2019 13:55:27 +0000
-Message-ID: <20190115135539.24762-13-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 23/24] clock: gic-timer: Add support for vdso_direct
+Date: Tue, 15 Jan 2019 13:55:38 +0000
+Message-ID: <20190115135539.24762-24-vincenzo.frascino@arm.com>
 References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,34 +21,33 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Some 64 bit architectures have support for 32 bit applications that
-require a separate version of the vDSOs.
+This patch is a consequence of the introduction of vdso_direct on
+mips architectures.
 
-This patch adds support to the generic code for compat fallback
-functions.
+If the clock source is selected, vdso_direct is set to true.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- lib/vdso/gettimeofday.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ drivers/clocksource/mips-gic-timer.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index f008795f454a..874dacfc7b4d 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -28,7 +28,11 @@
-  * - clock_gettime_fallback(): fallback for clock_gettime.
-  * - clock_getres_fallback(): fallback for clock_getres.
-  */
-+#ifdef ENABLE_COMPAT_VDSO
-+#include <asm/vdso/compat_gettimeofday.h>
-+#else
- #include <asm/vdso/gettimeofday.h>
-+#endif /* ENABLE_COMPAT_VDSO */
+diff --git a/drivers/clocksource/mips-gic-timer.c b/drivers/clocksource/mips-gic-timer.c
+index 54f8a331b53a..e7e0789084cd 100644
+--- a/drivers/clocksource/mips-gic-timer.c
++++ b/drivers/clocksource/mips-gic-timer.c
+@@ -158,7 +158,10 @@ static struct clocksource gic_clocksource = {
+ 	.name		= "GIC",
+ 	.read		= gic_hpt_read,
+ 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+-	.archdata	= { .vdso_clock_mode = VDSO_CLOCK_GIC },
++	.archdata	= {
++			    .vdso_direct = true,
++			    .vdso_clock_mode = VDSO_CLOCK_GIC
++			  },
+ };
  
- #ifdef CONFIG_HAVE_HW_COUNTER
- static notrace int do_hres(const struct vdso_data *vd,
+ static int __init __gic_clocksource_init(void)
 -- 
 2.20.1
