@@ -1,38 +1,40 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Tue, 15 Jan 2019 14:35:58 +0100
-Message-ID: <20190115133558.GA29225@lst.de>
-References: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de> <20190103073622.GA24323@lst.de> <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de> <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de> <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de> <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de> <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de> <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de> <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de> <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH] RISCV:IRQ: Support IRQ_WORK interrupts with self IPI
+Date: Tue, 15 Jan 2019 05:41:08 -0800
+Message-ID: <20190115134108.GA13216@infradead.org>
+References: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de>
+In-Reply-To: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: G SatishKumar <gsatish.ldd@gmail.com>
+Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, palmer@sifive.com, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 15, 2019 at 11:55:25AM +0100, Christian Zigotzky wrote:
-> Next step: 21074ef03c0816ae158721a78cabe9035938dddd (powerpc/dma: use the 
-> generic direct mapping bypass)
->
-> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->
-> git checkout 21074ef03c0816ae158721a78cabe9035938dddd
->
-> I was able to compile the kernel for the AmigaOne X1000 (Nemo board with PA 
-> Semi PA6T-1682M SoC). It boots but the PA Semi onboard ethernet doesn't 
-> work.
+On Sun, Jan 06, 2019 at 07:02:58PM +0530, G SatishKumar wrote:
+> 	This patch adds, IRQ Work interrupts support to RISCV arch.
+> 
+> 	This patch is based on the arm32 patch ARM 7872/1
+> 	which ports cleanly.
+> 
+> 	Done set of changes based on RISCV SMP process.
+> 
+> 	commit bf18525fd793 ("ARM: 7872/1: Support arch_irq_work_raise()
+> 		via self IPIs")
+> 	Author: Stephen Boyd <sboyd at codeaurora.org>
+> 	Date:   Tue Oct 29 20:32:56 2013 +0100
+> 
+> 	By default, IRQ work is run from the tick interrupt (see
+> 	irq_work_run() in update_process_times()). When we're in full
+> 	NOHZ mode, restarting the tick requires the use of IRQ work and
+> 	if the only place we run IRQ work is in the tick interrupt we
+> 	have an unbreakable cycle. Implement arch_irq_work_raise() via
+> 	self IPIs to break this cycle and get the tick started again.
+> 	Note that we implement this via IPIs which are only available on
+> 	SMP builds. This shouldn't be a problem because full NOHZ is only
+> 	supported on SMP builds anyway.
 
-Thanks.  But we are exactly missing the steps that are relevant.  I've
-pushed a fixed up powerpc-dma.6 tree, which will only change starting from
-the first commit that didn't link.
-
-The first commit that changed from the old one is this one:
-
-http://git.infradead.org/users/hch/misc.git/commitdiff/257002094bc5935dd63207a380d9698ab81f0775
-
-which was that one that your compile failed on first.
-
-Thanks again for all your work!
+The commit logs here looks oddly indented.  Also what workload did you
+test this with?
