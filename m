@@ -1,66 +1,35 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 05/16] Add io_uring IO interface
-Date: Tue, 15 Jan 2019 10:26:22 -0700
-Message-ID: <a101eebf-d232-7a31-ee81-ba43c36ff794@kernel.dk>
-References: <20190115025531.13985-1-axboe@kernel.dk>
- <20190115025531.13985-6-axboe@kernel.dk> <20190115095134.6286b7d6@lwn.net>
- <5e1fe0b7-7998-d15d-267b-4dbbc01b0b53@kernel.dk>
+From: "Martin K. Petersen" <martin.petersen@oracle.com>
+Subject: Re: [PATCH 05/15] Add io_uring IO interface
+Date: Tue, 15 Jan 2019 12:31:59 -0500
+Message-ID: <yq1pnsxu8s0.fsf@oracle.com>
+References: <20190110024404.25372-1-axboe@kernel.dk>
+	<20190110024404.25372-6-axboe@kernel.dk> <yq1sgxzys3s.fsf@oracle.com>
+	<f97a5b9f-68f3-c4af-649d-7dffbc35e37f@kernel.dk>
+	<54976aac-bef2-880f-dc10-e3030189a08a@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <5e1fe0b7-7998-d15d-267b-4dbbc01b0b53@kernel.dk>
-Content-Language: en-US
+In-Reply-To: <54976aac-bef2-880f-dc10-e3030189a08a@kernel.dk> (Jens Axboe's
+	message of "Sun, 13 Jan 2019 09:22:16 -0700")
 Sender: owner-linux-aio@kvack.org
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
+To: Jens Axboe <axboe@kernel.dk>
+Cc: "Martin K. Petersen" <martin.petersen@oracle.com>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On 1/15/19 9:55 AM, Jens Axboe wrote:
-> On 1/15/19 9:51 AM, Jonathan Corbet wrote:
->> On Mon, 14 Jan 2019 19:55:20 -0700
->> Jens Axboe <axboe@kernel.dk> wrote:
->>
->> So the [0/16] cover letter seems to have gone astray this time?
-> 
-> It did go out, but I forgot to add a Subject line to it...
-> 
-> https://marc.info/?l=linux-block&m=154752095709422&w=2
-> 
-> 
->>> The submission queue (SQ) and completion queue (CQ) rings are shared
->>> between the application and the kernel. This eliminates the need to
->>> copy data back and forth to submit and complete IO.
->>>
->>> IO submissions use the io_uring_sqe data structure, and completions
->>> are generated in the form of io_uring_sqe data structures. The SQ
->>> ring is an index into the io_uring_sqe array, which makes it possible
->>> to submit a batch of IOs without them being contiguous in the ring.
->>> The CQ ring is always contiguous, as completion events are inherently
->>> unordered and can point to any io_uring_iocb.
->>>
->>> Two new system calls are added for this:
->>>
->>> io_uring_setup(entries, iovecs, params)
->>> 	Sets up a context for doing async IO. On success, returns a file
->>> 	descriptor that the application can mmap to gain access to the
->>> 	SQ ring, CQ ring, and io_uring_iocbs.
->>
->> Looking at the code, it would appear that the "iovecs" parameter doesn't
->> actually exist.
-> 
-> Indeed, need to update that commit message. and io_uring_iocbs should
-> now be io_uring_sqes.
-> 
-> The iovec/file registration is done through io_uring_register(2).
 
-Updated commit message which covers both this one, and the
-IORING_ENTER_GETEVENTS below.
+Jens,
 
-http://git.kernel.dk/cgit/linux-block/commit/?h=io_uring&id=d14a06629baef2b0701dbd01ac9c9066f73065ec
+> I bit the bullet and bumped the size. 64 bytes is a nicer size in terms
+> of cachelines anyway, and I really doubt that 48 vs 64 bytes makes a
+> size consumption problem for anyone.
+>
+> The buf_index is only used for the fixed buffers, which means that we have
+> 16 bytes / 128 bits that we can grab for things like KV.
+
+Great!
 
 -- 
-Jens Axboe
+Martin K. Petersen	Oracle Linux Engineering
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
