@@ -1,143 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:43866 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727976AbfAOC4A (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:56:00 -0500
-Received: by mail-pf1-f195.google.com with SMTP id w73so568688pfk.10
-        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:55:59 -0800 (PST)
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:40619 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727660AbfAOCzn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:55:43 -0500
+Received: by mail-pf1-f193.google.com with SMTP id i12so574900pfo.7
+        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:55:43 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 11/16] io_uring: batch io_kiocb allocation
-Date: Mon, 14 Jan 2019 19:55:26 -0700
-Message-ID: <20190115025531.13985-12-axboe@kernel.dk>
+Subject: [PATCH 03/16] block: add bio_set_polled() helper
+Date: Mon, 14 Jan 2019 19:55:18 -0700
+Message-ID: <20190115025531.13985-4-axboe@kernel.dk>
 In-Reply-To: <20190115025531.13985-1-axboe@kernel.dk>
 References: <20190115025531.13985-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190115025526.LeRqHG_2OvOts3nJ-F1SE7XJ_9cMjWkhhb0GcPT7nPY@z>
+Message-ID: <20190115025518.63LFny-KZkAfZ4YkNNMRI-C06kcXppPtuapXnAwMR4k@z>
 
-Similarly to how we use the state->ios_left to know how many references
-to get to a file, we can use it to allocate the io_kiocb's we need in
-bulk.
+For the upcoming async polled IO, we can't sleep allocating requests.
+If we do, then we introduce a deadlock where the submitter already
+has async polled IO in-flight, but can't wait for them to complete
+since polled requests must be active found and reaped.
+
+Utilize the helper in the blockdev DIRECT_IO code.
 
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/io_uring.c | 66 ++++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 50 insertions(+), 16 deletions(-)
+ fs/block_dev.c      |  4 ++--
+ include/linux/bio.h | 14 ++++++++++++++
+ 2 files changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/fs/io_uring.c b/fs/io_uring.c
-index 0d7c44a2d424..d0e4e37592fe 100644
---- a/fs/io_uring.c
-+++ b/fs/io_uring.c
-@@ -140,6 +140,13 @@ struct io_submit_state {
- 	struct list_multi req_list;
- 	unsigned int req_count;
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index 5415579f3e14..2ebd2a0d7789 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -233,7 +233,7 @@ __blkdev_direct_IO_simple(struct kiocb *iocb, struct iov_iter *iter,
+ 		task_io_account_write(ret);
+ 	}
+ 	if (iocb->ki_flags & IOCB_HIPRI)
+-		bio.bi_opf |= REQ_HIPRI;
++		bio_set_polled(&bio, iocb);
  
-+	/*
-+	 * io_kiocb alloc cache
-+	 */
-+	void *reqs[IO_IOPOLL_BATCH];
-+	unsigned int free_reqs;
-+	unsigned int cur_req;
-+
- 	/*
- 	 * File reference cache
- 	 */
-@@ -244,29 +251,52 @@ static void io_fill_cq_error(struct io_ring_ctx *ctx, struct sqe_submit *s,
- 		wake_up(&ctx->wait);
- }
+ 	qc = submit_bio(&bio);
+ 	for (;;) {
+@@ -401,7 +401,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
+ 		nr_pages = iov_iter_npages(iter, BIO_MAX_PAGES);
+ 		if (!nr_pages) {
+ 			if (iocb->ki_flags & IOCB_HIPRI)
+-				bio->bi_opf |= REQ_HIPRI;
++				bio_set_polled(bio, iocb);
  
--static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx)
-+static void io_ring_drop_ctx_refs(struct io_ring_ctx *ctx, unsigned refs)
- {
-+	percpu_ref_put_many(&ctx->refs, refs);
-+
-+	if (waitqueue_active(&ctx->wait))
-+		wake_up(&ctx->wait);
+ 			qc = submit_bio(bio);
+ 			WRITE_ONCE(iocb->ki_cookie, qc);
+diff --git a/include/linux/bio.h b/include/linux/bio.h
+index 7380b094dcca..f6f0a2b3cbc8 100644
+--- a/include/linux/bio.h
++++ b/include/linux/bio.h
+@@ -823,5 +823,19 @@ static inline int bio_integrity_add_page(struct bio *bio, struct page *page,
+ 
+ #endif /* CONFIG_BLK_DEV_INTEGRITY */
+ 
++/*
++ * Mark a bio as polled. Note that for async polled IO, the caller must
++ * expect -EWOULDBLOCK if we cannot allocate a request (or other resources).
++ * We cannot block waiting for requests on polled IO, as those completions
++ * must be found by the caller. This is different than IRQ driven IO, where
++ * it's safe to wait for IO to complete.
++ */
++static inline void bio_set_polled(struct bio *bio, struct kiocb *kiocb)
++{
++	bio->bi_opf |= REQ_HIPRI;
++	if (!is_sync_kiocb(kiocb))
++		bio->bi_opf |= REQ_NOWAIT;
 +}
 +
-+static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
-+				   struct io_submit_state *state)
-+{
-+	gfp_t gfp = GFP_ATOMIC | __GFP_NOWARN;
- 	struct io_kiocb *req;
- 
- 	if (!percpu_ref_tryget(&ctx->refs))
- 		return NULL;
- 
--	req = kmem_cache_alloc(req_cachep, GFP_ATOMIC | __GFP_NOWARN);
--	if (!req)
--		return NULL;
--
--	req->ctx = ctx;
--	INIT_LIST_HEAD(&req->list);
--	req->flags = 0;
--	return req;
--}
-+	if (!state)
-+		req = kmem_cache_alloc(req_cachep, gfp);
-+	else if (!state->free_reqs) {
-+		size_t sz;
-+		int ret;
-+
-+		sz = min_t(size_t, state->ios_left, ARRAY_SIZE(state->reqs));
-+		ret = kmem_cache_alloc_bulk(req_cachep, gfp, sz,
-+						state->reqs);
-+		if (ret <= 0)
-+			goto out;
-+		state->free_reqs = ret - 1;
-+		state->cur_req = 1;
-+		req = state->reqs[0];
-+	} else {
-+		req = state->reqs[state->cur_req];
-+		state->free_reqs--;
-+		state->cur_req++;
-+	}
- 
--static void io_ring_drop_ctx_refs(struct io_ring_ctx *ctx, unsigned refs)
--{
--	percpu_ref_put_many(&ctx->refs, refs);
-+	if (req) {
-+		req->ctx = ctx;
-+		req->flags = 0;
-+		return req;
-+	}
- 
--	if (waitqueue_active(&ctx->wait))
--		wake_up(&ctx->wait);
-+out:
-+	io_ring_drop_ctx_refs(ctx, 1);
-+	return NULL;
- }
- 
- static void io_free_req_many(struct io_ring_ctx *ctx, void **reqs, int *nr)
-@@ -910,7 +940,7 @@ static int io_submit_sqe(struct io_ring_ctx *ctx, struct sqe_submit *s,
- 	struct io_kiocb *req;
- 	ssize_t ret;
- 
--	req = io_get_req(ctx);
-+	req = io_get_req(ctx, state);
- 	if (unlikely(!req))
- 		return -EAGAIN;
- 
-@@ -947,6 +977,9 @@ static void io_submit_state_end(struct io_submit_state *state)
- 	if (!list_empty(&state->req_list.list))
- 		io_flush_state_reqs(state->ctx, state);
- 	io_file_put(state, NULL);
-+	if (state->free_reqs)
-+		kmem_cache_free_bulk(req_cachep, state->free_reqs,
-+					&state->reqs[state->cur_req]);
- }
- 
- /*
-@@ -958,6 +991,7 @@ static void io_submit_state_start(struct io_submit_state *state,
- 	state->ctx = ctx;
- 	INIT_LIST_HEAD(&state->req_list.list);
- 	state->req_count = 0;
-+	state->free_reqs = 0;
- 	state->file = NULL;
- 	state->ios_left = max_ios;
- #ifdef CONFIG_BLOCK
+ #endif /* CONFIG_BLOCK */
+ #endif /* __LINUX_BIO_H */
 -- 
 2.17.1
