@@ -1,45 +1,64 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH] riscv: fixup max_low_pfn with PFN_DOWN.
-Date: Tue, 15 Jan 2019 08:12:54 -0800
-Message-ID: <20190115161254.GA19081@infradead.org>
-References: <1547280987-7630-1-git-send-email-guoren@kernel.org>
- <20190115153613.GC26443@infradead.org>
- <20190115161000.GA22705@guoren-Inspiron-7460>
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [PATCH 05/16] Add io_uring IO interface
+Date: Tue, 15 Jan 2019 09:51:34 -0700
+Message-ID: <20190115095134.6286b7d6@lwn.net>
+References: <20190115025531.13985-1-axboe@kernel.dk>
+	<20190115025531.13985-6-axboe@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190115161000.GA22705@guoren-Inspiron-7460>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <guoren@kernel.org>
-Cc: Christoph Hellwig <hch@infradead.org>, palmer@sifive.com, aou@eecs.berkeley.edu, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>, Mao Han <mao_han@c-sky.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190115025531.13985-6-axboe@kernel.dk>
+Sender: owner-linux-aio@kvack.org
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 16, 2019 at 12:10:00AM +0800, Guo Ren wrote:
-> > >  	set_max_mapnr(PFN_DOWN(mem_size));
-> > > -	max_low_pfn = memblock_end_of_DRAM();
-> > > +	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
-> > 
-> > I know it is used just above, but can we please just switch this
-> > code to use >> PAGE_SHIFT instead of PFN_DOWN, which just horribly
-> > obsfucates what is going on?
-> ???
-> #define PFN_DOWN(x)	((x) >> PAGE_SHIFT)
-> 
-> phys_addr_t __init_memblock memblock_end_of_DRAM(void)
-> {
-> 	int idx = memblock.memory.cnt - 1;
-> 
-> 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
-> }
-> 
-> What's the problem? PFN_DOWN() couldn't be used with function call?
+On Mon, 14 Jan 2019 19:55:20 -0700
+Jens Axboe <axboe@kernel.dk> wrote:
 
-PFN_DOWN gives you the correct result.  But I think it actually
-drastically reduces readability over just opencoding it.
+So the [0/16] cover letter seems to have gone astray this time?
 
-> My patch just want to point out that max_low_pfn is PFN not size. In fact
-> there is no error for running without my patch :P
+Anyway, a couple of minor notes/questions:
 
-No, I think your patch is correct.  I just wonder if we could make
-the code easier to read.
+> The submission queue (SQ) and completion queue (CQ) rings are shared
+> between the application and the kernel. This eliminates the need to
+> copy data back and forth to submit and complete IO.
+> 
+> IO submissions use the io_uring_sqe data structure, and completions
+> are generated in the form of io_uring_sqe data structures. The SQ
+> ring is an index into the io_uring_sqe array, which makes it possible
+> to submit a batch of IOs without them being contiguous in the ring.
+> The CQ ring is always contiguous, as completion events are inherently
+> unordered and can point to any io_uring_iocb.
+> 
+> Two new system calls are added for this:
+> 
+> io_uring_setup(entries, iovecs, params)
+> 	Sets up a context for doing async IO. On success, returns a file
+> 	descriptor that the application can mmap to gain access to the
+> 	SQ ring, CQ ring, and io_uring_iocbs.
+
+Looking at the code, it would appear that the "iovecs" parameter doesn't
+actually exist.
+
+> io_uring_enter(fd, to_submit, min_complete, flags)
+> 	Initiates IO against the rings mapped to this fd, or waits for
+> 	them to complete, or both The behavior is controlled by the
+> 	parameters passed in. If 'min_complete' is non-zero, then we'll
+> 	try and submit new IO. If IORING_ENTER_GETEVENTS is set, the
+> 	kernel will wait for 'min_complete' events, if they aren't
+> 	already available.
+
+I feel like I'm missing something here.  Rather than have the
+IORING_ENTER_GETEVENTS flag, why not just wait if min_complete > 0 ?
+
+Thanks,
+
+jon
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
