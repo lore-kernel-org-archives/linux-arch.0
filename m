@@ -1,85 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.82]:14698 "EHLO
-        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730117AbfAON4j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2019 08:56:39 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-References: <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
- <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
- <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de>
- <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de>
- <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de>
- <20190115133558.GA29225@lst.de>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
-Date: Tue, 15 Jan 2019 14:56:34 +0100
+Received: from Galois.linutronix.de ([146.0.238.70]:42724 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727307AbfAOO5g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2019 09:57:36 -0500
+Date: Tue, 15 Jan 2019 15:57:30 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 01/24] kernel: Standardize vdso_datapage
+In-Reply-To: <20190115135539.24762-2-vincenzo.frascino@arm.com>
+Message-ID: <alpine.DEB.2.21.1901151554260.1561@nanos.tec.linutronix.de>
+References: <20190115135539.24762-1-vincenzo.frascino@arm.com> <20190115135539.24762-2-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20190115133558.GA29225@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190115135634.UfxDd4345R6lBIbH8qNf6SWgMovuyRk4ZDhFqWLFijA@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20190115145730.PbOEIzujY_0Et-8ilKtZb8awR9v27NbaFlUgtEENh2g@z>
 
-On 15 January 2019 at 2:35PM, Christoph Hellwig wrote:
-> On Tue, Jan 15, 2019 at 11:55:25AM +0100, Christian Zigotzky wrote:
->> Next step: 21074ef03c0816ae158721a78cabe9035938dddd (powerpc/dma: use the
->> generic direct mapping bypass)
->>
->> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>
->> git checkout 21074ef03c0816ae158721a78cabe9035938dddd
->>
->> I was able to compile the kernel for the AmigaOne X1000 (Nemo board with PA
->> Semi PA6T-1682M SoC). It boots but the PA Semi onboard ethernet doesn't
->> work.
-> Thanks.  But we are exactly missing the steps that are relevant.  I've
-> pushed a fixed up powerpc-dma.6 tree, which will only change starting from
-> the first commit that didn't link.
->
-> The first commit that changed from the old one is this one:
->
-> http://git.infradead.org/users/hch/misc.git/commitdiff/257002094bc5935dd63207a380d9698ab81f0775
->
-> which was that one that your compile failed on first.
->
-> Thanks again for all your work!
->
-Thank you! I tried the commit 240d7ecd7f6fa62e074e8a835e620047954f0b28 
-(powerpc/dma: use the dma-direct allocator for coherent platforms) again.
+On Tue, 15 Jan 2019, Vincenzo Frascino wrote:
 
-git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+> +/*
+> + * There is one vdso_timestamp object in vvar for each vDSO-accelerated
+> + * clock_id. For high-resolution clocks, this encodes the time
+> + * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
+> + * the actual time.
+> + *
+> + * To be noticed that nsec is left-shifted by vdso_data.shift.
 
-git checkout 240d7ecd7f6fa62e074e8a835e620047954f0b28
+This is only true for highres clocks. For coarse the nsec value is not
+shifted.
 
-I modified the 'dma.c' patch because of the undefined references to 
-'__dma_nommu_free_coherent' and '__dma_nommu_alloc_coherent':
+> + */
+> +struct vdso_timestamp {
+> +	u64 sec;
+> +	u64 nsec;
+> +};
+> +
+> +/*
+> + * vdso_data will be accessed by 32 and 64 bit code at the same time
+> + * so we should be careful before modifying this structure.
+> + */
+> +struct vdso_data {
+> +	u32 seq;		/* Timebase sequence counter */
+> +
+> +	s32 clock_mode;
+> +	u64 cycle_last;		/* Timebase at clocksource init */
+> +	u64 mask;		/* Clocksource mask (mono = raw) */
 
----
+mono = raw? This is broken. The VDSO cannot define time different from the
+regular syscall interfaces.
 
-@@ -163,8 +99,13 @@ static inline void dma_nommu_sync_single(struct 
-device *dev,
-  #endif
+Thanks,
 
-  const struct dma_map_ops dma_nommu_ops = {
-+       .alloc                          = dma_direct_alloc,
-+       .free                           = dma_direct_free,
-         .map_sg                         = dma_nommu_map_sg,
-         .unmap_sg                       = dma_nommu_unmap_sg,
-         .dma_supported                  = dma_direct_supported,
-
----
-
-The X1000 boots and the PASEMI onboard ethernet works! X5000 (P5020 
-board): U-Boot loads the kernel and the dtb file. Then the kernel starts 
-but it doesn't find any hard disks (partitions).
-
--- Christian
+	tglx
