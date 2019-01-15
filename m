@@ -1,40 +1,105 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH] RISCV:IRQ: Support IRQ_WORK interrupts with self IPI
-Date: Tue, 15 Jan 2019 05:41:08 -0800
-Message-ID: <20190115134108.GA13216@infradead.org>
-References: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 01/24] kernel: Standardize vdso_datapage
+Date: Tue, 15 Jan 2019 13:55:16 +0000
+Message-ID: <20190115135539.24762-2-vincenzo.frascino@arm.com>
+References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1546781578-8126-1-git-send-email-gsatish.ldd@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: G SatishKumar <gsatish.ldd@gmail.com>
-Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, palmer@sifive.com, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190115135539.24762-1-vincenzo.frascino@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 06, 2019 at 07:02:58PM +0530, G SatishKumar wrote:
-> 	This patch adds, IRQ Work interrupts support to RISCV arch.
-> 
-> 	This patch is based on the arm32 patch ARM 7872/1
-> 	which ports cleanly.
-> 
-> 	Done set of changes based on RISCV SMP process.
-> 
-> 	commit bf18525fd793 ("ARM: 7872/1: Support arch_irq_work_raise()
-> 		via self IPIs")
-> 	Author: Stephen Boyd <sboyd at codeaurora.org>
-> 	Date:   Tue Oct 29 20:32:56 2013 +0100
-> 
-> 	By default, IRQ work is run from the tick interrupt (see
-> 	irq_work_run() in update_process_times()). When we're in full
-> 	NOHZ mode, restarting the tick requires the use of IRQ work and
-> 	if the only place we run IRQ work is in the tick interrupt we
-> 	have an unbreakable cycle. Implement arch_irq_work_raise() via
-> 	self IPIs to break this cycle and get the tick started again.
-> 	Note that we implement this via IPIs which are only available on
-> 	SMP builds. This shouldn't be a problem because full NOHZ is only
-> 	supported on SMP builds anyway.
+In an effort to unify the common code for managing the vdso library in
+between all the architectures that support it, this patch tries to
+provide a common format for the vdso datapage.
 
-The commit logs here looks oddly indented.  Also what workload did you
-test this with?
+As a result of this, this patch generalized the data structures in vgtod.h
+from x86 private includes to general includes (include/vdso).
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/vdso/datapage.h | 60 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 include/vdso/datapage.h
+
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+new file mode 100644
+index 000000000000..e88678f918e5
+--- /dev/null
++++ b/include/vdso/datapage.h
+@@ -0,0 +1,60 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_DATAPAGE_H
++#define __VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <linux/bits.h>
++#include <linux/types.h>
++#include <linux/time.h>
++
++#define VDSO_BASES	(CLOCK_TAI + 1)
++#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
++			 BIT(CLOCK_MONOTONIC)		| \
++			 BIT(CLOCK_MONOTONIC_RAW)	| \
++			 BIT(CLOCK_BOOTTIME)		| \
++			 BIT(CLOCK_TAI))
++#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
++			 BIT(CLOCK_MONOTONIC_COARSE))
++
++/*
++ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
++ * clock_id. For high-resolution clocks, this encodes the time
++ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
++ * the actual time.
++ *
++ * To be noticed that nsec is left-shifted by vdso_data.shift.
++ */
++struct vdso_timestamp {
++	u64 sec;
++	u64 nsec;
++};
++
++/*
++ * vdso_data will be accessed by 32 and 64 bit code at the same time
++ * so we should be careful before modifying this structure.
++ */
++struct vdso_data {
++	u32 seq;		/* Timebase sequence counter */
++
++	s32 clock_mode;
++	u64 cycle_last;		/* Timebase at clocksource init */
++	u64 mask;		/* Clocksource mask (mono = raw) */
++	u32 mult;		/* Clocksource multiplier */
++	u32 shift;		/* Clocksource shift (mono = raw) */
++
++	struct vdso_timestamp basetime[VDSO_BASES];
++
++	s32 tz_minuteswest;	/* Timezone definitions */
++	s32 tz_dsttime;
++	u32 use_syscall;
++	u32 __reserved;
++};
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __VDSO_DATAPAGE_H */
+-- 
+2.20.1
