@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 22/24] clock: csrc-4k: Add support for vdso_direct
-Date: Tue, 15 Jan 2019 13:55:37 +0000
-Message-ID: <20190115135539.24762-23-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 21/24] mips: Introduce vdso_direct
+Date: Tue, 15 Jan 2019 13:55:36 +0000
+Message-ID: <20190115135539.24762-22-vincenzo.frascino@arm.com>
 References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,33 +21,33 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch is a consequence of the introduction of vdso_direct on mips
-architectures.
+vdso_direct is an architectural clock configuration parameter that
+exposes the usage of not of the vDSO.
 
-If the clock source is selected, vdso_direct is set to true.
+If vdso_direct is false, the time related syscalls will be used instead
+of the vDSO library.
+
+This patch introduces the parameter in the mips architecture to prepare
+the ground for the support of the generic vDSO library.
 
 Cc: Ralf Baechle <ralf@linux-mips.org>
 Cc: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/kernel/csrc-r4k.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/mips/include/asm/clocksource.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/mips/kernel/csrc-r4k.c b/arch/mips/kernel/csrc-r4k.c
-index eed099f35bf1..97e2a8aafdd6 100644
---- a/arch/mips/kernel/csrc-r4k.c
-+++ b/arch/mips/kernel/csrc-r4k.c
-@@ -77,8 +77,10 @@ int __init init_r4k_clocksource(void)
- 	 * R2 onwards makes the count accessible to user mode so it can be used
- 	 * by the VDSO (HWREna is configured by configure_hwrena()).
- 	 */
--	if (cpu_has_mips_r2_r6 && rdhwr_count_usable())
-+	if (cpu_has_mips_r2_r6 && rdhwr_count_usable()) {
-+		clocksource_mips.archdata.vdso_direct = true;
- 		clocksource_mips.archdata.vdso_clock_mode = VDSO_CLOCK_R4K;
-+	}
- 
- 	clocksource_register_hz(&clocksource_mips, mips_hpt_frequency);
+diff --git a/arch/mips/include/asm/clocksource.h b/arch/mips/include/asm/clocksource.h
+index 3deb1d0c1a94..eab11ee4871a 100644
+--- a/arch/mips/include/asm/clocksource.h
++++ b/arch/mips/include/asm/clocksource.h
+@@ -23,6 +23,7 @@
+  * @vdso_clock_mode: Method the VDSO should use to access the clocksource.
+  */
+ struct arch_clocksource_data {
++	bool vdso_direct;
+ 	u8 vdso_clock_mode;
+ };
  
 -- 
 2.20.1
