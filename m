@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51160 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730061AbfAON4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Jan 2019 08:56:43 -0500
+Received: from foss.arm.com ([217.140.101.70]:51226 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730061AbfAON4u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Jan 2019 08:56:50 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 08/24] arm64: compat: Add KUSER_HELPERS config option
-Date: Tue, 15 Jan 2019 13:55:23 +0000
-Message-ID: <20190115135539.24762-9-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 11/24] arm64: compat: Generate asm offsets for signals
+Date: Tue, 15 Jan 2019 13:55:26 +0000
+Message-ID: <20190115135539.24762-12-vincenzo.frascino@arm.com>
 In-Reply-To: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 References: <20190115135539.24762-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,141 +15,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20190115135523.3AT9k4FIjm7xnJPRlEPUHHRiiROeGnrXYXGRcSm-dYw@z>
+Message-ID: <20190115135526.t10FjQQynjOueqfcqdK2ggfGm7UX4VnAgje_wFKLO1w@z>
 
-When kuser helpers are enabled the kernel maps the relative code at
-a fixed address (0xffff0000). Making configurable the option to disable
-them means that the kernel can remove this mapping and any access to
-this memory area results in a sigfault.
+This patch updates asm-offsets for arm64 to generate the correct offsets
+for compat signals.
 
-This patch adds a KUSER_HELPERS config option that can be used to
-disable the mapping when it is turned off.
-
-This option can be turned off if and only if the applications are
-designed specifically for the platform and they do not make use of the
-kuser helpers code.
+They will be useful for the implementation of the compat sigreturn
+trampolines in vDSO context.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/Kconfig          | 21 +++++++++++++++++++++
- arch/arm64/kernel/Makefile  |  3 ++-
- arch/arm64/kernel/kuser32.S |  7 +++----
- arch/arm64/kernel/vdso.c    | 15 +++++++++++++++
- 4 files changed, 41 insertions(+), 5 deletions(-)
+ arch/arm64/include/asm/signal32.h | 14 +++++++++++++-
+ arch/arm64/kernel/asm-offsets.c   |  6 ++++++
+ 2 files changed, 19 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 35d2c9d92100..77803c10b3ef 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -1466,6 +1466,27 @@ config COMPAT
- 
- 	  If you want to execute 32-bit userspace applications, say Y.
- 
-+config KUSER_HELPERS
-+	bool "Enable kuser helpers page for compatibility with 32 bit applications."
-+	depends on COMPAT
-+	default y
-+	help
-+	  Enables kuser helpers to be mapped in a special purpose page at a fixed
-+	  address to maintain independence from the type of CPU present in the SoC.
-+	  This feature is provided for compatibility reasons in fact allows 32 bit
-+	  applications compliant with ARMv4 up to ARMv8 to run without any
-+	  modification.
-+
-+	  Warning: Being always mapped at a fixed address makes it easier to create
-+	  exploits based on ROP type of attacks.
-+
-+	  As a consequence of this, this feature is made configurable but be aware that
-+	  it can be turned off if and only if the binaries and the libraries running on
-+	  a specific platform are designed to do not make use of these helpers, otherwise
-+	  should be left on.
-+
-+	  See Documentation/arm/kernel_user_helpers.txt for details.
-+
- config SYSVIPC_COMPAT
- 	def_bool y
- 	depends on COMPAT && SYSVIPC
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 50f76b88a967..c7bd0794855a 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -27,8 +27,9 @@ OBJCOPYFLAGS := --prefix-symbols=__efistub_
- $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
- 
--obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
-+obj-$(CONFIG_COMPAT)			+= sys32.o signal32.o			\
- 					   sigreturn32.o sys_compat.o
-+obj-$(CONFIG_KUSER_HELPERS)		+= kuser32.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
- obj-$(CONFIG_MODULES)			+= module.o
- obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
-diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-index f19e2b015097..7d38633bf33f 100644
---- a/arch/arm64/kernel/kuser32.S
-+++ b/arch/arm64/kernel/kuser32.S
-@@ -5,10 +5,9 @@
-  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-  * Copyright (C) 2012-2018 ARM Ltd.
-  *
-- * Each segment is 32-byte aligned and will be moved to the top of the high
-- * vector page.  New segments (if ever needed) must be added in front of
-- * existing ones.  This mechanism should be used only for things that are
-- * really small and justified, and not be abused freely.
-+ * The kuser helpers below are mapped at a fixed address by
-+ * aarch32_setup_additional_pages() ad are provided for compatibility
-+ * reasons with 32 bit (aarch32) applications that need them.
-  *
-  * See Documentation/arm/kernel_user_helpers.txt for formal definitions.
-  */
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index d438e65299a2..7ee3d21350ec 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -75,6 +75,7 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
- 	},
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index 1f05268f4c6d..a6fd7be1b22a 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -52,7 +52,7 @@ struct compat_ucontext {
+ 	compat_stack_t			uc_stack;
+ 	struct compat_sigcontext	uc_mcontext;
+ 	compat_sigset_t			uc_sigmask;
+-	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
++	int				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
+ 	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
  };
  
-+#ifdef CONFIG_KUSER_HELPERS
- static int aarch32_alloc_kuser_vdso_page(void)
- {
- 	extern char __kuser_helper_start[], __kuser_helper_end[];
-@@ -96,6 +97,12 @@ static int aarch32_alloc_kuser_vdso_page(void)
+@@ -66,6 +66,18 @@ struct compat_rt_sigframe {
+ 	struct compat_sigframe sig;
+ };
  
- 	return 0;
- }
-+#else
-+static int aarch32_alloc_kuser_vdso_page(void)
-+{
-+	return 0;
-+}
-+#endif /* CONFIG_KUSER_HELPER */
- 
- static int aarch32_alloc_sigreturn_vdso_page(void)
- {
-@@ -127,6 +134,7 @@ static int __init aarch32_alloc_vdso_pages(void)
- }
- arch_initcall(aarch32_alloc_vdso_pages);
- 
-+#ifdef CONFIG_KUSER_HELPERS
- static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
- {
- 	void *ret;
-@@ -139,6 +147,13 @@ static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
- 
- 	return PTR_ERR_OR_ZERO(ret);
- }
-+#else
-+static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
-+{
-+	/* kuser helpers not enabled */
-+	return 0;
-+}
-+#endif /* CONFIG_KUSER_HELPERS */
- 
- static int aarch32_sigreturn_setup(struct mm_struct *mm)
- {
++/* Macros for asm-offsets.c */
++#define OFFSET_OF_COMPAT_SIGFRAME_REGS (				\
++			offsetof(struct compat_sigframe, uc) +		\
++			offsetof(struct compat_ucontext, uc_mcontext) +	\
++			offsetof(struct compat_sigcontext, arm_r0))
++
++#define OFFSET_OF_COMPAT_RT_SIGFRAME_REGS (				\
++			offsetof(struct compat_rt_sigframe, sig) +	\
++			offsetof(struct compat_sigframe, uc) +		\
++			offsetof(struct compat_ucontext, uc_mcontext) +	\
++			offsetof(struct compat_sigcontext, arm_r0))
++
+ int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 		       struct pt_regs *regs);
+ int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
+index af9a45917427..10052cff00ac 100644
+--- a/arch/arm64/kernel/asm-offsets.c
++++ b/arch/arm64/kernel/asm-offsets.c
+@@ -30,6 +30,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
++#include <asm/signal32.h>
+ #include <asm/smp_plat.h>
+ #include <asm/suspend.h>
+ #include <linux/kbuild.h>
+@@ -84,6 +85,11 @@ int main(void)
+   DEFINE(S_STACKFRAME,		offsetof(struct pt_regs, stackframe));
+   DEFINE(S_FRAME_SIZE,		sizeof(struct pt_regs));
+   BLANK();
++#ifdef CONFIG_COMPAT
++  DEFINE(COMPAT_SIGFRAME_REGS_OFFSET,		OFFSET_OF_COMPAT_SIGFRAME_REGS);
++  DEFINE(COMPAT_RT_SIGFRAME_REGS_OFFSET,	OFFSET_OF_COMPAT_RT_SIGFRAME_REGS);
++  BLANK();
++#endif
+   DEFINE(MM_CONTEXT_ID,		offsetof(struct mm_struct, context.id.counter));
+   BLANK();
+   DEFINE(VMA_VM_MM,		offsetof(struct vm_area_struct, vm_mm));
 -- 
 2.20.1
