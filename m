@@ -1,68 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:36240 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726788AbfAOCzl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:55:41 -0500
-Received: by mail-pl1-f196.google.com with SMTP id g9so582463plo.3
-        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:55:41 -0800 (PST)
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:43866 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727976AbfAOC4A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2019 21:56:00 -0500
+Received: by mail-pf1-f195.google.com with SMTP id w73so568688pfk.10
+        for <linux-arch@vger.kernel.org>; Mon, 14 Jan 2019 18:55:59 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 02/16] block: wire up block device iopoll method
-Date: Mon, 14 Jan 2019 19:55:17 -0700
-Message-ID: <20190115025531.13985-3-axboe@kernel.dk>
+Subject: [PATCH 11/16] io_uring: batch io_kiocb allocation
+Date: Mon, 14 Jan 2019 19:55:26 -0700
+Message-ID: <20190115025531.13985-12-axboe@kernel.dk>
 In-Reply-To: <20190115025531.13985-1-axboe@kernel.dk>
 References: <20190115025531.13985-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190115025517.gbuV37sb9H5kZpK2sYBCfZzU7FUJyoq3uewXBizLd9I@z>
+Message-ID: <20190115025526.LeRqHG_2OvOts3nJ-F1SE7XJ_9cMjWkhhb0GcPT7nPY@z>
 
-From: Christoph Hellwig <hch@lst.de>
+Similarly to how we use the state->ios_left to know how many references
+to get to a file, we can use it to allocate the io_kiocb's we need in
+bulk.
 
-Just call blk_poll on the iocb cookie, we can derive the block device
-from the inode trivially.
-
-Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
-Signed-off-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Jens Axboe <axboe@kernel.dk>
 ---
- fs/block_dev.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ fs/io_uring.c | 66 ++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 50 insertions(+), 16 deletions(-)
 
-diff --git a/fs/block_dev.c b/fs/block_dev.c
-index c546cdce77e6..5415579f3e14 100644
---- a/fs/block_dev.c
-+++ b/fs/block_dev.c
-@@ -279,6 +279,14 @@ struct blkdev_dio {
+diff --git a/fs/io_uring.c b/fs/io_uring.c
+index 0d7c44a2d424..d0e4e37592fe 100644
+--- a/fs/io_uring.c
++++ b/fs/io_uring.c
+@@ -140,6 +140,13 @@ struct io_submit_state {
+ 	struct list_multi req_list;
+ 	unsigned int req_count;
  
- static struct bio_set blkdev_dio_pool;
- 
-+static int blkdev_iopoll(struct kiocb *kiocb, bool wait)
-+{
-+	struct block_device *bdev = I_BDEV(kiocb->ki_filp->f_mapping->host);
-+	struct request_queue *q = bdev_get_queue(bdev);
++	/*
++	 * io_kiocb alloc cache
++	 */
++	void *reqs[IO_IOPOLL_BATCH];
++	unsigned int free_reqs;
++	unsigned int cur_req;
 +
-+	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), wait);
+ 	/*
+ 	 * File reference cache
+ 	 */
+@@ -244,29 +251,52 @@ static void io_fill_cq_error(struct io_ring_ctx *ctx, struct sqe_submit *s,
+ 		wake_up(&ctx->wait);
+ }
+ 
+-static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx)
++static void io_ring_drop_ctx_refs(struct io_ring_ctx *ctx, unsigned refs)
+ {
++	percpu_ref_put_many(&ctx->refs, refs);
++
++	if (waitqueue_active(&ctx->wait))
++		wake_up(&ctx->wait);
 +}
 +
- static void blkdev_bio_end_io(struct bio *bio)
- {
- 	struct blkdev_dio *dio = bio->bi_private;
-@@ -396,6 +404,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
- 				bio->bi_opf |= REQ_HIPRI;
++static struct io_kiocb *io_get_req(struct io_ring_ctx *ctx,
++				   struct io_submit_state *state)
++{
++	gfp_t gfp = GFP_ATOMIC | __GFP_NOWARN;
+ 	struct io_kiocb *req;
  
- 			qc = submit_bio(bio);
-+			WRITE_ONCE(iocb->ki_cookie, qc);
- 			break;
- 		}
+ 	if (!percpu_ref_tryget(&ctx->refs))
+ 		return NULL;
  
-@@ -2068,6 +2077,7 @@ const struct file_operations def_blk_fops = {
- 	.llseek		= block_llseek,
- 	.read_iter	= blkdev_read_iter,
- 	.write_iter	= blkdev_write_iter,
-+	.iopoll		= blkdev_iopoll,
- 	.mmap		= generic_file_mmap,
- 	.fsync		= blkdev_fsync,
- 	.unlocked_ioctl	= block_ioctl,
+-	req = kmem_cache_alloc(req_cachep, GFP_ATOMIC | __GFP_NOWARN);
+-	if (!req)
+-		return NULL;
+-
+-	req->ctx = ctx;
+-	INIT_LIST_HEAD(&req->list);
+-	req->flags = 0;
+-	return req;
+-}
++	if (!state)
++		req = kmem_cache_alloc(req_cachep, gfp);
++	else if (!state->free_reqs) {
++		size_t sz;
++		int ret;
++
++		sz = min_t(size_t, state->ios_left, ARRAY_SIZE(state->reqs));
++		ret = kmem_cache_alloc_bulk(req_cachep, gfp, sz,
++						state->reqs);
++		if (ret <= 0)
++			goto out;
++		state->free_reqs = ret - 1;
++		state->cur_req = 1;
++		req = state->reqs[0];
++	} else {
++		req = state->reqs[state->cur_req];
++		state->free_reqs--;
++		state->cur_req++;
++	}
+ 
+-static void io_ring_drop_ctx_refs(struct io_ring_ctx *ctx, unsigned refs)
+-{
+-	percpu_ref_put_many(&ctx->refs, refs);
++	if (req) {
++		req->ctx = ctx;
++		req->flags = 0;
++		return req;
++	}
+ 
+-	if (waitqueue_active(&ctx->wait))
+-		wake_up(&ctx->wait);
++out:
++	io_ring_drop_ctx_refs(ctx, 1);
++	return NULL;
+ }
+ 
+ static void io_free_req_many(struct io_ring_ctx *ctx, void **reqs, int *nr)
+@@ -910,7 +940,7 @@ static int io_submit_sqe(struct io_ring_ctx *ctx, struct sqe_submit *s,
+ 	struct io_kiocb *req;
+ 	ssize_t ret;
+ 
+-	req = io_get_req(ctx);
++	req = io_get_req(ctx, state);
+ 	if (unlikely(!req))
+ 		return -EAGAIN;
+ 
+@@ -947,6 +977,9 @@ static void io_submit_state_end(struct io_submit_state *state)
+ 	if (!list_empty(&state->req_list.list))
+ 		io_flush_state_reqs(state->ctx, state);
+ 	io_file_put(state, NULL);
++	if (state->free_reqs)
++		kmem_cache_free_bulk(req_cachep, state->free_reqs,
++					&state->reqs[state->cur_req]);
+ }
+ 
+ /*
+@@ -958,6 +991,7 @@ static void io_submit_state_start(struct io_submit_state *state,
+ 	state->ctx = ctx;
+ 	INIT_LIST_HEAD(&state->req_list.list);
+ 	state->req_count = 0;
++	state->free_reqs = 0;
+ 	state->file = NULL;
+ 	state->ios_left = max_ios;
+ #ifdef CONFIG_BLOCK
 -- 
 2.17.1
