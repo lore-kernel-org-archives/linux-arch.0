@@ -1,71 +1,191 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 16/16] io_uring: add io_uring_event cache hit information
-Date: Mon, 14 Jan 2019 19:55:31 -0700
-Message-ID: <20190115025531.13985-17-axboe@kernel.dk>
-References: <20190115025531.13985-1-axboe@kernel.dk>
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20190115025531.13985-1-axboe@kernel.dk>
-Sender: owner-linux-aio@kvack.org
-To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Tue, 15 Jan 2019 09:07:28 +0100
+Message-ID: <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de>
+References: <2242B4B2-6311-492E-BFF9-6740E36EC6D4@xenosoft.de>
+ <84558d7f-5a7f-5219-0c3a-045e6b4c494f@xenosoft.de>
+ <20181213091021.GA2106@lst.de>
+ <835bd119-081e-a5ea-1899-189d439c83d6@xenosoft.de>
+ <76bc684a-b4d2-1d26-f18d-f5c9ba65978c@xenosoft.de>
+ <20181213112511.GA4574@lst.de>
+ <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
+ <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
+ <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
+ <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
+ <20190103073622.GA24323@lst.de>
+ <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
+ <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
+ <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+ <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de>
+ <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-Add hint on whether a read was served out of the page cache, or if it
-hit media. This is useful for buffered async IO, O_DIRECT reads would
-never have this set (for obvious reasons).
+Next step: 240d7ecd7f6fa62e074e8a835e620047954f0b28 (powerpc/dma: use 
+the dma-direct allocator for coherent platforms)
 
-If the read hit page cache, cqe->flags will have IOCQE_FLAG_CACHEHIT
-set.
+git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
 
-Signed-off-by: Jens Axboe <axboe@kernel.dk>
----
- fs/io_uring.c                 | 7 ++++++-
- include/uapi/linux/io_uring.h | 5 +++++
- 2 files changed, 11 insertions(+), 1 deletion(-)
+git checkout 240d7ecd7f6fa62e074e8a835e620047954f0b28
 
-diff --git a/fs/io_uring.c b/fs/io_uring.c
-index fd89fcecd8e2..4a74a40cd134 100644
---- a/fs/io_uring.c
-+++ b/fs/io_uring.c
-@@ -546,11 +546,16 @@ static void io_fput(struct io_kiocb *req)
- static void io_complete_rw(struct kiocb *kiocb, long res, long res2)
- {
- 	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
-+	unsigned ev_flags = 0;
- 
- 	kiocb_end_write(kiocb);
- 
- 	io_fput(req);
--	io_cqring_fill_event(req->ctx, req->user_data, res, 0);
-+
-+	if (res > 0 && (req->flags & REQ_F_FORCE_NONBLOCK))
-+		ev_flags = IOCQE_FLAG_CACHEHIT;
-+
-+	io_cqring_fill_event(req->ctx, req->user_data, res, ev_flags);
- 	io_free_req(req);
- }
- 
-diff --git a/include/uapi/linux/io_uring.h b/include/uapi/linux/io_uring.h
-index 3f367be56a9e..71e92026d26c 100644
---- a/include/uapi/linux/io_uring.h
-+++ b/include/uapi/linux/io_uring.h
-@@ -69,6 +69,11 @@ struct io_uring_cqe {
- 	__u32	flags;
- };
- 
-+/*
-+ * io_uring_event->flags
-+ */
-+#define IOCQE_FLAG_CACHEHIT	(1 << 0)	/* IO did not hit media */
-+
- /*
-  * Magic offsets for the application to mmap the data it needs
-  */
--- 
-2.17.1
+Link to the Git: 
+http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+env LANG=C make CROSS_COMPILE=powerpc-linux-gnu- ARCH=powerpc zImage
+
+Error message:
+
+arch/powerpc/kernel/dma.o:(.data.rel.ro+0x0): undefined reference to 
+`__dma_nommu_alloc_coherent'
+arch/powerpc/kernel/dma.o:(.data.rel.ro+0x8): undefined reference to 
+`__dma_nommu_free_coherent'
+Makefile:1027: recipe for target 'vmlinux' failed
+make: *** [vmlinux] Error 1
+
+-- Christian
+
+
+On 12 January 2019 at 7:14PM, Christian Zigotzky wrote:
+> Next step: 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39 (swiotlb: remove 
+> swiotlb_dma_supported)
+>
+> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>
+> git checkout 4558b6e1ddf3dcf5a86d6a5d16c2ac1600c7df39
+>
+> Output:
+>
+> You are in 'detached HEAD' state. You can look around, make experimental
+> changes and commit them, and you can discard any commits you make in this
+> state without impacting any branches by performing another checkout.
+>
+> If you want to create a new branch to retain commits you create, you may
+> do so (now or later) by using -b with the checkout command again. 
+> Example:
+>
+>   git checkout -b <new-branch-name>
+>
+> HEAD is now at 4558b6e... swiotlb: remove swiotlb_dma_supported
+>
+> ----
+>
+> Link to the Git: 
+> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>
+> Results: PASEMI onboard ethernet (X1000) works and the X5000 (P5020 
+> board) boots. I also successfully tested sound, hardware 3D 
+> acceleration, Bluetooth, network, booting with a label etc. The 
+> uImages work also in a virtual e5500 quad-core QEMU machine.
+>
+> -- Christian
+>
+>
+> On 11 January 2019 at 03:10AM, Christian Zigotzky wrote:
+>> Next step: 891dcc1072f1fa27a83da920d88daff6ca08fc02 (powerpc/dma: 
+>> remove dma_nommu_dma_supported)
+>>
+>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>
+>> git checkout 891dcc1072f1fa27a83da920d88daff6ca08fc02
+>>
+>> Output:
+>>
+>> Note: checking out '891dcc1072f1fa27a83da920d88daff6ca08fc02'.
+>>
+>> You are in 'detached HEAD' state. You can look around, make experimental
+>> changes and commit them, and you can discard any commits you make in 
+>> this
+>> state without impacting any branches by performing another checkout.
+>>
+>> If you want to create a new branch to retain commits you create, you may
+>> do so (now or later) by using -b with the checkout command again. 
+>> Example:
+>>
+>> git checkout -b <new-branch-name>
+>>
+>> HEAD is now at 891dcc1... powerpc/dma: remove dma_nommu_dma_supported
+>>
+>> ---
+>>
+>> Link to the Git: 
+>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>>
+>> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
+>> boots. I also successfully tested sound, hardware 3D acceleration, 
+>> Bluetooth, network, booting with a label etc. The uImages work also 
+>> in a virtual e5500 quad-core QEMU machine.
+>>
+>> -- Christian
+>>
+>>
+>> On 09 January 2019 at 10:31AM, Christian Zigotzky wrote:
+>>> Next step: a64e18ba191ba9102fb174f27d707485ffd9389c (powerpc/dma: 
+>>> remove dma_nommu_get_required_mask)
+>>>
+>>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>>
+>>> git checkout a64e18ba191ba9102fb174f27d707485ffd9389c
+>>>
+>>> Link to the Git: 
+>>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>>>
+>>> Results: PASEMI onboard ethernet works and the X5000 (P5020 board) 
+>>> boots. I also successfully tested sound, hardware 3D acceleration, 
+>>> Bluetooth, network, booting with a label etc. The uImages work also 
+>>> in a virtual e5500 quad-core QEMU machine.
+>>>
+>>> -- Christian
+>>>
+>>>
+>>> On 05 January 2019 at 5:03PM, Christian Zigotzky wrote:
+>>>> Next step: c446404b041130fbd9d1772d184f24715cf2362f (powerpc/dma: 
+>>>> remove dma_nommu_mmap_coherent)
+>>>>
+>>>> git clone git://git.infradead.org/users/hch/misc.git -b 
+>>>> powerpc-dma.6 a
+>>>>
+>>>> git checkout c446404b041130fbd9d1772d184f24715cf2362f
+>>>>
+>>>> Output:
+>>>>
+>>>> Note: checking out 'c446404b041130fbd9d1772d184f24715cf2362f'.
+>>>>
+>>>> You are in 'detached HEAD' state. You can look around, make 
+>>>> experimental
+>>>> changes and commit them, and you can discard any commits you make 
+>>>> in this
+>>>> state without impacting any branches by performing another checkout.
+>>>>
+>>>> If you want to create a new branch to retain commits you create, 
+>>>> you may
+>>>> do so (now or later) by using -b with the checkout command again. 
+>>>> Example:
+>>>>
+>>>>   git checkout -b <new-branch-name>
+>>>>
+>>>> HEAD is now at c446404... powerpc/dma: remove dma_nommu_mmap_coherent
+>>>>
+>>>> -----
+>>>>
+>>>> Link to the Git: 
+>>>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>>>>
+>>>> Result: PASEMI onboard ethernet works and the X5000 (P5020 board) 
+>>>> boots.
+>>>>
+>>>> -- Christian
+>>>>
+>>>
+>>>
+>>
+>>
+>
+>
