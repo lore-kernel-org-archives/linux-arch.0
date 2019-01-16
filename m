@@ -1,92 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:35046 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728327AbfAPSZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Jan 2019 13:25:32 -0500
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Wed, 16 Jan 2019 11:25:23 -0700
-Message-ID: <20190116182523.19446-7-logang@deltatee.com>
-In-Reply-To: <20190116182523.19446-1-logang@deltatee.com>
-References: <20190116182523.19446-1-logang@deltatee.com>
+Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:18636 "EHLO
+        ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726783AbfAPUxm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 Jan 2019 15:53:42 -0500
+Date: Thu, 17 Jan 2019 07:53:38 +1100
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH 12/15] io_uring: add support for pre-mapped user IO
+ buffers
+Message-ID: <20190116205338.GQ4205@dastard>
+References: <20190116175003.17880-1-axboe@kernel.dk>
+ <20190116175003.17880-13-axboe@kernel.dk>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v25 6/6] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190116175003.17880-13-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20190116182523.g7pikjYS8oYM2w1qAgEmgsd5mQPWH6InXUxOZr7eZUw@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
+On Wed, Jan 16, 2019 at 10:50:00AM -0700, Jens Axboe wrote:
+> If we have fixed user buffers, we can map them into the kernel when we
+> setup the io_context. That avoids the need to do get_user_pages() for
+> each and every IO.
+.....
+> +			return -ENOMEM;
+> +	} while (atomic_long_cmpxchg(&ctx->user->locked_vm, cur_pages,
+> +					new_pages) != cur_pages);
+> +
+> +	return 0;
+> +}
+> +
+> +static int io_sqe_buffer_unregister(struct io_ring_ctx *ctx)
+> +{
+> +	int i, j;
+> +
+> +	if (!ctx->user_bufs)
+> +		return -EINVAL;
+> +
+> +	for (i = 0; i < ctx->sq_entries; i++) {
+> +		struct io_mapped_ubuf *imu = &ctx->user_bufs[i];
+> +
+> +		for (j = 0; j < imu->nr_bvecs; j++) {
+> +			set_page_dirty_lock(imu->bvec[j].bv_page);
+> +			put_page(imu->bvec[j].bv_page);
+> +		}
 
-Per a nit from Andy Shevchenko, the include list is also made
-alphabetical.
+Hmmm, so we call set_page_dirty() when the gup reference is dropped...
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 +++-----------------------
- 1 file changed, 4 insertions(+), 32 deletions(-)
+.....
 
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index f1eaa3c4d46a..f2df2d39c65b 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -13,13 +13,14 @@
-  *
-  */
- 
--#include <linux/switchtec.h>
--#include <linux/module.h>
-+#include <linux/interrupt.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- #include <linux/delay.h>
- #include <linux/kthread.h>
--#include <linux/interrupt.h>
-+#include <linux/module.h>
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/switchtec.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -36,35 +37,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
+> +static int io_sqe_buffer_register(struct io_ring_ctx *ctx, void __user *arg,
+> +				  unsigned nr_args)
+> +{
+
+.....
+
+> +		down_write(&current->mm->mmap_sem);
+> +		pret = get_user_pages_longterm(ubuf, nr_pages, FOLL_WRITE,
+> +						pages, NULL);
+> +		up_write(&current->mm->mmap_sem);
+
+Thought so. This has the same problem as RDMA w.r.t. using
+file-backed mappings for the user buffer.  It is not synchronised
+against truncate, hole punches, async page writeback cleaning the
+page, etc, and so can lead to data corruption and/or kernel panics.
+
+It also can't be used with DAX because the above problems are
+actually a user-after-free of storage space, not just a dangling
+page reference that can be cleaned up after the gup pin is dropped.
+
+Perhaps, at least until we solve the GUP problems w.r.t. file backed
+pages and/or add and require file layout leases for these reference,
+we should error out if the  user buffer pages are file-backed
+mappings?
+
+Cheers,
+
+Dave.
 -- 
-2.19.0
+Dave Chinner
+david@fromorbit.com
