@@ -1,37 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:42104 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726022AbfAORcO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2019 12:32:14 -0500
-Subject: Re: [PATCH 05/15] Add io_uring IO interface
-From: "Martin K. Petersen" <martin.petersen@oracle.com>
-References: <20190110024404.25372-1-axboe@kernel.dk>
-        <20190110024404.25372-6-axboe@kernel.dk> <yq1sgxzys3s.fsf@oracle.com>
-        <f97a5b9f-68f3-c4af-649d-7dffbc35e37f@kernel.dk>
-        <54976aac-bef2-880f-dc10-e3030189a08a@kernel.dk>
-Date: Tue, 15 Jan 2019 12:31:59 -0500
-In-Reply-To: <54976aac-bef2-880f-dc10-e3030189a08a@kernel.dk> (Jens Axboe's
-        message of "Sun, 13 Jan 2019 09:22:16 -0700")
-Message-ID: <yq1pnsxu8s0.fsf@oracle.com>
+Received: from mail.kernel.org ([198.145.29.99]:60966 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726841AbfAPBHq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Jan 2019 20:07:46 -0500
+Date: Wed, 16 Jan 2019 09:07:38 +0800
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] riscv: fixup max_low_pfn with PFN_DOWN.
+Message-ID: <20190116010738.GA4817@guoren-Inspiron-7460>
+References: <1547280987-7630-1-git-send-email-guoren@kernel.org>
+ <20190115153613.GC26443@infradead.org>
+ <20190115161000.GA22705@guoren-Inspiron-7460>
+ <20190115161254.GA19081@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190115161254.GA19081@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
-Message-ID: <20190115173159.tE_ngd517hpX7zceDsUPLwwWaWGcJ5QZiUHTA9B_7AA@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: palmer@sifive.com, aou@eecs.berkeley.edu, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>, Mao Han <mao_han@c-sky.com>
+Message-ID: <20190116010738.t3Bc0rKAtraSbWeQyRiP_V5aXQjaAJYazWJQQfQLqZI@z>
 
+Hi Christoph,
 
-Jens,
+I use PFN_DOWN() every where as possible and seems it's a habit
+problem. So let risc-v maintainer to choose "PFN_DOW()" or
+">> PAGE_SHIFT".
 
-> I bit the bullet and bumped the size. 64 bytes is a nicer size in terms
-> of cachelines anyway, and I really doubt that 48 vs 64 bytes makes a
-> size consumption problem for anyone.
->
-> The buf_index is only used for the fixed buffers, which means that we have
-> 16 bytes / 128 bits that we can grab for things like KV.
+Also the same with "end_of_DRAM & max_low_pfn".
 
-Great!
+Best Regards
+ Guo Ren
 
--- 
-Martin K. Petersen	Oracle Linux Engineering
+On Tue, Jan 15, 2019 at 08:12:54AM -0800, Christoph Hellwig wrote:
+> On Wed, Jan 16, 2019 at 12:10:00AM +0800, Guo Ren wrote:
+> > > >  	set_max_mapnr(PFN_DOWN(mem_size));
+> > > > -	max_low_pfn = memblock_end_of_DRAM();
+> > > > +	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
+> > > 
+> > > I know it is used just above, but can we please just switch this
+> > > code to use >> PAGE_SHIFT instead of PFN_DOWN, which just horribly
+> > > obsfucates what is going on?
+> > ???
+> > #define PFN_DOWN(x)	((x) >> PAGE_SHIFT)
+> > 
+> > phys_addr_t __init_memblock memblock_end_of_DRAM(void)
+> > {
+> > 	int idx = memblock.memory.cnt - 1;
+> > 
+> > 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
+> > }
+> > 
+> > What's the problem? PFN_DOWN() couldn't be used with function call?
+> 
+> PFN_DOWN gives you the correct result.  But I think it actually
+> drastically reduces readability over just opencoding it.
+> 
+> > My patch just want to point out that max_low_pfn is PFN not size. In fact
+> > there is no error for running without my patch :P
+> 
+> No, I think your patch is correct.  I just wonder if we could make
+> the code easier to read.
