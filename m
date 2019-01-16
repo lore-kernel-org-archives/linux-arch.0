@@ -1,153 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f66.google.com ([209.85.166.66]:35354 "EHLO
-        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727644AbfAPRuM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2019 12:50:12 -0500
-Received: by mail-io1-f66.google.com with SMTP id f4so5607568ion.2
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2019 09:50:12 -0800 (PST)
+Received: from mail-io1-f65.google.com ([209.85.166.65]:35359 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727647AbfAPRuQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2019 12:50:16 -0500
+Received: by mail-io1-f65.google.com with SMTP id f4so5607714ion.2
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2019 09:50:15 -0800 (PST)
 From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCHSET v5] io_uring IO interface
-Date: Wed, 16 Jan 2019 10:49:48 -0700
-Message-ID: <20190116175003.17880-1-axboe@kernel.dk>
+Subject: [PATCH 02/15] block: wire up block device iopoll method
+Date: Wed, 16 Jan 2019 10:49:50 -0700
+Message-ID: <20190116175003.17880-3-axboe@kernel.dk>
+In-Reply-To: <20190116175003.17880-1-axboe@kernel.dk>
+References: <20190116175003.17880-1-axboe@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
-Message-ID: <20190116174948.gWczawSbskzvqGC0kiu_Mxi-KVeiLddKwjiTPGICF3o@z>
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
+Message-ID: <20190116174950.bvYHD52LvQoPA-2NpeDkQTfmTH1Rv5RbrssT_q6KDA8@z>
 
-Here's v5 of the io_uring interface. Mostly feels like putting some
-finishing touches on top of v4, though we do have a few user interface
-tweaks because of that.
+From: Christoph Hellwig <hch@lst.de>
 
-Arnd was kind enough to review the code with an eye towards 32-bit
-compatability, and that resulted in a few changes. See changelog below.
+Just call blk_poll on the iocb cookie, we can derive the block device
+from the inode trivially.
 
-I also cleaned up the internal ring handling, enabling us to batch
-writes to the SQ ring head and CQ ring tail. This reduces the number of
-write ordering barriers we need.
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ fs/block_dev.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-I also dumped the io_submit_state intermediate poll list handling. This
-drops a patch, and also cleans up the block flush handling since we no
-longer have to tie into the deep internal of plug callbacks. The win of
-this just wasn't enough to warrant the complexity.
-
-LWN did a great write up of the API and internals, see that here:
-
-https://lwn.net/Articles/776703/
-
-In terms of benchmarks, I ran some numbers comparing io_uring to libaio
-and spdk. The tldr is that io_uring is pretty close to spdk, in some
-cases faster. Latencies over spdk are generally better. The areas where
-we are still missing a bit of performance all lie in the block layer,
-and I'll be working on that to close the gap some more.
-
-Latency tests, 3d xpoint, 4k random read
-
-Interface	QD	Polled		Latency		IOPS
---------------------------------------------------------------------------
-io_uring	1	0		 9.5usec	 77K
-io_uring	2	0		 8.2usec	183K
-io_uring	4	0		 8.4usec	383K
-io_uring	8	0		13.3usec	449K
-
-libaio		1	0		 9.7usec	 74K
-libaio		2	0		 8.5usec	181K
-libaio		4	0		 8.5usec	373K
-libaio		8	0		15.4usec	402K
-
-io_uring	1	1		 6.1usec	139K
-io_uring	2	1		 6.1usec	272K	
-io_uring	4	1		 6.3usec	519K
-io_uring	8	1		11.5usec	592K
-
-spdk		1	1		 6.1usec	151K
-spdk		2	1		 6.2usec	293K
-spdk		4	1		 6.7usec	536K
-spdk		8	1		12.6usec	586K
-
-io_uring vs libaio, non polled, io_uring has a slight lead. spdk
-slightly faster over io_uring polled, especially a lower queue depths.
-At QD=8, io_uring is faster.
-
-
-Peak IOPS, 512b random read
-
-Interface	QD	Polled		Latency		IOPS
---------------------------------------------------------------------------
-io_uring	4	1		 6.8usec	 513K
-io_uring	8	1		 8.7usec	 829K
-io_uring	16	1		13.1usec	1019K
-io_uring	32	1		20.6usec	1161K
-io_uring	64	1		32.4usec	1244K
-
-spdk		4	1		 6.8usec	 549K
-spdk		8	1		 8.6usec	 865K
-spdk		16	1		14.0usec	1105K
-spdk		32	1		25.0usec	1227K
-spdk		64	1		47.3usec	1251K
-
-io_uring lags spdk about 7% at lower queue depths, getting to within 1%
-of spdk at higher queue depths.
-
-
-Peak per-core, multiple devices, 4k random read
-
-Interface	QD	Polled		IOPS
---------------------------------------------------------------------------
-io_uring	128	1		1620K
-
-libaio		128	0		 608K
-
-spdk		128	1		1739K
-
-This is using multiple devices, all running on the same core, meant to
-test how much performance we can eke out out a single CPU core. spdk has
-a slight edge over io_uring, with libaio not able to compete at all.
-
-As usual, patches are against 5.0-rc2, and can also be found in my
-io_uring branch here:
-
-
-git://git.kernel.dk/linux-block io_uring
-
-
-Since v4:
-- Update some commit messages
-- Update some stale comments
-- Tweak polling efficiency
-- Avoid multiple SQ/CQ ring inc+barriers for batches of IO
-- Cache SQ head and CQ tail in the kernel
-- Fix buffered rw/work union issue for punted IO
-- Drop submit state request issue cache
-- Rework io_uring_register() for buffers and files to be more 32-bit
-  friendly
-- Make sqe->addr an __u64 instead of playing padding tricks
-- Add compat conditional syscall entry for io_uring_setup()
-
-
- Documentation/filesystems/vfs.txt      |    3 +
- arch/x86/entry/syscalls/syscall_32.tbl |    3 +
- arch/x86/entry/syscalls/syscall_64.tbl |    3 +
- block/bio.c                            |   59 +-
- fs/Makefile                            |    1 +
- fs/block_dev.c                         |   19 +-
- fs/file.c                              |   15 +-
- fs/file_table.c                        |    9 +-
- fs/gfs2/file.c                         |    2 +
- fs/io_uring.c                          | 2017 ++++++++++++++++++++++++
- fs/iomap.c                             |   48 +-
- fs/xfs/xfs_file.c                      |    1 +
- include/linux/bio.h                    |   14 +
- include/linux/blk_types.h              |    1 +
- include/linux/file.h                   |    2 +
- include/linux/fs.h                     |    6 +-
- include/linux/iomap.h                  |    1 +
- include/linux/sched/user.h             |    2 +-
- include/linux/syscalls.h               |    7 +
- include/uapi/linux/io_uring.h          |  136 ++
- init/Kconfig                           |    9 +
- kernel/sys_ni.c                        |    4 +
- 22 files changed, 2322 insertions(+), 40 deletions(-)
-
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index c546cdce77e6..5415579f3e14 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -279,6 +279,14 @@ struct blkdev_dio {
+ 
+ static struct bio_set blkdev_dio_pool;
+ 
++static int blkdev_iopoll(struct kiocb *kiocb, bool wait)
++{
++	struct block_device *bdev = I_BDEV(kiocb->ki_filp->f_mapping->host);
++	struct request_queue *q = bdev_get_queue(bdev);
++
++	return blk_poll(q, READ_ONCE(kiocb->ki_cookie), wait);
++}
++
+ static void blkdev_bio_end_io(struct bio *bio)
+ {
+ 	struct blkdev_dio *dio = bio->bi_private;
+@@ -396,6 +404,7 @@ __blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, int nr_pages)
+ 				bio->bi_opf |= REQ_HIPRI;
+ 
+ 			qc = submit_bio(bio);
++			WRITE_ONCE(iocb->ki_cookie, qc);
+ 			break;
+ 		}
+ 
+@@ -2068,6 +2077,7 @@ const struct file_operations def_blk_fops = {
+ 	.llseek		= block_llseek,
+ 	.read_iter	= blkdev_read_iter,
+ 	.write_iter	= blkdev_write_iter,
++	.iopoll		= blkdev_iopoll,
+ 	.mmap		= generic_file_mmap,
+ 	.fsync		= blkdev_fsync,
+ 	.unlocked_ioctl	= block_ioctl,
 -- 
-Jens Axboe
+2.17.1
