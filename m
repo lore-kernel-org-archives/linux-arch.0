@@ -1,55 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:35615 "EHLO
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:39779 "EHLO
         mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731772AbfAPKx6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2019 05:53:58 -0500
+        with ESMTP id S1731772AbfAPLA7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2019 06:00:59 -0500
 MIME-Version: 1.0
-References: <20190115025531.13985-1-axboe@kernel.dk> <20190115025531.13985-14-axboe@kernel.dk>
-In-Reply-To: <20190115025531.13985-14-axboe@kernel.dk>
+References: <20190115025531.13985-1-axboe@kernel.dk> <20190115025531.13985-6-axboe@kernel.dk>
+ <CAK8P3a19ie7wcndDW7oxmUGh5c9aaarJycKBVOQ2F9+eHj=nsg@mail.gmail.com>
+In-Reply-To: <CAK8P3a19ie7wcndDW7oxmUGh5c9aaarJycKBVOQ2F9+eHj=nsg@mail.gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 16 Jan 2019 11:53:40 +0100
-Message-ID: <CAK8P3a3aTZ-VEc=uvOeYov4DiaBN1iNuhR41BfP0Qdf3AXx74w@mail.gmail.com>
-Subject: Re: [PATCH 13/16] io_uring: add support for pre-mapped user IO buffers
+Date: Wed, 16 Jan 2019 12:00:40 +0100
+Message-ID: <CAK8P3a1=-=8YZ+9wsCGJ+gS3G5axHAKXA4XVcEQnyzwHD6fO6A@mail.gmail.com>
+Subject: Re: [PATCH 05/16] Add io_uring IO interface
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <axboe@kernel.dk>
 Cc: Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-aio <linux-aio@kvack.org>, linux-block <linux-block@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Jeff Moyer <jmoyer@redhat.com>, Avi Kivity <avi@scylladb.com>
+Message-ID: <20190116110040.ceJhy4Ug07iNk-2w0IZy0coli4TbtsvMRKUUIqrUPKc@z>
 
-On Tue, Jan 15, 2019 at 3:56 AM Jens Axboe <axboe@kernel.dk> wrote:
-
-> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-> index 542757a4c898..e36c264d74e8 100644
-> --- a/include/linux/syscalls.h
-> +++ b/include/linux/syscalls.h
-> @@ -314,6 +314,8 @@ asmlinkage long sys_io_uring_setup(u32 entries,
->                                 struct io_uring_params __user *p);
->  asmlinkage long sys_io_uring_enter(unsigned int fd, u32 to_submit,
->                                 u32 min_complete, u32 flags);
-> +asmlinkage long sys_io_uring_register(unsigned int fd, unsigned op,
-> +                               void __user *arg);
+On Wed, Jan 16, 2019 at 11:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> > +/*
+> > + * IO submission data structure (Submission Queue Entry)
+> > + */
+> > +struct io_uring_sqe {
+> > +       __u8    opcode;         /* type of operation for this sqe */
+> > +       __u8    flags;          /* as of now unused */
+> > +       __u16   ioprio;         /* ioprio for the request */
+> > +       __s32   fd;             /* file descriptor to do IO on */
+> > +       __u64   off;            /* offset into file */
+> > +       union {
+> > +               void    *addr;  /* buffer or iovecs */
+> > +               __u64   __pad;
+> > +       };
 >
+> It seems a bit unfortunate to keep the pointer field only
+> almost compatible between 32-bit and 64-bit big-endian
+> architectures, as that requires an in_compat_syscall()
+> check whenever we access the pointer from the kernel.
+>
+> Could you use a __u64 field to store the pointer itself
+> instead?
 
-Would it be possible to make this a typed pointer instead? If this needs to
-be extended later to pass a different structure, a new system call may
-be better for consistency than overloading the argument in various
-ways.
+To clarify: Using the u64_to_user_ptr() helper function,
+you can interpret a __u64 field in a uapi data structure
+directly as a pointer. The user space side needs a similar
+wrapper though.
 
-> + * io_uring_register(2) opcodes and arguments
-> + */
-> +#define IORING_REGISTER_BUFFERS                0
-> +#define IORING_UNREGISTER_BUFFERS      1
-> +
-> +struct io_uring_register_buffers {
-> +       union {
-> +               struct iovec *iovecs;
-> +               __u64 pad;
-> +       };
-> +       __u32 nr_iovecs;
-> +};
-
-As before, I'd suggest making this structure compatible between 32-bit
-and 64-bit architectectures, by avoiding pointer and implied padding
-fields.
-
-      Arnd
+     Arnd
