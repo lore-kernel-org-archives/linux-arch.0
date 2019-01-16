@@ -1,72 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f65.google.com ([209.85.166.65]:40760 "EHLO
-        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727762AbfAPRul (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2019 12:50:41 -0500
-Received: by mail-io1-f65.google.com with SMTP id k2so5577961iog.7
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2019 09:50:40 -0800 (PST)
-From: Jens Axboe <axboe@kernel.dk>
-Subject: [PATCH 15/15] io_uring: add io_uring_event cache hit information
-Date: Wed, 16 Jan 2019 10:50:03 -0700
-Message-ID: <20190116175003.17880-16-axboe@kernel.dk>
-In-Reply-To: <20190116175003.17880-1-axboe@kernel.dk>
-References: <20190116175003.17880-1-axboe@kernel.dk>
+Received: from ale.deltatee.com ([207.54.116.67]:35024 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728195AbfAPSZb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 Jan 2019 13:25:31 -0500
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Wed, 16 Jan 2019 11:25:22 -0700
+Message-ID: <20190116182523.19446-6-logang@deltatee.com>
+In-Reply-To: <20190116182523.19446-1-logang@deltatee.com>
+References: <20190116182523.19446-1-logang@deltatee.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v25 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20190116175003.wDnQ-VU3HPodSVJWmFUs2RSxSvOl6IdUpqIK7PuCk3Y@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20190116182522.04n7TEAc-fG9hFGOahA45CjPh85sQIf-D0Z7ieJdQjw@z>
 
-Add hint on whether a read was served out of the page cache, or if it
-hit media. This is useful for buffered async IO, O_DIRECT reads would
-never have this set (for obvious reasons).
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-If the read hit page cache, cqe->flags will have IOCQE_FLAG_CACHEHIT
-set.
-
-Signed-off-by: Jens Axboe <axboe@kernel.dk>
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
 ---
- fs/io_uring.c                 | 7 ++++++-
- include/uapi/linux/io_uring.h | 5 +++++
- 2 files changed, 11 insertions(+), 1 deletion(-)
+ drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/fs/io_uring.c b/fs/io_uring.c
-index f73ee269f51b..c9be77c0bc85 100644
---- a/fs/io_uring.c
-+++ b/fs/io_uring.c
-@@ -516,11 +516,16 @@ static void io_fput(struct io_kiocb *req)
- static void io_complete_rw(struct kiocb *kiocb, long res, long res2)
- {
- 	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
-+	unsigned ev_flags = 0;
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
+index c49ff8970ce3..e071e28bca3f 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.h
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
+@@ -53,6 +53,7 @@
  
- 	kiocb_end_write(kiocb);
+ #include <linux/ntb.h>
+ #include <linux/pci.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
  
- 	io_fput(req);
--	io_cqring_fill_event(req->ctx, req->user_data, res, 0);
-+
-+	if (res > 0 && (req->flags & REQ_F_FORCE_NONBLOCK))
-+		ev_flags = IOCQE_FLAG_CACHEHIT;
-+
-+	io_cqring_fill_event(req->ctx, req->user_data, res, ev_flags);
- 	io_free_req(req);
+ /* PCI device IDs */
+ #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
+@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
+ 	return 0;
  }
  
-diff --git a/include/uapi/linux/io_uring.h b/include/uapi/linux/io_uring.h
-index 88ec687231be..9bb718168c86 100644
---- a/include/uapi/linux/io_uring.h
-+++ b/include/uapi/linux/io_uring.h
-@@ -66,6 +66,11 @@ struct io_uring_cqe {
- 	__u32	flags;
- };
- 
-+/*
-+ * io_uring_event->flags
-+ */
-+#define IOCQE_FLAG_CACHEHIT	(1 << 0)	/* IO did not hit media */
-+
- /*
-  * Magic offsets for the application to mmap the data it needs
-  */
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #endif
 -- 
-2.17.1
+2.19.0
