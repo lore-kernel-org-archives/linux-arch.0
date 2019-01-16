@@ -1,167 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:35034 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:35046 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727770AbfAPSZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1728327AbfAPSZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 16 Jan 2019 13:25:32 -0500
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Wed, 16 Jan 2019 11:25:17 -0700
-Message-ID: <20190116182523.19446-1-logang@deltatee.com>
+Date: Wed, 16 Jan 2019 11:25:23 -0700
+Message-ID: <20190116182523.19446-7-logang@deltatee.com>
+In-Reply-To: <20190116182523.19446-1-logang@deltatee.com>
+References: <20190116182523.19446-1-logang@deltatee.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: [PATCH v25 0/6] Add io{read|write}64 to io-64-atomic headers
+Subject: [PATCH v25 6/6] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20190116182517.0JdpSWbz8raUcfp2yMs8RpTvLO0VXNo3Y_nxYR9NFoA@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
+Message-ID: <20190116182523.g7pikjYS8oYM2w1qAgEmgsd5mQPWH6InXUxOZr7eZUw@z>
 
-This is resend number 6 since the last change to this series.
+Clean up the ifdefs which conditionally defined the io{read|write}64
+functions in favour of the new common io-64-nonatomic-lo-hi header.
 
-This cleanup was requested by Greg KH back in June of 2017. I've resent the series
-a couple times a cycle since then, updating and fixing as feedback was slowly
-recieved some patches were alread accepted by specific arches. In June 2018,
-Andrew picked the remainder of this up and it was in linux-next for a
-couple weeks. There were a couple problems that were identified and addressed
-back then and I'd really like to get the ball rolling again. A year
-and a half of sending this without much feedback is far too long.
+Per a nit from Andy Shevchenko, the include list is also made
+alphabetical.
 
-@Andrew, can you please pick this set up again so it can get into
-linux-next? Or let me know if there's something else I should be doing.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 +++-----------------------
+ 1 file changed, 4 insertions(+), 32 deletions(-)
 
-Thanks,
-
-Logan
-
---
-
-Changes since v24:
-- Rebased onto v5.0-rc2 (No Changes)
-
-Changes since v23:
-- Rebased onto v4.20-rc4 (No Changes)
-
-Changes since v22:
-- Rebased onto v4.20-rc1 (No Changes)
-
-Changes since v21:
-- Rebased onto v4.19-rc6 (No Changes)
-
-Changes since v20:
-- Rebased onto v4.19-rc3 (No Changes)
-
-Changes since v19:
-- Rebased onto v4.19-rc1 (No Changes)
-
-Changes since v18:
-- Dropped the CAAM patch as it was subtly wrong and broke when people
-  tested it in linux-next. Seeing the code is much trickier than it
-  appears, we'll leave it to its maintainers to clean it up,
-  should they chose.
-- Restored the ioread64/iowrite64 extern prototypes as despite
-  appearing to be unusued, they are in fact used in a rare corner case
-  by the caam driver on 64bit powerpc. This was reported by Guenter testing
-  on linux-next.
-- Rebased onto v4.18-rc4 (No Changes)
-
-Changes since v17:
-- Rebased onto v4.18-rc1 (No Changes)
-
-Changes since v16:
-- Rebased onto v4.17-rc4 (No Changes)
-
-Changes since v15:
-- Rebased onto v4.17-rc1, dropping the powerpc patches which were
-  picked up by Michael
-
-Changes since v14:
-- Rebased onto v4.16-rc7
-- Replace the first two patches so that instead of correcting the
-  endianness annotations we change to using writeX() and readX() with
-  swabX() calls. This makes the big-endian functions more symmetric
-  with the little-endian versions (with respect to barriers that are
-  not included in the raw functions). As a side effect, it also fixes
-  the kbuild warnings that the first two patches tried to address.
-
-Changes since v13:
-- Changed the subject of patch 0001 to correct a nit pointed out by Luc
-
-Changes since v12:
-- Rebased onto v4.16-rc6
-- Split patch 0001 into two and reworked the commit log as requested
-  by Luc Van Oostenryck
-
-Changes since v11:
-- Rebased onto v4.16-rc5
-- Added a patch (0001) to fix some old and new sparse warnings
-  that the kbuild robot warned about this cycle. The latest version
-  of sparse was required to reproduce these.
-- Added a patch (0002) to add io{read|write}64 to parisc which the kbuild
-  robot also found errors for this cycle
-
-Changes since v10:
-- Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
-  picked up by that tree and is already in 4.16.
-
-Changes since v9:
-- Rebased onto v4.15-rc6
-- Fixed a couple of issues in the new version of the CAAM patch as
-  pointed out by Horia
-
-Changes since v8:
-- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
-  some similar cleanup in that area.
-- Added a patch to clean up the Switchtec NTB driver which landed in
-  v4.15-rc1
-
-Changes since v7:
-- Fix minor nits from Andy Shevchenko
-- Rebased onto v4.14-rc1
-
-Changes since v6:
- ** none **
-
-Changes since v5:
-- Added a fix to the tilcdc driver to ensure it doesn't use the
-  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
-  defines).
-
-Changes since v4:
-- Add functions so the powerpc implementation of iomap.c compiles. (As
-  noticed by Horia)
-
-Changes since v3:
-
-- I noticed powerpc didn't use the appropriate functions seeing
-  readq/writeq were not defined when iomap.h was included. Thus I've
-  included a patch to adjust this
-- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
-  headers
-- Fixed a typo noticed by Horia.
-
-(earlier versions were drastically different)
-
-
---
-
-Logan Gunthorpe (6):
-  iomap: Use non-raw io functions for io{read|write}XXbe
-  parisc: iomap: introduce io{read|write}64
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
-    header
-
- arch/parisc/include/asm/io.h           |   9 ++
- arch/parisc/lib/iomap.c                |  64 +++++++++++
- arch/powerpc/include/asm/io.h          |   2 +
- drivers/ntb/hw/intel/ntb_hw_intel.h    |  30 +-----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  36 +------
- include/asm-generic/iomap.h            |  22 ++++
- include/linux/io-64-nonatomic-hi-lo.h  |  64 +++++++++++
- include/linux/io-64-nonatomic-lo-hi.h  |  64 +++++++++++
- lib/iomap.c                            | 140 ++++++++++++++++++++++++-
- 9 files changed, 366 insertions(+), 65 deletions(-)
-
---
+diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+index f1eaa3c4d46a..f2df2d39c65b 100644
+--- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
++++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+@@ -13,13 +13,14 @@
+  *
+  */
+ 
+-#include <linux/switchtec.h>
+-#include <linux/module.h>
++#include <linux/interrupt.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ #include <linux/delay.h>
+ #include <linux/kthread.h>
+-#include <linux/interrupt.h>
++#include <linux/module.h>
+ #include <linux/ntb.h>
+ #include <linux/pci.h>
++#include <linux/switchtec.h>
+ 
+ MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
+ MODULE_VERSION("0.1");
+@@ -36,35 +37,6 @@ module_param(use_lut_mws, bool, 0644);
+ MODULE_PARM_DESC(use_lut_mws,
+ 		 "Enable the use of the LUT based memory windows");
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #define SWITCHTEC_NTB_MAGIC 0x45CC0001
+ #define MAX_MWS     128
+ 
+-- 
 2.19.0
