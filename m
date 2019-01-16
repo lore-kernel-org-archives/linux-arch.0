@@ -1,73 +1,90 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v25 1/6] iomap: Use non-raw io functions for io{read|write}XXbe
-Date: Wed, 16 Jan 2019 11:25:18 -0700
-Message-ID: <20190116182523.19446-2-logang@deltatee.com>
-References: <20190116182523.19446-1-logang@deltatee.com>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH 12/15] io_uring: add support for pre-mapped user IO
+ buffers
+Date: Wed, 16 Jan 2019 14:20:53 -0700
+Message-ID: <9db63405-6797-9305-3ce1-fdc11edbf49c@kernel.dk>
+References: <20190116175003.17880-1-axboe@kernel.dk>
+ <20190116175003.17880-13-axboe@kernel.dk> <20190116205338.GQ4205@dastard>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190116182523.19446-1-logang@deltatee.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20190116205338.GQ4205@dastard>
+Content-Language: en-US
+Sender: owner-linux-aio@kvack.org
+To: Dave Chinner <david@fromorbit.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-Fix an asymmetry in the io{read|write}XXbe functions in that the
-big-endian variants make use of the raw io accessors while the
-little-endian variants use the regular accessors. Some architectures
-implement barriers to order against both spinlocks and DMA accesses
-and for these case, the big-endian variant of the API would not be
-protected.
+On 1/16/19 1:53 PM, Dave Chinner wrote:
+> On Wed, Jan 16, 2019 at 10:50:00AM -0700, Jens Axboe wrote:
+>> If we have fixed user buffers, we can map them into the kernel when we
+>> setup the io_context. That avoids the need to do get_user_pages() for
+>> each and every IO.
+> .....
+>> +			return -ENOMEM;
+>> +	} while (atomic_long_cmpxchg(&ctx->user->locked_vm, cur_pages,
+>> +					new_pages) != cur_pages);
+>> +
+>> +	return 0;
+>> +}
+>> +
+>> +static int io_sqe_buffer_unregister(struct io_ring_ctx *ctx)
+>> +{
+>> +	int i, j;
+>> +
+>> +	if (!ctx->user_bufs)
+>> +		return -EINVAL;
+>> +
+>> +	for (i = 0; i < ctx->sq_entries; i++) {
+>> +		struct io_mapped_ubuf *imu = &ctx->user_bufs[i];
+>> +
+>> +		for (j = 0; j < imu->nr_bvecs; j++) {
+>> +			set_page_dirty_lock(imu->bvec[j].bv_page);
+>> +			put_page(imu->bvec[j].bv_page);
+>> +		}
+> 
+> Hmmm, so we call set_page_dirty() when the gup reference is dropped...
+> 
+> .....
+> 
+>> +static int io_sqe_buffer_register(struct io_ring_ctx *ctx, void __user *arg,
+>> +				  unsigned nr_args)
+>> +{
+> 
+> .....
+> 
+>> +		down_write(&current->mm->mmap_sem);
+>> +		pret = get_user_pages_longterm(ubuf, nr_pages, FOLL_WRITE,
+>> +						pages, NULL);
+>> +		up_write(&current->mm->mmap_sem);
+> 
+> Thought so. This has the same problem as RDMA w.r.t. using
+> file-backed mappings for the user buffer.  It is not synchronised
+> against truncate, hole punches, async page writeback cleaning the
+> page, etc, and so can lead to data corruption and/or kernel panics.
+> 
+> It also can't be used with DAX because the above problems are
+> actually a user-after-free of storage space, not just a dangling
+> page reference that can be cleaned up after the gup pin is dropped.
+> 
+> Perhaps, at least until we solve the GUP problems w.r.t. file backed
+> pages and/or add and require file layout leases for these reference,
+> we should error out if the  user buffer pages are file-backed
+> mappings?
 
-Thus, change the mmio_XXXXbe macros to use the appropriate swab() function
-wrapping the regular accessor. This is similar to what was done for PIO.
+Thanks for taking a look at this.
 
-When this code was originally written, barriers in the IO accessors were
-not common and the accessors simply wrapped the raw functions in a
-conversion to CPU endianness. Since then, barriers have been added in
-some architectures and are now missing in the big endian variant of the
-API.
+I'd be fine with that restriction, especially since it can get relaxed
+down the line. Do we have an appropriate API for this? And why isn't
+get_user_pages_longterm() that exact API already? Would seem that most
+(all?) callers of this API is currently broken then.
 
-This also manages to silence a few sparse warnings that check
-for using the correct endian types which the original code did
-not annotate correctly.
-
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: Philippe Ombredanne <pombredanne@nexb.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Link: http://lkml.kernel.org/r/CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com
----
- lib/iomap.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 541d926da95e..2c293b22569f 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const char *access)
- #endif
- 
- #ifndef mmio_read16be
--#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
--#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
-+#define mmio_read16be(addr) swab16(readw(addr))
-+#define mmio_read32be(addr) swab32(readl(addr))
- #endif
- 
- unsigned int ioread8(void __iomem *addr)
-@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
- #endif
- 
- #ifndef mmio_write16be
--#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
--#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
-+#define mmio_write16be(val,port) writew(swab16(val),port)
-+#define mmio_write32be(val,port) writel(swab32(val),port)
- #endif
- 
- void iowrite8(u8 val, void __iomem *addr)
 -- 
-2.19.0
+Jens Axboe
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
