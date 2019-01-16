@@ -1,50 +1,84 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 05/16] Add io_uring IO interface
-Date: Wed, 16 Jan 2019 12:00:40 +0100
-Message-ID: <CAK8P3a1=-=8YZ+9wsCGJ+gS3G5axHAKXA4XVcEQnyzwHD6fO6A@mail.gmail.com>
-References: <20190115025531.13985-1-axboe@kernel.dk> <20190115025531.13985-6-axboe@kernel.dk>
- <CAK8P3a19ie7wcndDW7oxmUGh5c9aaarJycKBVOQ2F9+eHj=nsg@mail.gmail.com>
+From: Sasha Levin <sashal@kernel.org>
+Subject: Re: [PATCH v8 01/26] arm64: Fix HCR.TGE status for NMI contexts
+Date: Wed, 16 Jan 2019 13:35:39 +0000
+Message-ID: <20190116133540.BF7CE2082F@mail.kernel.org>
+References: <1546956464-48825-2-git-send-email-julien.thierry@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CAK8P3a19ie7wcndDW7oxmUGh5c9aaarJycKBVOQ2F9+eHj=nsg@mail.gmail.com>
-Sender: owner-linux-aio@kvack.org
-To: Jens Axboe <axboe@kernel.dk>
-Cc: Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-aio <linux-aio@kvack.org>, linux-block <linux-block@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Jeff Moyer <jmoyer@redhat.com>, Avi Kivity <avi@scylladb.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1546956464-48825-2-git-send-email-julien.thierry@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Sasha Levin <sashal@kernel.org>, Julien Thierry <julien.thierry@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, daniel.thompson@linaro.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, James Morse <james.morse@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 16, 2019 at 11:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > +/*
-> > + * IO submission data structure (Submission Queue Entry)
-> > + */
-> > +struct io_uring_sqe {
-> > +       __u8    opcode;         /* type of operation for this sqe */
-> > +       __u8    flags;          /* as of now unused */
-> > +       __u16   ioprio;         /* ioprio for the request */
-> > +       __s32   fd;             /* file descriptor to do IO on */
-> > +       __u64   off;            /* offset into file */
-> > +       union {
-> > +               void    *addr;  /* buffer or iovecs */
-> > +               __u64   __pad;
-> > +       };
->
-> It seems a bit unfortunate to keep the pointer field only
-> almost compatible between 32-bit and 64-bit big-endian
-> architectures, as that requires an in_compat_syscall()
-> check whenever we access the pointer from the kernel.
->
-> Could you use a __u64 field to store the pointer itself
-> instead?
+Hi,
 
-To clarify: Using the u64_to_user_ptr() helper function,
-you can interpret a __u64 field in a uapi data structure
-directly as a pointer. The user space side needs a similar
-wrapper though.
+[This is an automated email]
 
-     Arnd
+This commit has been processed because it contains a -stable tag.
+The stable tag indicates that it's relevant for the following trees: all
+
+The bot has tested the following trees: v4.20.2, v4.19.15, v4.14.93, v4.9.150, v4.4.170, v3.18.132.
+
+v4.20.2: Build OK!
+v4.19.15: Build OK!
+v4.14.93: Build OK!
+v4.9.150: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    34be98f4944f ("arm64: kernel: remove {THREAD,IRQ_STACK}_START_SP")
+    a9ea0017ebe8 ("arm64: factor out current_stack_pointer")
+    c02433dd6de3 ("arm64: split thread_info from task stack")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    dbc9344a68e5 ("arm64: clean up THREAD_* definitions")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+
+v4.4.170: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    0a8ea52c3eb1 ("arm64: Add HAVE_REGS_AND_STACK_ACCESS_API feature")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    1ffe199b1c9b ("arm64: when walking onto the task stack, check sp & fp are in current->stack")
+    20380bb390a4 ("arm64: ftrace: fix a stack tracer's output under function graph tracer")
+    7596abf2e566 ("arm64: irq: fix walking from irq stack to task stack")
+    8e23dacd12a4 ("arm64: Add do_softirq_own_stack() and enable irq_stacks")
+    971c67ce37cf ("arm64: reduce stack use in irq_handler")
+    a80a0eb70c35 ("arm64: make irq_stack_ptr more robust")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+    fe13f95b7200 ("arm64: pass a task parameter to unwind_frame()")
+
+v3.18.132: Failed to apply! Possible dependencies:
+    020295b4cb5b ("ACPI / processor: Make it possible to get CPU hardware ID via GICC")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    13ca62b243f6 ("ACPI: Fix minor syntax issues in processor_core.c")
+    37655163ce1a ("ARM64 / ACPI: Get RSDP and ACPI boot-time tables")
+    587064b610c7 ("arm64: Add framework for legacy instruction emulation")
+    652261a7a86c ("ACPI: fix acpi_os_ioremap for arm64")
+    828aef376d7a ("ACPI / processor: Introduce phys_cpuid_t for CPU hardware ID")
+    96f0e00378d4 ("ARM: add basic support for on-demand backtrace of other CPUs")
+    af2c632e234f ("arm64/include/asm: Fixed a warning about 'struct pt_regs'")
+    af8f3f514d19 ("ACPI / processor: Convert apic_id to phys_id to make it arch agnostic")
+    b4ff8389ed14 ("xen/events: Always allocate legacy interrupts on PV guests")
+    d02dc27db0dc ("ACPI / processor: Rename acpi_(un)map_lsapic() to acpi_(un)map_cpu()")
+    d60fc3892c4d ("irqchip: Add GICv2 specific ACPI boot support")
+    ecf5636dcd59 ("ACPI: Add interfaces to parse IOAPIC ID for IOAPIC hotplug")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+
+
+How should we proceed with this patch?
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Thanks,
+Sasha
