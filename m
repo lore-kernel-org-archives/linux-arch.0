@@ -1,66 +1,49 @@
 From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 13/16] io_uring: add support for pre-mapped user IO
- buffers
-Date: Wed, 16 Jan 2019 08:14:17 -0700
-Message-ID: <075af26b-c685-a0db-05e4-fa73f8725b8a@kernel.dk>
+Subject: Re: [PATCH 15/16] io_uring: add file registration
+Date: Wed, 16 Jan 2019 08:15:16 -0700
+Message-ID: <d19dbfae-f424-8987-14a4-66f801f7fa71@kernel.dk>
 References: <20190115025531.13985-1-axboe@kernel.dk>
- <20190115025531.13985-14-axboe@kernel.dk>
- <CAK8P3a3aTZ-VEc=uvOeYov4DiaBN1iNuhR41BfP0Qdf3AXx74w@mail.gmail.com>
+ <20190115025531.13985-16-axboe@kernel.dk>
+ <CAK8P3a2oHO-q6Nes3uakjFVcwYOAPHvLMyQW_qQg1_47PfH8Ng@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CAK8P3a3aTZ-VEc=uvOeYov4DiaBN1iNuhR41BfP0Qdf3AXx74w@mail.gmail.com>
+In-Reply-To: <CAK8P3a2oHO-q6Nes3uakjFVcwYOAPHvLMyQW_qQg1_47PfH8Ng@mail.gmail.com>
 Content-Language: en-US
 Sender: owner-linux-aio@kvack.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-aio <linux-aio@kvack.org>, linux-block <linux-block@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Jeff Moyer <jmoyer@redhat.com>, Avi Kivity <avi@scylladb.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 1/16/19 3:53 AM, Arnd Bergmann wrote:
+On 1/16/19 3:45 AM, Arnd Bergmann wrote:
 > On Tue, Jan 15, 2019 at 3:56 AM Jens Axboe <axboe@kernel.dk> wrote:
 > 
->> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
->> index 542757a4c898..e36c264d74e8 100644
->> --- a/include/linux/syscalls.h
->> +++ b/include/linux/syscalls.h
->> @@ -314,6 +314,8 @@ asmlinkage long sys_io_uring_setup(u32 entries,
->>                                 struct io_uring_params __user *p);
->>  asmlinkage long sys_io_uring_enter(unsigned int fd, u32 to_submit,
->>                                 u32 min_complete, u32 flags);
->> +asmlinkage long sys_io_uring_register(unsigned int fd, unsigned op,
->> +                               void __user *arg);
+>> @@ -132,4 +139,12 @@ struct io_uring_register_buffers {
+>>         __u32 nr_iovecs;
+>>  };
 >>
-> 
-> Would it be possible to make this a typed pointer instead? If this needs to
-> be extended later to pass a different structure, a new system call may
-> be better for consistency than overloading the argument in various
-> ways.
-
-As you can see from the later patch for registering files, it'll be used
-for other structs too. Feels a little silly to add an extra system call
-for that. I agree the void * isn't the prettiest thing in the world, but
-at least it allows us to extend the API without having to add even more
-system calls down the line.
-
->> + * io_uring_register(2) opcodes and arguments
->> + */
->> +#define IORING_REGISTER_BUFFERS                0
->> +#define IORING_UNREGISTER_BUFFERS      1
->> +
->> +struct io_uring_register_buffers {
+>> +struct io_uring_register_files {
 >> +       union {
->> +               struct iovec *iovecs;
+>> +               __s32 *fds;
 >> +               __u64 pad;
 >> +       };
->> +       __u32 nr_iovecs;
+>> +       __u32 nr_fds;
 >> +};
 > 
-> As before, I'd suggest making this structure compatible between 32-bit
-> and 64-bit architectectures, by avoiding pointer and implied padding
-> fields.
+> I think you should either remove the pad field here, or pass the pointer
+> using a __u64 argument itself. With the current definition, the ioctl
+> command code is the same between 32-bit and 64-bit architectures
+> (since the length is the same on anything other than x86), but the
+> structures are incompatible.
 
-I'll await an answer to my previous question on that.
+Ah ok, I think I'm starting to follow. Thanks Arnd, that's useful.
+I'll make the changes throughout the structs.
+
+> I would also suggest adding an explicit 32-bit pad field at the end
+> of the structure, to avoid the implicit padding on non-i386 machines.
+
+That's a good point, I'll make that change, that was an oversight.
 
 -- 
 Jens Axboe
