@@ -1,52 +1,79 @@
-From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 15/16] io_uring: add file registration
-Date: Wed, 16 Jan 2019 08:15:16 -0700
-Message-ID: <d19dbfae-f424-8987-14a4-66f801f7fa71@kernel.dk>
-References: <20190115025531.13985-1-axboe@kernel.dk>
- <20190115025531.13985-16-axboe@kernel.dk>
- <CAK8P3a2oHO-q6Nes3uakjFVcwYOAPHvLMyQW_qQg1_47PfH8Ng@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 05/16] Add io_uring IO interface
+Date: Wed, 16 Jan 2019 16:16:47 +0100
+Message-ID: <CAK8P3a2MuO-wRjYxscP-AOAUjwg6fHRc99Am6xqUmXYrJRt44w@mail.gmail.com>
+References: <20190115025531.13985-1-axboe@kernel.dk> <20190115025531.13985-6-axboe@kernel.dk>
+ <CAK8P3a19ie7wcndDW7oxmUGh5c9aaarJycKBVOQ2F9+eHj=nsg@mail.gmail.com> <15b06ccb-4501-f104-9a3a-f028218a0d70@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CAK8P3a2oHO-q6Nes3uakjFVcwYOAPHvLMyQW_qQg1_47PfH8Ng@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <15b06ccb-4501-f104-9a3a-f028218a0d70@kernel.dk>
 Sender: owner-linux-aio@kvack.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: Jens Axboe <axboe@kernel.dk>
 Cc: Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-aio <linux-aio@kvack.org>, linux-block <linux-block@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Jeff Moyer <jmoyer@redhat.com>, Avi Kivity <avi@scylladb.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 1/16/19 3:45 AM, Arnd Bergmann wrote:
-> On Tue, Jan 15, 2019 at 3:56 AM Jens Axboe <axboe@kernel.dk> wrote:
-> 
->> @@ -132,4 +139,12 @@ struct io_uring_register_buffers {
->>         __u32 nr_iovecs;
->>  };
->>
->> +struct io_uring_register_files {
->> +       union {
->> +               __s32 *fds;
->> +               __u64 pad;
->> +       };
->> +       __u32 nr_fds;
->> +};
-> 
-> I think you should either remove the pad field here, or pass the pointer
-> using a __u64 argument itself. With the current definition, the ioctl
-> command code is the same between 32-bit and 64-bit architectures
-> (since the length is the same on anything other than x86), but the
-> structures are incompatible.
+On Wed, Jan 16, 2019 at 4:12 PM Jens Axboe <axboe@kernel.dk> wrote:
+> On 1/16/19 3:41 AM, Arnd Bergmann wrote:
+> > On Tue, Jan 15, 2019 at 3:55 AM Jens Axboe <axboe@kernel.dk> wrote:
+> >> diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+> >> index 3cf7b533b3d1..194e79c0032e 100644
+> >> --- a/arch/x86/entry/syscalls/syscall_32.tbl
+> >> +++ b/arch/x86/entry/syscalls/syscall_32.tbl
+> >> +SYSCALL_DEFINE2(io_uring_setup, u32, entries,
+> >> +               struct io_uring_params __user *, params)
+> >> +{
+> >> +       return io_uring_setup(entries, params, false);
+> >> +}
+> >> +
+> >> +#ifdef CONFIG_COMPAT
+> >> +COMPAT_SYSCALL_DEFINE2(io_uring_setup, u32, entries,
+> >> +                      struct io_uring_params __user *, params)
+> >> +{
+> >> +       return io_uring_setup(entries, params, true);
+> >> +}
+> >> +#endif
+> >
+> > The compat syscall has the same calling conventions as the
+> > native one here, so I think you can just use that directly.
+>
+> Not sure I understand what you mean here. I need to know if it's the
+> compat one, hence 'true' vs 'false', so I know what the size of the user
+> pointers/structs are.
 
-Ah ok, I think I'm starting to follow. Thanks Arnd, that's useful.
-I'll make the changes throughout the structs.
+My mistake, I missed the true/false difference between the two
+functions.
 
-> I would also suggest adding an explicit 32-bit pad field at the end
-> of the structure, to avoid the implicit padding on non-i386 machines.
+> >> +/*
+> >> + * IO submission data structure (Submission Queue Entry)
+> >> + */
+> >> +struct io_uring_sqe {
+> >> +       __u8    opcode;         /* type of operation for this sqe */
+> >> +       __u8    flags;          /* as of now unused */
+> >> +       __u16   ioprio;         /* ioprio for the request */
+> >> +       __s32   fd;             /* file descriptor to do IO on */
+> >> +       __u64   off;            /* offset into file */
+> >> +       union {
+> >> +               void    *addr;  /* buffer or iovecs */
+> >> +               __u64   __pad;
+> >> +       };
+> >
+> > It seems a bit unfortunate to keep the pointer field only
+> > almost compatible between 32-bit and 64-bit big-endian
+> > architectures, as that requires an in_compat_syscall()
+> > check whenever we access the pointer from the kernel.
+> >
+> > Could you use a __u64 field to store the pointer itself
+> > instead?
+>
+> I feel like I'm missing something here, we'll still need the compat code
+> on the kernel side for 32-bit app on 64-bit kernel, so what would we
+> solve by making this an __u64?
 
-That's a good point, I'll make that change, that was an oversight.
+It means you don't have to define a compat_io_uring_sqe
+structure with a compat_uptr_t member in it.
 
--- 
-Jens Axboe
+      Arnd
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
