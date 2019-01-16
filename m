@@ -1,102 +1,150 @@
 From: Jens Axboe <axboe@kernel.dk>
-Subject: Re: [PATCH 13/16] io_uring: add support for pre-mapped user IO
- buffers
-Date: Wed, 16 Jan 2019 08:47:27 -0700
-Message-ID: <c5eb06f0-b8ab-81a3-9e79-b31454211a60@kernel.dk>
-References: <20190115025531.13985-1-axboe@kernel.dk>
- <20190115025531.13985-14-axboe@kernel.dk>
- <CAK8P3a3aTZ-VEc=uvOeYov4DiaBN1iNuhR41BfP0Qdf3AXx74w@mail.gmail.com>
- <075af26b-c685-a0db-05e4-fa73f8725b8a@kernel.dk>
- <331f63c0-002f-b373-b831-73af9e98f2ef@kernel.dk>
- <CAK8P3a2E8dLoL5sgucp=-LDkGMN=qnG8M_phHoHCBg5ipWgBjQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Subject: [PATCHSET v5] io_uring IO interface
+Date: Wed, 16 Jan 2019 10:49:48 -0700
+Message-ID: <20190116175003.17880-1-axboe@kernel.dk>
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CAK8P3a2E8dLoL5sgucp=-LDkGMN=qnG8M_phHoHCBg5ipWgBjQ@mail.gmail.com>
-Content-Language: en-US
 Sender: owner-linux-aio@kvack.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-aio <linux-aio@kvack.org>, linux-block <linux-block@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Jeff Moyer <jmoyer@redhat.com>, Avi Kivity <avi@scylladb.com>
+To: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: hch@lst.de, jmoyer@redhat.com, avi@scylladb.com
 List-Id: linux-arch.vger.kernel.org
 
-On 1/16/19 8:41 AM, Arnd Bergmann wrote:
-> On Wed, Jan 16, 2019 at 4:32 PM Jens Axboe <axboe@kernel.dk> wrote:
->>
->> On 1/16/19 8:14 AM, Jens Axboe wrote:
->>> On 1/16/19 3:53 AM, Arnd Bergmann wrote:
->>>> On Tue, Jan 15, 2019 at 3:56 AM Jens Axboe <axboe@kernel.dk> wrote:
->>>>
->>>>> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
->>>>> index 542757a4c898..e36c264d74e8 100644
->>>>> --- a/include/linux/syscalls.h
->>>>> +++ b/include/linux/syscalls.h
->>>>> @@ -314,6 +314,8 @@ asmlinkage long sys_io_uring_setup(u32 entries,
->>>>>                                 struct io_uring_params __user *p);
->>>>>  asmlinkage long sys_io_uring_enter(unsigned int fd, u32 to_submit,
->>>>>                                 u32 min_complete, u32 flags);
->>>>> +asmlinkage long sys_io_uring_register(unsigned int fd, unsigned op,
->>>>> +                               void __user *arg);
->>>>>
->>>>
->>>> Would it be possible to make this a typed pointer instead? If this needs to
->>>> be extended later to pass a different structure, a new system call may
->>>> be better for consistency than overloading the argument in various
->>>> ways.
->>>
->>> As you can see from the later patch for registering files, it'll be used
->>> for other structs too. Feels a little silly to add an extra system call
->>> for that. I agree the void * isn't the prettiest thing in the world, but
->>> at least it allows us to extend the API without having to add even more
->>> system calls down the line.
->>
->> With the __u64 changes, we end up with this:
->>
->> struct io_uring_register_buffers {
->>         __u64 iovecs;           /* pointer to iovecs array */
->>         __u32 nr_iovecs;        /* number of iovecs in array */
->>         __u32 pad;
->> };
->>
->> struct io_uring_register_files {
->>         __u64 fds;
->>         __u32 nr_fds;
->>         __u32 pad;
->> };
->>
->> which are identical. So the question then becomes if I should just make
->> these opaque enough to be the same thing, ala:
->>
->> struct io_uring_register_data {
->>         __u64 data;
->>         __u32 nr_elems;
->>         __u32 pad;
->> };
-> 
-> Right, that looks good in either form.
-> 
->> and then probably add a bit more reserved space so we have something
->> that can be extended...
-> 
-> Or maybe go the opposite way and pass the two members you have
-> directly to the system call:
-> 
-> int io_uring_register(unsigned int fd, unsigned int opcode, void
-> __user *, arg, unsigned count)
-> {
->       ...
-> }
-> 
-> Where 'arg' now points to the array of iovecs or the the array of file
-> descriptors, or whatever else you need.
+Here's v5 of the io_uring interface. Mostly feels like putting some
+finishing touches on top of v4, though we do have a few user interface
+tweaks because of that.
 
-I kind of like that, that gets rid of having to wrap it in a struct. If
-I later wanted to abuse it, arg could point to a struct...
+Arnd was kind enough to review the code with an eye towards 32-bit
+compatability, and that resulted in a few changes. See changelog below.
 
-I'll make this change.
+I also cleaned up the internal ring handling, enabling us to batch
+writes to the SQ ring head and CQ ring tail. This reduces the number of
+write ordering barriers we need.
+
+I also dumped the io_submit_state intermediate poll list handling. This
+drops a patch, and also cleans up the block flush handling since we no
+longer have to tie into the deep internal of plug callbacks. The win of
+this just wasn't enough to warrant the complexity.
+
+LWN did a great write up of the API and internals, see that here:
+
+https://lwn.net/Articles/776703/
+
+In terms of benchmarks, I ran some numbers comparing io_uring to libaio
+and spdk. The tldr is that io_uring is pretty close to spdk, in some
+cases faster. Latencies over spdk are generally better. The areas where
+we are still missing a bit of performance all lie in the block layer,
+and I'll be working on that to close the gap some more.
+
+Latency tests, 3d xpoint, 4k random read
+
+Interface	QD	Polled		Latency		IOPS
+--------------------------------------------------------------------------
+io_uring	1	0		 9.5usec	 77K
+io_uring	2	0		 8.2usec	183K
+io_uring	4	0		 8.4usec	383K
+io_uring	8	0		13.3usec	449K
+
+libaio		1	0		 9.7usec	 74K
+libaio		2	0		 8.5usec	181K
+libaio		4	0		 8.5usec	373K
+libaio		8	0		15.4usec	402K
+
+io_uring	1	1		 6.1usec	139K
+io_uring	2	1		 6.1usec	272K	
+io_uring	4	1		 6.3usec	519K
+io_uring	8	1		11.5usec	592K
+
+spdk		1	1		 6.1usec	151K
+spdk		2	1		 6.2usec	293K
+spdk		4	1		 6.7usec	536K
+spdk		8	1		12.6usec	586K
+
+io_uring vs libaio, non polled, io_uring has a slight lead. spdk
+slightly faster over io_uring polled, especially a lower queue depths.
+At QD=8, io_uring is faster.
+
+
+Peak IOPS, 512b random read
+
+Interface	QD	Polled		Latency		IOPS
+--------------------------------------------------------------------------
+io_uring	4	1		 6.8usec	 513K
+io_uring	8	1		 8.7usec	 829K
+io_uring	16	1		13.1usec	1019K
+io_uring	32	1		20.6usec	1161K
+io_uring	64	1		32.4usec	1244K
+
+spdk		4	1		 6.8usec	 549K
+spdk		8	1		 8.6usec	 865K
+spdk		16	1		14.0usec	1105K
+spdk		32	1		25.0usec	1227K
+spdk		64	1		47.3usec	1251K
+
+io_uring lags spdk about 7% at lower queue depths, getting to within 1%
+of spdk at higher queue depths.
+
+
+Peak per-core, multiple devices, 4k random read
+
+Interface	QD	Polled		IOPS
+--------------------------------------------------------------------------
+io_uring	128	1		1620K
+
+libaio		128	0		 608K
+
+spdk		128	1		1739K
+
+This is using multiple devices, all running on the same core, meant to
+test how much performance we can eke out out a single CPU core. spdk has
+a slight edge over io_uring, with libaio not able to compete at all.
+
+As usual, patches are against 5.0-rc2, and can also be found in my
+io_uring branch here:
+
+
+git://git.kernel.dk/linux-block io_uring
+
+
+Since v4:
+- Update some commit messages
+- Update some stale comments
+- Tweak polling efficiency
+- Avoid multiple SQ/CQ ring inc+barriers for batches of IO
+- Cache SQ head and CQ tail in the kernel
+- Fix buffered rw/work union issue for punted IO
+- Drop submit state request issue cache
+- Rework io_uring_register() for buffers and files to be more 32-bit
+  friendly
+- Make sqe->addr an __u64 instead of playing padding tricks
+- Add compat conditional syscall entry for io_uring_setup()
+
+
+ Documentation/filesystems/vfs.txt      |    3 +
+ arch/x86/entry/syscalls/syscall_32.tbl |    3 +
+ arch/x86/entry/syscalls/syscall_64.tbl |    3 +
+ block/bio.c                            |   59 +-
+ fs/Makefile                            |    1 +
+ fs/block_dev.c                         |   19 +-
+ fs/file.c                              |   15 +-
+ fs/file_table.c                        |    9 +-
+ fs/gfs2/file.c                         |    2 +
+ fs/io_uring.c                          | 2017 ++++++++++++++++++++++++
+ fs/iomap.c                             |   48 +-
+ fs/xfs/xfs_file.c                      |    1 +
+ include/linux/bio.h                    |   14 +
+ include/linux/blk_types.h              |    1 +
+ include/linux/file.h                   |    2 +
+ include/linux/fs.h                     |    6 +-
+ include/linux/iomap.h                  |    1 +
+ include/linux/sched/user.h             |    2 +-
+ include/linux/syscalls.h               |    7 +
+ include/uapi/linux/io_uring.h          |  136 ++
+ init/Kconfig                           |    9 +
+ kernel/sys_ni.c                        |    4 +
+ 22 files changed, 2322 insertions(+), 40 deletions(-)
 
 -- 
 Jens Axboe
+
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
