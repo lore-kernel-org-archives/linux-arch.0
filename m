@@ -1,31 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:36379 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729046AbfAQJbT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Jan 2019 04:31:19 -0500
-Date: Thu, 17 Jan 2019 10:31:17 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Message-ID: <20190117093117.GA31557@lst.de>
-References: <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de> <23284859-bf0a-9cd5-a480-2a7fd7802056@xenosoft.de> <075f70e3-7a4a-732f-b501-05a1a8e3c853@xenosoft.de> <b04d08ea-61f9-3212-b9a3-ad79e3b8bd05@xenosoft.de> <21f72a6a-9095-7034-f169-95e876228b2a@xenosoft.de> <27148ac2-2a92-5536-d886-2c0971ab43d9@xenosoft.de> <20190115133558.GA29225@lst.de> <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de> <20190115151732.GA2325@lst.de> <e9345547-4dc6-747a-29ec-6375dc8bfe83@xenosoft.de>
+Received: from mx2.suse.de ([195.135.220.15]:55592 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726964AbfAQMCX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Jan 2019 07:02:23 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e9345547-4dc6-747a-29ec-6375dc8bfe83@xenosoft.de>
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Date: Thu, 17 Jan 2019 13:02:21 +0100
+From: Roman Penyaev <rpenyaev@suse.de>
+Subject: Re: [PATCH 05/15] Add io_uring IO interface
+In-Reply-To: <20190116175003.17880-6-axboe@kernel.dk>
+References: <20190116175003.17880-1-axboe@kernel.dk>
+ <20190116175003.17880-6-axboe@kernel.dk>
+Message-ID: <362738449bd3f83d18cb1056acc9b875@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190117093117.FZ5XBB2GQAJYFPwO-0dL0uEli-X5GBKjzLVlvkLEia0@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
+Message-ID: <20190117120221.n403CmsUkvO7yRIM7SpguT3blzKngUpDV0maCfq86mI@z>
 
-On Thu, Jan 17, 2019 at 10:21:11AM +0100, Christian Zigotzky wrote:
-> The X1000 boots and the PASEMI onboard ethernet works!
->
-> Bad news for the X5000 (P5020 board). U-Boot loads the kernel and the dtb 
-> file. Then the kernel starts but it doesn't find any hard disks 
-> (partitions).
+Hi Jens,
 
-Thanks for bisecting so far, and lets stop here until I manage to
-resolve the problem.
+On 2019-01-16 18:49, Jens Axboe wrote:
 
-Can you send me the .config and the dtb file for this board?
+[...]
+
+> +static void *io_mem_alloc(size_t size)
+> +{
+> +	gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | __GFP_COMP 
+> |
+> +				__GFP_NORETRY;
+> +
+> +	return (void *) __get_free_pages(gfp_flags, get_order(size));
+
+Since these pages are shared between kernel and userspace, do we need
+to care about d-cache aliasing on armv6 (or other "strange" archs
+which I've never seen) with vivt or vipt cpu caches?
+
+E.g. vmalloc_user() targets this problem by aligning kernel address
+on SHMLBA, so no flush_dcache_page() is required.
+
+--
+Roman
