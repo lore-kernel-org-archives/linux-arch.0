@@ -1,73 +1,82 @@
-From: Roman Penyaev <rpenyaev@suse.de>
+From: Jens Axboe <axboe@kernel.dk>
 Subject: Re: [PATCH 05/15] Add io_uring IO interface
-Date: Thu, 17 Jan 2019 15:34:46 +0100
-Message-ID: <24a609aa05936eb2380f93487be8736c@suse.de>
+Date: Thu, 17 Jan 2019 07:54:43 -0700
+Message-ID: <c3d902f9-06f8-9e9e-4dcf-ad09e4e291ae@kernel.dk>
 References: <20190116175003.17880-1-axboe@kernel.dk>
  <20190116175003.17880-6-axboe@kernel.dk>
  <362738449bd3f83d18cb1056acc9b875@suse.de>
  <cf948a5c-a05f-82c8-2ce9-937dec069567@kernel.dk>
+ <24a609aa05936eb2380f93487be8736c@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <cf948a5c-a05f-82c8-2ce9-937dec069567@kernel.dk>
+In-Reply-To: <24a609aa05936eb2380f93487be8736c@suse.de>
+Content-Language: en-US
 Sender: owner-linux-aio@kvack.org
-To: Jens Axboe <axboe@kernel.dk>
+To: Roman Penyaev <rpenyaev@suse.de>
 Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2019-01-17 14:54, Jens Axboe wrote:
-> On 1/17/19 5:02 AM, Roman Penyaev wrote:
->> Hi Jens,
->> 
->> On 2019-01-16 18:49, Jens Axboe wrote:
->> 
->> [...]
->> 
->>> +static void *io_mem_alloc(size_t size)
->>> +{
->>> +	gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | 
->>> __GFP_COMP
->>> |
->>> +				__GFP_NORETRY;
->>> +
->>> +	return (void *) __get_free_pages(gfp_flags, get_order(size));
->> 
->> Since these pages are shared between kernel and userspace, do we need
->> to care about d-cache aliasing on armv6 (or other "strange" archs
->> which I've never seen) with vivt or vipt cpu caches?
->> 
->> E.g. vmalloc_user() targets this problem by aligning kernel address
->> on SHMLBA, so no flush_dcache_page() is required.
+On 1/17/19 7:34 AM, Roman Penyaev wrote:
+> On 2019-01-17 14:54, Jens Axboe wrote:
+>> On 1/17/19 5:02 AM, Roman Penyaev wrote:
+>>> Hi Jens,
+>>>
+>>> On 2019-01-16 18:49, Jens Axboe wrote:
+>>>
+>>> [...]
+>>>
+>>>> +static void *io_mem_alloc(size_t size)
+>>>> +{
+>>>> +	gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | 
+>>>> __GFP_COMP
+>>>> |
+>>>> +				__GFP_NORETRY;
+>>>> +
+>>>> +	return (void *) __get_free_pages(gfp_flags, get_order(size));
+>>>
+>>> Since these pages are shared between kernel and userspace, do we need
+>>> to care about d-cache aliasing on armv6 (or other "strange" archs
+>>> which I've never seen) with vivt or vipt cpu caches?
+>>>
+>>> E.g. vmalloc_user() targets this problem by aligning kernel address
+>>> on SHMLBA, so no flush_dcache_page() is required.
+>>
+>> I'm honestly not sure, it'd be trivial enough to stick a
+>> flush_dcache_page() into the few areas we'd need it. The rings are
+>> already page (SHMLBA) aligned.
 > 
-> I'm honestly not sure, it'd be trivial enough to stick a
-> flush_dcache_page() into the few areas we'd need it. The rings are
-> already page (SHMLBA) aligned.
+> For arm SHMLBA is not a page, it is 4x page.  So for userspace vaddr
+> which mmap() returns is aligned, but for kernel not.  So indeed
+> flush_dcache_page() should be used.
 
-For arm SHMLBA is not a page, it is 4x page.  So for userspace vaddr
-which mmap() returns is aligned, but for kernel not.  So indeed
-flush_dcache_page() should be used.
+Oh indeed, my bad.
 
-The other question which I can't answer myself is the order of
-flush_dcache_page() and smp_wmb().  Does flush_scache_page() implies
-flush of the cpu write buffer?   Or firstly smp_wmb() should be done
-in order to flush everything to cache.  Here is what arm spec says
-about write-back cache:
+> The other question which I can't answer myself is the order of
+> flush_dcache_page() and smp_wmb().  Does flush_scache_page() implies
+> flush of the cpu write buffer?   Or firstly smp_wmb() should be done
+> in order to flush everything to cache.  Here is what arm spec says
+> about write-back cache:
+> 
+> "Writes that miss in the cache are placed in the write buffer and
+> appear on the AMBA ASB interface. The CPU continues execution as
+> soon as the write is placed in the write buffer."
+> 
+> So if you firstly do flush_dcache_page() will it flush write buffer?
+> Because it seems that firstly smp_wmb() and then flush_dcache_page(),
+> or I am going mad?
 
-"Writes that miss in the cache are placed in the write buffer and
-appear on the AMBA ASB interface. The CPU continues execution as
-soon as the write is placed in the write buffer."
+I don't think you're going mad! We'd first need smp_wmb() to order the
+writes, then the flush_dcache_page(). For filling the CQ ring, we'd also
+need to flush the page the cqe belongs to.
 
-So if you firstly do flush_dcache_page() will it flush write buffer?
-Because it seems that firstly smp_wmb() and then flush_dcache_page(),
-or I am going mad?
+Question is if we care enough about performance on vivt to do something
+about that. I know what my answer will be... If others care, they can
+incrementally improve upon that.
 
---
-Roman
-
-
-
+-- 
+Jens Axboe
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-aio' in
