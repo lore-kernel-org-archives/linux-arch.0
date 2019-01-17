@@ -1,46 +1,43 @@
 From: Jens Axboe <axboe@kernel.dk>
 Subject: Re: [PATCH 05/15] Add io_uring IO interface
-Date: Thu, 17 Jan 2019 06:54:15 -0700
-Message-ID: <cf948a5c-a05f-82c8-2ce9-937dec069567@kernel.dk>
+Date: Thu, 17 Jan 2019 07:01:07 -0700
+Message-ID: <af41e99c-54f2-a94c-a876-d673fe477e0a@kernel.dk>
 References: <20190116175003.17880-1-axboe@kernel.dk>
  <20190116175003.17880-6-axboe@kernel.dk>
- <362738449bd3f83d18cb1056acc9b875@suse.de>
+ <718b4d1fbe9f97592d6d7b76d7a4537d@suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <362738449bd3f83d18cb1056acc9b875@suse.de>
+In-Reply-To: <718b4d1fbe9f97592d6d7b76d7a4537d@suse.de>
 Content-Language: en-US
 Sender: owner-linux-aio@kvack.org
 To: Roman Penyaev <rpenyaev@suse.de>
 Cc: linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-block@vger.kernel.org, linux-arch@vger.kernel.org, hch@lst.de, jmoyer@redhat.com, avi@scylladb.com, linux-block-owner@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1/17/19 5:02 AM, Roman Penyaev wrote:
-> Hi Jens,
-> 
+On 1/17/19 5:48 AM, Roman Penyaev wrote:
 > On 2019-01-16 18:49, Jens Axboe wrote:
 > 
 > [...]
 > 
->> +static void *io_mem_alloc(size_t size)
+>> +static int io_allocate_scq_urings(struct io_ring_ctx *ctx,
+>> +				  struct io_uring_params *p)
 >> +{
->> +	gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | __GFP_COMP 
->> |
->> +				__GFP_NORETRY;
+>> +	struct io_sq_ring *sq_ring;
+>> +	struct io_cq_ring *cq_ring;
+>> +	size_t size;
+>> +	int ret;
 >> +
->> +	return (void *) __get_free_pages(gfp_flags, get_order(size));
+>> +	sq_ring = io_mem_alloc(struct_size(sq_ring, array, p->sq_entries));
 > 
-> Since these pages are shared between kernel and userspace, do we need
-> to care about d-cache aliasing on armv6 (or other "strange" archs
-> which I've never seen) with vivt or vipt cpu caches?
-> 
-> E.g. vmalloc_user() targets this problem by aligning kernel address
-> on SHMLBA, so no flush_dcache_page() is required.
+> It seems that sq_entries, cq_entries are not limited at all.  Can nasty
+> app consume a lot of kernel pages calling io_setup_uring() from a loop
+> passing random entries number? (or even better: decreasing entries 
+> number,
+> in order to consume all pages orders with min number of loops).
 
-I'm honestly not sure, it'd be trivial enough to stick a
-flush_dcache_page() into the few areas we'd need it. The rings are
-already page (SHMLBA) aligned.
+Yes, that's an oversight, we should have a limit in place. I'll add that.
 
 -- 
 Jens Axboe
