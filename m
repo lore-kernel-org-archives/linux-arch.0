@@ -1,45 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:42686 "EHLO
-        bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728514AbfARRpZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Jan 2019 12:45:25 -0500
-Message-ID: <1547833518.2794.36.camel@HansenPartnership.com>
-Subject: Re: [PATCH v2 00/29] y2038: add time64 syscalls
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Fri, 18 Jan 2019 09:45:18 -0800
-In-Reply-To: <be3863ae-d903-8e9e-5e6c-e4a58fac189d@blastwave.org>
-References: <20190118161835.2259170-1-arnd@arndb.de>
-         <be3863ae-d903-8e9e-5e6c-e4a58fac189d@blastwave.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-eopbgr770115.outbound.protection.outlook.com ([40.107.77.115]:47456
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728644AbfARSjv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Jan 2019 13:39:51 -0500
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v5 07/17] fanotify: encode file identifier for
+ FAN_REPORT_FID
+Date: Fri, 18 Jan 2019 18:39:40 +0000
+Message-ID: <20190118183939.tasdhobwtqxkjukm@pburton-laptop>
+References: <20190110170444.30616-8-amir73il@gmail.com>
+ <201901111612.XzUbwDyo%fengguang.wu@intel.com>
+ <CAOQ4uxg+Zk74XqPMNmrEpR13Wr9r=8osOrHVAhH1De9UMFmRoQ@mail.gmail.com>
+In-Reply-To: <CAOQ4uxg+Zk74XqPMNmrEpR13Wr9r=8osOrHVAhH1De9UMFmRoQ@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <35826B42C5E440459811D11F6AC6B7FC@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dennis Clarke <dclarke@blastwave.org>, Arnd Bergmann <arnd@arndb.de>, y2038@lists.linaro.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mattst88@gmail.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, monstr@monstr.eu, paul.burton@mips.com, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jcmvbkbc@gmail.com, akpm@linux-foundation.org, deepa.kernel@gmail.com, ebiederm@xmission.com, firoz.khan@linaro.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20190118174518.6HZdu2S2H6j2aW5ZEOFPe7s0rp1YaQhItkLkgSDR-p0@z>
+To: Amir Goldstein <amir73il@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>, "kbuild-all@01.org" <kbuild-all@01.org>, Jan Kara <jack@suse.cz>, Matthew Bobrowski <mbobrowski@mbobrowski.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Fri, 2019-01-18 at 11:57 -0500, Dennis Clarke wrote:
-> On 1/18/19 11:18 AM, Arnd Bergmann wrote:
-> > This is a minor update of the patches I posted last week, I
-> > would like to add this into linux-next now, but would still do
-> > changes if there are concerns about the contents. The first
-> > version did not see a lot of replies, which could mean that
-> > either everyone is happy with it, or that it was largely ignored.
-> > 
-> > See also the article at https://lwn.net/Articles/776435/.
-> 
-> I would be happy to read "Approaching the kernel year-2038 end game"
-> however it is behind a pay wall.  Perhaps it may be best to just
-> host interesting articles about open source idea elsewhere.
+Hi Amir,
 
-Hey, this is an unfair characterization: lwn.net operates an early
-access subscription model, so you can't read the above for 14 days
-after publication without paying for an lwn.net subscription, but by
-the time these patches are upstream there will be no paywall because it
-will expire on 24 January and that URL will then be readable by all. 
-That makes LWN.net a nice, reliable resource for us while still
-supporting some business model to keep it going.
+On Fri, Jan 11, 2019 at 10:37:39AM +0200, Amir Goldstein wrote:
+> On Fri, Jan 11, 2019 at 10:11 AM kbuild test robot <lkp@intel.com> wrote:
+> >
+> > Hi Amir,
+> >
+> > I love your patch! Perhaps something to improve:
+> >
+> > [auto build test WARNING on linus/master]
+> > [also build test WARNING on v5.0-rc1]
+> > [if your patch is applied to the wrong git tree, please drop us a note =
+to help improve the system]
+> >
+> > url:    https://github.com/0day-ci/linux/commits/Amir-Goldstein/fanotif=
+y-add-support-for-more-event-types/20190111-090241
+> > config: mips-allmodconfig (attached as .config)
+> > compiler: mips-linux-gnu-gcc (Debian 7.2.0-11) 7.2.0
+> > reproduce:
+> >         wget https://raw.githubusercontent.com/intel/lkp-tests/master/s=
+bin/make.cross -O ~/bin/make.cross
+> >         chmod +x ~/bin/make.cross
+> >         # save the attached .config to linux build tree
+> >         GCC_VERSION=3D7.2.0 make.cross ARCH=3Dmips
+> >
+> > All warnings (new ones prefixed by >>):
+> >
+> >    In file included from include/linux/kernel.h:14:0,
+> >                     from include/linux/list.h:9,
+> >                     from include/linux/preempt.h:11,
+> >                     from include/linux/spinlock.h:51,
+> >                     from include/linux/fdtable.h:11,
+> >                     from fs/notify/fanotify/fanotify.c:3:
+> >    fs/notify/fanotify/fanotify.c: In function 'fanotify_encode_fid':
+> >    include/linux/kern_levels.h:5:18: warning: format '%x' expects argum=
+ent of type 'unsigned int', but argument 2 has type 'long int' [-Wformat=3D=
+]
+>=20
+> I'm confused.
+> __kernel_fsid_t val member is long[] on mips arch and int[] on other arch=
+s.
+> Which format specifier am I supposed to use to print it?
 
-James
+That's a good question.
+
+Here's another: why on Earth do we have this custom __kernel_fsid_t
+definition for MIPS at all..?
+
+We only provide the MIPS definition when _MIPS_SZLONG =3D=3D 32, ie. when
+long is the same size as int & the generic definition of the struct
+would have an identical memory layout anyway.
+
+So I'm tempted to just delete this weird code - the only thing that
+might break is if someone is doing something that really expects a long
+& cares about getting an int of the same size. For example if anyone
+prints the value with %lx or the like - essentially the opposite case to
+yours.
+
+I consider it pretty unlikely that anyone will be doing this in a
+MIPS32-specific codepath such that they've been seeing the custom
+__kernel_fsid_t up until now, but does anyone see a problem with this?
+
+Thanks,
+    Paul
+
+---
+diff --git a/arch/mips/include/uapi/asm/posix_types.h b/arch/mips/include/u=
+api/asm/posix_types.h
+index 6aa49c10f88f..f0ccb5b90ce9 100644
+--- a/arch/mips/include/uapi/asm/posix_types.h
++++ b/arch/mips/include/uapi/asm/posix_types.h
+@@ -21,13 +21,6 @@
+ typedef long		__kernel_daddr_t;
+ #define __kernel_daddr_t __kernel_daddr_t
+
+-#if (_MIPS_SZLONG =3D=3D 32)
+-typedef struct {
+-	long	val[2];
+-} __kernel_fsid_t;
+-#define __kernel_fsid_t __kernel_fsid_t
+-#endif
+-
+ #include <asm-generic/posix_types.h>
+
+ #endif /* _ASM_POSIX_TYPES_H */
