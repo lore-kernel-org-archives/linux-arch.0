@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:59237 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.74]:54399 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728341AbfARQUl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2019 11:20:41 -0500
+        with ESMTP id S1728022AbfARQUf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2019 11:20:35 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 01/29] ia64: add __NR_umount2 definition
-Date: Fri, 18 Jan 2019 17:18:07 +0100
-Message-ID: <20190118161835.2259170-2-arnd@arndb.de>
+Subject: [PATCH v2 07/29] ARM: add kexec_file_load system call number
+Date: Fri, 18 Jan 2019 17:18:13 +0100
+Message-ID: <20190118161835.2259170-8-arnd@arndb.de>
 In-Reply-To: <20190118161835.2259170-1-arnd@arndb.de>
 References: <20190118161835.2259170-1-arnd@arndb.de>
 MIME-Version: 1.0
@@ -15,73 +15,59 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, mattst88@gmail.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, monstr@monstr.eu, paul.burton@mips.com, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jcmvbkbc@gmail.com, akpm@linux-foundation.org, deepa.kernel@gmail.com, ebiederm@xmission.com, firoz.khan@linaro.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20190118161807.SsnvA3fH9zenxLnL7F2OBoGUcZuAythQlMX_lXsr_TE@z>
+Message-ID: <20190118161813.ZUG-0S7EkKBGI_1gCeox7a_czaypNQbcarJgjocZiXo@z>
 
-Other architectures commonly use __NR_umount2 for sys_umount,
-only ia64 and alpha use __NR_umount here. In order to synchronize
-the generated tables, use umount2 like everyone else, and add back
-the old name from asm/unistd.h for compatibility.
+A couple of architectures including arm64 already implement the
+kexec_file_load system call, on many others we have assigned a system
+call number for it, but not implemented it yet.
 
-The __IGNORE_* lines are now all obsolete and can be removed as
-a side-effect.
+Adding the number in arch/arm/ lets us use the system call on arm64
+systems in compat mode, and also reduces the number of differences
+between architectures. If we want to implement kexec_file_load on ARM
+in the future, the number assignment means that kexec tools can already
+be built with the now current set of kernel headers.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/ia64/include/asm/unistd.h        | 14 --------------
- arch/ia64/include/uapi/asm/unistd.h   |  2 ++
- arch/ia64/kernel/syscalls/syscall.tbl |  2 +-
- 3 files changed, 3 insertions(+), 15 deletions(-)
+ arch/arm/tools/syscall.tbl        | 1 +
+ arch/arm64/include/asm/unistd.h   | 2 +-
+ arch/arm64/include/asm/unistd32.h | 2 ++
+ 3 files changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
-index 0b08ebd2dfde..9ba6110b10b9 100644
---- a/arch/ia64/include/asm/unistd.h
-+++ b/arch/ia64/include/asm/unistd.h
-@@ -12,20 +12,6 @@
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 86de9eb34296..20ed7e026723 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -415,3 +415,4 @@
+ 398	common	rseq			sys_rseq
+ 399	common	io_pgetevents		sys_io_pgetevents
+ 400	common	migrate_pages		sys_migrate_pages
++401	common	kexec_file_load		sys_kexec_file_load
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 261216c3336e..2c30e6f145ff 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -44,7 +44,7 @@
+ #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
+ #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
  
- #define NR_syscalls		__NR_syscalls /* length of syscall table */
+-#define __NR_compat_syscalls		401
++#define __NR_compat_syscalls		402
+ #endif
  
--/*
-- * The following defines stop scripts/checksyscalls.sh from complaining about
-- * unimplemented system calls.  Glibc provides for each of these by using
-- * more modern equivalent system calls.
-- */
--#define __IGNORE_fork		/* clone() */
--#define __IGNORE_time		/* gettimeofday() */
--#define __IGNORE_alarm		/* setitimer(ITIMER_REAL, ... */
--#define __IGNORE_pause		/* rt_sigprocmask(), rt_sigsuspend() */
--#define __IGNORE_utime		/* utimes() */
--#define __IGNORE_getpgrp	/* getpgid() */
--#define __IGNORE_vfork		/* clone() */
--#define __IGNORE_umount2	/* umount() */
--
- #define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_SYS_UTIME
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index f15bcbacb8f6..8ca1d4c304f4 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -823,6 +823,8 @@ __SYSCALL(__NR_rseq, sys_rseq)
+ __SYSCALL(__NR_io_pgetevents, compat_sys_io_pgetevents)
+ #define __NR_migrate_pages 400
+ __SYSCALL(__NR_migrate_pages, compat_sys_migrate_pages)
++#define __NR_kexec_file_load 401
++__SYSCALL(__NR_kexec_file_load, sys_kexec_file_load)
  
-diff --git a/arch/ia64/include/uapi/asm/unistd.h b/arch/ia64/include/uapi/asm/unistd.h
-index b2513922dcb5..013e0bcacc39 100644
---- a/arch/ia64/include/uapi/asm/unistd.h
-+++ b/arch/ia64/include/uapi/asm/unistd.h
-@@ -15,6 +15,8 @@
- 
- #define __NR_Linux      1024
- 
-+#define __NR_umount __NR_umount2
-+
- #include <asm/unistd_64.h>
- 
- #endif /* _UAPI_ASM_IA64_UNISTD_H */
-diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
-index b22203b40bfe..e97caf51be42 100644
---- a/arch/ia64/kernel/syscalls/syscall.tbl
-+++ b/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -29,7 +29,7 @@
- 17	common	getpid				sys_getpid
- 18	common	getppid				sys_getppid
- 19	common	mount				sys_mount
--20	common	umount				sys_umount
-+20	common	umount2				sys_umount
- 21	common	setuid				sys_setuid
- 22	common	getuid				sys_getuid
- 23	common	geteuid				sys_geteuid
+ /*
+  * Please add new compat syscalls above this comment and update
 -- 
 2.20.0
