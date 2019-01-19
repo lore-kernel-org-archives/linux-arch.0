@@ -1,38 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f66.google.com ([209.85.167.66]:46410 "EHLO
-        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728429AbfASSfr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2019 13:35:47 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46680 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729803AbfASX5B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 19 Jan 2019 18:57:01 -0500
+Date: Sat, 19 Jan 2019 23:56:52 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 0/3] arm64: system call table generation for asm-generic
+Message-ID: <20190119235650.GC26876@brain-police>
+References: <1546530025-26014-1-git-send-email-firoz.khan@linaro.org>
 MIME-Version: 1.0
-References: <20190102205715.14054-1-mst@redhat.com> <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
- <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com> <20190109094959-mutt-send-email-mst@kernel.org>
-In-Reply-To: <20190109094959-mutt-send-email-mst@kernel.org>
-From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Date: Sat, 19 Jan 2019 19:35:33 +0100
-Message-ID: <CANiq72npFGsoHmBQUSNRLohDmMBNQFka8AcmhMz--QU1v2Aorg@mail.gmail.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1546530025-26014-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>, Joe Perches <joe@perches.com>, Linus Torvalds <torvalds@linux-foundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-sparse@vger.kernel.org, Eric Christopher <echristo@google.com>
-Message-ID: <20190119183533.eP3vcfRatHXBf24AEDYyUIwesrSsLcBxdokBZPAvi-s@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Stefan Agner <stefan@agner.ch>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Russell King <rmk+kernel@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20190119235652.sZzQzCROqiRInAGHiQgp9ayJpjzvBKCnILsby7xgaDs@z>
 
-Hi Michael,
+On Thu, Jan 03, 2019 at 09:10:22PM +0530, Firoz Khan wrote:
+> This will be an automated scripts to provide easy support
+> for add/modify/delete the system call entry by add in 
+> respective *.tbl file.
+> 
+> System call table generation support for asm-generic is
+> provide for arm64 architecture which will use the common
+> scripts resides in scripts directory and use syscall.tbl
+> syscall_arm32.tbl files as inputs. This implementation 
+> will replace asm-generic/unistd.h.
+> 
+> This patch depends on:
+>  https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
+>  https://lore.kernel.org/lkml/1546520681-24453-1-git-send-email-firoz.khan@linaro.org/
 
-On Wed, Jan 9, 2019 at 3:50 PM Michael S. Tsirkin <mst@redhat.com> wrote:
->
-> On Wed, Jan 09, 2019 at 11:35:52AM +0100, Miguel Ojeda wrote:
-> > Note it would be nice to separate the patch into two (one for the
-> > comments, another for OPTIMIZER_HIDE_VAR), and also possibly another
-> > for barrier_data().
->
-> Okay, I will try.
+I'm having a hard time understanding what the benefit of this series is,
+given that we only support EABI compat tasks. When adding a new compat
+system call, you can't just blindly hook it up without checking whether it
+needs a wrapper to deal with any type conversion etc, so really we're just
+replacing one table with another as far as I can tell. What am I missing?
 
-Did you have a chance to do it (or maybe I missed the patches)? If
-not, no worries, I can send this to Linus as it is and get it in
-already, then we can do the barrier_data later.
+I also really don't think we should be generating the 32-bit UAPI headers
+from the 64-bit compat system call support (if that's what you're trying to
+do -- make headers_check fails with your patches applied). arch/arm/ is the
+canonical place for the 32-bit UAPI, and we're just implementing that.
 
-Cheers,
-Miguel
+Will
