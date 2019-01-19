@@ -1,87 +1,50 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Sat, 19 Jan 2019 12:52:52 +0100
-Message-ID: <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
-References: <20190115133558.GA29225@lst.de>
- <685f0c06-af1b-0bec-ac03-f9bf1f7a2b35@xenosoft.de>
- <20190115151732.GA2325@lst.de>
- <e9345547-4dc6-747a-29ec-6375dc8bfe83@xenosoft.de>
- <20190118083539.GA30479@lst.de>
- <871403f2-fa7d-de15-89eb-070432e15c69@xenosoft.de>
- <20190118112842.GA9115@lst.de>
- <a2ca0118-5915-8b1c-7cfa-71cb4b43eaa6@xenosoft.de>
- <20190118121810.GA13327@lst.de>
- <eceebeda-0e18-00f6-06e7-def2eb0aa961@xenosoft.de>
- <20190118125500.GA15657@lst.de>
- <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
- <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
+Date: Sat, 19 Jan 2019 15:04:52 +0100
+Message-ID: <20190119140452.GA25198@lst.de>
+References: <871403f2-fa7d-de15-89eb-070432e15c69@xenosoft.de>
+	<20190118112842.GA9115@lst.de>
+	<a2ca0118-5915-8b1c-7cfa-71cb4b43eaa6@xenosoft.de>
+	<20190118121810.GA13327@lst.de>
+	<eceebeda-0e18-00f6-06e7-def2eb0aa961@xenosoft.de>
+	<20190118125500.GA15657@lst.de>
+	<e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
+	<f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
+	<b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
+	<20190119130222.GA24346@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
-Content-Language: de-DE
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20190119130222.GA24346-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Julian Margetson <runaway-zqC88Q5qmK4@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+On Sat, Jan 19, 2019 at 02:02:22PM +0100, Christoph Hellwig wrote:
+> Interesting.  This suggest it is related to the use of ZONE_DMA by
+> the FSL SOCs that your board uses.  Let me investigate this a bit more.
 
-I have found a small workaround. If I add 'mem=3500M' to the boot 
-arguments then it detects the SATA hard disk and boots without any problems.
+As a hack to check that theory I've pushed a new commit to the
+powerpc-dma.6-debug branch to use old powerpc GFP_DMA selection
+with the new dma direct code:
 
-X5000> setenv bootargs root=/dev/sda2 console=ttyS0,115200 mem=3500M
+http://git.infradead.org/users/hch/misc.git/commitdiff/5c532d07c2f3c3972104de505d06b8d85f403f06
 
-Cheers,
-Christian
+And another one that drops the addressability checks that powerpc
+never had:
 
+http://git.infradead.org/users/hch/misc.git/commitdiff/18e7629b38465ca98f8e7eed639123a13ac3b669
 
-On 19 January 2019 at 12:40PM, Christian Zigotzky wrote:
-> Hi Christoph,
->
-> I bought a USB null modem RS-232 serial cable today so I was able to 
-> get some SATA error messages.
->
-> Error messages:
->
-> [   13.468538] fsl-sata ffe220000.sata: Sata FSL Platform/CSB Driver init
-> [   13.475106] fsl-sata ffe220000.sata: failed to start port 0 
-> (errno=-12)
-> [   13.481736] fsl-sata ffe221000.sata: Sata FSL Platform/CSB Driver init
-> [   13.488267] fsl-sata ffe221000.sata: failed to start port 0 
-> (errno=-12)
->
-> ---
->
-> errno=-12 = Out of memory
->
-> Please find attached the complete serial log.
->
-> Cheers,
-> Christian
->
->
-> On 18 January 2019 at 4:06PM, Christian Zigotzky wrote:
->> Hello Christoph,
->>
->> I was able to compile 257002094bc5935dd63207a380d9698ab81f0775 from 
->> your Git powerpc-dma.6-debug today.
->>
->> Unfortunately I don't see any error messages (kernel ring buffer) and 
->> I don't have a RS232 serial null modem cable to get them.
->>
->> Cheers,
->> Christian
->>
->>
->
+Can you first test with both patches, and then just with the first
+in case that worked?
