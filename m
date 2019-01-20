@@ -1,32 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f65.google.com ([209.85.167.65]:42469 "EHLO
-        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725977AbfATPg2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 20 Jan 2019 10:36:28 -0500
+Received: from ipmail03.adl2.internode.on.net ([150.101.137.141]:54605 "EHLO
+        ipmail03.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728037AbfAUHf3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 21 Jan 2019 02:35:29 -0500
+Date: Mon, 21 Jan 2019 09:13:38 +1100
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH v4 1/3] fs: hoist EFSCORRUPTED definition into uapi header
+Message-ID: <20190120221338.GY4205@dastard>
+References: <20190118161440.220134-1-jannh@google.com>
 MIME-Version: 1.0
-References: <20190102205715.14054-1-mst@redhat.com> <20190102205715.14054-2-mst@redhat.com>
- <CAKwvOdk3b6mnpTEEyY-JFrej8K12w9oTMLqi7q5aNiRMyJo6Ow@mail.gmail.com>
- <CANiq72nEiw8+cZNnBOwF1ehv232ZJe5qzhdbaTEg0rOoV2p4sg@mail.gmail.com>
- <20190109094959-mutt-send-email-mst@kernel.org> <CANiq72npFGsoHmBQUSNRLohDmMBNQFka8AcmhMz--QU1v2Aorg@mail.gmail.com>
- <20190120094237-mutt-send-email-mst@kernel.org>
-In-Reply-To: <20190120094237-mutt-send-email-mst@kernel.org>
-From: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Date: Sun, 20 Jan 2019 16:36:14 +0100
-Message-ID: <CANiq72nrX0WKaG1j8mP4eptLvv6dX7J2tBRz5erGKN4OwMiJZQ@mail.gmail.com>
-Subject: Re: [PATCH RFC 1/4] include/linux/compiler*.h: fix OPTIMIZER_HIDE_VAR
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190118161440.220134-1-jannh@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, LKML <linux-kernel@vger.kernel.org>, Jason Wang <jasowang@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org, Network Development <netdev@vger.kernel.org>, virtualization@lists.linux-foundation.org, Eli Friedman <efriedma@codeaurora.org>, Joe Perches <joe@perches.com>, Linus Torvalds <torvalds@linux-foundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, linux-sparse@vger.kernel.org, Eric Christopher <echristo@google.com>
-Message-ID: <20190120153614.-afV3ztNSpnSUg-AcXqzhW6pdmrosmz08WOZ5FU7JZc@z>
+To: Jann Horn <jannh@google.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20190120221338.D4lGbXYlsq2wFp23-kp_ZFFy9q3b0-7NUwO5Tx1MdtQ@z>
 
-On Sun, Jan 20, 2019 at 3:43 PM Michael S. Tsirkin <mst@redhat.com> wrote:
->
-> No not yet. Sorry! Pls send this one in, barrier_data will likely miss
-> the next merge window.
+On Fri, Jan 18, 2019 at 05:14:38PM +0100, Jann Horn wrote:
+> Multiple filesystems can already return EFSCORRUPTED errors to userspace;
+> however, so far, definitions of EFSCORRUPTED were in filesystem-private
+> headers.
+> 
+> I wanted to use EUCLEAN to indicate data corruption in the VFS layer;
+> Dave Chinner says that I should instead hoist the definitions of
+> EFSCORRUPTED into the UAPI header and then use EFSCORRUPTED.
+> 
+> This patch is marked for stable backport because it is a prerequisite for
+> the following patch.
+> 
+> Cc: stable@vger.kernel.org
+> Suggested-by: Dave Chinner <david@fromorbit.com>
+> Signed-off-by: Jann Horn <jannh@google.com>
 
-No worries! Done.
+Looks fine to me.
 
-Cheers,
-Miguel
+Acked-by: Dave Chinner <dchinner@redhat.com>
+
+-- 
+Dave Chinner
+david@fromorbit.com
