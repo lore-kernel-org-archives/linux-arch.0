@@ -1,88 +1,210 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44845 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:8718 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727879AbfAUHgR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Jan 2019 02:36:17 -0500
+        id S1725976AbfAUHgm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 21 Jan 2019 02:36:42 -0500
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH 5/5] locking/qspinlock: Add some locking debug code
-Date: Sun, 20 Jan 2019 21:49:54 -0500
-Message-ID: <1548038994-30073-6-git-send-email-longman@redhat.com>
+Subject: [PATCH 3/5] locking/qspinlock_stat: Separate out the PV specific stat counts
+Date: Sun, 20 Jan 2019 21:49:52 -0500
+Message-ID: <1548038994-30073-4-git-send-email-longman@redhat.com>
 In-Reply-To: <1548038994-30073-1-git-send-email-longman@redhat.com>
 References: <1548038994-30073-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190121024954.wSBZ1f2SXxg3MojM3bkDDpb1ndjyRGGzfiYYM_JAysw@z>
+Message-ID: <20190121024952.ZwdL5AA59D4TCxviBgyYgEg9Q3QXGtO5RumNsdrXCqA@z>
 
-Add some optionally enabled debug code to check if more than one CPU
-that enter the lock critical section simultaneously.
+Some of the statistics counts are for PV qspinlocks only and are not
+applicable if PARAVIRT_SPINLOCKS aren't configured. So make those counts
+dependent on the PARAVIRT_SPINLOCKS config option now.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/qspinlock.c | 27 +++++++++++++++++++++++++++
- 1 file changed, 27 insertions(+)
+ kernel/locking/qspinlock_stat.h | 129 +++++++++++++++++++++++++---------------
+ 1 file changed, 81 insertions(+), 48 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 8163633..7671dfc 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -97,6 +97,18 @@ struct qnode {
- };
- 
- /*
-+ * Define _Q_DEBUG_LOCK to verify if no more than one cpu can enter
-+ * the lock critical section at the same time.
-+ */
-+// #define _Q_DEBUG_LOCK
-+
-+#ifdef _Q_DEBUG_LOCK
-+#define _Q_DEBUG_WARN_ON(c)	WARN_ON_ONCE(c)
-+#else
-+#define _Q_DEBUG_WARN_ON(c)
+diff --git a/kernel/locking/qspinlock_stat.h b/kernel/locking/qspinlock_stat.h
+index 4f8ca8c..ad2e9f4 100644
+--- a/kernel/locking/qspinlock_stat.h
++++ b/kernel/locking/qspinlock_stat.h
+@@ -50,6 +50,7 @@
+  * There may be slight difference between pv_kick_wake and pv_kick_unlock.
+  */
+ enum qlock_stats {
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
+ 	qstat_pv_hash_hops,
+ 	qstat_pv_kick_unlock,
+ 	qstat_pv_kick_wake,
+@@ -61,6 +62,7 @@ enum qlock_stats {
+ 	qstat_pv_wait_early,
+ 	qstat_pv_wait_head,
+ 	qstat_pv_wait_node,
 +#endif
+ 	qstat_lock_pending,
+ 	qstat_lock_slowpath,
+ 	qstat_lock_use_node2,
+@@ -82,6 +84,7 @@ enum qlock_stats {
+ #include <linux/fs.h>
+ 
+ static const char * const qstat_names[qstat_num + 1] = {
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
+ 	[qstat_pv_hash_hops]	   = "pv_hash_hops",
+ 	[qstat_pv_kick_unlock]     = "pv_kick_unlock",
+ 	[qstat_pv_kick_wake]       = "pv_kick_wake",
+@@ -93,6 +96,7 @@ enum qlock_stats {
+ 	[qstat_pv_wait_early]      = "pv_wait_early",
+ 	[qstat_pv_wait_head]       = "pv_wait_head",
+ 	[qstat_pv_wait_node]       = "pv_wait_node",
++#endif
+ 	[qstat_lock_pending]       = "lock_pending",
+ 	[qstat_lock_slowpath]      = "lock_slowpath",
+ 	[qstat_lock_use_node2]	   = "lock_use_node2",
+@@ -107,6 +111,20 @@ enum qlock_stats {
+  * Per-cpu counters
+  */
+ static DEFINE_PER_CPU(unsigned long, qstats[qstat_num]);
 +
 +/*
-  * The pending bit spinning loop count.
-  * This heuristic is used to limit the number of lockword accesses
-  * made by atomic_cond_read_relaxed when waiting for the lock to
-@@ -184,7 +196,13 @@ static __always_inline void clear_pending(struct qspinlock *lock)
-  */
- static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
- {
-+#ifdef _Q_DEBUG_LOCK
-+	u16 old = xchg_relaxed(&lock->locked_pending, _Q_LOCKED_VAL);
++ * Increment the PV qspinlock statistical counters
++ */
++static inline void qstat_inc(enum qlock_stats stat, bool cond)
++{
++	if (cond)
++		this_cpu_inc(qstats[stat]);
++}
 +
-+	WARN_ON_ONCE((old & _Q_LOCKED_VAL) || !(old & _Q_PENDING_VAL));
-+#else
- 	WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
-+#endif
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
++/*
++ * PV specific per-cpu counters
++ */
+ static DEFINE_PER_CPU(u64, pv_kick_time);
+ 
+ /*
+@@ -181,6 +199,69 @@ static ssize_t qstat_read(struct file *file, char __user *user_buf,
  }
  
  /*
-@@ -284,7 +302,13 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
-  */
- static __always_inline void set_locked(struct qspinlock *lock)
- {
-+#ifdef _O_DEBUG_LOCK
-+	u8 old = xchg_relaxed(&lock->locked, _Q_LOCKED_VAL);
++ * PV hash hop count
++ */
++static inline void qstat_hop(int hopcnt)
++{
++	this_cpu_add(qstats[qstat_pv_hash_hops], hopcnt);
++}
 +
-+	WARN_ON_ONCE(old);
-+#else
- 	WRITE_ONCE(lock->locked, _Q_LOCKED_VAL);
-+#endif
++/*
++ * Replacement function for pv_kick()
++ */
++static inline void __pv_kick(int cpu)
++{
++	u64 start = sched_clock();
++
++	per_cpu(pv_kick_time, cpu) = start;
++	pv_kick(cpu);
++	this_cpu_add(qstats[qstat_pv_latency_kick], sched_clock() - start);
++}
++
++/*
++ * Replacement function for pv_wait()
++ */
++static inline void __pv_wait(u8 *ptr, u8 val)
++{
++	u64 *pkick_time = this_cpu_ptr(&pv_kick_time);
++
++	*pkick_time = 0;
++	pv_wait(ptr, val);
++	if (*pkick_time) {
++		this_cpu_add(qstats[qstat_pv_latency_wake],
++			     sched_clock() - *pkick_time);
++		qstat_inc(qstat_pv_kick_wake, true);
++	}
++}
++
++#define pv_kick(c)	__pv_kick(c)
++#define pv_wait(p, v)	__pv_wait(p, v)
++
++#else /* CONFIG_PARAVIRT_SPINLOCKS */
++static ssize_t qstat_read(struct file *file, char __user *user_buf,
++			  size_t count, loff_t *ppos)
++{
++	char buf[64];
++	int cpu, counter, len;
++	u64 stat = 0;
++
++	/*
++	 * Get the counter ID stored in file->f_inode->i_private
++	 */
++	counter = (long)file_inode(file)->i_private;
++
++	if (counter >= qstat_num)
++		return -EBADF;
++
++	for_each_possible_cpu(cpu)
++		stat += per_cpu(qstats[counter], cpu);
++	len = snprintf(buf, sizeof(buf) - 1, "%llu\n", stat);
++
++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
++}
++#endif /* CONFIG_PARAVIRT_SPINLOCKS */
++
++/*
+  * Function to handle write request
+  *
+  * When counter = reset_cnts, reset all the counter values.
+@@ -253,54 +334,6 @@ static int __init init_qspinlock_stat(void)
  }
+ fs_initcall(init_qspinlock_stat);
  
- /**
-@@ -683,6 +707,9 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if ((val & _Q_TAIL_MASK) == tail) {
- 		u32 new = _Q_LOCKED_VAL | (val & _Q_WAIT_PEND_MASK);
+-/*
+- * Increment the PV qspinlock statistical counters
+- */
+-static inline void qstat_inc(enum qlock_stats stat, bool cond)
+-{
+-	if (cond)
+-		this_cpu_inc(qstats[stat]);
+-}
+-
+-/*
+- * PV hash hop count
+- */
+-static inline void qstat_hop(int hopcnt)
+-{
+-	this_cpu_add(qstats[qstat_pv_hash_hops], hopcnt);
+-}
+-
+-/*
+- * Replacement function for pv_kick()
+- */
+-static inline void __pv_kick(int cpu)
+-{
+-	u64 start = sched_clock();
+-
+-	per_cpu(pv_kick_time, cpu) = start;
+-	pv_kick(cpu);
+-	this_cpu_add(qstats[qstat_pv_latency_kick], sched_clock() - start);
+-}
+-
+-/*
+- * Replacement function for pv_wait()
+- */
+-static inline void __pv_wait(u8 *ptr, u8 val)
+-{
+-	u64 *pkick_time = this_cpu_ptr(&pv_kick_time);
+-
+-	*pkick_time = 0;
+-	pv_wait(ptr, val);
+-	if (*pkick_time) {
+-		this_cpu_add(qstats[qstat_pv_latency_wake],
+-			     sched_clock() - *pkick_time);
+-		qstat_inc(qstat_pv_kick_wake, true);
+-	}
+-}
+-
+-#define pv_kick(c)	__pv_kick(c)
+-#define pv_wait(p, v)	__pv_wait(p, v)
+-
+ #else /* CONFIG_QUEUED_LOCK_STAT */
  
-+		_Q_DEBUG_WARN_ON((val & _Q_WAIT_PEND_MASK) &&
-+				 (val & _Q_WAIT_PEND_MASK) != _Q_WAIT_PEND_VAL);
-+
- 		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new))
- 			goto release; /* No contention */
- 	}
+ static inline void qstat_inc(enum qlock_stats stat, bool cond)	{ }
 -- 
 1.8.3.1
