@@ -1,128 +1,116 @@
-From: Julien Thierry <julien.thierry@arm.com>
-Subject: [PATCH v9 01/26] arm64: Fix HCR.TGE status for NMI contexts
-Date: Mon, 21 Jan 2019 15:33:20 +0000
-Message-ID: <1548084825-8803-2-git-send-email-julien.thierry@arm.com>
-References: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error code
+Date: Mon, 21 Jan 2019 16:49:45 +0100
+Message-ID: <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
+References: <20190118161440.220134-1-jannh@google.com> <20190118161440.220134-3-jannh@google.com>
+ <20190120224059.GA4205@dastard>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
+In-Reply-To: <20190120224059.GA4205@dastard>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, james.morse@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Julien Thierry <julien.thierry@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
+To: Dave Chinner <david@fromorbit.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-When using VHE, the host needs to clear HCR_EL2.TGE bit in order
-to interract with guest TLBs, switching from EL2&0 translation regime
-to EL1&0.
+On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
+> On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
+> > As Al Viro pointed out, many filldir_t functions return error codes, but
+> > all callers of filldir_t functions just check whether the return value is
+> > non-zero (to determine whether to continue reading the directory); more
+> > precise errors have to be signalled via struct dir_context.
+> > Change all filldir_t functions to return bool instead of int.
+> >
+> > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
+> > Signed-off-by: Jann Horn <jannh@google.com>
+> > ---
+> >  arch/alpha/kernel/osf_sys.c | 12 +++----
+> >  fs/afs/dir.c                | 30 +++++++++--------
+> >  fs/ecryptfs/file.c          | 13 ++++----
+> >  fs/exportfs/expfs.c         |  8 ++---
+> >  fs/fat/dir.c                |  8 ++---
+> >  fs/gfs2/export.c            |  6 ++--
+> >  fs/nfsd/nfs4recover.c       |  8 ++---
+> >  fs/nfsd/vfs.c               |  6 ++--
+> >  fs/ocfs2/dir.c              | 10 +++---
+> >  fs/ocfs2/journal.c          | 14 ++++----
+> >  fs/overlayfs/readdir.c      | 24 +++++++-------
+> >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
+> >  fs/reiserfs/xattr.c         | 20 ++++++------
+> >  fs/xfs/scrub/dir.c          |  8 ++---
+> >  fs/xfs/scrub/parent.c       |  4 +--
+> >  include/linux/fs.h          | 10 +++---
+> >  16 files changed, 125 insertions(+), 120 deletions(-)
+> >
+> > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+> > index db1c2144d477..14e5ae0dac50 100644
+> > --- a/arch/alpha/kernel/osf_sys.c
+> > +++ b/arch/alpha/kernel/osf_sys.c
+> > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
+> >       int error;
+> >  };
+> >
+> > -static int
+> > +static bool
+> >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> >           loff_t offset, u64 ino, unsigned int d_type)
+> >  {
+> > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> >
+> >       buf->error = check_dirent_name(name, namlen);
+> >       if (unlikely(buf->error))
+> > -             return -EFSCORRUPTED;
+> > +             return false;
+> >       buf->error = -EINVAL;   /* only used if we fail */
+> >       if (reclen > buf->count)
+> > -             return -EINVAL;
+> > +             return false;
+>
+> Oh, it's because the error being returned is being squashed by
+> dir_emit():
 
-However, some non-maskable asynchronous event could happen while TGE is
-cleared like SDEI. Because of this address translation operations
-relying on EL2&0 translation regime could fail (tlb invalidation,
-userspace access, ...).
+Yeah.
 
-Fix this by properly setting HCR_EL2.TGE when entering NMI context and
-clear it if necessary when returning to the interrupted context.
+> >  struct dir_context {
+> > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
+> >                           const char *name, int namelen,
+> >                           u64 ino, unsigned type)
+> >  {
+> > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
+> > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
+> >  }
+>
+> /me wonders if it would be cleaner to do:
+>
+> static inline bool dir_emit(...)
+> {
+>         buf->error = ctx->actor(....)
+>         if (buf->error)
+>                 return false;
+>         return true;
+> }
+>
+> And clean up all filldir actors just to return the error state
+> rather than have to jump through hoops to stash the error state in
+> the context buffer and return the error state?
 
-Signed-off-by: Julien Thierry <julien.thierry@arm.com>
-Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: James Morse <james.morse@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
----
- arch/arm64/include/asm/hardirq.h | 28 ++++++++++++++++++++++++++++
- arch/arm64/kernel/irq.c          |  3 +++
- include/linux/hardirq.h          |  7 +++++++
- 3 files changed, 38 insertions(+)
+One negative thing about that, IMO, is that it mixes up the request
+for termination of the loop and the presence of an error. The current
+code returns fake errors that never reach userspace in various places
+to terminate the loop, e.g. fillonedir() has a "return -EINVAL" to
+terminate the loop if at least one element has been read already, and
+filldir() has a "return -EINTR" on signal_pending() that explicitly
+only happens if at least one element has been read already.
 
-diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
-index 1473fc2..94b7481 100644
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -19,6 +19,7 @@
- #include <linux/cache.h>
- #include <linux/threads.h>
- #include <asm/irq.h>
-+#include <asm/kvm_arm.h>
- 
- #define NR_IPI	7
- 
-@@ -37,6 +38,33 @@
- 
- #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
- 
-+struct nmi_ctx {
-+	u64 hcr;
-+};
-+
-+DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
-+
-+#define arch_nmi_enter()							\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
-+			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
-+				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
-+				isb();						\
-+			}							\
-+		}								\
-+	} while (0)
-+
-+#define arch_nmi_exit()								\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			if (!(nmi_ctx->hcr & HCR_TGE))				\
-+				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
-+		}								\
-+	} while (0)
-+
- static inline void ack_bad_irq(unsigned int irq)
- {
- 	extern unsigned long irq_err_count;
-diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
-index 780a12f..92fa817 100644
---- a/arch/arm64/kernel/irq.c
-+++ b/arch/arm64/kernel/irq.c
-@@ -33,6 +33,9 @@
- 
- unsigned long irq_err_count;
- 
-+/* Only access this in an NMI enter/exit */
-+DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
-+
- DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
- 
- int arch_show_interrupts(struct seq_file *p, int prec)
-diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
-index 0fbbcdf..da0af63 100644
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -60,8 +60,14 @@ static inline void rcu_nmi_exit(void)
-  */
- extern void irq_exit(void);
- 
-+#ifndef arch_nmi_enter
-+#define arch_nmi_enter()	do { } while (0)
-+#define arch_nmi_exit()		do { } while (0)
-+#endif
-+
- #define nmi_enter()						\
- 	do {							\
-+		arch_nmi_enter();				\
- 		printk_nmi_enter();				\
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
-@@ -80,6 +86,7 @@ static inline void rcu_nmi_exit(void)
- 		ftrace_nmi_exit();				\
- 		lockdep_on();					\
- 		printk_nmi_exit();				\
-+		arch_nmi_exit();				\
- 	} while (0)
- 
- #endif /* LINUX_HARDIRQ_H */
--- 
-1.9.1
+But really, I don't have strong feelings about this, I just want to
+get the "fs: don't let getdents return bogus names" patch in. :P
+
+> That then allows callers who want/need the full error info can
+> continue to call ctx->actor directly,
+
+"continue to call ctx->actor directly"? I don't remember any code that
+calls ctx->actor directly.
+
+> while all those that just want
+> to terminate their loops on error can continue just to call
+> dir_emit()...
