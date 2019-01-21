@@ -1,116 +1,63 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error code
-Date: Mon, 21 Jan 2019 16:49:45 +0100
-Message-ID: <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
-References: <20190118161440.220134-1-jannh@google.com> <20190118161440.220134-3-jannh@google.com>
- <20190120224059.GA4205@dastard>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/3] arm64: system call table generation for asm-generic
+Date: Mon, 21 Jan 2019 16:53:54 +0100
+Message-ID: <CAK8P3a1kiS7oF=eKLqPs6kKTYE1uTjhz++edH_J-tCUmXY2PNQ@mail.gmail.com>
+References: <1546530025-26014-1-git-send-email-firoz.khan@linaro.org> <20190119235650.GC26876@brain-police>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190120224059.GA4205@dastard>
+In-Reply-To: <20190119235650.GC26876@brain-police>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Chinner <david@fromorbit.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Firoz Khan <firoz.khan@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Agner <stefan@agner.ch>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Russell King <rmk+kernel@armlinux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
-> On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
-> > As Al Viro pointed out, many filldir_t functions return error codes, but
-> > all callers of filldir_t functions just check whether the return value is
-> > non-zero (to determine whether to continue reading the directory); more
-> > precise errors have to be signalled via struct dir_context.
-> > Change all filldir_t functions to return bool instead of int.
-> >
-> > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-> > Signed-off-by: Jann Horn <jannh@google.com>
-> > ---
-> >  arch/alpha/kernel/osf_sys.c | 12 +++----
-> >  fs/afs/dir.c                | 30 +++++++++--------
-> >  fs/ecryptfs/file.c          | 13 ++++----
-> >  fs/exportfs/expfs.c         |  8 ++---
-> >  fs/fat/dir.c                |  8 ++---
-> >  fs/gfs2/export.c            |  6 ++--
-> >  fs/nfsd/nfs4recover.c       |  8 ++---
-> >  fs/nfsd/vfs.c               |  6 ++--
-> >  fs/ocfs2/dir.c              | 10 +++---
-> >  fs/ocfs2/journal.c          | 14 ++++----
-> >  fs/overlayfs/readdir.c      | 24 +++++++-------
-> >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
-> >  fs/reiserfs/xattr.c         | 20 ++++++------
-> >  fs/xfs/scrub/dir.c          |  8 ++---
-> >  fs/xfs/scrub/parent.c       |  4 +--
-> >  include/linux/fs.h          | 10 +++---
-> >  16 files changed, 125 insertions(+), 120 deletions(-)
-> >
-> > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-> > index db1c2144d477..14e5ae0dac50 100644
-> > --- a/arch/alpha/kernel/osf_sys.c
-> > +++ b/arch/alpha/kernel/osf_sys.c
-> > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
-> >       int error;
-> >  };
-> >
-> > -static int
-> > +static bool
-> >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> >           loff_t offset, u64 ino, unsigned int d_type)
-> >  {
-> > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> >
-> >       buf->error = check_dirent_name(name, namlen);
-> >       if (unlikely(buf->error))
-> > -             return -EFSCORRUPTED;
-> > +             return false;
-> >       buf->error = -EINVAL;   /* only used if we fail */
-> >       if (reclen > buf->count)
-> > -             return -EINVAL;
-> > +             return false;
+n Sun, Jan 20, 2019 at 12:57 AM Will Deacon <will.deacon@arm.com> wrote:
 >
-> Oh, it's because the error being returned is being squashed by
-> dir_emit():
-
-Yeah.
-
-> >  struct dir_context {
-> > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
-> >                           const char *name, int namelen,
-> >                           u64 ino, unsigned type)
-> >  {
-> > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
-> > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
-> >  }
+> On Thu, Jan 03, 2019 at 09:10:22PM +0530, Firoz Khan wrote:
+> > This will be an automated scripts to provide easy support
+> > for add/modify/delete the system call entry by add in
+> > respective *.tbl file.
+> >
+> > System call table generation support for asm-generic is
+> > provide for arm64 architecture which will use the common
+> > scripts resides in scripts directory and use syscall.tbl
+> > syscall_arm32.tbl files as inputs. This implementation
+> > will replace asm-generic/unistd.h.
+> >
+> > This patch depends on:
+> >  https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
+> >  https://lore.kernel.org/lkml/1546520681-24453-1-git-send-email-firoz.khan@linaro.org/
 >
-> /me wonders if it would be cleaner to do:
->
-> static inline bool dir_emit(...)
-> {
->         buf->error = ctx->actor(....)
->         if (buf->error)
->                 return false;
->         return true;
-> }
->
-> And clean up all filldir actors just to return the error state
-> rather than have to jump through hoops to stash the error state in
-> the context buffer and return the error state?
+> I'm having a hard time understanding what the benefit of this series is,
+> given that we only support EABI compat tasks. When adding a new compat
+> system call, you can't just blindly hook it up without checking whether it
+> needs a wrapper to deal with any type conversion etc, so really we're just
+> replacing one table with another as far as I can tell. What am I missing?
 
-One negative thing about that, IMO, is that it mixes up the request
-for termination of the loop and the presence of an error. The current
-code returns fake errors that never reach userspace in various places
-to terminate the loop, e.g. fillonedir() has a "return -EINVAL" to
-terminate the loop if at least one element has been read already, and
-filldir() has a "return -EINTR" on signal_pending() that explicitly
-only happens if at least one element has been read already.
+The point that is missing in the description above is that all unistd.h
+and syscall.S files are now being generated from a .tbl file, across
+all architectures. This was already done on arm32, x86 and s390
+before 4.20, but is now done on all architectures that don't use
+the uapi/asm-generic/unistd.h header, and the arm32 compat version for
+arm64.
 
-But really, I don't have strong feelings about this, I just want to
-get the "fs: don't let getdents return bogus names" patch in. :P
+The newly added file has the same format as all other tables, and
+will be easier to synchronize with the arm32 version, which has
+almost the same contents (arm32 has oabi support, arm64 has
+compat support).
 
-> That then allows callers who want/need the full error info can
-> continue to call ctx->actor directly,
+> I also really don't think we should be generating the 32-bit UAPI headers
+> from the 64-bit compat system call support (if that's what you're trying to
+> do -- make headers_check fails with your patches applied). arch/arm/ is the
+> canonical place for the 32-bit UAPI, and we're just implementing that.
 
-"continue to call ctx->actor directly"? I don't remember any code that
-calls ctx->actor directly.
+I think you just misread what Firoz was trying to say here: The
+arm64 uapi/asm/unistd.h file is now being generated from the
+generic syscall.tbl file, while the compat asm/unistd32.h file is not
+part of the UAPI. In both cases though, the data from the old files
+is being replaced with data in the more compact and (hopefully)
+more readable format.
 
-> while all those that just want
-> to terminate their loops on error can continue just to call
-> dir_emit()...
+
+    Arnd
