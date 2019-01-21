@@ -1,57 +1,128 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Mon, 21 Jan 2019 15:38:38 +0100
-Message-ID: <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de>
-References: <871403f2-fa7d-de15-89eb-070432e15c69@xenosoft.de>
- <20190118112842.GA9115@lst.de>
- <a2ca0118-5915-8b1c-7cfa-71cb4b43eaa6@xenosoft.de>
- <20190118121810.GA13327@lst.de>
- <eceebeda-0e18-00f6-06e7-def2eb0aa961@xenosoft.de>
- <20190118125500.GA15657@lst.de>
- <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
- <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
- <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
- <20190119130222.GA24346@lst.de> <20190119140452.GA25198@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Julien Thierry <julien.thierry@arm.com>
+Subject: [PATCH v9 01/26] arm64: Fix HCR.TGE status for NMI contexts
+Date: Mon, 21 Jan 2019 15:33:20 +0000
+Message-ID: <1548084825-8803-2-git-send-email-julien.thierry@arm.com>
+References: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190119140452.GA25198@lst.de>
-Content-Language: de-DE
+In-Reply-To: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, james.morse@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Julien Thierry <julien.thierry@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello Christoph,
+When using VHE, the host needs to clear HCR_EL2.TGE bit in order
+to interract with guest TLBs, switching from EL2&0 translation regime
+to EL1&0.
 
-Thanks for your reply. I successfully compiled a kernel (uImage) for the 
-X5000 from your Git 'powerpc-dma.6-debug' (both patches) today.
+However, some non-maskable asynchronous event could happen while TGE is
+cleared like SDEI. Because of this address translation operations
+relying on EL2&0 translation regime could fail (tlb invalidation,
+userspace access, ...).
 
-It detects the SATA hard disk drive and boots without any problems. I 
-will test the first patch in next days.
+Fix this by properly setting HCR_EL2.TGE when entering NMI context and
+clear it if necessary when returning to the interrupted context.
 
-Thanks for your help,
+Signed-off-by: Julien Thierry <julien.thierry@arm.com>
+Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Marc Zyngier <marc.zyngier@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: linux-arch@vger.kernel.org
+Cc: stable@vger.kernel.org
+---
+ arch/arm64/include/asm/hardirq.h | 28 ++++++++++++++++++++++++++++
+ arch/arm64/kernel/irq.c          |  3 +++
+ include/linux/hardirq.h          |  7 +++++++
+ 3 files changed, 38 insertions(+)
 
-Christian
-
-
-On 19 January 2019 at 3:04PM, Christoph Hellwig wrote:
-> On Sat, Jan 19, 2019 at 02:02:22PM +0100, Christoph Hellwig wrote:
->> Interesting.  This suggest it is related to the use of ZONE_DMA by
->> the FSL SOCs that your board uses.  Let me investigate this a bit more.
-> As a hack to check that theory I've pushed a new commit to the
-> powerpc-dma.6-debug branch to use old powerpc GFP_DMA selection
-> with the new dma direct code:
->
-> http://git.infradead.org/users/hch/misc.git/commitdiff/5c532d07c2f3c3972104de505d06b8d85f403f06
->
-> And another one that drops the addressability checks that powerpc
-> never had:
->
-> http://git.infradead.org/users/hch/misc.git/commitdiff/18e7629b38465ca98f8e7eed639123a13ac3b669
->
-> Can you first test with both patches, and then just with the first
-> in case that worked?
->
->
+diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
+index 1473fc2..94b7481 100644
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -19,6 +19,7 @@
+ #include <linux/cache.h>
+ #include <linux/threads.h>
+ #include <asm/irq.h>
++#include <asm/kvm_arm.h>
+ 
+ #define NR_IPI	7
+ 
+@@ -37,6 +38,33 @@
+ 
+ #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+ 
++struct nmi_ctx {
++	u64 hcr;
++};
++
++DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
++#define arch_nmi_enter()							\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
++			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
++				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
++				isb();						\
++			}							\
++		}								\
++	} while (0)
++
++#define arch_nmi_exit()								\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			if (!(nmi_ctx->hcr & HCR_TGE))				\
++				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
++		}								\
++	} while (0)
++
+ static inline void ack_bad_irq(unsigned int irq)
+ {
+ 	extern unsigned long irq_err_count;
+diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
+index 780a12f..92fa817 100644
+--- a/arch/arm64/kernel/irq.c
++++ b/arch/arm64/kernel/irq.c
+@@ -33,6 +33,9 @@
+ 
+ unsigned long irq_err_count;
+ 
++/* Only access this in an NMI enter/exit */
++DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
+ DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
+ 
+ int arch_show_interrupts(struct seq_file *p, int prec)
+diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
+index 0fbbcdf..da0af63 100644
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -60,8 +60,14 @@ static inline void rcu_nmi_exit(void)
+  */
+ extern void irq_exit(void);
+ 
++#ifndef arch_nmi_enter
++#define arch_nmi_enter()	do { } while (0)
++#define arch_nmi_exit()		do { } while (0)
++#endif
++
+ #define nmi_enter()						\
+ 	do {							\
++		arch_nmi_enter();				\
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+@@ -80,6 +86,7 @@ static inline void rcu_nmi_exit(void)
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
++		arch_nmi_exit();				\
+ 	} while (0)
+ 
+ #endif /* LINUX_HARDIRQ_H */
+-- 
+1.9.1
