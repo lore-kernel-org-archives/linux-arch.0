@@ -1,130 +1,46 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error
- code
-Date: Tue, 22 Jan 2019 09:24:11 +1100
-Message-ID: <20190121222411.GD4205@dastard>
-References: <20190118161440.220134-1-jannh@google.com>
- <20190118161440.220134-3-jannh@google.com>
- <20190120224059.GA4205@dastard>
- <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: linux-next: manual merge of the pidfd tree with the y2038 tree
+Date: Mon, 21 Jan 2019 15:44:17 -0700
+Message-ID: <da262bd9-1de0-eabb-ee44-e0ee152d15bb@kernel.dk>
+References: <20190121143951.68956db3@canb.auug.org.au>
+ <CAK8P3a0Yth+f8AANE6g8c_zE0Zt1CvCdzMDFK=pr8eNqmrBV0Q@mail.gmail.com>
+ <20190121191306.ifga5aw5atu2vvb7@brauner.io>
+ <CAK8P3a2CkXJ=giXQgxEcQAeH1Wt8jKc_P+YTOLJpUPVKYU8m9g@mail.gmail.com>
+ <20190121202328.rgrv54lybilsvitu@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
+In-Reply-To: <20190121202328.rgrv54lybilsvitu@brauner.io>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: Christian Brauner <christian@brauner.io>, Arnd Bergmann <arnd@arndb.de>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Linux Next Mailing List <linux-next@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 21, 2019 at 04:49:45PM +0100, Jann Horn wrote:
-> On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
-> > On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
-> > > As Al Viro pointed out, many filldir_t functions return error codes, but
-> > > all callers of filldir_t functions just check whether the return value is
-> > > non-zero (to determine whether to continue reading the directory); more
-> > > precise errors have to be signalled via struct dir_context.
-> > > Change all filldir_t functions to return bool instead of int.
-> > >
-> > > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-> > > Signed-off-by: Jann Horn <jannh@google.com>
-> > > ---
-> > >  arch/alpha/kernel/osf_sys.c | 12 +++----
-> > >  fs/afs/dir.c                | 30 +++++++++--------
-> > >  fs/ecryptfs/file.c          | 13 ++++----
-> > >  fs/exportfs/expfs.c         |  8 ++---
-> > >  fs/fat/dir.c                |  8 ++---
-> > >  fs/gfs2/export.c            |  6 ++--
-> > >  fs/nfsd/nfs4recover.c       |  8 ++---
-> > >  fs/nfsd/vfs.c               |  6 ++--
-> > >  fs/ocfs2/dir.c              | 10 +++---
-> > >  fs/ocfs2/journal.c          | 14 ++++----
-> > >  fs/overlayfs/readdir.c      | 24 +++++++-------
-> > >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
-> > >  fs/reiserfs/xattr.c         | 20 ++++++------
-> > >  fs/xfs/scrub/dir.c          |  8 ++---
-> > >  fs/xfs/scrub/parent.c       |  4 +--
-> > >  include/linux/fs.h          | 10 +++---
-> > >  16 files changed, 125 insertions(+), 120 deletions(-)
-> > >
-> > > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-> > > index db1c2144d477..14e5ae0dac50 100644
-> > > --- a/arch/alpha/kernel/osf_sys.c
-> > > +++ b/arch/alpha/kernel/osf_sys.c
-> > > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
-> > >       int error;
-> > >  };
-> > >
-> > > -static int
-> > > +static bool
-> > >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> > >           loff_t offset, u64 ino, unsigned int d_type)
-> > >  {
-> > > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> > >
-> > >       buf->error = check_dirent_name(name, namlen);
-> > >       if (unlikely(buf->error))
-> > > -             return -EFSCORRUPTED;
-> > > +             return false;
-> > >       buf->error = -EINVAL;   /* only used if we fail */
-> > >       if (reclen > buf->count)
-> > > -             return -EINVAL;
-> > > +             return false;
-> >
-> > Oh, it's because the error being returned is being squashed by
-> > dir_emit():
+On 1/21/19 1:23 PM, Christian Brauner wrote:
+> On Mon, Jan 21, 2019 at 09:15:27PM +0100, Arnd Bergmann wrote:
+>> On Mon, Jan 21, 2019 at 8:13 PM Christian Brauner <christian@brauner.io> wrote:
+>>> On Mon, Jan 21, 2019 at 06:16:22PM +0100, Arnd Bergmann wrote:
+>>>> On Mon, Jan 21, 2019 at 4:40 AM Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+>>>
+>>> I plan on sending the pidfd branch with the new pidfd_send_signal()
+>>> syscall for the 5.1 window. Should we somehow coordinate so that our
+>>> branches don't conflict? Any suggestions?
+>>
+>> A conflict can't be avoided, but if you pick system call number 427
+>> for pidfd_send_signal, and Jens picks numbers 424 through 426 for
 > 
-> Yeah.
-> 
-> > >  struct dir_context {
-> > > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
-> > >                           const char *name, int namelen,
-> > >                           u64 ino, unsigned type)
-> > >  {
-> > > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
-> > > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
-> > >  }
-> >
-> > /me wonders if it would be cleaner to do:
-> >
-> > static inline bool dir_emit(...)
-> > {
-> >         buf->error = ctx->actor(....)
-> >         if (buf->error)
-> >                 return false;
-> >         return true;
-> > }
-> >
-> > And clean up all filldir actors just to return the error state
-> > rather than have to jump through hoops to stash the error state in
-> > the context buffer and return the error state?
-> 
-> One negative thing about that, IMO, is that it mixes up the request
-> for termination of the loop and the presence of an error.
+> That sounds good to me. Since it's only one syscall for the pidfd branch
+> is there anything that speaks against me using 424? Given that the other
+> patchset has 4 new syscalls. :)
+> Jens, any objections?
 
-Doesn't the code already do that, only worse?
+I'm fine with either one, I'll have to renumber in any case. But it's 3
+new syscalls (424, 425, 426), not 4.
 
-> > That then allows callers who want/need the full error info can
-> > continue to call ctx->actor directly,
-> 
-> "continue to call ctx->actor directly"? I don't remember any code that
-> calls ctx->actor directly.
+Arnd, what's the best way to make this switch now, in my tree? Would be
+great if I didn't have to change it again once I make the change.
 
-ovl_fill_real().
-
-And the XFS directory scrubber could probably make better use of the
-error return from ctx->actor when validating the directory contents
-rather than just calling dir_emit() and aborting the scan at the
-first error encountered. We eventually want to know exactly what
-error was encountered here to determine if it is safe to continue,
-not just a "stop processing" flag. e.g. a bad name length will need
-to stop traversal because we can't trust the underlying structure,
-but an invalid file type isn't a structural flaw that prevents us
-from continuing to traverse and check the rest of the directory....
-
-Cheers,
-
-Dave.
 -- 
-Dave Chinner
-david@fromorbit.com
+Jens Axboe
