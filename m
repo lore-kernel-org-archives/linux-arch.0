@@ -1,92 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46318 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726268AbfAUNNG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Jan 2019 08:13:06 -0500
-Subject: Re: [PATCH 1/5] locking/qspinlock: Safely handle > 4 nesting levels
-References: <1548038994-30073-1-git-send-email-longman@redhat.com>
- <1548038994-30073-2-git-send-email-longman@redhat.com>
- <20190121091234.GG27931@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <c9c1e1b9-fc08-d2a4-cbd2-880149a9fe4c@redhat.com>
-Date: Mon, 21 Jan 2019 08:13:03 -0500
+Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.164]:14246 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729174AbfAUOio (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2019 09:38:44 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+References: <871403f2-fa7d-de15-89eb-070432e15c69@xenosoft.de>
+ <20190118112842.GA9115@lst.de>
+ <a2ca0118-5915-8b1c-7cfa-71cb4b43eaa6@xenosoft.de>
+ <20190118121810.GA13327@lst.de>
+ <eceebeda-0e18-00f6-06e7-def2eb0aa961@xenosoft.de>
+ <20190118125500.GA15657@lst.de>
+ <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
+ <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
+ <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
+ <20190119130222.GA24346@lst.de> <20190119140452.GA25198@lst.de>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de>
+Date: Mon, 21 Jan 2019 15:38:38 +0100
 MIME-Version: 1.0
-In-Reply-To: <20190121091234.GG27931@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+In-Reply-To: <20190119140452.GA25198@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>
-Message-ID: <20190121131303.rBekTGEF3SPApvXU_k3_9Jc-jrLjWAks4Pg-o2-BFFY@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190121143838.Ier2umYcOt4RgKvWxPMMq1tg5jJzc-7kNNhGboPkp5M@z>
 
-On 01/21/2019 04:12 AM, Peter Zijlstra wrote:
-> On Sun, Jan 20, 2019 at 09:49:50PM -0500, Waiman Long wrote:
->> +/**
->> + *  acquire_lock_no_node - acquire lock without MCS node
->> + *  @lock: Pointer to queued spinlock structure
->> + *
->> + *  It is extremely unlikely that this function will ever be called.
->> + *  Marking it as noinline to not mess with the slowpath code. This
->> + *  function is for native qspinlock only. The PV qspinlock code has
->> + *  its own simpler version.
->> + *
->> + *  -----          -----  |   ----      -----          -----
->> + * |Tail2| <- ... |Head2| |  |Node| <- |Tail1| <- ... |Head1|
->> + *  -----          -----  |   ----      -----          -----
->> + *                   |                                   |
->> + *                   V                                   V
->> + *             Spin on waiting                     Spin on locked
->> + *
->> + * The waiting and the pending bits will be acquired first which are now
->> + * used as a separator for the disjointed queue shown above.
->> + *
->> + * The current CPU will then be inserted into queue by placing a special
->> + * _Q_TAIL_WAITING value into the tail and makes the current tail
->> + * point to its own local node. The next incoming CPU will see the special
->> + * tail, but it has no way to find the node. Instead, it will spin on the
->> + * waiting bit. When that bit is cleared, it means that all the the
->> + * previous CPUs in the queue are gone and current CPU is the new lock
->> + * holder. 
-> I know it's monday morning and I've not had wake-up juice yet, but I
-> don't think that's true.
+Hello Christoph,
+
+Thanks for your reply. I successfully compiled a kernel (uImage) for the 
+X5000 from your Git 'powerpc-dma.6-debug' (both patches) today.
+
+It detects the SATA hard disk drive and boots without any problems. I 
+will test the first patch in next days.
+
+Thanks for your help,
+
+Christian
+
+
+On 19 January 2019 at 3:04PM, Christoph Hellwig wrote:
+> On Sat, Jan 19, 2019 at 02:02:22PM +0100, Christoph Hellwig wrote:
+>> Interesting.  This suggest it is related to the use of ZONE_DMA by
+>> the FSL SOCs that your board uses.  Let me investigate this a bit more.
+> As a hack to check that theory I've pushed a new commit to the
+> powerpc-dma.6-debug branch to use old powerpc GFP_DMA selection
+> with the new dma direct code:
 >
-> Consider there being two CPUs that ran out of nodes and thus we have two
-> tail fragments waiting on the one waiting bit.
-
-The waiting bit acts like a bit lock as no more than one can have it at
-any time. The loser just keep spinning on it.
-
-> There is no sane wait to recover from this.. and stay fair, why are we
-> trying?
+> http://git.infradead.org/users/hch/misc.git/commitdiff/5c532d07c2f3c3972104de505d06b8d85f403f06
 >
-> That is; what's the problem with the below?
+> And another one that drops the addressability checks that powerpc
+> never had:
 >
-> Yes it sucks, but it is simple and doesn't introduce 100+ lines of code
-> that 'never' gets used.
+> http://git.infradead.org/users/hch/misc.git/commitdiff/18e7629b38465ca98f8e7eed639123a13ac3b669
 >
-> ---
-> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> index 8a8c3c208c5e..983b49a75826 100644
-> --- a/kernel/locking/qspinlock.c
-> +++ b/kernel/locking/qspinlock.c
-> @@ -412,6 +412,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->  	idx = node->count++;
->  	tail = encode_tail(smp_processor_id(), idx);
->  
-> +	if (idx >= MAX_NODES) {
-> +		while (!queued_spin_trylock(lock))
-> +			cpu_relax();
-> +		goto release;
-> +	}
-> +
->  	node = grab_mcs_node(node, idx);
->  
->  	/*
-
-Yes, that can work too. Although there is a possibility of live lock, it
-should seldom happen when we are talking about NMIs.
-
-Cheers,
-Longman
+> Can you first test with both patches, and then just with the first
+> in case that worked?
+>
+>
