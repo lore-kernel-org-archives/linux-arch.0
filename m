@@ -1,112 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail03.adl6.internode.on.net ([150.101.137.143]:52895 "EHLO
-        ipmail03.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728530AbfAUID2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Jan 2019 03:03:28 -0500
-Date: Mon, 21 Jan 2019 09:40:59 +1100
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error
- code
-Message-ID: <20190120224059.GA4205@dastard>
-References: <20190118161440.220134-1-jannh@google.com>
- <20190118161440.220134-3-jannh@google.com>
+Received: from mail-vs1-f68.google.com ([209.85.217.68]:44023 "EHLO
+        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729451AbfAUIHU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2019 03:07:20 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190118161440.220134-3-jannh@google.com>
+References: <20190118161835.2259170-1-arnd@arndb.de> <20190118161835.2259170-27-arnd@arndb.de>
+In-Reply-To: <20190118161835.2259170-27-arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 21 Jan 2019 09:07:06 +0100
+Message-ID: <CAMuHMdU1tNA74QRKhcuJ-LkRi4HBynZoQ0hd-MVZtY4+oh6OUA@mail.gmail.com>
+Subject: Re: [PATCH v2 26/29] y2038: use time32 syscall names on 32-bit
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20190120224059.SlbxNWtjO-Tz-6C94vndpevoRXrW_BdVy7ASQX2LSqk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Paul Burton <paul.burton@mips.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Firoz Khan <firoz.khan@linaro.org>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, netdev <netdev@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+Message-ID: <20190121080706.iZsvUHoGJ24-e7OrkUeJ5XT-96QJifJnxNDEJtzibZs@z>
 
-On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
-> As Al Viro pointed out, many filldir_t functions return error codes, but
-> all callers of filldir_t functions just check whether the return value is
-> non-zero (to determine whether to continue reading the directory); more
-> precise errors have to be signalled via struct dir_context.
-> Change all filldir_t functions to return bool instead of int.
-> 
-> Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-> Signed-off-by: Jann Horn <jannh@google.com>
-> ---
->  arch/alpha/kernel/osf_sys.c | 12 +++----
->  fs/afs/dir.c                | 30 +++++++++--------
->  fs/ecryptfs/file.c          | 13 ++++----
->  fs/exportfs/expfs.c         |  8 ++---
->  fs/fat/dir.c                |  8 ++---
->  fs/gfs2/export.c            |  6 ++--
->  fs/nfsd/nfs4recover.c       |  8 ++---
->  fs/nfsd/vfs.c               |  6 ++--
->  fs/ocfs2/dir.c              | 10 +++---
->  fs/ocfs2/journal.c          | 14 ++++----
->  fs/overlayfs/readdir.c      | 24 +++++++-------
->  fs/readdir.c                | 64 ++++++++++++++++++-------------------
->  fs/reiserfs/xattr.c         | 20 ++++++------
->  fs/xfs/scrub/dir.c          |  8 ++---
->  fs/xfs/scrub/parent.c       |  4 +--
->  include/linux/fs.h          | 10 +++---
->  16 files changed, 125 insertions(+), 120 deletions(-)
-> 
-> diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-> index db1c2144d477..14e5ae0dac50 100644
-> --- a/arch/alpha/kernel/osf_sys.c
-> +++ b/arch/alpha/kernel/osf_sys.c
-> @@ -108,7 +108,7 @@ struct osf_dirent_callback {
->  	int error;
->  };
->  
-> -static int
-> +static bool
->  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
->  	    loff_t offset, u64 ino, unsigned int d_type)
->  {
-> @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
->  
->  	buf->error = check_dirent_name(name, namlen);
->  	if (unlikely(buf->error))
-> -		return -EFSCORRUPTED;
-> +		return false;
->  	buf->error = -EINVAL;	/* only used if we fail */
->  	if (reclen > buf->count)
-> -		return -EINVAL;
-> +		return false;
+Hi Arnd,
 
-Oh, it's because the error being returned is being squashed by
-dir_emit():
+On Fri, Jan 18, 2019 at 5:21 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> This is the big flip, where all 32-bit architectures set COMPAT_32BIT_TIME
+> abd use the _time32 system calls from the former compat layer instead
 
->  struct dir_context {
-> @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
->  			    const char *name, int namelen,
->  			    u64 ino, unsigned type)
->  {
-> -	return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
-> +	return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
->  }
+and
 
-/me wonders if it would be cleaner to do:
+> of the system calls that take __kernel_timespec and similar arguments.
 
-static inline bool dir_emit(...)
-{
-	buf->error = ctx->actor(....)
-	if (buf->error)
-		return false;
-	return true;
-}
+Gr{oetje,eeting}s,
 
-And clean up all filldir actors just to return the error state
-rather than have to jump through hoops to stash the error state in
-the context buffer and return the error state?
+                        Geert
 
-That then allows callers who want/need the full error info can
-continue to call ctx->actor directly, while all those that just want
-to terminate their loops on error can continue just to call
-dir_emit()...
-
-Cheers,
-
-Dave.
 -- 
-Dave Chinner
-david@fromorbit.com
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
