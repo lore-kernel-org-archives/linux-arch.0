@@ -1,118 +1,71 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH v4 2/3] fs: don't let getdents return bogus names
-Date: Mon, 21 Jan 2019 09:17:18 +1100
-Message-ID: <20190120221718.GZ4205@dastard>
-References: <20190118161440.220134-1-jannh@google.com>
- <20190118161440.220134-2-jannh@google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH 0/5] locking/qspinlock: Safely handle > 4 nesting levels
+Date: Sun, 20 Jan 2019 21:49:49 -0500
+Message-ID: <1548038994-30073-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190118161440.220134-2-jannh@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 18, 2019 at 05:14:39PM +0100, Jann Horn wrote:
-> When you e.g. run `find` on a directory for which getdents returns
-> "filenames" that contain slashes, `find` passes those "filenames" back to
-> the kernel, which then interprets them as paths. That could conceivably
-> cause userspace to do something bad when accessing something like an
-> untrusted USB stick, but I'm not aware of any specific example.
-> 
-> Instead of returning bogus filenames to userspace, return -EUCLEAN.
-> 
-> Fixes: 1da177e4c3f4 ("Linux-2.6.12-rc2")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Jann Horn <jannh@google.com>
-> ---
-> I ordered this fix before the refactoring one so that it can easily be
-> backported.
-> 
-> changed in v2:
->  - move bogus_dirent_name() out of the #ifdef (kbuild test robot)
-> changed in v3:
->  - change calling convention (Al Viro)
->  - comment fix
-> changed in v4:
->  - use EFSCORRUPTED instead of EUCLEAN (Dave Chinner)
-> 
->  arch/alpha/kernel/osf_sys.c |  4 ++++
->  fs/readdir.c                | 35 +++++++++++++++++++++++++++++++++++
->  include/linux/fs.h          |  2 ++
->  3 files changed, 41 insertions(+)
-> 
-> diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-> index 792586038808..db1c2144d477 100644
-> --- a/arch/alpha/kernel/osf_sys.c
-> +++ b/arch/alpha/kernel/osf_sys.c
-> @@ -40,6 +40,7 @@
->  #include <linux/vfs.h>
->  #include <linux/rcupdate.h>
->  #include <linux/slab.h>
-> +#include <linux/fs.h>
->  
->  #include <asm/fpu.h>
->  #include <asm/io.h>
-> @@ -117,6 +118,9 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
->  	unsigned int reclen = ALIGN(NAME_OFFSET + namlen + 1, sizeof(u32));
->  	unsigned int d_ino;
->  
-> +	buf->error = check_dirent_name(name, namlen);
-> +	if (unlikely(buf->error))
-> +		return -EFSCORRUPTED;
->  	buf->error = -EINVAL;	/* only used if we fail */
->  	if (reclen > buf->count)
->  		return -EINVAL;
-> diff --git a/fs/readdir.c b/fs/readdir.c
-> index 2f6a4534e0df..58088510bb9c 100644
-> --- a/fs/readdir.c
-> +++ b/fs/readdir.c
-> @@ -64,6 +64,26 @@ int iterate_dir(struct file *file, struct dir_context *ctx)
->  }
->  EXPORT_SYMBOL(iterate_dir);
->  
-> +/*
-> + * Most filesystems don't filter out bogus directory entry names, and userspace
-> + * can get very confused by such names. Behave as if a filesystem error had
-> + * happened while reading directory entries.
-> + */
-> +int check_dirent_name(const char *name, int namlen)
-> +{
-> +	if (namlen == 0) {
-> +		pr_err_once("%s: filesystem returned bogus empty name\n",
-> +			    __func__);
-> +		return -EFSCORRUPTED;
-> +	}
-> +	if (memchr(name, '/', namlen)) {
-> +		pr_err_once("%s: filesystem returned bogus name '%*pEhp' (contains slash)\n",
-> +			    __func__, namlen, name);
-> +		return -EFSCORRUPTED;
-> +	}
-> +	return 0;
-> +}
-> +
->  /*
->   * Traditional linux readdir() handling..
->   *
-> @@ -98,6 +118,9 @@ static int fillonedir(struct dir_context *ctx, const char *name, int namlen,
->  
->  	if (buf->result)
->  		return -EINVAL;
-> +	buf->result = check_dirent_name(name, namlen);
-> +	if (unlikely(buf->result))
-> +		return -EFSCORRUPTED;
+My first thought of making qspinlocks to handle more than 4 slowpath
+nesting levels to to use lock stealing when no more MCS nodes are
+available. That is easy for PV qspinlocks as lock stealing is supported.
+For native qspinlocks, we have to make setting the locked bit an atomic
+operation which will add to slowpath lock acquisition latency. Using
+my locking microbenchmark, I saw up to 10% reduction in the locking
+throughput in some cases.
 
-Why bother returning an error from check_dirent_name() if you just
-throw it away? i.e:
+So we need to use a different technique in order to allow more than 4
+slowpath nesting levels without introducing any noticeable performance
+degradation for native qspinlocks. I settled on adding a new waiting
+bit to the lock word to allow a CPU running out of percpu MCS nodes
+to insert itself into the waiting queue using the new waiting bit for
+synchronization. See patch 1 for details of how all this works.
 
-	if (!dirent_name_valid(name, namelen))
-		return -EFSCORRUPTED;
+Patches 2-4 enhances the locking statistics code to track the new code
+as well as enabling it on other architectures such as ARM64.
 
-Cheers,
+Patch 5 is optional and it adds some debug code for testing purposes.
 
-Dave.
+By setting MAX_NODES to 1, we can have some usage of the new code path
+during the booting process as demonstrated by the stat counter values
+shown below on an 1-socket 22-core 44-thread x86-64 system after booting
+up the new kernel.
+
+  lock_no_node=34
+  lock_pending=30027
+  lock_slowpath=173174
+  lock_waiting=8
+
+The new kernel was booted up a dozen times without seeing any problem.
+
+Similar bootup test was done on a 2-socket 56-core 224-thread ARM64 system
+with the following stat counter values.
+
+  lock_no_node=21
+  lock_pending=70245
+  lock_slowpath=132703
+  lock_waiting=3
+
+No problem was seen in the ARM64 system with the new kernel. The number
+of instances where 2-level spinlock slowpath nesting happens is less
+frequent in the ARM64 system than in the x86-64 system.
+
+Waiman Long (5):
+  locking/qspinlock: Safely handle > 4 nesting levels
+  locking/qspinlock_stat: Track the no MCS node available case
+  locking/qspinlock_stat: Separate out the PV specific stat counts
+  locking/qspinlock_stat: Allow QUEUED_LOCK_STAT for all archs
+  locking/qspinlock: Add some locking debug code
+
+ arch/Kconfig                          |   7 ++
+ arch/x86/Kconfig                      |   8 --
+ include/asm-generic/qspinlock_types.h |  41 +++++--
+ kernel/locking/qspinlock.c            | 212 +++++++++++++++++++++++++++++++---
+ kernel/locking/qspinlock_paravirt.h   |  30 ++++-
+ kernel/locking/qspinlock_stat.h       | 153 +++++++++++++++---------
+ 6 files changed, 362 insertions(+), 89 deletions(-)
+
 -- 
-Dave Chinner
-david@fromorbit.com
+1.8.3.1
