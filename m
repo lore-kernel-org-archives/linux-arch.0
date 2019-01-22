@@ -1,36 +1,88 @@
-From: "Theodore Y. Ts'o" <tytso@mit.edu>
-Subject: Re: [PATCH v4 1/3] fs: hoist EFSCORRUPTED definition into uapi header
-Date: Mon, 21 Jan 2019 19:38:23 -0500
-Message-ID: <20190122003823.GC19379@mit.edu>
-References: <20190118161440.220134-1-jannh@google.com>
- <20190121215454.GA12996@mit.edu>
- <20190121235158.GA4363@magnolia>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH 0/3] arm64: system call table generation for asm-generic
+Date: Tue, 22 Jan 2019 09:47:36 +0530
+Message-ID: <CALxhOngnGKk==Cj+3EM1LkBK4FYRXNu4JxVg-d=3uttVcLwqQw@mail.gmail.com>
+References: <1546530025-26014-1-git-send-email-firoz.khan@linaro.org>
+ <20190119235650.GC26876@brain-police>
+ <CAK8P3a1kiS7oF=eKLqPs6kKTYE1uTjhz++edH_J-tCUmXY2PNQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190121235158.GA4363@magnolia>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Jann Horn <jannh@google.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Pavel Machek <pavel@ucw.cz>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <CAK8P3a1kiS7oF=eKLqPs6kKTYE1uTjhz++edH_J-tCUmXY2PNQ@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch <linux-arch@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Philippe Ombredanne <pombredanne@nexb.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Stefan Agner <stefan@agner.ch>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Russell King <rmk+kernel@armlinux.org.uk>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 21, 2019 at 03:51:58PM -0800, Darrick J. Wong wrote:
-> 
-> I disagree with upending 13 years of established precedent for user
-> visible behavior.  We possibly could've pulled this off ten years ago,
-> but it's waaaay too late now.  Too much work, too little gain.
+Hi Arnd, Will,
 
-I remember the discussion; but now that we're adding it to uapi header
-files, it's really going to be impossible.  And I have had some
-regrets about that decision ten years ago.  I agree it would cause
-confusion if we do it now, but it's basically the our last
-opportunity.
- 
-How about this then?  We could ask glibc to change the string returned
-by strerror for EUCLEAN/EFSCORRUPTED to be something like "File system
-or block device corrupted".  This is how the errno is used in the
-kernel; and if we don't want to change the error code, changing the
-string returned by glibc should be less problematic.
+thanks for the email.
 
-					- Ted
+I'm want to abandon this patch series. Will post new patch series for
+system call
+table generation support for asm-generic and some other stuff together by end of
+this week or early next week.
+
+Thanks
+Firoz
+
+On Mon, 21 Jan 2019 at 21:24, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> n Sun, Jan 20, 2019 at 12:57 AM Will Deacon <will.deacon@arm.com> wrote:
+> >
+> > On Thu, Jan 03, 2019 at 09:10:22PM +0530, Firoz Khan wrote:
+> > > This will be an automated scripts to provide easy support
+> > > for add/modify/delete the system call entry by add in
+> > > respective *.tbl file.
+> > >
+> > > System call table generation support for asm-generic is
+> > > provide for arm64 architecture which will use the common
+> > > scripts resides in scripts directory and use syscall.tbl
+> > > syscall_arm32.tbl files as inputs. This implementation
+> > > will replace asm-generic/unistd.h.
+> > >
+> > > This patch depends on:
+> > >  https://lore.kernel.org/lkml/1546439331-18646-1-git-send-email-firoz.khan@linaro.org/
+> > >  https://lore.kernel.org/lkml/1546520681-24453-1-git-send-email-firoz.khan@linaro.org/
+> >
+> > I'm having a hard time understanding what the benefit of this series is,
+> > given that we only support EABI compat tasks. When adding a new compat
+> > system call, you can't just blindly hook it up without checking whether it
+> > needs a wrapper to deal with any type conversion etc, so really we're just
+> > replacing one table with another as far as I can tell. What am I missing?
+>
+> The point that is missing in the description above is that all unistd.h
+> and syscall.S files are now being generated from a .tbl file, across
+> all architectures. This was already done on arm32, x86 and s390
+> before 4.20, but is now done on all architectures that don't use
+> the uapi/asm-generic/unistd.h header, and the arm32 compat version for
+> arm64.
+>
+> The newly added file has the same format as all other tables, and
+> will be easier to synchronize with the arm32 version, which has
+> almost the same contents (arm32 has oabi support, arm64 has
+> compat support).
+>
+> > I also really don't think we should be generating the 32-bit UAPI headers
+> > from the 64-bit compat system call support (if that's what you're trying to
+> > do -- make headers_check fails with your patches applied). arch/arm/ is the
+> > canonical place for the 32-bit UAPI, and we're just implementing that.
+>
+> I think you just misread what Firoz was trying to say here: The
+> arm64 uapi/asm/unistd.h file is now being generated from the
+> generic syscall.tbl file, while the compat asm/unistd32.h file is not
+> part of the UAPI. In both cases though, the data from the old files
+> is being replaced with data in the more compact and (hopefully)
+> more readable format.
+>
+>
+>     Arnd
