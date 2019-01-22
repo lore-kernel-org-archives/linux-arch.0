@@ -1,44 +1,41 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: linux-next: manual merge of the pidfd tree with the y2038 tree
-Date: Tue, 22 Jan 2019 14:44:04 +0100
-Message-ID: <CAK8P3a0pzdGHO_CNt26rx0wn38YJrpux9Xtz_dvZWkCw6gDj1w@mail.gmail.com>
-References: <20190121202328.rgrv54lybilsvitu@brauner.io> <da262bd9-1de0-eabb-ee44-e0ee152d15bb@kernel.dk>
- <20190121224811.gbvg22vg4kgg4kbs@brauner.io> <CAK8P3a0ej9NcJM8wXNPbcGUyOUZYX+VLoDFdbenW3s3114oQZw@mail.gmail.com>
- <20190122093146.kmckcgdbvo2e7v3c@brauner.io> <20190122103009.vu2a67kviqhcb3cn@brauner.io>
- <CAK8P3a0EW6ZSMoo6FsRQ=XvyhJe50SR7YtpCtuHcPr=JO3fCtA@mail.gmail.com>
- <20190122105747.6gxvghn7n5dxa65w@brauner.io> <CAK8P3a0HJX6+1vks=ZCqNymLwWFS+Wt5PPuYnLedpMo=aVSwKA@mail.gmail.com>
- <20190122114656.joasjhlpwo3vy7hg@brauner.io> <20190122122419.b7lmm4j25w5cbmcx@brauner.io>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH v25 0/6] Add io{read|write}64 to io-64-atomic headers
+Date: Tue, 22 Jan 2019 09:40:17 -0700
+Message-ID: <9fe43579-77e2-f845-0b30-4fea4ecc27a7@deltatee.com>
+References: <20190116182523.19446-1-logang@deltatee.com>
+ <20190122124044.GA11753@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190122122419.b7lmm4j25w5cbmcx@brauner.io>
+In-Reply-To: <20190122124044.GA11753@kroah.com>
+Content-Language: en-CA
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Brauner <christian@brauner.io>
-Cc: Jens Axboe <axboe@kernel.dk>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux Next Mailing List <linux-next@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 22, 2019 at 1:24 PM Christian Brauner <christian@brauner.io> wrote:
-> On Tue, Jan 22, 2019 at 12:46:56PM +0100, Christian Brauner wrote:
-> > On Tue, Jan 22, 2019 at 12:42:44PM +0100, Arnd Bergmann wrote:
-> > >
-> > > You need to change __NR_syscalls to 425 as well. This will
-> > > clearly create a conflict, but then the resolution will be to pick
-> > > the correct (a.k.a. highest) number, rather than remembering
-> > > to update it manually.
-> >
-> > Hm, ok. Wasn't sure if that would confuse people.
-> >
-> > Ok, when I sent my PR I will make a note in the PR that this branch is
-> > aligned to create only minimal conflicts with your y2038 branch. The
-> > patch carries your ack already so this should be good.
 
-My point was just that __NR_syscalls has to be one more than the highest
-syscall number, otherwise we get a build failure on architectures that
-create an array of __NR_syscalls entries.
 
-> Arnd, in case you care to take a look
-> https://git.kernel.org/pub/scm/linux/kernel/git/brauner/linux.git/log/?h=for-next
+On 2019-01-22 5:40 a.m., Greg Kroah-Hartman wrote:
+> On Wed, Jan 16, 2019 at 11:25:17AM -0700, Logan Gunthorpe wrote:
+>> This is resend number 6 since the last change to this series.
+>>
+>> This cleanup was requested by Greg KH back in June of 2017. I've resent the series
+>> a couple times a cycle since then, updating and fixing as feedback was slowly
+>> recieved some patches were alread accepted by specific arches. In June 2018,
+>> Andrew picked the remainder of this up and it was in linux-next for a
+>> couple weeks. There were a couple problems that were identified and addressed
+>> back then and I'd really like to get the ball rolling again. A year
+>> and a half of sending this without much feedback is far too long.
+>>
+>> @Andrew, can you please pick this set up again so it can get into
+>> linux-next? Or let me know if there's something else I should be doing.
+> 
+> version 25?  That's crazy, this has gone on too long.  I've taken this
+> into my char/misc driver tree now, so sorry for the long suffering you
+> have gone through for this.
 
-Looks good to me.
+Thanks a lot!
 
-      Arnd
+Logan
