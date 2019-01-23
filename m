@@ -1,57 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49564 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:54176 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726940AbfAWDtW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Jan 2019 22:49:22 -0500
+        id S1726940AbfAWDtb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Jan 2019 22:49:31 -0500
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 0/4] locking/qspinlock: Handle > 4 nesting levels
-Date: Tue, 22 Jan 2019 22:49:07 -0500
-Message-ID: <1548215351-18896-1-git-send-email-longman@redhat.com>
+Subject: [PATCH v2 4/4] locking/qspinlock_stat: Allow QUEUED_LOCK_STAT for all archs
+Date: Tue, 22 Jan 2019 22:49:11 -0500
+Message-ID: <1548215351-18896-5-git-send-email-longman@redhat.com>
+In-Reply-To: <1548215351-18896-1-git-send-email-longman@redhat.com>
+References: <1548215351-18896-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190123034907.jy5p4lKo8lSw14kwMXTcPL1xdrf_2NovVyMNBJOEM1Q@z>
+Message-ID: <20190123034911.TRCeDtRYNSyqFXJoaWdpaE3-kYDkrCiObCqN4uJfXI4@z>
 
- v2:
-  - Use the simple trylock loop as suggested by PeterZ.
+The QUEUED_LOCK_STAT option to report queued spinlocks statistics was
+previously allowed only on x86 architecture. Now queued spinlocks are
+used in multiple architectures, we now allow QUEUED_LOCK_STAT to be
+enabled for all those architectures that use queued spinlocks. This
+option is listed as part of the general architecture-dependent options.
 
-The current allows up to 4 levels of nested slowpath spinlock calls.
-That should be enough for the process, soft irq, hard irq, and nmi.
-With the unfortunate event of nested NMIs happening with slowpath
-spinlock call in each of the previous level, we are going to run out
-of useable MCS node for queuing.
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ arch/Kconfig     | 7 +++++++
+ arch/x86/Kconfig | 8 --------
+ 2 files changed, 7 insertions(+), 8 deletions(-)
 
-In this case, we fall back to a simple TAS lock and spin on the lock
-cacheline until the lock is free. This is not most elegant solution
-but is simple enough.
-
-Patch 1 implements the TAS loop when all the existing MCS nodes are
-occupied.
-
-Patches 2-4 enhances the locking statistics code to track the new code
-as well as enabling it on other architectures such as ARM64.
-
-By setting MAX_NODES to 1, we can have some usage of the new code path
-during the booting process as demonstrated by the stat counter values
-shown below on an 1-socket 22-core 44-thread x86-64 system after booting
-up the new kernel.
-
-  lock_no_node=20
-  lock_pending=29660
-  lock_slowpath=172714
-
-Waiman Long (4):
-  locking/qspinlock: Handle > 4 slowpath nesting levels
-  locking/qspinlock_stat: Track the no MCS node available case
-  locking/qspinlock_stat: Separate out the PV specific stat counts
-  locking/qspinlock_stat: Allow QUEUED_LOCK_STAT for all archs
-
- arch/Kconfig                    |   7 ++
- arch/x86/Kconfig                |   8 ---
- kernel/locking/qspinlock.c      |  18 ++++-
- kernel/locking/qspinlock_stat.h | 150 +++++++++++++++++++++++++---------------
- 4 files changed, 120 insertions(+), 63 deletions(-)
-
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 4cfb6de..c82e32f 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -885,6 +885,13 @@ config HAVE_ARCH_PREL32_RELOCATIONS
+ 	  architectures, and don't require runtime relocation on relocatable
+ 	  kernels.
+ 
++config QUEUED_LOCK_STAT
++	bool "Queued spinlock statistics"
++	depends on QUEUED_SPINLOCKS && DEBUG_FS
++	---help---
++	  Enable the collection of statistical data on the slowpath
++	  behavior of queued spinlocks and report them on debugfs.
++
+ source "kernel/gcov/Kconfig"
+ 
+ source "scripts/gcc-plugins/Kconfig"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4b4a7f3..872e681 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -784,14 +784,6 @@ config PARAVIRT_SPINLOCKS
+ 
+ 	  If you are unsure how to answer this question, answer Y.
+ 
+-config QUEUED_LOCK_STAT
+-	bool "Paravirt queued spinlock statistics"
+-	depends on PARAVIRT_SPINLOCKS && DEBUG_FS
+-	---help---
+-	  Enable the collection of statistical data on the slowpath
+-	  behavior of paravirtualized queued spinlocks and report
+-	  them on debugfs.
+-
+ source "arch/x86/xen/Kconfig"
+ 
+ config KVM_GUEST
 -- 
 1.8.3.1
