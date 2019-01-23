@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 2/4] locking/qspinlock_stat: Track the no MCS node available case
-Date: Tue, 22 Jan 2019 22:49:09 -0500
-Message-ID: <1548215351-18896-3-git-send-email-longman@redhat.com>
+Subject: [PATCH v2 4/4] locking/qspinlock_stat: Allow QUEUED_LOCK_STAT for all archs
+Date: Tue, 22 Jan 2019 22:49:11 -0500
+Message-ID: <1548215351-18896-5-git-send-email-longman@redhat.com>
 References: <1548215351-18896-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1548215351-18896-1-git-send-email-longman@redhat.com>
@@ -10,85 +10,54 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will 
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Track the number of slowpath locking operations that are being done
-without any MCS node available as well renaming lock_index[123] to make
-them more descriptive.
-
-Using these stat counters is one way to find out if a code path is
-being exercised.
+The QUEUED_LOCK_STAT option to report queued spinlocks statistics was
+previously allowed only on x86 architecture. Now queued spinlocks are
+used in multiple architectures, we now allow QUEUED_LOCK_STAT to be
+enabled for all those architectures that use queued spinlocks. This
+option is listed as part of the general architecture-dependent options.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/qspinlock.c      |  3 ++-
- kernel/locking/qspinlock_stat.h | 21 +++++++++++++++------
- 2 files changed, 17 insertions(+), 7 deletions(-)
+ arch/Kconfig     | 7 +++++++
+ arch/x86/Kconfig | 8 --------
+ 2 files changed, 7 insertions(+), 8 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 0875053..21ee51b 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -422,6 +422,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 * simple enough.
- 	 */
- 	if (unlikely(idx >= MAX_NODES)) {
-+		qstat_inc(qstat_lock_no_node, true);
- 		while (!queued_spin_trylock(lock))
- 			cpu_relax();
- 		goto release;
-@@ -432,7 +433,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	/*
- 	 * Keep counts of non-zero index values:
- 	 */
--	qstat_inc(qstat_lock_idx1 + idx - 1, idx);
-+	qstat_inc(qstat_lock_use_node2 + idx - 1, idx);
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 4cfb6de..c82e32f 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -885,6 +885,13 @@ config HAVE_ARCH_PREL32_RELOCATIONS
+ 	  architectures, and don't require runtime relocation on relocatable
+ 	  kernels.
  
- 	/*
- 	 * Ensure that we increment the head node->count before initialising
-diff --git a/kernel/locking/qspinlock_stat.h b/kernel/locking/qspinlock_stat.h
-index 42d3d8d..31728f6 100644
---- a/kernel/locking/qspinlock_stat.h
-+++ b/kernel/locking/qspinlock_stat.h
-@@ -30,6 +30,13 @@
-  *   pv_wait_node	- # of vCPU wait's at a non-head queue node
-  *   lock_pending	- # of locking operations via pending code
-  *   lock_slowpath	- # of locking operations via MCS lock queue
-+ *   lock_use_node2	- # of locking operations that use 2nd percpu node
-+ *   lock_use_node3	- # of locking operations that use 3rd percpu node
-+ *   lock_use_node4	- # of locking operations that use 4th percpu node
-+ *   lock_no_node	- # of locking operations without using percpu node
-+ *
-+ * Subtraccting lock_use_node[234] from lock_slowpath will give you
-+ * lock_use_node1.
-  *
-  * Writing to the "reset_counters" file will reset all the above counter
-  * values.
-@@ -55,9 +62,10 @@ enum qlock_stats {
- 	qstat_pv_wait_node,
- 	qstat_lock_pending,
- 	qstat_lock_slowpath,
--	qstat_lock_idx1,
--	qstat_lock_idx2,
--	qstat_lock_idx3,
-+	qstat_lock_use_node2,
-+	qstat_lock_use_node3,
-+	qstat_lock_use_node4,
-+	qstat_lock_no_node,
- 	qstat_num,	/* Total number of statistical counters */
- 	qstat_reset_cnts = qstat_num,
- };
-@@ -85,9 +93,10 @@ enum qlock_stats {
- 	[qstat_pv_wait_node]       = "pv_wait_node",
- 	[qstat_lock_pending]       = "lock_pending",
- 	[qstat_lock_slowpath]      = "lock_slowpath",
--	[qstat_lock_idx1]	   = "lock_index1",
--	[qstat_lock_idx2]	   = "lock_index2",
--	[qstat_lock_idx3]	   = "lock_index3",
-+	[qstat_lock_use_node2]	   = "lock_use_node2",
-+	[qstat_lock_use_node3]	   = "lock_use_node3",
-+	[qstat_lock_use_node4]	   = "lock_use_node4",
-+	[qstat_lock_no_node]	   = "lock_no_node",
- 	[qstat_reset_cnts]         = "reset_counters",
- };
++config QUEUED_LOCK_STAT
++	bool "Queued spinlock statistics"
++	depends on QUEUED_SPINLOCKS && DEBUG_FS
++	---help---
++	  Enable the collection of statistical data on the slowpath
++	  behavior of queued spinlocks and report them on debugfs.
++
+ source "kernel/gcov/Kconfig"
  
+ source "scripts/gcc-plugins/Kconfig"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4b4a7f3..872e681 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -784,14 +784,6 @@ config PARAVIRT_SPINLOCKS
+ 
+ 	  If you are unsure how to answer this question, answer Y.
+ 
+-config QUEUED_LOCK_STAT
+-	bool "Paravirt queued spinlock statistics"
+-	depends on PARAVIRT_SPINLOCKS && DEBUG_FS
+-	---help---
+-	  Enable the collection of statistical data on the slowpath
+-	  behavior of paravirtualized queued spinlocks and report
+-	  them on debugfs.
+-
+ source "arch/x86/xen/Kconfig"
+ 
+ config KVM_GUEST
 -- 
 1.8.3.1
