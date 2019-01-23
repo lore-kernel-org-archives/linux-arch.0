@@ -1,76 +1,78 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Semantics of symbol address in perf report -v
-Date: Wed, 23 Jan 2019 11:55:49 -0800
-Message-ID: <da403654-f21d-9959-067f-b76581600741@synopsys.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v2 2/4] locking/qspinlock_stat: Track the no MCS node
+ available case
+Date: Wed, 23 Jan 2019 15:04:05 -0500
+Message-ID: <39716536-be0b-8eba-4f56-ab6ff97447be@redhat.com>
+References: <1548215351-18896-1-git-send-email-longman@redhat.com>
+ <1548215351-18896-3-git-send-email-longman@redhat.com>
+ <20190123092339.GD15019@brain-police>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190123092339.GD15019@brain-police>
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, arcml <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, lkml <linux-kernel@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On 01/23/2019 04:23 AM, Will Deacon wrote:
+> On Tue, Jan 22, 2019 at 10:49:09PM -0500, Waiman Long wrote:
+>> Track the number of slowpath locking operations that are being done
+>> without any MCS node available as well renaming lock_index[123] to make
+>> them more descriptive.
+>>
+>> Using these stat counters is one way to find out if a code path is
+>> being exercised.
+>>
+>> Signed-off-by: Waiman Long <longman@redhat.com>
+>> ---
+>>  kernel/locking/qspinlock.c      |  3 ++-
+>>  kernel/locking/qspinlock_stat.h | 21 +++++++++++++++------
+>>  2 files changed, 17 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+>> index 0875053..21ee51b 100644
+>> --- a/kernel/locking/qspinlock.c
+>> +++ b/kernel/locking/qspinlock.c
+>> @@ -422,6 +422,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>  	 * simple enough.
+>>  	 */
+>>  	if (unlikely(idx >= MAX_NODES)) {
+>> +		qstat_inc(qstat_lock_no_node, true);
+>>  		while (!queued_spin_trylock(lock))
+>>  			cpu_relax();
+>>  		goto release;
+>> @@ -432,7 +433,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>  	/*
+>>  	 * Keep counts of non-zero index values:
+>>  	 */
+>> -	qstat_inc(qstat_lock_idx1 + idx - 1, idx);
+>> +	qstat_inc(qstat_lock_use_node2 + idx - 1, idx);
+>>  
+>>  	/*
+>>  	 * Ensure that we increment the head node->count before initialising
+>> diff --git a/kernel/locking/qspinlock_stat.h b/kernel/locking/qspinlock_stat.h
+>> index 42d3d8d..31728f6 100644
+>> --- a/kernel/locking/qspinlock_stat.h
+>> +++ b/kernel/locking/qspinlock_stat.h
+>> @@ -30,6 +30,13 @@
+>>   *   pv_wait_node	- # of vCPU wait's at a non-head queue node
+>>   *   lock_pending	- # of locking operations via pending code
+>>   *   lock_slowpath	- # of locking operations via MCS lock queue
+>> + *   lock_use_node2	- # of locking operations that use 2nd percpu node
+>> + *   lock_use_node3	- # of locking operations that use 3rd percpu node
+>> + *   lock_use_node4	- # of locking operations that use 4th percpu node
+>> + *   lock_no_node	- # of locking operations without using percpu node
+>> + *
+>> + * Subtraccting lock_use_node[234] from lock_slowpath will give you
+>> + * lock_use_node1.
+> Typo: "subtraccting"
+>
+> Will
 
-I noticed a small anomaly in perf report -v output on ARC and x86 as well.
+Thanks for catching that.
 
-A simple program which sits in tight loop, compiled for x86_64
-
-void main() { while(1) {} }
-
-$ gcc -g tight.c
-$ ./a.out &
-$ perf record -e cycles -p 26703
-$ perf report -n -v  --stdio  | egrep "(main|Symbol)"
-
-|# Overhead Samples Command  Shared Object         Symbol
-
-|  99.93%    55753   a.out   /home/arc/test/a.out  0x4da     B [.] main
-
-|                                                  ^^^^^
-
-The printer address for Symbols is *not* the actual address in elf, but rather VMA
-start offset.
-
-0x4da = 0x4004da - 0x0000000000400000
-
-$ objdump -d ./a.out
-
-| 00000000004004d6 <main>:
-|  4004d6:	55                   	push   %rbp
-|  4004d7:	48 89 e5             	mov    %rsp,%rbp
-|  4004da:	eb fe                	jmp    4004da <main+0x4>
-|  4004dc:	0f 1f 40 00          	nopl   0x0(%rax)
-
-$ readelf -a ./a.out
-
-| Program Headers:
-|  Type           Offset             VirtAddr           PhysAddr
-|                 FileSiz            MemSiz              Flags  Align
-| Program Headers:
-|  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
-                 0x000000000000068c 0x000000000000068c  R E    200000
-
-
-This is problematic in narrowing down the hotspot instruction, when the binary
-itself is. One needs to do the offset addition manually to find the actual hotspot
-location.
-
-|   99.79%  100064  a.out  /home/arc/test/a.out  0x4da  B [.] 0x00000000000004da
-
-                                                               ^^^^^^^^^^^^^^^^
-
-Is this considered an issue ? Would the fix to print the actual symbol address
-(and recorded in raw perf event data) break some existing tooling etc.
-
--Vineet
+Cheers,
+Longman
