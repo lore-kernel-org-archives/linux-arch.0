@@ -1,78 +1,106 @@
 From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v2 2/4] locking/qspinlock_stat: Track the no MCS node
- available case
-Date: Wed, 23 Jan 2019 15:04:05 -0500
-Message-ID: <39716536-be0b-8eba-4f56-ab6ff97447be@redhat.com>
+Subject: Re: [PATCH v2 1/4] locking/qspinlock: Handle > 4 slowpath nesting
+ levels
+Date: Wed, 23 Jan 2019 15:11:19 -0500
+Message-ID: <63131030-bd24-34bf-10dc-b5e7c7c177be@redhat.com>
 References: <1548215351-18896-1-git-send-email-longman@redhat.com>
- <1548215351-18896-3-git-send-email-longman@redhat.com>
- <20190123092339.GD15019@brain-police>
+ <1548215351-18896-2-git-send-email-longman@redhat.com>
+ <20190123093424.GE15019@brain-police>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190123092339.GD15019@brain-police>
+In-Reply-To: <20190123093424.GE15019@brain-police>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will.deacon@arm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 01/23/2019 04:23 AM, Will Deacon wrote:
-> On Tue, Jan 22, 2019 at 10:49:09PM -0500, Waiman Long wrote:
->> Track the number of slowpath locking operations that are being done
->> without any MCS node available as well renaming lock_index[123] to make
->> them more descriptive.
+On 01/23/2019 04:34 AM, Will Deacon wrote:
+> On Tue, Jan 22, 2019 at 10:49:08PM -0500, Waiman Long wrote:
+>> Four queue nodes per cpu are allocated to enable up to 4 nesting levels
+>> using the per-cpu nodes. Nested NMIs are possible in some architectures.
+>> Still it is very unlikely that we will ever hit more than 4 nested
+>> levels with contention in the slowpath.
 >>
->> Using these stat counters is one way to find out if a code path is
->> being exercised.
+>> When that rare condition happens, however, it is likely that the system
+>> will hang or crash shortly after that. It is not good and we need to
+>> handle this exception case.
 >>
+>> This is done by spinning directly on the lock using repeated trylock.
+>> This alternative code path should only be used when there is nested
+>> NMIs. Assuming that the locks used by those NMI handlers will not be
+>> heavily contended, a simple TAS locking should work out.
+>>
+>> Suggested-by: Peter Zijlstra <peterz@infradead.org>
 >> Signed-off-by: Waiman Long <longman@redhat.com>
 >> ---
->>  kernel/locking/qspinlock.c      |  3 ++-
->>  kernel/locking/qspinlock_stat.h | 21 +++++++++++++++------
->>  2 files changed, 17 insertions(+), 7 deletions(-)
+>>  kernel/locking/qspinlock.c | 15 +++++++++++++++
+>>  1 file changed, 15 insertions(+)
 >>
 >> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
->> index 0875053..21ee51b 100644
+>> index 8a8c3c2..0875053 100644
 >> --- a/kernel/locking/qspinlock.c
 >> +++ b/kernel/locking/qspinlock.c
->> @@ -422,6 +422,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>  	 * simple enough.
->>  	 */
->>  	if (unlikely(idx >= MAX_NODES)) {
->> +		qstat_inc(qstat_lock_no_node, true);
->>  		while (!queued_spin_trylock(lock))
->>  			cpu_relax();
->>  		goto release;
->> @@ -432,7 +433,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>  	/*
->>  	 * Keep counts of non-zero index values:
->>  	 */
->> -	qstat_inc(qstat_lock_idx1 + idx - 1, idx);
->> +	qstat_inc(qstat_lock_use_node2 + idx - 1, idx);
->>  
->>  	/*
->>  	 * Ensure that we increment the head node->count before initialising
->> diff --git a/kernel/locking/qspinlock_stat.h b/kernel/locking/qspinlock_stat.h
->> index 42d3d8d..31728f6 100644
->> --- a/kernel/locking/qspinlock_stat.h
->> +++ b/kernel/locking/qspinlock_stat.h
->> @@ -30,6 +30,13 @@
->>   *   pv_wait_node	- # of vCPU wait's at a non-head queue node
->>   *   lock_pending	- # of locking operations via pending code
->>   *   lock_slowpath	- # of locking operations via MCS lock queue
->> + *   lock_use_node2	- # of locking operations that use 2nd percpu node
->> + *   lock_use_node3	- # of locking operations that use 3rd percpu node
->> + *   lock_use_node4	- # of locking operations that use 4th percpu node
->> + *   lock_no_node	- # of locking operations without using percpu node
->> + *
->> + * Subtraccting lock_use_node[234] from lock_slowpath will give you
->> + * lock_use_node1.
-> Typo: "subtraccting"
+>> @@ -412,6 +412,21 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>  	idx = node->count++;
+>>  	tail = encode_tail(smp_processor_id(), idx);
+> Does the compiler generate better code if we move the tail assignment
+> further down, closer to the xchg_tail() call?
+>
+>> +	/*
+>> +	 * 4 nodes are allocated based on the assumption that there will
+>> +	 * not be nested NMIs taking spinlocks. That may not be true in
+>> +	 * some architectures even though the chance of needing more than
+>> +	 * 4 nodes will still be extremely unlikely. When that happens,
+>> +	 * we fall back to spinning on the lock directly without using
+>> +	 * any MCS node. This is not the most elegant solution, but is
+>> +	 * simple enough.
+>> +	 */
+>> +	if (unlikely(idx >= MAX_NODES)) {
+>> +		while (!queued_spin_trylock(lock))
+>> +			cpu_relax();
+>> +		goto release;
+>> +	}
+> Acked-by: Will Deacon <will.deacon@arm.com>
 >
 > Will
 
-Thanks for catching that.
+Looking at the generated x86 code:
+
+424        if (unlikely(idx >= MAX_NODES)) {
+   0x00000000000003ce <+206>:    test   %ecx,%ecx
+   0x00000000000003d0 <+208>:    jg     0x4c6
+<native_queued_spin_lock_slowpath+454>
+
+425            qstat_inc(qstat_lock_no_node, true);
+426            while (!queued_spin_trylock(lock))
+
+   0x00000000000004c2 <+450>:    jne    0x482
+<native_queued_spin_lock_slowpath+386>
+   0x00000000000004c4 <+452>:    jmp    0x491
+<native_queued_spin_lock_slowpath+401>
+   0x00000000000004c6 <+454>:    incq   %gs:0x0(%rip)        # 0x4ce
+<native_queued_spin_lock_slowpath+462>
+   0x00000000000004ce <+462>:    mov    $0x1,%edx
+   0x00000000000004d3 <+467>:    jmp    0x4d7
+<native_queued_spin_lock_slowpath+471>
+   0x00000000000004d5 <+469>:    pause 
+   0x00000000000004d7 <+471>:    mov    (%rdi),%eax
+   0x00000000000004d9 <+473>:    test   %eax,%eax
+   0x00000000000004db <+475>:    jne    0x4d5
+<native_queued_spin_lock_slowpath+469>
+   0x00000000000004dd <+477>:    lock cmpxchg %edx,(%rdi)
+   0x00000000000004e1 <+481>:    jne    0x4d5
+<native_queued_spin_lock_slowpath+469>
+   0x00000000000004e3 <+483>:    jmp    0x491
+<native_queued_spin_lock_slowpath+4
+
+MAX_NODES was modified to 1 in the test kernel.
+
+So the additional code checks the idx value and branch to the end of the
+function when the condition is true. There isn't too much overhead here.
 
 Cheers,
 Longman
