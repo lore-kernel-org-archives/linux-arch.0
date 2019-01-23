@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 4/4] locking/qspinlock_stat: Allow QUEUED_LOCK_STAT for all archs
-Date: Tue, 22 Jan 2019 22:49:11 -0500
-Message-ID: <1548215351-18896-5-git-send-email-longman@redhat.com>
+Subject: [PATCH v2 3/4] locking/qspinlock_stat: Separate out the PV specific stat counts
+Date: Tue, 22 Jan 2019 22:49:10 -0500
+Message-ID: <1548215351-18896-4-git-send-email-longman@redhat.com>
 References: <1548215351-18896-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1548215351-18896-1-git-send-email-longman@redhat.com>
@@ -10,54 +10,196 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will 
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-The QUEUED_LOCK_STAT option to report queued spinlocks statistics was
-previously allowed only on x86 architecture. Now queued spinlocks are
-used in multiple architectures, we now allow QUEUED_LOCK_STAT to be
-enabled for all those architectures that use queued spinlocks. This
-option is listed as part of the general architecture-dependent options.
+Some of the statistics counts are for PV qspinlocks only and are not
+applicable if PARAVIRT_SPINLOCKS aren't configured. So make those counts
+dependent on the PARAVIRT_SPINLOCKS config option now.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- arch/Kconfig     | 7 +++++++
- arch/x86/Kconfig | 8 --------
- 2 files changed, 7 insertions(+), 8 deletions(-)
+ kernel/locking/qspinlock_stat.h | 129 +++++++++++++++++++++++++---------------
+ 1 file changed, 81 insertions(+), 48 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 4cfb6de..c82e32f 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -885,6 +885,13 @@ config HAVE_ARCH_PREL32_RELOCATIONS
- 	  architectures, and don't require runtime relocation on relocatable
- 	  kernels.
+diff --git a/kernel/locking/qspinlock_stat.h b/kernel/locking/qspinlock_stat.h
+index 31728f6..7a0a848 100644
+--- a/kernel/locking/qspinlock_stat.h
++++ b/kernel/locking/qspinlock_stat.h
+@@ -49,6 +49,7 @@
+  * There may be slight difference between pv_kick_wake and pv_kick_unlock.
+  */
+ enum qlock_stats {
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
+ 	qstat_pv_hash_hops,
+ 	qstat_pv_kick_unlock,
+ 	qstat_pv_kick_wake,
+@@ -60,6 +61,7 @@ enum qlock_stats {
+ 	qstat_pv_wait_early,
+ 	qstat_pv_wait_head,
+ 	qstat_pv_wait_node,
++#endif
+ 	qstat_lock_pending,
+ 	qstat_lock_slowpath,
+ 	qstat_lock_use_node2,
+@@ -80,6 +82,7 @@ enum qlock_stats {
+ #include <linux/fs.h>
  
-+config QUEUED_LOCK_STAT
-+	bool "Queued spinlock statistics"
-+	depends on QUEUED_SPINLOCKS && DEBUG_FS
-+	---help---
-+	  Enable the collection of statistical data on the slowpath
-+	  behavior of queued spinlocks and report them on debugfs.
+ static const char * const qstat_names[qstat_num + 1] = {
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
+ 	[qstat_pv_hash_hops]	   = "pv_hash_hops",
+ 	[qstat_pv_kick_unlock]     = "pv_kick_unlock",
+ 	[qstat_pv_kick_wake]       = "pv_kick_wake",
+@@ -91,6 +94,7 @@ enum qlock_stats {
+ 	[qstat_pv_wait_early]      = "pv_wait_early",
+ 	[qstat_pv_wait_head]       = "pv_wait_head",
+ 	[qstat_pv_wait_node]       = "pv_wait_node",
++#endif
+ 	[qstat_lock_pending]       = "lock_pending",
+ 	[qstat_lock_slowpath]      = "lock_slowpath",
+ 	[qstat_lock_use_node2]	   = "lock_use_node2",
+@@ -104,6 +108,20 @@ enum qlock_stats {
+  * Per-cpu counters
+  */
+ static DEFINE_PER_CPU(unsigned long, qstats[qstat_num]);
 +
- source "kernel/gcov/Kconfig"
++/*
++ * Increment the PV qspinlock statistical counters
++ */
++static inline void qstat_inc(enum qlock_stats stat, bool cond)
++{
++	if (cond)
++		this_cpu_inc(qstats[stat]);
++}
++
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
++/*
++ * PV specific per-cpu counters
++ */
+ static DEFINE_PER_CPU(u64, pv_kick_time);
  
- source "scripts/gcc-plugins/Kconfig"
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 4b4a7f3..872e681 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -784,14 +784,6 @@ config PARAVIRT_SPINLOCKS
+ /*
+@@ -178,6 +196,69 @@ static ssize_t qstat_read(struct file *file, char __user *user_buf,
+ }
  
- 	  If you are unsure how to answer this question, answer Y.
+ /*
++ * PV hash hop count
++ */
++static inline void qstat_hop(int hopcnt)
++{
++	this_cpu_add(qstats[qstat_pv_hash_hops], hopcnt);
++}
++
++/*
++ * Replacement function for pv_kick()
++ */
++static inline void __pv_kick(int cpu)
++{
++	u64 start = sched_clock();
++
++	per_cpu(pv_kick_time, cpu) = start;
++	pv_kick(cpu);
++	this_cpu_add(qstats[qstat_pv_latency_kick], sched_clock() - start);
++}
++
++/*
++ * Replacement function for pv_wait()
++ */
++static inline void __pv_wait(u8 *ptr, u8 val)
++{
++	u64 *pkick_time = this_cpu_ptr(&pv_kick_time);
++
++	*pkick_time = 0;
++	pv_wait(ptr, val);
++	if (*pkick_time) {
++		this_cpu_add(qstats[qstat_pv_latency_wake],
++			     sched_clock() - *pkick_time);
++		qstat_inc(qstat_pv_kick_wake, true);
++	}
++}
++
++#define pv_kick(c)	__pv_kick(c)
++#define pv_wait(p, v)	__pv_wait(p, v)
++
++#else /* CONFIG_PARAVIRT_SPINLOCKS */
++static ssize_t qstat_read(struct file *file, char __user *user_buf,
++			  size_t count, loff_t *ppos)
++{
++	char buf[64];
++	int cpu, counter, len;
++	u64 stat = 0;
++
++	/*
++	 * Get the counter ID stored in file->f_inode->i_private
++	 */
++	counter = (long)file_inode(file)->i_private;
++
++	if (counter >= qstat_num)
++		return -EBADF;
++
++	for_each_possible_cpu(cpu)
++		stat += per_cpu(qstats[counter], cpu);
++	len = snprintf(buf, sizeof(buf) - 1, "%llu\n", stat);
++
++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
++}
++#endif /* CONFIG_PARAVIRT_SPINLOCKS */
++
++/*
+  * Function to handle write request
+  *
+  * When counter = reset_cnts, reset all the counter values.
+@@ -250,54 +331,6 @@ static int __init init_qspinlock_stat(void)
+ }
+ fs_initcall(init_qspinlock_stat);
  
--config QUEUED_LOCK_STAT
--	bool "Paravirt queued spinlock statistics"
--	depends on PARAVIRT_SPINLOCKS && DEBUG_FS
--	---help---
--	  Enable the collection of statistical data on the slowpath
--	  behavior of paravirtualized queued spinlocks and report
--	  them on debugfs.
+-/*
+- * Increment the PV qspinlock statistical counters
+- */
+-static inline void qstat_inc(enum qlock_stats stat, bool cond)
+-{
+-	if (cond)
+-		this_cpu_inc(qstats[stat]);
+-}
 -
- source "arch/x86/xen/Kconfig"
+-/*
+- * PV hash hop count
+- */
+-static inline void qstat_hop(int hopcnt)
+-{
+-	this_cpu_add(qstats[qstat_pv_hash_hops], hopcnt);
+-}
+-
+-/*
+- * Replacement function for pv_kick()
+- */
+-static inline void __pv_kick(int cpu)
+-{
+-	u64 start = sched_clock();
+-
+-	per_cpu(pv_kick_time, cpu) = start;
+-	pv_kick(cpu);
+-	this_cpu_add(qstats[qstat_pv_latency_kick], sched_clock() - start);
+-}
+-
+-/*
+- * Replacement function for pv_wait()
+- */
+-static inline void __pv_wait(u8 *ptr, u8 val)
+-{
+-	u64 *pkick_time = this_cpu_ptr(&pv_kick_time);
+-
+-	*pkick_time = 0;
+-	pv_wait(ptr, val);
+-	if (*pkick_time) {
+-		this_cpu_add(qstats[qstat_pv_latency_wake],
+-			     sched_clock() - *pkick_time);
+-		qstat_inc(qstat_pv_kick_wake, true);
+-	}
+-}
+-
+-#define pv_kick(c)	__pv_kick(c)
+-#define pv_wait(p, v)	__pv_wait(p, v)
+-
+ #else /* CONFIG_QUEUED_LOCK_STAT */
  
- config KVM_GUEST
+ static inline void qstat_inc(enum qlock_stats stat, bool cond)	{ }
 -- 
 1.8.3.1
