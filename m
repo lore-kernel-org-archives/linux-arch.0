@@ -1,55 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46646 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726313AbfAWWg1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 23 Jan 2019 17:36:27 -0500
-Subject: Re: [PATCH v2 1/4] locking/qspinlock: Handle > 4 slowpath nesting
- levels
-References: <1548215351-18896-1-git-send-email-longman@redhat.com>
- <1548215351-18896-2-git-send-email-longman@redhat.com>
- <20190123093424.GE15019@brain-police>
- <63131030-bd24-34bf-10dc-b5e7c7c177be@redhat.com>
- <20190123204038.GL13777@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <0229798a-f5c8-4c90-3ae6-f25a969989a3@redhat.com>
-Date: Wed, 23 Jan 2019 17:36:22 -0500
+Received: from 59-120-53-16.HINET-IP.hinet.net ([59.120.53.16]:40333 "EHLO
+        ATCSQR.andestech.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726168AbfAXAa6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jan 2019 19:30:58 -0500
+Date: Thu, 24 Jan 2019 08:30:09 +0800
+From: Vincent Chen <vincentc@andestech.com>
+Subject: Re: [PATCH] RISC-V: Add _TIF_NEED_RESCHED check for kernel thread
+ when CONFIG_PREEMPT=y
+Message-ID: <20190124003008.GA31546@andestech.com>
+References: <20190103054555.GA30904@roeck-us.net>
+ <mhng-fd3c9beb-34ce-40c5-92ce-0a7d76d877aa@palmer-si-x1c4>
 MIME-Version: 1.0
-In-Reply-To: <20190123204038.GL13777@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <mhng-fd3c9beb-34ce-40c5-92ce-0a7d76d877aa@palmer-si-x1c4>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>
-Message-ID: <20190123223622.A2Uqz4YP1NMZmUDG7wmWz5XObBDz6DndoiE-IRA8H_I@z>
+To: Palmer Dabbelt <palmer@sifive.com>
+Cc: "linux@roeck-us.net" <linux@roeck-us.net>, "aou@eecs.berkeley.edu" <aou@eecs.berkeley.edu>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190124003009.DX-pKQHqkh2aLMpJhFtSt9AkRlX502zKX7dPvvIdJhw@z>
 
-On 01/23/2019 03:40 PM, Peter Zijlstra wrote:
-> On Wed, Jan 23, 2019 at 03:11:19PM -0500, Waiman Long wrote:
->> On 01/23/2019 04:34 AM, Will Deacon wrote:
->>> On Tue, Jan 22, 2019 at 10:49:08PM -0500, Waiman Long wrote:
->>>> @@ -412,6 +412,21 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>>>  	idx = node->count++;
->>>>  	tail = encode_tail(smp_processor_id(), idx);
->>>> +	if (unlikely(idx >= MAX_NODES)) {
->>>> +		while (!queued_spin_trylock(lock))
->>>> +			cpu_relax();
->>>> +		goto release;
->>>> +	}
->> So the additional code checks the idx value and branch to the end of the
->> function when the condition is true. There isn't too much overhead here.
-> So something horrible we could do (and I'm not at all advocating we do
-> this), is invert node->count. That is, start at 3 and decrement and
-> detect sign flips.
+On Wed, Jan 23, 2019 at 02:58:51AM +0800, Palmer Dabbelt wrote:
+> On Wed, 02 Jan 2019 21:45:55 PST (-0800), linux@roeck-us.net wrote:
+> > On Thu, Jan 03, 2019 at 11:32:33AM +0800, Vincent Chen wrote:
+> >> The cond_resched() can be used to yield the CPU resource if
+> >> CONFIG_PREEMPT is not defined. Otherwise, cond_resched() is a dummy
+> >> function. In order to avoid kernel thread occupying entire CPU,
+> >> when CONFIG_PREEMPT=y, the kernel thread needs to follow the
+> >> rescheduling mechanism like a user thread.
+> >>
+> >> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> >
+> > This patch seems to do the trick. I no longer see a problem with
+> > CONFIG_PREEMPT=y and the various lock torture tests enabled, as
+> > previously reported.
+> >
+> > Nice catch and fix.
+> >
+> > Tested-by: Guenter Roeck <linux@roeck-us.net>
+> >
+> > Guenter
+> >
+> >> ---
+> >>  arch/riscv/kernel/asm-offsets.c |    1 +
+> >>  arch/riscv/kernel/entry.S       |   18 +++++++++++++++++-
+> >>  2 files changed, 18 insertions(+), 1 deletions(-)
+> >>
+> >> diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
+> >> index 6a92a2f..dac9834 100644
+> >> --- a/arch/riscv/kernel/asm-offsets.c
+> >> +++ b/arch/riscv/kernel/asm-offsets.c
+> >> @@ -39,6 +39,7 @@ void asm_offsets(void)
+> >>  	OFFSET(TASK_STACK, task_struct, stack);
+> >>  	OFFSET(TASK_TI, task_struct, thread_info);
+> >>  	OFFSET(TASK_TI_FLAGS, task_struct, thread_info.flags);
+> >> +	OFFSET(TASK_TI_PREEMPT_COUNT, task_struct, thread_info.preempt_count);
+> >>  	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
+> >>  	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
+> >>  	OFFSET(TASK_TI_CPU, task_struct, thread_info.cpu);
+> >> diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
+> >> index 13d4826..728b72d 100644
+> >> --- a/arch/riscv/kernel/entry.S
+> >> +++ b/arch/riscv/kernel/entry.S
+> >> @@ -144,6 +144,10 @@ _save_context:
+> >>  	REG_L x2,  PT_SP(sp)
+> >>  	.endm
+> >>
+> >> +#if !IS_ENABLED(CONFIG_PREEMPT)
+> >> +#define resume_kernel restore_all
+> >> +#endif
+> >> +
+> 
+> I don't like preprocessor stuff if we can avoid it, are you OK if I squash in 
+> the following diff:
+> 
+>     diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
+>     index cfbad2f689c3..fd9b57c8b4ce 100644
+>     --- a/arch/riscv/kernel/entry.S
+>     +++ b/arch/riscv/kernel/entry.S
+>     @@ -145,7 +145,7 @@ _save_context:
+>      	.endm
+>     
+>      #if !IS_ENABLED(CONFIG_PREEMPT)
+>     -#define resume_kernel restore_all
+>     +.set resume_kernel, restore_all
+>      #endif
+>     
+>      ENTRY(handle_exception)
+> 
+> I think that should do the same thing, but at link time instead of in the 
+> preprocessor -- that makes it a bit less likely to bit us in the future.
+> 
+> >>  ENTRY(handle_exception)
+> >>  	SAVE_ALL
+> >>
+> >> @@ -228,7 +232,7 @@ ret_from_exception:
+> >>  	REG_L s0, PT_SSTATUS(sp)
+> >>  	csrc sstatus, SR_SIE
+> >>  	andi s0, s0, SR_SPP
+> >> -	bnez s0, restore_all
+> >> +	bnez s0, resume_kernel
+> >>
+> >>  resume_userspace:
+> >>  	/* Interrupts must be disabled here so flags are checked atomically */
+> >> @@ -250,6 +254,18 @@ restore_all:
+> >>  	RESTORE_ALL
+> >>  	sret
+> >>
+> >> +#if IS_ENABLED(CONFIG_PREEMPT)
+> >> +resume_kernel:
+> >> +	REG_L s0, TASK_TI_PREEMPT_COUNT(tp)
+> >> +	bnez s0, restore_all
+> >> +need_resched:
+> >> +	REG_L s0, TASK_TI_FLAGS(tp)
+> >> +	andi s0, s0, _TIF_NEED_RESCHED
+> >> +	beqz s0, restore_all
+> >> +	call preempt_schedule_irq
+> >> +	j need_resched
+> >> +#endif
+> >> +
+> >>  work_pending:
+> >>  	/* Enter slow path for supplementary processing */
+> >>  	la ra, ret_from_exception
+> 
+> I'm just going to assume you're OK with the squash and drop this into my plans 
+> for the next RC, let me know if that's not OK.
 >
-> That avoids the additional compare. It would require we change the
-> structure layout though, otherwise we keep hitting that second line by
-> default, which would suck.
+> Thanks for fixing this!
 
-The cost of the additional compare will not be noticeable if the branch
-prediction logic is working properly. Inverting the loop logic, however,
-will be a much bigger change and it may not guarantee it will be faster
-anyway. So I don't think we should down go this route :-)
+  OK, it's fine for me.
 
-Cheers,
-Longman
+  Vincent
