@@ -1,8 +1,10 @@
 From: guoren@kernel.org
-Subject: [PATCH 1/2] csky: fixup wrong pt_regs size
-Date: Thu, 24 Jan 2019 23:05:27 +0800
-Message-ID: <1548342328-25268-1-git-send-email-guoren@kernel.org>
+Subject: [PATCH 2/2] csky: coding convention: use task_stack_page
+Date: Thu, 24 Jan 2019 23:05:28 +0800
+Message-ID: <1548342328-25268-2-git-send-email-guoren@kernel.org>
+References: <1548342328-25268-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1548342328-25268-1-git-send-email-guoren@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de
 Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
@@ -10,38 +12,50 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-The bug is from commit 2054f4af1957 ("csky: bugfix gdb coredump error.")
-
-We change the ELF_NGREG to ELF_NGREG - 2 to fit gdb define, but forgot
-modify ptrace regset. Now coredump use ELF_NRGEG to fit gdb and
-gcc-csky.c define and ptrace use pt_regs as regset, there are two
-different output regs styles.
+Use task_stack_page instead of p->stack to get stack. Follow the coding
+convention style. Also for init_stack, the same with other archs.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/kernel/ptrace.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/csky/include/asm/processor.h | 4 ++--
+ arch/csky/kernel/smp.c            | 3 ++-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
-index 57f1afe..f2f12ff 100644
---- a/arch/csky/kernel/ptrace.c
-+++ b/arch/csky/kernel/ptrace.c
-@@ -8,6 +8,7 @@
- #include <linux/ptrace.h>
- #include <linux/regset.h>
- #include <linux/sched.h>
-+#include <linux/sched/task_stack.h>
- #include <linux/signal.h>
- #include <linux/smp.h>
- #include <linux/uaccess.h>
-@@ -159,7 +160,7 @@ static int fpr_set(struct task_struct *target,
- static const struct user_regset csky_regsets[] = {
- 	[REGSET_GPR] = {
- 		.core_note_type = NT_PRSTATUS,
--		.n = ELF_NGREG,
-+		.n = sizeof(struct pt_regs) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
- 		.get = &gpr_get,
+diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
+index 8f45481..21e0bd5 100644
+--- a/arch/csky/include/asm/processor.h
++++ b/arch/csky/include/asm/processor.h
+@@ -49,7 +49,7 @@ struct thread_struct {
+ };
+ 
+ #define INIT_THREAD  { \
+-	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
++	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
+ 	.sr = DEFAULT_PSR_VALUE, \
+ }
+ 
+@@ -95,7 +95,7 @@ unsigned long get_wchan(struct task_struct *p);
+ #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
+ 
+ #define task_pt_regs(p) \
+-	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
++	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
+ 
+ #define cpu_relax() barrier()
+ 
+diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
+index ddc4dd7..b07a534 100644
+--- a/arch/csky/kernel/smp.c
++++ b/arch/csky/kernel/smp.c
+@@ -160,7 +160,8 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+ 	unsigned long mask = 1 << cpu;
+ 
+-	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE - 8;
++	secondary_stack =
++		(unsigned int) task_stack_page(tidle) + THREAD_SIZE - 8;
+ 	secondary_hint = mfcr("cr31");
+ 	secondary_ccr  = mfcr("cr18");
+ 
 -- 
 2.7.4
