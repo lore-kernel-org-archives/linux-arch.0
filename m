@@ -1,84 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47322 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726792AbfA1Pmr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 28 Jan 2019 10:42:47 -0500
-Subject: Re: [PATCH v9 01/26] arm64: Fix HCR.TGE status for NMI contexts
-References: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
- <1548084825-8803-2-git-send-email-julien.thierry@arm.com>
- <8e8c4f5b-5b83-7bbc-1b84-36d68e210968@arm.com>
-From: Julien Thierry <julien.thierry@arm.com>
-Message-ID: <847c54ef-ea41-eea5-8aff-72e0cea465f8@arm.com>
-Date: Mon, 28 Jan 2019 15:42:42 +0000
+Received: from verein.lst.de ([213.95.11.211]:40589 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389334AbfA1QW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 28 Jan 2019 11:22:58 -0500
+Date: Mon, 28 Jan 2019 17:22:56 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Message-ID: <20190128162256.GA11737@lst.de>
+References: <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de> <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de> <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de> <20190119130222.GA24346@lst.de> <20190119140452.GA25198@lst.de> <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de> <8434e281-eb85-51d9-106f-f4faa559e89c@xenosoft.de> <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de> <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de> <20190128070422.GA2772@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <8e8c4f5b-5b83-7bbc-1b84-36d68e210968@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190128070422.GA2772@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morse <james.morse@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
-Message-ID: <20190128154242.7rZZZfvffvd6QnqZI3Cel9IN_ywW4pA1UgN8SO-vdII@z>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190128162256.KA5L1iiYSd2b6X8ptPgIuF7fgaCszHe3Vsw2keKIVDw@z>
 
-Hi James,
+On Mon, Jan 28, 2019 at 08:04:22AM +0100, Christoph Hellwig wrote:
+> On Sun, Jan 27, 2019 at 02:13:09PM +0100, Christian Zigotzky wrote:
+> > Christoph,
+> >
+> > What shall I do next?
+> 
+> I'll need to figure out what went wrong with the new zone selection
+> on powerpc and give you another branch to test.
 
-On 28/01/2019 11:48, James Morse wrote:
-> Hi Julien,
-> 
-> On 21/01/2019 15:33, Julien Thierry wrote:
->> When using VHE, the host needs to clear HCR_EL2.TGE bit in order
->> to interract with guest TLBs, switching from EL2&0 translation regime
-> 
-> (interact)
-> 
-> 
->> to EL1&0.
->>
->> However, some non-maskable asynchronous event could happen while TGE is
->> cleared like SDEI. Because of this address translation operations
->> relying on EL2&0 translation regime could fail (tlb invalidation,
->> userspace access, ...).
->>
->> Fix this by properly setting HCR_EL2.TGE when entering NMI context and
->> clear it if necessary when returning to the interrupted context.
-> 
-> Yes please. This would not have been fun to debug!
-> 
-> Reviewed-by: James Morse <james.morse@arm.com>
-> 
-> 
+Can you try the new powerpc-dma.6-debug.2 branch:
 
-Thanks.
+    git://git.infradead.org/users/hch/misc.git powerpc-dma.6-debug.2
 
-> 
-> I was looking for why we need core code to do this, instead of updating the
-> arch's call sites. Your 'irqdesc: Add domain handlers for NMIs' patch (pointed
-> to from the cover letter) is the reason: core-code calls nmi_enter()/nmi_exit()
-> itself.
-> 
+Gitweb:
 
-Yes, that's the main reason.
-
-> 
->> diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
->> index 1473fc2..94b7481 100644
->> --- a/arch/arm64/include/asm/hardirq.h
->> +++ b/arch/arm64/include/asm/hardirq.h
->> @@ -19,6 +19,7 @@
->>  #include <linux/cache.h>
->>  #include <linux/threads.h>
->>  #include <asm/irq.h>
->> +#include <asm/kvm_arm.h>
-> 
-> percpu.h?
-> sysreg.h?
-> barrier.h?
-> 
-
-Good point, I'll add those.
-
-Thanks,
-
--- 
-Julien Thierry
+    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6-debug.2
