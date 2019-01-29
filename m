@@ -1,71 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36158 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:35992 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728976AbfA2MZW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Jan 2019 07:25:22 -0500
+        id S1728890AbfA2MZJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Jan 2019 07:25:09 -0500
 From: guoren@kernel.org
-Subject: [PATCH 10/10] irqchip/csky: Add support-vector-irq for apb-intc
-Date: Tue, 29 Jan 2019 20:24:29 +0800
-Message-ID: <1548764669-16656-10-git-send-email-guoren@kernel.org>
+Subject: [PATCH 07/10] csky: Fixup wrong pt_regs size
+Date: Tue, 29 Jan 2019 20:24:26 +0800
+Message-ID: <1548764669-16656-7-git-send-email-guoren@kernel.org>
 In-Reply-To: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 References: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, robh+dt@kernel.org, marc.zyngier@arm.com
 Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190129122429.YQzi3_k0jzmxlkaLepdrN3xkLIL4nKbUFkilrXFaxoQ@z>
+Message-ID: <20190129122426.K_00r-khuCIlamiET2q7Jq-_vhbjnVPeJwOLVTMMjLo@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-Some socs don't provide pending registers, so we must make the interrupt
-controller working at vector mode. Add csky,support-vector-irq to
-support this mode in dts.
+The bug is from commit 2054f4af1957 ("csky: bugfix gdb coredump error.")
+
+We change the ELF_NGREG to ELF_NGREG - 2 to fit gdb&gcc define, but forgot
+modify ptrace regset.
+Now coredump use ELF_NRGEG to parse GPRs and ptrace use pt_regs_regset, so
+there are two different reg_sets for userspace.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/irqchip/irq-csky-apb-intc.c | 20 ++++++++++++++++++--
- 1 file changed, 18 insertions(+), 2 deletions(-)
+ arch/csky/kernel/ptrace.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/irqchip/irq-csky-apb-intc.c b/drivers/irqchip/irq-csky-apb-intc.c
-index ae4c59b..14ef206 100644
---- a/drivers/irqchip/irq-csky-apb-intc.c
-+++ b/drivers/irqchip/irq-csky-apb-intc.c
-@@ -302,10 +302,17 @@ static void ck_irq_handler(struct pt_regs *regs)
- 		pr_err("%s: none irq pending!\n", __func__);
- }
- 
-+static void ck_vec_irq_handler(struct pt_regs *regs)
-+{
-+	unsigned long vector = (mfcr("psr") >> 16) & 0xff;
-+
-+	handle_domain_irq(root_domain, vector - 32, regs);
-+}
-+
- static int __init
- ck_intc_init(struct device_node *node, struct device_node *parent)
- {
--	int ret;
-+	int ret, i;
- 
- 	ret = ck_intc_init_comm(node, parent);
- 	if (ret)
-@@ -323,7 +330,16 @@ ck_intc_init(struct device_node *node, struct device_node *parent)
- 
- 	setup_irq_channel(0x00010203, reg_base + CK_INTC_SOURCE);
- 
--	set_handle_irq(ck_irq_handler);
-+	if (of_find_property(node, "csky,support-vector-irq", NULL)) {
-+		set_handle_irq(ck_vec_irq_handler);
-+
-+		for (i = 32; i < 128; i++)
-+			VEC_INIT(i, csky_irq);
-+
-+		writel(0, reg_base + CK_INTC_ICR);
-+	} else {
-+		set_handle_irq(ck_irq_handler);
-+	}
- 
- 	return 0;
- }
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+index 57f1afe..f2f12ff 100644
+--- a/arch/csky/kernel/ptrace.c
++++ b/arch/csky/kernel/ptrace.c
+@@ -8,6 +8,7 @@
+ #include <linux/ptrace.h>
+ #include <linux/regset.h>
+ #include <linux/sched.h>
++#include <linux/sched/task_stack.h>
+ #include <linux/signal.h>
+ #include <linux/smp.h>
+ #include <linux/uaccess.h>
+@@ -159,7 +160,7 @@ static int fpr_set(struct task_struct *target,
+ static const struct user_regset csky_regsets[] = {
+ 	[REGSET_GPR] = {
+ 		.core_note_type = NT_PRSTATUS,
+-		.n = ELF_NGREG,
++		.n = sizeof(struct pt_regs) / sizeof(u32),
+ 		.size = sizeof(u32),
+ 		.align = sizeof(u32),
+ 		.get = &gpr_get,
 -- 
 2.7.4
