@@ -1,66 +1,59 @@
-From: guoren@kernel.org
-Subject: [PATCH 10/10] irqchip/csky: Add support-vector-irq for apb-intc
-Date: Tue, 29 Jan 2019 20:24:29 +0800
-Message-ID: <1548764669-16656-10-git-send-email-guoren@kernel.org>
-References: <1548764669-16656-1-git-send-email-guoren@kernel.org>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Tue, 29 Jan 2019 16:03:32 +0100
+Message-ID: <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
+References: <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
+ <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
+ <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
+ <20190119130222.GA24346@lst.de> <20190119140452.GA25198@lst.de>
+ <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de>
+ <8434e281-eb85-51d9-106f-f4faa559e89c@xenosoft.de>
+ <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de>
+ <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de>
+ <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de>
+ <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1548764669-16656-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, robh+dt@kernel.org, marc.zyngier@arm.com
-Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+Hi Christoph,
 
-Some socs don't provide pending registers, so we must make the interrupt
-controller working at vector mode. Add csky,support-vector-irq to
-support this mode in dts.
+I compiled kernels for the X5000 and X1000 from your new branch 
+'powerpc-dma.6-debug.2' today. The kernels boot and the P.A. Semi 
+Ethernet works!
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- drivers/irqchip/irq-csky-apb-intc.c | 20 ++++++++++++++++++--
- 1 file changed, 18 insertions(+), 2 deletions(-)
+Cheers,
+Christian
 
-diff --git a/drivers/irqchip/irq-csky-apb-intc.c b/drivers/irqchip/irq-csky-apb-intc.c
-index ae4c59b..14ef206 100644
---- a/drivers/irqchip/irq-csky-apb-intc.c
-+++ b/drivers/irqchip/irq-csky-apb-intc.c
-@@ -302,10 +302,17 @@ static void ck_irq_handler(struct pt_regs *regs)
- 		pr_err("%s: none irq pending!\n", __func__);
- }
- 
-+static void ck_vec_irq_handler(struct pt_regs *regs)
-+{
-+	unsigned long vector = (mfcr("psr") >> 16) & 0xff;
-+
-+	handle_domain_irq(root_domain, vector - 32, regs);
-+}
-+
- static int __init
- ck_intc_init(struct device_node *node, struct device_node *parent)
- {
--	int ret;
-+	int ret, i;
- 
- 	ret = ck_intc_init_comm(node, parent);
- 	if (ret)
-@@ -323,7 +330,16 @@ ck_intc_init(struct device_node *node, struct device_node *parent)
- 
- 	setup_irq_channel(0x00010203, reg_base + CK_INTC_SOURCE);
- 
--	set_handle_irq(ck_irq_handler);
-+	if (of_find_property(node, "csky,support-vector-irq", NULL)) {
-+		set_handle_irq(ck_vec_irq_handler);
-+
-+		for (i = 32; i < 128; i++)
-+			VEC_INIT(i, csky_irq);
-+
-+		writel(0, reg_base + CK_INTC_ICR);
-+	} else {
-+		set_handle_irq(ck_irq_handler);
-+	}
- 
- 	return 0;
- }
--- 
-2.7.4
+
+On 28 January 2019 at 5:52PM, Christian Zigotzky wrote:
+> Thanks a lot! I will test it tomorrow.
+>
+> — Christian
+>
+> Sent from my iPhone
+>
+>> On 28. Jan 2019, at 17:22, Christoph Hellwig <hch@lst.de> wrote:
+>>
+>>> On Mon, Jan 28, 2019 at 08:04:22AM +0100, Christoph Hellwig wrote:
+>>>> On Sun, Jan 27, 2019 at 02:13:09PM +0100, Christian Zigotzky wrote:
+>>>> Christoph,
+>>>>
+>>>> What shall I do next?
+>>> I'll need to figure out what went wrong with the new zone selection
+>>> on powerpc and give you another branch to test.
+>> Can you try the new powerpc-dma.6-debug.2 branch:
+>>
+>>     git://git.infradead.org/users/hch/misc.git powerpc-dma.6-debug.2
+>>
+>> Gitweb:
+>>
+>>     http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6-debug.2
+>
