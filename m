@@ -1,81 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35946 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36044 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727589AbfA2MZG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Jan 2019 07:25:06 -0500
+        id S1727589AbfA2MZN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Jan 2019 07:25:13 -0500
 From: guoren@kernel.org
-Subject: [PATCH 06/10] dt-bindings: interrupt-controller: Update csky mpintc
-Date: Tue, 29 Jan 2019 20:24:25 +0800
-Message-ID: <1548764669-16656-6-git-send-email-guoren@kernel.org>
+Subject: [PATCH 08/10] csky: coding convention: Use task_stack_page
+Date: Tue, 29 Jan 2019 20:24:27 +0800
+Message-ID: <1548764669-16656-8-git-send-email-guoren@kernel.org>
 In-Reply-To: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 References: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, robh+dt@kernel.org, marc.zyngier@arm.com
 Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190129122425.cXqVCHV-tAFcaEStSN0UxPqL7ouMrG-RkcXLJdocjRc@z>
+Message-ID: <20190129122427.F_SCq0al5XTa5F0ITEYQVGkgQzhEiGcydH6udnuYjFo@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-Add trigger type and priority setting for csky,mpintc.
-
-Changelog:
- - change #interrupt-cells to <3>
+Use task_stack_page instead of p->stack to get stack. Follow the coding
+convention style. Also for init_stack, the same with other archs.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Rob Herring <robh+dt@kernel.org>
 ---
- .../bindings/interrupt-controller/csky,mpintc.txt   | 21 +++++++++++++++++----
- 1 file changed, 17 insertions(+), 4 deletions(-)
+ arch/csky/include/asm/processor.h | 4 ++--
+ arch/csky/kernel/smp.c            | 3 ++-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-index ab921f1..dccd913 100644
---- a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-+++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-@@ -6,11 +6,18 @@ C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
- SMP soc, and it also could be used in non-SMP system.
+diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
+index 8f45481..21e0bd5 100644
+--- a/arch/csky/include/asm/processor.h
++++ b/arch/csky/include/asm/processor.h
+@@ -49,7 +49,7 @@ struct thread_struct {
+ };
  
- Interrupt number definition:
--
-   0-15  : software irq, and we use 15 as our IPI_IRQ.
-  16-31  : private  irq, and we use 16 as the co-processor timer.
-  31-1024: common irq for soc ip.
+ #define INIT_THREAD  { \
+-	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
++	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
+ 	.sr = DEFAULT_PSR_VALUE, \
+ }
  
-+Interrupt triger mode:
-+ IRQ_TYPE_LEVEL_HIGH (default)
-+ IRQ_TYPE_LEVEL_LOW
-+ IRQ_TYPE_EDGE_RISING
-+ IRQ_TYPE_EDGE_FALLING
-+
-+Interrupt priority range: 0-255
-+
- =============================
- intc node bindings definition
- =============================
-@@ -26,15 +33,21 @@ intc node bindings definition
- 	- #interrupt-cells
- 		Usage: required
- 		Value type: <u32>
--		Definition: must be <1>
-+		Definition: <3>
- 	- interrupt-controller:
- 		Usage: required
+@@ -95,7 +95,7 @@ unsigned long get_wchan(struct task_struct *p);
+ #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
  
--Examples:
-+Examples: ("interrupts = <irq_num IRQ_TYPE_XXX priority>")
- ---------
+ #define task_pt_regs(p) \
+-	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
++	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
  
- 	intc: interrupt-controller {
- 		compatible = "csky,mpintc";
--		#interrupt-cells = <1>;
-+		#interrupt-cells = <3>;
- 		interrupt-controller;
- 	};
-+
-+	device: device-example {
-+		...
-+		interrupts = <34 IRQ_TYPE_EDGE_RISING 254>;
-+		interrupt-parent = <&intc>;
-+	};
+ #define cpu_relax() barrier()
+ 
+diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
+index ddc4dd7..b07a534 100644
+--- a/arch/csky/kernel/smp.c
++++ b/arch/csky/kernel/smp.c
+@@ -160,7 +160,8 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+ 	unsigned long mask = 1 << cpu;
+ 
+-	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE - 8;
++	secondary_stack =
++		(unsigned int) task_stack_page(tidle) + THREAD_SIZE - 8;
+ 	secondary_hint = mfcr("cr31");
+ 	secondary_ccr  = mfcr("cr18");
+ 
 -- 
 2.7.4
