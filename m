@@ -1,54 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35992 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728890AbfA2MZJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Jan 2019 07:25:09 -0500
-From: guoren@kernel.org
-Subject: [PATCH 07/10] csky: Fixup wrong pt_regs size
-Date: Tue, 29 Jan 2019 20:24:26 +0800
-Message-ID: <1548764669-16656-7-git-send-email-guoren@kernel.org>
-In-Reply-To: <1548764669-16656-1-git-send-email-guoren@kernel.org>
-References: <1548764669-16656-1-git-send-email-guoren@kernel.org>
+Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.80]:34146 "EHLO
+        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727082AbfA2PDj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2019 10:03:39 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <e11e61b1-6468-122e-fc2b-3b3f857186bb@xenosoft.de>
+ <f39d4fc6-7e4e-9132-c03f-59f1b52260e0@xenosoft.de>
+ <b9e5e081-a3cc-2625-4e08-2d55c2ba224b@xenosoft.de>
+ <20190119130222.GA24346@lst.de> <20190119140452.GA25198@lst.de>
+ <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de>
+ <8434e281-eb85-51d9-106f-f4faa559e89c@xenosoft.de>
+ <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de>
+ <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de>
+ <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de>
+ <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+Message-ID: <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
+Date: Tue, 29 Jan 2019 16:03:32 +0100
+MIME-Version: 1.0
+In-Reply-To: <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, robh+dt@kernel.org, marc.zyngier@arm.com
-Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190129122426.K_00r-khuCIlamiET2q7Jq-_vhbjnVPeJwOLVTMMjLo@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190129150332.8IaaQYmiqxl8lYZThmZfh4StWh-k5CN93h8yAhFlweQ@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+Hi Christoph,
 
-The bug is from commit 2054f4af1957 ("csky: bugfix gdb coredump error.")
+I compiled kernels for the X5000 and X1000 from your new branch 
+'powerpc-dma.6-debug.2' today. The kernels boot and the P.A. Semi 
+Ethernet works!
 
-We change the ELF_NGREG to ELF_NGREG - 2 to fit gdb&gcc define, but forgot
-modify ptrace regset.
-Now coredump use ELF_NRGEG to parse GPRs and ptrace use pt_regs_regset, so
-there are two different reg_sets for userspace.
+Cheers,
+Christian
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/kernel/ptrace.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
-index 57f1afe..f2f12ff 100644
---- a/arch/csky/kernel/ptrace.c
-+++ b/arch/csky/kernel/ptrace.c
-@@ -8,6 +8,7 @@
- #include <linux/ptrace.h>
- #include <linux/regset.h>
- #include <linux/sched.h>
-+#include <linux/sched/task_stack.h>
- #include <linux/signal.h>
- #include <linux/smp.h>
- #include <linux/uaccess.h>
-@@ -159,7 +160,7 @@ static int fpr_set(struct task_struct *target,
- static const struct user_regset csky_regsets[] = {
- 	[REGSET_GPR] = {
- 		.core_note_type = NT_PRSTATUS,
--		.n = ELF_NGREG,
-+		.n = sizeof(struct pt_regs) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
- 		.get = &gpr_get,
--- 
-2.7.4
+On 28 January 2019 at 5:52PM, Christian Zigotzky wrote:
+> Thanks a lot! I will test it tomorrow.
+>
+> — Christian
+>
+> Sent from my iPhone
+>
+>> On 28. Jan 2019, at 17:22, Christoph Hellwig <hch@lst.de> wrote:
+>>
+>>> On Mon, Jan 28, 2019 at 08:04:22AM +0100, Christoph Hellwig wrote:
+>>>> On Sun, Jan 27, 2019 at 02:13:09PM +0100, Christian Zigotzky wrote:
+>>>> Christoph,
+>>>>
+>>>> What shall I do next?
+>>> I'll need to figure out what went wrong with the new zone selection
+>>> on powerpc and give you another branch to test.
+>> Can you try the new powerpc-dma.6-debug.2 branch:
+>>
+>>     git://git.infradead.org/users/hch/misc.git powerpc-dma.6-debug.2
+>>
+>> Gitweb:
+>>
+>>     http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6-debug.2
+>
