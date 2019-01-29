@@ -1,43 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47166 "EHLO newverein.lst.de"
+Received: from mx1.redhat.com ([209.132.183.28]:56256 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726117AbfA2QeQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Jan 2019 11:34:16 -0500
-Date: Tue, 29 Jan 2019 17:34:15 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Message-ID: <20190129163415.GA14529@lst.de>
-References: <20190119140452.GA25198@lst.de> <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de> <8434e281-eb85-51d9-106f-f4faa559e89c@xenosoft.de> <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de> <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de> <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de> <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de> <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de> <20190129161411.GA14022@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190129161411.GA14022@lst.de>
+        id S1727332AbfA2VyD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Jan 2019 16:54:03 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v3 0/4] locking/qspinlock: Handle > 4 nesting levels
+Date: Tue, 29 Jan 2019 22:53:44 +0100
+Message-ID: <1548798828-16156-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190129163415.Wap6DqhfPHVk8eU40ik26OviK2Ml0FacsxS_-HJSFzc@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Zhenzhong Duan <zhenzhong.duan@oracle.com>, James Morse <james.morse@arm.com>, SRINIVAS <srinivas.eeda@oracle.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20190129215344.lHNBjgRLVEZmrFayt5841U94yD25grAPL93xFDWYTQc@z>
 
-On Tue, Jan 29, 2019 at 05:14:11PM +0100, Christoph Hellwig wrote:
-> On Tue, Jan 29, 2019 at 04:03:32PM +0100, Christian Zigotzky wrote:
-> > Hi Christoph,
-> >
-> > I compiled kernels for the X5000 and X1000 from your new branch 
-> > 'powerpc-dma.6-debug.2' today. The kernels boot and the P.A. Semi Ethernet 
-> > works!
-> 
-> Thanks for testing!  I'll prepare a new series that adds the other
-> patches on top of this one.
+ v3:
+  - Fix typo error in patch 2.
+  - Rework patches 3/4 to create a new lockevent_* API to handle lock
+    event counting that can be used by other locking code as well as
+    on all architectures that are applicable.
 
-And that was easier than I thought - we just had a few patches left
-in powerpc-dma.6, so I've rebased that branch on top of
-powerpc-dma.6-debug.2:
+ v2:
+  - Use the simple trylock loop as suggested by PeterZ.
 
-    git://git.infradead.org/users/hch/misc.git powerpc-dma.6
+The current allows up to 4 levels of nested slowpath spinlock calls.
+That should be enough for the process, soft irq, hard irq, and nmi.
+With the unfortunate event of nested NMIs happening with slowpath
+spinlock call in each of the previous level, we are going to run out
+of useable MCS node for queuing.
 
-Gitweb:
+In this case, we fall back to a simple TAS lock and spin on the lock
+cacheline until the lock is free. This is not most elegant solution
+but is simple enough.
 
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+Patch 1 implements the TAS loop when all the existing MCS nodes are
+occupied.
 
-I hope the other patches are simple enough, so just testing the full
-branch checkout should be fine for now.
+Patch 2 adds a new counter to track the no MCS node available event.
+
+Patches 3 & 4 create a a new lockevent_* API to handle lock event
+counting that can be used by other locking code as well as on all
+architectures that are applicable.
+
+By setting MAX_NODES to 1, we can have some usage of the new code path
+during the booting process as demonstrated by the stat counter values
+shown below on an 1-socket 22-core 44-thread x86-64 system after booting
+up the new kernel.
+
+  lock_no_node=20
+  lock_pending=29660
+  lock_slowpath=172714
+
+Waiman Long (4):
+  locking/qspinlock: Handle > 4 slowpath nesting levels
+  locking/qspinlock_stat: Track the no MCS node available case
+  locking/qspinlock_stat: Introduce a generic lockevent counting APIs
+  locking/lock_events: Make lock_events available for all archs & other
+    locks
+
+ arch/Kconfig                        |  10 ++
+ arch/x86/Kconfig                    |   8 --
+ kernel/locking/Makefile             |   1 +
+ kernel/locking/lock_events.c        | 152 +++++++++++++++++++++++
+ kernel/locking/lock_events.h        |  46 +++++++
+ kernel/locking/lock_events_list.h   |  49 ++++++++
+ kernel/locking/qspinlock.c          |  22 +++-
+ kernel/locking/qspinlock_paravirt.h |  19 +--
+ kernel/locking/qspinlock_stat.h     | 233 +++++++-----------------------------
+ 9 files changed, 330 insertions(+), 210 deletions(-)
+ create mode 100644 kernel/locking/lock_events.c
+ create mode 100644 kernel/locking/lock_events.h
+ create mode 100644 kernel/locking/lock_events_list.h
+
+-- 
+1.8.3.1
