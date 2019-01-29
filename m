@@ -1,66 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36044 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36158 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727589AbfA2MZN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Jan 2019 07:25:13 -0500
+        id S1728976AbfA2MZW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Jan 2019 07:25:22 -0500
 From: guoren@kernel.org
-Subject: [PATCH 08/10] csky: coding convention: Use task_stack_page
-Date: Tue, 29 Jan 2019 20:24:27 +0800
-Message-ID: <1548764669-16656-8-git-send-email-guoren@kernel.org>
+Subject: [PATCH 10/10] irqchip/csky: Add support-vector-irq for apb-intc
+Date: Tue, 29 Jan 2019 20:24:29 +0800
+Message-ID: <1548764669-16656-10-git-send-email-guoren@kernel.org>
 In-Reply-To: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 References: <1548764669-16656-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, robh+dt@kernel.org, marc.zyngier@arm.com
 Cc: linux-kernel@vger.kernel.org, guoren@kernel.org, linux-arch@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190129122427.F_SCq0al5XTa5F0ITEYQVGkgQzhEiGcydH6udnuYjFo@z>
+Message-ID: <20190129122429.YQzi3_k0jzmxlkaLepdrN3xkLIL4nKbUFkilrXFaxoQ@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-Use task_stack_page instead of p->stack to get stack. Follow the coding
-convention style. Also for init_stack, the same with other archs.
+Some socs don't provide pending registers, so we must make the interrupt
+controller working at vector mode. Add csky,support-vector-irq to
+support this mode in dts.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/processor.h | 4 ++--
- arch/csky/kernel/smp.c            | 3 ++-
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ drivers/irqchip/irq-csky-apb-intc.c | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
 
-diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
-index 8f45481..21e0bd5 100644
---- a/arch/csky/include/asm/processor.h
-+++ b/arch/csky/include/asm/processor.h
-@@ -49,7 +49,7 @@ struct thread_struct {
- };
- 
- #define INIT_THREAD  { \
--	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
-+	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
- 	.sr = DEFAULT_PSR_VALUE, \
+diff --git a/drivers/irqchip/irq-csky-apb-intc.c b/drivers/irqchip/irq-csky-apb-intc.c
+index ae4c59b..14ef206 100644
+--- a/drivers/irqchip/irq-csky-apb-intc.c
++++ b/drivers/irqchip/irq-csky-apb-intc.c
+@@ -302,10 +302,17 @@ static void ck_irq_handler(struct pt_regs *regs)
+ 		pr_err("%s: none irq pending!\n", __func__);
  }
  
-@@ -95,7 +95,7 @@ unsigned long get_wchan(struct task_struct *p);
- #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
- 
- #define task_pt_regs(p) \
--	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
-+	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
- 
- #define cpu_relax() barrier()
- 
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index ddc4dd7..b07a534 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -160,7 +160,8 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
++static void ck_vec_irq_handler(struct pt_regs *regs)
++{
++	unsigned long vector = (mfcr("psr") >> 16) & 0xff;
++
++	handle_domain_irq(root_domain, vector - 32, regs);
++}
++
+ static int __init
+ ck_intc_init(struct device_node *node, struct device_node *parent)
  {
- 	unsigned long mask = 1 << cpu;
+-	int ret;
++	int ret, i;
  
--	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE - 8;
-+	secondary_stack =
-+		(unsigned int) task_stack_page(tidle) + THREAD_SIZE - 8;
- 	secondary_hint = mfcr("cr31");
- 	secondary_ccr  = mfcr("cr18");
+ 	ret = ck_intc_init_comm(node, parent);
+ 	if (ret)
+@@ -323,7 +330,16 @@ ck_intc_init(struct device_node *node, struct device_node *parent)
  
+ 	setup_irq_channel(0x00010203, reg_base + CK_INTC_SOURCE);
+ 
+-	set_handle_irq(ck_irq_handler);
++	if (of_find_property(node, "csky,support-vector-irq", NULL)) {
++		set_handle_irq(ck_vec_irq_handler);
++
++		for (i = 32; i < 128; i++)
++			VEC_INIT(i, csky_irq);
++
++		writel(0, reg_base + CK_INTC_ICR);
++	} else {
++		set_handle_irq(ck_irq_handler);
++	}
+ 
+ 	return 0;
+ }
 -- 
 2.7.4
