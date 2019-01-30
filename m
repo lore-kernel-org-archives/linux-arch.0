@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 01/28] linkage: new macros for assembler symbols
-Date: Wed, 30 Jan 2019 13:46:44 +0100
-Message-ID: <20190130124711.12463-2-jslaby@suse.cz>
+Subject: [PATCH v7 07/28] x86/asm/crypto: annotate local functions
+Date: Wed, 30 Jan 2019 13:46:50 +0100
+Message-ID: <20190130124711.12463-8-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,658 +9,938 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, hpa@zytor.com, Ingo Molnar <mingo@kernel.org>, jpoimboe@redhat.com, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Thomas Gleixner <tglx@linutronix.de>, xen-devel@lists.xenproject.org, x86@kernel.org
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-crypto@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Introduce new C macros for annotations of functions and data in
-assembly. There is a long-standing mess in macros like ENTRY, END,
-ENDPROC and similar. They are used in different manners and sometimes
-incorrectly.
+Use the newly added SYM_FUNC_START_LOCAL to annotate starts of all
+functions which do not have ".globl" annotation, but their ends are
+annotated by ENDPROC. This is needed to balance ENDPROC for tools that
+generate debuginfo.
 
-So introduce macros with clear use to annotate assembly as follows:
-
-a) Support macros for the ones below
-   SYM_T_FUNC -- type used by assembler to mark functions
-   SYM_T_OBJECT -- type used by assembler to mark data
-   SYM_T_NONE -- type used by assembler to mark entries of unknown type
-
-   They are defined as STT_FUNC, STT_OBJECT, and STT_NOTYPE
-   respectively. According to the gas manual, this is the most portable
-   way. I am not sure about other assemblers, so we can switch this back
-   to %function and %object if this turns into a problem. Architectures
-   can also override them by something like ", @function" if they need.
-
-   SYM_A_ALIGN, SYM_A_NONE -- align the symbol?
-   SYM_L_GLOBAL, SYM_L_WEAK, SYM_L_LOCAL -- linkage of symbols
-
-b) Mostly internal annotations, used by the ones below
-   SYM_ENTRY -- use only if you have to (for non-paired symbols)
-   SYM_START -- use only if you have to (for paired symbols)
-   SYM_END -- use only if you have to (for paired symbols)
-
-c) Annotations for code
-   SYM_INNER_LABEL_ALIGN -- only for labels in the middle of code
-   SYM_INNER_LABEL -- only for labels in the middle of code
-
-   SYM_FUNC_START_LOCAL_ALIAS -- use where there are two local names for
-	one function
-   SYM_FUNC_START_ALIAS -- use where there are two global names for one
-	function
-   SYM_FUNC_END_ALIAS -- the end of LOCAL_ALIASed or ALIASed function
-
-   SYM_FUNC_START -- use for global functions
-   SYM_FUNC_START_NOALIGN -- use for global functions, w/o alignment
-   SYM_FUNC_START_LOCAL -- use for local functions
-   SYM_FUNC_START_LOCAL_NOALIGN -- use for local functions, w/o
-	alignment
-   SYM_FUNC_START_WEAK -- use for weak functions
-   SYM_FUNC_START_WEAK_NOALIGN -- use for weak functions, w/o alignment
-   SYM_FUNC_END -- the end of SYM_FUNC_START_LOCAL, SYM_FUNC_START,
-	SYM_FUNC_START_WEAK, ...
-
-   For functions with special (non-C) calling conventions:
-   SYM_CODE_START -- use for non-C (special) functions
-   SYM_CODE_START_NOALIGN -- use for non-C (special) functions, w/o
-	alignment
-   SYM_CODE_START_LOCAL -- use for local non-C (special) functions
-   SYM_CODE_START_LOCAL_NOALIGN -- use for local non-C (special)
-	functions, w/o alignment
-   SYM_CODE_END -- the end of SYM_CODE_START_LOCAL or SYM_CODE_START
-
-d) For data
-   SYM_DATA_START -- global data symbol
-   SYM_DATA_START_LOCAL -- local data symbol
-   SYM_DATA_END -- the end of the SYM_DATA_START symbol
-   SYM_DATA_END_LABEL -- the labeled end of SYM_DATA_START symbol
-   SYM_DATA -- start+end wrapper around simple global data
-   SYM_DATA_LOCAL -- start+end wrapper around simple local data
-
-==========
-
-The macros allow to pair starts and ends of functions and mark functions
-correctly in the output ELF objects.
-
-All users of the old macros in x86 are converted to use these in further
-patches.
-
-[v2]
-* use SYM_ prefix and sane names
-* add SYM_START and SYM_END and parametrize all the macros
-
-[v3]
-* add SYM_DATA, SYM_DATA_LOCAL, and SYM_DATA_END_LABEL
-
-[v4]
-* add _NOALIGN versions of some macros
-* add _CODE_ derivates of _FUNC_ macros
-
-[v5]
-* drop "SIMPLE" from data annotations
-* switch NOALIGN and ALIGN variants of inner labels
-* s/visibility/linkage/; s@SYM_V_@SYM_L_@
-* add Documentation
-
-[v6]
-* fixed typos found by Randy Dunlap
-* remove doubled INNER_LABEL macros, one pair was unused
-
-[v7]
-* rebased on the top of current code
+To be symmetric, we also convert their ENDPROCs to the new SYM_FUNC_END.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: hpa@zytor.com
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: jpoimboe@redhat.com
-Cc: Juergen Gross <jgross@suse.com>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-pm@vger.kernel.org
-Cc: mingo@redhat.com
-Cc: Pavel Machek <pavel@ucw.cz>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: xen-devel@lists.xenproject.org
-Cc: x86@kernel.org
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: <x86@kernel.org>
+Cc: <linux-crypto@vger.kernel.org>
 ---
- Documentation/asm-annotations.rst | 217 ++++++++++++++++++++++++++
- arch/x86/include/asm/linkage.h    |  10 +-
- include/linux/linkage.h           | 245 +++++++++++++++++++++++++++++-
- 3 files changed, 461 insertions(+), 11 deletions(-)
- create mode 100644 Documentation/asm-annotations.rst
+ arch/x86/crypto/aegis128-aesni-asm.S         |  8 ++--
+ arch/x86/crypto/aegis128l-aesni-asm.S        |  8 ++--
+ arch/x86/crypto/aegis256-aesni-asm.S         |  8 ++--
+ arch/x86/crypto/aesni-intel_asm.S            | 49 ++++++++------------
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S  | 20 ++++----
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S | 20 ++++----
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |  8 ++--
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |  8 ++--
+ arch/x86/crypto/chacha-ssse3-x86_64.S        |  4 +-
+ arch/x86/crypto/ghash-clmulni-intel_asm.S    |  4 +-
+ arch/x86/crypto/morus1280-avx2-asm.S         | 16 +++----
+ arch/x86/crypto/morus1280-sse2-asm.S         | 16 +++----
+ arch/x86/crypto/morus640-sse2-asm.S          | 16 +++----
+ arch/x86/crypto/serpent-avx-x86_64-asm_64.S  |  8 ++--
+ arch/x86/crypto/serpent-avx2-asm_64.S        |  8 ++--
+ arch/x86/crypto/twofish-avx-x86_64-asm_64.S  |  8 ++--
+ 16 files changed, 100 insertions(+), 109 deletions(-)
 
-diff --git a/Documentation/asm-annotations.rst b/Documentation/asm-annotations.rst
-new file mode 100644
-index 000000000000..265d64a1fc0b
---- /dev/null
-+++ b/Documentation/asm-annotations.rst
-@@ -0,0 +1,217 @@
-+Assembler Annotations
-+=====================
-+
-+Copyright (c) 2017 Jiri Slaby
-+
-+This document describes the new macros for annotation of data and code in
-+assembler. In particular, it contains information about ``SYM_FUNC_START``,
-+``SYM_FUNC_END``, ``SYM_CODE_START``, and similar.
-+
-+Rationale
-+---------
-+Some code like entries, trampolines, or boot code needs to be written in
-+assembly. The same as in C, we group such code into functions and accompany
-+them with data. Standard assemblers do not force users into precisely marking
-+these pieces as code, data, or even specifying their length. Nevertheless,
-+assemblers provide developers with such marks to aid debuggers throughout
-+assembly. On the top of that, developers also want to stamp some functions as
-+*global* to be visible outside of their translation units.
-+
-+Over the time, the Linux kernel took over macros from various projects (like
-+``binutils``) to ease these markings. So for historic reasons, we have been
-+using ``ENTRY``, ``END``, ``ENDPROC``, and other annotations in assembly. Due
-+to the lack of their documentation, the macros are used in rather wrong
-+contexts at some locations. Clearly, ``ENTRY`` was intended for starts of
-+global symbols (be it data or code). ``END`` used to be the end of data or end
-+of special functions with *non-standard* calling convention. In contrast,
-+``ENDPROC`` should annotate only ends of *standard* functions.
-+
-+When these macros are used correctly, they help assemblers to generate a nice
-+object with both sizes and types set correctly. For example the result of
-+``arch/x86/lib/putuser.S``::
-+
-+   Num:    Value          Size Type    Bind   Vis      Ndx Name
-+    25: 0000000000000000    33 FUNC    GLOBAL DEFAULT    1 __put_user_1
-+    29: 0000000000000030    37 FUNC    GLOBAL DEFAULT    1 __put_user_2
-+    32: 0000000000000060    36 FUNC    GLOBAL DEFAULT    1 __put_user_4
-+    35: 0000000000000090    37 FUNC    GLOBAL DEFAULT    1 __put_user_8
-+
-+This is not only important for debugging purposes. When we have properly
-+marked objects like this, we can run tools on them and let the tools generate
-+more useful information. In particular, on properly marked objects, we can run
-+``objtool`` and let it check and fix the object if needed. Currently, it can
-+report missing frame pointer setup/destruction in functions. It can also
-+automatically generate annotations for *ORC unwinder* (cf.
-+<Documentation/x86/orc-unwinder.txt>) for most code. Both of these are
-+especially important to support reliable stack traces which are in turn
-+necessary for *Kernel live patching* (see
-+<Documentation/livepatch/livepatch.txt>).
-+
-+Caveat and Discussion
-+---------------------
-+As one might realize, there were only three macros previously. That is indeed
-+insufficient to cover all the combinations of cases:
-+
-+* standard/non-standard function
-+* code/data
-+* global/local symbol
-+
-+We had a discussion_ and instead of extending the current ``ENTRY/END*``
-+macros, it was decided that we should introduce brand new macros instead::
-+
-+    So how about using macro names that actually show the purpose, instead
-+    of importing all the crappy, historic, essentially randomly chosen
-+    debug symbol macro names from the binutils and older kernels?
-+
-+.. _discussion: https://marc.info/?i=20170217104757.28588-1-jslaby%40suse.cz
-+
-+Macros Description
-+------------------
-+
-+The new macros are prefixed with the ``SYM_`` prefix and can be divided into
-+three main groups:
-+
-+1. ``SYM_FUNC_*`` -- to annotate C-like functions. This means functions with
-+   standard C calling conventions, i.e. the stack contains a return address at
-+   the predefined place and a return from the function can happen in a
-+   standard way. When frame pointers are enabled, save/restore of frame
-+   pointer shall happen at the start/end of a function, respectively, too.
-+
-+   Checking tools like ``objtool`` should ensure such marked functions conform
-+   to these rules. The tools can also easily annotate these functions with
-+   debugging information (like *ORC data*) automatically.
-+
-+2. ``SYM_CODE_*`` -- special functions called with special stack. Be it
-+   interrupt handlers with special stack content, trampolines, or startup
-+   functions.
-+
-+   Checking tools mostly ignore checking of these functions. But some debug
-+   information still can be generated automatically. For correct debug data,
-+   this code needs hints like ``UNWIND_HINT_REGS`` provided by developers.
-+
-+3. ``SYM_DATA*`` -- obviously data belonging to ``.data`` sections and not to
-+   ``.text``. Data do not contain instructions, so they have to be treated
-+   specially by the tools: they should not treat the bytes as instructions,
-+   nor assign any debug information to them.
-+
-+Instruction Macros
-+~~~~~~~~~~~~~~~~~~
-+This section covers ``SYM_FUNC_*`` and ``SYM_CODE_*`` enumerated above.
-+
-+* ``SYM_FUNC_START`` and ``SYM_FUNC_START_LOCAL`` are supposed to be **the
-+  most frequent markings**. They are used for functions with standard calling
-+  conventions -- global and local. Like in C, they both align the functions to
-+  architecture specific ``__ALIGN`` bytes. There are also ``_NOALIGN`` variants
-+  for special cases where developers do not want this implicit alignment.
-+
-+  We offer also ``SYM_FUNC_START_WEAK`` and ``SYM_FUNC_START_WEAK_NOALIGN``
-+  marks as an assembler counterpart of the *weak* attribute known from C.
-+
-+  All of these **shall** be coupled with ``SYM_FUNC_END``. First, it marks
-+  the sequence of instructions as a function and computes its size to the
-+  generated object file. Second, it also eases checking and processing such
-+  object files as the tools can trivially find exact start and end of a
-+  function.
-+
-+  So in most cases, developers should write something like in the following
-+  example, having more instructions in between the macros, of course::
-+
-+    SYM_FUNC_START(function_hook)
-+        retq
-+    SYM_FUNC_END(function_hook)
-+
-+  In fact, this kind of annotation corresponds to now deprecated ``ENTRY`` and
-+  ``ENDPROC``.
-+
-+* ``SYM_FUNC_START_ALIAS`` and ``SYM_FUNC_START_LOCAL_ALIAS`` serve for those
-+  who decided to have two or more names for one function. The typical use is::
-+
-+    SYM_FUNC_START_ALIAS(__memset)
-+    SYM_FUNC_START(memset)
-+        ...
-+    SYM_FUNC_END(memset)
-+    SYM_FUNC_END_ALIAS(__memset)
-+
-+  In this example, one can call ``__memset`` or ``memset`` with the same
-+  result. Except the debug information for the instructions is generated to
-+  the object file only once -- for the non-``ALIAS`` case.
-+
-+* ``SYM_CODE_START`` and ``SYM_CODE_START_LOCAL`` should be used only in
-+  special cases -- if you know what you are doing. This is used exclusively
-+  for interrupt handlers and similar where the calling convention is not the C
-+  one. ``_NOALIGN`` variants exist too. The use is the same as for the ``FUNC``
-+  category above::
-+
-+    SYM_CODE_START_LOCAL(bad_put_user)
-+        movl $-EFAULT,%eax
-+        EXIT
-+    SYM_CODE_END(bad_put_user)
-+
-+  Again, every ``SYM_CODE_START*`` **shall** be coupled by ``SYM_CODE_END``.
-+
-+  To some extent, this category corresponds to deprecated ``ENTRY`` and
-+  ``END``. Except ``END`` had several other meanings too.
-+
-+* ``SYM_INNER_LABEL*`` is used to denote a label inside some
-+  ``SYM_{CODE,FUNC}_START`` and ``SYM_{CODE,FUNC}_END``.  They are very similar
-+  to C labels, except they can be made global. An example of use::
-+
-+    SYM_CODE_START(ftrace_caller)
-+        /* save_mcount_regs fills in first two parameters */
-+        ...
-+
-+    SYM_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
-+        /* Load the ftrace_ops into the 3rd parameter */
-+        ...
-+
-+    SYM_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
-+        call ftrace_stub
-+        ...
-+        retq
-+    SYM_CODE_END(ftrace_caller)
-+
-+Data Macros
-+~~~~~~~~~~~
-+Similar to instructions, we have a couple of macros to describe data in the
-+assembly. Again, they help debuggers to understand the layout of the resulting
-+object files.
-+
-+* ``SYM_DATA_START`` and ``SYM_DATA_START_LOCAL`` mark the start of some data
-+  and shall be used in conjunction with either ``SYM_DATA_END``, or
-+  ``SYM_DATA_END_LABEL``. The latter adds also a label to the end, so that
-+  people can use ``lstack`` and (local) ``lstack_end`` in the following
-+  example::
-+
-+    SYM_DATA_START_LOCAL(lstack)
-+        .skip 4096
-+    SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-+
-+* ``SYM_DATA`` and ``SYM_DATA_LOCAL`` are variants for simple, mostly one-line
-+  data::
-+
-+    SYM_DATA(HEAP,     .long rm_heap)
-+    SYM_DATA(heap_end, .long rm_stack)
-+
-+  In the end, they expand to ``SYM_DATA_START`` with ``SYM_DATA_END``
-+  internally.
-+
-+Support Macros
-+~~~~~~~~~~~~~~
-+All the above reduce themselves to some invocation of ``SYM_START``,
-+``SYM_END``, or ``SYM_ENTRY`` at last. Normally, developers should avoid using
-+these.
-+
-+Further, in the above examples, one could see ``SYM_L_LOCAL``. There are also
-+``SYM_L_GLOBAL`` and ``SYM_L_WEAK``. All are intended to denote linkage of a
-+symbol marked by them. They are used either in ``_LABEL`` variants of the
-+earlier macros, or in ``SYM_START``.
-+
-+
-+Overriding Macros
-+~~~~~~~~~~~~~~~~~
-+Architecture can also override any of the macros in their own
-+``asm/linkage.h``, including macros specifying the type of a symbol
-+(``SYM_T_FUNC``, ``SYM_T_OBJECT``, and ``SYM_T_NONE``).  As every macro
-+described in this file is surrounded by ``#ifdef`` + ``#endif``, it is enough
-+to define the macros differently in the aforementioned architecture-dependent
-+header.
-diff --git a/arch/x86/include/asm/linkage.h b/arch/x86/include/asm/linkage.h
-index 14caa9d9fb7f..e07188e8d763 100644
---- a/arch/x86/include/asm/linkage.h
-+++ b/arch/x86/include/asm/linkage.h
-@@ -13,9 +13,13 @@
- 
- #ifdef __ASSEMBLY__
- 
--#define GLOBAL(name)	\
--	.globl name;	\
--	name:
-+/*
-+ * GLOBAL is DEPRECATED
-+ *
-+ * use SYM_DATA_START, SYM_FUNC_START, SYM_INNER_LABEL, SYM_CODE_START, or
-+ * similar
-+ */
-+#define GLOBAL(name)	SYM_ENTRY(name, SYM_L_GLOBAL, SYM_A_NONE)
- 
- #if defined(CONFIG_X86_64) || defined(CONFIG_X86_ALIGNMENT_16)
- #define __ALIGN		.p2align 4, 0x90
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index 7e020782ade2..f3ae8f3dea2c 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -75,32 +75,58 @@
- 
- #ifdef __ASSEMBLY__
- 
-+/* SYM_T_FUNC -- type used by assembler to mark functions */
-+#ifndef SYM_T_FUNC
-+#define SYM_T_FUNC				STT_FUNC
-+#endif
-+
-+/* SYM_T_OBJECT -- type used by assembler to mark data */
-+#ifndef SYM_T_OBJECT
-+#define SYM_T_OBJECT				STT_OBJECT
-+#endif
-+
-+/* SYM_T_NONE -- type used by assembler to mark entries of unknown type */
-+#ifndef SYM_T_NONE
-+#define SYM_T_NONE				STT_NOTYPE
-+#endif
-+
-+/* SYM_A_* -- align the symbol? */
-+#define SYM_A_ALIGN				ALIGN
-+#define SYM_A_NONE				/* nothing */
-+
-+/* SYM_L_* -- linkage of symbols */
-+#define SYM_L_GLOBAL(name)			.globl name
-+#define SYM_L_WEAK(name)			.weak name
-+#define SYM_L_LOCAL(name)			/* nothing */
-+
- #ifndef LINKER_SCRIPT
- #define ALIGN __ALIGN
- #define ALIGN_STR __ALIGN_STR
- 
-+/* === DEPRECATED annotations === */
-+
- #ifndef GLOBAL
-+/* deprecated, use SYM_DATA*, SYM_ENTRY, or similar */
- #define GLOBAL(name) \
- 	.globl name ASM_NL \
- 	name:
- #endif
- 
- #ifndef ENTRY
-+/* deprecated, use SYM_FUNC_START */
- #define ENTRY(name) \
--	.globl name ASM_NL \
--	ALIGN ASM_NL \
--	name:
-+	SYM_FUNC_START(name)
- #endif
- #endif /* LINKER_SCRIPT */
- 
- #ifndef WEAK
-+/* deprecated, use SYM_FUNC_START_WEAK* */
- #define WEAK(name)	   \
--	.weak name ASM_NL   \
--	ALIGN ASM_NL \
--	name:
-+	SYM_FUNC_START_WEAK(name)
- #endif
- 
- #ifndef END
-+/* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
- #define END(name) \
- 	.size name, .-name
- #endif
-@@ -110,11 +136,214 @@
-  * static analysis tools such as stack depth analyzer.
+diff --git a/arch/x86/crypto/aegis128-aesni-asm.S b/arch/x86/crypto/aegis128-aesni-asm.S
+index 5f7e43d4f64a..87b94664296a 100644
+--- a/arch/x86/crypto/aegis128-aesni-asm.S
++++ b/arch/x86/crypto/aegis128-aesni-asm.S
+@@ -74,7 +74,7 @@
+  *   %r8
+  *   %r9
   */
- #ifndef ENDPROC
-+/* deprecated, use SYM_FUNC_END */
- #define ENDPROC(name) \
--	.type name, @function ASM_NL \
--	END(name)
-+	SYM_FUNC_END(name)
-+#endif
-+
-+/* === generic annotations === */
-+
-+/* SYM_ENTRY -- use only if you have to for non-paired symbols */
-+#ifndef SYM_ENTRY
-+#define SYM_ENTRY(name, linkage, align...)		\
-+	linkage(name) ASM_NL				\
-+	align ASM_NL					\
-+	name:
-+#endif
-+
-+/* SYM_START -- use only if you have to */
-+#ifndef SYM_START
-+#define SYM_START(name, linkage, align...)		\
-+	SYM_ENTRY(name, linkage, align)
-+#endif
-+
-+/* SYM_END -- use only if you have to */
-+#ifndef SYM_END
-+#define SYM_END(name, sym_type)				\
-+	.type name sym_type ASM_NL			\
-+	.size name, .-name
-+#endif
-+
-+/* === code annotations === */
-+
-+/*
-+ * FUNC -- C-like functions (proper stack frame etc.)
-+ * CODE -- non-C code (e.g. irq handlers with different, special stack etc.)
-+ *
-+ * Objtool validates stack for FUNC, but not for CODE.
-+ * Objtool generates debug info for both FUNC & CODE, but needs special
-+ * annotations for each CODE's start (to describe the actual stack frame).
-+ *
-+ * ALIAS -- does not generate debug info -- the aliased function will
-+ */
-+
-+/* SYM_INNER_LABEL_ALIGN -- only for labels in the middle of code */
-+#ifndef SYM_INNER_LABEL_ALIGN
-+#define SYM_INNER_LABEL_ALIGN(name, linkage)	\
-+	.type name SYM_T_NONE ASM_NL			\
-+	SYM_ENTRY(name, linkage, SYM_A_ALIGN)
-+#endif
-+
-+/* SYM_INNER_LABEL -- only for labels in the middle of code */
-+#ifndef SYM_INNER_LABEL
-+#define SYM_INNER_LABEL(name, linkage)		\
-+	.type name SYM_T_NONE ASM_NL			\
-+	SYM_ENTRY(name, linkage, SYM_A_NONE)
-+#endif
-+
-+/*
-+ * SYM_FUNC_START_LOCAL_ALIAS -- use where there are two local names for one
-+ * function
-+ */
-+#ifndef SYM_FUNC_START_LOCAL_ALIAS
-+#define SYM_FUNC_START_LOCAL_ALIAS(name)		\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
-+#endif
-+
-+/*
-+ * SYM_FUNC_START_ALIAS -- use where there are two global names for one
-+ * function
-+ */
-+#ifndef SYM_FUNC_START_ALIAS
-+#define SYM_FUNC_START_ALIAS(name)			\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
-+#endif
-+
-+/* SYM_FUNC_START -- use for global functions */
-+#ifndef SYM_FUNC_START
-+/*
-+ * The same as SYM_FUNC_START_ALIAS, but we will need to distinguish these two
-+ * later.
-+ */
-+#define SYM_FUNC_START(name)				\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
-+#endif
-+
-+/* SYM_FUNC_START_NOALIGN -- use for global functions, w/o alignment */
-+#ifndef SYM_FUNC_START_NOALIGN
-+#define SYM_FUNC_START_NOALIGN(name)			\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
-+#endif
-+
-+/* SYM_FUNC_START_LOCAL -- use for local functions */
-+#ifndef SYM_FUNC_START_LOCAL
-+/* the same as SYM_FUNC_START_LOCAL_ALIAS, see comment near SYM_FUNC_START */
-+#define SYM_FUNC_START_LOCAL(name)			\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
- #endif
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
  
-+/* SYM_FUNC_START_LOCAL_NOALIGN -- use for local functions, w/o alignment */
-+#ifndef SYM_FUNC_START_LOCAL_NOALIGN
-+#define SYM_FUNC_START_LOCAL_NOALIGN(name)		\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
- #endif
+@@ -126,7 +126,7 @@ __load_partial:
  
-+/* SYM_FUNC_START_WEAK -- use for weak functions */
-+#ifndef SYM_FUNC_START_WEAK
-+#define SYM_FUNC_START_WEAK(name)			\
-+	SYM_START(name, SYM_L_WEAK, SYM_A_ALIGN)
- #endif
-+
-+/* SYM_FUNC_START_WEAK_NOALIGN -- use for weak functions, w/o alignment */
-+#ifndef SYM_FUNC_START_WEAK_NOALIGN
-+#define SYM_FUNC_START_WEAK_NOALIGN(name)		\
-+	SYM_START(name, SYM_L_WEAK, SYM_A_NONE)
-+#endif
-+
-+/* SYM_FUNC_END_ALIAS -- the end of LOCAL_ALIASed or ALIASed function */
-+#ifndef SYM_FUNC_END_ALIAS
-+#define SYM_FUNC_END_ALIAS(name)			\
-+	SYM_END(name, SYM_T_FUNC)
-+#endif
-+
-+/*
-+ * SYM_FUNC_END -- the end of SYM_FUNC_START_LOCAL, SYM_FUNC_START,
-+ * SYM_FUNC_START_WEAK, ...
-+ */
-+#ifndef SYM_FUNC_END
-+/* the same as SYM_FUNC_END_ALIAS, see comment near SYM_FUNC_START */
-+#define SYM_FUNC_END(name)				\
-+	SYM_END(name, SYM_T_FUNC)
-+#endif
-+
-+/* SYM_CODE_START -- use for non-C (special) functions */
-+#ifndef SYM_CODE_START
-+#define SYM_CODE_START(name)				\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_ALIGN)
-+#endif
-+
-+/* SYM_CODE_START_NOALIGN -- use for non-C (special) functions, w/o alignment */
-+#ifndef SYM_CODE_START_NOALIGN
-+#define SYM_CODE_START_NOALIGN(name)			\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
-+#endif
-+
-+/* SYM_CODE_START_LOCAL -- use for local non-C (special) functions */
-+#ifndef SYM_CODE_START_LOCAL
-+#define SYM_CODE_START_LOCAL(name)			\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
-+#endif
-+
-+/*
-+ * SYM_CODE_START_LOCAL_NOALIGN -- use for local non-C (special) functions,
-+ * w/o alignment
-+ */
-+#ifndef SYM_CODE_START_LOCAL_NOALIGN
-+#define SYM_CODE_START_LOCAL_NOALIGN(name)		\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
-+#endif
-+
-+/* SYM_CODE_END -- the end of SYM_CODE_START_LOCAL, SYM_CODE_START, ... */
-+#ifndef SYM_CODE_END
-+#define SYM_CODE_END(name)				\
-+	SYM_END(name, SYM_T_NONE)
-+#endif
-+
-+/* === data annotations === */
-+
-+/* SYM_DATA_START -- global data symbol */
-+#ifndef SYM_DATA_START
-+#define SYM_DATA_START(name)				\
-+	SYM_START(name, SYM_L_GLOBAL, SYM_A_NONE)
-+#endif
-+
-+/* SYM_DATA_START -- local data symbol */
-+#ifndef SYM_DATA_START_LOCAL
-+#define SYM_DATA_START_LOCAL(name)			\
-+	SYM_START(name, SYM_L_LOCAL, SYM_A_NONE)
-+#endif
-+
-+/* SYM_DATA_END -- the end of SYM_DATA_START symbol */
-+#ifndef SYM_DATA_END
-+#define SYM_DATA_END(name)				\
-+	SYM_END(name, SYM_T_OBJECT)
-+#endif
-+
-+/* SYM_DATA_END_LABEL -- the labeled end of SYM_DATA_START symbol */
-+#ifndef SYM_DATA_END_LABEL
-+#define SYM_DATA_END_LABEL(name, linkage, label)	\
-+	linkage(label) ASM_NL				\
-+	.type label SYM_T_OBJECT ASM_NL			\
-+	label:						\
-+	SYM_END(name, SYM_T_OBJECT)
-+#endif
-+
-+/* SYM_DATA -- start+end wrapper around simple global data */
-+#ifndef SYM_DATA
-+#define SYM_DATA(name, data...)				\
-+	SYM_DATA_START(name) ASM_NL				\
-+	data ASM_NL						\
-+	SYM_DATA_END(name)
-+#endif
-+
-+/* SYM_DATA_LOCAL -- start+end wrapper around simple local data */
-+#ifndef SYM_DATA_LOCAL
-+#define SYM_DATA_LOCAL(name, data...)			\
-+	SYM_DATA_START_LOCAL(name) ASM_NL			\
-+	data ASM_NL						\
-+	SYM_DATA_END(name)
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* _LINUX_LINKAGE_H */
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -140,7 +140,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
+ 
+@@ -184,7 +184,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_aegis128_aesni_init(void *state, const void *key, const void *iv);
+diff --git a/arch/x86/crypto/aegis128l-aesni-asm.S b/arch/x86/crypto/aegis128l-aesni-asm.S
+index 491dd61c845c..9f79a2c6752a 100644
+--- a/arch/x86/crypto/aegis128l-aesni-asm.S
++++ b/arch/x86/crypto/aegis128l-aesni-asm.S
+@@ -65,7 +65,7 @@
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG0, MSG0
+ 	pxor MSG1, MSG1
+@@ -126,7 +126,7 @@ __load_partial:
+ 
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -141,7 +141,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
+ 
+@@ -195,7 +195,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ .macro update
+ 	movdqa STATE7, T0
+diff --git a/arch/x86/crypto/aegis256-aesni-asm.S b/arch/x86/crypto/aegis256-aesni-asm.S
+index 8870c7c5d9a4..e974a876c627 100644
+--- a/arch/x86/crypto/aegis256-aesni-asm.S
++++ b/arch/x86/crypto/aegis256-aesni-asm.S
+@@ -58,7 +58,7 @@
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
+ 
+@@ -110,7 +110,7 @@ __load_partial:
+ 
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -124,7 +124,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
+ 
+@@ -168,7 +168,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ .macro update
+ 	movdqa STATE5, T0
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index cb2deb61c5d9..6c349e844581 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1763,7 +1763,7 @@ ENDPROC(aesni_gcm_finalize)
+ 
+ .align 4
+ _key_expansion_128:
+-_key_expansion_256a:
++SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1774,10 +1774,9 @@ _key_expansion_256a:
+ 	add $0x10, TKEYP
+ 	ret
+ ENDPROC(_key_expansion_128)
+-ENDPROC(_key_expansion_256a)
++SYM_FUNC_END(_key_expansion_256a)
+ 
+-.align 4
+-_key_expansion_192a:
++SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1799,10 +1798,9 @@ _key_expansion_192a:
+ 	movaps %xmm1, 0x10(TKEYP)
+ 	add $0x20, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_192a)
++SYM_FUNC_END(_key_expansion_192a)
+ 
+-.align 4
+-_key_expansion_192b:
++SYM_FUNC_START_LOCAL(_key_expansion_192b)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1819,10 +1817,9 @@ _key_expansion_192b:
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_192b)
++SYM_FUNC_END(_key_expansion_192b)
+ 
+-.align 4
+-_key_expansion_256b:
++SYM_FUNC_START_LOCAL(_key_expansion_256b)
+ 	pshufd $0b10101010, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm2, %xmm4
+ 	pxor %xmm4, %xmm2
+@@ -1832,7 +1829,7 @@ _key_expansion_256b:
+ 	movaps %xmm2, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_256b)
++SYM_FUNC_END(_key_expansion_256b)
+ 
+ /*
+  * int aesni_set_key(struct crypto_aes_ctx *ctx, const u8 *in_key,
+@@ -1985,8 +1982,7 @@ ENDPROC(aesni_enc)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_enc1:
++SYM_FUNC_START_LOCAL(_aesni_enc1)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE		# round 0
+@@ -2029,7 +2025,7 @@ _aesni_enc1:
+ 	movaps 0x70(TKEYP), KEY
+ 	AESENCLAST KEY STATE
+ 	ret
+-ENDPROC(_aesni_enc1)
++SYM_FUNC_END(_aesni_enc1)
+ 
+ /*
+  * _aesni_enc4:	internal ABI
+@@ -2049,8 +2045,7 @@ ENDPROC(_aesni_enc1)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_enc4:
++SYM_FUNC_START_LOCAL(_aesni_enc4)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE1		# round 0
+@@ -2138,7 +2133,7 @@ _aesni_enc4:
+ 	AESENCLAST KEY STATE3
+ 	AESENCLAST KEY STATE4
+ 	ret
+-ENDPROC(_aesni_enc4)
++SYM_FUNC_END(_aesni_enc4)
+ 
+ /*
+  * void aesni_dec (struct crypto_aes_ctx *ctx, u8 *dst, const u8 *src)
+@@ -2177,8 +2172,7 @@ ENDPROC(aesni_dec)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_dec1:
++SYM_FUNC_START_LOCAL(_aesni_dec1)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE		# round 0
+@@ -2221,7 +2215,7 @@ _aesni_dec1:
+ 	movaps 0x70(TKEYP), KEY
+ 	AESDECLAST KEY STATE
+ 	ret
+-ENDPROC(_aesni_dec1)
++SYM_FUNC_END(_aesni_dec1)
+ 
+ /*
+  * _aesni_dec4:	internal ABI
+@@ -2241,8 +2235,7 @@ ENDPROC(_aesni_dec1)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_dec4:
++SYM_FUNC_START_LOCAL(_aesni_dec4)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE1		# round 0
+@@ -2330,7 +2323,7 @@ _aesni_dec4:
+ 	AESDECLAST KEY STATE3
+ 	AESDECLAST KEY STATE4
+ 	ret
+-ENDPROC(_aesni_dec4)
++SYM_FUNC_END(_aesni_dec4)
+ 
+ /*
+  * void aesni_ecb_enc(struct crypto_aes_ctx *ctx, const u8 *dst, u8 *src,
+@@ -2608,8 +2601,7 @@ ENDPROC(aesni_cbc_dec)
+  *	INC:	== 1, in little endian
+  *	BSWAP_MASK == endian swapping mask
+  */
+-.align 4
+-_aesni_inc_init:
++SYM_FUNC_START_LOCAL(_aesni_inc_init)
+ 	movaps .Lbswap_mask, BSWAP_MASK
+ 	movaps IV, CTR
+ 	PSHUFB_XMM BSWAP_MASK CTR
+@@ -2617,7 +2609,7 @@ _aesni_inc_init:
+ 	MOVQ_R64_XMM TCTR_LOW INC
+ 	MOVQ_R64_XMM CTR TCTR_LOW
+ 	ret
+-ENDPROC(_aesni_inc_init)
++SYM_FUNC_END(_aesni_inc_init)
+ 
+ /*
+  * _aesni_inc:		internal ABI
+@@ -2634,8 +2626,7 @@ ENDPROC(_aesni_inc_init)
+  *	CTR:	== output IV, in little endian
+  *	TCTR_LOW: == lower qword of CTR
+  */
+-.align 4
+-_aesni_inc:
++SYM_FUNC_START_LOCAL(_aesni_inc)
+ 	paddq INC, CTR
+ 	add $1, TCTR_LOW
+ 	jnc .Linc_low
+@@ -2646,7 +2637,7 @@ _aesni_inc:
+ 	movaps CTR, IV
+ 	PSHUFB_XMM BSWAP_MASK IV
+ 	ret
+-ENDPROC(_aesni_inc)
++SYM_FUNC_END(_aesni_inc)
+ 
+ /*
+  * void aesni_ctr_enc(struct crypto_aes_ctx *ctx, const u8 *dst, u8 *src,
+diff --git a/arch/x86/crypto/camellia-aesni-avx-asm_64.S b/arch/x86/crypto/camellia-aesni-avx-asm_64.S
+index a14af6eb09cb..f4408ca55fdb 100644
+--- a/arch/x86/crypto/camellia-aesni-avx-asm_64.S
++++ b/arch/x86/crypto/camellia-aesni-avx-asm_64.S
+@@ -189,20 +189,20 @@
+  * larger and would only be 0.5% faster (on sandy-bridge).
+  */
+ .align 8
+-roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd:
++SYM_FUNC_START_LOCAL(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 	roundsm16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
+ 		  %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14, %xmm15,
+ 		  %rcx, (%r9));
+ 	ret;
+-ENDPROC(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
++SYM_FUNC_END(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 
+ .align 8
+-roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab:
++SYM_FUNC_START_LOCAL(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 	roundsm16(%xmm4, %xmm5, %xmm6, %xmm7, %xmm0, %xmm1, %xmm2, %xmm3,
+ 		  %xmm12, %xmm13, %xmm14, %xmm15, %xmm8, %xmm9, %xmm10, %xmm11,
+ 		  %rax, (%r9));
+ 	ret;
+-ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
++SYM_FUNC_END(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 
+ /*
+  * IN/OUT:
+@@ -722,7 +722,7 @@ ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ .text
+ 
+ .align 8
+-__camellia_enc_blk16:
++SYM_FUNC_START_LOCAL(__camellia_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 256 bytes
+@@ -806,10 +806,10 @@ __camellia_enc_blk16:
+ 		     %xmm15, %rax, %rcx, 24);
+ 
+ 	jmp .Lenc_done;
+-ENDPROC(__camellia_enc_blk16)
++SYM_FUNC_END(__camellia_enc_blk16)
+ 
+ .align 8
+-__camellia_dec_blk16:
++SYM_FUNC_START_LOCAL(__camellia_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 256 bytes
+@@ -891,7 +891,7 @@ __camellia_dec_blk16:
+ 	      ((key_table + (24) * 8) + 4)(CTX));
+ 
+ 	jmp .Ldec_max24;
+-ENDPROC(__camellia_dec_blk16)
++SYM_FUNC_END(__camellia_dec_blk16)
+ 
+ ENTRY(camellia_ecb_enc_16way)
+ 	/* input:
+@@ -1120,7 +1120,7 @@ ENDPROC(camellia_ctr_16way)
+ 	vpxor tmp, iv, iv;
+ 
+ .align 8
+-camellia_xts_crypt_16way:
++SYM_FUNC_START_LOCAL(camellia_xts_crypt_16way)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rsi: dst (16 blocks)
+@@ -1254,7 +1254,7 @@ camellia_xts_crypt_16way:
+ 
+ 	FRAME_END
+ 	ret;
+-ENDPROC(camellia_xts_crypt_16way)
++SYM_FUNC_END(camellia_xts_crypt_16way)
+ 
+ ENTRY(camellia_xts_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/camellia-aesni-avx2-asm_64.S b/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
+index b66bbfa62f50..916a3e2b8ea4 100644
+--- a/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
++++ b/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
+@@ -228,20 +228,20 @@
+  * larger and would only marginally faster.
+  */
+ .align 8
+-roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd:
++SYM_FUNC_START_LOCAL(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 	roundsm32(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+ 		  %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14, %ymm15,
+ 		  %rcx, (%r9));
+ 	ret;
+-ENDPROC(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
++SYM_FUNC_END(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 
+ .align 8
+-roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab:
++SYM_FUNC_START_LOCAL(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 	roundsm32(%ymm4, %ymm5, %ymm6, %ymm7, %ymm0, %ymm1, %ymm2, %ymm3,
+ 		  %ymm12, %ymm13, %ymm14, %ymm15, %ymm8, %ymm9, %ymm10, %ymm11,
+ 		  %rax, (%r9));
+ 	ret;
+-ENDPROC(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
++SYM_FUNC_END(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 
+ /*
+  * IN/OUT:
+@@ -765,7 +765,7 @@ ENDPROC(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ .text
+ 
+ .align 8
+-__camellia_enc_blk32:
++SYM_FUNC_START_LOCAL(__camellia_enc_blk32)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 512 bytes
+@@ -849,10 +849,10 @@ __camellia_enc_blk32:
+ 		     %ymm15, %rax, %rcx, 24);
+ 
+ 	jmp .Lenc_done;
+-ENDPROC(__camellia_enc_blk32)
++SYM_FUNC_END(__camellia_enc_blk32)
+ 
+ .align 8
+-__camellia_dec_blk32:
++SYM_FUNC_START_LOCAL(__camellia_dec_blk32)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 512 bytes
+@@ -934,7 +934,7 @@ __camellia_dec_blk32:
+ 	      ((key_table + (24) * 8) + 4)(CTX));
+ 
+ 	jmp .Ldec_max24;
+-ENDPROC(__camellia_dec_blk32)
++SYM_FUNC_END(__camellia_dec_blk32)
+ 
+ ENTRY(camellia_ecb_enc_32way)
+ 	/* input:
+@@ -1227,7 +1227,7 @@ ENDPROC(camellia_ctr_32way)
+ 	vpxor tmp1, iv, iv;
+ 
+ .align 8
+-camellia_xts_crypt_32way:
++SYM_FUNC_START_LOCAL(camellia_xts_crypt_32way)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rsi: dst (32 blocks)
+@@ -1372,7 +1372,7 @@ camellia_xts_crypt_32way:
+ 
+ 	FRAME_END
+ 	ret;
+-ENDPROC(camellia_xts_crypt_32way)
++SYM_FUNC_END(camellia_xts_crypt_32way)
+ 
+ ENTRY(camellia_xts_enc_32way)
+ 	/* input:
+diff --git a/arch/x86/crypto/cast5-avx-x86_64-asm_64.S b/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
+index 86107c961bb4..b26df120413c 100644
+--- a/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
+@@ -224,7 +224,7 @@
+ .text
+ 
+ .align 16
+-__cast5_enc_blk16:
++SYM_FUNC_START_LOCAL(__cast5_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RL1: blocks 1 and 2
+@@ -295,10 +295,10 @@ __cast5_enc_blk16:
+ 	outunpack_blocks(RR4, RL4, RTMP, RX, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast5_enc_blk16)
++SYM_FUNC_END(__cast5_enc_blk16)
+ 
+ .align 16
+-__cast5_dec_blk16:
++SYM_FUNC_START_LOCAL(__cast5_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RL1: encrypted blocks 1 and 2
+@@ -372,7 +372,7 @@ __cast5_dec_blk16:
+ .L__skip_dec:
+ 	vpsrldq $4, RKR, RKR;
+ 	jmp .L__dec_tail;
+-ENDPROC(__cast5_dec_blk16)
++SYM_FUNC_END(__cast5_dec_blk16)
+ 
+ ENTRY(cast5_ecb_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/cast6-avx-x86_64-asm_64.S b/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
+index 7f30b6f0d72c..0a68e42a00f9 100644
+--- a/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
+@@ -262,7 +262,7 @@
+ .text
+ 
+ .align 8
+-__cast6_enc_blk8:
++SYM_FUNC_START_LOCAL(__cast6_enc_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -307,10 +307,10 @@ __cast6_enc_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast6_enc_blk8)
++SYM_FUNC_END(__cast6_enc_blk8)
+ 
+ .align 8
+-__cast6_dec_blk8:
++SYM_FUNC_START_LOCAL(__cast6_dec_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: encrypted blocks
+@@ -354,7 +354,7 @@ __cast6_dec_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast6_dec_blk8)
++SYM_FUNC_END(__cast6_dec_blk8)
+ 
+ ENTRY(cast6_ecb_enc_8way)
+ 	/* input:
+diff --git a/arch/x86/crypto/chacha-ssse3-x86_64.S b/arch/x86/crypto/chacha-ssse3-x86_64.S
+index c05a7a963dc3..eb5f7517d28c 100644
+--- a/arch/x86/crypto/chacha-ssse3-x86_64.S
++++ b/arch/x86/crypto/chacha-ssse3-x86_64.S
+@@ -37,7 +37,7 @@ CTRINC:	.octa 0x00000003000000020000000100000000
+  *
+  * Clobbers: %r8d, %xmm4-%xmm7
+  */
+-chacha_permute:
++SYM_FUNC_START_LOCAL(chacha_permute)
+ 
+ 	movdqa		ROT8(%rip),%xmm4
+ 	movdqa		ROT16(%rip),%xmm5
+@@ -113,7 +113,7 @@ chacha_permute:
+ 	jnz		.Ldoubleround
+ 
+ 	ret
+-ENDPROC(chacha_permute)
++SYM_FUNC_END(chacha_permute)
+ 
+ ENTRY(chacha_block_xor_ssse3)
+ 	# %rdi: Input state matrix, s
+diff --git a/arch/x86/crypto/ghash-clmulni-intel_asm.S b/arch/x86/crypto/ghash-clmulni-intel_asm.S
+index f94375a8dcd1..c3db86842578 100644
+--- a/arch/x86/crypto/ghash-clmulni-intel_asm.S
++++ b/arch/x86/crypto/ghash-clmulni-intel_asm.S
+@@ -47,7 +47,7 @@
+  *	T2
+  *	T3
+  */
+-__clmul_gf128mul_ble:
++SYM_FUNC_START_LOCAL(__clmul_gf128mul_ble)
+ 	movaps DATA, T1
+ 	pshufd $0b01001110, DATA, T2
+ 	pshufd $0b01001110, SHASH, T3
+@@ -90,7 +90,7 @@ __clmul_gf128mul_ble:
+ 	pxor T2, T1
+ 	pxor T1, DATA
+ 	ret
+-ENDPROC(__clmul_gf128mul_ble)
++SYM_FUNC_END(__clmul_gf128mul_ble)
+ 
+ /* void clmul_ghash_mul(char *dst, const u128 *shash) */
+ ENTRY(clmul_ghash_mul)
+diff --git a/arch/x86/crypto/morus1280-avx2-asm.S b/arch/x86/crypto/morus1280-avx2-asm.S
+index de182c460f82..61916af30d94 100644
+--- a/arch/x86/crypto/morus1280-avx2-asm.S
++++ b/arch/x86/crypto/morus1280-avx2-asm.S
+@@ -70,7 +70,7 @@
+  * changed:
+  *   T0
+  */
+-__morus1280_update:
++SYM_FUNC_START_LOCAL(__morus1280_update)
+ 	morus1280_round STATE0, STATE1, STATE2, STATE3, STATE4, 13, MASK1
+ 	vpxor MSG, STATE1, STATE1
+ 	morus1280_round STATE1, STATE2, STATE3, STATE4, STATE0, 46, MASK2
+@@ -81,7 +81,7 @@ __morus1280_update:
+ 	vpxor MSG, STATE4, STATE4
+ 	morus1280_round STATE4, STATE0, STATE1, STATE2, STATE3,  4, MASK1
+ 	ret
+-ENDPROC(__morus1280_update)
++SYM_FUNC_END(__morus1280_update)
+ 
+ /*
+  * __morus1280_update_zero: internal ABI
+@@ -92,14 +92,14 @@ ENDPROC(__morus1280_update)
+  * changed:
+  *   T0
+  */
+-__morus1280_update_zero:
++SYM_FUNC_START_LOCAL(__morus1280_update_zero)
+ 	morus1280_round STATE0, STATE1, STATE2, STATE3, STATE4, 13, MASK1
+ 	morus1280_round STATE1, STATE2, STATE3, STATE4, STATE0, 46, MASK2
+ 	morus1280_round STATE2, STATE3, STATE4, STATE0, STATE1, 38, MASK3
+ 	morus1280_round STATE3, STATE4, STATE0, STATE1, STATE2,  7, MASK2
+ 	morus1280_round STATE4, STATE0, STATE1, STATE2, STATE3,  4, MASK1
+ 	ret
+-ENDPROC(__morus1280_update_zero)
++SYM_FUNC_END(__morus1280_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -112,7 +112,7 @@ ENDPROC(__morus1280_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	vpxor MSG, MSG, MSG
+ 
+@@ -171,7 +171,7 @@ __load_partial:
+ 
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -185,7 +185,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -238,7 +238,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus1280_avx2_init(void *state, const void *key,
+diff --git a/arch/x86/crypto/morus1280-sse2-asm.S b/arch/x86/crypto/morus1280-sse2-asm.S
+index da5d2905db60..927bb362fa98 100644
+--- a/arch/x86/crypto/morus1280-sse2-asm.S
++++ b/arch/x86/crypto/morus1280-sse2-asm.S
+@@ -128,7 +128,7 @@
+  * changed:
+  *   T0
+  */
+-__morus1280_update:
++SYM_FUNC_START_LOCAL(__morus1280_update)
+ 	morus1280_round \
+ 		STATE0_LO, STATE0_HI, \
+ 		STATE1_LO, STATE1_HI, \
+@@ -173,7 +173,7 @@ __morus1280_update:
+ 		STATE3_LO, STATE3_HI, \
+ 		4, rol1
+ 	ret
+-ENDPROC(__morus1280_update)
++SYM_FUNC_END(__morus1280_update)
+ 
+ /*
+  * __morus1280_update_zero: internal ABI
+@@ -184,7 +184,7 @@ ENDPROC(__morus1280_update)
+  * changed:
+  *   T0
+  */
+-__morus1280_update_zero:
++SYM_FUNC_START_LOCAL(__morus1280_update_zero)
+ 	morus1280_round \
+ 		STATE0_LO, STATE0_HI, \
+ 		STATE1_LO, STATE1_HI, \
+@@ -221,7 +221,7 @@ __morus1280_update_zero:
+ 		STATE3_LO, STATE3_HI, \
+ 		4, rol1
+ 	ret
+-ENDPROC(__morus1280_update_zero)
++SYM_FUNC_END(__morus1280_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -234,7 +234,7 @@ ENDPROC(__morus1280_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG_LO, MSG_LO
+ 	pxor MSG_HI, MSG_HI
+@@ -295,7 +295,7 @@ __load_partial:
+ 
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -309,7 +309,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -363,7 +363,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus1280_sse2_init(void *state, const void *key,
+diff --git a/arch/x86/crypto/morus640-sse2-asm.S b/arch/x86/crypto/morus640-sse2-asm.S
+index 414db480250e..4bdd3da7f66c 100644
+--- a/arch/x86/crypto/morus640-sse2-asm.S
++++ b/arch/x86/crypto/morus640-sse2-asm.S
+@@ -68,7 +68,7 @@
+  * changed:
+  *   T0
+  */
+-__morus640_update:
++SYM_FUNC_START_LOCAL(__morus640_update)
+ 	morus640_round STATE0, STATE1, STATE2, STATE3, STATE4,  5, MASK1
+ 	pxor MSG, STATE1
+ 	morus640_round STATE1, STATE2, STATE3, STATE4, STATE0, 31, MASK2
+@@ -79,7 +79,7 @@ __morus640_update:
+ 	pxor MSG, STATE4
+ 	morus640_round STATE4, STATE0, STATE1, STATE2, STATE3, 13, MASK1
+ 	ret
+-ENDPROC(__morus640_update)
++SYM_FUNC_END(__morus640_update)
+ 
+ 
+ /*
+@@ -91,14 +91,14 @@ ENDPROC(__morus640_update)
+  * changed:
+  *   T0
+  */
+-__morus640_update_zero:
++SYM_FUNC_START_LOCAL(__morus640_update_zero)
+ 	morus640_round STATE0, STATE1, STATE2, STATE3, STATE4,  5, MASK1
+ 	morus640_round STATE1, STATE2, STATE3, STATE4, STATE0, 31, MASK2
+ 	morus640_round STATE2, STATE3, STATE4, STATE0, STATE1,  7, MASK3
+ 	morus640_round STATE3, STATE4, STATE0, STATE1, STATE2, 22, MASK2
+ 	morus640_round STATE4, STATE0, STATE1, STATE2, STATE3, 13, MASK1
+ 	ret
+-ENDPROC(__morus640_update_zero)
++SYM_FUNC_END(__morus640_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -112,7 +112,7 @@ ENDPROC(__morus640_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
+ 
+@@ -164,7 +164,7 @@ __load_partial:
+ 
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -178,7 +178,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -222,7 +222,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus640_sse2_init(void *state, const void *key, const void *iv);
+diff --git a/arch/x86/crypto/serpent-avx-x86_64-asm_64.S b/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
+index 2925077f8c6a..c2d4a1fc9ee8 100644
+--- a/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
+@@ -570,7 +570,7 @@
+ 	transpose_4x4(x0, x1, x2, x3, t0, t1, t2)
+ 
+ .align 8
+-__serpent_enc_blk8_avx:
++SYM_FUNC_START_LOCAL(__serpent_enc_blk8_avx)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -621,10 +621,10 @@ __serpent_enc_blk8_avx:
+ 	write_blocks(RA2, RB2, RC2, RD2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_enc_blk8_avx)
++SYM_FUNC_END(__serpent_enc_blk8_avx)
+ 
+ .align 8
+-__serpent_dec_blk8_avx:
++SYM_FUNC_START_LOCAL(__serpent_dec_blk8_avx)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: encrypted blocks
+@@ -675,7 +675,7 @@ __serpent_dec_blk8_avx:
+ 	write_blocks(RC2, RD2, RB2, RE2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_dec_blk8_avx)
++SYM_FUNC_END(__serpent_dec_blk8_avx)
+ 
+ ENTRY(serpent_ecb_enc_8way_avx)
+ 	/* input:
+diff --git a/arch/x86/crypto/serpent-avx2-asm_64.S b/arch/x86/crypto/serpent-avx2-asm_64.S
+index d67888f2a52a..52c527ce4b18 100644
+--- a/arch/x86/crypto/serpent-avx2-asm_64.S
++++ b/arch/x86/crypto/serpent-avx2-asm_64.S
+@@ -566,7 +566,7 @@
+ 	transpose_4x4(x0, x1, x2, x3, t0, t1, t2)
+ 
+ .align 8
+-__serpent_enc_blk16:
++SYM_FUNC_START_LOCAL(__serpent_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: plaintext
+@@ -617,10 +617,10 @@ __serpent_enc_blk16:
+ 	write_blocks(RA2, RB2, RC2, RD2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_enc_blk16)
++SYM_FUNC_END(__serpent_enc_blk16)
+ 
+ .align 8
+-__serpent_dec_blk16:
++SYM_FUNC_START_LOCAL(__serpent_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: ciphertext
+@@ -671,7 +671,7 @@ __serpent_dec_blk16:
+ 	write_blocks(RC2, RD2, RB2, RE2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_dec_blk16)
++SYM_FUNC_END(__serpent_dec_blk16)
+ 
+ ENTRY(serpent_ecb_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/twofish-avx-x86_64-asm_64.S b/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
+index 73b471da3622..96ddfda4d7b2 100644
+--- a/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
+@@ -249,7 +249,7 @@
+ 	vpxor		x3, wkey, x3;
+ 
+ .align 8
+-__twofish_enc_blk8:
++SYM_FUNC_START_LOCAL(__twofish_enc_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -288,10 +288,10 @@ __twofish_enc_blk8:
+ 	outunpack_blocks(RC2, RD2, RA2, RB2, RK1, RX0, RY0, RK2);
+ 
+ 	ret;
+-ENDPROC(__twofish_enc_blk8)
++SYM_FUNC_END(__twofish_enc_blk8)
+ 
+ .align 8
+-__twofish_dec_blk8:
++SYM_FUNC_START_LOCAL(__twofish_dec_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RC1, RD1, RA1, RB1, RC2, RD2, RA2, RB2: encrypted blocks
+@@ -328,7 +328,7 @@ __twofish_dec_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RK1, RX0, RY0, RK2);
+ 
+ 	ret;
+-ENDPROC(__twofish_dec_blk8)
++SYM_FUNC_END(__twofish_dec_blk8)
+ 
+ ENTRY(twofish_ecb_enc_8way)
+ 	/* input:
 -- 
 2.20.1
