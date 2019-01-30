@@ -1,59 +1,78 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 14/28] xen/pvh: annotate data appropriatelly
-Date: Wed, 30 Jan 2019 13:46:57 +0100
-Message-ID: <20190130124711.12463-15-jslaby@suse.cz>
+Subject: [PATCH v7 02/28] x86/asm/suspend: drop ENTRY from local data
+Date: Wed, 30 Jan 2019 13:46:45 +0100
+Message-ID: <20190130124711.12463-3-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, x86@kernel.org, linux-kernel@vger.kernel.org, bp@alien8.de, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-VXNlIHRoZSBuZXcgU1lNX0RBVEFfU1RBUlRfTE9DQUwsIGFuZCBTWU1fREFUQV9FTkQqIG1hY3Jv
-cyB0byBoYXZlOgogIDAwMDAgICAgIDggT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdAog
-IDAwMDggICAgMzIgT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdF9zdGFydAogIDAwMjgg
-ICAgIDAgT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdF9lbmQKICAwMDI4ICAgMjU2IE9C
-SkVDVCAgTE9DQUwgIERFRkFVTFQgICAgNiBlYXJseV9zdGFjawogIDAxMjggICAgIDAgT0JKRUNU
-ICBMT0NBTCAgREVGQVVMVCAgICA2IGVhcmx5X3N0YWNrCgpTaWduZWQtb2ZmLWJ5OiBKaXJpIFNs
-YWJ5IDxqc2xhYnlAc3VzZS5jej4KUmV2aWV3ZWQtYnk6IEJvcmlzIE9zdHJvdnNreSA8Ym9yaXMu
-b3N0cm92c2t5QG9yYWNsZS5jb20+CkNjOiBCb3JpcyBPc3Ryb3Zza3kgPGJvcmlzLm9zdHJvdnNr
-eUBvcmFjbGUuY29tPgpDYzogSnVlcmdlbiBHcm9zcyA8amdyb3NzQHN1c2UuY29tPgpDYzogVGhv
-bWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+CkNjOiBJbmdvIE1vbG5hciA8bWluZ29A
-cmVkaGF0LmNvbT4KQ2M6ICJILiBQZXRlciBBbnZpbiIgPGhwYUB6eXRvci5jb20+CkNjOiB4ODZA
-a2VybmVsLm9yZwpDYzogeGVuLWRldmVsQGxpc3RzLnhlbnByb2plY3Qub3JnCi0tLQogYXJjaC94
-ODYvcGxhdGZvcm0vcHZoL2hlYWQuUyB8IDE0ICsrKysrKystLS0tLS0tCiAxIGZpbGUgY2hhbmdl
-ZCwgNyBpbnNlcnRpb25zKCspLCA3IGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2
-L3BsYXRmb3JtL3B2aC9oZWFkLlMgYi9hcmNoL3g4Ni9wbGF0Zm9ybS9wdmgvaGVhZC5TCmluZGV4
-IDFmODgyNWJiYWZmYi4uNGU2MzQ4MGJiMjIzIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9wbGF0Zm9y
-bS9wdmgvaGVhZC5TCisrKyBiL2FyY2gveDg2L3BsYXRmb3JtL3B2aC9oZWFkLlMKQEAgLTE1MCwx
-MSArMTUwLDEyIEBAIEVORChwdmhfc3RhcnRfeGVuKQogCiAJLnNlY3Rpb24gIi5pbml0LmRhdGEi
-LCJhdyIKIAkuYmFsaWduIDgKLWdkdDoKK1NZTV9EQVRBX1NUQVJUX0xPQ0FMKGdkdCkKIAkud29y
-ZCBnZHRfZW5kIC0gZ2R0X3N0YXJ0CiAJLmxvbmcgX3BhKGdkdF9zdGFydCkKIAkud29yZCAwCi1n
-ZHRfc3RhcnQ6CitTWU1fREFUQV9FTkQoZ2R0KQorU1lNX0RBVEFfU1RBUlRfTE9DQUwoZ2R0X3N0
-YXJ0KQogCS5xdWFkIDB4MDAwMDAwMDAwMDAwMDAwMCAgICAgICAgICAgIC8qIE5VTEwgZGVzY3Jp
-cHRvciAqLwogI2lmZGVmIENPTkZJR19YODZfNjQKIAkucXVhZCBHRFRfRU5UUlkoMHhhMDlhLCAw
-LCAweGZmZmZmKSAvKiBQVkhfQ1NfU0VMICovCkBAIC0xNjMsMTUgKzE2NCwxNCBAQCBnZHRfc3Rh
-cnQ6CiAjZW5kaWYKIAkucXVhZCBHRFRfRU5UUlkoMHhjMDkyLCAwLCAweGZmZmZmKSAvKiBQVkhf
-RFNfU0VMICovCiAJLnF1YWQgR0RUX0VOVFJZKDB4NDA5MCwgMCwgMHgxOCkgICAgLyogUFZIX0NB
-TkFSWV9TRUwgKi8KLWdkdF9lbmQ6CitTWU1fREFUQV9FTkRfTEFCRUwoZ2R0X3N0YXJ0LCBTWU1f
-TF9MT0NBTCwgZ2R0X2VuZCkKIAogCS5iYWxpZ24gMTYKLWNhbmFyeToKLQkuZmlsbCA0OCwgMSwg
-MAorU1lNX0RBVEFfTE9DQUwoY2FuYXJ5LCAuZmlsbCA0OCwgMSwgMCkKIAotZWFybHlfc3RhY2s6
-CitTWU1fREFUQV9TVEFSVF9MT0NBTChlYXJseV9zdGFjaykKIAkuZmlsbCBCT09UX1NUQUNLX1NJ
-WkUsIDEsIDAKLWVhcmx5X3N0YWNrX2VuZDoKK1NZTV9EQVRBX0VORF9MQUJFTChlYXJseV9zdGFj
-aywgU1lNX0xfTE9DQUwsIGVhcmx5X3N0YWNrX2VuZCkKIAogCUVMRk5PVEUoWGVuLCBYRU5fRUxG
-Tk9URV9QSFlTMzJfRU5UUlksCiAJICAgICAgICAgICAgIF9BU01fUFRSIChwdmhfc3RhcnRfeGVu
-IC0gX19TVEFSVF9LRVJORUxfbWFwKSkKLS0gCjIuMjAuMQoKCl9fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRl
-dmVsQGxpc3RzLnhlbnByb2plY3Qub3JnCmh0dHBzOi8vbGlzdHMueGVucHJvamVjdC5vcmcvbWFp
-bG1hbi9saXN0aW5mby94ZW4tZGV2ZWw=
+ENTRY was intended for functions and shall be paired with ENDPROC.
+ENTRY also aligns symbols which creates unnecessary holes here between
+data.
+
+So drop ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64,
+as these symbols are local only.
+
+We could use SYM_DATA_LOCAL for these symbols, but it was discouraged
+earlier [1].
+
+[1] https://lkml.org/lkml/2017/4/27/244
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Acked-by: Pavel Machek <pavel@ucw.cz>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: linux-pm@vger.kernel.org
+---
+ arch/x86/kernel/acpi/wakeup_32.S |  2 +-
+ arch/x86/kernel/acpi/wakeup_64.S | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index 0c26b1b44e51..4203d4f0c68d 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -90,7 +90,7 @@ ret_point:
+ .data
+ ALIGN
+ ENTRY(saved_magic)	.long	0
+-ENTRY(saved_eip)	.long	0
++saved_eip:		.long 0
+ 
+ # saved registers
+ saved_idt:	.long	0,0
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index 50b8ed0317a3..510fa12aab73 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
+ ENDPROC(do_suspend_lowlevel)
+ 
+ .data
+-ENTRY(saved_rbp)	.quad	0
+-ENTRY(saved_rsi)	.quad	0
+-ENTRY(saved_rdi)	.quad	0
+-ENTRY(saved_rbx)	.quad	0
++saved_rbp:		.quad	0
++saved_rsi:		.quad	0
++saved_rdi:		.quad	0
++saved_rbx:		.quad	0
+ 
+-ENTRY(saved_rip)	.quad	0
+-ENTRY(saved_rsp)	.quad	0
++saved_rip:		.quad	0
++saved_rsp:		.quad	0
+ 
+ ENTRY(saved_magic)	.quad	0
+-- 
+2.20.1
