@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44066 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:44118 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731003AbfA3MrZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 30 Jan 2019 07:47:25 -0500
+        id S1730974AbfA3MrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jan 2019 07:47:23 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 11/28] x86/asm/head: annotate data appropriatelly
-Date: Wed, 30 Jan 2019 13:46:54 +0100
-Message-ID: <20190130124711.12463-12-jslaby@suse.cz>
+Subject: [PATCH v7 07/28] x86/asm/crypto: annotate local functions
+Date: Wed, 30 Jan 2019 13:46:50 +0100
+Message-ID: <20190130124711.12463-8-jslaby@suse.cz>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,309 +14,938 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20190130124654.7DeaBv2L__QNjn6r2Pw6b-e1qICkZz9DsNn_h9Mh3KI@z>
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-crypto@vger.kernel.org
+Message-ID: <20190130124650.sm0UF0pNMuUp2ghu-rw5CLOyFtSV1JFH0pq-REWeEVo@z>
 
-Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END in both 32 and 64
-bit heads.  In the 64-bit version, define also
-SYM_DATA_START_PAGE_ALIGNED locally using the new SYM_START. It is used
-in the code instead of NEXT_PAGE() which was defined in this file and
-has been using the obsolete macro GLOBAL().
+Use the newly added SYM_FUNC_START_LOCAL to annotate starts of all
+functions which do not have ".globl" annotation, but their ends are
+annotated by ENDPROC. This is needed to balance ENDPROC for tools that
+generate debuginfo.
 
-Now, the data in the 64-bit object file look sane:
-Value   Size Type    Bind   Vis      Ndx Name
-  0000  4096 OBJECT  GLOBAL DEFAULT   15 init_level4_pgt
-  1000  4096 OBJECT  GLOBAL DEFAULT   15 level3_kernel_pgt
-  2000  2048 OBJECT  GLOBAL DEFAULT   15 level2_kernel_pgt
-  3000  4096 OBJECT  GLOBAL DEFAULT   15 level2_fixmap_pgt
-  4000  4096 OBJECT  GLOBAL DEFAULT   15 level1_fixmap_pgt
-  5000     2 OBJECT  GLOBAL DEFAULT   15 early_gdt_descr
-  5002     8 OBJECT  LOCAL  DEFAULT   15 early_gdt_descr_base
-  500a     8 OBJECT  GLOBAL DEFAULT   15 phys_base
-  0000     8 OBJECT  GLOBAL DEFAULT   17 initial_code
-  0008     8 OBJECT  GLOBAL DEFAULT   17 initial_gs
-  0010     8 OBJECT  GLOBAL DEFAULT   17 initial_stack
-  0000     4 OBJECT  GLOBAL DEFAULT   19 early_recursion_flag
-  1000  4096 OBJECT  GLOBAL DEFAULT   19 early_level4_pgt
-  2000 0x40000 OBJECT  GLOBAL DEFAULT   19 early_dynamic_pgts
-  0000  4096 OBJECT  GLOBAL DEFAULT   22 empty_zero_page
-
-All have correct size and type.
-
-Note, that we can now see that it might be worth pushing
-early_recursion_flag after early_dynamic_pgts -- we are wasting almost
-4K of .init.data.
+To be symmetric, we also convert their ENDPROCs to the new SYM_FUNC_END.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: <x86@kernel.org>
+Cc: <linux-crypto@vger.kernel.org>
 ---
- arch/x86/kernel/head_32.S | 29 ++++++++-------
- arch/x86/kernel/head_64.S | 78 +++++++++++++++++++++------------------
- 2 files changed, 58 insertions(+), 49 deletions(-)
+ arch/x86/crypto/aegis128-aesni-asm.S         |  8 ++--
+ arch/x86/crypto/aegis128l-aesni-asm.S        |  8 ++--
+ arch/x86/crypto/aegis256-aesni-asm.S         |  8 ++--
+ arch/x86/crypto/aesni-intel_asm.S            | 49 ++++++++------------
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S  | 20 ++++----
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S | 20 ++++----
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |  8 ++--
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |  8 ++--
+ arch/x86/crypto/chacha-ssse3-x86_64.S        |  4 +-
+ arch/x86/crypto/ghash-clmulni-intel_asm.S    |  4 +-
+ arch/x86/crypto/morus1280-avx2-asm.S         | 16 +++----
+ arch/x86/crypto/morus1280-sse2-asm.S         | 16 +++----
+ arch/x86/crypto/morus640-sse2-asm.S          | 16 +++----
+ arch/x86/crypto/serpent-avx-x86_64-asm_64.S  |  8 ++--
+ arch/x86/crypto/serpent-avx2-asm_64.S        |  8 ++--
+ arch/x86/crypto/twofish-avx-x86_64-asm_64.S  |  8 ++--
+ 16 files changed, 100 insertions(+), 109 deletions(-)
 
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 0bae769b7b59..2d5390d84467 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -502,8 +502,7 @@ ENDPROC(early_ignore_irq)
+diff --git a/arch/x86/crypto/aegis128-aesni-asm.S b/arch/x86/crypto/aegis128-aesni-asm.S
+index 5f7e43d4f64a..87b94664296a 100644
+--- a/arch/x86/crypto/aegis128-aesni-asm.S
++++ b/arch/x86/crypto/aegis128-aesni-asm.S
+@@ -74,7 +74,7 @@
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
  
- __INITDATA
- 	.align 4
--GLOBAL(early_recursion_flag)
--	.long 0
-+SYM_DATA(early_recursion_flag, .long 0)
+@@ -126,7 +126,7 @@ __load_partial:
  
- __REFDATA
- 	.align 4
-@@ -551,7 +550,7 @@ EXPORT_SYMBOL(empty_zero_page)
- __PAGE_ALIGNED_DATA
- 	/* Page-aligned for the benefit of paravirt? */
- 	.align PGD_ALIGN
--ENTRY(initial_page_table)
-+SYM_DATA_START(initial_page_table)
- 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0	/* low identity map */
- # if KPMDS == 3
- 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0
-@@ -569,17 +568,18 @@ ENTRY(initial_page_table)
- #  error "Kernel PMDs should be 1, 2 or 3"
- # endif
- 	.align PAGE_SIZE		/* needs to be page-sized too */
-+SYM_DATA_END(initial_page_table)
- #endif
- 
- .data
- .balign 4
--ENTRY(initial_stack)
--	/*
--	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
--	 * unwinder reliably detect the end of the stack.
--	 */
--	.long init_thread_union + THREAD_SIZE - SIZEOF_PTREGS - \
--	      TOP_OF_KERNEL_STACK_PADDING;
-+/*
-+ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
-+ * reliably detect the end of the stack.
-+ */
-+SYM_DATA(initial_stack,
-+		.long init_thread_union + THREAD_SIZE -
-+		SIZEOF_PTREGS - TOP_OF_KERNEL_STACK_PADDING)
- 
- __INITRODATA
- int_msg:
-@@ -600,22 +600,25 @@ int_msg:
- 	ALIGN
- # early boot GDT descriptor (must use 1:1 address mapping)
- 	.word 0				# 32 bit align gdt_desc.address
--boot_gdt_descr:
-+SYM_DATA_START(boot_gdt_descr)
- 	.word __BOOT_DS+7
- 	.long boot_gdt - __PAGE_OFFSET
-+SYM_DATA_END(boot_gdt_descr)
- 
- # boot GDT descriptor (later on used by CPU#0):
- 	.word 0				# 32 bit align gdt_desc.address
--ENTRY(early_gdt_descr)
-+SYM_DATA_START(early_gdt_descr)
- 	.word GDT_ENTRIES*8-1
- 	.long gdt_page			/* Overwritten for secondary CPUs */
-+SYM_DATA_END(early_gdt_descr)
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
  
  /*
-  * The boot_gdt must mirror the equivalent in setup.S and is
-  * used only for booting.
+  * __store_partial: internal ABI
+@@ -140,7 +140,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
   */
- 	.align L1_CACHE_BYTES
--ENTRY(boot_gdt)
-+SYM_DATA_START(boot_gdt)
- 	.fill GDT_ENTRY_BOOT_CS,8,0
- 	.quad 0x00cf9a000000ffff	/* kernel 4GB code at 0x00000000 */
- 	.quad 0x00cf92000000ffff	/* kernel 4GB data at 0x00000000 */
-+SYM_DATA_END(boot_gdt)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 251f02c743fe..5b7a3b430dea 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -262,16 +262,14 @@ ENDPROC(start_cpu0)
- 	/* Both SMP bootup and ACPI suspend change these variables */
- 	__REFDATA
- 	.balign	8
--	GLOBAL(initial_code)
--	.quad	x86_64_start_kernel
--	GLOBAL(initial_gs)
--	.quad	INIT_PER_CPU_VAR(irq_stack_union)
--	GLOBAL(initial_stack)
--	/*
--	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
--	 * unwinder reliably detect the end of the stack.
--	 */
--	.quad  init_thread_union + THREAD_SIZE - SIZEOF_PTREGS
-+SYM_DATA(initial_code,	.quad x86_64_start_kernel)
-+SYM_DATA(initial_gs,	.quad INIT_PER_CPU_VAR(irq_stack_union))
-+/*
-+ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
-+ * reliably detect the end of the stack.
-+ */
-+SYM_DATA(initial_stack,
-+		.quad init_thread_union + THREAD_SIZE - SIZEOF_PTREGS)
- 	__FINITDATA
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
  
- 	__INIT
-@@ -340,12 +338,10 @@ SYM_CODE_END(early_idt_handler_common)
- 	__INITDATA
+@@ -184,7 +184,7 @@ __store_partial:
  
- 	.balign 4
--GLOBAL(early_recursion_flag)
--	.long 0
-+SYM_DATA(early_recursion_flag, .long 0)
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
  
--#define NEXT_PAGE(name) \
--	.balign	PAGE_SIZE; \
--GLOBAL(name)
-+#define SYM_DATA_START_PAGE_ALIGNED(name)			\
-+	SYM_START(name, SYM_L_GLOBAL, .balign PAGE_SIZE)
- 
- #ifdef CONFIG_PAGE_TABLE_ISOLATION
  /*
-@@ -360,11 +356,11 @@ GLOBAL(name)
+  * void crypto_aegis128_aesni_init(void *state, const void *key, const void *iv);
+diff --git a/arch/x86/crypto/aegis128l-aesni-asm.S b/arch/x86/crypto/aegis128l-aesni-asm.S
+index 491dd61c845c..9f79a2c6752a 100644
+--- a/arch/x86/crypto/aegis128l-aesni-asm.S
++++ b/arch/x86/crypto/aegis128l-aesni-asm.S
+@@ -65,7 +65,7 @@
+  *   %r8
+  *   %r9
   */
- #define PTI_USER_PGD_FILL	512
- /* This ensures they are 8k-aligned: */
--#define NEXT_PGD_PAGE(name) \
--	.balign 2 * PAGE_SIZE; \
--GLOBAL(name)
-+#define SYM_DATA_START_PTI_ALIGNED(name) \
-+	SYM_START(name, SYM_L_GLOBAL, .balign 2 * PAGE_SIZE)
- #else
--#define NEXT_PGD_PAGE(name) NEXT_PAGE(name)
-+#define SYM_DATA_START_PTI_ALIGNED(name) \
-+	SYM_DATA_START_PAGE_ALIGNED(name)
- #define PTI_USER_PGD_FILL	0
- #endif
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG0, MSG0
+ 	pxor MSG1, MSG1
+@@ -126,7 +126,7 @@ __load_partial:
  
-@@ -377,17 +373,19 @@ GLOBAL(name)
- 	.endr
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
  
- 	__INITDATA
--NEXT_PGD_PAGE(early_top_pgt)
-+SYM_DATA_START_PTI_ALIGNED(early_top_pgt)
- 	.fill	512,8,0
- 	.fill	PTI_USER_PGD_FILL,8,0
-+SYM_DATA_END(early_top_pgt)
+ /*
+  * __store_partial: internal ABI
+@@ -141,7 +141,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
  
--NEXT_PAGE(early_dynamic_pgts)
-+SYM_DATA_START_PAGE_ALIGNED(early_dynamic_pgts)
- 	.fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
-+SYM_DATA_END(early_dynamic_pgts)
+@@ -195,7 +195,7 @@ __store_partial:
  
- 	.data
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
  
- #if defined(CONFIG_XEN_PV) || defined(CONFIG_PVH)
--NEXT_PGD_PAGE(init_top_pgt)
-+SYM_DATA_START_PTI_ALIGNED(init_top_pgt)
- 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
- 	.org    init_top_pgt + L4_PAGE_OFFSET*8, 0
- 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
-@@ -395,11 +393,13 @@ NEXT_PGD_PAGE(init_top_pgt)
- 	/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */
- 	.quad   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
- 	.fill	PTI_USER_PGD_FILL,8,0
-+SYM_DATA_END(init_top_pgt)
+ .macro update
+ 	movdqa STATE7, T0
+diff --git a/arch/x86/crypto/aegis256-aesni-asm.S b/arch/x86/crypto/aegis256-aesni-asm.S
+index 8870c7c5d9a4..e974a876c627 100644
+--- a/arch/x86/crypto/aegis256-aesni-asm.S
++++ b/arch/x86/crypto/aegis256-aesni-asm.S
+@@ -58,7 +58,7 @@
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
  
--NEXT_PAGE(level3_ident_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level3_ident_pgt)
- 	.quad	level2_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
- 	.fill	511, 8, 0
--NEXT_PAGE(level2_ident_pgt)
-+SYM_DATA_END(level3_ident_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level2_ident_pgt)
- 	/*
- 	 * Since I easily can, map the first 1G.
- 	 * Don't set NX because code runs from these pages.
-@@ -409,25 +409,29 @@ NEXT_PAGE(level2_ident_pgt)
- 	 * the CPU should ignore the bit.
- 	 */
- 	PMDS(0, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)
-+SYM_DATA_END(level2_ident_pgt)
- #else
--NEXT_PGD_PAGE(init_top_pgt)
-+SYM_DATA_START_PTI_ALIGNED(init_top_pgt)
- 	.fill	512,8,0
- 	.fill	PTI_USER_PGD_FILL,8,0
-+SYM_DATA_END(init_top_pgt)
- #endif
+@@ -110,7 +110,7 @@ __load_partial:
  
- #ifdef CONFIG_X86_5LEVEL
--NEXT_PAGE(level4_kernel_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level4_kernel_pgt)
- 	.fill	511,8,0
- 	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
-+SYM_DATA_END(level4_kernel_pgt)
- #endif
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
  
--NEXT_PAGE(level3_kernel_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level3_kernel_pgt)
- 	.fill	L3_START_KERNEL,8,0
- 	/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
- 	.quad	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
- 	.quad	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
-+SYM_DATA_END(level3_kernel_pgt)
+ /*
+  * __store_partial: internal ABI
+@@ -124,7 +124,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov LEN, %r8
+ 	mov DST, %r9
  
--NEXT_PAGE(level2_kernel_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level2_kernel_pgt)
- 	/*
- 	 * 512 MB kernel mapping. We spend a full page on this pagetable
- 	 * anyway.
-@@ -444,8 +448,9 @@ NEXT_PAGE(level2_kernel_pgt)
- 	 */
- 	PMDS(0, __PAGE_KERNEL_LARGE_EXEC,
- 		KERNEL_IMAGE_SIZE/PMD_SIZE)
-+SYM_DATA_END(level2_kernel_pgt)
+@@ -168,7 +168,7 @@ __store_partial:
  
--NEXT_PAGE(level2_fixmap_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level2_fixmap_pgt)
- 	.fill	(512 - 4 - FIXMAP_PMD_NUM),8,0
- 	pgtno = 0
- 	.rept (FIXMAP_PMD_NUM)
-@@ -455,21 +460,21 @@ NEXT_PAGE(level2_fixmap_pgt)
- 	.endr
- 	/* 6 MB reserved space + a 2MB hole */
- 	.fill	4,8,0
-+SYM_DATA_END(level2_fixmap_pgt)
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
  
--NEXT_PAGE(level1_fixmap_pgt)
-+SYM_DATA_START_PAGE_ALIGNED(level1_fixmap_pgt)
- 	.rept (FIXMAP_PMD_NUM)
- 	.fill	512,8,0
- 	.endr
-+SYM_DATA_END(level1_fixmap_pgt)
+ .macro update
+ 	movdqa STATE5, T0
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index cb2deb61c5d9..6c349e844581 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1763,7 +1763,7 @@ ENDPROC(aesni_gcm_finalize)
  
- #undef PMDS
+ .align 4
+ _key_expansion_128:
+-_key_expansion_256a:
++SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1774,10 +1774,9 @@ _key_expansion_256a:
+ 	add $0x10, TKEYP
+ 	ret
+ ENDPROC(_key_expansion_128)
+-ENDPROC(_key_expansion_256a)
++SYM_FUNC_END(_key_expansion_256a)
  
- 	.data
- 	.align 16
--	.globl early_gdt_descr
--early_gdt_descr:
--	.word	GDT_ENTRIES*8-1
--early_gdt_descr_base:
--	.quad	INIT_PER_CPU_VAR(gdt_page)
-+
-+SYM_DATA(early_gdt_descr,		.word GDT_ENTRIES*8-1)
-+SYM_DATA_LOCAL(early_gdt_descr_base,	.quad INIT_PER_CPU_VAR(gdt_page))
+-.align 4
+-_key_expansion_192a:
++SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1799,10 +1798,9 @@ _key_expansion_192a:
+ 	movaps %xmm1, 0x10(TKEYP)
+ 	add $0x20, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_192a)
++SYM_FUNC_END(_key_expansion_192a)
  
- /* This must match the first entry in level2_kernel_pgt */
- SYM_DATA(phys_base, .quad 0x0000000000000000)
-@@ -478,7 +483,8 @@ EXPORT_SYMBOL(phys_base)
- #include "../../x86/xen/xen-head.S"
+-.align 4
+-_key_expansion_192b:
++SYM_FUNC_START_LOCAL(_key_expansion_192b)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+ 	pxor %xmm4, %xmm0
+@@ -1819,10 +1817,9 @@ _key_expansion_192b:
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_192b)
++SYM_FUNC_END(_key_expansion_192b)
  
- 	__PAGE_ALIGNED_BSS
--NEXT_PAGE(empty_zero_page)
-+SYM_DATA_START_PAGE_ALIGNED(empty_zero_page)
- 	.skip PAGE_SIZE
-+SYM_DATA_END(empty_zero_page)
- EXPORT_SYMBOL(empty_zero_page)
+-.align 4
+-_key_expansion_256b:
++SYM_FUNC_START_LOCAL(_key_expansion_256b)
+ 	pshufd $0b10101010, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm2, %xmm4
+ 	pxor %xmm4, %xmm2
+@@ -1832,7 +1829,7 @@ _key_expansion_256b:
+ 	movaps %xmm2, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_256b)
++SYM_FUNC_END(_key_expansion_256b)
  
+ /*
+  * int aesni_set_key(struct crypto_aes_ctx *ctx, const u8 *in_key,
+@@ -1985,8 +1982,7 @@ ENDPROC(aesni_enc)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_enc1:
++SYM_FUNC_START_LOCAL(_aesni_enc1)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE		# round 0
+@@ -2029,7 +2025,7 @@ _aesni_enc1:
+ 	movaps 0x70(TKEYP), KEY
+ 	AESENCLAST KEY STATE
+ 	ret
+-ENDPROC(_aesni_enc1)
++SYM_FUNC_END(_aesni_enc1)
+ 
+ /*
+  * _aesni_enc4:	internal ABI
+@@ -2049,8 +2045,7 @@ ENDPROC(_aesni_enc1)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_enc4:
++SYM_FUNC_START_LOCAL(_aesni_enc4)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE1		# round 0
+@@ -2138,7 +2133,7 @@ _aesni_enc4:
+ 	AESENCLAST KEY STATE3
+ 	AESENCLAST KEY STATE4
+ 	ret
+-ENDPROC(_aesni_enc4)
++SYM_FUNC_END(_aesni_enc4)
+ 
+ /*
+  * void aesni_dec (struct crypto_aes_ctx *ctx, u8 *dst, const u8 *src)
+@@ -2177,8 +2172,7 @@ ENDPROC(aesni_dec)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_dec1:
++SYM_FUNC_START_LOCAL(_aesni_dec1)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE		# round 0
+@@ -2221,7 +2215,7 @@ _aesni_dec1:
+ 	movaps 0x70(TKEYP), KEY
+ 	AESDECLAST KEY STATE
+ 	ret
+-ENDPROC(_aesni_dec1)
++SYM_FUNC_END(_aesni_dec1)
+ 
+ /*
+  * _aesni_dec4:	internal ABI
+@@ -2241,8 +2235,7 @@ ENDPROC(_aesni_dec1)
+  *	KEY
+  *	TKEYP (T1)
+  */
+-.align 4
+-_aesni_dec4:
++SYM_FUNC_START_LOCAL(_aesni_dec4)
+ 	movaps (KEYP), KEY		# key
+ 	mov KEYP, TKEYP
+ 	pxor KEY, STATE1		# round 0
+@@ -2330,7 +2323,7 @@ _aesni_dec4:
+ 	AESDECLAST KEY STATE3
+ 	AESDECLAST KEY STATE4
+ 	ret
+-ENDPROC(_aesni_dec4)
++SYM_FUNC_END(_aesni_dec4)
+ 
+ /*
+  * void aesni_ecb_enc(struct crypto_aes_ctx *ctx, const u8 *dst, u8 *src,
+@@ -2608,8 +2601,7 @@ ENDPROC(aesni_cbc_dec)
+  *	INC:	== 1, in little endian
+  *	BSWAP_MASK == endian swapping mask
+  */
+-.align 4
+-_aesni_inc_init:
++SYM_FUNC_START_LOCAL(_aesni_inc_init)
+ 	movaps .Lbswap_mask, BSWAP_MASK
+ 	movaps IV, CTR
+ 	PSHUFB_XMM BSWAP_MASK CTR
+@@ -2617,7 +2609,7 @@ _aesni_inc_init:
+ 	MOVQ_R64_XMM TCTR_LOW INC
+ 	MOVQ_R64_XMM CTR TCTR_LOW
+ 	ret
+-ENDPROC(_aesni_inc_init)
++SYM_FUNC_END(_aesni_inc_init)
+ 
+ /*
+  * _aesni_inc:		internal ABI
+@@ -2634,8 +2626,7 @@ ENDPROC(_aesni_inc_init)
+  *	CTR:	== output IV, in little endian
+  *	TCTR_LOW: == lower qword of CTR
+  */
+-.align 4
+-_aesni_inc:
++SYM_FUNC_START_LOCAL(_aesni_inc)
+ 	paddq INC, CTR
+ 	add $1, TCTR_LOW
+ 	jnc .Linc_low
+@@ -2646,7 +2637,7 @@ _aesni_inc:
+ 	movaps CTR, IV
+ 	PSHUFB_XMM BSWAP_MASK IV
+ 	ret
+-ENDPROC(_aesni_inc)
++SYM_FUNC_END(_aesni_inc)
+ 
+ /*
+  * void aesni_ctr_enc(struct crypto_aes_ctx *ctx, const u8 *dst, u8 *src,
+diff --git a/arch/x86/crypto/camellia-aesni-avx-asm_64.S b/arch/x86/crypto/camellia-aesni-avx-asm_64.S
+index a14af6eb09cb..f4408ca55fdb 100644
+--- a/arch/x86/crypto/camellia-aesni-avx-asm_64.S
++++ b/arch/x86/crypto/camellia-aesni-avx-asm_64.S
+@@ -189,20 +189,20 @@
+  * larger and would only be 0.5% faster (on sandy-bridge).
+  */
+ .align 8
+-roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd:
++SYM_FUNC_START_LOCAL(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 	roundsm16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
+ 		  %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14, %xmm15,
+ 		  %rcx, (%r9));
+ 	ret;
+-ENDPROC(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
++SYM_FUNC_END(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 
+ .align 8
+-roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab:
++SYM_FUNC_START_LOCAL(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 	roundsm16(%xmm4, %xmm5, %xmm6, %xmm7, %xmm0, %xmm1, %xmm2, %xmm3,
+ 		  %xmm12, %xmm13, %xmm14, %xmm15, %xmm8, %xmm9, %xmm10, %xmm11,
+ 		  %rax, (%r9));
+ 	ret;
+-ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
++SYM_FUNC_END(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 
+ /*
+  * IN/OUT:
+@@ -722,7 +722,7 @@ ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ .text
+ 
+ .align 8
+-__camellia_enc_blk16:
++SYM_FUNC_START_LOCAL(__camellia_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 256 bytes
+@@ -806,10 +806,10 @@ __camellia_enc_blk16:
+ 		     %xmm15, %rax, %rcx, 24);
+ 
+ 	jmp .Lenc_done;
+-ENDPROC(__camellia_enc_blk16)
++SYM_FUNC_END(__camellia_enc_blk16)
+ 
+ .align 8
+-__camellia_dec_blk16:
++SYM_FUNC_START_LOCAL(__camellia_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 256 bytes
+@@ -891,7 +891,7 @@ __camellia_dec_blk16:
+ 	      ((key_table + (24) * 8) + 4)(CTX));
+ 
+ 	jmp .Ldec_max24;
+-ENDPROC(__camellia_dec_blk16)
++SYM_FUNC_END(__camellia_dec_blk16)
+ 
+ ENTRY(camellia_ecb_enc_16way)
+ 	/* input:
+@@ -1120,7 +1120,7 @@ ENDPROC(camellia_ctr_16way)
+ 	vpxor tmp, iv, iv;
+ 
+ .align 8
+-camellia_xts_crypt_16way:
++SYM_FUNC_START_LOCAL(camellia_xts_crypt_16way)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rsi: dst (16 blocks)
+@@ -1254,7 +1254,7 @@ camellia_xts_crypt_16way:
+ 
+ 	FRAME_END
+ 	ret;
+-ENDPROC(camellia_xts_crypt_16way)
++SYM_FUNC_END(camellia_xts_crypt_16way)
+ 
+ ENTRY(camellia_xts_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/camellia-aesni-avx2-asm_64.S b/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
+index b66bbfa62f50..916a3e2b8ea4 100644
+--- a/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
++++ b/arch/x86/crypto/camellia-aesni-avx2-asm_64.S
+@@ -228,20 +228,20 @@
+  * larger and would only marginally faster.
+  */
+ .align 8
+-roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd:
++SYM_FUNC_START_LOCAL(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 	roundsm32(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
+ 		  %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14, %ymm15,
+ 		  %rcx, (%r9));
+ 	ret;
+-ENDPROC(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
++SYM_FUNC_END(roundsm32_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
+ 
+ .align 8
+-roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab:
++SYM_FUNC_START_LOCAL(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 	roundsm32(%ymm4, %ymm5, %ymm6, %ymm7, %ymm0, %ymm1, %ymm2, %ymm3,
+ 		  %ymm12, %ymm13, %ymm14, %ymm15, %ymm8, %ymm9, %ymm10, %ymm11,
+ 		  %rax, (%r9));
+ 	ret;
+-ENDPROC(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
++SYM_FUNC_END(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ 
+ /*
+  * IN/OUT:
+@@ -765,7 +765,7 @@ ENDPROC(roundsm32_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
+ .text
+ 
+ .align 8
+-__camellia_enc_blk32:
++SYM_FUNC_START_LOCAL(__camellia_enc_blk32)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 512 bytes
+@@ -849,10 +849,10 @@ __camellia_enc_blk32:
+ 		     %ymm15, %rax, %rcx, 24);
+ 
+ 	jmp .Lenc_done;
+-ENDPROC(__camellia_enc_blk32)
++SYM_FUNC_END(__camellia_enc_blk32)
+ 
+ .align 8
+-__camellia_dec_blk32:
++SYM_FUNC_START_LOCAL(__camellia_dec_blk32)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rax: temporary storage, 512 bytes
+@@ -934,7 +934,7 @@ __camellia_dec_blk32:
+ 	      ((key_table + (24) * 8) + 4)(CTX));
+ 
+ 	jmp .Ldec_max24;
+-ENDPROC(__camellia_dec_blk32)
++SYM_FUNC_END(__camellia_dec_blk32)
+ 
+ ENTRY(camellia_ecb_enc_32way)
+ 	/* input:
+@@ -1227,7 +1227,7 @@ ENDPROC(camellia_ctr_32way)
+ 	vpxor tmp1, iv, iv;
+ 
+ .align 8
+-camellia_xts_crypt_32way:
++SYM_FUNC_START_LOCAL(camellia_xts_crypt_32way)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	%rsi: dst (32 blocks)
+@@ -1372,7 +1372,7 @@ camellia_xts_crypt_32way:
+ 
+ 	FRAME_END
+ 	ret;
+-ENDPROC(camellia_xts_crypt_32way)
++SYM_FUNC_END(camellia_xts_crypt_32way)
+ 
+ ENTRY(camellia_xts_enc_32way)
+ 	/* input:
+diff --git a/arch/x86/crypto/cast5-avx-x86_64-asm_64.S b/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
+index 86107c961bb4..b26df120413c 100644
+--- a/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/cast5-avx-x86_64-asm_64.S
+@@ -224,7 +224,7 @@
+ .text
+ 
+ .align 16
+-__cast5_enc_blk16:
++SYM_FUNC_START_LOCAL(__cast5_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RL1: blocks 1 and 2
+@@ -295,10 +295,10 @@ __cast5_enc_blk16:
+ 	outunpack_blocks(RR4, RL4, RTMP, RX, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast5_enc_blk16)
++SYM_FUNC_END(__cast5_enc_blk16)
+ 
+ .align 16
+-__cast5_dec_blk16:
++SYM_FUNC_START_LOCAL(__cast5_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RL1: encrypted blocks 1 and 2
+@@ -372,7 +372,7 @@ __cast5_dec_blk16:
+ .L__skip_dec:
+ 	vpsrldq $4, RKR, RKR;
+ 	jmp .L__dec_tail;
+-ENDPROC(__cast5_dec_blk16)
++SYM_FUNC_END(__cast5_dec_blk16)
+ 
+ ENTRY(cast5_ecb_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/cast6-avx-x86_64-asm_64.S b/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
+index 7f30b6f0d72c..0a68e42a00f9 100644
+--- a/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/cast6-avx-x86_64-asm_64.S
+@@ -262,7 +262,7 @@
+ .text
+ 
+ .align 8
+-__cast6_enc_blk8:
++SYM_FUNC_START_LOCAL(__cast6_enc_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -307,10 +307,10 @@ __cast6_enc_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast6_enc_blk8)
++SYM_FUNC_END(__cast6_enc_blk8)
+ 
+ .align 8
+-__cast6_dec_blk8:
++SYM_FUNC_START_LOCAL(__cast6_dec_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: encrypted blocks
+@@ -354,7 +354,7 @@ __cast6_dec_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
+ 
+ 	ret;
+-ENDPROC(__cast6_dec_blk8)
++SYM_FUNC_END(__cast6_dec_blk8)
+ 
+ ENTRY(cast6_ecb_enc_8way)
+ 	/* input:
+diff --git a/arch/x86/crypto/chacha-ssse3-x86_64.S b/arch/x86/crypto/chacha-ssse3-x86_64.S
+index c05a7a963dc3..eb5f7517d28c 100644
+--- a/arch/x86/crypto/chacha-ssse3-x86_64.S
++++ b/arch/x86/crypto/chacha-ssse3-x86_64.S
+@@ -37,7 +37,7 @@ CTRINC:	.octa 0x00000003000000020000000100000000
+  *
+  * Clobbers: %r8d, %xmm4-%xmm7
+  */
+-chacha_permute:
++SYM_FUNC_START_LOCAL(chacha_permute)
+ 
+ 	movdqa		ROT8(%rip),%xmm4
+ 	movdqa		ROT16(%rip),%xmm5
+@@ -113,7 +113,7 @@ chacha_permute:
+ 	jnz		.Ldoubleround
+ 
+ 	ret
+-ENDPROC(chacha_permute)
++SYM_FUNC_END(chacha_permute)
+ 
+ ENTRY(chacha_block_xor_ssse3)
+ 	# %rdi: Input state matrix, s
+diff --git a/arch/x86/crypto/ghash-clmulni-intel_asm.S b/arch/x86/crypto/ghash-clmulni-intel_asm.S
+index f94375a8dcd1..c3db86842578 100644
+--- a/arch/x86/crypto/ghash-clmulni-intel_asm.S
++++ b/arch/x86/crypto/ghash-clmulni-intel_asm.S
+@@ -47,7 +47,7 @@
+  *	T2
+  *	T3
+  */
+-__clmul_gf128mul_ble:
++SYM_FUNC_START_LOCAL(__clmul_gf128mul_ble)
+ 	movaps DATA, T1
+ 	pshufd $0b01001110, DATA, T2
+ 	pshufd $0b01001110, SHASH, T3
+@@ -90,7 +90,7 @@ __clmul_gf128mul_ble:
+ 	pxor T2, T1
+ 	pxor T1, DATA
+ 	ret
+-ENDPROC(__clmul_gf128mul_ble)
++SYM_FUNC_END(__clmul_gf128mul_ble)
+ 
+ /* void clmul_ghash_mul(char *dst, const u128 *shash) */
+ ENTRY(clmul_ghash_mul)
+diff --git a/arch/x86/crypto/morus1280-avx2-asm.S b/arch/x86/crypto/morus1280-avx2-asm.S
+index de182c460f82..61916af30d94 100644
+--- a/arch/x86/crypto/morus1280-avx2-asm.S
++++ b/arch/x86/crypto/morus1280-avx2-asm.S
+@@ -70,7 +70,7 @@
+  * changed:
+  *   T0
+  */
+-__morus1280_update:
++SYM_FUNC_START_LOCAL(__morus1280_update)
+ 	morus1280_round STATE0, STATE1, STATE2, STATE3, STATE4, 13, MASK1
+ 	vpxor MSG, STATE1, STATE1
+ 	morus1280_round STATE1, STATE2, STATE3, STATE4, STATE0, 46, MASK2
+@@ -81,7 +81,7 @@ __morus1280_update:
+ 	vpxor MSG, STATE4, STATE4
+ 	morus1280_round STATE4, STATE0, STATE1, STATE2, STATE3,  4, MASK1
+ 	ret
+-ENDPROC(__morus1280_update)
++SYM_FUNC_END(__morus1280_update)
+ 
+ /*
+  * __morus1280_update_zero: internal ABI
+@@ -92,14 +92,14 @@ ENDPROC(__morus1280_update)
+  * changed:
+  *   T0
+  */
+-__morus1280_update_zero:
++SYM_FUNC_START_LOCAL(__morus1280_update_zero)
+ 	morus1280_round STATE0, STATE1, STATE2, STATE3, STATE4, 13, MASK1
+ 	morus1280_round STATE1, STATE2, STATE3, STATE4, STATE0, 46, MASK2
+ 	morus1280_round STATE2, STATE3, STATE4, STATE0, STATE1, 38, MASK3
+ 	morus1280_round STATE3, STATE4, STATE0, STATE1, STATE2,  7, MASK2
+ 	morus1280_round STATE4, STATE0, STATE1, STATE2, STATE3,  4, MASK1
+ 	ret
+-ENDPROC(__morus1280_update_zero)
++SYM_FUNC_END(__morus1280_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -112,7 +112,7 @@ ENDPROC(__morus1280_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	vpxor MSG, MSG, MSG
+ 
+@@ -171,7 +171,7 @@ __load_partial:
+ 
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -185,7 +185,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -238,7 +238,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus1280_avx2_init(void *state, const void *key,
+diff --git a/arch/x86/crypto/morus1280-sse2-asm.S b/arch/x86/crypto/morus1280-sse2-asm.S
+index da5d2905db60..927bb362fa98 100644
+--- a/arch/x86/crypto/morus1280-sse2-asm.S
++++ b/arch/x86/crypto/morus1280-sse2-asm.S
+@@ -128,7 +128,7 @@
+  * changed:
+  *   T0
+  */
+-__morus1280_update:
++SYM_FUNC_START_LOCAL(__morus1280_update)
+ 	morus1280_round \
+ 		STATE0_LO, STATE0_HI, \
+ 		STATE1_LO, STATE1_HI, \
+@@ -173,7 +173,7 @@ __morus1280_update:
+ 		STATE3_LO, STATE3_HI, \
+ 		4, rol1
+ 	ret
+-ENDPROC(__morus1280_update)
++SYM_FUNC_END(__morus1280_update)
+ 
+ /*
+  * __morus1280_update_zero: internal ABI
+@@ -184,7 +184,7 @@ ENDPROC(__morus1280_update)
+  * changed:
+  *   T0
+  */
+-__morus1280_update_zero:
++SYM_FUNC_START_LOCAL(__morus1280_update_zero)
+ 	morus1280_round \
+ 		STATE0_LO, STATE0_HI, \
+ 		STATE1_LO, STATE1_HI, \
+@@ -221,7 +221,7 @@ __morus1280_update_zero:
+ 		STATE3_LO, STATE3_HI, \
+ 		4, rol1
+ 	ret
+-ENDPROC(__morus1280_update_zero)
++SYM_FUNC_END(__morus1280_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -234,7 +234,7 @@ ENDPROC(__morus1280_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG_LO, MSG_LO
+ 	pxor MSG_HI, MSG_HI
+@@ -295,7 +295,7 @@ __load_partial:
+ 
+ .Lld_partial_16:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -309,7 +309,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -363,7 +363,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus1280_sse2_init(void *state, const void *key,
+diff --git a/arch/x86/crypto/morus640-sse2-asm.S b/arch/x86/crypto/morus640-sse2-asm.S
+index 414db480250e..4bdd3da7f66c 100644
+--- a/arch/x86/crypto/morus640-sse2-asm.S
++++ b/arch/x86/crypto/morus640-sse2-asm.S
+@@ -68,7 +68,7 @@
+  * changed:
+  *   T0
+  */
+-__morus640_update:
++SYM_FUNC_START_LOCAL(__morus640_update)
+ 	morus640_round STATE0, STATE1, STATE2, STATE3, STATE4,  5, MASK1
+ 	pxor MSG, STATE1
+ 	morus640_round STATE1, STATE2, STATE3, STATE4, STATE0, 31, MASK2
+@@ -79,7 +79,7 @@ __morus640_update:
+ 	pxor MSG, STATE4
+ 	morus640_round STATE4, STATE0, STATE1, STATE2, STATE3, 13, MASK1
+ 	ret
+-ENDPROC(__morus640_update)
++SYM_FUNC_END(__morus640_update)
+ 
+ 
+ /*
+@@ -91,14 +91,14 @@ ENDPROC(__morus640_update)
+  * changed:
+  *   T0
+  */
+-__morus640_update_zero:
++SYM_FUNC_START_LOCAL(__morus640_update_zero)
+ 	morus640_round STATE0, STATE1, STATE2, STATE3, STATE4,  5, MASK1
+ 	morus640_round STATE1, STATE2, STATE3, STATE4, STATE0, 31, MASK2
+ 	morus640_round STATE2, STATE3, STATE4, STATE0, STATE1,  7, MASK3
+ 	morus640_round STATE3, STATE4, STATE0, STATE1, STATE2, 22, MASK2
+ 	morus640_round STATE4, STATE0, STATE1, STATE2, STATE3, 13, MASK1
+ 	ret
+-ENDPROC(__morus640_update_zero)
++SYM_FUNC_END(__morus640_update_zero)
+ 
+ /*
+  * __load_partial: internal ABI
+@@ -112,7 +112,7 @@ ENDPROC(__morus640_update_zero)
+  *   %r8
+  *   %r9
+  */
+-__load_partial:
++SYM_FUNC_START_LOCAL(__load_partial)
+ 	xor %r9d, %r9d
+ 	pxor MSG, MSG
+ 
+@@ -164,7 +164,7 @@ __load_partial:
+ 
+ .Lld_partial_8:
+ 	ret
+-ENDPROC(__load_partial)
++SYM_FUNC_END(__load_partial)
+ 
+ /*
+  * __store_partial: internal ABI
+@@ -178,7 +178,7 @@ ENDPROC(__load_partial)
+  *   %r9
+  *   %r10
+  */
+-__store_partial:
++SYM_FUNC_START_LOCAL(__store_partial)
+ 	mov %rcx, %r8
+ 	mov %rdx, %r9
+ 
+@@ -222,7 +222,7 @@ __store_partial:
+ 
+ .Lst_partial_1:
+ 	ret
+-ENDPROC(__store_partial)
++SYM_FUNC_END(__store_partial)
+ 
+ /*
+  * void crypto_morus640_sse2_init(void *state, const void *key, const void *iv);
+diff --git a/arch/x86/crypto/serpent-avx-x86_64-asm_64.S b/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
+index 2925077f8c6a..c2d4a1fc9ee8 100644
+--- a/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/serpent-avx-x86_64-asm_64.S
+@@ -570,7 +570,7 @@
+ 	transpose_4x4(x0, x1, x2, x3, t0, t1, t2)
+ 
+ .align 8
+-__serpent_enc_blk8_avx:
++SYM_FUNC_START_LOCAL(__serpent_enc_blk8_avx)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -621,10 +621,10 @@ __serpent_enc_blk8_avx:
+ 	write_blocks(RA2, RB2, RC2, RD2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_enc_blk8_avx)
++SYM_FUNC_END(__serpent_enc_blk8_avx)
+ 
+ .align 8
+-__serpent_dec_blk8_avx:
++SYM_FUNC_START_LOCAL(__serpent_dec_blk8_avx)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: encrypted blocks
+@@ -675,7 +675,7 @@ __serpent_dec_blk8_avx:
+ 	write_blocks(RC2, RD2, RB2, RE2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_dec_blk8_avx)
++SYM_FUNC_END(__serpent_dec_blk8_avx)
+ 
+ ENTRY(serpent_ecb_enc_8way_avx)
+ 	/* input:
+diff --git a/arch/x86/crypto/serpent-avx2-asm_64.S b/arch/x86/crypto/serpent-avx2-asm_64.S
+index d67888f2a52a..52c527ce4b18 100644
+--- a/arch/x86/crypto/serpent-avx2-asm_64.S
++++ b/arch/x86/crypto/serpent-avx2-asm_64.S
+@@ -566,7 +566,7 @@
+ 	transpose_4x4(x0, x1, x2, x3, t0, t1, t2)
+ 
+ .align 8
+-__serpent_enc_blk16:
++SYM_FUNC_START_LOCAL(__serpent_enc_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: plaintext
+@@ -617,10 +617,10 @@ __serpent_enc_blk16:
+ 	write_blocks(RA2, RB2, RC2, RD2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_enc_blk16)
++SYM_FUNC_END(__serpent_enc_blk16)
+ 
+ .align 8
+-__serpent_dec_blk16:
++SYM_FUNC_START_LOCAL(__serpent_dec_blk16)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: ciphertext
+@@ -671,7 +671,7 @@ __serpent_dec_blk16:
+ 	write_blocks(RC2, RD2, RB2, RE2, RK0, RK1, RK2);
+ 
+ 	ret;
+-ENDPROC(__serpent_dec_blk16)
++SYM_FUNC_END(__serpent_dec_blk16)
+ 
+ ENTRY(serpent_ecb_enc_16way)
+ 	/* input:
+diff --git a/arch/x86/crypto/twofish-avx-x86_64-asm_64.S b/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
+index 73b471da3622..96ddfda4d7b2 100644
+--- a/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
++++ b/arch/x86/crypto/twofish-avx-x86_64-asm_64.S
+@@ -249,7 +249,7 @@
+ 	vpxor		x3, wkey, x3;
+ 
+ .align 8
+-__twofish_enc_blk8:
++SYM_FUNC_START_LOCAL(__twofish_enc_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2: blocks
+@@ -288,10 +288,10 @@ __twofish_enc_blk8:
+ 	outunpack_blocks(RC2, RD2, RA2, RB2, RK1, RX0, RY0, RK2);
+ 
+ 	ret;
+-ENDPROC(__twofish_enc_blk8)
++SYM_FUNC_END(__twofish_enc_blk8)
+ 
+ .align 8
+-__twofish_dec_blk8:
++SYM_FUNC_START_LOCAL(__twofish_dec_blk8)
+ 	/* input:
+ 	 *	%rdi: ctx, CTX
+ 	 *	RC1, RD1, RA1, RB1, RC2, RD2, RA2, RB2: encrypted blocks
+@@ -328,7 +328,7 @@ __twofish_dec_blk8:
+ 	outunpack_blocks(RA2, RB2, RC2, RD2, RK1, RX0, RY0, RK2);
+ 
+ 	ret;
+-ENDPROC(__twofish_dec_blk8)
++SYM_FUNC_END(__twofish_dec_blk8)
+ 
+ ENTRY(twofish_ecb_enc_8way)
+ 	/* input:
 -- 
 2.20.1
