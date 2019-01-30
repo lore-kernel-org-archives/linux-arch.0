@@ -1,92 +1,52 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v8 0/8] Introduce the for_each_set_clump8 macro
-Date: Tue, 29 Jan 2019 17:07:34 -0800
-Message-ID: <20190129170734.688a6adf91267cc6f1b5fa08@linux-foundation.org>
-References: <cover.1547445576.git.vilhelm.gray@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Wed, 30 Jan 2019 05:40:36 +0100
+Message-ID: <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de>
+References: <20190119140452.GA25198@lst.de> <bfe4adcc-01c1-7b46-f40a-8e020ff77f58@xenosoft.de> <8434e281-eb85-51d9-106f-f4faa559e89c@xenosoft.de> <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de> <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de> <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de> <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de> <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de> <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1547445576.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20190129163415.GA14529@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: linus.walleij@linaro.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 14 Jan 2019 15:19:17 +0900 William Breathitt Gray <vilhelm.gray@gmail.com> wrote:
+Hi Christoph,
 
-> While adding GPIO get_multiple/set_multiple callback support for various
-> drivers, I noticed a pattern of looping manifesting that would be useful
-> standardized as a macro.
-> 
-> This patchset introduces the for_each_set_clump8 macro and utilizes it
-> in several GPIO drivers. The for_each_set_clump macro8 facilitates a
-> for-loop syntax that iterates over a memory region entire groups of set
-> bits at a time.
-> 
-> For example, suppose you would like to iterate over a 32-bit integer 8
-> bits at a time, skipping over 8-bit groups with no set bit, where
-> XXXXXXXX represents the current 8-bit group:
-> 
->     Example:        10111110 00000000 11111111 00110011
->     First loop:     10111110 00000000 11111111 XXXXXXXX
->     Second loop:    10111110 00000000 XXXXXXXX 00110011
->     Third loop:     XXXXXXXX 00000000 11111111 00110011
-> 
-> Each iteration of the loop returns the next 8-bit group that has at
-> least one set bit.
-> 
-> The for_each_set_clump8 macro has four parameters:
-> 
->     * start: set to the bit offset of the current clump
->     * clump: set to the current clump value
->     * bits: bitmap to search within
->     * size: bitmap size in number of bits
-> 
-> In this version of the patchset, the for_each_set_clump macro has been
-> reimplemented and simplified based on the suggestions provided by Rasmus
-> Villemoes and Andy Shevchenko in the version 4 submission.
-> 
-> In particular, the function of the for_each_set_clump macro has been
-> restricted to handle only 8-bit clumps; the drivers that use the
-> for_each_set_clump macro only handle 8-bit ports so a generic
-> for_each_set_clump implementation is not necessary. Thus, a solution for
-> large clumps (i.e. those larger than the width of a bitmap word) can be
-> postponed until a driver appears that actually requires such a generic
-> for_each_set_clump implementation.
-> 
-> For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
-> smaller than the width of a bitmap word) can be implemented by simply
-> replacing the hardcoded '8' and '0xFF' instances with respective
-> variables. I have not yet had a need for such an implementation, and
-> since it falls short of a true generic for_each_set_clump function, I
-> have decided to forgo such an implementation for now.
-> 
-> In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
-> introduced to get and set 8-bit values respectively. Their use is based
-> on the behavior suggested in the patchset version 4 review.
+Thanks a lot for the updates. I will test the full branch tomorrow.
 
-Nice-looking code.
+Cheers,
+Christian
 
->  drivers/gpio/gpio-104-dio-48e.c   |  73 ++++++--------------
->  drivers/gpio/gpio-104-idi-48.c    |  37 +++-------
->  drivers/gpio/gpio-gpio-mm.c       |  73 ++++++--------------
->  drivers/gpio/gpio-pci-idio-16.c   |  75 ++++++++------------
->  drivers/gpio/gpio-pcie-idio-24.c  | 111 +++++++++++-------------------
->  drivers/gpio/gpio-ws16c48.c       |  72 ++++++-------------
->  include/asm-generic/bitops/find.h |  14 ++++
->  include/linux/bitops.h            |   5 ++
->  lib/find_bit.c                    |  81 ++++++++++++++++++++++
->  lib/test_bitmap.c                 |  65 +++++++++++++++++
->  10 files changed, 307 insertions(+), 299 deletions(-)
+Sent from my iPhone
 
-It's a shame that it doesn't actually dercease the kernel line count,
-but there are other benefits.
-
-The patches are missing the hoped-for acks, but I think you maintain
-most/all of those drivers.
-
-Do we have any expectation that these facilities will be used by
-anything other than GPIO?  If not then perhaps they should be sited
-within drivers/gpio (presumably as a standalone module) until such a
-need is found?
+> On 29. Jan 2019, at 17:34, Christoph Hellwig <hch@lst.de> wrote:
+>=20
+>> On Tue, Jan 29, 2019 at 05:14:11PM +0100, Christoph Hellwig wrote:
+>>> On Tue, Jan 29, 2019 at 04:03:32PM +0100, Christian Zigotzky wrote:
+>>> Hi Christoph,
+>>>=20
+>>> I compiled kernels for the X5000 and X1000 from your new branch=20
+>>> 'powerpc-dma.6-debug.2' today. The kernels boot and the P.A. Semi Ethern=
+et=20
+>>> works!
+>>=20
+>> Thanks for testing!  I'll prepare a new series that adds the other
+>> patches on top of this one.
+>=20
+> And that was easier than I thought - we just had a few patches left
+> in powerpc-dma.6, so I've rebased that branch on top of
+> powerpc-dma.6-debug.2:
+>=20
+>    git://git.infradead.org/users/hch/misc.git powerpc-dma.6
+>=20
+> Gitweb:
+>=20
+>    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc=
+-dma.6
+>=20
+> I hope the other patches are simple enough, so just testing the full
+> branch checkout should be fine for now.
