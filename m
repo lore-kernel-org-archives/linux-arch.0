@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44178 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:44370 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731036AbfA3Mr3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 30 Jan 2019 07:47:29 -0500
+        id S1730851AbfA3Mra (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jan 2019 07:47:30 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 18/28] x86/asm/realmode: use SYM_DATA_* instead of GLOBAL
-Date: Wed, 30 Jan 2019 13:47:01 +0100
-Message-ID: <20190130124711.12463-19-jslaby@suse.cz>
+Subject: [PATCH v7 20/28] x86/asm: make some functions local
+Date: Wed, 30 Jan 2019 13:47:03 +0100
+Message-ID: <20190130124711.12463-21-jslaby@suse.cz>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,258 +14,325 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20190130124701.bQIeRlfkAnHyk3kds_ySDIrzAJIlszcUoN4g7luZc1o@z>
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Matt Fleming <matt@codeblueprint.co.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-efi@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20190130124703.ibxZYTgceGXfBO7lMdiCHRjEHNW3N5_UkHsEVzijfIA@z>
 
-GLOBAL had several meanings and is going away. In this patch, convert
-all the data marked using GLOBAL to use SYM_DATA_START or SYM_DATA
-instead.
-
-Notes:
-* SYM_DATA_END_LABEL is used to generate tr_gdt_end too.
-* wakeup_idt is marked as LOCAL now as it is used only locally.
+There is a couple of assembly functions, which are invoked only locally
+in the file they are defined. In C, we mark them "static". In assembly,
+annotate them using SYM_{FUNC,CODE}_START_LOCAL (and switch their
+ENDPROC to SYM_{FUNC,CODE}_END too). Whether we use FUNC or CODE,
+depends on whether ENDPROC or END was used for a particular function
+before.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-efi@vger.kernel.org
+Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/realmode/rm/header.S            |  8 +++-----
- arch/x86/realmode/rm/reboot.S            |  8 ++++----
- arch/x86/realmode/rm/stack.S             | 14 ++++++--------
- arch/x86/realmode/rm/trampoline_32.S     | 10 +++++-----
- arch/x86/realmode/rm/trampoline_64.S     | 19 +++++++++----------
- arch/x86/realmode/rm/trampoline_common.S |  4 ++--
- arch/x86/realmode/rm/wakeup_asm.S        | 12 ++++++------
- arch/x86/realmode/rmpiggy.S              | 10 ++++------
- 8 files changed, 39 insertions(+), 46 deletions(-)
+ arch/x86/boot/compressed/efi_thunk_64.S |  8 ++++----
+ arch/x86/entry/entry_64.S               | 21 +++++++++++----------
+ arch/x86/lib/copy_page_64.S             |  4 ++--
+ arch/x86/lib/memcpy_64.S                | 12 ++++++------
+ arch/x86/lib/memset_64.S                |  8 ++++----
+ arch/x86/platform/efi/efi_thunk_64.S    | 12 ++++++------
+ arch/x86/platform/pvh/head.S            |  4 ++--
+ 7 files changed, 35 insertions(+), 34 deletions(-)
 
-diff --git a/arch/x86/realmode/rm/header.S b/arch/x86/realmode/rm/header.S
-index 30b0d30d861a..5ee0d96731a3 100644
---- a/arch/x86/realmode/rm/header.S
-+++ b/arch/x86/realmode/rm/header.S
-@@ -14,7 +14,7 @@
- 	.section ".header", "a"
+diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
+index d66000d23921..31312070db22 100644
+--- a/arch/x86/boot/compressed/efi_thunk_64.S
++++ b/arch/x86/boot/compressed/efi_thunk_64.S
+@@ -99,12 +99,12 @@ ENTRY(efi64_thunk)
+ 	ret
+ ENDPROC(efi64_thunk)
  
- 	.balign	16
--GLOBAL(real_mode_header)
-+SYM_DATA_START(real_mode_header)
- 	.long	pa_text_start
- 	.long	pa_ro_end
- 	/* SMP trampoline */
-@@ -34,11 +34,9 @@ GLOBAL(real_mode_header)
- #ifdef CONFIG_X86_64
- 	.long	__KERNEL32_CS
- #endif
--END(real_mode_header)
-+SYM_DATA_END(real_mode_header)
+-ENTRY(efi_exit32)
++SYM_FUNC_START_LOCAL(efi_exit32)
+ 	movq	func_rt_ptr(%rip), %rax
+ 	push	%rax
+ 	mov	%rdi, %rax
+ 	ret
+-ENDPROC(efi_exit32)
++SYM_FUNC_END(efi_exit32)
  
- 	/* End signature, used to verify integrity */
- 	.section ".signature","a"
- 	.balign 4
--GLOBAL(end_signature)
--	.long	REALMODE_END_SIGNATURE
--END(end_signature)
-+SYM_DATA(end_signature, .long REALMODE_END_SIGNATURE)
-diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
-index f91425a01f8f..424826afb501 100644
---- a/arch/x86/realmode/rm/reboot.S
-+++ b/arch/x86/realmode/rm/reboot.S
-@@ -127,13 +127,13 @@ bios:
- 	.section ".rodata", "a"
- 
- 	.balign	16
--GLOBAL(machine_real_restart_idt)
-+SYM_DATA_START(machine_real_restart_idt)
- 	.word	0xffff		/* Length - real mode default value */
- 	.long	0		/* Base - real mode default value */
--END(machine_real_restart_idt)
-+SYM_DATA_END(machine_real_restart_idt)
- 
- 	.balign	16
--GLOBAL(machine_real_restart_gdt)
-+SYM_DATA_START(machine_real_restart_gdt)
- 	/* Self-pointer */
- 	.word	0xffff		/* Length - real mode default value */
- 	.long	pa_machine_real_restart_gdt
-@@ -153,4 +153,4 @@ GLOBAL(machine_real_restart_gdt)
- 	 * semantics we don't have to reload the segments once CR0.PE = 0.
- 	 */
- 	.quad	GDT_ENTRY(0x0093, 0x100, 0xffff)
--END(machine_real_restart_gdt)
-+SYM_DATA_END(machine_real_restart_gdt)
-diff --git a/arch/x86/realmode/rm/stack.S b/arch/x86/realmode/rm/stack.S
-index 8d4cb64799ea..0fca64061ad2 100644
---- a/arch/x86/realmode/rm/stack.S
-+++ b/arch/x86/realmode/rm/stack.S
-@@ -6,15 +6,13 @@
- #include <linux/linkage.h>
+ 	.code32
+ /*
+@@ -112,7 +112,7 @@ ENDPROC(efi_exit32)
+  *
+  * The stack should represent the 32-bit calling convention.
+  */
+-ENTRY(efi_enter32)
++SYM_FUNC_START_LOCAL(efi_enter32)
+ 	movl	$__KERNEL_DS, %eax
+ 	movl	%eax, %ds
+ 	movl	%eax, %es
+@@ -172,7 +172,7 @@ ENTRY(efi_enter32)
+ 	btsl	$X86_CR0_PG_BIT, %eax
+ 	movl	%eax, %cr0
+ 	lret
+-ENDPROC(efi_enter32)
++SYM_FUNC_END(efi_enter32)
  
  	.data
--GLOBAL(HEAP)
--	.long	rm_heap
--GLOBAL(heap_end)
--	.long	rm_stack
-+SYM_DATA(HEAP,		.long rm_heap)
-+SYM_DATA(heap_end,	.long rm_stack)
+ 	.balign	8
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 6b60e5e6531c..2fe59c693732 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1046,7 +1046,8 @@ idtentry hypervisor_callback xen_do_hypervisor_callback has_error_code=0
+  * existing activation in its critical region -- if so, we pop the current
+  * activation and restart the handler using the previous one.
+  */
+-ENTRY(xen_do_hypervisor_callback)		/* do_hypervisor_callback(struct *pt_regs) */
++/* do_hypervisor_callback(struct *pt_regs) */
++SYM_CODE_START_LOCAL(xen_do_hypervisor_callback)
  
- 	.bss
- 	.balign	16
--GLOBAL(rm_heap)
--	.space	2048
--GLOBAL(rm_stack)
-+SYM_DATA(rm_heap,	.space 2048)
-+
-+SYM_DATA_START(rm_stack)
- 	.space	2048
--GLOBAL(rm_stack_end)
-+SYM_DATA_END_LABEL(rm_stack, SYM_L_GLOBAL, rm_stack_end)
-diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
-index 2dd866c9e21e..e96efcd60bf7 100644
---- a/arch/x86/realmode/rm/trampoline_32.S
-+++ b/arch/x86/realmode/rm/trampoline_32.S
-@@ -65,10 +65,10 @@ ENTRY(startup_32)			# note: also used from wakeup_asm.S
+ /*
+  * Since we don't modify %rdi, evtchn_do_upall(struct *pt_regs) will
+@@ -1064,7 +1065,7 @@ ENTRY(xen_do_hypervisor_callback)		/* do_hypervisor_callback(struct *pt_regs) */
+ 	call	xen_maybe_preempt_hcall
+ #endif
+ 	jmp	error_exit
+-END(xen_do_hypervisor_callback)
++SYM_CODE_END(xen_do_hypervisor_callback)
  
- 	.bss
+ /*
+  * Hypervisor uses this for application faults while it executes.
+@@ -1155,7 +1156,7 @@ idtentry machine_check		do_mce			has_error_code=0	paranoid=1
+  * Use slow, but surefire "are we in kernel?" check.
+  * Return: ebx=0: need swapgs on exit, ebx=1: otherwise
+  */
+-ENTRY(paranoid_entry)
++SYM_CODE_START_LOCAL(paranoid_entry)
+ 	UNWIND_HINT_FUNC
+ 	cld
+ 	PUSH_AND_CLEAR_REGS save_ret=1
+@@ -1182,7 +1183,7 @@ ENTRY(paranoid_entry)
+ 	SAVE_AND_SWITCH_TO_KERNEL_CR3 scratch_reg=%rax save_reg=%r14
+ 
+ 	ret
+-END(paranoid_entry)
++SYM_CODE_END(paranoid_entry)
+ 
+ /*
+  * "Paranoid" exit path from exception stack.  This is invoked
+@@ -1196,7 +1197,7 @@ END(paranoid_entry)
+  *
+  * On entry, ebx is "no swapgs" flag (1: don't need swapgs, 0: need it)
+  */
+-ENTRY(paranoid_exit)
++SYM_CODE_START_LOCAL(paranoid_exit)
+ 	UNWIND_HINT_REGS
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF_DEBUG
+@@ -1213,12 +1214,12 @@ ENTRY(paranoid_exit)
+ 	RESTORE_CR3	scratch_reg=%rbx save_reg=%r14
+ .Lparanoid_exit_restore:
+ 	jmp restore_regs_and_return_to_kernel
+-END(paranoid_exit)
++SYM_CODE_END(paranoid_exit)
+ 
+ /*
+  * Save all registers in pt_regs, and switch GS if needed.
+  */
+-ENTRY(error_entry)
++SYM_CODE_START_LOCAL(error_entry)
+ 	UNWIND_HINT_FUNC
+ 	cld
+ 	PUSH_AND_CLEAR_REGS save_ret=1
+@@ -1302,16 +1303,16 @@ ENTRY(error_entry)
+ 	call	fixup_bad_iret
+ 	mov	%rax, %rsp
+ 	jmp	.Lerror_entry_from_usermode_after_swapgs
+-END(error_entry)
++SYM_CODE_END(error_entry)
+ 
+-ENTRY(error_exit)
++SYM_CODE_START_LOCAL(error_exit)
+ 	UNWIND_HINT_REGS
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	testb	$3, CS(%rsp)
+ 	jz	retint_kernel
+ 	jmp	retint_user
+-END(error_exit)
++SYM_CODE_END(error_exit)
+ 
+ /*
+  * Runs on exception stack.  Xen PV does not go through this path at all,
+diff --git a/arch/x86/lib/copy_page_64.S b/arch/x86/lib/copy_page_64.S
+index fd2d09afa097..f505870bd93b 100644
+--- a/arch/x86/lib/copy_page_64.S
++++ b/arch/x86/lib/copy_page_64.S
+@@ -21,7 +21,7 @@ ENTRY(copy_page)
+ ENDPROC(copy_page)
+ EXPORT_SYMBOL(copy_page)
+ 
+-ENTRY(copy_page_regs)
++SYM_FUNC_START_LOCAL(copy_page_regs)
+ 	subq	$2*8,	%rsp
+ 	movq	%rbx,	(%rsp)
+ 	movq	%r12,	1*8(%rsp)
+@@ -86,4 +86,4 @@ ENTRY(copy_page_regs)
+ 	movq	1*8(%rsp), %r12
+ 	addq	$2*8, %rsp
+ 	ret
+-ENDPROC(copy_page_regs)
++SYM_FUNC_END(copy_page_regs)
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 68fcd8f9a48b..cac0e1ad8ed2 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -28,7 +28,7 @@
+  * rax original destination
+  */
+ SYM_FUNC_START_ALIAS(__memcpy)
+-ENTRY(memcpy)
++SYM_FUNC_START_LOCAL(memcpy)
+ 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
+ 		      "jmp memcpy_erms", X86_FEATURE_ERMS
+ 
+@@ -40,7 +40,7 @@ ENTRY(memcpy)
+ 	movl %edx, %ecx
+ 	rep movsb
+ 	ret
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
+ SYM_FUNC_END_ALIAS(__memcpy)
+ EXPORT_SYMBOL(memcpy)
+ EXPORT_SYMBOL(__memcpy)
+@@ -49,14 +49,14 @@ EXPORT_SYMBOL(__memcpy)
+  * memcpy_erms() - enhanced fast string memcpy. This is faster and
+  * simpler than memcpy. Use memcpy_erms when possible.
+  */
+-ENTRY(memcpy_erms)
++SYM_FUNC_START_LOCAL(memcpy_erms)
+ 	movq %rdi, %rax
+ 	movq %rdx, %rcx
+ 	rep movsb
+ 	ret
+-ENDPROC(memcpy_erms)
++SYM_FUNC_END(memcpy_erms)
+ 
+-ENTRY(memcpy_orig)
++SYM_FUNC_START_LOCAL(memcpy_orig)
+ 	movq %rdi, %rax
+ 
+ 	cmpq $0x20, %rdx
+@@ -181,7 +181,7 @@ ENTRY(memcpy_orig)
+ 
+ .Lend:
+ 	retq
+-ENDPROC(memcpy_orig)
++SYM_FUNC_END(memcpy_orig)
+ 
+ #ifndef CONFIG_UML
+ 
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 927ac44d34aa..564abf9ecedb 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -59,16 +59,16 @@ EXPORT_SYMBOL(__memset)
+  *
+  * rax   original destination
+  */
+-ENTRY(memset_erms)
++SYM_FUNC_START_LOCAL(memset_erms)
+ 	movq %rdi,%r9
+ 	movb %sil,%al
+ 	movq %rdx,%rcx
+ 	rep stosb
+ 	movq %r9,%rax
+ 	ret
+-ENDPROC(memset_erms)
++SYM_FUNC_END(memset_erms)
+ 
+-ENTRY(memset_orig)
++SYM_FUNC_START_LOCAL(memset_orig)
+ 	movq %rdi,%r10
+ 
+ 	/* expand byte value  */
+@@ -139,4 +139,4 @@ ENTRY(memset_orig)
+ 	subq %r8,%rdx
+ 	jmp .Lafter_bad_alignment
+ .Lfinal:
+-ENDPROC(memset_orig)
++SYM_FUNC_END(memset_orig)
+diff --git a/arch/x86/platform/efi/efi_thunk_64.S b/arch/x86/platform/efi/efi_thunk_64.S
+index 46c58b08739c..d677a7eb2d0a 100644
+--- a/arch/x86/platform/efi/efi_thunk_64.S
++++ b/arch/x86/platform/efi/efi_thunk_64.S
+@@ -67,7 +67,7 @@ ENDPROC(efi64_thunk)
+  *
+  * This function must be invoked with a 1:1 mapped stack.
+  */
+-ENTRY(__efi64_thunk)
++SYM_FUNC_START_LOCAL(__efi64_thunk)
+ 	movl	%ds, %eax
+ 	push	%rax
+ 	movl	%es, %eax
+@@ -114,14 +114,14 @@ ENTRY(__efi64_thunk)
+ 	or	%rcx, %rax
+ 1:
+ 	ret
+-ENDPROC(__efi64_thunk)
++SYM_FUNC_END(__efi64_thunk)
+ 
+-ENTRY(efi_exit32)
++SYM_FUNC_START_LOCAL(efi_exit32)
+ 	movq	func_rt_ptr(%rip), %rax
+ 	push	%rax
+ 	mov	%rdi, %rax
+ 	ret
+-ENDPROC(efi_exit32)
++SYM_FUNC_END(efi_exit32)
+ 
+ 	.code32
+ /*
+@@ -129,7 +129,7 @@ ENDPROC(efi_exit32)
+  *
+  * The stack should represent the 32-bit calling convention.
+  */
+-ENTRY(efi_enter32)
++SYM_FUNC_START_LOCAL(efi_enter32)
+ 	movl	$__KERNEL_DS, %eax
+ 	movl	%eax, %ds
+ 	movl	%eax, %es
+@@ -145,7 +145,7 @@ ENTRY(efi_enter32)
+ 	pushl	%eax
+ 
+ 	lret
+-ENDPROC(efi_enter32)
++SYM_FUNC_END(efi_enter32)
+ 
+ 	.data
+ 	.balign	8
+diff --git a/arch/x86/platform/pvh/head.S b/arch/x86/platform/pvh/head.S
+index 4e63480bb223..43b4d864817e 100644
+--- a/arch/x86/platform/pvh/head.S
++++ b/arch/x86/platform/pvh/head.S
+@@ -50,7 +50,7 @@
+ #define PVH_DS_SEL		(PVH_GDT_ENTRY_DS * 8)
+ #define PVH_CANARY_SEL		(PVH_GDT_ENTRY_CANARY * 8)
+ 
+-ENTRY(pvh_start_xen)
++SYM_CODE_START_LOCAL(pvh_start_xen)
+ 	cld
+ 
+ 	lgdt (_pa(gdt))
+@@ -146,7 +146,7 @@ ENTRY(pvh_start_xen)
+ 
+ 	ljmp $PVH_CS_SEL, $_pa(startup_32)
+ #endif
+-END(pvh_start_xen)
++SYM_CODE_END(pvh_start_xen)
+ 
+ 	.section ".init.data","aw"
  	.balign 8
--GLOBAL(trampoline_header)
--	tr_start:		.space	4
--	tr_gdt_pad:		.space	2
--	tr_gdt:			.space	6
--END(trampoline_header)
-+SYM_DATA_START(trampoline_header)
-+	SYM_DATA_LOCAL(tr_start,	.space 4)
-+	SYM_DATA_LOCAL(tr_gdt_pad,	.space 2)
-+	SYM_DATA_LOCAL(tr_gdt,		.space 6)
-+SYM_DATA_END(trampoline_header)
- 	
- #include "trampoline_common.S"
-diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-index 24bb7598774e..9e5f9ade43c8 100644
---- a/arch/x86/realmode/rm/trampoline_64.S
-+++ b/arch/x86/realmode/rm/trampoline_64.S
-@@ -152,26 +152,25 @@ ENTRY(startup_64)
- 	# Duplicate the global descriptor table
- 	# so the kernel can live anywhere
- 	.balign	16
--	.globl tr_gdt
--tr_gdt:
-+SYM_DATA_START(tr_gdt)
- 	.short	tr_gdt_end - tr_gdt - 1	# gdt limit
- 	.long	pa_tr_gdt
- 	.short	0
- 	.quad	0x00cf9b000000ffff	# __KERNEL32_CS
- 	.quad	0x00af9b000000ffff	# __KERNEL_CS
- 	.quad	0x00cf93000000ffff	# __KERNEL_DS
--tr_gdt_end:
-+SYM_DATA_END_LABEL(tr_gdt, SYM_L_LOCAL, tr_gdt_end)
- 
- 	.bss
- 	.balign	PAGE_SIZE
--GLOBAL(trampoline_pgd)		.space	PAGE_SIZE
-+SYM_DATA(trampoline_pgd, .space PAGE_SIZE)
- 
- 	.balign	8
--GLOBAL(trampoline_header)
--	tr_start:		.space	8
--	GLOBAL(tr_efer)		.space	8
--	GLOBAL(tr_cr4)		.space	4
--	GLOBAL(tr_flags)	.space	4
--END(trampoline_header)
-+SYM_DATA_START(trampoline_header)
-+	SYM_DATA_LOCAL(tr_start,	.space 8)
-+	SYM_DATA(tr_efer,		.space 8)
-+	SYM_DATA(tr_cr4,		.space 4)
-+	SYM_DATA(tr_flags,		.space 4)
-+SYM_DATA_END(trampoline_header)
- 
- #include "trampoline_common.S"
-diff --git a/arch/x86/realmode/rm/trampoline_common.S b/arch/x86/realmode/rm/trampoline_common.S
-index 7c706772ab59..fc000089e2da 100644
---- a/arch/x86/realmode/rm/trampoline_common.S
-+++ b/arch/x86/realmode/rm/trampoline_common.S
-@@ -1,8 +1,8 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- 	.section ".rodata","a"
- 	.balign	16
--tr_idt: .fill 1, 6, 0
-+SYM_DATA_LOCAL(tr_idt,		.fill 1, 6, 0)
- 
- 	.bss
- 	.balign	4
--GLOBAL(trampoline_status)	.space	4
-+SYM_DATA(trampoline_status,	.space 4)
-diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
-index 05ac9c17c811..0af6b30d3c68 100644
---- a/arch/x86/realmode/rm/wakeup_asm.S
-+++ b/arch/x86/realmode/rm/wakeup_asm.S
-@@ -17,7 +17,7 @@
- 	.section ".data", "aw"
- 
- 	.balign	16
--GLOBAL(wakeup_header)
-+SYM_DATA_START(wakeup_header)
- 	video_mode:	.short	0	/* Video mode number */
- 	pmode_entry:	.long	0
- 	pmode_cs:	.short	__KERNEL_CS
-@@ -31,7 +31,7 @@ GLOBAL(wakeup_header)
- 	realmode_flags:	.long	0
- 	real_magic:	.long	0
- 	signature:	.long	WAKEUP_HEADER_SIGNATURE
--END(wakeup_header)
-+SYM_DATA_END(wakeup_header)
- 
- 	.text
- 	.code16
-@@ -152,7 +152,7 @@ bogus_real_magic:
- 	 */
- 
- 	.balign	16
--GLOBAL(wakeup_gdt)
-+SYM_DATA_START(wakeup_gdt)
- 	.word	3*8-1		/* Self-descriptor */
- 	.long	pa_wakeup_gdt
- 	.word	0
-@@ -164,15 +164,15 @@ GLOBAL(wakeup_gdt)
- 	.word	0xffff		/* 16-bit data segment @ real_mode_base */
- 	.long	0x93000000 + pa_real_mode_base
- 	.word	0x008f		/* big real mode */
--END(wakeup_gdt)
-+SYM_DATA_END(wakeup_gdt)
- 
- 	.section ".rodata","a"
- 	.balign	8
- 
- 	/* This is the standard real-mode IDT */
- 	.balign	16
--GLOBAL(wakeup_idt)
-+SYM_DATA_START_LOCAL(wakeup_idt)
- 	.word	0xffff		/* limit */
- 	.long	0		/* address */
- 	.word	0
--END(wakeup_idt)
-+SYM_DATA_END(wakeup_idt)
-diff --git a/arch/x86/realmode/rmpiggy.S b/arch/x86/realmode/rmpiggy.S
-index c078dba40cef..c8fef76743f6 100644
---- a/arch/x86/realmode/rmpiggy.S
-+++ b/arch/x86/realmode/rmpiggy.S
-@@ -10,12 +10,10 @@
- 
- 	.balign PAGE_SIZE
- 
--GLOBAL(real_mode_blob)
-+SYM_DATA_START(real_mode_blob)
- 	.incbin	"arch/x86/realmode/rm/realmode.bin"
--END(real_mode_blob)
-+SYM_DATA_END_LABEL(real_mode_blob, SYM_L_GLOBAL, real_mode_blob_end)
- 
--GLOBAL(real_mode_blob_end);
--
--GLOBAL(real_mode_relocs)
-+SYM_DATA_START(real_mode_relocs)
- 	.incbin	"arch/x86/realmode/rm/realmode.relocs"
--END(real_mode_relocs)
-+SYM_DATA_END(real_mode_relocs)
 -- 
 2.20.1
