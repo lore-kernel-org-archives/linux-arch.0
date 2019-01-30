@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44178 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:44152 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731016AbfA3Mr0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 30 Jan 2019 07:47:26 -0500
+        id S1731029AbfA3Mr2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jan 2019 07:47:28 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 14/28] xen/pvh: annotate data appropriatelly
-Date: Wed, 30 Jan 2019 13:46:57 +0100
-Message-ID: <20190130124711.12463-15-jslaby@suse.cz>
+Subject: [PATCH v7 16/28] x86/asm: do not annotate functions by GLOBAL
+Date: Wed, 30 Jan 2019 13:46:59 +0100
+Message-ID: <20190130124711.12463-17-jslaby@suse.cz>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,67 +14,142 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20190130124657.VoC0tkyFVcMcpN05opRwANoxZeP-DApS9OtAjkl49mk@z>
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
+Message-ID: <20190130124659.JO3nGZIH3L8M91e8RufycizVck6-eA6IGCUrhVTbVcY@z>
 
-Use the new SYM_DATA_START_LOCAL, and SYM_DATA_END* macros to have:
-  0000     8 OBJECT  LOCAL  DEFAULT    6 gdt
-  0008    32 OBJECT  LOCAL  DEFAULT    6 gdt_start
-  0028     0 OBJECT  LOCAL  DEFAULT    6 gdt_end
-  0028   256 OBJECT  LOCAL  DEFAULT    6 early_stack
-  0128     0 OBJECT  LOCAL  DEFAULT    6 early_stack
+GLOBAL is an x86's custom macro and is going to die very soon. It was
+meant for global symbols, but here, it was used for functions. Instead,
+use the new macros SYM_FUNC_START* and SYM_CODE_START* (depending on the
+type of a function) which are dedicated for global functions. And since
+they both require a closing by SYM_*_END, we do this here too.
+
+startup_64, which does not use GLOBAL, but uses .globl explicitly, is
+converted too.
+
+in_pm32 should not be global at all as it is used only locally, so
+switch to SYM_FUNC_START_LOCAL_NOALIGN.
+
+"No alignments" are preserved.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Juergen Gross <jgross@suse.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: xen-devel@lists.xenproject.org
+Cc: <x86@kernel.org>
 ---
- arch/x86/platform/pvh/head.S | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/x86/boot/copy.S      | 16 ++++++++--------
+ arch/x86/boot/pmjump.S    |  8 ++++----
+ arch/x86/kernel/head_64.S |  5 +++--
+ 3 files changed, 15 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/platform/pvh/head.S b/arch/x86/platform/pvh/head.S
-index 1f8825bbaffb..4e63480bb223 100644
---- a/arch/x86/platform/pvh/head.S
-+++ b/arch/x86/platform/pvh/head.S
-@@ -150,11 +150,12 @@ END(pvh_start_xen)
+diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
+index 15d9f74b0008..73aa8307a10f 100644
+--- a/arch/x86/boot/copy.S
++++ b/arch/x86/boot/copy.S
+@@ -17,7 +17,7 @@
+ 	.code16
+ 	.text
  
- 	.section ".init.data","aw"
- 	.balign 8
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	.word gdt_end - gdt_start
- 	.long _pa(gdt_start)
- 	.word 0
--gdt_start:
-+SYM_DATA_END(gdt)
-+SYM_DATA_START_LOCAL(gdt_start)
- 	.quad 0x0000000000000000            /* NULL descriptor */
- #ifdef CONFIG_X86_64
- 	.quad GDT_ENTRY(0xa09a, 0, 0xfffff) /* PVH_CS_SEL */
-@@ -163,15 +164,14 @@ gdt_start:
- #endif
- 	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* PVH_DS_SEL */
- 	.quad GDT_ENTRY(0x4090, 0, 0x18)    /* PVH_CANARY_SEL */
--gdt_end:
-+SYM_DATA_END_LABEL(gdt_start, SYM_L_LOCAL, gdt_end)
+-GLOBAL(memcpy)
++SYM_FUNC_START_NOALIGN(memcpy)
+ 	pushw	%si
+ 	pushw	%di
+ 	movw	%ax, %di
+@@ -31,9 +31,9 @@ GLOBAL(memcpy)
+ 	popw	%di
+ 	popw	%si
+ 	retl
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
  
- 	.balign 16
--canary:
--	.fill 48, 1, 0
-+SYM_DATA_LOCAL(canary, .fill 48, 1, 0)
+-GLOBAL(memset)
++SYM_FUNC_START_NOALIGN(memset)
+ 	pushw	%di
+ 	movw	%ax, %di
+ 	movzbl	%dl, %eax
+@@ -46,22 +46,22 @@ GLOBAL(memset)
+ 	rep; stosb
+ 	popw	%di
+ 	retl
+-ENDPROC(memset)
++SYM_FUNC_END(memset)
  
--early_stack:
-+SYM_DATA_START_LOCAL(early_stack)
- 	.fill BOOT_STACK_SIZE, 1, 0
--early_stack_end:
-+SYM_DATA_END_LABEL(early_stack, SYM_L_LOCAL, early_stack_end)
+-GLOBAL(copy_from_fs)
++SYM_FUNC_START_NOALIGN(copy_from_fs)
+ 	pushw	%ds
+ 	pushw	%fs
+ 	popw	%ds
+ 	calll	memcpy
+ 	popw	%ds
+ 	retl
+-ENDPROC(copy_from_fs)
++SYM_FUNC_END(copy_from_fs)
  
- 	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
- 	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
+-GLOBAL(copy_to_fs)
++SYM_FUNC_START_NOALIGN(copy_to_fs)
+ 	pushw	%es
+ 	pushw	%fs
+ 	popw	%es
+ 	calll	memcpy
+ 	popw	%es
+ 	retl
+-ENDPROC(copy_to_fs)
++SYM_FUNC_END(copy_to_fs)
+diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
+index 3e0edc6d2a20..b90e42eb1a62 100644
+--- a/arch/x86/boot/pmjump.S
++++ b/arch/x86/boot/pmjump.S
+@@ -23,7 +23,7 @@
+ /*
+  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
+  */
+-GLOBAL(protected_mode_jump)
++SYM_FUNC_START_NOALIGN(protected_mode_jump)
+ 	movl	%edx, %esi		# Pointer to boot_params table
+ 
+ 	xorl	%ebx, %ebx
+@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
+ 	.byte	0x66, 0xea		# ljmpl opcode
+ 2:	.long	in_pm32			# offset
+ 	.word	__BOOT_CS		# segment
+-ENDPROC(protected_mode_jump)
++SYM_FUNC_END(protected_mode_jump)
+ 
+ 	.code32
+ 	.section ".text32","ax"
+-GLOBAL(in_pm32)
++SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
+ 	# Set up data segments for flat 32-bit mode
+ 	movl	%ecx, %ds
+ 	movl	%ecx, %es
+@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
+ 	lldt	%cx
+ 
+ 	jmpl	*%eax			# Jump to the 32-bit entrypoint
+-ENDPROC(in_pm32)
++SYM_FUNC_END(in_pm32)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 5b7a3b430dea..f6ed36c3aa17 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -51,8 +51,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 	.text
+ 	__HEAD
+ 	.code64
+-	.globl startup_64
+-startup_64:
++SYM_CODE_START_NOALIGN(startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
+ 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
+@@ -92,6 +91,8 @@ startup_64:
+ 	/* Form the CR3 value being sure to include the CR3 modifier */
+ 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
++SYM_CODE_END(startup_64)
++
+ ENTRY(secondary_startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
 -- 
 2.20.1
