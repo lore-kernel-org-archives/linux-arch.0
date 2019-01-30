@@ -1,213 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:43876 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:44024 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726246AbfA3MrO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 30 Jan 2019 07:47:14 -0500
+        id S1730944AbfA3MrT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jan 2019 07:47:19 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 00/28] New macros for assembler symbols
-Date: Wed, 30 Jan 2019 13:46:43 +0100
-Message-ID: <20190130124711.12463-1-jslaby@suse.cz>
+Subject: [PATCH v7 02/28] x86/asm/suspend: drop ENTRY from local data
+Date: Wed, 30 Jan 2019 13:46:45 +0100
+Message-ID: <20190130124711.12463-3-jslaby@suse.cz>
+In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
+References: <20190130124711.12463-1-jslaby@suse.cz>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20190130124643.ARS4x1mrcK1_cAEpOvrqW1ppkNcrn8fnm0xMI0wTE28@z>
+Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+Message-ID: <20190130124645.59S8pduqPciSAcXs5NKZyylEWjEtwzrYOIvE6DIMrzg@z>
 
-This series introduces new macros for assembly as was discussed [1]. The
-rationale is that now we use several undocumented random macros
-collected over time. There are even some defined for different
-architectures differently.  In many cases, developers do not know the
-difference in semantics between two basic macros END and ENDPROC. But in
-this very case, the difference is crucial especially for objtool when
-generating e.g. debuginfo for assembly. For this reason, we define a set
-of macros with documented meanings and hopefully intuitive names. These
-macros greatly support automatic tools working on the generated code
-from assembly or on the assembly proper.
+ENTRY was intended for functions and shall be paired with ENDPROC.
+ENTRY also aligns symbols which creates unnecessary holes here between
+data.
 
-The macros are introduced in the first patch of the series. The rest
-of patches start using these new macros in x86, converting *all* uses
-of the old macros to the new ones throughout the last patch. With
-every last user of some old macro, the macro is immediately made
-forbidden for x86.
+So drop ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64,
+as these symbols are local only.
 
-When this settles down, conversion of other architectures can be done
-too.
+We could use SYM_DATA_LOCAL for these symbols, but it was discouraged
+earlier [1].
 
-For introduction, documentation, use and examples, please see
-Documentation/asm-annotations.rst from the first patch of the series.
+[1] https://lkml.org/lkml/2017/4/27/244
 
-Changes among v1..v7 of this series are documented per patch. v7 is
-in fact only rebase on the current codebase as v6 was sent in May 2018
-and received only a single comment which was answered without code
-change.
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Acked-by: Pavel Machek <pavel@ucw.cz>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: linux-pm@vger.kernel.org
+---
+ arch/x86/kernel/acpi/wakeup_32.S |  2 +-
+ arch/x86/kernel/acpi/wakeup_64.S | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
 
-[1] https://lkml.org/lkml/2017/3/1/742
-
-Jiri Slaby (28):
-  linkage: new macros for assembler symbols
-  x86/asm/suspend: drop ENTRY from local data
-  x86/asm/suspend: use SYM_DATA for data
-  x86/asm: annotate relocate_kernel
-  x86/asm/entry: annotate THUNKs
-  x86/asm: annotate local pseudo-functions
-  x86/asm/crypto: annotate local functions
-  x86/boot/compressed: annotate local functions
-  x86/asm: annotate aliases
-  x86/asm/entry: annotate interrupt symbols properly
-  x86/asm/head: annotate data appropriatelly
-  x86/boot/compressed: annotate data appropriatelly
-  um: annotate data appropriatelly
-  xen/pvh: annotate data appropriatelly
-  x86/asm/purgatory: start using annotations
-  x86/asm: do not annotate functions by GLOBAL
-  x86/asm: use SYM_INNER_LABEL instead of GLOBAL
-  x86/asm/realmode: use SYM_DATA_* instead of GLOBAL
-  x86/asm: kill the last GLOBAL user and remove the macro
-  x86/asm: make some functions local
-  x86/asm/ftrace: mark function_hook as function
-  x86_64/asm: add ENDs to some functions and relabel with SYM_CODE_*
-  x86_64/asm: change all ENTRY+END to SYM_CODE_*
-  x86_64/asm: change all ENTRY+ENDPROC to SYM_FUNC_*
-  x86_32/asm: add ENDs to some functions and relabel with SYM_CODE_*
-  x86_32/asm: change all ENTRY+END to SYM_CODE_*
-  x86_32/asm: change all ENTRY+ENDPROC to SYM_FUNC_*
-  x86/asm: replace WEAK uses by SYM_INNER_LABEL_ALIGN
-
- Documentation/asm-annotations.rst            | 217 ++++++++++++++++
- arch/x86/boot/compressed/efi_stub_32.S       |   4 +-
- arch/x86/boot/compressed/efi_thunk_64.S      |  33 +--
- arch/x86/boot/compressed/head_32.S           |  15 +-
- arch/x86/boot/compressed/head_64.S           |  63 ++---
- arch/x86/boot/compressed/mem_encrypt.S       |  11 +-
- arch/x86/boot/copy.S                         |  16 +-
- arch/x86/boot/pmjump.S                       |   8 +-
- arch/x86/crypto/aegis128-aesni-asm.S         |  36 +--
- arch/x86/crypto/aegis128l-aesni-asm.S        |  36 +--
- arch/x86/crypto/aegis256-aesni-asm.S         |  36 +--
- arch/x86/crypto/aes-i586-asm_32.S            |   8 +-
- arch/x86/crypto/aes-x86_64-asm_64.S          |   4 +-
- arch/x86/crypto/aes_ctrby8_avx-x86_64.S      |  12 +-
- arch/x86/crypto/aesni-intel_asm.S            | 114 ++++-----
- arch/x86/crypto/aesni-intel_avx-x86_64.S     |  32 +--
- arch/x86/crypto/blowfish-x86_64-asm_64.S     |  16 +-
- arch/x86/crypto/camellia-aesni-avx-asm_64.S  |  44 ++--
- arch/x86/crypto/camellia-aesni-avx2-asm_64.S |  44 ++--
- arch/x86/crypto/camellia-x86_64-asm_64.S     |  16 +-
- arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |  24 +-
- arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |  32 +--
- arch/x86/crypto/chacha-avx2-x86_64.S         |  12 +-
- arch/x86/crypto/chacha-avx512vl-x86_64.S     |  12 +-
- arch/x86/crypto/chacha-ssse3-x86_64.S        |  16 +-
- arch/x86/crypto/crc32-pclmul_asm.S           |   4 +-
- arch/x86/crypto/crc32c-pcl-intel-asm_64.S    |   4 +-
- arch/x86/crypto/crct10dif-pcl-asm_64.S       |   4 +-
- arch/x86/crypto/des3_ede-asm_64.S            |   8 +-
- arch/x86/crypto/ghash-clmulni-intel_asm.S    |  12 +-
- arch/x86/crypto/morus1280-avx2-asm.S         |  44 ++--
- arch/x86/crypto/morus1280-sse2-asm.S         |  44 ++--
- arch/x86/crypto/morus640-sse2-asm.S          |  44 ++--
- arch/x86/crypto/nh-avx2-x86_64.S             |   4 +-
- arch/x86/crypto/nh-sse2-x86_64.S             |   4 +-
- arch/x86/crypto/poly1305-avx2-x86_64.S       |   4 +-
- arch/x86/crypto/poly1305-sse2-x86_64.S       |   8 +-
- arch/x86/crypto/serpent-avx-x86_64-asm_64.S  |  32 +--
- arch/x86/crypto/serpent-avx2-asm_64.S        |  32 +--
- arch/x86/crypto/serpent-sse2-i586-asm_32.S   |   8 +-
- arch/x86/crypto/serpent-sse2-x86_64-asm_64.S |   8 +-
- arch/x86/crypto/sha1_avx2_x86_64_asm.S       |   4 +-
- arch/x86/crypto/sha1_ni_asm.S                |   4 +-
- arch/x86/crypto/sha1_ssse3_asm.S             |   4 +-
- arch/x86/crypto/sha256-avx-asm.S             |   4 +-
- arch/x86/crypto/sha256-avx2-asm.S            |   4 +-
- arch/x86/crypto/sha256-ssse3-asm.S           |   4 +-
- arch/x86/crypto/sha256_ni_asm.S              |   4 +-
- arch/x86/crypto/sha512-avx-asm.S             |   4 +-
- arch/x86/crypto/sha512-avx2-asm.S            |   4 +-
- arch/x86/crypto/sha512-ssse3-asm.S           |   4 +-
- arch/x86/crypto/twofish-avx-x86_64-asm_64.S  |  32 +--
- arch/x86/crypto/twofish-i586-asm_32.S        |   8 +-
- arch/x86/crypto/twofish-x86_64-asm_64-3way.S |   8 +-
- arch/x86/crypto/twofish-x86_64-asm_64.S      |   8 +-
- arch/x86/entry/entry_32.S                    | 155 ++++++------
- arch/x86/entry/entry_64.S                    |  99 ++++----
- arch/x86/entry/entry_64_compat.S             |  16 +-
- arch/x86/entry/thunk_32.S                    |   4 +-
- arch/x86/entry/thunk_64.S                    |   8 +-
- arch/x86/entry/vdso/vdso32/system_call.S     |   2 +-
- arch/x86/include/asm/linkage.h               |   4 -
- arch/x86/kernel/acpi/wakeup_32.S             |  11 +-
- arch/x86/kernel/acpi/wakeup_64.S             |  25 +-
- arch/x86/kernel/ftrace_32.S                  |  23 +-
- arch/x86/kernel/ftrace_64.S                  |  42 ++--
- arch/x86/kernel/head_32.S                    |  60 ++---
- arch/x86/kernel/head_64.S                    | 106 ++++----
- arch/x86/kernel/irqflags.S                   |   8 +-
- arch/x86/kernel/relocate_kernel_32.S         |  13 +-
- arch/x86/kernel/relocate_kernel_64.S         |  13 +-
- arch/x86/kernel/verify_cpu.S                 |   4 +-
- arch/x86/kvm/vmx/vmenter.S                   |   8 +-
- arch/x86/lib/atomic64_386_32.S               |   4 +-
- arch/x86/lib/atomic64_cx8_32.S               |  32 +--
- arch/x86/lib/checksum_32.S                   |  16 +-
- arch/x86/lib/clear_page_64.S                 |  12 +-
- arch/x86/lib/cmpxchg16b_emu.S                |   4 +-
- arch/x86/lib/cmpxchg8b_emu.S                 |   4 +-
- arch/x86/lib/copy_page_64.S                  |   8 +-
- arch/x86/lib/copy_user_64.S                  |  16 +-
- arch/x86/lib/csum-copy_64.S                  |   4 +-
- arch/x86/lib/getuser.S                       |  24 +-
- arch/x86/lib/hweight.S                       |   8 +-
- arch/x86/lib/iomap_copy_64.S                 |   4 +-
- arch/x86/lib/memcpy_64.S                     |  20 +-
- arch/x86/lib/memmove_64.S                    |   8 +-
- arch/x86/lib/memset_64.S                     |  16 +-
- arch/x86/lib/msr-reg.S                       |   8 +-
- arch/x86/lib/putuser.S                       |  20 +-
- arch/x86/lib/retpoline.S                     |   4 +-
- arch/x86/lib/rwsem.S                         |  24 +-
- arch/x86/math-emu/div_Xsig.S                 |   4 +-
- arch/x86/math-emu/div_small.S                |   4 +-
- arch/x86/math-emu/mul_Xsig.S                 |  12 +-
- arch/x86/math-emu/polynom_Xsig.S             |   4 +-
- arch/x86/math-emu/reg_norm.S                 |   8 +-
- arch/x86/math-emu/reg_round.S                |   4 +-
- arch/x86/math-emu/reg_u_add.S                |   4 +-
- arch/x86/math-emu/reg_u_div.S                |   4 +-
- arch/x86/math-emu/reg_u_mul.S                |   4 +-
- arch/x86/math-emu/reg_u_sub.S                |   4 +-
- arch/x86/math-emu/round_Xsig.S               |   8 +-
- arch/x86/math-emu/shr_Xsig.S                 |   4 +-
- arch/x86/math-emu/wm_shrx.S                  |   8 +-
- arch/x86/math-emu/wm_sqrt.S                  |   4 +-
- arch/x86/mm/mem_encrypt_boot.S               |   8 +-
- arch/x86/platform/efi/efi_stub_32.S          |   4 +-
- arch/x86/platform/efi/efi_stub_64.S          |   4 +-
- arch/x86/platform/efi/efi_thunk_64.S         |  16 +-
- arch/x86/platform/olpc/xo1-wakeup.S          |   3 +-
- arch/x86/platform/pvh/head.S                 |  18 +-
- arch/x86/power/hibernate_asm_32.S            |  14 +-
- arch/x86/power/hibernate_asm_64.S            |  14 +-
- arch/x86/purgatory/entry64.S                 |  21 +-
- arch/x86/purgatory/setup-x86_64.S            |  14 +-
- arch/x86/purgatory/stack.S                   |   7 +-
- arch/x86/realmode/rm/header.S                |   8 +-
- arch/x86/realmode/rm/reboot.S                |  13 +-
- arch/x86/realmode/rm/stack.S                 |  14 +-
- arch/x86/realmode/rm/trampoline_32.S         |  16 +-
- arch/x86/realmode/rm/trampoline_64.S         |  29 ++-
- arch/x86/realmode/rm/trampoline_common.S     |   4 +-
- arch/x86/realmode/rm/wakeup_asm.S            |  15 +-
- arch/x86/realmode/rmpiggy.S                  |  10 +-
- arch/x86/um/vdso/vdso.S                      |   6 +-
- arch/x86/xen/xen-asm.S                       |  20 +-
- arch/x86/xen/xen-asm_32.S                    |   7 +-
- arch/x86/xen/xen-asm_64.S                    |  34 +--
- arch/x86/xen/xen-head.S                      |   8 +-
- include/linux/linkage.h                      | 249 ++++++++++++++++++-
- 131 files changed, 1583 insertions(+), 1107 deletions(-)
- create mode 100644 Documentation/asm-annotations.rst
-
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index 0c26b1b44e51..4203d4f0c68d 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -90,7 +90,7 @@ ret_point:
+ .data
+ ALIGN
+ ENTRY(saved_magic)	.long	0
+-ENTRY(saved_eip)	.long	0
++saved_eip:		.long 0
+ 
+ # saved registers
+ saved_idt:	.long	0,0
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index 50b8ed0317a3..510fa12aab73 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
+ ENDPROC(do_suspend_lowlevel)
+ 
+ .data
+-ENTRY(saved_rbp)	.quad	0
+-ENTRY(saved_rsi)	.quad	0
+-ENTRY(saved_rdi)	.quad	0
+-ENTRY(saved_rbx)	.quad	0
++saved_rbp:		.quad	0
++saved_rsi:		.quad	0
++saved_rdi:		.quad	0
++saved_rbx:		.quad	0
+ 
+-ENTRY(saved_rip)	.quad	0
+-ENTRY(saved_rsp)	.quad	0
++saved_rip:		.quad	0
++saved_rsp:		.quad	0
+ 
+ ENTRY(saved_magic)	.quad	0
 -- 
 2.20.1
