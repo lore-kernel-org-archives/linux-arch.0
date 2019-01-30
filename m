@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44370 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:44390 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731067AbfA3Mrd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 30 Jan 2019 07:47:33 -0500
+        id S1730938AbfA3Mra (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Jan 2019 07:47:30 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 28/28] x86/asm: replace WEAK uses by SYM_INNER_LABEL_ALIGN
-Date: Wed, 30 Jan 2019 13:47:11 +0100
-Message-ID: <20190130124711.12463-29-jslaby@suse.cz>
+Subject: [PATCH v7 21/28] x86/asm/ftrace: mark function_hook as function
+Date: Wed, 30 Jan 2019 13:47:04 +0100
+Message-ID: <20190130124711.12463-22-jslaby@suse.cz>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -15,13 +15,10 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
 Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20190130124711.hyiKGjyWEpJTEOMXBkvItEDu9TOwuvLAIkycz6JyxOc@z>
+Message-ID: <20190130124704.D0fJLoIenAZeGvi7GzZ3aAZSHPTySHT59t_jw6jLHIc@z>
 
-Use the new SYM_INNER_LABEL_ALIGN for WEAK entries in the middle of x86
-assembly functions.
-
-And make sure WEAK is not defined for x86 anymore as these were the last
-users.
+Relabel function_hook to be marked really as a function. It is called
+from C and has the same expectations towards the stack etc.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -29,69 +26,24 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 ---
- arch/x86/kernel/ftrace_32.S | 2 +-
- arch/x86/kernel/ftrace_64.S | 2 +-
- arch/x86/kernel/head_32.S   | 2 +-
- include/linux/linkage.h     | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/kernel/ftrace_32.S | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index f519c22f6f9e..b3b42bb8bd74 100644
+index 0206fc7e86b0..b855dc10daeb 100644
 --- a/arch/x86/kernel/ftrace_32.S
 +++ b/arch/x86/kernel/ftrace_32.S
-@@ -98,7 +98,7 @@ ftrace_graph_call:
+@@ -31,9 +31,9 @@ EXPORT_SYMBOL(mcount)
+ # define MCOUNT_FRAME			0	/* using frame = false */
  #endif
  
- /* This is weak to keep gas from relaxing the jumps */
--WEAK(ftrace_stub)
-+SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
+-ENTRY(function_hook)
++SYM_FUNC_START(function_hook)
  	ret
- SYM_CODE_END(ftrace_caller)
+-END(function_hook)
++SYM_FUNC_END(function_hook)
  
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index e3d4ef5d7aff..3d6635c09b9c 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -186,7 +186,7 @@ SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
-  * This is weak to keep gas from relaxing the jumps.
-  * It is also used to copy the retq for trampolines.
-  */
--WEAK(ftrace_stub)
-+SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
- 	retq
- SYM_FUNC_END(ftrace_caller)
+ ENTRY(ftrace_caller)
  
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 0f4961075792..4b2d668afd70 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
- 	jmp *%eax
- 
- .Lbad_subarch:
--WEAK(xen_entry)
-+SYM_INNER_LABEL_ALIGN(xen_entry, SYM_L_WEAK)
- 	/* Unknown implementation; there's really
- 	   nothing we can do at this point. */
- 	ud2a
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index 331a2306312c..9280209d1f62 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -121,13 +121,13 @@
- #endif /* CONFIG_X86 */
- #endif /* LINKER_SCRIPT */
- 
-+#ifndef CONFIG_X86
- #ifndef WEAK
- /* deprecated, use SYM_FUNC_START_WEAK* */
- #define WEAK(name)	   \
- 	SYM_FUNC_START_WEAK(name)
- #endif
- 
--#ifndef CONFIG_X86
- #ifndef END
- /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
- #define END(name) \
 -- 
 2.20.1
