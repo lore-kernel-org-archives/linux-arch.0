@@ -1,92 +1,96 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v7 28/28] x86/asm: replace WEAK uses by SYM_INNER_LABEL_ALIGN
-Date: Wed, 30 Jan 2019 13:47:11 +0100
-Message-ID: <20190130124711.12463-29-jslaby@suse.cz>
+Subject: [PATCH v7 09/28] x86/asm: annotate aliases
+Date: Wed, 30 Jan 2019 13:46:52 +0100
+Message-ID: <20190130124711.12463-10-jslaby@suse.cz>
 References: <20190130124711.12463-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xenproject.org>
 In-Reply-To: <20190130124711.12463-1-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xenproject.org>
+List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
+List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xenproject.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
 To: mingo@redhat.com
-Cc: bp@alien8.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Herbert Xu <herbert@gondor.apana.org.au>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, x86@kernel.org, linux-kernel@vger.kernel.org, bp@alien8.de, linux-crypto@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Use the new SYM_INNER_LABEL_ALIGN for WEAK entries in the middle of x86
-assembly functions.
-
-And make sure WEAK is not defined for x86 anymore as these were the last
-users.
-
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
----
- arch/x86/kernel/ftrace_32.S | 2 +-
- arch/x86/kernel/ftrace_64.S | 2 +-
- arch/x86/kernel/head_32.S   | 2 +-
- include/linux/linkage.h     | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index f519c22f6f9e..b3b42bb8bd74 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -98,7 +98,7 @@ ftrace_graph_call:
- #endif
- 
- /* This is weak to keep gas from relaxing the jumps */
--WEAK(ftrace_stub)
-+SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
- 	ret
- SYM_CODE_END(ftrace_caller)
- 
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index e3d4ef5d7aff..3d6635c09b9c 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -186,7 +186,7 @@ SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
-  * This is weak to keep gas from relaxing the jumps.
-  * It is also used to copy the retq for trampolines.
-  */
--WEAK(ftrace_stub)
-+SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
- 	retq
- SYM_FUNC_END(ftrace_caller)
- 
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 0f4961075792..4b2d668afd70 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
- 	jmp *%eax
- 
- .Lbad_subarch:
--WEAK(xen_entry)
-+SYM_INNER_LABEL_ALIGN(xen_entry, SYM_L_WEAK)
- 	/* Unknown implementation; there's really
- 	   nothing we can do at this point. */
- 	ud2a
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index 331a2306312c..9280209d1f62 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -121,13 +121,13 @@
- #endif /* CONFIG_X86 */
- #endif /* LINKER_SCRIPT */
- 
-+#ifndef CONFIG_X86
- #ifndef WEAK
- /* deprecated, use SYM_FUNC_START_WEAK* */
- #define WEAK(name)	   \
- 	SYM_FUNC_START_WEAK(name)
- #endif
- 
--#ifndef CONFIG_X86
- #ifndef END
- /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
- #define END(name) \
--- 
-2.20.1
+X2tleV9leHBhbnNpb25fMTI4IGlzIGFuIGFsaWFzIHRvIF9rZXlfZXhwYW5zaW9uXzI1NmEsIF9f
+bWVtY3B5IHRvCm1lbWNweSwgeGVuX3N5c2NhbGwzMl90YXJnZXQgdG8geGVuX3N5c2VudGVyX3Rh
+cmdldCwgYW5kIHNvIG9uLiBBbm5vdGF0ZQp0aGVtIGFsbCB1c2luZyB0aGUgbmV3IFNZTV9GVU5D
+X1NUQVJUX0FMSUFTLCBTWU1fRlVOQ19TVEFSVF9MT0NBTF9BTElBUywKYW5kIFNZTV9GVU5DX0VO
+RF9BTElBUy4gVGhpcyB3aWxsIG1ha2UgdGhlIHRvb2xzIGdlbmVyYXRpbmcgdGhlCmRlYnVnaW5m
+byBoYXBweS4KClNpZ25lZC1vZmYtYnk6IEppcmkgU2xhYnkgPGpzbGFieUBzdXNlLmN6PgpDYzog
+SGVyYmVydCBYdSA8aGVyYmVydEBnb25kb3IuYXBhbmEub3JnLmF1PgpDYzogIkRhdmlkIFMuIE1p
+bGxlciIgPGRhdmVtQGRhdmVtbG9mdC5uZXQ+CkNjOiBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGlu
+dXRyb25peC5kZT4KQ2M6IEluZ28gTW9sbmFyIDxtaW5nb0ByZWRoYXQuY29tPgpDYzogIkguIFBl
+dGVyIEFudmluIiA8aHBhQHp5dG9yLmNvbT4KQ2M6IDx4ODZAa2VybmVsLm9yZz4KQ2M6IEJvcmlz
+IE9zdHJvdnNreSA8Ym9yaXMub3N0cm92c2t5QG9yYWNsZS5jb20+CkNjOiBKdWVyZ2VuIEdyb3Nz
+IDxqZ3Jvc3NAc3VzZS5jb20+ClJldmlld2VkLWJ5OiBKdWVyZ2VuIEdyb3NzIDxqZ3Jvc3NAc3Vz
+ZS5jb20+IFt4ZW4gcGFydHNdCkNjOiA8bGludXgtY3J5cHRvQHZnZXIua2VybmVsLm9yZz4KQ2M6
+IDx4ZW4tZGV2ZWxAbGlzdHMueGVucHJvamVjdC5vcmc+Ci0tLQogYXJjaC94ODYvY3J5cHRvL2Fl
+c25pLWludGVsX2FzbS5TIHwgNSArKy0tLQogYXJjaC94ODYvbGliL21lbWNweV82NC5TICAgICAg
+ICAgIHwgNCArKy0tCiBhcmNoL3g4Ni9saWIvbWVtbW92ZV82NC5TICAgICAgICAgfCA0ICsrLS0K
+IGFyY2gveDg2L2xpYi9tZW1zZXRfNjQuUyAgICAgICAgICB8IDQgKystLQogYXJjaC94ODYveGVu
+L3hlbi1hc21fNjQuUyAgICAgICAgIHwgNCArKy0tCiA1IGZpbGVzIGNoYW5nZWQsIDEwIGluc2Vy
+dGlvbnMoKyksIDExIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2NyeXB0by9h
+ZXNuaS1pbnRlbF9hc20uUyBiL2FyY2gveDg2L2NyeXB0by9hZXNuaS1pbnRlbF9hc20uUwppbmRl
+eCA2YzM0OWU4NDQ1ODEuLjE5ZWZmYmY5Y2UzNSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvY3J5cHRv
+L2Flc25pLWludGVsX2FzbS5TCisrKyBiL2FyY2gveDg2L2NyeXB0by9hZXNuaS1pbnRlbF9hc20u
+UwpAQCAtMTc2MSw4ICsxNzYxLDcgQEAgRU5EUFJPQyhhZXNuaV9nY21fZmluYWxpemUpCiAjZW5k
+aWYKIAogCi0uYWxpZ24gNAotX2tleV9leHBhbnNpb25fMTI4OgorU1lNX0ZVTkNfU1RBUlRfTE9D
+QUxfQUxJQVMoX2tleV9leHBhbnNpb25fMTI4KQogU1lNX0ZVTkNfU1RBUlRfTE9DQUwoX2tleV9l
+eHBhbnNpb25fMjU2YSkKIAlwc2h1ZmQgJDBiMTExMTExMTEsICV4bW0xLCAleG1tMQogCXNodWZw
+cyAkMGIwMDAxMDAwMCwgJXhtbTAsICV4bW00CkBAIC0xNzczLDggKzE3NzIsOCBAQCBTWU1fRlVO
+Q19TVEFSVF9MT0NBTChfa2V5X2V4cGFuc2lvbl8yNTZhKQogCW1vdmFwcyAleG1tMCwgKFRLRVlQ
+KQogCWFkZCAkMHgxMCwgVEtFWVAKIAlyZXQKLUVORFBST0MoX2tleV9leHBhbnNpb25fMTI4KQog
+U1lNX0ZVTkNfRU5EKF9rZXlfZXhwYW5zaW9uXzI1NmEpCitTWU1fRlVOQ19FTkRfQUxJQVMoX2tl
+eV9leHBhbnNpb25fMTI4KQogCiBTWU1fRlVOQ19TVEFSVF9MT0NBTChfa2V5X2V4cGFuc2lvbl8x
+OTJhKQogCXBzaHVmZCAkMGIwMTAxMDEwMSwgJXhtbTEsICV4bW0xCmRpZmYgLS1naXQgYS9hcmNo
+L3g4Ni9saWIvbWVtY3B5XzY0LlMgYi9hcmNoL3g4Ni9saWIvbWVtY3B5XzY0LlMKaW5kZXggM2Iy
+NGRjMDUyNTFjLi42OGZjZDhmOWE0OGIgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi9tZW1jcHlf
+NjQuUworKysgYi9hcmNoL3g4Ni9saWIvbWVtY3B5XzY0LlMKQEAgLTI3LDcgKzI3LDcgQEAKICAq
+IE91dHB1dDoKICAqIHJheCBvcmlnaW5hbCBkZXN0aW5hdGlvbgogICovCi1FTlRSWShfX21lbWNw
+eSkKK1NZTV9GVU5DX1NUQVJUX0FMSUFTKF9fbWVtY3B5KQogRU5UUlkobWVtY3B5KQogCUFMVEVS
+TkFUSVZFXzIgImptcCBtZW1jcHlfb3JpZyIsICIiLCBYODZfRkVBVFVSRV9SRVBfR09PRCwgXAog
+CQkgICAgICAiam1wIG1lbWNweV9lcm1zIiwgWDg2X0ZFQVRVUkVfRVJNUwpAQCAtNDEsNyArNDEs
+NyBAQCBFTlRSWShtZW1jcHkpCiAJcmVwIG1vdnNiCiAJcmV0CiBFTkRQUk9DKG1lbWNweSkKLUVO
+RFBST0MoX19tZW1jcHkpCitTWU1fRlVOQ19FTkRfQUxJQVMoX19tZW1jcHkpCiBFWFBPUlRfU1lN
+Qk9MKG1lbWNweSkKIEVYUE9SVF9TWU1CT0woX19tZW1jcHkpCiAKZGlmZiAtLWdpdCBhL2FyY2gv
+eDg2L2xpYi9tZW1tb3ZlXzY0LlMgYi9hcmNoL3g4Ni9saWIvbWVtbW92ZV82NC5TCmluZGV4IGJi
+ZWM2OWQ4MjIzYi4uNTBjMTY0ODMxMWIzIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9saWIvbWVtbW92
+ZV82NC5TCisrKyBiL2FyY2gveDg2L2xpYi9tZW1tb3ZlXzY0LlMKQEAgLTI2LDcgKzI2LDcgQEAK
+ICAqLwogLndlYWsgbWVtbW92ZQogCi1FTlRSWShtZW1tb3ZlKQorU1lNX0ZVTkNfU1RBUlRfQUxJ
+QVMobWVtbW92ZSkKIEVOVFJZKF9fbWVtbW92ZSkKIAogCS8qIEhhbmRsZSBtb3JlIDMyIGJ5dGVz
+IGluIGxvb3AgKi8KQEAgLTIwOCw2ICsyMDgsNiBAQCBFTlRSWShfX21lbW1vdmUpCiAxMzoKIAly
+ZXRxCiBFTkRQUk9DKF9fbWVtbW92ZSkKLUVORFBST0MobWVtbW92ZSkKK1NZTV9GVU5DX0VORF9B
+TElBUyhtZW1tb3ZlKQogRVhQT1JUX1NZTUJPTChfX21lbW1vdmUpCiBFWFBPUlRfU1lNQk9MKG1l
+bW1vdmUpCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9saWIvbWVtc2V0XzY0LlMgYi9hcmNoL3g4Ni9s
+aWIvbWVtc2V0XzY0LlMKaW5kZXggOWJjODYxYzcxZTc1Li45MjdhYzQ0ZDM0YWEgMTAwNjQ0Ci0t
+LSBhL2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUworKysgYi9hcmNoL3g4Ni9saWIvbWVtc2V0XzY0
+LlMKQEAgLTE5LDcgKzE5LDcgQEAKICAqCiAgKiByYXggICBvcmlnaW5hbCBkZXN0aW5hdGlvbgog
+ICovCi1FTlRSWShtZW1zZXQpCitTWU1fRlVOQ19TVEFSVF9BTElBUyhtZW1zZXQpCiBFTlRSWShf
+X21lbXNldCkKIAkvKgogCSAqIFNvbWUgQ1BVcyBzdXBwb3J0IGVuaGFuY2VkIFJFUCBNT1ZTQi9T
+VE9TQiBmZWF0dXJlLiBJdCBpcyByZWNvbW1lbmRlZApAQCAtNDMsOCArNDMsOCBAQCBFTlRSWShf
+X21lbXNldCkKIAlyZXAgc3Rvc2IKIAltb3ZxICVyOSwlcmF4CiAJcmV0Ci1FTkRQUk9DKG1lbXNl
+dCkKIEVORFBST0MoX19tZW1zZXQpCitTWU1fRlVOQ19FTkRfQUxJQVMobWVtc2V0KQogRVhQT1JU
+X1NZTUJPTChtZW1zZXQpCiBFWFBPUlRfU1lNQk9MKF9fbWVtc2V0KQogCmRpZmYgLS1naXQgYS9h
+cmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TIGIvYXJjaC94ODYveGVuL3hlbi1hc21fNjQuUwppbmRl
+eCAxZTllZjBiYTMwYTUuLjMwZGNjMzExZjU2NiAxMDA2NDQKLS0tIGEvYXJjaC94ODYveGVuL3hl
+bi1hc21fNjQuUworKysgYi9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TCkBAIC0xNjgsMTMgKzE2
+OCwxMyBAQCBFTkRQUk9DKHhlbl9zeXNlbnRlcl90YXJnZXQpCiAKICNlbHNlIC8qICFDT05GSUdf
+SUEzMl9FTVVMQVRJT04gKi8KIAotRU5UUlkoeGVuX3N5c2NhbGwzMl90YXJnZXQpCitTWU1fRlVO
+Q19TVEFSVF9BTElBUyh4ZW5fc3lzY2FsbDMyX3RhcmdldCkKIEVOVFJZKHhlbl9zeXNlbnRlcl90
+YXJnZXQpCiAJbGVhIDE2KCVyc3ApLCAlcnNwCS8qIHN0cmlwICVyY3gsICVyMTEgKi8KIAltb3Yg
+JC1FTk9TWVMsICVyYXgKIAlwdXNocSAkMAogCWptcCBoeXBlcmNhbGxfaXJldAotRU5EUFJPQyh4
+ZW5fc3lzY2FsbDMyX3RhcmdldCkKIEVORFBST0MoeGVuX3N5c2VudGVyX3RhcmdldCkKK1NZTV9G
+VU5DX0VORF9BTElBUyh4ZW5fc3lzY2FsbDMyX3RhcmdldCkKIAogI2VuZGlmCS8qIENPTkZJR19J
+QTMyX0VNVUxBVElPTiAqLwotLSAKMi4yMC4xCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlz
+dHMueGVucHJvamVjdC5vcmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0Lm9yZy9tYWlsbWFuL2xp
+c3RpbmZvL3hlbi1kZXZlbA==
