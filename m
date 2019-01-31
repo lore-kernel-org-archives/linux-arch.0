@@ -1,135 +1,122 @@
-From: Julien Thierry <julien.thierry@arm.com>
-Subject: [PATCH v10 01/25] arm64: Fix HCR.TGE status for NMI contexts
-Date: Thu, 31 Jan 2019 14:58:39 +0000
-Message-ID: <1548946743-38979-2-git-send-email-julien.thierry@arm.com>
-References: <1548946743-38979-1-git-send-email-julien.thierry@arm.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 01/28] linkage: new macros for assembler symbols
+Date: Thu, 31 Jan 2019 17:00:19 +0100
+Message-ID: <20190131160019.GM6749@zn.tnic>
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-2-jslaby@suse.cz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1548946743-38979-1-git-send-email-julien.thierry@arm.com>
+Content-Disposition: inline
+In-Reply-To: <20190130124711.12463-2-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, marc.zyngier@arm.com, christoffer.dall@arm.com, james.morse@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Julien Thierry <julien.thierry@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, hpa@zytor.com, Ingo Molnar <mingo@kernel.org>, jpoimboe@redhat.com, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Thomas Gleixner <tglx@linutronix.de>, xen-devel@lists.xenproject.org, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-When using VHE, the host needs to clear HCR_EL2.TGE bit in order
-to interact with guest TLBs, switching from EL2&0 translation regime
-to EL1&0.
+On Wed, Jan 30, 2019 at 01:46:44PM +0100, Jiri Slaby wrote:
+> Introduce new C macros for annotations of functions and data in
+> assembly. There is a long-standing mess in macros like ENTRY, END,
+> ENDPROC and similar. They are used in different manners and sometimes
+> incorrectly.
+> 
+> So introduce macros with clear use to annotate assembly as follows:
 
-However, some non-maskable asynchronous event could happen while TGE is
-cleared like SDEI. Because of this address translation operations
-relying on EL2&0 translation regime could fail (tlb invalidation,
-userspace access, ...).
+...
 
-Fix this by properly setting HCR_EL2.TGE when entering NMI context and
-clear it if necessary when returning to the interrupted context.
+> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+> Cc: hpa@zytor.com
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: jpoimboe@redhat.com
+> Cc: Juergen Gross <jgross@suse.com>
+> Cc: Len Brown <len.brown@intel.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-pm@vger.kernel.org
+> Cc: mingo@redhat.com
+> Cc: Pavel Machek <pavel@ucw.cz>
+> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: xen-devel@lists.xenproject.org
+> Cc: x86@kernel.org
+> ---
+>  Documentation/asm-annotations.rst | 217 ++++++++++++++++++++++++++
 
-Signed-off-by: Julien Thierry <julien.thierry@arm.com>
-Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
-Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
-Reviewed-by: James Morse <james.morse@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: James Morse <james.morse@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
+I guess you wanna integrate that into the doc hierarchy. Hunk ontop:
+
 ---
- arch/arm64/include/asm/hardirq.h | 31 +++++++++++++++++++++++++++++++
- arch/arm64/kernel/irq.c          |  3 +++
- include/linux/hardirq.h          |  7 +++++++
- 3 files changed, 41 insertions(+)
+diff --git a/Documentation/index.rst b/Documentation/index.rst
+index c858c2e66e36..754055d9565c 100644
+--- a/Documentation/index.rst
++++ b/Documentation/index.rst
+@@ -91,6 +91,14 @@ needed).
+    vm/index
+    bpf/index
+ 
++Architecture-agnostic documentation
++-----------------------------------
++
++.. toctree::
++   :maxdepth: 2
++
++   asm-annotations
++
+ Architecture-specific documentation
+ -----------------------------------
+ 
 
-diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
-index 1473fc2..89691c8 100644
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -17,8 +17,12 @@
- #define __ASM_HARDIRQ_H
- 
- #include <linux/cache.h>
-+#include <linux/percpu.h>
- #include <linux/threads.h>
-+#include <asm/barrier.h>
- #include <asm/irq.h>
-+#include <asm/kvm_arm.h>
-+#include <asm/sysreg.h>
- 
- #define NR_IPI	7
- 
-@@ -37,6 +41,33 @@
- 
- #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
- 
-+struct nmi_ctx {
-+	u64 hcr;
-+};
-+
-+DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
-+
-+#define arch_nmi_enter()							\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
-+			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
-+				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
-+				isb();						\
-+			}							\
-+		}								\
-+	} while (0)
-+
-+#define arch_nmi_exit()								\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			if (!(nmi_ctx->hcr & HCR_TGE))				\
-+				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
-+		}								\
-+	} while (0)
-+
- static inline void ack_bad_irq(unsigned int irq)
- {
- 	extern unsigned long irq_err_count;
-diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
-index 780a12f..92fa817 100644
---- a/arch/arm64/kernel/irq.c
-+++ b/arch/arm64/kernel/irq.c
-@@ -33,6 +33,9 @@
- 
- unsigned long irq_err_count;
- 
-+/* Only access this in an NMI enter/exit */
-+DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
-+
- DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
- 
- int arch_show_interrupts(struct seq_file *p, int prec)
-diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
-index 0fbbcdf..da0af63 100644
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -60,8 +60,14 @@ static inline void rcu_nmi_exit(void)
-  */
- extern void irq_exit(void);
- 
-+#ifndef arch_nmi_enter
-+#define arch_nmi_enter()	do { } while (0)
-+#define arch_nmi_exit()		do { } while (0)
-+#endif
-+
- #define nmi_enter()						\
- 	do {							\
-+		arch_nmi_enter();				\
- 		printk_nmi_enter();				\
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
-@@ -80,6 +86,7 @@ static inline void rcu_nmi_exit(void)
- 		ftrace_nmi_exit();				\
- 		lockdep_on();					\
- 		printk_nmi_exit();				\
-+		arch_nmi_exit();				\
- 	} while (0)
- 
- #endif /* LINUX_HARDIRQ_H */
+>  arch/x86/include/asm/linkage.h    |  10 +-
+>  include/linux/linkage.h           | 245 +++++++++++++++++++++++++++++-
+>  3 files changed, 461 insertions(+), 11 deletions(-)
+>  create mode 100644 Documentation/asm-annotations.rst
+> 
+> diff --git a/Documentation/asm-annotations.rst b/Documentation/asm-annotations.rst
+> new file mode 100644
+> index 000000000000..265d64a1fc0b
+> --- /dev/null
+> +++ b/Documentation/asm-annotations.rst
+> @@ -0,0 +1,217 @@
+> +Assembler Annotations
+> +=====================
+> +
+> +Copyright (c) 2017 Jiri Slaby
+> +
+> +This document describes the new macros for annotation of data and code in
+> +assembler. In particular, it contains information about ``SYM_FUNC_START``,
+
+s/assembler/assembly/
+
+> +``SYM_FUNC_END``, ``SYM_CODE_START``, and similar.
+> +
+> +Rationale
+> +---------
+> +Some code like entries, trampolines, or boot code needs to be written in
+> +assembly. The same as in C, we group such code into functions and accompany
+> +them with data. Standard assemblers do not force users into precisely marking
+> +these pieces as code, data, or even specifying their length. Nevertheless,
+> +assemblers provide developers with such marks to aid debuggers throughout
+> +assembly. On the top of that, developers also want to stamp some functions as
+> +*global* to be visible outside of their translation units.
+> +
+> +Over the time, the Linux kernel took over macros from various projects (like
+
+s/the //
+
+> +``binutils``) to ease these markings. So for historic reasons, we have been
+> +using ``ENTRY``, ``END``, ``ENDPROC``, and other annotations in assembly. Due
+> +to the lack of their documentation, the macros are used in rather wrong
+> +contexts at some locations. Clearly, ``ENTRY`` was intended for starts of
+> +global symbols (be it data or code). ``END`` used to be the end of data or end
+> +of special functions with *non-standard* calling convention. In contrast,
+> +``ENDPROC`` should annotate only ends of *standard* functions.
+
+...
+
 -- 
-1.9.1
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
