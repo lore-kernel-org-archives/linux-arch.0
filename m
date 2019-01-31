@@ -1,33 +1,160 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v6 00/27] x86: PIE support and option to extend KASLR randomization
-Date: Fri, 1 Feb 2019 08:59:21 +1300
-Message-ID: <CAGXu5jLGFd2UY89bPm_WQvcsX+RDMg0XoJvuXwfknJrGxpn4Ng@mail.gmail.com>
-References: <20190131192533.34130-1-thgarnie@chromium.org>
+From: "Darrick J. Wong" <darrick.wong@oracle.com>
+Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error
+ code
+Date: Thu, 31 Jan 2019 12:39:40 -0800
+Message-ID: <20190131203940.GA27972@magnolia>
+References: <20190118161440.220134-1-jannh@google.com>
+ <20190118161440.220134-3-jannh@google.com>
+ <20190120224059.GA4205@dastard>
+ <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
+ <20190121222411.GD4205@dastard>
+ <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-15064-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20190131192533.34130-1-thgarnie@chromium.org>
-To: Thomas Garnier <thgarnie@chromium.org>
-Cc: Kernel Hardening <kernel-hardening@lists.openwall.com>, Kristen Carlson Accardi <kristen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Jonathan Corbet <corbet@lwn.net>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Andy Lutomirski <luto@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Juergen Gross <jgross@suse.com>, Alok Kataria <akataria@vmware.com>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Steven
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jann Horn <jannh@google.com>
+Cc: Dave Chinner <david@fromorbit.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 1, 2019 at 8:28 AM Thomas Garnier <thgarnie@chromium.org> wrote:
-> These patches make the changes necessary to build the kernel as Position
-> Independent Executable (PIE) on x86_64. A PIE kernel can be relocated below
-> the top 2G of the virtual address space. It allows to optionally extend the
-> KASLR randomization range from 1G to 3G. The chosen range is the one currently
-> available, future changes will allow the kernel module to have a wider
-> randomization range.
+On Wed, Jan 23, 2019 at 04:07:59PM +0100, Jann Horn wrote:
+> On Mon, Jan 21, 2019 at 11:24 PM Dave Chinner <david@fromorbit.com> wrote:
+> > On Mon, Jan 21, 2019 at 04:49:45PM +0100, Jann Horn wrote:
+> > > On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
+> > > > On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
+> > > > > As Al Viro pointed out, many filldir_t functions return error codes, but
+> > > > > all callers of filldir_t functions just check whether the return value is
+> > > > > non-zero (to determine whether to continue reading the directory); more
+> > > > > precise errors have to be signalled via struct dir_context.
+> > > > > Change all filldir_t functions to return bool instead of int.
+> > > > >
+> > > > > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
+> > > > > Signed-off-by: Jann Horn <jannh@google.com>
+> > > > > ---
+> > > > >  arch/alpha/kernel/osf_sys.c | 12 +++----
+> > > > >  fs/afs/dir.c                | 30 +++++++++--------
+> > > > >  fs/ecryptfs/file.c          | 13 ++++----
+> > > > >  fs/exportfs/expfs.c         |  8 ++---
+> > > > >  fs/fat/dir.c                |  8 ++---
+> > > > >  fs/gfs2/export.c            |  6 ++--
+> > > > >  fs/nfsd/nfs4recover.c       |  8 ++---
+> > > > >  fs/nfsd/vfs.c               |  6 ++--
+> > > > >  fs/ocfs2/dir.c              | 10 +++---
+> > > > >  fs/ocfs2/journal.c          | 14 ++++----
+> > > > >  fs/overlayfs/readdir.c      | 24 +++++++-------
+> > > > >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
+> > > > >  fs/reiserfs/xattr.c         | 20 ++++++------
+> > > > >  fs/xfs/scrub/dir.c          |  8 ++---
+> > > > >  fs/xfs/scrub/parent.c       |  4 +--
+> > > > >  include/linux/fs.h          | 10 +++---
+> > > > >  16 files changed, 125 insertions(+), 120 deletions(-)
+> > > > >
+> > > > > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+> > > > > index db1c2144d477..14e5ae0dac50 100644
+> > > > > --- a/arch/alpha/kernel/osf_sys.c
+> > > > > +++ b/arch/alpha/kernel/osf_sys.c
+> > > > > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
+> > > > >       int error;
+> > > > >  };
+> > > > >
+> > > > > -static int
+> > > > > +static bool
+> > > > >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> > > > >           loff_t offset, u64 ino, unsigned int d_type)
+> > > > >  {
+> > > > > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> > > > >
+> > > > >       buf->error = check_dirent_name(name, namlen);
+> > > > >       if (unlikely(buf->error))
+> > > > > -             return -EFSCORRUPTED;
+> > > > > +             return false;
+> > > > >       buf->error = -EINVAL;   /* only used if we fail */
+> > > > >       if (reclen > buf->count)
+> > > > > -             return -EINVAL;
+> > > > > +             return false;
+> > > >
+> > > > Oh, it's because the error being returned is being squashed by
+> > > > dir_emit():
+> > >
+> > > Yeah.
+> > >
+> > > > >  struct dir_context {
+> > > > > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
+> > > > >                           const char *name, int namelen,
+> > > > >                           u64 ino, unsigned type)
+> > > > >  {
+> > > > > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
+> > > > > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
+> > > > >  }
+> > > >
+> > > > /me wonders if it would be cleaner to do:
+> > > >
+> > > > static inline bool dir_emit(...)
+> > > > {
+> > > >         buf->error = ctx->actor(....)
+> > > >         if (buf->error)
+> > > >                 return false;
+> > > >         return true;
+> > > > }
+> > > >
+> > > > And clean up all filldir actors just to return the error state
+> > > > rather than have to jump through hoops to stash the error state in
+> > > > the context buffer and return the error state?
+> > >
+> > > One negative thing about that, IMO, is that it mixes up the request
+> > > for termination of the loop and the presence of an error.
+> >
+> > Doesn't the code already do that, only worse?
+> 
+> The current code does that, yes. But with this patch, I think that's
+> not really the case anymore?
+> 
+> > > > That then allows callers who want/need the full error info can
+> > > > continue to call ctx->actor directly,
+> > >
+> > > "continue to call ctx->actor directly"? I don't remember any code that
+> > > calls ctx->actor directly.
+> >
+> > ovl_fill_real().
+> 
+> Ah, right.
+> 
+> 
+> > And the XFS directory scrubber could probably make better use of the
+> > error return from ctx->actor when validating the directory contents
+> > rather than just calling dir_emit() and aborting the scan at the
+> > first error encountered. We eventually want to know exactly what
+> > error was encountered here to determine if it is safe to continue,
+> > not just a "stop processing" flag. e.g. a bad name length will need
+> > to stop traversal because we can't trust the underlying structure,
+> > but an invalid file type isn't a structural flaw that prevents us
+> > from continuing to traverse and check the rest of the directory....
+> 
+> Sorry, maybe I'm a bit dense right now, I don't get your point. Are
+> you talking about filesystem errors detected in the actor? If so,
+> doesn't it make *more* sense for non-fatal errors to put a note that
+> an error happened into the xchk_dir_ctx (if that information should be
+> kept around), then return a value that says "please continue"?
 
-This also lays the groundwork for doing compilation-unit-granularity
-KASLR, as Kristen has been working on. With PIE working, the
-relocations are more sane and boot-time reordering becomes possible
-(or at least, it becomes the same logically as doing the work on
-modules, etc).
+As I understand the scrub code, we /do/ stash the error state elsewhere
+and set the xchk_dir_actor return value as appropriate to continue or
+stop the directory iteration.  Granted, it's not very nuanced since
+anything out of order sets the CORRUPT flag and aborts the iteration,
+but in principle xchk_dir_actor could set the scrub warning flag and
+return 0 if it wanted to.
 
--- 
-Kees Cook
+(So maybe I'm dense too, but I don't know what Dave is talking
+about...?)
+
+--D
+
+> Or are you talking about filesystem errors detected in the readdir
+> implementation? In that case, you're AFAICS going to need special-case
+> logic gated on ctx->actor==xchk_dir_actor anyway if you want the
+> scrubber to continue while readdir() stops.
+> 
+> (But as I've said, I don't really care about this patch. If Al takes
+> patches 1 and 2 from this series, I'm happy; this patch is just in
+> response to <https://lore.kernel.org/lkml/20180731165112.GJ30522@ZenIV.linux.org.uk/>.)
