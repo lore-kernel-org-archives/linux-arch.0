@@ -1,49 +1,57 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH 2/3] locking/qspinlock: Introduce CNA into the slow path
- of qspinlock
-Date: Thu, 31 Jan 2019 12:38:57 -0500
-Message-ID: <2c8aabab-1bb0-0708-94c4-305fd860609e@redhat.com>
-References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131030136.56999-3-alex.kogan@oracle.com>
+From: Thomas Garnier <thgarnie@chromium.org>
+Subject: [PATCH v6 24/27] x86/mm: Make the x86 GOT read-only
+Date: Thu, 31 Jan 2019 11:24:31 -0800
+Message-ID: <20190131192533.34130-25-thgarnie@chromium.org>
+References: <20190131192533.34130-1-thgarnie@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190131030136.56999-3-alex.kogan@oracle.com>
-Content-Language: en-US
+In-Reply-To: <20190131192533.34130-1-thgarnie@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+To: kernel-hardening@lists.openwall.com
+Cc: kristen@linux.intel.com, Thomas Garnier <thgarnie@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 01/30/2019 10:01 PM, Alex Kogan wrote:
-> In CNA, spinning threads are organized in two queues, a main queue for
-> threads running on the same socket as the current lock holder, and a
-> secondary queue for threads running on other sockets. For details,
-> see https://arxiv.org/abs/1810.05600.
->
-> Note that this variant of CNA may introduce starvation by continuously
-> passing the lock to threads running on the same socket. This issue
-> will be addressed later in the series.
->
-> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+The GOT is changed during early boot when relocations are applied. Make
+it read-only directly. This table exists only for PIE binary.
 
-Just wondering if you have tried include PARVIRT_SPINLOCKS option to see
-if that patch may screw up the PV qspinlock code.
+Position Independent Executable (PIE) support will allow to extend the
+KASLR randomization range below 0xffffffff80000000.
 
-Anyway, I do believe your claim that NUMA-aware qspinlock is good for
-large systems with many nodes. However, all these extra code are
-overhead for small systems that have a single node/socket, for instance.
+Signed-off-by: Thomas Garnier <thgarnie@chromium.org>
+---
+ include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-I will support doing something similar to what had been done to support
-PV qspinlock. IOW, a separate slowpath function that can be patched to
-become the default depending on the system being run on or a kernel boot
-option setting.
-
-I would like to keep the core slowpath function simple and easy to
-understand. So most of the CNA code should be encapsulated into some
-helper functions and put into a separated file.
-
-Thanks,
-Longman
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 3d7a6a9c2370..0a038594c878 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -323,6 +323,17 @@
+ 	__end_ro_after_init = .;
+ #endif
+ 
++#ifdef CONFIG_X86_PIE
++#define RO_GOT_X86							\
++	.got        : AT(ADDR(.got) - LOAD_OFFSET) {			\
++		__start_got = .;					\
++		*(.got);						\
++		__end_got = .;						\
++	}
++#else
++#define RO_GOT_X86
++#endif
++
+ /*
+  * Read only Data
+  */
+@@ -379,6 +390,7 @@
+ 		__end_builtin_fw = .;					\
+ 	}								\
+ 									\
++	RO_GOT_X86							\
+ 	TRACEDATA							\
+ 									\
+ 	/* Kernel symbol table: Normal symbols */			\
+-- 
+2.20.1.495.gaa96b0ce6b-goog
