@@ -1,229 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:38014 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728194AbfAaT2w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jan 2019 14:28:52 -0500
-Received: by mail-pg1-f194.google.com with SMTP id g189so1781743pgc.5
-        for <linux-arch@vger.kernel.org>; Thu, 31 Jan 2019 11:28:52 -0800 (PST)
-From: Thomas Garnier <thgarnie@chromium.org>
-Subject: [PATCH v6 15/27] compiler: Option to default to hidden symbols
-Date: Thu, 31 Jan 2019 11:24:22 -0800
-Message-ID: <20190131192533.34130-16-thgarnie@chromium.org>
-In-Reply-To: <20190131192533.34130-1-thgarnie@chromium.org>
-References: <20190131192533.34130-1-thgarnie@chromium.org>
+Received: from userp2130.oracle.com ([156.151.31.86]:60100 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727200AbfAaUkZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jan 2019 15:40:25 -0500
+Date: Thu, 31 Jan 2019 12:39:40 -0800
+From: "Darrick J. Wong" <darrick.wong@oracle.com>
+Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error
+ code
+Message-ID: <20190131203940.GA27972@magnolia>
+References: <20190118161440.220134-1-jannh@google.com>
+ <20190118161440.220134-3-jannh@google.com>
+ <20190120224059.GA4205@dastard>
+ <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
+ <20190121222411.GD4205@dastard>
+ <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: kristen@linux.intel.com, Thomas Garnier <thgarnie@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Thomas Garnier <thgarnie@google.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190131192422.muBRGmLA4QChh7CBHBaugBMQPScxB-5AZ7ZZojRxTyQ@z>
+To: Jann Horn <jannh@google.com>
+Cc: Dave Chinner <david@fromorbit.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20190131203940.9OR0GPI_wGYgMxat0-TgQiJFQFnfoVb2Djj1w_5GkmI@z>
 
-Provide an option to default visibility to hidden except for key
-symbols. This option is disabled by default and will be used by x86_64
-PIE support to remove errors between compilation units.
+On Wed, Jan 23, 2019 at 04:07:59PM +0100, Jann Horn wrote:
+> On Mon, Jan 21, 2019 at 11:24 PM Dave Chinner <david@fromorbit.com> wrote:
+> > On Mon, Jan 21, 2019 at 04:49:45PM +0100, Jann Horn wrote:
+> > > On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
+> > > > On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
+> > > > > As Al Viro pointed out, many filldir_t functions return error codes, but
+> > > > > all callers of filldir_t functions just check whether the return value is
+> > > > > non-zero (to determine whether to continue reading the directory); more
+> > > > > precise errors have to be signalled via struct dir_context.
+> > > > > Change all filldir_t functions to return bool instead of int.
+> > > > >
+> > > > > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
+> > > > > Signed-off-by: Jann Horn <jannh@google.com>
+> > > > > ---
+> > > > >  arch/alpha/kernel/osf_sys.c | 12 +++----
+> > > > >  fs/afs/dir.c                | 30 +++++++++--------
+> > > > >  fs/ecryptfs/file.c          | 13 ++++----
+> > > > >  fs/exportfs/expfs.c         |  8 ++---
+> > > > >  fs/fat/dir.c                |  8 ++---
+> > > > >  fs/gfs2/export.c            |  6 ++--
+> > > > >  fs/nfsd/nfs4recover.c       |  8 ++---
+> > > > >  fs/nfsd/vfs.c               |  6 ++--
+> > > > >  fs/ocfs2/dir.c              | 10 +++---
+> > > > >  fs/ocfs2/journal.c          | 14 ++++----
+> > > > >  fs/overlayfs/readdir.c      | 24 +++++++-------
+> > > > >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
+> > > > >  fs/reiserfs/xattr.c         | 20 ++++++------
+> > > > >  fs/xfs/scrub/dir.c          |  8 ++---
+> > > > >  fs/xfs/scrub/parent.c       |  4 +--
+> > > > >  include/linux/fs.h          | 10 +++---
+> > > > >  16 files changed, 125 insertions(+), 120 deletions(-)
+> > > > >
+> > > > > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+> > > > > index db1c2144d477..14e5ae0dac50 100644
+> > > > > --- a/arch/alpha/kernel/osf_sys.c
+> > > > > +++ b/arch/alpha/kernel/osf_sys.c
+> > > > > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
+> > > > >       int error;
+> > > > >  };
+> > > > >
+> > > > > -static int
+> > > > > +static bool
+> > > > >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> > > > >           loff_t offset, u64 ino, unsigned int d_type)
+> > > > >  {
+> > > > > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
+> > > > >
+> > > > >       buf->error = check_dirent_name(name, namlen);
+> > > > >       if (unlikely(buf->error))
+> > > > > -             return -EFSCORRUPTED;
+> > > > > +             return false;
+> > > > >       buf->error = -EINVAL;   /* only used if we fail */
+> > > > >       if (reclen > buf->count)
+> > > > > -             return -EINVAL;
+> > > > > +             return false;
+> > > >
+> > > > Oh, it's because the error being returned is being squashed by
+> > > > dir_emit():
+> > >
+> > > Yeah.
+> > >
+> > > > >  struct dir_context {
+> > > > > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
+> > > > >                           const char *name, int namelen,
+> > > > >                           u64 ino, unsigned type)
+> > > > >  {
+> > > > > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
+> > > > > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
+> > > > >  }
+> > > >
+> > > > /me wonders if it would be cleaner to do:
+> > > >
+> > > > static inline bool dir_emit(...)
+> > > > {
+> > > >         buf->error = ctx->actor(....)
+> > > >         if (buf->error)
+> > > >                 return false;
+> > > >         return true;
+> > > > }
+> > > >
+> > > > And clean up all filldir actors just to return the error state
+> > > > rather than have to jump through hoops to stash the error state in
+> > > > the context buffer and return the error state?
+> > >
+> > > One negative thing about that, IMO, is that it mixes up the request
+> > > for termination of the loop and the presence of an error.
+> >
+> > Doesn't the code already do that, only worse?
+> 
+> The current code does that, yes. But with this patch, I think that's
+> not really the case anymore?
+> 
+> > > > That then allows callers who want/need the full error info can
+> > > > continue to call ctx->actor directly,
+> > >
+> > > "continue to call ctx->actor directly"? I don't remember any code that
+> > > calls ctx->actor directly.
+> >
+> > ovl_fill_real().
+> 
+> Ah, right.
+> 
+> 
+> > And the XFS directory scrubber could probably make better use of the
+> > error return from ctx->actor when validating the directory contents
+> > rather than just calling dir_emit() and aborting the scan at the
+> > first error encountered. We eventually want to know exactly what
+> > error was encountered here to determine if it is safe to continue,
+> > not just a "stop processing" flag. e.g. a bad name length will need
+> > to stop traversal because we can't trust the underlying structure,
+> > but an invalid file type isn't a structural flaw that prevents us
+> > from continuing to traverse and check the rest of the directory....
+> 
+> Sorry, maybe I'm a bit dense right now, I don't get your point. Are
+> you talking about filesystem errors detected in the actor? If so,
+> doesn't it make *more* sense for non-fatal errors to put a note that
+> an error happened into the xchk_dir_ctx (if that information should be
+> kept around), then return a value that says "please continue"?
 
-The default visibility is also enabled for external symbols that are
-compared as they maybe equals (start/end of sections). In this case,
-older versions of GCC will remove the comparison if the symbols are
-hidden. This issue exists at least on gcc 4.9 and before.
+As I understand the scrub code, we /do/ stash the error state elsewhere
+and set the xchk_dir_actor return value as appropriate to continue or
+stop the directory iteration.  Granted, it's not very nuanced since
+anything out of order sets the CORRUPT flag and aborts the iteration,
+but in principle xchk_dir_actor could set the scrub warning flag and
+return 0 if it wanted to.
 
-Signed-off-by: Thomas Garnier <thgarnie@chromium.org>
----
- arch/x86/boot/boot.h                 |  2 +-
- arch/x86/include/asm/setup.h         |  2 +-
- arch/x86/kernel/cpu/microcode/core.c |  4 ++--
- drivers/base/firmware_loader/main.c  |  4 ++--
- include/asm-generic/sections.h       |  6 ++++++
- include/linux/compiler.h             |  7 +++++++
- init/Kconfig                         |  7 +++++++
- kernel/kallsyms.c                    | 16 ++++++++--------
- kernel/trace/trace.h                 |  4 ++--
- lib/dynamic_debug.c                  |  4 ++--
- 10 files changed, 38 insertions(+), 18 deletions(-)
+(So maybe I'm dense too, but I don't know what Dave is talking
+about...?)
 
-diff --git a/arch/x86/boot/boot.h b/arch/x86/boot/boot.h
-index 32a09eb5c101..c4afcfecc817 100644
---- a/arch/x86/boot/boot.h
-+++ b/arch/x86/boot/boot.h
-@@ -193,7 +193,7 @@ static inline bool memcmp_gs(const void *s1, addr_t s2, size_t len)
- }
- 
- /* Heap -- available for dynamic lists. */
--extern char _end[];
-+extern char _end[] __default_visibility;
- extern char *HEAP;
- extern char *heap_end;
- #define RESET_HEAP() ((void *)( HEAP = _end ))
-diff --git a/arch/x86/include/asm/setup.h b/arch/x86/include/asm/setup.h
-index ed8ec011a9fd..74f0a8d87986 100644
---- a/arch/x86/include/asm/setup.h
-+++ b/arch/x86/include/asm/setup.h
-@@ -71,7 +71,7 @@ static inline void x86_ce4100_early_setup(void) { }
-  * This is set up by the setup-routine at boot-time
-  */
- extern struct boot_params boot_params;
--extern char _text[];
-+extern char _text[] __default_visibility;
- 
- static inline bool kaslr_enabled(void)
- {
-diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
-index 97f9ada9ceda..04ca89e65f79 100644
---- a/arch/x86/kernel/cpu/microcode/core.c
-+++ b/arch/x86/kernel/cpu/microcode/core.c
-@@ -149,8 +149,8 @@ static bool __init check_loader_disabled_bsp(void)
- 	return *res;
- }
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+extern struct builtin_fw __start_builtin_fw[] __default_visibility;
-+extern struct builtin_fw __end_builtin_fw[] __default_visibility;
- 
- bool get_builtin_firmware(struct cpio_data *cd, const char *name)
- {
-diff --git a/drivers/base/firmware_loader/main.c b/drivers/base/firmware_loader/main.c
-index 8e9213b36e31..f04096161a52 100644
---- a/drivers/base/firmware_loader/main.c
-+++ b/drivers/base/firmware_loader/main.c
-@@ -94,8 +94,8 @@ static struct firmware_cache fw_cache;
- 
- #ifdef CONFIG_FW_LOADER
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+extern struct builtin_fw __start_builtin_fw[] __default_visibility;
-+extern struct builtin_fw __end_builtin_fw[] __default_visibility;
- 
- static void fw_copy_to_prealloc_buf(struct firmware *fw,
- 				    void *buf, size_t size)
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index d79abca81a52..94f072f3a48d 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -32,6 +32,9 @@
-  *	__softirqentry_text_start, __softirqentry_text_end
-  *	__start_opd, __end_opd
-  */
-+#ifdef CONFIG_DEFAULT_HIDDEN_SYMS
-+#pragma GCC visibility push(default)
-+#endif
- extern char _text[], _stext[], _etext[];
- extern char _data[], _sdata[], _edata[];
- extern char __bss_start[], __bss_stop[];
-@@ -49,6 +52,9 @@ extern char __start_once[], __end_once[];
- 
- /* Start and end of .ctors section - used for constructor calls. */
- extern char __ctors_start[], __ctors_end[];
-+#ifdef CONFIG_DEFAULT_HIDDEN_SYMS
-+#pragma GCC visibility pop
-+#endif
- 
- /* Start and end of .opd section - used for function descriptors. */
- extern char __start_opd[], __end_opd[];
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 87692fdae97a..5c0723604a52 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -287,6 +287,13 @@ unsigned long read_word_at_a_time(const void *addr)
- 	__u.__val;					\
- })
- 
-+#ifdef CONFIG_DEFAULT_HIDDEN_SYMS
-+#pragma GCC visibility push(hidden)
-+#define __default_visibility  __attribute__((visibility ("default")))
-+#else
-+#define __default_visibility
-+#endif
-+
- #endif /* __KERNEL__ */
- 
- /*
-diff --git a/init/Kconfig b/init/Kconfig
-index bb383615823a..116e0de4817f 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1848,6 +1848,13 @@ config CMDLINE_OVERRIDE
- 
- endif
- 
-+#
-+# Default to hidden visibility for all symbols.
-+# Useful for Position Independent Code to reduce global references.
-+#
-+config DEFAULT_HIDDEN_SYMS
-+	bool
-+
- endmenu		# General setup
- 
- source "arch/Kconfig"
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index 14934afa9e68..547affc40b68 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -29,24 +29,24 @@
-  * These will be re-linked against their real values
-  * during the second link stage.
-  */
--extern const unsigned long kallsyms_addresses[] __weak;
--extern const int kallsyms_offsets[] __weak;
--extern const u8 kallsyms_names[] __weak;
-+extern const unsigned long kallsyms_addresses[] __weak __default_visibility;
-+extern const int kallsyms_offsets[] __weak __default_visibility;
-+extern const u8 kallsyms_names[] __weak __default_visibility;
- 
- /*
-  * Tell the compiler that the count isn't in the small data section if the arch
-  * has one (eg: FRV).
-  */
- extern const unsigned int kallsyms_num_syms
--__attribute__((weak, section(".rodata")));
-+__attribute__((weak, section(".rodata"))) __default_visibility;
- 
- extern const unsigned long kallsyms_relative_base
--__attribute__((weak, section(".rodata")));
-+__attribute__((weak, section(".rodata"))) __default_visibility;
- 
--extern const u8 kallsyms_token_table[] __weak;
--extern const u16 kallsyms_token_index[] __weak;
-+extern const u8 kallsyms_token_table[] __weak __default_visibility;
-+extern const u16 kallsyms_token_index[] __weak __default_visibility;
- 
--extern const unsigned int kallsyms_markers[] __weak;
-+extern const unsigned int kallsyms_markers[] __weak __default_visibility;
- 
- /*
-  * Expand a compressed symbol data into the resulting uncompressed string,
-diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
-index 08900828d282..5246977a2db7 100644
---- a/kernel/trace/trace.h
-+++ b/kernel/trace/trace.h
-@@ -1809,8 +1809,8 @@ extern int trace_event_enable_disable(struct trace_event_file *file,
- 				      int enable, int soft_disable);
- extern int tracing_alloc_snapshot(void);
- 
--extern const char *__start___trace_bprintk_fmt[];
--extern const char *__stop___trace_bprintk_fmt[];
-+extern const char *__start___trace_bprintk_fmt[] __default_visibility;
-+extern const char *__stop___trace_bprintk_fmt[] __default_visibility;
- 
- extern const char *__start___tracepoint_str[];
- extern const char *__stop___tracepoint_str[];
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index dbf2b457e47e..05482e65ae7d 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -37,8 +37,8 @@
- #include <linux/device.h>
- #include <linux/netdevice.h>
- 
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+extern struct _ddebug __start___verbose[] __default_visibility;
-+extern struct _ddebug __stop___verbose[] __default_visibility;
- 
- struct ddebug_table {
- 	struct list_head link;
--- 
-2.20.1.495.gaa96b0ce6b-goog
+--D
+
+> Or are you talking about filesystem errors detected in the readdir
+> implementation? In that case, you're AFAICS going to need special-case
+> logic gated on ctx->actor==xchk_dir_actor anyway if you want the
+> scrubber to continue while readdir() stops.
+> 
+> (But as I've said, I don't really care about this patch. If Al takes
+> patches 1 and 2 from this series, I'm happy; this patch is just in
+> response to <https://lore.kernel.org/lkml/20180731165112.GJ30522@ZenIV.linux.org.uk/>.)
