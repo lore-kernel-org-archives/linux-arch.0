@@ -1,123 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40754 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726221AbfAaJxp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 31 Jan 2019 04:53:45 -0500
-Subject: Re: [PATCH v9 01/26] arm64: Fix HCR.TGE status for NMI contexts
-References: <1548084825-8803-1-git-send-email-julien.thierry@arm.com>
- <1548084825-8803-2-git-send-email-julien.thierry@arm.com>
- <8e8c4f5b-5b83-7bbc-1b84-36d68e210968@arm.com>
- <847c54ef-ea41-eea5-8aff-72e0cea465f8@arm.com>
- <20190131081900.GM13482@e113682-lin.lund.arm.com>
- <32af4a5c-7aeb-0171-1b4a-2cbee5f78bca@arm.com>
- <20190131092706.GN13482@e113682-lin.lund.arm.com>
- <7a2c92ca-f0eb-1391-4dc4-005e1dbadc30@arm.com>
-From: Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <3814b7ff-8d78-5f47-6eef-1b4e9bd7fd46@arm.com>
-Date: Thu, 31 Jan 2019 09:53:40 +0000
+Received: from bombadil.infradead.org ([198.137.202.133]:57948 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726316AbfAaJ4w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jan 2019 04:56:52 -0500
+Date: Thu, 31 Jan 2019 10:56:38 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] Add NUMA-awareness to qspinlock
+Message-ID: <20190131095638.GA31534@hirez.programming.kicks-ass.net>
+References: <20190131030136.56999-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-In-Reply-To: <7a2c92ca-f0eb-1391-4dc4-005e1dbadc30@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190131030136.56999-1-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Julien Thierry <julien.thierry@arm.com>, Christoffer Dall <christoffer.dall@arm.com>
-Cc: James Morse <james.morse@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, daniel.thompson@linaro.org, joel@joelfernandes.org, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, stable@vger.kernel.org
-Message-ID: <20190131095340.h-RNxobtV_4GHWQ7ohQGonY103S2VntCk8--W_F1u1Q@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190131095638.BgeI5Pts9D_GeL_NN6FBaCa7vcV6RB-I75wapgB77KQ@z>
 
-On 31/01/2019 09:40, Julien Thierry wrote:
+On Wed, Jan 30, 2019 at 10:01:32PM -0500, Alex Kogan wrote:
+> Lock throughput can be increased by handing a lock to a waiter on the
+> same NUMA socket as the lock holder, provided care is taken to avoid
+> starvation of waiters on other NUMA sockets. This patch introduces CNA
+> (compact NUMA-aware lock) as the slow path for qspinlock.
+
+Since you use NUMA, use the term node, not socket. The two are not
+strictly related.
+
+> CNA is a NUMA-aware version of the MCS spin-lock. Spinning threads are
+> organized in two queues, a main queue for threads running on the same
+> socket as the current lock holder, and a secondary queue for threads
+> running on other sockets. Threads record the ID of the socket on which
+> they are running in their queue nodes. At the unlock time, the lock
+> holder scans the main queue looking for a thread running on the same
+> socket. If found (call it thread T), all threads in the main queue
+> between the current lock holder and T are moved to the end of the
+> secondary queue, and the lock is passed to T. If such T is not found, the
+> lock is passed to the first node in the secondary queue. Finally, if the
+> secondary queue is empty, the lock is passed to the next thread in the
+> main queue.
 > 
+> Full details are available at https://arxiv.org/abs/1810.05600.
+
+Full details really should also be in the Changelog. You can skip much
+of the academic bla-bla, but the Changelog should be self contained.
+
+> We have done some performance evaluation with the locktorture module
+> as well as with several benchmarks from the will-it-scale repo.
+> The following locktorture results are from an Oracle X5-4 server
+> (four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
+> cores each). Each number represents an average (over 5 runs) of the
+> total number of ops (x10^7) reported at the end of each run. The stock
+> kernel is v4.20.0-rc4+ compiled in the default configuration.
 > 
-> On 31/01/2019 09:27, Christoffer Dall wrote:
->> On Thu, Jan 31, 2019 at 08:56:04AM +0000, Julien Thierry wrote:
->>>
->>>
->>> On 31/01/2019 08:19, Christoffer Dall wrote:
->>>> On Mon, Jan 28, 2019 at 03:42:42PM +0000, Julien Thierry wrote:
->>>>> Hi James,
->>>>>
->>>>> On 28/01/2019 11:48, James Morse wrote:
->>>>>> Hi Julien,
->>>>>>
->>>>>> On 21/01/2019 15:33, Julien Thierry wrote:
->>>>>>> When using VHE, the host needs to clear HCR_EL2.TGE bit in order
->>>>>>> to interract with guest TLBs, switching from EL2&0 translation regime
->>>>>>
->>>>>> (interact)
->>>>>>
->>>>>>
->>>>>>> to EL1&0.
->>>>>>>
->>>>>>> However, some non-maskable asynchronous event could happen while TGE is
->>>>>>> cleared like SDEI. Because of this address translation operations
->>>>>>> relying on EL2&0 translation regime could fail (tlb invalidation,
->>>>>>> userspace access, ...).
->>>>>>>
->>>>>>> Fix this by properly setting HCR_EL2.TGE when entering NMI context and
->>>>>>> clear it if necessary when returning to the interrupted context.
->>>>>>
->>>>>> Yes please. This would not have been fun to debug!
->>>>>>
->>>>>> Reviewed-by: James Morse <james.morse@arm.com>
->>>>>>
->>>>>>
->>>>>
->>>>> Thanks.
->>>>>
->>>>>>
->>>>>> I was looking for why we need core code to do this, instead of updating the
->>>>>> arch's call sites. Your 'irqdesc: Add domain handlers for NMIs' patch (pointed
->>>>>> to from the cover letter) is the reason: core-code calls nmi_enter()/nmi_exit()
->>>>>> itself.
->>>>>>
->>>>>
->>>>> Yes, that's the main reason.
->>>>>
->>>> I wondered the same thing, but I don't understand the explanation :(
->>>>
->>>> Why can't we do a local_daif_mask() around the (very small) calls that
->>>> clear TGE instead?
->>>>
->>>
->>> That would protect against the pseudo-NMIs, but you can still get an
->>> SDEI at that point even with all daif bits set. Or did I misunderstand
->>> how SDEI works?
->>>
->>
->> I don't know the details of SDEI.  From looking at this patch, the
->> logical conclusion would be that SDEIs can then only be delivered once
->> we've called nmi_enter, but since we don't call this directly from the
->> code that clears TGE for doing guest TLB invalidation (or do we?) then
->> masking interrupts at the PSTATE level should be sufficient.
->>
->> Surely I'm missing some part of the bigger picture here.
->>
+> #thr  stock  patched speedup (patched/stock)
+>   1   2.710   2.715  1.002
+>   2   3.108   3.001  0.966
+>   4   4.194   3.919  0.934
+
+So low contention is actually worse. Funnily low contention is the
+majority of our locks and is _really_ important.
+
+>   8   5.309   6.894  1.299
+>  16   6.722   9.094  1.353
+>  32   7.314   9.885  1.352
+>  36   7.562   9.855  1.303
+>  72   6.696  10.358  1.547
+> 108   6.364  10.181  1.600
+> 142   6.179  10.178  1.647
 > 
-> I'm not sure I understand. SDEI uses the NMI context and AFAIU, it is an
-> interrupt that the firmware sends to the OS, and it is sent regardless
-> of the PSTATE at the OS EL.
+> When the kernel is compiled with lockstat enabled, CNA 
 
-I don't think we can describe SDEI as an interrupt. It is not even an
-exception. It is just EL3 ERET-ing to a pre-defined location. And yes,
-it will completely ignore any form of mask bit.
-
-> 
-> So, the worrying part is:
-> - Hyp clears TGE
-> - Exception/interrupt taken to EL3
-> - Firmware decides it's a good time to send an SDEI to the OS
-> - SDEI handler (at EL2 for VHE) does nmi_enter()
-> - SDEI handler needs to do cache invalidation or something with the
-> EL2&0 translation regime but TGE is cleared
-> 
-> We don't expect the code that clears TGE to call nmi_enter().
-
-Indeed. Without this patch, SDEI is already broken. Pseudo-NMIs only
-make the bug easier to trigger.
-
-Thanks,
-
-	M.
--- 
-Jazz is not dead. It just smells funny...
+I'll ignore that, lockstat/lockdep enabled runs are not what one would
+call performance relevant.
