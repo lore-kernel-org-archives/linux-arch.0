@@ -1,165 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:60100 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727200AbfAaUkZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jan 2019 15:40:25 -0500
-Date: Thu, 31 Jan 2019 12:39:40 -0800
-From: "Darrick J. Wong" <darrick.wong@oracle.com>
-Subject: Re: [PATCH v4 3/3] fs: let filldir_t return bool instead of an error
- code
-Message-ID: <20190131203940.GA27972@magnolia>
-References: <20190118161440.220134-1-jannh@google.com>
- <20190118161440.220134-3-jannh@google.com>
- <20190120224059.GA4205@dastard>
- <CAG48ez3SgejgGbctHwxON1B1k26xk-z16xdozKZkx7=-Li0aHw@mail.gmail.com>
- <20190121222411.GD4205@dastard>
- <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
+Received: from aserp2130.oracle.com ([141.146.126.79]:49290 "EHLO
+        aserp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726092AbfBAHPC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 02:15:02 -0500
+Date: Fri, 1 Feb 2019 10:12:59 +0300
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Subject: Re: [PATCH v6 15/27] compiler: Option to default to hidden symbols
+Message-ID: <20190201071259.GB14343@kadam>
+References: <20190131192533.34130-1-thgarnie@chromium.org>
+ <20190131192533.34130-16-thgarnie@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAG48ez2UmgEkitbgyCCs9LLdgahweFFAJWCU_vcqES6YgN=gLw@mail.gmail.com>
+In-Reply-To: <20190131192533.34130-16-thgarnie@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Dave Chinner <david@fromorbit.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-alpha@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, Pavel Machek <pavel@ucw.cz>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20190131203940.9OR0GPI_wGYgMxat0-TgQiJFQFnfoVb2Djj1w_5GkmI@z>
+To: Thomas Garnier <thgarnie@chromium.org>
+Cc: kernel-hardening@lists.openwall.com, kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Thomas Garnier <thgarnie@google.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20190201071259.bHEtLl6OCTGwsQrbTeT0o6qyEng5NXwUs16e5H7erDk@z>
 
-On Wed, Jan 23, 2019 at 04:07:59PM +0100, Jann Horn wrote:
-> On Mon, Jan 21, 2019 at 11:24 PM Dave Chinner <david@fromorbit.com> wrote:
-> > On Mon, Jan 21, 2019 at 04:49:45PM +0100, Jann Horn wrote:
-> > > On Sun, Jan 20, 2019 at 11:41 PM Dave Chinner <david@fromorbit.com> wrote:
-> > > > On Fri, Jan 18, 2019 at 05:14:40PM +0100, Jann Horn wrote:
-> > > > > As Al Viro pointed out, many filldir_t functions return error codes, but
-> > > > > all callers of filldir_t functions just check whether the return value is
-> > > > > non-zero (to determine whether to continue reading the directory); more
-> > > > > precise errors have to be signalled via struct dir_context.
-> > > > > Change all filldir_t functions to return bool instead of int.
-> > > > >
-> > > > > Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-> > > > > Signed-off-by: Jann Horn <jannh@google.com>
-> > > > > ---
-> > > > >  arch/alpha/kernel/osf_sys.c | 12 +++----
-> > > > >  fs/afs/dir.c                | 30 +++++++++--------
-> > > > >  fs/ecryptfs/file.c          | 13 ++++----
-> > > > >  fs/exportfs/expfs.c         |  8 ++---
-> > > > >  fs/fat/dir.c                |  8 ++---
-> > > > >  fs/gfs2/export.c            |  6 ++--
-> > > > >  fs/nfsd/nfs4recover.c       |  8 ++---
-> > > > >  fs/nfsd/vfs.c               |  6 ++--
-> > > > >  fs/ocfs2/dir.c              | 10 +++---
-> > > > >  fs/ocfs2/journal.c          | 14 ++++----
-> > > > >  fs/overlayfs/readdir.c      | 24 +++++++-------
-> > > > >  fs/readdir.c                | 64 ++++++++++++++++++-------------------
-> > > > >  fs/reiserfs/xattr.c         | 20 ++++++------
-> > > > >  fs/xfs/scrub/dir.c          |  8 ++---
-> > > > >  fs/xfs/scrub/parent.c       |  4 +--
-> > > > >  include/linux/fs.h          | 10 +++---
-> > > > >  16 files changed, 125 insertions(+), 120 deletions(-)
-> > > > >
-> > > > > diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-> > > > > index db1c2144d477..14e5ae0dac50 100644
-> > > > > --- a/arch/alpha/kernel/osf_sys.c
-> > > > > +++ b/arch/alpha/kernel/osf_sys.c
-> > > > > @@ -108,7 +108,7 @@ struct osf_dirent_callback {
-> > > > >       int error;
-> > > > >  };
-> > > > >
-> > > > > -static int
-> > > > > +static bool
-> > > > >  osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> > > > >           loff_t offset, u64 ino, unsigned int d_type)
-> > > > >  {
-> > > > > @@ -120,14 +120,14 @@ osf_filldir(struct dir_context *ctx, const char *name, int namlen,
-> > > > >
-> > > > >       buf->error = check_dirent_name(name, namlen);
-> > > > >       if (unlikely(buf->error))
-> > > > > -             return -EFSCORRUPTED;
-> > > > > +             return false;
-> > > > >       buf->error = -EINVAL;   /* only used if we fail */
-> > > > >       if (reclen > buf->count)
-> > > > > -             return -EINVAL;
-> > > > > +             return false;
-> > > >
-> > > > Oh, it's because the error being returned is being squashed by
-> > > > dir_emit():
-> > >
-> > > Yeah.
-> > >
-> > > > >  struct dir_context {
-> > > > > @@ -3469,17 +3471,17 @@ static inline bool dir_emit(struct dir_context *ctx,
-> > > > >                           const char *name, int namelen,
-> > > > >                           u64 ino, unsigned type)
-> > > > >  {
-> > > > > -     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type) == 0;
-> > > > > +     return ctx->actor(ctx, name, namelen, ctx->pos, ino, type);
-> > > > >  }
-> > > >
-> > > > /me wonders if it would be cleaner to do:
-> > > >
-> > > > static inline bool dir_emit(...)
-> > > > {
-> > > >         buf->error = ctx->actor(....)
-> > > >         if (buf->error)
-> > > >                 return false;
-> > > >         return true;
-> > > > }
-> > > >
-> > > > And clean up all filldir actors just to return the error state
-> > > > rather than have to jump through hoops to stash the error state in
-> > > > the context buffer and return the error state?
-> > >
-> > > One negative thing about that, IMO, is that it mixes up the request
-> > > for termination of the loop and the presence of an error.
-> >
-> > Doesn't the code already do that, only worse?
-> 
-> The current code does that, yes. But with this patch, I think that's
-> not really the case anymore?
-> 
-> > > > That then allows callers who want/need the full error info can
-> > > > continue to call ctx->actor directly,
-> > >
-> > > "continue to call ctx->actor directly"? I don't remember any code that
-> > > calls ctx->actor directly.
-> >
-> > ovl_fill_real().
-> 
-> Ah, right.
-> 
-> 
-> > And the XFS directory scrubber could probably make better use of the
-> > error return from ctx->actor when validating the directory contents
-> > rather than just calling dir_emit() and aborting the scan at the
-> > first error encountered. We eventually want to know exactly what
-> > error was encountered here to determine if it is safe to continue,
-> > not just a "stop processing" flag. e.g. a bad name length will need
-> > to stop traversal because we can't trust the underlying structure,
-> > but an invalid file type isn't a structural flaw that prevents us
-> > from continuing to traverse and check the rest of the directory....
-> 
-> Sorry, maybe I'm a bit dense right now, I don't get your point. Are
-> you talking about filesystem errors detected in the actor? If so,
-> doesn't it make *more* sense for non-fatal errors to put a note that
-> an error happened into the xchk_dir_ctx (if that information should be
-> kept around), then return a value that says "please continue"?
+On Thu, Jan 31, 2019 at 11:24:22AM -0800, Thomas Garnier wrote:
+> Provide an option to default visibility to hidden except for key
+> symbols.
 
-As I understand the scrub code, we /do/ stash the error state elsewhere
-and set the xchk_dir_actor return value as appropriate to continue or
-stop the directory iteration.  Granted, it's not very nuanced since
-anything out of order sets the CORRUPT flag and aborts the iteration,
-but in principle xchk_dir_actor could set the scrub warning flag and
-return 0 if it wanted to.
+It took me a while to figure out the verb in this sentence...  :P
 
-(So maybe I'm dense too, but I don't know what Dave is talking
-about...?)
+It's weird that we're annotating things to be default.  What visibility
+are they we leave off the annotation?
 
---D
-
-> Or are you talking about filesystem errors detected in the readdir
-> implementation? In that case, you're AFAICS going to need special-case
-> logic gated on ctx->actor==xchk_dir_actor anyway if you want the
-> scrubber to continue while readdir() stops.
-> 
-> (But as I've said, I don't really care about this patch. If Al takes
-> patches 1 and 2 from this series, I'm happy; this patch is just in
-> response to <https://lore.kernel.org/lkml/20180731165112.GJ30522@ZenIV.linux.org.uk/>.)
+regards,
+dan carpenter
