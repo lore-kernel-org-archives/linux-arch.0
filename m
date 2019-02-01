@@ -1,33 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:59664 "EHLO mga18.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726110AbfBAIYF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 1 Feb 2019 03:24:05 -0500
-Subject: Re: [PATCH v6 15/27] compiler: Option to default to hidden symbols
-References: <20190131192533.34130-1-thgarnie@chromium.org>
- <20190131192533.34130-16-thgarnie@chromium.org>
-From: Adrian Hunter <adrian.hunter@intel.com>
-Message-ID: <3a2bdc07-e8c4-c340-dde7-516ab0de66f2@intel.com>
-Date: Fri, 1 Feb 2019 10:22:22 +0200
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:46631 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727871AbfBANyE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 08:54:04 -0500
+Subject: Re: [PATCH v7 01/28] linkage: new macros for assembler symbols
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-2-jslaby@suse.cz> <20190131160019.GM6749@zn.tnic>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <2108c93f-835e-c887-78a6-91e63ec86bc6@suse.cz>
+Date: Fri, 1 Feb 2019 14:53:58 +0100
 MIME-Version: 1.0
-In-Reply-To: <20190131192533.34130-16-thgarnie@chromium.org>
+In-Reply-To: <20190131160019.GM6749@zn.tnic>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Content-Language: en-GB
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Garnier <thgarnie@chromium.org>, kernel-hardening@lists.openwall.com
-Cc: kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Thomas Garnier <thgarnie@google.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190201082222.2kNAU4tWb1_rVryZvMkz_VBCB5b2UVKFVmK09GMS7ik@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, hpa@zytor.com, Ingo Molnar <mingo@kernel.org>, jpoimboe@redhat.com, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Thomas Gleixner <tglx@linutronix.de>, xen-devel@lists.xenproject.org, x86@kernel.org
+Message-ID: <20190201135358.RcIO0Q7XlY9e366kXVAgSDf_7ls4eJza0s6Y5x2kYi0@z>
 
-On 31/01/19 9:24 PM, Thomas Garnier wrote:
-> Provide an option to default visibility to hidden except for key
-> symbols. This option is disabled by default and will be used by x86_64
-> PIE support to remove errors between compilation units.
+On 31. 01. 19, 17:00, Borislav Petkov wrote:
+>>  Documentation/asm-annotations.rst | 217 ++++++++++++++++++++++++++
 > 
-> The default visibility is also enabled for external symbols that are
-> compared as they maybe equals (start/end of sections). In this case,
-> older versions of GCC will remove the comparison if the symbols are
-> hidden. This issue exists at least on gcc 4.9 and before.
+> I guess you wanna integrate that into the doc hierarchy. Hunk ontop:
+> 
+> ---
+> diff --git a/Documentation/index.rst b/Documentation/index.rst
+> index c858c2e66e36..754055d9565c 100644
+> --- a/Documentation/index.rst
+> +++ b/Documentation/index.rst
+> @@ -91,6 +91,14 @@ needed).
+>     vm/index
+>     bpf/index
+>  
+> +Architecture-agnostic documentation
+> +-----------------------------------
+> +
+> +.. toctree::
+> +   :maxdepth: 2
+> +
+> +   asm-annotations
+> +
+>  Architecture-specific documentation
+>  -----------------------------------
 
-What does this mean, if anything, for what/how symbols appear in /proc/kallsyms?
+Thanks, all comments applied.
+
+I will wait for a couple of days for more feedback, if any, and respin.
+Perhaps for the last time as these patches are slowly starting bother me
+after two years of inability to get them upstream (without having NACK
+or serious objections either) and the constant need of rebasing
+(spectre/meltdown changes were the ugliest to this series).
+
+thanks,
+-- 
+js
+suse labs
