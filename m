@@ -1,97 +1,64 @@
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH 0/3] Add NUMA-awareness to qspinlock
-Date: Fri, 1 Feb 2019 16:20:53 -0500
-Message-ID: <6D5F7272-5E25-49C8-BAD4-D0D402068BA0@oracle.com>
+Subject: Re: [PATCH 2/3] locking/qspinlock: Introduce CNA into the slow path
+ of qspinlock
+Date: Fri, 1 Feb 2019 16:26:06 -0500
+Message-ID: <62BE66CF-1CFA-4921-B2FF-70D5460845D6@oracle.com>
 References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131095638.GA31534@hirez.programming.kicks-ass.net>
+ <20190131030136.56999-3-alex.kogan@oracle.com>
+ <2c8aabab-1bb0-0708-94c4-305fd860609e@redhat.com>
 Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190131095638.GA31534@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <2c8aabab-1bb0-0708-94c4-305fd860609e@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-
-> On Jan 31, 2019, at 4:56 AM, Peter Zijlstra <peterz@infradead.org> =
-wrote:
->=20
-> On Wed, Jan 30, 2019 at 10:01:32PM -0500, Alex Kogan wrote:
->> Lock throughput can be increased by handing a lock to a waiter on the
->> same NUMA socket as the lock holder, provided care is taken to avoid
->> starvation of waiters on other NUMA sockets. This patch introduces =
-CNA
->> (compact NUMA-aware lock) as the slow path for qspinlock.
->=20
-> Since you use NUMA, use the term node, not socket. The two are not
-> strictly related.
-Got it, thanks.
-
->=20
->> CNA is a NUMA-aware version of the MCS spin-lock. Spinning threads =
-are
->> organized in two queues, a main queue for threads running on the same
->> socket as the current lock holder, and a secondary queue for threads
->> running on other sockets. Threads record the ID of the socket on =
-which
->> they are running in their queue nodes. At the unlock time, the lock
->> holder scans the main queue looking for a thread running on the same
->> socket. If found (call it thread T), all threads in the main queue
->> between the current lock holder and T are moved to the end of the
->> secondary queue, and the lock is passed to T. If such T is not found, =
-the
->> lock is passed to the first node in the secondary queue. Finally, if =
-the
->> secondary queue is empty, the lock is passed to the next thread in =
-the
->> main queue.
->>=20
->> Full details are available at =
-https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__arxiv.org_abs_1810.=
-05600&d=3DDwIBAg&c=3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3=
-F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=3D7sFZrsdpLJxLRHIFWN_sE6zgKy20Ti8=
-lOoepiEyipAo&s=3D5VRAQVjw0B1SCjvBLzzwxkHQ6TZ3FIl_tGDfvn3FXvo&e=3D.
->=20
-> Full details really should also be in the Changelog. You can skip much
-> of the academic bla-bla, but the Changelog should be self contained.
->=20
->> We have done some performance evaluation with the locktorture module
->> as well as with several benchmarks from the will-it-scale repo.
->> The following locktorture results are from an Oracle X5-4 server
->> (four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
->> cores each). Each number represents an average (over 5 runs) of the
->> total number of ops (x10^7) reported at the end of each run. The =
-stock
->> kernel is v4.20.0-rc4+ compiled in the default configuration.
->>=20
->> #thr  stock  patched speedup (patched/stock)
->>  1   2.710   2.715  1.002
->>  2   3.108   3.001  0.966
->>  4   4.194   3.919  0.934
->=20
-> So low contention is actually worse. Funnily low contention is the
-> majority of our locks and is _really_ important.
-This can be most certainly engineered out, e.g., by caching the node ID =
-on which a task is running.
-We will look into that.
-
->=20
->>  8   5.309   6.894  1.299
->> 16   6.722   9.094  1.353
->> 32   7.314   9.885  1.352
->> 36   7.562   9.855  1.303
->> 72   6.696  10.358  1.547
->> 108   6.364  10.181  1.600
->> 142   6.179  10.178  1.647
->>=20
->> When the kernel is compiled with lockstat enabled, CNA=20
->=20
-> I'll ignore that, lockstat/lockdep enabled runs are not what one would
-> call performance relevant.
-Please, note that only one set of results has lockstat enabled.
-The rest of the results (will-it-scale included) do not have it.
-
-Regards,
-=E2=80=94 Alex
+Cj4gT24gSmFuIDMxLCAyMDE5LCBhdCAxMjozOCBQTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
+aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gMDEvMzAvMjAxOSAxMDowMSBQTSwgQWxleCBLb2dhbiB3
+cm90ZToKPj4gSW4gQ05BLCBzcGlubmluZyB0aHJlYWRzIGFyZSBvcmdhbml6ZWQgaW4gdHdvIHF1
+ZXVlcywgYSBtYWluIHF1ZXVlIGZvcgo+PiB0aHJlYWRzIHJ1bm5pbmcgb24gdGhlIHNhbWUgc29j
+a2V0IGFzIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyLCBhbmQgYQo+PiBzZWNvbmRhcnkgcXVldWUg
+Zm9yIHRocmVhZHMgcnVubmluZyBvbiBvdGhlciBzb2NrZXRzLiBGb3IgZGV0YWlscywKPj4gc2Vl
+IGh0dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fYXJ4
+aXYub3JnX2Fic18xODEwLjA1NjAwJmQ9RHdJRmFRJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4
+QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpM
+VHVWeEZLNGsmbT1SZHNSVTRvVTJqLV9oTkc1a0RDNVpFRV9YSGlrbDNRTE50dENhQmRlM1FVJnM9
+TlE4NDBTMWx6NTNDcTdBbk9sUFdkbmpaSTdfSWMzcmZZc2YtdzJhWXVzNCZlPS4KPj4gCj4+IE5v
+dGUgdGhhdCB0aGlzIHZhcmlhbnQgb2YgQ05BIG1heSBpbnRyb2R1Y2Ugc3RhcnZhdGlvbiBieSBj
+b250aW51b3VzbHkKPj4gcGFzc2luZyB0aGUgbG9jayB0byB0aHJlYWRzIHJ1bm5pbmcgb24gdGhl
+IHNhbWUgc29ja2V0LiBUaGlzIGlzc3VlCj4+IHdpbGwgYmUgYWRkcmVzc2VkIGxhdGVyIGluIHRo
+ZSBzZXJpZXMuCj4+IAo+PiBTaWduZWQtb2ZmLWJ5OiBBbGV4IEtvZ2FuIDxhbGV4LmtvZ2FuQG9y
+YWNsZS5jb20+Cj4+IFJldmlld2VkLWJ5OiBTdGV2ZSBTaXN0YXJlIDxzdGV2ZW4uc2lzdGFyZUBv
+cmFjbGUuY29tPgo+IAo+IEp1c3Qgd29uZGVyaW5nIGlmIHlvdSBoYXZlIHRyaWVkIGluY2x1ZGUg
+UEFSVklSVF9TUElOTE9DS1Mgb3B0aW9uIHRvIHNlZQo+IGlmIHRoYXQgcGF0Y2ggbWF5IHNjcmV3
+IHVwIHRoZSBQViBxc3BpbmxvY2sgY29kZS4KTm8sIEkgaGF2ZW7igJl0IHlldC4KVGhlIGlkZWEg
+d2FzIHRvIG1ha2UgaXQgd29yayBmb3Igbm9uLVBWIHN5c3RlbXMgZmlyc3QsIGFuZCB0aGVuIGV4
+dGVuZCB0byBQVi4KCj4gCj4gQW55d2F5LCBJIGRvIGJlbGlldmUgeW91ciBjbGFpbSB0aGF0IE5V
+TUEtYXdhcmUgcXNwaW5sb2NrIGlzIGdvb2QgZm9yCj4gbGFyZ2Ugc3lzdGVtcyB3aXRoIG1hbnkg
+bm9kZXMuIEhvd2V2ZXIsIGFsbCB0aGVzZSBleHRyYSBjb2RlIGFyZQo+IG92ZXJoZWFkIGZvciBz
+bWFsbCBzeXN0ZW1zIHRoYXQgaGF2ZSBhIHNpbmdsZSBub2RlL3NvY2tldCwgZm9yIGluc3RhbmNl
+Lgo+IAo+IEkgd2lsbCBzdXBwb3J0IGRvaW5nIHNvbWV0aGluZyBzaW1pbGFyIHRvIHdoYXQgaGFk
+IGJlZW4gZG9uZSB0byBzdXBwb3J0Cj4gUFYgcXNwaW5sb2NrLiBJT1csIGEgc2VwYXJhdGUgc2xv
+d3BhdGggZnVuY3Rpb24gdGhhdCBjYW4gYmUgcGF0Y2hlZCB0bwo+IGJlY29tZSB0aGUgZGVmYXVs
+dCBkZXBlbmRpbmcgb24gdGhlIHN5c3RlbSBiZWluZyBydW4gb24gb3IgYSBrZXJuZWwgYm9vdAo+
+IG9wdGlvbiBzZXR0aW5nLgo+IAo+IEkgd291bGQgbGlrZSB0byBrZWVwIHRoZSBjb3JlIHNsb3dw
+YXRoIGZ1bmN0aW9uIHNpbXBsZSBhbmQgZWFzeSB0bwo+IHVuZGVyc3RhbmQuIFNvIG1vc3Qgb2Yg
+dGhlIENOQSBjb2RlIHNob3VsZCBiZSBlbmNhcHN1bGF0ZWQgaW50byBzb21lCj4gaGVscGVyIGZ1
+bmN0aW9ucyBhbmQgcHV0IGludG8gYSBzZXBhcmF0ZWQgZmlsZS4KU291bmRzIGdvb2QuIApJIHRo
+aW5rIGl0IHNob3VsZCBiZSBwcmV0dHkgc3RyYWlnaHRmb3J3YXJkIHRvIGVuY2Fwc3VsYXRlIHRo
+ZSBDTkEgY29kZSBhbmQgZG8gd2hhdCB5b3Ugc3VnZ2VzdC4KV2Ugd2lsbCBsb29rIGludG8gdGhh
+dC4KClRoYW5rcywK4oCUIEFsZXgKCj4gCj4gVGhhbmtzLAo+IExvbmdtYW4KPiAKCgpfX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVs
+IG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDov
+L2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
