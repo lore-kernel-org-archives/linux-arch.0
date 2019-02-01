@@ -1,59 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.164]:31824 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726777AbfBAQyr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 11:54:47 -0500
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-In-Reply-To: <20190201080456.GA15456@lst.de>
-Date: Fri, 1 Feb 2019 17:54:37 +0100
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
-References: <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de> <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de> <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de> <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de> <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de> <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de> <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de> <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de> <20190201080456.GA15456@lst.de>
+Received: from mail-it1-f174.google.com ([209.85.166.174]:50756 "EHLO
+        mail-it1-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728892AbfBARBD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 12:01:03 -0500
+Received: by mail-it1-f174.google.com with SMTP id z7so10186866iti.0
+        for <linux-arch@vger.kernel.org>; Fri, 01 Feb 2019 09:01:02 -0800 (PST)
+MIME-Version: 1.0
+References: <20190131192533.34130-1-thgarnie@chromium.org> <20190131192533.34130-16-thgarnie@chromium.org>
+ <20190201071259.GB14343@kadam>
+In-Reply-To: <20190201071259.GB14343@kadam>
+From: Thomas Garnier <thgarnie@google.com>
+Date: Fri, 1 Feb 2019 09:00:50 -0800
+Message-ID: <CAJcbSZEhcKVBn0vOE0rkdwkf3vRmmZ=ttoJNfN4+20QTRTuSng@mail.gmail.com>
+Subject: Re: [PATCH v6 15/27] compiler: Option to default to hidden symbols
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190201165437.iZ1D64FwYUgyRN5c2Oxq8_If5OyyQ9G6Gv3Wz_VIU_E@z>
+To: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: Thomas Garnier <thgarnie@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sparse Mailing-list <linux-sparse@vger.kernel.org>
+Message-ID: <20190201170050.Q9ipVxHMAGSKyEwHX8XPPDatIO3-I3Js6vjafSw1dZw@z>
 
-Hi Christoph,
+On Thu, Jan 31, 2019 at 11:13 PM Dan Carpenter <dan.carpenter@oracle.com> wrote:
+>
+> On Thu, Jan 31, 2019 at 11:24:22AM -0800, Thomas Garnier wrote:
+> > Provide an option to default visibility to hidden except for key
+> > symbols.
+>
+> It took me a while to figure out the verb in this sentence...  :P
 
-I will try it at the weekend.
+I agree, I should rewrite this description.
 
-Thanks,
-Christian
+>
+> It's weird that we're annotating things to be default.  What visibility
+> are they we leave off the annotation?
 
-Sent from my iPhone
+The word "default" is confusing but that's how it is called by gcc.
+Symbols not marked default are hidden.
 
-> On 1. Feb 2019, at 09:04, Christoph Hellwig <hch@lst.de> wrote:
->=20
->> On Thu, Jan 31, 2019 at 01:48:26PM +0100, Christian Zigotzky wrote:
->> Hi Christoph,
->>=20
->> I compiled kernels for the X5000 and X1000 from your branch 'powerpc-dma.=
-6'=20
->> today.
->>=20
->> Gitweb:=20
->> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-d=
-ma.6
->>=20
->> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
->>=20
->> The X1000 and X5000 boot but unfortunately the P.A. Semi Ethernet doesn't=
-=20
->> work.
->=20
-> Oh.  Can you try with just the next one and then two patches applied
-> over the working setup?  That is first:
->=20
-> http://git.infradead.org/users/hch/misc.git/commitdiff/b50f42f0fe12965ead3=
-95c76bcb6a14f00cdf65b
->=20
-> then also with:
->=20
-> http://git.infradead.org/users/hch/misc.git/commitdiff/21fe52470a483afbb17=
-26741118abef8602dde4d
+>
+> regards,
+> dan carpenter
+>
+
+
+-- 
+Thomas
