@@ -1,47 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f174.google.com ([209.85.166.174]:50756 "EHLO
-        mail-it1-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728892AbfBARBD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 12:01:03 -0500
-Received: by mail-it1-f174.google.com with SMTP id z7so10186866iti.0
-        for <linux-arch@vger.kernel.org>; Fri, 01 Feb 2019 09:01:02 -0800 (PST)
+Received: from mail-io1-f68.google.com ([209.85.166.68]:45019 "EHLO
+        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729740AbfBARfN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 12:35:13 -0500
+Received: by mail-io1-f68.google.com with SMTP id r200so6294343iod.11
+        for <linux-arch@vger.kernel.org>; Fri, 01 Feb 2019 09:35:12 -0800 (PST)
 MIME-Version: 1.0
 References: <20190131192533.34130-1-thgarnie@chromium.org> <20190131192533.34130-16-thgarnie@chromium.org>
- <20190201071259.GB14343@kadam>
-In-Reply-To: <20190201071259.GB14343@kadam>
+ <3a2bdc07-e8c4-c340-dde7-516ab0de66f2@intel.com>
+In-Reply-To: <3a2bdc07-e8c4-c340-dde7-516ab0de66f2@intel.com>
 From: Thomas Garnier <thgarnie@google.com>
-Date: Fri, 1 Feb 2019 09:00:50 -0800
-Message-ID: <CAJcbSZEhcKVBn0vOE0rkdwkf3vRmmZ=ttoJNfN4+20QTRTuSng@mail.gmail.com>
+Date: Fri, 1 Feb 2019 09:35:00 -0800
+Message-ID: <CAJcbSZEkc2Rc7uemA0Qw2uJhvNciLRxPrMVSQV_-O_N8zozZ_Q@mail.gmail.com>
 Subject: Re: [PATCH v6 15/27] compiler: Option to default to hidden symbols
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Carpenter <dan.carpenter@oracle.com>
-Cc: Thomas Garnier <thgarnie@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sparse Mailing-list <linux-sparse@vger.kernel.org>
-Message-ID: <20190201170050.Q9ipVxHMAGSKyEwHX8XPPDatIO3-I3Js6vjafSw1dZw@z>
+To: Adrian Hunter <adrian.hunter@intel.com>
+Cc: Thomas Garnier <thgarnie@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sparse Mailing-list <linux-sparse@vger.kernel.org>
+Message-ID: <20190201173500.XQtEOYqK50wPyYn2NreM7YPr3Oi5AX9Fn_PDH2gbmZ0@z>
 
-On Thu, Jan 31, 2019 at 11:13 PM Dan Carpenter <dan.carpenter@oracle.com> wrote:
+On Fri, Feb 1, 2019 at 12:24 AM Adrian Hunter <adrian.hunter@intel.com> wrote:
 >
-> On Thu, Jan 31, 2019 at 11:24:22AM -0800, Thomas Garnier wrote:
+> On 31/01/19 9:24 PM, Thomas Garnier wrote:
 > > Provide an option to default visibility to hidden except for key
-> > symbols.
+> > symbols. This option is disabled by default and will be used by x86_64
+> > PIE support to remove errors between compilation units.
+> >
+> > The default visibility is also enabled for external symbols that are
+> > compared as they maybe equals (start/end of sections). In this case,
+> > older versions of GCC will remove the comparison if the symbols are
+> > hidden. This issue exists at least on gcc 4.9 and before.
 >
-> It took me a while to figure out the verb in this sentence...  :P
+> What does this mean, if anything, for what/how symbols appear in /proc/kallsyms?
 
-I agree, I should rewrite this description.
-
->
-> It's weird that we're annotating things to be default.  What visibility
-> are they we leave off the annotation?
-
-The word "default" is confusing but that's how it is called by gcc.
-Symbols not marked default are hidden.
-
->
-> regards,
-> dan carpenter
->
-
+No, they will still appear in kallsyms. Some symbols are not absolute
+anymore or moved sections but still present.
 
 -- 
 Thomas
