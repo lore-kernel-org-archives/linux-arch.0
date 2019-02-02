@@ -1,317 +1,57 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW
-Date: Sat,  2 Feb 2019 07:34:54 -0800
-Message-ID: <20190202153454.7121-13-deepa.kernel@gmail.com>
+From: Oliver Hartkopp <socketcan@hartkopp.net>
+Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and
+ SO_SNDTIMEO_NEW
+Date: Sat, 2 Feb 2019 18:15:41 +0100
+Message-ID: <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
 References: <20190202153454.7121-1-deepa.kernel@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190202153454.7121-1-deepa.kernel@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: davem@davemloft.net, linux-kernel@vger.kernel.org
-Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, ccaulfie@redhat.com, deller@gmx.de, paulus@samba.org, ralf@linux-mips.org, rth@twiddle.net, cluster-devel@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org
+ <20190202153454.7121-13-deepa.kernel@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"; Format="flowed"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <20190202153454.7121-13-deepa.kernel@gmail.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Deepa Dinamani <deepa.kernel@gmail.com>, davem@davemloft.net, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, netdev@vger.kernel.org, deller@gmx.de, linux-mips@vger.kernel.org, ralf@linux-mips.org, cluster-devel@redhat.com, ccaulfie@redhat.com, paulus@samba.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, rth@twiddle.net
 List-Id: linux-arch.vger.kernel.org
 
-Add new socket timeout options that are y2038 safe.
-
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-Acked-by: Willem de Bruijn <willemb@google.com>
-Cc: ccaulfie@redhat.com
-Cc: davem@davemloft.net
-Cc: deller@gmx.de
-Cc: paulus@samba.org
-Cc: ralf@linux-mips.org
-Cc: rth@twiddle.net
-Cc: cluster-devel@redhat.com
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
----
- arch/alpha/include/uapi/asm/socket.h  | 12 ++++--
- arch/mips/include/uapi/asm/socket.h   | 11 +++++-
- arch/parisc/include/uapi/asm/socket.h | 10 ++++-
- arch/sparc/include/uapi/asm/socket.h  | 11 +++++-
- include/uapi/asm-generic/socket.h     | 11 +++++-
- net/core/sock.c                       | 53 ++++++++++++++++++++-------
- 6 files changed, 83 insertions(+), 25 deletions(-)
-
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index 9826d1db71d0..0d0fddb7e738 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -119,19 +119,25 @@
- #define SO_TIMESTAMPNS_NEW      64
- #define SO_TIMESTAMPING_NEW     65
- 
--#if !defined(__KERNEL__)
-+#define SO_RCVTIMEO_NEW         66
-+#define SO_SNDTIMEO_NEW         67
- 
--#define	SO_RCVTIMEO SO_RCVTIMEO_OLD
--#define	SO_SNDTIMEO SO_SNDTIMEO_OLD
-+#if !defined(__KERNEL__)
- 
- #if __BITS_PER_LONG == 64
- #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
- #define SO_TIMESTAMPNS		SO_TIMESTAMPNS_OLD
- #define SO_TIMESTAMPING         SO_TIMESTAMPING_OLD
-+
-+#define SO_RCVTIMEO		SO_RCVTIMEO_OLD
-+#define SO_SNDTIMEO		SO_SNDTIMEO_OLD
- #else
- #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
- #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
- #define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
-+
-+#define SO_RCVTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_RCVTIMEO_OLD : SO_RCVTIMEO_NEW)
-+#define SO_SNDTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_SNDTIMEO_OLD : SO_SNDTIMEO_NEW)
- #endif
- 
- #define SCM_TIMESTAMP           SO_TIMESTAMP
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 96cc0e907f12..eb9f33f8a8b3 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -130,18 +130,25 @@
- #define SO_TIMESTAMPNS_NEW      64
- #define SO_TIMESTAMPING_NEW     65
- 
-+#define SO_RCVTIMEO_NEW         66
-+#define SO_SNDTIMEO_NEW         67
-+
- #if !defined(__KERNEL__)
- 
--#define	SO_RCVTIMEO SO_RCVTIMEO_OLD
--#define	SO_SNDTIMEO SO_SNDTIMEO_OLD
- #if __BITS_PER_LONG == 64
- #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
- #define SO_TIMESTAMPNS		SO_TIMESTAMPNS_OLD
- #define SO_TIMESTAMPING		SO_TIMESTAMPING_OLD
-+
-+#define SO_RCVTIMEO             SO_RCVTIMEO_OLD
-+#define SO_SNDTIMEO             SO_SNDTIMEO_OLD
- #else
- #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
- #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
- #define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
-+
-+#define SO_RCVTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_RCVTIMEO_OLD : SO_RCVTIMEO_NEW)
-+#define SO_SNDTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_SNDTIMEO_OLD : SO_SNDTIMEO_NEW)
- #endif
- 
- #define SCM_TIMESTAMP           SO_TIMESTAMP
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index 046f0cd9cce4..16e428f03526 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -111,18 +111,24 @@
- #define SO_TIMESTAMPNS_NEW      0x4039
- #define SO_TIMESTAMPING_NEW     0x403A
- 
-+#define SO_RCVTIMEO_NEW         0x4040
-+#define SO_SNDTIMEO_NEW         0x4041
-+
- #if !defined(__KERNEL__)
- 
--#define	SO_RCVTIMEO SO_RCVTIMEO_OLD
--#define	SO_SNDTIMEO SO_SNDTIMEO_OLD
- #if __BITS_PER_LONG == 64
- #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
- #define SO_TIMESTAMPNS		SO_TIMESTAMPNS_OLD
- #define SO_TIMESTAMPING         SO_TIMESTAMPING_OLD
-+#define SO_RCVTIMEO		SO_RCVTIMEO_OLD
-+#define SO_SNDTIMEO		SO_SNDTIMEO_OLD
- #else
- #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
- #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
- #define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
-+
-+#define SO_RCVTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_RCVTIMEO_OLD : SO_RCVTIMEO_NEW)
-+#define SO_SNDTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_SNDTIMEO_OLD : SO_SNDTIMEO_NEW)
- #endif
- 
- #define SCM_TIMESTAMP           SO_TIMESTAMP
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 342ffdc3b424..8c9f74a66b55 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -112,19 +112,26 @@
- #define SO_TIMESTAMPNS_NEW       0x0042
- #define SO_TIMESTAMPING_NEW      0x0043
- 
-+#define SO_RCVTIMEO_NEW          0x0044
-+#define SO_SNDTIMEO_NEW          0x0045
-+
- #if !defined(__KERNEL__)
- 
--#define SO_RCVTIMEO              SO_RCVTIMEO_OLD
--#define SO_SNDTIMEO              SO_SNDTIMEO_OLD
- 
- #if __BITS_PER_LONG == 64
- #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
- #define SO_TIMESTAMPNS		SO_TIMESTAMPNS_OLD
- #define SO_TIMESTAMPING		SO_TIMESTAMPING_OLD
-+
-+#define SO_RCVTIMEO		SO_RCVTIMEO_OLD
-+#define SO_SNDTIMEO		SO_SNDTIMEO_OLD
- #else
- #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
- #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
- #define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
-+
-+#define SO_RCVTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_RCVTIMEO_OLD : SO_RCVTIMEO_NEW)
-+#define SO_SNDTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_SNDTIMEO_OLD : SO_SNDTIMEO_NEW)
- #endif
- 
- #define SCM_TIMESTAMP          SO_TIMESTAMP
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index c56b8b487c12..c8b430cb6dc4 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -114,19 +114,26 @@
- #define SO_TIMESTAMPNS_NEW      64
- #define SO_TIMESTAMPING_NEW     65
- 
-+#define SO_RCVTIMEO_NEW         66
-+#define SO_SNDTIMEO_NEW         67
-+
- #if !defined(__KERNEL__)
- 
--#define	SO_RCVTIMEO SO_RCVTIMEO_OLD
--#define	SO_SNDTIMEO SO_SNDTIMEO_OLD
- #if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
- /* on 64-bit and x32, avoid the ?: operator */
- #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
- #define SO_TIMESTAMPNS		SO_TIMESTAMPNS_OLD
- #define SO_TIMESTAMPING		SO_TIMESTAMPING_OLD
-+
-+#define SO_RCVTIMEO		SO_RCVTIMEO_OLD
-+#define SO_SNDTIMEO		SO_SNDTIMEO_OLD
- #else
- #define SO_TIMESTAMP (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMP_OLD : SO_TIMESTAMP_NEW)
- #define SO_TIMESTAMPNS (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPNS_OLD : SO_TIMESTAMPNS_NEW)
- #define SO_TIMESTAMPING (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_TIMESTAMPING_OLD : SO_TIMESTAMPING_NEW)
-+
-+#define SO_RCVTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_RCVTIMEO_OLD : SO_RCVTIMEO_NEW)
-+#define SO_SNDTIMEO (sizeof(time_t) == sizeof(__kernel_long_t) ? SO_SNDTIMEO_OLD : SO_SNDTIMEO_NEW)
- #endif
- 
- #define SCM_TIMESTAMP           SO_TIMESTAMP
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 27b40002b780..a8904ae40713 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -335,9 +335,10 @@ int __sk_backlog_rcv(struct sock *sk, struct sk_buff *skb)
- }
- EXPORT_SYMBOL(__sk_backlog_rcv);
- 
--static int sock_get_timeout(long timeo, void *optval)
-+static int sock_get_timeout(long timeo, void *optval, bool old_timeval)
- {
--	struct __kernel_old_timeval tv;
-+	struct __kernel_sock_timeval tv;
-+	int size;
- 
- 	if (timeo == MAX_SCHEDULE_TIMEOUT) {
- 		tv.tv_sec = 0;
-@@ -353,13 +354,23 @@ static int sock_get_timeout(long timeo, void *optval)
- 		return sizeof(tv32);
- 	}
- 
--	*(struct __kernel_old_timeval *)optval = tv;
--	return sizeof(tv);
-+	if (old_timeval) {
-+		struct __kernel_old_timeval old_tv;
-+		old_tv.tv_sec = tv.tv_sec;
-+		old_tv.tv_usec = tv.tv_usec;
-+		*(struct __kernel_old_timeval *)optval = old_tv;
-+		size = sizeof(old_tv);
-+	} else {
-+		*(struct __kernel_sock_timeval *)optval = tv;
-+		size = sizeof(tv);
-+	}
-+
-+	return size;
- }
- 
--static int sock_set_timeout(long *timeo_p, char __user *optval, int optlen)
-+static int sock_set_timeout(long *timeo_p, char __user *optval, int optlen, bool old_timeval)
- {
--	struct __kernel_old_timeval tv;
-+	struct __kernel_sock_timeval tv;
- 
- 	if (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) {
- 		struct old_timeval32 tv32;
-@@ -371,6 +382,15 @@ static int sock_set_timeout(long *timeo_p, char __user *optval, int optlen)
- 			return -EFAULT;
- 		tv.tv_sec = tv32.tv_sec;
- 		tv.tv_usec = tv32.tv_usec;
-+	} else if (old_timeval) {
-+		struct __kernel_old_timeval old_tv;
-+
-+		if (optlen < sizeof(old_tv))
-+			return -EINVAL;
-+		if (copy_from_user(&old_tv, optval, sizeof(old_tv)))
-+			return -EFAULT;
-+		tv.tv_sec = old_tv.tv_sec;
-+		tv.tv_usec = old_tv.tv_usec;
- 	} else {
- 		if (optlen < sizeof(tv))
- 			return -EINVAL;
-@@ -394,8 +414,8 @@ static int sock_set_timeout(long *timeo_p, char __user *optval, int optlen)
- 	*timeo_p = MAX_SCHEDULE_TIMEOUT;
- 	if (tv.tv_sec == 0 && tv.tv_usec == 0)
- 		return 0;
--	if (tv.tv_sec < (MAX_SCHEDULE_TIMEOUT/HZ - 1))
--		*timeo_p = tv.tv_sec * HZ + DIV_ROUND_UP(tv.tv_usec, USEC_PER_SEC / HZ);
-+	if (tv.tv_sec < (MAX_SCHEDULE_TIMEOUT / HZ - 1))
-+		*timeo_p = tv.tv_sec * HZ + DIV_ROUND_UP((unsigned long)tv.tv_usec, USEC_PER_SEC / HZ);
- 	return 0;
- }
- 
-@@ -942,11 +962,13 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
- 		break;
- 
- 	case SO_RCVTIMEO_OLD:
--		ret = sock_set_timeout(&sk->sk_rcvtimeo, optval, optlen);
-+	case SO_RCVTIMEO_NEW:
-+		ret = sock_set_timeout(&sk->sk_rcvtimeo, optval, optlen, optname == SO_RCVTIMEO_OLD);
- 		break;
- 
- 	case SO_SNDTIMEO_OLD:
--		ret = sock_set_timeout(&sk->sk_sndtimeo, optval, optlen);
-+	case SO_SNDTIMEO_NEW:
-+		ret = sock_set_timeout(&sk->sk_sndtimeo, optval, optlen, optname == SO_SNDTIMEO_OLD);
- 		break;
- 
- 	case SO_ATTACH_FILTER:
-@@ -1171,6 +1193,7 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		struct linger ling;
- 		struct old_timeval32 tm32;
- 		struct __kernel_old_timeval tm;
-+		struct  __kernel_sock_timeval stm;
- 		struct sock_txtime txtime;
- 	} v;
- 
-@@ -1279,12 +1302,14 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
- 		v.val = sk->sk_tsflags;
- 		break;
- 
--	case SO_RCVTIMEO:
--		lv = sock_get_timeout(sk->sk_rcvtimeo, &v);
-+	case SO_RCVTIMEO_OLD:
-+	case SO_RCVTIMEO_NEW:
-+		lv = sock_get_timeout(sk->sk_rcvtimeo, &v, SO_RCVTIMEO_OLD == optname);
- 		break;
- 
--	case SO_SNDTIMEO:
--		lv = sock_get_timeout(sk->sk_sndtimeo, &v);
-+	case SO_SNDTIMEO_OLD:
-+	case SO_SNDTIMEO_NEW:
-+		lv = sock_get_timeout(sk->sk_sndtimeo, &v, SO_SNDTIMEO_OLD == optname);
- 		break;
- 
- 	case SO_RCVLOWAT:
--- 
-2.17.1
+SGkgYWxsLAoKT24gMDIuMDIuMTkgMTY6MzQsIERlZXBhIERpbmFtYW5pIHdyb3RlOgo+IEFkZCBu
+ZXcgc29ja2V0IHRpbWVvdXQgb3B0aW9ucyB0aGF0IGFyZSB5MjAzOCBzYWZlLgooLi4pCj4gCj4g
+ZGlmZiAtLWdpdCBhL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaCBiL2FyY2gv
+YWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+IGluZGV4IDk4MjZkMWRiNzFkMC4uMGQw
+ZmRkYjdlNzM4IDEwMDY0NAo+IC0tLSBhL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2Nr
+ZXQuaAo+ICsrKyBiL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+IEBAIC0x
+MTksMTkgKzExOSwyNSBAQAo+ICAgI2RlZmluZSBTT19USU1FU1RBTVBOU19ORVcgICAgICA2NAo+
+ICAgI2RlZmluZSBTT19USU1FU1RBTVBJTkdfTkVXICAgICA2NQo+ICAgCj4gLSNpZiAhZGVmaW5l
+ZChfX0tFUk5FTF9fKQo+ICsjZGVmaW5lIFNPX1JDVlRJTUVPX05FVyAgICAgICAgIDY2Cj4gKyNk
+ZWZpbmUgU09fU05EVElNRU9fTkVXICAgICAgICAgNjcKPiAgIAo+IC0jZGVmaW5lCVNPX1JDVlRJ
+TUVPIFNPX1JDVlRJTUVPX09MRAo+IC0jZGVmaW5lCVNPX1NORFRJTUVPIFNPX1NORFRJTUVPX09M
+RAo+ICsjaWYgIWRlZmluZWQoX19LRVJORUxfXykKPiAgIAo+ICAgI2lmIF9fQklUU19QRVJfTE9O
+RyA9PSA2NAo+ICAgI2RlZmluZSBTT19USU1FU1RBTVAJCVNPX1RJTUVTVEFNUF9PTEQKPiAgICNk
+ZWZpbmUgU09fVElNRVNUQU1QTlMJCVNPX1RJTUVTVEFNUE5TX09MRAo+ICAgI2RlZmluZSBTT19U
+SU1FU1RBTVBJTkcgICAgICAgICBTT19USU1FU1RBTVBJTkdfT0xECj4gKwo+ICsjZGVmaW5lIFNP
+X1JDVlRJTUVPCQlTT19SQ1ZUSU1FT19PTEQKPiArI2RlZmluZSBTT19TTkRUSU1FTwkJU09fU05E
+VElNRU9fT0xECgpNYXliZSBJJ20gYSBiaXQgbGF0ZSBpbiB0aGlzIGRpc2N1c3Npb24gYXMgeW91
+IGFyZSBhbHJlYWR5IGluIHY1IC4uLgoKSSBjYW4gc2VlIHBhdGNoZXMgbWFraW5nIHRoZSB0cmFu
+c2l0aW9uIGluIGRpZmZlcmVudCBzdGVwcyB3aGVyZSBpdCAKbWlnaHQgYmUgaGVscGZ1bCB0byBu
+YW1lIHRoZW0gKl9PTEQgYW5kICpfTkVXIHRvIHVuZGVyc3RhbmQgdGhlIHBhdGNoZXMuCgpCdXQg
+aW4gdGhlIGVuZCB0aGUgbmFtaW5nIHN0YXlzIGluIHRoZSBrZXJuZWwgZm9yIGEgdmVyeSBsb25n
+IHRpbWUgYW5kIEkgCnJlbWVtYmVyIG15c2VsZiAoaW4gZWFybHkgeWVhcnMpIHRvIG5hbWUgdGhp
+bmdzICduZXcnLCAnbmV3MicsICduZXczJy4KCkluIGZhY3QgU09fVElNRVNUQU1QX09MRCBzaG91
+bGQgYmUgbmFtZWQgU09fVElNRVNUQU1QMzIgYW5kIApTT19USU1FU1RBTVBfTkVXIHNob3VsZCBi
+ZSBuYW1lZCBTT19USU1FU1RBTVA2NC4KCkVzcGVjaWFsbHkgYXMgaXQgdGVsbHMgeW91IHdoYXQg
+aXMgJ2luc2lkZScsIHRoZSBuYW1pbmcgb2YgdGhlc2UgbmV3IAppbnRyb2R1Y2VkIGNvbnN0YW50
+cyBzaG91bGQgYmUgcmVwbGFjZWQgd2l0aCAqMzIgYW5kICo2NCBuYW1lcy4KClRoZSBkb2N1bWVu
+dGF0aW9uIGFuZCB0aGUgb3RoZXIgY29tbWVudHMgc3RpbGwgZml0IHBlcmZlY3RseSB0aGVuLgoK
+UmVnYXJkcywKT2xpdmVyCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczov
+L2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
