@@ -1,16 +1,13 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH 2/3] locking/qspinlock: Introduce CNA into the slow path
- of qspinlock
-Date: Fri, 1 Feb 2019 16:26:06 -0500
-Message-ID: <62BE66CF-1CFA-4921-B2FF-70D5460845D6@oracle.com>
-References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131030136.56999-3-alex.kogan@oracle.com>
- <2c8aabab-1bb0-0708-94c4-305fd860609e@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+From: Sasha Levin <sashal@kernel.org>
+Subject: Re: [PATCH v10 01/25] arm64: Fix HCR.TGE status for NMI contexts
+Date: Sat, 02 Feb 2019 14:38:40 +0000
+Message-ID: <20190202143840.D59142085A@mail.kernel.org>
+References: <1548946743-38979-2-git-send-email-julien.thierry@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <2c8aabab-1bb0-0708-94c4-305fd860609e@redhat.com>
+In-Reply-To: <1548946743-38979-2-git-send-email-julien.thierry@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,45 +17,68 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
+To: Sasha Levin <sashal@kernel.org>, Julien Thierry <julien.thierry@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, daniel.thompson@linaro.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, James Morse <james.morse@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Cj4gT24gSmFuIDMxLCAyMDE5LCBhdCAxMjozOCBQTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
-aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gMDEvMzAvMjAxOSAxMDowMSBQTSwgQWxleCBLb2dhbiB3
-cm90ZToKPj4gSW4gQ05BLCBzcGlubmluZyB0aHJlYWRzIGFyZSBvcmdhbml6ZWQgaW4gdHdvIHF1
-ZXVlcywgYSBtYWluIHF1ZXVlIGZvcgo+PiB0aHJlYWRzIHJ1bm5pbmcgb24gdGhlIHNhbWUgc29j
-a2V0IGFzIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyLCBhbmQgYQo+PiBzZWNvbmRhcnkgcXVldWUg
-Zm9yIHRocmVhZHMgcnVubmluZyBvbiBvdGhlciBzb2NrZXRzLiBGb3IgZGV0YWlscywKPj4gc2Vl
-IGh0dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fYXJ4
-aXYub3JnX2Fic18xODEwLjA1NjAwJmQ9RHdJRmFRJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4
-QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpM
-VHVWeEZLNGsmbT1SZHNSVTRvVTJqLV9oTkc1a0RDNVpFRV9YSGlrbDNRTE50dENhQmRlM1FVJnM9
-TlE4NDBTMWx6NTNDcTdBbk9sUFdkbmpaSTdfSWMzcmZZc2YtdzJhWXVzNCZlPS4KPj4gCj4+IE5v
-dGUgdGhhdCB0aGlzIHZhcmlhbnQgb2YgQ05BIG1heSBpbnRyb2R1Y2Ugc3RhcnZhdGlvbiBieSBj
-b250aW51b3VzbHkKPj4gcGFzc2luZyB0aGUgbG9jayB0byB0aHJlYWRzIHJ1bm5pbmcgb24gdGhl
-IHNhbWUgc29ja2V0LiBUaGlzIGlzc3VlCj4+IHdpbGwgYmUgYWRkcmVzc2VkIGxhdGVyIGluIHRo
-ZSBzZXJpZXMuCj4+IAo+PiBTaWduZWQtb2ZmLWJ5OiBBbGV4IEtvZ2FuIDxhbGV4LmtvZ2FuQG9y
-YWNsZS5jb20+Cj4+IFJldmlld2VkLWJ5OiBTdGV2ZSBTaXN0YXJlIDxzdGV2ZW4uc2lzdGFyZUBv
-cmFjbGUuY29tPgo+IAo+IEp1c3Qgd29uZGVyaW5nIGlmIHlvdSBoYXZlIHRyaWVkIGluY2x1ZGUg
-UEFSVklSVF9TUElOTE9DS1Mgb3B0aW9uIHRvIHNlZQo+IGlmIHRoYXQgcGF0Y2ggbWF5IHNjcmV3
-IHVwIHRoZSBQViBxc3BpbmxvY2sgY29kZS4KTm8sIEkgaGF2ZW7igJl0IHlldC4KVGhlIGlkZWEg
-d2FzIHRvIG1ha2UgaXQgd29yayBmb3Igbm9uLVBWIHN5c3RlbXMgZmlyc3QsIGFuZCB0aGVuIGV4
-dGVuZCB0byBQVi4KCj4gCj4gQW55d2F5LCBJIGRvIGJlbGlldmUgeW91ciBjbGFpbSB0aGF0IE5V
-TUEtYXdhcmUgcXNwaW5sb2NrIGlzIGdvb2QgZm9yCj4gbGFyZ2Ugc3lzdGVtcyB3aXRoIG1hbnkg
-bm9kZXMuIEhvd2V2ZXIsIGFsbCB0aGVzZSBleHRyYSBjb2RlIGFyZQo+IG92ZXJoZWFkIGZvciBz
-bWFsbCBzeXN0ZW1zIHRoYXQgaGF2ZSBhIHNpbmdsZSBub2RlL3NvY2tldCwgZm9yIGluc3RhbmNl
-Lgo+IAo+IEkgd2lsbCBzdXBwb3J0IGRvaW5nIHNvbWV0aGluZyBzaW1pbGFyIHRvIHdoYXQgaGFk
-IGJlZW4gZG9uZSB0byBzdXBwb3J0Cj4gUFYgcXNwaW5sb2NrLiBJT1csIGEgc2VwYXJhdGUgc2xv
-d3BhdGggZnVuY3Rpb24gdGhhdCBjYW4gYmUgcGF0Y2hlZCB0bwo+IGJlY29tZSB0aGUgZGVmYXVs
-dCBkZXBlbmRpbmcgb24gdGhlIHN5c3RlbSBiZWluZyBydW4gb24gb3IgYSBrZXJuZWwgYm9vdAo+
-IG9wdGlvbiBzZXR0aW5nLgo+IAo+IEkgd291bGQgbGlrZSB0byBrZWVwIHRoZSBjb3JlIHNsb3dw
-YXRoIGZ1bmN0aW9uIHNpbXBsZSBhbmQgZWFzeSB0bwo+IHVuZGVyc3RhbmQuIFNvIG1vc3Qgb2Yg
-dGhlIENOQSBjb2RlIHNob3VsZCBiZSBlbmNhcHN1bGF0ZWQgaW50byBzb21lCj4gaGVscGVyIGZ1
-bmN0aW9ucyBhbmQgcHV0IGludG8gYSBzZXBhcmF0ZWQgZmlsZS4KU291bmRzIGdvb2QuIApJIHRo
-aW5rIGl0IHNob3VsZCBiZSBwcmV0dHkgc3RyYWlnaHRmb3J3YXJkIHRvIGVuY2Fwc3VsYXRlIHRo
-ZSBDTkEgY29kZSBhbmQgZG8gd2hhdCB5b3Ugc3VnZ2VzdC4KV2Ugd2lsbCBsb29rIGludG8gdGhh
-dC4KClRoYW5rcywK4oCUIEFsZXgKCj4gCj4gVGhhbmtzLAo+IExvbmdtYW4KPiAKCgpfX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVs
-IG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDov
-L2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
+Hi,
+
+[This is an automated email]
+
+This commit has been processed because it contains a -stable tag.
+The stable tag indicates that it's relevant for the following trees: all
+
+The bot has tested the following trees: v4.20.6, v4.19.19, v4.14.97, v4.9.154, v4.4.172, v3.18.133.
+
+v4.20.6: Build OK!
+v4.19.19: Build OK!
+v4.14.97: Build OK!
+v4.9.154: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    34be98f4944f ("arm64: kernel: remove {THREAD,IRQ_STACK}_START_SP")
+    a9ea0017ebe8 ("arm64: factor out current_stack_pointer")
+    c02433dd6de3 ("arm64: split thread_info from task stack")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    dbc9344a68e5 ("arm64: clean up THREAD_* definitions")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+
+v4.4.172: Failed to apply! Possible dependencies:
+    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
+    0a8ea52c3eb1 ("arm64: Add HAVE_REGS_AND_STACK_ACCESS_API feature")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    1ffe199b1c9b ("arm64: when walking onto the task stack, check sp & fp are in current->stack")
+    20380bb390a4 ("arm64: ftrace: fix a stack tracer's output under function graph tracer")
+    7596abf2e566 ("arm64: irq: fix walking from irq stack to task stack")
+    8e23dacd12a4 ("arm64: Add do_softirq_own_stack() and enable irq_stacks")
+    971c67ce37cf ("arm64: reduce stack use in irq_handler")
+    a80a0eb70c35 ("arm64: make irq_stack_ptr more robust")
+    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+    fe13f95b7200 ("arm64: pass a task parameter to unwind_frame()")
+
+v3.18.133: Failed to apply! Possible dependencies:
+    020295b4cb5b ("ACPI / processor: Make it possible to get CPU hardware ID via GICC")
+    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
+    13ca62b243f6 ("ACPI: Fix minor syntax issues in processor_core.c")
+    37655163ce1a ("ARM64 / ACPI: Get RSDP and ACPI boot-time tables")
+    587064b610c7 ("arm64: Add framework for legacy instruction emulation")
+    652261a7a86c ("ACPI: fix acpi_os_ioremap for arm64")
+    828aef376d7a ("ACPI / processor: Introduce phys_cpuid_t for CPU hardware ID")
+    96f0e00378d4 ("ARM: add basic support for on-demand backtrace of other CPUs")
+    af2c632e234f ("arm64/include/asm: Fixed a warning about 'struct pt_regs'")
+    af8f3f514d19 ("ACPI / processor: Convert apic_id to phys_id to make it arch agnostic")
+    b4ff8389ed14 ("xen/events: Always allocate legacy interrupts on PV guests")
+    d02dc27db0dc ("ACPI / processor: Rename acpi_(un)map_lsapic() to acpi_(un)map_cpu()")
+    d60fc3892c4d ("irqchip: Add GICv2 specific ACPI boot support")
+    ecf5636dcd59 ("ACPI: Add interfaces to parse IOAPIC ID for IOAPIC hotplug")
+    f60ad4edcf07 ("arm64: clean up irq stack definitions")
+    f60fe78f1332 ("arm64: use an irq stack pointer")
+
+
+How should we proceed with this patch?
+
+--
+Thanks,
+Sasha
