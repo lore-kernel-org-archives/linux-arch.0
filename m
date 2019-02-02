@@ -1,84 +1,155 @@
-From: Sasha Levin <sashal@kernel.org>
-Subject: Re: [PATCH v10 01/25] arm64: Fix HCR.TGE status for NMI contexts
-Date: Sat, 02 Feb 2019 14:38:40 +0000
-Message-ID: <20190202143840.D59142085A@mail.kernel.org>
-References: <1548946743-38979-2-git-send-email-julien.thierry@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1548946743-38979-2-git-send-email-julien.thierry@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Sasha Levin <sashal@kernel.org>, Julien Thierry <julien.thierry@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, daniel.thompson@linaro.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, James Morse <james.morse@arm.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH net-next v5 00/12] net: y2038-safe socket timestamps
+Date: Sat,  2 Feb 2019 07:34:42 -0800
+Message-ID: <20190202153454.7121-1-deepa.kernel@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: davem@davemloft.net, linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, ccaulfie@redhat.com, chris@zankel.net, cluster-devel@redhat.com, deller@gmx.de, dhowells@redhat.com, fenghua.yu@intel.com, isdn@linux-pingi.de, jejb@parisc-linux.org, linux-afs@lists.infradead.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-rdma@vger.kernel.org, linux-s390@vger.kernel.org, linux-xtensa@linux-xtensa.org, paulus@samba.org, ralf@linux-mips.org, rth@twiddle.net, schwidefsky@de.ibm.com, sparclinux@vger.kernel.org, tglx@linutronix.de, ubraun@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+The series introduces new socket timestamps that are
+y2038 safe.
 
-[This is an automated email]
+The time data types used for the existing socket timestamp
+options: SO_TIMESTAMP, SO_TIMESTAMPNS and SO_TIMESTAMPING
+are not y2038 safe. The series introduces SO_TIMESTAMP_NEW,
+SO_TIMESTAMPNS_NEW and SO_TIMESTAMPING_NEW to replace these.
+These new timestamps can be used on all architectures.
 
-This commit has been processed because it contains a -stable tag.
-The stable tag indicates that it's relevant for the following trees: all
+The alternative considered was to extend the sys_setsockopt()
+by using the flags. We did not receive any strong opinions about
+either of the approaches. Hence, this was chosen, as glibc folks
+preferred this.
 
-The bot has tested the following trees: v4.20.6, v4.19.19, v4.14.97, v4.9.154, v4.4.172, v3.18.133.
+The series does not deal with updating the internal kernel socket
+calls like rxrpc to make them y2038 safe. This will be dealt
+with separately.
 
-v4.20.6: Build OK!
-v4.19.19: Build OK!
-v4.14.97: Build OK!
-v4.9.154: Failed to apply! Possible dependencies:
-    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
-    34be98f4944f ("arm64: kernel: remove {THREAD,IRQ_STACK}_START_SP")
-    a9ea0017ebe8 ("arm64: factor out current_stack_pointer")
-    c02433dd6de3 ("arm64: split thread_info from task stack")
-    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
-    dbc9344a68e5 ("arm64: clean up THREAD_* definitions")
-    f60ad4edcf07 ("arm64: clean up irq stack definitions")
-    f60fe78f1332 ("arm64: use an irq stack pointer")
+Note that the timestamps behavior already does not match the
+man page specific behavior:
+SIOCGSTAMP
+    This ioctl should only be used if the socket option SO_TIMESTAMP
+	is not set on the socket. Otherwise, it returns the timestamp of
+	the last packet that was received while SO_TIMESTAMP was not set,
+	or it fails if no such packet has been received,
+	(i.e., ioctl(2) returns -1 with errno set to ENOENT).
+	
+The recommendation is to update the man page to remove the above statement.
 
-v4.4.172: Failed to apply! Possible dependencies:
-    096683724cb2 ("arm64: unwind: avoid percpu indirection for irq stack")
-    0a8ea52c3eb1 ("arm64: Add HAVE_REGS_AND_STACK_ACCESS_API feature")
-    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
-    1ffe199b1c9b ("arm64: when walking onto the task stack, check sp & fp are in current->stack")
-    20380bb390a4 ("arm64: ftrace: fix a stack tracer's output under function graph tracer")
-    7596abf2e566 ("arm64: irq: fix walking from irq stack to task stack")
-    8e23dacd12a4 ("arm64: Add do_softirq_own_stack() and enable irq_stacks")
-    971c67ce37cf ("arm64: reduce stack use in irq_handler")
-    a80a0eb70c35 ("arm64: make irq_stack_ptr more robust")
-    c7365330753c ("arm64: unwind: disregard frame.sp when validating frame pointer")
-    f60ad4edcf07 ("arm64: clean up irq stack definitions")
-    f60fe78f1332 ("arm64: use an irq stack pointer")
-    fe13f95b7200 ("arm64: pass a task parameter to unwind_frame()")
+The overview of the socket timestamp series is as below:
+1. Delete asm specific socket.h when possible.
+2. Support SO/SCM_TIMESTAMP* options only in userspace.
+3. Rename current SO/SCM_TIMESTAMP* to SO/SCM_TIMESTAMP*_OLD.
+3. Alter socket options so that SOCK_RCVTSTAMPNS does
+   not rely on SOCK_RCVTSTAMP.
+4. Introduce y2038 safe types for socket timestamp.
+5. Introduce new y2038 safe socket options SO/SCM_TIMESTAMP*_NEW.
+6. Intorduce new y2038 safe socket timeout options.
 
-v3.18.133: Failed to apply! Possible dependencies:
-    020295b4cb5b ("ACPI / processor: Make it possible to get CPU hardware ID via GICC")
-    132cd887b5c5 ("arm64: Modify stack trace and dump for use with irq_stack")
-    13ca62b243f6 ("ACPI: Fix minor syntax issues in processor_core.c")
-    37655163ce1a ("ARM64 / ACPI: Get RSDP and ACPI boot-time tables")
-    587064b610c7 ("arm64: Add framework for legacy instruction emulation")
-    652261a7a86c ("ACPI: fix acpi_os_ioremap for arm64")
-    828aef376d7a ("ACPI / processor: Introduce phys_cpuid_t for CPU hardware ID")
-    96f0e00378d4 ("ARM: add basic support for on-demand backtrace of other CPUs")
-    af2c632e234f ("arm64/include/asm: Fixed a warning about 'struct pt_regs'")
-    af8f3f514d19 ("ACPI / processor: Convert apic_id to phys_id to make it arch agnostic")
-    b4ff8389ed14 ("xen/events: Always allocate legacy interrupts on PV guests")
-    d02dc27db0dc ("ACPI / processor: Rename acpi_(un)map_lsapic() to acpi_(un)map_cpu()")
-    d60fc3892c4d ("irqchip: Add GICv2 specific ACPI boot support")
-    ecf5636dcd59 ("ACPI: Add interfaces to parse IOAPIC ID for IOAPIC hotplug")
-    f60ad4edcf07 ("arm64: clean up irq stack definitions")
-    f60fe78f1332 ("arm64: use an irq stack pointer")
+Changes since v4:
+* Fixed the typo in calling sock_get_timeout()
 
+Changes since v3:
+* Rebased onto net-next and fixups as per review comments
+* Merged the socket timeout series
+* Integrated Arnd's patch to simplify compat handling of timeout syscalls
 
-How should we proceed with this patch?
+Changes since v2:
+* Removed extra functions to reduce diff churn as per code review
 
---
-Thanks,
-Sasha
+Changes since v1:
+* Dropped the change to disentangle sock flags
+* Renamed sock_timeval to __kernel_sock_timeval
+* Updated a few comments
+* Added documentation changes
+
+Arnd Bergmann (1):
+  socket: move compat timeout handling into sock.c
+
+Deepa Dinamani (11):
+  selftests: add missing include unistd
+  arch: Use asm-generic/socket.h when possible
+  sockopt: Rename SO_TIMESTAMP* to SO_TIMESTAMP*_OLD
+  arch: sparc: Override struct __kernel_old_timeval
+  socket: Use old_timeval types for socket timestamps
+  socket: Add struct __kernel_sock_timeval
+  socket: Add SO_TIMESTAMP[NS]_NEW
+  socket: Add SO_TIMESTAMPING_NEW
+  socket: Update timestamping Documentation
+  socket: Rename SO_RCVTIMEO/ SO_SNDTIMEO with _OLD suffixes
+  sock: Add SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW
+
+ Documentation/networking/timestamping.txt     |  43 ++++-
+ arch/alpha/include/uapi/asm/socket.h          |  47 ++++--
+ arch/ia64/include/uapi/asm/Kbuild             |   1 +
+ arch/ia64/include/uapi/asm/socket.h           | 122 --------------
+ arch/mips/include/uapi/asm/socket.h           |  47 ++++--
+ arch/parisc/include/uapi/asm/socket.h         |  46 ++++--
+ arch/powerpc/include/uapi/asm/socket.h        |   4 +-
+ arch/s390/include/uapi/asm/Kbuild             |   1 +
+ arch/s390/include/uapi/asm/socket.h           | 119 --------------
+ arch/sparc/include/uapi/asm/posix_types.h     |  10 ++
+ arch/sparc/include/uapi/asm/socket.h          |  49 ++++--
+ arch/x86/include/uapi/asm/Kbuild              |   1 +
+ arch/x86/include/uapi/asm/socket.h            |   1 -
+ arch/xtensa/include/asm/Kbuild                |   1 +
+ arch/xtensa/include/uapi/asm/Kbuild           |   1 +
+ arch/xtensa/include/uapi/asm/socket.h         | 124 --------------
+ drivers/isdn/mISDN/socket.c                   |   2 +-
+ fs/dlm/lowcomms.c                             |   4 +-
+ include/linux/skbuff.h                        |  24 ++-
+ include/linux/socket.h                        |   8 +
+ include/net/sock.h                            |   1 +
+ include/uapi/asm-generic/socket.h             |  48 ++++--
+ include/uapi/linux/errqueue.h                 |   4 +
+ include/uapi/linux/time.h                     |   7 +
+ net/bluetooth/hci_sock.c                      |   4 +-
+ net/compat.c                                  |  78 +--------
+ net/core/scm.c                                |  27 ++++
+ net/core/sock.c                               | 151 +++++++++++++-----
+ net/ipv4/tcp.c                                |  61 ++++---
+ net/rds/af_rds.c                              |  10 +-
+ net/rds/recv.c                                |  18 ++-
+ net/rxrpc/local_object.c                      |   2 +-
+ net/smc/af_smc.c                              |   3 +-
+ net/socket.c                                  |  50 ++++--
+ net/vmw_vsock/af_vsock.c                      |   4 +-
+ .../networking/timestamping/rxtimestamp.c     |   1 +
+ 36 files changed, 541 insertions(+), 583 deletions(-)
+ delete mode 100644 arch/ia64/include/uapi/asm/socket.h
+ delete mode 100644 arch/s390/include/uapi/asm/socket.h
+ delete mode 100644 arch/x86/include/uapi/asm/socket.h
+ delete mode 100644 arch/xtensa/include/uapi/asm/socket.h
+
+-- 
+2.17.1
+
+Cc: ccaulfie@redhat.com
+Cc: chris@zankel.net
+Cc: cluster-devel@redhat.com
+Cc: davem@davemloft.net
+Cc: deller@gmx.de
+Cc: dhowells@redhat.com
+Cc: fenghua.yu@intel.com
+Cc: isdn@linux-pingi.de
+Cc: jejb@parisc-linux.org
+Cc: linux-afs@lists.infradead.org
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-rdma@vger.kernel.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: netdev@vger.kernel.org
+Cc: paulus@samba.org
+Cc: ralf@linux-mips.org
+Cc: rth@twiddle.net
+Cc: schwidefsky@de.ibm.com
+Cc: sparclinux@vger.kernel.org
+Cc: tglx@linutronix.de
+Cc: ubraun@linux.ibm.com
