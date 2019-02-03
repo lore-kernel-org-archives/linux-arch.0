@@ -1,98 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f193.google.com ([209.85.166.193]:56207 "EHLO
-        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726738AbfBCCrd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2019 21:47:33 -0500
-MIME-Version: 1.0
-References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-13-deepa.kernel@gmail.com>
- <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
-In-Reply-To: <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Date: Sat, 2 Feb 2019 18:47:20 -0800
-Message-ID: <CABeXuvrf_s_LzwYy5p_gqw+PU70OnFAntdtyazN+CBAbyS07TA@mail.gmail.com>
-Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:53888 "EHLO
+        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728379AbfBCNuC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Feb 2019 08:50:02 -0500
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 03 Feb 2019 14:45:08 +0100
+Message-ID: <lsq.1549201508.3242952@decadent.org.uk>
+Subject: [PATCH 3.16 004/305] x86/mm: Simplify p[g4um]d_page() macros
+In-Reply-To: <lsq.1549201507.384106140@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oliver Hartkopp <socketcan@hartkopp.net>
-Cc: "David S. Miller" <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, ccaulfie@redhat.com, Helge Deller <deller@gmx.de>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, cluster-devel <cluster-devel@redhat.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>
-Message-ID: <20190203024720.o1UtesBvltU54sVMhj6LgbrqWOBJeqbKZg4-9OqEXFE@z>
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Denis Kirjanov <kda@linux-powerpc.org>, kasan-dev@googlegroups.com, Dave Young <dyoung@redhat.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-efi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Brijesh Singh <brijesh.singh@amd.com>, Peter Zijlstra <peterz@infradead.org>, Paolo Bonzini <pbonzini@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, linux-doc@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, Wenkuan Wang <Wenkuan.Wang@windriver.com>, Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Larry Woodman <lwoodman@redhat.com>, kvm@vger.kernel.org, linux-mm@kvack.org, Ingo Molnar <mingo@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Borislav Petkov <bp@suse.de>, "Michael S. Tsirkin" <mst@redhat.com>, Radim =?UTF-8?Q?Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
+Message-ID: <20190203134508.TSx1Nlul_6reAdqxnh0Iy9K4Dr5xrt2Fs2lVW7WG3Uk@z>
 
-On Sat, Feb 2, 2019 at 9:15 AM Oliver Hartkopp <socketcan@hartkopp.net> wro=
-te:
->
-> Hi all,
->
-> On 02.02.19 16:34, Deepa Dinamani wrote:
-> > Add new socket timeout options that are y2038 safe.
-> (..)
-> >
-> > diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/=
-uapi/asm/socket.h
-> > index 9826d1db71d0..0d0fddb7e738 100644
-> > --- a/arch/alpha/include/uapi/asm/socket.h
-> > +++ b/arch/alpha/include/uapi/asm/socket.h
-> > @@ -119,19 +119,25 @@
-> >   #define SO_TIMESTAMPNS_NEW      64
-> >   #define SO_TIMESTAMPING_NEW     65
-> >
-> > -#if !defined(__KERNEL__)
-> > +#define SO_RCVTIMEO_NEW         66
-> > +#define SO_SNDTIMEO_NEW         67
-> >
-> > -#define      SO_RCVTIMEO SO_RCVTIMEO_OLD
-> > -#define      SO_SNDTIMEO SO_SNDTIMEO_OLD
-> > +#if !defined(__KERNEL__)
-> >
-> >   #if __BITS_PER_LONG =3D=3D 64
-> >   #define SO_TIMESTAMP                SO_TIMESTAMP_OLD
-> >   #define SO_TIMESTAMPNS              SO_TIMESTAMPNS_OLD
-> >   #define SO_TIMESTAMPING         SO_TIMESTAMPING_OLD
-> > +
-> > +#define SO_RCVTIMEO          SO_RCVTIMEO_OLD
-> > +#define SO_SNDTIMEO          SO_SNDTIMEO_OLD
->
-> Maybe I'm a bit late in this discussion as you are already in v5 ...
->
-> I can see patches making the transition in different steps where it
-> might be helpful to name them *_OLD and *_NEW to understand the patches.
->
-> But in the end the naming stays in the kernel for a very long time and I
-> remember myself (in early years) to name things 'new', 'new2', 'new3'.
->
-> In fact SO_TIMESTAMP_OLD should be named SO_TIMESTAMP32 and
-> SO_TIMESTAMP_NEW should be named SO_TIMESTAMP64.
+3.16.63-rc1 review patch.  If anyone has any objections, please let me know.
 
-Hmm. SO_TIMESTAMP_OLD uses 64-bit time_t on a 64 bit machine. In fact,
-there is no difference between the two options on a 64 bit machine. So
-using  SO_TIMESTAMP_32 is just wrong.
+------------------
 
-Likewise, SO_TIMESTAMP_64 naming somehow indicates that the existing
-one was not, and that is also not true on a 64-bit machine.
+From: Tom Lendacky <thomas.lendacky@amd.com>
 
-Further, userspace will still continue to use SO_TIMESTAMP and the
-macros take care of which option to select internally.
+commit fd7e315988b784509ba3f1b42f539bd0b1fca9bb upstream.
 
-Moreover, these macros have been there for more than ten years
-(introduced before 2.4) and there has been no change. I doubt you will
-ever have NEW2.
-I think this argument is similar to saying don=E2=80=99t name these macros
-SO_TIMESTAMP because there might be SO_TIMESTAMP1 some day. There is
-never a perfect name. SO_TIMESTAMPING is also not really descriptive.
+Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
+use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
+duplicating the code.
 
-> Especially as it tells you what is 'inside', the naming of these new intr=
-oduced constants should be replaced with *32 and *64 names.
-> The documentation and the other comments still fit perfectly then.
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brijesh Singh <brijesh.singh@amd.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Larry Woodman <lwoodman@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Radim Krčmář <rkrcmar@redhat.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Toshimitsu Kani <toshi.kani@hpe.com>
+Cc: kasan-dev@googlegroups.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-efi@vger.kernel.org
+Cc: linux-mm@kvack.org
+Link: http://lkml.kernel.org/r/e61eb533a6d0aac941db2723d8aa63ef6b882dee.1500319216.git.thomas.lendacky@amd.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[Backported to 4.9 stable by AK, suggested by Michael Hocko]
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by: Wenkuan Wang <Wenkuan.Wang@windriver.com>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ arch/x86/include/asm/pgtable.h | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
 
-I would prefer not to do this, for reasons mentioned above. Since you
-point out that it is easier to use this naming for intermediate steps,
-I suggest that we leave the series as it is.
-If you feel strongly to post a follow-on renaming patch, you could
-discuss it with the subsystem maintainers, if you think there is a
-correct but more descriptive naming.
-
--Deepa
-
-> Regards,
-> Oliver
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -166,6 +166,11 @@ static inline unsigned long pud_pfn(pud_
+ 	return (pfn & pud_pfn_mask(pud)) >> PAGE_SHIFT;
+ }
+ 
++static inline unsigned long pgd_pfn(pgd_t pgd)
++{
++	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
++}
++
+ #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+ 
+ static inline int pmd_large(pmd_t pte)
+@@ -591,8 +596,7 @@ static inline unsigned long pmd_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pmd_page(pmd)		\
+-	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
++#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
+ 
+ /*
+  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
+@@ -665,8 +669,7 @@ static inline unsigned long pud_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pud_page(pud)		\
+-	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
++#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
+ 
+ /* Find an entry in the second-level page table.. */
+ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
+@@ -706,7 +709,7 @@ static inline unsigned long pgd_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
++#define pgd_page(pgd)		pfn_to_page(pgd_pfn(pgd))
+ 
+ /* to find an entry in a page-table-directory. */
+ static inline unsigned long pud_index(unsigned long address)
