@@ -1,39 +1,81 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] Rename include/{uapi => }/asm-generic/shmparam.h really
-Date: Sun,  3 Feb 2019 10:44:37 +0900
-Message-ID: <1549158277-24558-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and
+	SO_SNDTIMEO_NEW
+Date: Sat, 2 Feb 2019 18:47:20 -0800
+Message-ID: <CABeXuvrf_s_LzwYy5p_gqw+PU70OnFAntdtyazN+CBAbyS07TA@mail.gmail.com>
+References: <20190202153454.7121-1-deepa.kernel@gmail.com>
+ <20190202153454.7121-13-deepa.kernel@gmail.com>
+ <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Oliver Hartkopp <socketcan@hartkopp.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Helge Deller <deller@gmx.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@vger.kernel.org, cluster-devel <cluster-devel@redhat.com>, ccaulfie@redhat.com, Paul Mackerras <paulus@samba.org>, linux-alpha@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
-Commit 36c0f7f0f899 ("arch: unexport asm/shmparam.h for all
-architectures") is different from the patch I submitted.
-
-My patch is this:
-https://lore.kernel.org/lkml/1546904307-11124-1-git-send-email-yamada.masahiro@socionext.com/T/#u
-
-The file renaming part:
-
-  rename include/{uapi => }/asm-generic/shmparam.h (100%)
-
-was lost when it was picked up.
-
-I think it was an accident because Andrew did not say anything.
-
-Fixes: 36c0f7f0f899 ("arch: unexport asm/shmparam.h for all architectures")
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
-
- include/{uapi => }/asm-generic/shmparam.h | 0
- 1 file changed, 0 insertions(+), 0 deletions(-)
- rename include/{uapi => }/asm-generic/shmparam.h (100%)
-
-diff --git a/include/uapi/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
-similarity index 100%
-rename from include/uapi/asm-generic/shmparam.h
-rename to include/asm-generic/shmparam.h
--- 
-2.7.4
+T24gU2F0LCBGZWIgMiwgMjAxOSBhdCA5OjE1IEFNIE9saXZlciBIYXJ0a29wcCA8c29ja2V0Y2Fu
+QGhhcnRrb3BwLm5ldD4gd3JvdGU6Cj4KPiBIaSBhbGwsCj4KPiBPbiAwMi4wMi4xOSAxNjozNCwg
+RGVlcGEgRGluYW1hbmkgd3JvdGU6Cj4gPiBBZGQgbmV3IHNvY2tldCB0aW1lb3V0IG9wdGlvbnMg
+dGhhdCBhcmUgeTIwMzggc2FmZS4KPiAoLi4pCj4gPgo+ID4gZGlmZiAtLWdpdCBhL2FyY2gvYWxw
+aGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaCBiL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2Fz
+bS9zb2NrZXQuaAo+ID4gaW5kZXggOTgyNmQxZGI3MWQwLi4wZDBmZGRiN2U3MzggMTAwNjQ0Cj4g
+PiAtLS0gYS9hcmNoL2FscGhhL2luY2x1ZGUvdWFwaS9hc20vc29ja2V0LmgKPiA+ICsrKyBiL2Fy
+Y2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+ID4gQEAgLTExOSwxOSArMTE5LDI1
+IEBACj4gPiAgICNkZWZpbmUgU09fVElNRVNUQU1QTlNfTkVXICAgICAgNjQKPiA+ICAgI2RlZmlu
+ZSBTT19USU1FU1RBTVBJTkdfTkVXICAgICA2NQo+ID4KPiA+IC0jaWYgIWRlZmluZWQoX19LRVJO
+RUxfXykKPiA+ICsjZGVmaW5lIFNPX1JDVlRJTUVPX05FVyAgICAgICAgIDY2Cj4gPiArI2RlZmlu
+ZSBTT19TTkRUSU1FT19ORVcgICAgICAgICA2Nwo+ID4KPiA+IC0jZGVmaW5lICAgICAgU09fUkNW
+VElNRU8gU09fUkNWVElNRU9fT0xECj4gPiAtI2RlZmluZSAgICAgIFNPX1NORFRJTUVPIFNPX1NO
+RFRJTUVPX09MRAo+ID4gKyNpZiAhZGVmaW5lZChfX0tFUk5FTF9fKQo+ID4KPiA+ICAgI2lmIF9f
+QklUU19QRVJfTE9ORyA9PSA2NAo+ID4gICAjZGVmaW5lIFNPX1RJTUVTVEFNUCAgICAgICAgICAg
+ICAgICBTT19USU1FU1RBTVBfT0xECj4gPiAgICNkZWZpbmUgU09fVElNRVNUQU1QTlMgICAgICAg
+ICAgICAgIFNPX1RJTUVTVEFNUE5TX09MRAo+ID4gICAjZGVmaW5lIFNPX1RJTUVTVEFNUElORyAg
+ICAgICAgIFNPX1RJTUVTVEFNUElOR19PTEQKPiA+ICsKPiA+ICsjZGVmaW5lIFNPX1JDVlRJTUVP
+ICAgICAgICAgIFNPX1JDVlRJTUVPX09MRAo+ID4gKyNkZWZpbmUgU09fU05EVElNRU8gICAgICAg
+ICAgU09fU05EVElNRU9fT0xECj4KPiBNYXliZSBJJ20gYSBiaXQgbGF0ZSBpbiB0aGlzIGRpc2N1
+c3Npb24gYXMgeW91IGFyZSBhbHJlYWR5IGluIHY1IC4uLgo+Cj4gSSBjYW4gc2VlIHBhdGNoZXMg
+bWFraW5nIHRoZSB0cmFuc2l0aW9uIGluIGRpZmZlcmVudCBzdGVwcyB3aGVyZSBpdAo+IG1pZ2h0
+IGJlIGhlbHBmdWwgdG8gbmFtZSB0aGVtICpfT0xEIGFuZCAqX05FVyB0byB1bmRlcnN0YW5kIHRo
+ZSBwYXRjaGVzLgo+Cj4gQnV0IGluIHRoZSBlbmQgdGhlIG5hbWluZyBzdGF5cyBpbiB0aGUga2Vy
+bmVsIGZvciBhIHZlcnkgbG9uZyB0aW1lIGFuZCBJCj4gcmVtZW1iZXIgbXlzZWxmIChpbiBlYXJs
+eSB5ZWFycykgdG8gbmFtZSB0aGluZ3MgJ25ldycsICduZXcyJywgJ25ldzMnLgo+Cj4gSW4gZmFj
+dCBTT19USU1FU1RBTVBfT0xEIHNob3VsZCBiZSBuYW1lZCBTT19USU1FU1RBTVAzMiBhbmQKPiBT
+T19USU1FU1RBTVBfTkVXIHNob3VsZCBiZSBuYW1lZCBTT19USU1FU1RBTVA2NC4KCkhtbS4gU09f
+VElNRVNUQU1QX09MRCB1c2VzIDY0LWJpdCB0aW1lX3Qgb24gYSA2NCBiaXQgbWFjaGluZS4gSW4g
+ZmFjdCwKdGhlcmUgaXMgbm8gZGlmZmVyZW5jZSBiZXR3ZWVuIHRoZSB0d28gb3B0aW9ucyBvbiBh
+IDY0IGJpdCBtYWNoaW5lLiBTbwp1c2luZyAgU09fVElNRVNUQU1QXzMyIGlzIGp1c3Qgd3Jvbmcu
+CgpMaWtld2lzZSwgU09fVElNRVNUQU1QXzY0IG5hbWluZyBzb21laG93IGluZGljYXRlcyB0aGF0
+IHRoZSBleGlzdGluZwpvbmUgd2FzIG5vdCwgYW5kIHRoYXQgaXMgYWxzbyBub3QgdHJ1ZSBvbiBh
+IDY0LWJpdCBtYWNoaW5lLgoKRnVydGhlciwgdXNlcnNwYWNlIHdpbGwgc3RpbGwgY29udGludWUg
+dG8gdXNlIFNPX1RJTUVTVEFNUCBhbmQgdGhlCm1hY3JvcyB0YWtlIGNhcmUgb2Ygd2hpY2ggb3B0
+aW9uIHRvIHNlbGVjdCBpbnRlcm5hbGx5LgoKTW9yZW92ZXIsIHRoZXNlIG1hY3JvcyBoYXZlIGJl
+ZW4gdGhlcmUgZm9yIG1vcmUgdGhhbiB0ZW4geWVhcnMKKGludHJvZHVjZWQgYmVmb3JlIDIuNCkg
+YW5kIHRoZXJlIGhhcyBiZWVuIG5vIGNoYW5nZS4gSSBkb3VidCB5b3Ugd2lsbApldmVyIGhhdmUg
+TkVXMi4KSSB0aGluayB0aGlzIGFyZ3VtZW50IGlzIHNpbWlsYXIgdG8gc2F5aW5nIGRvbuKAmXQg
+bmFtZSB0aGVzZSBtYWNyb3MKU09fVElNRVNUQU1QIGJlY2F1c2UgdGhlcmUgbWlnaHQgYmUgU09f
+VElNRVNUQU1QMSBzb21lIGRheS4gVGhlcmUgaXMKbmV2ZXIgYSBwZXJmZWN0IG5hbWUuIFNPX1RJ
+TUVTVEFNUElORyBpcyBhbHNvIG5vdCByZWFsbHkgZGVzY3JpcHRpdmUuCgo+IEVzcGVjaWFsbHkg
+YXMgaXQgdGVsbHMgeW91IHdoYXQgaXMgJ2luc2lkZScsIHRoZSBuYW1pbmcgb2YgdGhlc2UgbmV3
+IGludHJvZHVjZWQgY29uc3RhbnRzIHNob3VsZCBiZSByZXBsYWNlZCB3aXRoICozMiBhbmQgKjY0
+IG5hbWVzLgo+IFRoZSBkb2N1bWVudGF0aW9uIGFuZCB0aGUgb3RoZXIgY29tbWVudHMgc3RpbGwg
+Zml0IHBlcmZlY3RseSB0aGVuLgoKSSB3b3VsZCBwcmVmZXIgbm90IHRvIGRvIHRoaXMsIGZvciBy
+ZWFzb25zIG1lbnRpb25lZCBhYm92ZS4gU2luY2UgeW91CnBvaW50IG91dCB0aGF0IGl0IGlzIGVh
+c2llciB0byB1c2UgdGhpcyBuYW1pbmcgZm9yIGludGVybWVkaWF0ZSBzdGVwcywKSSBzdWdnZXN0
+IHRoYXQgd2UgbGVhdmUgdGhlIHNlcmllcyBhcyBpdCBpcy4KSWYgeW91IGZlZWwgc3Ryb25nbHkg
+dG8gcG9zdCBhIGZvbGxvdy1vbiByZW5hbWluZyBwYXRjaCwgeW91IGNvdWxkCmRpc2N1c3MgaXQg
+d2l0aCB0aGUgc3Vic3lzdGVtIG1haW50YWluZXJzLCBpZiB5b3UgdGhpbmsgdGhlcmUgaXMgYQpj
+b3JyZWN0IGJ1dCBtb3JlIGRlc2NyaXB0aXZlIG5hbWluZy4KCi1EZWVwYQoKPiBSZWdhcmRzLAo+
+IE9saXZlcgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZ
+MjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxp
+bmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
