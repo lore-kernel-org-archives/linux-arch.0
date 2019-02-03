@@ -1,81 +1,110 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and
-	SO_SNDTIMEO_NEW
-Date: Sat, 2 Feb 2019 18:47:20 -0800
-Message-ID: <CABeXuvrf_s_LzwYy5p_gqw+PU70OnFAntdtyazN+CBAbyS07TA@mail.gmail.com>
-References: <20190202153454.7121-1-deepa.kernel@gmail.com>
- <20190202153454.7121-13-deepa.kernel@gmail.com>
- <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: [PATCH 3.16 004/305] x86/mm: Simplify p[g4um]d_page() macros
+Date: Sun, 03 Feb 2019 14:45:08 +0100
+Message-ID: <lsq.1549201508.3242952@decadent.org.uk>
+References: <lsq.1549201507.384106140@decadent.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Oliver Hartkopp <socketcan@hartkopp.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Helge Deller <deller@gmx.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@vger.kernel.org, cluster-devel <cluster-devel@redhat.com>, ccaulfie@redhat.com, Paul Mackerras <paulus@samba.org>, linux-alpha@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>, Richard Henderson <rth@twiddle.net>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <stable-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <lsq.1549201507.384106140@decadent.org.uk>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Denis Kirjanov <kda@linux-powerpc.org>, kasan-dev@googlegroups.com, Dave Young <dyoung@redhat.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-efi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Brijesh Singh <brijesh.singh@amd.com>, Peter Zijlstra <peterz@infradead.org>, Paolo Bonzini <pbonzini@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, linux-doc@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, Wenkuan Wang <Wenkuan.Wang@windriver.com>, Tom Lendacky <thomas.>
 List-Id: linux-arch.vger.kernel.org
 
-T24gU2F0LCBGZWIgMiwgMjAxOSBhdCA5OjE1IEFNIE9saXZlciBIYXJ0a29wcCA8c29ja2V0Y2Fu
-QGhhcnRrb3BwLm5ldD4gd3JvdGU6Cj4KPiBIaSBhbGwsCj4KPiBPbiAwMi4wMi4xOSAxNjozNCwg
-RGVlcGEgRGluYW1hbmkgd3JvdGU6Cj4gPiBBZGQgbmV3IHNvY2tldCB0aW1lb3V0IG9wdGlvbnMg
-dGhhdCBhcmUgeTIwMzggc2FmZS4KPiAoLi4pCj4gPgo+ID4gZGlmZiAtLWdpdCBhL2FyY2gvYWxw
-aGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaCBiL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2Fz
-bS9zb2NrZXQuaAo+ID4gaW5kZXggOTgyNmQxZGI3MWQwLi4wZDBmZGRiN2U3MzggMTAwNjQ0Cj4g
-PiAtLS0gYS9hcmNoL2FscGhhL2luY2x1ZGUvdWFwaS9hc20vc29ja2V0LmgKPiA+ICsrKyBiL2Fy
-Y2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+ID4gQEAgLTExOSwxOSArMTE5LDI1
-IEBACj4gPiAgICNkZWZpbmUgU09fVElNRVNUQU1QTlNfTkVXICAgICAgNjQKPiA+ICAgI2RlZmlu
-ZSBTT19USU1FU1RBTVBJTkdfTkVXICAgICA2NQo+ID4KPiA+IC0jaWYgIWRlZmluZWQoX19LRVJO
-RUxfXykKPiA+ICsjZGVmaW5lIFNPX1JDVlRJTUVPX05FVyAgICAgICAgIDY2Cj4gPiArI2RlZmlu
-ZSBTT19TTkRUSU1FT19ORVcgICAgICAgICA2Nwo+ID4KPiA+IC0jZGVmaW5lICAgICAgU09fUkNW
-VElNRU8gU09fUkNWVElNRU9fT0xECj4gPiAtI2RlZmluZSAgICAgIFNPX1NORFRJTUVPIFNPX1NO
-RFRJTUVPX09MRAo+ID4gKyNpZiAhZGVmaW5lZChfX0tFUk5FTF9fKQo+ID4KPiA+ICAgI2lmIF9f
-QklUU19QRVJfTE9ORyA9PSA2NAo+ID4gICAjZGVmaW5lIFNPX1RJTUVTVEFNUCAgICAgICAgICAg
-ICAgICBTT19USU1FU1RBTVBfT0xECj4gPiAgICNkZWZpbmUgU09fVElNRVNUQU1QTlMgICAgICAg
-ICAgICAgIFNPX1RJTUVTVEFNUE5TX09MRAo+ID4gICAjZGVmaW5lIFNPX1RJTUVTVEFNUElORyAg
-ICAgICAgIFNPX1RJTUVTVEFNUElOR19PTEQKPiA+ICsKPiA+ICsjZGVmaW5lIFNPX1JDVlRJTUVP
-ICAgICAgICAgIFNPX1JDVlRJTUVPX09MRAo+ID4gKyNkZWZpbmUgU09fU05EVElNRU8gICAgICAg
-ICAgU09fU05EVElNRU9fT0xECj4KPiBNYXliZSBJJ20gYSBiaXQgbGF0ZSBpbiB0aGlzIGRpc2N1
-c3Npb24gYXMgeW91IGFyZSBhbHJlYWR5IGluIHY1IC4uLgo+Cj4gSSBjYW4gc2VlIHBhdGNoZXMg
-bWFraW5nIHRoZSB0cmFuc2l0aW9uIGluIGRpZmZlcmVudCBzdGVwcyB3aGVyZSBpdAo+IG1pZ2h0
-IGJlIGhlbHBmdWwgdG8gbmFtZSB0aGVtICpfT0xEIGFuZCAqX05FVyB0byB1bmRlcnN0YW5kIHRo
-ZSBwYXRjaGVzLgo+Cj4gQnV0IGluIHRoZSBlbmQgdGhlIG5hbWluZyBzdGF5cyBpbiB0aGUga2Vy
-bmVsIGZvciBhIHZlcnkgbG9uZyB0aW1lIGFuZCBJCj4gcmVtZW1iZXIgbXlzZWxmIChpbiBlYXJs
-eSB5ZWFycykgdG8gbmFtZSB0aGluZ3MgJ25ldycsICduZXcyJywgJ25ldzMnLgo+Cj4gSW4gZmFj
-dCBTT19USU1FU1RBTVBfT0xEIHNob3VsZCBiZSBuYW1lZCBTT19USU1FU1RBTVAzMiBhbmQKPiBT
-T19USU1FU1RBTVBfTkVXIHNob3VsZCBiZSBuYW1lZCBTT19USU1FU1RBTVA2NC4KCkhtbS4gU09f
-VElNRVNUQU1QX09MRCB1c2VzIDY0LWJpdCB0aW1lX3Qgb24gYSA2NCBiaXQgbWFjaGluZS4gSW4g
-ZmFjdCwKdGhlcmUgaXMgbm8gZGlmZmVyZW5jZSBiZXR3ZWVuIHRoZSB0d28gb3B0aW9ucyBvbiBh
-IDY0IGJpdCBtYWNoaW5lLiBTbwp1c2luZyAgU09fVElNRVNUQU1QXzMyIGlzIGp1c3Qgd3Jvbmcu
-CgpMaWtld2lzZSwgU09fVElNRVNUQU1QXzY0IG5hbWluZyBzb21laG93IGluZGljYXRlcyB0aGF0
-IHRoZSBleGlzdGluZwpvbmUgd2FzIG5vdCwgYW5kIHRoYXQgaXMgYWxzbyBub3QgdHJ1ZSBvbiBh
-IDY0LWJpdCBtYWNoaW5lLgoKRnVydGhlciwgdXNlcnNwYWNlIHdpbGwgc3RpbGwgY29udGludWUg
-dG8gdXNlIFNPX1RJTUVTVEFNUCBhbmQgdGhlCm1hY3JvcyB0YWtlIGNhcmUgb2Ygd2hpY2ggb3B0
-aW9uIHRvIHNlbGVjdCBpbnRlcm5hbGx5LgoKTW9yZW92ZXIsIHRoZXNlIG1hY3JvcyBoYXZlIGJl
-ZW4gdGhlcmUgZm9yIG1vcmUgdGhhbiB0ZW4geWVhcnMKKGludHJvZHVjZWQgYmVmb3JlIDIuNCkg
-YW5kIHRoZXJlIGhhcyBiZWVuIG5vIGNoYW5nZS4gSSBkb3VidCB5b3Ugd2lsbApldmVyIGhhdmUg
-TkVXMi4KSSB0aGluayB0aGlzIGFyZ3VtZW50IGlzIHNpbWlsYXIgdG8gc2F5aW5nIGRvbuKAmXQg
-bmFtZSB0aGVzZSBtYWNyb3MKU09fVElNRVNUQU1QIGJlY2F1c2UgdGhlcmUgbWlnaHQgYmUgU09f
-VElNRVNUQU1QMSBzb21lIGRheS4gVGhlcmUgaXMKbmV2ZXIgYSBwZXJmZWN0IG5hbWUuIFNPX1RJ
-TUVTVEFNUElORyBpcyBhbHNvIG5vdCByZWFsbHkgZGVzY3JpcHRpdmUuCgo+IEVzcGVjaWFsbHkg
-YXMgaXQgdGVsbHMgeW91IHdoYXQgaXMgJ2luc2lkZScsIHRoZSBuYW1pbmcgb2YgdGhlc2UgbmV3
-IGludHJvZHVjZWQgY29uc3RhbnRzIHNob3VsZCBiZSByZXBsYWNlZCB3aXRoICozMiBhbmQgKjY0
-IG5hbWVzLgo+IFRoZSBkb2N1bWVudGF0aW9uIGFuZCB0aGUgb3RoZXIgY29tbWVudHMgc3RpbGwg
-Zml0IHBlcmZlY3RseSB0aGVuLgoKSSB3b3VsZCBwcmVmZXIgbm90IHRvIGRvIHRoaXMsIGZvciBy
-ZWFzb25zIG1lbnRpb25lZCBhYm92ZS4gU2luY2UgeW91CnBvaW50IG91dCB0aGF0IGl0IGlzIGVh
-c2llciB0byB1c2UgdGhpcyBuYW1pbmcgZm9yIGludGVybWVkaWF0ZSBzdGVwcywKSSBzdWdnZXN0
-IHRoYXQgd2UgbGVhdmUgdGhlIHNlcmllcyBhcyBpdCBpcy4KSWYgeW91IGZlZWwgc3Ryb25nbHkg
-dG8gcG9zdCBhIGZvbGxvdy1vbiByZW5hbWluZyBwYXRjaCwgeW91IGNvdWxkCmRpc2N1c3MgaXQg
-d2l0aCB0aGUgc3Vic3lzdGVtIG1haW50YWluZXJzLCBpZiB5b3UgdGhpbmsgdGhlcmUgaXMgYQpj
-b3JyZWN0IGJ1dCBtb3JlIGRlc2NyaXB0aXZlIG5hbWluZy4KCi1EZWVwYQoKPiBSZWdhcmRzLAo+
-IE9saXZlcgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZ
-MjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxp
-bmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+3.16.63-rc1 review patch.  If anyone has any objections, please let me know.
+
+------------------
+
+From: Tom Lendacky <thomas.lendacky@amd.com>
+
+commit fd7e315988b784509ba3f1b42f539bd0b1fca9bb upstream.
+
+Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
+use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
+duplicating the code.
+
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brijesh Singh <brijesh.singh@amd.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Larry Woodman <lwoodman@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Radim Krčmář <rkrcmar@redhat.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Toshimitsu Kani <toshi.kani@hpe.com>
+Cc: kasan-dev@googlegroups.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-efi@vger.kernel.org
+Cc: linux-mm@kvack.org
+Link: http://lkml.kernel.org/r/e61eb533a6d0aac941db2723d8aa63ef6b882dee.1500319216.git.thomas.lendacky@amd.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[Backported to 4.9 stable by AK, suggested by Michael Hocko]
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by: Wenkuan Wang <Wenkuan.Wang@windriver.com>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ arch/x86/include/asm/pgtable.h | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -166,6 +166,11 @@ static inline unsigned long pud_pfn(pud_
+ 	return (pfn & pud_pfn_mask(pud)) >> PAGE_SHIFT;
+ }
+ 
++static inline unsigned long pgd_pfn(pgd_t pgd)
++{
++	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
++}
++
+ #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+ 
+ static inline int pmd_large(pmd_t pte)
+@@ -591,8 +596,7 @@ static inline unsigned long pmd_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pmd_page(pmd)		\
+-	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
++#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
+ 
+ /*
+  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
+@@ -665,8 +669,7 @@ static inline unsigned long pud_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pud_page(pud)		\
+-	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
++#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
+ 
+ /* Find an entry in the second-level page table.. */
+ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
+@@ -706,7 +709,7 @@ static inline unsigned long pgd_page_vad
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
++#define pgd_page(pgd)		pfn_to_page(pgd_pfn(pgd))
+ 
+ /* to find an entry in a page-table-directory. */
+ static inline unsigned long pud_index(unsigned long address)
