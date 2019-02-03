@@ -1,114 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:53888 "EHLO
-        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728379AbfBCNuC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Feb 2019 08:50:02 -0500
-Content-Type: text/plain; charset="UTF-8"
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
+Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.165]:13964 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726616AbfBCQtH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Feb 2019 11:49:07 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <4d8d4854-dac9-a78e-77e5-0455e8ca56c4@xenosoft.de>
+ <1dec2fbe-f654-dac7-392a-93a5d20e3602@xenosoft.de>
+ <20190128070422.GA2772@lst.de> <20190128162256.GA11737@lst.de>
+ <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+ <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
+ <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de>
+ <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de>
+ <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de>
+ <20190201080456.GA15456@lst.de>
+ <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
+Message-ID: <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de>
+Date: Sun, 3 Feb 2019 17:49:02 +0100
 MIME-Version: 1.0
-From: Ben Hutchings <ben@decadent.org.uk>
-Date: Sun, 03 Feb 2019 14:45:08 +0100
-Message-ID: <lsq.1549201508.3242952@decadent.org.uk>
-Subject: [PATCH 3.16 004/305] x86/mm: Simplify p[g4um]d_page() macros
-In-Reply-To: <lsq.1549201507.384106140@decadent.org.uk>
+In-Reply-To: <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Denis Kirjanov <kda@linux-powerpc.org>, kasan-dev@googlegroups.com, Dave Young <dyoung@redhat.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-efi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Brijesh Singh <brijesh.singh@amd.com>, Peter Zijlstra <peterz@infradead.org>, Paolo Bonzini <pbonzini@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, linux-doc@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, Wenkuan Wang <Wenkuan.Wang@windriver.com>, Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, Larry Woodman <lwoodman@redhat.com>, kvm@vger.kernel.org, linux-mm@kvack.org, Ingo Molnar <mingo@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Borislav Petkov <bp@suse.de>, "Michael S. Tsirkin" <mst@redhat.com>, Radim =?UTF-8?Q?Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
-Message-ID: <20190203134508.TSx1Nlul_6reAdqxnh0Iy9K4Dr5xrt2Fs2lVW7WG3Uk@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190203164902.P1JYwzC6T_qJZeahIET1PL8wXYv9cYQItj74vPJnk7g@z>
 
-3.16.63-rc1 review patch.  If anyone has any objections, please let me know.
+OK, next step: b50f42f0fe12965ead395c76bcb6a14f00cdf65b (powerpc/dma: 
+use the dma_direct mapping routines)
 
-------------------
+git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
 
-From: Tom Lendacky <thomas.lendacky@amd.com>
+git checkout b50f42f0fe12965ead395c76bcb6a14f00cdf65b
 
-commit fd7e315988b784509ba3f1b42f539bd0b1fca9bb upstream.
+Results: The X1000 and X5000 boot but unfortunately the P.A. Semi 
+Ethernet doesn't work.
 
-Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
-use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
-duplicating the code.
+-- Christian
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Cc: Alexander Potapenko <glider@google.com>
-Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brijesh Singh <brijesh.singh@amd.com>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Larry Woodman <lwoodman@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Michael S. Tsirkin <mst@redhat.com>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Radim Krčmář <rkrcmar@redhat.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Toshimitsu Kani <toshi.kani@hpe.com>
-Cc: kasan-dev@googlegroups.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-efi@vger.kernel.org
-Cc: linux-mm@kvack.org
-Link: http://lkml.kernel.org/r/e61eb533a6d0aac941db2723d8aa63ef6b882dee.1500319216.git.thomas.lendacky@amd.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-[Backported to 4.9 stable by AK, suggested by Michael Hocko]
-Signed-off-by: Andi Kleen <ak@linux.intel.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Signed-off-by: Wenkuan Wang <Wenkuan.Wang@windriver.com>
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
- arch/x86/include/asm/pgtable.h | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
 
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -166,6 +166,11 @@ static inline unsigned long pud_pfn(pud_
- 	return (pfn & pud_pfn_mask(pud)) >> PAGE_SHIFT;
- }
- 
-+static inline unsigned long pgd_pfn(pgd_t pgd)
-+{
-+	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
-+}
-+
- #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
- 
- static inline int pmd_large(pmd_t pte)
-@@ -591,8 +596,7 @@ static inline unsigned long pmd_page_vad
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pmd_page(pmd)		\
--	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
-+#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
- 
- /*
-  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
-@@ -665,8 +669,7 @@ static inline unsigned long pud_page_vad
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pud_page(pud)		\
--	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
-+#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
- 
- /* Find an entry in the second-level page table.. */
- static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
-@@ -706,7 +709,7 @@ static inline unsigned long pgd_page_vad
-  * Currently stuck as a macro due to indirect forward reference to
-  * linux/mmzone.h's __section_mem_map_addr() definition:
-  */
--#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
-+#define pgd_page(pgd)		pfn_to_page(pgd_pfn(pgd))
- 
- /* to find an entry in a page-table-directory. */
- static inline unsigned long pud_index(unsigned long address)
+On 01 February 2019 at 5:54PM, Christian Zigotzky wrote:
+> Hi Christoph,
+>
+> I will try it at the weekend.
+>
+> Thanks,
+> Christian
+>
+> Sent from my iPhone
+>
+>> On 1. Feb 2019, at 09:04, Christoph Hellwig <hch@lst.de> wrote:
+>>
+>>> On Thu, Jan 31, 2019 at 01:48:26PM +0100, Christian Zigotzky wrote:
+>>> Hi Christoph,
+>>>
+>>> I compiled kernels for the X5000 and X1000 from your branch 'powerpc-dma.6'
+>>> today.
+>>>
+>>> Gitweb:
+>>> http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6
+>>>
+>>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>>
+>>> The X1000 and X5000 boot but unfortunately the P.A. Semi Ethernet doesn't
+>>> work.
+>> Oh.  Can you try with just the next one and then two patches applied
+>> over the working setup?  That is first:
+>>
+>> http://git.infradead.org/users/hch/misc.git/commitdiff/b50f42f0fe12965ead395c76bcb6a14f00cdf65b
+>>
+>> then also with:
+>>
+>> http://git.infradead.org/users/hch/misc.git/commitdiff/21fe52470a483afbb1726741118abef8602dde4d
