@@ -1,57 +1,39 @@
-From: Oliver Hartkopp <socketcan@hartkopp.net>
-Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and
- SO_SNDTIMEO_NEW
-Date: Sat, 2 Feb 2019 18:15:41 +0100
-Message-ID: <0fad3f4d-4c0e-d9f2-1af0-7890d40c19c0@hartkopp.net>
-References: <20190202153454.7121-1-deepa.kernel@gmail.com>
- <20190202153454.7121-13-deepa.kernel@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20190202153454.7121-13-deepa.kernel@gmail.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>, davem@davemloft.net, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, netdev@vger.kernel.org, deller@gmx.de, linux-mips@vger.kernel.org, ralf@linux-mips.org, cluster-devel@redhat.com, ccaulfie@redhat.com, paulus@samba.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, rth@twiddle.net
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] Rename include/{uapi => }/asm-generic/shmparam.h really
+Date: Sun,  3 Feb 2019 10:44:37 +0900
+Message-ID: <1549158277-24558-1-git-send-email-yamada.masahiro@socionext.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgYWxsLAoKT24gMDIuMDIuMTkgMTY6MzQsIERlZXBhIERpbmFtYW5pIHdyb3RlOgo+IEFkZCBu
-ZXcgc29ja2V0IHRpbWVvdXQgb3B0aW9ucyB0aGF0IGFyZSB5MjAzOCBzYWZlLgooLi4pCj4gCj4g
-ZGlmZiAtLWdpdCBhL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaCBiL2FyY2gv
-YWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+IGluZGV4IDk4MjZkMWRiNzFkMC4uMGQw
-ZmRkYjdlNzM4IDEwMDY0NAo+IC0tLSBhL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2Nr
-ZXQuaAo+ICsrKyBiL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9zb2NrZXQuaAo+IEBAIC0x
-MTksMTkgKzExOSwyNSBAQAo+ICAgI2RlZmluZSBTT19USU1FU1RBTVBOU19ORVcgICAgICA2NAo+
-ICAgI2RlZmluZSBTT19USU1FU1RBTVBJTkdfTkVXICAgICA2NQo+ICAgCj4gLSNpZiAhZGVmaW5l
-ZChfX0tFUk5FTF9fKQo+ICsjZGVmaW5lIFNPX1JDVlRJTUVPX05FVyAgICAgICAgIDY2Cj4gKyNk
-ZWZpbmUgU09fU05EVElNRU9fTkVXICAgICAgICAgNjcKPiAgIAo+IC0jZGVmaW5lCVNPX1JDVlRJ
-TUVPIFNPX1JDVlRJTUVPX09MRAo+IC0jZGVmaW5lCVNPX1NORFRJTUVPIFNPX1NORFRJTUVPX09M
-RAo+ICsjaWYgIWRlZmluZWQoX19LRVJORUxfXykKPiAgIAo+ICAgI2lmIF9fQklUU19QRVJfTE9O
-RyA9PSA2NAo+ICAgI2RlZmluZSBTT19USU1FU1RBTVAJCVNPX1RJTUVTVEFNUF9PTEQKPiAgICNk
-ZWZpbmUgU09fVElNRVNUQU1QTlMJCVNPX1RJTUVTVEFNUE5TX09MRAo+ICAgI2RlZmluZSBTT19U
-SU1FU1RBTVBJTkcgICAgICAgICBTT19USU1FU1RBTVBJTkdfT0xECj4gKwo+ICsjZGVmaW5lIFNP
-X1JDVlRJTUVPCQlTT19SQ1ZUSU1FT19PTEQKPiArI2RlZmluZSBTT19TTkRUSU1FTwkJU09fU05E
-VElNRU9fT0xECgpNYXliZSBJJ20gYSBiaXQgbGF0ZSBpbiB0aGlzIGRpc2N1c3Npb24gYXMgeW91
-IGFyZSBhbHJlYWR5IGluIHY1IC4uLgoKSSBjYW4gc2VlIHBhdGNoZXMgbWFraW5nIHRoZSB0cmFu
-c2l0aW9uIGluIGRpZmZlcmVudCBzdGVwcyB3aGVyZSBpdCAKbWlnaHQgYmUgaGVscGZ1bCB0byBu
-YW1lIHRoZW0gKl9PTEQgYW5kICpfTkVXIHRvIHVuZGVyc3RhbmQgdGhlIHBhdGNoZXMuCgpCdXQg
-aW4gdGhlIGVuZCB0aGUgbmFtaW5nIHN0YXlzIGluIHRoZSBrZXJuZWwgZm9yIGEgdmVyeSBsb25n
-IHRpbWUgYW5kIEkgCnJlbWVtYmVyIG15c2VsZiAoaW4gZWFybHkgeWVhcnMpIHRvIG5hbWUgdGhp
-bmdzICduZXcnLCAnbmV3MicsICduZXczJy4KCkluIGZhY3QgU09fVElNRVNUQU1QX09MRCBzaG91
-bGQgYmUgbmFtZWQgU09fVElNRVNUQU1QMzIgYW5kIApTT19USU1FU1RBTVBfTkVXIHNob3VsZCBi
-ZSBuYW1lZCBTT19USU1FU1RBTVA2NC4KCkVzcGVjaWFsbHkgYXMgaXQgdGVsbHMgeW91IHdoYXQg
-aXMgJ2luc2lkZScsIHRoZSBuYW1pbmcgb2YgdGhlc2UgbmV3IAppbnRyb2R1Y2VkIGNvbnN0YW50
-cyBzaG91bGQgYmUgcmVwbGFjZWQgd2l0aCAqMzIgYW5kICo2NCBuYW1lcy4KClRoZSBkb2N1bWVu
-dGF0aW9uIGFuZCB0aGUgb3RoZXIgY29tbWVudHMgc3RpbGwgZml0IHBlcmZlY3RseSB0aGVuLgoK
-UmVnYXJkcywKT2xpdmVyCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczov
-L2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+Commit 36c0f7f0f899 ("arch: unexport asm/shmparam.h for all
+architectures") is different from the patch I submitted.
+
+My patch is this:
+https://lore.kernel.org/lkml/1546904307-11124-1-git-send-email-yamada.masahiro@socionext.com/T/#u
+
+The file renaming part:
+
+  rename include/{uapi => }/asm-generic/shmparam.h (100%)
+
+was lost when it was picked up.
+
+I think it was an accident because Andrew did not say anything.
+
+Fixes: 36c0f7f0f899 ("arch: unexport asm/shmparam.h for all architectures")
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/{uapi => }/asm-generic/shmparam.h | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename include/{uapi => }/asm-generic/shmparam.h (100%)
+
+diff --git a/include/uapi/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
+similarity index 100%
+rename from include/uapi/asm-generic/shmparam.h
+rename to include/asm-generic/shmparam.h
+-- 
+2.7.4
