@@ -1,45 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47487 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726103AbfBDI0O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Feb 2019 03:26:14 -0500
-Date: Mon, 4 Feb 2019 09:26:09 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH] KVM: export <linux/kvm_para.h> and <asm/kvm_para.h>
- for all architectures
-Message-ID: <20190204082609.GB5953@lst.de>
-References: <1549252517-23834-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.51]:21496 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728216AbfBDMOB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Feb 2019 07:14:01 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+References: <20190128162256.GA11737@lst.de>
+ <D64B1ED5-46F9-43CF-9B21-FABB2807289B@xenosoft.de>
+ <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
+ <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de>
+ <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de>
+ <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de>
+ <20190201080456.GA15456@lst.de>
+ <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
+ <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de>
+ <20190204075616.GA5408@lst.de>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de>
+Date: Mon, 4 Feb 2019 13:13:54 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1549252517-23834-1-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <20190204075616.GA5408@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Paolo Bonzini <pbonzini@redhat.com>, Radim =?utf-8?B?S3Lvv73vv73vv71t77+977+977+977+977+977+9?= <rkrcmar@redhat.com>, kvm@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Christoffer Dall <christoffer.dall@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Hogan <jhogan@kernel.org>, Paul Mackerras <paulus@ozlabs.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, Christoph Hellwig <hch@lst.de>, Sam Ravnborg <sam@ravnborg.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190204121354.irDoiRVAnm028B1baTeCG86x36n7NozDlyLGj2qQowc@z>
 
-On Mon, Feb 04, 2019 at 12:55:16PM +0900, Masahiro Yamada wrote:
-> We have two ways to fix this inconsistency:
-> 
->  [A] export both <linux/kvm_para.h> and <asm/kvm_para.h> for all
->      architectures, irrespective of the KVM support
-> 
->  [B] Match the header export of <linux/kvm_para.h> and <asm/kvm_para.h>
->      to the KVM support
-> 
-> This commit adopts [A].
-> 
-> Remove 'no-export-headers' from include/uapi/linux/Kbuild to export
-> <linux/kvm_para.h> for all architectures.
-> 
-> Add 'mandatory-y' to include/uapi/asm-generic/Kbuild.asm to export
-> <asm/kvm_para.h> for all architectures. If arch does not have specific
-> implementation, a wrapper file to <asm-generic/kvm_para.h> is
-> automatically generated, and exported.
-> 
-> include/uapi/asm-generic/kvm_para.h is just a empty file. I cleaned
-> up empty <asm/kvm_para.h> stubs.
+On 04 February 2019 at 08:56AM, Christoph Hellwig wrote:
+> On Sun, Feb 03, 2019 at 05:49:02PM +0100, Christian Zigotzky wrote:
+>> OK, next step: b50f42f0fe12965ead395c76bcb6a14f00cdf65b (powerpc/dma: use
+>> the dma_direct mapping routines)
+>>
+>> git clone git://git.infradead.org/users/hch/misc.git -b powerpc-dma.6 a
+>>
+>> git checkout b50f42f0fe12965ead395c76bcb6a14f00cdf65b
+>>
+>> Results: The X1000 and X5000 boot but unfortunately the P.A. Semi Ethernet
+>> doesn't work.
+> Are there any interesting messages in the boot log?  Can you send me
+> the dmesg?
+>
+Here you are: http://www.xenosoft.de/dmesg_X1000_with_DMA_updates.txt
 
-Thanks, this look so much cleaner than what we had before!
-
-Acked-by: Christoph Hellwig <hch@lst.de>
+-- Christian
