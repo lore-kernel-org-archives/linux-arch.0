@@ -1,90 +1,64 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
 Subject: Re: [PATCH 3/3] locking/qspinlock: Introduce starvation avoidance
  into CNA
-Date: Tue, 5 Feb 2019 16:07:37 -0500
-Message-ID: <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
+Date: Tue, 5 Feb 2019 16:12:05 -0500
+Message-ID: <9ba407a6-8f16-876e-549a-d82176d2234e@redhat.com>
 References: <20190131030136.56999-1-alex.kogan@oracle.com>
  <20190131030136.56999-4-alex.kogan@oracle.com>
  <20190131100009.GB31534@hirez.programming.kicks-ass.net>
  <10672939-5C35-4DEF-AFDE-99E85E0F9C46@oracle.com>
  <20190205092256.GN17528@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190205092256.GN17528@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, Steven Sistare <steven.sistare@oracle.com>, longman@redhat.com, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
+ <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Kogan <alex.kogan@oracle.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-WyBSZXNlbmRpbmcgYWZ0ZXIgY29ycmVjdGluZyBhbiBpc3N1ZSB3aXRoIHRoZSBpbmNsdWRlZCBV
-UkwgYW5kIGNvcnJlY3RpbmcgYSB0eXBvIAppbiBXYWltYW7igJlzIG5hbWUg4oCUIHNvcnJ5IGFi
-b3V0IHRoYXQhIF0KCj4gT24gRmViIDUsIDIwMTksIGF0IDQ6MjIgQU0sIFBldGVyIFppamxzdHJh
-IDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6Cj4gCj4gT24gTW9uLCBGZWIgMDQsIDIwMTkg
-YXQgMTA6MzU6MDlQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90ZToKPj4gCj4+PiBPbiBKYW4gMzEs
-IDIwMTksIGF0IDU6MDAgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4g
-d3JvdGU6Cj4+PiAKPj4+IE9uIFdlZCwgSmFuIDMwLCAyMDE5IGF0IDEwOjAxOjM1UE0gLTA1MDAs
-IEFsZXggS29nYW4gd3JvdGU6Cj4+Pj4gQ2hvb3NlIHRoZSBuZXh0IGxvY2sgaG9sZGVyIGFtb25n
-IHNwaW5uaW5nIHRocmVhZHMgcnVubmluZyBvbiB0aGUgc2FtZQo+Pj4+IHNvY2tldCB3aXRoIGhp
-Z2ggcHJvYmFiaWxpdHkgcmF0aGVyIHRoYW4gYWx3YXlzLiBXaXRoIHNtYWxsIHByb2JhYmlsaXR5
-LAo+Pj4+IGhhbmQgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IHRocmVhZCBpbiB0aGUgc2Vjb25kYXJ5
-IHF1ZXVlIG9yLCBpZiB0aGF0Cj4+Pj4gcXVldWUgaXMgZW1wdHksIHRvIHRoZSBpbW1lZGlhdGUg
-c3VjY2Vzc29yIG9mIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyCj4+Pj4gaW4gdGhlIG1haW4gcXVl
-dWUuICBUaHVzLCBhc3N1bWluZyBubyBmYWlsdXJlcyB3aGlsZSB0aHJlYWRzIGhvbGQgdGhlCj4+
-Pj4gbG9jaywgZXZlcnkgdGhyZWFkIHdvdWxkIGJlIGFibGUgdG8gYWNxdWlyZSB0aGUgbG9jayBh
-ZnRlciBhIGJvdW5kZWQKPj4+PiBudW1iZXIgb2YgbG9jayB0cmFuc2l0aW9ucywgd2l0aCBoaWdo
-IHByb2JhYmlsaXR5Lgo+Pj4+IAo+Pj4+IE5vdGUgdGhhdCB3ZSBjb3VsZCBtYWtlIHRoZSBpbnRl
-ci1zb2NrZXQgdHJhbnNpdGlvbiBkZXRlcm1pbmlzdGljLAo+Pj4+IGJ5IHN0aWNraW5nIGEgY291
-bnRlciBvZiBpbnRyYS1zb2NrZXQgdHJhbnNpdGlvbnMgaW4gdGhlIGhlYWQgbm9kZQo+Pj4+IG9m
-IHRoZSBzZWNvbmRhcnkgcXVldWUuIEF0IHRoZSBoYW5kb2ZmIHRpbWUsIHdlIGNvdWxkIGluY3Jl
-bWVudAo+Pj4+IHRoZSBjb3VudGVyIGFuZCBjaGVjayBpZiBpdCBpcyBiZWxvdyBhIHRocmVzaG9s
-ZC4gVGhpcyBhZGRzIGFub3RoZXIKPj4+PiBmaWVsZCB0byBxdWV1ZSBub2RlcyBhbmQgbmVhcmx5
-LWNlcnRhaW4gbG9jYWwgY2FjaGUgbWlzcyB0byByZWFkIGFuZAo+Pj4+IHVwZGF0ZSB0aGlzIGNv
-dW50ZXIgZHVyaW5nIHRoZSBoYW5kb2ZmLiBXaGlsZSBzdGlsbCBiZWF0aW5nIHN0b2NrLAo+Pj4+
-IHRoaXMgdmFyaWFudCBhZGRzIGNlcnRhaW4gb3ZlcmhlYWQgb3ZlciB0aGUgcHJvYmFiaWxpc3Rp
-YyB2YXJpYW50Lgo+Pj4gCj4+PiAoYWxzbyBoZWF2aWx5IHN1ZmZlcnMgZnJvbSB0aGUgc29ja2V0
-ID09IG5vZGUgY29uZnVzaW9uKQo+Pj4gCj4+PiBIb3cgd291bGQgeW91IHN1Z2dlc3QgUlQgJ3R1
-bmVzJyB0aGlzPwo+Pj4gCj4+PiBSVCByZWxpZXMgb24gRklGTyBmYWlybmVzcyBvZiB0aGUgYmFz
-aWMgc3BpbmxvY2sgcHJpbWl0aXZlczsgeW91IGp1c3QKPj4+IGNvbXBsZXRlbHkgd3JlY2tlZCB0
-aGF0Lgo+PiAKPj4gVGhpcyBpcyB0cnVlIHRoYXQgQ05BIHRyYWRlcyBzb21lIGZhaXJuZXNzIGZv
-ciBzaG9ydGVyIGxvY2sgaGFuZG92ZXIKPj4gbGF0ZW5jeSwgbXVjaCBsaWtlIGFueSBvdGhlciBO
-VU1BLWF3YXJlIGxvY2suCj4+IAo+PiBDYW4geW91IGV4cGxhaW4sIGhvd2V2ZXIsIHdoYXQgZXhh
-Y3RseSBicmVha3MgaGVyZT8KPiAKPiBUaW1lbGluZXNzIGd1YXJhbnRlZXMuIEZJRk8tZmFpciBo
-YXMgd2VsbCBkZWZpbmVkIHRpbWUgYmVoYXZpb3VyOyB5b3UKPiBrbm93IGV4YWN0bHkgaG93IGxv
-bmcgeW91IGdldCB0byB3YWl0IGJlZm9yZSB5b3UgYWNxdWlyZSB0aGUgbG9jaywKPiBuYW1lbHkg
-aG93ZXZlciBtYW55IHdhaXRlcnMgYXJlIGluIGZyb250IG9mIHlvdSBtdWx0aXBsaWVkIGJ5IHRo
-ZSB3b3JzdAo+IGNhc2Ugd2FpdCB0aW1lLgpHb3QgaXQg4oCUIHRoYW5rcyBmb3IgdGhlIGNsYXJp
-ZmljYXRpb24hCgo+IAo+IERvaW5nIHRpbWUgYW5hbHlzaXMgb24gYSByYW5kb21pemVkIGFsZ29y
-aXRobSBpc24ndCBteSBpZGVhIG9mIGZ1bi4KPiAKPj4gSXQgc2VlbXMgdGhhdCBldmVuIHRvZGF5
-LCBxc3BpbmxvY2sgZG9lcyBub3Qgc3VwcG9ydCBSVF9QUkVFTVBULCBnaXZlbgo+PiB0aGF0IGl0
-IHVzZXMgcGVyLUNQVSBxdWV1ZSBub2Rlcy4KPiAKPiBJdCBkb2VzIHdvcmsgd2l0aCBSVCwgY29t
-bWl0Ogo+IAo+ICA3YWE1NGJlMjk3NjUgKCJsb2NraW5nL3FzcGlubG9jaywgeDg2OiBQcm92aWRl
-IGxpdmVuZXNzIGd1YXJhbnRlZSIpCj4gCj4gaXQgYSBkaXJlY3QgcmVzdWx0IG9mIFJUIG9ic2Vy
-dmluZyBmdW5uaWVzIHdpdGggaXQuIEkndmUgbm8gaWRlYSB3aHkgeW91Cj4gdGhpbmsgaXQgd291
-bGQgbm90IHdvcmsuCkp1c3QgdHJ5aW5nIHRvIGdldCB0byB0aGUgYm90dG9tIG9mIGl0IOKAlCBh
-cyBvZiB0b2RheSwgcXNwaW5sb2NrIGV4cGxpY2l0bHkgYXNzdW1lcwpubyBwcmVlbXB0aW9uIHdo
-aWxlIHdhaXRpbmcgZm9yIHRoZSBsb2NrLgoKSGVyZSBpcyB3aGF0IFdhaW1hbiBoYWQgdG8gc2F5
-IGFib3V0IHRoYXQgaW4gaHR0cHM6Ly9sd24ubmV0L0FydGljbGVzLzU2MTc3NToKCiJUaGUgaWRl
-YSBiZWhpbmQgdGhpcyBzcGlubG9jayBpbXBsZW1lbnRhdGlvbiBpcyB0aGUgZmFjdCB0aGF0IHNw
-aW5sb2NrcwphcmUgYWNxdWlyZWQgd2l0aCBwcmVlbXB0aW9uIGRpc2FibGVkLiBJbiBvdGhlciB3
-b3JkcywgdGhlIHByb2Nlc3MKd2lsbCBub3QgYmUgbWlncmF0ZWQgdG8gYW5vdGhlciBDUFUgd2hp
-bGUgaXQgaXMgdHJ5aW5nIHRvIGdldCBhCnNwaW5sb2NrLuKAnQoKVGhpcyB3YXMgYmFjayBpbiAy
-MDEzLCBidXQgdGhlIGNvZGUgc3RpbGwgdXNlcyBwZXItQ1BVIHF1ZXVlIG5vZGVzLAphbmQgQUZB
-SUNULCBwcmVlbXB0aW9uIHdpbGwgYnJlYWsgdGhpbmdzIHVwLgoKU28gd2hhdCB5b3UgYXJlIHNh
-eWluZyBpcyB0aGF0IFJUIHdvdWxkIGJlIGZpbmUgYXNzdW1pbmcgbm8gcHJlZW1wdGlvbiBpbgp0
-aGUgc3BpbmxvY2sgYXMgbG9uZyBhcyBpdCBwcm92aWRlcyBGSUZPPyBPciB0aGVyZSBpcyBzb21l
-IGZ1dHVyZSBjb2RlIHBhdGNoIAp0aGF0IHdpbGwgdGFrZSBjYXJlIG9mIHRoZSDigJxubyBwcmVl
-bXB0aW9u4oCdIGFzc3VtcHRpb24gKGJ1dCBzdGlsbCBhc3N1bWUgRklGTyk/CgpUaGFua3MsCuKA
-lCBBbGV4Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxp
-bnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFk
-ZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4
-LWFybS1rZXJuZWwK
+On 02/05/2019 04:07 PM, Alex Kogan wrote:
+>> Doing time analysis on a randomized algorithm isn't my idea of fun.
+>>
+>>> It seems that even today, qspinlock does not support RT_PREEMPT, given
+>>> that it uses per-CPU queue nodes.
+>> It does work with RT, commit:
+>>
+>>  7aa54be29765 ("locking/qspinlock, x86: Provide liveness guarantee")
+>>
+>> it a direct result of RT observing funnies with it. I've no idea why you
+>> think it would not work.
+> Just trying to get to the bottom of it — as of today, qspinlock explicitly assumes
+> no preemption while waiting for the lock.
+>
+> Here is what Waiman had to say about that in https://lwn.net/Articles/561775:
+>
+> "The idea behind this spinlock implementation is the fact that spinlocks
+> are acquired with preemption disabled. In other words, the process
+> will not be migrated to another CPU while it is trying to get a
+> spinlock.”
+>
+> This was back in 2013, but the code still uses per-CPU queue nodes,
+> and AFAICT, preemption will break things up.
+>
+> So what you are saying is that RT would be fine assuming no preemption in
+> the spinlock as long as it provides FIFO? Or there is some future code patch 
+> that will take care of the “no preemption” assumption (but still assume FIFO)?
+>
+> Thanks,
+> — Alex
+
+Some of the critical sections protected by spinlocks may have execution
+times that are much longer than desired. That is why they are converted
+to rt-mutex in the RT kernel. There is another class of spinlocks called
+raw spinlocks. They are the same as regular spinlocks in non RT-kernel,
+but remain spinlocks with no preemption allowed in RT-kernel as sleeping
+locks can't be used in atomic context. This is where the replacement of
+the current qspinlock code by your NUMA-aware qspinlock may screw up the
+timing guarantee that can be provided by the RT-kernel.
+
+Cheers,
+Longman
