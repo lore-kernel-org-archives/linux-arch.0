@@ -1,62 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2130.oracle.com ([141.146.126.79]:46396 "EHLO
-        aserp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725900AbfBEDpd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Feb 2019 22:45:33 -0500
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:54852 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725934AbfBEHeP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2019 02:34:15 -0500
+Subject: Re: [PATCH v7 03/28] x86/asm/suspend: use SYM_DATA for data
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-4-jslaby@suse.cz> <20190204201831.GK29639@zn.tnic>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <975ba79b-5a3d-b244-7d00-869b1da246b9@suse.cz>
+Date: Tue, 5 Feb 2019 08:34:09 +0100
+MIME-Version: 1.0
+In-Reply-To: <20190204201831.GK29639@zn.tnic>
 Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Subject: Re: [PATCH 3/3] locking/qspinlock: Introduce starvation avoidance
- into CNA
-From: Alex Kogan <alex.kogan@oracle.com>
-In-Reply-To: <20190131100009.GB31534@hirez.programming.kicks-ass.net>
-Date: Mon, 4 Feb 2019 22:35:09 -0500
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <10672939-5C35-4DEF-AFDE-99E85E0F9C46@oracle.com>
-References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131030136.56999-4-alex.kogan@oracle.com>
- <20190131100009.GB31534@hirez.programming.kicks-ass.net>
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20190205033509.91PMxpizv8zX-jPQdTDeN7BKvwch-CBlLFKt2W9Bn0A@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+Message-ID: <20190205073409.UZ2hu0f8JZk6WeVh2qHHtPZXHHl7vIZIsOY2-Dw4JLQ@z>
 
+On 04. 02. 19, 21:18, Borislav Petkov wrote:
+>> --- a/arch/x86/kernel/acpi/wakeup_64.S
+>> +++ b/arch/x86/kernel/acpi/wakeup_64.S
+>> @@ -133,4 +133,4 @@ saved_rbx:		.quad	0
+>>  saved_rip:		.quad	0
+>>  saved_rsp:		.quad	0
+>>  
+>> -ENTRY(saved_magic)	.quad	0
+>> +SYM_DATA(saved_magic,	.quad	0)
+> 
+> Ok, I like the proper ELF symbol typing with this: NOTYPE goes away.
+> 
+>  74408: ffffffff82021920     0 NOTYPE  GLOBAL DEFAULT   11 saved_magic
+> 
+> ->
+> 
+>  74366: ffffffff820218f0     8 OBJECT  GLOBAL DEFAULT   11 saved_magic
 
-> On Jan 31, 2019, at 5:00 AM, Peter Zijlstra <peterz@infradead.org> =
-wrote:
->=20
-> On Wed, Jan 30, 2019 at 10:01:35PM -0500, Alex Kogan wrote:
->> Choose the next lock holder among spinning threads running on the =
-same
->> socket with high probability rather than always. With small =
-probability,
->> hand the lock to the first thread in the secondary queue or, if that
->> queue is empty, to the immediate successor of the current lock holder
->> in the main queue.  Thus, assuming no failures while threads hold the
->> lock, every thread would be able to acquire the lock after a bounded
->> number of lock transitions, with high probability.
->>=20
->> Note that we could make the inter-socket transition deterministic,
->> by sticking a counter of intra-socket transitions in the head node
->> of the secondary queue. At the handoff time, we could increment
->> the counter and check if it is below a threshold. This adds another
->> field to queue nodes and nearly-certain local cache miss to read and
->> update this counter during the handoff. While still beating stock,
->> this variant adds certain overhead over the probabilistic variant.
->=20
-> (also heavily suffers from the socket =3D=3D node confusion)
->=20
-> How would you suggest RT 'tunes' this?
->=20
-> RT relies on FIFO fairness of the basic spinlock primitives; you just
-> completely wrecked that.
+I also suggest noticing the size 0 -> 8 change ;).
 
-This is true that CNA trades some fairness for shorter lock handover =
-latency, much like any other NUMA-aware lock.
-
-Can you explain, however, what exactly breaks here?
-It seems that even today, qspinlock does not support RT_PREEMPT, given =
-that it uses per-CPU queue nodes.
-
-Thank you,
-=E2=80=94 Alex
+thanks,
+-- 
+js
+suse labs
