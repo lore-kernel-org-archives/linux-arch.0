@@ -1,64 +1,90 @@
-From: Waiman Long <longman@redhat.com>
+From: Alex Kogan <alex.kogan@oracle.com>
 Subject: Re: [PATCH 3/3] locking/qspinlock: Introduce starvation avoidance
  into CNA
-Date: Tue, 5 Feb 2019 08:48:27 -0500
-Message-ID: <16095d28-d3e9-7394-d3c6-1bd24381173d@redhat.com>
+Date: Tue, 5 Feb 2019 16:07:37 -0500
+Message-ID: <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
 References: <20190131030136.56999-1-alex.kogan@oracle.com>
  <20190131030136.56999-4-alex.kogan@oracle.com>
  <20190131100009.GB31534@hirez.programming.kicks-ass.net>
  <10672939-5C35-4DEF-AFDE-99E85E0F9C46@oracle.com>
  <20190205092256.GN17528@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20190205092256.GN17528@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, Thomas Gleixner <tglx@linutronix.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, Steven Sistare <steven.sistare@oracle.com>, longman@redhat.com, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 02/05/2019 04:22 AM, Peter Zijlstra wrote:
-> On Mon, Feb 04, 2019 at 10:35:09PM -0500, Alex Kogan wrote:
->>> On Jan 31, 2019, at 5:00 AM, Peter Zijlstra <peterz@infradead.org> wrote:
->>>
->>> On Wed, Jan 30, 2019 at 10:01:35PM -0500, Alex Kogan wrote:
->>>> Choose the next lock holder among spinning threads running on the same
->>>> socket with high probability rather than always. With small probability,
->>>> hand the lock to the first thread in the secondary queue or, if that
->>>> queue is empty, to the immediate successor of the current lock holder
->>>> in the main queue.  Thus, assuming no failures while threads hold the
->>>> lock, every thread would be able to acquire the lock after a bounded
->>>> number of lock transitions, with high probability.
->>>>
->>>> Note that we could make the inter-socket transition deterministic,
->>>> by sticking a counter of intra-socket transitions in the head node
->>>> of the secondary queue. At the handoff time, we could increment
->>>> the counter and check if it is below a threshold. This adds another
->>>> field to queue nodes and nearly-certain local cache miss to read and
->>>> update this counter during the handoff. While still beating stock,
->>>> this variant adds certain overhead over the probabilistic variant.
->>> (also heavily suffers from the socket == node confusion)
->>>
->>> How would you suggest RT 'tunes' this?
->>>
->>> RT relies on FIFO fairness of the basic spinlock primitives; you just
->>> completely wrecked that.
->> This is true that CNA trades some fairness for shorter lock handover
->> latency, much like any other NUMA-aware lock.
->>
->> Can you explain, however, what exactly breaks here?
-> Timeliness guarantees. FIFO-fair has well defined time behaviour; you
-> know exactly how long you get to wait before you acquire the lock,
-> namely however many waiters are in front of you multiplied by the worst
-> case wait time.
->
-> Doing time analysis on a randomized algorithm isn't my idea of fun.
-
-RT doesn't work well with NUMA qspinlock is another reason why I want it
-to be a separate slow path. We will disable it  on a RT kernel where
-guaranteed low latency is a must and throughput isn't as important.
-
-Cheers,
-Longman
+WyBSZXNlbmRpbmcgYWZ0ZXIgY29ycmVjdGluZyBhbiBpc3N1ZSB3aXRoIHRoZSBpbmNsdWRlZCBV
+UkwgYW5kIGNvcnJlY3RpbmcgYSB0eXBvIAppbiBXYWltYW7igJlzIG5hbWUg4oCUIHNvcnJ5IGFi
+b3V0IHRoYXQhIF0KCj4gT24gRmViIDUsIDIwMTksIGF0IDQ6MjIgQU0sIFBldGVyIFppamxzdHJh
+IDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6Cj4gCj4gT24gTW9uLCBGZWIgMDQsIDIwMTkg
+YXQgMTA6MzU6MDlQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90ZToKPj4gCj4+PiBPbiBKYW4gMzEs
+IDIwMTksIGF0IDU6MDAgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4g
+d3JvdGU6Cj4+PiAKPj4+IE9uIFdlZCwgSmFuIDMwLCAyMDE5IGF0IDEwOjAxOjM1UE0gLTA1MDAs
+IEFsZXggS29nYW4gd3JvdGU6Cj4+Pj4gQ2hvb3NlIHRoZSBuZXh0IGxvY2sgaG9sZGVyIGFtb25n
+IHNwaW5uaW5nIHRocmVhZHMgcnVubmluZyBvbiB0aGUgc2FtZQo+Pj4+IHNvY2tldCB3aXRoIGhp
+Z2ggcHJvYmFiaWxpdHkgcmF0aGVyIHRoYW4gYWx3YXlzLiBXaXRoIHNtYWxsIHByb2JhYmlsaXR5
+LAo+Pj4+IGhhbmQgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IHRocmVhZCBpbiB0aGUgc2Vjb25kYXJ5
+IHF1ZXVlIG9yLCBpZiB0aGF0Cj4+Pj4gcXVldWUgaXMgZW1wdHksIHRvIHRoZSBpbW1lZGlhdGUg
+c3VjY2Vzc29yIG9mIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyCj4+Pj4gaW4gdGhlIG1haW4gcXVl
+dWUuICBUaHVzLCBhc3N1bWluZyBubyBmYWlsdXJlcyB3aGlsZSB0aHJlYWRzIGhvbGQgdGhlCj4+
+Pj4gbG9jaywgZXZlcnkgdGhyZWFkIHdvdWxkIGJlIGFibGUgdG8gYWNxdWlyZSB0aGUgbG9jayBh
+ZnRlciBhIGJvdW5kZWQKPj4+PiBudW1iZXIgb2YgbG9jayB0cmFuc2l0aW9ucywgd2l0aCBoaWdo
+IHByb2JhYmlsaXR5Lgo+Pj4+IAo+Pj4+IE5vdGUgdGhhdCB3ZSBjb3VsZCBtYWtlIHRoZSBpbnRl
+ci1zb2NrZXQgdHJhbnNpdGlvbiBkZXRlcm1pbmlzdGljLAo+Pj4+IGJ5IHN0aWNraW5nIGEgY291
+bnRlciBvZiBpbnRyYS1zb2NrZXQgdHJhbnNpdGlvbnMgaW4gdGhlIGhlYWQgbm9kZQo+Pj4+IG9m
+IHRoZSBzZWNvbmRhcnkgcXVldWUuIEF0IHRoZSBoYW5kb2ZmIHRpbWUsIHdlIGNvdWxkIGluY3Jl
+bWVudAo+Pj4+IHRoZSBjb3VudGVyIGFuZCBjaGVjayBpZiBpdCBpcyBiZWxvdyBhIHRocmVzaG9s
+ZC4gVGhpcyBhZGRzIGFub3RoZXIKPj4+PiBmaWVsZCB0byBxdWV1ZSBub2RlcyBhbmQgbmVhcmx5
+LWNlcnRhaW4gbG9jYWwgY2FjaGUgbWlzcyB0byByZWFkIGFuZAo+Pj4+IHVwZGF0ZSB0aGlzIGNv
+dW50ZXIgZHVyaW5nIHRoZSBoYW5kb2ZmLiBXaGlsZSBzdGlsbCBiZWF0aW5nIHN0b2NrLAo+Pj4+
+IHRoaXMgdmFyaWFudCBhZGRzIGNlcnRhaW4gb3ZlcmhlYWQgb3ZlciB0aGUgcHJvYmFiaWxpc3Rp
+YyB2YXJpYW50Lgo+Pj4gCj4+PiAoYWxzbyBoZWF2aWx5IHN1ZmZlcnMgZnJvbSB0aGUgc29ja2V0
+ID09IG5vZGUgY29uZnVzaW9uKQo+Pj4gCj4+PiBIb3cgd291bGQgeW91IHN1Z2dlc3QgUlQgJ3R1
+bmVzJyB0aGlzPwo+Pj4gCj4+PiBSVCByZWxpZXMgb24gRklGTyBmYWlybmVzcyBvZiB0aGUgYmFz
+aWMgc3BpbmxvY2sgcHJpbWl0aXZlczsgeW91IGp1c3QKPj4+IGNvbXBsZXRlbHkgd3JlY2tlZCB0
+aGF0Lgo+PiAKPj4gVGhpcyBpcyB0cnVlIHRoYXQgQ05BIHRyYWRlcyBzb21lIGZhaXJuZXNzIGZv
+ciBzaG9ydGVyIGxvY2sgaGFuZG92ZXIKPj4gbGF0ZW5jeSwgbXVjaCBsaWtlIGFueSBvdGhlciBO
+VU1BLWF3YXJlIGxvY2suCj4+IAo+PiBDYW4geW91IGV4cGxhaW4sIGhvd2V2ZXIsIHdoYXQgZXhh
+Y3RseSBicmVha3MgaGVyZT8KPiAKPiBUaW1lbGluZXNzIGd1YXJhbnRlZXMuIEZJRk8tZmFpciBo
+YXMgd2VsbCBkZWZpbmVkIHRpbWUgYmVoYXZpb3VyOyB5b3UKPiBrbm93IGV4YWN0bHkgaG93IGxv
+bmcgeW91IGdldCB0byB3YWl0IGJlZm9yZSB5b3UgYWNxdWlyZSB0aGUgbG9jaywKPiBuYW1lbHkg
+aG93ZXZlciBtYW55IHdhaXRlcnMgYXJlIGluIGZyb250IG9mIHlvdSBtdWx0aXBsaWVkIGJ5IHRo
+ZSB3b3JzdAo+IGNhc2Ugd2FpdCB0aW1lLgpHb3QgaXQg4oCUIHRoYW5rcyBmb3IgdGhlIGNsYXJp
+ZmljYXRpb24hCgo+IAo+IERvaW5nIHRpbWUgYW5hbHlzaXMgb24gYSByYW5kb21pemVkIGFsZ29y
+aXRobSBpc24ndCBteSBpZGVhIG9mIGZ1bi4KPiAKPj4gSXQgc2VlbXMgdGhhdCBldmVuIHRvZGF5
+LCBxc3BpbmxvY2sgZG9lcyBub3Qgc3VwcG9ydCBSVF9QUkVFTVBULCBnaXZlbgo+PiB0aGF0IGl0
+IHVzZXMgcGVyLUNQVSBxdWV1ZSBub2Rlcy4KPiAKPiBJdCBkb2VzIHdvcmsgd2l0aCBSVCwgY29t
+bWl0Ogo+IAo+ICA3YWE1NGJlMjk3NjUgKCJsb2NraW5nL3FzcGlubG9jaywgeDg2OiBQcm92aWRl
+IGxpdmVuZXNzIGd1YXJhbnRlZSIpCj4gCj4gaXQgYSBkaXJlY3QgcmVzdWx0IG9mIFJUIG9ic2Vy
+dmluZyBmdW5uaWVzIHdpdGggaXQuIEkndmUgbm8gaWRlYSB3aHkgeW91Cj4gdGhpbmsgaXQgd291
+bGQgbm90IHdvcmsuCkp1c3QgdHJ5aW5nIHRvIGdldCB0byB0aGUgYm90dG9tIG9mIGl0IOKAlCBh
+cyBvZiB0b2RheSwgcXNwaW5sb2NrIGV4cGxpY2l0bHkgYXNzdW1lcwpubyBwcmVlbXB0aW9uIHdo
+aWxlIHdhaXRpbmcgZm9yIHRoZSBsb2NrLgoKSGVyZSBpcyB3aGF0IFdhaW1hbiBoYWQgdG8gc2F5
+IGFib3V0IHRoYXQgaW4gaHR0cHM6Ly9sd24ubmV0L0FydGljbGVzLzU2MTc3NToKCiJUaGUgaWRl
+YSBiZWhpbmQgdGhpcyBzcGlubG9jayBpbXBsZW1lbnRhdGlvbiBpcyB0aGUgZmFjdCB0aGF0IHNw
+aW5sb2NrcwphcmUgYWNxdWlyZWQgd2l0aCBwcmVlbXB0aW9uIGRpc2FibGVkLiBJbiBvdGhlciB3
+b3JkcywgdGhlIHByb2Nlc3MKd2lsbCBub3QgYmUgbWlncmF0ZWQgdG8gYW5vdGhlciBDUFUgd2hp
+bGUgaXQgaXMgdHJ5aW5nIHRvIGdldCBhCnNwaW5sb2NrLuKAnQoKVGhpcyB3YXMgYmFjayBpbiAy
+MDEzLCBidXQgdGhlIGNvZGUgc3RpbGwgdXNlcyBwZXItQ1BVIHF1ZXVlIG5vZGVzLAphbmQgQUZB
+SUNULCBwcmVlbXB0aW9uIHdpbGwgYnJlYWsgdGhpbmdzIHVwLgoKU28gd2hhdCB5b3UgYXJlIHNh
+eWluZyBpcyB0aGF0IFJUIHdvdWxkIGJlIGZpbmUgYXNzdW1pbmcgbm8gcHJlZW1wdGlvbiBpbgp0
+aGUgc3BpbmxvY2sgYXMgbG9uZyBhcyBpdCBwcm92aWRlcyBGSUZPPyBPciB0aGVyZSBpcyBzb21l
+IGZ1dHVyZSBjb2RlIHBhdGNoIAp0aGF0IHdpbGwgdGFrZSBjYXJlIG9mIHRoZSDigJxubyBwcmVl
+bXB0aW9u4oCdIGFzc3VtcHRpb24gKGJ1dCBzdGlsbCBhc3N1bWUgRklGTyk/CgpUaGFua3MsCuKA
+lCBBbGV4Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxp
+bnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFk
+ZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4
+LWFybS1rZXJuZWwK
