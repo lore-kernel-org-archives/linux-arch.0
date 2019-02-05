@@ -1,58 +1,41 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH 3/3] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Mon, 4 Feb 2019 22:35:09 -0500
-Message-ID: <10672939-5C35-4DEF-AFDE-99E85E0F9C46@oracle.com>
-References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131030136.56999-4-alex.kogan@oracle.com>
- <20190131100009.GB31534@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190131100009.GB31534@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, steven.sistare@oracle.com, longman@redhat.com, Thomas Gleixner <tglx@linutronix.de>, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [PATCH v7 03/28] x86/asm/suspend: use SYM_DATA for data
+Date: Tue, 5 Feb 2019 08:34:09 +0100
+Message-ID: <975ba79b-5a3d-b244-7d00-869b1da246b9@suse.cz>
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-4-jslaby@suse.cz> <20190204201831.GK29639@zn.tnic>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190204201831.GK29639@zn.tnic>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Cj4gT24gSmFuIDMxLCAyMDE5LCBhdCA1OjAwIEFNLCBQZXRlciBaaWpsc3RyYSA8cGV0ZXJ6QGlu
-ZnJhZGVhZC5vcmc+IHdyb3RlOgo+IAo+IE9uIFdlZCwgSmFuIDMwLCAyMDE5IGF0IDEwOjAxOjM1
-UE0gLTA1MDAsIEFsZXggS29nYW4gd3JvdGU6Cj4+IENob29zZSB0aGUgbmV4dCBsb2NrIGhvbGRl
-ciBhbW9uZyBzcGlubmluZyB0aHJlYWRzIHJ1bm5pbmcgb24gdGhlIHNhbWUKPj4gc29ja2V0IHdp
-dGggaGlnaCBwcm9iYWJpbGl0eSByYXRoZXIgdGhhbiBhbHdheXMuIFdpdGggc21hbGwgcHJvYmFi
-aWxpdHksCj4+IGhhbmQgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IHRocmVhZCBpbiB0aGUgc2Vjb25k
-YXJ5IHF1ZXVlIG9yLCBpZiB0aGF0Cj4+IHF1ZXVlIGlzIGVtcHR5LCB0byB0aGUgaW1tZWRpYXRl
-IHN1Y2Nlc3NvciBvZiB0aGUgY3VycmVudCBsb2NrIGhvbGRlcgo+PiBpbiB0aGUgbWFpbiBxdWV1
-ZS4gIFRodXMsIGFzc3VtaW5nIG5vIGZhaWx1cmVzIHdoaWxlIHRocmVhZHMgaG9sZCB0aGUKPj4g
-bG9jaywgZXZlcnkgdGhyZWFkIHdvdWxkIGJlIGFibGUgdG8gYWNxdWlyZSB0aGUgbG9jayBhZnRl
-ciBhIGJvdW5kZWQKPj4gbnVtYmVyIG9mIGxvY2sgdHJhbnNpdGlvbnMsIHdpdGggaGlnaCBwcm9i
-YWJpbGl0eS4KPj4gCj4+IE5vdGUgdGhhdCB3ZSBjb3VsZCBtYWtlIHRoZSBpbnRlci1zb2NrZXQg
-dHJhbnNpdGlvbiBkZXRlcm1pbmlzdGljLAo+PiBieSBzdGlja2luZyBhIGNvdW50ZXIgb2YgaW50
-cmEtc29ja2V0IHRyYW5zaXRpb25zIGluIHRoZSBoZWFkIG5vZGUKPj4gb2YgdGhlIHNlY29uZGFy
-eSBxdWV1ZS4gQXQgdGhlIGhhbmRvZmYgdGltZSwgd2UgY291bGQgaW5jcmVtZW50Cj4+IHRoZSBj
-b3VudGVyIGFuZCBjaGVjayBpZiBpdCBpcyBiZWxvdyBhIHRocmVzaG9sZC4gVGhpcyBhZGRzIGFu
-b3RoZXIKPj4gZmllbGQgdG8gcXVldWUgbm9kZXMgYW5kIG5lYXJseS1jZXJ0YWluIGxvY2FsIGNh
-Y2hlIG1pc3MgdG8gcmVhZCBhbmQKPj4gdXBkYXRlIHRoaXMgY291bnRlciBkdXJpbmcgdGhlIGhh
-bmRvZmYuIFdoaWxlIHN0aWxsIGJlYXRpbmcgc3RvY2ssCj4+IHRoaXMgdmFyaWFudCBhZGRzIGNl
-cnRhaW4gb3ZlcmhlYWQgb3ZlciB0aGUgcHJvYmFiaWxpc3RpYyB2YXJpYW50Lgo+IAo+IChhbHNv
-IGhlYXZpbHkgc3VmZmVycyBmcm9tIHRoZSBzb2NrZXQgPT0gbm9kZSBjb25mdXNpb24pCj4gCj4g
-SG93IHdvdWxkIHlvdSBzdWdnZXN0IFJUICd0dW5lcycgdGhpcz8KPiAKPiBSVCByZWxpZXMgb24g
-RklGTyBmYWlybmVzcyBvZiB0aGUgYmFzaWMgc3BpbmxvY2sgcHJpbWl0aXZlczsgeW91IGp1c3QK
-PiBjb21wbGV0ZWx5IHdyZWNrZWQgdGhhdC4KClRoaXMgaXMgdHJ1ZSB0aGF0IENOQSB0cmFkZXMg
-c29tZSBmYWlybmVzcyBmb3Igc2hvcnRlciBsb2NrIGhhbmRvdmVyIGxhdGVuY3ksIG11Y2ggbGlr
-ZSBhbnkgb3RoZXIgTlVNQS1hd2FyZSBsb2NrLgoKQ2FuIHlvdSBleHBsYWluLCBob3dldmVyLCB3
-aGF0IGV4YWN0bHkgYnJlYWtzIGhlcmU/Ckl0IHNlZW1zIHRoYXQgZXZlbiB0b2RheSwgcXNwaW5s
-b2NrIGRvZXMgbm90IHN1cHBvcnQgUlRfUFJFRU1QVCwgZ2l2ZW4gdGhhdCBpdCB1c2VzIHBlci1D
-UFUgcXVldWUgbm9kZXMuCgpUaGFuayB5b3UsCuKAlCBBbGV4CgoKCgpfX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcg
-bGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmlu
-ZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
+On 04. 02. 19, 21:18, Borislav Petkov wrote:
+>> --- a/arch/x86/kernel/acpi/wakeup_64.S
+>> +++ b/arch/x86/kernel/acpi/wakeup_64.S
+>> @@ -133,4 +133,4 @@ saved_rbx:		.quad	0
+>>  saved_rip:		.quad	0
+>>  saved_rsp:		.quad	0
+>>  
+>> -ENTRY(saved_magic)	.quad	0
+>> +SYM_DATA(saved_magic,	.quad	0)
+> 
+> Ok, I like the proper ELF symbol typing with this: NOTYPE goes away.
+> 
+>  74408: ffffffff82021920     0 NOTYPE  GLOBAL DEFAULT   11 saved_magic
+> 
+> ->
+> 
+>  74366: ffffffff820218f0     8 OBJECT  GLOBAL DEFAULT   11 saved_magic
+
+I also suggest noticing the size 0 -> 8 change ;).
+
+thanks,
+-- 
+js
+suse labs
