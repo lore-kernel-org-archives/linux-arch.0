@@ -1,41 +1,42 @@
-From: Jiri Slaby <jslaby@suse.cz>
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH v7 03/28] x86/asm/suspend: use SYM_DATA for data
-Date: Tue, 5 Feb 2019 08:34:09 +0100
-Message-ID: <975ba79b-5a3d-b244-7d00-869b1da246b9@suse.cz>
+Date: Tue, 5 Feb 2019 09:07:12 +0100
+Message-ID: <20190205080712.GF21801@zn.tnic>
 References: <20190130124711.12463-1-jslaby@suse.cz>
- <20190130124711.12463-4-jslaby@suse.cz> <20190204201831.GK29639@zn.tnic>
+ <20190130124711.12463-4-jslaby@suse.cz>
+ <20190204201831.GK29639@zn.tnic>
+ <975ba79b-5a3d-b244-7d00-869b1da246b9@suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190204201831.GK29639@zn.tnic>
-Content-Language: en-GB
+Content-Disposition: inline
+In-Reply-To: <975ba79b-5a3d-b244-7d00-869b1da246b9@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
+To: Jiri Slaby <jslaby@suse.cz>
 Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 04. 02. 19, 21:18, Borislav Petkov wrote:
->> --- a/arch/x86/kernel/acpi/wakeup_64.S
->> +++ b/arch/x86/kernel/acpi/wakeup_64.S
->> @@ -133,4 +133,4 @@ saved_rbx:		.quad	0
->>  saved_rip:		.quad	0
->>  saved_rsp:		.quad	0
->>  
->> -ENTRY(saved_magic)	.quad	0
->> +SYM_DATA(saved_magic,	.quad	0)
-> 
-> Ok, I like the proper ELF symbol typing with this: NOTYPE goes away.
-> 
->  74408: ffffffff82021920     0 NOTYPE  GLOBAL DEFAULT   11 saved_magic
-> 
-> ->
-> 
->  74366: ffffffff820218f0     8 OBJECT  GLOBAL DEFAULT   11 saved_magic
+On Tue, Feb 05, 2019 at 08:34:09AM +0100, Jiri Slaby wrote:
+> I also suggest noticing the size 0 -> 8 change ;).
 
-I also suggest noticing the size 0 -> 8 change ;).
+Ha!
 
-thanks,
+And one would think that binutils would've seen the ".quad 0" in the
+previous definition and do a proper size but that wouldn't have worked
+most likely, because before it was a simple label with alignment:
+
+.globl saved_magic ; .p2align 4, 0x90 ; saved_magic: .quad 0
+
+which didn't have a size probably because it didn't have an associated
+type (or an implicit default type or so, no clue how binutils handles
+labels).
+
+VS now:
+
+.globl saved_magic ; ; saved_magic: ; .quad 0 ; .type saved_magic STT_OBJECT ; .size saved_magic, .-saved_magic
+
 -- 
-js
-suse labs
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
