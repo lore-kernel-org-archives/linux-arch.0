@@ -1,94 +1,64 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH net-next v5 11/12] socket: Rename SO_RCVTIMEO/ SO_SNDTIMEO with _OLD suffixes
-Date: Wed, 06 Feb 2019 22:58:18 +1100
-Message-ID: <87o97pku1x.fsf@concordia.ellerman.id.au>
-References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-12-deepa.kernel@gmail.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Wed, 6 Feb 2019 14:45:34 +0100
+Message-ID: <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de>
+References: <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
+ <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de>
+ <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de>
+ <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de>
+ <20190201080456.GA15456@lst.de>
+ <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
+ <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de>
+ <20190204075616.GA5408@lst.de>
+ <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de>
+ <20190204123852.GA10428@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190202153454.7121-12-deepa.kernel@gmail.com>
+In-Reply-To: <20190204123852.GA10428@lst.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: Deepa Dinamani <deepa.kernel@gmail.com>, davem@davemloft.net, linux-kernel@vger.kernel.org
-Cc: netdev@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, ccaulfie@redhat.com, deller@gmx.de, paulus@samba.org, ralf@linux-mips.org, rth@twiddle.net, cluster-devel@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, Olof Johansson <olof@lixom.net>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-Deepa Dinamani <deepa.kernel@gmail.com> writes:
-
-> SO_RCVTIMEO and SO_SNDTIMEO socket options use struct timeval
-> as the time format. struct timeval is not y2038 safe.
-> The subsequent patches in the series add support for new socket
-> timeout options with _NEW suffix that will use y2038 safe
-> data structures. Although the existing struct timeval layout
-> is sufficiently wide to represent timeouts, because of the way
-> libc will interpret time_t based on user defined flag, these
-> new flags provide a way of having a structure that is the same
-> for all architectures consistently.
-> Rename the existing options with _OLD suffix forms so that the
-> right option is enabled for userspace applications according
-> to the architecture and time_t definition of libc.
+On 04 February 2019 at 01:38PM, Christoph Hellwig wrote:
 >
-> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-> Acked-by: Willem de Bruijn <willemb@google.com>
-> Cc: ccaulfie@redhat.com
-> Cc: deller@gmx.de
-> Cc: paulus@samba.org
-> Cc: ralf@linux-mips.org
-> Cc: rth@twiddle.net
-> Cc: cluster-devel@redhat.com
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mips@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> ---
->  arch/alpha/include/uapi/asm/socket.h   | 7 +++++--
->  arch/mips/include/uapi/asm/socket.h    | 6 ++++--
->  arch/parisc/include/uapi/asm/socket.h  | 6 ++++--
->  arch/powerpc/include/uapi/asm/socket.h | 4 ++--
+> It seems like the pasemi driver fails to set a DMA mask, but seems
+> otherwise 64-bit DMA capable.  The old PPC code didn't verify the
+> dma mask during the map operations, but the x86-derived generic
+> code does.
+>
+> This patch just sets the DMA mask.
+>
+> Olof: does this look ok?  The DMA device seems to not directly
+> bound by the net driver, but not really used by anything else in tree
+> either..
+>
+> diff --git a/drivers/net/ethernet/pasemi/pasemi_mac.c b/drivers/net/ethernet/pasemi/pasemi_mac.c
+> index d21041554507..d98bd447c536 100644
+> --- a/drivers/net/ethernet/pasemi/pasemi_mac.c
+> +++ b/drivers/net/ethernet/pasemi/pasemi_mac.c
+> @@ -1716,6 +1716,7 @@ pasemi_mac_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+>   		err = -ENODEV;
+>   		goto out;
+>   	}
+> +	dma_set_mask(&mac->dma_pdev->dev, DMA_BIT_MASK(32));
+>   
+>   	mac->iob_pdev = pci_get_device(PCI_VENDOR_ID_PASEMI, 0xa001, NULL);
+>   	if (!mac->iob_pdev) {
+>
+Hello Christoph,
 
-The powerpc changes look OK to me.
+I patched the source code from the Git 'powerpc-dma.6' with your patch 
+today. Unfortunately the P.A. Semi Ethernet doesn't work with the 
+patched Git kernel.
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+After that I tried it with the patch applied over the working setup 
+again (powerpc/dma: use the dma_direct mapping routines). Unfortunately 
+after compiling
+and booting, the P.A. Semi Ethernet doesn't work either.
 
-cheers
-
-> diff --git a/arch/powerpc/include/uapi/asm/socket.h b/arch/powerpc/include/uapi/asm/socket.h
-> index 94de465e0920..12aa0c43e775 100644
-> --- a/arch/powerpc/include/uapi/asm/socket.h
-> +++ b/arch/powerpc/include/uapi/asm/socket.h
-> @@ -11,8 +11,8 @@
->  
->  #define SO_RCVLOWAT	16
->  #define SO_SNDLOWAT	17
-> -#define SO_RCVTIMEO	18
-> -#define SO_SNDTIMEO	19
-> +#define SO_RCVTIMEO_OLD	18
-> +#define SO_SNDTIMEO_OLD	19
->  #define SO_PASSCRED	20
->  #define SO_PEERCRED	21
->  
-> diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-> index 2713e0fa68ef..c56b8b487c12 100644
-> --- a/include/uapi/asm-generic/socket.h
-> +++ b/include/uapi/asm-generic/socket.h
-> @@ -30,8 +30,8 @@
->  #define SO_PEERCRED	17
->  #define SO_RCVLOWAT	18
->  #define SO_SNDLOWAT	19
-> -#define SO_RCVTIMEO	20
-> -#define SO_SNDTIMEO	21
-> +#define SO_RCVTIMEO_OLD	20
-> +#define SO_SNDTIMEO_OLD	21
->  #endif
->  
->  /* Security levels - as per NRL IPv6 - don't actually do anything */
-> @@ -116,6 +116,8 @@
->  
->  #if !defined(__KERNEL__)
->  
-> +#define	SO_RCVTIMEO SO_RCVTIMEO_OLD
-> +#define	SO_SNDTIMEO SO_SNDTIMEO_OLD
->  #if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
->  /* on 64-bit and x32, avoid the ?: operator */
->  #define SO_TIMESTAMP		SO_TIMESTAMP_OLD
+Cheers,
+Christian
