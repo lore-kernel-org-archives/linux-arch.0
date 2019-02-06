@@ -1,145 +1,133 @@
-From: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
-Subject: Re: linux-next: tracebacks in =?ISO-2022-JP?B?d29ya3F1ZXVlLmMvX19mbHVz?=
- =?ISO-2022-JP?B?aF93b3JrKCk=?=
-Date: Wed, 06 Feb 2019 15:31:09 +0900
-Message-ID: <201902060631.x166V9J8014750@www262.sakura.ne.jp>
-References: <72e7d782-85f2-b499-8614-9e3498106569@i-love.sakura.ne.jp> <87munc306z.fsf@rustcorp.com.au>
+From: Cornelia Huck <cohuck@redhat.com>
+Subject: Re: [PATCH] KVM: export <linux/kvm_para.h> and <asm/kvm_para.h> iif
+ KVM is supported
+Date: Wed, 6 Feb 2019 11:58:42 +0100
+Message-ID: <20190206115842.2cd86269.cohuck@redhat.com>
+References: <1549432390-11457-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-2022-JP"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87munc306z.fsf@rustcorp.com.au>
+In-Reply-To: <1549432390-11457-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Guenter Roeck <linux@roeck-us.net>, Chris Metcalf <chris.d.metcalf@gmail.com>, linux-kernel <linux-kernel@vger.kernel.org>, Tejun Heo <tj@kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>, Radim Kr___m______ <rkrcmar@redhat.com>, kvm@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Joerg Roedel <joro@8bytes.org>, Christoffer Dall <christoffer.dall@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Hogan <jhogan@kernel.org>, linux-mips@vger.kernel.org, Paul Mackerras <paulus@ozlabs.org>, kvm-ppc@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, David Hildenbrand <david@redhat.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>
 List-Id: linux-arch.vger.kernel.org
 
-(Adding linux-arch ML.)
+On Wed,  6 Feb 2019 14:53:10 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
-Rusty Russell wrote:
-> Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp> writes:
-> > (Adding Chris Metcalf and Rusty Russell.)
-> >
-> > If NR_CPUS == 1 due to CONFIG_SMP=n, for_each_cpu(cpu, &has_work) loop does not
-> > evaluate "struct cpumask has_work" modified by cpumask_set_cpu(cpu, &has_work) at
-> > previous for_each_online_cpu() loop. Guenter Roeck found a problem among three
-> > commits listed below.
-> >
-> >   Commit 5fbc461636c32efd ("mm: make lru_add_drain_all() selective")
-> >   expects that has_work is evaluated by for_each_cpu().
-> >
-> >   Commit 2d3854a37e8b767a ("cpumask: introduce new API, without changing anything")
-> >   assumes that for_each_cpu() does not need to evaluate has_work.
-> >
-> >   Commit 4d43d395fed12463 ("workqueue: Try to catch flush_work() without INIT_WORK().")
-> >   expects that has_work is evaluated by for_each_cpu().
-> >
-> > What should we do? Do we explicitly evaluate has_work if NR_CPUS == 1 ?
+> I do not see any consistency about headers_install of <linux/kvm_para.h>
+> and <asm/kvm_para.h>.
 > 
-> No, fix the API to be least-surprise.  Fix 2d3854a37e8b767a too.
+> According to my analysis of Linux 5.0-rc5, there are 3 groups:
 > 
-> Doing anything else would be horrible, IMHO.
+>  [1] Both <linux/kvm_para.h> and <asm/kvm_para.h> are exported
 > 
+>     alpha, arm, hexagon, mips, powerpc, s390, sparc, x86
+> 
+>  [2] <asm/kvm_para.h> is exported, but <linux/kvm_para.h> is not
+> 
+>     arc, arm64, c6x, h8300, ia64, m68k, microblaze, nios2, openrisc
+> 
+>  [3] Neither <linux/kvm_para.h> nor <asm/kvm_para.h> is exported
+> 
+>     csky, nds32, riscv
+> 
+> This does not match to the actual KVM support. At least, [2] is
+> half-baked.
+> 
+> Nor do arch maintainers look like they care about this. For example,
+> commit 0add53713b1c ("microblaze: Add missing kvm_para.h to Kbuild")
+> exported <asm/kvm_para.h> to user-space in order to fix an in-kernel
+> build error.
+> 
+> We have two ways to make this consistent:
+> 
+>  [A] export both <linux/kvm_para.h> and <asm/kvm_para.h> for all
+>      architectures, irrespective of the KVM support
+> 
+>  [B] Match the header export of <linux/kvm_para.h> and <asm/kvm_para.h>
+>      to the KVM support
+> 
+> My first attempt was [A] because the code looks better, but Paolo
+> showed preference in [B].
+> 
+>   https://patchwork.kernel.org/patch/10794919/
+> 
+> So, this commit is the implementation of [B].
+> 
+> For most architectures, <asm/kvm_para.h> was moved to the kernel-space.
+> I changed include/uapi/linux/Kbuild so that it checks generated
+> asm/kvm_para.h as well as check-in ones.
+> 
+> After this commit, there will be two groups:
+> 
+>  [1] Both <linux/kvm_para.h> and <asm/kvm_para.h> are exported
+> 
+>     arm arm64 mips powerpc s390 x86
+> 
+>  [2] Neither <linux/kvm_para.h> nor <asm/kvm_para.h> is exported
+> 
+>     alpha arc c6x csky h8300 hexagon ia64 m68k microblaze nds32 nios2
+>     openrisc parisc riscv sh sparc unicore32 xtensa
+> 
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
+> 
+> The alternative solution [A] is available at:
+> https://patchwork.kernel.org/patch/10794919/
+> 
+> Comparing the code diff, I personally prefer [A]...
 
-Fixing 2d3854a37e8b767a might involve subtle changes. If we do
+I think both are much better than the status quo. This approach makes
+the diff a bit uglier, but the end result looks cleaner to me.
 
-----------
-diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
-index 147bdec..1ec5321 100644
---- a/include/linux/cpumask.h
-+++ b/include/linux/cpumask.h
-@@ -129,7 +129,7 @@ static inline unsigned int cpumask_check(unsigned int cpu)
- 	return cpu;
- }
- 
--#if NR_CPUS == 1
-+#if NR_CPUS == 1 && 0
- /* Uniprocessor.  Assume all masks are "1". */
- static inline unsigned int cpumask_first(const struct cpumask *srcp)
- {
-diff --git a/lib/Makefile b/lib/Makefile
-index e1b59da..da6f99c 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -28,7 +28,7 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
- 
- lib-$(CONFIG_PRINTK) += dump_stack.o
- lib-$(CONFIG_MMU) += ioremap.o
--lib-$(CONFIG_SMP) += cpumask.o
-+lib-y += cpumask.o
- 
- lib-y	+= kobject.o klist.o
- obj-y	+= lockref.o
-----------
+Acked-by: Cornelia Huck <cohuck@redhat.com>
 
-then we get e.g. a build failure like below.
-
-----------
-arch/x86/kernel/cpu/cacheinfo.o: In function `_populate_cache_leaves':
-cacheinfo.c:(.text+0xb20): undefined reference to `cpu_llc_shared_map'
-cacheinfo.c:(.text+0xb48): undefined reference to `cpu_llc_shared_map'
-cacheinfo.c:(.text+0xb64): undefined reference to `cpu_llc_shared_map'
-make: *** [vmlinux] Error 1
-----------
-
-This build failure is caused due to the
-
-  DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_llc_shared_map);
-
-line which cpu_llc_shared_mask() depends on is in arch/x86/kernel/smpboot.c
-and the
-
-  obj-$(CONFIG_SMP)               += smpboot.o
-
-line is in arch/x86/kernel/Makefile . We could try
-
-----------
-diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
-index c4d1023..bf95da3 100644
---- a/arch/x86/kernel/cpu/cacheinfo.c
-+++ b/arch/x86/kernel/cpu/cacheinfo.c
-@@ -23,6 +23,10 @@
- 
- #include "cpu.h"
- 
-+#ifndef CONFIG_SMP
-+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_llc_shared_map);
-+#endif
-+
- #define LVL_1_INST	1
- #define LVL_1_DATA	2
- #define LVL_2		3
-----------
-
-or
-
-----------
-diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
-index c4d1023..b8a22b6 100644
---- a/arch/x86/kernel/cpu/cacheinfo.c
-+++ b/arch/x86/kernel/cpu/cacheinfo.c
-@@ -886,6 +886,7 @@ static int __cache_amd_cpumap_setup(unsigned int cpu, int index,
- 	 * to derive shared_cpu_map.
- 	 */
- 	if (index == 3) {
-+#ifdef CONFIG_SMP
- 		for_each_cpu(i, cpu_llc_shared_mask(cpu)) {
- 			this_cpu_ci = get_cpu_cacheinfo(i);
- 			if (!this_cpu_ci->info_list)
-@@ -898,6 +899,7 @@ static int __cache_amd_cpumap_setup(unsigned int cpu, int index,
- 						&this_leaf->shared_cpu_map);
- 			}
- 		}
-+#endif
- 	} else if (boot_cpu_has(X86_FEATURE_TOPOEXT)) {
- 		unsigned int apicid, nshared, first, last;
- 
-----------
-
-but I don't know whether this is a correct fix, for for_each_cpu() currently
-always executes the loop because for_each_cpu() does not evaluate
-cpu_llc_shared_mask(cpu) argument. But if cpu_llc_shared_mask(cpu) argument
-is evaluated by for_each_cpu(), and given that nobody updates cpu_llc_shared_map
-if CONFIG_SMP=n, I guess that this for_each_cpu() becomes a no-op loop. I can't
-evaluate whether this change is safe, and there might be similar code in other
-architectures.
+> 
+> 
+>  arch/alpha/include/asm/Kbuild            | 1 +
+>  arch/alpha/include/uapi/asm/kvm_para.h   | 2 --
+>  arch/arc/include/asm/Kbuild              | 1 +
+>  arch/arc/include/uapi/asm/Kbuild         | 1 -
+>  arch/arm/include/uapi/asm/Kbuild         | 1 +
+>  arch/arm/include/uapi/asm/kvm_para.h     | 2 --
+>  arch/c6x/include/asm/Kbuild              | 1 +
+>  arch/c6x/include/uapi/asm/Kbuild         | 1 -
+>  arch/h8300/include/asm/Kbuild            | 1 +
+>  arch/h8300/include/uapi/asm/Kbuild       | 1 -
+>  arch/hexagon/include/asm/Kbuild          | 1 +
+>  arch/hexagon/include/uapi/asm/kvm_para.h | 2 --
+>  arch/ia64/include/asm/Kbuild             | 1 +
+>  arch/ia64/include/uapi/asm/Kbuild        | 1 -
+>  arch/m68k/include/asm/Kbuild             | 1 +
+>  arch/m68k/include/uapi/asm/Kbuild        | 1 -
+>  arch/microblaze/include/asm/Kbuild       | 1 +
+>  arch/microblaze/include/uapi/asm/Kbuild  | 1 -
+>  arch/mips/include/uapi/asm/Kbuild        | 1 +
+>  arch/mips/include/uapi/asm/kvm_para.h    | 5 -----
+>  arch/nios2/include/asm/Kbuild            | 1 +
+>  arch/nios2/include/uapi/asm/Kbuild       | 1 -
+>  arch/openrisc/include/asm/Kbuild         | 1 +
+>  arch/openrisc/include/uapi/asm/Kbuild    | 1 -
+>  arch/parisc/include/asm/Kbuild           | 1 +
+>  arch/parisc/include/uapi/asm/Kbuild      | 1 -
+>  arch/s390/include/uapi/asm/Kbuild        | 1 +
+>  arch/s390/include/uapi/asm/kvm_para.h    | 8 --------
+>  arch/sh/include/asm/Kbuild               | 1 +
+>  arch/sh/include/uapi/asm/Kbuild          | 1 -
+>  arch/sparc/include/asm/Kbuild            | 1 +
+>  arch/sparc/include/uapi/asm/kvm_para.h   | 2 --
+>  arch/unicore32/include/asm/Kbuild        | 1 +
+>  arch/unicore32/include/uapi/asm/Kbuild   | 1 -
+>  arch/xtensa/include/asm/Kbuild           | 1 +
+>  arch/xtensa/include/uapi/asm/Kbuild      | 1 -
+>  include/uapi/linux/Kbuild                | 2 ++
+>  37 files changed, 20 insertions(+), 33 deletions(-)
+>  delete mode 100644 arch/alpha/include/uapi/asm/kvm_para.h
+>  delete mode 100644 arch/arm/include/uapi/asm/kvm_para.h
+>  delete mode 100644 arch/hexagon/include/uapi/asm/kvm_para.h
+>  delete mode 100644 arch/mips/include/uapi/asm/kvm_para.h
+>  delete mode 100644 arch/s390/include/uapi/asm/kvm_para.h
+>  delete mode 100644 arch/sparc/include/uapi/asm/kvm_para.h
