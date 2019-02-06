@@ -1,69 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.167]:22054 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729369AbfBFNpk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Feb 2019 08:45:40 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-References: <6f2d6bc9-696b-2cb1-8a4e-df3da2bd6c0a@xenosoft.de>
- <20190129161411.GA14022@lst.de> <20190129163415.GA14529@lst.de>
- <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de>
- <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de>
- <20190201080456.GA15456@lst.de>
- <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
- <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de>
- <20190204075616.GA5408@lst.de>
- <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de>
- <20190204123852.GA10428@lst.de>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de>
-Date: Wed, 6 Feb 2019 14:45:34 +0100
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:38389 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726914AbfBFOg2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Feb 2019 09:36:28 -0500
+Date: Wed, 6 Feb 2019 06:36:25 -0800
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: linux-next: tracebacks in workqueue.c/__flush_work()
+Message-ID: <20190206143625.GA25998@roeck-us.net>
+References: <72e7d782-85f2-b499-8614-9e3498106569@i-love.sakura.ne.jp>
+ <87munc306z.fsf@rustcorp.com.au>
+ <201902060631.x166V9J8014750@www262.sakura.ne.jp>
 MIME-Version: 1.0
-In-Reply-To: <20190204123852.GA10428@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: de-DE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <201902060631.x166V9J8014750@www262.sakura.ne.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Olof Johansson <olof@lixom.net>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190206134534.Pizu_lFA_e2M3MCu3j5TzYNB3CDaxtAwrDj7TlrpJPs@z>
+To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Chris Metcalf <chris.d.metcalf@gmail.com>, linux-kernel <linux-kernel@vger.kernel.org>, Tejun Heo <tj@kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190206143625.hvEUpTPGs5aA9mSchD0YmWRWsaq2bEWmU_E16dq_81k@z>
 
-On 04 February 2019 at 01:38PM, Christoph Hellwig wrote:
->
-> It seems like the pasemi driver fails to set a DMA mask, but seems
-> otherwise 64-bit DMA capable.  The old PPC code didn't verify the
-> dma mask during the map operations, but the x86-derived generic
-> code does.
->
-> This patch just sets the DMA mask.
->
-> Olof: does this look ok?  The DMA device seems to not directly
-> bound by the net driver, but not really used by anything else in tree
-> either..
->
-> diff --git a/drivers/net/ethernet/pasemi/pasemi_mac.c b/drivers/net/ethernet/pasemi/pasemi_mac.c
-> index d21041554507..d98bd447c536 100644
-> --- a/drivers/net/ethernet/pasemi/pasemi_mac.c
-> +++ b/drivers/net/ethernet/pasemi/pasemi_mac.c
-> @@ -1716,6 +1716,7 @@ pasemi_mac_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
->   		err = -ENODEV;
->   		goto out;
->   	}
-> +	dma_set_mask(&mac->dma_pdev->dev, DMA_BIT_MASK(32));
->   
->   	mac->iob_pdev = pci_get_device(PCI_VENDOR_ID_PASEMI, 0xa001, NULL);
->   	if (!mac->iob_pdev) {
->
-Hello Christoph,
+On Wed, Feb 06, 2019 at 03:31:09PM +0900, Tetsuo Handa wrote:
+> (Adding linux-arch ML.)
+> 
+> Rusty Russell wrote:
+> > Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp> writes:
+> > > (Adding Chris Metcalf and Rusty Russell.)
+> > >
+> > > If NR_CPUS == 1 due to CONFIG_SMP=n, for_each_cpu(cpu, &has_work) loop does not
+> > > evaluate "struct cpumask has_work" modified by cpumask_set_cpu(cpu, &has_work) at
+> > > previous for_each_online_cpu() loop. Guenter Roeck found a problem among three
+> > > commits listed below.
+> > >
+> > >   Commit 5fbc461636c32efd ("mm: make lru_add_drain_all() selective")
+> > >   expects that has_work is evaluated by for_each_cpu().
+> > >
+> > >   Commit 2d3854a37e8b767a ("cpumask: introduce new API, without changing anything")
+> > >   assumes that for_each_cpu() does not need to evaluate has_work.
+> > >
+> > >   Commit 4d43d395fed12463 ("workqueue: Try to catch flush_work() without INIT_WORK().")
+> > >   expects that has_work is evaluated by for_each_cpu().
+> > >
+> > > What should we do? Do we explicitly evaluate has_work if NR_CPUS == 1 ?
+> > 
+> > No, fix the API to be least-surprise.  Fix 2d3854a37e8b767a too.
+> > 
+> > Doing anything else would be horrible, IMHO.
+> > 
+> 
+> Fixing 2d3854a37e8b767a might involve subtle changes. If we do
+> 
 
-I patched the source code from the Git 'powerpc-dma.6' with your patch 
-today. Unfortunately the P.A. Semi Ethernet doesn't work with the 
-patched Git kernel.
+Why not fix the macros ?
 
-After that I tried it with the patch applied over the working setup 
-again (powerpc/dma: use the dma_direct mapping routines). Unfortunately 
-after compiling
-and booting, the P.A. Semi Ethernet doesn't work either.
+#define for_each_cpu(cpu, mask)                 \
+        for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
 
-Cheers,
-Christian
+does not really make sense since it does not evaluate mask.
+
+#define for_each_cpu(cpu, mask)                 \
+        for ((cpu) = 0; (cpu) < 1 && cpumask_test_cpu((cpu), (mask)); (cpu)++)
+
+or something similar might do it.
+
+Guenter
