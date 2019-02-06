@@ -1,45 +1,81 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Wed, 6 Feb 2019 16:16:55 +0100
-Message-ID: <20190206151655.GA31172@lst.de>
-References: <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de> <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de> <20190201080456.GA15456@lst.de> <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de> <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de> <20190204075616.GA5408@lst.de> <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de> <20190204123852.GA10428@lst.de> <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de> <20190206151505.GA31065@lst.de>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: linux-next: tracebacks in workqueue.c/__flush_work()
+Date: Wed, 6 Feb 2019 08:23:59 -0800
+Message-ID: <20190206162359.GA30699@roeck-us.net>
+References: <72e7d782-85f2-b499-8614-9e3498106569@i-love.sakura.ne.jp>
+ <87munc306z.fsf@rustcorp.com.au>
+ <201902060631.x166V9J8014750@www262.sakura.ne.jp>
+ <20190206143625.GA25998@roeck-us.net>
+ <e4dd7464-a787-c54f-24f9-9caaeb759cfc@i-love.sakura.ne.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190206151505.GA31065@lst.de>
+In-Reply-To: <e4dd7464-a787-c54f-24f9-9caaeb759cfc@i-love.sakura.ne.jp>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Chris Metcalf <chris.d.metcalf@gmail.com>, linux-kernel <linux-kernel@vger.kernel.org>, Tejun Heo <tj@kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 06, 2019 at 04:15:05PM +0100, Christoph Hellwig wrote:
-> The last good one was 29e7e2287e196f48fe5d2a6e017617723ea979bf
-> ("dma-direct: we might need GFP_DMA for 32-bit dma masks"), if I
-> remember correctly.  powerpc/dma: use the dma_direct mapping routines
-> was the one that you said makes the pasemi ethernet stop working.
+On Wed, Feb 06, 2019 at 11:57:45PM +0900, Tetsuo Handa wrote:
+> On 2019/02/06 23:36, Guenter Roeck wrote:
+> > On Wed, Feb 06, 2019 at 03:31:09PM +0900, Tetsuo Handa wrote:
+> >> (Adding linux-arch ML.)
+> >>
+> >> Rusty Russell wrote:
+> >>> Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp> writes:
+> >>>> (Adding Chris Metcalf and Rusty Russell.)
+> >>>>
+> >>>> If NR_CPUS == 1 due to CONFIG_SMP=n, for_each_cpu(cpu, &has_work) loop does not
+> >>>> evaluate "struct cpumask has_work" modified by cpumask_set_cpu(cpu, &has_work) at
+> >>>> previous for_each_online_cpu() loop. Guenter Roeck found a problem among three
+> >>>> commits listed below.
+> >>>>
+> >>>>   Commit 5fbc461636c32efd ("mm: make lru_add_drain_all() selective")
+> >>>>   expects that has_work is evaluated by for_each_cpu().
+> >>>>
+> >>>>   Commit 2d3854a37e8b767a ("cpumask: introduce new API, without changing anything")
+> >>>>   assumes that for_each_cpu() does not need to evaluate has_work.
+> >>>>
+> >>>>   Commit 4d43d395fed12463 ("workqueue: Try to catch flush_work() without INIT_WORK().")
+> >>>>   expects that has_work is evaluated by for_each_cpu().
+> >>>>
+> >>>> What should we do? Do we explicitly evaluate has_work if NR_CPUS == 1 ?
+> >>>
+> >>> No, fix the API to be least-surprise.  Fix 2d3854a37e8b767a too.
+> >>>
+> >>> Doing anything else would be horrible, IMHO.
+> >>>
+> >>
+> >> Fixing 2d3854a37e8b767a might involve subtle changes. If we do
+> >>
+> > 
+> > Why not fix the macros ?
+> > 
+> > #define for_each_cpu(cpu, mask)                 \
+> >         for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
+> > 
+> > does not really make sense since it does not evaluate mask.
+> > 
+> > #define for_each_cpu(cpu, mask)                 \
+> >         for ((cpu) = 0; (cpu) < 1 && cpumask_test_cpu((cpu), (mask)); (cpu)++)
+> > 
+> > or something similar might do it.
 > 
-> Can you post the dmesg from the failing runs?
+> Fixing macros is fine, The problem is that "mask" becomes evaluated
+> which might be currently undefined or unassigned if CONFIG_SMP=n.
+> Evaluating "mask" generates expected behavior for lru_add_drain_all()
+> case. But there might be cases where evaluating "mask" generate
+> unexpected behavior/results.
 
-But I just noticed I sent you a wrong patch - the pasemi ethernet
-should set a 64-bit DMA mask, not 32-bit.  Updated version below,
-32-bit would just keep the previous status quo.
+Interesting notion. I would have assumed that passing a parameter
+to a function or macro implies that this parameter may be used.
 
-commit 6c8f88045dee35933337b9ce2ea5371eee37073a
-Author: Christoph Hellwig <hch@lst.de>
-Date:   Mon Feb 4 13:38:22 2019 +0100
+This makes me wonder - what is the point of ", (mask)" in the current
+macros ? It doesn't make sense to me.
 
-    pasemi WIP
+Anyway, I agree that fixing the macro might result in some failures.
+However, I would argue that those failures would actually be bugs,
+hidden by the buggy macros. But of course that it just my opinion.
 
-diff --git a/drivers/net/ethernet/pasemi/pasemi_mac.c b/drivers/net/ethernet/pasemi/pasemi_mac.c
-index 8a31a02c9f47..2d7d1589490a 100644
---- a/drivers/net/ethernet/pasemi/pasemi_mac.c
-+++ b/drivers/net/ethernet/pasemi/pasemi_mac.c
-@@ -1716,6 +1716,7 @@ pasemi_mac_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
- 		err = -ENODEV;
- 		goto out;
- 	}
-+	dma_set_mask(&mac->dma_pdev->dev, DMA_BIT_MASK(64));
- 
- 	mac->iob_pdev = pci_get_device(PCI_VENDOR_ID_PASEMI, 0xa001, NULL);
- 	if (!mac->iob_pdev) {
+Guenter
