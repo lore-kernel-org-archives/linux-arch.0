@@ -1,507 +1,145 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] KVM: export <linux/kvm_para.h> and <asm/kvm_para.h> iif KVM is supported
-Date: Wed,  6 Feb 2019 14:53:10 +0900
-Message-ID: <1549432390-11457-1-git-send-email-yamada.masahiro@socionext.com>
+From: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
+Subject: Re: linux-next: tracebacks in =?ISO-2022-JP?B?d29ya3F1ZXVlLmMvX19mbHVz?=
+ =?ISO-2022-JP?B?aF93b3JrKCk=?=
+Date: Wed, 06 Feb 2019 15:31:09 +0900
+Message-ID: <201902060631.x166V9J8014750@www262.sakura.ne.jp>
+References: <72e7d782-85f2-b499-8614-9e3498106569@i-love.sakura.ne.jp> <87munc306z.fsf@rustcorp.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-2022-JP"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87munc306z.fsf@rustcorp.com.au>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=8F=AB=ADm=8F=AB=A1=8F=AB=DA?= <rkrcmar@redhat.com>, kvm@vger.kernel.org
-Cc: Christoph Hellwig <hch@lst.de>, Joerg Roedel <joro@8bytes.org>, Christoffer Dall <christoffer.dall@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Hogan <jhogan@kernel.org>, linux-mips@vger.kernel.org, Paul Mackerras <paulus@ozlabs.org>, kvm-ppc@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, David Hildenbrand <david@redhat.com>, Cornelia Huck <cohuck@redhat.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Guenter Roeck <linux@roeck-us.net>, Chris Metcalf <chris.d.metcalf@gmail.com>, linux-kernel <linux-kernel@vger.kernel.org>, Tejun Heo <tj@kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-I do not see any consistency about headers_install of <linux/kvm_para.h>
-and <asm/kvm_para.h>.
+(Adding linux-arch ML.)
 
-According to my analysis of Linux 5.0-rc5, there are 3 groups:
+Rusty Russell wrote:
+> Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp> writes:
+> > (Adding Chris Metcalf and Rusty Russell.)
+> >
+> > If NR_CPUS == 1 due to CONFIG_SMP=n, for_each_cpu(cpu, &has_work) loop does not
+> > evaluate "struct cpumask has_work" modified by cpumask_set_cpu(cpu, &has_work) at
+> > previous for_each_online_cpu() loop. Guenter Roeck found a problem among three
+> > commits listed below.
+> >
+> >   Commit 5fbc461636c32efd ("mm: make lru_add_drain_all() selective")
+> >   expects that has_work is evaluated by for_each_cpu().
+> >
+> >   Commit 2d3854a37e8b767a ("cpumask: introduce new API, without changing anything")
+> >   assumes that for_each_cpu() does not need to evaluate has_work.
+> >
+> >   Commit 4d43d395fed12463 ("workqueue: Try to catch flush_work() without INIT_WORK().")
+> >   expects that has_work is evaluated by for_each_cpu().
+> >
+> > What should we do? Do we explicitly evaluate has_work if NR_CPUS == 1 ?
+> 
+> No, fix the API to be least-surprise.  Fix 2d3854a37e8b767a too.
+> 
+> Doing anything else would be horrible, IMHO.
+> 
 
- [1] Both <linux/kvm_para.h> and <asm/kvm_para.h> are exported
+Fixing 2d3854a37e8b767a might involve subtle changes. If we do
 
-    alpha, arm, hexagon, mips, powerpc, s390, sparc, x86
-
- [2] <asm/kvm_para.h> is exported, but <linux/kvm_para.h> is not
-
-    arc, arm64, c6x, h8300, ia64, m68k, microblaze, nios2, openrisc
-
- [3] Neither <linux/kvm_para.h> nor <asm/kvm_para.h> is exported
-
-    csky, nds32, riscv
-
-This does not match to the actual KVM support. At least, [2] is
-half-baked.
-
-Nor do arch maintainers look like they care about this. For example,
-commit 0add53713b1c ("microblaze: Add missing kvm_para.h to Kbuild")
-exported <asm/kvm_para.h> to user-space in order to fix an in-kernel
-build error.
-
-We have two ways to make this consistent:
-
- [A] export both <linux/kvm_para.h> and <asm/kvm_para.h> for all
-     architectures, irrespective of the KVM support
-
- [B] Match the header export of <linux/kvm_para.h> and <asm/kvm_para.h>
-     to the KVM support
-
-My first attempt was [A] because the code looks better, but Paolo
-showed preference in [B].
-
-  https://patchwork.kernel.org/patch/10794919/
-
-So, this commit is the implementation of [B].
-
-For most architectures, <asm/kvm_para.h> was moved to the kernel-space.
-I changed include/uapi/linux/Kbuild so that it checks generated
-asm/kvm_para.h as well as check-in ones.
-
-After this commit, there will be two groups:
-
- [1] Both <linux/kvm_para.h> and <asm/kvm_para.h> are exported
-
-    arm arm64 mips powerpc s390 x86
-
- [2] Neither <linux/kvm_para.h> nor <asm/kvm_para.h> is exported
-
-    alpha arc c6x csky h8300 hexagon ia64 m68k microblaze nds32 nios2
-    openrisc parisc riscv sh sparc unicore32 xtensa
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
-The alternative solution [A] is available at:
-https://patchwork.kernel.org/patch/10794919/
-
-Comparing the code diff, I personally prefer [A]...
-
-
- arch/alpha/include/asm/Kbuild            | 1 +
- arch/alpha/include/uapi/asm/kvm_para.h   | 2 --
- arch/arc/include/asm/Kbuild              | 1 +
- arch/arc/include/uapi/asm/Kbuild         | 1 -
- arch/arm/include/uapi/asm/Kbuild         | 1 +
- arch/arm/include/uapi/asm/kvm_para.h     | 2 --
- arch/c6x/include/asm/Kbuild              | 1 +
- arch/c6x/include/uapi/asm/Kbuild         | 1 -
- arch/h8300/include/asm/Kbuild            | 1 +
- arch/h8300/include/uapi/asm/Kbuild       | 1 -
- arch/hexagon/include/asm/Kbuild          | 1 +
- arch/hexagon/include/uapi/asm/kvm_para.h | 2 --
- arch/ia64/include/asm/Kbuild             | 1 +
- arch/ia64/include/uapi/asm/Kbuild        | 1 -
- arch/m68k/include/asm/Kbuild             | 1 +
- arch/m68k/include/uapi/asm/Kbuild        | 1 -
- arch/microblaze/include/asm/Kbuild       | 1 +
- arch/microblaze/include/uapi/asm/Kbuild  | 1 -
- arch/mips/include/uapi/asm/Kbuild        | 1 +
- arch/mips/include/uapi/asm/kvm_para.h    | 5 -----
- arch/nios2/include/asm/Kbuild            | 1 +
- arch/nios2/include/uapi/asm/Kbuild       | 1 -
- arch/openrisc/include/asm/Kbuild         | 1 +
- arch/openrisc/include/uapi/asm/Kbuild    | 1 -
- arch/parisc/include/asm/Kbuild           | 1 +
- arch/parisc/include/uapi/asm/Kbuild      | 1 -
- arch/s390/include/uapi/asm/Kbuild        | 1 +
- arch/s390/include/uapi/asm/kvm_para.h    | 8 --------
- arch/sh/include/asm/Kbuild               | 1 +
- arch/sh/include/uapi/asm/Kbuild          | 1 -
- arch/sparc/include/asm/Kbuild            | 1 +
- arch/sparc/include/uapi/asm/kvm_para.h   | 2 --
- arch/unicore32/include/asm/Kbuild        | 1 +
- arch/unicore32/include/uapi/asm/Kbuild   | 1 -
- arch/xtensa/include/asm/Kbuild           | 1 +
- arch/xtensa/include/uapi/asm/Kbuild      | 1 -
- include/uapi/linux/Kbuild                | 2 ++
- 37 files changed, 20 insertions(+), 33 deletions(-)
- delete mode 100644 arch/alpha/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/arm/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/hexagon/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/mips/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/s390/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/sparc/include/uapi/asm/kvm_para.h
-
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index dc0ab28..70b7833 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -6,6 +6,7 @@ generic-y += exec.h
- generic-y += export.h
- generic-y += fb.h
- generic-y += irq_work.h
-+generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
- generic-y += preempt.h
-diff --git a/arch/alpha/include/uapi/asm/kvm_para.h b/arch/alpha/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index baacc49..0000000
---- a/arch/alpha/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,2 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#include <asm-generic/kvm_para.h>
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index caa2702..6e165e1 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -10,6 +10,7 @@ generic-y += hardirq.h
- generic-y += hw_irq.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/arc/include/uapi/asm/Kbuild b/arch/arc/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/arc/include/uapi/asm/Kbuild
-+++ b/arch/arc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
+----------
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index 147bdec..1ec5321 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -129,7 +129,7 @@ static inline unsigned int cpumask_check(unsigned int cpu)
+ 	return cpu;
+ }
  
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/arm/include/uapi/asm/Kbuild b/arch/arm/include/uapi/asm/Kbuild
-index eee8f7d..482e5ec 100644
---- a/arch/arm/include/uapi/asm/Kbuild
-+++ b/arch/arm/include/uapi/asm/Kbuild
-@@ -4,3 +4,4 @@ include include/uapi/asm-generic/Kbuild.asm
- generated-y += unistd-common.h
- generated-y += unistd-oabi.h
- generated-y += unistd-eabi.h
-+generic-y += kvm_para.h
-diff --git a/arch/arm/include/uapi/asm/kvm_para.h b/arch/arm/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index baacc49..0000000
---- a/arch/arm/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,2 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#include <asm-generic/kvm_para.h>
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index 63b4a17..249c9f6 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -19,6 +19,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/c6x/include/uapi/asm/Kbuild
-+++ b/arch/c6x/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
+-#if NR_CPUS == 1
++#if NR_CPUS == 1 && 0
+ /* Uniprocessor.  Assume all masks are "1". */
+ static inline unsigned int cpumask_first(const struct cpumask *srcp)
+ {
+diff --git a/lib/Makefile b/lib/Makefile
+index e1b59da..da6f99c 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -28,7 +28,7 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
  
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index 961c1dc..c86e3e7 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -24,6 +24,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += linkage.h
- generic-y += local.h
- generic-y += local64.h
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/h8300/include/uapi/asm/Kbuild
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
+ lib-$(CONFIG_PRINTK) += dump_stack.o
+ lib-$(CONFIG_MMU) += ioremap.o
+-lib-$(CONFIG_SMP) += cpumask.o
++lib-y += cpumask.o
  
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index b25fd42..d046e8c 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -19,6 +19,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/hexagon/include/uapi/asm/kvm_para.h b/arch/hexagon/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index baacc49..0000000
---- a/arch/hexagon/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,2 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#include <asm-generic/kvm_para.h>
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index 43e21fe..11f1916 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -2,6 +2,7 @@ generated-y += syscall_table.h
- generic-y += compat.h
- generic-y += exec.h
- generic-y += irq_work.h
-+generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
- generic-y += preempt.h
-diff --git a/arch/ia64/include/uapi/asm/Kbuild b/arch/ia64/include/uapi/asm/Kbuild
-index 5b819e5..1d5c4aa 100644
---- a/arch/ia64/include/uapi/asm/Kbuild
-+++ b/arch/ia64/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
+ lib-y	+= kobject.o klist.o
+ obj-y	+= lockref.o
+----------
+
+then we get e.g. a build failure like below.
+
+----------
+arch/x86/kernel/cpu/cacheinfo.o: In function `_populate_cache_leaves':
+cacheinfo.c:(.text+0xb20): undefined reference to `cpu_llc_shared_map'
+cacheinfo.c:(.text+0xb48): undefined reference to `cpu_llc_shared_map'
+cacheinfo.c:(.text+0xb64): undefined reference to `cpu_llc_shared_map'
+make: *** [vmlinux] Error 1
+----------
+
+This build failure is caused due to the
+
+  DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_llc_shared_map);
+
+line which cpu_llc_shared_mask() depends on is in arch/x86/kernel/smpboot.c
+and the
+
+  obj-$(CONFIG_SMP)               += smpboot.o
+
+line is in arch/x86/kernel/Makefile . We could try
+
+----------
+diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
+index c4d1023..bf95da3 100644
+--- a/arch/x86/kernel/cpu/cacheinfo.c
++++ b/arch/x86/kernel/cpu/cacheinfo.c
+@@ -23,6 +23,10 @@
  
- generated-y += unistd_64.h
--generic-y += kvm_para.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 95f8f63..2c359d9 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -13,6 +13,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 960bf1e..439f515 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
+ #include "cpu.h"
  
- generated-y += unistd_32.h
--generic-y += kvm_para.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 791cc8d5..1a8285c 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -17,6 +17,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += linkage.h
- generic-y += local.h
- generic-y += local64.h
-diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-index 97823ec..3f03cf6 100644
---- a/arch/microblaze/include/uapi/asm/Kbuild
-+++ b/arch/microblaze/include/uapi/asm/Kbuild
-@@ -1,5 +1,4 @@
- include include/uapi/asm-generic/Kbuild.asm
++#ifndef CONFIG_SMP
++DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_llc_shared_map);
++#endif
++
+ #define LVL_1_INST	1
+ #define LVL_1_DATA	2
+ #define LVL_2		3
+----------
+
+or
+
+----------
+diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
+index c4d1023..b8a22b6 100644
+--- a/arch/x86/kernel/cpu/cacheinfo.c
++++ b/arch/x86/kernel/cpu/cacheinfo.c
+@@ -886,6 +886,7 @@ static int __cache_amd_cpumap_setup(unsigned int cpu, int index,
+ 	 * to derive shared_cpu_map.
+ 	 */
+ 	if (index == 3) {
++#ifdef CONFIG_SMP
+ 		for_each_cpu(i, cpu_llc_shared_mask(cpu)) {
+ 			this_cpu_ci = get_cpu_cacheinfo(i);
+ 			if (!this_cpu_ci->info_list)
+@@ -898,6 +899,7 @@ static int __cache_amd_cpumap_setup(unsigned int cpu, int index,
+ 						&this_leaf->shared_cpu_map);
+ 			}
+ 		}
++#endif
+ 	} else if (boot_cpu_has(X86_FEATURE_TOPOEXT)) {
+ 		unsigned int apicid, nshared, first, last;
  
- generated-y += unistd_32.h
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/mips/include/uapi/asm/Kbuild b/arch/mips/include/uapi/asm/Kbuild
-index 0851c10..57dd982 100644
---- a/arch/mips/include/uapi/asm/Kbuild
-+++ b/arch/mips/include/uapi/asm/Kbuild
-@@ -6,3 +6,4 @@ generated-y += unistd_o32.h
- generated-y += unistd_nr_n32.h
- generated-y += unistd_nr_n64.h
- generated-y += unistd_nr_o32.h
-+generic-y += kvm_para.h
-diff --git a/arch/mips/include/uapi/asm/kvm_para.h b/arch/mips/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index 7e16d7c..0000000
---- a/arch/mips/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,5 +0,0 @@
--#ifndef _UAPI_ASM_MIPS_KVM_PARA_H
--#define _UAPI_ASM_MIPS_KVM_PARA_H
--
--
--#endif /* _UAPI_ASM_MIPS_KVM_PARA_H */
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index 8fde4fa..88a667d 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -23,6 +23,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/nios2/include/uapi/asm/Kbuild b/arch/nios2/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/nios2/include/uapi/asm/Kbuild
-+++ b/arch/nios2/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index 1f04844b..ad06de9 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -21,6 +21,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/openrisc/include/uapi/asm/Kbuild
-+++ b/arch/openrisc/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 0b1e354..3abb960 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -12,6 +12,7 @@ generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
-index c54353d..214a39a 100644
---- a/arch/parisc/include/uapi/asm/Kbuild
-+++ b/arch/parisc/include/uapi/asm/Kbuild
-@@ -2,4 +2,3 @@ include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
- generated-y += unistd_64.h
--generic-y += kvm_para.h
-diff --git a/arch/s390/include/uapi/asm/Kbuild b/arch/s390/include/uapi/asm/Kbuild
-index da3e0d4..96ad5d7 100644
---- a/arch/s390/include/uapi/asm/Kbuild
-+++ b/arch/s390/include/uapi/asm/Kbuild
-@@ -3,3 +3,4 @@ include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
- generated-y += unistd_64.h
-+generic-y += kvm_para.h
-diff --git a/arch/s390/include/uapi/asm/kvm_para.h b/arch/s390/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index b9ab584..0000000
---- a/arch/s390/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,8 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--/*
-- * User API definitions for paravirtual devices on s390
-- *
-- * Copyright IBM Corp. 2008
-- *
-- *    Author(s): Christian Borntraeger <borntraeger@de.ibm.com>
-- */
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index a6ef3fe..7bf2cb6 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -9,6 +9,7 @@ generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/sh/include/uapi/asm/Kbuild b/arch/sh/include/uapi/asm/Kbuild
-index eaa30bc..0ec45ff 100644
---- a/arch/sh/include/uapi/asm/Kbuild
-+++ b/arch/sh/include/uapi/asm/Kbuild
-@@ -2,5 +2,4 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
-index b82f64e..a22cfd5 100644
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -9,6 +9,7 @@ generic-y += exec.h
- generic-y += export.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
-+generic-y += kvm_para.h
- generic-y += linkage.h
- generic-y += local.h
- generic-y += local64.h
-diff --git a/arch/sparc/include/uapi/asm/kvm_para.h b/arch/sparc/include/uapi/asm/kvm_para.h
-deleted file mode 100644
-index baacc49..0000000
---- a/arch/sparc/include/uapi/asm/kvm_para.h
-+++ /dev/null
-@@ -1,2 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#include <asm-generic/kvm_para.h>
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 1d1544b..d77d953 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -18,6 +18,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += local.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-index 0febf1a..c1b06dc 100644
---- a/arch/unicore32/include/uapi/asm/Kbuild
-+++ b/arch/unicore32/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
--generic-y += kvm_para.h
- generic-y += ucontext.h
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index e255683..d474c34 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -15,6 +15,7 @@ generic-y += irq_work.h
- generic-y += kdebug.h
- generic-y += kmap_types.h
- generic-y += kprobes.h
-+generic-y += kvm_para.h
- generic-y += linkage.h
- generic-y += local.h
- generic-y += local64.h
-diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
-index 960bf1e..439f515 100644
---- a/arch/xtensa/include/uapi/asm/Kbuild
-+++ b/arch/xtensa/include/uapi/asm/Kbuild
-@@ -1,4 +1,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generated-y += unistd_32.h
--generic-y += kvm_para.h
-diff --git a/include/uapi/linux/Kbuild b/include/uapi/linux/Kbuild
-index 5f24b50..059dc2b 100644
---- a/include/uapi/linux/Kbuild
-+++ b/include/uapi/linux/Kbuild
-@@ -7,5 +7,7 @@ no-export-headers += kvm.h
- endif
- 
- ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/uapi/asm/kvm_para.h),)
-+ifeq ($(wildcard $(objtree)/arch/$(SRCARCH)/include/generated/uapi/asm/kvm_para.h),)
- no-export-headers += kvm_para.h
- endif
-+endif
--- 
-2.7.4
+----------
+
+but I don't know whether this is a correct fix, for for_each_cpu() currently
+always executes the loop because for_each_cpu() does not evaluate
+cpu_llc_shared_mask(cpu) argument. But if cpu_llc_shared_mask(cpu) argument
+is evaluated by for_each_cpu(), and given that nobody updates cpu_llc_shared_map
+if CONFIG_SMP=n, I guess that this for_each_cpu() becomes a no-op loop. I can't
+evaluate whether this change is safe, and there might be similar code in other
+architectures.
