@@ -1,69 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33180 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726114AbfBEVMI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 Feb 2019 16:12:08 -0500
-Subject: Re: [PATCH 3/3] locking/qspinlock: Introduce starvation avoidance
- into CNA
-References: <20190131030136.56999-1-alex.kogan@oracle.com>
- <20190131030136.56999-4-alex.kogan@oracle.com>
- <20190131100009.GB31534@hirez.programming.kicks-ass.net>
- <10672939-5C35-4DEF-AFDE-99E85E0F9C46@oracle.com>
- <20190205092256.GN17528@hirez.programming.kicks-ass.net>
- <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <9ba407a6-8f16-876e-549a-d82176d2234e@redhat.com>
-Date: Tue, 5 Feb 2019 16:12:05 -0500
+Received: from conssluserg-05.nifty.com ([210.131.2.90]:35795 "EHLO
+        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725897AbfBFFVy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Feb 2019 00:21:54 -0500
 MIME-Version: 1.0
-In-Reply-To: <4A727687-51F9-4FD0-9608-CDBAD6A6EF07@oracle.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Content-Language: en-US
+References: <1549252517-23834-1-git-send-email-yamada.masahiro@socionext.com> <fb57fc25-0288-741b-8fb6-942124c0f6a6@redhat.com>
+In-Reply-To: <fb57fc25-0288-741b-8fb6-942124c0f6a6@redhat.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Wed, 6 Feb 2019 14:21:10 +0900
+Message-ID: <CAK7LNARk3Ww8ty=BvYo=xeVwHEL8qPRxfeY_=sQxQqL9-KUnWA@mail.gmail.com>
+Subject: Re: [PATCH] KVM: export <linux/kvm_para.h> and <asm/kvm_para.h> for
+ all architectures
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20190205211205.ka9kWlLnW3G7LWuFxlM4HFMCTblx_pIfjUOw-3d6o84@z>
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: =?UTF-8?B?UmFkaW0gS3Lvv73vv73vv71t77+977+977+977+977+977+9?= <rkrcmar@redhat.com>, kvm@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Christoffer Dall <christoffer.dall@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Hogan <jhogan@kernel.org>, Paul Mackerras <paulus@ozlabs.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Janosch Frank <frankja@linux.ibm.com>, Christoph Hellwig <hch@lst.de>, Sam Ravnborg <sam@ravnborg.org>
 
-On 02/05/2019 04:07 PM, Alex Kogan wrote:
->> Doing time analysis on a randomized algorithm isn't my idea of fun.
->>
->>> It seems that even today, qspinlock does not support RT_PREEMPT, given
->>> that it uses per-CPU queue nodes.
->> It does work with RT, commit:
->>
->>  7aa54be29765 ("locking/qspinlock, x86: Provide liveness guarantee")
->>
->> it a direct result of RT observing funnies with it. I've no idea why you
->> think it would not work.
-> Just trying to get to the bottom of it — as of today, qspinlock explicitly assumes
-> no preemption while waiting for the lock.
+On Tue, Feb 5, 2019 at 9:13 PM Paolo Bonzini <pbonzini@redhat.com> wrote:
 >
-> Here is what Waiman had to say about that in https://lwn.net/Articles/561775:
+> On 04/02/19 04:55, Masahiro Yamada wrote:
+> > If you prefer [B] (or you have a better idea),
+> > please suggest.
 >
-> "The idea behind this spinlock implementation is the fact that spinlocks
-> are acquired with preemption disabled. In other words, the process
-> will not be migrated to another CPU while it is trying to get a
-> spinlock.”
+> I prefer [B] but this is already much better so feel free to do it on top.
 >
-> This was back in 2013, but the code still uses per-CPU queue nodes,
-> and AFAICT, preemption will break things up.
->
-> So what you are saying is that RT would be fine assuming no preemption in
-> the spinlock as long as it provides FIFO? Or there is some future code patch 
-> that will take care of the “no preemption” assumption (but still assume FIFO)?
->
-> Thanks,
-> — Alex
+> Paolo
 
-Some of the critical sections protected by spinlocks may have execution
-times that are much longer than desired. That is why they are converted
-to rt-mutex in the RT kernel. There is another class of spinlocks called
-raw spinlocks. They are the same as regular spinlocks in non RT-kernel,
-but remain spinlocks with no preemption allowed in RT-kernel as sleeping
-locks can't be used in atomic context. This is where the replacement of
-the current qspinlock code by your NUMA-aware qspinlock may screw up the
-timing guarantee that can be provided by the RT-kernel.
 
-Cheers,
-Longman
+There is no point to move <asm/kvm_para.h> back and forth
+between the kernel/user spaces.
+
+We should choose [A] or [B].
+
+
+Although [B] is not so clean in the code-diff PoV,
+I will send it so that you can choose either one you prefer.
+
+
+-- 
+Best Regards
+Masahiro Yamada
