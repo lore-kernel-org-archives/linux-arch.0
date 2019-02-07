@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:46035 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.11.71.1]:46827 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727151AbfBGMqy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1726844AbfBGMqy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 7 Feb 2019 07:46:54 -0500
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: [PATCH v3 3/7] powerpc/64: Add logical PVR to the dump stack arch description
-Date: Thu,  7 Feb 2019 23:46:31 +1100
-Message-ID: <20190207124635.3885-3-mpe@ellerman.id.au>
+Subject: [PATCH v3 2/7] powerpc: Add PVR & CPU name to dump stack arch description
+Date: Thu,  7 Feb 2019 23:46:30 +1100
+Message-ID: <20190207124635.3885-2-mpe@ellerman.id.au>
 In-Reply-To: <20190207124635.3885-1-mpe@ellerman.id.au>
 References: <20190207124635.3885-1-mpe@ellerman.id.au>
 MIME-Version: 1.0
@@ -15,33 +15,45 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@ozlabs.org
 Cc: akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com
-Message-ID: <20190207124631.Y3bG1pDWGGa5P2-GEV4XnNeYuXlVOqvkupW36aSmorY@z>
+Message-ID: <20190207124630.c6QAPhNFFSvPXnbhtwue8to8h7KTYcpfBFUgWjPsH9E@z>
 
-If we detect a logical PVR add that to the dump stack arch
-description, which is printed in case of an oops.
+As soon as we've done some basic setup, add the PVR and CPU name to
+the dump stack arch description, which is printed in case of an oops.
 
-eg: Hardware name: ... lpvr:0xf000004
+eg: Hardware name: ... POWER8E (raw) pvr:0x4b0201
 
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/kernel/prom.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/powerpc/kernel/cputable.c | 1 +
+ arch/powerpc/kernel/prom.c     | 4 ++++
+ 2 files changed, 5 insertions(+)
 
+diff --git a/arch/powerpc/kernel/cputable.c b/arch/powerpc/kernel/cputable.c
+index 1eab54bc6ee9..8b4520a84612 100644
+--- a/arch/powerpc/kernel/cputable.c
++++ b/arch/powerpc/kernel/cputable.c
+@@ -16,6 +16,7 @@
+ #include <linux/init.h>
+ #include <linux/export.h>
+ #include <linux/jump_label.h>
++#include <linux/printk.h>
+ 
+ #include <asm/oprofile_impl.h>
+ #include <asm/cputable.h>
 diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
-index ea2c3498067d..38a90097469a 100644
+index 4181ec715f88..ea2c3498067d 100644
 --- a/arch/powerpc/kernel/prom.c
 +++ b/arch/powerpc/kernel/prom.c
-@@ -371,8 +371,10 @@ static int __init early_init_dt_scan_cpus(unsigned long node,
- 	 */
- 	if (!dt_cpu_ftrs_in_use()) {
- 		prop = of_get_flat_dt_prop(node, "cpu-version", NULL);
--		if (prop && (be32_to_cpup(prop) & 0xff000000) == 0x0f000000)
-+		if (prop && (be32_to_cpup(prop) & 0xff000000) == 0x0f000000) {
- 			identify_cpu(0, be32_to_cpup(prop));
-+			dump_stack_add_arch_desc("lpvr:0x%04x", be32_to_cpup(prop));
-+		}
+@@ -761,6 +761,10 @@ void __init early_init_devtree(void *params)
  
- 		check_cpu_feature_properties(node);
- 		check_cpu_pa_features(node);
+ 	dt_cpu_ftrs_scan();
+ 
++	/* We can now set the CPU name & PVR for the oops output */
++	dump_stack_add_arch_desc("%s pvr:0x%04lx", cur_cpu_spec->cpu_name,
++				 mfspr(SPRN_PVR));
++
+ 	/* Retrieve CPU related informations from the flat tree
+ 	 * (altivec support, boot CPU ID, ...)
+ 	 */
 -- 
 2.20.1
