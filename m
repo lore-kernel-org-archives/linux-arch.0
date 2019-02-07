@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:46827 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.11.71.1]:49295 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726844AbfBGMqy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Feb 2019 07:46:54 -0500
+        id S1726836AbfBGMq7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Feb 2019 07:46:59 -0500
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: [PATCH v3 2/7] powerpc: Add PVR & CPU name to dump stack arch description
-Date: Thu,  7 Feb 2019 23:46:30 +1100
-Message-ID: <20190207124635.3885-2-mpe@ellerman.id.au>
+Subject: [PATCH v3 7/7] powerpc/pseries: Add firmware details to dump stack arch description
+Date: Thu,  7 Feb 2019 23:46:35 +1100
+Message-ID: <20190207124635.3885-7-mpe@ellerman.id.au>
 In-Reply-To: <20190207124635.3885-1-mpe@ellerman.id.au>
 References: <20190207124635.3885-1-mpe@ellerman.id.au>
 MIME-Version: 1.0
@@ -15,45 +15,76 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@ozlabs.org
 Cc: akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com
-Message-ID: <20190207124630.c6QAPhNFFSvPXnbhtwue8to8h7KTYcpfBFUgWjPsH9E@z>
+Message-ID: <20190207124635.z4LMKCuMsmQrv-_C1WxXFNiAUBG2n-LuZ_pX45PWkGs@z>
 
-As soon as we've done some basic setup, add the PVR and CPU name to
-the dump stack arch description, which is printed in case of an oops.
+Once we have unflattened the device tree we can easily grab these
+firmware version details and add them to dump stack arch description,
+which is printed in case of an oops.
 
-eg: Hardware name: ... POWER8E (raw) pvr:0x4b0201
+Currently /hypervisor only exists on KVM, so if we don't find that look
+for something that suggests we're on phyp and if so that's probably a
+good guess. The actual content of the ibm,fw-net-version seems to be
+a full path so is too long to add to the description.
+
+Hardware name: ... of:'IBM,FW860.42 (SV860_138)' hv:phyp
 
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/kernel/cputable.c | 1 +
- arch/powerpc/kernel/prom.c     | 4 ++++
- 2 files changed, 5 insertions(+)
+ arch/powerpc/platforms/pseries/setup.c | 35 ++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
 
-diff --git a/arch/powerpc/kernel/cputable.c b/arch/powerpc/kernel/cputable.c
-index 1eab54bc6ee9..8b4520a84612 100644
---- a/arch/powerpc/kernel/cputable.c
-+++ b/arch/powerpc/kernel/cputable.c
-@@ -16,6 +16,7 @@
- #include <linux/init.h>
- #include <linux/export.h>
- #include <linux/jump_label.h>
-+#include <linux/printk.h>
+diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
+index 41f62ca27c63..dfb084f5a573 100644
+--- a/arch/powerpc/platforms/pseries/setup.c
++++ b/arch/powerpc/platforms/pseries/setup.c
+@@ -923,6 +923,39 @@ static void pSeries_cmo_feature_init(void)
+ 	pr_debug(" <- fw_cmo_feature_init()\n");
+ }
  
- #include <asm/oprofile_impl.h>
- #include <asm/cputable.h>
-diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
-index 4181ec715f88..ea2c3498067d 100644
---- a/arch/powerpc/kernel/prom.c
-+++ b/arch/powerpc/kernel/prom.c
-@@ -761,6 +761,10 @@ void __init early_init_devtree(void *params)
- 
- 	dt_cpu_ftrs_scan();
- 
-+	/* We can now set the CPU name & PVR for the oops output */
-+	dump_stack_add_arch_desc("%s pvr:0x%04lx", cur_cpu_spec->cpu_name,
-+				 mfspr(SPRN_PVR));
++static void __init pseries_add_dump_stack_arch_desc(void)
++{
++	struct device_node *dn;
++	const char *prop;
 +
- 	/* Retrieve CPU related informations from the flat tree
- 	 * (altivec support, boot CPU ID, ...)
- 	 */
++	dn = of_find_node_by_path("/openprom");
++	if (dn) {
++		prop = of_get_property(dn, "model", NULL);
++		if (prop)
++			dump_stack_add_arch_desc("of:'%s'", prop);
++
++		of_node_put(dn);
++	}
++
++	dn = of_find_node_by_path("/hypervisor");
++	if (dn) {
++		prop = of_get_property(dn, "compatible", NULL);
++		if (prop)
++			dump_stack_add_arch_desc("hv:%s", prop);
++
++		of_node_put(dn);
++	} else {
++		dn = of_find_node_by_path("/");
++		if (dn) {
++			prop = of_get_property(dn, "ibm,fw-net-version", NULL);
++			if (prop)
++				dump_stack_add_arch_desc("hv:phyp");
++
++			of_node_put(dn);
++		}
++	}
++}
++
+ /*
+  * Early initialization.  Relocation is on but do not reference unbolted pages
+  */
+@@ -930,6 +963,8 @@ static void __init pseries_init(void)
+ {
+ 	pr_debug(" -> pseries_init()\n");
+ 
++	pseries_add_dump_stack_arch_desc();
++
+ #ifdef CONFIG_HVC_CONSOLE
+ 	if (firmware_has_feature(FW_FEATURE_LPAR))
+ 		hvc_vio_init_early();
 -- 
 2.20.1
