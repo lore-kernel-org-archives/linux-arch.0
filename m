@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip 08/22] locking/rwsem: Add debug check for __down_read*()
-Date: Thu,  7 Feb 2019 14:07:12 -0500
-Message-ID: <1549566446-27967-9-git-send-email-longman@redhat.com>
+Subject: [PATCH-tip 09/22] locking/rwsem: Enhance DEBUG_RWSEMS_WARN_ON() macro
+Date: Thu,  7 Feb 2019 14:07:13 -0500
+Message-ID: <1549566446-27967-10-git-send-email-longman@redhat.com>
 References: <1549566446-27967-1-git-send-email-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1549566446-27967-1-git-send-email-longman@redhat.com>
@@ -10,99 +10,109 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will 
 Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-When rwsem_down_read_failed*() return, the read lock is acquired
-indirectly by others. So debug checks are added in __down_read() and
-__down_read_killable() to make sure the rwsem is really reader-owned.
+Currently, the DEBUG_RWSEMS_WARN_ON() macro just dumps a stack trace
+when the rwsem isn't in the right state. It does not show the actual
+states of the rwsem. This may not be that helpful in the debugging
+process.
 
-The other debug check calls in kernel/locking/rwsem.c except the
-one in up_read_non_owner() are also moved over to rwsem-xadd.h.
+Enhance the DEBUG_RWSEMS_WARN_ON() macro to also show the current
+content of the rwsem count and owner fields to give more information
+about what is wrong with the rwsem.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/rwsem-xadd.h | 12 ++++++++++--
- kernel/locking/rwsem.c      |  3 ---
- 2 files changed, 10 insertions(+), 5 deletions(-)
+ kernel/locking/rwsem-xadd.h | 19 ++++++++++++-------
+ kernel/locking/rwsem.c      |  5 +++--
+ 2 files changed, 15 insertions(+), 9 deletions(-)
 
 diff --git a/kernel/locking/rwsem-xadd.h b/kernel/locking/rwsem-xadd.h
-index 64e7d62..77151c3 100644
+index 77151c3..6d2478c 100644
 --- a/kernel/locking/rwsem-xadd.h
 +++ b/kernel/locking/rwsem-xadd.h
-@@ -165,10 +165,13 @@ static inline void rwsem_clear_reader_owned(struct rw_semaphore *sem)
-  */
- static inline void __down_read(struct rw_semaphore *sem)
- {
--	if (unlikely(atomic_long_inc_return_acquire(&sem->count) <= 0))
-+	if (unlikely(atomic_long_inc_return_acquire(&sem->count) <= 0)) {
- 		rwsem_down_read_failed(sem);
--	else
-+		DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner &
-+					RWSEM_READER_OWNED));
-+	} else {
- 		rwsem_set_reader_owned(sem);
-+	}
- }
+@@ -27,9 +27,13 @@
+ #define RWSEM_ANONYMOUSLY_OWNED	(1UL << 1)
  
- static inline int __down_read_killable(struct rw_semaphore *sem)
-@@ -176,6 +179,8 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+ #ifdef CONFIG_DEBUG_RWSEMS
+-# define DEBUG_RWSEMS_WARN_ON(c)	DEBUG_LOCKS_WARN_ON(c)
++# define DEBUG_RWSEMS_WARN_ON(c, sem)				\
++	WARN_ONCE(c, "DEBUG_RWSEMS_WARN_ON(%s): count = 0x%lx, owner = 0x%lx, curr 0x%lx, list %sempty\n",\
++		#c, atomic_long_read(&(sem)->count),		\
++		(long)((sem)->owner), (long)current,		\
++		list_empty(&(sem)->wait_list) ? "" : "not ")
+ #else
+-# define DEBUG_RWSEMS_WARN_ON(c)
++# define DEBUG_RWSEMS_WARN_ON(c, sem)
+ #endif
+ 
+ /*
+@@ -168,7 +172,7 @@ static inline void __down_read(struct rw_semaphore *sem)
  	if (unlikely(atomic_long_inc_return_acquire(&sem->count) <= 0)) {
- 		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
- 			return -EINTR;
-+		DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner &
-+					RWSEM_READER_OWNED));
+ 		rwsem_down_read_failed(sem);
+ 		DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner &
+-					RWSEM_READER_OWNED));
++					RWSEM_READER_OWNED), sem);
  	} else {
  		rwsem_set_reader_owned(sem);
  	}
-@@ -243,6 +248,7 @@ static inline void __up_read(struct rw_semaphore *sem)
+@@ -180,7 +184,7 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+ 		if (IS_ERR(rwsem_down_read_failed_killable(sem)))
+ 			return -EINTR;
+ 		DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner &
+-					RWSEM_READER_OWNED));
++					RWSEM_READER_OWNED), sem);
+ 	} else {
+ 		rwsem_set_reader_owned(sem);
+ 	}
+@@ -248,7 +252,8 @@ static inline void __up_read(struct rw_semaphore *sem)
  {
  	long tmp;
  
-+	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED));
+-	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED));
++	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED),
++				sem);
  	rwsem_clear_reader_owned(sem);
  	tmp = atomic_long_dec_return_release(&sem->count);
  	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
-@@ -254,6 +260,7 @@ static inline void __up_read(struct rw_semaphore *sem)
+@@ -260,7 +265,7 @@ static inline void __up_read(struct rw_semaphore *sem)
   */
  static inline void __up_write(struct rw_semaphore *sem)
  {
-+	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
+-	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
++	DEBUG_RWSEMS_WARN_ON(sem->owner != current, sem);
  	rwsem_clear_owner(sem);
  	if (unlikely(atomic_long_sub_return_release(RWSEM_ACTIVE_WRITE_BIAS,
  						    &sem->count) < 0))
-@@ -274,6 +281,7 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+@@ -281,7 +286,7 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
  	 * read-locked region is ok to be re-ordered into the
  	 * write side. As such, rely on RELEASE semantics.
  	 */
-+	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
+-	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
++	DEBUG_RWSEMS_WARN_ON(sem->owner != current, sem);
  	tmp = atomic_long_add_return_release(-RWSEM_WAITING_BIAS, &sem->count);
  	rwsem_set_reader_owned(sem);
  	if (tmp < 0)
 diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
-index b3b4582..598fc7c 100644
+index 598fc7c..bdfca7c 100644
 --- a/kernel/locking/rwsem.c
 +++ b/kernel/locking/rwsem.c
-@@ -114,7 +114,6 @@ int down_write_trylock(struct rw_semaphore *sem)
- void up_read(struct rw_semaphore *sem)
- {
- 	rwsem_release(&sem->dep_map, 1, _RET_IP_);
--	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED));
+@@ -17,7 +17,7 @@
+ #include "rwsem-xadd.h"
+ #else
+ #define __rwsem_set_reader_owned(a, b)
+-#define DEBUG_RWSEMS_WARN_ON(a)
++#define DEBUG_RWSEMS_WARN_ON(a, b)
+ #endif
  
+ /*
+@@ -203,7 +203,8 @@ int __sched down_write_killable_nested(struct rw_semaphore *sem, int subclass)
+ 
+ void up_read_non_owner(struct rw_semaphore *sem)
+ {
+-	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED));
++	DEBUG_RWSEMS_WARN_ON(!((unsigned long)sem->owner & RWSEM_READER_OWNED),
++				sem);
  	__up_read(sem);
  }
-@@ -127,7 +126,6 @@ void up_read(struct rw_semaphore *sem)
- void up_write(struct rw_semaphore *sem)
- {
- 	rwsem_release(&sem->dep_map, 1, _RET_IP_);
--	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
  
- 	__up_write(sem);
- }
-@@ -140,7 +138,6 @@ void up_write(struct rw_semaphore *sem)
- void downgrade_write(struct rw_semaphore *sem)
- {
- 	lock_downgrade(&sem->dep_map, _RET_IP_);
--	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
- 
- 	__downgrade_write(sem);
- }
 -- 
 1.8.3.1
