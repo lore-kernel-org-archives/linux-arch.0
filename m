@@ -1,100 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42784 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49796 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726576AbfBGTKH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Feb 2019 14:10:07 -0500
+        id S1727612AbfBGTKY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Feb 2019 14:10:24 -0500
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip 17/22] locking/rwsem: Recheck owner if it is not on cpu
-Date: Thu,  7 Feb 2019 14:07:21 -0500
-Message-ID: <1549566446-27967-18-git-send-email-longman@redhat.com>
+Subject: [PATCH-tip 21/22] locking/rwsem: Wake up all readers in wait queue
+Date: Thu,  7 Feb 2019 14:07:25 -0500
+Message-ID: <1549566446-27967-22-git-send-email-longman@redhat.com>
 In-Reply-To: <1549566446-27967-1-git-send-email-longman@redhat.com>
 References: <1549566446-27967-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190207190721.jXvDjQhYoyiA-kkOGQahAuN0v-B8MgBV1cFSUsi6jQI@z>
+Message-ID: <20190207190725.mcd9WFUhd_0wW-_Phspmi_zpIs42XJ3pqRMEqxerVsc@z>
 
-After merging the owner value directly into the count field, it was
-found that the number of failed optimistic spinning operations increased
-significantly during the boot up process.
+When the front of the wait queue is a reader, other readers
+immediately following the first reader will also be woken up at the
+same time. However, if there is a writer in between. Those readers
+behind the writer will not be woken up.
 
-The cause of this increased failures was tracked down to the condition
-that a lock holder might have just released the lock and gone to sleep
-right after its owner value was fetched by a spinner. So the task might
-have slept, but it was no longer the lock holder. The merging of owner
-into count increases the chance this condition can happen.
+Because of optimistic spinning, the lock acquisition order is not FIFO
+anyway. The lock handoff mechanism will ensure that lock starvation
+will not happen.
 
-To close this failure mode, we are now rechecking the owner value again
-to see if it has been changed in case it is not on cpu.
+Assuming that the lock hold times of the other readers still in the
+queue will be about the same as the readers that are being woken up,
+there is really not much additional cost other than the additional
+latency due to the wakeup of additional tasks by the waker. Therefore
+all the readers in the queue are woken up when the first waiter is a
+reader to improve reader throughput.
 
-On a 1-socket x86-64 system, the lock event counts before the patch
-were:
+With a locking microbenchmark running on 5.0 based kernel, the total
+locking rates (in kops/s) of the benchmark on a 4-socket 56-core x86-64
+system with equal numbers of readers and writers before all the reader
+spining patches, before this patch and after this patch were as follows:
 
-  rwsem_opt_fail=5847
-  rwsem_opt_wlock=7880
-  rwsem_wlock=5847
+   # of Threads  Pre-rspin    Pre-Patch   Post-patch
+   ------------  ---------    ---------   ----------
+        2          1,926        8,057       7,397
+        4          1,391        7,680       6,161
+        8            716        7,284       6,405
+       16            618        6,542       6,768
+       32            501        1,449       6,550
+       64             61          480       5,548
+      112             75          769       5,216
 
-After the patch, the counts were:
-
-  rwsem_opt_fail=225
-  rwsem_opt_wlock=8541
-  rwsem_wlock=225
+At low contention level, there is a slight drop in performance. At high
+contention level, however, this patch gives a big performance boost.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/rwsem-xadd.c | 20 ++++++++++++++++----
- 1 file changed, 16 insertions(+), 4 deletions(-)
+ kernel/locking/rwsem-xadd.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 16dc7a1..21d462f 100644
+index 3beb942..3cf2e84 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -263,13 +263,25 @@ static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem,
+@@ -180,16 +180,16 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
  	}
- }
  
--static inline bool owner_on_cpu(struct task_struct *owner)
-+static inline bool owner_on_cpu(struct task_struct *owner,
-+				struct rw_semaphore *sem)
- {
  	/*
- 	 * As lock holder preemption issue, we both skip spinning if
- 	 * task is not on cpu or its cpu is preempted
+-	 * Grant an infinite number of read locks to the readers at the front
+-	 * of the queue. We know that woken will be at least 1 as we accounted
+-	 * for above. Note we increment the 'active part' of the count by the
++	 * Grant an infinite number of read locks to all the readers in the
++	 * queue. We know that woken will be at least 1 as we accounted for
++	 * above. Note we increment the 'active part' of the count by the
+ 	 * number of readers before waking any processes up.
  	 */
--	return owner->on_cpu && !vcpu_is_preempted(task_cpu(owner));
-+	bool oncpu = owner->on_cpu && !vcpu_is_preempted(task_cpu(owner));
-+
-+	/*
-+	 * There is a slight chance that the lock holder might have
-+	 * just release the rwsem and gone to sleep right after we
-+	 * fetched the owner value. So we double-check the sem->owner
-+	 * field again to see if it has been changed. The sem->owner
-+	 * would have been cleared right before the lock was released.
-+	 */
-+	if (!oncpu && (READ_ONCE(sem->owner) != owner))
-+		return true;	/* Assume the new owner is on cpu */
-+	return oncpu;
- }
+ 	list_for_each_entry_safe(waiter, tmp, &sem->wait_list, list) {
+ 		struct task_struct *tsk;
  
- static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
-@@ -286,7 +298,7 @@ static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
- 	owner = rwsem_get_owner(sem);
- 	if (owner) {
- 		ret = is_rwsem_owner_spinnable(owner) &&
--		      owner_on_cpu(owner);
-+		      owner_on_cpu(owner, sem);
- 	}
- 	rcu_read_unlock();
- 	return ret;
-@@ -323,7 +335,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
- 		 * abort spinning when need_resched or owner is not running or
- 		 * owner's cpu is preempted.
- 		 */
--		if (need_resched() || !owner_on_cpu(owner)) {
-+		if (need_resched() || !owner_on_cpu(owner, sem)) {
- 			rcu_read_unlock();
- 			return false;
- 		}
+ 		if (waiter->type == RWSEM_WAITING_FOR_WRITE)
+-			break;
++			continue;
+ 
+ 		woken++;
+ 		tsk = waiter->task;
 -- 
 1.8.3.1
