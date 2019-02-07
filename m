@@ -1,119 +1,53 @@
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip 16/22] locking/rwsem: Remove redundant computation of writer lock word
-Date: Thu,  7 Feb 2019 14:07:20 -0500
-Message-ID: <1549566446-27967-17-git-send-email-longman@redhat.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH-tip 04/22] locking/rwsem: Remove arch specific rwsem files
+Date: Thu, 7 Feb 2019 20:36:56 +0100
+Message-ID: <20190207193656.GF32511@hirez.programming.kicks-ass.net>
 References: <1549566446-27967-1-git-send-email-longman@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1549566446-27967-1-git-send-email-longman@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
+ <1549566446-27967-5-git-send-email-longman@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1549566446-27967-5-git-send-email-longman@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Davidlohr Bueso <dave@stgolabs.net>, linux-ia64@vger.kernel.org, Tim Chen <tim.c.chen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 64-bit architectures, each rwsem writer will have its unique lock
-word for acquiring the lock. Right now, the writer code recomputes the
-lock word every time it tries to acquire the lock. This is a waste of
-time. The lock word is now cached and reused when it is needed.
+On Thu, Feb 07, 2019 at 02:07:08PM -0500, Waiman Long wrote:
 
-On 32-bit architectures, the extra constant argument to
-rwsem_try_write_lock() and rwsem_try_write_lock_unqueued() should be
-optimized out by the compiler.
+> +static inline int __down_read_trylock(struct rw_semaphore *sem)
+> +{
+> +	long tmp;
+> +
+> +	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
+> +		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
+> +				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+> +			return 1;
+> +		}
+> +	}
 
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/rwsem-xadd.c | 22 ++++++++++++----------
- 1 file changed, 12 insertions(+), 10 deletions(-)
+Nah, you're supposed to write that like:
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 0869fbf..16dc7a1 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -216,8 +216,8 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
-  * race conditions between checking the rwsem wait list and setting the
-  * sem->count accordingly.
-  */
--static inline bool
--rwsem_try_write_lock(long count, struct rw_semaphore *sem, bool first)
-+static inline bool rwsem_try_write_lock(long count, struct rw_semaphore *sem,
-+					const long wlock, bool first)
- {
- 	long new;
- 
-@@ -227,7 +227,7 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- 	if (!first && RWSEM_COUNT_HANDOFF(count))
- 		return false;
- 
--	new = (count & ~RWSEM_FLAG_HANDOFF) + RWSEM_WRITER_LOCKED -
-+	new = (count & ~RWSEM_FLAG_HANDOFF) + wlock -
- 	      (list_is_singular(&sem->wait_list) ? RWSEM_FLAG_WAITERS : 0);
- 
- 	if (atomic_long_cmpxchg_acquire(&sem->count, count, new) == count) {
-@@ -242,7 +242,8 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- /*
-  * Try to acquire write lock before the writer has been put on wait queue.
-  */
--static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem)
-+static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem,
-+						 const long wlock)
- {
- 	long old, count = atomic_long_read(&sem->count);
- 
-@@ -251,7 +252,7 @@ static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem)
- 			return false;
- 
- 		old = atomic_long_cmpxchg_acquire(&sem->count, count,
--				count + RWSEM_WRITER_LOCKED);
-+				count + wlock);
- 		if (old == count) {
- 			rwsem_set_owner(sem);
- 			lockevent_inc(rwsem_opt_wlock);
-@@ -338,7 +339,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
- 	return is_rwsem_owner_spinnable(rwsem_get_owner(sem));
- }
- 
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static bool rwsem_optimistic_spin(struct rw_semaphore *sem, const long wlock)
- {
- 	bool taken = false;
- 
-@@ -362,7 +363,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		/*
- 		 * Try to acquire the lock
- 		 */
--		if (rwsem_try_write_lock_unqueued(sem)) {
-+		if (rwsem_try_write_lock_unqueued(sem, wlock)) {
- 			taken = true;
- 			break;
- 		}
-@@ -392,7 +393,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	return taken;
- }
- #else
--static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-+static bool rwsem_optimistic_spin(struct rw_semaphore *sem, const long wlock)
- {
- 	return false;
- }
-@@ -514,9 +515,10 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	struct rwsem_waiter waiter;
- 	struct rw_semaphore *ret = sem;
- 	DEFINE_WAKE_Q(wake_q);
-+	const long wlock = RWSEM_WRITER_LOCKED;
- 
- 	/* do optimistic spinning and steal lock if possible */
--	if (rwsem_optimistic_spin(sem))
-+	if (rwsem_optimistic_spin(sem, wlock))
- 		return sem;
- 
- 	/*
-@@ -569,7 +571,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	/* wait until we successfully acquire the lock */
- 	set_current_state(state);
- 	while (true) {
--		if (rwsem_try_write_lock(count, sem, first))
-+		if (rwsem_try_write_lock(count, sem, wlock, first))
- 			break;
- 
- 		raw_spin_unlock_irq(&sem->wait_lock);
--- 
-1.8.3.1
+	for (;;) {
+		val = atomic_long_cond_read_relaxed(&sem->count, VAL < 0);
+		if (atomic_long_try_cmpxchg_acquire(&sem->count, &val,
+						    val + RWSEM_ACTIVE_READ_BIAS))
+			break;
+	}
+
+> +	return 0;
+> +}
+
+
+Anyway, yuck, you're keeping all that BIAS nonsense :/ I was so hoping
+for a rwsem implementation without that impenetrable crap.
