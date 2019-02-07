@@ -1,7 +1,7 @@
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: [PATCH v3 7/7] powerpc/pseries: Add firmware details to dump stack arch description
-Date: Thu,  7 Feb 2019 23:46:35 +1100
-Message-ID: <20190207124635.3885-7-mpe@ellerman.id.au>
+Subject: [PATCH v3 4/7] powerpc: Add device-tree model to dump stack arch description
+Date: Thu,  7 Feb 2019 23:46:32 +1100
+Message-ID: <20190207124635.3885-4-mpe@ellerman.id.au>
 References: <20190207124635.3885-1-mpe@ellerman.id.au>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,74 +12,60 @@ To: linuxppc-dev@ozlabs.org
 Cc: akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com
 List-Id: linux-arch.vger.kernel.org
 
-Once we have unflattened the device tree we can easily grab these
-firmware version details and add them to dump stack arch description,
-which is printed in case of an oops.
+As soon as we know the model of the machine we're on, add it to the
+dump stack arch description, which is printed in case of an oops.
 
-Currently /hypervisor only exists on KVM, so if we don't find that look
-for something that suggests we're on phyp and if so that's probably a
-good guess. The actual content of the ibm,fw-net-version seems to be
-a full path so is too long to add to the description.
-
-Hardware name: ... of:'IBM,FW860.42 (SV860_138)' hv:phyp
+eg: Hardware name: model:'IBM,8247-22L'
 
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/platforms/pseries/setup.c | 35 ++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
+ arch/powerpc/kernel/prom.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
-diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
-index 41f62ca27c63..dfb084f5a573 100644
---- a/arch/powerpc/platforms/pseries/setup.c
-+++ b/arch/powerpc/platforms/pseries/setup.c
-@@ -923,6 +923,39 @@ static void pSeries_cmo_feature_init(void)
- 	pr_debug(" <- fw_cmo_feature_init()\n");
- }
+diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
+index 38a90097469a..70af26a1eedd 100644
+--- a/arch/powerpc/kernel/prom.c
++++ b/arch/powerpc/kernel/prom.c
+@@ -34,6 +34,7 @@
+ #include <linux/of_fdt.h>
+ #include <linux/libfdt.h>
+ #include <linux/cpu.h>
++#include <linux/printk.h>
  
-+static void __init pseries_add_dump_stack_arch_desc(void)
+ #include <asm/prom.h>
+ #include <asm/rtas.h>
+@@ -687,6 +688,23 @@ static void __init tm_init(void)
+ static void tm_init(void) { }
+ #endif /* CONFIG_PPC_TRANSACTIONAL_MEM */
+ 
++static int __init
++early_init_dt_scan_model(unsigned long node, const char *uname,
++			 int depth, void *data)
 +{
-+	struct device_node *dn;
 +	const char *prop;
 +
-+	dn = of_find_node_by_path("/openprom");
-+	if (dn) {
-+		prop = of_get_property(dn, "model", NULL);
-+		if (prop)
-+			dump_stack_add_arch_desc("of:'%s'", prop);
++	if (depth != 0)
++		return 0;
 +
-+		of_node_put(dn);
-+	}
++	prop = of_get_flat_dt_prop(node, "model", NULL);
++	if (prop)
++		dump_stack_add_arch_desc("model:'%s'", prop);
 +
-+	dn = of_find_node_by_path("/hypervisor");
-+	if (dn) {
-+		prop = of_get_property(dn, "compatible", NULL);
-+		if (prop)
-+			dump_stack_add_arch_desc("hv:%s", prop);
-+
-+		of_node_put(dn);
-+	} else {
-+		dn = of_find_node_by_path("/");
-+		if (dn) {
-+			prop = of_get_property(dn, "ibm,fw-net-version", NULL);
-+			if (prop)
-+				dump_stack_add_arch_desc("hv:phyp");
-+
-+			of_node_put(dn);
-+		}
-+	}
++	/* break now */
++	return 1;
 +}
 +
- /*
-  * Early initialization.  Relocation is on but do not reference unbolted pages
-  */
-@@ -930,6 +963,8 @@ static void __init pseries_init(void)
+ void __init early_init_devtree(void *params)
  {
- 	pr_debug(" -> pseries_init()\n");
+ 	phys_addr_t limit;
+@@ -697,6 +715,8 @@ void __init early_init_devtree(void *params)
+ 	if (!early_init_dt_verify(params))
+ 		panic("BUG: Failed verifying flat device tree, bad version?");
  
-+	pseries_add_dump_stack_arch_desc();
++	of_scan_flat_dt(early_init_dt_scan_model, NULL);
 +
- #ifdef CONFIG_HVC_CONSOLE
- 	if (firmware_has_feature(FW_FEATURE_LPAR))
- 		hvc_vio_init_early();
+ #ifdef CONFIG_PPC_RTAS
+ 	/* Some machines might need RTAS info for debugging, grab it now. */
+ 	of_scan_flat_dt(early_init_dt_scan_rtas, NULL);
 -- 
 2.20.1
