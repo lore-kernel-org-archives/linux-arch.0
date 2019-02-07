@@ -1,83 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49796 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:50730 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727612AbfBGTKY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Feb 2019 14:10:24 -0500
+        id S1727122AbfBGTJu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Feb 2019 14:09:50 -0500
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH-tip 21/22] locking/rwsem: Wake up all readers in wait queue
-Date: Thu,  7 Feb 2019 14:07:25 -0500
-Message-ID: <1549566446-27967-22-git-send-email-longman@redhat.com>
+Subject: [PATCH-tip 13/22] locking/rwsem: Remove rwsem_wake() wakeup optimization
+Date: Thu,  7 Feb 2019 14:07:17 -0500
+Message-ID: <1549566446-27967-14-git-send-email-longman@redhat.com>
 In-Reply-To: <1549566446-27967-1-git-send-email-longman@redhat.com>
 References: <1549566446-27967-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190207190725.mcd9WFUhd_0wW-_Phspmi_zpIs42XJ3pqRMEqxerVsc@z>
+Message-ID: <20190207190717.k1T3mfs2VQmpKkYgJNB9NwbfhJd-eZlJINZq7JC19Ms@z>
 
-When the front of the wait queue is a reader, other readers
-immediately following the first reader will also be woken up at the
-same time. However, if there is a writer in between. Those readers
-behind the writer will not be woken up.
+With the commit 59aabfc7e959 ("locking/rwsem: Reduce spinlock contention
+in wakeup after up_read()/up_write()"), the rwsem_wake() forgoes doing
+a wakeup if the wait_lock cannot be directly acquired and an optimistic
+spinning locker is present.  This can help performance by avoiding
+spinning on the wait_lock when it is contended.
 
-Because of optimistic spinning, the lock acquisition order is not FIFO
-anyway. The lock handoff mechanism will ensure that lock starvation
-will not happen.
+With the later commit 133e89ef5ef3 ("locking/rwsem: Enable lockless
+waiter wakeup(s)"), the performance advantage of the above optimization
+diminishes as the average wait_lock hold time become much shorter.
 
-Assuming that the lock hold times of the other readers still in the
-queue will be about the same as the readers that are being woken up,
-there is really not much additional cost other than the additional
-latency due to the wakeup of additional tasks by the waker. Therefore
-all the readers in the queue are woken up when the first waiter is a
-reader to improve reader throughput.
-
-With a locking microbenchmark running on 5.0 based kernel, the total
-locking rates (in kops/s) of the benchmark on a 4-socket 56-core x86-64
-system with equal numbers of readers and writers before all the reader
-spining patches, before this patch and after this patch were as follows:
-
-   # of Threads  Pre-rspin    Pre-Patch   Post-patch
-   ------------  ---------    ---------   ----------
-        2          1,926        8,057       7,397
-        4          1,391        7,680       6,161
-        8            716        7,284       6,405
-       16            618        6,542       6,768
-       32            501        1,449       6,550
-       64             61          480       5,548
-      112             75          769       5,216
-
-At low contention level, there is a slight drop in performance. At high
-contention level, however, this patch gives a big performance boost.
+By supporting rwsem lock handoff, we can no longer relies on the fact
+that the presence of an optimistic spinning locker will ensure that the
+lock will be acquired by a task soon. This can lead to missed wakeup
+and application hang. So the commit 59aabfc7e959 ("locking/rwsem:
+Reduce spinlock contention in wakeup after up_read()/up_write()")
+will have to be reverted.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/rwsem-xadd.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ kernel/locking/rwsem-xadd.c | 74 ---------------------------------------------
+ 1 file changed, 74 deletions(-)
 
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 3beb942..3cf2e84 100644
+index 12b1d61..5f74bae 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -180,16 +180,16 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
- 	}
+@@ -378,25 +378,11 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+ 	lockevent_cond_inc(rwsem_opt_fail, !taken);
+ 	return taken;
+ }
+-
+-/*
+- * Return true if the rwsem has active spinner
+- */
+-static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
+-{
+-	return osq_is_locked(&sem->osq);
+-}
+-
+ #else
+ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+ {
+ 	return false;
+ }
+-
+-static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
+-{
+-	return false;
+-}
+ #endif
  
- 	/*
--	 * Grant an infinite number of read locks to the readers at the front
--	 * of the queue. We know that woken will be at least 1 as we accounted
--	 * for above. Note we increment the 'active part' of the count by the
-+	 * Grant an infinite number of read locks to all the readers in the
-+	 * queue. We know that woken will be at least 1 as we accounted for
-+	 * above. Note we increment the 'active part' of the count by the
- 	 * number of readers before waking any processes up.
- 	 */
- 	list_for_each_entry_safe(waiter, tmp, &sem->wait_list, list) {
- 		struct task_struct *tsk;
+ /*
+@@ -662,67 +648,7 @@ struct rw_semaphore *rwsem_wake(struct rw_semaphore *sem, long count)
+ 	unsigned long flags;
+ 	DEFINE_WAKE_Q(wake_q);
  
- 		if (waiter->type == RWSEM_WAITING_FOR_WRITE)
--			break;
-+			continue;
+-	/*
+-	* __rwsem_down_write_failed_common(sem)
+-	*   rwsem_optimistic_spin(sem)
+-	*     osq_unlock(sem->osq)
+-	*   ...
+-	*   atomic_long_add_return(&sem->count)
+-	*
+-	*      - VS -
+-	*
+-	*              __up_write()
+-	*                if (atomic_long_sub_return_release(&sem->count) < 0)
+-	*                  rwsem_wake(sem)
+-	*                    osq_is_locked(&sem->osq)
+-	*
+-	* And __up_write() must observe !osq_is_locked() when it observes the
+-	* atomic_long_add_return() in order to not miss a wakeup.
+-	*
+-	* This boils down to:
+-	*
+-	* [S.rel] X = 1                [RmW] r0 = (Y += 0)
+-	*         MB                         RMB
+-	* [RmW]   Y += 1               [L]   r1 = X
+-	*
+-	* exists (r0=1 /\ r1=0)
+-	*/
+-	smp_rmb();
+-
+-	/*
+-	 * If a spinner is present and the handoff flag isn't set, it is
+-	 * not necessary to do the wakeup.
+-	 *
+-	 * Try to do wakeup only if the trylock succeeds to minimize
+-	 * spinlock contention which may introduce too much delay in the
+-	 * unlock operation.
+-	 *
+-	 *    spinning writer		up_write/up_read caller
+-	 *    ---------------		-----------------------
+-	 * [S]   osq_unlock()		[L]   osq
+-	 *	 MB			      RMB
+-	 * [RmW] rwsem_try_write_lock() [RmW] spin_trylock(wait_lock)
+-	 *
+-	 * Here, it is important to make sure that there won't be a missed
+-	 * wakeup while the rwsem is free and the only spinning writer goes
+-	 * to sleep without taking the rwsem. Even when the spinning writer
+-	 * is just going to break out of the waiting loop, it will still do
+-	 * a trylock in rwsem_down_write_failed() before sleeping. IOW, if
+-	 * rwsem_has_spinner() is true, it will guarantee at least one
+-	 * trylock attempt on the rwsem later on.
+-	 */
+-	if (rwsem_has_spinner(sem) && !RWSEM_COUNT_HANDOFF(count)) {
+-		/*
+-		 * The smp_rmb() here is to make sure that the spinner
+-		 * state is consulted before reading the wait_lock.
+-		 */
+-		smp_rmb();
+-		if (!raw_spin_trylock_irqsave(&sem->wait_lock, flags))
+-			return sem;
+-		goto locked;
+-	}
+ 	raw_spin_lock_irqsave(&sem->wait_lock, flags);
+-locked:
  
- 		woken++;
- 		tsk = waiter->task;
+ 	if (!list_empty(&sem->wait_list))
+ 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
 -- 
 1.8.3.1
