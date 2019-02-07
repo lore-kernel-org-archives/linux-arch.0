@@ -1,61 +1,140 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 7 Feb 2019 05:34:52 +0100
-Message-ID: <61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de>
-References: <F4AB3D9A-97EC-45D7-9061-A750D0934C3C@xenosoft.de> <96762cd2-65fc-bce5-8c5b-c03bc3baf0a1@xenosoft.de> <20190201080456.GA15456@lst.de> <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de> <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de> <20190204075616.GA5408@lst.de> <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de> <20190204123852.GA10428@lst.de> <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de> <20190206151505.GA31065@lst.de> <20190206151655.GA31172@lst.de>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: [PATCH v3 1/7] dump_stack: Support adding to the dump stack arch description
+Date: Thu,  7 Feb 2019 23:46:29 +1100
+Message-ID: <20190207124635.3885-1-mpe@ellerman.id.au>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190206151655.GA31172@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: linuxppc-dev@ozlabs.org
+Cc: akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+Arch code can set a "dump stack arch description string" which is
+displayed with oops output to describe the hardware platform.
 
-I also didn=E2=80=99t notice the 32-bit DMA mask in your patch. I have to re=
-ad your patches and descriptions carefully in the future. I will test your n=
-ew patch at the weekend.
+It is useful to initialise this as early as possible, so that an early
+oops will have the hardware description.
 
-Thanks,
-Christian
+However in practice we discover the hardware platform in stages, so it
+would be useful to be able to incrementally fill in the hardware
+description as we discover it.
 
-Sent from my iPhone
+This patch adds that ability, by creating dump_stack_add_arch_desc().
 
-> On 6. Feb 2019, at 16:16, Christoph Hellwig <hch@lst.de> wrote:
->=20
->> On Wed, Feb 06, 2019 at 04:15:05PM +0100, Christoph Hellwig wrote:
->> The last good one was 29e7e2287e196f48fe5d2a6e017617723ea979bf
->> ("dma-direct: we might need GFP_DMA for 32-bit dma masks"), if I
->> remember correctly.  powerpc/dma: use the dma_direct mapping routines
->> was the one that you said makes the pasemi ethernet stop working.
->>=20
->> Can you post the dmesg from the failing runs?
->=20
-> But I just noticed I sent you a wrong patch - the pasemi ethernet
-> should set a 64-bit DMA mask, not 32-bit.  Updated version below,
-> 32-bit would just keep the previous status quo.
->=20
-> commit 6c8f88045dee35933337b9ce2ea5371eee37073a
-> Author: Christoph Hellwig <hch@lst.de>
-> Date:   Mon Feb 4 13:38:22 2019 +0100
->=20
->    pasemi WIP
->=20
-> diff --git a/drivers/net/ethernet/pasemi/pasemi_mac.c b/drivers/net/ethern=
-et/pasemi/pasemi_mac.c
-> index 8a31a02c9f47..2d7d1589490a 100644
-> --- a/drivers/net/ethernet/pasemi/pasemi_mac.c
-> +++ b/drivers/net/ethernet/pasemi/pasemi_mac.c
-> @@ -1716,6 +1716,7 @@ pasemi_mac_probe(struct pci_dev *pdev, const struct p=
-ci_device_id *ent)
->        err =3D -ENODEV;
->        goto out;
->    }
-> +    dma_set_mask(&mac->dma_pdev->dev, DMA_BIT_MASK(64));
->=20
->    mac->iob_pdev =3D pci_get_device(PCI_VENDOR_ID_PASEMI, 0xa001, NULL);
->    if (!mac->iob_pdev) {
+If there is no existing string it behaves exactly like
+dump_stack_set_arch_desc(). However if there is an existing string it
+appends to it, with a leading space.
+
+This makes it easy to call it multiple times from different parts of the
+code and get a reasonable looking result.
+
+Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+---
+ include/linux/printk.h |  5 ++++
+ lib/dump_stack.c       | 58 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 63 insertions(+)
+
+v3: No change, just widened Cc list.
+
+v2: Add a smp_wmb() and comment.
+
+v1 is here for reference https://lore.kernel.org/lkml/1430824337-15339-1-git-send-email-mpe@ellerman.id.au/
+
+I'll take this series via the powerpc tree if no one minds?
+
+
+diff --git a/include/linux/printk.h b/include/linux/printk.h
+index 77740a506ebb..d5fb4f960271 100644
+--- a/include/linux/printk.h
++++ b/include/linux/printk.h
+@@ -198,6 +198,7 @@ u32 log_buf_len_get(void);
+ void log_buf_vmcoreinfo_setup(void);
+ void __init setup_log_buf(int early);
+ __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...);
++__printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...);
+ void dump_stack_print_info(const char *log_lvl);
+ void show_regs_print_info(const char *log_lvl);
+ extern asmlinkage void dump_stack(void) __cold;
+@@ -256,6 +257,10 @@ static inline __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...)
+ {
+ }
+ 
++static inline __printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...)
++{
++}
++
+ static inline void dump_stack_print_info(const char *log_lvl)
+ {
+ }
+diff --git a/lib/dump_stack.c b/lib/dump_stack.c
+index 5cff72f18c4a..69b710ff92b5 100644
+--- a/lib/dump_stack.c
++++ b/lib/dump_stack.c
+@@ -35,6 +35,64 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
+ 	va_end(args);
+ }
+ 
++/**
++ * dump_stack_add_arch_desc - add arch-specific info to show with task dumps
++ * @fmt: printf-style format string
++ * @...: arguments for the format string
++ *
++ * See dump_stack_set_arch_desc() for why you'd want to use this.
++ *
++ * This version adds to any existing string already created with either
++ * dump_stack_set_arch_desc() or dump_stack_add_arch_desc(). If there is an
++ * existing string a space will be prepended to the passed string.
++ */
++void __init dump_stack_add_arch_desc(const char *fmt, ...)
++{
++	va_list args;
++	int pos, len;
++	char *p;
++
++	/*
++	 * If there's an existing string we snprintf() past the end of it, and
++	 * then turn the terminating NULL of the existing string into a space
++	 * to create one string separated by a space.
++	 *
++	 * If there's no existing string we just snprintf() to the buffer, like
++	 * dump_stack_set_arch_desc(), but without calling it because we'd need
++	 * a varargs version.
++	 */
++	len = strnlen(dump_stack_arch_desc_str, sizeof(dump_stack_arch_desc_str));
++	pos = len;
++
++	if (len)
++		pos++;
++
++	if (pos >= sizeof(dump_stack_arch_desc_str))
++		return; /* Ran out of space */
++
++	p = &dump_stack_arch_desc_str[pos];
++
++	va_start(args, fmt);
++	vsnprintf(p, sizeof(dump_stack_arch_desc_str) - pos, fmt, args);
++	va_end(args);
++
++	if (len) {
++		/*
++		 * Order the stores above in vsnprintf() vs the store of the
++		 * space below which joins the two strings. Note this doesn't
++		 * make the code truly race free because there is no barrier on
++		 * the read side. ie. Another CPU might load the uninitialised
++		 * tail of the buffer first and then the space below (rather
++		 * than the NULL that was there previously), and so print the
++		 * uninitialised tail. But the whole string lives in BSS so in
++		 * practice it should just see NULLs.
++		 */
++		smp_wmb();
++
++		dump_stack_arch_desc_str[len] = ' ';
++	}
++}
++
+ /**
+  * dump_stack_print_info - print generic debug info for dump_stack()
+  * @log_lvl: log level
+-- 
+2.20.1
