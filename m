@@ -1,7 +1,7 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 3/3] arch: move common mmap flags to linux/mman.h
-Date: Fri, 8 Feb 2019 01:03:00 -0500
-Message-ID: <20190124142448.23243-5-mst@redhat.com>
+Subject: [PATCH 2/2] arch: move common mmap flags to linux/mman.h
+Date: Fri, 8 Feb 2019 01:02:55 -0500
+Message-ID: <20190124142448.23243-3-mst@redhat.com>
 References: <20190124142448.23243-1-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
