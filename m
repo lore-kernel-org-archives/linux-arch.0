@@ -1,52 +1,38 @@
-From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
-Subject: Re: [PATCH v3 1/7] dump_stack: Support adding to the dump stack arch
- description
-Date: Fri, 8 Feb 2019 11:01:37 +0900
-Message-ID: <20190208020137.GA22600@jagdpanzerIV>
-References: <20190207124635.3885-1-mpe@ellerman.id.au>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH 0/3] generic asm: mman cleanup
+Date: Fri, 8 Feb 2019 01:02:51 -0500
+Message-ID: <20190124142448.23243-1-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190207124635.3885-1-mpe@ellerman.id.au>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@ozlabs.org, akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com, Steven Rostedt <rostedt@goodmis.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Cc-ing Steven
+Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
+architectures, it probably makes sense to de-duplicate these
+and put them into a common header.
 
-  https://lore.kernel.org/lkml/20190207124635.3885-1-mpe@ellerman.id.au/T/#u
+Please review and consider merging though the generic tree.
 
-On (02/07/19 23:46), Michael Ellerman wrote:
-> Arch code can set a "dump stack arch description string" which is
-> displayed with oops output to describe the hardware platform.
-> 
-> It is useful to initialise this as early as possible, so that an early
-> oops will have the hardware description.
-> 
-> However in practice we discover the hardware platform in stages, so it
-> would be useful to be able to incrementally fill in the hardware
-> description as we discover it.
-> 
-> This patch adds that ability, by creating dump_stack_add_arch_desc().
-> 
-> If there is no existing string it behaves exactly like
-> dump_stack_set_arch_desc(). However if there is an existing string it
-> appends to it, with a leading space.
-> 
-> This makes it easy to call it multiple times from different parts of the
-> code and get a reasonable looking result.
-> 
-> Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+Build tested on x86 only. Has been in linux-next for a while now.
 
-You probably can have a __init buffer somewhere in ppc code, append
-data to it, step by step, and call dump_stack_set_arch_desc() all
-the time.
+Michael S. Tsirkin (3):
+  x86/mpx: tweak header name
+  drm: tweak header name
+  arch: move common mmap flags to linux/mman.h
 
-But no real objections; dump_stack_add_arch_desc() can do.
+ arch/alpha/include/uapi/asm/mman.h     | 4 +---
+ arch/mips/include/uapi/asm/mman.h      | 4 +---
+ arch/parisc/include/uapi/asm/mman.h    | 4 +---
+ arch/x86/mm/mpx.c                      | 2 +-
+ arch/xtensa/include/uapi/asm/mman.h    | 4 +---
+ include/drm/drmP.h                     | 3 +--
+ include/uapi/asm-generic/mman-common.h | 4 +---
+ include/uapi/linux/mman.h              | 4 ++++
+ 8 files changed, 11 insertions(+), 18 deletions(-)
 
-FWIW,
-Reviewed-by: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-
-	-ss
+-- 
+MST
