@@ -1,98 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52024 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726601AbfBHUbX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Feb 2019 15:31:23 -0500
-Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
- rwsem features
-References: <1549566446-27967-1-git-send-email-longman@redhat.com>
- <CAHk-=wjfyrFBjifzmgMVrkrvEePEPaBTDq7D=f2i5kD2E=SqRQ@mail.gmail.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <d7476dfb-1653-747b-b865-5597ba5fc1c1@redhat.com>
-Date: Fri, 8 Feb 2019 15:31:18 -0500
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:43209 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727210AbfBHVTL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2019 16:19:11 -0500
+Received: by mail-qk1-f194.google.com with SMTP id f196so2519788qke.10
+        for <linux-arch@vger.kernel.org>; Fri, 08 Feb 2019 13:19:11 -0800 (PST)
+Date: Fri, 8 Feb 2019 16:19:07 -0500
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 0/3] generic asm: mman cleanup
+Message-ID: <20190208161820-mutt-send-email-mst@kernel.org>
+References: <20190124142448.23243-1-mst@redhat.com>
+ <20190208181246.GF11096@rapoport-lnx>
 MIME-Version: 1.0
-In-Reply-To: <CAHk-=wjfyrFBjifzmgMVrkrvEePEPaBTDq7D=f2i5kD2E=SqRQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190208181246.GF11096@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190208203118.fNubA2MoMLJ34lhuL4iByMcd7Gf7B-fw4JXK9XberxI@z>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190208211907.poEkInMbuKZ7162YhkKNweeSpqDMGgH579_KprKUKM8@z>
 
-On 02/08/2019 02:50 PM, Linus Torvalds wrote:
-> On Thu, Feb 7, 2019 at 11:08 AM Waiman Long <longman@redhat.com> wrote:
->> This patchset revamps the current rwsem-xadd implementation to make
->> it saner and easier to work with. This patchset removes all the
->> architecture specific assembly code and uses generic C code for all
->> architectures. This eases maintenance and enables us to enhance the
->> code more easily.
->>
->> This patchset also implements the following 3 new features:
->>
->>  1) Waiter lock handoff
->>  2) Reader optimistic spinning
->>  3) Store write-lock owner in the atomic count (x86-64 only)
-> The patches are kind of hard to read, with most of them just doing
-> prep-work that doesn't necessarily matter to the big picture.
->
-> What I'd really like to see is
->
->  (a) an overview of the new locking logic
+On Fri, Feb 08, 2019 at 08:12:47PM +0200, Mike Rapoport wrote:
+> On Fri, Feb 08, 2019 at 01:02:51AM -0500, Michael S. Tsirkin wrote:
+> > Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
+> > architectures, it probably makes sense to de-duplicate these
+> > and put them into a common header.
+> 
+> I like the idea, but it seems there are more asm/mman.h users than just mpx
+> and drm.
+> 
+> Any reason only those were updated to include linux/mman.h?
 
-The new locking logic is similar to qrwlock (see patch 11). Cmpxchg is
-used to acquire the write lock, while xadd is still used for read lock.
-Some of the bits in the count are also reserved for special purpose like
-has waiter or lock handoff. Patch 15 tries to compress the write-lock
-owner task pointer and put it into the count field for x86-64 at the
-expense of less bits available for reader count. I have sent out an
-additional patch this morning to make sure that the reader count won't
-overflow.
 
-In term of performance, there isn't much change with respect to
-read-lock performance. For write-lock, I saw a slight drop in some
-cases, but nothing significant. The merging of owner task pointer into
-the count field does impose a slightly bigger drop than I would have
-liked which I am going to look into a bit more.
+They are all .c files. So since they keep building I know
+nothing else will break. Fixing them would be an unrelated
+cleanup.
 
->
->  (b) what's the new fastpath case
 
-The only change in the fastpath is the use of cmpxchg for writer lock.
 
->
->  (c) some performance numbers
-
-There are performance data at patches 11, 12, 15, 19, 20, 21. There was
-performance data for patch 4 as well for eliminating the arch specific
-file. Apparently, I might have deleted it accidentally. Anyway, no
-noticeable performance difference was observed when switching to use
-generic C code for x86, ppc and ARM64.
-
-The major gain in performance is due to reader optimistic spinning
-patches. The microbenchmark that I used shown an order of magnitude of
-performance improvement for mixed reader-writer workloads. Of course, we
-will see less performance gain with real world benchmarks.
-
-I am planning to run more performance test and post the data sometimes
-next week. Davidlohr is also going to run some of his rwsem performance
-test on this patchset.
-
->
-> to explain the changes from a "this is the point of the whole
-> exercise" standpoint.
->
-> And yes, I realize that the lock handoff and optimistic spinning is a
-> big deal, since I've seen the same regression numbers that presumably
-> caused this effort to be resurrected. So it's not that I don't find
-> this intriguing and worthwhile, it's literally that I'd like a summary
-> not so much of the individual patches, but of the new model.
->
-> Please?
-
-Maybe I should break this patchset into a few smaller ones to make it
-easier to review. Any suggestion is welcome.
-
-Cheers,
-Longman
+>  
+> > Please review and consider merging though the generic tree.
+> > 
+> > Build tested on x86 only. Has been in linux-next for a while now.
+> > 
+> > Michael S. Tsirkin (3):
+> >   x86/mpx: tweak header name
+> >   drm: tweak header name
+> >   arch: move common mmap flags to linux/mman.h
+> > 
+> >  arch/alpha/include/uapi/asm/mman.h     | 4 +---
+> >  arch/mips/include/uapi/asm/mman.h      | 4 +---
+> >  arch/parisc/include/uapi/asm/mman.h    | 4 +---
+> >  arch/x86/mm/mpx.c                      | 2 +-
+> >  arch/xtensa/include/uapi/asm/mman.h    | 4 +---
+> >  include/drm/drmP.h                     | 3 +--
+> >  include/uapi/asm-generic/mman-common.h | 4 +---
+> >  include/uapi/linux/mman.h              | 4 ++++
+> >  8 files changed, 11 insertions(+), 18 deletions(-)
+> > 
+> > -- 
+> > MST
+> > 
+> 
+> -- 
+> Sincerely yours,
+> Mike.
