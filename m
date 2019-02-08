@@ -1,42 +1,37 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 1/3] x86/mpx: tweak header name
-Date: Fri, 8 Feb 2019 01:02:53 -0500
-Message-ID: <20190124142448.23243-2-mst@redhat.com>
+Subject: [PATCH 2/3] drm: tweak header name
+Date: Fri, 8 Feb 2019 01:02:58 -0500
+Message-ID: <20190124142448.23243-4-mst@redhat.com>
 References: <20190124142448.23243-1-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
 Content-Disposition: inline
 In-Reply-To: <20190124142448.23243-1-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Maxime Ripard <maxime.ripard@bootlin.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Sean Paul <sean@poorly.run>
 List-Id: linux-arch.vger.kernel.org
 
-Use linux/mman.h to make sure we get all mmap flags we need.
-
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- arch/x86/mm/mpx.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
-index de1851d15699..c805db6236b4 100644
---- a/arch/x86/mm/mpx.c
-+++ b/arch/x86/mm/mpx.c
-@@ -9,12 +9,12 @@
- #include <linux/kernel.h>
- #include <linux/slab.h>
- #include <linux/mm_types.h>
-+#include <linux/mman.h>
- #include <linux/syscalls.h>
- #include <linux/sched/sysctl.h>
- 
- #include <asm/insn.h>
- #include <asm/insn-eval.h>
--#include <asm/mman.h>
- #include <asm/mmu_context.h>
- #include <asm/mpx.h>
- #include <asm/processor.h>
--- 
-MST
+VXNlIGxpbnV4L21tYW4uaCB0byBtYWtlIHN1cmUgd2UgZ2V0IGFsbCBtbWFwIGZsYWdzIHdlIG5l
+ZWQuCgpTaWduZWQtb2ZmLWJ5OiBNaWNoYWVsIFMuIFRzaXJraW4gPG1zdEByZWRoYXQuY29tPgot
+LS0KIGluY2x1ZGUvZHJtL2RybVAuaCB8IDMgKy0tCiAxIGZpbGUgY2hhbmdlZCwgMSBpbnNlcnRp
+b24oKyksIDIgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvaW5jbHVkZS9kcm0vZHJtUC5oIGIv
+aW5jbHVkZS9kcm0vZHJtUC5oCmluZGV4IGJkYjBkNTU0OGYzOS4uYTMxODQ0MTZkZGM1IDEwMDY0
+NAotLS0gYS9pbmNsdWRlL2RybS9kcm1QLmgKKysrIGIvaW5jbHVkZS9kcm0vZHJtUC5oCkBAIC01
+Nyw4ICs1Nyw3IEBACiAjaW5jbHVkZSA8bGludXgvd29ya3F1ZXVlLmg+CiAjaW5jbHVkZSA8bGlu
+dXgvZG1hLWZlbmNlLmg+CiAjaW5jbHVkZSA8bGludXgvbW9kdWxlLmg+Ci0KLSNpbmNsdWRlIDxh
+c20vbW1hbi5oPgorI2luY2x1ZGUgPGxpbnV4L21tYW4uaD4KICNpbmNsdWRlIDxhc20vcGdhbGxv
+Yy5oPgogI2luY2x1ZGUgPGxpbnV4L3VhY2Nlc3MuaD4KIAotLSAKTVNUCgpfX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpkcmktZGV2ZWwgbWFpbGluZyBsaXN0
+CmRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVlZGVza3Rv
+cC5vcmcvbWFpbG1hbi9saXN0aW5mby9kcmktZGV2ZWwK
