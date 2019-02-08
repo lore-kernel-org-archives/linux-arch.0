@@ -1,73 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36620 "EHLO mx1.redhat.com"
+Received: from mail.skyhub.de ([5.9.137.197]:40388 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726641AbfBHOTt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Feb 2019 09:19:49 -0500
-Subject: Re: [PATCH-tip 15/22] locking/rwsem: Merge owner into count on x86-64
-From: Waiman Long <longman@redhat.com>
-References: <1549566446-27967-1-git-send-email-longman@redhat.com>
- <1549566446-27967-16-git-send-email-longman@redhat.com>
- <20190207200848.GH32477@hirez.programming.kicks-ass.net>
- <d157be4f-fbbe-4541-439b-7f6ab3b1dbdc@redhat.com>
-Message-ID: <71f2a774-4ae7-2f8f-cb99-3c722a23323f@redhat.com>
-Date: Fri, 8 Feb 2019 09:19:44 -0500
+        id S1727411AbfBHPmq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Feb 2019 10:42:46 -0500
+Date: Fri, 8 Feb 2019 16:42:39 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH 1/3] x86/mpx: tweak header name
+Message-ID: <20190208154239.GI674@zn.tnic>
+References: <20190124142448.23243-1-mst@redhat.com>
+ <20190124142448.23243-2-mst@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <d157be4f-fbbe-4541-439b-7f6ab3b1dbdc@redhat.com>
-Content-Type: multipart/mixed;
- boundary="------------044906BC29EDC2231BFC9A7F"
-Content-Language: en-US
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20190124142448.23243-2-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190208141944.3pw3mNCc7bT6xva3BadLuCyNIznRsK5xehKz7lB2jqs@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20190208154239.Xegm_F6KLJT63bSH3jcbwxC8Q2djHb7n6q7BifM1CoE@z>
 
-This is a multi-part message in MIME format.
---------------044906BC29EDC2231BFC9A7F
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+On Fri, Feb 08, 2019 at 01:02:53AM -0500, Michael S. Tsirkin wrote:
+> Use linux/mman.h to make sure we get all mmap flags we need.
 
-On 02/07/2019 03:54 PM, Waiman Long wrote:
-> On 02/07/2019 03:08 PM, Peter Zijlstra wrote:
->> On Thu, Feb 07, 2019 at 02:07:19PM -0500, Waiman Long wrote:
->>> On 32-bit architectures, there aren't enough bits to hold both.
->>> 64-bit architectures, however, can have enough bits to do that. For
->>> x86-64, the physical address can use up to 52 bits. That is 4PB of
->>> memory. That leaves 12 bits available for other use. The task structure
->>> pointer is also aligned to the L1 cache size. That means another 6 bits
->>> (64 bytes cacheline) will be available. Reserving 2 bits for status
->>> flags, we will have 16 bits for the reader count.  That can supports
->>> up to (64k-1) readers.
->> 64k readers sounds like a number that is fairly 'easy' to reach, esp. on
->> 64bit. These are preemptible locks after all, all we need to do is get
->> 64k tasks nested on enough CPUs.
->>
->> I'm sure there's some willing Java proglet around that spawns more than
->> 64k threads just because it can. Run it on a big enough machine (ISTR
->> there's a number of >1k CPU systems out there) and voila.
-> Yes, that can be a problem.
->
-> One possible solution is to check if the count goes negative. If so,
-> fail the read lock and make the readers wait in the wait queue until the
-> count is in positive territory. That effectively reduces the reader
-> count to 15 bits, but it will avoid the overflow situation. I will try
-> to add that support into the next version.
->
-> Cheers,
-> Longman
+Why, asm/mman.h is not enough or is this fixing a build issue or what is that
+patch supposed to address?
 
-Something like the attached patch.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
+>  arch/x86/mm/mpx.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/mm/mpx.c b/arch/x86/mm/mpx.c
+> index de1851d15699..c805db6236b4 100644
+> --- a/arch/x86/mm/mpx.c
+> +++ b/arch/x86/mm/mpx.c
+> @@ -9,12 +9,12 @@
+>  #include <linux/kernel.h>
+>  #include <linux/slab.h>
+>  #include <linux/mm_types.h>
+> +#include <linux/mman.h>
+>  #include <linux/syscalls.h>
+>  #include <linux/sched/sysctl.h>
+>  
+>  #include <asm/insn.h>
+>  #include <asm/insn-eval.h>
+> -#include <asm/mman.h>
+>  #include <asm/mmu_context.h>
+>  #include <asm/mpx.h>
+>  #include <asm/processor.h>
+> -- 
 
-Cheers,
-Longman
+Thx.
 
---------------044906BC29EDC2231BFC9A7F
-Content-Type: text/x-patch;
- name="0023-locking-rwsem-Make-MSbit-of-count-as-guard-bit-to-fa.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename*0="0023-locking-rwsem-Make-MSbit-of-count-as-guard-bit-to-fa.pa";
- filename*1="tch"
+-- 
+Regards/Gruss,
+    Boris.
 
-
---------------044906BC29EDC2231BFC9A7F--
+Good mailing practices for 400: avoid top-posting and trim the reply.
