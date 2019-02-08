@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:46580 "EHLO
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:45664 "EHLO
         mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727084AbfBHGC6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2019 01:02:58 -0500
-Received: by mail-qk1-f194.google.com with SMTP id q1so1433106qkf.13
-        for <linux-arch@vger.kernel.org>; Thu, 07 Feb 2019 22:02:58 -0800 (PST)
-Date: Fri, 8 Feb 2019 01:02:55 -0500
+        with ESMTP id S1727194AbfBHGDD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2019 01:03:03 -0500
+Received: by mail-qk1-f194.google.com with SMTP id y78so1438610qka.12
+        for <linux-arch@vger.kernel.org>; Thu, 07 Feb 2019 22:03:02 -0800 (PST)
+Date: Fri, 8 Feb 2019 01:03:00 -0500
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 2/2] arch: move common mmap flags to linux/mman.h
-Message-ID: <20190124142448.23243-3-mst@redhat.com>
+Subject: [PATCH 3/3] arch: move common mmap flags to linux/mman.h
+Message-ID: <20190124142448.23243-5-mst@redhat.com>
 References: <20190124142448.23243-1-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -18,7 +18,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org
-Message-ID: <20190208060255.8uH4Iq5Z2zxZ0aebhUn-T0RYjW8gkWDcCdn-e2YMoj0@z>
+Message-ID: <20190208060300.LBFkpIMZ9IZtwNj_ctFl2WcypOZshhURKXDHM4C3LbE@z>
 
 Now that we have 3 mmap flags shared by all architectures,
 let's move them into the common header.
