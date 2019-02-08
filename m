@@ -1,46 +1,52 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-Date: Fri, 8 Feb 2019 20:30:25 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1902082029240.1662@nanos.tec.linutronix.de>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
- <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
- <20190208173539.GD24375@fuggles.cambridge.arm.com>
- <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
+Date: Fri, 8 Feb 2019 11:50:40 -0800
+Message-ID: <CAHk-=wjfyrFBjifzmgMVrkrvEePEPaBTDq7D=f2i5kD2E=SqRQ@mail.gmail.com>
+References: <1549566446-27967-1-git-send-email-longman@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1549566446-27967-1-git-send-email-longman@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <longman@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 8 Feb 2019, Thomas Gleixner wrote:
-> Will,
-> 
-> On Fri, 8 Feb 2019, Will Deacon wrote:
-> > On Fri, Dec 07, 2018 at 05:53:21PM +0000, Will Deacon wrote:
-> > > Anyway, moving the counter read into the protected region is a little fiddly
-> > > because the memory barriers we have in there won't give us the ordering we
-> > > need. We'll instead need to do something nasty, like create a dependency
-> > > from the counter read to the read of the seqlock:
-> > > 
-> > > Maybe the untested crufty hack below, although this will be a nightmare to
-> > > implement in C.
+On Thu, Feb 7, 2019 at 11:08 AM Waiman Long <longman@redhat.com> wrote:
+>
+> This patchset revamps the current rwsem-xadd implementation to make
+> it saner and easier to work with. This patchset removes all the
+> architecture specific assembly code and uses generic C code for all
+> architectures. This eases maintenance and enables us to enhance the
+> code more easily.
+>
+> This patchset also implements the following 3 new features:
+>
+>  1) Waiter lock handoff
+>  2) Reader optimistic spinning
+>  3) Store write-lock owner in the atomic count (x86-64 only)
 
-How is the in kernel ktime_get() correctness guaranteed then?
+The patches are kind of hard to read, with most of them just doing
+prep-work that doesn't necessarily matter to the big picture.
 
-Thanks,
+What I'd really like to see is
 
-	tglx
+ (a) an overview of the new locking logic
+
+ (b) what's the new fastpath case
+
+ (c) some performance numbers
+
+to explain the changes from a "this is the point of the whole
+exercise" standpoint.
+
+And yes, I realize that the lock handoff and optimistic spinning is a
+big deal, since I've seen the same regression numbers that presumably
+caused this effort to be resurrected. So it's not that I don't find
+this intriguing and worthwhile, it's literally that I'd like a summary
+not so much of the individual patches, but of the new model.
+
+Please?
+
+             Linus
