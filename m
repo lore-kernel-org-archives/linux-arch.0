@@ -1,38 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:45379 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727209AbfBHTa2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2019 14:30:28 -0500
-Date: Fri, 8 Feb 2019 20:30:25 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-In-Reply-To: <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
-Message-ID: <alpine.DEB.2.21.1902082029240.1662@nanos.tec.linutronix.de>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com> <20181129170530.37789-7-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de> <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
- <20190208173539.GD24375@fuggles.cambridge.arm.com> <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
+Received: from mail.skyhub.de ([5.9.137.197]:60362 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726211AbfBHTxb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Feb 2019 14:53:31 -0500
+Date: Fri, 8 Feb 2019 20:53:24 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 04/28] x86/asm: annotate relocate_kernel
+Message-ID: <20190208195324.GM674@zn.tnic>
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-5-jslaby@suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20190130124711.12463-5-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>
-Message-ID: <20190208193025.P-KrWzBzBwnxg9qWSZw5uwfwS1y9WgVx1Ml-bHSgSMc@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20190208195324.OuZdo7q8rIgyTPIM7qjh8o41GEm6bOOTTuzmnhwsYxw@z>
 
-On Fri, 8 Feb 2019, Thomas Gleixner wrote:
-> Will,
+On Wed, Jan 30, 2019 at 01:46:47PM +0100, Jiri Slaby wrote:
+> There are functions in relocate_kernel which are not annotated. This
+> makes automatic annotations rather hard. So annotate all the functions
+> now.
 > 
-> On Fri, 8 Feb 2019, Will Deacon wrote:
-> > On Fri, Dec 07, 2018 at 05:53:21PM +0000, Will Deacon wrote:
-> > > Anyway, moving the counter read into the protected region is a little fiddly
-> > > because the memory barriers we have in there won't give us the ordering we
-> > > need. We'll instead need to do something nasty, like create a dependency
-> > > from the counter read to the read of the seqlock:
-> > > 
-> > > Maybe the untested crufty hack below, although this will be a nightmare to
-> > > implement in C.
+> Note that these are not C-like functions, so we do not use FUNC, but
+> CODE markers. Also they are not aligned, so we use the NOALIGN versions:
+> - SYM_CODE_START_NOALIGN
+> - SYM_CODE_START_LOCAL_NOALIGN
+> - SYM_CODE_END
+> 
+> In return, we get:
+>   0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
+>   006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
+>   0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
+>   0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
 
-How is the in kernel ktime_get() correctness guaranteed then?
+Err, if those last three are local symbols, you can simply remove them
+from the symtable by making them a local labels. Partial diff ontop of
+yours:
 
-Thanks,
+---
+diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
+index beb78767a5b3..e15033ce246f 100644
+--- a/arch/x86/kernel/relocate_kernel_64.S
++++ b/arch/x86/kernel/relocate_kernel_64.S
+@@ -101,12 +101,12 @@ SYM_CODE_START_NOALIGN(relocate_kernel)
+ 	lea	PAGE_SIZE(%r8), %rsp
+ 
+ 	/* jump to identity mapped page */
+-	addq	$(identity_mapped - relocate_kernel), %r8
++	addq	$(.Lidentity_mapped - relocate_kernel), %r8
+ 	pushq	%r8
+ 	ret
+ SYM_CODE_END(relocate_kernel)
+ 
+-SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
++.Lidentity_mapped:
+ 	/* set return address to 0 if not preserving context */
+ 	pushq	$0
+ 	/* store the start address on the stack */
+@@ -155,7 +155,7 @@ SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
+ 1:
+ 
+ 	movq	%rcx, %r11
+-	call	swap_pages
++	call	.Lswap_pages
+ 
+ 	/*
+ 	 * To be certain of avoiding problems with self-modifying code
+@@ -207,13 +207,12 @@ SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
+ 	movq	CP_PA_TABLE_PAGE(%r8), %rax
+ 	movq	%rax, %cr3
+ 	lea	PAGE_SIZE(%r8), %rsp
+-	call	swap_pages
+-	movq	$virtual_mapped, %rax
++	call	.Lswap_pages
++	movq	$.Lvirtual_mapped, %rax
+ 	pushq	%rax
+ 	ret
+-SYM_CODE_END(identity_mapped)
+ 
+-SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
++.Lvirtual_mapped:
+ 	movq	RSP(%r8), %rsp
+ 	movq	CR4(%r8), %rax
+ 	movq	%rax, %cr4
+@@ -231,10 +230,9 @@ SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
+ 	popq	%rbp
+ 	popq	%rbx
+ 	ret
+-SYM_CODE_END(virtual_mapped)
+ 
+ 	/* Do the copies */
+-SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
++.Lswap_pages:
+ 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
+ 	xorl	%edi, %edi
+ 	xorl	%esi, %esi
+@@ -287,7 +285,6 @@ SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
+ 	jmp	0b
+ 3:
+ 	ret
+-SYM_CODE_END(swap_pages)
+ 
+ 	.globl kexec_control_code_size
+ .set kexec_control_code_size, . - relocate_kernel
 
-	tglx
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
