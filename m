@@ -1,119 +1,97 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v3 1/7] dump_stack: Support adding to the dump stack arch
- description
-Date: Fri, 8 Feb 2019 13:55:15 -0500
-Message-ID: <20190208185515.r6vkrezbd3odhpxt@home.goodmis.org>
-References: <20190207124635.3885-1-mpe@ellerman.id.au>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Date: Fri, 8 Feb 2019 20:28:07 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+ <20181129170530.37789-7-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
+ <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
+ <20190208173539.GD24375@fuggles.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190207124635.3885-1-mpe@ellerman.id.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@ozlabs.org, akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, pmladek@suse.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190208173539.GD24375@fuggles.cambridge.arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 07, 2019 at 11:46:29PM +1100, Michael Ellerman wrote:
+Will,
+
+On Fri, 8 Feb 2019, Will Deacon wrote:
+> On Fri, Dec 07, 2018 at 05:53:21PM +0000, Will Deacon wrote:
+> > Anyway, moving the counter read into the protected region is a little fiddly
+> > because the memory barriers we have in there won't give us the ordering we
+> > need. We'll instead need to do something nasty, like create a dependency
+> > from the counter read to the read of the seqlock:
+> > 
+> > Maybe the untested crufty hack below, although this will be a nightmare to
+> > implement in C.
 > 
-> diff --git a/include/linux/printk.h b/include/linux/printk.h
-> index 77740a506ebb..d5fb4f960271 100644
-> --- a/include/linux/printk.h
-> +++ b/include/linux/printk.h
-> @@ -198,6 +198,7 @@ u32 log_buf_len_get(void);
->  void log_buf_vmcoreinfo_setup(void);
->  void __init setup_log_buf(int early);
->  __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...);
-> +__printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...);
->  void dump_stack_print_info(const char *log_lvl);
->  void show_regs_print_info(const char *log_lvl);
->  extern asmlinkage void dump_stack(void) __cold;
-> @@ -256,6 +257,10 @@ static inline __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...)
->  {
->  }
->  
-> +static inline __printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...)
-> +{
-> +}
-> +
->  static inline void dump_stack_print_info(const char *log_lvl)
->  {
->  }
-> diff --git a/lib/dump_stack.c b/lib/dump_stack.c
-> index 5cff72f18c4a..69b710ff92b5 100644
-> --- a/lib/dump_stack.c
-> +++ b/lib/dump_stack.c
-> @@ -35,6 +35,64 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
->  	va_end(args);
->  }
->  
-> +/**
-> + * dump_stack_add_arch_desc - add arch-specific info to show with task dumps
-> + * @fmt: printf-style format string
-> + * @...: arguments for the format string
-> + *
-> + * See dump_stack_set_arch_desc() for why you'd want to use this.
-> + *
-> + * This version adds to any existing string already created with either
-> + * dump_stack_set_arch_desc() or dump_stack_add_arch_desc(). If there is an
-> + * existing string a space will be prepended to the passed string.
-> + */
-> +void __init dump_stack_add_arch_desc(const char *fmt, ...)
-> +{
-> +	va_list args;
-> +	int pos, len;
-> +	char *p;
-> +
-> +	/*
-> +	 * If there's an existing string we snprintf() past the end of it, and
-> +	 * then turn the terminating NULL of the existing string into a space
-> +	 * to create one string separated by a space.
-> +	 *
-> +	 * If there's no existing string we just snprintf() to the buffer, like
-> +	 * dump_stack_set_arch_desc(), but without calling it because we'd need
-> +	 * a varargs version.
-> +	 */
-> +	len = strnlen(dump_stack_arch_desc_str, sizeof(dump_stack_arch_desc_str));
-> +	pos = len;
-> +
-> +	if (len)
-> +		pos++;
-> +
-> +	if (pos >= sizeof(dump_stack_arch_desc_str))
-> +		return; /* Ran out of space */
-> +
-> +	p = &dump_stack_arch_desc_str[pos];
-> +
-> +	va_start(args, fmt);
-> +	vsnprintf(p, sizeof(dump_stack_arch_desc_str) - pos, fmt, args);
-> +	va_end(args);
-> +
-> +	if (len) {
-> +		/*
-> +		 * Order the stores above in vsnprintf() vs the store of the
-> +		 * space below which joins the two strings. Note this doesn't
-> +		 * make the code truly race free because there is no barrier on
-> +		 * the read side. ie. Another CPU might load the uninitialised
-> +		 * tail of the buffer first and then the space below (rather
-> +		 * than the NULL that was there previously), and so print the
-> +		 * uninitialised tail. But the whole string lives in BSS so in
-> +		 * practice it should just see NULLs.
-> +		 */
-> +		smp_wmb();
+> We discussed this in person this week, but you couldn't recall the details
+> off the top of your head so I'm replying here. Please could you clarify what
+> your concern was with the existing code, and whether or not I've got the
+> wrong end of the stick?
 
-This shows me that this can be called at a time when more than one CPU is
-active. What happens if we have two CPUs calling dump_stack_add_arch_desc() at
-the same time? Can't that corrupt the dump_stack_arch_desc_str?
+If you just collect the variables under the seqcount protection and have
+the readout of the timer outside of it then you are not guaranteeing
+consistent state.
 
--- Steve
+The problem is:
 
-> +
-> +		dump_stack_arch_desc_str[len] = ' ';
-> +	}
-> +}
-> +
->  /**
->   * dump_stack_print_info - print generic debug info for dump_stack()
->   * @log_lvl: log level
-> -- 
-> 2.20.1
+	do {
+		seq = read_seqcount_begin(d->seq);
+		last = d->cycle_last;
+		mult = d->mult;
+		shift = d->shift;
+		ns = d->ns_base;
+	while (read_seqcount_retry(d->seq, seq));
+
+	ns += ((read_clock() - last) * mult);
+	ns >>= shift;
+
+So on the first glance this looks consistent because you collect all data
+and then do the read and calc outside the loop.
+
+But if 'd->mult' gets updated _before_ read_clock() then you can run into a
+situation where time goes backwards with the next read.
+
+Here is the flow you need for that:
+
+t1 = gettime()
+     {
+	collect_data()
+
+     ---> Interrupt, updates mult (mult becomes smaller)
+
+     	  This can expand over a very long time when the task is scheduled
+     	  out here and there are multiple updates in between. The farther
+     	  out the read is delayed, the more likely the problem is going to
+     	  observable.
+
+     	read_clock_and_calc()
+     }
+
+t2 = gettime()
+     {
+	collect_data()
+     	read_clock_and_calc()
+     }
+
+This second read uses updated data, i.e. the smaller mult. So depending on
+the distance of the two reads and the difference of the mult, the caller
+can observe t2 < t1, which is a NONO. You can observe it on a single
+CPU. No virt, SMP, migration needed at all.
+
+Thanks,
+
+	tglx
