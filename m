@@ -1,54 +1,35 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
- rwsem features
-Date: Fri, 8 Feb 2019 16:03:43 -0800
-Message-ID: <CAHk-=whzAGRJQE43NHaC8sCECLr-QnpHYst+TJq-qhfp9eK-Qw@mail.gmail.com>
-References: <1549566446-27967-1-git-send-email-longman@redhat.com>
- <CAHk-=wjfyrFBjifzmgMVrkrvEePEPaBTDq7D=f2i5kD2E=SqRQ@mail.gmail.com>
- <d7476dfb-1653-747b-b865-5597ba5fc1c1@redhat.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and
+	SO_SNDTIMEO_NEW
+Date: Fri, 8 Feb 2019 17:44:34 -0800
+Message-ID: <CABeXuvqpexo4g7xQihKPoOd4ce4rLq0Agy-jYMELYvOAnqmXJA@mail.gmail.com>
+References: <20190202153454.7121-1-deepa.kernel@gmail.com>
+ <20190202153454.7121-13-deepa.kernel@gmail.com>
+ <87r2clku4j.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <d7476dfb-1653-747b-b865-5597ba5fc1c1@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Davidlohr Bueso <dave@stgolabs.net>, linux-ia64@vger.kernel.org, Tim Chen <tim.c.chen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-hexagon@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <87r2clku4j.fsf@concordia.ellerman.id.au>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Helge Deller <deller@gmx.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@vger.kernel.org, cluster-devel <cluster-devel@redhat.com>, ccaulfie@redhat.com, Paul Mackerras <paulus@samba.org>, linux-alpha@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 8, 2019 at 12:31 PM Waiman Long <longman@redhat.com> wrote:
->
-> >  (b) what's the new fastpath case
->
-> The only change in the fastpath is the use of cmpxchg for writer lock.
-
-.. since a big deal here was about using the generic atomic accessor
-functions, I really was looking forward to seeing the *actual* fast
-path code generation.
-
-In other words, right now I have very little visibility in how it
-actually affects the code. Looking at the patches themselves doesn't
-make it obvious. I was hoping for the overview to really explain the
-whole "before and after" situation, and it didn't. Not at the high
-level, and not at a low level. And no performance numbers in the
-overview either.
-
-And yes, I see the numbers in the patches, but what I really hoped for
-was some real load numbers. In particular, I would have loved to see
-numbers from th ekernel test robot "will-it-scale.per_thread_ops"
-case, which is the one that had a 65% regression due to the lack of
-reader spinning.
-
-So I was kind of hoping to hear whether that regression is basically
-entirely gone with this patch series, or if we still have a regression
-due to the extra downgrade, or what?
-
-                 Linus
+PiBZb3UgdG91Y2hlZCBwb3dlcnBjIGluIHRoZSBwcmV2aW91cyBwYXRjaCBidXQgbm90IHRoaXMg
+b25lLgo+Cj4gVGhhdCdzIGJlY2F1c2Ugd2UgdXNlIHRoZSBhc20tZ2VuZXJpYyB2ZXJzaW9uIEkg
+YXNzdW1lLgoKVGhhdCBpcyBjb3JyZWN0LgoKPiBXb3VsZCBiZSBnb29kIHRvIG1lbnRpb24gaW4g
+dGhlIGNoYW5nZSBsb2cgdGhvdWdoIHRvIGF2b2lkIGFueSBjb25mdXNpb24uCgpJJ20gbm90IHN1
+cmUgaG93IHRvIGRvIHRoYXQgbm93LiBJdCBsb29rcyBsaWtlIHRoZSBzZXJpZXMgaGFzIGFscmVh
+ZHkKYmVlbiBhcHBsaWVkIHRvIG5ldC1uZXh0IHdpdGggYSBjb3VwbGUgb2YgbWVyZ2UgY29uZmxp
+Y3RzIGZpeGVkLgoKLURlZXBhCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBz
+Oi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
