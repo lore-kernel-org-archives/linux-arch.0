@@ -1,102 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr130081.outbound.protection.outlook.com ([40.107.13.81]:65113
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726102AbfBJPnX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 10 Feb 2019 10:43:23 -0500
-From: Ran Rozenstein <ranro@mellanox.com>
-Subject: RE: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
-Date: Sun, 10 Feb 2019 15:43:16 +0000
-Message-ID: <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
-References: <20190202153454.7121-1-deepa.kernel@gmail.com>
- <20190202153454.7121-10-deepa.kernel@gmail.com>
-In-Reply-To: <20190202153454.7121-10-deepa.kernel@gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Received: from Galois.linutronix.de ([146.0.238.70]:37315 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725958AbfBJU1F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 15:27:05 -0500
+Date: Sun, 10 Feb 2019 21:27:01 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [GIT PULL 1/2] arch: System call unification and cleanup
+In-Reply-To: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.1902102125410.8784@nanos.tec.linutronix.de>
+References: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20190210154316.Ak7d1t7N_c4HK9UOn2Rtr014Nf5Pyo0pB36T5WGgMJc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190210202701.xRxwybepKShoxtqDJ-CscnXkmnO0OanaKr7MfvOn0YI@z>
 
-> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
->=20
-> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
-> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
-> architectures.
->=20
-> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-> Acked-by: Willem de Bruijn <willemb@google.com>
+On Sat, 9 Feb 2019, Arnd Bergmann wrote:
 
+> The following changes since commit 1c7fc5cbc33980acd13d668f1c8f0313d6ae9fd8:
+> 
+>   Linux 5.0-rc2 (2019-01-14 10:41:12 +1200)
+> 
+> are available in the Git repository at:
+> 
+>   git://git.kernel.org:/pub/scm/linux/kernel/git/arnd/playground.git
+> tags/y2038-syscall-cleanup
 
-Hi,
+Went over the lot with a fine comb. This looks really good. Nice work!
 
-I have app that include:=20
-	#include <linux/errqueue.h>
-
-It now fail with this error:
-	In file included from timestamping.c:6:0:
-	/usr/include/linux/errqueue.h:46:27: error: array type has incomplete elem=
-ent type 'struct __kernel_timespec'
-	  struct __kernel_timespec ts[3];
-                			           ^~
-I tried to do the trivial fix, to include time.h:
-In include/uapi/linux/errqueue.h
-	#include <linux/time.h>
-	#include <linux/types.h>
-
-But it just add some other noises:
-                In file included from /usr/include/linux/errqueue.h:5:0,
-                                 from timestamping.c:6:
-                /usr/include/linux/time.h:10:8: error: redefinition of ?str=
-uct timespec?
-                 struct timespec {
-                        ^~~~~~~~
-                In file included from /usr/include/sys/select.h:39:0,
-                                 from /usr/include/sys/types.h:197,
-                                 from /usr/include/stdlib.h:279,
-                                 from timestamping.c:2:
-                /usr/include/bits/types/struct_timespec.h:8:8: note: origin=
-ally defined here
-                 struct timespec
-                        ^~~~~~~~
-                In file included from /usr/include/linux/errqueue.h:5:0,
-                                 from timestamping.c:6:
-                /usr/include/linux/time.h:16:8: error: redefinition of ?str=
-uct timeval?
-                 struct timeval {
-                        ^~~~~~~
-                In file included from /usr/include/sys/select.h:37:0,
-                                 from /usr/include/sys/types.h:197,
-                                 from /usr/include/stdlib.h:279,
-                                 from timestamping.c:2:
-                /usr/include/bits/types/struct_timeval.h:8:8: note: origina=
-lly defined here
-                 struct timeval
-                        ^~~~~~~
-
-
-Can you please advise how to solve it?
+Pulled into tip timers/2038
 
 Thanks,
-Ran
 
-
-> diff --git a/include/uapi/linux/errqueue.h b/include/uapi/linux/errqueue.=
-h
-> index c0151200f7d1..d955b9e32288 100644
-> --- a/include/uapi/linux/errqueue.h
-> +++ b/include/uapi/linux/errqueue.h
-> @@ -41,6 +41,10 @@ struct scm_timestamping {
->  	struct timespec ts[3];
->  };
->=20
-> +struct scm_timestamping64 {
-> +	struct __kernel_timespec ts[3];
-> +};
-> +
->  /* The type of scm_timestamping, passed in sock_extended_err ee_info.
->   * This defines the type of ts[0]. For SCM_TSTAMP_SND only, if ts[0]
->   * is zero, then this is a hardware timestamp and recorded in ts[2].
+	tglx
