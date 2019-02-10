@@ -1,64 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay6-d.mail.gandi.net ([217.70.183.198]:50539 "EHLO
-        relay6-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726009AbfBJM3H (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 07:29:07 -0500
-Date: Sun, 10 Feb 2019 13:29:03 +0100
-From: Hugo Lefeuvre <hle@owl.eu.com>
-Subject: void __iomem *addr should be const
-Message-ID: <20190210122903.GA2400@behemoth.owl.eu.com.local>
+Received: from mail-eopbgr130081.outbound.protection.outlook.com ([40.107.13.81]:65113
+        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726102AbfBJPnX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 10 Feb 2019 10:43:23 -0500
+From: Ran Rozenstein <ranro@mellanox.com>
+Subject: RE: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
+Date: Sun, 10 Feb 2019 15:43:16 +0000
+Message-ID: <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
+References: <20190202153454.7121-1-deepa.kernel@gmail.com>
+ <20190202153454.7121-10-deepa.kernel@gmail.com>
+In-Reply-To: <20190202153454.7121-10-deepa.kernel@gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="qDbXVdCdHGoSgWSk"
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190210122903.PYRVSdWpkdgtcy4alQCTCPHcQSQ0BuL2a4eWfXwmEh8@z>
+To: Deepa Dinamani <deepa.kernel@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
+Message-ID: <20190210154316.Ak7d1t7N_c4HK9UOn2Rtr014Nf5Pyo0pB36T5WGgMJc@z>
 
+> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
+>=20
+> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
+> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
+> architectures.
+>=20
+> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
+> Acked-by: Willem de Bruijn <willemb@google.com>
 
---qDbXVdCdHGoSgWSk
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
 Hi,
 
-__iomem *addr seems to lack a const qualifier in the ioread* definitions
-=66rom include/asm-generic/iomap.h (other definitions such as
-asm-generic/io.h do have the const).
+I have app that include:=20
+	#include <linux/errqueue.h>
 
-This issue was briefly discussed a while ago[0] but the outcome is not
-quite clear to me. Should I submit a patch addressing this issue or is it
-a definitive wontfix?
+It now fail with this error:
+	In file included from timestamping.c:6:0:
+	/usr/include/linux/errqueue.h:46:27: error: array type has incomplete elem=
+ent type 'struct __kernel_timespec'
+	  struct __kernel_timespec ts[3];
+                			           ^~
+I tried to do the trivial fix, to include time.h:
+In include/uapi/linux/errqueue.h
+	#include <linux/time.h>
+	#include <linux/types.h>
 
-This issue triggers warnings in my current work but I would like to avoid
-dropping the const if possible.
+But it just add some other noises:
+                In file included from /usr/include/linux/errqueue.h:5:0,
+                                 from timestamping.c:6:
+                /usr/include/linux/time.h:10:8: error: redefinition of ?str=
+uct timespec?
+                 struct timespec {
+                        ^~~~~~~~
+                In file included from /usr/include/sys/select.h:39:0,
+                                 from /usr/include/sys/types.h:197,
+                                 from /usr/include/stdlib.h:279,
+                                 from timestamping.c:2:
+                /usr/include/bits/types/struct_timespec.h:8:8: note: origin=
+ally defined here
+                 struct timespec
+                        ^~~~~~~~
+                In file included from /usr/include/linux/errqueue.h:5:0,
+                                 from timestamping.c:6:
+                /usr/include/linux/time.h:16:8: error: redefinition of ?str=
+uct timeval?
+                 struct timeval {
+                        ^~~~~~~
+                In file included from /usr/include/sys/select.h:37:0,
+                                 from /usr/include/sys/types.h:197,
+                                 from /usr/include/stdlib.h:279,
+                                 from timestamping.c:2:
+                /usr/include/bits/types/struct_timeval.h:8:8: note: origina=
+lly defined here
+                 struct timeval
+                        ^~~~~~~
 
-regards,
- Hugo
 
-[0] https://patchwork.kernel.org/patch/5742881/
+Can you please advise how to solve it?
 
---=20
-                Hugo Lefeuvre (hle)    |    www.owl.eu.com
-RSA4096_ 360B 03B3 BF27 4F4D 7A3F D5E8 14AA 1EB8 A247 3DFD
-ed25519_ 37B2 6D38 0B25 B8A2 6B9F 3A65 A36F 5357 5F2D DC4C
+Thanks,
+Ran
 
---qDbXVdCdHGoSgWSk
-Content-Type: application/pgp-signature; name="signature.asc"
 
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEUFZhdgIWqBhwqCvuZYVUZx9w0DQFAlxgGQkACgkQZYVUZx9w
-0DR6cwgAq6NolHrnUG6fKSya+UIevGUn9SRgSjYwuJDSgiYxkZo4wpszsfOJG/Sh
-kFrIW/BDZgUsRRGeKnIbc4hGQAckyq7fVHwahDS2O3H+DxawYflW3JABsTEntMkt
-yFuZrtv7C9Epfl2sEDrndx9RhywggGbEy4oQagl6zIa4ZWGOTwScp8oDJ2enxXaf
-FM8PDxi+MYHaT4JxdiEIo4F9sFD6WTaYRg5/hsHmTcAJvHkkjdCcx/6i7MavBvgm
-OnwZi0jgB4zuW26vQxNU0CZ0fF11cmLr0506Oo3eBwNaAtIgR9S0ziCrCRVY+rLK
-3y3dRFEUf6vxK/m6ms50tHeF21c/vw==
-=3YFR
------END PGP SIGNATURE-----
-
---qDbXVdCdHGoSgWSk--
+> diff --git a/include/uapi/linux/errqueue.h b/include/uapi/linux/errqueue.=
+h
+> index c0151200f7d1..d955b9e32288 100644
+> --- a/include/uapi/linux/errqueue.h
+> +++ b/include/uapi/linux/errqueue.h
+> @@ -41,6 +41,10 @@ struct scm_timestamping {
+>  	struct timespec ts[3];
+>  };
+>=20
+> +struct scm_timestamping64 {
+> +	struct __kernel_timespec ts[3];
+> +};
+> +
+>  /* The type of scm_timestamping, passed in sock_extended_err ee_info.
+>   * This defines the type of ts[0]. For SCM_TSTAMP_SND only, if ts[0]
+>   * is zero, then this is a hardware timestamp and recorded in ts[2].
