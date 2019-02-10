@@ -1,96 +1,34 @@
-From: Ran Rozenstein <ranro@mellanox.com>
-Subject: RE: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
-Date: Sun, 10 Feb 2019 15:43:16 +0000
-Message-ID: <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
-References: <20190202153454.7121-1-deepa.kernel@gmail.com>
- <20190202153454.7121-10-deepa.kernel@gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [GIT PULL 1/2] arch: System call unification and cleanup
+Date: Sun, 10 Feb 2019 21:27:01 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1902102125410.8784@nanos.tec.linutronix.de>
+References: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190202153454.7121-10-deepa.kernel@gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Deepa Dinamani <deepa.kernel@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
->=20
-> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
-> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
-> architectures.
->=20
-> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-> Acked-by: Willem de Bruijn <willemb@google.com>
-
-
-Hi,
-
-I have app that include:=20
-	#include <linux/errqueue.h>
-
-It now fail with this error:
-	In file included from timestamping.c:6:0:
-	/usr/include/linux/errqueue.h:46:27: error: array type has incomplete elem=
-ent type 'struct __kernel_timespec'
-	  struct __kernel_timespec ts[3];
-                			           ^~
-I tried to do the trivial fix, to include time.h:
-In include/uapi/linux/errqueue.h
-	#include <linux/time.h>
-	#include <linux/types.h>
-
-But it just add some other noises:
-                In file included from /usr/include/linux/errqueue.h:5:0,
-                                 from timestamping.c:6:
-                /usr/include/linux/time.h:10:8: error: redefinition of ?str=
-uct timespec?
-                 struct timespec {
-                        ^~~~~~~~
-                In file included from /usr/include/sys/select.h:39:0,
-                                 from /usr/include/sys/types.h:197,
-                                 from /usr/include/stdlib.h:279,
-                                 from timestamping.c:2:
-                /usr/include/bits/types/struct_timespec.h:8:8: note: origin=
-ally defined here
-                 struct timespec
-                        ^~~~~~~~
-                In file included from /usr/include/linux/errqueue.h:5:0,
-                                 from timestamping.c:6:
-                /usr/include/linux/time.h:16:8: error: redefinition of ?str=
-uct timeval?
-                 struct timeval {
-                        ^~~~~~~
-                In file included from /usr/include/sys/select.h:37:0,
-                                 from /usr/include/sys/types.h:197,
-                                 from /usr/include/stdlib.h:279,
-                                 from timestamping.c:2:
-                /usr/include/bits/types/struct_timeval.h:8:8: note: origina=
-lly defined here
-                 struct timeval
-                        ^~~~~~~
-
-
-Can you please advise how to solve it?
-
-Thanks,
-Ran
-
-
-> diff --git a/include/uapi/linux/errqueue.h b/include/uapi/linux/errqueue.=
-h
-> index c0151200f7d1..d955b9e32288 100644
-> --- a/include/uapi/linux/errqueue.h
-> +++ b/include/uapi/linux/errqueue.h
-> @@ -41,6 +41,10 @@ struct scm_timestamping {
->  	struct timespec ts[3];
->  };
->=20
-> +struct scm_timestamping64 {
-> +	struct __kernel_timespec ts[3];
-> +};
-> +
->  /* The type of scm_timestamping, passed in sock_extended_err ee_info.
->   * This defines the type of ts[0]. For SCM_TSTAMP_SND only, if ts[0]
->   * is zero, then this is a hardware timestamp and recorded in ts[2].
+T24gU2F0LCA5IEZlYiAyMDE5LCBBcm5kIEJlcmdtYW5uIHdyb3RlOgoKPiBUaGUgZm9sbG93aW5n
+IGNoYW5nZXMgc2luY2UgY29tbWl0IDFjN2ZjNWNiYzMzOTgwYWNkMTNkNjY4ZjFjOGYwMzEzZDZh
+ZTlmZDg6Cj4gCj4gICBMaW51eCA1LjAtcmMyICgyMDE5LTAxLTE0IDEwOjQxOjEyICsxMjAwKQo+
+IAo+IGFyZSBhdmFpbGFibGUgaW4gdGhlIEdpdCByZXBvc2l0b3J5IGF0Ogo+IAo+ICAgZ2l0Oi8v
+Z2l0Lmtlcm5lbC5vcmc6L3B1Yi9zY20vbGludXgva2VybmVsL2dpdC9hcm5kL3BsYXlncm91bmQu
+Z2l0Cj4gdGFncy95MjAzOC1zeXNjYWxsLWNsZWFudXAKCldlbnQgb3ZlciB0aGUgbG90IHdpdGgg
+YSBmaW5lIGNvbWIuIFRoaXMgbG9va3MgcmVhbGx5IGdvb2QuIE5pY2Ugd29yayEKClB1bGxlZCBp
+bnRvIHRpcCB0aW1lcnMvMjAzOAoKVGhhbmtzLAoKCXRnbHgKX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3Rz
+LmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIw
+MzgK
