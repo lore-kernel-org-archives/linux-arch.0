@@ -1,37 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:37315 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725958AbfBJU1F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 15:27:05 -0500
-Date: Sun, 10 Feb 2019 21:27:01 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [GIT PULL 1/2] arch: System call unification and cleanup
-In-Reply-To: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
-Message-ID: <alpine.DEB.2.21.1902102125410.8784@nanos.tec.linutronix.de>
-References: <CAK8P3a3pPwnOW7pXjOhU386zCekAda+p8AgzbOM6ybT=dKMGwA@mail.gmail.com>
+Received: from ozlabs.org ([203.11.71.1]:37049 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726102AbfBJWNB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 10 Feb 2019 17:13:01 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH net-next v5 12/12] sock: Add SO_RCVTIMEO_NEW and SO_SNDTIMEO_NEW
+In-Reply-To: <CABeXuvqpexo4g7xQihKPoOd4ce4rLq0Agy-jYMELYvOAnqmXJA@mail.gmail.com>
+References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-13-deepa.kernel@gmail.com> <87r2clku4j.fsf@concordia.ellerman.id.au> <CABeXuvqpexo4g7xQihKPoOd4ce4rLq0Agy-jYMELYvOAnqmXJA@mail.gmail.com>
+Date: Mon, 11 Feb 2019 09:12:52 +1100
+Message-ID: <87o97ji97f.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190210202701.xRxwybepKShoxtqDJ-CscnXkmnO0OanaKr7MfvOn0YI@z>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: "David S. Miller" <davem@davemloft.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Network Devel Mailing List <netdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, ccaulfie@redhat.com, Helge Deller <deller@gmx.de>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, cluster-devel <cluster-devel@redhat.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>
+Message-ID: <20190210221252.asBTwx_CKlQ5-2W-utmzyatXuNgF3qlrogW7UmDVpGU@z>
 
-On Sat, 9 Feb 2019, Arnd Bergmann wrote:
+Deepa Dinamani <deepa.kernel@gmail.com> writes:
 
-> The following changes since commit 1c7fc5cbc33980acd13d668f1c8f0313d6ae9fd8:
-> 
->   Linux 5.0-rc2 (2019-01-14 10:41:12 +1200)
-> 
-> are available in the Git repository at:
-> 
->   git://git.kernel.org:/pub/scm/linux/kernel/git/arnd/playground.git
-> tags/y2038-syscall-cleanup
+>> You touched powerpc in the previous patch but not this one.
+>>
+>> That's because we use the asm-generic version I assume.
+>
+> That is correct.
+>
+>> Would be good to mention in the change log though to avoid any confusion.
+>
+> I'm not sure how to do that now. It looks like the series has already
+> been applied to net-next with a couple of merge conflicts fixed.
 
-Went over the lot with a fine comb. This looks really good. Nice work!
+That's fine, it's not that important.
 
-Pulled into tip timers/2038
-
-Thanks,
-
-	tglx
+cheers
