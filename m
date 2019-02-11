@@ -1,82 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:52426 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725951AbfBKHMG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 02:12:06 -0500
-Date: Mon, 11 Feb 2019 08:11:59 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-Message-ID: <20190211071159.GA55579@gmail.com>
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
- <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
+Received: from mo4-p02-ob.smtp.rzone.de ([85.215.255.83]:13362 "EHLO
+        mo4-p02-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726025AbfBKHVV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 02:21:21 -0500
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (1.0)
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+In-Reply-To: <0042290A-2939-4EBA-A638-D404FA2055ED@xenosoft.de>
+Date: Mon, 11 Feb 2019 08:21:11 +0100
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <0807B9CE-69E6-45A6-A029-1AAE5615CC8E@xenosoft.de>
+References: <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de> <594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de> <20190204075616.GA5408@lst.de> <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de> <20190204123852.GA10428@lst.de> <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de> <20190206151505.GA31065@lst.de> <20190206151655.GA31172@lst.de> <61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de> <7c1f208b-6909-3b0a-f9f9-38ff1ac3d617@xenosoft.de> <20190208091818.GA23491@lst.de> <4e7137db-e600-0d20-6fb2-6d0f9739aca3@xenosoft.de> <0042290A-2939-4EBA-A638-D404FA2055ED@xenosoft.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190211071159.1y38AzTVpTKr5hnnXM857X9Oz1G-zhS5ji42Zv5Nt5Y@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190211072111.6oYtUGv417lhX-QZxJjkpT_xtGBQFiPPjAz85MdJG-s@z>
 
+Hi Christoph,
 
-* Waiman Long <longman@redhat.com> wrote:
+Mario successfully tested a kernel from your Git [1] on his T2080rdb today.
 
-> On 02/10/2019 09:00 PM, Waiman Long wrote:
-> > As the generic rwsem-xadd code is using the appropriate acquire and
-> > release versions of the atomic operations, the arch specific rwsem.h
-> > files will not be that much faster than the generic code as long as the
-> > atomic functions are properly implemented. So we can remove those arch
-> > specific rwsem.h and stop building asm/rwsem.h to reduce maintenance
-> > effort.
-> >
-> > Currently, only x86, alpha and ia64 have implemented architecture
-> > specific fast paths. I don't have access to alpha and ia64 systems for
-> > testing, but they are legacy systems that are not likely to be updated
-> > to the latest kernel anyway.
-> >
-> > By using a rwsem microbenchmark, the total locking rates on a 4-socket
-> > 56-core 112-thread x86-64 system before and after the patch were as
-> > follows (mixed means equal # of read and write locks):
-> >
-> >                       Before Patch              After Patch
-> >    # of Threads  wlock   rlock   mixed     wlock   rlock   mixed
-> >    ------------  -----   -----   -----     -----   -----   -----
-> >         1        27,373  29,409  28,170    28,773  30,164  29,276
-> >         2         7,697  14,922   1,703     7,435  15,167   1,729
-> >         4         6,987  14,285   1,490     7,181  14,438   1,330
-> >         8         6,650  13,652     761     6,918  13,796     718
-> >        16         6,434  15,729     713     6,554  16,030     625
-> >        32         5,590  15,312     552     6,124  15,344     471
-> >        64         5,980  15,478      61     5,668  15,509      58
-> >
-> > There were some run-to-run variations for the multi-thread tests. For
-> > x86-64, using the generic C code fast path seems to be a liitle bit
-> > faster than the assembly version especially for read-lock and when lock
-> > contention is low.  Looking at the assembly version of the fast paths,
-> > there are assembly to/from C code wrappers that save and restore all
-> > the callee-clobbered registers (7 registers on x86-64). The assembly
-> > generated from the generic C code doesn't need to do that. That may
-> > explain the slight performance gain here.
-> >
-> > The generic asm rwsem.h can also be merged into kernel/locking/rwsem.h
-> > as no other code other than those under kernel/locking needs to access
-> > the internal rwsem macros and functions.
-> >
-> > Signed-off-by: Waiman Long <longman@redhat.com>
-> 
-> I have decided to break the rwsem patchset that I sent out on last
-> Thursday into 3 parts. This patch is part 0 as it touches a number of
-> arch specific files and so have the widest distribution. I would like to
-> get it merged first. Part 1 will be patches 1-10 (except 4) of my
-> original rwsem patchset. This part moves things around, adds more
-> debugging capability and lays the ground work for the next part. Part 2
-> will contains the remaining patches which are the real beef of the whole
-> patchset.
+Link to the log:=20
+https://gitlab.com/oshw-powerpc-notebook/T2080customizations/blob/master/ker=
+nel/dma_fix/kernel_dma_fix_log.txt
 
-Sounds good to me - I've merged this patch, will push it out after 
-testing.
+He wrote:
 
-Thanks,
+Please, note that all of the above kernel runs just fine with the T2080rdb, h=
+owever did not had the time to test extensively (tested: login into MATE gra=
+phical desktop environment, used ArctiFox for opening couple of websites, th=
+en played Neverball).
 
-	Ingo
+=E2=80=94=E2=80=94
+
+Cheers,
+Christian
+
+[1] http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-=
+dma.6=
