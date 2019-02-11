@@ -1,77 +1,99 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-Date: Mon, 11 Feb 2019 08:11:59 +0100
-Message-ID: <20190211071159.GA55579@gmail.com>
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
- <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <longman@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+From: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+Subject: Re: use generic DMA mapping code in powerpc V4
+Date: Mon, 11 Feb 2019 08:16:18 +0100
+Message-ID: <0042290A-2939-4EBA-A638-D404FA2055ED@xenosoft.de>
+References: <9632DCDF-B9D9-416C-95FC-006B6005E2EC@xenosoft.de>
+	<594beaae-9681-03de-9f42-191cc7d2f8e3@xenosoft.de>
+	<20190204075616.GA5408@lst.de>
+	<ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de>
+	<20190204123852.GA10428@lst.de>
+	<b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de>
+	<20190206151505.GA31065@lst.de> <20190206151655.GA31172@lst.de>
+	<61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de>
+	<7c1f208b-6909-3b0a-f9f9-38ff1ac3d617@xenosoft.de>
+	<20190208091818.GA23491@lst.de>
+	<4e7137db-e600-0d20-6fb2-6d0f9739aca3@xenosoft.de>
+Mime-Version: 1.0 (1.0)
+Content-Type: multipart/mixed; boundary="===============2735983543759085288=="
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <4e7137db-e600-0d20-6fb2-6d0f9739aca3-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Julian Margetson <runaway-zqC88Q5qmK4@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
 
-* Waiman Long <longman@redhat.com> wrote:
+--===============2735983543759085288==
+Content-Type: multipart/alternative;
+	boundary=Apple-Mail-AB54F82F-011B-4A2E-BF51-3599C977EE35
+Content-Transfer-Encoding: 7bit
 
-> On 02/10/2019 09:00 PM, Waiman Long wrote:
-> > As the generic rwsem-xadd code is using the appropriate acquire and
-> > release versions of the atomic operations, the arch specific rwsem.h
-> > files will not be that much faster than the generic code as long as the
-> > atomic functions are properly implemented. So we can remove those arch
-> > specific rwsem.h and stop building asm/rwsem.h to reduce maintenance
-> > effort.
-> >
-> > Currently, only x86, alpha and ia64 have implemented architecture
-> > specific fast paths. I don't have access to alpha and ia64 systems for
-> > testing, but they are legacy systems that are not likely to be updated
-> > to the latest kernel anyway.
-> >
-> > By using a rwsem microbenchmark, the total locking rates on a 4-socket
-> > 56-core 112-thread x86-64 system before and after the patch were as
-> > follows (mixed means equal # of read and write locks):
-> >
-> >                       Before Patch              After Patch
-> >    # of Threads  wlock   rlock   mixed     wlock   rlock   mixed
-> >    ------------  -----   -----   -----     -----   -----   -----
-> >         1        27,373  29,409  28,170    28,773  30,164  29,276
-> >         2         7,697  14,922   1,703     7,435  15,167   1,729
-> >         4         6,987  14,285   1,490     7,181  14,438   1,330
-> >         8         6,650  13,652     761     6,918  13,796     718
-> >        16         6,434  15,729     713     6,554  16,030     625
-> >        32         5,590  15,312     552     6,124  15,344     471
-> >        64         5,980  15,478      61     5,668  15,509      58
-> >
-> > There were some run-to-run variations for the multi-thread tests. For
-> > x86-64, using the generic C code fast path seems to be a liitle bit
-> > faster than the assembly version especially for read-lock and when lock
-> > contention is low.  Looking at the assembly version of the fast paths,
-> > there are assembly to/from C code wrappers that save and restore all
-> > the callee-clobbered registers (7 registers on x86-64). The assembly
-> > generated from the generic C code doesn't need to do that. That may
-> > explain the slight performance gain here.
-> >
-> > The generic asm rwsem.h can also be merged into kernel/locking/rwsem.h
-> > as no other code other than those under kernel/locking needs to access
-> > the internal rwsem macros and functions.
-> >
-> > Signed-off-by: Waiman Long <longman@redhat.com>
-> 
-> I have decided to break the rwsem patchset that I sent out on last
-> Thursday into 3 parts. This patch is part 0 as it touches a number of
-> arch specific files and so have the widest distribution. I would like to
-> get it merged first. Part 1 will be patches 1-10 (except 4) of my
-> original rwsem patchset. This part moves things around, adds more
-> debugging capability and lays the ground work for the next part. Part 2
-> will contains the remaining patches which are the real beef of the whole
-> patchset.
 
-Sounds good to me - I've merged this patch, will push it out after 
-testing.
+--Apple-Mail-AB54F82F-011B-4A2E-BF51-3599C977EE35
+Content-Type: text/plain;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-Thanks,
+Hi Christoph,
 
-	Ingo
+Mario successfully tested a kernel from your Git [1] on his T2080rdb today.
+
+Link to the log:=20
+https://gitlab.com/oshw-powerpc-notebook/T2080customizations/blob/master/ker=
+nel/dma_fix/kernel_dma_fix_log.txt
+
+He wrote:
+
+Please, note that all of the above kernel runs just fine with the T2080rdb, h=
+owever did not had the time to test extensively (tested: login into MATE gra=
+phical desktop environment, used ArctiFox for opening couple of websites, th=
+en played Neverball).
+
+=E2=80=94=E2=80=94
+
+Cheers,
+Christian
+
+[1] http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/powerpc-=
+dma.6=
+
+--Apple-Mail-AB54F82F-011B-4A2E-BF51-3599C977EE35
+Content-Type: text/html;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"content-type" content=3D"text/html; charset=3D=
+utf-8"></head><body dir=3D"auto">Hi Christoph,<div><br></div><div>Mario succ=
+essfully tested a kernel from your Git [1] on his T2080rdb today.</div><div>=
+<br></div><div>Link to the log:&nbsp;</div><div><a href=3D"https://gitlab.co=
+m/oshw-powerpc-notebook/T2080customizations/blob/master/kernel/dma_fix/kerne=
+l_dma_fix_log.txt">https://gitlab.com/oshw-powerpc-notebook/T2080customizati=
+ons/blob/master/kernel/dma_fix/kernel_dma_fix_log.txt</a></div><div><br></di=
+v><div>He wrote:</div><div><br></div><div>Please, note that all of the above=
+ kernel runs just fine with the T2080rdb, however did not had the time to te=
+st extensively (tested: login into MATE graphical desktop environment, used A=
+rctiFox for opening couple of websites, then played Neverball).</div><div><b=
+r></div><div>=E2=80=94=E2=80=94</div><div><br></div><div>Cheers,</div><div>C=
+hristian</div><div><br></div><div>[1]&nbsp;<a href=3D"http://git.infradead.o=
+rg/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6">http://git.infradea=
+d.org/users/hch/misc.git/shortlog/refs/heads/powerpc-dma.6</a></div></body><=
+/html>=
+
+--Apple-Mail-AB54F82F-011B-4A2E-BF51-3599C977EE35--
+
+--===============2735983543759085288==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+
+--===============2735983543759085288==--
