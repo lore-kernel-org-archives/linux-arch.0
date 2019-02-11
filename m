@@ -1,37 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f65.google.com ([209.85.167.65]:45983 "EHLO
-        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727177AbfBKS2r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 13:28:47 -0500
-Received: by mail-lf1-f65.google.com with SMTP id b20so8530429lfa.12
-        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 10:28:46 -0800 (PST)
-Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
-        by smtp.gmail.com with ESMTPSA id a127sm2442836lfe.73.2019.02.11.10.28.43
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 11 Feb 2019 10:28:43 -0800 (PST)
-Received: by mail-lf1-f48.google.com with SMTP id g2so3262838lfh.11
-        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 10:28:43 -0800 (PST)
-MIME-Version: 1.0
-References: <1549861699-11875-1-git-send-email-guoren@kernel.org>
-In-Reply-To: <1549861699-11875-1-git-send-email-guoren@kernel.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 11 Feb 2019 10:28:26 -0800
-Message-ID: <CAHk-=wh9kycrBtNOUN1-aOR_JL4scBgs=6NUkGQonfWFyzhvVw@mail.gmail.com>
-Subject: Re: [GIT PULL] csky fixes for v5.0-rc6
-Content-Type: text/plain; charset="UTF-8"
+Received: from mx1.redhat.com ([209.132.183.28]:43632 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727862AbfBKTbs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Feb 2019 14:31:48 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 0/2] locking/rwsem: Remove arch specific rwsem files
+Date: Mon, 11 Feb 2019 14:31:24 -0500
+Message-ID: <1549913486-16799-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <guoren@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190211182826.qXiNtb9b1cmpMgwqrq0CEstfrV0S95XK5CPo0Ae1ZjU@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20190211193124.fRpNl7PRz5LEJf0zu-vw3fGOBlrHrafravAnXvaowoU@z>
 
-On Sun, Feb 10, 2019 at 9:08 PM <guoren@kernel.org> wrote:
->
-> arch/csky patches for 5.0-rc6
+v2:
+ - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+ - Update performance test data in patch 1.
 
-The bulk of this seems to be new hardware support code.
+This is part 0 of my rwsem patchset. It just removes the architecture
+specific files to make it easer to add enhancements in the upcoming
+rwsem patches.
 
-Please send it during the 5.1 merge window, not as fixes at post-rc6 time.
+Since the two ll/sc platforms that I can tested on (arm64 & ppc) are
+both using the generic C codes, the rwsem performance shouldn't be
+affected by this patch except the down_read_trylock() code which was
+included in patch 2 for arm64.
 
-                 Linus
+Waiman Long (2):
+  locking/rwsem: Remove arch specific rwsem files
+  locking/rwsem: Optimize down_read_trylock()
+
+ MAINTAINERS                     |   1 -
+ arch/alpha/include/asm/rwsem.h  | 211 -----------------------------------
+ arch/arm/include/asm/Kbuild     |   1 -
+ arch/arm64/include/asm/Kbuild   |   1 -
+ arch/hexagon/include/asm/Kbuild |   1 -
+ arch/ia64/include/asm/rwsem.h   | 172 -----------------------------
+ arch/powerpc/include/asm/Kbuild |   1 -
+ arch/s390/include/asm/Kbuild    |   1 -
+ arch/sh/include/asm/Kbuild      |   1 -
+ arch/sparc/include/asm/Kbuild   |   1 -
+ arch/x86/include/asm/rwsem.h    | 237 ----------------------------------------
+ arch/x86/lib/Makefile           |   1 -
+ arch/x86/lib/rwsem.S            | 156 --------------------------
+ arch/xtensa/include/asm/Kbuild  |   1 -
+ include/asm-generic/rwsem.h     | 140 ------------------------
+ include/linux/rwsem.h           |   4 +-
+ kernel/locking/percpu-rwsem.c   |   2 +
+ kernel/locking/rwsem.h          | 130 ++++++++++++++++++++++
+ 18 files changed, 133 insertions(+), 929 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/rwsem.h
+ delete mode 100644 arch/ia64/include/asm/rwsem.h
+ delete mode 100644 arch/x86/include/asm/rwsem.h
+ delete mode 100644 arch/x86/lib/rwsem.S
+ delete mode 100644 include/asm-generic/rwsem.h
+
+-- 
+1.8.3.1
