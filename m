@@ -1,70 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54640 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727393AbfBKRdC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 12:33:02 -0500
-Date: Mon, 11 Feb 2019 17:32:56 +0000
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54556 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730791AbfBKR34 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Feb 2019 12:29:56 -0500
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC LKMM 5/7] docs/memory-barriers.txt: Enforce heavy
- ordering for port I/O accesses
-Message-ID: <20190211173256.GB2994@fuggles.cambridge.arm.com>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109210748.29074-5-paulmck@linux.ibm.com>
- <20190211153043.GC32385@fuggles.cambridge.arm.com>
- <CAK8P3a3bkQoVfkV-+pNniirLN5Z_Wv3eG2TXW35kdJixCOH9_Q@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3bkQoVfkV-+pNniirLN5Z_Wv3eG2TXW35kdJixCOH9_Q@mail.gmail.com>
+Subject: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
+Date: Mon, 11 Feb 2019 17:29:48 +0000
+Message-ID: <20190211172948.3322-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Matthew Wilcox <willy@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@aculab.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
-Message-ID: <20190211173256.UEb3A9sNkuhwrHNY9tB0cB316CkRH55Re6t3EsDLWII@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190211172948.JWIUj-AR2DnZTGW4OlF32fixEGbC3hkiZHgrPEsuZGw@z>
 
-Hi Arnd,
+The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
+x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
+This is largely because I/O ordering is a horrible can of worms, but also
+because the document has stagnated as our understanding has evolved.
 
-On Mon, Feb 11, 2019 at 06:11:48PM +0100, Arnd Bergmann wrote:
-> On Mon, Feb 11, 2019 at 4:30 PM Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > Given the lack of Intel response here, I went away to do some digging.
-> > As evidenced by the commit message, there is certainly an understanding
-> > amongst some developers that inX/outX() are strongly ordered on x86 and
-> > this was re-enforced by Linus in March last year:
-> >
-> > https://www.mail-archive.com/linuxppc-dev@lists.ozlabs.org/msg131212.html
-> >
-> > It was this information on which I based my patch. The Intel SDM is not
-> > quite as assertive in its claims.
-> >
-> > However, it has also occurred to me that this patch is actually missing
-> > the point. memory-barriers.txt should be documenting the *Linux* memory
-> > model, not the x86 one, and so the port accessors should be defined to
-> > have the same ordering semantics as the MMIO accessors. If this wasn't
-> > the case, then macros such as ioreadX() and iowriteX() would be unusable
-> > in portable driver code.
-> 
-> My interpretation of the ioreadX() and iowriteX() semantics is that they
-> only guarantee readl()/writel() barrier semantics, even though they
-> may in fact provide stronger barriers for PIO on architectures that use
-> CONFIG_GENERIC_IOMAP (which falls back to inX()/outX()).
-> 
-> > The inX/outX implementation in asm-generic would
-> > also be bogus, despite being widely used.
-> 
-> They likely are. The asm-generic files tend to provide a generic
-> abstraction as much as that is possible, but without having access
-> to the architecture specific semantics, they raditionally don't know
-> what should be done here. We now have __io_pbw()/__io_paw()/
-> __io_pbr()/__io_par() to let architectures get it right, but that is
-> a fairly recent addition, so nothing other than riscv defines them
-> today.
-> To make things worse, a lot of machines are unable to provide
-> __io_paw(), e.g. when all bus writes are posted.
+Attempt to address some of that, by rewriting the section based on
+recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
+find a way to formalise this stuff, but for now let's at least try to
+make the English easier to understand.
 
-So I've just sent an RFC (you're on cc) that attempts to rewrite this part
-of memory-barriers.txt to reflect reality. Hopefully that can act as a
-starting point for discussion if we decide we want to change the documented
-behaviour and/or implementation.
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ Documentation/memory-barriers.txt | 115 ++++++++++++++++++++------------------
+ 1 file changed, 62 insertions(+), 53 deletions(-)
 
-Will
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 1c22b21ae922..d08b49b2c011 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -2599,72 +2599,81 @@ likely, then interrupt-disabling locks should be used to guarantee ordering.
+ KERNEL I/O BARRIER EFFECTS
+ ==========================
+ 
+-When accessing I/O memory, drivers should use the appropriate accessor
+-functions:
+-
+- (*) inX(), outX():
+-
+-     These are intended to talk to I/O space rather than memory space, but
+-     that's primarily a CPU-specific concept.  The i386 and x86_64 processors
+-     do indeed have special I/O space access cycles and instructions, but many
+-     CPUs don't have such a concept.
+-
+-     The PCI bus, amongst others, defines an I/O space concept which - on such
+-     CPUs as i386 and x86_64 - readily maps to the CPU's concept of I/O
+-     space.  However, it may also be mapped as a virtual I/O space in the CPU's
+-     memory map, particularly on those CPUs that don't support alternate I/O
+-     spaces.
+-
+-     Accesses to this space may be fully synchronous (as on i386), but
+-     intermediary bridges (such as the PCI host bridge) may not fully honour
+-     that.
+-
+-     They are guaranteed to be fully ordered with respect to each other.
+-
+-     They are not guaranteed to be fully ordered with respect to other types of
+-     memory and I/O operation.
++Interfacing with peripherals via I/O accesses is deeply architecture and device
++specific. Therefore, drivers which are inherently non-portable may rely on
++specific behaviours of their target systems in order to achieve synchronization
++in the most lightweight manner possible. For drivers intending to be portable
++between multiple architectures and bus implementations, the kernel offers a
++series of accessor functions that provide various degrees of ordering
++guarantees:
+ 
+  (*) readX(), writeX():
+ 
+-     Whether these are guaranteed to be fully ordered and uncombined with
+-     respect to each other on the issuing CPU depends on the characteristics
+-     defined for the memory window through which they're accessing.  On later
+-     i386 architecture machines, for example, this is controlled by way of the
+-     MTRR registers.
++     The readX() and writeX() MMIO accessors take a pointer to the peripheral
++     being accessed as an __iomem * parameter. For pointers mapped with the
++     default I/O attributes (e.g. those returned by ioremap()), then the
++     ordering guarantees are as follows:
++
++     1. All readX() and writeX() accesses to the same peripheral are ordered
++        with respect to each other. For example, this ensures that MMIO register
++	writes by the CPU to a particular device will arrive in program order.
++
++     2. A writeX() by the CPU to the peripheral will first wait for the
++        completion of all prior CPU writes to memory. For example, this ensures
++        that writes by the CPU to an outbound DMA buffer allocated by
++        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
++        to its MMIO control register to trigger the transfer.
++
++     3. A readX() by the CPU from the peripheral will complete before any
++	subsequent CPU reads from memory can begin. For example, this ensures
++	that reads by the CPU from an incoming DMA buffer allocated by
++	dma_alloc_coherent() will not see stale data after reading from the DMA
++	engine's MMIO status register to establish that the DMA transfer has
++	completed.
++
++     4. A readX() by the CPU from the peripheral will complete before any
++	subsequent delay() loop can begin execution. For example, this ensures
++	that two MMIO register writes by the CPU to a peripheral will arrive at
++	least 1us apart if the first write is immediately read back with readX()
++	and udelay(1) is called prior to the second writeX().
++
++     __iomem pointers obtained with non-default attributes (e.g. those returned
++     by ioremap_wc()) are unlikely to provide many of these guarantees. If
++     ordering is required for such mappings, then the mandatory barriers should
++     be used in conjunction with the _relaxed() accessors defined below.
++
++ (*) readX_relaxed(), writeX_relaxed():
+ 
+-     Ordinarily, these will be guaranteed to be fully ordered and uncombined,
+-     provided they're not accessing a prefetchable device.
+-
+-     However, intermediary hardware (such as a PCI bridge) may indulge in
+-     deferral if it so wishes; to flush a store, a load from the same location
+-     is preferred[*], but a load from the same device or from configuration
+-     space should suffice for PCI.
+-
+-     [*] NOTE! attempting to load from the same location as was written to may
+-	 cause a malfunction - consider the 16550 Rx/Tx serial registers for
+-	 example.
+-
+-     Used with prefetchable I/O memory, an mmiowb() barrier may be required to
+-     force stores to be ordered.
++     These are similar to readX() and writeX(), but provide weaker memory
++     ordering guarantees. Specifically, they do not guarantee ordering with
++     respect to normal memory accesses or delay() loops (i.e bullets 2-4 above)
++     but they are still guaranteed to be ordered with respect to other accesses
++     to the same peripheral when operating on __iomem pointers mapped with the
++     default I/O attributes.
+ 
+-     Please refer to the PCI specification for more information on interactions
+-     between PCI transactions.
++ (*) inX(), outX():
+ 
+- (*) readX_relaxed(), writeX_relaxed()
++     The inX() and outX() accessors are intended to access legacy port-mapped
++     I/O peripherals, which may require special instructions on some
++     architectures (notably x86). The port number of the peripheral being
++     accessed is passed as an argument.
+ 
+-     These are similar to readX() and writeX(), but provide weaker memory
+-     ordering guarantees.  Specifically, they do not guarantee ordering with
+-     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
+-     ordering with respect to LOCK or UNLOCK operations.  If the latter is
+-     required, an mmiowb() barrier can be used.  Note that relaxed accesses to
+-     the same peripheral are guaranteed to be ordered with respect to each
+-     other.
++     Since many CPU architectures ultimately access these peripherals via an
++     internal virtual memory mapping, the portable ordering guarantees provided
++     by inX() and outX() are the same as those provided by readX() and writeX()
++     respectively when accessing a mapping with the default I/O attributes.
+ 
+  (*) ioreadX(), iowriteX()
+ 
+      These will perform appropriately for the type of access they're actually
+      doing, be it inX()/outX() or readX()/writeX().
+ 
++All of these accessors assume that the underlying peripheral is little-endian,
++and will therefore perform byte-swapping operations on big-endian architectures.
++
++Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
++operations is a dangerous sport which may require the use of mmiowb(). See the
++subsection "Acquires vs I/O accesses" for more information.
+ 
+ ========================================
+ ASSUMED MINIMUM EXECUTION ORDERING MODEL
+-- 
+2.11.0
