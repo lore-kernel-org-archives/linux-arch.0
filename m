@@ -1,84 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:46926 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727715AbfBKRFY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 12:05:24 -0500
-Date: Mon, 11 Feb 2019 18:04:47 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-Message-ID: <20190211170447.GO32477@hirez.programming.kicks-ass.net>
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
- <20190211115833.GY32511@hirez.programming.kicks-ass.net>
- <e470384d-fb7b-132d-253b-23c495e7c285@redhat.com>
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:45834 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726244AbfBKRMH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 12:12:07 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e470384d-fb7b-132d-253b-23c495e7c285@redhat.com>
+References: <20190109210706.GA27268@linux.ibm.com> <20190109210748.29074-5-paulmck@linux.ibm.com>
+ <20190211153043.GC32385@fuggles.cambridge.arm.com>
+In-Reply-To: <20190211153043.GC32385@fuggles.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 11 Feb 2019 18:11:48 +0100
+Message-ID: <CAK8P3a3bkQoVfkV-+pNniirLN5Z_Wv3eG2TXW35kdJixCOH9_Q@mail.gmail.com>
+Subject: Re: [PATCH RFC LKMM 5/7] docs/memory-barriers.txt: Enforce heavy
+ ordering for port I/O accesses
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190211170447.8Xx7MlMAhKtjHLQEEmfuvp-AR2tzFdG6pTgHvhwHuCg@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Matthew Wilcox <willy@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@aculab.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Message-ID: <20190211171148.qrfGBePqtYSHIeEG61T1iVkBS449lthHXY9s32F8SJo@z>
 
-On Mon, Feb 11, 2019 at 11:35:24AM -0500, Waiman Long wrote:
-> On 02/11/2019 06:58 AM, Peter Zijlstra wrote:
-> > Which is clearly worse. Now we can write that as:
-> >
-> >   int __down_read_trylock2(unsigned long *l)
-> >   {
-> > 	  long tmp = READ_ONCE(*l);
-> >
-> > 	  while (tmp >= 0) {
-> > 		  if (try_cmpxchg(l, &tmp, tmp + 1))
-> > 			  return 1;
-> > 	  }
-> >
-> > 	  return 0;
-> >   }
-> >
-> > which generates:
-> >
-> >   0000000000000030 <__down_read_trylock2>:
-> >   30:   48 8b 07                mov    (%rdi),%rax
-> >   33:   48 85 c0                test   %rax,%rax
-> >   36:   78 18                   js     50 <__down_read_trylock2+0x20>
-> >   38:   48 8d 50 01             lea    0x1(%rax),%rdx
-> >   3c:   f0 48 0f b1 17          lock cmpxchg %rdx,(%rdi)
-> >   41:   75 f0                   jne    33 <__down_read_trylock2+0x3>
-> >   43:   b8 01 00 00 00          mov    $0x1,%eax
-> >   48:   c3                      retq
-> >   49:   0f 1f 80 00 00 00 00    nopl   0x0(%rax)
-> >   50:   31 c0                   xor    %eax,%eax
-> >   52:   c3                      retq
-> >
-> > Which is a lot better; but not quite there yet.
-> >
-> >
-> > I've tried quite a bit, but I can't seem to get GCC to generate the:
-> >
-> > 	add $1,%rdx
-> > 	jle
-> >
-> > required; stuff like:
-> >
-> > 	new = old + 1;
-> > 	if (new <= 0)
-> >
-> > generates:
-> >
-> > 	lea 0x1(%rax),%rdx
-> > 	test %rdx, %rdx
-> > 	jle
-> 
-> Thanks for the suggested code snippet. So you want to replace "lea
-> 0x1(%rax), %rdx" by "add $1,%rdx"?
-> 
-> I think the compiler is doing that so as to use the address generation
-> unit for addition instead of using the ALU. That will leave the ALU
-> available for doing other arithmetic operation in parallel. I don't
-> think it is a good idea to override the compiler and force it to use
-> ALU. So I am not going to try doing that. It is only 1 or 2 more of
-> codes anyway.
+On Mon, Feb 11, 2019 at 4:30 PM Will Deacon <will.deacon@arm.com> wrote:
 
-Yeah, I was trying to see what I could make it do.. #2 really should be
-good enough, but you know how it is once you're poking at it :-)
+> Given the lack of Intel response here, I went away to do some digging.
+> As evidenced by the commit message, there is certainly an understanding
+> amongst some developers that inX/outX() are strongly ordered on x86 and
+> this was re-enforced by Linus in March last year:
+>
+> https://www.mail-archive.com/linuxppc-dev@lists.ozlabs.org/msg131212.html
+>
+> It was this information on which I based my patch. The Intel SDM is not
+> quite as assertive in its claims.
+>
+> However, it has also occurred to me that this patch is actually missing
+> the point. memory-barriers.txt should be documenting the *Linux* memory
+> model, not the x86 one, and so the port accessors should be defined to
+> have the same ordering semantics as the MMIO accessors. If this wasn't
+> the case, then macros such as ioreadX() and iowriteX() would be unusable
+> in portable driver code.
+
+My interpretation of the ioreadX() and iowriteX() semantics is that they
+only guarantee readl()/writel() barrier semantics, even though they
+may in fact provide stronger barriers for PIO on architectures that use
+CONFIG_GENERIC_IOMAP (which falls back to inX()/outX()).
+
+> The inX/outX implementation in asm-generic would
+> also be bogus, despite being widely used.
+
+They likely are. The asm-generic files tend to provide a generic
+abstraction as much as that is possible, but without having access
+to the architecture specific semantics, they raditionally don't know
+what should be done here. We now have __io_pbw()/__io_paw()/
+__io_pbr()/__io_par() to let architectures get it right, but that is
+a fairly recent addition, so nothing other than riscv defines them
+today.
+To make things worse, a lot of machines are unable to provide
+__io_paw(), e.g. when all bus writes are posted.
+
+      Arnd
