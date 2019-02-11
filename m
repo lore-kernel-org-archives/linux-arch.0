@@ -1,47 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42458 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727106AbfBKNdE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 08:33:04 -0500
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
- <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
- <20190211071159.GA55579@gmail.com> <20190211103927.GA118071@gmail.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <9b03594e-d7b0-e042-374e-9f045dcb692c@redhat.com>
-Date: Mon, 11 Feb 2019 08:32:57 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51776 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389928AbfBKPat (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Feb 2019 10:30:49 -0500
+Date: Mon, 11 Feb 2019 15:30:43 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC LKMM 5/7] docs/memory-barriers.txt: Enforce heavy
+ ordering for port I/O accesses
+Message-ID: <20190211153043.GC32385@fuggles.cambridge.arm.com>
+References: <20190109210706.GA27268@linux.ibm.com>
+ <20190109210748.29074-5-paulmck@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20190211103927.GA118071@gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190109210748.29074-5-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190211133257.uw8g-g4HhhvWsiXh2LUaeHbhzxHSbpSsK8u2pb11L5c@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, David Laight <David.Laight@ACULAB.COM>, linux-doc@vger.kernel.org
+Message-ID: <20190211153043.VdBszM72HkGwWHDRNpUSlZhBK-YPuC2R8sAnHVbYERE@z>
 
-On 02/11/2019 05:39 AM, Ingo Molnar wrote:
-> * Ingo Molnar <mingo@kernel.org> wrote:
->
->> Sounds good to me - I've merged this patch, will push it out after 
->> testing.
-> Based on Peter's feedback I'm delaying this - performance testing on at 
-> least one key ll/sc arch would be nice indeed.
->
-> Thanks,
->
-> 	Ingo
+Hi Paul,
 
-Yes, I will twist the generic code to generate better code.
+On Wed, Jan 09, 2019 at 01:07:46PM -0800, Paul E. McKenney wrote:
+> From: Will Deacon <will.deacon@arm.com>
+> 
+> David Laight explains:
+> 
+>   | A long time ago there was a document from Intel that said that
+>   | inb/outb weren't necessarily synchronised wrt memory accesses.
+>   | (Might be P-pro era). However no processors actually behaved that
+>   | way and more recent docs say that inb/outb are fully ordered.
+> 
+> This also reflects the situation on other architectures, the the port
+> accessor macros tend to be implemented in terms of readX/writeX.
+> 
+> Update Documentation/memory-barriers.txt to reflect reality.
+> 
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: David Laight <David.Laight@ACULAB.COM>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: <linux-arch@vger.kernel.org>
+> Cc: <linux-doc@vger.kernel.org>
+> Cc: <linux-kernel@vger.kernel.org>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+> ---
+>  Documentation/memory-barriers.txt | 6 ++----
+>  1 file changed, 2 insertions(+), 4 deletions(-)
+> 
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index 1c22b21ae922..a70104e2a087 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -2619,10 +2619,8 @@ functions:
+>       intermediary bridges (such as the PCI host bridge) may not fully honour
+>       that.
+>  
+> -     They are guaranteed to be fully ordered with respect to each other.
+> -
+> -     They are not guaranteed to be fully ordered with respect to other types of
+> -     memory and I/O operation.
+> +     They are guaranteed to be fully ordered with respect to each other and
+> +     also with respect to other types of memory and I/O operation.
 
-As I said in the commit log, only x86, ia64 and alpha provide assembly
-code to replace the generic C code. The ll/sc archs that I have access
-to (ARM64, ppc) are all using the generic C code anyway. I actually had
-done some performance measurement on both those platforms and didn't see
-any performance difference. I didn't include them as they were using
-generic code before. I will rerun the tests after I twisted the generic
-C code.
+Given the lack of Intel response here, I went away to do some digging.
+As evidenced by the commit message, there is certainly an understanding
+amongst some developers that inX/outX() are strongly ordered on x86 and
+this was re-enforced by Linus in March last year:
 
-Thanks,
-Longman
+https://www.mail-archive.com/linuxppc-dev@lists.ozlabs.org/msg131212.html
+
+It was this information on which I based my patch. The Intel SDM is not
+quite as assertive in its claims.
+
+However, it has also occurred to me that this patch is actually missing
+the point. memory-barriers.txt should be documenting the *Linux* memory
+model, not the x86 one, and so the port accessors should be defined to
+have the same ordering semantics as the MMIO accessors. If this wasn't
+the case, then macros such as ioreadX() and iowriteX() would be unusable
+in portable driver code. The inX/outX implementation in asm-generic would
+also be bogus, despite being widely used.
+
+Unfortunately, the whole "KERNEL I/O BARRIER EFFECTS" section in
+memory-barriers.txt is vague, x86-centric and out of date. I think the
+best way forward is for me to propose a rewrite of that section, based
+on the work I did putting together my I/O ordering talk at ELCE last
+year. That, at least, will allow us to start off with a portable
+semantics rather than trying to infer the details from CPU manuals.
+
+So please drop this for now, and I'll send out a more involved RFC patch
+shortly with the usual suspects on cc.
+
+Cheers,
+
+Will
