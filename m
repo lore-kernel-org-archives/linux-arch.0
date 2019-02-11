@@ -1,74 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54876 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730177AbfBKRpw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 12:45:52 -0500
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to __io_par()
-Date: Mon, 11 Feb 2019 17:45:43 +0000
-Message-ID: <20190211174544.4302-2-will.deacon@arm.com>
-In-Reply-To: <20190211174544.4302-1-will.deacon@arm.com>
-References: <20190211174544.4302-1-will.deacon@arm.com>
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:45983 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727177AbfBKS2r (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 13:28:47 -0500
+Received: by mail-lf1-f65.google.com with SMTP id b20so8530429lfa.12
+        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 10:28:46 -0800 (PST)
+Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
+        by smtp.gmail.com with ESMTPSA id a127sm2442836lfe.73.2019.02.11.10.28.43
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Mon, 11 Feb 2019 10:28:43 -0800 (PST)
+Received: by mail-lf1-f48.google.com with SMTP id g2so3262838lfh.11
+        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 10:28:43 -0800 (PST)
+MIME-Version: 1.0
+References: <1549861699-11875-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <1549861699-11875-1-git-send-email-guoren@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 11 Feb 2019 10:28:26 -0800
+Message-ID: <CAHk-=wh9kycrBtNOUN1-aOR_JL4scBgs=6NUkGQonfWFyzhvVw@mail.gmail.com>
+Subject: Re: [GIT PULL] csky fixes for v5.0-rc6
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, andrew.murray@arm.com, arnd@arndb.de, catalin.marinas@arm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20190211174543.1GeOGQvBXRNZDnZQ1n87W7fQRpDe4Un4vk_pfL5tMc0@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20190211182826.qXiNtb9b1cmpMgwqrq0CEstfrV0S95XK5CPo0Ae1ZjU@z>
 
-The inX() I/O accessors must enforce ordering against subsequent calls
-to the delay() routines, so that a read-back from a device can be used
-to postpone a subsequent write to the same device.
+On Sun, Feb 10, 2019 at 9:08 PM <guoren@kernel.org> wrote:
+>
+> arch/csky patches for 5.0-rc6
 
-On some architectures, including arm64, this ordering can only be
-achieved by creating a dependency on the value returned by the inX()
-operation, so we need to pass the value we read to the __io_par()
-macro in this case.
+The bulk of this seems to be new hardware support code.
 
-Reported-by: Andrew Murray <andrew.murray@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/asm-generic/io.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Please send it during the 5.1 merge window, not as fixes at post-rc6 time.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index d356f802945a..b5737c0d8316 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -65,7 +65,7 @@
- #endif
- 
- #ifndef __io_par
--#define __io_par()     __io_ar()
-+#define __io_par(v)     __io_ar()
- #endif
- 
- 
-@@ -471,7 +471,7 @@ static inline u8 inb(unsigned long addr)
- 
- 	__io_pbr();
- 	val = __raw_readb(PCI_IOBASE + addr);
--	__io_par();
-+	__io_par(val);
- 	return val;
- }
- #endif
-@@ -484,7 +484,7 @@ static inline u16 inw(unsigned long addr)
- 
- 	__io_pbr();
- 	val = __le16_to_cpu(__raw_readw(PCI_IOBASE + addr));
--	__io_par();
-+	__io_par(val);
- 	return val;
- }
- #endif
-@@ -497,7 +497,7 @@ static inline u32 inl(unsigned long addr)
- 
- 	__io_pbr();
- 	val = __le32_to_cpu(__raw_readl(PCI_IOBASE + addr));
--	__io_par();
-+	__io_par(val);
- 	return val;
- }
- #endif
--- 
-2.11.0
+                 Linus
