@@ -1,210 +1,239 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46762 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730823AbfBKUW0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 15:22:26 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1BKDbla099016
-        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 15:22:26 -0500
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2qkdbm6yav-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 15:22:25 -0500
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 11 Feb 2019 20:22:24 -0000
-Date: Mon, 11 Feb 2019 12:22:18 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Reply-To: paulmck@linux.ibm.com
-References: <20190211172948.3322-1-will.deacon@arm.com>
+Received: from mail-vk1-f193.google.com ([209.85.221.193]:43418 "EHLO
+        mail-vk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726025AbfBKUdJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 15:33:09 -0500
+Received: by mail-vk1-f193.google.com with SMTP id o130so55522vke.10
+        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 12:33:08 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190211172948.3322-1-will.deacon@arm.com>
-Message-ID: <20190211202218.GQ4240@linux.ibm.com>
+References: <cover.1544445454.git.andreyknvl@google.com> <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+ <20181212150230.GH65138@arrakis.emea.arm.com> <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+ <20181218175938.GD20197@arrakis.emea.arm.com> <20181219125249.GB22067@e103592.cambridge.arm.com>
+ <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
+In-Reply-To: <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
+From: Evgenii Stepanov <eugenis@google.com>
+Date: Mon, 11 Feb 2019 12:32:55 -0800
+Message-ID: <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190211202218.TCeV30UrUTsLftGIYQgnI3Yp6yUjzo-dS_3rF-NAYhw@z>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20190211203255.M4PA1foheuBovlGHogQ9TcqrNIoZpgNdtyRRr3y4sJ0@z>
 
-On Mon, Feb 11, 2019 at 05:29:48PM +0000, Will Deacon wrote:
-> The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
-> x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
-> This is largely because I/O ordering is a horrible can of worms, but also
-> because the document has stagnated as our understanding has evolved.
-> 
-> Attempt to address some of that, by rewriting the section based on
-> recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
-> find a way to formalise this stuff, but for now let's at least try to
-> make the English easier to understand.
-> 
-> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-> Cc: Daniel Lustig <dlustig@nvidia.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+On Mon, Feb 11, 2019 at 9:28 AM Kevin Brodsky <kevin.brodsky@arm.com> wrote:
+>
+> On 19/12/2018 12:52, Dave Martin wrote:
+> > On Tue, Dec 18, 2018 at 05:59:38PM +0000, Catalin Marinas wrote:
+> >> On Tue, Dec 18, 2018 at 04:03:38PM +0100, Andrey Konovalov wrote:
+> >>> On Wed, Dec 12, 2018 at 4:02 PM Catalin Marinas<catalin.marinas@arm.com>  wrote:
+> >>>> The summary of our internal discussions (mostly between kernel
+> >>>> developers) is that we can't properly describe a user ABI that covers
+> >>>> future syscalls or syscall extensions while not all syscalls accept
+> >>>> tagged pointers. So we tweaked the requirements slightly to only allow
+> >>>> tagged pointers back into the kernel *if* the originating address is
+> >>>> from an anonymous mmap() or below sbrk(0). This should cover some of the
+> >>>> ioctls or getsockopt(TCP_ZEROCOPY_RECEIVE) where the user passes a
+> >>>> pointer to a buffer obtained via mmap() on the device operations.
+> >>>>
+> >>>> (sorry for not being clear on what Vincenzo's proposal implies)
+> >>> OK, I see. So I need to make the following changes to my patchset AFAIU.
+> >>>
+> >>> 1. Make sure that we only allow tagged user addresses that originate
+> >>> from an anonymous mmap() or below sbrk(0). How exactly should this
+> >>> check be performed?
+> >> I don't think we should perform such checks. That's rather stating that
+> >> the kernel only guarantees that the tagged pointers work if they
+> >> originated from these memory ranges.
+> > I concur.
+> >
+> > Really, the kernel should do the expected thing with all "non-weird"
+> > memory.
+> >
+> > In lieu of a proper definition of "non-weird", I think we should have
+> > some lists of things that are explicitly included, and also excluded:
+> >
+> > OK:
+> >       kernel-allocated process stack
+> >       brk area
+> >       MAP_ANONYMOUS | MAP_PRIVATE
+> >       MAP_PRIVATE mappings of /dev/zero
+> >
+> > Not OK:
+> >       MAP_SHARED
+> >       mmaps of non-memory-like devices
+> >       mmaps of anything that is not a regular file
+> >       the VDSO
+> >       ...
+> >
+> > In general, userspace can tag memory that it "owns", and we do not assume
+> > a transfer of ownership except in the "OK" list above.  Otherwise, it's
+> > the kernel's memory, or the owner is simply not well defined.
+>
+> Agreed on the general idea: a process should be able to pass tagged pointers at the
+> syscall interface, as long as they point to memory privately owned by the process. I
+> think it would be possible to simplify the definition of "non-weird" memory by using
+> only this "OK" list:
+> - mmap() done by the process itself, where either:
+>    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+>    * flags = MAP_PRIVATE and fd refers to a regular file or a well-defined list of
+> device files (like /dev/zero)
+> - brk() done by the process itself
+> - Any memory mapped by the kernel in the new process's address space during execve(),
+> with the same restrictions as above ([vdso]/[vvar] are therefore excluded)
+>
+> > I would also like to see advice for userspace developers, particularly
+> > things like (strawman, please challenge!):
+>
+> To some extent, one could call me a userspace developer, so I'll try to help :)
+>
+> >   * Userspace should set tags at the point of allocation only.
+>
+> Yes, tags are only supposed to be set at the point of either allocation or
+> deallocation/reallocation. However, allocators can in principle be nested, so an
+> allocator could  take a region allocated by malloc() as input and subdivide it
+> (changing tags in the process). That said, this suballocator must not free() that
+> region until all the suballocations themselves have been freed (thereby restoring the
+> tags initially set by malloc()).
+>
+> >   * If you don't know how an object was allocated, you cannot modify the
+> >     tag, period.
+>
+> Agreed, allocators that tag memory can only operate on memory with a well-defined
+> provenance (for instance anonymous mmap() or malloc()).
+>
+> >   * A single C object should be accessed using a single, fixed pointer tag
+> >     throughout its entire lifetime.
+>
+> Agreed. Allocators themselves may need to be excluded though, depending on how they
+> represent their managed memory.
+>
+> >   * Tags can be changed only when there are no outstanding pointers to
+> >     the affected object or region that may be used to access the object
+> >     or region (i.e., if the object were allocated from the C heap and
+> >     is it safe to realloc() it, then it is safe to change the tag; for
+> >     other types of allocation, analogous arguments can be applied).
+>
+> Tags can only be changed at the point of deallocation/reallocation. Pointers to the
+> object become invalid and cannot be used after it has been deallocated; memory
+> tagging allows to catch such invalid usage.
+>
+> >   * When the kernel dereferences a pointer on userspace's behalf, it
+> >     shall behave equivalently to userspace dereferencing the same pointer,
+> >     including use of the same tag (where passed by userspace).
+> >
+> >   * Where the pointer tag affects pointer dereference behaviour (i.e.,
+> >     with hardware memory colouring) the kernel makes no guarantee to
+> >     honour pointer tags correctly for every location a buffer based on a
+> >     pointer passed by userspace to the kernel.
+> >
+> >     (This means for example that for a read(fd, buf, size), we can check
+> >     the tag for a single arbitrary location in *(char (*)[size])buf
+> >     before passing the buffer to get_user_pages().  Hopefully this could
+> >     be done in get_user_pages() itself rather than hunting call sites.
+> >     For userspace, it means that you're on your own if you ask the
+> >     kernel to operate on a buffer than spans multiple, independently-
+> >     allocated objects, or a deliberately striped single object.)
+>
+> I think both points are reasonable. It is very valuable for the kernel to access
+> userspace memory using the user-provided tag, because it enables kernel accesses to
+> be checked in the same way as user accesses, allowing to detect bugs that are
+> potentially hard to find. For instance, if a pointer to an object is passed to the
+> kernel after it has been deallocated, this is invalid and should be detected.
+> However, you are absolutely right that the kernel cannot *guarantee* that such a
+> check is carried out for the entire memory range (or in fact at all); it should be a
+> best-effort approach.
 
-Hello, Will,
+It would also be valuable to narrow down the set of "relaxed" (i.e.
+not tag-checking) syscalls as reasonably possible. We would want to
+provide tag-checking userspace wrappers for any important calls that
+are not checked in the kernel. Is it correct to assume that anything
+that goes through copy_from_user  / copy_to_user is checked?
 
-The intent is to replace commit 3f305018dcf3 ("docs/memory-barriers.txt:
-Enforce heavy ordering for port I/O accesses"), correct?  Either way is
-fine, just guessing based on the conflicts when applying this one.  ;-)
+>
+> >   * The kernel shall not extend the lifetime of user pointers in ways
+> >     that are not clear from the specification of the syscall or
+> >     interface to which the pointer is passed (and in any case shall not
+> >     extend pointer lifetimes without good reason).
+> >
+> >     So no clever transparent caching between syscalls, unless it _really_
+> >     is transparent in the presence of tags.
+>
+> Do you have any particular case in mind? If such caching is really valuable, it is
+> always possible to access the object while ignoring the tag. For sure, the
+> user-provided tag can only be used during the syscall handling itself, not
+> asynchronously later on, unless otherwise specified.
 
-							Thanx, Paul
+For aio* operations it would be nice if the tag was checked at the
+time of the actual userspace read/write, either instead of or in
+addition to at the time of the system call.
 
-> ---
->  Documentation/memory-barriers.txt | 115 ++++++++++++++++++++------------------
->  1 file changed, 62 insertions(+), 53 deletions(-)
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 1c22b21ae922..d08b49b2c011 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -2599,72 +2599,81 @@ likely, then interrupt-disabling locks should be used to guarantee ordering.
->  KERNEL I/O BARRIER EFFECTS
->  ==========================
->  
-> -When accessing I/O memory, drivers should use the appropriate accessor
-> -functions:
-> -
-> - (*) inX(), outX():
-> -
-> -     These are intended to talk to I/O space rather than memory space, but
-> -     that's primarily a CPU-specific concept.  The i386 and x86_64 processors
-> -     do indeed have special I/O space access cycles and instructions, but many
-> -     CPUs don't have such a concept.
-> -
-> -     The PCI bus, amongst others, defines an I/O space concept which - on such
-> -     CPUs as i386 and x86_64 - readily maps to the CPU's concept of I/O
-> -     space.  However, it may also be mapped as a virtual I/O space in the CPU's
-> -     memory map, particularly on those CPUs that don't support alternate I/O
-> -     spaces.
-> -
-> -     Accesses to this space may be fully synchronous (as on i386), but
-> -     intermediary bridges (such as the PCI host bridge) may not fully honour
-> -     that.
-> -
-> -     They are guaranteed to be fully ordered with respect to each other.
-> -
-> -     They are not guaranteed to be fully ordered with respect to other types of
-> -     memory and I/O operation.
-> +Interfacing with peripherals via I/O accesses is deeply architecture and device
-> +specific. Therefore, drivers which are inherently non-portable may rely on
-> +specific behaviours of their target systems in order to achieve synchronization
-> +in the most lightweight manner possible. For drivers intending to be portable
-> +between multiple architectures and bus implementations, the kernel offers a
-> +series of accessor functions that provide various degrees of ordering
-> +guarantees:
->  
->   (*) readX(), writeX():
->  
-> -     Whether these are guaranteed to be fully ordered and uncombined with
-> -     respect to each other on the issuing CPU depends on the characteristics
-> -     defined for the memory window through which they're accessing.  On later
-> -     i386 architecture machines, for example, this is controlled by way of the
-> -     MTRR registers.
-> +     The readX() and writeX() MMIO accessors take a pointer to the peripheral
-> +     being accessed as an __iomem * parameter. For pointers mapped with the
-> +     default I/O attributes (e.g. those returned by ioremap()), then the
-> +     ordering guarantees are as follows:
-> +
-> +     1. All readX() and writeX() accesses to the same peripheral are ordered
-> +        with respect to each other. For example, this ensures that MMIO register
-> +	writes by the CPU to a particular device will arrive in program order.
-> +
-> +     2. A writeX() by the CPU to the peripheral will first wait for the
-> +        completion of all prior CPU writes to memory. For example, this ensures
-> +        that writes by the CPU to an outbound DMA buffer allocated by
-> +        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
-> +        to its MMIO control register to trigger the transfer.
-> +
-> +     3. A readX() by the CPU from the peripheral will complete before any
-> +	subsequent CPU reads from memory can begin. For example, this ensures
-> +	that reads by the CPU from an incoming DMA buffer allocated by
-> +	dma_alloc_coherent() will not see stale data after reading from the DMA
-> +	engine's MMIO status register to establish that the DMA transfer has
-> +	completed.
-> +
-> +     4. A readX() by the CPU from the peripheral will complete before any
-> +	subsequent delay() loop can begin execution. For example, this ensures
-> +	that two MMIO register writes by the CPU to a peripheral will arrive at
-> +	least 1us apart if the first write is immediately read back with readX()
-> +	and udelay(1) is called prior to the second writeX().
-> +
-> +     __iomem pointers obtained with non-default attributes (e.g. those returned
-> +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
-> +     ordering is required for such mappings, then the mandatory barriers should
-> +     be used in conjunction with the _relaxed() accessors defined below.
-> +
-> + (*) readX_relaxed(), writeX_relaxed():
->  
-> -     Ordinarily, these will be guaranteed to be fully ordered and uncombined,
-> -     provided they're not accessing a prefetchable device.
-> -
-> -     However, intermediary hardware (such as a PCI bridge) may indulge in
-> -     deferral if it so wishes; to flush a store, a load from the same location
-> -     is preferred[*], but a load from the same device or from configuration
-> -     space should suffice for PCI.
-> -
-> -     [*] NOTE! attempting to load from the same location as was written to may
-> -	 cause a malfunction - consider the 16550 Rx/Tx serial registers for
-> -	 example.
-> -
-> -     Used with prefetchable I/O memory, an mmiowb() barrier may be required to
-> -     force stores to be ordered.
-> +     These are similar to readX() and writeX(), but provide weaker memory
-> +     ordering guarantees. Specifically, they do not guarantee ordering with
-> +     respect to normal memory accesses or delay() loops (i.e bullets 2-4 above)
-> +     but they are still guaranteed to be ordered with respect to other accesses
-> +     to the same peripheral when operating on __iomem pointers mapped with the
-> +     default I/O attributes.
->  
-> -     Please refer to the PCI specification for more information on interactions
-> -     between PCI transactions.
-> + (*) inX(), outX():
->  
-> - (*) readX_relaxed(), writeX_relaxed()
-> +     The inX() and outX() accessors are intended to access legacy port-mapped
-> +     I/O peripherals, which may require special instructions on some
-> +     architectures (notably x86). The port number of the peripheral being
-> +     accessed is passed as an argument.
->  
-> -     These are similar to readX() and writeX(), but provide weaker memory
-> -     ordering guarantees.  Specifically, they do not guarantee ordering with
-> -     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
-> -     ordering with respect to LOCK or UNLOCK operations.  If the latter is
-> -     required, an mmiowb() barrier can be used.  Note that relaxed accesses to
-> -     the same peripheral are guaranteed to be ordered with respect to each
-> -     other.
-> +     Since many CPU architectures ultimately access these peripherals via an
-> +     internal virtual memory mapping, the portable ordering guarantees provided
-> +     by inX() and outX() are the same as those provided by readX() and writeX()
-> +     respectively when accessing a mapping with the default I/O attributes.
->  
->   (*) ioreadX(), iowriteX()
->  
->       These will perform appropriately for the type of access they're actually
->       doing, be it inX()/outX() or readX()/writeX().
->  
-> +All of these accessors assume that the underlying peripheral is little-endian,
-> +and will therefore perform byte-swapping operations on big-endian architectures.
-> +
-> +Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
-> +operations is a dangerous sport which may require the use of mmiowb(). See the
-> +subsection "Acquires vs I/O accesses" for more information.
->  
->  ========================================
->  ASSUMED MINIMUM EXECUTION ORDERING MODEL
-> -- 
-> 2.11.0
-> 
+>
+> >   * For purposes other than dereference, the kernel shall accept any
+> >     legitimately tagged pointer (according to the above rules) as
+> >     identifying the associated memory location.
+> >
+> >     So, mprotect(some_page_aligned_object, ...); is valid irrespective
+> >     of where page_aligned_object() came from.  There is no implicit
+> >     derefence by the kernel here, hence no tag check.
+> >
+> >     The kernel does not guarantee to work correctly if the wrong tag
+> >     is used, but there is not always a well-defined "right" tag, so
+> >     we can't really guarantee to check it.  So a pointer derived by
+> >     any reasonable means by userspace has to be treated as equally
+> >     valid.
+>
+> This is a disputed point :) In my opinion, this is the the most reasonable approach.
+
+Yes, it would be nice if the kernel explicitly promised, ex.
+mprotect() over a range of differently tagged pages to be allowed
+(i.e. address tag should be unchecked).
+
+
+>
+> Cheers,
+> Kevin
+>
+> > We would need to get some cross-arch buy-in for this, otherwise core
+> > maintainers might just refuse to maintain the necessary guarantees.
+> >
+> >
+> >>> 2. Allow tagged addressed passed to memory syscalls (as long as (1) is
+> >>> satisfied). Do I understand correctly that this means that I need to
+> >>> locate all find_vma() callers outside of mm/ and fix them up as well?
+> >> Yes (unless anyone as a better idea or objections to this approach).
+> > Also, watch out for code that pokes about inside struct vma directly.
+> >
+> > I'm wondering, could we define an explicit type, say,
+> >
+> >       struct user_vaddr {
+> >               unsigned long addr;
+> >       };
+> >
+> > to replace the unsigned longs in struct vma the mm API?  This would
+> > turn ad-hoc (unsigned long) casts into build breaks.  We could have
+> > an explicit conversion functions, say,
+> >
+> >       struct user_vaddr __user_vaddr_unsafe(void __user *);
+> >       void __user *__user_ptr_unsafe(struct user_vaddr);
+> >
+> > that we robotically insert in all the relevant places to mark
+> > unaudited code.
+> >
+> > This allows us to keep the kernel buildable, while flagging things
+> > that will need review.  We would also need to warn the mm folks to
+> > reject any new code using these unsafe conversions.
+> >
+> > Of course, it would be a non-trivial effort...
+> >
+> >> BTW, I'll be off until the new year, so won't be able to follow up.
+> > Cheers
+> > ---Dave
+> >
+> > _______________________________________________
+> > linux-arm-kernel mailing list
+> > linux-arm-kernel@lists.infradead.org
+> > http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+>
