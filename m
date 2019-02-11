@@ -1,47 +1,69 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 0/3] generic asm: mman cleanup
-Date: Sun, 10 Feb 2019 23:20:35 -0500
-Message-ID: <20190210231841-mutt-send-email-mst@kernel.org>
-References: <20190124142448.23243-1-mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: guoren@kernel.org
+Subject: [GIT PULL] csky fixes for v5.0-rc6
+Date: Mon, 11 Feb 2019 13:08:19 +0800
+Message-ID: <1549861699-11875-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190124142448.23243-1-mst@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 08, 2019 at 01:02:51AM -0500, Michael S. Tsirkin wrote:
-> Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
-> architectures, it probably makes sense to de-duplicate these
-> and put them into a common header.
-> 
-> Please review and consider merging though the generic tree.
-> 
-> Build tested on x86 only. Has been in linux-next for a while now.
+The following changes since commit d13937116f1e82bf508a6325111b322c30c85eb9:
 
-Arnd, would you consider merging at least the cleanups 2/3 and 3/3?
-In linux-next they had no ill effects and make things
-slightly cleaner IMO.
+  Linux 5.0-rc6 (2019-02-10 14:42:20 -0800)
 
+are available in the git repository at:
 
-> Michael S. Tsirkin (3):
->   x86/mpx: tweak header name
->   drm: tweak header name
->   arch: move common mmap flags to linux/mman.h
-> 
->  arch/alpha/include/uapi/asm/mman.h     | 4 +---
->  arch/mips/include/uapi/asm/mman.h      | 4 +---
->  arch/parisc/include/uapi/asm/mman.h    | 4 +---
->  arch/x86/mm/mpx.c                      | 2 +-
->  arch/xtensa/include/uapi/asm/mman.h    | 4 +---
->  include/drm/drmP.h                     | 3 +--
->  include/uapi/asm-generic/mman-common.h | 4 +---
->  include/uapi/linux/mman.h              | 4 ++++
->  8 files changed, 11 insertions(+), 18 deletions(-)
-> 
-> -- 
-> MST
-> 
+  git@github.com:c-sky/csky-linux.git tags/csky-for-linus-5.0-rc6
+
+for you to fetch changes up to 757dc82a87669b1967faf89c6586c20a9aea2f6b:
+
+  csky: Fixup dead loop in show_stack (2019-02-11 10:47:27 +0800)
+
+----------------------------------------------------------------
+arch/csky patches for 5.0-rc6
+
+Here is some fixup patches for 5.0-rc6:
+
+Guo Ren (12):
+      irqchip/csky: Support csky,dh7k SOC intc driver
+      dt-bindings: csky,apb-intc: Add dh7k SOC support
+      csky: Fixup _PAGE_GLOBAL bit for 610 tlb entry
+      irqchip/csky: Optimize remove unnecessary loop irq handle
+      irqchip/irq-csky-mpintc: Add triger type and priority
+      dt-bindings: interrupt-controller: Update csky mpintc
+      csky: Fixup wrong pt_regs size
+      csky: coding convention: Use task_stack_page
+      dt-bindings: csky,apb-intc: Add vector irq mode
+      irqchip/csky: Add support-vector-irq for apb-intc
+      csky: Fixup io-range page attribute for mmap("/dev/mem")
+      csky: Fixup dead loop in show_stack
+
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+
+----------------------------------------------------------------
+Guo Ren (12):
+      irqchip/csky: Support csky,dh7k SOC intc driver
+      dt-bindings: csky,apb-intc: Add dh7k SOC support
+      csky: Fixup _PAGE_GLOBAL bit for 610 tlb entry
+      irqchip/csky: Optimize remove unnecessary loop irq handle
+      irqchip/irq-csky-mpintc: Add triger type and priority
+      dt-bindings: interrupt-controller: Update csky mpintc
+      csky: Fixup wrong pt_regs size
+      csky: coding convention: Use task_stack_page
+      dt-bindings: csky,apb-intc: Add vector irq mode
+      irqchip/csky: Add support-vector-irq for apb-intc
+      csky: Fixup io-range page attribute for mmap("/dev/mem")
+      csky: Fixup dead loop in show_stack
+
+ .../interrupt-controller/csky,apb-intc.txt         |   4 +
+ .../bindings/interrupt-controller/csky,mpintc.txt  |  21 ++-
+ arch/csky/include/asm/pgtable.h                    |   9 +-
+ arch/csky/include/asm/processor.h                  |   4 +-
+ arch/csky/kernel/dumpstack.c                       |   4 +
+ arch/csky/kernel/ptrace.c                          |   3 +-
+ arch/csky/kernel/smp.c                             |   3 +-
+ arch/csky/mm/ioremap.c                             |  14 ++
+ drivers/irqchip/irq-csky-apb-intc.c                | 151 +++++++++++++++++----
+ drivers/irqchip/irq-csky-mpintc.c                  | 113 ++++++++++++++-
+ 10 files changed, 279 insertions(+), 47 deletions(-)
