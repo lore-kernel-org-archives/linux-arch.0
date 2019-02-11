@@ -1,59 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:43632 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:38802 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727862AbfBKTbs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 14:31:48 -0500
+        id S1727862AbfBKTbw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Feb 2019 14:31:52 -0500
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 0/2] locking/rwsem: Remove arch specific rwsem files
-Date: Mon, 11 Feb 2019 14:31:24 -0500
-Message-ID: <1549913486-16799-1-git-send-email-longman@redhat.com>
+Subject: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
+Date: Mon, 11 Feb 2019 14:31:26 -0500
+Message-ID: <1549913486-16799-3-git-send-email-longman@redhat.com>
+In-Reply-To: <1549913486-16799-1-git-send-email-longman@redhat.com>
+References: <1549913486-16799-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190211193124.fRpNl7PRz5LEJf0zu-vw3fGOBlrHrafravAnXvaowoU@z>
+Message-ID: <20190211193126.WZN38si-S2XA9ZmUAjsG51HBdqBSSYDM5t4kbsG26e4@z>
 
-v2:
- - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
- - Update performance test data in patch 1.
+Modify __down_read_trylock() to make it generate slightly better code
+(smaller and maybe a tiny bit faster).
 
-This is part 0 of my rwsem patchset. It just removes the architecture
-specific files to make it easer to add enhancements in the upcoming
-rwsem patches.
+Before this patch, down_read_trylock:
 
-Since the two ll/sc platforms that I can tested on (arm64 & ppc) are
-both using the generic C codes, the rwsem performance shouldn't be
-affected by this patch except the down_read_trylock() code which was
-included in patch 2 for arm64.
+   0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+   0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+   0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+   0x000000000000000b <+11>:    mov    %rdx,%rax
+   0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+   0x0000000000000013 <+19>:    cmp    %rax,%rdx
+   0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+   0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+   0x000000000000001b <+27>:    test   %rdx,%rdx
+   0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+   0x0000000000000020 <+32>:    xor    %eax,%eax
+   0x0000000000000022 <+34>:    retq
+   0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+   0x000000000000002c <+44>:    or     $0x3,%rax
+   0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+   0x0000000000000034 <+52>:    mov    $0x1,%eax
+   0x0000000000000039 <+57>:    retq
 
-Waiman Long (2):
-  locking/rwsem: Remove arch specific rwsem files
-  locking/rwsem: Optimize down_read_trylock()
+After patch, down_read_trylock:
 
- MAINTAINERS                     |   1 -
- arch/alpha/include/asm/rwsem.h  | 211 -----------------------------------
- arch/arm/include/asm/Kbuild     |   1 -
- arch/arm64/include/asm/Kbuild   |   1 -
- arch/hexagon/include/asm/Kbuild |   1 -
- arch/ia64/include/asm/rwsem.h   | 172 -----------------------------
- arch/powerpc/include/asm/Kbuild |   1 -
- arch/s390/include/asm/Kbuild    |   1 -
- arch/sh/include/asm/Kbuild      |   1 -
- arch/sparc/include/asm/Kbuild   |   1 -
- arch/x86/include/asm/rwsem.h    | 237 ----------------------------------------
- arch/x86/lib/Makefile           |   1 -
- arch/x86/lib/rwsem.S            | 156 --------------------------
- arch/xtensa/include/asm/Kbuild  |   1 -
- include/asm-generic/rwsem.h     | 140 ------------------------
- include/linux/rwsem.h           |   4 +-
- kernel/locking/percpu-rwsem.c   |   2 +
- kernel/locking/rwsem.h          | 130 ++++++++++++++++++++++
- 18 files changed, 133 insertions(+), 929 deletions(-)
- delete mode 100644 arch/alpha/include/asm/rwsem.h
- delete mode 100644 arch/ia64/include/asm/rwsem.h
- delete mode 100644 arch/x86/include/asm/rwsem.h
- delete mode 100644 arch/x86/lib/rwsem.S
- delete mode 100644 include/asm-generic/rwsem.h
+   0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+   0x0000000000000005 <+5>:     mov    (%rdi),%rax
+   0x0000000000000008 <+8>:     test   %rax,%rax
+   0x000000000000000b <+11>:    js     0x2f <down_read_trylock+47>
+   0x000000000000000d <+13>:    lea    0x1(%rax),%rdx
+   0x0000000000000011 <+17>:    lock cmpxchg %rdx,(%rdi)
+   0x0000000000000016 <+22>:    jne    0x8 <down_read_trylock+8>
+   0x0000000000000018 <+24>:    mov    %gs:0x0,%rax
+   0x0000000000000021 <+33>:    or     $0x3,%rax
+   0x0000000000000025 <+37>:    mov    %rax,0x20(%rdi)
+   0x0000000000000029 <+41>:    mov    $0x1,%eax
+   0x000000000000002e <+46>:    retq
+   0x000000000000002f <+47>:    xor    %eax,%eax
+   0x0000000000000031 <+49>:    retq
 
+By using a rwsem microbenchmark, the down_read_trylock() rate on a
+x86-64 system before and after the patch were:
+
+                 Before Patch    After Patch
+   # of Threads     rlock           rlock
+   ------------     -----           -----
+        1           27,787          28,259
+        2            8,359           9,234
+
+On a ARM64 system, the performance results were:
+
+                 Before Patch    After Patch
+   # of Threads     rlock           rlock
+   ------------     -----           -----
+        1           24,155          25,000
+        2            6,820           8,699
+
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/rwsem.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
+index 067e265..028bc33 100644
+--- a/kernel/locking/rwsem.h
++++ b/kernel/locking/rwsem.h
+@@ -175,11 +175,11 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+ 
+ static inline int __down_read_trylock(struct rw_semaphore *sem)
+ {
+-	long tmp;
++	long tmp = atomic_long_read(&sem->count);
+ 
+-	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
+-		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
+-				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
++	while (tmp >= 0) {
++		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
++					tmp + RWSEM_ACTIVE_READ_BIAS)) {
+ 			return 1;
+ 		}
+ 	}
 -- 
 1.8.3.1
