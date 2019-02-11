@@ -1,94 +1,78 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC LKMM 5/7] docs/memory-barriers.txt: Enforce heavy
- ordering for port I/O accesses
-Date: Mon, 11 Feb 2019 15:30:43 +0000
-Message-ID: <20190211153043.GC32385@fuggles.cambridge.arm.com>
-References: <20190109210706.GA27268@linux.ibm.com>
- <20190109210748.29074-5-paulmck@linux.ibm.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
+Date: Mon, 11 Feb 2019 11:35:24 -0500
+Message-ID: <e470384d-fb7b-132d-253b-23c495e7c285@redhat.com>
+References: <1549850450-10171-1-git-send-email-longman@redhat.com>
+ <20190211115833.GY32511@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190109210748.29074-5-paulmck@linux.ibm.com>
+In-Reply-To: <20190211115833.GY32511@hirez.programming.kicks-ass.net>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, willy@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, David Laight <David.Laight@ACULAB.COM>, linux-doc@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+On 02/11/2019 06:58 AM, Peter Zijlstra wrote:
+> Which is clearly worse. Now we can write that as:
+>
+>   int __down_read_trylock2(unsigned long *l)
+>   {
+> 	  long tmp = READ_ONCE(*l);
+>
+> 	  while (tmp >= 0) {
+> 		  if (try_cmpxchg(l, &tmp, tmp + 1))
+> 			  return 1;
+> 	  }
+>
+> 	  return 0;
+>   }
+>
+> which generates:
+>
+>   0000000000000030 <__down_read_trylock2>:
+>   30:   48 8b 07                mov    (%rdi),%rax
+>   33:   48 85 c0                test   %rax,%rax
+>   36:   78 18                   js     50 <__down_read_trylock2+0x20>
+>   38:   48 8d 50 01             lea    0x1(%rax),%rdx
+>   3c:   f0 48 0f b1 17          lock cmpxchg %rdx,(%rdi)
+>   41:   75 f0                   jne    33 <__down_read_trylock2+0x3>
+>   43:   b8 01 00 00 00          mov    $0x1,%eax
+>   48:   c3                      retq
+>   49:   0f 1f 80 00 00 00 00    nopl   0x0(%rax)
+>   50:   31 c0                   xor    %eax,%eax
+>   52:   c3                      retq
+>
+> Which is a lot better; but not quite there yet.
+>
+>
+> I've tried quite a bit, but I can't seem to get GCC to generate the:
+>
+> 	add $1,%rdx
+> 	jle
+>
+> required; stuff like:
+>
+> 	new = old + 1;
+> 	if (new <= 0)
+>
+> generates:
+>
+> 	lea 0x1(%rax),%rdx
+> 	test %rdx, %rdx
+> 	jle
 
-On Wed, Jan 09, 2019 at 01:07:46PM -0800, Paul E. McKenney wrote:
-> From: Will Deacon <will.deacon@arm.com>
-> 
-> David Laight explains:
-> 
->   | A long time ago there was a document from Intel that said that
->   | inb/outb weren't necessarily synchronised wrt memory accesses.
->   | (Might be P-pro era). However no processors actually behaved that
->   | way and more recent docs say that inb/outb are fully ordered.
-> 
-> This also reflects the situation on other architectures, the the port
-> accessor macros tend to be implemented in terms of readX/writeX.
-> 
-> Update Documentation/memory-barriers.txt to reflect reality.
-> 
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: David Laight <David.Laight@ACULAB.COM>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: <linux-arch@vger.kernel.org>
-> Cc: <linux-doc@vger.kernel.org>
-> Cc: <linux-kernel@vger.kernel.org>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-> ---
->  Documentation/memory-barriers.txt | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 1c22b21ae922..a70104e2a087 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -2619,10 +2619,8 @@ functions:
->       intermediary bridges (such as the PCI host bridge) may not fully honour
->       that.
->  
-> -     They are guaranteed to be fully ordered with respect to each other.
-> -
-> -     They are not guaranteed to be fully ordered with respect to other types of
-> -     memory and I/O operation.
-> +     They are guaranteed to be fully ordered with respect to each other and
-> +     also with respect to other types of memory and I/O operation.
+Thanks for the suggested code snippet. So you want to replace "lea
+0x1(%rax), %rdx" by "add $1,%rdx"?
 
-Given the lack of Intel response here, I went away to do some digging.
-As evidenced by the commit message, there is certainly an understanding
-amongst some developers that inX/outX() are strongly ordered on x86 and
-this was re-enforced by Linus in March last year:
-
-https://www.mail-archive.com/linuxppc-dev@lists.ozlabs.org/msg131212.html
-
-It was this information on which I based my patch. The Intel SDM is not
-quite as assertive in its claims.
-
-However, it has also occurred to me that this patch is actually missing
-the point. memory-barriers.txt should be documenting the *Linux* memory
-model, not the x86 one, and so the port accessors should be defined to
-have the same ordering semantics as the MMIO accessors. If this wasn't
-the case, then macros such as ioreadX() and iowriteX() would be unusable
-in portable driver code. The inX/outX implementation in asm-generic would
-also be bogus, despite being widely used.
-
-Unfortunately, the whole "KERNEL I/O BARRIER EFFECTS" section in
-memory-barriers.txt is vague, x86-centric and out of date. I think the
-best way forward is for me to propose a rewrite of that section, based
-on the work I did putting together my I/O ordering talk at ELCE last
-year. That, at least, will allow us to start off with a portable
-semantics rather than trying to infer the details from CPU manuals.
-
-So please drop this for now, and I'll send out a more involved RFC patch
-shortly with the usual suspects on cc.
+I think the compiler is doing that so as to use the address generation
+unit for addition instead of using the ALU. That will leave the ALU
+available for doing other arithmetic operation in parallel. I don't
+think it is a good idea to override the compiler and force it to use
+ALU. So I am not going to try doing that. It is only 1 or 2 more of
+codes anyway.
 
 Cheers,
-
-Will
+Longman
