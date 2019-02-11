@@ -1,143 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f193.google.com ([209.85.166.193]:35044 "EHLO
-        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726102AbfBKDV6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 22:21:58 -0500
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:37405 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726157AbfBKEUj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 23:20:39 -0500
+Received: by mail-qt1-f196.google.com with SMTP id a48so10757952qtb.4
+        for <linux-arch@vger.kernel.org>; Sun, 10 Feb 2019 20:20:38 -0800 (PST)
+Date: Sun, 10 Feb 2019 23:20:35 -0500
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 0/3] generic asm: mman cleanup
+Message-ID: <20190210231841-mutt-send-email-mst@kernel.org>
+References: <20190124142448.23243-1-mst@redhat.com>
 MIME-Version: 1.0
-References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-10-deepa.kernel@gmail.com>
- <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
-In-Reply-To: <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Date: Sun, 10 Feb 2019 19:21:43 -0800
-Message-ID: <CABeXuvqMR7T=3ORvXPihkz-WbTN+oFeHkCu9uvebEq9wTLpJuQ@mail.gmail.com>
-Subject: Re: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190124142448.23243-1-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ran Rozenstein <ranro@mellanox.com>
-Cc: "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20190211032143.YROhFepcI5F5O3YKsnVCU6r61Jej4CLsZpmvldn82Us@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190211042035.tAmNO7qXwbyGwxYHeIkYy-6JYUqOyrYcL_NiKqbtJG4@z>
 
-On Feb 10, 2019, at 7:43 AM, Ran Rozenstein <ranro@mellanox.com> wrote:
+On Fri, Feb 08, 2019 at 01:02:51AM -0500, Michael S. Tsirkin wrote:
+> Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
+> architectures, it probably makes sense to de-duplicate these
+> and put them into a common header.
+> 
+> Please review and consider merging though the generic tree.
+> 
+> Build tested on x86 only. Has been in linux-next for a while now.
 
->> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
->>
->> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
->> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
->> architectures.
->>
->> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
->> Acked-by: Willem de Bruijn <willemb@google.com>
->
->
-> Hi,
->
-> I have app that include:
->    #include <linux/errqueue.h>
->
-> It now fail with this error:
->    In file included from timestamping.c:6:0:
->    /usr/include/linux/errqueue.h:46:27: error: array type has incomplete element type 'struct __kernel_timespec'
->      struct __kernel_timespec ts[3];
->                                       ^~
-> I tried to do the trivial fix, to include time.h:
-> In include/uapi/linux/errqueue.h
->    #include <linux/time.h>
->    #include <linux/types.h>
->
-> But it just add some other noises:
->                In file included from /usr/include/linux/errqueue.h:5:0,
->                                 from timestamping.c:6:
->                /usr/include/linux/time.h:10:8: error: redefinition of ?struct timespec?
->                 struct timespec {
->                        ^~~~~~~~
->                In file included from /usr/include/sys/select.h:39:0,
->                                 from /usr/include/sys/types.h:197,
->                                 from /usr/include/stdlib.h:279,
->                                 from timestamping.c:2:
->                /usr/include/bits/types/struct_timespec.h:8:8: note: originally defined here
->                 struct timespec
->                        ^~~~~~~~
->                In file included from /usr/include/linux/errqueue.h:5:0,
->                                 from timestamping.c:6:
->                /usr/include/linux/time.h:16:8: error: redefinition of ?struct timeval?
->                 struct timeval {
->                        ^~~~~~~
->                In file included from /usr/include/sys/select.h:37:0,
->                                 from /usr/include/sys/types.h:197,
->                                 from /usr/include/stdlib.h:279,
->                                 from timestamping.c:2:
->                /usr/include/bits/types/struct_timeval.h:8:8: note: originally defined here
->                 struct timeval
->                        ^~~~~~~
->
->
-> Can you please advise how to solve it?
->
-> Thanks,
-> Ran
-
-The errqueue.h already had the same issue reported previously:
-https://lore.kernel.org/netdev/CAF=yD-L2ntuH54J_SwN9WcpBMgkV_v0e-Q2Pu2mrQ3+1RozGFQ@mail.gmail.com/
-
-Earlier when I tested this with kernel selftests such as
-tools/testing/selftests/networking/timestamping/rxtimestamp(the test
-was broken to begin with because of  missing include of unistd.h), I
-was using make.cross to build.
-This does not put the headers in the right place
-(obj-$ARCH/usr/include instead of usr/include). Hence, I did not
-realize that this breaks the inclusion of errqueue.h due to the
-missing __kernel_timespec definition.
-I forgot that nobody seems to be using linux/time.h.
-
-But, if I include guards( #ifndef __KERNEL__) for struct timespec,
-struct timeval etc for linux/time.h, then we can include it from
-userspace/ errqueue.h for __kernel_timespec:
-
---- a/include/uapi/linux/errqueue.h
-+++ b/include/uapi/linux/errqueue.h
-@@ -2,7 +2,7 @@
- #ifndef _UAPI_LINUX_ERRQUEUE_H
- #define _UAPI_LINUX_ERRQUEUE_H
-
--#include <linux/types.h>
-+#include <linux/time.h>
-
- struct sock_extended_err {
-        __u32   ee_errno;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index a6aca9aaab80..40913d9a5bc8 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -5,6 +5,8 @@
- #include <linux/types.h>
+Arnd, would you consider merging at least the cleanups 2/3 and 3/3?
+In linux-next they had no ill effects and make things
+slightly cleaner IMO.
 
 
-+#ifdef __KERNEL__
-+
- #ifndef _STRUCT_TIMESPEC
- #define _STRUCT_TIMESPEC
- struct timespec {
-@@ -42,6 +44,8 @@ struct itimerval {
-        struct timeval it_value;        /* current value */
- };
-
-+#endif /* __KERNEL__ */
-
-Arnd,
-
-I forgot how we plan to include the definition for __kernel_timespec
-for libc or userspace. Does this seem right to you?
-Also these changes to errqueue.h needs to be reverted probably as this
-breaks userspace.
-
-Thanks,
--Deepa
-
-
-
-
-
-
-
--Deepa
+> Michael S. Tsirkin (3):
+>   x86/mpx: tweak header name
+>   drm: tweak header name
+>   arch: move common mmap flags to linux/mman.h
+> 
+>  arch/alpha/include/uapi/asm/mman.h     | 4 +---
+>  arch/mips/include/uapi/asm/mman.h      | 4 +---
+>  arch/parisc/include/uapi/asm/mman.h    | 4 +---
+>  arch/x86/mm/mpx.c                      | 2 +-
+>  arch/xtensa/include/uapi/asm/mman.h    | 4 +---
+>  include/drm/drmP.h                     | 3 +--
+>  include/uapi/asm-generic/mman-common.h | 4 +---
+>  include/uapi/linux/mman.h              | 4 ++++
+>  8 files changed, 11 insertions(+), 18 deletions(-)
+> 
+> -- 
+> MST
+> 
