@@ -1,75 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53066 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726101AbfBKCIp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 10 Feb 2019 21:08:45 -0500
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <a610aeb2-b1cb-0d57-8078-97d1051481f9@redhat.com>
-Date: Sun, 10 Feb 2019 21:08:40 -0500
+Received: from mail-it1-f193.google.com ([209.85.166.193]:35044 "EHLO
+        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726102AbfBKDV6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2019 22:21:58 -0500
 MIME-Version: 1.0
-In-Reply-To: <1549850450-10171-1-git-send-email-longman@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-10-deepa.kernel@gmail.com>
+ <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
+In-Reply-To: <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Date: Sun, 10 Feb 2019 19:21:43 -0800
+Message-ID: <CABeXuvqMR7T=3ORvXPihkz-WbTN+oFeHkCu9uvebEq9wTLpJuQ@mail.gmail.com>
+Subject: Re: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190211020840.hkK5fpRApLLVi-IrDx8I4TF2tDkKcwbhdJ009crS6EE@z>
+To: Ran Rozenstein <ranro@mellanox.com>
+Cc: "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
+Message-ID: <20190211032143.YROhFepcI5F5O3YKsnVCU6r61Jej4CLsZpmvldn82Us@z>
 
-On 02/10/2019 09:00 PM, Waiman Long wrote:
-> As the generic rwsem-xadd code is using the appropriate acquire and
-> release versions of the atomic operations, the arch specific rwsem.h
-> files will not be that much faster than the generic code as long as the
-> atomic functions are properly implemented. So we can remove those arch
-> specific rwsem.h and stop building asm/rwsem.h to reduce maintenance
-> effort.
->
-> Currently, only x86, alpha and ia64 have implemented architecture
-> specific fast paths. I don't have access to alpha and ia64 systems for
-> testing, but they are legacy systems that are not likely to be updated
-> to the latest kernel anyway.
->
-> By using a rwsem microbenchmark, the total locking rates on a 4-socket
-> 56-core 112-thread x86-64 system before and after the patch were as
-> follows (mixed means equal # of read and write locks):
->
->                       Before Patch              After Patch
->    # of Threads  wlock   rlock   mixed     wlock   rlock   mixed
->    ------------  -----   -----   -----     -----   -----   -----
->         1        27,373  29,409  28,170    28,773  30,164  29,276
->         2         7,697  14,922   1,703     7,435  15,167   1,729
->         4         6,987  14,285   1,490     7,181  14,438   1,330
->         8         6,650  13,652     761     6,918  13,796     718
->        16         6,434  15,729     713     6,554  16,030     625
->        32         5,590  15,312     552     6,124  15,344     471
->        64         5,980  15,478      61     5,668  15,509      58
->
-> There were some run-to-run variations for the multi-thread tests. For
-> x86-64, using the generic C code fast path seems to be a liitle bit
-> faster than the assembly version especially for read-lock and when lock
-> contention is low.  Looking at the assembly version of the fast paths,
-> there are assembly to/from C code wrappers that save and restore all
-> the callee-clobbered registers (7 registers on x86-64). The assembly
-> generated from the generic C code doesn't need to do that. That may
-> explain the slight performance gain here.
->
-> The generic asm rwsem.h can also be merged into kernel/locking/rwsem.h
-> as no other code other than those under kernel/locking needs to access
-> the internal rwsem macros and functions.
->
-> Signed-off-by: Waiman Long <longman@redhat.com>
+On Feb 10, 2019, at 7:43 AM, Ran Rozenstein <ranro@mellanox.com> wrote:
 
-I have decided to break the rwsem patchset that I sent out on last
-Thursday into 3 parts. This patch is part 0 as it touches a number of
-arch specific files and so have the widest distribution. I would like to
-get it merged first. Part 1 will be patches 1-10 (except 4) of my
-original rwsem patchset. This part moves things around, adds more
-debugging capability and lays the ground work for the next part. Part 2
-will contains the remaining patches which are the real beef of the whole
-patchset.
+>> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
+>>
+>> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
+>> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
+>> architectures.
+>>
+>> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
+>> Acked-by: Willem de Bruijn <willemb@google.com>
+>
+>
+> Hi,
+>
+> I have app that include:
+>    #include <linux/errqueue.h>
+>
+> It now fail with this error:
+>    In file included from timestamping.c:6:0:
+>    /usr/include/linux/errqueue.h:46:27: error: array type has incomplete element type 'struct __kernel_timespec'
+>      struct __kernel_timespec ts[3];
+>                                       ^~
+> I tried to do the trivial fix, to include time.h:
+> In include/uapi/linux/errqueue.h
+>    #include <linux/time.h>
+>    #include <linux/types.h>
+>
+> But it just add some other noises:
+>                In file included from /usr/include/linux/errqueue.h:5:0,
+>                                 from timestamping.c:6:
+>                /usr/include/linux/time.h:10:8: error: redefinition of ?struct timespec?
+>                 struct timespec {
+>                        ^~~~~~~~
+>                In file included from /usr/include/sys/select.h:39:0,
+>                                 from /usr/include/sys/types.h:197,
+>                                 from /usr/include/stdlib.h:279,
+>                                 from timestamping.c:2:
+>                /usr/include/bits/types/struct_timespec.h:8:8: note: originally defined here
+>                 struct timespec
+>                        ^~~~~~~~
+>                In file included from /usr/include/linux/errqueue.h:5:0,
+>                                 from timestamping.c:6:
+>                /usr/include/linux/time.h:16:8: error: redefinition of ?struct timeval?
+>                 struct timeval {
+>                        ^~~~~~~
+>                In file included from /usr/include/sys/select.h:37:0,
+>                                 from /usr/include/sys/types.h:197,
+>                                 from /usr/include/stdlib.h:279,
+>                                 from timestamping.c:2:
+>                /usr/include/bits/types/struct_timeval.h:8:8: note: originally defined here
+>                 struct timeval
+>                        ^~~~~~~
+>
+>
+> Can you please advise how to solve it?
+>
+> Thanks,
+> Ran
 
-Cheers,
-Longman
+The errqueue.h already had the same issue reported previously:
+https://lore.kernel.org/netdev/CAF=yD-L2ntuH54J_SwN9WcpBMgkV_v0e-Q2Pu2mrQ3+1RozGFQ@mail.gmail.com/
+
+Earlier when I tested this with kernel selftests such as
+tools/testing/selftests/networking/timestamping/rxtimestamp(the test
+was broken to begin with because of  missing include of unistd.h), I
+was using make.cross to build.
+This does not put the headers in the right place
+(obj-$ARCH/usr/include instead of usr/include). Hence, I did not
+realize that this breaks the inclusion of errqueue.h due to the
+missing __kernel_timespec definition.
+I forgot that nobody seems to be using linux/time.h.
+
+But, if I include guards( #ifndef __KERNEL__) for struct timespec,
+struct timeval etc for linux/time.h, then we can include it from
+userspace/ errqueue.h for __kernel_timespec:
+
+--- a/include/uapi/linux/errqueue.h
++++ b/include/uapi/linux/errqueue.h
+@@ -2,7 +2,7 @@
+ #ifndef _UAPI_LINUX_ERRQUEUE_H
+ #define _UAPI_LINUX_ERRQUEUE_H
+
+-#include <linux/types.h>
++#include <linux/time.h>
+
+ struct sock_extended_err {
+        __u32   ee_errno;
+diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
+index a6aca9aaab80..40913d9a5bc8 100644
+--- a/include/uapi/linux/time.h
++++ b/include/uapi/linux/time.h
+@@ -5,6 +5,8 @@
+ #include <linux/types.h>
+
+
++#ifdef __KERNEL__
++
+ #ifndef _STRUCT_TIMESPEC
+ #define _STRUCT_TIMESPEC
+ struct timespec {
+@@ -42,6 +44,8 @@ struct itimerval {
+        struct timeval it_value;        /* current value */
+ };
+
++#endif /* __KERNEL__ */
+
+Arnd,
+
+I forgot how we plan to include the definition for __kernel_timespec
+for libc or userspace. Does this seem right to you?
+Also these changes to errqueue.h needs to be reverted probably as this
+breaks userspace.
+
+Thanks,
+-Deepa
+
+
+
+
+
+
+
+-Deepa
