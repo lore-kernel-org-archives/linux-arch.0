@@ -1,83 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34044 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727067AbfBKQf3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Feb 2019 11:35:29 -0500
-Subject: Re: [PATCH] locking/rwsem: Remove arch specific rwsem files
-References: <1549850450-10171-1-git-send-email-longman@redhat.com>
- <20190211115833.GY32511@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <e470384d-fb7b-132d-253b-23c495e7c285@redhat.com>
-Date: Mon, 11 Feb 2019 11:35:24 -0500
-MIME-Version: 1.0
-In-Reply-To: <20190211115833.GY32511@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+Received: from mail-qk1-f201.google.com ([209.85.222.201]:35471 "EHLO
+        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728800AbfBKQhD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2019 11:37:03 -0500
+Received: by mail-qk1-f201.google.com with SMTP id 207so12777324qkl.2
+        for <linux-arch@vger.kernel.org>; Mon, 11 Feb 2019 08:37:01 -0800 (PST)
+Date: Mon, 11 Feb 2019 17:36:53 +0100
+Message-ID: <20190211163653.97742-1-jannh@google.com>
+Mime-Version: 1.0
+Subject: [PATCH] mmap.2: describe the 5level paging hack
+From: Jann Horn <jannh@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190211163524.CilkzIPj2e6RyZ7UQzZiCjhsPZOetEnwD7SmJ1u4_U8@z>
+To: mtk.manpages@gmail.com, jannh@google.com
+Cc: linux-man@vger.kernel.org, linux-mm@kvack.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-api@vger.kernel.org
+Message-ID: <20190211163653.xDKy-5JEmgCCR6en2FrwcGrdsJHRmDvXzadXIbg4eDE@z>
 
-On 02/11/2019 06:58 AM, Peter Zijlstra wrote:
-> Which is clearly worse. Now we can write that as:
->
->   int __down_read_trylock2(unsigned long *l)
->   {
-> 	  long tmp = READ_ONCE(*l);
->
-> 	  while (tmp >= 0) {
-> 		  if (try_cmpxchg(l, &tmp, tmp + 1))
-> 			  return 1;
-> 	  }
->
-> 	  return 0;
->   }
->
-> which generates:
->
->   0000000000000030 <__down_read_trylock2>:
->   30:   48 8b 07                mov    (%rdi),%rax
->   33:   48 85 c0                test   %rax,%rax
->   36:   78 18                   js     50 <__down_read_trylock2+0x20>
->   38:   48 8d 50 01             lea    0x1(%rax),%rdx
->   3c:   f0 48 0f b1 17          lock cmpxchg %rdx,(%rdi)
->   41:   75 f0                   jne    33 <__down_read_trylock2+0x3>
->   43:   b8 01 00 00 00          mov    $0x1,%eax
->   48:   c3                      retq
->   49:   0f 1f 80 00 00 00 00    nopl   0x0(%rax)
->   50:   31 c0                   xor    %eax,%eax
->   52:   c3                      retq
->
-> Which is a lot better; but not quite there yet.
->
->
-> I've tried quite a bit, but I can't seem to get GCC to generate the:
->
-> 	add $1,%rdx
-> 	jle
->
-> required; stuff like:
->
-> 	new = old + 1;
-> 	if (new <= 0)
->
-> generates:
->
-> 	lea 0x1(%rax),%rdx
-> 	test %rdx, %rdx
-> 	jle
+The manpage is missing information about the compatibility hack for
+5-level paging that went in in 4.14, around commit ee00f4a32a76 ("x86/mm:
+Allow userspace have mappings above 47-bit"). Add some information about
+that.
 
-Thanks for the suggested code snippet. So you want to replace "lea
-0x1(%rax), %rdx" by "add $1,%rdx"?
+While I don't think any hardware supporting this is shipping yet (?), I
+think it's useful to try to write a manpage for this API, partly to
+figure out how usable that API actually is, and partly because when this
+hardware does ship, it'd be nice if distro manpages had information about
+how to use it.
 
-I think the compiler is doing that so as to use the address generation
-unit for addition instead of using the ALU. That will leave the ALU
-available for doing other arithmetic operation in parallel. I don't
-think it is a good idea to override the compiler and force it to use
-ALU. So I am not going to try doing that. It is only 1 or 2 more of
-codes anyway.
+Signed-off-by: Jann Horn <jannh@google.com>
+---
+This patch goes on top of the patch "[PATCH] mmap.2: fix description of
+treatment of the hint" that I just sent, but I'm not sending them in a
+series because I want the first one to go in, and I think this one might
+be a bit more controversial.
 
-Cheers,
-Longman
+It would be nice if the architecture maintainers and mm folks could have
+a look at this and check that what I wrote is right - I only looked at
+the source for this, I haven't tried it.
+
+ man2/mmap.2 | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/man2/mmap.2 b/man2/mmap.2
+index 8556bbfeb..977782fa8 100644
+--- a/man2/mmap.2
++++ b/man2/mmap.2
+@@ -67,6 +67,8 @@ is NULL,
+ then the kernel chooses the (page-aligned) address
+ at which to create the mapping;
+ this is the most portable method of creating a new mapping.
++On Linux, in this case, the kernel may limit the maximum address that can be
++used for allocations to a legacy limit for compatibility reasons.
+ If
+ .I addr
+ is not NULL,
+@@ -77,6 +79,19 @@ or equal to the value specified by
+ and attempt to create the mapping there.
+ If another mapping already exists there, the kernel picks a new
+ address, independent of the hint.
++However, if a hint above the architecture's legacy address limit is provided
++(on x86-64: above 0x7ffffffff000, on arm64: above 0x1000000000000, on ppc64 with
++book3s: above 0x7fffffffffff or 0x3fffffffffff, depending on page size), the
++kernel is permitted to allocate mappings beyond the architecture's legacy
++address limit. The availability of such addresses is hardware-dependent.
++Therefore, if you want to be able to use the full virtual address space of
++hardware that supports addresses beyond the legacy range, you need to specify an
++address above that limit; however, for security reasons, you should avoid
++specifying a fixed valid address outside the compatibility range,
++since that would reduce the value of userspace address space layout
++randomization. Therefore, it is recommended to specify an address
++.I beyond
++the end of the userspace address space.
+ .\" Before Linux 2.6.24, the address was rounded up to the next page
+ .\" boundary; since 2.6.24, it is rounded down!
+ The address of the new mapping is returned as the result of the call.
+-- 
+2.20.1.791.gb4d0f1c61a-goog
