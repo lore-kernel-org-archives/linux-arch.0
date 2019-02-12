@@ -1,93 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:39473 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727343AbfBLJly (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 04:41:54 -0500
-Received: by mail-pl1-f196.google.com with SMTP id 101so1034888pld.6
-        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 01:41:53 -0800 (PST)
-Date: Tue, 12 Feb 2019 12:41:48 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH] mmap.2: describe the 5level paging hack
-Message-ID: <20190212094148.qpd6wudyry5vzw3v@kshutemo-mobl1>
-References: <20190211163653.97742-1-jannh@google.com>
+Received: from mail-wm1-f66.google.com ([209.85.128.66]:51493 "EHLO
+        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726756AbfBLK1Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 05:27:24 -0500
+Subject: Re: [PATCH v7 05/28] x86/asm/entry: annotate THUNKs
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-6-jslaby@suse.cz> <20190209112551.GA5089@zn.tnic>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <b75f2a0d-974a-c63b-64f8-8f333991e826@suse.cz>
+Date: Tue, 12 Feb 2019 11:27:19 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190211163653.97742-1-jannh@google.com>
+In-Reply-To: <20190209112551.GA5089@zn.tnic>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-mm@kvack.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-api@vger.kernel.org
-Message-ID: <20190212094148.xJZnDG67Zkr2JGdj_1Gtfe3e-6T9KUv4TLtoD1P3AQ8@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20190212102719.pizglOZkxdbSVuh6EYcXQjuRVbTKw56-WUcJkk7s5Vs@z>
 
-On Mon, Feb 11, 2019 at 05:36:53PM +0100, Jann Horn wrote:
-> The manpage is missing information about the compatibility hack for
-> 5-level paging that went in in 4.14, around commit ee00f4a32a76 ("x86/mm:
-> Allow userspace have mappings above 47-bit"). Add some information about
-> that.
+On 09. 02. 19, 12:25, Borislav Petkov wrote:
+>> @@ -57,7 +56,7 @@
+>>  #if defined(CONFIG_TRACE_IRQFLAGS) \
+>>   || defined(CONFIG_DEBUG_LOCK_ALLOC) \
+>>   || defined(CONFIG_PREEMPT)
+>> -.L_restore:
+>> +SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
+>>  	popq %r11
+>>  	popq %r10
+>>  	popq %r9
+>> @@ -70,4 +69,5 @@
+>>  	popq %rbp
+>>  	ret
+>>  	_ASM_NOKPROBE(.L_restore)
+>> +SYM_CODE_END(.L_restore)
 > 
-> While I don't think any hardware supporting this is shipping yet (?), I
-> think it's useful to try to write a manpage for this API, partly to
-> figure out how usable that API actually is, and partly because when this
-> hardware does ship, it'd be nice if distro manpages had information about
-> how to use it.
+> That local label doesn't even land in the symbol table:
 > 
-> Signed-off-by: Jann Horn <jannh@google.com>
+> $ readelf -a  arch/x86/entry/thunk_64.o | grep restore
+> $
+> 
+> so no need to touch it, AFAICT. And all local labels, for that matter.
 
-Thanks for doing this.
+Yes, they do not end up in the symbol table. But the macros make clear
+where is the start of the function and especially where is the end
+(something like closing bracket '}' in C). If you prefer not annotating
+local symbols, I can of course drop it from everywhere. But to me it
+looks more readable to see "here it starts" and "here it ends", still
+without generating anything to the symbol table.
 
-> ---
-> This patch goes on top of the patch "[PATCH] mmap.2: fix description of
-> treatment of the hint" that I just sent, but I'm not sending them in a
-> series because I want the first one to go in, and I think this one might
-> be a bit more controversial.
-> 
-> It would be nice if the architecture maintainers and mm folks could have
-> a look at this and check that what I wrote is right - I only looked at
-> the source for this, I haven't tried it.
-> 
->  man2/mmap.2 | 15 +++++++++++++++
->  1 file changed, 15 insertions(+)
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 8556bbfeb..977782fa8 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -67,6 +67,8 @@ is NULL,
->  then the kernel chooses the (page-aligned) address
->  at which to create the mapping;
->  this is the most portable method of creating a new mapping.
-> +On Linux, in this case, the kernel may limit the maximum address that can be
-> +used for allocations to a legacy limit for compatibility reasons.
->  If
->  .I addr
->  is not NULL,
-> @@ -77,6 +79,19 @@ or equal to the value specified by
->  and attempt to create the mapping there.
->  If another mapping already exists there, the kernel picks a new
->  address, independent of the hint.
-> +However, if a hint above the architecture's legacy address limit is provided
-> +(on x86-64: above 0x7ffffffff000, on arm64: above 0x1000000000000, on ppc64 with
-> +book3s: above 0x7fffffffffff or 0x3fffffffffff, depending on page size), the
-> +kernel is permitted to allocate mappings beyond the architecture's legacy
-> +address limit. The availability of such addresses is hardware-dependent.
-> +Therefore, if you want to be able to use the full virtual address space of
-> +hardware that supports addresses beyond the legacy range, you need to specify an
-> +address above that limit; however, for security reasons, you should avoid
-> +specifying a fixed valid address outside the compatibility range,
-> +since that would reduce the value of userspace address space layout
-> +randomization. Therefore, it is recommended to specify an address
-> +.I beyond
-> +the end of the userspace address space.
-
-It probably worth recommending (void *) -1 as such address.
-
->  .\" Before Linux 2.6.24, the address was rounded up to the next page
->  .\" boundary; since 2.6.24, it is rounded down!
->  The address of the new mapping is returned as the result of the call.
-> -- 
-> 2.20.1.791.gb4d0f1c61a-goog
-> 
-
+thanks,
 -- 
- Kirill A. Shutemov
+js
+suse labs
