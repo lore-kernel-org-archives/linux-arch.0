@@ -1,115 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f66.google.com ([209.85.161.66]:45222 "EHLO
-        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727614AbfBLWlP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 17:41:15 -0500
-Subject: Re: [PATCH 2/4] Expose O_PATHSTATIC to userspace
-References: <20190212145450.2200-1-demiobenour@gmail.com>
- <20190212145450.2200-2-demiobenour@gmail.com>
- <EC2075E7-CB9B-4DC0-B041-1EA1100D6748@dilger.ca>
-From: "Demi M. Obenour" <demiobenour@gmail.com>
-Message-ID: <39662373-f333-a5e1-f734-1b003992a468@gmail.com>
-Date: Tue, 12 Feb 2019 17:41:09 -0500
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:53728 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729264AbfBLXGF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 18:06:05 -0500
+Subject: Re: Semantics of symbol address in perf report -v
+References: <da403654-f21d-9959-067f-b76581600741@synopsys.com>
+From: Vineet Gupta <vineet.gupta1@synopsys.com>
+Message-ID: <c7f4f000-6934-912e-f8eb-c163a04323d1@synopsys.com>
+Date: Tue, 12 Feb 2019 15:05:53 -0800
 MIME-Version: 1.0
-In-Reply-To: <EC2075E7-CB9B-4DC0-B041-1EA1100D6748@dilger.ca>
-Content-Type: multipart/signed; micalg=pgp-sha256;
- protocol="application/pgp-signature";
- boundary="JdhHrYvC79uJTKDrSt0jFVgT7zCVPlvsa"
+In-Reply-To: <da403654-f21d-9959-067f-b76581600741@synopsys.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Dilger <adilger@dilger.ca>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20190212224109.xALNPpKD6mXx9jL4jrv-s76juR1KMNFkCNTMybFbGuM@z>
+To: "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, arcml <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, lkml <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@redhat.com>
+Message-ID: <20190212230553.OQsh5UAy4Mi7ciJROZXTBxWmrR3YCHYSKKWRYo7DWyM@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---JdhHrYvC79uJTKDrSt0jFVgT7zCVPlvsa
-Content-Type: multipart/mixed; boundary="U98QdikU4hBjqnfGgi2wkgmNBgqxGWAbA";
- protected-headers="v1"
-From: "Demi M. Obenour" <demiobenour@gmail.com>
-To: Andreas Dilger <adilger@dilger.ca>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields"
- <bfields@fieldses.org>, Alexander Viro <viro@zeniv.linux.org.uk>,
- Arnd Bergmann <arnd@arndb.de>, linux-fsdevel
- <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>,
- linux-arch@vger.kernel.org
-Message-ID: <39662373-f333-a5e1-f734-1b003992a468@gmail.com>
-Subject: Re: [PATCH 2/4] Expose O_PATHSTATIC to userspace
-References: <20190212145450.2200-1-demiobenour@gmail.com>
- <20190212145450.2200-2-demiobenour@gmail.com>
- <EC2075E7-CB9B-4DC0-B041-1EA1100D6748@dilger.ca>
-In-Reply-To: <EC2075E7-CB9B-4DC0-B041-1EA1100D6748@dilger.ca>
+On 1/23/19 11:55 AM, Vineet Gupta wrote:
+> Hi,
+> 
+> I noticed a small anomaly in perf report -v output on ARC and x86 as well.
+> 
+> A simple program which sits in tight loop, compiled for x86_64
+> 
+> void main() { while(1) {} }
+> 
+> $ gcc -g tight.c
+> $ ./a.out &
+> $ perf record -e cycles -p 26703
+> $ perf report -n -v  --stdio  | egrep "(main|Symbol)"
+> 
+> |# Overhead Samples Command  Shared Object         Symbol
+> 
+> |  99.93%    55753   a.out   /home/arc/test/a.out  0x4da     B [.] main
+> 
+> |                                                  ^^^^^
+> 
+> The printer address for Symbols is *not* the actual address in elf, but rather VMA
+> start offset.
+> 
+> 0x4da = 0x4004da - 0x0000000000400000
+> 
+> $ objdump -d ./a.out
+> 
+> | 00000000004004d6 <main>:
+> |  4004d6:	55                   	push   %rbp
+> |  4004d7:	48 89 e5             	mov    %rsp,%rbp
+> |  4004da:	eb fe                	jmp    4004da <main+0x4>
+> |  4004dc:	0f 1f 40 00          	nopl   0x0(%rax)
+> 
+> $ readelf -a ./a.out
+> 
+> | Program Headers:
+> |  Type           Offset             VirtAddr           PhysAddr
+> |                 FileSiz            MemSiz              Flags  Align
+> | Program Headers:
+> |  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
+>                  0x000000000000068c 0x000000000000068c  R E    200000
+> 
+> 
+> This is problematic in narrowing down the hotspot instruction, when the binary
+> itself is. One needs to do the offset addition manually to find the actual hotspot
+> location.
+> 
+> |   99.79%  100064  a.out  /home/arc/test/a.out  0x4da  B [.] 0x00000000000004da
+> 
+>                                                                ^^^^^^^^^^^^^^^^
+> 
+> Is this considered an issue ? Would the fix to print the actual symbol address
+> (and recorded in raw perf event data) break some existing tooling etc.
+> 
 
---U98QdikU4hBjqnfGgi2wkgmNBgqxGWAbA
-Content-Type: text/plain; charset=windows-1252
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+@Arnaldo any ideas ?
 
+this is being done in tools/perf/util/symbol-elf.c
 
+    symsrc__init
+	if (dso->kernel == DSO_TYPE_USER)
+		ss->adjust_symbols = true;
 
-On 2/12/19 3:18 PM, Andreas Dilger wrote:
-> On Feb 12, 2019, at 7:54 AM, demiobenour@gmail.com wrote:
->>
->> From: "Demi M. Obenour" <demiobenour@gmail.com>
->>
->> This adds the file open flag O_PATHSTATIC, which ensures that symbolic=
+     dso__load_sym
+	dso->adjust_symbols = runtime_ss->adjust_symbols || ref_reloc(kmap);
 
->> links are *never* followed, even in path components other than the las=
-t.
->> This is distinct from O_NOFOLLOW, which only prevents symlinks in the
->> *last* component from being followed.
->>
->> This is useful for avoiding race conditions in userspace code that
->> should expose only a subset of the filesystem to clients.  This includ=
-es
->> FTP and SFTP servers, QEMU, and others.
->>
->> Currently, O_NOFOLLOW must be set if O_PATHSTATIC is set.  Otherwise,
->> open() fails with -EINVAL.
->=20
-> I don't want to bikeshed (discard suggestion if you disagree), but why =
-not
-> name the flag "O_NEVER_FOLLOW" so that users can see it is also related=
- to
-> "O_NOFOLLOW"?  Otherwise it seems like they are two completely differen=
-t
-> things from looking at the names, when in fact they are closely related=
-=2E
->=20
-> Cheers, Andreas
->=20
+		} else if ((used_opd && runtime_ss->adjust_symbols) ||
+			   (!used_opd && syms_ss->adjust_symbols)) {
 
-Searching for O_PATHSTATIC gives two results:
+			*sym.st_value -= shdr.sh_addr - shdr.sh_offset;*
+               }
 
-* https://www.halfdog.net/Security/2010/FilesystemRecursionAndSymlinks
-* https://lists.gnu.org/archive/html/qemu-devel/2017-01/msg06225.html
+I investigated a bit more and this goes back to 2009:
 
-O_DIRECTORY_NOFOLLOW would also be a good choice, since that is what the
-flag actually does.  Ideally, we would rename O_NOFOLLOW, but we can=92t.=
+Initially the adj was done for prelink binaries: commit f5812a7a336fb
+("perf_counter tools: Adjust only prelinked symbol's addresses")
 
++       self->prelinked = elf_section_by_name(elf, &ehdr, &shdr,
++                                             ".gnu.prelink_undo",
++                                             NULL) != NULL;
++      if (self->prelinked) {
+          if (verbose >= 2)
+            printf("adjusting symbol: ...
+           sym.st_value -= shdr.sh_addr - shdr.sh_offset;
++      }
 
+commit 30d7a77dd5a97 ("perf_counter tools: Adjust symbols in ET_EXEC files too")
+started doing this for any executable
 
---U98QdikU4hBjqnfGgi2wkgmNBgqxGWAbA--
-
---JdhHrYvC79uJTKDrSt0jFVgT7zCVPlvsa
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAEBCAAdFiEEdodNnxM2uiJZBxxxsoi1X/+cIsEFAlxjS4UACgkQsoi1X/+c
-IsEEQw//eeuvOan9TmZ0gfFNNIc7ibAMoc9o8q0L/Sr0yqTpRithhFdLfr/APzcq
-jlctL4m4Urhg9R2IgEvKJUIH5LXpNgF0px2usODACwXua7MXy9b8ziN5f/+1+GOo
-CiUNtnaR9kMWzR5HhyOGIE3LAAIBZrLgRRAuznvYbKQhojFayhAC5MeIpVsI91so
-T4osAwVw0HHF4hIEIYUWMT5a1CZJfdxDPLb//AbEAWf1fU21XcKQFPxgYHIFMilo
-s+0kkC/AHk/ncewn4N84jSoqsxYMqcmjHVwglVs7/SzCFPKLJoAKOjlKAe9q1l71
-r4zvFIu2xMQ/73qQHNLJN9yWo8U7nCvC1S4oQUWPJP37C0G/6To7qGWXo9rFYZfP
-BEtlX7dWdIEeiL/yM8ZIKE6GoTMl5vrvELRdn5QH3V9qRLCJLewezVivLMG6GjVL
-ilINB6cx9N4YaxShouvNPrJURmPj8SZVyJa/bD4zC8UtfMpaLbWoJg0BjUf51FAb
-tpKhBQqe00ecg1NgGtP0/54lcBVb3QWCVf4zHNDs96DET+c+ttd/nLMZcziYEYZt
-VGwwGEZvRzm0km5/yya6Q0PYtYwM+KW7UW4jAZ/ksDBrQKirNOshC3kyKkggszUq
-N6KU9v4MjvqCcf0xB/2+3CdmOujMdOmjmt63MYSR48cWD+n3b9w=
-=fVy/
------END PGP SIGNATURE-----
-
---JdhHrYvC79uJTKDrSt0jFVgT7zCVPlvsa--
+-       self->prelinked = elf_section_by_name(elf, &ehdr, &shdr,
+-                                             ".gnu.prelink_undo",
+-                                             NULL) != NULL;
++       self->adjust_symbols = (ehdr.e_type == ET_EXEC ||
++                               elf_section_by_name(elf, &ehdr, &shdr,
++                                                    ".gnu.prelink_undo",
++
