@@ -1,52 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.51]:36039 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727150AbfBLMnB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 07:43:01 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-References: <20190204075616.GA5408@lst.de>
- <ffbf56ae-c259-47b5-9deb-7fb21fead254@xenosoft.de>
- <20190204123852.GA10428@lst.de>
- <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de>
- <20190206151505.GA31065@lst.de> <20190206151655.GA31172@lst.de>
- <61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de>
- <7c1f208b-6909-3b0a-f9f9-38ff1ac3d617@xenosoft.de>
- <20190208091818.GA23491@lst.de>
- <4e7137db-e600-0d20-6fb2-6d0f9739aca3@xenosoft.de>
- <20190211073804.GA15841@lst.de>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <820bfeb1-30c0-3d5a-54a2-c4f9a8c15b0e@xenosoft.de>
-Date: Tue, 12 Feb 2019 13:42:56 +0100
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:46474 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727750AbfBLNDY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 08:03:24 -0500
 MIME-Version: 1.0
-In-Reply-To: <20190211073804.GA15841@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: de-DE
+References: <20190211172948.3322-1-will.deacon@arm.com>
+In-Reply-To: <20190211172948.3322-1-will.deacon@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 12 Feb 2019 14:03:04 +0100
+Message-ID: <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
+ EFFECTS" section
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190212124256.CPEskXShbC4cNUHBrEbW57qPEbso40cWtS0DGhX8sDI@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190212130304.VaWdqLPf8RG0oapC43M1bqc2ze5J0kfbHAVLI2ex6eo@z>
 
-On 11 February 2019 at 08:38AM, Christoph Hellwig wrote:
-> On Sun, Feb 10, 2019 at 01:00:20PM +0100, Christian Zigotzky wrote:
->> I tested the whole series today. The kernels boot and the P.A. Semi
->> Ethernet works! :-) Thanks a lot!
->>
->> I also tested it in a virtual e5500 QEMU machine today. Unfortunately the
->> kernel crashes.
-> This looks like a patch I fixed in mainline a while ago, but which
-> the powerpc tree didn't have yet.
->
-> I've cherry picked this commit
-> ("swiotlb: clear io_tlb_start and io_tlb_end in swiotlb_exit")
->
-> and added it to the powerpc-dma.6 tree, please retry with that one.
->
-Hello Christoph,
+On Mon, Feb 11, 2019 at 6:29 PM Will Deacon <will.deacon@arm.com> wrote:
 
-Have you added it to the powerpc-dma.6 tree yet? The last commit was 4 
-days ago.
+> +     __iomem pointers obtained with non-default attributes (e.g. those returned
+> +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
+> +     ordering is required for such mappings, then the mandatory barriers should
+> +     be used in conjunction with the _relaxed() accessors defined below.
 
-Thanks,
-Christian
+I wonder if we are even able to guarantee consistent behavior across
+architectures
+in the last case here (wc mapping with relaxed accessors and barriers).
+
+Fortunately, there are only five implementations that actually differ from
+ioremap_nocache(): arm32, arm64, ppc32, ppc64 and x86 (both 32/64), so
+that is something we can probably figure out between the people on Cc.
+
+The problem with recommending *_relaxed() + barrier() is that it ends
+up being more expensive than the non-relaxed accessors whenever
+_relaxed() implies the barrier already (true on most architectures other
+than arm).
+
+ioremap_wc() in turn is used almost exclusively to map RAM behind
+a bus, (typically for frame buffers) and we may be better off not
+assuming any particular MMIO barrier semantics for it at all, but possibly
+audit the few uses that are not frame buffers.
+
+> +     Since many CPU architectures ultimately access these peripherals via an
+> +     internal virtual memory mapping, the portable ordering guarantees provided
+> +     by inX() and outX() are the same as those provided by readX() and writeX()
+> +     respectively when accessing a mapping with the default I/O attributes.
+
+This is notably weaker than the PCI mandated non-posted write semantics.
+As I said earlier, not all architectures or PCI host implementations can provide
+non-posted writes though, but maybe we can document that fact here, e.g.
+
+| Device drivers may expect outX() to be a non-posted write, i.e. waiting for
+| a completion response from the I/O device, which may not be possible
+| on a particular hardware.
+
+>   (*) ioreadX(), iowriteX()
+>
+>       These will perform appropriately for the type of access they're actually
+>       doing, be it inX()/outX() or readX()/writeX().
+
+This probably needs clarification as well then: On architectures that
+have a stronger barrier after outX() than writeX() but that use memory
+mapped access for both, the statement is currently not true. We could
+either strengthen the requirement by requiring CONFIG_GENERIC_IOMAP
+on such architectures, or we could document the current behavior
+as intentional and explicitly not allow iowriteX() on I/O ports to be posted.
+
+> +All of these accessors assume that the underlying peripheral is little-endian,
+> +and will therefore perform byte-swapping operations on big-endian architectures.
+
+This sounds like a useful addition and the only sane way to do it IMHO, but
+I think at least traditionally we've had architectures that do not work like
+this but that make readX()/writeX() do native big-endian loads and stores, with
+a hardware byteswap on the PCI bus.
+
+      Arnd
