@@ -1,74 +1,118 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
- EFFECTS" section
-Date: Tue, 12 Feb 2019 14:03:04 +0100
-Message-ID: <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
-References: <20190211172948.3322-1-will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
+Date: Tue, 12 Feb 2019 14:24:04 +0100
+Message-ID: <20190212132404.GI32494@hirez.programming.kicks-ass.net>
+References: <1549913486-16799-1-git-send-email-longman@redhat.com>
+ <1549913486-16799-3-git-send-email-longman@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190211172948.3322-1-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1549913486-16799-3-git-send-email-longman@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Davidlohr Bueso <dave@stgolabs.net>, linux-ia64@vger.kernel.org, Tim Chen <tim.c.chen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 11, 2019 at 6:29 PM Will Deacon <will.deacon@arm.com> wrote:
+On Mon, Feb 11, 2019 at 02:31:26PM -0500, Waiman Long wrote:
+> Modify __down_read_trylock() to make it generate slightly better code
+> (smaller and maybe a tiny bit faster).
+> 
+> Before this patch, down_read_trylock:
+> 
+>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+>    0x000000000000000b <+11>:    mov    %rdx,%rax
+>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
+>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+>    0x000000000000001b <+27>:    test   %rdx,%rdx
+>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+>    0x0000000000000020 <+32>:    xor    %eax,%eax
+>    0x0000000000000022 <+34>:    retq
+>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+>    0x000000000000002c <+44>:    or     $0x3,%rax
+>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+>    0x0000000000000034 <+52>:    mov    $0x1,%eax
+>    0x0000000000000039 <+57>:    retq
+> 
+> After patch, down_read_trylock:
+> 
+>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:     mov    (%rdi),%rax
+>    0x0000000000000008 <+8>:     test   %rax,%rax
+>    0x000000000000000b <+11>:    js     0x2f <down_read_trylock+47>
+>    0x000000000000000d <+13>:    lea    0x1(%rax),%rdx
+>    0x0000000000000011 <+17>:    lock cmpxchg %rdx,(%rdi)
+>    0x0000000000000016 <+22>:    jne    0x8 <down_read_trylock+8>
+>    0x0000000000000018 <+24>:    mov    %gs:0x0,%rax
+>    0x0000000000000021 <+33>:    or     $0x3,%rax
+>    0x0000000000000025 <+37>:    mov    %rax,0x20(%rdi)
+>    0x0000000000000029 <+41>:    mov    $0x1,%eax
+>    0x000000000000002e <+46>:    retq
+>    0x000000000000002f <+47>:    xor    %eax,%eax
+>    0x0000000000000031 <+49>:    retq
+> 
+> By using a rwsem microbenchmark, the down_read_trylock() rate on a
+> x86-64 system before and after the patch were:
+> 
+>                  Before Patch    After Patch
+>    # of Threads     rlock           rlock
+>    ------------     -----           -----
+>         1           27,787          28,259
+>         2            8,359           9,234
 
-> +     __iomem pointers obtained with non-default attributes (e.g. those returned
-> +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
-> +     ordering is required for such mappings, then the mandatory barriers should
-> +     be used in conjunction with the _relaxed() accessors defined below.
+From 1/2:
 
-I wonder if we are even able to guarantee consistent behavior across
-architectures
-in the last case here (wc mapping with relaxed accessors and barriers).
+1        29,201  30,143  29,458    28,615  30,172  29,201
+2         6,807  13,299   1,171     7,725  15,025   1,804
 
-Fortunately, there are only five implementations that actually differ from
-ioremap_nocache(): arm32, arm64, ppc32, ppc64 and x86 (both 32/64), so
-that is something we can probably figure out between the people on Cc.
-
-The problem with recommending *_relaxed() + barrier() is that it ends
-up being more expensive than the non-relaxed accessors whenever
-_relaxed() implies the barrier already (true on most architectures other
-than arm).
-
-ioremap_wc() in turn is used almost exclusively to map RAM behind
-a bus, (typically for frame buffers) and we may be better off not
-assuming any particular MMIO barrier semantics for it at all, but possibly
-audit the few uses that are not frame buffers.
-
-> +     Since many CPU architectures ultimately access these peripherals via an
-> +     internal virtual memory mapping, the portable ordering guarantees provided
-> +     by inX() and outX() are the same as those provided by readX() and writeX()
-> +     respectively when accessing a mapping with the default I/O attributes.
-
-This is notably weaker than the PCI mandated non-posted write semantics.
-As I said earlier, not all architectures or PCI host implementations can provide
-non-posted writes though, but maybe we can document that fact here, e.g.
-
-| Device drivers may expect outX() to be a non-posted write, i.e. waiting for
-| a completion response from the I/O device, which may not be possible
-| on a particular hardware.
-
->   (*) ioreadX(), iowriteX()
->
->       These will perform appropriately for the type of access they're actually
->       doing, be it inX()/outX() or readX()/writeX().
-
-This probably needs clarification as well then: On architectures that
-have a stronger barrier after outX() than writeX() but that use memory
-mapped access for both, the statement is currently not true. We could
-either strengthen the requirement by requiring CONFIG_GENERIC_IOMAP
-on such architectures, or we could document the current behavior
-as intentional and explicitly not allow iowriteX() on I/O ports to be posted.
-
-> +All of these accessors assume that the underlying peripheral is little-endian,
-> +and will therefore perform byte-swapping operations on big-endian architectures.
-
-This sounds like a useful addition and the only sane way to do it IMHO, but
-I think at least traditionally we've had architectures that do not work like
-this but that make readX()/writeX() do native big-endian loads and stores, with
-a hardware byteswap on the PCI bus.
-
-      Arnd
+> 
+> On a ARM64 system, the performance results were:
+> 
+>                  Before Patch    After Patch
+>    # of Threads     rlock           rlock
+>    ------------     -----           -----
+>         1           24,155          25,000
+>         2            6,820           8,699
+> 
+> Suggested-by: Peter Zijlstra <peterz@infradead.org>
+> Signed-off-by: Waiman Long <longman@redhat.com>
+> ---
+>  kernel/locking/rwsem.h | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
+> index 067e265..028bc33 100644
+> --- a/kernel/locking/rwsem.h
+> +++ b/kernel/locking/rwsem.h
+> @@ -175,11 +175,11 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+>  
+>  static inline int __down_read_trylock(struct rw_semaphore *sem)
+>  {
+> -	long tmp;
+> +	long tmp = atomic_long_read(&sem->count);
+>  
+> -	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
+> -		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
+> -				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+> +	while (tmp >= 0) {
+> +		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+> +					tmp + RWSEM_ACTIVE_READ_BIAS)) {
+>  			return 1;
+>  		}
+>  	}
+> -- 
+> 1.8.3.1
+> 
