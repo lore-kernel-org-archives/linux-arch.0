@@ -1,98 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60118 "EHLO mx1.redhat.com"
+Received: from foss.arm.com ([217.140.101.70]:42070 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727469AbfBLSiu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Feb 2019 13:38:50 -0500
-Subject: Re: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
-From: Waiman Long <longman@redhat.com>
-References: <1549913486-16799-1-git-send-email-longman@redhat.com>
- <1549913486-16799-3-git-send-email-longman@redhat.com>
- <20190212132404.GI32494@hirez.programming.kicks-ass.net>
- <20190212132537.GL32534@hirez.programming.kicks-ass.net>
- <a90fa2cf-f891-d64c-101b-adc81e06e0de@redhat.com>
-Message-ID: <0dc32b77-9485-0800-695d-1a076923b1e6@redhat.com>
-Date: Tue, 12 Feb 2019 13:38:43 -0500
+        id S1727303AbfBLSn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Feb 2019 13:43:59 -0500
+Date: Tue, 12 Feb 2019 18:43:54 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Message-ID: <20190212184354.GC20961@fuggles.cambridge.arm.com>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <20190211202218.GQ4240@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <a90fa2cf-f891-d64c-101b-adc81e06e0de@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190211202218.GQ4240@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190212183843.Z_shbe5O-Fr9NlUPN2Pz0YcgMUVqKz3lAvg3cCHoct4@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190212184354.90h2-zQbkOD4txMvfCx-BS7gRqoeVaJrJDla_eMVFMc@z>
 
-On 02/12/2019 01:36 PM, Waiman Long wrote:
-> On 02/12/2019 08:25 AM, Peter Zijlstra wrote:
->> On Tue, Feb 12, 2019 at 02:24:04PM +0100, Peter Zijlstra wrote:
->>> On Mon, Feb 11, 2019 at 02:31:26PM -0500, Waiman Long wrote:
->>>> Modify __down_read_trylock() to make it generate slightly better code
->>>> (smaller and maybe a tiny bit faster).
->>>>
->>>> Before this patch, down_read_trylock:
->>>>
->>>>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
->>>>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
->>>>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
->>>>    0x000000000000000b <+11>:    mov    %rdx,%rax
->>>>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
->>>>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
->>>>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
->>>>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
->>>>    0x000000000000001b <+27>:    test   %rdx,%rdx
->>>>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
->>>>    0x0000000000000020 <+32>:    xor    %eax,%eax
->>>>    0x0000000000000022 <+34>:    retq
->>>>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
->>>>    0x000000000000002c <+44>:    or     $0x3,%rax
->>>>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
->>>>    0x0000000000000034 <+52>:    mov    $0x1,%eax
->>>>    0x0000000000000039 <+57>:    retq
->>>>
->>>> After patch, down_read_trylock:
->>>>
->>>>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
->>>>    0x0000000000000005 <+5>:     mov    (%rdi),%rax
->>>>    0x0000000000000008 <+8>:     test   %rax,%rax
->>>>    0x000000000000000b <+11>:    js     0x2f <down_read_trylock+47>
->>>>    0x000000000000000d <+13>:    lea    0x1(%rax),%rdx
->>>>    0x0000000000000011 <+17>:    lock cmpxchg %rdx,(%rdi)
->>>>    0x0000000000000016 <+22>:    jne    0x8 <down_read_trylock+8>
->>>>    0x0000000000000018 <+24>:    mov    %gs:0x0,%rax
->>>>    0x0000000000000021 <+33>:    or     $0x3,%rax
->>>>    0x0000000000000025 <+37>:    mov    %rax,0x20(%rdi)
->>>>    0x0000000000000029 <+41>:    mov    $0x1,%eax
->>>>    0x000000000000002e <+46>:    retq
->>>>    0x000000000000002f <+47>:    xor    %eax,%eax
->>>>    0x0000000000000031 <+49>:    retq
->>>>
->>>> By using a rwsem microbenchmark, the down_read_trylock() rate on a
->>>> x86-64 system before and after the patch were:
->>>>
->>>>                  Before Patch    After Patch
->>>>    # of Threads     rlock           rlock
->>>>    ------------     -----           -----
->>>>         1           27,787          28,259
->>>>         2            8,359           9,234
->>> From 1/2:
->>>
->>> 1        29,201  30,143  29,458    28,615  30,172  29,201
->>> 2         6,807  13,299   1,171     7,725  15,025   1,804
->> Argh, fat fingered and send before I was done typing.
->>
->> What I wanted to say was; those rlock numbers don't match up. What
->> gives?
->>
->> The before _this_ patch number of 27k787 should be the same as the after
->> first patch number of 30k172.
-> The rlock number in patch 1 refers to down_read() which uses xadd. The
-> number here in patch 2 refers specifically to down_read_trylock() which
-> uses cmpxchg() as this patch changes only __down_read_tryulock(). So the
-> performance data differ.
+On Mon, Feb 11, 2019 at 12:22:18PM -0800, Paul E. McKenney wrote:
+> On Mon, Feb 11, 2019 at 05:29:48PM +0000, Will Deacon wrote:
+> > The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
+> > x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
+> > This is largely because I/O ordering is a horrible can of worms, but also
+> > because the document has stagnated as our understanding has evolved.
+> > 
+> > Attempt to address some of that, by rewriting the section based on
+> > recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
+> > find a way to formalise this stuff, but for now let's at least try to
+> > make the English easier to understand.
+> > 
+> > Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > Cc: Daniel Lustig <dlustig@nvidia.com>
+> > Cc: David Howells <dhowells@redhat.com>
+> > Cc: Alan Stern <stern@rowland.harvard.edu>
+> > cc: Linus Torvalds <torvalds@linux-foundation.org>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> 
+> Hello, Will,
+> 
+> The intent is to replace commit 3f305018dcf3 ("docs/memory-barriers.txt:
+> Enforce heavy ordering for port I/O accesses"), correct?  Either way is
+> fine, just guessing based on the conflicts when applying this one.  ;-)
 
-You can see that the performance is worse if we use cmpxchg for
-down_read instead of using xadd.
+Yup, I decided to abandon the old patch:
 
-Cheers,
-Longman
+http://lkml.kernel.org/r/20190211153043.GC32385@fuggles.cambridge.arm.com
+
+Thanks,
+
+Will
