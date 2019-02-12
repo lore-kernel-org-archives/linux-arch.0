@@ -1,57 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f66.google.com ([209.85.217.66]:34529 "EHLO
-        mail-vs1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728904AbfBLKm5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 05:42:57 -0500
+Received: from mail.skyhub.de ([5.9.137.197]:36738 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727976AbfBLLFI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Feb 2019 06:05:08 -0500
+Date: Tue, 12 Feb 2019 12:05:01 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 05/28] x86/asm/entry: annotate THUNKs
+Message-ID: <20190212110501.GB30028@zn.tnic>
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-6-jslaby@suse.cz>
+ <20190209112551.GA5089@zn.tnic>
+ <b75f2a0d-974a-c63b-64f8-8f333991e826@suse.cz>
 MIME-Version: 1.0
-References: <20190211174544.4302-1-will.deacon@arm.com> <20190211174544.4302-3-will.deacon@arm.com>
-In-Reply-To: <20190211174544.4302-3-will.deacon@arm.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 12 Feb 2019 11:42:44 +0100
-Message-ID: <CAMuHMdWFOvrZ5JwgWnx9ujg3dS-75PnjGRqn-vzGmFi295Sb=A@mail.gmail.com>
-Subject: Re: [PATCH 2/2] arm64: io: Hook up __io_par() for inX() ordering
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <b75f2a0d-974a-c63b-64f8-8f333991e826@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, andrew.murray@arm.com, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20190212104244.0e5K_xw_Hn5Eih3r8SnevQfLK1J4e6Obnh_dShi_MW8@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20190212110501.dhadhK6BRdGOefAcnJ6HePa1cNNIeMVycf9Ix7IHXKI@z>
 
-Hi Will,
+On Tue, Feb 12, 2019 at 11:27:19AM +0100, Jiri Slaby wrote:
+> Yes, they do not end up in the symbol table. But the macros make clear
+> where is the start of the function and especially where is the end
+> (something like closing bracket '}' in C). If you prefer not annotating
+> local symbols, I can of course drop it from everywhere. But to me it
+> looks more readable to see "here it starts" and "here it ends", still
+> without generating anything to the symbol table.
 
-On Mon, Feb 11, 2019 at 9:34 PM Will Deacon <will.deacon@arm.com> wrote:
-> Ensure that inX() provides the same ordering guarantees as readX()
-> by hooking up __io_par() so that it maps directly to __iormb().
->
-> Reported-by: Andrew Murray <andrew.murray@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+Agreed. Boundary annotation makes sense.
 
-Thanks for your patch!
-
-> --- a/arch/arm64/include/asm/io.h
-> +++ b/arch/arm64/include/asm/io.h
-> @@ -121,6 +121,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
->                      : "memory");                                       \
->  })
->
-> +#define __io_par               __iormb
-
-I think it makes sense to make the parameter passing explicit, for
-documentation purposes:
-
-    #define __io_par(v)        __iormb(v)
-
->  #define __iowmb()              wmb()
->
->  #define mmiowb()               do { } while (0)
-
-Gr{oetje,eeting}s,
-
-                        Geert
+Thx.
 
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Regards/Gruss,
+    Boris.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Good mailing practices for 400: avoid top-posting and trim the reply.
