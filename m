@@ -1,70 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34662 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728274AbfBLIad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Feb 2019 03:30:33 -0500
-From: guoren@kernel.org
-Subject: [GIT PULL V2] csky fixes for v5.0-rc6
-Date: Tue, 12 Feb 2019 16:30:25 +0800
-Message-ID: <1549960225-23253-1-git-send-email-guoren@kernel.org>
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:39473 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727343AbfBLJly (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 04:41:54 -0500
+Received: by mail-pl1-f196.google.com with SMTP id 101so1034888pld.6
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 01:41:53 -0800 (PST)
+Date: Tue, 12 Feb 2019 12:41:48 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH] mmap.2: describe the 5level paging hack
+Message-ID: <20190212094148.qpd6wudyry5vzw3v@kshutemo-mobl1>
+References: <20190211163653.97742-1-jannh@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190211163653.97742-1-jannh@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190212083025.7ZuqZHv8y_oWiFzJ5vg--jsEP3Q8QKlr-dkIWnMy7uI@z>
+To: Jann Horn <jannh@google.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-mm@kvack.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-api@vger.kernel.org
+Message-ID: <20190212094148.xJZnDG67Zkr2JGdj_1Gtfe3e-6T9KUv4TLtoD1P3AQ8@z>
 
-The following changes since commit d13937116f1e82bf508a6325111b322c30c85eb9:
+On Mon, Feb 11, 2019 at 05:36:53PM +0100, Jann Horn wrote:
+> The manpage is missing information about the compatibility hack for
+> 5-level paging that went in in 4.14, around commit ee00f4a32a76 ("x86/mm:
+> Allow userspace have mappings above 47-bit"). Add some information about
+> that.
+> 
+> While I don't think any hardware supporting this is shipping yet (?), I
+> think it's useful to try to write a manpage for this API, partly to
+> figure out how usable that API actually is, and partly because when this
+> hardware does ship, it'd be nice if distro manpages had information about
+> how to use it.
+> 
+> Signed-off-by: Jann Horn <jannh@google.com>
 
-  Linux 5.0-rc6 (2019-02-10 14:42:20 -0800)
+Thanks for doing this.
 
-are available in the git repository at:
+> ---
+> This patch goes on top of the patch "[PATCH] mmap.2: fix description of
+> treatment of the hint" that I just sent, but I'm not sending them in a
+> series because I want the first one to go in, and I think this one might
+> be a bit more controversial.
+> 
+> It would be nice if the architecture maintainers and mm folks could have
+> a look at this and check that what I wrote is right - I only looked at
+> the source for this, I haven't tried it.
+> 
+>  man2/mmap.2 | 15 +++++++++++++++
+>  1 file changed, 15 insertions(+)
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index 8556bbfeb..977782fa8 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -67,6 +67,8 @@ is NULL,
+>  then the kernel chooses the (page-aligned) address
+>  at which to create the mapping;
+>  this is the most portable method of creating a new mapping.
+> +On Linux, in this case, the kernel may limit the maximum address that can be
+> +used for allocations to a legacy limit for compatibility reasons.
+>  If
+>  .I addr
+>  is not NULL,
+> @@ -77,6 +79,19 @@ or equal to the value specified by
+>  and attempt to create the mapping there.
+>  If another mapping already exists there, the kernel picks a new
+>  address, independent of the hint.
+> +However, if a hint above the architecture's legacy address limit is provided
+> +(on x86-64: above 0x7ffffffff000, on arm64: above 0x1000000000000, on ppc64 with
+> +book3s: above 0x7fffffffffff or 0x3fffffffffff, depending on page size), the
+> +kernel is permitted to allocate mappings beyond the architecture's legacy
+> +address limit. The availability of such addresses is hardware-dependent.
+> +Therefore, if you want to be able to use the full virtual address space of
+> +hardware that supports addresses beyond the legacy range, you need to specify an
+> +address above that limit; however, for security reasons, you should avoid
+> +specifying a fixed valid address outside the compatibility range,
+> +since that would reduce the value of userspace address space layout
+> +randomization. Therefore, it is recommended to specify an address
+> +.I beyond
+> +the end of the userspace address space.
 
-  git@github.com:c-sky/csky-linux.git tags/csky-for-linus-5.0-rc6
+It probably worth recommending (void *) -1 as such address.
 
-for you to fetch changes up to 749e649084d0acb8c5d28c0ec502d9cc023bff86:
+>  .\" Before Linux 2.6.24, the address was rounded up to the next page
+>  .\" boundary; since 2.6.24, it is rounded down!
+>  The address of the new mapping is returned as the result of the call.
+> -- 
+> 2.20.1.791.gb4d0f1c61a-goog
+> 
 
-  csky: Fixup dead loop in show_stack (2019-02-12 10:25:37 +0800)
-
-----------------------------------------------------------------
-arch/csky patches for 5.0-rc6
-
-Here is some fixup patches for 5.0-rc6:
-
-Guo Ren (10):
-	csky: Fixup _PAGE_GLOBAL bit for 610 tlb entry
-	irqchip/csky: Optimize remove unnecessary loop irq handle
-	irqchip/irq-csky-mpintc: Add triger type and priority
-	dt-bindings: interrupt-controller: Update csky mpintc
-	csky: Fixup wrong pt_regs size
-	csky: coding convention: Use task_stack_page
-	dt-bindings: csky,apb-intc: Add vector irq mode
-	irqchip/csky: Add support-vector-irq for apb-intc
-	csky: Fixup io-range page attribute for mmap("/dev/mem")
-	csky: Fixup dead loop in show_stack
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-
-----------------------------------------------------------------
-Guo Ren (10):
-      csky: Fixup _PAGE_GLOBAL bit for 610 tlb entry
-      irqchip/csky: Optimize remove unnecessary loop irq handle
-      irqchip/irq-csky-mpintc: Add triger type and priority
-      dt-bindings: interrupt-controller: Update csky mpintc
-      csky: Fixup wrong pt_regs size
-      csky: coding convention: Use task_stack_page
-      dt-bindings: csky,apb-intc: Add vector irq mode
-      irqchip/csky: Add support-vector-irq for apb-intc
-      csky: Fixup io-range page attribute for mmap("/dev/mem")
-      csky: Fixup dead loop in show_stack
-
- .../interrupt-controller/csky,apb-intc.txt         |   3 +
- .../bindings/interrupt-controller/csky,mpintc.txt  |  21 +++-
- arch/csky/include/asm/pgtable.h                    |   9 +-
- arch/csky/include/asm/processor.h                  |   4 +-
- arch/csky/kernel/dumpstack.c                       |   4 +
- arch/csky/kernel/ptrace.c                          |   3 +-
- arch/csky/kernel/smp.c                             |   3 +-
- arch/csky/mm/ioremap.c                             |  14 +++
- drivers/irqchip/irq-csky-apb-intc.c                |  59 +++++++----
- drivers/irqchip/irq-csky-mpintc.c                  | 113 +++++++++++++++++++--
- 10 files changed, 196 insertions(+), 37 deletions(-)
+-- 
+ Kirill A. Shutemov
