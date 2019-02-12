@@ -1,22 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:37636 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729398AbfBLTwz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Feb 2019 14:52:55 -0500
-Date: Tue, 12 Feb 2019 20:52:52 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Message-ID: <20190212195252.GA29370@lst.de>
-References: <20190206151655.GA31172@lst.de> <61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de> <7c1f208b-6909-3b0a-f9f9-38ff1ac3d617@xenosoft.de> <20190208091818.GA23491@lst.de> <4e7137db-e600-0d20-6fb2-6d0f9739aca3@xenosoft.de> <20190211073804.GA15841@lst.de> <820bfeb1-30c0-3d5a-54a2-c4f9a8c15b0e@xenosoft.de> <20190212152543.GA24061@lst.de> <47bff9d1-7001-4d92-4ad1-e24215b56555@xenosoft.de> <f57e6d8f-d43f-e9f8-b092-e43f5019f86f@xenosoft.de>
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:43005 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726748AbfBLUGT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 15:06:19 -0500
+Received: by mail-lf1-f66.google.com with SMTP id l10so2996322lfh.9
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 12:06:17 -0800 (PST)
+Received: from mail-lj1-f175.google.com (mail-lj1-f175.google.com. [209.85.208.175])
+        by smtp.gmail.com with ESMTPSA id q21-v6sm2869724ljc.5.2019.02.12.12.06.14
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Tue, 12 Feb 2019 12:06:15 -0800 (PST)
+Received: by mail-lj1-f175.google.com with SMTP id z25-v6so3342355ljk.7
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 12:06:14 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f57e6d8f-d43f-e9f8-b092-e43f5019f86f@xenosoft.de>
+References: <1549913486-16799-1-git-send-email-longman@redhat.com> <1549913486-16799-3-git-send-email-longman@redhat.com>
+In-Reply-To: <1549913486-16799-3-git-send-email-longman@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 12 Feb 2019 11:58:03 -0800
+Message-ID: <CAHk-=wjTmSg6zX=xKFSPZor7FWi3s4D0dy-hz_M=yeF_6478QA@mail.gmail.com>
+Subject: Re: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190212195252.HleSfty3t6cVc3Q1LE15rMdlQJlFqgZhAuBOcaKsP7E@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190212195803.2ovhmO3NDPP_WZT7qwN6CVR9j57fG_sHtCjgu4fIAfE@z>
 
-Great!  I owe you a night worth of beers at a conference or if
-you come anywhere near Innsbruck!
+On Mon, Feb 11, 2019 at 11:31 AM Waiman Long <longman@redhat.com> wrote:
+>
+> Modify __down_read_trylock() to make it generate slightly better code
+> (smaller and maybe a tiny bit faster).
+
+This looks good, but I would ask you to try one slightly different approach.
+
+Instead of this:
+
+>        long tmp = atomic_long_read(&sem->count);
+>
+>        while (tmp >= 0) {
+>                if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+>                                        tmp + RWSEM_ACTIVE_READ_BIAS)) {
+>                        return 1;
+>                }
+>        }
+
+try doing this instead:
+
+        long tmp = 0;
+
+        do {
+                if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+                                        tmp + RWSEM_ACTIVE_READ_BIAS)) {
+                        return 1;
+        } while (tmp >= 0);
+        return 0;
+
+because especially when it comes to locking, it's usually better to
+just *guess* that the lock is unlocked, than it is to actually read
+from the line to see what the state is.
+
+Often - but certainly not always - the lock is the first access to the
+target cacheline, and assuming the trylock is successful (which I
+think is the case we want to optimize for), we're much better off
+causing that first access to be a read-for-ownership, rather than a
+read-for-sharing.
+
+Because if you first read from the line, and then do a cmpxchg, and if
+the line was not in the cache, your cache coherency protocol will
+generally go through two states: first shared (for the initial read)
+and then exclusive-dirty (for the cmpxchg).
+
+Now, this is obviously very micro-architecture dependent, and in fact
+the microarchitecture could even see the "predict fallthrough to a
+cmpxchg with the same address" and turn the first read into a
+read-for-ownership, but we've done this at some point before, and the
+"guess unlocked" was actually the one that performed better.
+
+Of course, the downside is that it might be worse when the guess is
+incorrect - either because of a nested read lock or due to an actual
+conflict with a write, but on the whole those *should* be the rare
+cases, and not the cases where we necessarily optimize for latency of
+the operation.
+
+Hmm?
+
+                    Linus
