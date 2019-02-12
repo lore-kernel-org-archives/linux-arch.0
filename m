@@ -1,35 +1,30 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
- EFFECTS" section
-Date: Mon, 11 Feb 2019 14:34:31 -0800
-Message-ID: <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
-References: <20190211172948.3322-1-will.deacon@arm.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [GIT PULL] csky fixes for v5.0-rc6
+Date: Tue, 12 Feb 2019 09:49:19 +0800
+Message-ID: <20190212014919.GA7332@guoren-Inspiron-7460>
+References: <1549861699-11875-1-git-send-email-guoren@kernel.org>
+ <CAHk-=wh9kycrBtNOUN1-aOR_JL4scBgs=6NUkGQonfWFyzhvVw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190211172948.3322-1-will.deacon@arm.com>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wh9kycrBtNOUN1-aOR_JL4scBgs=6NUkGQonfWFyzhvVw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 11, 2019 at 9:30 AM Will Deacon <will.deacon@arm.com> wrote:
->
-> +
-> +     1. All readX() and writeX() accesses to the same peripheral are ordered
-> +        with respect to each other. For example, this ensures that MMIO register
-> +       writes by the CPU to a particular device will arrive in program order.
+On Mon, Feb 11, 2019 at 10:28:26AM -0800, Linus Torvalds wrote:
+> On Sun, Feb 10, 2019 at 9:08 PM <guoren@kernel.org> wrote:
+> >
+> > arch/csky patches for 5.0-rc6
+> 
+> The bulk of this seems to be new hardware support code.
+> 
+> Please send it during the 5.1 merge window, not as fixes at post-rc6 time.
+Ok, I'll remove:
+      irqchip/csky: Support csky,dh7k SOC intc driver
+      dt-bindings: csky,apb-intc: Add dh7k SOC support
 
-Hmm. I'd like more people look at strengthening this one wrt across
-CPUs and locking.
-
-Right now we document mmiowb(), but that "documentation" is really
-just a fairy tale. Very *very* few drivers actually do mmiowb() on
-their own.
-
-IOW, we should seriously just consider making the rule be that locking
-will order mmio too. Because that's practically the rule anyway.
-
-Powerpc already does it. IO within a locked region will serialize with the lock.
-
-                Linus
+Best Regards
+ Guo Ren
