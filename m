@@ -1,73 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46196 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729845AbfBLTYM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Feb 2019 14:24:12 -0500
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1CJEBmL113981
-        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 14:24:11 -0500
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2qm2u1bqr2-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 14:24:11 -0500
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 12 Feb 2019 19:24:10 -0000
-Date: Tue, 12 Feb 2019 11:24:05 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Reply-To: paulmck@linux.ibm.com
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <20190211202218.GQ4240@linux.ibm.com>
- <20190212184354.GC20961@fuggles.cambridge.arm.com>
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.51]:18326 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727804AbfBLTcE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 14:32:04 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+References: <20190204123852.GA10428@lst.de>
+ <b1c0161f-4211-03af-022d-0db7237516e9@xenosoft.de>
+ <20190206151505.GA31065@lst.de> <20190206151655.GA31172@lst.de>
+ <61EC67B1-12EF-42B6-B69B-B59F9E4FC474@xenosoft.de>
+ <7c1f208b-6909-3b0a-f9f9-38ff1ac3d617@xenosoft.de>
+ <20190208091818.GA23491@lst.de>
+ <4e7137db-e600-0d20-6fb2-6d0f9739aca3@xenosoft.de>
+ <20190211073804.GA15841@lst.de>
+ <820bfeb1-30c0-3d5a-54a2-c4f9a8c15b0e@xenosoft.de>
+ <20190212152543.GA24061@lst.de>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <47bff9d1-7001-4d92-4ad1-e24215b56555@xenosoft.de>
+Date: Tue, 12 Feb 2019 20:31:56 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190212184354.GC20961@fuggles.cambridge.arm.com>
-Message-ID: <20190212192405.GU4240@linux.ibm.com>
+In-Reply-To: <20190212152543.GA24061@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190212192405.x6OEoXY4xwpxaXgNpqhCygEOHVNqVL79xnZ_rgLCUj4@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, linux-kernel@vger.kernel.org, Julian Margetson <runaway@candw.ms>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190212193156.aMBdeehKQ4LSWDdYpSsbbwsMy_UF1lMmALeiUxHeF5U@z>
 
-On Tue, Feb 12, 2019 at 06:43:54PM +0000, Will Deacon wrote:
-> On Mon, Feb 11, 2019 at 12:22:18PM -0800, Paul E. McKenney wrote:
-> > On Mon, Feb 11, 2019 at 05:29:48PM +0000, Will Deacon wrote:
-> > > The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
-> > > x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
-> > > This is largely because I/O ordering is a horrible can of worms, but also
-> > > because the document has stagnated as our understanding has evolved.
-> > > 
-> > > Attempt to address some of that, by rewriting the section based on
-> > > recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
-> > > find a way to formalise this stuff, but for now let's at least try to
-> > > make the English easier to understand.
-> > > 
-> > > Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-> > > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > Cc: Peter Zijlstra <peterz@infradead.org>
-> > > Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-> > > Cc: Daniel Lustig <dlustig@nvidia.com>
-> > > Cc: David Howells <dhowells@redhat.com>
-> > > Cc: Alan Stern <stern@rowland.harvard.edu>
-> > > cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > 
-> > Hello, Will,
-> > 
-> > The intent is to replace commit 3f305018dcf3 ("docs/memory-barriers.txt:
-> > Enforce heavy ordering for port I/O accesses"), correct?  Either way is
-> > fine, just guessing based on the conflicts when applying this one.  ;-)
-> 
-> Yup, I decided to abandon the old patch:
-> 
-> http://lkml.kernel.org/r/20190211153043.GC32385@fuggles.cambridge.arm.com
+On 12 February 2019 at 4:25PM, Christoph Hellwig wrote:
+> On Tue, Feb 12, 2019 at 01:42:56PM +0100, Christian Zigotzky wrote:
+>> On 11 February 2019 at 08:38AM, Christoph Hellwig wrote:
+>>> On Sun, Feb 10, 2019 at 01:00:20PM +0100, Christian Zigotzky wrote:
+>>>> I tested the whole series today. The kernels boot and the P.A. Semi
+>>>> Ethernet works! :-) Thanks a lot!
+>>>>
+>>>> I also tested it in a virtual e5500 QEMU machine today. Unfortunately the
+>>>> kernel crashes.
+>>> This looks like a patch I fixed in mainline a while ago, but which
+>>> the powerpc tree didn't have yet.
+>>>
+>>> I've cherry picked this commit
+>>> ("swiotlb: clear io_tlb_start and io_tlb_end in swiotlb_exit")
+>>>
+>>> and added it to the powerpc-dma.6 tree, please retry with that one.
+>>>
+>> Hello Christoph,
+>>
+>> Have you added it to the powerpc-dma.6 tree yet? The last commit was 4 days
+>> ago.
+> I added it, but forgot to push it out.  It is there now, sorry:
+>
+> http://git.infradead.org/users/hch/misc.git/commitdiff/2cf0745b7420af4a3e871d5a970a45662dfae69c
+>
+Hi Christoph
 
-Got it, and thank you for the reminder!
+Many thanks! Your Git kernel works in a virtual e5500 machine now! :-)
 
-							Thanx, Paul
+I think we have reached the end of testing! All things are working with 
+your DMA updates.
+
+I am looking forward to test your DMA changes in the next merge window 
+again. :-)
+
+Cheers
+Christian
