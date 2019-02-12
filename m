@@ -1,79 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:46474 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727750AbfBLNDY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 08:03:24 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:57340 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726550AbfBLNYj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 08:24:39 -0500
+Date: Tue, 12 Feb 2019 14:24:04 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
+Message-ID: <20190212132404.GI32494@hirez.programming.kicks-ass.net>
+References: <1549913486-16799-1-git-send-email-longman@redhat.com>
+ <1549913486-16799-3-git-send-email-longman@redhat.com>
 MIME-Version: 1.0
-References: <20190211172948.3322-1-will.deacon@arm.com>
-In-Reply-To: <20190211172948.3322-1-will.deacon@arm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 12 Feb 2019 14:03:04 +0100
-Message-ID: <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
- EFFECTS" section
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1549913486-16799-3-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190212130304.VaWdqLPf8RG0oapC43M1bqc2ze5J0kfbHAVLI2ex6eo@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190212132404.wKWRm-4Tsp9FgfB0xO0ddHVRGXNq87mFzR8ws4Efaps@z>
 
-On Mon, Feb 11, 2019 at 6:29 PM Will Deacon <will.deacon@arm.com> wrote:
-
-> +     __iomem pointers obtained with non-default attributes (e.g. those returned
-> +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
-> +     ordering is required for such mappings, then the mandatory barriers should
-> +     be used in conjunction with the _relaxed() accessors defined below.
-
-I wonder if we are even able to guarantee consistent behavior across
-architectures
-in the last case here (wc mapping with relaxed accessors and barriers).
-
-Fortunately, there are only five implementations that actually differ from
-ioremap_nocache(): arm32, arm64, ppc32, ppc64 and x86 (both 32/64), so
-that is something we can probably figure out between the people on Cc.
-
-The problem with recommending *_relaxed() + barrier() is that it ends
-up being more expensive than the non-relaxed accessors whenever
-_relaxed() implies the barrier already (true on most architectures other
-than arm).
-
-ioremap_wc() in turn is used almost exclusively to map RAM behind
-a bus, (typically for frame buffers) and we may be better off not
-assuming any particular MMIO barrier semantics for it at all, but possibly
-audit the few uses that are not frame buffers.
-
-> +     Since many CPU architectures ultimately access these peripherals via an
-> +     internal virtual memory mapping, the portable ordering guarantees provided
-> +     by inX() and outX() are the same as those provided by readX() and writeX()
-> +     respectively when accessing a mapping with the default I/O attributes.
-
-This is notably weaker than the PCI mandated non-posted write semantics.
-As I said earlier, not all architectures or PCI host implementations can provide
-non-posted writes though, but maybe we can document that fact here, e.g.
-
-| Device drivers may expect outX() to be a non-posted write, i.e. waiting for
-| a completion response from the I/O device, which may not be possible
-| on a particular hardware.
-
->   (*) ioreadX(), iowriteX()
->
->       These will perform appropriately for the type of access they're actually
->       doing, be it inX()/outX() or readX()/writeX().
-
-This probably needs clarification as well then: On architectures that
-have a stronger barrier after outX() than writeX() but that use memory
-mapped access for both, the statement is currently not true. We could
-either strengthen the requirement by requiring CONFIG_GENERIC_IOMAP
-on such architectures, or we could document the current behavior
-as intentional and explicitly not allow iowriteX() on I/O ports to be posted.
-
-> +All of these accessors assume that the underlying peripheral is little-endian,
-> +and will therefore perform byte-swapping operations on big-endian architectures.
-
-This sounds like a useful addition and the only sane way to do it IMHO, but
-I think at least traditionally we've had architectures that do not work like
-this but that make readX()/writeX() do native big-endian loads and stores, with
-a hardware byteswap on the PCI bus.
-
-      Arnd
+On Mon, Feb 11, 2019 at 02:31:26PM -0500, Waiman Long wrote:
+> Modify __down_read_trylock() to make it generate slightly better code
+> (smaller and maybe a tiny bit faster).
+> 
+> Before this patch, down_read_trylock:
+> 
+>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+>    0x000000000000000b <+11>:    mov    %rdx,%rax
+>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
+>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+>    0x000000000000001b <+27>:    test   %rdx,%rdx
+>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+>    0x0000000000000020 <+32>:    xor    %eax,%eax
+>    0x0000000000000022 <+34>:    retq
+>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+>    0x000000000000002c <+44>:    or     $0x3,%rax
+>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+>    0x0000000000000034 <+52>:    mov    $0x1,%eax
+>    0x0000000000000039 <+57>:    retq
+> 
+> After patch, down_read_trylock:
+> 
+>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:     mov    (%rdi),%rax
+>    0x0000000000000008 <+8>:     test   %rax,%rax
+>    0x000000000000000b <+11>:    js     0x2f <down_read_trylock+47>
+>    0x000000000000000d <+13>:    lea    0x1(%rax),%rdx
+>    0x0000000000000011 <+17>:    lock cmpxchg %rdx,(%rdi)
+>    0x0000000000000016 <+22>:    jne    0x8 <down_read_trylock+8>
+>    0x0000000000000018 <+24>:    mov    %gs:0x0,%rax
+>    0x0000000000000021 <+33>:    or     $0x3,%rax
+>    0x0000000000000025 <+37>:    mov    %rax,0x20(%rdi)
+>    0x0000000000000029 <+41>:    mov    $0x1,%eax
+>    0x000000000000002e <+46>:    retq
+>    0x000000000000002f <+47>:    xor    %eax,%eax
+>    0x0000000000000031 <+49>:    retq
+> 
+> By using a rwsem microbenchmark, the down_read_trylock() rate on a
+> x86-64 system before and after the patch were:
+> 
+>                  Before Patch    After Patch
+>    # of Threads     rlock           rlock
+>    ------------     -----           -----
+>         1           27,787          28,259
+>         2            8,359           9,234
