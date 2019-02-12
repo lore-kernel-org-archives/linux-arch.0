@@ -1,85 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:36846 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729991AbfBLUSR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 15:18:17 -0500
-Received: by mail-pg1-f196.google.com with SMTP id r124so1772653pgr.3
-        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 12:18:16 -0800 (PST)
-From: Andreas Dilger <adilger@dilger.ca>
-Message-ID: <EC2075E7-CB9B-4DC0-B041-1EA1100D6748@dilger.ca>
-Content-Type: multipart/signed;
- boundary="Apple-Mail=_C2E7E05C-2B20-4EA4-8AA7-025ABEE10788";
- protocol="application/pgp-signature"; micalg=pgp-sha256
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Subject: Re: [PATCH 2/4] Expose O_PATHSTATIC to userspace
-Date: Tue, 12 Feb 2019 13:18:10 -0700
-In-Reply-To: <20190212145450.2200-2-demiobenour@gmail.com>
-References: <20190212145450.2200-1-demiobenour@gmail.com>
- <20190212145450.2200-2-demiobenour@gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:43284 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729512AbfBLVVV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Feb 2019 16:21:21 -0500
+Subject: Re: [PATCH v2 2/2] locking/rwsem: Optimize down_read_trylock()
+References: <1549913486-16799-1-git-send-email-longman@redhat.com>
+ <1549913486-16799-3-git-send-email-longman@redhat.com>
+ <CAHk-=wjTmSg6zX=xKFSPZor7FWi3s4D0dy-hz_M=yeF_6478QA@mail.gmail.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <ef66f262-d68e-58ea-34f6-15b88803cf71@redhat.com>
+Date: Tue, 12 Feb 2019 16:21:10 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAHk-=wjTmSg6zX=xKFSPZor7FWi3s4D0dy-hz_M=yeF_6478QA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: demiobenour@gmail.com
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20190212201810.z7_AuRzLyesPX82IdxV0xFdwFHzpS18KpyuXV5DUPxQ@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190212212110.YwaVZOOy7M2QH6iAsGvgGMCumosmtUerIuXy5NBU3po@z>
 
+On 02/12/2019 02:58 PM, Linus Torvalds wrote:
+> On Mon, Feb 11, 2019 at 11:31 AM Waiman Long <longman@redhat.com> wrote:
+>> Modify __down_read_trylock() to make it generate slightly better code
+>> (smaller and maybe a tiny bit faster).
+> This looks good, but I would ask you to try one slightly different approach.
+>
+> Instead of this:
+>
+>>        long tmp = atomic_long_read(&sem->count);
+>>
+>>        while (tmp >= 0) {
+>>                if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+>>                                        tmp + RWSEM_ACTIVE_READ_BIAS)) {
+>>                        return 1;
+>>                }
+>>        }
+> try doing this instead:
+>
+>         long tmp = 0;
+>
+>         do {
+>                 if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+>                                         tmp + RWSEM_ACTIVE_READ_BIAS)) {
+>                         return 1;
+>         } while (tmp >= 0);
+>         return 0;
+>
+> because especially when it comes to locking, it's usually better to
+> just *guess* that the lock is unlocked, than it is to actually read
+> from the line to see what the state is.
+>
+> Often - but certainly not always - the lock is the first access to the
+> target cacheline, and assuming the trylock is successful (which I
+> think is the case we want to optimize for), we're much better off
+> causing that first access to be a read-for-ownership, rather than a
+> read-for-sharing.
+>
+> Because if you first read from the line, and then do a cmpxchg, and if
+> the line was not in the cache, your cache coherency protocol will
+> generally go through two states: first shared (for the initial read)
+> and then exclusive-dirty (for the cmpxchg).
+>
+> Now, this is obviously very micro-architecture dependent, and in fact
+> the microarchitecture could even see the "predict fallthrough to a
+> cmpxchg with the same address" and turn the first read into a
+> read-for-ownership, but we've done this at some point before, and the
+> "guess unlocked" was actually the one that performed better.
+>
+> Of course, the downside is that it might be worse when the guess is
+> incorrect - either because of a nested read lock or due to an actual
+> conflict with a write, but on the whole those *should* be the rare
+> cases, and not the cases where we necessarily optimize for latency of
+> the operation.
+>
+> Hmm?
 
---Apple-Mail=_C2E7E05C-2B20-4EA4-8AA7-025ABEE10788
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain;
-	charset=us-ascii
+I looked at the assembly code in arch/x86/include/asm/rwsem.h. For both
+trylocks (read & write), the count is read first before attempting to
+lock it. We did the same for all trylock functions in other locks.
+Depending on how the trylock is used and how contended the lock is, it
+may help or hurt performance. Changing down_read_trylock to do an
+unconditional cmpxchg will change the performance profile of existing
+code. So I would prefer keeping the current code.
 
-On Feb 12, 2019, at 7:54 AM, demiobenour@gmail.com wrote:
-> 
-> From: "Demi M. Obenour" <demiobenour@gmail.com>
-> 
-> This adds the file open flag O_PATHSTATIC, which ensures that symbolic
-> links are *never* followed, even in path components other than the last.
-> This is distinct from O_NOFOLLOW, which only prevents symlinks in the
-> *last* component from being followed.
-> 
-> This is useful for avoiding race conditions in userspace code that
-> should expose only a subset of the filesystem to clients.  This includes
-> FTP and SFTP servers, QEMU, and others.
-> 
-> Currently, O_NOFOLLOW must be set if O_PATHSTATIC is set.  Otherwise,
-> open() fails with -EINVAL.
+I do notice now that the generic down_write_trylock() code is doing an
+unconditional compxchg. So I wonder if we should change it to read the
+lock first like other trylocks or just leave it as it is.
 
-I don't want to bikeshed (discard suggestion if you disagree), but why not
-name the flag "O_NEVER_FOLLOW" so that users can see it is also related to
-"O_NOFOLLOW"?  Otherwise it seems like they are two completely different
-things from looking at the names, when in fact they are closely related.
-
-Cheers, Andreas
-
-
-
-
-
-
---Apple-Mail=_C2E7E05C-2B20-4EA4-8AA7-025ABEE10788
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
-	filename=signature.asc
-Content-Type: application/pgp-signature;
-	name=signature.asc
-Content-Description: Message signed with OpenPGP
-
------BEGIN PGP SIGNATURE-----
-Comment: GPGTools - http://gpgtools.org
-
-iQIzBAEBCAAdFiEEDb73u6ZejP5ZMprvcqXauRfMH+AFAlxjKgMACgkQcqXauRfM
-H+D8gQ//e+7SA0vBv61wtMK0lXxO3SfVSJHlv9UYGJ8XiaZh8Ui12qH9UsaiuZki
-o0b2ChHlUVmgWRHB0wDxQ2L8Iabf/WZ+bzYiRU9DE+VDaDHsZusNmpQKRiafEmDw
-lOMwc/gvwLColA4Fjl+4CfcSyXURrHCG+pINi+EA+cg8X+qSwMWSvJ/G+39rvJ/Y
-jP19/zxoQ9hAvyKo0acpA2/a2LvMAJ9eFySYURD27IniButV/e4YwuzOMy55dp74
-rlvElPktrVJtJ4Wg2smHM2978OLAO96RKxBi3UlfeppscQ8ABn/mPPgZjBP7N2yD
-NWUxcNEkB6pRznKx/ItqH21B4DZ3ma2QLDu6Hfb59PWBoY0UK86Q4SILJJ7sioxf
-eda/pQcmHbj9gefg4IMGjMZ4KK3iuAdDJt/PM/nWzOlu17CD9nEgO61GNUUp04Kd
-NVFeXTGx3Sy/avISJf++N1mN5LEKzFpbHU1Bc7SeyI61ujuCE4S4FYJ3q2IvJzYL
-66cvgaJFJbZ9v3mOq0jimwYTy7cDgJrgFSNEuxzGSx/HaRYBoBTU0DAaBwvmMQxu
-2RDK4ulIYA9uuxRATGGtuowlh81SI/qoWhxssATbO6vUaBJuHxp/D0NoN9jwSpex
-MpZUVppYkHQXh/Q9vpxSZtm9Hy19zICQ1Sg7pU0pv/88bv9/iEM=
-=Qls+
------END PGP SIGNATURE-----
-
---Apple-Mail=_C2E7E05C-2B20-4EA4-8AA7-025ABEE10788--
+Cheers,
+Longman
