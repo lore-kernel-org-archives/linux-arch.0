@@ -1,147 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f195.google.com ([209.85.166.195]:37686 "EHLO
-        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727677AbfBLTJI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 14:09:08 -0500
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46196 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1729845AbfBLTYM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Feb 2019 14:24:12 -0500
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1CJEBmL113981
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 14:24:11 -0500
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2qm2u1bqr2-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2019 14:24:11 -0500
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 12 Feb 2019 19:24:10 -0000
+Date: Tue, 12 Feb 2019 11:24:05 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Reply-To: paulmck@linux.ibm.com
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <20190211202218.GQ4240@linux.ibm.com>
+ <20190212184354.GC20961@fuggles.cambridge.arm.com>
 MIME-Version: 1.0
-References: <20190202153454.7121-1-deepa.kernel@gmail.com> <20190202153454.7121-10-deepa.kernel@gmail.com>
- <AM4PR0501MB2769C4BE6CF1C5B051068D0BC56B0@AM4PR0501MB2769.eurprd05.prod.outlook.com>
- <CABeXuvqMR7T=3ORvXPihkz-WbTN+oFeHkCu9uvebEq9wTLpJuQ@mail.gmail.com>
-In-Reply-To: <CABeXuvqMR7T=3ORvXPihkz-WbTN+oFeHkCu9uvebEq9wTLpJuQ@mail.gmail.com>
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Date: Tue, 12 Feb 2019 11:08:52 -0800
-Message-ID: <CABeXuvomXSgYQaFQgv71xQu837J_HUYR4NvMqXPyh4Z3Btnprg@mail.gmail.com>
-Subject: Re: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190212184354.GC20961@fuggles.cambridge.arm.com>
+Message-ID: <20190212192405.GU4240@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ran Rozenstein <ranro@mellanox.com>
-Cc: "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "chris@zankel.net" <chris@zankel.net>, "fenghua.yu@intel.com" <fenghua.yu@intel.com>, "rth@twiddle.net" <rth@twiddle.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "ubraun@linux.ibm.com" <ubraun@linux.ibm.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20190212190852.zLPdNtRspPy3dxcu2lssF2fiPYMeJXCRndFs2mtcEIQ@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190212192405.x6OEoXY4xwpxaXgNpqhCygEOHVNqVL79xnZ_rgLCUj4@z>
 
-On Sun, Feb 10, 2019 at 7:21 PM Deepa Dinamani <deepa.kernel@gmail.com> wrote:
->
-> On Feb 10, 2019, at 7:43 AM, Ran Rozenstein <ranro@mellanox.com> wrote:
->
-> >> Subject: [PATCH net-next v5 09/12] socket: Add SO_TIMESTAMPING_NEW
-> >>
-> >> Add SO_TIMESTAMPING_NEW variant of socket timestamp options.
-> >> This is the y2038 safe versions of the SO_TIMESTAMPING_OLD for all
-> >> architectures.
-> >>
-> >> Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
-> >> Acked-by: Willem de Bruijn <willemb@google.com>
-> >
-> >
-> > Hi,
-> >
-> > I have app that include:
-> >    #include <linux/errqueue.h>
-> >
-> > It now fail with this error:
-> >    In file included from timestamping.c:6:0:
-> >    /usr/include/linux/errqueue.h:46:27: error: array type has incomplete element type 'struct __kernel_timespec'
-> >      struct __kernel_timespec ts[3];
-> >                                       ^~
-> > I tried to do the trivial fix, to include time.h:
-> > In include/uapi/linux/errqueue.h
-> >    #include <linux/time.h>
-> >    #include <linux/types.h>
-> >
-> > But it just add some other noises:
-> >                In file included from /usr/include/linux/errqueue.h:5:0,
-> >                                 from timestamping.c:6:
-> >                /usr/include/linux/time.h:10:8: error: redefinition of ?struct timespec?
-> >                 struct timespec {
-> >                        ^~~~~~~~
-> >                In file included from /usr/include/sys/select.h:39:0,
-> >                                 from /usr/include/sys/types.h:197,
-> >                                 from /usr/include/stdlib.h:279,
-> >                                 from timestamping.c:2:
-> >                /usr/include/bits/types/struct_timespec.h:8:8: note: originally defined here
-> >                 struct timespec
-> >                        ^~~~~~~~
-> >                In file included from /usr/include/linux/errqueue.h:5:0,
-> >                                 from timestamping.c:6:
-> >                /usr/include/linux/time.h:16:8: error: redefinition of ?struct timeval?
-> >                 struct timeval {
-> >                        ^~~~~~~
-> >                In file included from /usr/include/sys/select.h:37:0,
-> >                                 from /usr/include/sys/types.h:197,
-> >                                 from /usr/include/stdlib.h:279,
-> >                                 from timestamping.c:2:
-> >                /usr/include/bits/types/struct_timeval.h:8:8: note: originally defined here
-> >                 struct timeval
-> >                        ^~~~~~~
-> >
-> >
-> > Can you please advise how to solve it?
-> >
-> > Thanks,
-> > Ran
->
-> The errqueue.h already had the same issue reported previously:
-> https://lore.kernel.org/netdev/CAF=yD-L2ntuH54J_SwN9WcpBMgkV_v0e-Q2Pu2mrQ3+1RozGFQ@mail.gmail.com/
->
-> Earlier when I tested this with kernel selftests such as
-> tools/testing/selftests/networking/timestamping/rxtimestamp(the test
-> was broken to begin with because of  missing include of unistd.h), I
-> was using make.cross to build.
-> This does not put the headers in the right place
-> (obj-$ARCH/usr/include instead of usr/include). Hence, I did not
-> realize that this breaks the inclusion of errqueue.h due to the
-> missing __kernel_timespec definition.
-> I forgot that nobody seems to be using linux/time.h.
->
-> But, if I include guards( #ifndef __KERNEL__) for struct timespec,
-> struct timeval etc for linux/time.h, then we can include it from
-> userspace/ errqueue.h for __kernel_timespec:
->
-> --- a/include/uapi/linux/errqueue.h
-> +++ b/include/uapi/linux/errqueue.h
-> @@ -2,7 +2,7 @@
->  #ifndef _UAPI_LINUX_ERRQUEUE_H
->  #define _UAPI_LINUX_ERRQUEUE_H
->
-> -#include <linux/types.h>
-> +#include <linux/time.h>
->
->  struct sock_extended_err {
->         __u32   ee_errno;
-> diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-> index a6aca9aaab80..40913d9a5bc8 100644
-> --- a/include/uapi/linux/time.h
-> +++ b/include/uapi/linux/time.h
-> @@ -5,6 +5,8 @@
->  #include <linux/types.h>
->
->
-> +#ifdef __KERNEL__
-> +
->  #ifndef _STRUCT_TIMESPEC
->  #define _STRUCT_TIMESPEC
->  struct timespec {
-> @@ -42,6 +44,8 @@ struct itimerval {
->         struct timeval it_value;        /* current value */
->  };
->
-> +#endif /* __KERNEL__ */
->
-> Arnd,
->
-> I forgot how we plan to include the definition for __kernel_timespec
-> for libc or userspace. Does this seem right to you?
-> Also these changes to errqueue.h needs to be reverted probably as this
-> breaks userspace.
+On Tue, Feb 12, 2019 at 06:43:54PM +0000, Will Deacon wrote:
+> On Mon, Feb 11, 2019 at 12:22:18PM -0800, Paul E. McKenney wrote:
+> > On Mon, Feb 11, 2019 at 05:29:48PM +0000, Will Deacon wrote:
+> > > The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
+> > > x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
+> > > This is largely because I/O ordering is a horrible can of worms, but also
+> > > because the document has stagnated as our understanding has evolved.
+> > > 
+> > > Attempt to address some of that, by rewriting the section based on
+> > > recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
+> > > find a way to formalise this stuff, but for now let's at least try to
+> > > make the English easier to understand.
+> > > 
+> > > Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> > > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > > Cc: Arnd Bergmann <arnd@arndb.de>
+> > > Cc: Peter Zijlstra <peterz@infradead.org>
+> > > Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > > Cc: Daniel Lustig <dlustig@nvidia.com>
+> > > Cc: David Howells <dhowells@redhat.com>
+> > > Cc: Alan Stern <stern@rowland.harvard.edu>
+> > > cc: Linus Torvalds <torvalds@linux-foundation.org>
+> > > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > 
+> > Hello, Will,
+> > 
+> > The intent is to replace commit 3f305018dcf3 ("docs/memory-barriers.txt:
+> > Enforce heavy ordering for port I/O accesses"), correct?  Either way is
+> > fine, just guessing based on the conflicts when applying this one.  ;-)
+> 
+> Yup, I decided to abandon the old patch:
+> 
+> http://lkml.kernel.org/r/20190211153043.GC32385@fuggles.cambridge.arm.com
 
-Arnd and I talked about this today morning.
-We agreed that we could introduce a new time_types.h along the lines
-of posix_types.h. We will move all the time definitions that we plan
-to keep in the kernel uapi headers to this header. This header will
-also not have any overlap with the sys/time.h and can be included
-along with it from userspace.
-I will post this patch shortly.
+Got it, and thank you for the reminder!
 
-This should fix Ran's issue.
-
--Deepa
+							Thanx, Paul
