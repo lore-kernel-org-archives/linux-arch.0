@@ -1,91 +1,157 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] mmap.2: describe the 5level paging hack
-Date: Wed, 13 Feb 2019 12:48:43 +0000
-Message-ID: <20190213124842.GD1912@brain-police>
-References: <20190211163653.97742-1-jannh@google.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Wed, 13 Feb 2019 14:58:37 +0000
+Message-ID: <20190213145834.GJ3567@e103592.cambridge.arm.com>
+References: <cover.1544445454.git.andreyknvl@google.com>
+ <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+ <20181212150230.GH65138@arrakis.emea.arm.com>
+ <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+ <20181218175938.GD20197@arrakis.emea.arm.com>
+ <20181219125249.GB22067@e103592.cambridge.arm.com>
+ <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
+ <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
+ <20190212180223.GD199333@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190211163653.97742-1-jannh@google.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Jann Horn <jannh@google.com>
-Cc: linux-arch@vger.kernel.org, linux-man@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, Andy Lutomirski <luto@amacapital.net>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, mtk.manpages@gmail.com, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, linux-api@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20190212180223.GD199333@arrakis.emea.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Evgenii Stepanov <eugenis@google.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Jann,
+On Tue, Feb 12, 2019 at 06:02:24PM +0000, Catalin Marinas wrote:
+> On Mon, Feb 11, 2019 at 12:32:55PM -0800, Evgenii Stepanov wrote:
+> > On Mon, Feb 11, 2019 at 9:28 AM Kevin Brodsky <kevin.brodsky@arm.com> wrote:
+> > > On 19/12/2018 12:52, Dave Martin wrote:
 
-On Mon, Feb 11, 2019 at 05:36:53PM +0100, Jann Horn wrote:
-> The manpage is missing information about the compatibility hack for
-> 5-level paging that went in in 4.14, around commit ee00f4a32a76 ("x86/mm:
-> Allow userspace have mappings above 47-bit"). Add some information about
-> that.
-> 
-> While I don't think any hardware supporting this is shipping yet (?), I
-> think it's useful to try to write a manpage for this API, partly to
-> figure out how usable that API actually is, and partly because when this
-> hardware does ship, it'd be nice if distro manpages had information about
-> how to use it.
-> 
-> Signed-off-by: Jann Horn <jannh@google.com>
-> ---
-> This patch goes on top of the patch "[PATCH] mmap.2: fix description of
-> treatment of the hint" that I just sent, but I'm not sending them in a
-> series because I want the first one to go in, and I think this one might
-> be a bit more controversial.
-> 
-> It would be nice if the architecture maintainers and mm folks could have
-> a look at this and check that what I wrote is right - I only looked at
-> the source for this, I haven't tried it.
-> 
->  man2/mmap.2 | 15 +++++++++++++++
->  1 file changed, 15 insertions(+)
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 8556bbfeb..977782fa8 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -67,6 +67,8 @@ is NULL,
->  then the kernel chooses the (page-aligned) address
->  at which to create the mapping;
->  this is the most portable method of creating a new mapping.
-> +On Linux, in this case, the kernel may limit the maximum address that can be
-> +used for allocations to a legacy limit for compatibility reasons.
->  If
->  .I addr
->  is not NULL,
-> @@ -77,6 +79,19 @@ or equal to the value specified by
->  and attempt to create the mapping there.
->  If another mapping already exists there, the kernel picks a new
->  address, independent of the hint.
-> +However, if a hint above the architecture's legacy address limit is provided
-> +(on x86-64: above 0x7ffffffff000, on arm64: above 0x1000000000000, on ppc64 with
-> +book3s: above 0x7fffffffffff or 0x3fffffffffff, depending on page size), the
-> +kernel is permitted to allocate mappings beyond the architecture's legacy
-> +address limit.
+[...]
 
-On arm64 we support 36-bit, 39-bit, 42-bit, 47-bit, 48-bit and 52-bit user
-virtual addresses, some of which also enforce a particular page size of 4k,
-16k or 64k. With the exception of 52-bit, the user virtual address size is
-fixed at compile time and mmap() can allocate up to the maximum address
-size.
+> > > >   * A single C object should be accessed using a single, fixed
+> > > >     pointer tag throughout its entire lifetime.
+> > >
+> > > Agreed.  Allocators themselves may need to be excluded though,
+> > > depending on how they represent their managed memory.
+> > >
+> > > >   * Tags can be changed only when there are no outstanding pointers to
+> > > >     the affected object or region that may be used to access the object
+> > > >     or region (i.e., if the object were allocated from the C heap and
+> > > >     is it safe to realloc() it, then it is safe to change the tag; for
+> > > >     other types of allocation, analogous arguments can be applied).
+> > >
+> > > Tags can only be changed at the point of deallocation/
+> > > reallocation.  Pointers to the object become invalid and cannot
+> > > be used after it has been deallocated; memory tagging allows to
+> > > catch such invalid usage.
+>
+> All the above sound well but that's mostly a guideline on what a C
+> library can do. It doesn't help much with defining the kernel ABI.
+> Anyway, it's good to clarify the use-cases.
 
-When 52-bit virtual addressing is configured, we continue to allocate up to
-48 bits unless either a hint is passed to mmap() as you describe, or
-CONFIG_ARM64_FORCE_52BIT=y (this is really intended as a debug option and is
-hidden behind EXPERT as well as being off by default).
+My aim was to clarify the use case in userspace, since I wasn't directly
+involved in that.  The kernel ABI needs to be compatible with the the
+use case, but doesn't need to specify must of it.
 
-One thing that just occurred to me is that our ASLR code is probably pretty
-weak for addresses greater than 48 bits because I don't think it was updated
-when we added 52-bit support. I'll take a deeper look when I get some time.
+I'm wondering whether we can piggy-back on existing concepts.
 
-Will
+We could say that recolouring memory is safe when and only when
+unmapping of the page or removing permissions on the page (via
+munmap/mremap/mprotect) would be safe.  Otherwise, the resulting
+behaviour of the process is undefined.
+
+Hopefully there are friendly fuzzers testing this kind of thing.
+
+[...]
+
+> > It would also be valuable to narrow down the set of "relaxed" (i.e.
+> > not tag-checking) syscalls as reasonably possible. We would want to
+> > provide tag-checking userspace wrappers for any important calls that
+> > are not checked in the kernel. Is it correct to assume that anything
+> > that goes through copy_from_user  / copy_to_user is checked?
+> 
+> I lost track of the context of this thread but if it's just about
+> relaxing the ABI for hwasan, the kernel has no idea of the compiler
+> generated structures in user space, so nothing is checked.
+> 
+> If we talk about tags in the context of MTE, than yes, with the current
+> proposal the tag would be checked by copy_*_user() functions.
+
+Also put_user() and friends?
+
+It might be reasonable to do the check in access_ok() and skip it in
+__put_user() etc.
+
+(I seem to remember some separate discussion about abolishing
+__put_user() and friends though, due to the accident risk they pose.)
+
+> > For aio* operations it would be nice if the tag was checked at the
+> > time of the actual userspace read/write, either instead of or in
+> > addition to at the time of the system call.
+> 
+> With aio* (and synchronous iovec-based syscalls), the kernel may access
+> the memory while the corresponding user process is scheduled out. Given
+> that such access is not done in the context of the user process (and
+> using the user VA like copy_*_user), the kernel cannot handle potential
+> tag faults. Moreover, the transfer may be done by DMA and the device
+> does not understand tags.
+> 
+> I'd like to keep tags as a property of the pointer in a specific virtual
+> address space. The moment you convert it to a different address space
+> (e.g. kernel linear map, physical address), the tag property is stripped
+> and I don't think we should re-build it (and have it checked).
+
+This is probably reasonable.
+
+Ideally we would check the tag at the point of stripping it off, but
+most likely it's going to be rather best-effort.
+
+If memory tagging is essential a debugging feature then this seems
+an acceptable compromise.
+
+> > > >   * For purposes other than dereference, the kernel shall accept any
+> > > >     legitimately tagged pointer (according to the above rules) as
+> > > >     identifying the associated memory location.
+> > > >
+> > > >     So, mprotect(some_page_aligned_object, ...); is valid irrespective
+> > > >     of where page_aligned_object() came from.  There is no implicit
+> > > >     derefence by the kernel here, hence no tag check.
+> > > >
+> > > >     The kernel does not guarantee to work correctly if the wrong tag
+> > > >     is used, but there is not always a well-defined "right" tag, so
+> > > >     we can't really guarantee to check it.  So a pointer derived by
+> > > >     any reasonable means by userspace has to be treated as equally
+> > > >     valid.
+> > >
+> > > This is a disputed point :) In my opinion, this is the the most
+> > > reasonable approach.
+> > 
+> > Yes, it would be nice if the kernel explicitly promised, ex.
+> > mprotect() over a range of differently tagged pages to be allowed
+> > (i.e. address tag should be unchecked).
+> 
+> I don't think mprotect() over differently tagged pages was ever a
+> problem. I originally asked that mprotect() and friends do not accept
+> tagged pointers since these functions deal with memory ranges rather
+> than dereferencing such pointer (the reason being minimal kernel
+> changes). However, given how complicated it is to specify an ABI, I came
+> to the conclusion that a pointer passed to such function should be
+> allowed to have non-zero top byte. It would be the kernel's
+> responsibility to strip it out as appropriate.
+
+I think that if the page range is all the same colour then it should be
+legitimate to pass a matching tag.
+
+But it doesn't seem reasonable for the kernel to require this.  If
+free() calls munmap(), the page(s) will contain possibly randomly-
+coloured garbage.  There's no correct tag to pass in such a case.
+
+The most obvious solution is just to ignore the tags passed by userspace
+to such syscalls.  This would imply that the kernel must explicitly
+strip it out, as you suggest.
+
+The number of affected syscalls is relatively small though.
+
+Cheers
+---Dave
