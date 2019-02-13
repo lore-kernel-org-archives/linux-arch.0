@@ -1,59 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f66.google.com ([209.85.167.66]:43280 "EHLO
-        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727049AbfBMUET (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2019 15:04:19 -0500
-Received: by mail-lf1-f66.google.com with SMTP id j1so2744549lfb.10
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:04:18 -0800 (PST)
-Received: from mail-lj1-f173.google.com (mail-lj1-f173.google.com. [209.85.208.173])
-        by smtp.gmail.com with ESMTPSA id z85sm38942lff.80.2019.02.13.12.04.16
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Wed, 13 Feb 2019 12:04:16 -0800 (PST)
-Received: by mail-lj1-f173.google.com with SMTP id f24-v6so3164470ljk.0
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:04:16 -0800 (PST)
-MIME-Version: 1.0
-References: <1549566446-27967-1-git-send-email-longman@redhat.com> <20190213091936.GA22829@shao2-debian>
-In-Reply-To: <20190213091936.GA22829@shao2-debian>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 13 Feb 2019 11:56:38 -0800
-Message-ID: <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
-Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
- rwsem features
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Received: from mx1.redhat.com ([209.132.183.28]:51376 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728538AbfBMUc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Feb 2019 15:32:26 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v3 0/2] locking/rwsem: Remove arch specific rwsem files
+Date: Wed, 13 Feb 2019 15:32:10 -0500
+Message-ID: <1550089932-6888-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Rong <rong.a.chen@intel.com>
-Cc: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190213195638.i_pKDFTrRdHUrXTy0A0ngM19xJ_Uw5DyzUijNGy5yLQ@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20190213203210.AElEmzFbI_uhhpA9-SQ6u0A05hjRzuwOuABB6zld5hw@z>
 
-Ok, those test robot reports are hard to read, but trying to distill it dow=
-n:
+v3:
+ - Optimize __down_read_trylock() for the uncontended case as suggested
+   by Linus.
 
-On Wed, Feb 13, 2019 at 1:19 AM Chen Rong <rong.a.chen@intel.com> wrote:
->
->          %stddev     %change         %stddev
->              \          |                \
->     196250 =C2=B1  8%     -64.1%      70494        will-it-scale.per_thre=
-ad_ops
+v2:
+ - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+ - Update performance test data in patch 1.
 
-That's the original 64% regression..
+This is part 0 of my rwsem patchset. It just removes the architecture
+specific files to make it easer to add enhancements in the upcoming
+rwsem patches.
 
-And then with the patch set:
+Since the two ll/sc platforms that I can tested on (arm64 & ppc) are
+both using the generic C codes, the rwsem performance shouldn't be
+affected by this patch except the down_read_trylock() code which was
+included in patch 2 for arm64.
 
->          %stddev      change         %stddev
->              \          |                \
->      71190             180%     199232 =C2=B1  4%  will-it-scale.per_thre=
-ad_ops
+Waiman Long (2):
+  locking/rwsem: Remove arch specific rwsem files
+  locking/rwsem: Optimize down_read_trylock()
 
-looks like it's back up where it used to be.
+ MAINTAINERS                     |   1 -
+ arch/alpha/include/asm/rwsem.h  | 211 -----------------------------------
+ arch/arm/include/asm/Kbuild     |   1 -
+ arch/arm64/include/asm/Kbuild   |   1 -
+ arch/hexagon/include/asm/Kbuild |   1 -
+ arch/ia64/include/asm/rwsem.h   | 172 -----------------------------
+ arch/powerpc/include/asm/Kbuild |   1 -
+ arch/s390/include/asm/Kbuild    |   1 -
+ arch/sh/include/asm/Kbuild      |   1 -
+ arch/sparc/include/asm/Kbuild   |   1 -
+ arch/x86/include/asm/rwsem.h    | 237 ----------------------------------------
+ arch/x86/lib/Makefile           |   1 -
+ arch/x86/lib/rwsem.S            | 156 --------------------------
+ arch/xtensa/include/asm/Kbuild  |   1 -
+ include/asm-generic/rwsem.h     | 140 ------------------------
+ include/linux/rwsem.h           |   4 +-
+ kernel/locking/percpu-rwsem.c   |   2 +
+ kernel/locking/rwsem.h          | 133 ++++++++++++++++++++++
+ 18 files changed, 136 insertions(+), 929 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/rwsem.h
+ delete mode 100644 arch/ia64/include/asm/rwsem.h
+ delete mode 100644 arch/x86/include/asm/rwsem.h
+ delete mode 100644 arch/x86/lib/rwsem.S
+ delete mode 100644 include/asm-generic/rwsem.h
 
-So I guess we have numbers for the regression now. Thanks.
-
-And that closes my biggest question for the new model, and with the
-new organization that gets ird of the arch-specific asm separately
-first and makes it a bit more legible that way, I guess I'll just Ack
-the whole series.
-
-             Linus
+-- 
+1.8.3.1
