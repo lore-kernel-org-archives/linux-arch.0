@@ -1,118 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58118 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:58176 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730494AbfBMRn1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Feb 2019 12:43:27 -0500
-Date: Wed, 13 Feb 2019 17:43:19 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
-Message-ID: <20190213174318.GM3567@e103592.cambridge.arm.com>
-References: <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
- <20181212150230.GH65138@arrakis.emea.arm.com>
- <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
- <20181218175938.GD20197@arrakis.emea.arm.com>
- <20181219125249.GB22067@e103592.cambridge.arm.com>
- <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
- <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
- <20190212180223.GD199333@arrakis.emea.arm.com>
- <20190213145834.GJ3567@e103592.cambridge.arm.com>
- <90c54249-00dd-f8dd-6873-6bb8615c2c8a@arm.com>
+        id S1729117AbfBMRqT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Feb 2019 12:46:19 -0500
+Date: Wed, 13 Feb 2019 17:46:08 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to
+ __io_par()
+Message-ID: <20190213174608.GA29100@fuggles.cambridge.arm.com>
+References: <20190211174544.4302-1-will.deacon@arm.com>
+ <20190211174544.4302-2-will.deacon@arm.com>
+ <CAK8P3a1gmJTt+jdTbdSYZ0z43qodxf+co757K1-Hq1mj4fCqQA@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <90c54249-00dd-f8dd-6873-6bb8615c2c8a@arm.com>
+In-Reply-To: <CAK8P3a1gmJTt+jdTbdSYZ0z43qodxf+co757K1-Hq1mj4fCqQA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20190213174319.3VtNkzxSkkNvd7YaZGGQ3AUaXIdaBLXad7Sxh2nqE_U@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, andrew.murray@arm.com, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>
+Message-ID: <20190213174608.O0dl1JAPkNBjT2cfuHswadQ0qWTGfzOmSZJiNP4izxs@z>
 
-On Wed, Feb 13, 2019 at 04:42:11PM +0000, Kevin Brodsky wrote:
-> (+Cc other people with MTE experience: Branislav, Ruben)
-
-[...]
-
-> >I'm wondering whether we can piggy-back on existing concepts.
+On Tue, Feb 12, 2019 at 12:55:17PM +0100, Arnd Bergmann wrote:
+> On Mon, Feb 11, 2019 at 6:45 PM Will Deacon <will.deacon@arm.com> wrote:
 > >
-> >We could say that recolouring memory is safe when and only when
-> >unmapping of the page or removing permissions on the page (via
-> >munmap/mremap/mprotect) would be safe.  Otherwise, the resulting
-> >behaviour of the process is undefined.
-> 
-> Is that a sufficient requirement? I don't think that anything prevents you
-> from using mprotect() on say [vvar], but we don't necessarily want to map
-> [vvar] as tagged. I'm not sure it's easy to define what "safe" would mean
-> here.
-
-I think the origin rules have to apply too: [vvar] is not a regular,
-private page but a weird, shared thing mapped for you by the kernel.
-
-Presumably userspace _cannot_ do mprotect(PROT_WRITE) on it.
-
-I'm also assuming that userspace cannot recolour memory in read-only
-pages.  That sounds bad if there's no way to prevent it.
-
-[...]
-
-> >It might be reasonable to do the check in access_ok() and skip it in
-> >__put_user() etc.
+> > The inX() I/O accessors must enforce ordering against subsequent calls
+> > to the delay() routines, so that a read-back from a device can be used
+> > to postpone a subsequent write to the same device.
 > >
-> >(I seem to remember some separate discussion about abolishing
-> >__put_user() and friends though, due to the accident risk they pose.)
+> > On some architectures, including arm64, this ordering can only be
+> > achieved by creating a dependency on the value returned by the inX()
+> > operation, so we need to pass the value we read to the __io_par()
+> > macro in this case.
+> >
+> > Reported-by: Andrew Murray <andrew.murray@arm.com>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 8 ++++----
 > 
-> Keep in mind that with MTE, there is no need to do any explicit check when
-> accessing user memory via a user-provided pointer. The tagged user pointer
-> is directly passed to copy_*_user() or put_user(). If the load/store causes
-> a tag fault, then it is handled just like a page fault (i.e. invoking the
-> fixup handler). As far as I can tell, there's no need to do anything special
-> in access_ok() in that case.
+> For changing the asm-generic file in the arm64 tree,
 > 
-> [The above applies to precise mode. In imprecise mode, some more work will
-> be needed after the load/store to check whether a tag fault happened.]
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Fair enough, I'm a bit hazy on the details as of right now..
+Thanks, Arnd.
 
-[...]
+> For all I can see, this should not conflict with the usage of the
+> same macros on RISC-V, though it does make add a significant
+> difference, so I'd like to see an Ack from the RISC-V folks as
+> well (added to Cc), or possibly a change to arch/riscv/include/asm/io.h
+> to do a corresponding change.
 
-> There are many possible ways to deploy MTE, and debugging is just one of
-> them. For instance, you may want to turn on heap colouring for some
-> processes in the system, including in production.
+There's already a comment in that header which says that the accesses are
+ordered wrt timer reads, so I don't think anything needs to change there.
+For consistency with the macro arguments, I could augment their __io_par to
+take the read value as an unused argument, if that's what you mean?
 
-To implement enforceable protection, or as a diagnostic tool for when
-something goes wrong?
-
-In the latter case it's still OK for the kernel's tag checking not to be
-exhaustive.
-
-> Regarding those cases where it is impossible to check tags at the point of
-> accessing user memory, it is indeed possible to check the memory tags at the
-> point of stripping the tag from the user pointer. Given that some MTE
-> use-cases favour performance over tag check coverage, the ideal approach
-> would be to make these checks configurable (e.g. check one granule, check
-> all of them, or check none). I don't know how feasible this is in practice.
-
-Check all granules of a massive DMA buffer?
-
-That doesn't sounds feasible without explicit support in the hardware to
-have the DMA check tags itself as the memory is accessed.  MTE by itself
-doesn't provide for this IIUC (at least, it would require support in the
-platform, not just the CPU).
-
-We do not want to bake any assumptions into the ABI about whether a
-given data transfer may or may not be offloaded to DMA.  That feels
-like a slippery slope.
-
-Providing we get the checks for free in put_user/get_user/
-copy_{to,from}_user(), those will cover a lot of cases though, for
-non-bulk-IO cases.
-
-
-My assumption has been that at this point in time we are mainly aiming
-to support the debug/diagnostic use cases today.
-
-At least, those are the low(ish)-hanging fruit.
-
-Others are better placed than me to comment on the goals here.
-
-Cheers
----Dave
+Will
