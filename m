@@ -1,45 +1,88 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/8] mm: unexport free_reserved_area
-Date: Wed, 13 Feb 2019 18:46:14 +0100
-Message-ID: <20190213174621.29297-2-hch@lst.de>
+Subject: [PATCH 4/8] initramfs: factor out a helper to populate the initrd image
+Date: Wed, 13 Feb 2019 18:46:17 +0100
+Message-ID: <20190213174621.29297-5-hch@lst.de>
 References: <20190213174621.29297-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190213174621.29297-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This function is only used by built-in code, which makes perfect
-sense given the purpose of it.
+This will allow for cleaner code sharing in the caller.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- mm/page_alloc.c | 1 -
- 1 file changed, 1 deletion(-)
+ init/initramfs.c | 40 +++++++++++++++++++++++-----------------
+ 1 file changed, 23 insertions(+), 17 deletions(-)
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 35fdde041f5c..45f12a42709d 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -7255,7 +7255,6 @@ unsigned long free_reserved_area(void *start, void *end, int poison, const char
- 
- 	return pages;
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 6c2ed1d7276e..c2e9a8845e98 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -595,6 +595,28 @@ static void __init clean_rootfs(void)
+ 	kfree(buf);
  }
--EXPORT_SYMBOL(free_reserved_area);
  
- #ifdef	CONFIG_HIGHMEM
- void free_highmem_page(struct page *page)
++#ifdef CONFIG_BLK_DEV_RAM
++static void populate_initrd_image(char *err)
++{
++	ssize_t written;
++	int fd;
++
++	unpack_to_rootfs(__initramfs_start, __initramfs_size);
++
++	printk(KERN_INFO "rootfs image is not initramfs (%s); looks like an initrd\n",
++			err);
++	fd = ksys_open("/initrd.image", O_WRONLY | O_CREAT, 0700);
++	if (fd < 0)
++		return;
++
++	written = xwrite(fd, (char *)initrd_start, initrd_end - initrd_start);
++	if (written != initrd_end - initrd_start)
++		pr_err("/initrd.image: incomplete write (%zd != %ld)\n",
++		       written, initrd_end - initrd_start);
++	ksys_close(fd);
++}
++#endif /* CONFIG_BLK_DEV_RAM */
++
+ static int __init populate_rootfs(void)
+ {
+ 	/* Load the built in initramfs */
+@@ -604,7 +626,6 @@ static int __init populate_rootfs(void)
+ 	/* If available load the bootloader supplied initrd */
+ 	if (initrd_start && !IS_ENABLED(CONFIG_INITRAMFS_FORCE)) {
+ #ifdef CONFIG_BLK_DEV_RAM
+-		int fd;
+ 		printk(KERN_INFO "Trying to unpack rootfs image as initramfs...\n");
+ 		err = unpack_to_rootfs((char *)initrd_start,
+ 			initrd_end - initrd_start);
+@@ -612,22 +633,7 @@ static int __init populate_rootfs(void)
+ 			goto done;
+ 
+ 		clean_rootfs();
+-		unpack_to_rootfs(__initramfs_start, __initramfs_size);
+-
+-		printk(KERN_INFO "rootfs image is not initramfs (%s)"
+-				"; looks like an initrd\n", err);
+-		fd = ksys_open("/initrd.image",
+-			      O_WRONLY|O_CREAT, 0700);
+-		if (fd >= 0) {
+-			ssize_t written = xwrite(fd, (char *)initrd_start,
+-						initrd_end - initrd_start);
+-
+-			if (written != initrd_end - initrd_start)
+-				pr_err("/initrd.image: incomplete write (%zd != %ld)\n",
+-				       written, initrd_end - initrd_start);
+-
+-			ksys_close(fd);
+-		}
++		populate_initrd_image(err);
+ 	done:
+ 		/* empty statement */;
+ #else
 -- 
 2.20.1
