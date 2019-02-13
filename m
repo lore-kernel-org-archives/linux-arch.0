@@ -1,54 +1,39 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 7/8] initramfs: proide a generic free_initrd_mem
- implementation
-Date: Wed, 13 Feb 2019 19:44:48 +0100
-Message-ID: <20190213184448.GB20399@lst.de>
-References: <20190213174621.29297-1-hch@lst.de>
- <20190213174621.29297-8-hch@lst.de> <20190213184139.GC15270@rapoport-lnx>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Date: Wed, 13 Feb 2019 11:31:27 -0800
+Message-ID: <20190213193127.GH4240@linux.ibm.com>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+ <20190213172047.GH6346@brain-police>
+ <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+ <20190213183314.GB32494@hirez.programming.kicks-ass.net>
+ <3908561D78D1C84285E8C5FCA982C28F7D4FF0DE@ORSMSX110.amr.corp.intel.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190213184139.GC15270@rapoport-lnx>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Guan Xuetao <gxt@pku.edu.cn>, Christoph Hellwig <hch@lst.de>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <3908561D78D1C84285E8C5FCA982C28F7D4FF0DE@ORSMSX110.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 13, 2019 at 08:41:40PM +0200, Mike Rapoport wrote:
-> csky seems to open-code free_reserved_page with the only
-> difference that it's also increments totalram_pages for the freed pages,
-> which doesn't seem correct anyway...
+On Wed, Feb 13, 2019 at 06:43:41PM +0000, Luck, Tony wrote:
+> > I think the last time this came up, it was said that those people still
+> > running Linux on Itanium were running old distro kernels, not upstream.
+> >
+> > So yeah, we could probably do whatever and nobody would ever notice,
+> > except maybe Al, who is rumoured to still have an ia64 :-)
 > 
-> That said, I suppose arch/csky can be also added to the party.
+> I haven't heard of anyone taking upstream kernels and actually using them
+> for production work in a long time. It's mostly just a few folks keeping ia64
+> alive "just because" these days.  I doubt any of them have an SGI Altix
+> to test on (so realistically Altix was probably broken upstream many releases
+> ago).
 
-Yes, I noticed that.  But I'd rather move it over manually in
-another patch post rc1 or for the next merge window.
+That would require a well-healed computer collector, wouldn't it?  Just to
+run the thing.  ;-)
 
-> > +void __weak free_initrd_mem(unsigned long start, unsigned long end)
-> > +{
-> > +	free_reserved_area((void *)start, (void *)end, -1, "initrd");
-> 
-> Some architectures have pr_info("Freeing initrd memory..."), I'd add it for
-> the generic version as well.
-
-Well, if we think such a printk is useful it should probably be
-moved to the caller in init/initramfs.c instead.  I can include a
-patch for that in the next iteration of the series.
-
-> Another thing that I was thinking of is that x86 has all those memory
-> protection calls in its free_initrd_mem, maybe it'd make sense to have them
-> in the generic version as well?
-
-Maybe.  But I'd rather keep it out of the initial series as it looks
-a little more complicated.  Having a single implementation
-of free_initrd_mem would be great, though.
+								Thanx, Paul
