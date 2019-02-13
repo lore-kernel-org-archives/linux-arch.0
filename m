@@ -1,67 +1,45 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/8] initramfs: free initrd memory if opening /initrd.image fails
-Date: Wed, 13 Feb 2019 18:46:15 +0100
-Message-ID: <20190213174621.29297-3-hch@lst.de>
+Subject: [PATCH 1/8] mm: unexport free_reserved_area
+Date: Wed, 13 Feb 2019 18:46:14 +0100
+Message-ID: <20190213174621.29297-2-hch@lst.de>
 References: <20190213174621.29297-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20190213174621.29297-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-We free the initrd memory for all successful or error cases except
-for the case where opening /initrd.image fails, which looks like an
-oversight.
+This function is only used by built-in code, which makes perfect
+sense given the purpose of it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- init/initramfs.c | 14 ++++++--------
- 1 file changed, 6 insertions(+), 8 deletions(-)
+ mm/page_alloc.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 7cea802d00ef..1cba6bbeeb75 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -610,13 +610,12 @@ static int __init populate_rootfs(void)
- 		printk(KERN_INFO "Trying to unpack rootfs image as initramfs...\n");
- 		err = unpack_to_rootfs((char *)initrd_start,
- 			initrd_end - initrd_start);
--		if (!err) {
--			free_initrd();
-+		if (!err)
- 			goto done;
--		} else {
--			clean_rootfs();
--			unpack_to_rootfs(__initramfs_start, __initramfs_size);
--		}
-+
-+		clean_rootfs();
-+		unpack_to_rootfs(__initramfs_start, __initramfs_size);
-+
- 		printk(KERN_INFO "rootfs image is not initramfs (%s)"
- 				"; looks like an initrd\n", err);
- 		fd = ksys_open("/initrd.image",
-@@ -630,7 +629,6 @@ static int __init populate_rootfs(void)
- 				       written, initrd_end - initrd_start);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 35fdde041f5c..45f12a42709d 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -7255,7 +7255,6 @@ unsigned long free_reserved_area(void *start, void *end, int poison, const char
  
- 			ksys_close(fd);
--			free_initrd();
- 		}
- 	done:
- 		/* empty statement */;
-@@ -642,9 +640,9 @@ static int __init populate_rootfs(void)
- 			printk(KERN_EMERG "Initramfs unpacking failed: %s\n", err);
- 			clean_rootfs();
- 		}
--		free_initrd();
- #endif
- 	}
-+	free_initrd();
- 	flush_delayed_fput();
- 	return 0;
+ 	return pages;
  }
+-EXPORT_SYMBOL(free_reserved_area);
+ 
+ #ifdef	CONFIG_HIGHMEM
+ void free_highmem_page(struct page *page)
 -- 
 2.20.1
