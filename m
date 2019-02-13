@@ -1,101 +1,54 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-Date: Wed, 13 Feb 2019 17:05:44 +0000
-Message-ID: <20190213170543.GF6346@brain-police>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
- <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
- <20190208173539.GD24375@fuggles.cambridge.arm.com>
- <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Date: Wed, 13 Feb 2019 17:20:47 +0000
+Message-ID: <20190213172047.GH6346@brain-police>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, tony.luck@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Thomas,
+[+Tony]
 
-On Fri, Feb 08, 2019 at 08:28:07PM +0100, Thomas Gleixner wrote:
-> On Fri, 8 Feb 2019, Will Deacon wrote:
-> > On Fri, Dec 07, 2018 at 05:53:21PM +0000, Will Deacon wrote:
-> > > Anyway, moving the counter read into the protected region is a little fiddly
-> > > because the memory barriers we have in there won't give us the ordering we
-> > > need. We'll instead need to do something nasty, like create a dependency
-> > > from the counter read to the read of the seqlock:
-> > > 
-> > > Maybe the untested crufty hack below, although this will be a nightmare to
-> > > implement in C.
-> > 
-> > We discussed this in person this week, but you couldn't recall the details
-> > off the top of your head so I'm replying here. Please could you clarify what
-> > your concern was with the existing code, and whether or not I've got the
-> > wrong end of the stick?
+On Mon, Feb 11, 2019 at 02:34:31PM -0800, Linus Torvalds wrote:
+> On Mon, Feb 11, 2019 at 9:30 AM Will Deacon <will.deacon@arm.com> wrote:
+> >
+> > +
+> > +     1. All readX() and writeX() accesses to the same peripheral are ordered
+> > +        with respect to each other. For example, this ensures that MMIO register
+> > +       writes by the CPU to a particular device will arrive in program order.
 > 
-> If you just collect the variables under the seqcount protection and have
-> the readout of the timer outside of it then you are not guaranteeing
-> consistent state.
+> Hmm. I'd like more people look at strengthening this one wrt across
+> CPUs and locking.
 > 
-> The problem is:
+> Right now we document mmiowb(), but that "documentation" is really
+> just a fairy tale. Very *very* few drivers actually do mmiowb() on
+> their own.
 > 
-> 	do {
-> 		seq = read_seqcount_begin(d->seq);
-> 		last = d->cycle_last;
-> 		mult = d->mult;
-> 		shift = d->shift;
-> 		ns = d->ns_base;
-> 	while (read_seqcount_retry(d->seq, seq));
-> 
-> 	ns += ((read_clock() - last) * mult);
-> 	ns >>= shift;
-> 
-> So on the first glance this looks consistent because you collect all data
-> and then do the read and calc outside the loop.
-> 
-> But if 'd->mult' gets updated _before_ read_clock() then you can run into a
-> situation where time goes backwards with the next read.
-> 
-> Here is the flow you need for that:
-> 
-> t1 = gettime()
->      {
-> 	collect_data()
-> 
->      ---> Interrupt, updates mult (mult becomes smaller)
-> 
->      	  This can expand over a very long time when the task is scheduled
->      	  out here and there are multiple updates in between. The farther
->      	  out the read is delayed, the more likely the problem is going to
->      	  observable.
-> 
->      	read_clock_and_calc()
->      }
-> 
-> t2 = gettime()
->      {
-> 	collect_data()
->      	read_clock_and_calc()
->      }
-> 
-> This second read uses updated data, i.e. the smaller mult. So depending on
-> the distance of the two reads and the difference of the mult, the caller
-> can observe t2 < t1, which is a NONO. You can observe it on a single
-> CPU. No virt, SMP, migration needed at all.
+> IOW, we should seriously just consider making the rule be that locking
+> will order mmio too. Because that's practically the rule anyway.
 
-Thank you for this explanation, I agree that we have a bug here (and have
-done since day 1 on arm64!). I've replied separately on ktime_get().
+I would /love/ to get rid of mmiowb() because I think it's both extremely
+difficult to use and also pretty much never needed. It reminds me a lot of
+smp_read_barrier_depends(), which we finally pushed into READ_ONCE for
+Alpha.
+
+> Powerpc already does it. IO within a locked region will serialize with the
+> lock.
+
+I thought ia64 was the hold out here? Did they actually have machines that
+needed this in practice? If so, I think we can either:
+
+  (a) Add an mmiowb() to their spin_unlock() code, or
+  (b) Remove ia64 altogether if nobody complains
+
+I know that Peter has been in favour of (b) for a while...
 
 Will
