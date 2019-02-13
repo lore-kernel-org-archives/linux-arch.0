@@ -1,38 +1,78 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 0/7] LKMM updates for v5.1
-Date: Wed, 13 Feb 2019 09:36:50 -0800
-Message-ID: <20190213173650.GA26078@linux.ibm.com>
-Reply-To: paulmck@linux.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH memory-model 6/7] tools/memory-model: Dynamically check SRCU lock-to-unlock matching
+Date: Wed, 13 Feb 2019 09:37:42 -0800
+Message-ID: <20190213173743.26682-6-paulmck@linux.ibm.com>
+References: <20190213173650.GA26078@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <20190213173650.GA26078@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Luc Maranget <Luc.Maranget@inria.fr>, "Paul E . McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello, Ingo,
+From: Luc Maranget <Luc.Maranget@inria.fr>
 
-This series contains updates for the Linux-kernel memory model, which
-are ready for inclusion into -tip:
+This commit checks that the return value of srcu_read_lock() is passed
+to the matching srcu_read_unlock(), where "matching" is determined by
+nesting.  This check operates as follows:
 
-1-5.	Add support for SRCU, courtesy of Alan Stern.
+   1. srcu_read_lock() creates an integer token, which is stored into
+      the generated events.
+   2. srcu_read_unlock() records its second (token) argument into the
+      generated event.
+   3. A new herd primitive 'different-values' filters out pairs of events
+      with identical values from the relation passed as its argument.
+   4. The bell file applies the above primitive to the (srcu)
+      read-side-critical-section relation 'srcu-rscs' and flags non-empty
+      results.
 
-6.	Dynamically check SRCU lock-to-unlock matching, courtesy of
-	Luc Maranget.
+BEWARE: Works only with herd version 7.51+6 and onwards.
 
-7.	Avoid duplicating herdtools versions in documentation, courtesy
-	of Andrea Parri.
+Signed-off-by: Luc Maranget <Luc.Maranget@inria.fr>
+Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+[ paulmck: Apply Andrea Parri's off-list feedback. ]
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
+---
+ tools/memory-model/linux-kernel.bell | 3 +++
+ tools/memory-model/linux-kernel.cat  | 2 ++
+ tools/memory-model/linux-kernel.def  | 2 +-
+ 3 files changed, 6 insertions(+), 1 deletion(-)
 
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- Documentation/explanation.txt |  289 ++++++++++++++++++++++--------------------
- README                        |   33 ++++
- linux-kernel.bell             |   37 ++++-
- linux-kernel.cat              |   57 +++++---
- linux-kernel.def              |    7 -
- lock.cat                      |    3 
- 6 files changed, 254 insertions(+), 172 deletions(-)
+diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
+index 9c42cd9ddcb4..def9131d3d8e 100644
+--- a/tools/memory-model/linux-kernel.bell
++++ b/tools/memory-model/linux-kernel.bell
+@@ -73,3 +73,6 @@ flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
+ 
+ (* Check for use of synchronize_srcu() inside an RCU critical section *)
+ flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
++
++(* Validate SRCU dynamic match *)
++flag ~empty different-values(srcu-rscs) as srcu-bad-nesting
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 8dcb37835b61..95bf45f1215f 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -1,5 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ (*
++ * Requires herd version 7.51+6 or higher.
++ *
+  * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+  * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
+diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+index 1d6a120cde14..0c3f0ef486f4 100644
+--- a/tools/memory-model/linux-kernel.def
++++ b/tools/memory-model/linux-kernel.def
+@@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
+ 
+ // SRCU
+ srcu_read_lock(X)  __srcu{srcu-lock}(X)
+-srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
++srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
+ synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
+ 
+ // Atomic
+-- 
+2.17.1
