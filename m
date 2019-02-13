@@ -1,35 +1,90 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Date: Wed, 13 Feb 2019 19:33:14 +0100
-Message-ID: <20190213183314.GB32494@hirez.programming.kicks-ass.net>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
- <20190213172047.GH6346@brain-police>
- <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH 7/8] initramfs: proide a generic free_initrd_mem
+ implementation
+Date: Wed, 13 Feb 2019 20:41:40 +0200
+Message-ID: <20190213184139.GC15270@rapoport-lnx>
+References: <20190213174621.29297-1-hch@lst.de>
+ <20190213174621.29297-8-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>
+In-Reply-To: <20190213174621.29297-8-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 13, 2019 at 10:27:09AM -0800, Linus Torvalds wrote:
-> Yeah, yeah, there's the SGI "SN" platform that apparently has a bug,
-> so because of that platform problem maybe it needs the more complex
-> "use a flag" model.  But even the complex model isn't _hugely_
-> complex.
+On Wed, Feb 13, 2019 at 06:46:20PM +0100, Christoph Hellwig wrote:
+> For most architectures free_initrd_mem just expands to the same
+> free_reserved_area call.  Provide that as a generic implementation
+> marked __weak.
 > 
-> But we *could* first just do the mmiowb() unconditionally in the ia64
-> unlocking code, and then see if anybody notices?
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/alpha/mm/init.c      | 8 --------
+>  arch/arc/mm/init.c        | 7 -------
+>  arch/c6x/mm/init.c        | 7 -------
+
+csky seems to open-code free_reserved_page with the only
+difference that it's also increments totalram_pages for the freed pages,
+which doesn't seem correct anyway...
+
+That said, I suppose arch/csky can be also added to the party.
+
+>  arch/h8300/mm/init.c      | 8 --------
+>  arch/m68k/mm/init.c       | 7 -------
+>  arch/microblaze/mm/init.c | 7 -------
+>  arch/nds32/mm/init.c      | 7 -------
+>  arch/nios2/mm/init.c      | 7 -------
+>  arch/openrisc/mm/init.c   | 7 -------
+>  arch/parisc/mm/init.c     | 7 -------
+>  arch/powerpc/mm/mem.c     | 7 -------
+>  arch/sh/mm/init.c         | 7 -------
+>  arch/um/kernel/mem.c      | 7 -------
+>  arch/unicore32/mm/init.c  | 7 -------
+>  init/initramfs.c          | 5 +++++
+>  15 files changed, 5 insertions(+), 100 deletions(-)
+ 
+...
+
+> diff --git a/init/initramfs.c b/init/initramfs.c
+> index cf8bf014873f..f3aaa58ac63d 100644
+> --- a/init/initramfs.c
+> +++ b/init/initramfs.c
+> @@ -527,6 +527,11 @@ extern unsigned long __initramfs_size;
+>  #include <linux/initrd.h>
+>  #include <linux/kexec.h>
 > 
-> Tony, comments? Are there any SGI SN machines around any more?
+> +void __weak free_initrd_mem(unsigned long start, unsigned long end)
+> +{
+> +	free_reserved_area((void *)start, (void *)end, -1, "initrd");
 
-I think the last time this came up, it was said that those people still
-running Linux on Itanium were running old disto kernels, not upstream.
+Some architectures have pr_info("Freeing initrd memory..."), I'd add it for
+the generic version as well.
 
-So yeah, we could probably do whatever and nobody would ever notice,
-except maybe Al, who is rumoured to still have an ia64 :-)
+Another thing that I was thinking of is that x86 has all those memory
+protection calls in its free_initrd_mem, maybe it'd make sense to have them
+in the generic version as well?
+
+> +}
+> +
+>  #ifdef CONFIG_KEXEC_CORE
+>  static bool kexec_free_initrd(void)
+>  {
+> -- 
+> 2.20.1
+> 
+
+-- 
+Sincerely yours,
+Mike.
