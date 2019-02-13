@@ -1,80 +1,64 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 7/7] tools/memory-model: Avoid duplicating herdtools versions
-Date: Wed, 13 Feb 2019 09:37:43 -0800
-Message-ID: <20190213173743.26682-7-paulmck@linux.ibm.com>
+Subject: [PATCH memory-model 4/7] tools/memory-model: Update README for addition of SRCU
+Date: Wed, 13 Feb 2019 09:37:40 -0800
+Message-ID: <20190213173743.26682-4-paulmck@linux.ibm.com>
 References: <20190213173650.GA26078@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190213173650.GA26078@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+This commit updates the section on LKMM limitations to no longer say
+that SRCU is not modeled, but instead describe how LKMM's modeling of
+SRCU departs from the Linux-kernel implementation.
 
-Currently, herdtools version information appears no fewer than three
-times in the LKMM source, which is difficult to maintain.  This commit
-therefore places the required version in one place, namely the
-tools/memory-model/README file.
+TL;DR:  There is no known valid use case that cares about the Linux
+kernel's ability to have partially overlapping SRCU read-side critical
+sections.
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/README           | 8 ++++++--
- tools/memory-model/linux-kernel.cat | 2 --
- tools/memory-model/lock.cat         | 3 ---
- 3 files changed, 6 insertions(+), 7 deletions(-)
+ tools/memory-model/README | 25 +++++++++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
 
 diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 9d7d4f23503f..2b87f3971548 100644
+index 0f2c366518c6..9d7d4f23503f 100644
 --- a/tools/memory-model/README
 +++ b/tools/memory-model/README
-@@ -20,13 +20,17 @@ that litmus test to be exercised within the Linux kernel.
- REQUIREMENTS
- ============
+@@ -221,8 +221,29 @@ The Linux-kernel memory model has the following limitations:
+ 		additional call_rcu() process to the site of the
+ 		emulated rcu-barrier().
  
--Version 7.49 of the "herd7" and "klitmus7" tools must be downloaded
--separately:
-+Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
-+downloaded separately:
- 
-   https://github.com/herd/herdtools7
- 
- See "herdtools7/INSTALL.md" for installation instructions.
- 
-+Note that although these tools usually provide backwards compatibility,
-+this is not absolutely guaranteed.  Therefore, if a later version does
-+not work, please try using the exact version called out above.
+-	e.	Sleepable RCU (SRCU) is not modeled.  It can be
+-		emulated, but perhaps not simply.
++	e.	Although sleepable RCU (SRCU) is now modeled, there
++		are some subtle differences between its semantics and
++		those in the Linux kernel.  For example, the kernel
++		might interpret the following sequence as two partially
++		overlapping SRCU read-side critical sections:
 +
++			 1  r1 = srcu_read_lock(&my_srcu);
++			 2  do_something_1();
++			 3  r2 = srcu_read_lock(&my_srcu);
++			 4  do_something_2();
++			 5  srcu_read_unlock(&my_srcu, r1);
++			 6  do_something_3();
++			 7  srcu_read_unlock(&my_srcu, r2);
++
++		In contrast, LKMM will interpret this as a nested pair of
++		SRCU read-side critical sections, with the outer critical
++		section spanning lines 1-7 and the inner critical section
++		spanning lines 3-5.
++
++		This difference would be more of a concern had anyone
++		identified a reasonable use case for partially overlapping
++		SRCU read-side critical sections.  For more information,
++		please see: https://paulmck.livejournal.com/40593.html
  
- ==================
- BASIC USAGE: HERD7
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 95bf45f1215f..8dcb37835b61 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -1,7 +1,5 @@
- // SPDX-License-Identifier: GPL-2.0+
- (*
-- * Requires herd version 7.51+6 or higher.
-- *
-  * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
-  * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
-  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index 305ded17e741..a059d1a6d8a2 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -6,9 +6,6 @@
- 
- (*
-  * Generate coherence orders and handle lock operations
-- *
-- * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
-- * spin_is_locked() is functional from herd7 version 7.49.
-  *)
- 
- include "cross.cat"
+ 	f.	Reader-writer locking is not modeled.  It can be
+ 		emulated in litmus tests using atomic read-modify-write
 -- 
 2.17.1
