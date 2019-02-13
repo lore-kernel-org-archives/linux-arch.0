@@ -1,119 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52544 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728538AbfBMUch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Feb 2019 15:32:37 -0500
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
-Date: Wed, 13 Feb 2019 15:32:12 -0500
-Message-ID: <1550089932-6888-3-git-send-email-longman@redhat.com>
-In-Reply-To: <1550089932-6888-1-git-send-email-longman@redhat.com>
-References: <1550089932-6888-1-git-send-email-longman@redhat.com>
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:36829 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726189AbfBMU7r (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2019 15:59:47 -0500
+MIME-Version: 1.0
+References: <20190211174544.4302-1-will.deacon@arm.com> <20190211174544.4302-2-will.deacon@arm.com>
+ <CAK8P3a1gmJTt+jdTbdSYZ0z43qodxf+co757K1-Hq1mj4fCqQA@mail.gmail.com> <20190213174608.GA29100@fuggles.cambridge.arm.com>
+In-Reply-To: <20190213174608.GA29100@fuggles.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 13 Feb 2019 21:59:28 +0100
+Message-ID: <CAK8P3a1-CA_d+tRRKh50+7-PU14AV=9S1JUSF4d-VUxZ+DcW4g@mail.gmail.com>
+Subject: Re: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to __io_par()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190213203212.S5R4yC-Lszf1gDBLTMX_ElMP3_KvfmKgUmUIbVzfGdw@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, andrew.murray@arm.com, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>
+Message-ID: <20190213205928.ylys4WbynoluzOmnv8ircg1pdFd7DfPH76dgkOFWCrQ@z>
 
-Modify __down_read_trylock() to optimize for an unlocked rwsem and make
-it generate slightly better code.
+On Wed, Feb 13, 2019 at 6:46 PM Will Deacon <will.deacon@arm.com> wrote:
 
-Before this patch, down_read_trylock:
+> On Tue, Feb 12, 2019 at 12:55:17PM +0100, Arnd Bergmann wrote:
+>
+> > For all I can see, this should not conflict with the usage of the
+> > same macros on RISC-V, though it does make add a significant
+> > difference, so I'd like to see an Ack from the RISC-V folks as
+> > well (added to Cc), or possibly a change to arch/riscv/include/asm/io.h
+> > to do a corresponding change.
+>
+> There's already a comment in that header which says that the accesses are
+> ordered wrt timer reads, so I don't think anything needs to change there.
+> For consistency with the macro arguments, I could augment their __io_par to
+> take the read value as an unused argument, if that's what you mean?
 
-   0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
-   0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
-   0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
-   0x000000000000000b <+11>:    mov    %rdx,%rax
-   0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
-   0x0000000000000013 <+19>:    cmp    %rax,%rdx
-   0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
-   0x0000000000000018 <+24>:    mov    (%rdi),%rdx
-   0x000000000000001b <+27>:    test   %rdx,%rdx
-   0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
-   0x0000000000000020 <+32>:    xor    %eax,%eax
-   0x0000000000000022 <+34>:    retq
-   0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
-   0x000000000000002c <+44>:    or     $0x3,%rax
-   0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
-   0x0000000000000034 <+52>:    mov    $0x1,%eax
-   0x0000000000000039 <+57>:    retq
+Yes, that's what I meant, I should have been clearer there.
 
-After patch, down_read_trylock:
-
-   0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
-   0x0000000000000005 <+5>:	xor    %eax,%eax
-   0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
-   0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
-   0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
-   0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
-   0x000000000000001b <+27>:	or     $0x3,%rax
-   0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
-   0x0000000000000023 <+35>:	mov    $0x1,%eax
-   0x0000000000000028 <+40>:	retq
-   0x0000000000000029 <+41>:	test   %rax,%rax
-   0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
-   0x000000000000002e <+46>:	xor    %eax,%eax
-   0x0000000000000030 <+48>:	retq
-
-By using a rwsem microbenchmark, the down_read_trylock() rate (with a
-load of 10 to lengthen the lock critical section) on a x86-64 system
-before and after the patch were:
-
-                 Before Patch    After Patch
-   # of Threads     rlock           rlock
-   ------------     -----           -----
-        1           14,496          14,716
-        2            8,644           8,453
-	4            6,799           6,983
-	8            5,664           7,190
-
-On a ARM64 system, the performance results were:
-
-                 Before Patch    After Patch
-   # of Threads     rlock           rlock
-   ------------     -----           -----
-        1           23,676          24,488
-        2            7,697           9,502
-        4            4,945           3,440
-        8            2,641           1,603
-
-For the uncontended case (1 thread), the new down_read_trylock() is a
-little bit faster. For the contended cases, the new down_read_trylock()
-perform pretty well in x86-64, but performance degrades at high
-contention level on ARM64.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/rwsem.h | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
-
-diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
-index 067e265..e0bcc11 100644
---- a/kernel/locking/rwsem.h
-+++ b/kernel/locking/rwsem.h
-@@ -175,14 +175,17 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
- 
- static inline int __down_read_trylock(struct rw_semaphore *sem)
- {
--	long tmp;
-+	/*
-+	 * Optimize for the case when the rwsem is not locked at all.
-+	 */
-+	long tmp = RWSEM_UNLOCKED_VALUE;
- 
--	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
--		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
--				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
-+	do {
-+		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
-+					tmp + RWSEM_ACTIVE_READ_BIAS)) {
- 			return 1;
- 		}
--	}
-+	} while (tmp >= 0);
- 	return 0;
- }
- 
--- 
-1.8.3.1
+     Arnd
