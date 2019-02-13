@@ -1,156 +1,113 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 3/7] tools/memory-model: Add SRCU support
-Date: Wed, 13 Feb 2019 09:37:39 -0800
-Message-ID: <20190213173743.26682-3-paulmck@linux.ibm.com>
-References: <20190213173650.GA26078@linux.ibm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Wed, 13 Feb 2019 17:43:19 +0000
+Message-ID: <20190213174318.GM3567@e103592.cambridge.arm.com>
+References: <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+ <20181212150230.GH65138@arrakis.emea.arm.com>
+ <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+ <20181218175938.GD20197@arrakis.emea.arm.com>
+ <20181219125249.GB22067@e103592.cambridge.arm.com>
+ <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
+ <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
+ <20190212180223.GD199333@arrakis.emea.arm.com>
+ <20190213145834.GJ3567@e103592.cambridge.arm.com>
+ <90c54249-00dd-f8dd-6873-6bb8615c2c8a@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190213173650.GA26078@linux.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <90c54249-00dd-f8dd-6873-6bb8615c2c8a@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Alan Stern <stern@rowland.harvard.edu>
+On Wed, Feb 13, 2019 at 04:42:11PM +0000, Kevin Brodsky wrote:
+> (+Cc other people with MTE experience: Branislav, Ruben)
 
-Add support for SRCU.  Herd creates srcu events and linux-kernel.def
-associates them with three possible annotations (srcu-lock,
-srcu-unlock, and sync-srcu) corresponding to the API routines
-srcu_read_lock(), srcu_read_unlock(), and synchronize_srcu().
+[...]
 
-The linux-kernel.bell file now declares the annotations
-and determines matching lock/unlock pairs delimiting SRCU read-side
-critical sections, and it also checks for synchronize_srcu() calls
-inside an RCU critical section (which would generate a "sleeping in
-atomic context" error in real kernel code).  The linux-kernel.cat file
-now adds SRCU-induced ordering, analogous to the existing RCU-induced
-ordering, to the gp and rcu-fence relations.
+> >I'm wondering whether we can piggy-back on existing concepts.
+> >
+> >We could say that recolouring memory is safe when and only when
+> >unmapping of the page or removing permissions on the page (via
+> >munmap/mremap/mprotect) would be safe.  Otherwise, the resulting
+> >behaviour of the process is undefined.
+> 
+> Is that a sufficient requirement? I don't think that anything prevents you
+> from using mprotect() on say [vvar], but we don't necessarily want to map
+> [vvar] as tagged. I'm not sure it's easy to define what "safe" would mean
+> here.
 
-Curiously enough, these small changes to the model's .cat code are all
-that is needed to describe SRCU.
+I think the origin rules have to apply too: [vvar] is not a regular,
+private page but a weird, shared thing mapped for you by the kernel.
 
-Portions of this patch (linux-kernel.def and the first hunk in
-linux-kernel.bell) were written by Luc Maranget.
+Presumably userspace _cannot_ do mprotect(PROT_WRITE) on it.
 
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-CC: Luc Maranget <luc.maranget@inria.fr>
-Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
----
- tools/memory-model/linux-kernel.bell | 25 +++++++++++++++++++++++++
- tools/memory-model/linux-kernel.cat  | 18 ++++++++++++++----
- tools/memory-model/linux-kernel.def  |  5 +++++
- 3 files changed, 44 insertions(+), 4 deletions(-)
+I'm also assuming that userspace cannot recolour memory in read-only
+pages.  That sounds bad if there's no way to prevent it.
 
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index 353c8d68e030..9c42cd9ddcb4 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -33,6 +33,12 @@ enum Barriers = 'wmb (*smp_wmb*) ||
- 		'after-unlock-lock (*smp_mb__after_unlock_lock*)
- instructions F[Barriers]
- 
-+(* SRCU *)
-+enum SRCU = 'srcu-lock || 'srcu-unlock || 'sync-srcu
-+instructions SRCU[SRCU]
-+(* All srcu events *)
-+let Srcu = Srcu-lock | Srcu-unlock | Sync-srcu
-+
- (* Compute matching pairs of nested Rcu-lock and Rcu-unlock *)
- let rcu-rscs = let rec
- 	    unmatched-locks = Rcu-lock \ domain(matched)
-@@ -48,3 +54,22 @@ let rcu-rscs = let rec
- (* Validate nesting *)
- flag ~empty Rcu-lock \ domain(rcu-rscs) as unbalanced-rcu-locking
- flag ~empty Rcu-unlock \ range(rcu-rscs) as unbalanced-rcu-locking
-+
-+(* Compute matching pairs of nested Srcu-lock and Srcu-unlock *)
-+let srcu-rscs = let rec
-+	    unmatched-locks = Srcu-lock \ domain(matched)
-+	and unmatched-unlocks = Srcu-unlock \ range(matched)
-+	and unmatched = unmatched-locks | unmatched-unlocks
-+	and unmatched-po = ([unmatched] ; po ; [unmatched]) & loc
-+	and unmatched-locks-to-unlocks =
-+		([unmatched-locks] ; po ; [unmatched-unlocks]) & loc
-+	and matched = matched | (unmatched-locks-to-unlocks \
-+		(unmatched-po ; unmatched-po))
-+	in matched
-+
-+(* Validate nesting *)
-+flag ~empty Srcu-lock \ domain(srcu-rscs) as unbalanced-srcu-locking
-+flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
-+
-+(* Check for use of synchronize_srcu() inside an RCU critical section *)
-+flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index b8e6197f05af..8dcb37835b61 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -33,7 +33,7 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
- 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
- 	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
- 		fencerel(After-unlock-lock) ; [M])
--let gp = po ; [Sync-rcu] ; po?
-+let gp = po ; [Sync-rcu | Sync-srcu] ; po?
- 
- let strong-fence = mb | gp
- 
-@@ -92,15 +92,18 @@ acyclic pb as propagation
- 
- (*
-  * Effects of read-side critical sections proceed from the rcu_read_unlock()
-- * backwards on the one hand, and from the rcu_read_lock() forwards on the
-- * other hand.
-+ * or srcu_read_unlock() backwards on the one hand, and from the
-+ * rcu_read_lock() or srcu_read_lock() forwards on the other hand.
-  *
-  * In the definition of rcu-fence below, the po term at the left-hand side
-  * of each disjunct and the po? term at the right-hand end have been factored
-  * out.  They have been moved into the definitions of rcu-link and rb.
-+ * This was necessary in order to apply the "& loc" tests correctly.
-  *)
- let rcu-gp = [Sync-rcu]		(* Compare with gp *)
-+let srcu-gp = [Sync-srcu]
- let rcu-rscsi = rcu-rscs^-1
-+let srcu-rscsi = srcu-rscs^-1
- 
- (*
-  * The synchronize_rcu() strong fence is special in that it can order not
-@@ -112,12 +115,19 @@ let rcu-link = po? ; hb* ; pb* ; prop ; po
- (*
-  * Any sequence containing at least as many grace periods as RCU read-side
-  * critical sections (joined by rcu-link) acts as a generalized strong fence.
-+ * Likewise for SRCU grace periods and read-side critical sections, provided
-+ * the synchronize_srcu() and srcu_read_[un]lock() calls refer to the same
-+ * struct srcu_struct location.
-  *)
--let rec rcu-fence = rcu-gp |
-+let rec rcu-fence = rcu-gp | srcu-gp |
- 	(rcu-gp ; rcu-link ; rcu-rscsi) |
-+	((srcu-gp ; rcu-link ; srcu-rscsi) & loc) |
- 	(rcu-rscsi ; rcu-link ; rcu-gp) |
-+	((srcu-rscsi ; rcu-link ; srcu-gp) & loc) |
- 	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
-+	((srcu-gp ; rcu-link ; rcu-fence ; rcu-link ; srcu-rscsi) & loc) |
- 	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
-+	((srcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; srcu-gp) & loc) |
- 	(rcu-fence ; rcu-link ; rcu-fence)
- 
- (* rb orders instructions just as pb does *)
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index b27911cc087d..1d6a120cde14 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -47,6 +47,11 @@ rcu_read_unlock() { __fence{rcu-unlock}; }
- synchronize_rcu() { __fence{sync-rcu}; }
- synchronize_rcu_expedited() { __fence{sync-rcu}; }
- 
-+// SRCU
-+srcu_read_lock(X)  __srcu{srcu-lock}(X)
-+srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
-+synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
-+
- // Atomic
- atomic_read(X) READ_ONCE(*X)
- atomic_set(X,V) { WRITE_ONCE(*X,V); }
--- 
-2.17.1
+[...]
+
+> >It might be reasonable to do the check in access_ok() and skip it in
+> >__put_user() etc.
+> >
+> >(I seem to remember some separate discussion about abolishing
+> >__put_user() and friends though, due to the accident risk they pose.)
+> 
+> Keep in mind that with MTE, there is no need to do any explicit check when
+> accessing user memory via a user-provided pointer. The tagged user pointer
+> is directly passed to copy_*_user() or put_user(). If the load/store causes
+> a tag fault, then it is handled just like a page fault (i.e. invoking the
+> fixup handler). As far as I can tell, there's no need to do anything special
+> in access_ok() in that case.
+> 
+> [The above applies to precise mode. In imprecise mode, some more work will
+> be needed after the load/store to check whether a tag fault happened.]
+
+Fair enough, I'm a bit hazy on the details as of right now..
+
+[...]
+
+> There are many possible ways to deploy MTE, and debugging is just one of
+> them. For instance, you may want to turn on heap colouring for some
+> processes in the system, including in production.
+
+To implement enforceable protection, or as a diagnostic tool for when
+something goes wrong?
+
+In the latter case it's still OK for the kernel's tag checking not to be
+exhaustive.
+
+> Regarding those cases where it is impossible to check tags at the point of
+> accessing user memory, it is indeed possible to check the memory tags at the
+> point of stripping the tag from the user pointer. Given that some MTE
+> use-cases favour performance over tag check coverage, the ideal approach
+> would be to make these checks configurable (e.g. check one granule, check
+> all of them, or check none). I don't know how feasible this is in practice.
+
+Check all granules of a massive DMA buffer?
+
+That doesn't sounds feasible without explicit support in the hardware to
+have the DMA check tags itself as the memory is accessed.  MTE by itself
+doesn't provide for this IIUC (at least, it would require support in the
+platform, not just the CPU).
+
+We do not want to bake any assumptions into the ABI about whether a
+given data transfer may or may not be offloaded to DMA.  That feels
+like a slippery slope.
+
+Providing we get the checks for free in put_user/get_user/
+copy_{to,from}_user(), those will cover a lot of cases though, for
+non-bulk-IO cases.
+
+
+My assumption has been that at this point in time we are mainly aiming
+to support the debug/diagnostic use cases today.
+
+At least, those are the low(ish)-hanging fruit.
+
+Others are better placed than me to comment on the goals here.
+
+Cheers
+---Dave
