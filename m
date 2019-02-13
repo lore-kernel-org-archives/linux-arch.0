@@ -1,40 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54218 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726940AbfBMSd3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2019 13:33:29 -0500
-Date: Wed, 13 Feb 2019 19:33:14 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Message-ID: <20190213183314.GB32494@hirez.programming.kicks-ass.net>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
- <20190213172047.GH6346@brain-police>
- <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+Received: from verein.lst.de ([213.95.11.211]:44788 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2406160AbfBMSot (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Feb 2019 13:44:49 -0500
+Date: Wed, 13 Feb 2019 19:44:48 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 7/8] initramfs: proide a generic free_initrd_mem
+ implementation
+Message-ID: <20190213184448.GB20399@lst.de>
+References: <20190213174621.29297-1-hch@lst.de> <20190213174621.29297-8-hch@lst.de> <20190213184139.GC15270@rapoport-lnx>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+In-Reply-To: <20190213184139.GC15270@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20190213183314.urbDn-ScmgUTWNrogRTV3g2ZY0EJJo_GGdJFG4wyrxg@z>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190213184448.IzmZgiOY2Ja9GM8vkEwXo4301FZRHH9pKOQg9d0zOCM@z>
 
-On Wed, Feb 13, 2019 at 10:27:09AM -0800, Linus Torvalds wrote:
-> Yeah, yeah, there's the SGI "SN" platform that apparently has a bug,
-> so because of that platform problem maybe it needs the more complex
-> "use a flag" model.  But even the complex model isn't _hugely_
-> complex.
+On Wed, Feb 13, 2019 at 08:41:40PM +0200, Mike Rapoport wrote:
+> csky seems to open-code free_reserved_page with the only
+> difference that it's also increments totalram_pages for the freed pages,
+> which doesn't seem correct anyway...
 > 
-> But we *could* first just do the mmiowb() unconditionally in the ia64
-> unlocking code, and then see if anybody notices?
+> That said, I suppose arch/csky can be also added to the party.
+
+Yes, I noticed that.  But I'd rather move it over manually in
+another patch post rc1 or for the next merge window.
+
+> > +void __weak free_initrd_mem(unsigned long start, unsigned long end)
+> > +{
+> > +	free_reserved_area((void *)start, (void *)end, -1, "initrd");
 > 
-> Tony, comments? Are there any SGI SN machines around any more?
+> Some architectures have pr_info("Freeing initrd memory..."), I'd add it for
+> the generic version as well.
 
-I think the last time this came up, it was said that those people still
-running Linux on Itanium were running old disto kernels, not upstream.
+Well, if we think such a printk is useful it should probably be
+moved to the caller in init/initramfs.c instead.  I can include a
+patch for that in the next iteration of the series.
 
-So yeah, we could probably do whatever and nobody would ever notice,
-except maybe Al, who is rumoured to still have an ia64 :-)
+> Another thing that I was thinking of is that x86 has all those memory
+> protection calls in its free_initrd_mem, maybe it'd make sense to have them
+> in the generic version as well?
+
+Maybe.  But I'd rather keep it out of the initial series as it looks
+a little more complicated.  Having a single implementation
+of free_initrd_mem would be great, though.
