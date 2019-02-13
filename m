@@ -1,56 +1,45 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
-Date: Wed, 13 Feb 2019 20:35:32 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1902132033270.1659@nanos.tec.linutronix.de>
-References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
- <20181129170530.37789-7-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
- <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
- <20190208173539.GD24375@fuggles.cambridge.arm.com>
- <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
- <alpine.DEB.2.21.1902082029240.1662@nanos.tec.linutronix.de>
- <20190213170413.GE6346@brain-police>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
+Date: Wed, 13 Feb 2019 11:56:38 -0800
+Message-ID: <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
+References: <1549566446-27967-1-git-send-email-longman@redhat.com> <20190213091936.GA22829@shao2-debian>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190213170413.GE6346@brain-police>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190213091936.GA22829@shao2-debian>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chen Rong <rong.a.chen@intel.com>
+Cc: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 13 Feb 2019, Will Deacon wrote:
-> On Fri, Feb 08, 2019 at 08:30:25PM +0100, Thomas Gleixner wrote:
-> >
-> > How is the in kernel ktime_get() correctness guaranteed then?
-> 
-> Luck.
-> 
-> I think we'll have to introduce a dummy dependent stack read into our
-> counter accessor so that it's ordered by the smp_rmb(). Example diff
-> below, which I'll roll into a proper patch series later on.
+Ok, those test robot reports are hard to read, but trying to distill it dow=
+n:
 
-Yikes.
+On Wed, Feb 13, 2019 at 1:19 AM Chen Rong <rong.a.chen@intel.com> wrote:
+>
+>          %stddev     %change         %stddev
+>              \          |                \
+>     196250 =C2=B1  8%     -64.1%      70494        will-it-scale.per_thre=
+ad_ops
 
->  static inline u64 arch_counter_get_cntpct(void)
->  {
-> +	u64 cnt, tmp;
-> +
->  	isb();
-> -	return arch_timer_reg_read_stable(cntpct_el0);
-> +	cnt = arch_timer_reg_read_stable(cntpct_el0);
-> +
-> +	/*
-> +	 * This insanity brought to you by speculative, out-of-order system
-> +	 * register reads, sequence locks and Thomas Gleixner.
+That's the original 64% regression..
 
-ROTFL
+And then with the patch set:
+
+>          %stddev      change         %stddev
+>              \          |                \
+>      71190             180%     199232 =C2=B1  4%  will-it-scale.per_thre=
+ad_ops
+
+looks like it's back up where it used to be.
+
+So I guess we have numbers for the regression now. Thanks.
+
+And that closes my biggest question for the new model, and with the
+new organization that gets ird of the arch-specific asm separately
+first and makes it a bit more legible that way, I guess I'll just Ack
+the whole series.
+
+             Linus
