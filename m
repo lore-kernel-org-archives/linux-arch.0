@@ -1,173 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48720 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2390306AbfBMRhv (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:40648 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2393132AbfBMRhv (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Wed, 13 Feb 2019 12:37:51 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1DHTrMZ021829
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:37:49 -0500
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2qmpenuxep-1
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1DHSojv072763
+        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:37:50 -0500
+Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2qmny3p25d-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:37:49 -0500
+        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 12:37:50 -0500
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 13 Feb 2019 17:37:48 -0000
+        Wed, 13 Feb 2019 17:37:49 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 3/7] tools/memory-model: Add SRCU support
-Date: Wed, 13 Feb 2019 09:37:39 -0800
+Subject: [PATCH memory-model 6/7] tools/memory-model: Dynamically check SRCU lock-to-unlock matching
+Date: Wed, 13 Feb 2019 09:37:42 -0800
 In-Reply-To: <20190213173650.GA26078@linux.ibm.com>
 References: <20190213173650.GA26078@linux.ibm.com>
-Message-ID: <20190213173743.26682-3-paulmck@linux.ibm.com>
+Message-ID: <20190213173743.26682-6-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190213173739.R4NxE6mgKqdpjKxTbyCyFpfVYed-vI7rQBOIhJuYImE@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Luc Maranget <Luc.Maranget@inria.fr>, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190213173742.qCjN4pSYYqTrg6qQU_WQkX79pODmZIt51xVqwkx2FWg@z>
 
-From: Alan Stern <stern@rowland.harvard.edu>
+From: Luc Maranget <Luc.Maranget@inria.fr>
 
-Add support for SRCU.  Herd creates srcu events and linux-kernel.def
-associates them with three possible annotations (srcu-lock,
-srcu-unlock, and sync-srcu) corresponding to the API routines
-srcu_read_lock(), srcu_read_unlock(), and synchronize_srcu().
+This commit checks that the return value of srcu_read_lock() is passed
+to the matching srcu_read_unlock(), where "matching" is determined by
+nesting.  This check operates as follows:
 
-The linux-kernel.bell file now declares the annotations
-and determines matching lock/unlock pairs delimiting SRCU read-side
-critical sections, and it also checks for synchronize_srcu() calls
-inside an RCU critical section (which would generate a "sleeping in
-atomic context" error in real kernel code).  The linux-kernel.cat file
-now adds SRCU-induced ordering, analogous to the existing RCU-induced
-ordering, to the gp and rcu-fence relations.
+   1. srcu_read_lock() creates an integer token, which is stored into
+      the generated events.
+   2. srcu_read_unlock() records its second (token) argument into the
+      generated event.
+   3. A new herd primitive 'different-values' filters out pairs of events
+      with identical values from the relation passed as its argument.
+   4. The bell file applies the above primitive to the (srcu)
+      read-side-critical-section relation 'srcu-rscs' and flags non-empty
+      results.
 
-Curiously enough, these small changes to the model's .cat code are all
-that is needed to describe SRCU.
+BEWARE: Works only with herd version 7.51+6 and onwards.
 
-Portions of this patch (linux-kernel.def and the first hunk in
-linux-kernel.bell) were written by Luc Maranget.
-
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-CC: Luc Maranget <luc.maranget@inria.fr>
+Signed-off-by: Luc Maranget <Luc.Maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+[ paulmck: Apply Andrea Parri's off-list feedback. ]
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 ---
- tools/memory-model/linux-kernel.bell | 25 +++++++++++++++++++++++++
- tools/memory-model/linux-kernel.cat  | 18 ++++++++++++++----
- tools/memory-model/linux-kernel.def  |  5 +++++
- 3 files changed, 44 insertions(+), 4 deletions(-)
+ tools/memory-model/linux-kernel.bell | 3 +++
+ tools/memory-model/linux-kernel.cat  | 2 ++
+ tools/memory-model/linux-kernel.def  | 2 +-
+ 3 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index 353c8d68e030..9c42cd9ddcb4 100644
+index 9c42cd9ddcb4..def9131d3d8e 100644
 --- a/tools/memory-model/linux-kernel.bell
 +++ b/tools/memory-model/linux-kernel.bell
-@@ -33,6 +33,12 @@ enum Barriers = 'wmb (*smp_wmb*) ||
- 		'after-unlock-lock (*smp_mb__after_unlock_lock*)
- instructions F[Barriers]
+@@ -73,3 +73,6 @@ flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
  
-+(* SRCU *)
-+enum SRCU = 'srcu-lock || 'srcu-unlock || 'sync-srcu
-+instructions SRCU[SRCU]
-+(* All srcu events *)
-+let Srcu = Srcu-lock | Srcu-unlock | Sync-srcu
+ (* Check for use of synchronize_srcu() inside an RCU critical section *)
+ flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
 +
- (* Compute matching pairs of nested Rcu-lock and Rcu-unlock *)
- let rcu-rscs = let rec
- 	    unmatched-locks = Rcu-lock \ domain(matched)
-@@ -48,3 +54,22 @@ let rcu-rscs = let rec
- (* Validate nesting *)
- flag ~empty Rcu-lock \ domain(rcu-rscs) as unbalanced-rcu-locking
- flag ~empty Rcu-unlock \ range(rcu-rscs) as unbalanced-rcu-locking
-+
-+(* Compute matching pairs of nested Srcu-lock and Srcu-unlock *)
-+let srcu-rscs = let rec
-+	    unmatched-locks = Srcu-lock \ domain(matched)
-+	and unmatched-unlocks = Srcu-unlock \ range(matched)
-+	and unmatched = unmatched-locks | unmatched-unlocks
-+	and unmatched-po = ([unmatched] ; po ; [unmatched]) & loc
-+	and unmatched-locks-to-unlocks =
-+		([unmatched-locks] ; po ; [unmatched-unlocks]) & loc
-+	and matched = matched | (unmatched-locks-to-unlocks \
-+		(unmatched-po ; unmatched-po))
-+	in matched
-+
-+(* Validate nesting *)
-+flag ~empty Srcu-lock \ domain(srcu-rscs) as unbalanced-srcu-locking
-+flag ~empty Srcu-unlock \ range(srcu-rscs) as unbalanced-srcu-locking
-+
-+(* Check for use of synchronize_srcu() inside an RCU critical section *)
-+flag ~empty rcu-rscs & (po ; [Sync-srcu] ; po) as invalid-sleep
++(* Validate SRCU dynamic match *)
++flag ~empty different-values(srcu-rscs) as srcu-bad-nesting
 diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index b8e6197f05af..8dcb37835b61 100644
+index 8dcb37835b61..95bf45f1215f 100644
 --- a/tools/memory-model/linux-kernel.cat
 +++ b/tools/memory-model/linux-kernel.cat
-@@ -33,7 +33,7 @@ let mb = ([M] ; fencerel(Mb) ; [M]) |
- 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
- 	([M] ; po ; [UL] ; (co | po) ; [LKW] ;
- 		fencerel(After-unlock-lock) ; [M])
--let gp = po ; [Sync-rcu] ; po?
-+let gp = po ; [Sync-rcu | Sync-srcu] ; po?
- 
- let strong-fence = mb | gp
- 
-@@ -92,15 +92,18 @@ acyclic pb as propagation
- 
+@@ -1,5 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0+
  (*
-  * Effects of read-side critical sections proceed from the rcu_read_unlock()
-- * backwards on the one hand, and from the rcu_read_lock() forwards on the
-- * other hand.
-+ * or srcu_read_unlock() backwards on the one hand, and from the
-+ * rcu_read_lock() or srcu_read_lock() forwards on the other hand.
-  *
-  * In the definition of rcu-fence below, the po term at the left-hand side
-  * of each disjunct and the po? term at the right-hand end have been factored
-  * out.  They have been moved into the definitions of rcu-link and rb.
-+ * This was necessary in order to apply the "& loc" tests correctly.
-  *)
- let rcu-gp = [Sync-rcu]		(* Compare with gp *)
-+let srcu-gp = [Sync-srcu]
- let rcu-rscsi = rcu-rscs^-1
-+let srcu-rscsi = srcu-rscs^-1
- 
- (*
-  * The synchronize_rcu() strong fence is special in that it can order not
-@@ -112,12 +115,19 @@ let rcu-link = po? ; hb* ; pb* ; prop ; po
- (*
-  * Any sequence containing at least as many grace periods as RCU read-side
-  * critical sections (joined by rcu-link) acts as a generalized strong fence.
-+ * Likewise for SRCU grace periods and read-side critical sections, provided
-+ * the synchronize_srcu() and srcu_read_[un]lock() calls refer to the same
-+ * struct srcu_struct location.
-  *)
--let rec rcu-fence = rcu-gp |
-+let rec rcu-fence = rcu-gp | srcu-gp |
- 	(rcu-gp ; rcu-link ; rcu-rscsi) |
-+	((srcu-gp ; rcu-link ; srcu-rscsi) & loc) |
- 	(rcu-rscsi ; rcu-link ; rcu-gp) |
-+	((srcu-rscsi ; rcu-link ; srcu-gp) & loc) |
- 	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
-+	((srcu-gp ; rcu-link ; rcu-fence ; rcu-link ; srcu-rscsi) & loc) |
- 	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
-+	((srcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; srcu-gp) & loc) |
- 	(rcu-fence ; rcu-link ; rcu-fence)
- 
- (* rb orders instructions just as pb does *)
++ * Requires herd version 7.51+6 or higher.
++ *
+  * Copyright (C) 2015 Jade Alglave <j.alglave@ucl.ac.uk>,
+  * Copyright (C) 2016 Luc Maranget <luc.maranget@inria.fr> for Inria
+  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>,
 diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index b27911cc087d..1d6a120cde14 100644
+index 1d6a120cde14..0c3f0ef486f4 100644
 --- a/tools/memory-model/linux-kernel.def
 +++ b/tools/memory-model/linux-kernel.def
-@@ -47,6 +47,11 @@ rcu_read_unlock() { __fence{rcu-unlock}; }
- synchronize_rcu() { __fence{sync-rcu}; }
- synchronize_rcu_expedited() { __fence{sync-rcu}; }
+@@ -49,7 +49,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
  
-+// SRCU
-+srcu_read_lock(X)  __srcu{srcu-lock}(X)
-+srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
-+synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
-+
+ // SRCU
+ srcu_read_lock(X)  __srcu{srcu-lock}(X)
+-srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X); }
++srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
+ synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
+ 
  // Atomic
- atomic_read(X) READ_ONCE(*X)
- atomic_set(X,V) { WRITE_ONCE(*X,V); }
 -- 
 2.17.1
