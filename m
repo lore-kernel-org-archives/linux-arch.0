@@ -1,120 +1,75 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 8/8] initramfs: poison freed initrd memory
-Date: Wed, 13 Feb 2019 18:46:21 +0100
-Message-ID: <20190213174621.29297-9-hch@lst.de>
-References: <20190213174621.29297-1-hch@lst.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
+ EFFECTS" section
+Date: Wed, 13 Feb 2019 10:27:09 -0800
+Message-ID: <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+References: <20190211172948.3322-1-will.deacon@arm.com> <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+ <20190213172047.GH6346@brain-police>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190213174621.29297-1-hch@lst.de>
+In-Reply-To: <20190213172047.GH6346@brain-police>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Various architectures including x86 poison the freed initrd memory.
-Do the same in the generic free_initrd_mem implementation and switch
-a few more architectures that are identical to the generic code over
-to it now.
+On Wed, Feb 13, 2019 at 9:20 AM Will Deacon <will.deacon@arm.com> wrote:
+>
+> On Mon, Feb 11, 2019 at 02:34:31PM -0800, Linus Torvalds wrote:
+> >
+> > IOW, we should seriously just consider making the rule be that locking
+> > will order mmio too. Because that's practically the rule anyway.
+>
+> I would /love/ to get rid of mmiowb() because I think it's both extremely
+> difficult to use and also pretty much never needed. It reminds me a lot of
+> smp_read_barrier_depends(), which we finally pushed into READ_ONCE for
+> Alpha.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/mips/mm/init.c     | 8 --------
- arch/s390/mm/init.c     | 8 --------
- arch/sparc/mm/init_32.c | 8 --------
- arch/sparc/mm/init_64.c | 8 --------
- init/initramfs.c        | 3 ++-
- 5 files changed, 2 insertions(+), 33 deletions(-)
+Right. Make as much of this implicit as we can.
 
-diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
-index b521d8e2d359..a9a977d75838 100644
---- a/arch/mips/mm/init.c
-+++ b/arch/mips/mm/init.c
-@@ -492,14 +492,6 @@ void free_init_pages(const char *what, unsigned long begin, unsigned long end)
- 	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
- }
- 
--#ifdef CONFIG_BLK_DEV_INITRD
--void free_initrd_mem(unsigned long start, unsigned long end)
--{
--	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
--			   "initrd");
--}
--#endif
--
- void (*free_init_pages_eva)(void *begin, void *end) = NULL;
- 
- void __ref free_initmem(void)
-diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
-index 3e82f66d5c61..25e3113091ea 100644
---- a/arch/s390/mm/init.c
-+++ b/arch/s390/mm/init.c
-@@ -154,14 +154,6 @@ void free_initmem(void)
- 	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
--#ifdef CONFIG_BLK_DEV_INITRD
--void __init free_initrd_mem(unsigned long start, unsigned long end)
--{
--	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
--			   "initrd");
--}
--#endif
--
- unsigned long memory_block_size_bytes(void)
- {
- 	/*
-diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
-index d900952bfc5f..f0dbc0bde70f 100644
---- a/arch/sparc/mm/init_32.c
-+++ b/arch/sparc/mm/init_32.c
-@@ -299,14 +299,6 @@ void free_initmem (void)
- 	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
--#ifdef CONFIG_BLK_DEV_INITRD
--void free_initrd_mem(unsigned long start, unsigned long end)
--{
--	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
--			   "initrd");
--}
--#endif
--
- void sparc_flush_page_to_ram(struct page *page)
- {
- 	unsigned long vaddr = (unsigned long)page_address(page);
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index b4221d3727d0..4179f0e11fd5 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -2602,14 +2602,6 @@ void free_initmem(void)
- 	}
- }
- 
--#ifdef CONFIG_BLK_DEV_INITRD
--void free_initrd_mem(unsigned long start, unsigned long end)
--{
--	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
--			   "initrd");
--}
--#endif
--
- pgprot_t PAGE_KERNEL __read_mostly;
- EXPORT_SYMBOL(PAGE_KERNEL);
- 
-diff --git a/init/initramfs.c b/init/initramfs.c
-index f3aaa58ac63d..4a42ff3a2bd1 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -529,7 +529,8 @@ extern unsigned long __initramfs_size;
- 
- void __weak free_initrd_mem(unsigned long start, unsigned long end)
- {
--	free_reserved_area((void *)start, (void *)end, -1, "initrd");
-+	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
-+			"initrd");
- }
- 
- #ifdef CONFIG_KEXEC_CORE
--- 
-2.20.1
+At least as long as it's _reasonably_ cheap on all architectures that matter.
+
+How expensive would it be on ARM? Does the normal acquire/release
+already mean the IO in between is serialized?
+
+> > Powerpc already does it. IO within a locked region will serialize with the
+> > lock.
+>
+> I thought ia64 was the hold out here? Did they actually have machines that
+> needed this in practice?
+
+Note that even if mmiowb() is expensive (and I don't think that's
+actually even the case on ia64), you can - and probably should - do
+what PowerPC does.
+
+Doing an IO barrier on PowerPC is insanely expensive, but they solve
+that simply track the whole "have I done any IO" manually. It's not
+even that expensive, it just uses a percpu flag.
+
+(Admittedly, PowerPC makes it less obvious that it's a percpu variable
+because it's actually in the special "paca" region that is like a
+hyper-local percpu area).
+
+> If so, I think we can either:
+>
+>   (a) Add an mmiowb() to their spin_unlock() code, or
+>   (b) Remove ia64 altogether if nobody complains
+>
+> I know that Peter has been in favour of (b) for a while...
+
+I don't think we're quite ready for (b), but see above: I don't think
+adding mmiowb() to the ia64 spin unlock code is even all that
+expensive.
+
+Yeah, yeah, there's the SGI "SN" platform that apparently has a bug,
+so because of that platform problem maybe it needs the more complex
+"use a flag" model.  But even the complex model isn't _hugely_
+complex.
+
+But we *could* first just do the mmiowb() unconditionally in the ia64
+unlocking code, and then see if anybody notices?
+
+Tony, comments? Are there any SGI SN machines around any more?
+
+                      Linus
