@@ -1,117 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:53728 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729264AbfBLXGF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2019 18:06:05 -0500
-Subject: Re: Semantics of symbol address in perf report -v
-References: <da403654-f21d-9959-067f-b76581600741@synopsys.com>
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Message-ID: <c7f4f000-6934-912e-f8eb-c163a04323d1@synopsys.com>
-Date: Tue, 12 Feb 2019 15:05:53 -0800
+Received: from mail.kernel.org ([198.145.29.99]:51676 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726809AbfBMBpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Feb 2019 20:45:12 -0500
+Date: Wed, 13 Feb 2019 09:45:04 +0800
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [GIT PULL] csky fixes for v5.0-rc6
+Message-ID: <20190213014400.GA9895@guoren-Inspiron-7460>
+References: <1549861699-11875-1-git-send-email-guoren@kernel.org>
+ <CAHk-=wh9kycrBtNOUN1-aOR_JL4scBgs=6NUkGQonfWFyzhvVw@mail.gmail.com>
+ <CAK8P3a1=LdgyzbgMYfppZQZsKPJ1uCkKMAXQTYuMcXiyZpCCRg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <da403654-f21d-9959-067f-b76581600741@synopsys.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a1=LdgyzbgMYfppZQZsKPJ1uCkKMAXQTYuMcXiyZpCCRg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, arcml <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, lkml <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@redhat.com>
-Message-ID: <20190212230553.OQsh5UAy4Mi7ciJROZXTBxWmrR3YCHYSKKWRYo7DWyM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20190213014504.ykrmfnENhoEzwo2N_jxLjct68cZotRXdTrJGGjHNwVU@z>
 
-On 1/23/19 11:55 AM, Vineet Gupta wrote:
-> Hi,
+On Tue, Feb 12, 2019 at 03:36:04PM +0100, Arnd Bergmann wrote:
+> On Mon, Feb 11, 2019 at 7:28 PM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > On Sun, Feb 10, 2019 at 9:08 PM <guoren@kernel.org> wrote:
+> > >
+> > > arch/csky patches for 5.0-rc6
+> >
+> > The bulk of this seems to be new hardware support code.
+> >
+> > Please send it during the 5.1 merge window, not as fixes at post-rc6 time.
 > 
-> I noticed a small anomaly in perf report -v output on ARC and x86 as well.
-> 
-> A simple program which sits in tight loop, compiled for x86_64
-> 
-> void main() { while(1) {} }
-> 
-> $ gcc -g tight.c
-> $ ./a.out &
-> $ perf record -e cycles -p 26703
-> $ perf report -n -v  --stdio  | egrep "(main|Symbol)"
-> 
-> |# Overhead Samples Command  Shared Object         Symbol
-> 
-> |  99.93%    55753   a.out   /home/arc/test/a.out  0x4da     B [.] main
-> 
-> |                                                  ^^^^^
-> 
-> The printer address for Symbols is *not* the actual address in elf, but rather VMA
-> start offset.
-> 
-> 0x4da = 0x4004da - 0x0000000000400000
-> 
-> $ objdump -d ./a.out
-> 
-> | 00000000004004d6 <main>:
-> |  4004d6:	55                   	push   %rbp
-> |  4004d7:	48 89 e5             	mov    %rsp,%rbp
-> |  4004da:	eb fe                	jmp    4004da <main+0x4>
-> |  4004dc:	0f 1f 40 00          	nopl   0x0(%rax)
-> 
-> $ readelf -a ./a.out
-> 
-> | Program Headers:
-> |  Type           Offset             VirtAddr           PhysAddr
-> |                 FileSiz            MemSiz              Flags  Align
-> | Program Headers:
-> |  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
->                  0x000000000000068c 0x000000000000068c  R E    200000
-> 
-> 
-> This is problematic in narrowing down the hotspot instruction, when the binary
-> itself is. One needs to do the offset addition manually to find the actual hotspot
-> location.
-> 
-> |   99.79%  100064  a.out  /home/arc/test/a.out  0x4da  B [.] 0x00000000000004da
-> 
->                                                                ^^^^^^^^^^^^^^^^
-> 
-> Is this considered an issue ? Would the fix to print the actual symbol address
-> (and recorded in raw perf event data) break some existing tooling etc.
-> 
+> Aside from this, I also noticed that the new code is for drivers/irqchip,
+> which is a separate subsystems with its own maintainers, who were
+> neither on Cc nor did they Ack the patches.
+Yes, there are:
+	dt-bindings: csky,apb-intc: Add vector irq mode
+	irqchip/csky: Add support-vector-irq for apb-intc
+	irqchip/csky: Optimize remove unnecessary loop irq handle
+	irqchip/irq-csky-mpintc: Add triger type and priority
+	dt-bindings: interrupt-controller: Update csky mpintc
 
-@Arnaldo any ideas ?
+I just send these patches to the mail-list before, but not get Ack. I'll add
+Cc in these patches and resend them to the mail list.
 
-this is being done in tools/perf/util/symbol-elf.c
+> 
+> Generally, those should get merged through the respective subsystem
+> trees as listed in the linux/MAINTAINERS file.
+Ok, I'll remove them in this pull request.
 
-    symsrc__init
-	if (dso->kernel == DSO_TYPE_USER)
-		ss->adjust_symbols = true;
-
-     dso__load_sym
-	dso->adjust_symbols = runtime_ss->adjust_symbols || ref_reloc(kmap);
-
-		} else if ((used_opd && runtime_ss->adjust_symbols) ||
-			   (!used_opd && syms_ss->adjust_symbols)) {
-
-			*sym.st_value -= shdr.sh_addr - shdr.sh_offset;*
-               }
-
-I investigated a bit more and this goes back to 2009:
-
-Initially the adj was done for prelink binaries: commit f5812a7a336fb
-("perf_counter tools: Adjust only prelinked symbol's addresses")
-
-+       self->prelinked = elf_section_by_name(elf, &ehdr, &shdr,
-+                                             ".gnu.prelink_undo",
-+                                             NULL) != NULL;
-+      if (self->prelinked) {
-          if (verbose >= 2)
-            printf("adjusting symbol: ...
-           sym.st_value -= shdr.sh_addr - shdr.sh_offset;
-+      }
-
-commit 30d7a77dd5a97 ("perf_counter tools: Adjust symbols in ET_EXEC files too")
-started doing this for any executable
-
--       self->prelinked = elf_section_by_name(elf, &ehdr, &shdr,
--                                             ".gnu.prelink_undo",
--                                             NULL) != NULL;
-+       self->adjust_symbols = (ehdr.e_type == ET_EXEC ||
-+                               elf_section_by_name(elf, &ehdr, &shdr,
-+                                                    ".gnu.prelink_undo",
-+
+Best Regards
+ Guo Ren
