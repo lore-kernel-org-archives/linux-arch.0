@@ -1,64 +1,86 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 4/7] tools/memory-model: Update README for addition of SRCU
-Date: Wed, 13 Feb 2019 09:37:40 -0800
-Message-ID: <20190213173743.26682-4-paulmck@linux.ibm.com>
+Subject: [PATCH memory-model 2/7] tools/memory-model: Refactor some RCU relations
+Date: Wed, 13 Feb 2019 09:37:38 -0800
+Message-ID: <20190213173743.26682-2-paulmck@linux.ibm.com>
 References: <20190213173650.GA26078@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190213173650.GA26078@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit updates the section on LKMM limitations to no longer say
-that SRCU is not modeled, but instead describe how LKMM's modeling of
-SRCU departs from the Linux-kernel implementation.
+From: Alan Stern <stern@rowland.harvard.edu>
 
-TL;DR:  There is no known valid use case that cares about the Linux
-kernel's ability to have partially overlapping SRCU read-side critical
-sections.
+In preparation for adding support for SRCU, refactor the definitions
+of rcu-fence, rcu-rscsi, rcu-link, and rb by moving the po and po?
+terms from the first two to the second two.  An rcu-gp relation is
+added; it is equivalent to gp with the po and po? terms removed.
 
+This is necessary because for SRCU, we will have to use the loc
+relation to check that the terms at the start and end of each disjunct
+in the definition of rcu-fence refer to the same srcu_struct
+location.  If these terms are hidden behind po and po?, there's no way
+to carry out this check.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/README | 25 +++++++++++++++++++++++--
- 1 file changed, 23 insertions(+), 2 deletions(-)
+ tools/memory-model/linux-kernel.cat | 25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 0f2c366518c6..9d7d4f23503f 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -221,8 +221,29 @@ The Linux-kernel memory model has the following limitations:
- 		additional call_rcu() process to the site of the
- 		emulated rcu-barrier().
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index ab9de9c1234b..b8e6197f05af 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -91,32 +91,37 @@ acyclic pb as propagation
+ (*******)
  
--	e.	Sleepable RCU (SRCU) is not modeled.  It can be
--		emulated, but perhaps not simply.
-+	e.	Although sleepable RCU (SRCU) is now modeled, there
-+		are some subtle differences between its semantics and
-+		those in the Linux kernel.  For example, the kernel
-+		might interpret the following sequence as two partially
-+		overlapping SRCU read-side critical sections:
-+
-+			 1  r1 = srcu_read_lock(&my_srcu);
-+			 2  do_something_1();
-+			 3  r2 = srcu_read_lock(&my_srcu);
-+			 4  do_something_2();
-+			 5  srcu_read_unlock(&my_srcu, r1);
-+			 6  do_something_3();
-+			 7  srcu_read_unlock(&my_srcu, r2);
-+
-+		In contrast, LKMM will interpret this as a nested pair of
-+		SRCU read-side critical sections, with the outer critical
-+		section spanning lines 1-7 and the inner critical section
-+		spanning lines 3-5.
-+
-+		This difference would be more of a concern had anyone
-+		identified a reasonable use case for partially overlapping
-+		SRCU read-side critical sections.  For more information,
-+		please see: https://paulmck.livejournal.com/40593.html
+ (*
+- * Effect of read-side critical section proceeds from the rcu_read_lock()
+- * onward on the one hand and from the rcu_read_unlock() backwards on the
++ * Effects of read-side critical sections proceed from the rcu_read_unlock()
++ * backwards on the one hand, and from the rcu_read_lock() forwards on the
+  * other hand.
++ *
++ * In the definition of rcu-fence below, the po term at the left-hand side
++ * of each disjunct and the po? term at the right-hand end have been factored
++ * out.  They have been moved into the definitions of rcu-link and rb.
+  *)
+-let rcu-rscsi = po ; rcu-rscs^-1 ; po?
++let rcu-gp = [Sync-rcu]		(* Compare with gp *)
++let rcu-rscsi = rcu-rscs^-1
  
- 	f.	Reader-writer locking is not modeled.  It can be
- 		emulated in litmus tests using atomic read-modify-write
+ (*
+  * The synchronize_rcu() strong fence is special in that it can order not
+  * one but two non-rf relations, but only in conjunction with an RCU
+  * read-side critical section.
+  *)
+-let rcu-link = hb* ; pb* ; prop
++let rcu-link = po? ; hb* ; pb* ; prop ; po
+ 
+ (*
+  * Any sequence containing at least as many grace periods as RCU read-side
+  * critical sections (joined by rcu-link) acts as a generalized strong fence.
+  *)
+-let rec rcu-fence = gp |
+-	(gp ; rcu-link ; rcu-rscsi) |
+-	(rcu-rscsi ; rcu-link ; gp) |
+-	(gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
+-	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; gp) |
++let rec rcu-fence = rcu-gp |
++	(rcu-gp ; rcu-link ; rcu-rscsi) |
++	(rcu-rscsi ; rcu-link ; rcu-gp) |
++	(rcu-gp ; rcu-link ; rcu-fence ; rcu-link ; rcu-rscsi) |
++	(rcu-rscsi ; rcu-link ; rcu-fence ; rcu-link ; rcu-gp) |
+ 	(rcu-fence ; rcu-link ; rcu-fence)
+ 
+ (* rb orders instructions just as pb does *)
+-let rb = prop ; rcu-fence ; hb* ; pb*
++let rb = prop ; po ; rcu-fence ; po? ; hb* ; pb*
+ 
+ irreflexive rb as rcu
+ 
 -- 
 2.17.1
