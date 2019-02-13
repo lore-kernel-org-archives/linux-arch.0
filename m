@@ -1,108 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:39321 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726056AbfBMV5x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2019 16:57:53 -0500
-Received: by mail-pg1-f194.google.com with SMTP id r11so1802506pgp.6
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 13:57:52 -0800 (PST)
-Date: Wed, 13 Feb 2019 13:57:50 -0800 (PST)
-Subject: Re: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to __io_par()
-In-Reply-To: <CAK8P3a1-CA_d+tRRKh50+7-PU14AV=9S1JUSF4d-VUxZ+DcW4g@mail.gmail.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-30e76674-df9d-4689-8c77-3a3b4723ee24@palmer-si-x1c4>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Received: from mx1.redhat.com ([209.132.183.28]:54258 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2395027AbfBMWAy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Feb 2019 17:00:54 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
+Date: Wed, 13 Feb 2019 17:00:14 -0500
+Message-ID: <1550095217-12047-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andrew.murray@arm.com, catalin.marinas@arm.com, linux-riscv@lists.infradead.org, aou@eecs.berkeley.edu
-Message-ID: <20190213215750.UlFQI9tYZXEnpPgUcY8oWNpoz1hVmm9rH0GJdP3eYgM@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20190213220014.kxk4dGPy_-ynCjBbjBru6na4k4ZyVXKT0j8GelBVXk8@z>
 
-On Wed, 13 Feb 2019 12:59:28 PST (-0800), Arnd Bergmann wrote:
-> On Wed, Feb 13, 2019 at 6:46 PM Will Deacon <will.deacon@arm.com> wrote:
->
->> On Tue, Feb 12, 2019 at 12:55:17PM +0100, Arnd Bergmann wrote:
->>
->> > For all I can see, this should not conflict with the usage of the
->> > same macros on RISC-V, though it does make add a significant
->> > difference, so I'd like to see an Ack from the RISC-V folks as
->> > well (added to Cc), or possibly a change to arch/riscv/include/asm/io.h
->> > to do a corresponding change.
+v4:
+ - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
 
-Thanks, the original patches didn't make it through my filters.
+v3:
+ - Optimize __down_read_trylock() for the uncontended case as suggested
+   by Linus.
 
->> There's already a comment in that header which says that the accesses are
->> ordered wrt timer reads, so I don't think anything needs to change there.
->> For consistency with the macro arguments, I could augment their __io_par to
->> take the read value as an unused argument, if that's what you mean?
+v2:
+ - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+ - Update performance test data in patch 1.
 
-FWIW, we don't really have a way to mandate this in the ISA yet as there's no 
-formal model for either CSR orderings or the IO memory space.  
+The goal of this patchset is to remove the architecture specific files
+for rwsem-xadd to make it easer to add enhancements in the later rwsem
+patches. It also removes the legacy rwsem-spinlock.c file and make all
+the architectures use one single implementation of rwsem - rwsem-xadd.c.
 
-> Yes, that's what I meant, I should have been clearer there.
+Waiman Long (3):
+  locking/rwsem: Remove arch specific rwsem files
+  locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
+    archs
+  locking/rwsem: Optimize down_read_trylock()
 
-That sounds reasonable to me.  It looks like we can also go ahead and delete a 
-bunch of arch/riscv/include/asm/io.h now that this stuff is in asm-generic, 
-which would cause us to actually start using these things.  I didn't know this 
-had all been moved to asm-generic otherwise I would have cleaned this up 
-earlier.
+ MAINTAINERS                     |   1 -
+ arch/alpha/Kconfig              |   7 -
+ arch/alpha/include/asm/rwsem.h  | 211 -------------------------
+ arch/arc/Kconfig                |   3 -
+ arch/arm/Kconfig                |   4 -
+ arch/arm/include/asm/Kbuild     |   1 -
+ arch/arm64/Kconfig              |   3 -
+ arch/arm64/include/asm/Kbuild   |   1 -
+ arch/c6x/Kconfig                |   3 -
+ arch/csky/Kconfig               |   3 -
+ arch/h8300/Kconfig              |   3 -
+ arch/hexagon/Kconfig            |   6 -
+ arch/hexagon/include/asm/Kbuild |   1 -
+ arch/ia64/Kconfig               |   4 -
+ arch/ia64/include/asm/rwsem.h   | 172 --------------------
+ arch/m68k/Kconfig               |   7 -
+ arch/microblaze/Kconfig         |   6 -
+ arch/mips/Kconfig               |   7 -
+ arch/nds32/Kconfig              |   3 -
+ arch/nios2/Kconfig              |   3 -
+ arch/openrisc/Kconfig           |   6 -
+ arch/parisc/Kconfig             |   6 -
+ arch/powerpc/Kconfig            |   7 -
+ arch/powerpc/include/asm/Kbuild |   1 -
+ arch/riscv/Kconfig              |   3 -
+ arch/s390/Kconfig               |   6 -
+ arch/s390/include/asm/Kbuild    |   1 -
+ arch/sh/Kconfig                 |   6 -
+ arch/sh/include/asm/Kbuild      |   1 -
+ arch/sparc/Kconfig              |   8 -
+ arch/sparc/include/asm/Kbuild   |   1 -
+ arch/unicore32/Kconfig          |   6 -
+ arch/x86/Kconfig                |   3 -
+ arch/x86/include/asm/rwsem.h    | 237 ----------------------------
+ arch/x86/lib/Makefile           |   1 -
+ arch/x86/lib/rwsem.S            | 156 ------------------
+ arch/x86/um/Kconfig             |   6 -
+ arch/x86/um/Makefile            |   1 -
+ arch/xtensa/Kconfig             |   3 -
+ arch/xtensa/include/asm/Kbuild  |   1 -
+ include/asm-generic/rwsem.h     | 140 -----------------
+ include/linux/rwsem-spinlock.h  |  47 ------
+ include/linux/rwsem.h           |   9 +-
+ kernel/Kconfig.locks            |   2 +-
+ kernel/locking/Makefile         |   4 +-
+ kernel/locking/percpu-rwsem.c   |   2 +
+ kernel/locking/rwsem-spinlock.c | 339 ----------------------------------------
+ kernel/locking/rwsem.h          | 130 +++++++++++++++
+ 48 files changed, 135 insertions(+), 1447 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/rwsem.h
+ delete mode 100644 arch/ia64/include/asm/rwsem.h
+ delete mode 100644 arch/x86/include/asm/rwsem.h
+ delete mode 100644 arch/x86/lib/rwsem.S
+ delete mode 100644 include/asm-generic/rwsem.h
+ delete mode 100644 include/linux/rwsem-spinlock.h
+ delete mode 100644 kernel/locking/rwsem-spinlock.c
 
-I think this should do it, but this does bring up a bit of an issue: the RISC-V 
-versions of reads and friends put barriers outside the loop, while the 
-asm-generic version don't.  What are these actually supposed to do?
-
-Either way that resolves, feel free to consider something like
-
-diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
-index b269451e7e85..378975f180a7 100644
---- a/arch/riscv/include/asm/io.h
-+++ b/arch/riscv/include/asm/io.h
-@@ -198,20 +198,20 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
-  * writes.
-  */
- #define __io_pbr()	__asm__ __volatile__ ("fence io,i"  : : : "memory");
--#define __io_par()	__asm__ __volatile__ ("fence i,ior" : : : "memory");
-+#define __io_par(v)	__asm__ __volatile__ ("fence i,ior" : : : "memory");
- #define __io_pbw()	__asm__ __volatile__ ("fence iow,o" : : : "memory");
- #define __io_paw()	__asm__ __volatile__ ("fence o,io"  : : : "memory");
-
--#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
--#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
--#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
-+#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-+#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-+#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-
- #define outb(v,c)	({ __io_pbw(); writeb_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
- #define outw(v,c)	({ __io_pbw(); writew_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
- #define outl(v,c)	({ __io_pbw(); writel_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
-
- #ifdef CONFIG_64BIT
--#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(); __v; })
-+#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(__v); __v; })
- #define outq(v,c)	({ __io_pbw(); writeq_cpu((v),(void*)(c)); __io_paw(); })
- #endif
-
-@@ -261,9 +261,9 @@ __io_reads_ins(reads, u32, l, __io_br(), __io_ar())
- #define readsw(addr, buffer, count) __readsw(addr, buffer, count)
- #define readsl(addr, buffer, count) __readsl(addr, buffer, count)
-
--__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par())
--__io_reads_ins(ins, u16, w, __io_pbr(), __io_par())
--__io_reads_ins(ins, u32, l, __io_pbr(), __io_par())
-+__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
-+__io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
-+__io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
- #define insb(addr, buffer, count) __insb((void __iomem *)(long)addr, buffer, count)
- #define insw(addr, buffer, count) __insw((void __iomem *)(long)addr, buffer, count)
- #define insl(addr, buffer, count) __insl((void __iomem *)(long)addr, buffer, count)
-
-as
-
-Revewied-by: Palmer Dabbelt <palmer@sifive.com>
-
-when included along with the other diff.  That way we can at least keep the 
-macro signatures matching, the cleanup can come later...
-
-Thanks!
+-- 
+1.8.3.1
