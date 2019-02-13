@@ -1,46 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59416 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729596AbfBMVyX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Feb 2019 16:54:23 -0500
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1DLrb9M147462
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 16:54:22 -0500
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2qmt7dubdg-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 16:54:22 -0500
-Received: from localhost
-        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
-        Wed, 13 Feb 2019 21:54:20 -0000
-Date: Wed, 13 Feb 2019 23:54:11 +0200
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: initramfs tidyups
-References: <20190213174621.29297-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190213174621.29297-1-hch@lst.de>
-Message-ID: <20190213215411.GF15270@rapoport-lnx>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:39321 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726056AbfBMV5x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2019 16:57:53 -0500
+Received: by mail-pg1-f194.google.com with SMTP id r11so1802506pgp.6
+        for <linux-arch@vger.kernel.org>; Wed, 13 Feb 2019 13:57:52 -0800 (PST)
+Date: Wed, 13 Feb 2019 13:57:50 -0800 (PST)
+Subject: Re: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to __io_par()
+In-Reply-To: <CAK8P3a1-CA_d+tRRKh50+7-PU14AV=9S1JUSF4d-VUxZ+DcW4g@mail.gmail.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-30e76674-df9d-4689-8c77-3a3b4723ee24@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190213215411.pCwAl4UtlwbEON9VKvXTvC_ktaOdhZid5clcxxntbxs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andrew.murray@arm.com, catalin.marinas@arm.com, linux-riscv@lists.infradead.org, aou@eecs.berkeley.edu
+Message-ID: <20190213215750.UlFQI9tYZXEnpPgUcY8oWNpoz1hVmm9rH0GJdP3eYgM@z>
 
-On Wed, Feb 13, 2019 at 06:46:13PM +0100, Christoph Hellwig wrote:
-> Hi all,
-> 
-> I've spent some time chasing down behavior in initramfs and found
-> plenty of opportunity to improve the code.  A first stab on that is
-> contained in this series.
- 
-For the series:
+On Wed, 13 Feb 2019 12:59:28 PST (-0800), Arnd Bergmann wrote:
+> On Wed, Feb 13, 2019 at 6:46 PM Will Deacon <will.deacon@arm.com> wrote:
+>
+>> On Tue, Feb 12, 2019 at 12:55:17PM +0100, Arnd Bergmann wrote:
+>>
+>> > For all I can see, this should not conflict with the usage of the
+>> > same macros on RISC-V, though it does make add a significant
+>> > difference, so I'd like to see an Ack from the RISC-V folks as
+>> > well (added to Cc), or possibly a change to arch/riscv/include/asm/io.h
+>> > to do a corresponding change.
 
-Acked-by: Mike Rapoport <rppt@linux.ibm.com>
+Thanks, the original patches didn't make it through my filters.
 
--- 
-Sincerely yours,
-Mike.
+>> There's already a comment in that header which says that the accesses are
+>> ordered wrt timer reads, so I don't think anything needs to change there.
+>> For consistency with the macro arguments, I could augment their __io_par to
+>> take the read value as an unused argument, if that's what you mean?
+
+FWIW, we don't really have a way to mandate this in the ISA yet as there's no 
+formal model for either CSR orderings or the IO memory space.  
+
+> Yes, that's what I meant, I should have been clearer there.
+
+That sounds reasonable to me.  It looks like we can also go ahead and delete a 
+bunch of arch/riscv/include/asm/io.h now that this stuff is in asm-generic, 
+which would cause us to actually start using these things.  I didn't know this 
+had all been moved to asm-generic otherwise I would have cleaned this up 
+earlier.
+
+I think this should do it, but this does bring up a bit of an issue: the RISC-V 
+versions of reads and friends put barriers outside the loop, while the 
+asm-generic version don't.  What are these actually supposed to do?
+
+Either way that resolves, feel free to consider something like
+
+diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
+index b269451e7e85..378975f180a7 100644
+--- a/arch/riscv/include/asm/io.h
++++ b/arch/riscv/include/asm/io.h
+@@ -198,20 +198,20 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+  * writes.
+  */
+ #define __io_pbr()	__asm__ __volatile__ ("fence io,i"  : : : "memory");
+-#define __io_par()	__asm__ __volatile__ ("fence i,ior" : : : "memory");
++#define __io_par(v)	__asm__ __volatile__ ("fence i,ior" : : : "memory");
+ #define __io_pbw()	__asm__ __volatile__ ("fence iow,o" : : : "memory");
+ #define __io_paw()	__asm__ __volatile__ ("fence o,io"  : : : "memory");
+
+-#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
+-#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
+-#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
++#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
++#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
++#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
+
+ #define outb(v,c)	({ __io_pbw(); writeb_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
+ #define outw(v,c)	({ __io_pbw(); writew_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
+ #define outl(v,c)	({ __io_pbw(); writel_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
+
+ #ifdef CONFIG_64BIT
+-#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(); __v; })
++#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(__v); __v; })
+ #define outq(v,c)	({ __io_pbw(); writeq_cpu((v),(void*)(c)); __io_paw(); })
+ #endif
+
+@@ -261,9 +261,9 @@ __io_reads_ins(reads, u32, l, __io_br(), __io_ar())
+ #define readsw(addr, buffer, count) __readsw(addr, buffer, count)
+ #define readsl(addr, buffer, count) __readsl(addr, buffer, count)
+
+-__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par())
+-__io_reads_ins(ins, u16, w, __io_pbr(), __io_par())
+-__io_reads_ins(ins, u32, l, __io_pbr(), __io_par())
++__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
++__io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
++__io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
+ #define insb(addr, buffer, count) __insb((void __iomem *)(long)addr, buffer, count)
+ #define insw(addr, buffer, count) __insw((void __iomem *)(long)addr, buffer, count)
+ #define insl(addr, buffer, count) __insl((void __iomem *)(long)addr, buffer, count)
+
+as
+
+Revewied-by: Palmer Dabbelt <palmer@sifive.com>
+
+when included along with the other diff.  That way we can at least keep the 
+macro signatures matching, the cleanup can come later...
+
+Thanks!
