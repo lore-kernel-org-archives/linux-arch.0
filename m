@@ -1,39 +1,56 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Date: Wed, 13 Feb 2019 11:31:27 -0800
-Message-ID: <20190213193127.GH4240@linux.ibm.com>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
- <20190213172047.GH6346@brain-police>
- <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
- <20190213183314.GB32494@hirez.programming.kicks-ass.net>
- <3908561D78D1C84285E8C5FCA982C28F7D4FF0DE@ORSMSX110.amr.corp.intel.com>
-Reply-To: paulmck@linux.ibm.com
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 06/28] kernel: Define gettimeofday vdso common code
+Date: Wed, 13 Feb 2019 20:35:32 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1902132033270.1659@nanos.tec.linutronix.de>
+References: <20181129170530.37789-1-vincenzo.frascino@arm.com>
+ <20181129170530.37789-7-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1811292230430.1657@nanos.tec.linutronix.de>
+ <20181207175321.GA11430@edgewater-inn.cambridge.arm.com>
+ <20190208173539.GD24375@fuggles.cambridge.arm.com>
+ <alpine.DEB.2.21.1902081950260.1662@nanos.tec.linutronix.de>
+ <alpine.DEB.2.21.1902082029240.1662@nanos.tec.linutronix.de>
+ <20190213170413.GE6346@brain-police>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <3908561D78D1C84285E8C5FCA982C28F7D4FF0DE@ORSMSX110.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190213170413.GE6346@brain-police>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 13, 2019 at 06:43:41PM +0000, Luck, Tony wrote:
-> > I think the last time this came up, it was said that those people still
-> > running Linux on Itanium were running old distro kernels, not upstream.
+On Wed, 13 Feb 2019, Will Deacon wrote:
+> On Fri, Feb 08, 2019 at 08:30:25PM +0100, Thomas Gleixner wrote:
 > >
-> > So yeah, we could probably do whatever and nobody would ever notice,
-> > except maybe Al, who is rumoured to still have an ia64 :-)
+> > How is the in kernel ktime_get() correctness guaranteed then?
 > 
-> I haven't heard of anyone taking upstream kernels and actually using them
-> for production work in a long time. It's mostly just a few folks keeping ia64
-> alive "just because" these days.  I doubt any of them have an SGI Altix
-> to test on (so realistically Altix was probably broken upstream many releases
-> ago).
+> Luck.
+> 
+> I think we'll have to introduce a dummy dependent stack read into our
+> counter accessor so that it's ordered by the smp_rmb(). Example diff
+> below, which I'll roll into a proper patch series later on.
 
-That would require a well-healed computer collector, wouldn't it?  Just to
-run the thing.  ;-)
+Yikes.
 
-								Thanx, Paul
+>  static inline u64 arch_counter_get_cntpct(void)
+>  {
+> +	u64 cnt, tmp;
+> +
+>  	isb();
+> -	return arch_timer_reg_read_stable(cntpct_el0);
+> +	cnt = arch_timer_reg_read_stable(cntpct_el0);
+> +
+> +	/*
+> +	 * This insanity brought to you by speculative, out-of-order system
+> +	 * register reads, sequence locks and Thomas Gleixner.
+
+ROTFL
