@@ -1,59 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57678 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57764 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732218AbfBMRUy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Feb 2019 12:20:54 -0500
-Date: Wed, 13 Feb 2019 17:20:47 +0000
+        id S1733301AbfBMRZg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Feb 2019 12:25:36 -0500
+Date: Wed, 13 Feb 2019 17:25:30 +0000
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Message-ID: <20190213172047.GH6346@brain-police>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+Subject: Re: [PATCH 2/2] arm64: io: Hook up __io_par() for inX() ordering
+Message-ID: <20190213172528.GI6346@brain-police>
+References: <20190211174544.4302-1-will.deacon@arm.com>
+ <20190211174544.4302-3-will.deacon@arm.com>
+ <CAMuHMdWFOvrZ5JwgWnx9ujg3dS-75PnjGRqn-vzGmFi295Sb=A@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+In-Reply-To: <CAMuHMdWFOvrZ5JwgWnx9ujg3dS-75PnjGRqn-vzGmFi295Sb=A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, tony.luck@intel.com
-Message-ID: <20190213172047.O8P5aJ0lB_pK12cGq6LG_kTUKP4CR9fZF3EHODlNYRw@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, andrew.murray@arm.com, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20190213172530.rcXaPpx33vaOAOsdBlT4X6dFPd6lQAWGJMyv3qtEnt4@z>
 
-[+Tony]
-
-On Mon, Feb 11, 2019 at 02:34:31PM -0800, Linus Torvalds wrote:
-> On Mon, Feb 11, 2019 at 9:30 AM Will Deacon <will.deacon@arm.com> wrote:
+On Tue, Feb 12, 2019 at 11:42:44AM +0100, Geert Uytterhoeven wrote:
+> On Mon, Feb 11, 2019 at 9:34 PM Will Deacon <will.deacon@arm.com> wrote:
+> > Ensure that inX() provides the same ordering guarantees as readX()
+> > by hooking up __io_par() so that it maps directly to __iormb().
 > >
-> > +
-> > +     1. All readX() and writeX() accesses to the same peripheral are ordered
-> > +        with respect to each other. For example, this ensures that MMIO register
-> > +       writes by the CPU to a particular device will arrive in program order.
+> > Reported-by: Andrew Murray <andrew.murray@arm.com>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
 > 
-> Hmm. I'd like more people look at strengthening this one wrt across
-> CPUs and locking.
+> Thanks for your patch!
 > 
-> Right now we document mmiowb(), but that "documentation" is really
-> just a fairy tale. Very *very* few drivers actually do mmiowb() on
-> their own.
+> > --- a/arch/arm64/include/asm/io.h
+> > +++ b/arch/arm64/include/asm/io.h
+> > @@ -121,6 +121,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+> >                      : "memory");                                       \
+> >  })
+> >
+> > +#define __io_par               __iormb
 > 
-> IOW, we should seriously just consider making the rule be that locking
-> will order mmio too. Because that's practically the rule anyway.
+> I think it makes sense to make the parameter passing explicit, for
+> documentation purposes:
+> 
+>     #define __io_par(v)        __iormb(v)
 
-I would /love/ to get rid of mmiowb() because I think it's both extremely
-difficult to use and also pretty much never needed. It reminds me a lot of
-smp_read_barrier_depends(), which we finally pushed into READ_ONCE for
-Alpha.
-
-> Powerpc already does it. IO within a locked region will serialize with the
-> lock.
-
-I thought ia64 was the hold out here? Did they actually have machines that
-needed this in practice? If so, I think we can either:
-
-  (a) Add an mmiowb() to their spin_unlock() code, or
-  (b) Remove ia64 altogether if nobody complains
-
-I know that Peter has been in favour of (b) for a while...
+Thanks, I'll make that change for v2.
 
 Will
