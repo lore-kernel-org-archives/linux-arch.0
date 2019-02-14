@@ -1,94 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f196.google.com ([209.85.166.196]:40311 "EHLO
-        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2392645AbfBNVQz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 16:16:55 -0500
-Received: by mail-it1-f196.google.com with SMTP id i2so18084102ite.5
-        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2019 13:16:54 -0800 (PST)
-From: Yu Zhao <yuzhao@google.com>
-Subject: [PATCH] arm64: mm: enable per pmd page table lock
-Date: Thu, 14 Feb 2019 14:16:42 -0700
-Message-ID: <20190214211642.2200-1-yuzhao@google.com>
+Received: from mx1.redhat.com ([209.132.183.28]:48596 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2406309AbfBNWFc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Feb 2019 17:05:32 -0500
+Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
+References: <1550095217-12047-1-git-send-email-longman@redhat.com>
+ <20190214103715.GI32494@hirez.programming.kicks-ass.net>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <5c373ba6-419e-c4d5-965f-a566a6182b28@redhat.com>
+Date: Thu, 14 Feb 2019 17:05:27 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20190214103715.GI32494@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
-Message-ID: <20190214211642.53qK4VqVlXag-k6QIQhFGHFcJFFOWqIO93xPPJr9qO8@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190214220527.h8SjKk87IPqCmzCDizURd2swYG-vJxuMv01nqE5HhNs@z>
 
-Switch from per mm_struct to per pmd page table lock by enabling
-ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
-large system.
-
-I'm not sure if there is contention on mm->page_table_lock. Given
-the option comes at no cost (apart from initializing more spin
-locks), why not enable it now.
-
-Signed-off-by: Yu Zhao <yuzhao@google.com>
----
- arch/arm64/Kconfig               |  3 +++
- arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
- arch/arm64/include/asm/tlb.h     |  5 ++++-
- 3 files changed, 18 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a4168d366127..104325a1ffc3 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
- config ARCH_HAS_CACHE_LINE_SIZE
- 	def_bool y
- 
-+config ARCH_ENABLE_SPLIT_PMD_PTLOCK
-+	def_bool y
-+
- config SECCOMP
- 	bool "Enable seccomp to safely compute untrusted bytecode"
- 	---help---
-diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
-index 52fa47c73bf0..dabba4b2c61f 100644
---- a/arch/arm64/include/asm/pgalloc.h
-+++ b/arch/arm64/include/asm/pgalloc.h
-@@ -33,12 +33,22 @@
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return (pmd_t *)__get_free_page(PGALLOC_GFP);
-+	struct page *page;
-+
-+	page = alloc_page(PGALLOC_GFP);
-+	if (!page)
-+		return NULL;
-+	if (!pgtable_pmd_page_ctor(page)) {
-+		__free_page(page);
-+		return NULL;
-+	}
-+	return page_address(page);
- }
- 
- static inline void pmd_free(struct mm_struct *mm, pmd_t *pmdp)
- {
- 	BUG_ON((unsigned long)pmdp & (PAGE_SIZE-1));
-+	pgtable_pmd_page_dtor(virt_to_page(pmdp));
- 	free_page((unsigned long)pmdp);
- }
- 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 106fdc951b6e..4e3becfed387 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -62,7 +62,10 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- 				  unsigned long addr)
- {
--	tlb_remove_table(tlb, virt_to_page(pmdp));
-+	struct page *page = virt_to_page(pmdp);
-+
-+	pgtable_pmd_page_dtor(page);
-+	tlb_remove_table(tlb, page);
- }
- #endif
- 
--- 
-2.21.0.rc0.258.g878e2cd30e-goog
+T24gMDIvMTQvMjAxOSAwNTozNyBBTSwgUGV0ZXIgWmlqbHN0cmEgd3JvdGU6Cj4gT24gV2Vk
+LCBGZWIgMTMsIDIwMTkgYXQgMDU6MDA6MTRQTSAtMDUwMCwgV2FpbWFuIExvbmcgd3JvdGU6
+Cj4+IHY0Ogo+PiAgLSBSZW1vdmUgcndzZW0tc3BpbmxvY2suYyBhbmQgbWFrZSBhbGwgYXJj
+aHMgdXNlIHJ3c2VtLXhhZGQuYy4KPj4KPj4gdjM6Cj4+ICAtIE9wdGltaXplIF9fZG93bl9y
+ZWFkX3RyeWxvY2soKSBmb3IgdGhlIHVuY29udGVuZGVkIGNhc2UgYXMgc3VnZ2VzdGVkCj4+
+ICAgIGJ5IExpbnVzLgo+Pgo+PiB2MjoKPj4gIC0gQWRkIHBhdGNoIDIgdG8gb3B0aW1pemUg
+X19kb3duX3JlYWRfdHJ5bG9jaygpIGFzIHN1Z2dlc3RlZCBieSBQZXRlclouCj4+ICAtIFVw
+ZGF0ZSBwZXJmb3JtYW5jZSB0ZXN0IGRhdGEgaW4gcGF0Y2ggMS4KPj4KPj4gVGhlIGdvYWwg
+b2YgdGhpcyBwYXRjaHNldCBpcyB0byByZW1vdmUgdGhlIGFyY2hpdGVjdHVyZSBzcGVjaWZp
+YyBmaWxlcwo+PiBmb3IgcndzZW0teGFkZCB0byBtYWtlIGl0IGVhc2VyIHRvIGFkZCBlbmhh
+bmNlbWVudHMgaW4gdGhlIGxhdGVyIHJ3c2VtCj4+IHBhdGNoZXMuIEl0IGFsc28gcmVtb3Zl
+cyB0aGUgbGVnYWN5IHJ3c2VtLXNwaW5sb2NrLmMgZmlsZSBhbmQgbWFrZSBhbGwKPj4gdGhl
+IGFyY2hpdGVjdHVyZXMgdXNlIG9uZSBzaW5nbGUgaW1wbGVtZW50YXRpb24gb2YgcndzZW0g
+LSByd3NlbS14YWRkLmMuCj4+Cj4+IFdhaW1hbiBMb25nICgzKToKPj4gICBsb2NraW5nL3J3
+c2VtOiBSZW1vdmUgYXJjaCBzcGVjaWZpYyByd3NlbSBmaWxlcwo+PiAgIGxvY2tpbmcvcndz
+ZW06IFJlbW92ZSByd3NlbS1zcGlubG9jay5jICYgdXNlIHJ3c2VtLXhhZGQuYyBmb3IgYWxs
+Cj4+ICAgICBhcmNocwo+PiAgIGxvY2tpbmcvcndzZW06IE9wdGltaXplIGRvd25fcmVhZF90
+cnlsb2NrKCkKPiBBY2tlZC1ieTogUGV0ZXIgWmlqbHN0cmEgKEludGVsKSA8cGV0ZXJ6QGlu
+ZnJhZGVhZC5vcmc+Cj4KPiB3aXRoIHRoZSBjYXZlYXQgdGhhdCBJJ20gaGFwcHkgdG8gZXhj
+aGFuZ2UgcGF0Y2ggMyBiYWNrIHRvIG15IGVhcmxpZXIKPiBzdWdnZXN0aW9uIGluIGNhc2Ug
+V2lsbCBleHBlc3NlcyBjb25jZXJucyB3cnQgdGhlIEFSTTY0IHBlcmZvcm1hbmNlIG9mCj4g
+TGludXMnIHN1Z2dlc3Rpb24uCgpJIGluc2VydGVkIGEgZmV3IGxvY2sgZXZlbnQgY291bnRl
+cnMgaW50byB0aGUgcndzZW0gdHJ5bG9jayBjb2RlOgoKc3RhdGljIGlubGluZSBpbnQgX19k
+b3duX3JlYWRfdHJ5bG9jayhzdHJ1Y3Qgcndfc2VtYXBob3JlICpzZW0pCnsKwqDCoMKgwqDC
+oMKgwqAgLyoKwqDCoMKgwqDCoMKgwqDCoCAqIE9wdGltaXplIGZvciB0aGUgY2FzZSB3aGVu
+IHRoZSByd3NlbSBpcyBub3QgbG9ja2VkIGF0IGFsbC4KwqDCoMKgwqDCoMKgwqDCoCAqLwrC
+oMKgwqDCoMKgwqDCoCBsb25nIHRtcCA9IFJXU0VNX1VOTE9DS0VEX1ZBTFVFOwoKwqDCoMKg
+wqDCoMKgwqAgbG9ja2V2ZW50X2luYyhyd3NlbV9ydHJ5bG9jayk7CsKgwqDCoMKgwqDCoMKg
+IGRvIHsKwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGlmIChhdG9taWNfbG9uZ190
+cnlfY21weGNoZ19hY3F1aXJlKCZzZW0tPmNvdW50LCAmdG1wLArCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqAgdG1wICsgUldTRU1fQUNUSVZFX1JFQURfQklBUykpIHsKwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCByd3NlbV9zZXRfcmVhZGVyX293
+bmVkKHNlbSk7CsKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqAgcmV0dXJuIDE7CsKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB9CsKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCBsb2NrZXZlbnRfaW5jKHJ3c2VtX3J0cnlsb2NrX3Jl
+dHJ5KTsKwqDCoMKgwqDCoMKgwqAgfSB3aGlsZSAodG1wID49IDApOwrCoMKgwqDCoMKgwqDC
+oCBsb2NrZXZlbnRfaW5jKHJ3c2VtX3J0cnlsb2NrX2ZhaWwpOwrCoMKgwqDCoMKgwqDCoCBy
+ZXR1cm4gMDsKfQoKc3RhdGljIGlubGluZSBpbnQgX19kb3duX3dyaXRlX3RyeWxvY2soc3Ry
+dWN0IHJ3X3NlbWFwaG9yZSAqc2VtKQp7CsKgwqDCoMKgwqDCoMKgIGxvbmcgdG1wOwoKwqDC
+oMKgwqDCoMKgwqAgbG9ja2V2ZW50X2luYyhyd3NlbV93dHJ5bG9jayk7CsKgwqDCoMKgwqDC
+oMKgIHRtcCA9IGF0b21pY19sb25nX2NtcHhjaGdfYWNxdWlyZSgmc2VtLT5jb3VudCwgUldT
+RU1fVU5MT0NLRURfVkFMVUUsCsKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoCBSV1NFTV9BQ1RJVkVfV1JJVEVfQklBUyk7CsKgwqDCoMKgwqDCoMKgIGlmICh0
+bXAgPT0gUldTRU1fVU5MT0NLRURfVkFMVUUpIHsKwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgIHJ3c2VtX3NldF9vd25lcihzZW0pOwrCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqAgcmV0dXJuIHRydWU7CsKgwqDCoMKgwqDCoMKgIH0KwqDCoMKgwqDCoMKgwqAgbG9j
+a2V2ZW50X2luYyhyd3NlbV93dHJ5bG9ja19mYWlsKTsKwqDCoMKgwqDCoMKgwqAgcmV0dXJu
+IGZhbHNlOwp9CgpJIGJvb3RlZCB0aGUgbmV3IGtlcm5lbCBvbiBhIDQtc29ja2V0IDU2LWNv
+cmUgMTEyLXRocmVhZCBCcm9hZHdlbGwKc3lzdGVtLiBUaGUgY291bnRlciB2YWx1ZXMKCjEp
+IEFmdGVyIGJvb3R1cDoKCnJ3c2VtX3J0cnlsb2NrPTc4NDAyOQpyd3NlbV9ydHJ5bG9ja19m
+YWlsPTU5CnJ3c2VtX3J0cnlsb2NrX3JldHJ5PTM5NApyd3NlbV93dHJ5bG9jaz0xODI4NApy
+d3NlbV93dHJ5bG9ja19mYWlsPTIzMAoKMikgQWZ0ZXIgcGFyYWxsZWwga2VybmVsIGJ1aWxk
+ICgtajExMik6Cgpyd3NlbV9ydHJ5bG9jaz0zMzg2Njc1NTkKcndzZW1fcnRyeWxvY2tfZmFp
+bD0xOApyd3NlbV9ydHJ5bG9ja19yZXRyeT01MQpyd3NlbV93dHJ5bG9jaz0xNzAxNjMzMgpy
+d3NlbV93dHJ5bG9ja19mYWlsPTk4MDU4CgpBdCBsZWFzdCBmb3IgdGhlc2UgdHdvIHVzZSBj
+YXNlcywgdHJ5LWZvci1vd25lcnNoaXAgYXMgc3VnZ2VzdGVkIGJ5CkxpbnVzIGlzIHRoZSBy
+aWdodCBjaG9pY2UuCgpDaGVlcnMsCkxvbmdtYW4KCg==
