@@ -1,24 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:51885 "EHLO newverein.lst.de"
+Received: from mx1.redhat.com ([209.132.183.28]:54262 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727107AbfBNREn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 Feb 2019 12:04:43 -0500
-Date: Thu, 14 Feb 2019 18:04:40 +0100
-From: Christoph Hellwig <hch@lst.de>
+        id S1726160AbfBNRYn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Feb 2019 12:24:43 -0500
 Subject: Re: [PATCH 03/11] kernel/locks: consolidate RWSEM_GENERIC_* options
-Message-ID: <20190214170440.GB32441@lst.de>
-References: <20190213174005.28785-1-hch@lst.de> <20190213174005.28785-4-hch@lst.de> <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com> <d9aeeedd-ce72-f58f-d858-3e340c073414@redhat.com>
+References: <20190213174005.28785-1-hch@lst.de>
+ <20190213174005.28785-4-hch@lst.de>
+ <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com>
+ <d9aeeedd-ce72-f58f-d858-3e340c073414@redhat.com>
+ <20190214170440.GB32441@lst.de>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <ac30d526-eb58-a95a-0e7f-e9da5f5cd64a@redhat.com>
+Date: Thu, 14 Feb 2019 12:24:41 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <d9aeeedd-ce72-f58f-d858-3e340c073414@redhat.com>
+In-Reply-To: <20190214170440.GB32441@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20190214170440.nP96ZwCk4CEYznmW9rciwlqphNu4W5sZBTS_dxXXw2U@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20190214172441.I1MoUwFw1f6G9McaeSkM-s2TqsiOxoTp8XDHj8lFpA0@z>
 
-On Thu, Feb 14, 2019 at 10:26:52AM -0500, Waiman Long wrote:
-> Would you mind dropping just patch 3 from your series?
+On 02/14/2019 12:04 PM, Christoph Hellwig wrote:
+> On Thu, Feb 14, 2019 at 10:26:52AM -0500, Waiman Long wrote:
+>> Would you mind dropping just patch 3 from your series?
+> Sure, we can just drop this patch.
 
-Sure, we can just drop this patch.
+Thanks,
+Longman
