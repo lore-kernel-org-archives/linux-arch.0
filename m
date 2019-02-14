@@ -1,52 +1,36 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
-Date: Thu, 14 Feb 2019 11:37:15 +0100
-Message-ID: <20190214103715.GI32494@hirez.programming.kicks-ass.net>
-References: <1550095217-12047-1-git-send-email-longman@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 03/11] kernel/locks: consolidate RWSEM_GENERIC_* options
+Date: Thu, 14 Feb 2019 11:52:38 +0100
+Message-ID: <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com>
+References: <20190213174005.28785-1-hch@lst.de> <20190213174005.28785-4-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1550095217-12047-1-git-send-email-longman@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-mips@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.ker
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190213174005.28785-4-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, Waiman Long <longman@redhat.com>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 13, 2019 at 05:00:14PM -0500, Waiman Long wrote:
-> v4:
->  - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
-> 
-> v3:
->  - Optimize __down_read_trylock() for the uncontended case as suggested
->    by Linus.
-> 
-> v2:
->  - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
->  - Update performance test data in patch 1.
-> 
-> The goal of this patchset is to remove the architecture specific files
-> for rwsem-xadd to make it easer to add enhancements in the later rwsem
-> patches. It also removes the legacy rwsem-spinlock.c file and make all
-> the architectures use one single implementation of rwsem - rwsem-xadd.c.
-> 
-> Waiman Long (3):
->   locking/rwsem: Remove arch specific rwsem files
->   locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
->     archs
->   locking/rwsem: Optimize down_read_trylock()
+On Thu, Feb 14, 2019 at 12:08 AM Christoph Hellwig <hch@lst.de> wrote:
+> Introduce one central definition of RWSEM_XCHGADD_ALGORITHM and
+> RWSEM_GENERIC_SPINLOCK in kernel/Kconfig.locks and let architectures
+> select RWSEM_XCHGADD_ALGORITHM if they want it, otherwise default to
+> the spinlock version.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Note that this conflicts with "[PATCH v4 2/3] locking/rwsem: Remove
+rwsem-spinlock.c & use rwsem-xadd.c for all archs"
+https://lore.kernel.org/lkml/1550095217-12047-3-git-send-email-longman@redhat.com/
 
-with the caveat that I'm happy to exchange patch 3 back to my earlier
-suggestion in case Will expesses concerns wrt the ARM64 performance of
-Linus' suggestion.
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
