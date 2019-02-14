@@ -1,153 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41790 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726405AbfBNLXA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 Feb 2019 06:23:00 -0500
-Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
-References: <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
- <20181212150230.GH65138@arrakis.emea.arm.com>
- <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
- <20181218175938.GD20197@arrakis.emea.arm.com>
- <20181219125249.GB22067@e103592.cambridge.arm.com>
- <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
- <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
- <20190212180223.GD199333@arrakis.emea.arm.com>
- <20190213145834.GJ3567@e103592.cambridge.arm.com>
- <90c54249-00dd-f8dd-6873-6bb8615c2c8a@arm.com>
- <20190213174318.GM3567@e103592.cambridge.arm.com>
- <CAFKCwrgV0VNJ_jEU79XwkX0o7qLFcqh3MbVMg2=Vs8VKYyY9=Q@mail.gmail.com>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Message-ID: <8047504c-3b9d-0c46-c0cf-9d584f5ca241@arm.com>
-Date: Thu, 14 Feb 2019 11:22:52 +0000
+Received: from mx2.suse.de ([195.135.220.15]:57366 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728582AbfBNNYH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Feb 2019 08:24:07 -0500
+Date: Thu, 14 Feb 2019 05:23:52 -0800
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
+Message-ID: <20190214132352.wm26r5g632swp34n@linux-r8p5>
+References: <1549566446-27967-1-git-send-email-longman@redhat.com>
+ <CAHk-=wjfyrFBjifzmgMVrkrvEePEPaBTDq7D=f2i5kD2E=SqRQ@mail.gmail.com>
+ <d7476dfb-1653-747b-b865-5597ba5fc1c1@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <CAFKCwrgV0VNJ_jEU79XwkX0o7qLFcqh3MbVMg2=Vs8VKYyY9=Q@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-GB
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <d7476dfb-1653-747b-b865-5597ba5fc1c1@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Evgenii Stepanov <eugenis@google.com>, Dave Martin <Dave.Martin@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20190214112252.7pzY9OLtvVtTPPpSeXzpZlhuCTCFklAz6Cy6mI5HXRw@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190214132352.hJZUCIh6yMiBGLqk9W5iDMZGbI6bGouAJfOOzbzJDhE@z>
 
-On 13/02/2019 21:41, Evgenii Stepanov wrote:
-> On Wed, Feb 13, 2019 at 9:43 AM Dave Martin <Dave.Martin@arm.com> wrote:
->> On Wed, Feb 13, 2019 at 04:42:11PM +0000, Kevin Brodsky wrote:
->>> (+Cc other people with MTE experience: Branislav, Ruben)
->> [...]
->>
->>>> I'm wondering whether we can piggy-back on existing concepts.
->>>>
->>>> We could say that recolouring memory is safe when and only when
->>>> unmapping of the page or removing permissions on the page (via
->>>> munmap/mremap/mprotect) would be safe.  Otherwise, the resulting
->>>> behaviour of the process is undefined.
->>> Is that a sufficient requirement? I don't think that anything prevents you
->>> from using mprotect() on say [vvar], but we don't necessarily want to map
->>> [vvar] as tagged. I'm not sure it's easy to define what "safe" would mean
->>> here.
->> I think the origin rules have to apply too: [vvar] is not a regular,
->> private page but a weird, shared thing mapped for you by the kernel.
->>
->> Presumably userspace _cannot_ do mprotect(PROT_WRITE) on it.
->>
->> I'm also assuming that userspace cannot recolour memory in read-only
->> pages.  That sounds bad if there's no way to prevent it.
-> That sounds like something we would like to do to catch out of bounds
-> read of .rodata globals.
-> Another potentially interesting use case for MTE is infinite hardware
-> watchpoints - that would require trapping reads for individual tagging
-> granules, include those in read-only binary segment.
+On Fri, 08 Feb 2019, Waiman Long wrote:
+>I am planning to run more performance test and post the data sometimes
+>next week. Davidlohr is also going to run some of his rwsem performance
+>test on this patchset.
 
-I think we should keep this discussion for a later, separate thread. Vincenzo's 
-proposal is about allowing userspace to pass tags at the syscall interface. The set 
-of mappings allowed to be tagged by userspace (in MTE) should be contained in the set 
-of mappings that userspace can pass tagged pointers to (at the syscall interface), 
-but they are not necessarily the same. Private read-only mappings are an edge case 
-(you can pass tagged pointers to them, the memory may or may not be mapped as tagged, 
-but in any case it is not possible to change the memory tags via such mapping).
+So I ran this series on a 40-core IB 2 socket with various worklods in
+mmtests. Below are some of the interesting ones; full numbers and curves
+at https://linux-scalability.org/rwsem-reader-spinner/
 
->
->> [...]
->>
->>>> It might be reasonable to do the check in access_ok() and skip it in
->>>> __put_user() etc.
->>>>
->>>> (I seem to remember some separate discussion about abolishing
->>>> __put_user() and friends though, due to the accident risk they pose.)
->>> Keep in mind that with MTE, there is no need to do any explicit check when
->>> accessing user memory via a user-provided pointer. The tagged user pointer
->>> is directly passed to copy_*_user() or put_user(). If the load/store causes
->>> a tag fault, then it is handled just like a page fault (i.e. invoking the
->>> fixup handler). As far as I can tell, there's no need to do anything special
->>> in access_ok() in that case.
->>>
->>> [The above applies to precise mode. In imprecise mode, some more work will
->>> be needed after the load/store to check whether a tag fault happened.]
->> Fair enough, I'm a bit hazy on the details as of right now..
->>
->> [...]
->>
->>> There are many possible ways to deploy MTE, and debugging is just one of
->>> them. For instance, you may want to turn on heap colouring for some
->>> processes in the system, including in production.
->> To implement enforceable protection, or as a diagnostic tool for when
->> something goes wrong?
->>
->> In the latter case it's still OK for the kernel's tag checking not to be
->> exhaustive.
->>
->>> Regarding those cases where it is impossible to check tags at the point of
->>> accessing user memory, it is indeed possible to check the memory tags at the
->>> point of stripping the tag from the user pointer. Given that some MTE
->>> use-cases favour performance over tag check coverage, the ideal approach
->>> would be to make these checks configurable (e.g. check one granule, check
->>> all of them, or check none). I don't know how feasible this is in practice.
->> Check all granules of a massive DMA buffer?
->>
->> That doesn't sounds feasible without explicit support in the hardware to
->> have the DMA check tags itself as the memory is accessed.  MTE by itself
->> doesn't provide for this IIUC (at least, it would require support in the
->> platform, not just the CPU).
->>
->> We do not want to bake any assumptions into the ABI about whether a
->> given data transfer may or may not be offloaded to DMA.  That feels
->> like a slippery slope.
->>
->> Providing we get the checks for free in put_user/get_user/
->> copy_{to,from}_user(), those will cover a lot of cases though, for
->> non-bulk-IO cases.
->>
->>
->> My assumption has been that at this point in time we are mainly aiming
->> to support the debug/diagnostic use cases today.
+All workloads are with increasing number of threads.
 
-MTE can be used both for diagnostics (imprecise mode is especially suitable for 
-that), and to halt execution when something wrong is detected. Even in the latter 
-case, one cannot expect exhaustive checking from MTE, because the way it works is 
-fundamentally statistical; an invalid pointer may by chance have the right tag to 
-access the given location. So again, I think that a best-effort approach is 
-appropriate when the kernel accesses user memory, in terms of checking that tags match.
+-- pagefault timings: pft is an artificial pf benchmark (thus reader stress).
+metric is faults/cpu and faults/sec
+                                       v5.0-rc6                 v5.0-rc6
+                                                                    dirty
+Hmean     faults/cpu-1    624224.9815 (   0.00%)   618847.5201 *  -0.86%*
+Hmean     faults/cpu-4    539550.3509 (   0.00%)   547407.5738 *   1.46%*
+Hmean     faults/cpu-7    401470.3461 (   0.00%)   381157.9830 *  -5.06%*
+Hmean     faults/cpu-12   267617.0353 (   0.00%)   271098.5441 *   1.30%*
+Hmean     faults/cpu-21   176194.4641 (   0.00%)   175151.3256 *  -0.59%*
+Hmean     faults/cpu-30   119927.3862 (   0.00%)   120610.1348 *   0.57%*
+Hmean     faults/cpu-40    91203.6820 (   0.00%)    91832.7489 *   0.69%*
+Hmean     faults/sec-1    623292.3467 (   0.00%)   617992.0795 *  -0.85%*
+Hmean     faults/sec-4   2113364.6898 (   0.00%)  2140254.8238 *   1.27%*
+Hmean     faults/sec-7   2557378.4385 (   0.00%)  2450945.7060 *  -4.16%*
+Hmean     faults/sec-12  2696509.8975 (   0.00%)  2747968.9819 *   1.91%*
+Hmean     faults/sec-21  2902892.5639 (   0.00%)  2905923.3881 *   0.10%*
+Hmean     faults/sec-30  2956696.5793 (   0.00%)  2990583.5147 *   1.15%*
+Hmean     faults/sec-40  3422806.4806 (   0.00%)  3352970.3082 *  -2.04%*
+Stddev    faults/cpu-1      2949.5159 (   0.00%)     2802.2712 (   4.99%)
+Stddev    faults/cpu-4     24165.9454 (   0.00%)    15841.1232 (  34.45%)
+Stddev    faults/cpu-7     20914.8351 (   0.00%)    22744.3294 (  -8.75%)
+Stddev    faults/cpu-12    11274.3490 (   0.00%)    14733.3152 ( -30.68%)
+Stddev    faults/cpu-21     2500.1950 (   0.00%)     2200.9518 (  11.97%)
+Stddev    faults/cpu-30     1599.5346 (   0.00%)     1414.0339 (  11.60%)
+Stddev    faults/cpu-40     1473.0181 (   0.00%)     3004.1209 (-103.94%)
+Stddev    faults/sec-1      2655.2581 (   0.00%)     2405.1625 (   9.42%)
+Stddev    faults/sec-4     84042.7234 (   0.00%)    57996.7158 (  30.99%)
+Stddev    faults/sec-7    123656.7901 (   0.00%)   135591.1087 (  -9.65%)
+Stddev    faults/sec-12    97135.6091 (   0.00%)   127054.4926 ( -30.80%)
+Stddev    faults/sec-21    69564.6264 (   0.00%)    65922.6381 (   5.24%)
+Stddev    faults/sec-30    51524.4027 (   0.00%)    56109.4159 (  -8.90%)
+Stddev    faults/sec-40   101927.5280 (   0.00%)   160117.0093 ( -57.09%)
 
-More specifically, different use-cases come with different tradeoffs (performance / 
-tag check coverage). That's why I am suggesting that in the cases where tag checks 
-would need to be done _explicitly_ (before losing the user-provided tag), it would be 
-nice to be able to choose how much should be checked. I am not suggesting that always 
-checking all the granules by default is sane. Maybe checking just the first granule 
-is the right default.
+With the exception of the hicup at 7 threads, things are pretty much in
+the noise region for both metrics.
 
-I don't think we need to get to the bottom of this specific aspect at this point. 
-This ABI proposal is not about memory tagging, so there is no need to specify how or 
-when tag checking is done. As long as this ABI allows tagged pointers, pointing to 
-mappings that could be potentially tagged, to be passed to syscalls, I don't think 
-further relaxations are needed to enable memory tagging.
+-- git checkout
 
-Kevin
+First metric is total runtime for runs with incremental threads.
 
->>
->> At least, those are the low(ish)-hanging fruit.
->>
->> Others are better placed than me to comment on the goals here.
->>
->> Cheers
->> ---Dave
+           v5.0-rc6    v5.0-rc6
+                          dirty
+User         218.95      219.07
+System       149.29      146.82
+Elapsed     1574.10     1427.08
+
+In this case there's a non trivial improvement (11%) in overall elapsed time.
+
+-- reaim (which is always succeptible to rwsem changes for both mmap_sem and
+i_mmap)
+                                     v5.0-rc6               v5.0-rc6
+                                                                dirty
+Hmean     compute-1         6674.01 (   0.00%)     6544.28 *  -1.94%*
+Hmean     compute-21       85294.91 (   0.00%)    85524.20 *   0.27%*
+Hmean     compute-41      149674.70 (   0.00%)   149494.58 *  -0.12%*
+Hmean     compute-61      177721.15 (   0.00%)   170507.38 *  -4.06%*
+Hmean     compute-81      181531.07 (   0.00%)   180463.24 *  -0.59%*
+Hmean     compute-101     189024.09 (   0.00%)   187288.86 *  -0.92%*
+Hmean     compute-121     200673.24 (   0.00%)   195327.65 *  -2.66%*
+Hmean     compute-141     213082.29 (   0.00%)   211290.80 *  -0.84%*
+Hmean     compute-161     207764.06 (   0.00%)   204626.68 *  -1.51%*
+
+The 'compute' workload overall takes a small hit.
+
+Hmean     new_dbase-1         60.48 (   0.00%)       60.63 *   0.25%*
+Hmean     new_dbase-21      6590.49 (   0.00%)     6671.81 *   1.23%*
+Hmean     new_dbase-41     14202.91 (   0.00%)    14470.59 *   1.88%*
+Hmean     new_dbase-61     21207.24 (   0.00%)    21067.40 *  -0.66%*
+Hmean     new_dbase-81     25542.40 (   0.00%)    25542.40 *   0.00%*
+Hmean     new_dbase-101    30165.28 (   0.00%)    30046.21 *  -0.39%*
+Hmean     new_dbase-121    33638.33 (   0.00%)    33219.90 *  -1.24%*
+Hmean     new_dbase-141    36723.70 (   0.00%)    37504.52 *   2.13%*
+Hmean     new_dbase-161    42242.51 (   0.00%)    42117.34 *  -0.30%*
+Hmean     shared-1            76.54 (   0.00%)       76.09 *  -0.59%*
+Hmean     shared-21         7535.51 (   0.00%)     5518.75 * -26.76%*
+Hmean     shared-41        17207.81 (   0.00%)    14651.94 * -14.85%*
+Hmean     shared-61        20716.98 (   0.00%)    18667.52 *  -9.89%*
+Hmean     shared-81        27603.83 (   0.00%)    23466.45 * -14.99%*
+Hmean     shared-101       26008.59 (   0.00%)    29536.96 *  13.57%*
+Hmean     shared-121       28354.76 (   0.00%)    43139.39 *  52.14%*
+Hmean     shared-141       38509.25 (   0.00%)    41619.35 *   8.08%*
+Hmean     shared-161       40496.07 (   0.00%)    44303.46 *   9.40%*
+
+Overall there is a small hit (in the noise level but consistent throughout
+many workloads), except git-checkout which does quite well.
+
+Thanks,
+Davidlohr
