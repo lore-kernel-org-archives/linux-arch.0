@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 3/4] init: free_initmem: poison freed init memory
-Date: Thu, 14 Feb 2019 17:59:36 +0200
-Message-ID: <1550159977-8949-4-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH 2/4] hexagon: switch over to generic free_initmem()
+Date: Thu, 14 Feb 2019 17:59:35 +0200
+Message-ID: <1550159977-8949-3-git-send-email-rppt@linux.ibm.com>
 References: <1550159977-8949-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1550159977-8949-1-git-send-email-rppt@linux.ibm.com>
@@ -10,44 +10,39 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Various architectures including x86 poison the freed init memory.
-Do the same in the generic free_initmem implementation and switch sparc32
-architecture that is identical to the generic code over to it now.
+hexagon implementation of free_initmem() is currently empty and marked with
+comment
+
+ * Todo:  free pages between __init_begin and __init_end; possibly
+ * some devtree related stuff as well.
+
+Switch it to the generic implementation.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/sparc/mm/init_32.c | 5 -----
- init/main.c             | 2 +-
- 2 files changed, 1 insertion(+), 6 deletions(-)
+ arch/hexagon/mm/init.c | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
-index d900952..77e8341 100644
---- a/arch/sparc/mm/init_32.c
-+++ b/arch/sparc/mm/init_32.c
-@@ -294,11 +294,6 @@ void __init mem_init(void)
- 	mem_init_print_info(NULL);
+diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+index 1719ede..41cf342 100644
+--- a/arch/hexagon/mm/init.c
++++ b/arch/hexagon/mm/init.c
+@@ -85,16 +85,6 @@ void __init mem_init(void)
  }
  
--void free_initmem (void)
+ /*
+- * free_initmem - frees memory used by stuff declared with __init
+- *
+- * Todo:  free pages between __init_begin and __init_end; possibly
+- * some devtree related stuff as well.
+- */
+-void __ref free_initmem(void)
 -{
--	free_initmem_default(POISON_FREE_INITMEM);
 -}
 -
- #ifdef CONFIG_BLK_DEV_INITRD
- void free_initrd_mem(unsigned long start, unsigned long end)
- {
-diff --git a/init/main.c b/init/main.c
-index 38d69e0..9a61e9c 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1049,7 +1049,7 @@ static inline void mark_readonly(void)
- 
- void __weak free_initmem(void)
- {
--	free_initmem_default(-1);
-+	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
- static int __ref kernel_init(void *unused)
+-/*
+  * free_initrd_mem - frees...  initrd memory.
+  * @start - start of init memory
+  * @end - end of init memory
 -- 
 2.7.4
