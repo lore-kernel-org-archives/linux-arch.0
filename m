@@ -1,27 +1,59 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH 03/11] kernel/locks: consolidate RWSEM_GENERIC_* options
-Date: Thu, 14 Feb 2019 12:24:41 -0500
-Message-ID: <ac30d526-eb58-a95a-0e7f-e9da5f5cd64a@redhat.com>
-References: <20190213174005.28785-1-hch@lst.de>
- <20190213174005.28785-4-hch@lst.de>
- <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com>
- <d9aeeedd-ce72-f58f-d858-3e340c073414@redhat.com>
- <20190214170440.GB32441@lst.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
+Date: Thu, 14 Feb 2019 09:51:21 -0800
+Message-ID: <CAHk-=whKmuranma_HUOKBbDJHGmdWZr9MYW-+cmGzsOiJ2N1Sg@mail.gmail.com>
+References: <1550089932-6888-1-git-send-email-longman@redhat.com>
+ <1550089932-6888-3-git-send-email-longman@redhat.com>
+ <20190214103333.GH32494@hirez.programming.kicks-ass.net>
+ <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190214170440.GB32441@lst.de>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Davidlohr Bueso <dave@stgolabs.net>, linux-ia64@vger.kernel.org, Tim Chen <tim.c.chen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-hexagon@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, sparclinux@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 02/14/2019 12:04 PM, Christoph Hellwig wrote:
-> On Thu, Feb 14, 2019 at 10:26:52AM -0500, Waiman Long wrote:
->> Would you mind dropping just patch 3 from your series?
-> Sure, we can just drop this patch.
+On Thu, Feb 14, 2019 at 6:53 AM Waiman Long <longman@redhat.com> wrote:
+>
+> The ARM64 result is what I would have expected given that the change was
+> to optimize for the uncontended case. The x86-64 result is kind of an
+> anomaly to me, but I haven't bothered to dig into that.
 
-Thanks,
-Longman
+I would say that the ARM result is what I'd expect from something that
+scales badly to begin with.
+
+The x86-64 result is the expected one: yes, the cmpxchg is done one
+extra time, but it results in fewer cache transitions (the cacheline
+never goes into "shared" state), and cache transitions are what
+matter.
+
+The cost of re-doing the instruction should be low. The cacheline
+ping-pong and the cache coherency messages is what hurts.
+
+So I actually think both are very easily explained.
+
+The x86-64 number improves, because there is less cache coherency traffic.
+
+The arm64 numbers scaled horribly even before, and that's because
+there is too much ping-pong, and it's probably because there is no
+"stickiness" to the cacheline to the core, and thus adding the extra
+loop can make the ping-pong issue even worse because now there is more
+of it.
+
+The cachelines not sticking at all to a core probably is good for
+fairness issues (in particular, sticking *too* much can cause horrible
+issues), but it's absolutely horrible if it means that you lose the
+cacheline even before you get to complete the second cmpxchg.
+
+                  Linus
