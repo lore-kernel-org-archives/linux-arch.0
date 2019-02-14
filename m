@@ -1,63 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f193.google.com ([209.85.208.193]:34710 "EHLO
-        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730972AbfBNRvn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 12:51:43 -0500
-Received: by mail-lj1-f193.google.com with SMTP id l5so2610467lje.1
-        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2019 09:51:42 -0800 (PST)
-Received: from mail-lf1-f44.google.com (mail-lf1-f44.google.com. [209.85.167.44])
-        by smtp.gmail.com with ESMTPSA id a3-v6sm560086ljd.20.2019.02.14.09.51.38
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 14 Feb 2019 09:51:38 -0800 (PST)
-Received: by mail-lf1-f44.google.com with SMTP id l10so5179502lfh.9
-        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2019 09:51:38 -0800 (PST)
-MIME-Version: 1.0
-References: <1550089932-6888-1-git-send-email-longman@redhat.com>
- <1550089932-6888-3-git-send-email-longman@redhat.com> <20190214103333.GH32494@hirez.programming.kicks-ass.net>
- <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
-In-Reply-To: <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 14 Feb 2019 09:51:21 -0800
-Message-ID: <CAHk-=whKmuranma_HUOKBbDJHGmdWZr9MYW-+cmGzsOiJ2N1Sg@mail.gmail.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48778 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729935AbfBNSCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Feb 2019 13:02:45 -0500
+Date: Thu, 14 Feb 2019 18:02:39 +0000
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20190214180239.GI2475@fuggles.cambridge.arm.com>
+References: <1550089932-6888-1-git-send-email-longman@redhat.com>
+ <1550089932-6888-3-git-send-email-longman@redhat.com>
+ <20190214103333.GH32494@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190214103333.GH32494@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190214175121.N2nQClkbNYeSUMFJdn79ltljl4u3dTrW7wikNSGzJaY@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190214180239.Sg2N_5Nmf7DxLrHkycyJWNqFPg5RX8SQOOH9sXdzQfU@z>
 
-On Thu, Feb 14, 2019 at 6:53 AM Waiman Long <longman@redhat.com> wrote:
->
-> The ARM64 result is what I would have expected given that the change was
-> to optimize for the uncontended case. The x86-64 result is kind of an
-> anomaly to me, but I haven't bothered to dig into that.
+On Thu, Feb 14, 2019 at 11:33:33AM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 13, 2019 at 03:32:12PM -0500, Waiman Long wrote:
+> > Modify __down_read_trylock() to optimize for an unlocked rwsem and make
+> > it generate slightly better code.
+> > 
+> > Before this patch, down_read_trylock:
+> > 
+> >    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+> >    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+> >    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+> >    0x000000000000000b <+11>:    mov    %rdx,%rax
+> >    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+> >    0x0000000000000013 <+19>:    cmp    %rax,%rdx
+> >    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+> >    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+> >    0x000000000000001b <+27>:    test   %rdx,%rdx
+> >    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+> >    0x0000000000000020 <+32>:    xor    %eax,%eax
+> >    0x0000000000000022 <+34>:    retq
+> >    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+> >    0x000000000000002c <+44>:    or     $0x3,%rax
+> >    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+> >    0x0000000000000034 <+52>:    mov    $0x1,%eax
+> >    0x0000000000000039 <+57>:    retq
+> > 
+> > After patch, down_read_trylock:
+> > 
+> >    0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
+> >    0x0000000000000005 <+5>:	xor    %eax,%eax
+> >    0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
+> >    0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
+> >    0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
+> >    0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
+> >    0x000000000000001b <+27>:	or     $0x3,%rax
+> >    0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
+> >    0x0000000000000023 <+35>:	mov    $0x1,%eax
+> >    0x0000000000000028 <+40>:	retq
+> >    0x0000000000000029 <+41>:	test   %rax,%rax
+> >    0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
+> >    0x000000000000002e <+46>:	xor    %eax,%eax
+> >    0x0000000000000030 <+48>:	retq
+> > 
+> > By using a rwsem microbenchmark, the down_read_trylock() rate (with a
+> > load of 10 to lengthen the lock critical section) on a x86-64 system
+> > before and after the patch were:
+> > 
+> >                  Before Patch    After Patch
+> >    # of Threads     rlock           rlock
+> >    ------------     -----           -----
+> >         1           14,496          14,716
+> >         2            8,644           8,453
+> > 	4            6,799           6,983
+> > 	8            5,664           7,190
+> > 
+> > On a ARM64 system, the performance results were:
+> > 
+> >                  Before Patch    After Patch
+> >    # of Threads     rlock           rlock
+> >    ------------     -----           -----
+> >         1           23,676          24,488
+> >         2            7,697           9,502
+> >         4            4,945           3,440
+> >         8            2,641           1,603
+> 
+> Urgh, yes LL/SC is the obvious exception that can actually do better
+> here :/
+> 
+> Will, what say you?
 
-I would say that the ARM result is what I'd expect from something that
-scales badly to begin with.
+What machine were these numbers generated on and is it using LL/SC or LSE
+atomics for arm64? If you stick the microbenchmark somewhere, I can go play
+with a broader variety of h/w.
 
-The x86-64 result is the expected one: yes, the cmpxchg is done one
-extra time, but it results in fewer cache transitions (the cacheline
-never goes into "shared" state), and cache transitions are what
-matter.
-
-The cost of re-doing the instruction should be low. The cacheline
-ping-pong and the cache coherency messages is what hurts.
-
-So I actually think both are very easily explained.
-
-The x86-64 number improves, because there is less cache coherency traffic.
-
-The arm64 numbers scaled horribly even before, and that's because
-there is too much ping-pong, and it's probably because there is no
-"stickiness" to the cacheline to the core, and thus adding the extra
-loop can make the ping-pong issue even worse because now there is more
-of it.
-
-The cachelines not sticking at all to a core probably is good for
-fairness issues (in particular, sticking *too* much can cause horrible
-issues), but it's absolutely horrible if it means that you lose the
-cacheline even before you get to complete the second cmpxchg.
-
-                  Linus
+Will
