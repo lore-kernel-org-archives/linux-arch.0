@@ -1,146 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:37632 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391135AbfBNKDU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 05:03:20 -0500
-Subject: Re: [PATCH v7 05/28] x86/asm/entry: annotate THUNKs
-References: <20190130124711.12463-1-jslaby@suse.cz>
- <20190130124711.12463-6-jslaby@suse.cz> <20190209112551.GA5089@zn.tnic>
- <b75f2a0d-974a-c63b-64f8-8f333991e826@suse.cz>
- <20190212110501.GB30028@zn.tnic>
- <6b6aebb5-5f7c-e3b7-545e-3a4558e01e66@suse.cz>
- <20190212114654.GC30028@zn.tnic>
- <37e83ece-28c0-a7ec-86a3-b9b5ca2c61f6@suse.cz>
- <20190212121347.GD30028@zn.tnic>
-From: Jiri Slaby <jslaby@suse.cz>
-Message-ID: <cd09f00f-7174-4d06-50a2-3cc056b7d763@suse.cz>
-Date: Thu, 14 Feb 2019 11:03:14 +0100
+Received: from bombadil.infradead.org ([198.137.202.133]:34630 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404171AbfBNKdq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 05:33:46 -0500
+Date: Thu, 14 Feb 2019 11:33:33 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
+Message-ID: <20190214103333.GH32494@hirez.programming.kicks-ass.net>
+References: <1550089932-6888-1-git-send-email-longman@redhat.com>
+ <1550089932-6888-3-git-send-email-longman@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20190212121347.GD30028@zn.tnic>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1550089932-6888-3-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20190214100314.RC-0EuqXt3V6FXo8xDniqJsxCvf__PF65_W6y9dYGE0@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190214103333.4UfIZ95p9Cz6bmZutvnIgdM9J6-flCv4yenbzkcLM74@z>
 
-On 12. 02. 19, 13:13, Borislav Petkov wrote:
-> On Tue, Feb 12, 2019 at 12:51:08PM +0100, Jiri Slaby wrote:
->> And what if the LOCAL macros prepend .L automatically? The references
->> would need to be via macro or by manually adding .L. I mean:
->>
->> SYM_CODE_START_LOCAL(function)
->>   ret
->> SYM_CODE_END(function)
->>
->> And then used as:
->> call .Lfunction
->> or
->> call SYM_LOCAL(function)
->>
->> Is that too ugly?
+On Wed, Feb 13, 2019 at 03:32:12PM -0500, Waiman Long wrote:
+> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
+> it generate slightly better code.
 > 
-> I'd prefer SYM_LOCAL because not everyone is aware of the fact that the
-> GNU toolchain makes .L-prepended symbols local.
-
-The problem with local .L symbols is when debugging:
-> Local symbols are defined and used within the assembler, but they are
-> normally not saved in object files.  Thus, they are not visible when
-> debugging.
-
-Which means, when I have:
-> .text
+> Before this patch, down_read_trylock:
 > 
-> .globl _start
-> _start:
->         call .Lbubak
-> .type _start STT_FUNC
-> .size _start, .-_start
+>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+>    0x000000000000000b <+11>:    mov    %rdx,%rax
+>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
+>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+>    0x000000000000001b <+27>:    test   %rdx,%rdx
+>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+>    0x0000000000000020 <+32>:    xor    %eax,%eax
+>    0x0000000000000022 <+34>:    retq
+>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+>    0x000000000000002c <+44>:    or     $0x3,%rax
+>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+>    0x0000000000000034 <+52>:    mov    $0x1,%eax
+>    0x0000000000000039 <+57>:    retq
 > 
-> .Lbubak:
->         movb $0, 0
-> .type .Lbubak STT_FUNC
-> .size .Lbubak, .-.Lbubak
-
-and I run it:
-> (gdb) r
-> Starting program: /tmp/asm/asm 
+> After patch, down_read_trylock:
 > 
-> Program received signal SIGSEGV, Segmentation fault.
-> 0x0000000000401006 in ?? ()
-> (gdb) where
-> #0  0x0000000000401006 in ?? ()
-> #1  0x0000000000401005 in _start ()
-> (gdb) disass
-> No function contains program counter for selected frame.
-> (gdb) disass *0x0000000000401006
-> No function contains specified address.
-> (gdb) x/i $pc
-> => 0x401006:    movb   $0x0,0x0
-> (gdb) x/i 0x0000000000401006
-> => 0x401006:    movb   $0x0,0x0
+>    0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
+>    0x0000000000000005 <+5>:	xor    %eax,%eax
+>    0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
+>    0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
+>    0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
+>    0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
+>    0x000000000000001b <+27>:	or     $0x3,%rax
+>    0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
+>    0x0000000000000023 <+35>:	mov    $0x1,%eax
+>    0x0000000000000028 <+40>:	retq
+>    0x0000000000000029 <+41>:	test   %rax,%rax
+>    0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
+>    0x000000000000002e <+46>:	xor    %eax,%eax
+>    0x0000000000000030 <+48>:	retq
+> 
+> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
+> load of 10 to lengthen the lock critical section) on a x86-64 system
+> before and after the patch were:
+> 
+>                  Before Patch    After Patch
+>    # of Threads     rlock           rlock
+>    ------------     -----           -----
+>         1           14,496          14,716
+>         2            8,644           8,453
+> 	4            6,799           6,983
+> 	8            5,664           7,190
+> 
+> On a ARM64 system, the performance results were:
+> 
+>                  Before Patch    After Patch
+>    # of Threads     rlock           rlock
+>    ------------     -----           -----
+>         1           23,676          24,488
+>         2            7,697           9,502
+>         4            4,945           3,440
+>         8            2,641           1,603
 
-Which is quite impractical -- disass won't work, only explicit dump via
-x. And the kernel unwinder would be no more clever. So when patching
-entry like:
-> --- a/arch/x86/entry/entry_64.S
-> +++ b/arch/x86/entry/entry_64.S
-> @@ -323,6 +323,18 @@ SYM_CODE_START(__switch_to_asm)
->         jmp     __switch_to
->  SYM_CODE_END(__switch_to_asm)
->  
-> +#if 0
-> +#define KILLER killer
-> +#else
-> +#define KILLER .Lkiller
-> +#endif
-> +
-> +SYM_CODE_START_LOCAL(KILLER)
-> +       UNWIND_HINT_EMPTY
-> +       movb $0, 0
-> +       ret
-> +SYM_CODE_END(KILLER)
-> +
->  /*
->   * A newly forked process directly context switches into this address.
->   *
-> @@ -332,6 +344,7 @@ SYM_CODE_END(__switch_to_asm)
->   */
->  SYM_CODE_START(ret_from_fork)
->         UNWIND_HINT_EMPTY
-> +       call    KILLER
->         movq    %rax, %rdi
->         call    schedule_tail                   /* rdi: 'prev' task parameter */
->  
+Urgh, yes LL/SC is the obvious exception that can actually do better
+here :/
 
-first results in objtool complaints:
-> arch/x86/entry/entry_64.o: warning: objtool: .entry.text+0x190: unsupported intra-function call
-> arch/x86/entry/entry_64.o: warning: objtool: If this is a retpoline, please patch it in with alternatives and annotate it with ANNOTATE_NOSPEC_ALTERNATIVE.
-
-and also the crash is misleading:
-> BUG: unable to handle kernel NULL pointer dereference at 0000000000000000
-> #PF error: [WRITE] 
-> PGD 0 P4D 0 
-> Oops: 0002 [#1] PREEMPT SMP
-...
-> RIP: 0010:__switch_to_asm+0x70/0x80
-
-opposing to classic symbol:
-> BUG: unable to handle kernel NULL pointer dereference at 0000000000000000
-> #PF error: [WRITE] 
-> PGD 0 P4D 0 
-> Oops: 0002 [#1] PREEMPT SMP
-...> RIP: 0010:killer+0x0/0x10
-
-(The killer was appended to the previous function by gas in the former
-case.)
-
-Therefore, I don't think using local .L labels outside of functions is a
-good idea...
-
-regards,
--- 
-js
-suse labs
+Will, what say you?
