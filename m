@@ -1,40 +1,49 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH 03/11] kernel/locks: consolidate RWSEM_GENERIC_* options
-Date: Thu, 14 Feb 2019 10:26:52 -0500
-Message-ID: <d9aeeedd-ce72-f58f-d858-3e340c073414@redhat.com>
-References: <20190213174005.28785-1-hch@lst.de>
- <20190213174005.28785-4-hch@lst.de>
- <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH 0/4] provide a generic free_initmem implementation
+Date: Thu, 14 Feb 2019 17:59:33 +0200
+Message-ID: <1550159977-8949-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdW4C1McxL-e7ZSiSOiiE5D=xbBK8FZOwuJ1w0kK3CR1Hg@mail.gmail.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 02/14/2019 05:52 AM, Geert Uytterhoeven wrote:
-> On Thu, Feb 14, 2019 at 12:08 AM Christoph Hellwig <hch@lst.de> wrote:
->> Introduce one central definition of RWSEM_XCHGADD_ALGORITHM and
->> RWSEM_GENERIC_SPINLOCK in kernel/Kconfig.locks and let architectures
->> select RWSEM_XCHGADD_ALGORITHM if they want it, otherwise default to
->> the spinlock version.
->>
->> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Note that this conflicts with "[PATCH v4 2/3] locking/rwsem: Remove
-> rwsem-spinlock.c & use rwsem-xadd.c for all archs"
-> https://lore.kernel.org/lkml/1550095217-12047-3-git-send-email-longman@redhat.com/
->
-> Gr{oetje,eeting}s,
->
->                         Geert
->
-Christoph,
+Hi,
 
-Would you mind dropping just patch 3 from your series?
+Many architectures implement free_initmem() in exactly the same or very
+similar way: they wrap the call to free_initmem_default() with sometimes
+different 'poison' parameter.
 
-Thanks,
-Longman
+These patches switch those architectures to use a generic implementation
+that does free_initmem_default(POISON_FREE_INITMEM).
+
+This was inspired by Christoph's patches for free_initrd_mem [1] and I
+shamelessly copied changlog entries from his patches :)
+
+[1] https://lore.kernel.org/lkml/20190213174621.29297-1-hch@lst.de/
+
+Mike Rapoport (4):
+  init: provide a generic free_initmem implementation
+  hexagon: switch over to generic free_initmem()
+  init: free_initmem: poison freed init memory
+  riscv: switch over to generic free_initmem()
+
+ arch/alpha/mm/init.c      |  6 ------
+ arch/arc/mm/init.c        |  8 --------
+ arch/c6x/mm/init.c        |  5 -----
+ arch/h8300/mm/init.c      |  6 ------
+ arch/hexagon/mm/init.c    | 10 ----------
+ arch/microblaze/mm/init.c |  5 -----
+ arch/nds32/mm/init.c      |  5 -----
+ arch/nios2/mm/init.c      |  5 -----
+ arch/openrisc/mm/init.c   |  5 -----
+ arch/riscv/mm/init.c      |  5 -----
+ arch/sh/mm/init.c         |  5 -----
+ arch/sparc/mm/init_32.c   |  5 -----
+ arch/unicore32/mm/init.c  |  5 -----
+ arch/xtensa/mm/init.c     |  5 -----
+ init/main.c               |  5 +++++
+ 15 files changed, 5 insertions(+), 80 deletions(-)
+
+-- 
+2.7.4
