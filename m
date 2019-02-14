@@ -1,51 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:34420 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2503210AbfBNUts (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 15:49:48 -0500
-Received: by mail-pf1-f194.google.com with SMTP id j18so3694114pfe.1
-        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2019 12:49:47 -0800 (PST)
-Date: Thu, 14 Feb 2019 12:49:45 -0800 (PST)
-Subject: Re: [PATCH 4/4] riscv: switch over to generic free_initmem()
-In-Reply-To: <1550159977-8949-5-git-send-email-rppt@linux.ibm.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-e6dedfc5-937e-42e5-90d6-4ce400cbc6fb@palmer-si-x1c4>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
+Received: from mail-it1-f196.google.com ([209.85.166.196]:40311 "EHLO
+        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2392645AbfBNVQz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2019 16:16:55 -0500
+Received: by mail-it1-f196.google.com with SMTP id i2so18084102ite.5
+        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2019 13:16:54 -0800 (PST)
+From: Yu Zhao <yuzhao@google.com>
+Subject: [PATCH] arm64: mm: enable per pmd page table lock
+Date: Thu, 14 Feb 2019 14:16:42 -0700
+Message-ID: <20190214211642.2200-1-yuzhao@google.com>
+MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: akpm@linux-foundation.org, Christoph Hellwig <hch@lst.de>, rkuo@codeaurora.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, rppt@linux.ibm.com
-Message-ID: <20190214204945.9sQOyZA4NRE-FyRJ6M9qVOpeb_VUdGDafszzPGmgrbM@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
+Message-ID: <20190214211642.53qK4VqVlXag-k6QIQhFGHFcJFFOWqIO93xPPJr9qO8@z>
 
-On Thu, 14 Feb 2019 07:59:37 PST (-0800), rppt@linux.ibm.com wrote:
-> The riscv version of free_initmem() differs from the generic one only in
-> that it sets the freed memory to zero.
->
-> Make ricsv use the generic version and poison the freed memory.
->
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/riscv/mm/init.c | 5 -----
->  1 file changed, 5 deletions(-)
->
-> diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-> index 658ebf6..2af0010 100644
-> --- a/arch/riscv/mm/init.c
-> +++ b/arch/riscv/mm/init.c
-> @@ -60,11 +60,6 @@ void __init mem_init(void)
->  	mem_init_print_info(NULL);
->  }
->
-> -void free_initmem(void)
-> -{
-> -	free_initmem_default(0);
-> -}
-> -
->  #ifdef CONFIG_BLK_DEV_INITRD
->  void free_initrd_mem(unsigned long start, unsigned long end)
->  {
+Switch from per mm_struct to per pmd page table lock by enabling
+ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+large system.
 
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+I'm not sure if there is contention on mm->page_table_lock. Given
+the option comes at no cost (apart from initializing more spin
+locks), why not enable it now.
 
-I'm going to assume this goes in with the rest of the patch set, thanks!
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+---
+ arch/arm64/Kconfig               |  3 +++
+ arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
+ arch/arm64/include/asm/tlb.h     |  5 ++++-
+ 3 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a4168d366127..104325a1ffc3 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
+ config ARCH_HAS_CACHE_LINE_SIZE
+ 	def_bool y
+ 
++config ARCH_ENABLE_SPLIT_PMD_PTLOCK
++	def_bool y
++
+ config SECCOMP
+ 	bool "Enable seccomp to safely compute untrusted bytecode"
+ 	---help---
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index 52fa47c73bf0..dabba4b2c61f 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -33,12 +33,22 @@
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return (pmd_t *)__get_free_page(PGALLOC_GFP);
++	struct page *page;
++
++	page = alloc_page(PGALLOC_GFP);
++	if (!page)
++		return NULL;
++	if (!pgtable_pmd_page_ctor(page)) {
++		__free_page(page);
++		return NULL;
++	}
++	return page_address(page);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmdp)
+ {
+ 	BUG_ON((unsigned long)pmdp & (PAGE_SIZE-1));
++	pgtable_pmd_page_dtor(virt_to_page(pmdp));
+ 	free_page((unsigned long)pmdp);
+ }
+ 
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 106fdc951b6e..4e3becfed387 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -62,7 +62,10 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 				  unsigned long addr)
+ {
+-	tlb_remove_table(tlb, virt_to_page(pmdp));
++	struct page *page = virt_to_page(pmdp);
++
++	pgtable_pmd_page_dtor(page);
++	tlb_remove_table(tlb, page);
+ }
+ #endif
+ 
+-- 
+2.21.0.rc0.258.g878e2cd30e-goog
