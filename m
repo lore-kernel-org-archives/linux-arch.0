@@ -1,75 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:51167 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726986AbfBOJNJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 Feb 2019 04:13:09 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH] mmap.2: describe the 5level paging hack
-In-Reply-To: <20190211163653.97742-1-jannh@google.com>
-References: <20190211163653.97742-1-jannh@google.com>
-Date: Fri, 15 Feb 2019 20:13:02 +1100
-Message-ID: <87sgwpct41.fsf@concordia.ellerman.id.au>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:37434 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2388116AbfBOSfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 Feb 2019 13:35:12 -0500
+Date: Fri, 15 Feb 2019 18:35:05 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
+Message-ID: <20190215183505.GB15084@fuggles.cambridge.arm.com>
+References: <1550089932-6888-1-git-send-email-longman@redhat.com>
+ <1550089932-6888-3-git-send-email-longman@redhat.com>
+ <20190214103333.GH32494@hirez.programming.kicks-ass.net>
+ <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
+ <CAHk-=whKmuranma_HUOKBbDJHGmdWZr9MYW-+cmGzsOiJ2N1Sg@mail.gmail.com>
+ <CAHk-=wi03J1jurebJNHPxGCVss7ARAN+2JuVthEGoEx=qkT4dQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wi03J1jurebJNHPxGCVss7ARAN+2JuVthEGoEx=qkT4dQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>, mtk.manpages@gmail.comjannh@google.com
-Cc: linux-man@vger.kernel.org, linux-mm@kvack.org, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-api@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <20190215091302.Bo_2P-M4XCGS_hziPpwI36fYmCcJhc_rTtWjMoBxZ8w@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190215183505.4MB3mIO52v8-pMwp9Z6nGCdwY1WKvhDAhcW6dMXa5u4@z>
 
-Jann Horn <jannh@google.com> writes:
+On Thu, Feb 14, 2019 at 10:09:44AM -0800, Linus Torvalds wrote:
+> On Thu, Feb 14, 2019 at 9:51 AM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > The arm64 numbers scaled horribly even before, and that's because
+> > there is too much ping-pong, and it's probably because there is no
+> > "stickiness" to the cacheline to the core, and thus adding the extra
+> > loop can make the ping-pong issue even worse because now there is more
+> > of it.
+> 
+> Actually, if it's using the ll/sc, then I don't see why arm64 should
+> even change. It doesn't really even change the pattern: the initial
+> load of the value is just replaced with a "ll" that gets a non-zero
+> value, and then we re-try without even doing the "sc" part.
 
-> The manpage is missing information about the compatibility hack for
-> 5-level paging that went in in 4.14, around commit ee00f4a32a76 ("x86/mm:
-> Allow userspace have mappings above 47-bit"). Add some information about
-> that.
+So our cmpxchg() has a prefetch-with-intent-to-modify instruction before the
+'ll' part, which will attempt to grab the line unique the first time round.
+The 'll' also has acquire semantics, so there's the chance for the
+micro-architecture to handle that badly too.
 
-Thanks for doing this.
+I think that the problem with the proposed changed change is that whenever a
+reader tries to acquire an rwsem that is already held for read, it will
+always fail the first cmpxchg(), so in this situation the read path is
+considerably slower than before.
 
-> While I don't think any hardware supporting this is shipping yet (?), I
-> think it's useful to try to write a manpage for this API, partly to
-> figure out how usable that API actually is, and partly because when this
-> hardware does ship, it'd be nice if distro manpages had information about
-> how to use it.
->
-> Signed-off-by: Jann Horn <jannh@google.com>
-> ---
-> This patch goes on top of the patch "[PATCH] mmap.2: fix description of
-> treatment of the hint" that I just sent, but I'm not sending them in a
-> series because I want the first one to go in, and I think this one might
-> be a bit more controversial.
->
-> It would be nice if the architecture maintainers and mm folks could have
-> a look at this and check that what I wrote is right - I only looked at
-> the source for this, I haven't tried it.
->
->  man2/mmap.2 | 15 +++++++++++++++
->  1 file changed, 15 insertions(+)
->
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 8556bbfeb..977782fa8 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -67,6 +67,8 @@ is NULL,
->  then the kernel chooses the (page-aligned) address
->  at which to create the mapping;
->  this is the most portable method of creating a new mapping.
-> +On Linux, in this case, the kernel may limit the maximum address that can be
-> +used for allocations to a legacy limit for compatibility reasons.
->  If
->  .I addr
->  is not NULL,
-> @@ -77,6 +79,19 @@ or equal to the value specified by
->  and attempt to create the mapping there.
->  If another mapping already exists there, the kernel picks a new
->  address, independent of the hint.
-> +However, if a hint above the architecture's legacy address limit is provided
-> +(on x86-64: above 0x7ffffffff000, on arm64: above 0x1000000000000, on ppc64 with
-> +book3s: above 0x7fffffffffff or 0x3fffffffffff, depending on page size), the
+> End result: exact same "load once, then do ll/sc to update". Just
+> using a slightly different instruction pattern.
+> 
+> But maybe "ll" does something different to the cacheline than a regular "ld"?
+> 
+> Alternatively, the machine you used is using LSE, and the "swp" thing
+> has some horrid behavior when it fails.
 
-It doesn't depend on page size for ppc64(le). With 4K pages the user VM
-is always 64TB.
+Depending on where the data is, the LSE instructions may execute outside of
+the CPU (e.g. in a cache controller) and so could add latency to a failing
+CAS.
 
-So the only boundary for us is at 128T when using 64K pages.
-
-cheers
+Will
