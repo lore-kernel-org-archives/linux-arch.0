@@ -1,63 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:37434 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:37532 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388116AbfBOSfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 Feb 2019 13:35:12 -0500
-Date: Fri, 15 Feb 2019 18:35:05 +0000
+        id S1727890AbfBOSlE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 Feb 2019 13:41:04 -0500
+Date: Fri, 15 Feb 2019 18:40:56 +0000
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3 2/2] locking/rwsem: Optimize down_read_trylock()
-Message-ID: <20190215183505.GB15084@fuggles.cambridge.arm.com>
-References: <1550089932-6888-1-git-send-email-longman@redhat.com>
- <1550089932-6888-3-git-send-email-longman@redhat.com>
- <20190214103333.GH32494@hirez.programming.kicks-ass.net>
- <9e01d4ef-56df-7af8-a0f5-b49644e298bf@redhat.com>
- <CAHk-=whKmuranma_HUOKBbDJHGmdWZr9MYW-+cmGzsOiJ2N1Sg@mail.gmail.com>
- <CAHk-=wi03J1jurebJNHPxGCVss7ARAN+2JuVthEGoEx=qkT4dQ@mail.gmail.com>
+Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
+Message-ID: <20190215184056.GC15084@fuggles.cambridge.arm.com>
+References: <1550095217-12047-1-git-send-email-longman@redhat.com>
+ <20190214103715.GI32494@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wi03J1jurebJNHPxGCVss7ARAN+2JuVthEGoEx=qkT4dQ@mail.gmail.com>
+In-Reply-To: <20190214103715.GI32494@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190215183505.4MB3mIO52v8-pMwp9Z6nGCdwY1WKvhDAhcW6dMXa5u4@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190215184056.tr5Jo05pLYv3uei7mX7dgqGahK7TOr658G27E5xdbO8@z>
 
-On Thu, Feb 14, 2019 at 10:09:44AM -0800, Linus Torvalds wrote:
-> On Thu, Feb 14, 2019 at 9:51 AM Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > The arm64 numbers scaled horribly even before, and that's because
-> > there is too much ping-pong, and it's probably because there is no
-> > "stickiness" to the cacheline to the core, and thus adding the extra
-> > loop can make the ping-pong issue even worse because now there is more
-> > of it.
+On Thu, Feb 14, 2019 at 11:37:15AM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 13, 2019 at 05:00:14PM -0500, Waiman Long wrote:
+> > v4:
+> >  - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
+> > 
+> > v3:
+> >  - Optimize __down_read_trylock() for the uncontended case as suggested
+> >    by Linus.
+> > 
+> > v2:
+> >  - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+> >  - Update performance test data in patch 1.
+> > 
+> > The goal of this patchset is to remove the architecture specific files
+> > for rwsem-xadd to make it easer to add enhancements in the later rwsem
+> > patches. It also removes the legacy rwsem-spinlock.c file and make all
+> > the architectures use one single implementation of rwsem - rwsem-xadd.c.
+> > 
+> > Waiman Long (3):
+> >   locking/rwsem: Remove arch specific rwsem files
+> >   locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
+> >     archs
+> >   locking/rwsem: Optimize down_read_trylock()
 > 
-> Actually, if it's using the ll/sc, then I don't see why arm64 should
-> even change. It doesn't really even change the pattern: the initial
-> load of the value is just replaced with a "ll" that gets a non-zero
-> value, and then we re-try without even doing the "sc" part.
-
-So our cmpxchg() has a prefetch-with-intent-to-modify instruction before the
-'ll' part, which will attempt to grab the line unique the first time round.
-The 'll' also has acquire semantics, so there's the chance for the
-micro-architecture to handle that badly too.
-
-I think that the problem with the proposed changed change is that whenever a
-reader tries to acquire an rwsem that is already held for read, it will
-always fail the first cmpxchg(), so in this situation the read path is
-considerably slower than before.
-
-> End result: exact same "load once, then do ll/sc to update". Just
-> using a slightly different instruction pattern.
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 > 
-> But maybe "ll" does something different to the cacheline than a regular "ld"?
-> 
-> Alternatively, the machine you used is using LSE, and the "swp" thing
-> has some horrid behavior when it fails.
+> with the caveat that I'm happy to exchange patch 3 back to my earlier
+> suggestion in case Will expesses concerns wrt the ARM64 performance of
+> Linus' suggestion.
 
-Depending on where the data is, the LSE instructions may execute outside of
-the CPU (e.g. in a cache controller) and so could add latency to a failing
-CAS.
+Right, the current proposal doesn't work well for us, unfortunately. Which
+was your earlier suggestion?
 
 Will
