@@ -1,32 +1,30 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Hugo Lefeuvre <hle@owl.eu.com>
 Subject: Re: void __iomem *addr should be const
-Date: Sat, 16 Feb 2019 20:16:39 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
+Date: Sat, 16 Feb 2019 21:49:21 +0100
+Message-ID: <20190216204921.GB2173@behemoth.owl.eu.com.local>
 References: <20190210122903.GA2400@behemoth.owl.eu.com.local>
+ <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190210122903.GA2400@behemoth.owl.eu.com.local>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Hugo Lefeuvre <hle@owl.eu.com>
+To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 10 Feb 2019, Hugo Lefeuvre wrote:
-> __iomem *addr seems to lack a const qualifier in the ioread* definitions
-> from include/asm-generic/iomap.h (other definitions such as
-> asm-generic/io.h do have the const).
-> 
-> This issue was briefly discussed a while ago[0] but the outcome is not
-> quite clear to me. Should I submit a patch addressing this issue or is it
-> a definitive wontfix?
-> 
-> This issue triggers warnings in my current work but I would like to avoid
-> dropping the const if possible.
+Hi,
 
-The const makes perfectly sense and we should have consistent state all
-over the place.
+> The const makes perfectly sense and we should have consistent state all
+> over the place.
 
-Thanks,
+Thanks, I will submit a patch addressing this issue soon.
 
-	tglx
+regards,
+ Hugo
+
+-- 
+                Hugo Lefeuvre (hle)    |    www.owl.eu.com
+RSA4096_ 360B 03B3 BF27 4F4D 7A3F D5E8 14AA 1EB8 A247 3DFD
+ed25519_ 37B2 6D38 0B25 B8A2 6B9F 3A65 A36F 5357 5F2D DC4C
