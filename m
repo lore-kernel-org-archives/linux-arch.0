@@ -1,62 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42130 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390784AbfBOS6o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 Feb 2019 13:58:44 -0500
-Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
-References: <1550095217-12047-1-git-send-email-longman@redhat.com>
- <20190214103715.GI32494@hirez.programming.kicks-ass.net>
- <20190215184056.GC15084@fuggles.cambridge.arm.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <a45d8b68-5623-d6fe-8080-072994f7625e@redhat.com>
-Date: Fri, 15 Feb 2019 13:58:34 -0500
+Received: from Galois.linutronix.de ([146.0.238.70]:54794 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732407AbfBPTQm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 16 Feb 2019 14:16:42 -0500
+Date: Sat, 16 Feb 2019 20:16:39 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: void __iomem *addr should be const
+In-Reply-To: <20190210122903.GA2400@behemoth.owl.eu.com.local>
+Message-ID: <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
+References: <20190210122903.GA2400@behemoth.owl.eu.com.local>
 MIME-Version: 1.0
-In-Reply-To: <20190215184056.GC15084@fuggles.cambridge.arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190215185834.QggPIkizUhXeLJZ5LwKZ3hKEMdsrFZ-1d7B16zCNoWs@z>
+To: Hugo Lefeuvre <hle@owl.eu.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190216191639.xxcXCdDOGRVdXsMFguAyrHFOB18hFQ_C7XJ9YxntbUM@z>
 
-On 02/15/2019 01:40 PM, Will Deacon wrote:
-> On Thu, Feb 14, 2019 at 11:37:15AM +0100, Peter Zijlstra wrote:
->> On Wed, Feb 13, 2019 at 05:00:14PM -0500, Waiman Long wrote:
->>> v4:
->>>  - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
->>>
->>> v3:
->>>  - Optimize __down_read_trylock() for the uncontended case as suggested
->>>    by Linus.
->>>
->>> v2:
->>>  - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
->>>  - Update performance test data in patch 1.
->>>
->>> The goal of this patchset is to remove the architecture specific files
->>> for rwsem-xadd to make it easer to add enhancements in the later rwsem
->>> patches. It also removes the legacy rwsem-spinlock.c file and make all
->>> the architectures use one single implementation of rwsem - rwsem-xadd.c.
->>>
->>> Waiman Long (3):
->>>   locking/rwsem: Remove arch specific rwsem files
->>>   locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
->>>     archs
->>>   locking/rwsem: Optimize down_read_trylock()
->> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
->>
->> with the caveat that I'm happy to exchange patch 3 back to my earlier
->> suggestion in case Will expesses concerns wrt the ARM64 performance of
->> Linus' suggestion.
-> Right, the current proposal doesn't work well for us, unfortunately. Which
-> was your earlier suggestion?
->
-> Will
+On Sun, 10 Feb 2019, Hugo Lefeuvre wrote:
+> __iomem *addr seems to lack a const qualifier in the ioread* definitions
+> from include/asm-generic/iomap.h (other definitions such as
+> asm-generic/io.h do have the const).
+> 
+> This issue was briefly discussed a while ago[0] but the outcome is not
+> quite clear to me. Should I submit a patch addressing this issue or is it
+> a definitive wontfix?
+> 
+> This issue triggers warnings in my current work but I would like to avoid
+> dropping the const if possible.
 
-In my posting yesterday, I showed that most of the trylocks done were
-actually uncontended. Assuming that pattern hold for the most of the
-workloads, it will not that bad after all.
+The const makes perfectly sense and we should have consistent state all
+over the place.
 
--Longman
+Thanks,
+
+	tglx
