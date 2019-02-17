@@ -1,30 +1,24 @@
-From: Hugo Lefeuvre <hle@owl.eu.com>
-Subject: Re: void __iomem *addr should be const
-Date: Sat, 16 Feb 2019 21:49:21 +0100
-Message-ID: <20190216204921.GB2173@behemoth.owl.eu.com.local>
-References: <20190210122903.GA2400@behemoth.owl.eu.com.local>
- <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: pr-tracker-bot@kernel.org
+Subject: Re: [GIT PULL V3] csky fixes for v5.0-rc6
+Date: Sun, 17 Feb 2019 16:50:02 +0000
+Message-ID: <155042220216.16506.594342102190348541.pr-tracker-bot@kernel.org>
+References: <1550041628-19985-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1902162016000.1683@nanos.tec.linutronix.de>
+In-Reply-To: <1550041628-19985-1-git-send-email-guoren@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: guoren@kernel.org
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+The pull request you sent on Wed, 13 Feb 2019 15:07:08 +0800:
 
-> The const makes perfectly sense and we should have consistent state all
-> over the place.
+> git@github.com:c-sky/csky-linux.git tags/csky-for-linus-5.0-rc6
 
-Thanks, I will submit a patch addressing this issue soon.
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/0513ebc33ed6b590bfbaaf21cd7b3d571c20edb9
 
-regards,
- Hugo
+Thank you!
 
 -- 
-                Hugo Lefeuvre (hle)    |    www.owl.eu.com
-RSA4096_ 360B 03B3 BF27 4F4D 7A3F D5E8 14AA 1EB8 A247 3DFD
-ed25519_ 37B2 6D38 0B25 B8A2 6B9F 3A65 A36F 5357 5F2D DC4C
+Deet-doot-dot, I am a bot.
+https://korg.wiki.kernel.org/userdoc/prtracker
