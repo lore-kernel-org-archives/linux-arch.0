@@ -1,55 +1,81 @@
-From: Hugo Lefeuvre <hle@owl.eu.com>
-Subject: Re: [PATCH 0/4] iomap: fix multiple consistency issues, interface
- cleanup
-Date: Mon, 18 Feb 2019 21:30:07 +0100
-Message-ID: <20190218203007.GB18457@behemoth.owl.eu.com.local>
-References: <cover.1550485787.git.hle@owl.eu.com>
- <CAK8P3a3de3ti6B3A0Mgy_eVv8SmNyCLx7AvwYRK2k8rxtBG-3g@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
+ EFFECTS" section
+Date: Mon, 18 Feb 2019 21:37:25 +0100
+Message-ID: <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
+References: <20190211172948.3322-1-will.deacon@arm.com> <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
+ <20190218162954.GB16713@fuggles.cambridge.arm.com> <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
+ <20190218175625.GD16713@fuggles.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3de3ti6B3A0Mgy_eVv8SmNyCLx7AvwYRK2k8rxtBG-3g@mail.gmail.com>
+In-Reply-To: <20190218175625.GD16713@fuggles.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On Mon, Feb 18, 2019 at 6:56 PM Will Deacon <will.deacon@arm.com> wrote:
+>
+> On Mon, Feb 18, 2019 at 05:59:13PM +0100, Arnd Bergmann wrote:
+> > On Mon, Feb 18, 2019 at 5:30 PM Will Deacon <will.deacon@arm.com> wrote:
+> > >
+> > > >
+> > > > ioremap_wc() in turn is used almost exclusively to map RAM behind
+> > > > a bus, (typically for frame buffers) and we may be better off not
+> > > > assuming any particular MMIO barrier semantics for it at all, but possibly
+> > > > audit the few uses that are not frame buffers.
+> > >
+> > > Right, my expectation is actually that you very rarely need ordering
+> > > guarantees for wc mappings, and so saying "relaxed + mandatory barriers"
+> > > is the best thing to say for portable driver code. I'm deliberately /not/
+> > > trying to enumerate arch or device-specific behaviours.
+> >
+> > That's fine, my worry is more that you are already saying too much
+> > by describing a behavior for ioremap_wc+relaxed+barrier that is
+> > neither a good idea or guaranteed to do what you describe.
+>
+> I could drop the mention of relaxed accessors here for now, if you like?
+> For example:
+>
+>   "__iomem pointers obtained with non-default attributes (e.g. those returned
+>    by ioremap_wc()) are unlikely to provide many of these guarantees. If
+>    ordering is required for such mappings, then the mandatory barriers should
+>    be used."
+>
+> which we could flesh out if/when we have a notion of the portable semantics.
 
-> Nice cleanup! Applied to my asm-generic tree now.
+I'd go further then and drop the second sentence entirely until we are sure
+what portable behaviour would be.
 
-Thanks!
+> >
+> > I would say we should strengthen the behavior of outX() where possible.
+> > I don't know if arm64 actually has a way of doing that, my understanding
+> > earlier was that the AXI bus was already posted, so there is not much
+> > you can do here to define __io_paw() in a way that will prevent posted
+> > writes.
+>
+> If we could map I/O space using different page table attributes (probably by
+> hacking pci_remap_iospace() ?) then we could disable the
+> early-write-acknowledge hint and implement __io_paw() as a completion
+> barrier, although it would be at the mercy of the system as to whether or
+> not that requires a response from the RC.
 
-> I notice that you did not add a 'volatile' qualifier in addition to 'const'.
-> Is that something you considered doing? I think the traditional
-> readl/writel style accessors have them partly for historic reasons,
-> and partly to simply the trivial implementation that is based on
-> a volatile pointer dereference. Neither is needed here, and I don't
-> think we have any drivers that pass volatile pointers into ioread()/iowrite()
-> (which would cause a warning), so we can probably leave it at that,
-> but it's still a bit inconsistent.
+Ah, it seems we actually do that on 32-bit ARM, at least on one platform,
+see 6a02734d420f ("ARM: mvebu: map PCI I/O regions strongly ordered")
+and prior commits.
 
-Right, I intentionally omitted the volatile qualifier here.
+> I would still prefer to document the weaker semantics as the portable
+> interface, unless there are portable drivers relying on this today (which
+> would imply that it's widely supported by other architectures).
 
-Adding it to the definitions from asm-generic/iomap.h would require to
-also update lib/iomap.c and arch/ implementations. This should, imo, only
-be done if really necessary.
+I don't know of any portable driver that actually relies on it, but
+that's mainly because there are very few portable drivers that
+use inb()/outb() in the first place. How many of those require
+the non-posted behavior I don't know
 
-From what I've seen, almost all ioread() implementations simply redirect
-to readl style accessors. I could not find one implementation that does
-something with the addr argument which requires the volatile qualifier.
+Adding Thomas, Gregory and Russell to Cc, as they were involved
+in the discussion that led to the 32-bit change, maybe they are
+aware of a specific example.
 
-Also, I'm not even sure to understand why we need the volatile qualifier
-in the ioread() definitions from asm-generic/io.h...
-
-Drivers wishing to pass volatile pointers to ioread() should probably use
-a more low level api.
-
-regards,
- Hugo
-
--- 
-                Hugo Lefeuvre (hle)    |    www.owl.eu.com
-RSA4096_ 360B 03B3 BF27 4F4D 7A3F D5E8 14AA 1EB8 A247 3DFD
-ed25519_ 37B2 6D38 0B25 B8A2 6B9F 3A65 A36F 5357 5F2D DC4C
+       Arnd
