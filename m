@@ -1,37 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:35624 "EHLO
-        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389824AbfBROD7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 09:03:59 -0500
+Received: from foss.arm.com ([217.140.101.70]:32874 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726302AbfBRO6f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Feb 2019 09:58:35 -0500
+Date: Mon, 18 Feb 2019 14:58:20 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
+Message-ID: <20190218145820.GA16091@fuggles.cambridge.arm.com>
+References: <1550095217-12047-1-git-send-email-longman@redhat.com>
+ <20190214103715.GI32494@hirez.programming.kicks-ass.net>
+ <20190215184056.GC15084@fuggles.cambridge.arm.com>
+ <a45d8b68-5623-d6fe-8080-072994f7625e@redhat.com>
 MIME-Version: 1.0
-References: <20190124142448.23243-1-mst@redhat.com> <20190210231841-mutt-send-email-mst@kernel.org>
-In-Reply-To: <20190210231841-mutt-send-email-mst@kernel.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 18 Feb 2019 15:03:41 +0100
-Message-ID: <CAK8P3a2cWjSSUJehMGEMCmnjdWJRZcyoegtN1ERqX7Tzkm-DXg@mail.gmail.com>
-Subject: Re: [PATCH 0/3] generic asm: mman cleanup
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a45d8b68-5623-d6fe-8080-072994f7625e@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190218140341.5u1IMosgO0TgpeUPAzSex8UEYiIXRQpH6W2-9IN7Zp0@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
+Message-ID: <20190218145820.OjbH6NbaH-8wsdH2_J5RGfkjLjjUdLWkWX8IIYYXjC4@z>
 
-On Mon, Feb 11, 2019 at 5:20 AM Michael S. Tsirkin <mst@redhat.com> wrote:
->
-> On Fri, Feb 08, 2019 at 01:02:51AM -0500, Michael S. Tsirkin wrote:
-> > Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
-> > architectures, it probably makes sense to de-duplicate these
-> > and put them into a common header.
+On Fri, Feb 15, 2019 at 01:58:34PM -0500, Waiman Long wrote:
+> On 02/15/2019 01:40 PM, Will Deacon wrote:
+> > On Thu, Feb 14, 2019 at 11:37:15AM +0100, Peter Zijlstra wrote:
+> >> On Wed, Feb 13, 2019 at 05:00:14PM -0500, Waiman Long wrote:
+> >>> v4:
+> >>>  - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
+> >>>
+> >>> v3:
+> >>>  - Optimize __down_read_trylock() for the uncontended case as suggested
+> >>>    by Linus.
+> >>>
+> >>> v2:
+> >>>  - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+> >>>  - Update performance test data in patch 1.
+> >>>
+> >>> The goal of this patchset is to remove the architecture specific files
+> >>> for rwsem-xadd to make it easer to add enhancements in the later rwsem
+> >>> patches. It also removes the legacy rwsem-spinlock.c file and make all
+> >>> the architectures use one single implementation of rwsem - rwsem-xadd.c.
+> >>>
+> >>> Waiman Long (3):
+> >>>   locking/rwsem: Remove arch specific rwsem files
+> >>>   locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
+> >>>     archs
+> >>>   locking/rwsem: Optimize down_read_trylock()
+> >> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> >>
+> >> with the caveat that I'm happy to exchange patch 3 back to my earlier
+> >> suggestion in case Will expesses concerns wrt the ARM64 performance of
+> >> Linus' suggestion.
+> > Right, the current proposal doesn't work well for us, unfortunately. Which
+> > was your earlier suggestion?
 > >
-> > Please review and consider merging though the generic tree.
-> >
-> > Build tested on x86 only. Has been in linux-next for a while now.
->
-> Arnd, would you consider merging at least the cleanups 2/3 and 3/3?
-> In linux-next they had no ill effects and make things
-> slightly cleaner IMO.
+> > Will
+> 
+> In my posting yesterday, I showed that most of the trylocks done were
+> actually uncontended. Assuming that pattern hold for the most of the
+> workloads, it will not that bad after all.
 
-I applied patches 2 and 3 now, sorry for the late reply.
+That's fair enough; if you're going to sit in a tight trylock() loop like the
+benchmark does, then you're much better off just calling lock() if you care
+at all about scalability.
 
-     Arnd
+Will
