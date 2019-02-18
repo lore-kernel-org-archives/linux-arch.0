@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:40334 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730219AbfBRXN1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 18:13:27 -0500
-Received: by mail-it1-f194.google.com with SMTP id i2so1890326ite.5
-        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2019 15:13:26 -0800 (PST)
+Received: from mail-it1-f195.google.com ([209.85.166.195]:36594 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730719AbfBRXN2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 18:13:28 -0500
+Received: by mail-it1-f195.google.com with SMTP id h6so1953811itl.1
+        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2019 15:13:27 -0800 (PST)
 From: Yu Zhao <yuzhao@google.com>
-Subject: [PATCH v2 2/3] arm64: mm: don't call page table ctors for init_mm
-Date: Mon, 18 Feb 2019 16:13:18 -0700
-Message-ID: <20190218231319.178224-2-yuzhao@google.com>
+Subject: [PATCH v2 3/3] arm64: mm: enable per pmd page table lock
+Date: Mon, 18 Feb 2019 16:13:19 -0700
+Message-ID: <20190218231319.178224-3-yuzhao@google.com>
 In-Reply-To: <20190218231319.178224-1-yuzhao@google.com>
 References: <20190214211642.2200-1-yuzhao@google.com>
  <20190218231319.178224-1-yuzhao@google.com>
@@ -18,60 +18,80 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
-Message-ID: <20190218231318.c803pOfRP__bhXpzB7C0gQC3K5fv9qItK1ijXOTceA4@z>
+Message-ID: <20190218231319.3wf2bD50dhGCSshGVOU9ntXQwZb1GxEp6QA_5fHdoXg@z>
 
-init_mm doesn't require page table lock to be initialized at
-any level. Add a separate page table allocator for it, and the
-new one skips page table ctors.
+Switch from per mm_struct to per pmd page table lock by enabling
+ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+large system.
 
-The ctors allocate memory when ALLOC_SPLIT_PTLOCKS is set. Not
-calling them avoids memory leak in case we call pte_free_kernel()
-on init_mm.
+I'm not sure if there is contention on mm->page_table_lock. Given
+the option comes at no cost (apart from initializing more spin
+locks), why not enable it now.
 
 Signed-off-by: Yu Zhao <yuzhao@google.com>
 ---
- arch/arm64/mm/mmu.c | 15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ arch/arm64/Kconfig               |  3 +++
+ arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
+ arch/arm64/include/asm/tlb.h     |  5 ++++-
+ 3 files changed, 18 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index fa7351877af3..e8bf8a6300e8 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -370,6 +370,16 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
- 	} while (pgdp++, addr = next, addr != end);
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a4168d366127..8dbfa49d926c 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
+ config ARCH_HAS_CACHE_LINE_SIZE
+ 	def_bool y
+ 
++config ARCH_ENABLE_SPLIT_PMD_PTLOCK
++	def_bool y if PGTABLE_LEVELS > 2
++
+ config SECCOMP
+ 	bool "Enable seccomp to safely compute untrusted bytecode"
+ 	---help---
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index 52fa47c73bf0..dabba4b2c61f 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -33,12 +33,22 @@
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return (pmd_t *)__get_free_page(PGALLOC_GFP);
++	struct page *page;
++
++	page = alloc_page(PGALLOC_GFP);
++	if (!page)
++		return NULL;
++	if (!pgtable_pmd_page_ctor(page)) {
++		__free_page(page);
++		return NULL;
++	}
++	return page_address(page);
  }
  
-+static phys_addr_t pgd_kernel_pgtable_alloc(int shift)
-+{
-+	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-+	BUG_ON(!ptr);
-+
-+	/* Ensure the zeroed page is visible to the page table walker */
-+	dsb(ishst);
-+	return __pa(ptr);
-+}
-+
- static phys_addr_t pgd_pgtable_alloc(int shift)
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmdp)
  {
- 	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-@@ -591,7 +601,7 @@ static int __init map_entry_trampoline(void)
- 	/* Map only the text into the trampoline page table */
- 	memset(tramp_pg_dir, 0, PGD_SIZE);
- 	__create_pgd_mapping(tramp_pg_dir, pa_start, TRAMP_VALIAS, PAGE_SIZE,
--			     prot, pgd_pgtable_alloc, 0);
-+			     prot, pgd_kernel_pgtable_alloc, 0);
+ 	BUG_ON((unsigned long)pmdp & (PAGE_SIZE-1));
++	pgtable_pmd_page_dtor(virt_to_page(pmdp));
+ 	free_page((unsigned long)pmdp);
+ }
  
- 	/* Map both the text and data into the kernel page table */
- 	__set_fixmap(FIX_ENTRY_TRAMP_TEXT, pa_start, prot);
-@@ -1067,7 +1077,8 @@ int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap,
- 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 106fdc951b6e..4e3becfed387 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -62,7 +62,10 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 				  unsigned long addr)
+ {
+-	tlb_remove_table(tlb, virt_to_page(pmdp));
++	struct page *page = virt_to_page(pmdp);
++
++	pgtable_pmd_page_dtor(page);
++	tlb_remove_table(tlb, page);
+ }
+ #endif
  
- 	__create_pgd_mapping(swapper_pg_dir, start, __phys_to_virt(start),
--			     size, PAGE_KERNEL, pgd_pgtable_alloc, flags);
-+			     size, PAGE_KERNEL, pgd_kernel_pgtable_alloc,
-+			     flags);
- 
- 	return __add_pages(nid, start >> PAGE_SHIFT, size >> PAGE_SHIFT,
- 			   altmap, want_memblock);
 -- 
 2.21.0.rc0.258.g878e2cd30e-goog
