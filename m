@@ -1,64 +1,41 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH v2 3/4] init: free_initmem: poison freed init memory
-Date: Mon, 18 Feb 2019 20:41:24 +0200
-Message-ID: <1550515285-17446-4-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH v2 4/4] riscv: switch over to generic free_initmem()
+Date: Mon, 18 Feb 2019 20:41:25 +0200
+Message-ID: <1550515285-17446-5-git-send-email-rppt@linux.ibm.com>
 References: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, Palmer Dabbelt <palmer@sifive.com>, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Christoph Hellwig <hch@lst.de>
+Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Various architectures including x86 poison the freed init memory.
-Do the same in the generic free_initmem implementation and switch sparc32
-architecture that is identical to the generic code over to it now.
+The riscv version of free_initmem() differs from the generic one only in
+that it sets the freed memory to zero.
+
+Make ricsv use the generic version and poison the freed memory.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
 ---
- arch/sparc/mm/init_32.c | 5 -----
- init/main.c             | 2 +-
- 2 files changed, 1 insertion(+), 6 deletions(-)
+ arch/riscv/mm/init.c | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
-index f0dbc0b..d02a9ae 100644
---- a/arch/sparc/mm/init_32.c
-+++ b/arch/sparc/mm/init_32.c
-@@ -294,11 +294,6 @@ void __init mem_init(void)
+diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+index 658ebf6..2af0010 100644
+--- a/arch/riscv/mm/init.c
++++ b/arch/riscv/mm/init.c
+@@ -60,11 +60,6 @@ void __init mem_init(void)
  	mem_init_print_info(NULL);
  }
  
--void free_initmem (void)
+-void free_initmem(void)
 -{
--	free_initmem_default(POISON_FREE_INITMEM);
+-	free_initmem_default(0);
 -}
 -
- void sparc_flush_page_to_ram(struct page *page)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
  {
- 	unsigned long vaddr = (unsigned long)page_address(page);
-diff --git a/init/main.c b/init/main.c
-index 38d69e0..9a61e9c 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1049,7 +1049,7 @@ static inline void mark_readonly(void)
- 
- void __weak free_initmem(void)
- {
--	free_initmem_default(-1);
-+	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
- static int __ref kernel_init(void *unused)
 -- 
 2.7.4
