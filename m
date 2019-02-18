@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:40305 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:52359 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728154AbfBRVIA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 16:08:00 -0500
+        with ESMTP id S1728062AbfBRVH7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 16:07:59 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 6/8] checksyscalls: fix up mq_timedreceive and stat exceptions
-Date: Mon, 18 Feb 2019 22:07:10 +0100
-Message-ID: <20190218210712.3503891-7-arnd@arndb.de>
+Subject: [PATCH 8/8] riscv: Use latest system call ABI
+Date: Mon, 18 Feb 2019 22:07:12 +0100
+Message-ID: <20190218210712.3503891-9-arnd@arndb.de>
 In-Reply-To: <20190218210712.3503891-1-arnd@arndb.de>
 References: <20190218210712.3503891-1-arnd@arndb.de>
 MIME-Version: 1.0
@@ -15,45 +15,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org
 Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, yury.norov@gmail.com, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Stafford Horne <shorne@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Palmer Dabbelt <palmer@sifive.com>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, arnd@arndb.de, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>
-Message-ID: <20190218210710.ncC0AHThE57hlpG-zkGSA-kK3CxetAUorQYRe38uxMI@z>
+Message-ID: <20190218210712.FjDH9jFwcp4bP_s7sC6dfUINu9hAJDrRlD1ofhk3R8w@z>
 
-mq_timedreceive was spelled incorrectly, and we need exceptions
-for new architectures that leave out newstat or stat64, implementing
-only statx() now.
+We don't yet have an upstream glibc port for riscv, so there is no user
+space for the existing ABI, and we can remove the definitions for 32-bit
+time_t, off_t and struct resource and system calls based on them,
+including the vdso.
 
-Fixes: 48166e6ea47d ("y2038: add 64-bit time_t syscalls to all 32-bit architectures")
-Fixes: bf4b6a7d371e ("y2038: Remove stat64 family from default syscall set")
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- scripts/checksyscalls.sh | 5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+ arch/riscv/Kconfig                   | 1 -
+ arch/riscv/include/uapi/asm/unistd.h | 5 +----
+ arch/riscv/kernel/vdso/Makefile      | 2 ++
+ 3 files changed, 3 insertions(+), 5 deletions(-)
 
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index ffd635efbdca..a18b47695f55 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -30,13 +30,10 @@ cat << EOF
- #define __IGNORE_readlink	/* readlinkat */
- #define __IGNORE_symlink	/* symlinkat */
- #define __IGNORE_utimes		/* futimesat */
--#if BITS_PER_LONG == 64
- #define __IGNORE_stat		/* fstatat */
- #define __IGNORE_lstat		/* fstatat */
--#else
- #define __IGNORE_stat64		/* fstatat64 */
- #define __IGNORE_lstat64	/* fstatat64 */
--#endif
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 09fa3a87bf30..feeeaa60697c 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -11,7 +11,6 @@ config 32BIT
  
- #ifndef __ARCH_WANT_SET_GET_RLIMIT
- #define __IGNORE_getrlimit	/* getrlimit */
-@@ -138,7 +135,7 @@ cat << EOF
- #define __IGNORE_io_pgetevents
- #define __IGNORE_recvmmsg
- #define __IGNORE_mq_timedsend
--#define __IGNORE_mq_timedreceiv
-+#define __IGNORE_mq_timedreceive
- #define __IGNORE_semtimedop
- #define __IGNORE_rt_sigtimedwait
- #define __IGNORE_futex
+ config RISCV
+ 	def_bool y
+-	select ARCH_32BIT_OFF_T if !64BIT
+ 	# even on 32-bit, physical (and DMA) addresses are > 32-bits
+ 	select PHYS_ADDR_T_64BIT
+ 	select OF
+diff --git a/arch/riscv/include/uapi/asm/unistd.h b/arch/riscv/include/uapi/asm/unistd.h
+index 486a288b454c..0e2eeeb1fd27 100644
+--- a/arch/riscv/include/uapi/asm/unistd.h
++++ b/arch/riscv/include/uapi/asm/unistd.h
+@@ -17,11 +17,8 @@
+ 
+ #ifdef __LP64__
+ #define __ARCH_WANT_NEW_STAT
+-#endif /* __LP64__ */
+ #define __ARCH_WANT_SET_GET_RLIMIT
+-#ifndef __LP64__
+-#define __ARCH_WANT_TIME32_SYSCALLS
+-#endif
++#endif /* __LP64__ */
+ 
+ #include <asm-generic/unistd.h>
+ 
+diff --git a/arch/riscv/kernel/vdso/Makefile b/arch/riscv/kernel/vdso/Makefile
+index eed1c137f618..fec62b24df89 100644
+--- a/arch/riscv/kernel/vdso/Makefile
++++ b/arch/riscv/kernel/vdso/Makefile
+@@ -2,9 +2,11 @@
+ 
+ # Symbols present in the vdso
+ vdso-syms  = rt_sigreturn
++ifdef CONFIG_64BIT
+ vdso-syms += gettimeofday
+ vdso-syms += clock_gettime
+ vdso-syms += clock_getres
++endif
+ vdso-syms += getcpu
+ vdso-syms += flush_icache
+ 
 -- 
 2.20.0
