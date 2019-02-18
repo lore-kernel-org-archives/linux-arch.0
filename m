@@ -1,93 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34132 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727558AbfBRQuX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Feb 2019 11:50:23 -0500
-Date: Mon, 18 Feb 2019 16:50:07 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Message-ID: <20190218165007.GC16713@fuggles.cambridge.arm.com>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
- <20190213172047.GH6346@brain-police>
- <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:34866 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732720AbfBRQw2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 11:52:28 -0500
+Received: by mail-qk1-f195.google.com with SMTP id w204so10367944qka.2
+        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2019 08:52:28 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+References: <201902190052.bZjV0Dgp%fengguang.wu@intel.com> <20190218114242-mutt-send-email-mst@kernel.org>
+In-Reply-To: <20190218114242-mutt-send-email-mst@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 18 Feb 2019 17:52:09 +0100
+Message-ID: <CAK8P3a0TELB9XN5xM7yXRE0RJCGkF1b9YFshY7dzeTcFttKGVg@mail.gmail.com>
+Subject: Re: [asm-generic:master 2/6] arch/x86//mm/mpx.c:57:26: error:
+ 'MAP_PRIVATE' undeclared; did you mean 'DQF_PRIVATE'?
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20190218165007.gceVRoh0gqZmZrjbskXw2S7kiO8BcAQGPv_79pjnAb0@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, linux-arch <linux-arch@vger.kernel.org>
 
-On Wed, Feb 13, 2019 at 10:27:09AM -0800, Linus Torvalds wrote:
-> On Wed, Feb 13, 2019 at 9:20 AM Will Deacon <will.deacon@arm.com> wrote:
-> > On Mon, Feb 11, 2019 at 02:34:31PM -0800, Linus Torvalds wrote:
-> > > IOW, we should seriously just consider making the rule be that locking
-> > > will order mmio too. Because that's practically the rule anyway.
+On Mon, Feb 18, 2019 at 5:44 PM Michael S. Tsirkin <mst@redhat.com> wrote:
+>
+> On Tue, Feb 19, 2019 at 12:28:55AM +0800, kbuild test robot wrote:
+> > tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
+> > head:   3c4fcc2648569c3fe573849f9254c8c3499ec648
+> > commit: 9ac483109d19095e22414e46d38a6817520883b9 [2/6] arch: move common mmap flags to linux/mman.h
+> > config: x86_64-kexec (attached as .config)
+> > compiler: gcc-7 (Debian 7.3.0-1) 7.3.0
+> > reproduce:
+> >         git checkout 9ac483109d19095e22414e46d38a6817520883b9
+> >         # save the attached .config to linux build tree
+> >         make ARCH=x86_64
 > >
-> > I would /love/ to get rid of mmiowb() because I think it's both extremely
-> > difficult to use and also pretty much never needed. It reminds me a lot of
-> > smp_read_barrier_depends(), which we finally pushed into READ_ONCE for
-> > Alpha.
-> 
-> Right. Make as much of this implicit as we can.
-> 
-> At least as long as it's _reasonably_ cheap on all architectures that matter.
-> 
-> How expensive would it be on ARM? Does the normal acquire/release
-> already mean the IO in between is serialized?
-
-Yeah, that should work, but actually I'm wondered whether that means we can
-relax our mandatory barriers as well now that we have a multi-copy atomic
-memory model (i.e. if acquire/release works for locks between CPUs, then it
-should work for DMA buffers between a CPU and a device). I'll chase this up
-with the architects...
-
-Either way, mmiowb() is an empty macro for us.
-
-> > > Powerpc already does it. IO within a locked region will serialize with the
-> > > lock.
+> > All errors (new ones prefixed by >>):
 > >
-> > I thought ia64 was the hold out here? Did they actually have machines that
-> > needed this in practice?
-> 
-> Note that even if mmiowb() is expensive (and I don't think that's
-> actually even the case on ia64), you can - and probably should - do
-> what PowerPC does.
-> 
-> Doing an IO barrier on PowerPC is insanely expensive, but they solve
-> that simply track the whole "have I done any IO" manually. It's not
-> even that expensive, it just uses a percpu flag.
-> 
-> (Admittedly, PowerPC makes it less obvious that it's a percpu variable
-> because it's actually in the special "paca" region that is like a
-> hyper-local percpu area).
-> 
-> > If so, I think we can either:
-> >
-> >   (a) Add an mmiowb() to their spin_unlock() code, or
-> >   (b) Remove ia64 altogether if nobody complains
-> >
-> > I know that Peter has been in favour of (b) for a while...
-> 
-> I don't think we're quite ready for (b), but see above: I don't think
-> adding mmiowb() to the ia64 spin unlock code is even all that
-> expensive.
+> >    arch/x86//mm/mpx.c: In function 'mpx_mmap':
+> > >> arch/x86//mm/mpx.c:57:26: error: 'MAP_PRIVATE' undeclared (first use in this function); did you mean 'DQF_PRIVATE'?
+> >              MAP_ANONYMOUS | MAP_PRIVATE, VM_MPX, 0, &populate, NULL);
+> >                              ^~~~~~~~~~~
+> >                              DQF_PRIVATE
+> >    arch/x86//mm/mpx.c:57:26: note: each undeclared identifier is reported only once for each function it appears in
+>
+> Arnd I think you are missing:
+>     x86/mpx: tweak header name
+>
+> The whole file is going away eventually:
+> https://lkml.kernel.org/r/7de5232f-4bc1-5c85-00d5-cb646462577f@intel.com
+>
+> but to avoid breaking bisect I think it's needed.
 
-Well, I figured it was worth asking the question.
+Right, I misunderstood the earlier mails and assumed it wasn't really
+needed even for building the current tree. Added it in now as well. I see that
+there are various other files including asm/mman.h:
 
-> Yeah, yeah, there's the SGI "SN" platform that apparently has a bug,
-> so because of that platform problem maybe it needs the more complex
-> "use a flag" model.  But even the complex model isn't _hugely_
-> complex.
-> 
-> But we *could* first just do the mmiowb() unconditionally in the ia64
-> unlocking code, and then see if anybody notices?
+arch/arm/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/arm64/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/c6x/include/asm/cacheflush.h:#include <asm/mman.h>
+arch/ia64/include/asm/pgtable.h:#include <asm/mman.h>
+arch/ia64/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/mips/kernel/linux32.c:#include <asm/mman.h>
+arch/mips/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/parisc/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/powerpc/include/asm/mman.h:#include <uapi/asm/mman.h>
+arch/powerpc/mm/hugetlbpage-radix.c:#include <asm/mman.h>
+arch/powerpc/mm/pkeys.c:#include <asm/mman.h>
+arch/powerpc/mm/slice.c:#include <asm/mman.h>
+arch/sh/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/sparc/include/asm/mman.h:#include <uapi/asm/mman.h>
+arch/sparc/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/um/kernel/syscall.c:#include <asm/mman.h>
+arch/x86/ia32/sys_ia32.c:#include <asm/mman.h>
+arch/x86/mm/hugetlbpage.c:#include <asm/mman.h>
+arch/x86/um/shared/sysdep/kernel-offsets.h:#include <asm/mman.h>
+fs/eventpoll.c:#include <asm/mman.h>
+include/uapi/linux/mman.h:#include <asm/mman.h>
+mm/filemap.c:#include <asm/mman.h>
+tools/include/uapi/linux/mman.h:#include <asm/mman.h>
+virt/kvm/arm/arm.c:#include <asm/mman.h>
 
-I'll hack this up as a starting point. We can always try to be clever later
-on if it's deemed necessary.
+Did you check if we need to do the same change on any of the
+other files? A lot of them are architecture specific and might not be
+caught by the regular build testing.
 
-Will
+      Arnd
