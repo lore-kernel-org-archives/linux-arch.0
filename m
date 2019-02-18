@@ -1,102 +1,59 @@
-From: Yu Zhao <yuzhao@google.com>
-Subject: Re: [PATCH] arm64: mm: enable per pmd page table lock
-Date: Mon, 18 Feb 2019 13:48:42 -0700
-Message-ID: <20190218204842.GA203083@google.com>
-References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218151223.GB16091@fuggles.cambridge.arm.com>
- <20190218194938.GA184109@google.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 7/8] csky: Use latest system call ABI
+Date: Mon, 18 Feb 2019 22:07:11 +0100
+Message-ID: <20190218210712.3503891-8-arnd@arndb.de>
+References: <20190218210712.3503891-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190218194938.GA184109@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190218210712.3503891-1-arnd@arndb.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: y2038@lists.linaro.org
+Cc: linux-arch@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, arnd@arndb.de, yury.norov@gmail.com, linux-api@vger.kernel.org, Palmer Dabbelt <palmer@sifive.com>, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, linux-hexagon@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Guan Xuetao <gxt@pku.edu.cn>, Stafford Horne <shorne@gmail.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 18, 2019 at 12:49:38PM -0700, Yu Zhao wrote:
-> On Mon, Feb 18, 2019 at 03:12:23PM +0000, Will Deacon wrote:
-> > [+Mark]
-> > 
-> > On Thu, Feb 14, 2019 at 02:16:42PM -0700, Yu Zhao wrote:
-> > > Switch from per mm_struct to per pmd page table lock by enabling
-> > > ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
-> > > large system.
-> > > 
-> > > I'm not sure if there is contention on mm->page_table_lock. Given
-> > > the option comes at no cost (apart from initializing more spin
-> > > locks), why not enable it now.
-> > > 
-> > > Signed-off-by: Yu Zhao <yuzhao@google.com>
-> > > ---
-> > >  arch/arm64/Kconfig               |  3 +++
-> > >  arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
-> > >  arch/arm64/include/asm/tlb.h     |  5 ++++-
-> > >  3 files changed, 18 insertions(+), 2 deletions(-)
-> > > 
-> > > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> > > index a4168d366127..104325a1ffc3 100644
-> > > --- a/arch/arm64/Kconfig
-> > > +++ b/arch/arm64/Kconfig
-> > > @@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
-> > >  config ARCH_HAS_CACHE_LINE_SIZE
-> > >  	def_bool y
-> > >  
-> > > +config ARCH_ENABLE_SPLIT_PMD_PTLOCK
-> > > +	def_bool y
-> > > +
-> > >  config SECCOMP
-> > >  	bool "Enable seccomp to safely compute untrusted bytecode"
-> > >  	---help---
-> > > diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
-> > > index 52fa47c73bf0..dabba4b2c61f 100644
-> > > --- a/arch/arm64/include/asm/pgalloc.h
-> > > +++ b/arch/arm64/include/asm/pgalloc.h
-> > > @@ -33,12 +33,22 @@
-> > >  
-> > >  static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
-> > >  {
-> > > -	return (pmd_t *)__get_free_page(PGALLOC_GFP);
-> > > +	struct page *page;
-> > > +
-> > > +	page = alloc_page(PGALLOC_GFP);
-> > > +	if (!page)
-> > > +		return NULL;
-> > > +	if (!pgtable_pmd_page_ctor(page)) {
-> > > +		__free_page(page);
-> > > +		return NULL;
-> > > +	}
-> > > +	return page_address(page);
-> > 
-> > I'm a bit worried as to how this interacts with the page-table code in
-> > arch/arm64/mm/mmu.c when pgd_pgtable_alloc is used as the allocator. It
-> > looks like that currently always calls pgtable_page_ctor(), regardless of
-> > level. Do we now need a separate allocator function for the PMD level?
-> 
-> Thanks for reminding me, I never noticed this. The short answer is
-> no.
-> 
-> I guess pgtable_page_ctor() is used on all pud/pmd/pte entries
-> there because it's also compatible with pud, and pmd too without
-> this patch. So your concern is valid. Thanks again.
-> 
-> Why my answer is no? Because I don't think the ctor matters for
-> pgd_pgtable_alloc(). The ctor is only required for userspace page
-> tables, and that's why we don't have it in pte_alloc_one_kernel().
-> AFAICT, none of the pgds (efi_mm.pgd, tramp_pg_dir and init_mm.pgd)
-> pre-populated by pgd_pgtable_alloc() is. (I doubt we pre-populate
-> userspace page tables in any other arch).
-> 
-> So to avoid future confusion, we might just remove the ctor from
-> pgd_pgtable_alloc().
+We don't yet have an upstream glibc port for csky, so there is no user
+space for the existing ABI, and we can remove the definitions for 32-bit
+time_t, off_t and struct resource.
 
-I'm sorry. I've missed that we call apply_to_page_range() on efi_mm.
-The function does require the ctor. So we actually can't remove it.
-Though pgtable_page_ctor() also does the work adequately for pmd in
-terms of giving apply_to_page_range() what it requires, it would be
-more appropriate to use pgtable_pmd_page_ctor() instead (and not
-calling the ctor at all on pud).
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/csky/Kconfig                   | 1 -
+ arch/csky/include/uapi/asm/unistd.h | 2 --
+ 2 files changed, 3 deletions(-)
 
-I could add this change prior to this patch, if it makes sense to
-you. Thanks.
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index 6959e0b1e956..398113c845f5 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -1,6 +1,5 @@
+ config CSKY
+ 	def_bool y
+-	select ARCH_32BIT_OFF_T
+ 	select ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+ 	select ARCH_USE_BUILTIN_BSWAP
+diff --git a/arch/csky/include/uapi/asm/unistd.h b/arch/csky/include/uapi/asm/unistd.h
+index ec60e49cea66..224c9a9ab45b 100644
+--- a/arch/csky/include/uapi/asm/unistd.h
++++ b/arch/csky/include/uapi/asm/unistd.h
+@@ -2,8 +2,6 @@
+ // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+ 
+ #define __ARCH_WANT_SYS_CLONE
+-#define __ARCH_WANT_SET_GET_RLIMIT
+-#define __ARCH_WANT_TIME32_SYSCALLS
+ #include <asm-generic/unistd.h>
+ 
+ #define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
+-- 
+2.20.0
