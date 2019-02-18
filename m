@@ -1,73 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f196.google.com ([209.85.208.196]:44384 "EHLO
-        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728874AbfBRMuf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 07:50:35 -0500
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:39177 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2391933AbfBROMM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 09:12:12 -0500
 MIME-Version: 1.0
-References: <1550159977-8949-5-git-send-email-rppt@linux.ibm.com>
- <mhng-e6dedfc5-937e-42e5-90d6-4ce400cbc6fb@palmer-si-x1c4> <CAFqt6zYL8q16a0dKvNb_1MpJCuz4VrkT1pKe=eqpywxA-hnL0Q@mail.gmail.com>
-In-Reply-To: <CAFqt6zYL8q16a0dKvNb_1MpJCuz4VrkT1pKe=eqpywxA-hnL0Q@mail.gmail.com>
-From: Souptick Joarder <jrdr.linux@gmail.com>
-Date: Mon, 18 Feb 2019 18:20:20 +0530
-Message-ID: <CAFqt6zZZaFU_i+srxk9rd_+5V9FTd767MH-rCocvJPfFcXJsCQ@mail.gmail.com>
-Subject: Re: [PATCH 4/4] riscv: switch over to generic free_initmem()
+References: <cover.1550485787.git.hle@owl.eu.com>
+In-Reply-To: <cover.1550485787.git.hle@owl.eu.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 18 Feb 2019 15:11:54 +0100
+Message-ID: <CAK8P3a3de3ti6B3A0Mgy_eVv8SmNyCLx7AvwYRK2k8rxtBG-3g@mail.gmail.com>
+Subject: Re: [PATCH 0/4] iomap: fix multiple consistency issues, interface cleanup
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Palmer Dabbelt <palmer@sifive.com>, Christoph Hellwig <hch@lst.de>, rkuo@codeaurora.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-riscv@lists.infradead.org
-Message-ID: <20190218125020.SSqT0YZNlK_147cFy7W1riCxTv4804m_9KyEvfOdTMk@z>
+To: Hugo Lefeuvre <hle@owl.eu.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190218141154.NCSY8u_VlLFZt0ZzmW68z-A_ij0SQtDSUzmfNiVMV6Q@z>
 
-On Mon, Feb 18, 2019 at 6:16 PM Souptick Joarder <jrdr.linux@gmail.com> wrote:
+On Mon, Feb 18, 2019 at 11:53 AM Hugo Lefeuvre <hle@owl.eu.com> wrote:
 >
-> Hi Mike,
+> Hi,
 >
-> On Fri, Feb 15, 2019 at 2:19 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> >
-> > On Thu, 14 Feb 2019 07:59:37 PST (-0800), rppt@linux.ibm.com wrote:
-> > > The riscv version of free_initmem() differs from the generic one only in
-> > > that it sets the freed memory to zero.
-> > >
-> > > Make ricsv use the generic version and poison the freed memory.
-> > >
-> > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> This patch cleans up the iomap interface.
 >
-> Just for clarity, does same change applicable in below places -
+> The first patch makes the include/asm-generic/iomap.h header compliant
+> with the kernel style guidelines by adding missing function args
+> identifier names.
 >
-> arch/openrisc/mm/init.c#L231
-> arch/alpha/mm/init.c#L290
-> arch/arc/mm/init.c#L213
-> arch/m68k/mm/init.c#L109
-> arch/nds32/mm/init.c#L247
-> arch/nios2/mm/init.c#L92
-> arch/openrisc/mm/init.c#L231
+> The second and fourth patches address multiple compilation warnings due
+> to missing const qualifiers in mmio_ins* and ioread*/iowrite
+> definitions in include/asm-generic/iomap.h and lib/iomap.c.
+>
+> The third patch modifies io*_rep definitions from asm-generic/io.h to
+> take unsigned long count parameter instead of unsigned int which is
+> inconsistent with other definitions in the kernel.
 
-Please ignore this query. just saw the other patches.
-Sorry for the noise.
->
->
-> > > ---
-> > >  arch/riscv/mm/init.c | 5 -----
-> > >  1 file changed, 5 deletions(-)
-> > >
-> > > diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-> > > index 658ebf6..2af0010 100644
-> > > --- a/arch/riscv/mm/init.c
-> > > +++ b/arch/riscv/mm/init.c
-> > > @@ -60,11 +60,6 @@ void __init mem_init(void)
-> > >       mem_init_print_info(NULL);
-> > >  }
-> > >
-> > > -void free_initmem(void)
-> > > -{
-> > > -     free_initmem_default(0);
-> > > -}
-> > > -
-> > >  #ifdef CONFIG_BLK_DEV_INITRD
-> > >  void free_initrd_mem(unsigned long start, unsigned long end)
-> > >  {
-> >
-> > Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
-> >
-> > I'm going to assume this goes in with the rest of the patch set, thanks!
-> >
+Nice cleanup! Applied to my asm-generic tree now.
+
+I notice that you did not add a 'volatile' qualifier in addition to 'const'.
+Is that something you considered doing? I think the traditional
+readl/writel style accessors have them partly for historic reasons,
+and partly to simply the trivial implementation that is based on
+a volatile pointer dereference. Neither is needed here, and I don't
+think we have any drivers that pass volatile pointers into ioread()/iowrite()
+(which would cause a warning), so we can probably leave it at that,
+but it's still a bit inconsistent.
+
+    Arnd
