@@ -1,32 +1,48 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2130.oracle.com ([141.146.126.79]:49290 "EHLO
-        aserp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726092AbfBAHPC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2019 02:15:02 -0500
-Date: Fri, 1 Feb 2019 10:12:59 +0300
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Subject: Re: [PATCH v6 15/27] compiler: Option to default to hidden symbols
-Message-ID: <20190201071259.GB14343@kadam>
-References: <20190131192533.34130-1-thgarnie@chromium.org>
- <20190131192533.34130-16-thgarnie@chromium.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190131192533.34130-16-thgarnie@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <rppt@linux.ibm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH v2 2/4] hexagon: switch over to generic free_initmem()
+Date: Mon, 18 Feb 2019 20:41:23 +0200
+Message-ID: <1550515285-17446-3-git-send-email-rppt@linux.ibm.com>
+In-Reply-To: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
+References: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Garnier <thgarnie@chromium.org>
-Cc: kernel-hardening@lists.openwall.com, kristen@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Luis Chamberlain <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Thomas Garnier <thgarnie@google.com>, Jordan Borgner <mail@jordan-borgner.de>, Masami Hiramatsu <mhiramat@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andi Kleen <ak@linux.intel.com>, Jan Beulich <JBeulich@suse.com>, Song Liu <songliubraving@fb.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20190201071259.bHEtLl6OCTGwsQrbTeT0o6qyEng5NXwUs16e5H7erDk@z>
+Message-ID: <20190218184123.EnzKP9qYasMH05khw3nWQ4i0M89GwtxPS-vCsNszadY@z>
 
-On Thu, Jan 31, 2019 at 11:24:22AM -0800, Thomas Garnier wrote:
-> Provide an option to default visibility to hidden except for key
-> symbols.
+hexagon implementation of free_initmem() is currently empty and marked with
+comment
 
-It took me a while to figure out the verb in this sentence...  :P
+ * Todo:  free pages between __init_begin and __init_end; possibly
+ * some devtree related stuff as well.
 
-It's weird that we're annotating things to be default.  What visibility
-are they we leave off the annotation?
+Switch it to the generic implementation.
 
-regards,
-dan carpenter
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/hexagon/mm/init.c | 10 ----------
+ 1 file changed, 10 deletions(-)
+
+diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+index 1719ede..41cf342 100644
+--- a/arch/hexagon/mm/init.c
++++ b/arch/hexagon/mm/init.c
+@@ -85,16 +85,6 @@ void __init mem_init(void)
+ }
+ 
+ /*
+- * free_initmem - frees memory used by stuff declared with __init
+- *
+- * Todo:  free pages between __init_begin and __init_end; possibly
+- * some devtree related stuff as well.
+- */
+-void __ref free_initmem(void)
+-{
+-}
+-
+-/*
+  * free_initrd_mem - frees...  initrd memory.
+  * @start - start of init memory
+  * @end - end of init memory
+-- 
+2.7.4
