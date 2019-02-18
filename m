@@ -1,67 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:32874 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:33058 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726302AbfBRO6f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Feb 2019 09:58:35 -0500
-Date: Mon, 18 Feb 2019 14:58:20 +0000
+        id S1729038AbfBRPMe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Feb 2019 10:12:34 -0500
+Date: Mon, 18 Feb 2019 15:12:23 +0000
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v4 0/3] locking/rwsem: Rwsem rearchitecture part 0
-Message-ID: <20190218145820.GA16091@fuggles.cambridge.arm.com>
-References: <1550095217-12047-1-git-send-email-longman@redhat.com>
- <20190214103715.GI32494@hirez.programming.kicks-ass.net>
- <20190215184056.GC15084@fuggles.cambridge.arm.com>
- <a45d8b68-5623-d6fe-8080-072994f7625e@redhat.com>
+Subject: Re: [PATCH] arm64: mm: enable per pmd page table lock
+Message-ID: <20190218151223.GB16091@fuggles.cambridge.arm.com>
+References: <20190214211642.2200-1-yuzhao@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <a45d8b68-5623-d6fe-8080-072994f7625e@redhat.com>
+In-Reply-To: <20190214211642.2200-1-yuzhao@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190218145820.OjbH6NbaH-8wsdH2_J5RGfkjLjjUdLWkWX8IIYYXjC4@z>
+To: Yu Zhao <yuzhao@google.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com
+Message-ID: <20190218151223.vqLQn5QJs3ZVXc3A6XHIUK4MbeQj7q2mzPTa4VCTIqU@z>
 
-On Fri, Feb 15, 2019 at 01:58:34PM -0500, Waiman Long wrote:
-> On 02/15/2019 01:40 PM, Will Deacon wrote:
-> > On Thu, Feb 14, 2019 at 11:37:15AM +0100, Peter Zijlstra wrote:
-> >> On Wed, Feb 13, 2019 at 05:00:14PM -0500, Waiman Long wrote:
-> >>> v4:
-> >>>  - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
-> >>>
-> >>> v3:
-> >>>  - Optimize __down_read_trylock() for the uncontended case as suggested
-> >>>    by Linus.
-> >>>
-> >>> v2:
-> >>>  - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
-> >>>  - Update performance test data in patch 1.
-> >>>
-> >>> The goal of this patchset is to remove the architecture specific files
-> >>> for rwsem-xadd to make it easer to add enhancements in the later rwsem
-> >>> patches. It also removes the legacy rwsem-spinlock.c file and make all
-> >>> the architectures use one single implementation of rwsem - rwsem-xadd.c.
-> >>>
-> >>> Waiman Long (3):
-> >>>   locking/rwsem: Remove arch specific rwsem files
-> >>>   locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
-> >>>     archs
-> >>>   locking/rwsem: Optimize down_read_trylock()
-> >> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> >>
-> >> with the caveat that I'm happy to exchange patch 3 back to my earlier
-> >> suggestion in case Will expesses concerns wrt the ARM64 performance of
-> >> Linus' suggestion.
-> > Right, the current proposal doesn't work well for us, unfortunately. Which
-> > was your earlier suggestion?
-> >
-> > Will
+[+Mark]
+
+On Thu, Feb 14, 2019 at 02:16:42PM -0700, Yu Zhao wrote:
+> Switch from per mm_struct to per pmd page table lock by enabling
+> ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+> large system.
 > 
-> In my posting yesterday, I showed that most of the trylocks done were
-> actually uncontended. Assuming that pattern hold for the most of the
-> workloads, it will not that bad after all.
+> I'm not sure if there is contention on mm->page_table_lock. Given
+> the option comes at no cost (apart from initializing more spin
+> locks), why not enable it now.
+> 
+> Signed-off-by: Yu Zhao <yuzhao@google.com>
+> ---
+>  arch/arm64/Kconfig               |  3 +++
+>  arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
+>  arch/arm64/include/asm/tlb.h     |  5 ++++-
+>  3 files changed, 18 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index a4168d366127..104325a1ffc3 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
+>  config ARCH_HAS_CACHE_LINE_SIZE
+>  	def_bool y
+>  
+> +config ARCH_ENABLE_SPLIT_PMD_PTLOCK
+> +	def_bool y
+> +
+>  config SECCOMP
+>  	bool "Enable seccomp to safely compute untrusted bytecode"
+>  	---help---
+> diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+> index 52fa47c73bf0..dabba4b2c61f 100644
+> --- a/arch/arm64/include/asm/pgalloc.h
+> +++ b/arch/arm64/include/asm/pgalloc.h
+> @@ -33,12 +33,22 @@
+>  
+>  static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+>  {
+> -	return (pmd_t *)__get_free_page(PGALLOC_GFP);
+> +	struct page *page;
+> +
+> +	page = alloc_page(PGALLOC_GFP);
+> +	if (!page)
+> +		return NULL;
+> +	if (!pgtable_pmd_page_ctor(page)) {
+> +		__free_page(page);
+> +		return NULL;
+> +	}
+> +	return page_address(page);
 
-That's fair enough; if you're going to sit in a tight trylock() loop like the
-benchmark does, then you're much better off just calling lock() if you care
-at all about scalability.
+I'm a bit worried as to how this interacts with the page-table code in
+arch/arm64/mm/mmu.c when pgd_pgtable_alloc is used as the allocator. It
+looks like that currently always calls pgtable_page_ctor(), regardless of
+level. Do we now need a separate allocator function for the PMD level?
 
 Will
