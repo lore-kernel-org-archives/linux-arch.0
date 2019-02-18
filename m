@@ -1,28 +1,42 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 0/4] provide a generic free_initmem implementation
-Date: Mon, 18 Feb 2019 10:49:48 +0100
-Message-ID: <20190218094948.GA5892@lst.de>
-References: <1550159977-8949-1-git-send-email-rppt@linux.ibm.com> <20190214170416.GA32441@lst.de> <20190214183854.GA10795@rapoport-lnx>
+From: Hugo Lefeuvre <hle@owl.eu.com>
+Subject: [PATCH 0/4] iomap: fix multiple consistency issues, interface cleanup
+Date: Mon, 18 Feb 2019 11:53:15 +0100
+Message-ID: <cover.1550485787.git.hle@owl.eu.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190214183854.GA10795@rapoport-lnx>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 14, 2019 at 08:38:55PM +0200, Mike Rapoport wrote:
-> On Thu, Feb 14, 2019 at 06:04:16PM +0100, Christoph Hellwig wrote:
-> > This look fine to me, but I'm a little worried that as-is this will
-> > just create conflicts with my series..
-> 
-> I'll rebase on top of your patches once they are in. Or I can send both
-> series as a single set.
-> Preferences? 
+Hi,
 
-So far there wasn't really much a reason to rebase my series, hope
-this gets picked up either by Andrew or Al (not sure what the right
-place is).  I think for now just rebase your series on top, we can
-then figure out how to proceed.
+This patch cleans up the iomap interface.
+
+The first patch makes the include/asm-generic/iomap.h header compliant
+with the kernel style guidelines by adding missing function args
+identifier names.
+
+The second and fourth patches address multiple compilation warnings due
+to missing const qualifiers in mmio_ins* and ioread*/iowrite
+definitions in include/asm-generic/iomap.h and lib/iomap.c.
+
+The third patch modifies io*_rep definitions from asm-generic/io.h to
+take unsigned long count parameter instead of unsigned int which is
+inconsistent with other definitions in the kernel.
+
+Hugo Lefeuvre (4):
+  iomap: add missing function args identifier names
+  iomap: add missing const to ioread*/iowrite addr arg
+  io: change io*_rep definitions to take ulong count
+  lib/iomap: add missing const to mmio_ins* addr arg
+
+ include/asm-generic/io.h    | 16 ++++++++--------
+ include/asm-generic/iomap.h | 38 ++++++++++++++++++-------------------
+ lib/iomap.c                 | 22 ++++++++++-----------
+ 3 files changed, 38 insertions(+), 38 deletions(-)
+
+-- 
+2.20.1
