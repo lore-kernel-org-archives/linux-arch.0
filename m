@@ -1,122 +1,114 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 1/2] asm-generic/io: Pass result on inX() accessor to
- __io_par()
-Date: Mon, 18 Feb 2019 15:56:07 +0000
-Message-ID: <20190218155607.GA16713@fuggles.cambridge.arm.com>
-References: <CAK8P3a1-CA_d+tRRKh50+7-PU14AV=9S1JUSF4d-VUxZ+DcW4g@mail.gmail.com>
- <mhng-30e76674-df9d-4689-8c77-3a3b4723ee24@palmer-si-x1c4>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Date: Mon, 18 Feb 2019 16:29:54 +0000
+Message-ID: <20190218162954.GB16713@fuggles.cambridge.arm.com>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <mhng-30e76674-df9d-4689-8c77-3a3b4723ee24@palmer-si-x1c4>
+In-Reply-To: <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Palmer Dabbelt <palmer@sifive.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andrew.murray@arm.com, catalin.marinas@arm.com, linux-riscv@lists.infradead.org, aou@eecs.berkeley.edu
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 13, 2019 at 01:57:50PM -0800, Palmer Dabbelt wrote:
-> On Wed, 13 Feb 2019 12:59:28 PST (-0800), Arnd Bergmann wrote:
-> > On Wed, Feb 13, 2019 at 6:46 PM Will Deacon <will.deacon@arm.com> wrote:
-> > 
-> > > On Tue, Feb 12, 2019 at 12:55:17PM +0100, Arnd Bergmann wrote:
-> > > 
-> > > > For all I can see, this should not conflict with the usage of the
-> > > > same macros on RISC-V, though it does make add a significant
-> > > > difference, so I'd like to see an Ack from the RISC-V folks as
-> > > > well (added to Cc), or possibly a change to arch/riscv/include/asm/io.h
-> > > > to do a corresponding change.
-> 
-> Thanks, the original patches didn't make it through my filters.
-> 
-> > > There's already a comment in that header which says that the accesses are
-> > > ordered wrt timer reads, so I don't think anything needs to change there.
-> > > For consistency with the macro arguments, I could augment their __io_par to
-> > > take the read value as an unused argument, if that's what you mean?
-> 
-> FWIW, we don't really have a way to mandate this in the ISA yet as there's
-> no formal model for either CSR orderings or the IO memory space.
+Hi Arnd,
 
-Ah, so you may end up needing the dependency trick too, depending on where
-you land with the ISA.
+On Tue, Feb 12, 2019 at 02:03:04PM +0100, Arnd Bergmann wrote:
+> On Mon, Feb 11, 2019 at 6:29 PM Will Deacon <will.deacon@arm.com> wrote:
+> 
+> > +     __iomem pointers obtained with non-default attributes (e.g. those returned
+> > +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
+> > +     ordering is required for such mappings, then the mandatory barriers should
+> > +     be used in conjunction with the _relaxed() accessors defined below.
+> 
+> I wonder if we are even able to guarantee consistent behavior across
+> architectures
+> in the last case here (wc mapping with relaxed accessors and barriers).
+> 
+> Fortunately, there are only five implementations that actually differ from
+> ioremap_nocache(): arm32, arm64, ppc32, ppc64 and x86 (both 32/64), so
+> that is something we can probably figure out between the people on Cc.
 
-> > Yes, that's what I meant, I should have been clearer there.
-> 
-> That sounds reasonable to me.  It looks like we can also go ahead and delete
-> a bunch of arch/riscv/include/asm/io.h now that this stuff is in
-> asm-generic, which would cause us to actually start using these things.  I
-> didn't know this had all been moved to asm-generic otherwise I would have
-> cleaned this up earlier.
-> 
-> I think this should do it, but this does bring up a bit of an issue: the
-> RISC-V versions of reads and friends put barriers outside the loop, while
-> the asm-generic version don't.  What are these actually supposed to do?
+I'd be keen to try to document this as a follow-up patch, otherwise there's
+the risk of biting off more than I can chew, which is easily done with this
+stuff! For arm32 (v7) and arm64, ioremap_wc() returns "normal, non-cacheable
+memory". Some notable differences between this and the memory type returned
+by ioremap() are:
 
-You're referring to the string accessors (e.g. insb() and readsw()), right?
-arm and arm64 don't provide barriers here either, and I don't think they
-should have to given that these routines are usually used to poll data
-register-based FIFOs and therefore don't need to provide ordering guarantees
-against DMA operations. However, this is woefully undocumented and I shall
-try to address this in the next version of my memory-barriers.txt patch
-relating to this area [1].
+ * ioremap_wc() allows speculative reads
+ * ioremap_wc() allows unaligned access
+ * ioremap_wc() allows reordering of accesses to different addresses
+ * ioremap_wc() allows merging of accesses
 
-> Either way that resolves, feel free to consider something like
-> 
-> diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
-> index b269451e7e85..378975f180a7 100644
-> --- a/arch/riscv/include/asm/io.h
-> +++ b/arch/riscv/include/asm/io.h
-> @@ -198,20 +198,20 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
->  * writes.
->  */
-> #define __io_pbr()	__asm__ __volatile__ ("fence io,i"  : : : "memory");
-> -#define __io_par()	__asm__ __volatile__ ("fence i,ior" : : : "memory");
-> +#define __io_par(v)	__asm__ __volatile__ ("fence i,ior" : : : "memory");
-> #define __io_pbw()	__asm__ __volatile__ ("fence iow,o" : : : "memory");
-> #define __io_paw()	__asm__ __volatile__ ("fence o,io"  : : : "memory");
-> 
-> -#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
-> -#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
-> -#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(); __v; })
-> +#define inb(c)		({ u8  __v; __io_pbr(); __v = readb_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-> +#define inw(c)		({ u16 __v; __io_pbr(); __v = readw_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-> +#define inl(c)		({ u32 __v; __io_pbr(); __v = readl_cpu((void*)(PCI_IOBASE + (c))); __io_par(__v); __v; })
-> 
-> #define outb(v,c)	({ __io_pbw(); writeb_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
-> #define outw(v,c)	({ __io_pbw(); writew_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
-> #define outl(v,c)	({ __io_pbw(); writel_cpu((v),(void*)(PCI_IOBASE + (c))); __io_paw(); })
-> 
-> #ifdef CONFIG_64BIT
-> -#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(); __v; })
-> +#define inq(c)		({ u64 __v; __io_pbr(); __v = readq_cpu((void*)(c)); __io_par(__v); __v; })
-> #define outq(v,c)	({ __io_pbw(); writeq_cpu((v),(void*)(c)); __io_paw(); })
-> #endif
-> 
-> @@ -261,9 +261,9 @@ __io_reads_ins(reads, u32, l, __io_br(), __io_ar())
-> #define readsw(addr, buffer, count) __readsw(addr, buffer, count)
-> #define readsl(addr, buffer, count) __readsl(addr, buffer, count)
-> 
-> -__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par())
-> -__io_reads_ins(ins, u16, w, __io_pbr(), __io_par())
-> -__io_reads_ins(ins, u32, l, __io_pbr(), __io_par())
-> +__io_reads_ins(ins,  u8, b, __io_pbr(), __io_par(addr))
-> +__io_reads_ins(ins, u16, w, __io_pbr(), __io_par(addr))
-> +__io_reads_ins(ins, u32, l, __io_pbr(), __io_par(addr))
-> #define insb(addr, buffer, count) __insb((void __iomem *)(long)addr, buffer, count)
-> #define insw(addr, buffer, count) __insw((void __iomem *)(long)addr, buffer, count)
-> #define insl(addr, buffer, count) __insl((void __iomem *)(long)addr, buffer, count)
-> 
-> as
-> 
-> Revewied-by: Palmer Dabbelt <palmer@sifive.com>
-> 
-> when included along with the other diff.  That way we can at least keep the
-> macro signatures matching, the cleanup can come later...
+so for us, you really only want to use it to map things that look an awful
+lot like memory.
 
-Thanks, Palmer! I'll send a v2 of this patch, updated to fix up insq() as
-well as the readX() macros too, since they're likely to suffer the exact
-same issues as inX() in this regard.
+> The problem with recommending *_relaxed() + barrier() is that it ends
+> up being more expensive than the non-relaxed accessors whenever
+> _relaxed() implies the barrier already (true on most architectures other
+> than arm).
+> 
+> ioremap_wc() in turn is used almost exclusively to map RAM behind
+> a bus, (typically for frame buffers) and we may be better off not
+> assuming any particular MMIO barrier semantics for it at all, but possibly
+> audit the few uses that are not frame buffers.
+
+Right, my expectation is actually that you very rarely need ordering
+guarantees for wc mappings, and so saying "relaxed + mandatory barriers"
+is the best thing to say for portable driver code. I'm deliberately /not/
+trying to enumerate arch or device-specific behaviours.
+
+> > +     Since many CPU architectures ultimately access these peripherals via an
+> > +     internal virtual memory mapping, the portable ordering guarantees provided
+> > +     by inX() and outX() are the same as those provided by readX() and writeX()
+> > +     respectively when accessing a mapping with the default I/O attributes.
+> 
+> This is notably weaker than the PCI mandated non-posted write semantics.
+> As I said earlier, not all architectures or PCI host implementations can provide
+> non-posted writes though, but maybe we can document that fact here, e.g.
+> 
+> | Device drivers may expect outX() to be a non-posted write, i.e. waiting for
+> | a completion response from the I/O device, which may not be possible
+> | on a particular hardware.
+
+I can add something along these lines, since this seems like it could be a
+bit of a "gotcha" given the macro names and implicit x86 heritage.
+
+> >   (*) ioreadX(), iowriteX()
+> >
+> >       These will perform appropriately for the type of access they're actually
+> >       doing, be it inX()/outX() or readX()/writeX().
+> 
+> This probably needs clarification as well then: On architectures that
+> have a stronger barrier after outX() than writeX() but that use memory
+> mapped access for both, the statement is currently not true. We could
+> either strengthen the requirement by requiring CONFIG_GENERIC_IOMAP
+> on such architectures, or we could document the current behavior
+> as intentional and explicitly not allow iowriteX() on I/O ports to be posted.
+
+At least on arm and arm64, the heavy barrier in outX() is *before* the I/O
+access, and so it does nothing to prevent the access from being posted. It
+looks like the asm-generic/io.h behaviour is the same in the case that none
+of the __io_* barriers are provided by the architecture.
+
+Do you think this is something we actually need to strengthen, or are
+drivers that rely on this going to be x86-specific anyway?
+
+> > +All of these accessors assume that the underlying peripheral is little-endian,
+> > +and will therefore perform byte-swapping operations on big-endian architectures.
+> 
+> This sounds like a useful addition and the only sane way to do it IMHO, but
+> I think at least traditionally we've had architectures that do not work like
+> this but that make readX()/writeX() do native big-endian loads and stores, with
+> a hardware byteswap on the PCI bus.
+
+Sure, hence my disclaimer at the beginning about non-portable drivers :)
+My goal here is really to document the portable semantics for the common
+architectures, so that driver developers and reviewers can get the usual
+case right.
 
 Will
-
-[1] https://lkml.org/lkml/2019/2/11/1803
