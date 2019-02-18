@@ -1,85 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:34866 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732720AbfBRQw2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 11:52:28 -0500
-Received: by mail-qk1-f195.google.com with SMTP id w204so10367944qka.2
-        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2019 08:52:28 -0800 (PST)
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:40766 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733067AbfBRQ7b (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 11:59:31 -0500
 MIME-Version: 1.0
-References: <201902190052.bZjV0Dgp%fengguang.wu@intel.com> <20190218114242-mutt-send-email-mst@kernel.org>
-In-Reply-To: <20190218114242-mutt-send-email-mst@kernel.org>
+References: <20190211172948.3322-1-will.deacon@arm.com> <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
+ <20190218162954.GB16713@fuggles.cambridge.arm.com>
+In-Reply-To: <20190218162954.GB16713@fuggles.cambridge.arm.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 18 Feb 2019 17:52:09 +0100
-Message-ID: <CAK8P3a0TELB9XN5xM7yXRE0RJCGkF1b9YFshY7dzeTcFttKGVg@mail.gmail.com>
-Subject: Re: [asm-generic:master 2/6] arch/x86//mm/mpx.c:57:26: error:
- 'MAP_PRIVATE' undeclared; did you mean 'DQF_PRIVATE'?
+Date: Mon, 18 Feb 2019 17:59:13 +0100
+Message-ID: <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
+ EFFECTS" section
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, linux-arch <linux-arch@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190218165913.E2DL95EgelMNFe_ZWfNaJBLlX1_O5I5o-GHC7ZvNsM0@z>
 
-On Mon, Feb 18, 2019 at 5:44 PM Michael S. Tsirkin <mst@redhat.com> wrote:
+On Mon, Feb 18, 2019 at 5:30 PM Will Deacon <will.deacon@arm.com> wrote:
 >
-> On Tue, Feb 19, 2019 at 12:28:55AM +0800, kbuild test robot wrote:
-> > tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
-> > head:   3c4fcc2648569c3fe573849f9254c8c3499ec648
-> > commit: 9ac483109d19095e22414e46d38a6817520883b9 [2/6] arch: move common mmap flags to linux/mman.h
-> > config: x86_64-kexec (attached as .config)
-> > compiler: gcc-7 (Debian 7.3.0-1) 7.3.0
-> > reproduce:
-> >         git checkout 9ac483109d19095e22414e46d38a6817520883b9
-> >         # save the attached .config to linux build tree
-> >         make ARCH=x86_64
+> On Tue, Feb 12, 2019 at 02:03:04PM +0100, Arnd Bergmann wrote:
+> > On Mon, Feb 11, 2019 at 6:29 PM Will Deacon <will.deacon@arm.com> wrote:
 > >
-> > All errors (new ones prefixed by >>):
+> > > +     __iomem pointers obtained with non-default attributes (e.g. those returned
+> > > +     by ioremap_wc()) are unlikely to provide many of these guarantees. If
+> > > +     ordering is required for such mappings, then the mandatory barriers should
+> > > +     be used in conjunction with the _relaxed() accessors defined below.
 > >
-> >    arch/x86//mm/mpx.c: In function 'mpx_mmap':
-> > >> arch/x86//mm/mpx.c:57:26: error: 'MAP_PRIVATE' undeclared (first use in this function); did you mean 'DQF_PRIVATE'?
-> >              MAP_ANONYMOUS | MAP_PRIVATE, VM_MPX, 0, &populate, NULL);
-> >                              ^~~~~~~~~~~
-> >                              DQF_PRIVATE
-> >    arch/x86//mm/mpx.c:57:26: note: each undeclared identifier is reported only once for each function it appears in
+> > I wonder if we are even able to guarantee consistent behavior across
+> > architectures
+> > in the last case here (wc mapping with relaxed accessors and barriers).
+> >
+> > Fortunately, there are only five implementations that actually differ from
+> > ioremap_nocache(): arm32, arm64, ppc32, ppc64 and x86 (both 32/64), so
+> > that is something we can probably figure out between the people on Cc.
 >
-> Arnd I think you are missing:
->     x86/mpx: tweak header name
+...
+> > The problem with recommending *_relaxed() + barrier() is that it ends
+> > up being more expensive than the non-relaxed accessors whenever
+> > _relaxed() implies the barrier already (true on most architectures other
+> > than arm).
+> >
+> > ioremap_wc() in turn is used almost exclusively to map RAM behind
+> > a bus, (typically for frame buffers) and we may be better off not
+> > assuming any particular MMIO barrier semantics for it at all, but possibly
+> > audit the few uses that are not frame buffers.
 >
-> The whole file is going away eventually:
-> https://lkml.kernel.org/r/7de5232f-4bc1-5c85-00d5-cb646462577f@intel.com
+> Right, my expectation is actually that you very rarely need ordering
+> guarantees for wc mappings, and so saying "relaxed + mandatory barriers"
+> is the best thing to say for portable driver code. I'm deliberately /not/
+> trying to enumerate arch or device-specific behaviours.
+
+That's fine, my worry is more that you are already saying too much
+by describing a behavior for ioremap_wc+relaxed+barrier that is
+neither a good idea or guaranteed to do what you describe.
+
+> > > +     Since many CPU architectures ultimately access these peripherals via an
+> > > +     internal virtual memory mapping, the portable ordering guarantees provided
+> > > +     by inX() and outX() are the same as those provided by readX() and writeX()
+> > > +     respectively when accessing a mapping with the default I/O attributes.
+> >
+> > This is notably weaker than the PCI mandated non-posted write semantics.
+> > As I said earlier, not all architectures or PCI host implementations can provide
+> > non-posted writes though, but maybe we can document that fact here, e.g.
+> >
+> > | Device drivers may expect outX() to be a non-posted write, i.e. waiting for
+> > | a completion response from the I/O device, which may not be possible
+> > | on a particular hardware.
 >
-> but to avoid breaking bisect I think it's needed.
+> I can add something along these lines, since this seems like it could be a
+> bit of a "gotcha" given the macro names and implicit x86 heritage.
 
-Right, I misunderstood the earlier mails and assumed it wasn't really
-needed even for building the current tree. Added it in now as well. I see that
-there are various other files including asm/mman.h:
+Ok.
 
-arch/arm/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/arm64/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/c6x/include/asm/cacheflush.h:#include <asm/mman.h>
-arch/ia64/include/asm/pgtable.h:#include <asm/mman.h>
-arch/ia64/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/mips/kernel/linux32.c:#include <asm/mman.h>
-arch/mips/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/parisc/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/powerpc/include/asm/mman.h:#include <uapi/asm/mman.h>
-arch/powerpc/mm/hugetlbpage-radix.c:#include <asm/mman.h>
-arch/powerpc/mm/pkeys.c:#include <asm/mman.h>
-arch/powerpc/mm/slice.c:#include <asm/mman.h>
-arch/sh/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/sparc/include/asm/mman.h:#include <uapi/asm/mman.h>
-arch/sparc/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/um/kernel/syscall.c:#include <asm/mman.h>
-arch/x86/ia32/sys_ia32.c:#include <asm/mman.h>
-arch/x86/mm/hugetlbpage.c:#include <asm/mman.h>
-arch/x86/um/shared/sysdep/kernel-offsets.h:#include <asm/mman.h>
-fs/eventpoll.c:#include <asm/mman.h>
-include/uapi/linux/mman.h:#include <asm/mman.h>
-mm/filemap.c:#include <asm/mman.h>
-tools/include/uapi/linux/mman.h:#include <asm/mman.h>
-virt/kvm/arm/arm.c:#include <asm/mman.h>
+> > >   (*) ioreadX(), iowriteX()
+> > >
+> > >       These will perform appropriately for the type of access they're actually
+> > >       doing, be it inX()/outX() or readX()/writeX().
+> >
+> > This probably needs clarification as well then: On architectures that
+> > have a stronger barrier after outX() than writeX() but that use memory
+> > mapped access for both, the statement is currently not true. We could
+> > either strengthen the requirement by requiring CONFIG_GENERIC_IOMAP
+> > on such architectures, or we could document the current behavior
+> > as intentional and explicitly not allow iowriteX() on I/O ports to be posted.
+>
+> At least on arm and arm64, the heavy barrier in outX() is *before* the I/O
+> access, and so it does nothing to prevent the access from being posted. It
+> looks like the asm-generic/io.h behaviour is the same in the case that none
+> of the __io_* barriers are provided by the architecture.
+>
+> Do you think this is something we actually need to strengthen, or are
+> drivers that rely on this going to be x86-specific anyway?
 
-Did you check if we need to do the same change on any of the
-other files? A lot of them are architecture specific and might not be
-caught by the regular build testing.
+I would say we should strengthen the behavior of outX() where possible.
+I don't know if arm64 actually has a way of doing that, my understanding
+earlier was that the AXI bus was already posted, so there is not much
+you can do here to define __io_paw() in a way that will prevent posted
+writes.
+
+> > > +All of these accessors assume that the underlying peripheral is little-endian,
+> > > +and will therefore perform byte-swapping operations on big-endian architectures.
+> >
+> > This sounds like a useful addition and the only sane way to do it IMHO, but
+> > I think at least traditionally we've had architectures that do not work like
+> > this but that make readX()/writeX() do native big-endian loads and stores, with
+> > a hardware byteswap on the PCI bus.
+>
+> Sure, hence my disclaimer at the beginning about non-portable drivers :)
+> My goal here is really to document the portable semantics for the common
+> architectures, so that driver developers and reviewers can get the usual
+> case right.
+
+Fair enough.
 
       Arnd
