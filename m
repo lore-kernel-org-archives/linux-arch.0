@@ -1,86 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:33858 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726476AbfBRUhn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 15:37:43 -0500
+Received: from mail-it1-f195.google.com ([209.85.166.195]:54150 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725844AbfBRUsr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 15:48:47 -0500
+Received: by mail-it1-f195.google.com with SMTP id x131so1116980itc.3
+        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2019 12:48:46 -0800 (PST)
+Date: Mon, 18 Feb 2019 13:48:42 -0700
+From: Yu Zhao <yuzhao@google.com>
+Subject: Re: [PATCH] arm64: mm: enable per pmd page table lock
+Message-ID: <20190218204842.GA203083@google.com>
+References: <20190214211642.2200-1-yuzhao@google.com>
+ <20190218151223.GB16091@fuggles.cambridge.arm.com>
+ <20190218194938.GA184109@google.com>
 MIME-Version: 1.0
-References: <20190211172948.3322-1-will.deacon@arm.com> <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
- <20190218162954.GB16713@fuggles.cambridge.arm.com> <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
- <20190218175625.GD16713@fuggles.cambridge.arm.com>
-In-Reply-To: <20190218175625.GD16713@fuggles.cambridge.arm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 18 Feb 2019 21:37:25 +0100
-Message-ID: <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
- EFFECTS" section
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190218194938.GA184109@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
-Message-ID: <20190218203725.QKV4SFzS1ReEIkGA9CEzKbvQlChP_fzYu4yNJTzwpGE@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com
+Message-ID: <20190218204842.6A2YslTch_khpHWxlv54FJqRHtKoKtSXKs5mgZRs8M0@z>
 
-On Mon, Feb 18, 2019 at 6:56 PM Will Deacon <will.deacon@arm.com> wrote:
->
-> On Mon, Feb 18, 2019 at 05:59:13PM +0100, Arnd Bergmann wrote:
-> > On Mon, Feb 18, 2019 at 5:30 PM Will Deacon <will.deacon@arm.com> wrote:
-> > >
-> > > >
-> > > > ioremap_wc() in turn is used almost exclusively to map RAM behind
-> > > > a bus, (typically for frame buffers) and we may be better off not
-> > > > assuming any particular MMIO barrier semantics for it at all, but possibly
-> > > > audit the few uses that are not frame buffers.
-> > >
-> > > Right, my expectation is actually that you very rarely need ordering
-> > > guarantees for wc mappings, and so saying "relaxed + mandatory barriers"
-> > > is the best thing to say for portable driver code. I'm deliberately /not/
-> > > trying to enumerate arch or device-specific behaviours.
-> >
-> > That's fine, my worry is more that you are already saying too much
-> > by describing a behavior for ioremap_wc+relaxed+barrier that is
-> > neither a good idea or guaranteed to do what you describe.
->
-> I could drop the mention of relaxed accessors here for now, if you like?
-> For example:
->
->   "__iomem pointers obtained with non-default attributes (e.g. those returned
->    by ioremap_wc()) are unlikely to provide many of these guarantees. If
->    ordering is required for such mappings, then the mandatory barriers should
->    be used."
->
-> which we could flesh out if/when we have a notion of the portable semantics.
+On Mon, Feb 18, 2019 at 12:49:38PM -0700, Yu Zhao wrote:
+> On Mon, Feb 18, 2019 at 03:12:23PM +0000, Will Deacon wrote:
+> > [+Mark]
+> > 
+> > On Thu, Feb 14, 2019 at 02:16:42PM -0700, Yu Zhao wrote:
+> > > Switch from per mm_struct to per pmd page table lock by enabling
+> > > ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+> > > large system.
+> > > 
+> > > I'm not sure if there is contention on mm->page_table_lock. Given
+> > > the option comes at no cost (apart from initializing more spin
+> > > locks), why not enable it now.
+> > > 
+> > > Signed-off-by: Yu Zhao <yuzhao@google.com>
+> > > ---
+> > >  arch/arm64/Kconfig               |  3 +++
+> > >  arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
+> > >  arch/arm64/include/asm/tlb.h     |  5 ++++-
+> > >  3 files changed, 18 insertions(+), 2 deletions(-)
+> > > 
+> > > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> > > index a4168d366127..104325a1ffc3 100644
+> > > --- a/arch/arm64/Kconfig
+> > > +++ b/arch/arm64/Kconfig
+> > > @@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
+> > >  config ARCH_HAS_CACHE_LINE_SIZE
+> > >  	def_bool y
+> > >  
+> > > +config ARCH_ENABLE_SPLIT_PMD_PTLOCK
+> > > +	def_bool y
+> > > +
+> > >  config SECCOMP
+> > >  	bool "Enable seccomp to safely compute untrusted bytecode"
+> > >  	---help---
+> > > diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+> > > index 52fa47c73bf0..dabba4b2c61f 100644
+> > > --- a/arch/arm64/include/asm/pgalloc.h
+> > > +++ b/arch/arm64/include/asm/pgalloc.h
+> > > @@ -33,12 +33,22 @@
+> > >  
+> > >  static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+> > >  {
+> > > -	return (pmd_t *)__get_free_page(PGALLOC_GFP);
+> > > +	struct page *page;
+> > > +
+> > > +	page = alloc_page(PGALLOC_GFP);
+> > > +	if (!page)
+> > > +		return NULL;
+> > > +	if (!pgtable_pmd_page_ctor(page)) {
+> > > +		__free_page(page);
+> > > +		return NULL;
+> > > +	}
+> > > +	return page_address(page);
+> > 
+> > I'm a bit worried as to how this interacts with the page-table code in
+> > arch/arm64/mm/mmu.c when pgd_pgtable_alloc is used as the allocator. It
+> > looks like that currently always calls pgtable_page_ctor(), regardless of
+> > level. Do we now need a separate allocator function for the PMD level?
+> 
+> Thanks for reminding me, I never noticed this. The short answer is
+> no.
+> 
+> I guess pgtable_page_ctor() is used on all pud/pmd/pte entries
+> there because it's also compatible with pud, and pmd too without
+> this patch. So your concern is valid. Thanks again.
+> 
+> Why my answer is no? Because I don't think the ctor matters for
+> pgd_pgtable_alloc(). The ctor is only required for userspace page
+> tables, and that's why we don't have it in pte_alloc_one_kernel().
+> AFAICT, none of the pgds (efi_mm.pgd, tramp_pg_dir and init_mm.pgd)
+> pre-populated by pgd_pgtable_alloc() is. (I doubt we pre-populate
+> userspace page tables in any other arch).
+> 
+> So to avoid future confusion, we might just remove the ctor from
+> pgd_pgtable_alloc().
 
-I'd go further then and drop the second sentence entirely until we are sure
-what portable behaviour would be.
+I'm sorry. I've missed that we call apply_to_page_range() on efi_mm.
+The function does require the ctor. So we actually can't remove it.
+Though pgtable_page_ctor() also does the work adequately for pmd in
+terms of giving apply_to_page_range() what it requires, it would be
+more appropriate to use pgtable_pmd_page_ctor() instead (and not
+calling the ctor at all on pud).
 
-> >
-> > I would say we should strengthen the behavior of outX() where possible.
-> > I don't know if arm64 actually has a way of doing that, my understanding
-> > earlier was that the AXI bus was already posted, so there is not much
-> > you can do here to define __io_paw() in a way that will prevent posted
-> > writes.
->
-> If we could map I/O space using different page table attributes (probably by
-> hacking pci_remap_iospace() ?) then we could disable the
-> early-write-acknowledge hint and implement __io_paw() as a completion
-> barrier, although it would be at the mercy of the system as to whether or
-> not that requires a response from the RC.
-
-Ah, it seems we actually do that on 32-bit ARM, at least on one platform,
-see 6a02734d420f ("ARM: mvebu: map PCI I/O regions strongly ordered")
-and prior commits.
-
-> I would still prefer to document the weaker semantics as the portable
-> interface, unless there are portable drivers relying on this today (which
-> would imply that it's widely supported by other architectures).
-
-I don't know of any portable driver that actually relies on it, but
-that's mainly because there are very few portable drivers that
-use inb()/outb() in the first place. How many of those require
-the non-posted behavior I don't know
-
-Adding Thomas, Gregory and Russell to Cc, as they were involved
-in the discussion that led to the 32-bit change, maybe they are
-aware of a specific example.
-
-       Arnd
+I could add this change prior to this patch, if it makes sense to
+you. Thanks.
