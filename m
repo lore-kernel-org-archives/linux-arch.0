@@ -1,49 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:39177 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391933AbfBROMM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 09:12:12 -0500
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:35624 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389824AbfBROD7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 09:03:59 -0500
 MIME-Version: 1.0
-References: <cover.1550485787.git.hle@owl.eu.com>
-In-Reply-To: <cover.1550485787.git.hle@owl.eu.com>
+References: <20190124142448.23243-1-mst@redhat.com> <20190210231841-mutt-send-email-mst@kernel.org>
+In-Reply-To: <20190210231841-mutt-send-email-mst@kernel.org>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 18 Feb 2019 15:11:54 +0100
-Message-ID: <CAK8P3a3de3ti6B3A0Mgy_eVv8SmNyCLx7AvwYRK2k8rxtBG-3g@mail.gmail.com>
-Subject: Re: [PATCH 0/4] iomap: fix multiple consistency issues, interface cleanup
+Date: Mon, 18 Feb 2019 15:03:41 +0100
+Message-ID: <CAK8P3a2cWjSSUJehMGEMCmnjdWJRZcyoegtN1ERqX7Tzkm-DXg@mail.gmail.com>
+Subject: Re: [PATCH 0/3] generic asm: mman cleanup
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugo Lefeuvre <hle@owl.eu.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20190218141154.NCSY8u_VlLFZt0ZzmW68z-A_ij0SQtDSUzmfNiVMV6Q@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190218140341.5u1IMosgO0TgpeUPAzSex8UEYiIXRQpH6W2-9IN7Zp0@z>
 
-On Mon, Feb 18, 2019 at 11:53 AM Hugo Lefeuvre <hle@owl.eu.com> wrote:
+On Mon, Feb 11, 2019 at 5:20 AM Michael S. Tsirkin <mst@redhat.com> wrote:
 >
-> Hi,
+> On Fri, Feb 08, 2019 at 01:02:51AM -0500, Michael S. Tsirkin wrote:
+> > Now that we have MAP_SHARED, MAP_PRIVATE and MAP_SHARED_VALIDATE on all
+> > architectures, it probably makes sense to de-duplicate these
+> > and put them into a common header.
+> >
+> > Please review and consider merging though the generic tree.
+> >
+> > Build tested on x86 only. Has been in linux-next for a while now.
 >
-> This patch cleans up the iomap interface.
->
-> The first patch makes the include/asm-generic/iomap.h header compliant
-> with the kernel style guidelines by adding missing function args
-> identifier names.
->
-> The second and fourth patches address multiple compilation warnings due
-> to missing const qualifiers in mmio_ins* and ioread*/iowrite
-> definitions in include/asm-generic/iomap.h and lib/iomap.c.
->
-> The third patch modifies io*_rep definitions from asm-generic/io.h to
-> take unsigned long count parameter instead of unsigned int which is
-> inconsistent with other definitions in the kernel.
+> Arnd, would you consider merging at least the cleanups 2/3 and 3/3?
+> In linux-next they had no ill effects and make things
+> slightly cleaner IMO.
 
-Nice cleanup! Applied to my asm-generic tree now.
+I applied patches 2 and 3 now, sorry for the late reply.
 
-I notice that you did not add a 'volatile' qualifier in addition to 'const'.
-Is that something you considered doing? I think the traditional
-readl/writel style accessors have them partly for historic reasons,
-and partly to simply the trivial implementation that is based on
-a volatile pointer dereference. Neither is needed here, and I don't
-think we have any drivers that pass volatile pointers into ioread()/iowrite()
-(which would cause a warning), so we can probably leave it at that,
-but it's still a bit inconsistent.
-
-    Arnd
+     Arnd
