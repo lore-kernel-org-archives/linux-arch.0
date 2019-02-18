@@ -1,29 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47286 "EHLO mail.kernel.org"
+Received: from verein.lst.de ([213.95.11.211]:43927 "EHLO newverein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725808AbfBQQuC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 17 Feb 2019 11:50:02 -0500
-Subject: Re: [GIT PULL V3] csky fixes for v5.0-rc6
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <1550041628-19985-1-git-send-email-guoren@kernel.org>
-References: <1550041628-19985-1-git-send-email-guoren@kernel.org>
-Message-ID: <155042220216.16506.594342102190348541.pr-tracker-bot@kernel.org>
-Date: Sun, 17 Feb 2019 16:50:02 +0000
+        id S1727423AbfBRJtu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Feb 2019 04:49:50 -0500
+Date: Mon, 18 Feb 2019 10:49:48 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 0/4] provide a generic free_initmem implementation
+Message-ID: <20190218094948.GA5892@lst.de>
+References: <1550159977-8949-1-git-send-email-rppt@linux.ibm.com> <20190214170416.GA32441@lst.de> <20190214183854.GA10795@rapoport-lnx>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190214183854.GA10795@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190217165002.a7jfv1M3uxS6-vZpnqLMMBtF2A9DBXVtECpWw6jqae8@z>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org
+Message-ID: <20190218094948.2ZqH5zB1jIRvMYEx_gty5wdXKmpYplhV9E-fC-XwR-w@z>
 
-The pull request you sent on Wed, 13 Feb 2019 15:07:08 +0800:
+On Thu, Feb 14, 2019 at 08:38:55PM +0200, Mike Rapoport wrote:
+> On Thu, Feb 14, 2019 at 06:04:16PM +0100, Christoph Hellwig wrote:
+> > This look fine to me, but I'm a little worried that as-is this will
+> > just create conflicts with my series..
+> 
+> I'll rebase on top of your patches once they are in. Or I can send both
+> series as a single set.
+> Preferences? 
 
-> git@github.com:c-sky/csky-linux.git tags/csky-for-linus-5.0-rc6
-
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/0513ebc33ed6b590bfbaaf21cd7b3d571c20edb9
-
-Thank you!
-
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+So far there wasn't really much a reason to rebase my series, hope
+this gets picked up either by Andrew or Al (not sure what the right
+place is).  I think for now just rebase your series on top, we can
+then figure out how to proceed.
