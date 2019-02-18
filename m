@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:52359 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.75]:42149 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728062AbfBRVH7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 16:07:59 -0500
+        with ESMTP id S1727340AbfBRVH6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2019 16:07:58 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 8/8] riscv: Use latest system call ABI
-Date: Mon, 18 Feb 2019 22:07:12 +0100
-Message-ID: <20190218210712.3503891-9-arnd@arndb.de>
+Subject: [PATCH 5/8] unicore32: Fix __ARCH_WANT_STAT64 definition
+Date: Mon, 18 Feb 2019 22:07:09 +0100
+Message-ID: <20190218210712.3503891-6-arnd@arndb.de>
 In-Reply-To: <20190218210712.3503891-1-arnd@arndb.de>
 References: <20190218210712.3503891-1-arnd@arndb.de>
 MIME-Version: 1.0
@@ -15,64 +15,32 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org
 Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, yury.norov@gmail.com, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Stafford Horne <shorne@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Palmer Dabbelt <palmer@sifive.com>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, arnd@arndb.de, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>
-Message-ID: <20190218210712.FjDH9jFwcp4bP_s7sC6dfUINu9hAJDrRlD1ofhk3R8w@z>
+Message-ID: <20190218210709.7UjpZnMwAvZRkqchDbG7xE3F-UFfG97b6Mj6veifMbM@z>
 
-We don't yet have an upstream glibc port for riscv, so there is no user
-space for the existing ABI, and we can remove the definitions for 32-bit
-time_t, off_t and struct resource and system calls based on them,
-including the vdso.
+The __ARCH_WANT_STAT64 macro must be defined before including
+asm-generic/unistd.h. I got this right for everything except
+unicore32.
 
+Fixes: bf4b6a7d371e ("y2038: Remove stat64 family from default syscall set")
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/riscv/Kconfig                   | 1 -
- arch/riscv/include/uapi/asm/unistd.h | 5 +----
- arch/riscv/kernel/vdso/Makefile      | 2 ++
- 3 files changed, 3 insertions(+), 5 deletions(-)
+ arch/unicore32/include/uapi/asm/unistd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 09fa3a87bf30..feeeaa60697c 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -11,7 +11,6 @@ config 32BIT
+diff --git a/arch/unicore32/include/uapi/asm/unistd.h b/arch/unicore32/include/uapi/asm/unistd.h
+index 4e5e624f5d7e..54a7378a70b1 100644
+--- a/arch/unicore32/include/uapi/asm/unistd.h
++++ b/arch/unicore32/include/uapi/asm/unistd.h
+@@ -13,9 +13,9 @@
  
- config RISCV
- 	def_bool y
--	select ARCH_32BIT_OFF_T if !64BIT
- 	# even on 32-bit, physical (and DMA) addresses are > 32-bits
- 	select PHYS_ADDR_T_64BIT
- 	select OF
-diff --git a/arch/riscv/include/uapi/asm/unistd.h b/arch/riscv/include/uapi/asm/unistd.h
-index 486a288b454c..0e2eeeb1fd27 100644
---- a/arch/riscv/include/uapi/asm/unistd.h
-+++ b/arch/riscv/include/uapi/asm/unistd.h
-@@ -17,11 +17,8 @@
- 
- #ifdef __LP64__
- #define __ARCH_WANT_NEW_STAT
--#endif /* __LP64__ */
+ #define __ARCH_WANT_RENAMEAT
  #define __ARCH_WANT_SET_GET_RLIMIT
--#ifndef __LP64__
--#define __ARCH_WANT_TIME32_SYSCALLS
--#endif
-+#endif /* __LP64__ */
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_TIME32_SYSCALLS
  
+ /* Use the standard ABI for syscalls. */
  #include <asm-generic/unistd.h>
- 
-diff --git a/arch/riscv/kernel/vdso/Makefile b/arch/riscv/kernel/vdso/Makefile
-index eed1c137f618..fec62b24df89 100644
---- a/arch/riscv/kernel/vdso/Makefile
-+++ b/arch/riscv/kernel/vdso/Makefile
-@@ -2,9 +2,11 @@
- 
- # Symbols present in the vdso
- vdso-syms  = rt_sigreturn
-+ifdef CONFIG_64BIT
- vdso-syms += gettimeofday
- vdso-syms += clock_gettime
- vdso-syms += clock_getres
-+endif
- vdso-syms += getcpu
- vdso-syms += flush_icache
- 
+-#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_CLONE
 -- 
 2.20.0
