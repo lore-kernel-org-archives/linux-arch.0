@@ -1,129 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40080 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40144 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725497AbfBSEKD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Feb 2019 23:10:03 -0500
-Subject: Re: [PATCH] arm64: mm: enable per pmd page table lock
+        id S1725730AbfBSEVJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Feb 2019 23:21:09 -0500
+Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
 References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218151223.GB16091@fuggles.cambridge.arm.com>
- <20190218194938.GA184109@google.com>
+ <20190218231319.178224-1-yuzhao@google.com>
 From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <885bcfa8-1085-d454-540d-4511f5f3886e@arm.com>
-Date: Tue, 19 Feb 2019 09:39:59 +0530
+Message-ID: <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
+Date: Tue, 19 Feb 2019 09:51:01 +0530
 MIME-Version: 1.0
-In-Reply-To: <20190218194938.GA184109@google.com>
+In-Reply-To: <20190218231319.178224-1-yuzhao@google.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu Zhao <yuzhao@google.com>, Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com
-Message-ID: <20190219040959.QNFLFCGtrlzcxMl6JsFcicvDgcP6PAQsZSU8uEkKdlc@z>
+To: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20190219042101.D72yHhsAKGa-2TjpE3SLKp6wLjYET6sNeEBPGqkfgTs@z>
 
 
 
-On 02/19/2019 01:19 AM, Yu Zhao wrote:
-> On Mon, Feb 18, 2019 at 03:12:23PM +0000, Will Deacon wrote:
->> [+Mark]
->>
->> On Thu, Feb 14, 2019 at 02:16:42PM -0700, Yu Zhao wrote:
->>> Switch from per mm_struct to per pmd page table lock by enabling
->>> ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
->>> large system.
->>>
->>> I'm not sure if there is contention on mm->page_table_lock. Given
->>> the option comes at no cost (apart from initializing more spin
->>> locks), why not enable it now.
->>>
->>> Signed-off-by: Yu Zhao <yuzhao@google.com>
->>> ---
->>>  arch/arm64/Kconfig               |  3 +++
->>>  arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
->>>  arch/arm64/include/asm/tlb.h     |  5 ++++-
->>>  3 files changed, 18 insertions(+), 2 deletions(-)
->>>
->>> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
->>> index a4168d366127..104325a1ffc3 100644
->>> --- a/arch/arm64/Kconfig
->>> +++ b/arch/arm64/Kconfig
->>> @@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
->>>  config ARCH_HAS_CACHE_LINE_SIZE
->>>  	def_bool y
->>>  
->>> +config ARCH_ENABLE_SPLIT_PMD_PTLOCK
->>> +	def_bool y
->>> +
->>>  config SECCOMP
->>>  	bool "Enable seccomp to safely compute untrusted bytecode"
->>>  	---help---
->>> diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
->>> index 52fa47c73bf0..dabba4b2c61f 100644
->>> --- a/arch/arm64/include/asm/pgalloc.h
->>> +++ b/arch/arm64/include/asm/pgalloc.h
->>> @@ -33,12 +33,22 @@
->>>  
->>>  static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
->>>  {
->>> -	return (pmd_t *)__get_free_page(PGALLOC_GFP);
->>> +	struct page *page;
->>> +
->>> +	page = alloc_page(PGALLOC_GFP);
->>> +	if (!page)
->>> +		return NULL;
->>> +	if (!pgtable_pmd_page_ctor(page)) {
->>> +		__free_page(page);
->>> +		return NULL;
->>> +	}
->>> +	return page_address(page);
->>
->> I'm a bit worried as to how this interacts with the page-table code in
->> arch/arm64/mm/mmu.c when pgd_pgtable_alloc is used as the allocator. It
->> looks like that currently always calls pgtable_page_ctor(), regardless of
->> level. Do we now need a separate allocator function for the PMD level?> 
-> Thanks for reminding me, I never noticed this. The short answer is
-> no.
-> 
-> I guess pgtable_page_ctor() is used on all pud/pmd/pte entries
-> there because it's also compatible with pud, and pmd too without
-> this patch. So your concern is valid. Thanks again.
-
-pgtable_page_ctor() acts on a given page used as page table at any level
-which sets appropriate page type (page flag PG_table) and increments the
-zone stat for NR_PAGETABLE. pgtable_page_dtor() exactly does the inverse.
-
-These two complimentary operations are required for every level page table
-pages for their proper initialization, identification in buddy and zone
-statistics. Hence these need to be called for all level page table pages.
-
-pgtable_pmd_page_ctor()/pgtable_pmd_page_dtor() on the other hand just
-init/free page table lock on the page for !THP cases and additionally
-init page->pmd_huge_pte (deposited page table page) for THP cases.
-Some archs seem to be calling pgtable_pmd_page_ctor() in place of
-pgtable_page_ctor(). Wondering would not that approach skip page flag
-and accounting requirements.
-
-> 
-> Why my answer is no? Because I don't think the ctor matters for
-> pgd_pgtable_alloc(). The ctor is only required for userspace page
-> tables, and that's why we don't have it in pte_alloc_one_kernel().
-
-At present on arm64 certain kernel page table page allocations call
-pgtable_pmd_page_ctor() and some dont. The series which I had posted
-make sure that all kernel and user page table page allocations go through
-pgtable_page_ctor()/dtor(). These constructs are required for kernel
-page table pages as well for accurate init and accounting not just for
-user space. The series just skips vmemmap struct page mapping from this
-as that would require generic sparse vmemmap allocation/free functions
-which I believe should also be changed going forward as well.
-
-> AFAICT, none of the pgds (efi_mm.pgd, tramp_pg_dir and init_mm.pgd)
-> pre-populated by pgd_pgtable_alloc() is. (I doubt we pre-populate
-> userspace page tables in any other arch).
-> 
-> So to avoid future confusion, we might just remove the ctor from
-> pgd_pgtable_alloc().
-
-No. Instead we should just make sure the that those pages go through
-dtor() destructor path when getting freed and the clean up series
-does that.
+On 02/19/2019 04:43 AM, Yu Zhao wrote:
+> For pte page, use pgtable_page_ctor(); for pmd page, use
+> pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
+> p4d and pgd), don't use any.
+pgtable_page_ctor()/dtor() is not optional for any level page table page
+as it determines the struct page state and zone statistics. We should not
+skip it for any page table page. As stated before pgtable_pmd_page_ctor()
+is not a replacement for pgtable_page_ctor().
