@@ -1,23 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f53.google.com ([209.85.221.53]:45144 "EHLO
-        mail-wr1-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729881AbfBSWzq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 17:55:46 -0500
-Received: by mail-wr1-f53.google.com with SMTP id w17so23734885wrn.12
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 14:55:45 -0800 (PST)
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:38116 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727375AbfBSW6A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 17:58:00 -0500
+Received: by mail-wr1-f66.google.com with SMTP id v13so23770901wrw.5
+        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 14:57:59 -0800 (PST)
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [PATCH 2/2] tools/memory-model: Do not use "herd" to refer to "herd7"
-Date: Tue, 19 Feb 2019 23:55:23 +0100
-Message-ID: <1550616923-4795-3-git-send-email-andrea.parri@amarulasolutions.com>
-In-Reply-To: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
-References: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Date: Tue, 19 Feb 2019 23:57:37 +0100
+Message-ID: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190219225523.KlqWodhWWIY6URV8K4eAmXHPOh15ifoW4omsIz9eHSQ@z>
+Message-ID: <20190219225737.Ja_BP_wf3nrIs-SvuGWgyOWKjFmDc0n-ZWxlE6VAlIo@z>
 
-Use "herd7" in each such reference.
+Remove this subtle (and, AFAICT, unused) ordering: we can add it back,
+if necessary, but let us not encourage people to rely on this thing.
+
+For example, the following "exists" clause can be satisfied with this
+change:
+
+C dep-rfi
+
+{ }
+
+P0(int *x, int *y)
+{
+	WRITE_ONCE(*x, 1);
+	smp_store_release(y, 1);
+}
+
+P1(int *x, int *y, int *z)
+{
+	int r0;
+	int r1;
+	int r2;
+
+	r0 = READ_ONCE(*y);
+	WRITE_ONCE(*z, r0);
+	r1 = smp_load_acquire(z);
+	r2 = READ_ONCE(*x);
+}
+
+exists (1:r0=1 /\ 1:r2=0)
 
 Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Cc: Alan Stern <stern@rowland.harvard.edu>
@@ -32,114 +58,61 @@ Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
 Cc: Akira Yokosawa <akiyks@gmail.com>
 Cc: Daniel Lustig <dlustig@nvidia.com>
 ---
- tools/memory-model/litmus-tests/README       | 2 +-
- tools/memory-model/lock.cat                  | 2 +-
- tools/memory-model/scripts/README            | 4 ++--
- tools/memory-model/scripts/checkalllitmus.sh | 2 +-
- tools/memory-model/scripts/checklitmus.sh    | 2 +-
- tools/memory-model/scripts/parseargs.sh      | 2 +-
- tools/memory-model/scripts/runlitmushist.sh  | 2 +-
- 7 files changed, 8 insertions(+), 8 deletions(-)
+ tools/memory-model/Documentation/explanation.txt | 28 ------------------------
+ tools/memory-model/linux-kernel.cat              |  2 +-
+ 2 files changed, 1 insertion(+), 29 deletions(-)
 
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 5ee08f129094e..681f9067fa9ed 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -244,7 +244,7 @@ produce the name:
- Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index 68caa9a976d0c..965e11744d090 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -1019,34 +1019,6 @@ section for more details).  The kernel includes a workaround for this
+ problem when the loads come from READ_ONCE(), and therefore the LKMM
+ includes address dependencies to loads in the ppo relation.
  
- The descriptors that describe connections between consecutive accesses
--within the cycle through a given litmus test can be provided by the herd
-+within the cycle through a given litmus test can be provided by the herd7
- tool (Rfi, Po, Fre, and so on) or by the linux-kernel.bell file (Once,
- Release, Acquire, and so on).
+-On the other hand, dependencies can indirectly affect the ordering of
+-two loads.  This happens when there is a dependency from a load to a
+-store and a second, po-later load reads from that store:
+-
+-	R ->dep W ->rfi R',
+-
+-where the dep link can be either an address or a data dependency.  In
+-this situation we know it is possible for the CPU to execute R' before
+-W, because it can forward the value that W will store to R'.  But it
+-cannot execute R' before R, because it cannot forward the value before
+-it knows what that value is, or that W and R' do access the same
+-location.  However, if there is merely a control dependency between R
+-and W then the CPU can speculatively forward W to R' before executing
+-R; if the speculation turns out to be wrong then the CPU merely has to
+-restart or abandon R'.
+-
+-(In theory, a CPU might forward a store to a load when it runs across
+-an address dependency like this:
+-
+-	r1 = READ_ONCE(ptr);
+-	WRITE_ONCE(*r1, 17);
+-	r2 = READ_ONCE(*r1);
+-
+-because it could tell that the store and the second load access the
+-same location even before it knows what the location's address is.
+-However, none of the architectures supported by the Linux kernel do
+-this.)
+-
+ Two memory accesses of the same location must always be executed in
+ program order if the second access is a store.  Thus, if we have
  
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index a059d1a6d8a29..6b52f365d73ac 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -11,7 +11,7 @@
- include "cross.cat"
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 8dcb37835b613..6b9e3bb4e397f 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -62,7 +62,7 @@ let dep = addr | data
+ let rwdep = (dep | ctrl) ; [W]
+ let overwrite = co | fr
+ let to-w = rwdep | (overwrite & int)
+-let to-r = addr | (dep ; rfi)
++let to-r = addr ; [R]
+ let fence = strong-fence | wmb | po-rel | rmb | acq-po
+ let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
  
- (*
-- * The lock-related events generated by herd are as follows:
-+ * The lock-related events generated by herd7 are as follows:
-  *
-  * LKR		Lock-Read: the read part of a spin_lock() or successful
-  *			spin_trylock() read-modify-write event pair
-diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
-index 29375a1fbbfa1..095c7eb36f9f9 100644
---- a/tools/memory-model/scripts/README
-+++ b/tools/memory-model/scripts/README
-@@ -22,7 +22,7 @@ checklitmushist.sh
- 
- 	Run all litmus tests having .litmus.out files from previous
- 	initlitmushist.sh or newlitmushist.sh runs, comparing the
--	herd output to that of the original runs.
-+	herd7 output to that of the original runs.
- 
- checklitmus.sh
- 
-@@ -43,7 +43,7 @@ initlitmushist.sh
- 
- judgelitmus.sh
- 
--	Given a .litmus file and its .litmus.out herd output, check the
-+	Given a .litmus file and its .litmus.out herd7 output, check the
- 	.litmus.out file against the .litmus file's "Result:" comment to
- 	judge whether the test ran correctly.  Not normally run manually,
- 	provided instead for use by other scripts.
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index b35fcd61ecf6d..3c0c7fbbd223b 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# Run herd tests on all .litmus files in the litmus-tests directory
-+# Run herd7 tests on all .litmus files in the litmus-tests directory
- # and check each file's result against a "Result:" comment within that
- # litmus test.  If the verification result does not match that specified
- # in the litmus test, this script prints an error message prefixed with
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index dd08801a30b05..11461ed40b5e4 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# Run a herd test and invokes judgelitmus.sh to check the result against
-+# Run a herd7 test and invokes judgelitmus.sh to check the result against
- # a "Result:" comment within the litmus test.  It also outputs verification
- # results to a file whose name is that of the specified litmus test, but
- # with ".out" appended.
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 859e1d581e051..40f52080fdbd6 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -91,7 +91,7 @@ do
- 		shift
- 		;;
- 	--herdopts|--herdopt)
--		checkarg --destdir "(herd options)" "$#" "$2" '.*' '^--'
-+		checkarg --destdir "(herd7 options)" "$#" "$2" '.*' '^--'
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-index e507f5f933d53..6ed376f495bb4 100755
---- a/tools/memory-model/scripts/runlitmushist.sh
-+++ b/tools/memory-model/scripts/runlitmushist.sh
-@@ -79,7 +79,7 @@ then
- 	echo ' ---' Summary: 1>&2
- 	grep '!!!' $T/*.sh.out 1>&2
- 	nfail="`grep '!!!' $T/*.sh.out | wc -l`"
--	echo 'Number of failed herd runs (e.g., timeout): ' $nfail 1>&2
-+	echo 'Number of failed herd7 runs (e.g., timeout): ' $nfail 1>&2
- 	exit 1
- else
- 	echo All runs completed successfully. 1>&2
 -- 
 2.7.4
