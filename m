@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v6 05/18] asm-generic/tlb: Provide generic tlb_flush() based on flush_tlb_mm()
-Date: Tue, 19 Feb 2019 11:31:53 +0100
-Message-ID: <20190219103233.148854086@infradead.org>
+Subject: [PATCH v6 15/18] asm-generic/tlb: Remove arch_tlb*_mmu()
+Date: Tue, 19 Feb 2019 11:32:03 +0100
+Message-ID: <20190219103233.752135076@infradead.org>
 References: <20190219103148.192029670@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,93 +11,138 @@ To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
 List-Id: linux-arch.vger.kernel.org
 
-When an architecture does not have (an efficient) flush_tlb_range(),
-but instead always uses full TLB invalidates, the current generic
-tlb_flush() is sub-optimal, for it will generate extra flushes in
-order to keep the range small.
+Now that all architectures are converted to the generic code, remove
+the arch hooks.
 
-But if we cannot do range flushes, that is a moot concern. Optionally
-provide this simplified default.
-
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/asm-generic/tlb.h |   41 ++++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 40 insertions(+), 1 deletion(-)
+ mm/mmu_gather.c |   93 +++++++++++++++++++++++++-------------------------------
+ 1 file changed, 42 insertions(+), 51 deletions(-)
 
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -114,7 +114,8 @@
-  *    returns the smallest TLB entry size unmapped in this range.
-  *
-  * If an architecture does not provide tlb_flush() a default implementation
-- * based on flush_tlb_range() will be used.
-+ * based on flush_tlb_range() will be used, unless MMU_GATHER_NO_RANGE is
-+ * specified, in which case we'll default to flush_tlb_mm().
-  *
-  * Additionally there are a few opt-in features:
-  *
-@@ -140,6 +141,9 @@
-  *  the page-table pages. Required if you use HAVE_RCU_TABLE_FREE and your
-  *  architecture uses the Linux page-tables natively.
-  *
-+ *  MMU_GATHER_NO_RANGE
-+ *
-+ *  Use this if your architecture lacks an efficient flush_tlb_range().
-  */
- #define HAVE_GENERIC_MMU_GATHER
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -93,33 +93,6 @@ bool __tlb_remove_page_size(struct mmu_g
  
-@@ -302,12 +306,45 @@ static inline void __tlb_reset_range(str
- 	 */
+ #endif /* HAVE_MMU_GATHER_NO_GATHER */
+ 
+-void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-				unsigned long start, unsigned long end)
+-{
+-	tlb->mm = mm;
+-
+-	/* Is it from 0 to ~0? */
+-	tlb->fullmm     = !(start | (end+1));
+-
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+-	tlb->need_flush_all = 0;
+-	tlb->local.next = NULL;
+-	tlb->local.nr   = 0;
+-	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
+-	tlb->active     = &tlb->local;
+-	tlb->batch_count = 0;
+-#endif
+-
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+-	tlb->batch = NULL;
+-#endif
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+-	tlb->page_size = 0;
+-#endif
+-
+-	__tlb_reset_range(tlb);
+-}
+-
+ void tlb_flush_mmu_free(struct mmu_gather *tlb)
+ {
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+@@ -136,27 +109,6 @@ void tlb_flush_mmu(struct mmu_gather *tl
+ 	tlb_flush_mmu_free(tlb);
  }
  
-+#ifdef CONFIG_MMU_GATHER_NO_RANGE
+-/* tlb_finish_mmu
+- *	Called at the end of the shootdown operation to free up any resources
+- *	that were required.
+- */
+-void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-		unsigned long start, unsigned long end, bool force)
+-{
+-	if (force) {
+-		__tlb_reset_range(tlb);
+-		__tlb_adjust_range(tlb, start, end - start);
+-	}
+-
+-	tlb_flush_mmu(tlb);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+-	tlb_batch_list_free(tlb);
+-#endif
+-}
+-
+ #endif /* HAVE_GENERIC_MMU_GATHER */
+ 
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+@@ -258,10 +210,40 @@ void tlb_remove_table(struct mmu_gather
+ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 			unsigned long start, unsigned long end)
+ {
+-	arch_tlb_gather_mmu(tlb, mm, start, end);
++	tlb->mm = mm;
 +
-+#if defined(tlb_flush) || defined(tlb_start_vma) || defined(tlb_end_vma)
-+#error MMU_GATHER_NO_RANGE relies on default tlb_flush(), tlb_start_vma() and tlb_end_vma()
++	/* Is it from 0 to ~0? */
++	tlb->fullmm     = !(start | (end+1));
++
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb->need_flush_all = 0;
++	tlb->local.next = NULL;
++	tlb->local.nr   = 0;
++	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
++	tlb->active     = &tlb->local;
++	tlb->batch_count = 0;
 +#endif
 +
-+/*
-+ * When an architecture does not have efficient means of range flushing TLBs
-+ * there is no point in doing intermediate flushes on tlb_end_vma() to keep the
-+ * range small. We equally don't have to worry about page granularity or other
-+ * things.
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++	tlb->batch = NULL;
++#endif
++#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++	tlb->page_size = 0;
++#endif
++
++	__tlb_reset_range(tlb);
+ 	inc_tlb_flush_pending(tlb->mm);
+ }
+ 
++/**
++ * tlb_finish_mmu - finish an mmu_gather structure
++ * @tlb: the mmu_gather structure to finish
++ * @start: start of the region that will be removed from the page-table
++ * @end: end of the region that will be removed from the page-table
 + *
-+ * All we need to do is issue a full flush for any !0 range.
++ * Called at the end of the shootdown operation to free up any resources that
++ * were required.
 + */
-+static inline void tlb_flush(struct mmu_gather *tlb)
-+{
-+	if (tlb->end)
-+		flush_tlb_mm(tlb->mm);
-+}
-+
-+static inline void
-+tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
-+
-+#define tlb_end_vma tlb_end_vma
-+static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
-+
-+#else /* CONFIG_MMU_GATHER_NO_RANGE */
-+
- #ifndef tlb_flush
- 
- #if defined(tlb_start_vma) || defined(tlb_end_vma)
- #error Default tlb_flush() relies on default tlb_start_vma() and tlb_end_vma()
- #endif
- 
-+/*
-+ * When an architecture does not provide its own tlb_flush() implementation
-+ * but does have a reasonably efficient flush_vma_range() implementation
-+ * use that.
-+ */
- static inline void tlb_flush(struct mmu_gather *tlb)
+ void tlb_finish_mmu(struct mmu_gather *tlb,
+ 		unsigned long start, unsigned long end)
  {
- 	if (tlb->fullmm || tlb->need_flush_all) {
-@@ -348,6 +385,8 @@ tlb_update_vma_flags(struct mmu_gather *
+@@ -272,8 +254,17 @@ void tlb_finish_mmu(struct mmu_gather *t
+ 	 * the TLB by observing pte_none|!pte_dirty, for example so flush TLB
+ 	 * forcefully if we detect parallel PTE batching threads.
+ 	 */
+-	bool force = mm_tlb_flush_nested(tlb->mm);
++	if (mm_tlb_flush_nested(tlb->mm)) {
++		__tlb_reset_range(tlb);
++		__tlb_adjust_range(tlb, start, end - start);
++	}
  
- #endif
- 
-+#endif /* CONFIG_MMU_GATHER_NO_RANGE */
+-	arch_tlb_finish_mmu(tlb, start, end, force);
++	tlb_flush_mmu(tlb);
 +
- static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
- {
- 	if (!tlb->end)
++	/* keep the page table cache within bounds */
++	check_pgt_cache();
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb_batch_list_free(tlb);
++#endif
+ 	dec_tlb_flush_pending(tlb->mm);
+ }
