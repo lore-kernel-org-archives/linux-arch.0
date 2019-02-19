@@ -1,15 +1,18 @@
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [PATCH 0/2] tools/memory-model: Trivialities
-Date: Tue, 19 Feb 2019 23:55:21 +0100
-Message-ID: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [PATCH 1/2] tools/memory-model: Fix comment in MP+poonceonces.litmus
+Date: Tue, 19 Feb 2019 23:55:22 +0100
+Message-ID: <1550616923-4795-2-git-send-email-andrea.parri@amarulasolutions.com>
+References: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-Fixes to inline comments, documentation, script usage.
+The comment should say "Sometimes" for the result.
 
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Cc: Alan Stern <stern@rowland.harvard.edu>
 Cc: Will Deacon <will.deacon@arm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
@@ -21,20 +24,22 @@ Cc: Luc Maranget <luc.maranget@inria.fr>
 Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
 Cc: Akira Yokosawa <akiyks@gmail.com>
 Cc: Daniel Lustig <dlustig@nvidia.com>
-
-Andrea Parri (2):
-  tools/memory-model: Fix comment in MP+poonceonces.litmus
-  tools/memory-model: Do not use "herd" to refer to "herd7"
-
+---
  tools/memory-model/litmus-tests/MP+poonceonces.litmus | 2 +-
- tools/memory-model/litmus-tests/README                | 2 +-
- tools/memory-model/lock.cat                           | 2 +-
- tools/memory-model/scripts/README                     | 4 ++--
- tools/memory-model/scripts/checkalllitmus.sh          | 2 +-
- tools/memory-model/scripts/checklitmus.sh             | 2 +-
- tools/memory-model/scripts/parseargs.sh               | 2 +-
- tools/memory-model/scripts/runlitmushist.sh           | 2 +-
- 8 files changed, 9 insertions(+), 9 deletions(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
+diff --git a/tools/memory-model/litmus-tests/MP+poonceonces.litmus b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+index b2b60b84fb9dc..172f0145301c5 100644
+--- a/tools/memory-model/litmus-tests/MP+poonceonces.litmus
++++ b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+@@ -1,7 +1,7 @@
+ C MP+poonceonces
+ 
+ (*
+- * Result: Maybe
++ * Result: Sometimes
+  *
+  * Can the counter-intuitive message-passing outcome be prevented with
+  * no ordering at all?
 -- 
 2.7.4
