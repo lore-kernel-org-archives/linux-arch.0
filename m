@@ -1,86 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44048 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44826 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725772AbfBSLgU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Feb 2019 06:36:20 -0500
-Date: Tue, 19 Feb 2019 11:36:09 +0000
+        id S1726388AbfBSMrU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Feb 2019 07:47:20 -0500
+Date: Tue, 19 Feb 2019 12:47:16 +0000
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Message-ID: <20190219113609.GC4027@fuggles.cambridge.arm.com>
-References: <20190211172948.3322-1-will.deacon@arm.com>
- <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
- <20190218162954.GB16713@fuggles.cambridge.arm.com>
- <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
- <20190218175625.GD16713@fuggles.cambridge.arm.com>
- <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
- <20190219112747.7db95e58@windsurf.home>
- <CAK8P3a3n2meqogz7MeMUA48LBOEV9_AYQPxU3+V8A=Fn_63v4A@mail.gmail.com>
+Subject: Re: [PATCH v6 05/18] asm-generic/tlb: Provide generic tlb_flush()
+ based on flush_tlb_mm()
+Message-ID: <20190219124716.GB8501@fuggles.cambridge.arm.com>
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.148854086@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a3n2meqogz7MeMUA48LBOEV9_AYQPxU3+V8A=Fn_63v4A@mail.gmail.com>
+In-Reply-To: <20190219103233.148854086@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Petazzoni <thomas.petazzoni@bootlin.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
-Message-ID: <20190219113609.isjqGQJtPTbkGJL6oBKMvlK5Pp4J-lQUztX8pJaOBIA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
+Message-ID: <20190219124716.M8U77GRxixTNpeARQnXkZNPj0EYrTtr5WY3O-DWhQLo@z>
 
-On Tue, Feb 19, 2019 at 12:31:50PM +0100, Arnd Bergmann wrote:
-> On Tue, Feb 19, 2019 at 11:27 AM Thomas Petazzoni
-> <thomas.petazzoni@bootlin.com> wrote:
-> > On Mon, 18 Feb 2019 21:37:25 +0100
-> > Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > > Ah, it seems we actually do that on 32-bit ARM, at least on one platform,
-> > > see 6a02734d420f ("ARM: mvebu: map PCI I/O regions strongly ordered")
-> > > and prior commits.
-> >
-> > Yes, some Marvell Armada 32-bit platforms have an errata that require
-> > the PCI MEM and PCI I/O regions to be mapped strongly ordered.
-> >
-> > BTW, this requirement prevents us from using the pci_remap_iospace()
-> > API from drivers/pci, because it assumes page attributes of
-> > pgprot_device(PAGE_KERNEL). That's why we're still using the
-> > ARM-specific pci_ioremap_io() function.
+On Tue, Feb 19, 2019 at 11:31:53AM +0100, Peter Zijlstra wrote:
+> When an architecture does not have (an efficient) flush_tlb_range(),
+> but instead always uses full TLB invalidates, the current generic
+> tlb_flush() is sub-optimal, for it will generate extra flushes in
+> order to keep the range small.
 > 
-> Ok.
+> But if we cannot do range flushes, that is a moot concern. Optionally
+> provide this simplified default.
 > 
-> > > > I would still prefer to document the weaker semantics as the portable
-> > > > interface, unless there are portable drivers relying on this today (which
-> > > > would imply that it's widely supported by other architectures).
-> > >
-> > > I don't know of any portable driver that actually relies on it, but
-> > > that's mainly because there are very few portable drivers that
-> > > use inb()/outb() in the first place. How many of those require
-> > > the non-posted behavior I don't know
-> > >
-> > > Adding Thomas, Gregory and Russell to Cc, as they were involved
-> > > in the discussion that led to the 32-bit change, maybe they are
-> > > aware of a specific example.
-> >
-> > I'm just arriving in the middle of this thread, and I'm not sure to
-> > understand what is the question. If the question is whether PCI I/O is
-> > really used in practice, then I've never seen it be used with Marvell
-> > platforms (but I'm also not aware of all PCIe devices people are
-> > using). I personally have a hacked-up version of the e1000e driver
-> > that intentionally does some PCI I/O accesses, that I use as a way to
-> > validate that PCI I/O support is minimally working, but that's it.
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  include/asm-generic/tlb.h |   41 ++++++++++++++++++++++++++++++++++++++++-
+>  1 file changed, 40 insertions(+), 1 deletion(-)
 > 
-> The main question is whether we know of a portable (not specific
-> to a single architecture) driver for PCIe (or PCI, but probably not ISA)
-> that uses outb/outw/outl in a way that relies on the on-posted
-> behavior of those, compared to posted writeb/writew/writel that are
-> only required to complete before another I/O operation on the same
-> device but whose completion is not ordered with regard to the rest of
-> the system.
-> 
-> I think an example of this would be a driver using outb() to disable
-> an interrupt, and then relying on the the interrupt no longer happening
-> after the outb().
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -114,7 +114,8 @@
+>   *    returns the smallest TLB entry size unmapped in this range.
+>   *
+>   * If an architecture does not provide tlb_flush() a default implementation
+> - * based on flush_tlb_range() will be used.
+> + * based on flush_tlb_range() will be used, unless MMU_GATHER_NO_RANGE is
+> + * specified, in which case we'll default to flush_tlb_mm().
+>   *
+>   * Additionally there are a few opt-in features:
+>   *
+> @@ -140,6 +141,9 @@
+>   *  the page-table pages. Required if you use HAVE_RCU_TABLE_FREE and your
+>   *  architecture uses the Linux page-tables natively.
+>   *
+> + *  MMU_GATHER_NO_RANGE
+> + *
+> + *  Use this if your architecture lacks an efficient flush_tlb_range().
+>   */
+>  #define HAVE_GENERIC_MMU_GATHER
+>  
+> @@ -302,12 +306,45 @@ static inline void __tlb_reset_range(str
+>  	 */
+>  }
+>  
+> +#ifdef CONFIG_MMU_GATHER_NO_RANGE
+> +
+> +#if defined(tlb_flush) || defined(tlb_start_vma) || defined(tlb_end_vma)
+> +#error MMU_GATHER_NO_RANGE relies on default tlb_flush(), tlb_start_vma() and tlb_end_vma()
+> +#endif
+> +
+> +/*
+> + * When an architecture does not have efficient means of range flushing TLBs
+> + * there is no point in doing intermediate flushes on tlb_end_vma() to keep the
+> + * range small. We equally don't have to worry about page granularity or other
+> + * things.
+> + *
+> + * All we need to do is issue a full flush for any !0 range.
+> + */
+> +static inline void tlb_flush(struct mmu_gather *tlb)
+> +{
+> +	if (tlb->end)
+> +		flush_tlb_mm(tlb->mm);
+> +}
 
-Isn't that racy already? i.e. the interrupt could fire just before you
-disabled it, but not get delivered by the irq controller until after you'd
-disabled it at the device?
+I guess another way we could handle these architectures is by
+unconditionally resetting tlb->fullmm to 1, but this works too.
+
+Acked-by: Will Deacon <will.deacon@arm.com>
 
 Will
