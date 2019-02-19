@@ -1,148 +1,74 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v6 15/18] asm-generic/tlb: Remove arch_tlb*_mmu()
-Date: Tue, 19 Feb 2019 11:32:03 +0100
-Message-ID: <20190219103233.752135076@infradead.org>
-References: <20190219103148.192029670@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH v6 00/18] generic mmu_gather patches
+Date: Tue, 19 Feb 2019 11:31:48 +0100
+Message-ID: <20190219103148.192029670@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
 List-Id: linux-arch.vger.kernel.org
 
-Now that all architectures are converted to the generic code, remove
-the arch hooks.
+Hi all,
 
-Acked-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Sorry I haven't posted these in a while, I sorta forgot about them for a little.
+
+Not much changed since last time; one change to the ARM patch as suggested by
+Will and a fresh Changelog for patch 12 as requested by Vineet. And some
+trivial rebasing of the s390 bits.
+
+They've sat in my queue.git for a while and 0-day hasn't reported anything
+funny with them.
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git mm/tlb
+
+I'm thinking this is about ready to go.
+
 ---
- mm/mmu_gather.c |   93 +++++++++++++++++++++++++-------------------------------
- 1 file changed, 42 insertions(+), 51 deletions(-)
-
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -93,33 +93,6 @@ bool __tlb_remove_page_size(struct mmu_g
- 
- #endif /* HAVE_MMU_GATHER_NO_GATHER */
- 
--void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
--				unsigned long start, unsigned long end)
--{
--	tlb->mm = mm;
--
--	/* Is it from 0 to ~0? */
--	tlb->fullmm     = !(start | (end+1));
--
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
--	tlb->need_flush_all = 0;
--	tlb->local.next = NULL;
--	tlb->local.nr   = 0;
--	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
--	tlb->active     = &tlb->local;
--	tlb->batch_count = 0;
--#endif
--
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
--	tlb->batch = NULL;
--#endif
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
--	tlb->page_size = 0;
--#endif
--
--	__tlb_reset_range(tlb);
--}
--
- void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
-@@ -136,27 +109,6 @@ void tlb_flush_mmu(struct mmu_gather *tl
- 	tlb_flush_mmu_free(tlb);
- }
- 
--/* tlb_finish_mmu
-- *	Called at the end of the shootdown operation to free up any resources
-- *	that were required.
-- */
--void arch_tlb_finish_mmu(struct mmu_gather *tlb,
--		unsigned long start, unsigned long end, bool force)
--{
--	if (force) {
--		__tlb_reset_range(tlb);
--		__tlb_adjust_range(tlb, start, end - start);
--	}
--
--	tlb_flush_mmu(tlb);
--
--	/* keep the page table cache within bounds */
--	check_pgt_cache();
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
--	tlb_batch_list_free(tlb);
--#endif
--}
--
- #endif /* HAVE_GENERIC_MMU_GATHER */
- 
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
-@@ -258,10 +210,40 @@ void tlb_remove_table(struct mmu_gather
- void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 			unsigned long start, unsigned long end)
- {
--	arch_tlb_gather_mmu(tlb, mm, start, end);
-+	tlb->mm = mm;
-+
-+	/* Is it from 0 to ~0? */
-+	tlb->fullmm     = !(start | (end+1));
-+
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+	tlb->need_flush_all = 0;
-+	tlb->local.next = NULL;
-+	tlb->local.nr   = 0;
-+	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
-+	tlb->active     = &tlb->local;
-+	tlb->batch_count = 0;
-+#endif
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+	tlb->batch = NULL;
-+#endif
-+#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+	tlb->page_size = 0;
-+#endif
-+
-+	__tlb_reset_range(tlb);
- 	inc_tlb_flush_pending(tlb->mm);
- }
- 
-+/**
-+ * tlb_finish_mmu - finish an mmu_gather structure
-+ * @tlb: the mmu_gather structure to finish
-+ * @start: start of the region that will be removed from the page-table
-+ * @end: end of the region that will be removed from the page-table
-+ *
-+ * Called at the end of the shootdown operation to free up any resources that
-+ * were required.
-+ */
- void tlb_finish_mmu(struct mmu_gather *tlb,
- 		unsigned long start, unsigned long end)
- {
-@@ -272,8 +254,17 @@ void tlb_finish_mmu(struct mmu_gather *t
- 	 * the TLB by observing pte_none|!pte_dirty, for example so flush TLB
- 	 * forcefully if we detect parallel PTE batching threads.
- 	 */
--	bool force = mm_tlb_flush_nested(tlb->mm);
-+	if (mm_tlb_flush_nested(tlb->mm)) {
-+		__tlb_reset_range(tlb);
-+		__tlb_adjust_range(tlb, start, end - start);
-+	}
- 
--	arch_tlb_finish_mmu(tlb, start, end, force);
-+	tlb_flush_mmu(tlb);
-+
-+	/* keep the page table cache within bounds */
-+	check_pgt_cache();
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+	tlb_batch_list_free(tlb);
-+#endif
- 	dec_tlb_flush_pending(tlb->mm);
- }
+ arch/Kconfig                      |   8 +-
+ arch/alpha/Kconfig                |   1 +
+ arch/alpha/include/asm/tlb.h      |   6 -
+ arch/arc/include/asm/tlb.h        |  32 -----
+ arch/arm/include/asm/tlb.h        | 255 ++-------------------------------
+ arch/arm64/Kconfig                |   1 -
+ arch/arm64/include/asm/tlb.h      |   1 +
+ arch/c6x/Kconfig                  |   1 +
+ arch/c6x/include/asm/tlb.h        |   2 -
+ arch/h8300/include/asm/tlb.h      |   2 -
+ arch/hexagon/include/asm/tlb.h    |  12 --
+ arch/ia64/include/asm/tlb.h       | 257 +---------------------------------
+ arch/ia64/include/asm/tlbflush.h  |  25 ++++
+ arch/ia64/mm/tlb.c                |  23 ++-
+ arch/m68k/Kconfig                 |   1 +
+ arch/m68k/include/asm/tlb.h       |  14 --
+ arch/microblaze/Kconfig           |   1 +
+ arch/microblaze/include/asm/tlb.h |   9 --
+ arch/mips/include/asm/tlb.h       |  17 ---
+ arch/nds32/include/asm/tlb.h      |  16 ---
+ arch/nios2/Kconfig                |   1 +
+ arch/nios2/include/asm/tlb.h      |  14 +-
+ arch/openrisc/Kconfig             |   1 +
+ arch/openrisc/include/asm/tlb.h   |   8 +-
+ arch/parisc/include/asm/tlb.h     |  18 ---
+ arch/powerpc/Kconfig              |   2 +
+ arch/powerpc/include/asm/tlb.h    |  18 +--
+ arch/riscv/include/asm/tlb.h      |   1 +
+ arch/s390/Kconfig                 |   2 +
+ arch/s390/include/asm/tlb.h       | 130 ++++++-----------
+ arch/s390/mm/pgalloc.c            |  63 +--------
+ arch/sh/include/asm/pgalloc.h     |   9 ++
+ arch/sh/include/asm/tlb.h         | 132 +----------------
+ arch/sparc/Kconfig                |   1 +
+ arch/sparc/include/asm/tlb_32.h   |  18 ---
+ arch/um/include/asm/tlb.h         | 158 +--------------------
+ arch/unicore32/Kconfig            |   1 +
+ arch/unicore32/include/asm/tlb.h  |   7 +-
+ arch/x86/Kconfig                  |   1 -
+ arch/x86/include/asm/tlb.h        |   1 +
+ arch/xtensa/include/asm/tlb.h     |  26 ----
+ include/asm-generic/tlb.h         | 288 ++++++++++++++++++++++++++++++++++----
+ mm/huge_memory.c                  |   4 +-
+ mm/hugetlb.c                      |   2 +-
+ mm/madvise.c                      |   2 +-
+ mm/memory.c                       |   6 +-
+ mm/mmu_gather.c                   | 129 +++++++++--------
+ 47 files changed, 477 insertions(+), 1250 deletions(-)
