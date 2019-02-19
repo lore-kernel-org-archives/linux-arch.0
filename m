@@ -1,118 +1,269 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:38116 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727375AbfBSW6A (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 17:58:00 -0500
-Received: by mail-wr1-f66.google.com with SMTP id v13so23770901wrw.5
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 14:57:59 -0800 (PST)
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:39502 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728753AbfBSXje (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 18:39:34 -0500
+Received: by mail-wr1-f65.google.com with SMTP id l5so22789398wrw.6
+        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 15:39:32 -0800 (PST)
+Date: Wed, 20 Feb 2019 00:39:25 +0100
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Date: Tue, 19 Feb 2019 23:57:37 +0100
-Message-ID: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH v3 1/7] dump_stack: Support adding to the dump stack arch
+ description
+Message-ID: <20190219233925.GA5648@andrea>
+References: <20190207124635.3885-1-mpe@ellerman.id.au>
+ <20190211125035.GA1562@andrea>
+ <20190211143859.dd2lkccxod3f2fwn@pathway.suse.cz>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190211143859.dd2lkccxod3f2fwn@pathway.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190219225737.Ja_BP_wf3nrIs-SvuGWgyOWKjFmDc0n-ZWxlE6VAlIo@z>
+To: Petr Mladek <pmladek@suse.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@ozlabs.org, akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, Steven Rostedt <rostedt@goodmis.org>
+Message-ID: <20190219233925.f3lhM-6VKdfhR11mYr-gXBMjXPVSsXNz72tF2z4lO_g@z>
 
-Remove this subtle (and, AFAICT, unused) ordering: we can add it back,
-if necessary, but let us not encourage people to rely on this thing.
+On Mon, Feb 11, 2019 at 03:38:59PM +0100, Petr Mladek wrote:
+> On Mon 2019-02-11 13:50:35, Andrea Parri wrote:
+> > Hi Michael,
+> > 
+> > 
+> > On Thu, Feb 07, 2019 at 11:46:29PM +1100, Michael Ellerman wrote:
+> > > Arch code can set a "dump stack arch description string" which is
+> > > displayed with oops output to describe the hardware platform.
+> > > 
+> > > It is useful to initialise this as early as possible, so that an early
+> > > oops will have the hardware description.
+> > > 
+> > > However in practice we discover the hardware platform in stages, so it
+> > > would be useful to be able to incrementally fill in the hardware
+> > > description as we discover it.
+> > > 
+> > > This patch adds that ability, by creating dump_stack_add_arch_desc().
+> > > 
+> > > If there is no existing string it behaves exactly like
+> > > dump_stack_set_arch_desc(). However if there is an existing string it
+> > > appends to it, with a leading space.
+> > > 
+> > > This makes it easy to call it multiple times from different parts of the
+> > > code and get a reasonable looking result.
+> > > 
+> > > Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+> > > ---
+> > >  include/linux/printk.h |  5 ++++
+> > >  lib/dump_stack.c       | 58 ++++++++++++++++++++++++++++++++++++++++++
+> > >  2 files changed, 63 insertions(+)
+> > > 
+> > > v3: No change, just widened Cc list.
+> > > 
+> > > v2: Add a smp_wmb() and comment.
+> > > 
+> > > v1 is here for reference https://lore.kernel.org/lkml/1430824337-15339-1-git-send-email-mpe@ellerman.id.au/
+> > > 
+> > > I'll take this series via the powerpc tree if no one minds?
+> > > 
+> > > 
+> > > diff --git a/include/linux/printk.h b/include/linux/printk.h
+> > > index 77740a506ebb..d5fb4f960271 100644
+> > > --- a/include/linux/printk.h
+> > > +++ b/include/linux/printk.h
+> > > @@ -198,6 +198,7 @@ u32 log_buf_len_get(void);
+> > >  void log_buf_vmcoreinfo_setup(void);
+> > >  void __init setup_log_buf(int early);
+> > >  __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...);
+> > > +__printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...);
+> > >  void dump_stack_print_info(const char *log_lvl);
+> > >  void show_regs_print_info(const char *log_lvl);
+> > >  extern asmlinkage void dump_stack(void) __cold;
+> > > @@ -256,6 +257,10 @@ static inline __printf(1, 2) void dump_stack_set_arch_desc(const char *fmt, ...)
+> > >  {
+> > >  }
+> > >  
+> > > +static inline __printf(1, 2) void dump_stack_add_arch_desc(const char *fmt, ...)
+> > > +{
+> > > +}
+> > > +
+> > >  static inline void dump_stack_print_info(const char *log_lvl)
+> > >  {
+> > >  }
+> > > diff --git a/lib/dump_stack.c b/lib/dump_stack.c
+> > > index 5cff72f18c4a..69b710ff92b5 100644
+> > > --- a/lib/dump_stack.c
+> > > +++ b/lib/dump_stack.c
+> > > @@ -35,6 +35,64 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
+> > >  	va_end(args);
+> > >  }
+> > >  
+> > > +/**
+> > > + * dump_stack_add_arch_desc - add arch-specific info to show with task dumps
+> > > + * @fmt: printf-style format string
+> > > + * @...: arguments for the format string
+> > > + *
+> > > + * See dump_stack_set_arch_desc() for why you'd want to use this.
+> > > + *
+> > > + * This version adds to any existing string already created with either
+> > > + * dump_stack_set_arch_desc() or dump_stack_add_arch_desc(). If there is an
+> > > + * existing string a space will be prepended to the passed string.
+> > > + */
+> > > +void __init dump_stack_add_arch_desc(const char *fmt, ...)
+> > > +{
+> > > +	va_list args;
+> > > +	int pos, len;
+> > > +	char *p;
+> > > +
+> > > +	/*
+> > > +	 * If there's an existing string we snprintf() past the end of it, and
+> > > +	 * then turn the terminating NULL of the existing string into a space
+> > > +	 * to create one string separated by a space.
+> > > +	 *
+> > > +	 * If there's no existing string we just snprintf() to the buffer, like
+> > > +	 * dump_stack_set_arch_desc(), but without calling it because we'd need
+> > > +	 * a varargs version.
+> > > +	 */
+> > > +	len = strnlen(dump_stack_arch_desc_str, sizeof(dump_stack_arch_desc_str));
+> > > +	pos = len;
+> > > +
+> > > +	if (len)
+> > > +		pos++;
+> > > +
+> > > +	if (pos >= sizeof(dump_stack_arch_desc_str))
+> > > +		return; /* Ran out of space */
+> > > +
+> > > +	p = &dump_stack_arch_desc_str[pos];
+> > > +
+> > > +	va_start(args, fmt);
+> > > +	vsnprintf(p, sizeof(dump_stack_arch_desc_str) - pos, fmt, args);
+> > > +	va_end(args);
+> > > +
+> > > +	if (len) {
+> > > +		/*
+> > > +		 * Order the stores above in vsnprintf() vs the store of the
+> > > +		 * space below which joins the two strings. Note this doesn't
+> > > +		 * make the code truly race free because there is no barrier on
+> > > +		 * the read side. ie. Another CPU might load the uninitialised
+> > > +		 * tail of the buffer first and then the space below (rather
+> > > +		 * than the NULL that was there previously), and so print the
+> > > +		 * uninitialised tail. But the whole string lives in BSS so in
+> > > +		 * practice it should just see NULLs.
+> > 
+> > The comment doesn't say _why_ we need to order these stores: IOW, what
+> > will or can go wrong without this order?  This isn't clear to me.
+> >
+> > Another good practice when adding smp_*-constructs (as discussed, e.g.,
+> > at KS'18) is to indicate the matching construct/synch. mechanism.
+> 
+> Yes, one barrier without a counter-part is suspicious.
 
-For example, the following "exists" clause can be satisfied with this
-change:
+As is this silence...,
 
-C dep-rfi
+Michael, what happened to this patch? did you submit a new version?
 
-{ }
 
-P0(int *x, int *y)
-{
-	WRITE_ONCE(*x, 1);
-	smp_store_release(y, 1);
-}
+> 
+> If the parallel access is really needed then we could define the
+> current length as atomic_t and use:
+> 
+> 	+ atomic_cmpxchg() to reserve the space for the string
+> 	+ %*s to limit the printed length
+> 
+> In the worst case, we would print an incomplete string.
+> See below for a sample code.
 
-P1(int *x, int *y, int *z)
-{
-	int r0;
-	int r1;
-	int r2;
+Seems worth exploring, IMO; but I'd like to first hear _clear about
+the _intended semantics (before digging into alternatives)...
 
-	r0 = READ_ONCE(*y);
-	WRITE_ONCE(*z, r0);
-	r1 = smp_load_acquire(z);
-	r2 = READ_ONCE(*x);
-}
++rostedt,  who first raised the question about "parallel accesses"
 
-exists (1:r0=1 /\ 1:r2=0)
+  http://lkml.kernel.org/r/20190208185515.r6vkrezbd3odhpxt@home.goodmis.org
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
----
- tools/memory-model/Documentation/explanation.txt | 28 ------------------------
- tools/memory-model/linux-kernel.cat              |  2 +-
- 2 files changed, 1 insertion(+), 29 deletions(-)
+  Andrea
 
-diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index 68caa9a976d0c..965e11744d090 100644
---- a/tools/memory-model/Documentation/explanation.txt
-+++ b/tools/memory-model/Documentation/explanation.txt
-@@ -1019,34 +1019,6 @@ section for more details).  The kernel includes a workaround for this
- problem when the loads come from READ_ONCE(), and therefore the LKMM
- includes address dependencies to loads in the ppo relation.
- 
--On the other hand, dependencies can indirectly affect the ordering of
--two loads.  This happens when there is a dependency from a load to a
--store and a second, po-later load reads from that store:
--
--	R ->dep W ->rfi R',
--
--where the dep link can be either an address or a data dependency.  In
--this situation we know it is possible for the CPU to execute R' before
--W, because it can forward the value that W will store to R'.  But it
--cannot execute R' before R, because it cannot forward the value before
--it knows what that value is, or that W and R' do access the same
--location.  However, if there is merely a control dependency between R
--and W then the CPU can speculatively forward W to R' before executing
--R; if the speculation turns out to be wrong then the CPU merely has to
--restart or abandon R'.
--
--(In theory, a CPU might forward a store to a load when it runs across
--an address dependency like this:
--
--	r1 = READ_ONCE(ptr);
--	WRITE_ONCE(*r1, 17);
--	r2 = READ_ONCE(*r1);
--
--because it could tell that the store and the second load access the
--same location even before it knows what the location's address is.
--However, none of the architectures supported by the Linux kernel do
--this.)
--
- Two memory accesses of the same location must always be executed in
- program order if the second access is a store.  Thus, if we have
- 
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 8dcb37835b613..6b9e3bb4e397f 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -62,7 +62,7 @@ let dep = addr | data
- let rwdep = (dep | ctrl) ; [W]
- let overwrite = co | fr
- let to-w = rwdep | (overwrite & int)
--let to-r = addr | (dep ; rfi)
-+let to-r = addr ; [R]
- let fence = strong-fence | wmb | po-rel | rmb | acq-po
- let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
- 
--- 
-2.7.4
+
+> 
+> 
+> BTW: There are very few users of dump_stack_set_arch_desc().
+> I would use dump_stack_add_arch_desc() everywhere to keep
+> it simple and have a reasonable semantic.
+> 
+> 
+> This is what I mean (only compile tested):
+> 
+> diff --git a/lib/dump_stack.c b/lib/dump_stack.c
+> index 5cff72f18c4a..311dd20cc6a7 100644
+> --- a/lib/dump_stack.c
+> +++ b/lib/dump_stack.c
+> @@ -14,9 +14,10 @@
+>  #include <linux/utsname.h>
+>  
+>  static char dump_stack_arch_desc_str[128];
+> +static atomic_t arch_desc_str_len;
+>  
+>  /**
+> - * dump_stack_set_arch_desc - set arch-specific str to show with task dumps
+> + * dump_stack_set_arch_desc - add arch-specific str to show with task dumps
+>   * @fmt: printf-style format string
+>   * @...: arguments for the format string
+>   *
+> @@ -25,13 +26,32 @@ static char dump_stack_arch_desc_str[128];
+>   * arch wants to make use of such an ID string, it should initialize this
+>   * as soon as possible during boot.
+>   */
+> -void __init dump_stack_set_arch_desc(const char *fmt, ...)
+> +void __init dump_stack_add_arch_desc(const char *fmt, ...)
+>  {
+> -	va_list args;
+> +	va_list args, args2;
+> +	int len, cur_len, old_len;
+>  
+>  	va_start(args, fmt);
+> -	vsnprintf(dump_stack_arch_desc_str, sizeof(dump_stack_arch_desc_str),
+> +
+> +	va_copy(args2, args);
+> +	len = vsnprintf(NULL, sizeof(dump_stack_arch_desc_str),
+> +			fmt, args2);
+> +	va_end(args2);
+> +
+> +try_again:
+> +	cur_len = atomic_read(&arch_desc_str_len);
+> +	if (cur_len + len > sizeof(dump_stack_arch_desc_str))
+> +		goto out;
+> +
+> +	old_len = atomic_cmpxchg(&arch_desc_str_len,
+> +				 cur_len, cur_len + len);
+> +	if (old_len != cur_len)
+> +		goto try_again;
+> +
+> +	vsnprintf(dump_stack_arch_desc_str + old_len,
+> +		  sizeof(dump_stack_arch_desc_str) - old_len,
+>  		  fmt, args);
+> +out:
+>  	va_end(args);
+>  }
+>  
+> @@ -44,6 +64,8 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
+>   */
+>  void dump_stack_print_info(const char *log_lvl)
+>  {
+> +	int len;
+> +
+>  	printk("%sCPU: %d PID: %d Comm: %.20s %s%s %s %.*s\n",
+>  	       log_lvl, raw_smp_processor_id(), current->pid, current->comm,
+>  	       kexec_crash_loaded() ? "Kdump: loaded " : "",
+> @@ -52,9 +74,11 @@ void dump_stack_print_info(const char *log_lvl)
+>  	       (int)strcspn(init_utsname()->version, " "),
+>  	       init_utsname()->version);
+>  
+> -	if (dump_stack_arch_desc_str[0] != '\0')
+> -		printk("%sHardware name: %s\n",
+> -		       log_lvl, dump_stack_arch_desc_str);
+> +	len = atomic_read(&arch_desc_str_len);
+> +	if (len) {
+> +		printk("%sHardware name: %*s\n",
+> +		       log_lvl, len, dump_stack_arch_desc_str);
+> +	}
+>  
+>  	print_worker_info(log_lvl, current);
+>  }
+> 
+> Best Regards,
+> Petr
