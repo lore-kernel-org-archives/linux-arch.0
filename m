@@ -1,27 +1,53 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
+From: Yu Zhao <yuzhao@google.com>
 Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
-Date: Tue, 19 Feb 2019 09:51:01 +0530
-Message-ID: <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
+Date: Mon, 18 Feb 2019 22:32:05 -0700
+Message-ID: <20190219053205.GA124985@google.com>
 References: <20190214211642.2200-1-yuzhao@google.com>
  <20190218231319.178224-1-yuzhao@google.com>
+ <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190218231319.178224-1-yuzhao@google.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Feb 19, 2019 at 09:51:01AM +0530, Anshuman Khandual wrote:
+> 
+> 
+> On 02/19/2019 04:43 AM, Yu Zhao wrote:
+> > For pte page, use pgtable_page_ctor(); for pmd page, use
+> > pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
+> > p4d and pgd), don't use any.
+> pgtable_page_ctor()/dtor() is not optional for any level page table page
+> as it determines the struct page state and zone statistics.
 
+This is not true. pgtable_page_ctor() is only meant for user pte
+page. The name isn't perfect (we named it this way before we had
+split pmd page table lock, and never bothered to change it).
 
-On 02/19/2019 04:43 AM, Yu Zhao wrote:
-> For pte page, use pgtable_page_ctor(); for pmd page, use
-> pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
-> p4d and pgd), don't use any.
-pgtable_page_ctor()/dtor() is not optional for any level page table page
-as it determines the struct page state and zone statistics. We should not
-skip it for any page table page. As stated before pgtable_pmd_page_ctor()
-is not a replacement for pgtable_page_ctor().
+The commit cccd843f54be ("mm: mark pages in use for page tables")
+clearly states so:
+  Note that only pages currently accounted as NR_PAGETABLES are
+  tracked as PageTable; this does not include pgd/p4d/pud/pmd pages.
+
+I'm sure if we go back further, we can find similar stories: we
+don't set PageTable on page tables other than pte; and we don't
+account page tables other than pte. I don't have any objection if
+you want change these two. But please make sure they are consistent
+across all archs.
+
+> We should not skip it for any page table page.
+
+In fact, calling it on pmd/pud/p4d is peculiar, and may even be
+considered wrong. AFAIK, no other arch does so.
+
+> As stated before pgtable_pmd_page_ctor() is not a replacement for
+> pgtable_page_ctor().
+
+pgtable_pmd_page_ctor() must be used on user pmd. For kernel pmd,
+it's okay to use pgtable_page_ctor() instead only because kernel
+doesn't have thp.
