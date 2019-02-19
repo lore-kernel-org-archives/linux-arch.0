@@ -1,78 +1,191 @@
-From: Thomas Petazzoni <thomas.petazzoni@bootlin.com>
-Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-Date: Tue, 19 Feb 2019 11:27:47 +0100
-Message-ID: <20190219112747.7db95e58@windsurf.home>
-References: <20190211172948.3322-1-will.deacon@arm.com>
-        <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
-        <20190218162954.GB16713@fuggles.cambridge.arm.com>
-        <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
-        <20190218175625.GD16713@fuggles.cambridge.arm.com>
-        <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v6 11/18] um/tlb: Convert to generic mmu_gather
+Date: Tue, 19 Feb 2019 11:31:59 +0100
+Message-ID: <20190219103233.502111627@infradead.org>
+References: <20190219103148.192029670@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
+To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com, Richard Weinberger <richard@nod.at>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Generic mmu_gather provides the simple flush_tlb_range() based range
+tracking mmu_gather UM needs.
 
-On Mon, 18 Feb 2019 21:37:25 +0100
-Arnd Bergmann <arnd@arndb.de> wrote:
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nick Piggin <npiggin@gmail.com>
+Cc: Richard Weinberger <richard@nod.at>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/um/include/asm/tlb.h |  156 ----------------------------------------------
+ 1 file changed, 2 insertions(+), 154 deletions(-)
 
-> > > I would say we should strengthen the behavior of outX() where possible.
-> > > I don't know if arm64 actually has a way of doing that, my understanding
-> > > earlier was that the AXI bus was already posted, so there is not much
-> > > you can do here to define __io_paw() in a way that will prevent posted
-> > > writes.  
-> >
-> > If we could map I/O space using different page table attributes (probably by
-> > hacking pci_remap_iospace() ?) then we could disable the
-> > early-write-acknowledge hint and implement __io_paw() as a completion
-> > barrier, although it would be at the mercy of the system as to whether or
-> > not that requires a response from the RC.  
-> 
-> Ah, it seems we actually do that on 32-bit ARM, at least on one platform,
-> see 6a02734d420f ("ARM: mvebu: map PCI I/O regions strongly ordered")
-> and prior commits.
-
-Yes, some Marvell Armada 32-bit platforms have an errata that require
-the PCI MEM and PCI I/O regions to be mapped strongly ordered.
-
-BTW, this requirement prevents us from using the pci_remap_iospace()
-API from drivers/pci, because it assumes page attributes of
-pgprot_device(PAGE_KERNEL). That's why we're still using the
-ARM-specific pci_ioremap_io() function.
-
-> > I would still prefer to document the weaker semantics as the portable
-> > interface, unless there are portable drivers relying on this today (which
-> > would imply that it's widely supported by other architectures).  
-> 
-> I don't know of any portable driver that actually relies on it, but
-> that's mainly because there are very few portable drivers that
-> use inb()/outb() in the first place. How many of those require
-> the non-posted behavior I don't know
-> 
-> Adding Thomas, Gregory and Russell to Cc, as they were involved
-> in the discussion that led to the 32-bit change, maybe they are
-> aware of a specific example.
-
-I'm just arriving in the middle of this thread, and I'm not sure to
-understand what is the question. If the question is whether PCI I/O is
-really used in practice, then I've never seen it be used with Marvell
-platforms (but I'm also not aware of all PCIe devices people are
-using). I personally have a hacked-up version of the e1000e driver
-that intentionally does some PCI I/O accesses, that I use as a way to
-validate that PCI I/O support is minimally working, but that's it.
-
-Best regards,
-
-Thomas
--- 
-Thomas Petazzoni, CTO, Bootlin
-Embedded Linux and Kernel engineering
-https://bootlin.com
+--- a/arch/um/include/asm/tlb.h
++++ b/arch/um/include/asm/tlb.h
+@@ -2,160 +2,8 @@
+ #ifndef __UM_TLB_H
+ #define __UM_TLB_H
+ 
+-#include <linux/pagemap.h>
+-#include <linux/swap.h>
+-#include <asm/percpu.h>
+-#include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+-
+-#define tlb_start_vma(tlb, vma) do { } while (0)
+-#define tlb_end_vma(tlb, vma) do { } while (0)
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-
+-/* struct mmu_gather is an opaque type used by the mm code for passing around
+- * any data needed by arch specific code for tlb_remove_page.
+- */
+-struct mmu_gather {
+-	struct mm_struct	*mm;
+-	unsigned int		need_flush; /* Really unmapped some ptes? */
+-	unsigned long		start;
+-	unsigned long		end;
+-	unsigned int		fullmm; /* non-zero means full mm flush */
+-};
+-
+-static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
+-					  unsigned long address)
+-{
+-	if (tlb->start > address)
+-		tlb->start = address;
+-	if (tlb->end < address + PAGE_SIZE)
+-		tlb->end = address + PAGE_SIZE;
+-}
+-
+-static inline void init_tlb_gather(struct mmu_gather *tlb)
+-{
+-	tlb->need_flush = 0;
+-
+-	tlb->start = TASK_SIZE;
+-	tlb->end = 0;
+-
+-	if (tlb->fullmm) {
+-		tlb->start = 0;
+-		tlb->end = TASK_SIZE;
+-	}
+-}
+-
+-static inline void
+-arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-		unsigned long start, unsigned long end)
+-{
+-	tlb->mm = mm;
+-	tlb->start = start;
+-	tlb->end = end;
+-	tlb->fullmm = !(start | (end+1));
+-
+-	init_tlb_gather(tlb);
+-}
+-
+-extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+-			       unsigned long end);
+-
+-static inline void
+-tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+-{
+-	flush_tlb_mm_range(tlb->mm, tlb->start, tlb->end);
+-}
+-
+-static inline void
+-tlb_flush_mmu_free(struct mmu_gather *tlb)
+-{
+-	init_tlb_gather(tlb);
+-}
+-
+-static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb)
+-{
+-	if (!tlb->need_flush)
+-		return;
+-
+-	tlb_flush_mmu_tlbonly(tlb);
+-	tlb_flush_mmu_free(tlb);
+-}
+-
+-/* arch_tlb_finish_mmu
+- *	Called at the end of the shootdown operation to free up any resources
+- *	that were required.
+- */
+-static inline void
+-arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-		unsigned long start, unsigned long end, bool force)
+-{
+-	if (force) {
+-		tlb->start = start;
+-		tlb->end = end;
+-		tlb->need_flush = 1;
+-	}
+-	tlb_flush_mmu(tlb);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-}
+-
+-/* tlb_remove_page
+- *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)),
+- *	while handling the additional races in SMP caused by other CPUs
+- *	caching valid mappings in their TLBs.
+- */
+-static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	tlb->need_flush = 1;
+-	free_page_and_swap_cache(page);
+-	return false; /* avoid calling tlb_flush_mmu */
+-}
+-
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	__tlb_remove_page(tlb, page);
+-}
+-
+-static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
+-					  struct page *page, int page_size)
+-{
+-	return __tlb_remove_page(tlb, page);
+-}
+-
+-static inline void tlb_remove_page_size(struct mmu_gather *tlb,
+-					struct page *page, int page_size)
+-{
+-	return tlb_remove_page(tlb, page);
+-}
+-
+-/**
+- * tlb_remove_tlb_entry - remember a pte unmapping for later tlb invalidation.
+- *
+- * Record the fact that pte's were really umapped in ->need_flush, so we can
+- * later optimise away the tlb invalidate.   This helps when userspace is
+- * unmapping already-unmapped pages, which happens quite a lot.
+- */
+-#define tlb_remove_tlb_entry(tlb, ptep, address)		\
+-	do {							\
+-		tlb->need_flush = 1;				\
+-		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+-	} while (0)
+-
+-#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+-	tlb_remove_tlb_entry(tlb, ptep, address)
+-
+-static inline void tlb_change_page_size(struct mmu_gather *tlb, unsigned int page_size)
+-{
+-}
+-
+-#define pte_free_tlb(tlb, ptep, addr) __pte_free_tlb(tlb, ptep, addr)
+-
+-#define pud_free_tlb(tlb, pudp, addr) __pud_free_tlb(tlb, pudp, addr)
+-
+-#define pmd_free_tlb(tlb, pmdp, addr) __pmd_free_tlb(tlb, pmdp, addr)
+-
+-#define tlb_migrate_finish(mm) do {} while (0)
++#include <asm-generic/cacheflush.h>
++#include <asm-generic/tlb.h>
+ 
+ #endif
