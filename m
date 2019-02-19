@@ -1,65 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38132 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725766AbfBSCSt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Feb 2019 21:18:49 -0500
-Date: Tue, 19 Feb 2019 10:18:34 +0800
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH 7/8] csky: Use latest system call ABI
-Message-ID: <20190219021834.GA4495@guoren-Inspiron-7460>
-References: <20190218210712.3503891-1-arnd@arndb.de>
- <20190218210712.3503891-8-arnd@arndb.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39718 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725613AbfBSDIz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Feb 2019 22:08:55 -0500
+Subject: Re: [PATCH] arm64: mm: enable per pmd page table lock
+References: <20190214211642.2200-1-yuzhao@google.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <f67b5468-2144-c51f-6cf0-ea7ece93b502@arm.com>
+Date: Tue, 19 Feb 2019 08:38:54 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190218210712.3503891-8-arnd@arndb.de>
+In-Reply-To: <20190214211642.2200-1-yuzhao@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Mao Han <han_mao@c-sky.com>
-Cc: y2038@lists.linaro.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, yury.norov@gmail.com, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Stafford Horne <shorne@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Palmer Dabbelt <palmer@sifive.com>, Greentime Hu <green.hu@gmail.com>, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>
-Message-ID: <20190219021834.TJAI1Xt9IuJLTWASvirFUJLdcVWDku642wjE2pL33eY@z>
+To: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20190219030854._A_VkLr7DyQiMUx2Qs67vMs7OllMaKAhopFrefMTlNI@z>
 
-Mao Han has merged csky port into glibc 2.29, so we should keep the
-__ARCH_WANT_TIME32_SYSCALLS.
 
-F.Y.I:
-han_mao@c-sky.com
 
-On Mon, Feb 18, 2019 at 10:07:11PM +0100, Arnd Bergmann wrote:
-> We don't yet have an upstream glibc port for csky, so there is no user
-> space for the existing ABI, and we can remove the definitions for 32-bit
-> time_t, off_t and struct resource.
+On 02/15/2019 02:46 AM, Yu Zhao wrote:
+> Switch from per mm_struct to per pmd page table lock by enabling
+> ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+> large system.
 > 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  arch/csky/Kconfig                   | 1 -
->  arch/csky/include/uapi/asm/unistd.h | 2 --
->  2 files changed, 3 deletions(-)
+> I'm not sure if there is contention on mm->page_table_lock. Given
+> the option comes at no cost (apart from initializing more spin
+> locks), why not enable it now.
 > 
-> diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-> index 6959e0b1e956..398113c845f5 100644
-> --- a/arch/csky/Kconfig
-> +++ b/arch/csky/Kconfig
-> @@ -1,6 +1,5 @@
->  config CSKY
->  	def_bool y
-> -	select ARCH_32BIT_OFF_T
->  	select ARCH_HAS_SYNC_DMA_FOR_CPU
->  	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
->  	select ARCH_USE_BUILTIN_BSWAP
-> diff --git a/arch/csky/include/uapi/asm/unistd.h b/arch/csky/include/uapi/asm/unistd.h
-> index ec60e49cea66..224c9a9ab45b 100644
-> --- a/arch/csky/include/uapi/asm/unistd.h
-> +++ b/arch/csky/include/uapi/asm/unistd.h
-> @@ -2,8 +2,6 @@
->  // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
->  
->  #define __ARCH_WANT_SYS_CLONE
-> -#define __ARCH_WANT_SET_GET_RLIMIT
-Seems it's not related to y2038 issue. Is __ARCH_WANT_SET_GET_RLIMIT no
-use ?
 
-> -#define __ARCH_WANT_TIME32_SYSCALLS
+This has similar changes to what I had posted part of the general page table
+page accounting clean up series on arm64 last month.
 
-Best Regards
- Guo Ren
+https://www.spinics.net/lists/arm-kernel/msg701954.html
+ 
