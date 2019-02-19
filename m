@@ -1,119 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay4-d.mail.gandi.net ([217.70.183.196]:35903 "EHLO
-        relay4-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725772AbfBSIQt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 03:16:49 -0500
-Date: Tue, 19 Feb 2019 09:16:46 +0100
-From: Hugo Lefeuvre <hle@owl.eu.com>
-Subject: [PATCH] powerpc: iomap: add missing const to ioread addr argument
-Message-ID: <20190219081646.GB2294@behemoth.owl.eu.com.local>
+Received: from mail-vs1-f66.google.com ([209.85.217.66]:42279 "EHLO
+        mail-vs1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726695AbfBSI4e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 03:56:34 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+References: <20190218210712.3503891-1-arnd@arndb.de> <20190218210712.3503891-3-arnd@arndb.de>
+In-Reply-To: <20190218210712.3503891-3-arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 19 Feb 2019 09:56:19 +0100
+Message-ID: <CAMuHMdUb47nLkorUpQ1ohD-WMaEG7d3DBAs7JWA6rvgKTZAGGw@mail.gmail.com>
+Subject: Re: [PATCH 2/8] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T
+ config option
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190219081646.KgjrYbgG7G5WKlg9nhdDmUOo_5VhmG_AgL0Llyz7A0U@z>
+To: Arnd Bergmann <arnd@arndb.de>, Yury Norov <yury.norov@gmail.com>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, Stafford Horne <shorne@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Palmer Dabbelt <palmer@sifive.com>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, Yury Norov <ynorov@caviumnetworks.com>, Yury Norov <ynorov@marvell.com>
+Message-ID: <20190219085619.BTadHMh_sDNKMHdiwbIHhSxZ30361jneO-tQT3gCRBQ@z>
 
-ioread*() signatures from include/asm-generic/iomap.h and lib/iomap.c
-have been recently modified to add the missing const qualifier to the
-addr parameter. This broke the powerpc build which still had ioread*()
-definitions without the const (conflicting types).
+Hi Arnd, Yuri,
 
-Add const qualifier to ioread*() definitions from
-arch/powerpc/kernel/iomap.c.
+On Tue, Feb 19, 2019 at 3:35 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> From: Yury Norov <ynorov@caviumnetworks.com>
+>
+> All new 32-bit architectures should have 64-bit userspace off_t type, but
+> existing architectures has 32-bit ones.
+>
+> To enforce the rule, new config option is added to arch/Kconfig that defaults
+> ARCH_32BIT_OFF_T to be disabled for new 32-bit architectures. All existing
+> 32-bit architectures enable it explicitly.
+>
+> New option affects force_o_largefile() behaviour. Namely, if userspace
+> off_t is 64-bits long, we have no reason to reject user to open big files.
+>
+> Note that even if architectures has only 64-bit off_t in the kernel
+> (arc, c6x, h8300, hexagon, nios2, openrisc, and unicore32),
+> a libc may use 32-bit off_t, and therefore want to limit the file size
+> to 4GB unless specified differently in the open flags.
+>
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Yury Norov <ynorov@marvell.com>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Hugo Lefeuvre <hle@owl.eu.com>
----
- arch/powerpc/kernel/iomap.c | 28 ++++++++++++++--------------
- 1 file changed, 14 insertions(+), 14 deletions(-)
+>  arch/m68k/Kconfig       |  1 +
 
-diff --git a/arch/powerpc/kernel/iomap.c b/arch/powerpc/kernel/iomap.c
-index 5ac84efc6ede..9fe4fb3b08aa 100644
---- a/arch/powerpc/kernel/iomap.c
-+++ b/arch/powerpc/kernel/iomap.c
-@@ -15,23 +15,23 @@
-  * Here comes the ppc64 implementation of the IOMAP 
-  * interfaces.
-  */
--unsigned int ioread8(void __iomem *addr)
-+unsigned int ioread8(const void __iomem *addr)
- {
- 	return readb(addr);
- }
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	return readw(addr);
- }
--unsigned int ioread16be(void __iomem *addr)
-+unsigned int ioread16be(const void __iomem *addr)
- {
- 	return readw_be(addr);
- }
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	return readl(addr);
- }
--unsigned int ioread32be(void __iomem *addr)
-+unsigned int ioread32be(const void __iomem *addr)
- {
- 	return readl_be(addr);
- }
-@@ -41,27 +41,27 @@ EXPORT_SYMBOL(ioread16be);
- EXPORT_SYMBOL(ioread32);
- EXPORT_SYMBOL(ioread32be);
- #ifdef __powerpc64__
--u64 ioread64(void __iomem *addr)
-+u64 ioread64(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64_lo_hi(void __iomem *addr)
-+u64 ioread64_lo_hi(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64_hi_lo(void __iomem *addr)
-+u64 ioread64_hi_lo(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64be(void __iomem *addr)
-+u64 ioread64be(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
--u64 ioread64be_lo_hi(void __iomem *addr)
-+u64 ioread64be_lo_hi(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
--u64 ioread64be_hi_lo(void __iomem *addr)
-+u64 ioread64be_hi_lo(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
-@@ -139,15 +139,15 @@ EXPORT_SYMBOL(iowrite64be_hi_lo);
-  * FIXME! We could make these do EEH handling if we really
-  * wanted. Not clear if we do.
-  */
--void ioread8_rep(void __iomem *addr, void *dst, unsigned long count)
-+void ioread8_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	readsb(addr, dst, count);
- }
--void ioread16_rep(void __iomem *addr, void *dst, unsigned long count)
-+void ioread16_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	readsw(addr, dst, count);
- }
--void ioread32_rep(void __iomem *addr, void *dst, unsigned long count)
-+void ioread32_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	readsl(addr, dst, count);
- }
+For m68k:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -276,6 +276,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
+>  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+>         bool
+>
+> +config ARCH_32BIT_OFF_T
+> +       bool
+> +       depends on !64BIT
+> +       help
+> +         All new 32-bit architectures should have 64-bit off_t type on
+> +         userspace side which corresponds to the loff_t kernel type. This
+> +         is the requirement for modern ABIs. Some existing architectures
+> +         already have 32-bit off_t. This option is enabled for all such
+
+s/already/still/
+
+> +         architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
+> +         h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
+> +         nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
+> +         unicore32, x86_32 and xtensa. This is the complete list. Any
+
+Do we really need this list here?  It's intended to shrink only.
+It includes removed architectures (blackfin, cris, frv, m32r, metag,
+mn10300, score, tile32), but lacks several new ones affected by this
+patch (c6x, csky, nds32, riscv).
+
+> +         new 32-bit architecture should declare 64-bit off_t type on user
+> +         side and so should not enable this option.
+> +
+>  config HAVE_REGS_AND_STACK_ACCESS_API
+>         bool
+>         help
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.20.1
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
