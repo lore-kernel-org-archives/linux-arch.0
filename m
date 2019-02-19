@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55610 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:55582 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728644AbfBSKdW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 05:33:22 -0500
-Message-ID: <20190219103233.265497889@infradead.org>
-Date: Tue, 19 Feb 2019 11:31:55 +0100
+        with ESMTP id S1728584AbfBSKdQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 05:33:16 -0500
+Message-ID: <20190219103233.752135076@infradead.org>
+Date: Tue, 19 Feb 2019 11:32:03 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v6 07/18] asm-generic/tlb: Invert HAVE_RCU_TABLE_INVALIDATE
+Subject: [PATCH v6 15/18] asm-generic/tlb: Remove arch_tlb*_mmu()
 References: <20190219103148.192029670@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,108 +14,140 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
-Message-ID: <20190219103155._AyytarSAXr3j2R0iPabGJHPouCKJf6W2VVdY2i6JMk@z>
+Message-ID: <20190219103203.QQ7G3cZjasgZ6buyAPmLKj7vQsL9S4X_bbfSdrCcJiI@z>
 
-Make issuing a TLB invalidate for page-table pages the normal case.
-
-The reason is twofold:
-
- - too many invalidates is safer than too few,
- - most architectures use the linux page-tables natively
-   and would thus require this.
-
-Make it an opt-out, instead of an opt-in.
+Now that all architectures are converted to the generic code, remove
+the arch hooks.
 
 Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/Kconfig              |    2 +-
- arch/arm64/Kconfig        |    1 -
- arch/powerpc/Kconfig      |    1 +
- arch/sparc/Kconfig        |    1 +
- arch/x86/Kconfig          |    1 -
- include/asm-generic/tlb.h |    9 +++++----
- mm/mmu_gather.c           |    2 +-
- 7 files changed, 9 insertions(+), 8 deletions(-)
+ mm/mmu_gather.c |   93 +++++++++++++++++++++++++-------------------------------
+ 1 file changed, 42 insertions(+), 51 deletions(-)
 
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -372,7 +372,7 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
- config HAVE_RCU_TABLE_FREE
- 	bool
- 
--config HAVE_RCU_TABLE_INVALIDATE
-+config HAVE_RCU_TABLE_NO_INVALIDATE
- 	bool
- 
- config HAVE_MMU_GATHER_PAGE_SIZE
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -147,7 +147,6 @@ config ARM64
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RCU_TABLE_FREE
--	select HAVE_RCU_TABLE_INVALIDATE
- 	select HAVE_RSEQ
- 	select HAVE_STACKPROTECTOR
- 	select HAVE_SYSCALL_TRACEPOINTS
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -218,6 +218,7 @@ config PPC
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_RCU_TABLE_FREE		if SMP
-+	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
- 	select HAVE_MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC64 && CPU_LITTLE_ENDIAN
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -62,6 +62,7 @@ config SPARC64
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
- 	select HAVE_RCU_TABLE_FREE if SMP
-+	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -183,7 +183,6 @@ config X86
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_RCU_TABLE_FREE		if PARAVIRT
--	select HAVE_RCU_TABLE_INVALIDATE	if HAVE_RCU_TABLE_FREE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && (UNWINDER_FRAME_POINTER || UNWINDER_ORC) && STACK_VALIDATION
- 	select HAVE_FUNCTION_ARG_ACCESS_API
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -135,11 +135,12 @@
-  *  When used, an architecture is expected to provide __tlb_remove_table()
-  *  which does the actual freeing of these pages.
-  *
-- *  HAVE_RCU_TABLE_INVALIDATE
-+ *  HAVE_RCU_TABLE_NO_INVALIDATE
-  *
-- *  This makes HAVE_RCU_TABLE_FREE call tlb_flush_mmu_tlbonly() before freeing
-- *  the page-table pages. Required if you use HAVE_RCU_TABLE_FREE and your
-- *  architecture uses the Linux page-tables natively.
-+ *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
-+ *  freeing the page-table pages. This can be avoided if you use
-+ *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-+ *  page-tables natively.
-  *
-  *  MMU_GATHER_NO_RANGE
-  *
 --- a/mm/mmu_gather.c
 +++ b/mm/mmu_gather.c
-@@ -157,7 +157,7 @@ bool __tlb_remove_page_size(struct mmu_g
-  */
- static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+@@ -93,33 +93,6 @@ bool __tlb_remove_page_size(struct mmu_g
+ 
+ #endif /* HAVE_MMU_GATHER_NO_GATHER */
+ 
+-void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-				unsigned long start, unsigned long end)
+-{
+-	tlb->mm = mm;
+-
+-	/* Is it from 0 to ~0? */
+-	tlb->fullmm     = !(start | (end+1));
+-
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+-	tlb->need_flush_all = 0;
+-	tlb->local.next = NULL;
+-	tlb->local.nr   = 0;
+-	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
+-	tlb->active     = &tlb->local;
+-	tlb->batch_count = 0;
+-#endif
+-
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+-	tlb->batch = NULL;
+-#endif
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+-	tlb->page_size = 0;
+-#endif
+-
+-	__tlb_reset_range(tlb);
+-}
+-
+ void tlb_flush_mmu_free(struct mmu_gather *tlb)
  {
--#ifdef CONFIG_HAVE_RCU_TABLE_INVALIDATE
-+#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
- 	/*
- 	 * Invalidate page-table caches used by hardware walkers. Then we still
- 	 * need to RCU-sched wait while freeing the pages because software
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+@@ -136,27 +109,6 @@ void tlb_flush_mmu(struct mmu_gather *tl
+ 	tlb_flush_mmu_free(tlb);
+ }
+ 
+-/* tlb_finish_mmu
+- *	Called at the end of the shootdown operation to free up any resources
+- *	that were required.
+- */
+-void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-		unsigned long start, unsigned long end, bool force)
+-{
+-	if (force) {
+-		__tlb_reset_range(tlb);
+-		__tlb_adjust_range(tlb, start, end - start);
+-	}
+-
+-	tlb_flush_mmu(tlb);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+-	tlb_batch_list_free(tlb);
+-#endif
+-}
+-
+ #endif /* HAVE_GENERIC_MMU_GATHER */
+ 
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+@@ -258,10 +210,40 @@ void tlb_remove_table(struct mmu_gather
+ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 			unsigned long start, unsigned long end)
+ {
+-	arch_tlb_gather_mmu(tlb, mm, start, end);
++	tlb->mm = mm;
++
++	/* Is it from 0 to ~0? */
++	tlb->fullmm     = !(start | (end+1));
++
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb->need_flush_all = 0;
++	tlb->local.next = NULL;
++	tlb->local.nr   = 0;
++	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
++	tlb->active     = &tlb->local;
++	tlb->batch_count = 0;
++#endif
++
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++	tlb->batch = NULL;
++#endif
++#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++	tlb->page_size = 0;
++#endif
++
++	__tlb_reset_range(tlb);
+ 	inc_tlb_flush_pending(tlb->mm);
+ }
+ 
++/**
++ * tlb_finish_mmu - finish an mmu_gather structure
++ * @tlb: the mmu_gather structure to finish
++ * @start: start of the region that will be removed from the page-table
++ * @end: end of the region that will be removed from the page-table
++ *
++ * Called at the end of the shootdown operation to free up any resources that
++ * were required.
++ */
+ void tlb_finish_mmu(struct mmu_gather *tlb,
+ 		unsigned long start, unsigned long end)
+ {
+@@ -272,8 +254,17 @@ void tlb_finish_mmu(struct mmu_gather *t
+ 	 * the TLB by observing pte_none|!pte_dirty, for example so flush TLB
+ 	 * forcefully if we detect parallel PTE batching threads.
+ 	 */
+-	bool force = mm_tlb_flush_nested(tlb->mm);
++	if (mm_tlb_flush_nested(tlb->mm)) {
++		__tlb_reset_range(tlb);
++		__tlb_adjust_range(tlb, start, end - start);
++	}
+ 
+-	arch_tlb_finish_mmu(tlb, start, end, force);
++	tlb_flush_mmu(tlb);
++
++	/* keep the page table cache within bounds */
++	check_pgt_cache();
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb_batch_list_free(tlb);
++#endif
+ 	dec_tlb_flush_pending(tlb->mm);
+ }
