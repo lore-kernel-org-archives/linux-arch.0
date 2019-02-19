@@ -1,89 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:39757 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727881AbfBSJKd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 04:10:33 -0500
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:35625 "EHLO
+        relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727023AbfBSK1y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 05:27:54 -0500
+Date: Tue, 19 Feb 2019 11:27:47 +0100
+From: Thomas Petazzoni <thomas.petazzoni@bootlin.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Message-ID: <20190219112747.7db95e58@windsurf.home>
+In-Reply-To: <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+        <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
+        <20190218162954.GB16713@fuggles.cambridge.arm.com>
+        <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
+        <20190218175625.GD16713@fuggles.cambridge.arm.com>
+        <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
 MIME-Version: 1.0
-References: <20190218210712.3503891-1-arnd@arndb.de> <20190218210712.3503891-3-arnd@arndb.de>
- <CAMuHMdUb47nLkorUpQ1ohD-WMaEG7d3DBAs7JWA6rvgKTZAGGw@mail.gmail.com>
-In-Reply-To: <CAMuHMdUb47nLkorUpQ1ohD-WMaEG7d3DBAs7JWA6rvgKTZAGGw@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 19 Feb 2019 10:10:15 +0100
-Message-ID: <CAK8P3a3RTZDfc-4womPK2qbPTwuaP0Jin6Nzq6Ep3G4SnFpZvw@mail.gmail.com>
-Subject: Re: [PATCH 2/8] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T
- config option
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Yury Norov <yury.norov@gmail.com>, y2038 Mailman List <y2038@lists.linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, Stafford Horne <shorne@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Palmer Dabbelt <palmer@sifive.com>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, Yury Norov <ynorov@caviumnetworks.com>, Yury Norov <ynorov@marvell.com>
-Message-ID: <20190219091015.8Jx3d7iOgP39-9k9jx23yQoXSpLdn04TVPYchhNUtWc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
+Message-ID: <20190219102747.9sOFiQthiwpK3GK_4esA_N0dDJuh0EIDxZ8mnVpO9rs@z>
 
-On Tue, Feb 19, 2019 at 9:56 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->
-> Hi Arnd, Yuri,
->
-> On Tue, Feb 19, 2019 at 3:35 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > From: Yury Norov <ynorov@caviumnetworks.com>
-> >
-> > All new 32-bit architectures should have 64-bit userspace off_t type, but
-> > existing architectures has 32-bit ones.
-> >
-> > To enforce the rule, new config option is added to arch/Kconfig that defaults
-> > ARCH_32BIT_OFF_T to be disabled for new 32-bit architectures. All existing
-> > 32-bit architectures enable it explicitly.
-> >
-> > New option affects force_o_largefile() behaviour. Namely, if userspace
-> > off_t is 64-bits long, we have no reason to reject user to open big files.
-> >
-> > Note that even if architectures has only 64-bit off_t in the kernel
-> > (arc, c6x, h8300, hexagon, nios2, openrisc, and unicore32),
-> > a libc may use 32-bit off_t, and therefore want to limit the file size
-> > to 4GB unless specified differently in the open flags.
-> >
-> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > Signed-off-by: Yury Norov <ynorov@marvell.com>
-> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
->
-> >  arch/m68k/Kconfig       |  1 +
->
-> For m68k:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Hello,
 
-Thanks!
+On Mon, 18 Feb 2019 21:37:25 +0100
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-> > --- a/arch/Kconfig
-> > +++ b/arch/Kconfig
-> > @@ -276,6 +276,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
-> >  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
-> >         bool
+> > > I would say we should strengthen the behavior of outX() where possible.
+> > > I don't know if arm64 actually has a way of doing that, my understanding
+> > > earlier was that the AXI bus was already posted, so there is not much
+> > > you can do here to define __io_paw() in a way that will prevent posted
+> > > writes.  
 > >
-> > +config ARCH_32BIT_OFF_T
-> > +       bool
-> > +       depends on !64BIT
-> > +       help
-> > +         All new 32-bit architectures should have 64-bit off_t type on
-> > +         userspace side which corresponds to the loff_t kernel type. This
-> > +         is the requirement for modern ABIs. Some existing architectures
-> > +         already have 32-bit off_t. This option is enabled for all such
->
-> s/already/still/
->
-> > +         architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
-> > +         h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
-> > +         nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
-> > +         unicore32, x86_32 and xtensa. This is the complete list. Any
->
-> Do we really need this list here?  It's intended to shrink only.
-> It includes removed architectures (blackfin, cris, frv, m32r, metag,
-> mn10300, score, tile32), but lacks several new ones affected by this
-> patch (c6x, csky, nds32, riscv).
+> > If we could map I/O space using different page table attributes (probably by
+> > hacking pci_remap_iospace() ?) then we could disable the
+> > early-write-acknowledge hint and implement __io_paw() as a completion
+> > barrier, although it would be at the mercy of the system as to whether or
+> > not that requires a response from the RC.  
+> 
+> Ah, it seems we actually do that on 32-bit ARM, at least on one platform,
+> see 6a02734d420f ("ARM: mvebu: map PCI I/O regions strongly ordered")
+> and prior commits.
 
-Right, I (finally)  took Yury's patch that was already several years old
-without checking this text (I did make sure all architectures are changed
-correctly).
+Yes, some Marvell Armada 32-bit platforms have an errata that require
+the PCI MEM and PCI I/O regions to be mapped strongly ordered.
 
-I'll just remove the list here.
+BTW, this requirement prevents us from using the pci_remap_iospace()
+API from drivers/pci, because it assumes page attributes of
+pgprot_device(PAGE_KERNEL). That's why we're still using the
+ARM-specific pci_ioremap_io() function.
 
-      Arnd
+> > I would still prefer to document the weaker semantics as the portable
+> > interface, unless there are portable drivers relying on this today (which
+> > would imply that it's widely supported by other architectures).  
+> 
+> I don't know of any portable driver that actually relies on it, but
+> that's mainly because there are very few portable drivers that
+> use inb()/outb() in the first place. How many of those require
+> the non-posted behavior I don't know
+> 
+> Adding Thomas, Gregory and Russell to Cc, as they were involved
+> in the discussion that led to the 32-bit change, maybe they are
+> aware of a specific example.
+
+I'm just arriving in the middle of this thread, and I'm not sure to
+understand what is the question. If the question is whether PCI I/O is
+really used in practice, then I've never seen it be used with Marvell
+platforms (but I'm also not aware of all PCIe devices people are
+using). I personally have a hacked-up version of the e1000e driver
+that intentionally does some PCI I/O accesses, that I use as a way to
+validate that PCI I/O support is minimally working, but that's it.
+
+Best regards,
+
+Thomas
+-- 
+Thomas Petazzoni, CTO, Bootlin
+Embedded Linux and Kernel engineering
+https://bootlin.com
