@@ -1,197 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:52072 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726221AbfBSNl7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 08:41:59 -0500
-Date: Tue, 19 Feb 2019 14:41:47 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 06/18] asm-generic/tlb: Conditionally provide
- tlb_migrate_finish()
-Message-ID: <20190219134147.GZ32494@hirez.programming.kicks-ass.net>
-References: <20190219103148.192029670@infradead.org>
- <20190219103233.207580251@infradead.org>
- <20190219124738.GD8501@fuggles.cambridge.arm.com>
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:36212 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728611AbfBSNp3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 08:45:29 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190219124738.GD8501@fuggles.cambridge.arm.com>
+References: <20190211172948.3322-1-will.deacon@arm.com> <CAK8P3a2Pr2oWYB7QHQMaHRq6H8h9xMwhhyJz5Pu67bVe4GaK9g@mail.gmail.com>
+ <20190218162954.GB16713@fuggles.cambridge.arm.com> <CAK8P3a1TY9S=zYsdZ5O021p2yYcZhehVuwB3_65dR6x6zbkTYQ@mail.gmail.com>
+ <20190218175625.GD16713@fuggles.cambridge.arm.com> <CAK8P3a2mjjr94hwj_eXxfyKDKDuA=MogXW7xJygh-X0Hqgf6rg@mail.gmail.com>
+ <20190219112747.7db95e58@windsurf.home> <CAK8P3a3n2meqogz7MeMUA48LBOEV9_AYQPxU3+V8A=Fn_63v4A@mail.gmail.com>
+ <20190219113609.GC4027@fuggles.cambridge.arm.com> <CAK8P3a0iM17ABoaFn9+KymZ-JkjM9hmBNDMyn6-A=s06p1fvnQ@mail.gmail.com>
+ <20190219132021.GJ8501@fuggles.cambridge.arm.com>
+In-Reply-To: <20190219132021.GJ8501@fuggles.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 19 Feb 2019 14:45:11 +0100
+Message-ID: <CAK8P3a2RLo_zG-GkHR=KDpUmV-=ZcTVyqDimGXT1_gR9AfQ2fg@mail.gmail.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER
+ EFFECTS" section
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com, tony.luck@intel.com
-Message-ID: <20190219134147.7kSMZ4rZ5lyf0jUJEZ-GcqCj_zmA2D3Qt_6HIIQtl3E@z>
+Cc: Thomas Petazzoni <thomas.petazzoni@bootlin.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Gregory CLEMENT <gregory.clement@free-electrons.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
+Message-ID: <20190219134511.C9kfd4QypTgL17KbesWSXaJnZsRT5GtV9hFgkfq7o-c@z>
 
-On Tue, Feb 19, 2019 at 12:47:38PM +0000, Will Deacon wrote:
-> Fine for now, but I agree that we should drop the hook altogether. AFAICT,
-> this only exists to help an ia64 optimisation which looks suspicious to
-> me since it uses:
-> 
->     mm == current->active_mm && atomic_read(&mm->mm_users) == 1
-> 
-> to identify a "single-threaded fork()" and therefore perform only local TLB
-> invalidation. Even if this was the right thing to do, it's not clear to me
-> that tlb_migrate_finish() is called on the right CPU anyway.
-> 
-> So I'd be keen to remove this hook before it spreads, but in the meantime:
+On Tue, Feb 19, 2019 at 2:20 PM Will Deacon <will.deacon@arm.com> wrote:
+> On Tue, Feb 19, 2019 at 02:01:50PM +0100, Arnd Bergmann wrote:
+> > On Tue, Feb 19, 2019 at 12:36 PM Will Deacon <will.deacon@arm.com> wrote:
+> > > On Tue, Feb 19, 2019 at 12:31:50PM +0100, Arnd Bergmann wrote:
+> > > > On Tue, Feb 19, 2019 at 11:27 AM Thomas Petazzoni
+> > One reference to non-posted transaction in a comment is in
+> > drivers/net/ethernet/dec/tulip/de4x5.c:
+> >
+> > /*
+> > ** The DE4X5 interrupt handler.
+> > **
+> > ** I/O Read/Writes through intermediate PCI bridges are never 'posted',
+> > ** so that the asserted interrupt always has some real data to work with -
+> > ** if these I/O accesses are ever changed to memory accesses, ensure the
+> > ** STS write is read immediately to complete the transaction if the adapter
+> > ** is not on bus 0. Lost interrupts can still occur when the PCI bus load
+> > ** is high and descriptor status bits cannot be set before the associated
+> > ** interrupt is asserted and this routine entered.
+> > */
+>
+> Thankfully, that driver is both old and non-portable:
+>
+>   depends on VIRT_TO_BUS || ALPHA || PPC || SPARC
+>
+> so I'm not especially concerned about it. Judging by the comment, we'd
+> need to add something like:
+>
+>
+> diff --git a/drivers/net/ethernet/dec/tulip/de4x5.c b/drivers/net/ethernet/dec/tulip/de4x5.c
+> index 66535d1653f6..c85089f65b0e 100644
+> --- a/drivers/net/ethernet/dec/tulip/de4x5.c
+> +++ b/drivers/net/ethernet/dec/tulip/de4x5.c
+> @@ -1556,6 +1556,10 @@ de4x5_interrupt(int irq, void *dev_id)
+>         sts = inl(DE4X5_STS);            /* Read IRQ status */
+>         outl(sts, DE4X5_STS);            /* Reset the board interrupts */
+>
+> +       /* Beware of PCI posted writes */
+> +       if (IS_ENABLED(CONFIG_ARM64) && lp->bus_num)
+> +               inl(DE4X5_STS);
+> +
+>         if (!(sts & lp->irq_mask)) break;/* All done */
+>         handled = 1;
+>
+>
+>
+> if we wanted to get this working reliably on arm64. However, I'll be honest
+> and say we haven't had much demand for supporting DEC PCI devices yet :)
 
-Agreed :-)
+Agreed. I find a total of 590 drivers calling inb/outb and related
+helpers, using "git grep -wl 'out\(l\|w\|b\)' drivers/ sound/" (there
+are probably a couple more. There are hardly any among those
+that one would expect to see in a modern machine:
 
-The obvious slash and kill patch ... untested
+- The majority is for ISA, PCMCIA or PCI devices, as opposed
+  to PCIe, and presumably no longer sold.
+- Many are de factor architecture specific, e.g. drivers for
+  stuff in a PC chipset.
 
----
- Documentation/core-api/cachetlb.rst |   10 ----------
- arch/ia64/include/asm/machvec.h     |    8 --------
- arch/ia64/include/asm/machvec_sn2.h |    2 --
- arch/ia64/include/asm/tlb.h         |    2 --
- arch/ia64/sn/kernel/sn2/sn2_smp.c   |    7 -------
- arch/nds32/include/asm/tlbflush.h   |    1 -
- include/asm-generic/tlb.h           |    4 ----
- kernel/sched/core.c                 |    1 -
- 8 files changed, 35 deletions(-)
+drivers/staging/comedi/ has some things in it that have
+a slight chance of still being put into modern machines
+when moving from an old embedded system to a new one,
+but being staging, chances are that the drivers also require
+other changes before they work on a new architecture.
 
---- a/Documentation/core-api/cachetlb.rst
-+++ b/Documentation/core-api/cachetlb.rst
-@@ -101,16 +101,6 @@ invoke one of the following flush method
- 	translations for software managed TLB configurations.
- 	The sparc64 port currently does this.
- 
--6) ``void tlb_migrate_finish(struct mm_struct *mm)``
--
--	This interface is called at the end of an explicit
--	process migration. This interface provides a hook
--	to allow a platform to update TLB or context-specific
--	information for the address space.
--
--	The ia64 sn2 platform is one example of a platform
--	that uses this interface.
--
- Next, we have the cache flushing interfaces.  In general, when Linux
- is changing an existing virtual-->physical mapping to a new value,
- the sequence will be in one of the following forms::
---- a/arch/ia64/include/asm/machvec.h
-+++ b/arch/ia64/include/asm/machvec.h
-@@ -30,7 +30,6 @@ typedef void ia64_mv_irq_init_t (void);
- typedef void ia64_mv_send_ipi_t (int, int, int, int);
- typedef void ia64_mv_timer_interrupt_t (int, void *);
- typedef void ia64_mv_global_tlb_purge_t (struct mm_struct *, unsigned long, unsigned long, unsigned long);
--typedef void ia64_mv_tlb_migrate_finish_t (struct mm_struct *);
- typedef u8 ia64_mv_irq_to_vector (int);
- typedef unsigned int ia64_mv_local_vector_to_irq (u8);
- typedef char *ia64_mv_pci_get_legacy_mem_t (struct pci_bus *);
-@@ -96,7 +95,6 @@ machvec_noop_bus (struct pci_bus *bus)
- 
- extern void machvec_setup (char **);
- extern void machvec_timer_interrupt (int, void *);
--extern void machvec_tlb_migrate_finish (struct mm_struct *);
- 
- # if defined (CONFIG_IA64_HP_SIM)
- #  include <asm/machvec_hpsim.h>
-@@ -124,7 +122,6 @@ extern void machvec_tlb_migrate_finish (
- #  define platform_send_ipi	ia64_mv.send_ipi
- #  define platform_timer_interrupt	ia64_mv.timer_interrupt
- #  define platform_global_tlb_purge	ia64_mv.global_tlb_purge
--#  define platform_tlb_migrate_finish	ia64_mv.tlb_migrate_finish
- #  define platform_dma_init		ia64_mv.dma_init
- #  define platform_dma_get_ops		ia64_mv.dma_get_ops
- #  define platform_irq_to_vector	ia64_mv.irq_to_vector
-@@ -167,7 +164,6 @@ struct ia64_machine_vector {
- 	ia64_mv_send_ipi_t *send_ipi;
- 	ia64_mv_timer_interrupt_t *timer_interrupt;
- 	ia64_mv_global_tlb_purge_t *global_tlb_purge;
--	ia64_mv_tlb_migrate_finish_t *tlb_migrate_finish;
- 	ia64_mv_dma_init *dma_init;
- 	ia64_mv_dma_get_ops *dma_get_ops;
- 	ia64_mv_irq_to_vector *irq_to_vector;
-@@ -206,7 +202,6 @@ struct ia64_machine_vector {
- 	platform_send_ipi,			\
- 	platform_timer_interrupt,		\
- 	platform_global_tlb_purge,		\
--	platform_tlb_migrate_finish,		\
- 	platform_dma_init,			\
- 	platform_dma_get_ops,			\
- 	platform_irq_to_vector,			\
-@@ -270,9 +265,6 @@ extern const struct dma_map_ops *dma_get
- #ifndef platform_global_tlb_purge
- # define platform_global_tlb_purge	ia64_global_tlb_purge /* default to architected version */
- #endif
--#ifndef platform_tlb_migrate_finish
--# define platform_tlb_migrate_finish	machvec_noop_mm
--#endif
- #ifndef platform_kernel_launch_event
- # define platform_kernel_launch_event	machvec_noop
- #endif
---- a/arch/ia64/include/asm/machvec_sn2.h
-+++ b/arch/ia64/include/asm/machvec_sn2.h
-@@ -34,7 +34,6 @@ extern ia64_mv_irq_init_t sn_irq_init;
- extern ia64_mv_send_ipi_t sn2_send_IPI;
- extern ia64_mv_timer_interrupt_t sn_timer_interrupt;
- extern ia64_mv_global_tlb_purge_t sn2_global_tlb_purge;
--extern ia64_mv_tlb_migrate_finish_t	sn_tlb_migrate_finish;
- extern ia64_mv_irq_to_vector sn_irq_to_vector;
- extern ia64_mv_local_vector_to_irq sn_local_vector_to_irq;
- extern ia64_mv_pci_get_legacy_mem_t sn_pci_get_legacy_mem;
-@@ -77,7 +76,6 @@ extern ia64_mv_pci_fixup_bus_t		sn_pci_f
- #define platform_send_ipi		sn2_send_IPI
- #define platform_timer_interrupt	sn_timer_interrupt
- #define platform_global_tlb_purge       sn2_global_tlb_purge
--#define platform_tlb_migrate_finish	sn_tlb_migrate_finish
- #define platform_pci_fixup		sn_pci_fixup
- #define platform_inb			__sn_inb
- #define platform_inw			__sn_inw
---- a/arch/ia64/include/asm/tlb.h
-+++ b/arch/ia64/include/asm/tlb.h
-@@ -47,8 +47,6 @@
- #include <asm/tlbflush.h>
- #include <asm/machvec.h>
- 
--#define tlb_migrate_finish(mm)	platform_tlb_migrate_finish(mm)
--
- #include <asm-generic/tlb.h>
- 
- #endif /* _ASM_IA64_TLB_H */
---- a/arch/ia64/sn/kernel/sn2/sn2_smp.c
-+++ b/arch/ia64/sn/kernel/sn2/sn2_smp.c
-@@ -120,13 +120,6 @@ void sn_migrate(struct task_struct *task
- 		cpu_relax();
- }
- 
--void sn_tlb_migrate_finish(struct mm_struct *mm)
--{
--	/* flush_tlb_mm is inefficient if more than 1 users of mm */
--	if (mm == current->mm && mm && atomic_read(&mm->mm_users) == 1)
--		flush_tlb_mm(mm);
--}
--
- static void
- sn2_ipi_flush_all_tlb(struct mm_struct *mm)
- {
---- a/arch/nds32/include/asm/tlbflush.h
-+++ b/arch/nds32/include/asm/tlbflush.h
-@@ -42,6 +42,5 @@ void local_flush_tlb_page(struct vm_area
- 
- void update_mmu_cache(struct vm_area_struct *vma,
- 		      unsigned long address, pte_t * pte);
--void tlb_migrate_finish(struct mm_struct *mm);
- 
- #endif
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -604,8 +604,4 @@ static inline void tlb_end_vma(struct mm
- 
- #endif /* CONFIG_MMU */
- 
--#ifndef tlb_migrate_finish
--#define tlb_migrate_finish(mm) do {} while (0)
--#endif
--
- #endif /* _ASM_GENERIC__TLB_H */
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1151,7 +1151,6 @@ static int __set_cpus_allowed_ptr(struct
- 		/* Need help from migration thread: drop lock and wait. */
- 		task_rq_unlock(rq, p, &rf);
- 		stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
--		tlb_migrate_finish(p->mm);
- 		return 0;
- 	} else if (task_on_rq_queued(p)) {
- 		/*
+Overall, I wonder if we'd be better off completely disabling
+outb etc on arm64, and only supporting iomap()/ioread()/iowrite()
+instead, without giving any guarantees there.
+Getting there would definitely require some code changes
+(and many Kconfig changes), but it still seems appealing
+given how much legacy stuff we could completely ignore
+afterwards.
+
+> > I found another comment in the via-rhine driver:
+> >
+> > /* Beware of PCI posted writes */
+> > #define IOSYNC  do { ioread8(ioaddr + StationAddr); } while (0)
+> >
+> > this one is used in the chip reset function, and in the transmit
+> > path.
+>
+> Since this is doing a read-back, I take this comment as saying "posted
+> writes are a thing, so perform a read-back to force the prior write to
+> complete", which is fine.
+
+Right.
+
+       Arnd
