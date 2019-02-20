@@ -1,140 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59944 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726235AbfBTCBZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Feb 2019 21:01:25 -0500
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1K1xUIO003496
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 21:01:24 -0500
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2qrtqtp47j-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 21:01:24 -0500
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 20 Feb 2019 02:01:23 -0000
-Date: Tue, 19 Feb 2019 18:01:17 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Reply-To: paulmck@linux.ibm.com
-References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+Received: from foss.arm.com ([217.140.101.70]:51976 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726208AbfBTDUj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Feb 2019 22:20:39 -0500
+Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
+References: <20190214211642.2200-1-yuzhao@google.com>
+ <20190218231319.178224-1-yuzhao@google.com>
+ <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
+ <20190219053205.GA124985@google.com>
+ <8f9b0bfb-b787-fa3e-7322-73a56a618aa8@arm.com>
+ <20190220013407.GD12668@bombadil.infradead.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <383ced45-12be-ce51-187b-bb77cefdee7e@arm.com>
+Date: Wed, 20 Feb 2019 08:50:36 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
-Message-ID: <20190220020117.GD11787@linux.ibm.com>
+In-Reply-To: <20190220013407.GD12668@bombadil.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190220020117.2_ARphTtFVsfMIZCO3OIxUW95mdL5jmo-IcNCgQKYy0@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20190220032036.DbX6QV8OCyYkecy7CifWhdlYz74mdLvCm0AItAH2yqY@z>
 
-On Tue, Feb 19, 2019 at 11:57:37PM +0100, Andrea Parri wrote:
-> Remove this subtle (and, AFAICT, unused) ordering: we can add it back,
-> if necessary, but let us not encourage people to rely on this thing.
-> 
-> For example, the following "exists" clause can be satisfied with this
-> change:
-> 
-> C dep-rfi
-> 
-> { }
-> 
-> P0(int *x, int *y)
-> {
-> 	WRITE_ONCE(*x, 1);
-> 	smp_store_release(y, 1);
-> }
-> 
-> P1(int *x, int *y, int *z)
-> {
-> 	int r0;
-> 	int r1;
-> 	int r2;
-> 
-> 	r0 = READ_ONCE(*y);
-> 	WRITE_ONCE(*z, r0);
-> 	r1 = smp_load_acquire(z);
-> 	r2 = READ_ONCE(*x);
-> }
-> 
-> exists (1:r0=1 /\ 1:r2=0)
 
-Any objections?  If I don't hear any in a couple days, I will apply this.
 
-							Thanx, Paul
+On 02/20/2019 07:04 AM, Matthew Wilcox wrote:
+> On Tue, Feb 19, 2019 at 11:47:12AM +0530, Anshuman Khandual wrote:
+>> + Matthew Wilcox
+>> On 02/19/2019 11:02 AM, Yu Zhao wrote:
+>>> On Tue, Feb 19, 2019 at 09:51:01AM +0530, Anshuman Khandual wrote:
+>>>>
+>>>>
+>>>> On 02/19/2019 04:43 AM, Yu Zhao wrote:
+>>>>> For pte page, use pgtable_page_ctor(); for pmd page, use
+>>>>> pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
+>>>>> p4d and pgd), don't use any.
+>>>> pgtable_page_ctor()/dtor() is not optional for any level page table page
+>>>> as it determines the struct page state and zone statistics.
+>>>
+>>> This is not true. pgtable_page_ctor() is only meant for user pte
+>>> page. The name isn't perfect (we named it this way before we had
+>>> split pmd page table lock, and never bothered to change it).
+>>>
+>>> The commit cccd843f54be ("mm: mark pages in use for page tables")
+> 
+> Where did you get that commit ID from?  In Linus' tree, it's
+> 1d40a5ea01d53251c23c7be541d3f4a656cfc537
+> 
+>>> clearly states so:
+>>>   Note that only pages currently accounted as NR_PAGETABLES are
+>>>   tracked as PageTable; this does not include pgd/p4d/pud/pmd pages.
+>>
+>> I think the commit is the following one and it does say so. But what is
+>> the rationale of tagging only PTE page as PageTable and updating the zone
+>> stat but not doing so for higher level page table pages ? Are not they
+>> used as page table pages ? Should not they count towards NR_PAGETABLE ?
+>>
+>> 1d40a5ea01d53251c ("mm: mark pages in use for page tables")
+> 
+> I think they should all be accounted towards NR_PAGETABLE and marked
+> as being PageTable.  Somebody needs to make the case for that and
 
-> Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Boqun Feng <boqun.feng@gmail.com>
-> Cc: Nicholas Piggin <npiggin@gmail.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-> Cc: Luc Maranget <luc.maranget@inria.fr>
-> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-> Cc: Akira Yokosawa <akiyks@gmail.com>
-> Cc: Daniel Lustig <dlustig@nvidia.com>
-> ---
->  tools/memory-model/Documentation/explanation.txt | 28 ------------------------
->  tools/memory-model/linux-kernel.cat              |  2 +-
->  2 files changed, 1 insertion(+), 29 deletions(-)
+Okay so we agree on the applicability part.
+
+> send the patches.  That patch even says that there should be follow-up
+> patches to do that.  I've been a little busy and haven't got back to it.
+> I thought you said you were going to do it.
+
+This is very much arch specific. pgtabe_page_ctor()/dtor() are not uniformly
+called for all page table level allocations (user or kernel) across different
+archs. Yes I am planning to make generic page table allocation functions for
+all levels which archs can choose to use. But for now I have a series to fix
+the situation on arm64.
+
 > 
-> diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-> index 68caa9a976d0c..965e11744d090 100644
-> --- a/tools/memory-model/Documentation/explanation.txt
-> +++ b/tools/memory-model/Documentation/explanation.txt
-> @@ -1019,34 +1019,6 @@ section for more details).  The kernel includes a workaround for this
->  problem when the loads come from READ_ONCE(), and therefore the LKMM
->  includes address dependencies to loads in the ppo relation.
->  
-> -On the other hand, dependencies can indirectly affect the ordering of
-> -two loads.  This happens when there is a dependency from a load to a
-> -store and a second, po-later load reads from that store:
-> -
-> -	R ->dep W ->rfi R',
-> -
-> -where the dep link can be either an address or a data dependency.  In
-> -this situation we know it is possible for the CPU to execute R' before
-> -W, because it can forward the value that W will store to R'.  But it
-> -cannot execute R' before R, because it cannot forward the value before
-> -it knows what that value is, or that W and R' do access the same
-> -location.  However, if there is merely a control dependency between R
-> -and W then the CPU can speculatively forward W to R' before executing
-> -R; if the speculation turns out to be wrong then the CPU merely has to
-> -restart or abandon R'.
-> -
-> -(In theory, a CPU might forward a store to a load when it runs across
-> -an address dependency like this:
-> -
-> -	r1 = READ_ONCE(ptr);
-> -	WRITE_ONCE(*r1, 17);
-> -	r2 = READ_ONCE(*r1);
-> -
-> -because it could tell that the store and the second load access the
-> -same location even before it knows what the location's address is.
-> -However, none of the architectures supported by the Linux kernel do
-> -this.)
-> -
->  Two memory accesses of the same location must always be executed in
->  program order if the second access is a store.  Thus, if we have
->  
-> diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-> index 8dcb37835b613..6b9e3bb4e397f 100644
-> --- a/tools/memory-model/linux-kernel.cat
-> +++ b/tools/memory-model/linux-kernel.cat
-> @@ -62,7 +62,7 @@ let dep = addr | data
->  let rwdep = (dep | ctrl) ; [W]
->  let overwrite = co | fr
->  let to-w = rwdep | (overwrite & int)
-> -let to-r = addr | (dep ; rfi)
-> +let to-r = addr ; [R]
->  let fence = strong-fence | wmb | po-rel | rmb | acq-po
->  let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
->  
-> -- 
-> 2.7.4
+>> pgtable_page_ctor/dtor() use across arch is not consistent and there is a need
+>> for generalization which has been already acknowledged earlier. But for now we
+>> can atleast fix this on arm64.
+>>
+>> https://lore.kernel.org/lkml/1547619692-7946-1-git-send-email-anshuman.khandual@arm.com/
 > 
+> ... were you not listening when you were told that was completely
+> inadequate?
+
+Agreed. The discussion on the thread made it clear that the above patch was
+inadequate. What I was trying to point out (probably not very clearly) that
+there is a need for larger generalization/consolidation on page table page
+allocation front including but might not be limited to allocation flag for
+user/kernel page table, standard allocation functions etc. The very idea of
+quoting the above URL here was to bring attention to the fact that different
+archs are doing these allocations differently already.
