@@ -1,73 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39878 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725881AbfBTMYZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2019 07:24:25 -0500
-Date: Wed, 20 Feb 2019 04:24:18 -0800
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
-Message-ID: <20190220122418.GE12668@bombadil.infradead.org>
-References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218231319.178224-1-yuzhao@google.com>
- <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
- <20190219053205.GA124985@google.com>
- <8f9b0bfb-b787-fa3e-7322-73a56a618aa8@arm.com>
- <20190219222828.GA68281@google.com>
- <f7e4db43-b836-4ac2-1aea-922be585d8b1@arm.com>
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:41520 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726693AbfBTNP0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2019 08:15:26 -0500
+Received: by mail-wr1-f65.google.com with SMTP id n2so13756645wrw.8
+        for <linux-arch@vger.kernel.org>; Wed, 20 Feb 2019 05:15:25 -0800 (PST)
+Date: Wed, 20 Feb 2019 14:14:56 +0100
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Message-ID: <20190220131456.GA3215@andrea>
+References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20190220020117.GD11787@linux.ibm.com>
+ <20190220092604.GD32494@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <f7e4db43-b836-4ac2-1aea-922be585d8b1@arm.com>
+In-Reply-To: <20190220092604.GD32494@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20190220122418.gBPHmAGz9bF9FSLvdfsbCL9iPeJ7f0cg7K0Ru0YsxrM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20190220131456.o7XZHvi4lviIRHtebt9Qc1dsE7olfxE_S6wtUXNBD2o@z>
 
-On Wed, Feb 20, 2019 at 03:57:59PM +0530, Anshuman Khandual wrote:
-> On 02/20/2019 03:58 AM, Yu Zhao wrote:
-> > On Tue, Feb 19, 2019 at 11:47:12AM +0530, Anshuman Khandual wrote:
-> >> On 02/19/2019 11:02 AM, Yu Zhao wrote:
-> >>> On Tue, Feb 19, 2019 at 09:51:01AM +0530, Anshuman Khandual wrote:
-> >>>> On 02/19/2019 04:43 AM, Yu Zhao wrote:
-> >>>>> For pte page, use pgtable_page_ctor(); for pmd page, use
-> >>>>> pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
-> >>>>> p4d and pgd), don't use any.
-> >>>> pgtable_page_ctor()/dtor() is not optional for any level page table page
-> >>>> as it determines the struct page state and zone statistics.
-> >>>
-> >>> This is not true. pgtable_page_ctor() is only meant for user pte
-> >>> page. The name isn't perfect (we named it this way before we had
-> >>> split pmd page table lock, and never bothered to change it).
-> >>>
-> >>> The commit cccd843f54be ("mm: mark pages in use for page tables")
-> >>> clearly states so:
-> >>>   Note that only pages currently accounted as NR_PAGETABLES are
-> >>>   tracked as PageTable; this does not include pgd/p4d/pud/pmd pages.
-> >>
-> >> I think the commit is the following one and it does say so. But what is
-> >> the rationale of tagging only PTE page as PageTable and updating the zone
-> >> stat but not doing so for higher level page table pages ? Are not they
-> >> used as page table pages ? Should not they count towards NR_PAGETABLE ?
-> >>
-> >> 1d40a5ea01d53251c ("mm: mark pages in use for page tables")
+On Wed, Feb 20, 2019 at 10:26:04AM +0100, Peter Zijlstra wrote:
+> On Tue, Feb 19, 2019 at 06:01:17PM -0800, Paul E. McKenney wrote:
+> > On Tue, Feb 19, 2019 at 11:57:37PM +0100, Andrea Parri wrote:
+> > > Remove this subtle (and, AFAICT, unused) ordering: we can add it back,
+> > > if necessary, but let us not encourage people to rely on this thing.
+> > > 
+> > > For example, the following "exists" clause can be satisfied with this
+> > > change:
+> > > 
+> > > C dep-rfi
+> > > 
+> > > { }
+> > > 
+> > > P0(int *x, int *y)
+> > > {
+> > > 	WRITE_ONCE(*x, 1);
+> > > 	smp_store_release(y, 1);
+> > > }
+> > > 
+> > > P1(int *x, int *y, int *z)
+> > > {
+> > > 	int r0;
+> > > 	int r1;
+> > > 	int r2;
+> > > 
+> > > 	r0 = READ_ONCE(*y);
+> > > 	WRITE_ONCE(*z, r0);
+> > > 	r1 = smp_load_acquire(z);
+> > > 	r2 = READ_ONCE(*x);
+> > > }
+> > > 
+> > > exists (1:r0=1 /\ 1:r2=0)
 > > 
-> > Well, I was just trying to clarify how the ctor is meant to be used.
-> > The rational behind it is probably another topic.
-> > 
-> > For starters, the number of pmd/pud/p4d/pgd is at least two orders
-> > of magnitude less than the number of pte, which makes them almost
-> > negligible. And some archs use kmem for them, so it's infeasible to
-> > SetPageTable on or account them in the way the ctor does on those
-> > archs.
+> > Any objections?  If I don't hear any in a couple days, I will apply this.
 > 
-> I understand the kmem cases which are definitely problematic and should
-> be fixed. IIRC there is a mechanism to custom init pages allocated for
-> slab cache with a ctor function which in turn can call pgtable_page_ctor().
-> But destructor helper support for slab has been dropped I guess.
+> IIUC you cannot build hardware that allows the above, so why would we
+> allow it?
 
-You can't put a spinlock in the struct page if the page is allocated
-through slab.  Slab uses basically all of struct page for its own
-purposes.  I tried to make that clear with the new layout of struct
-page where everything's in a union discriminated by what the page is
-allocated for.
+The change/simplification was mainly intended as precautionary measure
+(hence the "we can add it back, ..."): I do agree that it shouldn't be
+possible to realize the above state; OTOH, you really don't need to be
+too "creative" to imagine possible mis-uses/mis-interpretations of the
+(dep ; rfi) term ("forget" ONCEs, trick herd7 with "false dependencies"
+or simply wrongly assume that control dependencies are part this "dep",
+what else? ...).  So, no, I'm not that fond to this term; why should I
+be?  or you are simply suggesting to expand the changelog?
+
+I should probably also remark that "such a simplification" wouldn't be
+a first time for the LKMM and, in fact, for the ppo term itself:
+
+  https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/LWNLinuxMM/WeakModel.html#Preserved%20Program%20Order
+
+  Andrea
