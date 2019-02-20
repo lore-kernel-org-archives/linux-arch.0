@@ -1,89 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57920 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725836AbfBTNlO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Feb 2019 08:41:14 -0500
-Date: Wed, 20 Feb 2019 13:41:06 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Message-ID: <20190220134106.GA7523@fuggles.cambridge.arm.com>
-References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
- <20190220020117.GD11787@linux.ibm.com>
- <20190220092604.GD32494@hirez.programming.kicks-ass.net>
- <20190220131456.GA3215@andrea>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:55228 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725801AbfBTNou (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2019 08:44:50 -0500
+Received: by mail-wm1-f67.google.com with SMTP id a62so6714827wmh.4
+        for <linux-arch@vger.kernel.org>; Wed, 20 Feb 2019 05:44:47 -0800 (PST)
+Date: Wed, 20 Feb 2019 14:44:33 +0100
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH v3 1/7] dump_stack: Support adding to the dump stack arch
+ description
+Message-ID: <20190220134433.GA4932@andrea>
+References: <20190207124635.3885-1-mpe@ellerman.id.au>
+ <20190211125035.GA1562@andrea>
+ <20190211143859.dd2lkccxod3f2fwn@pathway.suse.cz>
+ <20190219233925.GA5648@andrea>
+ <87va1e7pw2.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190220131456.GA3215@andrea>
+In-Reply-To: <87va1e7pw2.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190220134106.XClND3UTgtZ5XK3faIz6h-0PHM0z1m2nqtV7UoqsiNE@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Petr Mladek <pmladek@suse.com>, linuxppc-dev@ozlabs.org, akpm@linux-foundation.org, tj@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dyoung@redhat.com, sergey.senozhatsky@gmail.com, Steven Rostedt <rostedt@goodmis.org>
+Message-ID: <20190220134433.TT3_fpOPgLMHn8Pwn0HYNZoMOOEdfJ-y01LFgfDUMQs@z>
 
-On Wed, Feb 20, 2019 at 02:14:56PM +0100, Andrea Parri wrote:
-> On Wed, Feb 20, 2019 at 10:26:04AM +0100, Peter Zijlstra wrote:
-> > On Tue, Feb 19, 2019 at 06:01:17PM -0800, Paul E. McKenney wrote:
-> > > On Tue, Feb 19, 2019 at 11:57:37PM +0100, Andrea Parri wrote:
-> > > > Remove this subtle (and, AFAICT, unused) ordering: we can add it back,
-> > > > if necessary, but let us not encourage people to rely on this thing.
-> > > > 
-> > > > For example, the following "exists" clause can be satisfied with this
-> > > > change:
-> > > > 
-> > > > C dep-rfi
-> > > > 
-> > > > { }
-> > > > 
-> > > > P0(int *x, int *y)
-> > > > {
-> > > > 	WRITE_ONCE(*x, 1);
-> > > > 	smp_store_release(y, 1);
-> > > > }
-> > > > 
-> > > > P1(int *x, int *y, int *z)
-> > > > {
-> > > > 	int r0;
-> > > > 	int r1;
-> > > > 	int r2;
-> > > > 
-> > > > 	r0 = READ_ONCE(*y);
-> > > > 	WRITE_ONCE(*z, r0);
-> > > > 	r1 = smp_load_acquire(z);
-> > > > 	r2 = READ_ONCE(*x);
-> > > > }
-> > > > 
-> > > > exists (1:r0=1 /\ 1:r2=0)
-> > > 
-> > > Any objections?  If I don't hear any in a couple days, I will apply this.
-> > 
-> > IIUC you cannot build hardware that allows the above, so why would we
-> > allow it?
+> >> > > +		 * Order the stores above in vsnprintf() vs the store of the
+> >> > > +		 * space below which joins the two strings. Note this doesn't
+> >> > > +		 * make the code truly race free because there is no barrier on
+> >> > > +		 * the read side. ie. Another CPU might load the uninitialised
+> >> > > +		 * tail of the buffer first and then the space below (rather
+> >> > > +		 * than the NULL that was there previously), and so print the
+> >> > > +		 * uninitialised tail. But the whole string lives in BSS so in
+> >> > > +		 * practice it should just see NULLs.
+> >> > 
+> >> > The comment doesn't say _why_ we need to order these stores: IOW, what
+> >> > will or can go wrong without this order?  This isn't clear to me.
+> >> >
+> >> > Another good practice when adding smp_*-constructs (as discussed, e.g.,
+> >> > at KS'18) is to indicate the matching construct/synch. mechanism.
+> >> 
+> >> Yes, one barrier without a counter-part is suspicious.
+> >
+> > As is this silence...,
+> >
+> > Michael, what happened to this patch? did you submit a new version?
 > 
-> The change/simplification was mainly intended as precautionary measure
-> (hence the "we can add it back, ..."): I do agree that it shouldn't be
-> possible to realize the above state; OTOH, you really don't need to be
-> too "creative" to imagine possible mis-uses/mis-interpretations of the
-> (dep ; rfi) term ("forget" ONCEs, trick herd7 with "false dependencies"
-> or simply wrongly assume that control dependencies are part this "dep",
-> what else? ...).  So, no, I'm not that fond to this term; why should I
-> be?  or you are simply suggesting to expand the changelog?
+> No, I'm just busy, it's the merge window next week :)
 
-Simplification can mean different things to different people.
+Got it.
 
-Whilst I completely agree that relying on the ordering provided by "dep ;
-rfi" is subtle and error prone, having it forbid the outcome above appeals
-to a hardware-based mindset of how memory ordering works. In the kernel
-community, I would posit that the majority of developers are writing code
-with the underlying hardware in mind and so allowing behaviours in the
-memory model which are counter to how a real machine operates is likely to
-make things more confusing, rather than simplifying them!
 
-IIRC, herd has a feature where you can "flag" the result of a litmus test
-to highlight certain internal constraint violations (e.g. warning that a
-data race is present in a concurrent C11 program). How about we preserve
-the existing semantics, but flag any use of "dep; rfi" to indicate that
-the ordering guarantees being relied upon are subtle and error-prone, and
-therefore should only be considered for fast-path code?
+> 
+> I thought the comment was pretty clear, if the stores are observed out
+> of order we might print the uninitialised tail.
+> 
+> And the barrier on the read side would need to be in printk somewhere,
+> which is obviously unpleasant.
 
-Will
+Indeed.
+
+
+> 
+> >> If the parallel access is really needed then we could define the
+> >> current length as atomic_t and use:
+> >> 
+> >> 	+ atomic_cmpxchg() to reserve the space for the string
+> >> 	+ %*s to limit the printed length
+> >> 
+> >> In the worst case, we would print an incomplete string.
+> >> See below for a sample code.
+> >
+> > Seems worth exploring, IMO; but I'd like to first hear _clear about
+> > the _intended semantics (before digging into alternatives)...
+> 
+> It is not my intention to support concurrent updates of the string. The
+> idea is you setup the string early in boot.
+
+Understood, thanks for the clarification.
+
+
+> 
+> The concern with a concurrent reader is simply that the string is dumped
+> in the panic path, and you never really know when you're going to panic.
+> Even if you only write to the string before doing SMP bringup you might
+> still have another CPU go rogue and panic before then.
+> 
+> But I probably should have just not added the barrier, it's over
+> paranoid and will almost certainly never matter in practice.
+
+Oh, well, I can only echo you: if you don't care about the stores being
+_observed_ out of order, you could simply remove the barrier; if you do
+care, then you need "more paranoid" on the readers side.  ;-)
+
+  Andrea
+
+
+> 
+> cheers
