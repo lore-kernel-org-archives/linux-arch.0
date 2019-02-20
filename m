@@ -1,71 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44848 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725616AbfBTBeP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2019 20:34:15 -0500
-Date: Tue, 19 Feb 2019 17:34:07 -0800
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
-Message-ID: <20190220013407.GD12668@bombadil.infradead.org>
-References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218231319.178224-1-yuzhao@google.com>
- <863acc9a-53fb-86ad-4521-828ee8d9c222@arm.com>
- <20190219053205.GA124985@google.com>
- <8f9b0bfb-b787-fa3e-7322-73a56a618aa8@arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:35992 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728703AbfBTCAM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Feb 2019 21:00:12 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1K1xWFN027007
+        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 21:00:10 -0500
+Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2qrs769p5f-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2019 21:00:10 -0500
+Received: from localhost
+        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 20 Feb 2019 02:00:09 -0000
+Date: Tue, 19 Feb 2019 18:00:02 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH 1/2] tools/memory-model: Fix comment in
+ MP+poonceonces.litmus
+Reply-To: paulmck@linux.ibm.com
+References: <1550616923-4795-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <1550616923-4795-2-git-send-email-andrea.parri@amarulasolutions.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <8f9b0bfb-b787-fa3e-7322-73a56a618aa8@arm.com>
+In-Reply-To: <1550616923-4795-2-git-send-email-andrea.parri@amarulasolutions.com>
+Message-ID: <20190220020002.GC11787@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20190220013407.iZrJeluxSZwSKeMo7KUqRNKzFze1QCx1GimF_0dNsXw@z>
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20190220020002.trCQmQE2YaobEC6Qzyg64B4V5tqPB0vTHLIQGhVtPDo@z>
 
-On Tue, Feb 19, 2019 at 11:47:12AM +0530, Anshuman Khandual wrote:
-> + Matthew Wilcox
-> On 02/19/2019 11:02 AM, Yu Zhao wrote:
-> > On Tue, Feb 19, 2019 at 09:51:01AM +0530, Anshuman Khandual wrote:
-> >>
-> >>
-> >> On 02/19/2019 04:43 AM, Yu Zhao wrote:
-> >>> For pte page, use pgtable_page_ctor(); for pmd page, use
-> >>> pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
-> >>> p4d and pgd), don't use any.
-> >> pgtable_page_ctor()/dtor() is not optional for any level page table page
-> >> as it determines the struct page state and zone statistics.
-> > 
-> > This is not true. pgtable_page_ctor() is only meant for user pte
-> > page. The name isn't perfect (we named it this way before we had
-> > split pmd page table lock, and never bothered to change it).
-> > 
-> > The commit cccd843f54be ("mm: mark pages in use for page tables")
+On Tue, Feb 19, 2019 at 11:55:22PM +0100, Andrea Parri wrote:
+> The comment should say "Sometimes" for the result.
 
-Where did you get that commit ID from?  In Linus' tree, it's
-1d40a5ea01d53251c23c7be541d3f4a656cfc537
+I queued both of these, thank you!   Just to be clear "Maybe" is "don't
+care", so this patch is changing this litmus test from "LKMM can allow
+or forbid, at its option" to "LKMM must allow".  Which should be fine,
+given that the test has absolutely no ordering.
 
-> > clearly states so:
-> >   Note that only pages currently accounted as NR_PAGETABLES are
-> >   tracked as PageTable; this does not include pgd/p4d/pud/pmd pages.
+							Thanx, Paul
+
+> Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Boqun Feng <boqun.feng@gmail.com>
+> Cc: Nicholas Piggin <npiggin@gmail.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+> Cc: Luc Maranget <luc.maranget@inria.fr>
+> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> Cc: Akira Yokosawa <akiyks@gmail.com>
+> Cc: Daniel Lustig <dlustig@nvidia.com>
+> ---
+>  tools/memory-model/litmus-tests/MP+poonceonces.litmus | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> I think the commit is the following one and it does say so. But what is
-> the rationale of tagging only PTE page as PageTable and updating the zone
-> stat but not doing so for higher level page table pages ? Are not they
-> used as page table pages ? Should not they count towards NR_PAGETABLE ?
+> diff --git a/tools/memory-model/litmus-tests/MP+poonceonces.litmus b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+> index b2b60b84fb9dc..172f0145301c5 100644
+> --- a/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+> +++ b/tools/memory-model/litmus-tests/MP+poonceonces.litmus
+> @@ -1,7 +1,7 @@
+>  C MP+poonceonces
+>  
+>  (*
+> - * Result: Maybe
+> + * Result: Sometimes
+>   *
+>   * Can the counter-intuitive message-passing outcome be prevented with
+>   * no ordering at all?
+> -- 
+> 2.7.4
 > 
-> 1d40a5ea01d53251c ("mm: mark pages in use for page tables")
-
-I think they should all be accounted towards NR_PAGETABLE and marked
-as being PageTable.  Somebody needs to make the case for that and
-send the patches.  That patch even says that there should be follow-up
-patches to do that.  I've been a little busy and haven't got back to it.
-I thought you said you were going to do it.
-
-> pgtable_page_ctor/dtor() use across arch is not consistent and there is a need
-> for generalization which has been already acknowledged earlier. But for now we
-> can atleast fix this on arm64.
-> 
-> https://lore.kernel.org/lkml/1547619692-7946-1-git-send-email-anshuman.khandual@arm.com/
-
-... were you not listening when you were told that was completely
-inadequate?
