@@ -1,229 +1,200 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:35955 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726574AbfBVPlC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Feb 2019 10:41:02 -0500
-Received: by mail-pg1-f193.google.com with SMTP id r124so1302934pgr.3
-        for <linux-arch@vger.kernel.org>; Fri, 22 Feb 2019 07:41:01 -0800 (PST)
-MIME-Version: 1.0
-References: <cover.1550839937.git.andreyknvl@google.com> <464111f3-e255-ad45-8964-58462d889e6f@arm.com>
-In-Reply-To: <464111f3-e255-ad45-8964-58462d889e6f@arm.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Fri, 22 Feb 2019 16:40:49 +0100
-Message-ID: <CAAeHK+wCZK7F7T1k+Kg_HkK47J8R9ugtH1g1ciLYH_KJ22ZVjg@mail.gmail.com>
+Received: from mail-eopbgr10040.outbound.protection.outlook.com ([40.107.1.40]:1824
+        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725942AbfBVQKj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Feb 2019 11:10:39 -0500
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
 Subject: Re: [PATCH v10 00/12] arm64: untag user pointers passed to the kernel
-Content-Type: text/plain; charset="UTF-8"
+Date: Fri, 22 Feb 2019 16:10:26 +0000
+Message-ID: <96d1086c-ca82-d6d7-24c3-f6686d98d47a@arm.com>
+References: <cover.1550839937.git.andreyknvl@google.com>
+ <464111f3-e255-ad45-8964-58462d889e6f@arm.com>
+ <CAAeHK+wCZK7F7T1k+Kg_HkK47J8R9ugtH1g1ciLYH_KJ22ZVjg@mail.gmail.com>
+In-Reply-To: <CAAeHK+wCZK7F7T1k+Kg_HkK47J8R9ugtH1g1ciLYH_KJ22ZVjg@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <377964F0ADA85C4DA3F27A0A85288B86@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Robin Murphy <Robin.Murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>nd <nd@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave P Martin <Dave.Martin@arm.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>
-Message-ID: <20190222154049.lb6Y2D3H8r9Sru7Kz3SRDGJHgdBxSnasibB0NNT6DWw@z>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: nd <nd@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Robin Murphy <Robin.Murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave P Martin <Dave.Martin@arm.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>
+Message-ID: <20190222161026.J_GVry_HtJkMkCvaMSWZlcmOviV9f545mueU0Wb7hn8@z>
 
-On Fri, Feb 22, 2019 at 4:35 PM Szabolcs Nagy <Szabolcs.Nagy@arm.com> wrote:
->
-> On 22/02/2019 12:53, Andrey Konovalov wrote:
-> > This patchset is meant to be merged together with "arm64 relaxed ABI" [1].
-> >
-> > arm64 has a feature called Top Byte Ignore, which allows to embed pointer
-> > tags into the top byte of each pointer. Userspace programs (such as
-> > HWASan, a memory debugging tool [2]) might use this feature and pass
-> > tagged user pointers to the kernel through syscalls or other interfaces.
-> >
-> > Right now the kernel is already able to handle user faults with tagged
-> > pointers, due to these patches:
-> >
-> > 1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
-> >              tagged pointer")
-> > 2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
-> >             pointers")
-> > 3. 276e9327 ("arm64: entry: improve data abort handling of tagged
-> >             pointers")
-> >
-> > This patchset extends tagged pointer support to syscall arguments.
-> >
-> > For non-memory syscalls this is done by untaging user pointers when the
-> > kernel performs pointer checking to find out whether the pointer comes
-> > from userspace (most notably in access_ok). The untagging is done only
-> > when the pointer is being checked, the tag is preserved as the pointer
-> > makes its way through the kernel.
-> >
-> > Since memory syscalls (mmap, mprotect, etc.) don't do memory accesses but
-> > rather deal with memory ranges, untagged pointers are better suited to
-> > describe memory ranges internally. Thus for memory syscalls we untag
-> > pointers completely when they enter the kernel.
->
-> i think the same is true when user pointers are compared.
->
-> e.g. i suspect there may be issues with tagged robust mutex
-> list pointers because the kernel does
->
-> futex.c:3541:   while (entry != &head->list) {
->
-> where entry is a user pointer that may be tagged, and
-> &head->list is probably not tagged.
-
-You're right. I'll expand the cover letter in the next version to
-describe this more accurately. The patchset however contains "mm,
-arm64: untag user pointers in mm/gup.c" that should take care of futex
-pointers.
-
-Thanks!
-
->
-> > One of the alternative approaches to untagging that was considered is to
-> > completely strip the pointer tag as the pointer enters the kernel with
-> > some kind of a syscall wrapper, but that won't work with the countless
-> > number of different ioctl calls. With this approach we would need a custom
-> > wrapper for each ioctl variation, which doesn't seem practical.
-> >
-> > The following testing approaches has been taken to find potential issues
-> > with user pointer untagging:
-> >
-> > 1. Static testing (with sparse [3] and separately with a custom static
-> >    analyzer based on Clang) to track casts of __user pointers to integer
-> >    types to find places where untagging needs to be done.
-> >
-> > 2. Static testing with grep to find parts of the kernel that call
-> >    find_vma() (and other similar functions) or directly compare against
-> >    vm_start/vm_end fields of vma.
-> >
-> > 3. Static testing with grep to find parts of the kernel that compare
-> >    user pointers with TASK_SIZE or other similar consts and macros.
-> >
-> > 4. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
-> >    a modified syzkaller version that passes tagged pointers to the kernel.
-> >
-> > Based on the results of the testing the requried patches have been added
-> > to the patchset.
-> >
-> > This patchset has been merged into the Pixel 2 kernel tree and is now
-> > being used to enable testing of Pixel 2 phones with HWASan.
-> >
-> > This patchset is a prerequisite for ARM's memory tagging hardware feature
-> > support [4].
-> >
-> > Thanks!
-> >
-> > [1] https://lkml.org/lkml/2018/12/10/402
-> >
-> > [2] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
-> >
-> > [3] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
-> >
-> > [4] https://community.arm.com/processors/b/blog/posts/arm-a-profile-architecture-2018-developments-armv85a
-> >
-> > Changes in v10:
-> > - Added "mm, arm64: untag user pointers passed to memory syscalls" back.
-> > - New patch "fs, arm64: untag user pointers in fs/userfaultfd.c".
-> > - New patch "net, arm64: untag user pointers in tcp_zerocopy_receive".
-> > - New patch "kernel, arm64: untag user pointers in prctl_set_mm*".
-> > - New patch "tracing, arm64: untag user pointers in seq_print_user_ip".
-> >
-> > Changes in v9:
-> > - Rebased onto 4.20-rc6.
-> > - Used u64 instead of __u64 in type casts in the untagged_addr macro for
-> >   arm64.
-> > - Added braces around (addr) in the untagged_addr macro for other arches.
-> >
-> > Changes in v8:
-> > - Rebased onto 65102238 (4.20-rc1).
-> > - Added a note to the cover letter on why syscall wrappers/shims that untag
-> >   user pointers won't work.
-> > - Added a note to the cover letter that this patchset has been merged into
-> >   the Pixel 2 kernel tree.
-> > - Documentation fixes, in particular added a list of syscalls that don't
-> >   support tagged user pointers.
-> >
-> > Changes in v7:
-> > - Rebased onto 17b57b18 (4.19-rc6).
-> > - Dropped the "arm64: untag user address in __do_user_fault" patch, since
-> >   the existing patches already handle user faults properly.
-> > - Dropped the "usb, arm64: untag user addresses in devio" patch, since the
-> >   passed pointer must come from a vma and therefore be untagged.
-> > - Dropped the "arm64: annotate user pointers casts detected by sparse"
-> >   patch (see the discussion to the replies of the v6 of this patchset).
-> > - Added more context to the cover letter.
-> > - Updated Documentation/arm64/tagged-pointers.txt.
-> >
-> > Changes in v6:
-> > - Added annotations for user pointer casts found by sparse.
-> > - Rebased onto 050cdc6c (4.19-rc1+).
-> >
-> > Changes in v5:
-> > - Added 3 new patches that add untagging to places found with static
-> >   analysis.
-> > - Rebased onto 44c929e1 (4.18-rc8).
-> >
-> > Changes in v4:
-> > - Added a selftest for checking that passing tagged pointers to the
-> >   kernel succeeds.
-> > - Rebased onto 81e97f013 (4.18-rc1+).
-> >
-> > Changes in v3:
-> > - Rebased onto e5c51f30 (4.17-rc6+).
-> > - Added linux-arch@ to the list of recipients.
-> >
-> > Changes in v2:
-> > - Rebased onto 2d618bdf (4.17-rc3+).
-> > - Removed excessive untagging in gup.c.
-> > - Removed untagging pointers returned from __uaccess_mask_ptr.
-> >
-> > Changes in v1:
-> > - Rebased onto 4.17-rc1.
-> >
-> > Changes in RFC v2:
-> > - Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
-> >   defining it for each arch individually.
-> > - Updated Documentation/arm64/tagged-pointers.txt.
-> > - Dropped "mm, arm64: untag user addresses in memory syscalls".
-> > - Rebased onto 3eb2ce82 (4.16-rc7).
-> >
-> > Reviewed-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-> > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> >
-> > Andrey Konovalov (12):
-> >   uaccess: add untagged_addr definition for other arches
-> >   arm64: untag user pointers in access_ok and __uaccess_mask_ptr
-> >   lib, arm64: untag user pointers in strn*_user
-> >   mm, arm64: untag user pointers passed to memory syscalls
-> >   mm, arm64: untag user pointers in mm/gup.c
-> >   fs, arm64: untag user pointers in copy_mount_options
-> >   fs, arm64: untag user pointers in fs/userfaultfd.c
-> >   net, arm64: untag user pointers in tcp_zerocopy_receive
-> >   kernel, arm64: untag user pointers in prctl_set_mm*
-> >   tracing, arm64: untag user pointers in seq_print_user_ip
-> >   arm64: update Documentation/arm64/tagged-pointers.txt
-> >   selftests, arm64: add a selftest for passing tagged pointers to kernel
-> >
-> >  Documentation/arm64/tagged-pointers.txt       | 25 +++++++++++--------
-> >  arch/arm64/include/asm/uaccess.h              | 10 +++++---
-> >  fs/namespace.c                                |  2 +-
-> >  fs/userfaultfd.c                              |  5 ++++
-> >  include/linux/memory.h                        |  4 +++
-> >  ipc/shm.c                                     |  2 ++
-> >  kernel/sys.c                                  | 14 +++++++++++
-> >  kernel/trace/trace_output.c                   |  2 +-
-> >  lib/strncpy_from_user.c                       |  2 ++
-> >  lib/strnlen_user.c                            |  2 ++
-> >  mm/gup.c                                      |  4 +++
-> >  mm/madvise.c                                  |  2 ++
-> >  mm/mempolicy.c                                |  5 ++++
-> >  mm/migrate.c                                  |  1 +
-> >  mm/mincore.c                                  |  2 ++
-> >  mm/mlock.c                                    |  5 ++++
-> >  mm/mmap.c                                     |  7 ++++++
-> >  mm/mprotect.c                                 |  2 ++
-> >  mm/mremap.c                                   |  2 ++
-> >  mm/msync.c                                    |  2 ++
-> >  net/ipv4/tcp.c                                |  2 ++
-> >  tools/testing/selftests/arm64/.gitignore      |  1 +
-> >  tools/testing/selftests/arm64/Makefile        | 11 ++++++++
-> >  .../testing/selftests/arm64/run_tags_test.sh  | 12 +++++++++
-> >  tools/testing/selftests/arm64/tags_test.c     | 19 ++++++++++++++
-> >  25 files changed, 129 insertions(+), 16 deletions(-)
-> >  create mode 100644 tools/testing/selftests/arm64/.gitignore
-> >  create mode 100644 tools/testing/selftests/arm64/Makefile
-> >  create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
-> >  create mode 100644 tools/testing/selftests/arm64/tags_test.c
-> >
->
+T24gMjIvMDIvMjAxOSAxNTo0MCwgQW5kcmV5IEtvbm92YWxvdiB3cm90ZToNCj4gT24gRnJpLCBG
+ZWIgMjIsIDIwMTkgYXQgNDozNSBQTSBTemFib2xjcyBOYWd5IDxTemFib2xjcy5OYWd5QGFybS5j
+b20+IHdyb3RlOg0KPj4NCj4+IE9uIDIyLzAyLzIwMTkgMTI6NTMsIEFuZHJleSBLb25vdmFsb3Yg
+d3JvdGU6DQo+Pj4gVGhpcyBwYXRjaHNldCBpcyBtZWFudCB0byBiZSBtZXJnZWQgdG9nZXRoZXIg
+d2l0aCAiYXJtNjQgcmVsYXhlZCBBQkkiIFsxXS4NCj4+Pg0KPj4+IGFybTY0IGhhcyBhIGZlYXR1
+cmUgY2FsbGVkIFRvcCBCeXRlIElnbm9yZSwgd2hpY2ggYWxsb3dzIHRvIGVtYmVkIHBvaW50ZXIN
+Cj4+PiB0YWdzIGludG8gdGhlIHRvcCBieXRlIG9mIGVhY2ggcG9pbnRlci4gVXNlcnNwYWNlIHBy
+b2dyYW1zIChzdWNoIGFzDQo+Pj4gSFdBU2FuLCBhIG1lbW9yeSBkZWJ1Z2dpbmcgdG9vbCBbMl0p
+IG1pZ2h0IHVzZSB0aGlzIGZlYXR1cmUgYW5kIHBhc3MNCj4+PiB0YWdnZWQgdXNlciBwb2ludGVy
+cyB0byB0aGUga2VybmVsIHRocm91Z2ggc3lzY2FsbHMgb3Igb3RoZXIgaW50ZXJmYWNlcy4NCj4+
+Pg0KPj4+IFJpZ2h0IG5vdyB0aGUga2VybmVsIGlzIGFscmVhZHkgYWJsZSB0byBoYW5kbGUgdXNl
+ciBmYXVsdHMgd2l0aCB0YWdnZWQNCj4+PiBwb2ludGVycywgZHVlIHRvIHRoZXNlIHBhdGNoZXM6
+DQo+Pj4NCj4+PiAxLiA4MWNkZGQ2NSAoImFybTY0OiB0cmFwczogZml4IHVzZXJzcGFjZSBjYWNo
+ZSBtYWludGVuYW5jZSBlbXVsYXRpb24gb24gYQ0KPj4+ICAgICAgICAgICAgICB0YWdnZWQgcG9p
+bnRlciIpDQo+Pj4gMi4gN2RjZDlkZDggKCJhcm02NDogaHdfYnJlYWtwb2ludDogZml4IHdhdGNo
+cG9pbnQgbWF0Y2hpbmcgZm9yIHRhZ2dlZA0KPj4+ICAgICAgICAgICAgIHBvaW50ZXJzIikNCj4+
+PiAzLiAyNzZlOTMyNyAoImFybTY0OiBlbnRyeTogaW1wcm92ZSBkYXRhIGFib3J0IGhhbmRsaW5n
+IG9mIHRhZ2dlZA0KPj4+ICAgICAgICAgICAgIHBvaW50ZXJzIikNCj4+Pg0KPj4+IFRoaXMgcGF0
+Y2hzZXQgZXh0ZW5kcyB0YWdnZWQgcG9pbnRlciBzdXBwb3J0IHRvIHN5c2NhbGwgYXJndW1lbnRz
+Lg0KPj4+DQo+Pj4gRm9yIG5vbi1tZW1vcnkgc3lzY2FsbHMgdGhpcyBpcyBkb25lIGJ5IHVudGFn
+aW5nIHVzZXIgcG9pbnRlcnMgd2hlbiB0aGUNCj4+PiBrZXJuZWwgcGVyZm9ybXMgcG9pbnRlciBj
+aGVja2luZyB0byBmaW5kIG91dCB3aGV0aGVyIHRoZSBwb2ludGVyIGNvbWVzDQo+Pj4gZnJvbSB1
+c2Vyc3BhY2UgKG1vc3Qgbm90YWJseSBpbiBhY2Nlc3Nfb2spLiBUaGUgdW50YWdnaW5nIGlzIGRv
+bmUgb25seQ0KPj4+IHdoZW4gdGhlIHBvaW50ZXIgaXMgYmVpbmcgY2hlY2tlZCwgdGhlIHRhZyBp
+cyBwcmVzZXJ2ZWQgYXMgdGhlIHBvaW50ZXINCj4+PiBtYWtlcyBpdHMgd2F5IHRocm91Z2ggdGhl
+IGtlcm5lbC4NCj4+Pg0KPj4+IFNpbmNlIG1lbW9yeSBzeXNjYWxscyAobW1hcCwgbXByb3RlY3Qs
+IGV0Yy4pIGRvbid0IGRvIG1lbW9yeSBhY2Nlc3NlcyBidXQNCj4+PiByYXRoZXIgZGVhbCB3aXRo
+IG1lbW9yeSByYW5nZXMsIHVudGFnZ2VkIHBvaW50ZXJzIGFyZSBiZXR0ZXIgc3VpdGVkIHRvDQo+
+Pj4gZGVzY3JpYmUgbWVtb3J5IHJhbmdlcyBpbnRlcm5hbGx5LiBUaHVzIGZvciBtZW1vcnkgc3lz
+Y2FsbHMgd2UgdW50YWcNCj4+PiBwb2ludGVycyBjb21wbGV0ZWx5IHdoZW4gdGhleSBlbnRlciB0
+aGUga2VybmVsLg0KPj4NCj4+IGkgdGhpbmsgdGhlIHNhbWUgaXMgdHJ1ZSB3aGVuIHVzZXIgcG9p
+bnRlcnMgYXJlIGNvbXBhcmVkLg0KPj4NCj4+IGUuZy4gaSBzdXNwZWN0IHRoZXJlIG1heSBiZSBp
+c3N1ZXMgd2l0aCB0YWdnZWQgcm9idXN0IG11dGV4DQo+PiBsaXN0IHBvaW50ZXJzIGJlY2F1c2Ug
+dGhlIGtlcm5lbCBkb2VzDQo+Pg0KPj4gZnV0ZXguYzozNTQxOiAgIHdoaWxlIChlbnRyeSAhPSAm
+aGVhZC0+bGlzdCkgew0KPj4NCj4+IHdoZXJlIGVudHJ5IGlzIGEgdXNlciBwb2ludGVyIHRoYXQg
+bWF5IGJlIHRhZ2dlZCwgYW5kDQo+PiAmaGVhZC0+bGlzdCBpcyBwcm9iYWJseSBub3QgdGFnZ2Vk
+Lg0KPiANCj4gWW91J3JlIHJpZ2h0LiBJJ2xsIGV4cGFuZCB0aGUgY292ZXIgbGV0dGVyIGluIHRo
+ZSBuZXh0IHZlcnNpb24gdG8NCj4gZGVzY3JpYmUgdGhpcyBtb3JlIGFjY3VyYXRlbHkuIFRoZSBw
+YXRjaHNldCBob3dldmVyIGNvbnRhaW5zICJtbSwNCj4gYXJtNjQ6IHVudGFnIHVzZXIgcG9pbnRl
+cnMgaW4gbW0vZ3VwLmMiIHRoYXQgc2hvdWxkIHRha2UgY2FyZSBvZiBmdXRleA0KPiBwb2ludGVy
+cy4NCg0KdGhlIHJvYnVzdCBtdXRleCBsaXN0IHBvaW50ZXIgaXMgbm90IGEgZnV0ZXggcG9pbnRl
+ciwNCmknbSBub3Qgc3VyZSBob3cgdGhlIG1tL2d1cC5jIHBhdGNoIGhlbHBzLg0KDQo+Pg0KPj4+
+IE9uZSBvZiB0aGUgYWx0ZXJuYXRpdmUgYXBwcm9hY2hlcyB0byB1bnRhZ2dpbmcgdGhhdCB3YXMg
+Y29uc2lkZXJlZCBpcyB0bw0KPj4+IGNvbXBsZXRlbHkgc3RyaXAgdGhlIHBvaW50ZXIgdGFnIGFz
+IHRoZSBwb2ludGVyIGVudGVycyB0aGUga2VybmVsIHdpdGgNCj4+PiBzb21lIGtpbmQgb2YgYSBz
+eXNjYWxsIHdyYXBwZXIsIGJ1dCB0aGF0IHdvbid0IHdvcmsgd2l0aCB0aGUgY291bnRsZXNzDQo+
+Pj4gbnVtYmVyIG9mIGRpZmZlcmVudCBpb2N0bCBjYWxscy4gV2l0aCB0aGlzIGFwcHJvYWNoIHdl
+IHdvdWxkIG5lZWQgYSBjdXN0b20NCj4+PiB3cmFwcGVyIGZvciBlYWNoIGlvY3RsIHZhcmlhdGlv
+biwgd2hpY2ggZG9lc24ndCBzZWVtIHByYWN0aWNhbC4NCj4+Pg0KPj4+IFRoZSBmb2xsb3dpbmcg
+dGVzdGluZyBhcHByb2FjaGVzIGhhcyBiZWVuIHRha2VuIHRvIGZpbmQgcG90ZW50aWFsIGlzc3Vl
+cw0KPj4+IHdpdGggdXNlciBwb2ludGVyIHVudGFnZ2luZzoNCj4+Pg0KPj4+IDEuIFN0YXRpYyB0
+ZXN0aW5nICh3aXRoIHNwYXJzZSBbM10gYW5kIHNlcGFyYXRlbHkgd2l0aCBhIGN1c3RvbSBzdGF0
+aWMNCj4+PiAgICBhbmFseXplciBiYXNlZCBvbiBDbGFuZykgdG8gdHJhY2sgY2FzdHMgb2YgX191
+c2VyIHBvaW50ZXJzIHRvIGludGVnZXINCj4+PiAgICB0eXBlcyB0byBmaW5kIHBsYWNlcyB3aGVy
+ZSB1bnRhZ2dpbmcgbmVlZHMgdG8gYmUgZG9uZS4NCj4+Pg0KPj4+IDIuIFN0YXRpYyB0ZXN0aW5n
+IHdpdGggZ3JlcCB0byBmaW5kIHBhcnRzIG9mIHRoZSBrZXJuZWwgdGhhdCBjYWxsDQo+Pj4gICAg
+ZmluZF92bWEoKSAoYW5kIG90aGVyIHNpbWlsYXIgZnVuY3Rpb25zKSBvciBkaXJlY3RseSBjb21w
+YXJlIGFnYWluc3QNCj4+PiAgICB2bV9zdGFydC92bV9lbmQgZmllbGRzIG9mIHZtYS4NCj4+Pg0K
+Pj4+IDMuIFN0YXRpYyB0ZXN0aW5nIHdpdGggZ3JlcCB0byBmaW5kIHBhcnRzIG9mIHRoZSBrZXJu
+ZWwgdGhhdCBjb21wYXJlDQo+Pj4gICAgdXNlciBwb2ludGVycyB3aXRoIFRBU0tfU0laRSBvciBv
+dGhlciBzaW1pbGFyIGNvbnN0cyBhbmQgbWFjcm9zLg0KPj4+DQo+Pj4gNC4gRHluYW1pYyB0ZXN0
+aW5nOiBhZGRpbmcgQlVHX09OKGhhc190YWcoYWRkcikpIHRvIGZpbmRfdm1hKCkgYW5kIHJ1bm5p
+bmcNCj4+PiAgICBhIG1vZGlmaWVkIHN5emthbGxlciB2ZXJzaW9uIHRoYXQgcGFzc2VzIHRhZ2dl
+ZCBwb2ludGVycyB0byB0aGUga2VybmVsLg0KPj4+DQo+Pj4gQmFzZWQgb24gdGhlIHJlc3VsdHMg
+b2YgdGhlIHRlc3RpbmcgdGhlIHJlcXVyaWVkIHBhdGNoZXMgaGF2ZSBiZWVuIGFkZGVkDQo+Pj4g
+dG8gdGhlIHBhdGNoc2V0Lg0KPj4+DQo+Pj4gVGhpcyBwYXRjaHNldCBoYXMgYmVlbiBtZXJnZWQg
+aW50byB0aGUgUGl4ZWwgMiBrZXJuZWwgdHJlZSBhbmQgaXMgbm93DQo+Pj4gYmVpbmcgdXNlZCB0
+byBlbmFibGUgdGVzdGluZyBvZiBQaXhlbCAyIHBob25lcyB3aXRoIEhXQVNhbi4NCj4+Pg0KPj4+
+IFRoaXMgcGF0Y2hzZXQgaXMgYSBwcmVyZXF1aXNpdGUgZm9yIEFSTSdzIG1lbW9yeSB0YWdnaW5n
+IGhhcmR3YXJlIGZlYXR1cmUNCj4+PiBzdXBwb3J0IFs0XS4NCj4+Pg0KPj4+IFRoYW5rcyENCj4+
+Pg0KPj4+IFsxXSBodHRwczovL2xrbWwub3JnL2xrbWwvMjAxOC8xMi8xMC80MDINCj4+Pg0KPj4+
+IFsyXSBodHRwOi8vY2xhbmcubGx2bS5vcmcvZG9jcy9IYXJkd2FyZUFzc2lzdGVkQWRkcmVzc1Nh
+bml0aXplckRlc2lnbi5odG1sDQo+Pj4NCj4+PiBbM10gaHR0cHM6Ly9naXRodWIuY29tL2x1Y3Zv
+by9zcGFyc2UtZGV2L2NvbW1pdC81Zjk2MGNiMTBmNTZlYzIwMTdjMTI4ZWY5ZDE2MDYwZTAxNDVm
+MjkyDQo+Pj4NCj4+PiBbNF0gaHR0cHM6Ly9jb21tdW5pdHkuYXJtLmNvbS9wcm9jZXNzb3JzL2Iv
+YmxvZy9wb3N0cy9hcm0tYS1wcm9maWxlLWFyY2hpdGVjdHVyZS0yMDE4LWRldmVsb3BtZW50cy1h
+cm12ODVhDQo+Pj4NCj4+PiBDaGFuZ2VzIGluIHYxMDoNCj4+PiAtIEFkZGVkICJtbSwgYXJtNjQ6
+IHVudGFnIHVzZXIgcG9pbnRlcnMgcGFzc2VkIHRvIG1lbW9yeSBzeXNjYWxscyIgYmFjay4NCj4+
+PiAtIE5ldyBwYXRjaCAiZnMsIGFybTY0OiB1bnRhZyB1c2VyIHBvaW50ZXJzIGluIGZzL3VzZXJm
+YXVsdGZkLmMiLg0KPj4+IC0gTmV3IHBhdGNoICJuZXQsIGFybTY0OiB1bnRhZyB1c2VyIHBvaW50
+ZXJzIGluIHRjcF96ZXJvY29weV9yZWNlaXZlIi4NCj4+PiAtIE5ldyBwYXRjaCAia2VybmVsLCBh
+cm02NDogdW50YWcgdXNlciBwb2ludGVycyBpbiBwcmN0bF9zZXRfbW0qIi4NCj4+PiAtIE5ldyBw
+YXRjaCAidHJhY2luZywgYXJtNjQ6IHVudGFnIHVzZXIgcG9pbnRlcnMgaW4gc2VxX3ByaW50X3Vz
+ZXJfaXAiLg0KPj4+DQo+Pj4gQ2hhbmdlcyBpbiB2OToNCj4+PiAtIFJlYmFzZWQgb250byA0LjIw
+LXJjNi4NCj4+PiAtIFVzZWQgdTY0IGluc3RlYWQgb2YgX191NjQgaW4gdHlwZSBjYXN0cyBpbiB0
+aGUgdW50YWdnZWRfYWRkciBtYWNybyBmb3INCj4+PiAgIGFybTY0Lg0KPj4+IC0gQWRkZWQgYnJh
+Y2VzIGFyb3VuZCAoYWRkcikgaW4gdGhlIHVudGFnZ2VkX2FkZHIgbWFjcm8gZm9yIG90aGVyIGFy
+Y2hlcy4NCj4+Pg0KPj4+IENoYW5nZXMgaW4gdjg6DQo+Pj4gLSBSZWJhc2VkIG9udG8gNjUxMDIy
+MzggKDQuMjAtcmMxKS4NCj4+PiAtIEFkZGVkIGEgbm90ZSB0byB0aGUgY292ZXIgbGV0dGVyIG9u
+IHdoeSBzeXNjYWxsIHdyYXBwZXJzL3NoaW1zIHRoYXQgdW50YWcNCj4+PiAgIHVzZXIgcG9pbnRl
+cnMgd29uJ3Qgd29yay4NCj4+PiAtIEFkZGVkIGEgbm90ZSB0byB0aGUgY292ZXIgbGV0dGVyIHRo
+YXQgdGhpcyBwYXRjaHNldCBoYXMgYmVlbiBtZXJnZWQgaW50bw0KPj4+ICAgdGhlIFBpeGVsIDIg
+a2VybmVsIHRyZWUuDQo+Pj4gLSBEb2N1bWVudGF0aW9uIGZpeGVzLCBpbiBwYXJ0aWN1bGFyIGFk
+ZGVkIGEgbGlzdCBvZiBzeXNjYWxscyB0aGF0IGRvbid0DQo+Pj4gICBzdXBwb3J0IHRhZ2dlZCB1
+c2VyIHBvaW50ZXJzLg0KPj4+DQo+Pj4gQ2hhbmdlcyBpbiB2NzoNCj4+PiAtIFJlYmFzZWQgb250
+byAxN2I1N2IxOCAoNC4xOS1yYzYpLg0KPj4+IC0gRHJvcHBlZCB0aGUgImFybTY0OiB1bnRhZyB1
+c2VyIGFkZHJlc3MgaW4gX19kb191c2VyX2ZhdWx0IiBwYXRjaCwgc2luY2UNCj4+PiAgIHRoZSBl
+eGlzdGluZyBwYXRjaGVzIGFscmVhZHkgaGFuZGxlIHVzZXIgZmF1bHRzIHByb3Blcmx5Lg0KPj4+
+IC0gRHJvcHBlZCB0aGUgInVzYiwgYXJtNjQ6IHVudGFnIHVzZXIgYWRkcmVzc2VzIGluIGRldmlv
+IiBwYXRjaCwgc2luY2UgdGhlDQo+Pj4gICBwYXNzZWQgcG9pbnRlciBtdXN0IGNvbWUgZnJvbSBh
+IHZtYSBhbmQgdGhlcmVmb3JlIGJlIHVudGFnZ2VkLg0KPj4+IC0gRHJvcHBlZCB0aGUgImFybTY0
+OiBhbm5vdGF0ZSB1c2VyIHBvaW50ZXJzIGNhc3RzIGRldGVjdGVkIGJ5IHNwYXJzZSINCj4+PiAg
+IHBhdGNoIChzZWUgdGhlIGRpc2N1c3Npb24gdG8gdGhlIHJlcGxpZXMgb2YgdGhlIHY2IG9mIHRo
+aXMgcGF0Y2hzZXQpLg0KPj4+IC0gQWRkZWQgbW9yZSBjb250ZXh0IHRvIHRoZSBjb3ZlciBsZXR0
+ZXIuDQo+Pj4gLSBVcGRhdGVkIERvY3VtZW50YXRpb24vYXJtNjQvdGFnZ2VkLXBvaW50ZXJzLnR4
+dC4NCj4+Pg0KPj4+IENoYW5nZXMgaW4gdjY6DQo+Pj4gLSBBZGRlZCBhbm5vdGF0aW9ucyBmb3Ig
+dXNlciBwb2ludGVyIGNhc3RzIGZvdW5kIGJ5IHNwYXJzZS4NCj4+PiAtIFJlYmFzZWQgb250byAw
+NTBjZGM2YyAoNC4xOS1yYzErKS4NCj4+Pg0KPj4+IENoYW5nZXMgaW4gdjU6DQo+Pj4gLSBBZGRl
+ZCAzIG5ldyBwYXRjaGVzIHRoYXQgYWRkIHVudGFnZ2luZyB0byBwbGFjZXMgZm91bmQgd2l0aCBz
+dGF0aWMNCj4+PiAgIGFuYWx5c2lzLg0KPj4+IC0gUmViYXNlZCBvbnRvIDQ0YzkyOWUxICg0LjE4
+LXJjOCkuDQo+Pj4NCj4+PiBDaGFuZ2VzIGluIHY0Og0KPj4+IC0gQWRkZWQgYSBzZWxmdGVzdCBm
+b3IgY2hlY2tpbmcgdGhhdCBwYXNzaW5nIHRhZ2dlZCBwb2ludGVycyB0byB0aGUNCj4+PiAgIGtl
+cm5lbCBzdWNjZWVkcy4NCj4+PiAtIFJlYmFzZWQgb250byA4MWU5N2YwMTMgKDQuMTgtcmMxKyku
+DQo+Pj4NCj4+PiBDaGFuZ2VzIGluIHYzOg0KPj4+IC0gUmViYXNlZCBvbnRvIGU1YzUxZjMwICg0
+LjE3LXJjNispLg0KPj4+IC0gQWRkZWQgbGludXgtYXJjaEAgdG8gdGhlIGxpc3Qgb2YgcmVjaXBp
+ZW50cy4NCj4+Pg0KPj4+IENoYW5nZXMgaW4gdjI6DQo+Pj4gLSBSZWJhc2VkIG9udG8gMmQ2MThi
+ZGYgKDQuMTctcmMzKykuDQo+Pj4gLSBSZW1vdmVkIGV4Y2Vzc2l2ZSB1bnRhZ2dpbmcgaW4gZ3Vw
+LmMuDQo+Pj4gLSBSZW1vdmVkIHVudGFnZ2luZyBwb2ludGVycyByZXR1cm5lZCBmcm9tIF9fdWFj
+Y2Vzc19tYXNrX3B0ci4NCj4+Pg0KPj4+IENoYW5nZXMgaW4gdjE6DQo+Pj4gLSBSZWJhc2VkIG9u
+dG8gNC4xNy1yYzEuDQo+Pj4NCj4+PiBDaGFuZ2VzIGluIFJGQyB2MjoNCj4+PiAtIEFkZGVkICIj
+aWZuZGVmIHVudGFnZ2VkX2FkZHIuLi4iIGZhbGxiYWNrIGluIGxpbnV4L3VhY2Nlc3MuaCBpbnN0
+ZWFkIG9mDQo+Pj4gICBkZWZpbmluZyBpdCBmb3IgZWFjaCBhcmNoIGluZGl2aWR1YWxseS4NCj4+
+PiAtIFVwZGF0ZWQgRG9jdW1lbnRhdGlvbi9hcm02NC90YWdnZWQtcG9pbnRlcnMudHh0Lg0KPj4+
+IC0gRHJvcHBlZCAibW0sIGFybTY0OiB1bnRhZyB1c2VyIGFkZHJlc3NlcyBpbiBtZW1vcnkgc3lz
+Y2FsbHMiLg0KPj4+IC0gUmViYXNlZCBvbnRvIDNlYjJjZTgyICg0LjE2LXJjNykuDQo+Pj4NCj4+
+PiBSZXZpZXdlZC1ieTogTHVjIFZhbiBPb3N0ZW5yeWNrIDxsdWMudmFub29zdGVucnlja0BnbWFp
+bC5jb20+DQo+Pj4gU2lnbmVkLW9mZi1ieTogQW5kcmV5IEtvbm92YWxvdiA8YW5kcmV5a252bEBn
+b29nbGUuY29tPg0KPj4+DQo+Pj4gQW5kcmV5IEtvbm92YWxvdiAoMTIpOg0KPj4+ICAgdWFjY2Vz
+czogYWRkIHVudGFnZ2VkX2FkZHIgZGVmaW5pdGlvbiBmb3Igb3RoZXIgYXJjaGVzDQo+Pj4gICBh
+cm02NDogdW50YWcgdXNlciBwb2ludGVycyBpbiBhY2Nlc3Nfb2sgYW5kIF9fdWFjY2Vzc19tYXNr
+X3B0cg0KPj4+ICAgbGliLCBhcm02NDogdW50YWcgdXNlciBwb2ludGVycyBpbiBzdHJuKl91c2Vy
+DQo+Pj4gICBtbSwgYXJtNjQ6IHVudGFnIHVzZXIgcG9pbnRlcnMgcGFzc2VkIHRvIG1lbW9yeSBz
+eXNjYWxscw0KPj4+ICAgbW0sIGFybTY0OiB1bnRhZyB1c2VyIHBvaW50ZXJzIGluIG1tL2d1cC5j
+DQo+Pj4gICBmcywgYXJtNjQ6IHVudGFnIHVzZXIgcG9pbnRlcnMgaW4gY29weV9tb3VudF9vcHRp
+b25zDQo+Pj4gICBmcywgYXJtNjQ6IHVudGFnIHVzZXIgcG9pbnRlcnMgaW4gZnMvdXNlcmZhdWx0
+ZmQuYw0KPj4+ICAgbmV0LCBhcm02NDogdW50YWcgdXNlciBwb2ludGVycyBpbiB0Y3BfemVyb2Nv
+cHlfcmVjZWl2ZQ0KPj4+ICAga2VybmVsLCBhcm02NDogdW50YWcgdXNlciBwb2ludGVycyBpbiBw
+cmN0bF9zZXRfbW0qDQo+Pj4gICB0cmFjaW5nLCBhcm02NDogdW50YWcgdXNlciBwb2ludGVycyBp
+biBzZXFfcHJpbnRfdXNlcl9pcA0KPj4+ICAgYXJtNjQ6IHVwZGF0ZSBEb2N1bWVudGF0aW9uL2Fy
+bTY0L3RhZ2dlZC1wb2ludGVycy50eHQNCj4+PiAgIHNlbGZ0ZXN0cywgYXJtNjQ6IGFkZCBhIHNl
+bGZ0ZXN0IGZvciBwYXNzaW5nIHRhZ2dlZCBwb2ludGVycyB0byBrZXJuZWwNCj4+Pg0KPj4+ICBE
+b2N1bWVudGF0aW9uL2FybTY0L3RhZ2dlZC1wb2ludGVycy50eHQgICAgICAgfCAyNSArKysrKysr
+KysrKy0tLS0tLS0tDQo+Pj4gIGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vdWFjY2Vzcy5oICAgICAg
+ICAgICAgICB8IDEwICsrKysrLS0tDQo+Pj4gIGZzL25hbWVzcGFjZS5jICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICB8ICAyICstDQo+Pj4gIGZzL3VzZXJmYXVsdGZkLmMgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICB8ICA1ICsrKysNCj4+PiAgaW5jbHVkZS9saW51eC9tZW1vcnku
+aCAgICAgICAgICAgICAgICAgICAgICAgIHwgIDQgKysrDQo+Pj4gIGlwYy9zaG0uYyAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8ICAyICsrDQo+Pj4gIGtlcm5lbC9zeXMuYyAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8IDE0ICsrKysrKysrKysrDQo+Pj4gIGtl
+cm5lbC90cmFjZS90cmFjZV9vdXRwdXQuYyAgICAgICAgICAgICAgICAgICB8ICAyICstDQo+Pj4g
+IGxpYi9zdHJuY3B5X2Zyb21fdXNlci5jICAgICAgICAgICAgICAgICAgICAgICB8ICAyICsrDQo+
+Pj4gIGxpYi9zdHJubGVuX3VzZXIuYyAgICAgICAgICAgICAgICAgICAgICAgICAgICB8ICAyICsr
+DQo+Pj4gIG1tL2d1cC5jICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8ICA0
+ICsrKw0KPj4+ICBtbS9tYWR2aXNlLmMgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+fCAgMiArKw0KPj4+ICBtbS9tZW1wb2xpY3kuYyAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgfCAgNSArKysrDQo+Pj4gIG1tL21pZ3JhdGUuYyAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICB8ICAxICsNCj4+PiAgbW0vbWluY29yZS5jICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgIHwgIDIgKysNCj4+PiAgbW0vbWxvY2suYyAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHwgIDUgKysrKw0KPj4+ICBtbS9tbWFwLmMgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgfCAgNyArKysrKysNCj4+PiAgbW0vbXByb3RlY3QuYyAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgIHwgIDIgKysNCj4+PiAgbW0vbXJlbWFwLmMgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgIDIgKysNCj4+PiAgbW0vbXN5bmMuYyAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgIDIgKysNCj4+PiAgbmV0L2lwdjQvdGNw
+LmMgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgIDIgKysNCj4+PiAgdG9vbHMvdGVz
+dGluZy9zZWxmdGVzdHMvYXJtNjQvLmdpdGlnbm9yZSAgICAgIHwgIDEgKw0KPj4+ICB0b29scy90
+ZXN0aW5nL3NlbGZ0ZXN0cy9hcm02NC9NYWtlZmlsZSAgICAgICAgfCAxMSArKysrKysrKw0KPj4+
+ICAuLi4vdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvcnVuX3RhZ3NfdGVzdC5zaCAgfCAxMiArKysr
+KysrKysNCj4+PiAgdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvdGFnc190ZXN0LmMgICAg
+IHwgMTkgKysrKysrKysrKysrKysNCj4+PiAgMjUgZmlsZXMgY2hhbmdlZCwgMTI5IGluc2VydGlv
+bnMoKyksIDE2IGRlbGV0aW9ucygtKQ0KPj4+ICBjcmVhdGUgbW9kZSAxMDA2NDQgdG9vbHMvdGVz
+dGluZy9zZWxmdGVzdHMvYXJtNjQvLmdpdGlnbm9yZQ0KPj4+ICBjcmVhdGUgbW9kZSAxMDA2NDQg
+dG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvTWFrZWZpbGUNCj4+PiAgY3JlYXRlIG1vZGUg
+MTAwNzU1IHRvb2xzL3Rlc3Rpbmcvc2VsZnRlc3RzL2FybTY0L3J1bl90YWdzX3Rlc3Quc2gNCj4+
+PiAgY3JlYXRlIG1vZGUgMTAwNjQ0IHRvb2xzL3Rlc3Rpbmcvc2VsZnRlc3RzL2FybTY0L3RhZ3Nf
+dGVzdC5jDQo+Pj4NCj4+DQoNCg==
