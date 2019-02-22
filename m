@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 23/23] kselftest: Extend vDSO selftest
-Date: Fri, 22 Feb 2019 12:24:30 +0000
-Message-ID: <20190222122430.21180-24-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 14/23] arm64: Refactor vDSO code
+Date: Fri, 22 Feb 2019 12:24:21 +0000
+Message-ID: <20190222122430.21180-15-vincenzo.frascino@arm.com>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,296 +21,281 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-The current version of the multiarch vDSO selftest verifies only
-gettimeofday.
+Most of the code for initializing the vDSOs in arm64 and compat will
+be in common, hence a refactor of the current code is required to avoid
+duplication and simplify maintainability.
 
-Extend the vDSO selftest to the other library functions:
- - time
- - clock_getres
- - clock_gettime
+Refactor vdso.c to simplify the implementation of arm64 vDSO compat
+(which will be pushed with a future patch).
 
-The extension has been used to verify the unified vdso library on the
-supported architectures.
-
-Cc: Shuah Khan <shuah@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- tools/testing/selftests/vDSO/Makefile         |   2 +
- tools/testing/selftests/vDSO/vdso_full_test.c | 246 ++++++++++++++++++
- 2 files changed, 248 insertions(+)
- create mode 100644 tools/testing/selftests/vDSO/vdso_full_test.c
+ arch/arm64/kernel/vdso.c | 208 +++++++++++++++++++++++++--------------
+ 1 file changed, 135 insertions(+), 73 deletions(-)
 
-diff --git a/tools/testing/selftests/vDSO/Makefile b/tools/testing/selftests/vDSO/Makefile
-index 9e03d61f52fd..68e9b4a1cdcf 100644
---- a/tools/testing/selftests/vDSO/Makefile
-+++ b/tools/testing/selftests/vDSO/Makefile
-@@ -5,6 +5,7 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
- ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 523e56658b84..c217245768ea 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -41,7 +41,30 @@
+ #include <asm/vdso.h>
  
- TEST_GEN_PROGS := $(OUTPUT)/vdso_test
-+TEST_GEN_PROGS += $(OUTPUT)/vdso_full_test
- ifeq ($(ARCH),x86)
- TEST_GEN_PROGS += $(OUTPUT)/vdso_standalone_test_x86
- endif
-@@ -18,6 +19,7 @@ endif
+ extern char vdso_start[], vdso_end[];
+-static unsigned long vdso_pages __ro_after_init;
++
++/* vdso_lookup arch_index */
++enum arch_vdso_type {
++	ARM64_VDSO = 0,
++};
++
++struct __vdso_lookup_t {
++	const char *name;
++	const char *vdso_code_start;
++	const char *vdso_code_end;
++	unsigned long vdso_pages;
++	/* Data Mapping */
++	struct vm_special_mapping *dm;
++	/* Code Mapping */
++	struct vm_special_mapping *cm;
++};
++
++static struct __vdso_lookup_t vdso_lookup[2] __ro_after_init = {
++	{
++		.name = "vdso",
++		.vdso_code_start = vdso_start,
++		.vdso_code_end = vdso_end,
++	},
++};
  
- all: $(TEST_GEN_PROGS)
- $(OUTPUT)/vdso_test: parse_vdso.c vdso_test.c
-+$(OUTPUT)/vdso_full_test: parse_vdso.c vdso_full_test.c
- $(OUTPUT)/vdso_standalone_test_x86: vdso_standalone_test_x86.c parse_vdso.c
- 	$(CC) $(CFLAGS) $(CFLAGS_vdso_standalone_test_x86) \
- 		vdso_standalone_test_x86.c parse_vdso.c \
-diff --git a/tools/testing/selftests/vDSO/vdso_full_test.c b/tools/testing/selftests/vDSO/vdso_full_test.c
-new file mode 100644
-index 000000000000..d46776658aa2
---- /dev/null
-+++ b/tools/testing/selftests/vDSO/vdso_full_test.c
-@@ -0,0 +1,246 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * vdso_full_test.c: Sample code to test all the timers.
-+ * Copyright (c) 2019 Arm Ltd.
-+ *
-+ * Compile with:
-+ * gcc -std=gnu99 vdso_full_test.c parse_vdso.c
-+ *
-+ * Tested on ARM, ARM64, MIPS32 and x86 (32-bit and 64-bit).
-+ * Might work on other architectures.
-+ */
-+
-+#include <stdint.h>
-+#include <elf.h>
-+#include <stdio.h>
-+#include <time.h>
-+#include <sys/auxv.h>
-+#include <sys/time.h>
-+#define _GNU_SOURCE
-+#include <unistd.h>
-+#include <sys/syscall.h>
-+
-+#include "../kselftest.h"
-+
-+extern void *vdso_sym(const char *version, const char *name);
-+extern void vdso_init_from_sysinfo_ehdr(uintptr_t base);
-+extern void vdso_init_from_auxv(void *auxv);
-+
-+/*
-+ * ARM64's vDSO exports its vDSO implementation with different names and
-+ * a different version from other architectures, so we need to handle it
-+ * as a special case.
-+ */
-+#if defined(__aarch64__)
-+const char *version = "LINUX_2.6.39";
-+const char *name[4] = {
-+	"__kernel_gettimeofday",
-+	"__kernel_clock_gettime",
-+	"__kernel_time",
-+	"__kernel_clock_getres",
-+};
-+#else
-+/* Tested on x86, arm, mips */
-+const char *version = "LINUX_2.6";
-+const char *name[4] = {
-+	"__vdso_gettimeofday",
-+	"__vdso_clock_gettime",
-+	"__vdso_time",
-+	"__vdso_clock_getres",
-+};
-+#endif
-+
-+typedef long (*vdso_gettimeofday_t)(struct timeval *tv, struct timezone *tz);
-+typedef long (*vdso_clock_gettime_t)(clockid_t clk_id, struct timespec *ts);
-+typedef long (*vdso_clock_getres_t)(clockid_t clk_id, struct timespec *ts);
-+typedef time_t (*vdso_time_t)(time_t *t);
-+
-+static int vdso_test_gettimeofday(void)
+ /*
+  * The vDSO data page.
+@@ -52,6 +75,106 @@ static union {
+ } vdso_data_store __page_aligned_data;
+ struct vdso_data *vdso_data = &vdso_data_store.data;
+ 
++static int __vdso_remap(enum arch_vdso_type arch_index,
++			const struct vm_special_mapping *sm,
++			struct vm_area_struct *new_vma)
 +{
-+	/* Find gettimeofday. */
-+	vdso_gettimeofday_t vdso_gettimeofday =
-+		(vdso_gettimeofday_t)vdso_sym(version, name[0]);
++	unsigned long new_size = new_vma->vm_end - new_vma->vm_start;
++	unsigned long vdso_size = vdso_lookup[arch_index].vdso_code_end -
++				  vdso_lookup[arch_index].vdso_code_start;
 +
-+	if (!vdso_gettimeofday) {
-+		printf("Could not find %s\n", name[0]);
-+		return KSFT_SKIP;
-+	}
++	if (vdso_size != new_size)
++		return -EINVAL;
 +
-+	struct timeval tv;
-+	long ret = vdso_gettimeofday(&tv, 0);
-+
-+	if (ret == 0) {
-+		printf("The time is %lld.%06lld\n",
-+		       (long long)tv.tv_sec, (long long)tv.tv_usec);
-+	} else {
-+		printf("%s failed\n", name[0]);
-+		return KSFT_FAIL;
-+	}
++	current->mm->context.vdso = (void *)new_vma->vm_start;
 +
 +	return 0;
 +}
 +
-+static int vdso_test_clock_gettime(clockid_t clk_id)
++static int __vdso_init(enum arch_vdso_type arch_index)
 +{
-+	/* Find clock_gettime. */
-+	vdso_clock_gettime_t vdso_clock_gettime =
-+		(vdso_clock_gettime_t)vdso_sym(version, name[1]);
++	int i;
++	struct page **vdso_pagelist;
++	unsigned long pfn;
 +
-+	if (!vdso_clock_gettime) {
-+		printf("Could not find %s\n", name[1]);
-+		return KSFT_SKIP;
++	if (memcmp(vdso_lookup[arch_index].vdso_code_start, "\177ELF", 4)) {
++		pr_err("vDSO is not a valid ELF object!\n");
++		return -EINVAL;
 +	}
 +
-+	struct timespec ts;
-+	long ret = vdso_clock_gettime(clk_id, &ts);
++	vdso_lookup[arch_index].vdso_pages = (
++			vdso_lookup[arch_index].vdso_code_end -
++			vdso_lookup[arch_index].vdso_code_start) >>
++			PAGE_SHIFT;
++	pr_info("%s: %ld pages (%ld code @ %p, %ld data @ %p)\n",
++		vdso_lookup[arch_index].name,
++		vdso_lookup[arch_index].vdso_pages + 1,
++		vdso_lookup[arch_index].vdso_pages,
++		vdso_lookup[arch_index].vdso_code_start, 1L, vdso_data);
 +
-+	if (ret == 0) {
-+		printf("The time is %lld.%06lld\n",
-+		       (long long)ts.tv_sec, (long long)ts.tv_nsec);
-+	} else {
-+		printf("%s failed\n", name[1]);
-+		return KSFT_FAIL;
-+	}
++	/* Allocate the vDSO pagelist, plus a page for the data. */
++	vdso_pagelist = kcalloc(vdso_lookup[arch_index].vdso_pages + 1,
++				sizeof(struct page *),
++				GFP_KERNEL);
++	if (vdso_pagelist == NULL)
++		return -ENOMEM;
++
++	/* Grab the vDSO data page. */
++	vdso_pagelist[0] = phys_to_page(__pa_symbol(vdso_data));
++
++
++	/* Grab the vDSO code pages. */
++	pfn = sym_to_pfn(vdso_lookup[arch_index].vdso_code_start);
++
++	for (i = 0; i < vdso_lookup[arch_index].vdso_pages; i++)
++		vdso_pagelist[i + 1] = pfn_to_page(pfn + i);
++
++	vdso_lookup[arch_index].dm->pages = &vdso_pagelist[0];
++	vdso_lookup[arch_index].cm->pages = &vdso_pagelist[1];
 +
 +	return 0;
 +}
 +
-+static int vdso_test_time(void)
++static int __setup_additional_pages(enum arch_vdso_type arch_index,
++				    struct mm_struct *mm,
++				    struct linux_binprm *bprm,
++				    int uses_interp)
 +{
-+	/* Find time. */
-+	vdso_time_t vdso_time =
-+		(vdso_time_t)vdso_sym(version, name[2]);
++	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
++	void *ret;
 +
-+	if (!vdso_time) {
-+		printf("Could not find %s\n", name[2]);
-+		return KSFT_SKIP;
++	vdso_text_len = vdso_lookup[arch_index].vdso_pages << PAGE_SHIFT;
++	/* Be sure to map the data page */
++	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
++
++	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
++	if (IS_ERR_VALUE(vdso_base)) {
++		ret = ERR_PTR(vdso_base);
++		goto up_fail;
 +	}
 +
-+	long ret = vdso_time(NULL);
++	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
++				       VM_READ|VM_MAYREAD,
++				       vdso_lookup[arch_index].dm);
++	if (IS_ERR(ret))
++		goto up_fail;
 +
-+	if (ret > 0) {
-+		printf("The time in hours since January 1, 1970 is %lld\n",
-+				(long long)(ret / 3600));
-+	} else {
-+		printf("%s failed\n", name[2]);
-+		return KSFT_FAIL;
-+	}
++	vdso_base += PAGE_SIZE;
++	mm->context.vdso = (void *)vdso_base;
++	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
++				       VM_READ|VM_EXEC|
++				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
++				       vdso_lookup[arch_index].cm);
++	if (IS_ERR(ret))
++		goto up_fail;
 +
 +	return 0;
++
++up_fail:
++	mm->context.vdso = NULL;
++	return PTR_ERR(ret);
 +}
 +
-+static int vdso_test_clock_getres(clockid_t clk_id)
-+{
-+	/* Find clock_getres. */
-+	vdso_clock_getres_t vdso_clock_getres =
-+		(vdso_clock_getres_t)vdso_sym(version, name[3]);
-+
-+	if (!vdso_clock_getres) {
-+		printf("Could not find %s\n", name[3]);
-+		return KSFT_SKIP;
-+	}
-+
-+	struct timespec ts, sys_ts;
-+	long ret = vdso_clock_getres(clk_id, &ts);
-+
-+	if (ret == 0) {
-+		printf("The resolution is %lld %lld\n",
-+		       (long long)ts.tv_sec, (long long)ts.tv_nsec);
-+	} else {
-+		printf("%s failed\n", name[3]);
-+		return KSFT_FAIL;
-+	}
-+
-+	ret = syscall(SYS_clock_getres, clk_id, &sys_ts);
-+
-+	if ((sys_ts.tv_sec != ts.tv_sec) || (sys_ts.tv_nsec != ts.tv_nsec)) {
-+		printf("%s failed\n", name[3]);
-+		return KSFT_FAIL;
-+	}
-+
-+	return 0;
-+}
-+
-+const char *vdso_clock_name[12] = {
-+	"CLOCK_REALTIME",
-+	"CLOCK_MONOTONIC",
-+	"CLOCK_PROCESS_CPUTIME_ID",
-+	"CLOCK_THREAD_CPUTIME_ID",
-+	"CLOCK_MONOTONIC_RAW",
-+	"CLOCK_REALTIME_COARSE",
-+	"CLOCK_MONOTONIC_COARSE",
-+	"CLOCK_BOOTTIME",
-+	"CLOCK_REALTIME_ALARM",
-+	"CLOCK_BOOTTIME_ALARM",
-+	"CLOCK_SGI_CYCLE",
-+	"CLOCK_TAI",
-+};
-+
-+/*
-+ * Macro to call vdso_test_clock_gettime and vdso_test_clock_getres
-+ * with different values for clock_id.
-+ */
-+#define vdso_test_clock(clock_id)				\
-+do {								\
-+	printf("clock_id: %s\n", vdso_clock_name[clock_id]);	\
-+	vdso_test_clock_gettime(clock_id);			\
-+	vdso_test_clock_getres(clock_id);			\
-+} while (0)
-+
-+int main(int argc, char **argv)
-+{
-+	unsigned long sysinfo_ehdr = getauxval(AT_SYSINFO_EHDR);
-+
-+	if (!sysinfo_ehdr) {
-+		printf("AT_SYSINFO_EHDR is not present!\n");
-+		return KSFT_SKIP;
-+	}
-+
-+	vdso_init_from_sysinfo_ehdr(getauxval(AT_SYSINFO_EHDR));
-+
-+	vdso_test_gettimeofday();
-+
-+#if _POSIX_TIMERS > 0
-+
-+#ifdef CLOCK_REALTIME
-+	vdso_test_clock(CLOCK_REALTIME);
-+#endif
-+
-+#ifdef CLOCK_REALTIME_HR
-+	vdso_test_clock(CLOCK_REALTIME_HR);
-+#endif
-+
-+#ifdef CLOCK_BOOTTIME
-+	vdso_test_clock(CLOCK_BOOTTIME);
-+#endif
-+
-+#ifdef CLOCK_TAI
-+	vdso_test_clock(CLOCK_TAI);
-+#endif
-+
-+#ifdef CLOCK_REALTIME_COARSE
-+	vdso_test_clock(CLOCK_REALTIME_COARSE);
-+#endif
-+
-+#ifdef CLOCK_REALTIME_HR
-+	vdso_test_clock(CLOCK_REALTIME_HR);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC
-+	vdso_test_clock(CLOCK_MONOTONIC);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_RAW
-+	vdso_test_clock(CLOCK_MONOTONIC_RAW);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_COARSE
-+	vdso_test_clock(CLOCK_MONOTONIC_COARSE);
-+#endif
-+
-+#endif
-+
-+	vdso_test_time();
-+
-+	return 0;
-+}
+ #ifdef CONFIG_COMPAT
+ /*
+  * Create and map the vectors page for AArch32 tasks.
+@@ -62,7 +185,7 @@ struct vdso_data *vdso_data = &vdso_data_store.data;
+  * 1 - sigreturn code
+  */
+ static struct page *aarch32_vdso_pages[2] __ro_after_init;
+-static const struct vm_special_mapping aarch32_vdso_spec[2] = {
++static struct vm_special_mapping aarch32_vdso_spec[2] __ro_after_init = {
+ 	{
+ 		/* Must be named [vectors] for compatibility with arm. */
+ 		.name	= "[vectors]",
+@@ -202,15 +325,7 @@ int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ static int vdso_mremap(const struct vm_special_mapping *sm,
+ 		struct vm_area_struct *new_vma)
+ {
+-	unsigned long new_size = new_vma->vm_end - new_vma->vm_start;
+-	unsigned long vdso_size = vdso_end - vdso_start;
+-
+-	if (vdso_size != new_size)
+-		return -EINVAL;
+-
+-	current->mm->context.vdso = (void *)new_vma->vm_start;
+-
+-	return 0;
++	return __vdso_remap(ARM64_VDSO, sm, new_vma);
+ }
+ 
+ static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
+@@ -225,39 +340,10 @@ static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
+ 
+ static int __init vdso_init(void)
+ {
+-	int i;
+-	struct page **vdso_pagelist;
+-	unsigned long pfn;
++	vdso_lookup[ARM64_VDSO].dm = &vdso_spec[0];
++	vdso_lookup[ARM64_VDSO].cm = &vdso_spec[1];
+ 
+-	if (memcmp(vdso_start, "\177ELF", 4)) {
+-		pr_err("vDSO is not a valid ELF object!\n");
+-		return -EINVAL;
+-	}
+-
+-	vdso_pages = (vdso_end - vdso_start) >> PAGE_SHIFT;
+-	pr_info("vdso: %ld pages (%ld code @ %p, %ld data @ %p)\n",
+-		vdso_pages + 1, vdso_pages, vdso_start, 1L, vdso_data);
+-
+-	/* Allocate the vDSO pagelist, plus a page for the data. */
+-	vdso_pagelist = kcalloc(vdso_pages + 1, sizeof(struct page *),
+-				GFP_KERNEL);
+-	if (vdso_pagelist == NULL)
+-		return -ENOMEM;
+-
+-	/* Grab the vDSO data page. */
+-	vdso_pagelist[0] = phys_to_page(__pa_symbol(vdso_data));
+-
+-
+-	/* Grab the vDSO code pages. */
+-	pfn = sym_to_pfn(vdso_start);
+-
+-	for (i = 0; i < vdso_pages; i++)
+-		vdso_pagelist[i + 1] = pfn_to_page(pfn + i);
+-
+-	vdso_spec[0].pages = &vdso_pagelist[0];
+-	vdso_spec[1].pages = &vdso_pagelist[1];
+-
+-	return 0;
++	return __vdso_init(ARM64_VDSO);
+ }
+ arch_initcall(vdso_init);
+ 
+@@ -265,43 +351,19 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 				int uses_interp)
+ {
+ 	struct mm_struct *mm = current->mm;
+-	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
+-	void *ret;
+-
+-	vdso_text_len = vdso_pages << PAGE_SHIFT;
+-	/* Be sure to map the data page */
+-	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
++	int ret;
+ 
+ 	if (down_write_killable(&mm->mmap_sem))
+ 		return -EINTR;
+-	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
+-	if (IS_ERR_VALUE(vdso_base)) {
+-		ret = ERR_PTR(vdso_base);
+-		goto up_fail;
+-	}
+-	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
+-				       VM_READ|VM_MAYREAD,
+-				       &vdso_spec[0]);
+-	if (IS_ERR(ret))
+-		goto up_fail;
+-
+-	vdso_base += PAGE_SIZE;
+-	mm->context.vdso = (void *)vdso_base;
+-	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
+-				       VM_READ|VM_EXEC|
+-				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+-				       &vdso_spec[1]);
+-	if (IS_ERR(ret))
+-		goto up_fail;
+ 
++	ret = __setup_additional_pages(ARM64_VDSO,
++				       mm,
++				       bprm,
++				       uses_interp);
+ 
+ 	up_write(&mm->mmap_sem);
+-	return 0;
+ 
+-up_fail:
+-	mm->context.vdso = NULL;
+-	up_write(&mm->mmap_sem);
+-	return PTR_ERR(ret);
++	return ret;
+ }
+ 
+ #define VDSO_PRECISION_MASK	~(0xFF00ULL<<48)
 -- 
 2.20.1
