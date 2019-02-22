@@ -1,11 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 00/23] Unify vDSOs across more architectures
-Date: Fri, 22 Feb 2019 12:24:07 +0000
-Message-ID: <20190222122430.21180-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 01/23] kernel: Standardize vdso_datapage
+Date: Fri, 22 Feb 2019 12:24:08 +0000
+Message-ID: <20190222122430.21180-2-vincenzo.frascino@arm.com>
+References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,229 +21,99 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-vDSO (virtual dynamic shared object) is a mechanism that the Linux
-kernel provides as an alternative to system calls to reduce where
-possible the costs in terms of cycles.
-This is possible because certain syscalls like gettimeofday() do
-not write any data and return one or more values that are stored
-in the kernel, which makes relatively safe calling them directly
-as a library function.
+In an effort to unify the common code for managing the vdso library in
+between all the architectures that support it, this patch tries to
+provide a common format for the vdso datapage.
 
-Even if the mechanism is pretty much standard, every architecture
-in the last few years ended up implementing their own vDSO library
-in the architectural code.
+As a result of this, this patch generalized the data structures in vgtod.h
+from x86 private includes to general includes (include/vdso).
 
-The purpose of this patch-set is to identify the commonalities in
-between the architectures and try to consolidate the common code
-paths, starting with gettimeofday().
-
-This implementation contains the following design choices:
- * Every architecture defines the arch specific code in an header in
-   "asm/vdso/".
- * The generic implementation includes the arch specific one and lives
-   in "lib/vdso".
- * The arch specific code for gettimeofday lives in
-   "<arch path>/vdso/gettimeofday.c" and includes the generic code only.
- * This approach allows to consolidate the common code in a single place
-   with the benefit of avoiding code duplication.
-
-This implementation contains the portings to the common library for: arm64,
-compat mode for arm64, arm, mips, x86_64, compat mode for x86_64 and i386.
-
-The mips porting has been tested on qemu for mips32el. A configuration to
-repeat the tests can be found at [4].
-
-The x86_64 porting has been tested on an Intel Xeon 5120T based machine
-running Ubuntu 18.04 and using the Ubuntu provided defconfig.
-
-The i386 porting has been tested on qemu using the i386_defconfig
-configuration.
-
-Last but not least from this porting arm64, compat arm64, arm and mips gain
-the support for:
- * CLOCK_BOOTTIME that can be useful in certain scenarios since it keeps
-   track of the time during sleep as well.
- * CLOCK_TAI that is like CLOCK_REALTIME, but uses the International
-   Atomic Time (TAI) reference instead of UTC to avoid jumping on leap
-   second updates.
-for both clock_gettime and clock_getres.
-
-The porting has been validated using the vdsotest test-suite [1] extended
-to cover all the clock ids [2].
-
-A new test has been added to the linux kselftest in order to validate the
-newly added library.
-
-To simplify the testing, a copy of the patchset on top of a recent linux
-tree can be found at [3] and [4].
-
-[1] https://github.com/nathanlynch/vdsotest
-[2] https://github.com/fvincenzo/vdsotest
-[3] git://linux-arm.org/linux-vf.git vdso/v5
-[4] git://linux-arm.org/linux-vf.git vdso-mips/v5
-
-Changes:
---------
-v5:
-  - Rebased on 5.0-rc7.
-  - Added x86_64, compat mode for x86_64 and i386 portings.
-  - Extended vDSO kselftest.
-  - Addressed review comments.
-v4:
-  - Rebased on 5.0-rc2.
-  - Addressed review comments.
-  - Disabled compat vdso on arm64 when the kernel is compiled with
-    clang.
-v3:
-  - Ported the latest fixes and optimizations done on the x86
-    architecture to the generic library.
-  - Addressed review comments.
-  - Improved the documentation of the interfaces.
-  - Changed the HAVE_ARCH_TIMER config option to a more generic
-    HAVE_HW_COUNTER.
-v2:
-  - Added -ffixed-x18 to arm64
-  - Repleced occurrences of timeval and timespec
-  - Modified datapage.h to be compliant with y2038 on all the architectures
-  - Removed __u_vdso type
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Salyzyn <salyzyn@android.com>
-Cc: Peter Collingbourne <pcc@google.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Dmitry Safonov <0x7f454c46@gmail.com>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Peter Collingbourne (1):
-  arm64: Build vDSO with -ffixed-x18
-
-Vincenzo Frascino (22):
-  kernel: Standardize vdso_datapage
-  kernel: Define gettimeofday vdso common code
-  arm64: Substitute gettimeofday with C implementation
-  arm64: compat: Alloc separate pages for vectors and sigpage
-  arm64: compat: Split kuser32
-  arm64: compat: Refactor aarch32_alloc_vdso_pages()
-  arm64: compat: Add KUSER_HELPERS config option
-  arm64: compat: Add missing syscall numbers
-  arm64: compat: Expose signal related structures
-  arm64: compat: Generate asm offsets for signals
-  lib: vdso: Add compat support
-  arm64: compat: Add vDSO
-  arm64: Refactor vDSO code
-  arm64: compat: vDSO setup for compat layer
-  arm64: elf: vDSO code page discovery
-  arm64: compat: Get sigreturn trampolines from vDSO
-  arm64: Add vDSO compat support
-  arm64: Enable compat vDSO support
-  arm: Add support for generic vDSO
-  mips: Add support for generic vDSO
-  x86: Add support for generic vDSO
-  kselftest: Extend vDSO selftest
-
- arch/arm/Kconfig                              |   3 +
- arch/arm/include/asm/vdso/gettimeofday.h      |  82 +++
- arch/arm/include/asm/vdso_datapage.h          |  25 +-
- arch/arm/kernel/vdso.c                        | 108 ++--
- arch/arm/vdso/Makefile                        |  13 +-
- arch/arm/vdso/note.c                          |  15 +
- arch/arm/vdso/vdso.lds.S                      |   1 +
- arch/arm/vdso/vgettimeofday.c                 | 267 +--------
- arch/arm64/Kconfig                            |  24 +
- arch/arm64/Makefile                           |  23 +-
- arch/arm64/configs/defconfig                  |   1 +
- arch/arm64/include/asm/elf.h                  |  20 +-
- arch/arm64/include/asm/processor.h            |   4 +-
- arch/arm64/include/asm/signal32.h             |  58 +-
- arch/arm64/include/asm/unistd.h               |   3 +
- arch/arm64/include/asm/vdso.h                 |   3 +
- arch/arm64/include/asm/vdso/compat_barrier.h  |  36 ++
- .../include/asm/vdso/compat_gettimeofday.h    | 119 ++++
- arch/arm64/include/asm/vdso/gettimeofday.h    |  85 +++
- arch/arm64/include/asm/vdso_datapage.h        |  47 --
- arch/arm64/kernel/Makefile                    |   7 +-
- arch/arm64/kernel/asm-offsets.c               |  45 +-
- arch/arm64/kernel/kuser32.S                   |  65 +--
- arch/arm64/kernel/signal32.c                  |  76 +--
- arch/arm64/kernel/sigreturn32.S               |  46 ++
- arch/arm64/kernel/vdso.c                      | 506 +++++++++++++-----
- arch/arm64/kernel/vdso/Makefile               |  28 +-
- arch/arm64/kernel/vdso/gettimeofday.S         | 328 ------------
- arch/arm64/kernel/vdso/vgettimeofday.c        |  28 +
- arch/arm64/kernel/vdso32/.gitignore           |   2 +
- arch/arm64/kernel/vdso32/Makefile             | 184 +++++++
- arch/arm64/kernel/vdso32/note.c               |  15 +
- arch/arm64/kernel/vdso32/sigreturn.S          |  62 +++
- arch/arm64/kernel/vdso32/vdso.S               |  19 +
- arch/arm64/kernel/vdso32/vdso.lds.S           |  81 +++
- arch/arm64/kernel/vdso32/vgettimeofday.c      |  41 ++
- arch/mips/Kconfig                             |   2 +
- arch/mips/include/asm/vdso.h                  |  60 +--
- arch/mips/include/asm/vdso/gettimeofday.h     | 165 ++++++
- arch/mips/{ => include/asm}/vdso/vdso.h       |   6 +-
- arch/mips/kernel/vdso.c                       | 107 +++-
- arch/mips/vdso/Makefile                       |  23 +-
- arch/mips/vdso/elf.S                          |   2 +-
- arch/mips/vdso/gettimeofday.c                 | 273 ----------
- arch/mips/vdso/sigreturn.S                    |   2 +-
- arch/mips/vdso/vdso.lds.S                     |   1 +
- arch/mips/vdso/vgettimeofday.c                |  28 +
- arch/x86/Kconfig                              |   3 +
- arch/x86/entry/vdso/Makefile                  |   9 +
- arch/x86/entry/vdso/vclock_gettime.c          | 239 +--------
- arch/x86/entry/vdso/vdso.lds.S                |   2 +
- arch/x86/entry/vdso/vdso32/vdso32.lds.S       |   1 +
- arch/x86/entry/vdso/vdsox32.lds.S             |   1 +
- arch/x86/entry/vsyscall/vsyscall_gtod.c       | 110 ++--
- arch/x86/include/asm/vdso/gettimeofday.h      | 203 +++++++
- arch/x86/include/asm/vgtod.h                  |  73 +--
- arch/x86/include/asm/vvar.h                   |   2 +-
- include/vdso/datapage.h                       |  75 +++
- include/vdso/helpers.h                        |  52 ++
- include/vdso/types.h                          |  39 ++
- lib/Kconfig                                   |   5 +
- lib/vdso/Kconfig                              |  37 ++
- lib/vdso/Makefile                             |  22 +
- lib/vdso/gettimeofday.c                       | 179 +++++++
- tools/testing/selftests/vDSO/Makefile         |   2 +
- tools/testing/selftests/vDSO/vdso_full_test.c | 246 +++++++++
- 66 files changed, 2812 insertions(+), 1627 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/gettimeofday.h
- create mode 100644 arch/arm/vdso/note.c
- create mode 100644 arch/arm64/include/asm/vdso/compat_barrier.h
- create mode 100644 arch/arm64/include/asm/vdso/compat_gettimeofday.h
- create mode 100644 arch/arm64/include/asm/vdso/gettimeofday.h
- delete mode 100644 arch/arm64/include/asm/vdso_datapage.h
- create mode 100644 arch/arm64/kernel/sigreturn32.S
- delete mode 100644 arch/arm64/kernel/vdso/gettimeofday.S
- create mode 100644 arch/arm64/kernel/vdso/vgettimeofday.c
- create mode 100644 arch/arm64/kernel/vdso32/.gitignore
- create mode 100644 arch/arm64/kernel/vdso32/Makefile
- create mode 100644 arch/arm64/kernel/vdso32/note.c
- create mode 100644 arch/arm64/kernel/vdso32/sigreturn.S
- create mode 100644 arch/arm64/kernel/vdso32/vdso.S
- create mode 100644 arch/arm64/kernel/vdso32/vdso.lds.S
- create mode 100644 arch/arm64/kernel/vdso32/vgettimeofday.c
- create mode 100644 arch/mips/include/asm/vdso/gettimeofday.h
- rename arch/mips/{ => include/asm}/vdso/vdso.h (90%)
- delete mode 100644 arch/mips/vdso/gettimeofday.c
- create mode 100644 arch/mips/vdso/vgettimeofday.c
- create mode 100644 arch/x86/include/asm/vdso/gettimeofday.h
+---
+ include/vdso/datapage.h | 74 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 74 insertions(+)
  create mode 100644 include/vdso/datapage.h
- create mode 100644 include/vdso/helpers.h
- create mode 100644 include/vdso/types.h
- create mode 100644 lib/vdso/Kconfig
- create mode 100644 lib/vdso/Makefile
- create mode 100644 lib/vdso/gettimeofday.c
- create mode 100644 tools/testing/selftests/vDSO/vdso_full_test.c
 
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+new file mode 100644
+index 000000000000..da346ad02b03
+--- /dev/null
++++ b/include/vdso/datapage.h
+@@ -0,0 +1,74 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_DATAPAGE_H
++#define __VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <linux/bits.h>
++#include <linux/types.h>
++#include <linux/time.h>
++
++#define VDSO_BASES	(CLOCK_TAI + 1)
++#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
++			 BIT(CLOCK_MONOTONIC)		| \
++			 BIT(CLOCK_MONOTONIC_RAW)	| \
++			 BIT(CLOCK_BOOTTIME)		| \
++			 BIT(CLOCK_TAI))
++#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
++			 BIT(CLOCK_MONOTONIC_COARSE))
++
++/*
++ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
++ * clock_id. For high-resolution clocks, this encodes the time
++ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
++ * the actual time.
++ *
++ * To be noticed that for highres clocks nsec is left-shifted by
++ * vdso_data.cs[x].shift.
++ */
++struct vdso_timestamp {
++	u64 sec;
++	u64 nsec;
++};
++
++#define CLOCKSOURCE_RAW		0
++#define CLOCKSOURCE_MONO	1
++#define CLOCKSOURCE_BASES	(CLOCKSOURCE_MONO + 1)
++
++/*
++ * There is one vdso_clocksource object in vvar for each vDSO clocksource
++ * (mono, raw). This struct is designed to keep vdso_data "cache-line friendly"
++ * and optimal in terms of access pattern.
++ *
++ * Note that mask and shift are the same for mono and raw.
++ */
++struct vdso_clocksource {
++	u64 mask;		/* Clocksource mask */
++	u32 mult;		/* Clocksource multiplier */
++	u32 shift;		/* Clocksource shift */
++};
++
++/*
++ * vdso_data will be accessed by 32 and 64 bit code at the same time
++ * so we should be careful before modifying this structure.
++ */
++struct vdso_data {
++	u32 seq;		/* Timebase sequence counter */
++
++	s32 clock_mode;
++	u64 cycle_last;		/* Timebase at clocksource init */
++
++	struct vdso_clocksource cs[CLOCKSOURCE_BASES];
++	struct vdso_timestamp basetime[VDSO_BASES];
++
++	s32 tz_minuteswest;	/* Timezone definitions */
++	s32 tz_dsttime;
++};
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __VDSO_DATAPAGE_H */
 -- 
 2.20.1
