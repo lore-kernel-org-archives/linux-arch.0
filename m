@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59464 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726356AbfBVM0U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Feb 2019 07:26:20 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:59666 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726712AbfBVM0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Feb 2019 07:26:37 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 15/23] arm64: compat: vDSO setup for compat layer
-Date: Fri, 22 Feb 2019 12:24:22 +0000
-Message-ID: <20190222122430.21180-16-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 21/23] mips: Add support for generic vDSO
+Date: Fri, 22 Feb 2019 12:24:28 +0000
+Message-ID: <20190222122430.21180-22-vincenzo.frascino@arm.com>
 In-Reply-To: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,165 +15,915 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20190222122422.IQ-iq7Lhj0CaztBE8h6IvvuanJeH8-ToLSxqJ_EmziQ@z>
+Message-ID: <20190222122428.y7H4MrsSffpcxX_V3TBGQYcLf9BGNyMEe8nrRGgkGTk@z>
 
-If CONFIG_GENERIC_COMPAT_VDSO is enabled, compat vDSO are installed in a
-compat (32 bit) process instead of sigpage.
+The mips vDSO library requires some adaptations to take advantage of the
+newly introduced generic vDSO library.
 
-Add the necessary code to setup the vDSO required pages.
+Introduce the following changes:
+ - Modification of vdso.c to be compliant with the common vdso datapage
+ - Use of lib/vdso for gettimeofday
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/vdso.c | 60 +++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 59 insertions(+), 1 deletion(-)
+ arch/mips/Kconfig                         |   2 +
+ arch/mips/include/asm/vdso.h              |  60 +----
+ arch/mips/include/asm/vdso/gettimeofday.h | 165 +++++++++++++
+ arch/mips/{ => include/asm}/vdso/vdso.h   |   6 +-
+ arch/mips/kernel/vdso.c                   | 107 +++++++--
+ arch/mips/vdso/Makefile                   |  23 +-
+ arch/mips/vdso/elf.S                      |   2 +-
+ arch/mips/vdso/gettimeofday.c             | 273 ----------------------
+ arch/mips/vdso/sigreturn.S                |   2 +-
+ arch/mips/vdso/vdso.lds.S                 |   1 +
+ arch/mips/vdso/vgettimeofday.c            |  28 +++
+ 11 files changed, 313 insertions(+), 356 deletions(-)
+ create mode 100644 arch/mips/include/asm/vdso/gettimeofday.h
+ rename arch/mips/{ => include/asm}/vdso/vdso.h (90%)
+ delete mode 100644 arch/mips/vdso/gettimeofday.c
+ create mode 100644 arch/mips/vdso/vgettimeofday.c
 
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index c217245768ea..55343f8f3593 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -41,10 +41,16 @@
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index a84c24d894aa..900fad3eb505 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -34,6 +34,7 @@ config MIPS
+ 	select GENERIC_SCHED_CLOCK if !CAVIUM_OCTEON_SOC
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select GENERIC_TIME_VSYSCALL
++	select GENERIC_GETTIMEOFDAY
+ 	select HANDLE_DOMAIN_IRQ
+ 	select HAVE_ARCH_COMPILER_H
+ 	select HAVE_ARCH_JUMP_LABEL
+@@ -74,6 +75,7 @@ config MIPS
+ 	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
+ 	select HAVE_VIRT_CPU_ACCOUNTING_GEN if 64BIT || !SMP
++	select HAVE_GENERIC_VDSO
+ 	select IRQ_FORCED_THREADING
+ 	select ISA if EISA
+ 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
+diff --git a/arch/mips/include/asm/vdso.h b/arch/mips/include/asm/vdso.h
+index 91bf0c2c265c..0b1d0b4578a6 100644
+--- a/arch/mips/include/asm/vdso.h
++++ b/arch/mips/include/asm/vdso.h
+@@ -12,6 +12,7 @@
+ #define __ASM_VDSO_H
+ 
+ #include <linux/mm_types.h>
++#include <vdso/datapage.h>
+ 
+ #include <asm/barrier.h>
+ 
+@@ -54,12 +55,12 @@ extern struct mips_vdso_image vdso_image_n32;
+ #endif
+ 
+ /**
+- * union mips_vdso_data - Data provided by the kernel for the VDSO.
++ * struct vdso_data - Data provided by the kernel for the VDSO.
+  * @xtime_sec:		Current real time (seconds part).
+  * @xtime_nsec:		Current real time (nanoseconds part, shifted).
+  * @wall_to_mono_sec:	Wall-to-monotonic offset (seconds part).
+  * @wall_to_mono_nsec:	Wall-to-monotonic offset (nanoseconds part).
+- * @seq_count:		Counter to synchronise updates (odd = updating).
++ * @tb_seq_count:		Counter to synchronise updates (odd = updating).
+  * @cs_shift:		Clocksource shift value.
+  * @clock_mode:		Clocksource to use for time functions.
+  * @cs_mult:		Clocksource multiplier value.
+@@ -76,61 +77,8 @@ extern struct mips_vdso_image vdso_image_n32;
+  * for both 64- and 32-bit (for 32-bit userland on 64-bit kernel).
+  */
+ union mips_vdso_data {
+-	struct {
+-		u64 xtime_sec;
+-		u64 xtime_nsec;
+-		u64 wall_to_mono_sec;
+-		u64 wall_to_mono_nsec;
+-		u32 seq_count;
+-		u32 cs_shift;
+-		u8 clock_mode;
+-		u32 cs_mult;
+-		u64 cs_cycle_last;
+-		u64 cs_mask;
+-		s32 tz_minuteswest;
+-		s32 tz_dsttime;
+-	};
+-
++	struct vdso_data data;
+ 	u8 page[PAGE_SIZE];
+ };
+ 
+-static inline u32 vdso_data_read_begin(const union mips_vdso_data *data)
+-{
+-	u32 seq;
+-
+-	while (true) {
+-		seq = READ_ONCE(data->seq_count);
+-		if (likely(!(seq & 1))) {
+-			/* Paired with smp_wmb() in vdso_data_write_*(). */
+-			smp_rmb();
+-			return seq;
+-		}
+-
+-		cpu_relax();
+-	}
+-}
+-
+-static inline bool vdso_data_read_retry(const union mips_vdso_data *data,
+-					u32 start_seq)
+-{
+-	/* Paired with smp_wmb() in vdso_data_write_*(). */
+-	smp_rmb();
+-	return unlikely(data->seq_count != start_seq);
+-}
+-
+-static inline void vdso_data_write_begin(union mips_vdso_data *data)
+-{
+-	++data->seq_count;
+-
+-	/* Ensure sequence update is written before other data page values. */
+-	smp_wmb();
+-}
+-
+-static inline void vdso_data_write_end(union mips_vdso_data *data)
+-{
+-	/* Ensure data values are written before updating sequence again. */
+-	smp_wmb();
+-	++data->seq_count;
+-}
+-
+ #endif /* __ASM_VDSO_H */
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+new file mode 100644
+index 000000000000..b275392f6b1b
+--- /dev/null
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -0,0 +1,165 @@
++/*
++ * Copyright (C) 2018 ARM Limited
++ * Copyright (C) 2015 Imagination Technologies
++ * Author: Alex Smith <alex.smith@imgtec.com>
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ */
++#ifndef __ASM_VDSO_GETTIMEOFDAY_H
++#define __ASM_VDSO_GETTIMEOFDAY_H
++
++#ifndef __ASSEMBLY__
++
++#include <linux/compiler.h>
++#include <linux/time.h>
++
++#include <asm/vdso/vdso.h>
++#include <asm/clocksource.h>
++#include <asm/io.h>
++#include <asm/unistd.h>
++#include <asm/vdso.h>
++
++#ifdef CONFIG_MIPS_CLOCK_VSYSCALL
++
++static __always_inline notrace long gettimeofday_fallback(
++					struct __vdso_timeval *_tv,
++					struct timezone *_tz)
++{
++	register struct timezone *tz asm("a1") = _tz;
++	register struct __vdso_timeval *tv asm("a0") = _tv;
++	register long ret asm("v0");
++	register long nr asm("v0") = __NR_gettimeofday;
++	register long error asm("a3");
++
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (tv), "r" (tz), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
++
++	return error ? -ret : ret;
++}
++
++#else
++
++static __always_inline notrace long gettimeofday_fallback(
++					struct __vdso_timeval *_tv,
++					struct timezone *_tz)
++{
++	return -1;
++}
++
++#endif
++
++static __always_inline notrace long clock_gettime_fallback(
++						clockid_t _clkid,
++						struct __vdso_timespec *_ts)
++{
++	register struct __vdso_timespec *ts asm("a1") = _ts;
++	register clockid_t clkid asm("a0") = _clkid;
++	register long ret asm("v0");
++	register long nr asm("v0") = __NR_clock_gettime;
++	register long error asm("a3");
++
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
++
++	return error ? -ret : ret;
++}
++
++static __always_inline notrace int clock_getres_fallback(
++						clockid_t _clkid,
++						struct __vdso_timespec *_ts)
++{
++	register struct __vdso_timespec *ts asm("a1") = _ts;
++	register clockid_t clkid asm("a0") = _clkid;
++	register long ret asm("v0");
++	register long nr asm("v0") = __NR_clock_getres;
++	register long error asm("a3");
++
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
++
++	return error ? -ret : ret;
++}
++
++#ifdef CONFIG_CSRC_R4K
++
++static __always_inline u64 read_r4k_count(void)
++{
++	unsigned int count;
++
++	__asm__ __volatile__(
++	"	.set push\n"
++	"	.set mips32r2\n"
++	"	rdhwr	%0, $2\n"
++	"	.set pop\n"
++	: "=r" (count));
++
++	return count;
++}
++
++#endif
++
++#ifdef CONFIG_CLKSRC_MIPS_GIC
++
++static __always_inline u64 read_gic_count(const struct vdso_data *data)
++{
++	void __iomem *gic = get_gic(data);
++	u32 hi, hi2, lo;
++
++	do {
++		hi = __raw_readl(gic + sizeof(lo));
++		lo = __raw_readl(gic);
++		hi2 = __raw_readl(gic + sizeof(lo));
++	} while (hi2 != hi);
++
++	return (((u64)hi) << 32) + lo;
++}
++
++#endif
++
++static __always_inline notrace u64 __arch_get_hw_counter(s32 clock_mode)
++{
++	const struct vdso_data *data = get_vdso_data();
++	u64 cycle_now;
++
++	switch (clock_mode) {
++#ifdef CONFIG_CSRC_R4K
++	case VDSO_CLOCK_R4K:
++		cycle_now = read_r4k_count();
++		break;
++#endif
++#ifdef CONFIG_CLKSRC_MIPS_GIC
++	case VDSO_CLOCK_GIC:
++		cycle_now = read_gic_count(data);
++		break;
++#endif
++	default:
++		cycle_now = 0;
++		break;
++	}
++
++	return cycle_now;
++}
++
++static __always_inline notrace const struct vdso_data *__arch_get_vdso_data(void)
++{
++	return get_vdso_data();
++}
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_GETTIMEOFDAY_H */
+diff --git a/arch/mips/vdso/vdso.h b/arch/mips/include/asm/vdso/vdso.h
+similarity index 90%
+rename from arch/mips/vdso/vdso.h
+rename to arch/mips/include/asm/vdso/vdso.h
+index cfb1be441dec..048d12fbb925 100644
+--- a/arch/mips/vdso/vdso.h
++++ b/arch/mips/include/asm/vdso/vdso.h
+@@ -72,14 +72,14 @@ static inline unsigned long get_vdso_base(void)
+ 	return addr;
+ }
+ 
+-static inline const union mips_vdso_data *get_vdso_data(void)
++static inline const struct vdso_data *get_vdso_data(void)
+ {
+-	return (const union mips_vdso_data *)(get_vdso_base() - PAGE_SIZE);
++	return (const struct vdso_data *)(get_vdso_base() - PAGE_SIZE);
+ }
+ 
+ #ifdef CONFIG_CLKSRC_MIPS_GIC
+ 
+-static inline void __iomem *get_gic(const union mips_vdso_data *data)
++static inline void __iomem *get_gic(const struct vdso_data *data)
+ {
+ 	return (void __iomem *)data - PAGE_SIZE;
+ }
+diff --git a/arch/mips/kernel/vdso.c b/arch/mips/kernel/vdso.c
+index 9df3ebdc7b0f..30cbcb6fea59 100644
+--- a/arch/mips/kernel/vdso.c
++++ b/arch/mips/kernel/vdso.c
+@@ -24,9 +24,11 @@
+ #include <asm/mips-cps.h>
+ #include <asm/page.h>
  #include <asm/vdso.h>
++#include <vdso/helpers.h>
  
- extern char vdso_start[], vdso_end[];
-+#ifdef CONFIG_COMPAT_VDSO
-+extern char vdso32_start[], vdso32_end[];
-+#endif /* CONFIG_COMPAT_VDSO */
- 
- /* vdso_lookup arch_index */
- enum arch_vdso_type {
- 	ARM64_VDSO = 0,
-+#ifdef CONFIG_COMPAT_VDSO
-+	ARM64_VDSO32 = 1,
-+#endif /* CONFIG_COMPAT_VDSO */
- };
- 
- struct __vdso_lookup_t {
-@@ -64,6 +70,13 @@ static struct __vdso_lookup_t vdso_lookup[2] __ro_after_init = {
- 		.vdso_code_start = vdso_start,
- 		.vdso_code_end = vdso_end,
- 	},
-+#ifdef CONFIG_COMPAT_VDSO
-+	{
-+		.name = "vdso32",
-+		.vdso_code_start = vdso32_start,
-+		.vdso_code_end = vdso32_end,
-+	},
-+#endif /* CONFIG_COMPAT_VDSO */
- };
+ /* Kernel-provided data used by the VDSO. */
+-static union mips_vdso_data vdso_data __page_aligned_data;
++static union mips_vdso_data mips_vdso_data __page_aligned_data;
++static struct vdso_data *vdso_data = &mips_vdso_data.data;
  
  /*
-@@ -179,23 +192,45 @@ static int __setup_additional_pages(enum arch_vdso_type arch_index,
- /*
-  * Create and map the vectors page for AArch32 tasks.
-  */
-+#ifdef CONFIG_COMPAT_VDSO
-+static int aarch32_vdso_mremap(const struct vm_special_mapping *sm,
-+		struct vm_area_struct *new_vma)
-+{
-+	return __vdso_remap(ARM64_VDSO32, sm, new_vma);
-+}
-+#endif /* CONFIG_COMPAT_VDSO */
+  * Mapping for the VDSO data/GIC pages. The real pages are mapped manually, as
+@@ -72,29 +74,94 @@ subsys_initcall(init_vdso);
+ 
+ void update_vsyscall(struct timekeeper *tk)
+ {
+-	vdso_data_write_begin(&vdso_data);
+-
+-	vdso_data.xtime_sec = tk->xtime_sec;
+-	vdso_data.xtime_nsec = tk->tkr_mono.xtime_nsec;
+-	vdso_data.wall_to_mono_sec = tk->wall_to_monotonic.tv_sec;
+-	vdso_data.wall_to_mono_nsec = tk->wall_to_monotonic.tv_nsec;
+-	vdso_data.cs_shift = tk->tkr_mono.shift;
+-
+-	vdso_data.clock_mode = tk->tkr_mono.clock->archdata.vdso_clock_mode;
+-	if (vdso_data.clock_mode != VDSO_CLOCK_NONE) {
+-		vdso_data.cs_mult = tk->tkr_mono.mult;
+-		vdso_data.cs_cycle_last = tk->tkr_mono.cycle_last;
+-		vdso_data.cs_mask = tk->tkr_mono.mask;
++	struct vdso_timestamp *vdso_ts;
++	u64 nsec;
 +
- /*
-  * aarch32_vdso_pages:
-  * 0 - kuser helpers
-  * 1 - sigreturn code
-+ * or (CONFIG_COMPAT_VDSO):
-+ * 0 - kuser helpers
-+ * 1 - vdso data
-+ * 2 - vdso code
-  */
- static struct page *aarch32_vdso_pages[2] __ro_after_init;
--static struct vm_special_mapping aarch32_vdso_spec[2] __ro_after_init = {
-+static struct vm_special_mapping aarch32_vdso_spec[3] __ro_after_init = {
- 	{
- 		/* Must be named [vectors] for compatibility with arm. */
- 		.name	= "[vectors]",
- 		.pages	= &aarch32_vdso_pages[0],
- 	},
-+#ifdef CONFIG_COMPAT_VDSO
-+	{
-+		.name = "[vvar]",
-+	},
-+	{
-+		.name = "[vdso]",
-+		.mremap = aarch32_vdso_mremap,
-+	},
-+#else
- 	{
- 		/* Must be named [sigpage] for compatibility with arm. */
- 		.name	= "[sigpage]",
- 		.pages	= &aarch32_vdso_pages[1],
- 	},
-+#endif /* CONFIG_COMPAT_VDSO */
- };
- 
- #ifdef CONFIG_KUSER_HELPERS
-@@ -227,6 +262,15 @@ static int aarch32_alloc_kuser_vdso_page(void)
- }
- #endif /* CONFIG_KUSER_HELPER */
- 
-+#ifdef CONFIG_COMPAT_VDSO
-+static int aarch32_vdso_init(void)
-+{
-+	vdso_lookup[ARM64_VDSO32].dm = &aarch32_vdso_spec[1];
-+	vdso_lookup[ARM64_VDSO32].cm = &aarch32_vdso_spec[2];
++	vdso_write_begin(vdso_data);
 +
-+	return __vdso_init(ARM64_VDSO32);
-+}
-+#else
- static int aarch32_alloc_sigreturn_vdso_page(void)
- {
- 	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
-@@ -249,11 +293,16 @@ static int aarch32_alloc_sigreturn_vdso_page(void)
- 	return 0;
++	vdso_data->clock_mode = tk->tkr_mono.clock->archdata.vdso_clock_mode;
++
++	/* CLOCK_REALTIME_COARSE */
++	vdso_ts			= &vdso_data->basetime[CLOCK_REALTIME_COARSE];
++	vdso_ts->sec		= tk->xtime_sec;
++	vdso_ts->nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
++	/* CLOCK_MONOTONIC_COARSE */
++	vdso_ts			= &vdso_data->basetime[CLOCK_MONOTONIC_COARSE];
++	vdso_ts->sec		= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
++	nsec			= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
++	nsec			= nsec + tk->wall_to_monotonic.tv_nsec;
++	while (nsec >= NSEC_PER_SEC) {
++		nsec = nsec - NSEC_PER_SEC;
++		vdso_ts->sec++;
++	}
++	vdso_ts->nsec		= nsec;
++
++	if (vdso_data->clock_mode != VDSO_CLOCK_NONE) {
++		vdso_data->clock_mode	= 0;
++		vdso_data->cycle_last	= tk->tkr_mono.cycle_last;
++		vdso_data->cs[CLOCKSOURCE_MONO].mask
++					= tk->tkr_mono.mask;
++		vdso_data->cs[CLOCKSOURCE_MONO].mult
++					= tk->tkr_mono.mult;
++		vdso_data->cs[CLOCKSOURCE_MONO].shift
++					= tk->tkr_mono.shift;
++		vdso_data->cs[CLOCKSOURCE_RAW].mask
++					= tk->tkr_raw.mask;
++		vdso_data->cs[CLOCKSOURCE_RAW].mult
++					= tk->tkr_raw.mult;
++		vdso_data->cs[CLOCKSOURCE_RAW].shift
++					= tk->tkr_raw.shift;
++		/* CLOCK_REALTIME */
++		vdso_ts			= &vdso_data->basetime[CLOCK_REALTIME];
++		vdso_ts->sec		= tk->xtime_sec;
++		vdso_ts->nsec		= tk->tkr_mono.xtime_nsec;
++		/* CLOCK_MONOTONIC */
++		vdso_ts			= &vdso_data->basetime[CLOCK_MONOTONIC];
++		vdso_ts->sec		= tk->xtime_sec +
++						tk->wall_to_monotonic.tv_sec;
++		nsec			= tk->tkr_mono.xtime_nsec;
++		nsec			= nsec +
++					  ((u64)tk->wall_to_monotonic.tv_nsec <<
++					   tk->tkr_mono.shift);
++		while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
++			nsec = nsec -
++				(((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
++			vdso_ts->sec++;
++		}
++		vdso_ts->nsec		= nsec;
++		/* CLOCK_MONOTONIC_RAW */
++		vdso_ts			= &vdso_data->basetime[CLOCK_MONOTONIC_RAW];
++		vdso_ts->sec		= tk->raw_sec;
++		vdso_ts->nsec		= tk->tkr_raw.xtime_nsec;
++		/* CLOCK_BOOTTIME */
++		vdso_ts			= &vdso_data->basetime[CLOCK_BOOTTIME];
++		vdso_ts->sec		= tk->xtime_sec +
++						tk->wall_to_monotonic.tv_sec;
++		nsec			= tk->tkr_mono.xtime_nsec;
++		nsec			= nsec +
++					  ((u64)(tk->wall_to_monotonic.tv_nsec +
++					   ktime_to_ns(tk->offs_boot)) <<
++					   tk->tkr_mono.shift);
++		while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
++			nsec = nsec -
++				(((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
++			vdso_ts->sec++;
++		}
++		vdso_ts->nsec		= nsec;
++		/* CLOCK_TAI */
++		vdso_ts			= &vdso_data->basetime[CLOCK_TAI];
++		vdso_ts->sec		= tk->xtime_sec + (s64)tk->tai_offset;
++		vdso_ts->nsec		= tk->tkr_mono.xtime_nsec;
+ 	}
  
+-	vdso_data_write_end(&vdso_data);
++	vdso_write_end(vdso_data);
  }
-+#endif /* CONFIG_COMPAT_VDSO */
  
- static int __init aarch32_alloc_vdso_pages(void)
+ void update_vsyscall_tz(void)
  {
- 	return aarch32_alloc_kuser_vdso_page() &
-+#ifdef CONFIG_COMPAT_VDSO
-+	       aarch32_vdso_init();
-+#else
- 	       aarch32_alloc_sigreturn_vdso_page();
-+#endif /* CONFIG_COMPAT_VDSO */
+-	if (vdso_data.clock_mode != VDSO_CLOCK_NONE) {
+-		vdso_data.tz_minuteswest = sys_tz.tz_minuteswest;
+-		vdso_data.tz_dsttime = sys_tz.tz_dsttime;
++	if (vdso_data->clock_mode != VDSO_CLOCK_NONE) {
++		vdso_data->tz_minuteswest = sys_tz.tz_minuteswest;
++		vdso_data->tz_dsttime = sys_tz.tz_dsttime;
+ 	}
  }
- arch_initcall(aarch32_alloc_vdso_pages);
  
-@@ -278,6 +327,7 @@ static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
- }
- #endif /* CONFIG_KUSER_HELPERS */
+@@ -167,7 +234,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	 */
+ 	if (cpu_has_dc_aliases) {
+ 		base = __ALIGN_MASK(base, shm_align_mask);
+-		base += ((unsigned long)&vdso_data - gic_size) & shm_align_mask;
++		base += ((unsigned long)vdso_data - gic_size) & shm_align_mask;
+ 	}
  
-+#ifndef CONFIG_COMPAT_VDSO
- static int aarch32_sigreturn_setup(struct mm_struct *mm)
- {
- 	unsigned long addr;
-@@ -301,6 +351,7 @@ static int aarch32_sigreturn_setup(struct mm_struct *mm)
- out:
- 	return PTR_ERR_OR_ZERO(ret);
- }
-+#endif /* !CONFIG_COMPAT_VDSO */
+ 	data_addr = base + gic_size;
+@@ -193,7 +260,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
  
- int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- {
-@@ -314,7 +365,14 @@ int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	/* Map data page. */
+ 	ret = remap_pfn_range(vma, data_addr,
+-			      virt_to_phys(&vdso_data) >> PAGE_SHIFT,
++			      virt_to_phys(vdso_data) >> PAGE_SHIFT,
+ 			      PAGE_SIZE, PAGE_READONLY);
  	if (ret)
  		goto out;
+diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
+index 0ede4deb8181..70280c5f4e41 100644
+--- a/arch/mips/vdso/Makefile
++++ b/arch/mips/vdso/Makefile
+@@ -1,6 +1,12 @@
+ # SPDX-License-Identifier: GPL-2.0
+ # Objects to go into the VDSO.
+-obj-vdso-y := elf.o gettimeofday.o sigreturn.o
++
++# Absolute relocation type $(ARCH_REL_TYPE_ABS) needs to be defined before
++# the inclusion of generic Makefile.
++ARCH_REL_TYPE_ABS := R_MIPS_JUMP_SLOT|R_MIPS_GLOB_DAT
++include $(srctree)/lib/vdso/Makefile
++
++obj-vdso-y := elf.o vgettimeofday.o sigreturn.o
  
-+#ifdef CONFIG_COMPAT_VDSO
-+	ret = __setup_additional_pages(ARM64_VDSO32,
-+				       mm,
-+				       bprm,
-+				       uses_interp);
-+#else
- 	ret = aarch32_sigreturn_setup(mm);
-+#endif /* CONFIG_COMPAT_VDSO */
+ # Common compiler flags between ABIs.
+ ccflags-vdso := \
+@@ -15,15 +21,23 @@ ifdef CONFIG_CC_IS_CLANG
+ ccflags-vdso += $(filter --target=%,$(KBUILD_CFLAGS))
+ endif
  
- out:
- 	up_write(&mm->mmap_sem);
++#
++# The -fno-jump-tables flag only prevents the compiler from generating
++# jump tables but does not prevent the compiler from emitting absolute
++# offsets.
+ cflags-vdso := $(ccflags-vdso) \
+ 	$(filter -W%,$(filter-out -Wa$(comma)%,$(KBUILD_CFLAGS))) \
+ 	-O2 -g -fPIC -fno-strict-aliasing -fno-common -fno-builtin -G 0 \
+-	-DDISABLE_BRANCH_PROFILING \
++	-fno-stack-protector -fno-jump-tables -DDISABLE_BRANCH_PROFILING \
+ 	$(call cc-option, -fno-asynchronous-unwind-tables) \
+ 	$(call cc-option, -fno-stack-protector)
+ aflags-vdso := $(ccflags-vdso) \
+ 	-D__ASSEMBLY__ -Wa,-gdwarf-2
+ 
++ifneq ($(c-gettimeofday-y),)
++CFLAGS_vgettimeofday.o = -include $(c-gettimeofday-y)
++endif
++
+ #
+ # For the pre-R6 code in arch/mips/vdso/vdso.h for locating
+ # the base address of VDSO, the linker will emit a R_MIPS_PC32
+@@ -50,6 +64,8 @@ VDSO_LDFLAGS := \
+ 	$(call cc-ldoption, -Wl$(comma)--hash-style=sysv) \
+ 	$(call cc-ldoption, -Wl$(comma)--build-id)
+ 
++CFLAGS_REMOVE_vdso.o = -pg
++
+ GCOV_PROFILE := n
+ UBSAN_SANITIZE := n
+ 
+@@ -98,6 +114,7 @@ $(obj)/vdso.lds: KBUILD_CPPFLAGS := $(ccflags-vdso) $(native-abi)
+ 
+ $(obj)/vdso.so.dbg.raw: $(obj)/vdso.lds $(obj-vdso) FORCE
+ 	$(call if_changed,vdsold)
++	$(call if_changed,vdso_check)
+ 
+ $(obj)/vdso-image.c: $(obj)/vdso.so.dbg.raw $(obj)/vdso.so.raw \
+                      $(obj)/genvdso FORCE
+@@ -136,6 +153,7 @@ $(obj)/vdso-o32.lds: $(src)/vdso.lds.S FORCE
+ 
+ $(obj)/vdso-o32.so.dbg.raw: $(obj)/vdso-o32.lds $(obj-vdso-o32) FORCE
+ 	$(call if_changed,vdsold)
++	$(call if_changed,vdso_check)
+ 
+ $(obj)/vdso-o32-image.c: VDSO_NAME := o32
+ $(obj)/vdso-o32-image.c: $(obj)/vdso-o32.so.dbg.raw $(obj)/vdso-o32.so.raw \
+@@ -176,6 +194,7 @@ $(obj)/vdso-n32.lds: $(src)/vdso.lds.S FORCE
+ 
+ $(obj)/vdso-n32.so.dbg.raw: $(obj)/vdso-n32.lds $(obj-vdso-n32) FORCE
+ 	$(call if_changed,vdsold)
++	$(call if_changed,vdso_check)
+ 
+ $(obj)/vdso-n32-image.c: VDSO_NAME := n32
+ $(obj)/vdso-n32-image.c: $(obj)/vdso-n32.so.dbg.raw $(obj)/vdso-n32.so.raw \
+diff --git a/arch/mips/vdso/elf.S b/arch/mips/vdso/elf.S
+index 428a1917afc6..c0c85d126094 100644
+--- a/arch/mips/vdso/elf.S
++++ b/arch/mips/vdso/elf.S
+@@ -8,7 +8,7 @@
+  * option) any later version.
+  */
+ 
+-#include "vdso.h"
++#include <asm/vdso/vdso.h>
+ 
+ #include <asm/isa-rev.h>
+ 
+diff --git a/arch/mips/vdso/gettimeofday.c b/arch/mips/vdso/gettimeofday.c
+deleted file mode 100644
+index e22b422f282c..000000000000
+--- a/arch/mips/vdso/gettimeofday.c
++++ /dev/null
+@@ -1,273 +0,0 @@
+-/*
+- * Copyright (C) 2015 Imagination Technologies
+- * Author: Alex Smith <alex.smith@imgtec.com>
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License as published by the
+- * Free Software Foundation;  either version 2 of the  License, or (at your
+- * option) any later version.
+- */
+-
+-#include "vdso.h"
+-
+-#include <linux/compiler.h>
+-#include <linux/time.h>
+-
+-#include <asm/clocksource.h>
+-#include <asm/io.h>
+-#include <asm/unistd.h>
+-#include <asm/vdso.h>
+-
+-#ifdef CONFIG_MIPS_CLOCK_VSYSCALL
+-
+-static __always_inline long gettimeofday_fallback(struct timeval *_tv,
+-					  struct timezone *_tz)
+-{
+-	register struct timezone *tz asm("a1") = _tz;
+-	register struct timeval *tv asm("a0") = _tv;
+-	register long ret asm("v0");
+-	register long nr asm("v0") = __NR_gettimeofday;
+-	register long error asm("a3");
+-
+-	asm volatile(
+-	"       syscall\n"
+-	: "=r" (ret), "=r" (error)
+-	: "r" (tv), "r" (tz), "r" (nr)
+-	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
+-	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
+-
+-	return error ? -ret : ret;
+-}
+-
+-#endif
+-
+-static __always_inline long clock_gettime_fallback(clockid_t _clkid,
+-					   struct timespec *_ts)
+-{
+-	register struct timespec *ts asm("a1") = _ts;
+-	register clockid_t clkid asm("a0") = _clkid;
+-	register long ret asm("v0");
+-	register long nr asm("v0") = __NR_clock_gettime;
+-	register long error asm("a3");
+-
+-	asm volatile(
+-	"       syscall\n"
+-	: "=r" (ret), "=r" (error)
+-	: "r" (clkid), "r" (ts), "r" (nr)
+-	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
+-	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
+-
+-	return error ? -ret : ret;
+-}
+-
+-static __always_inline int do_realtime_coarse(struct timespec *ts,
+-					      const union mips_vdso_data *data)
+-{
+-	u32 start_seq;
+-
+-	do {
+-		start_seq = vdso_data_read_begin(data);
+-
+-		ts->tv_sec = data->xtime_sec;
+-		ts->tv_nsec = data->xtime_nsec >> data->cs_shift;
+-	} while (vdso_data_read_retry(data, start_seq));
+-
+-	return 0;
+-}
+-
+-static __always_inline int do_monotonic_coarse(struct timespec *ts,
+-					       const union mips_vdso_data *data)
+-{
+-	u32 start_seq;
+-	u64 to_mono_sec;
+-	u64 to_mono_nsec;
+-
+-	do {
+-		start_seq = vdso_data_read_begin(data);
+-
+-		ts->tv_sec = data->xtime_sec;
+-		ts->tv_nsec = data->xtime_nsec >> data->cs_shift;
+-
+-		to_mono_sec = data->wall_to_mono_sec;
+-		to_mono_nsec = data->wall_to_mono_nsec;
+-	} while (vdso_data_read_retry(data, start_seq));
+-
+-	ts->tv_sec += to_mono_sec;
+-	timespec_add_ns(ts, to_mono_nsec);
+-
+-	return 0;
+-}
+-
+-#ifdef CONFIG_CSRC_R4K
+-
+-static __always_inline u64 read_r4k_count(void)
+-{
+-	unsigned int count;
+-
+-	__asm__ __volatile__(
+-	"	.set push\n"
+-	"	.set mips32r2\n"
+-	"	rdhwr	%0, $2\n"
+-	"	.set pop\n"
+-	: "=r" (count));
+-
+-	return count;
+-}
+-
+-#endif
+-
+-#ifdef CONFIG_CLKSRC_MIPS_GIC
+-
+-static __always_inline u64 read_gic_count(const union mips_vdso_data *data)
+-{
+-	void __iomem *gic = get_gic(data);
+-	u32 hi, hi2, lo;
+-
+-	do {
+-		hi = __raw_readl(gic + sizeof(lo));
+-		lo = __raw_readl(gic);
+-		hi2 = __raw_readl(gic + sizeof(lo));
+-	} while (hi2 != hi);
+-
+-	return (((u64)hi) << 32) + lo;
+-}
+-
+-#endif
+-
+-static __always_inline u64 get_ns(const union mips_vdso_data *data)
+-{
+-	u64 cycle_now, delta, nsec;
+-
+-	switch (data->clock_mode) {
+-#ifdef CONFIG_CSRC_R4K
+-	case VDSO_CLOCK_R4K:
+-		cycle_now = read_r4k_count();
+-		break;
+-#endif
+-#ifdef CONFIG_CLKSRC_MIPS_GIC
+-	case VDSO_CLOCK_GIC:
+-		cycle_now = read_gic_count(data);
+-		break;
+-#endif
+-	default:
+-		return 0;
+-	}
+-
+-	delta = (cycle_now - data->cs_cycle_last) & data->cs_mask;
+-
+-	nsec = (delta * data->cs_mult) + data->xtime_nsec;
+-	nsec >>= data->cs_shift;
+-
+-	return nsec;
+-}
+-
+-static __always_inline int do_realtime(struct timespec *ts,
+-				       const union mips_vdso_data *data)
+-{
+-	u32 start_seq;
+-	u64 ns;
+-
+-	do {
+-		start_seq = vdso_data_read_begin(data);
+-
+-		if (data->clock_mode == VDSO_CLOCK_NONE)
+-			return -ENOSYS;
+-
+-		ts->tv_sec = data->xtime_sec;
+-		ns = get_ns(data);
+-	} while (vdso_data_read_retry(data, start_seq));
+-
+-	ts->tv_nsec = 0;
+-	timespec_add_ns(ts, ns);
+-
+-	return 0;
+-}
+-
+-static __always_inline int do_monotonic(struct timespec *ts,
+-					const union mips_vdso_data *data)
+-{
+-	u32 start_seq;
+-	u64 ns;
+-	u64 to_mono_sec;
+-	u64 to_mono_nsec;
+-
+-	do {
+-		start_seq = vdso_data_read_begin(data);
+-
+-		if (data->clock_mode == VDSO_CLOCK_NONE)
+-			return -ENOSYS;
+-
+-		ts->tv_sec = data->xtime_sec;
+-		ns = get_ns(data);
+-
+-		to_mono_sec = data->wall_to_mono_sec;
+-		to_mono_nsec = data->wall_to_mono_nsec;
+-	} while (vdso_data_read_retry(data, start_seq));
+-
+-	ts->tv_sec += to_mono_sec;
+-	ts->tv_nsec = 0;
+-	timespec_add_ns(ts, ns + to_mono_nsec);
+-
+-	return 0;
+-}
+-
+-#ifdef CONFIG_MIPS_CLOCK_VSYSCALL
+-
+-/*
+- * This is behind the ifdef so that we don't provide the symbol when there's no
+- * possibility of there being a usable clocksource, because there's nothing we
+- * can do without it. When libc fails the symbol lookup it should fall back on
+- * the standard syscall path.
+- */
+-int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz)
+-{
+-	const union mips_vdso_data *data = get_vdso_data();
+-	struct timespec ts;
+-	int ret;
+-
+-	ret = do_realtime(&ts, data);
+-	if (ret)
+-		return gettimeofday_fallback(tv, tz);
+-
+-	if (tv) {
+-		tv->tv_sec = ts.tv_sec;
+-		tv->tv_usec = ts.tv_nsec / 1000;
+-	}
+-
+-	if (tz) {
+-		tz->tz_minuteswest = data->tz_minuteswest;
+-		tz->tz_dsttime = data->tz_dsttime;
+-	}
+-
+-	return 0;
+-}
+-
+-#endif /* CONFIG_MIPS_CLOCK_VSYSCALL */
+-
+-int __vdso_clock_gettime(clockid_t clkid, struct timespec *ts)
+-{
+-	const union mips_vdso_data *data = get_vdso_data();
+-	int ret = -1;
+-
+-	switch (clkid) {
+-	case CLOCK_REALTIME_COARSE:
+-		ret = do_realtime_coarse(ts, data);
+-		break;
+-	case CLOCK_MONOTONIC_COARSE:
+-		ret = do_monotonic_coarse(ts, data);
+-		break;
+-	case CLOCK_REALTIME:
+-		ret = do_realtime(ts, data);
+-		break;
+-	case CLOCK_MONOTONIC:
+-		ret = do_monotonic(ts, data);
+-		break;
+-	default:
+-		break;
+-	}
+-
+-	if (ret)
+-		ret = clock_gettime_fallback(clkid, ts);
+-
+-	return ret;
+-}
+diff --git a/arch/mips/vdso/sigreturn.S b/arch/mips/vdso/sigreturn.S
+index 30c6219912ac..c2b05956e4cb 100644
+--- a/arch/mips/vdso/sigreturn.S
++++ b/arch/mips/vdso/sigreturn.S
+@@ -8,7 +8,7 @@
+  * option) any later version.
+  */
+ 
+-#include "vdso.h"
++#include <asm/vdso/vdso.h>
+ 
+ #include <uapi/asm/unistd.h>
+ 
+diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
+index 8df7dd53e8e0..90b2c2785e32 100644
+--- a/arch/mips/vdso/vdso.lds.S
++++ b/arch/mips/vdso/vdso.lds.S
+@@ -99,6 +99,7 @@ VERSION
+ 	global:
+ 		__vdso_clock_gettime;
+ 		__vdso_gettimeofday;
++		__vdso_clock_getres;
+ #endif
+ 	local: *;
+ 	};
+diff --git a/arch/mips/vdso/vgettimeofday.c b/arch/mips/vdso/vgettimeofday.c
+new file mode 100644
+index 000000000000..8da361d919f0
+--- /dev/null
++++ b/arch/mips/vdso/vgettimeofday.c
+@@ -0,0 +1,28 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * ARM64 compat userspace implementations of gettimeofday() and similar.
++ *
++ * Copyright (C) 2018 ARM Limited
++ *
++ */
++#include <linux/time.h>
++#include <linux/types.h>
++
++notrace int __vdso_clock_gettime(clockid_t clock,
++				 struct __vdso_timespec *ts)
++{
++	return __cvdso_clock_gettime(clock, ts);
++}
++
++notrace int __vdso_gettimeofday(struct __vdso_timeval *tv,
++				struct timezone *tz)
++{
++	return __cvdso_gettimeofday(tv, tz);
++}
++
++notrace int __vdso_clock_getres(clockid_t clock_id,
++				struct __vdso_timespec *res)
++{
++	return __cvdso_clock_getres(clock_id, res);
++}
++
 -- 
 2.20.1
