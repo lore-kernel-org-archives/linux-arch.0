@@ -1,109 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39448 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726368AbfBVSvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Feb 2019 13:51:14 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39134 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725832AbfBVSuq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Feb 2019 13:50:46 -0500
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 11/20] ia64: Add unconditional mmiowb() to arch_spin_unlock()
-Date: Fri, 22 Feb 2019 18:50:17 +0000
-Message-ID: <20190222185026.10973-12-will.deacon@arm.com>
+Subject: [RFC PATCH 03/20] mmiowb: Hook up mmiowb helpers to spinlocks and generic I/O accessors
+Date: Fri, 22 Feb 2019 18:50:09 +0000
+Message-ID: <20190222185026.10973-4-will.deacon@arm.com>
 In-Reply-To: <20190222185026.10973-1-will.deacon@arm.com>
 References: <20190222185026.10973-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20190222185017.Z2HRY4_fM4aaYdAE7tXRo-xSkM6qQRvapQ4r2_4BFas@z>
+Message-ID: <20190222185009.2hoWwrHahWkVUbd5YAiniFY43mIbKBro6ljiQQIhbzA@z>
 
-The mmiowb() macro is horribly difficult to use and drivers will continue
-to work most of the time if they omit a call when it is required.
-
-Rather than rely on driver authors getting this right, push mmiowb() into
-arch_spin_unlock() for ia64. If this is deemed to be a performance issue,
-a subsequent optimisation could make use of ARCH_HAS_MMIOWB to elide
-the barrier in cases where no I/O writes were performned inside the
-critical section.
+Removing explicit calls to mmiowb() from driver code means that we must
+now call into the generic mmiowb_spin_{lock,unlock}() functions from the
+core spinlock code. In order to elide barriers following critical
+sections without any I/O writes, we also hook into the asm-generic I/O
+routines.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/ia64/include/asm/Kbuild     |  1 -
- arch/ia64/include/asm/io.h       |  4 ----
- arch/ia64/include/asm/mmiowb.h   | 12 ++++++++++++
- arch/ia64/include/asm/spinlock.h |  2 ++
- 4 files changed, 14 insertions(+), 5 deletions(-)
- create mode 100644 arch/ia64/include/asm/mmiowb.h
+ include/asm-generic/io.h        |  3 ++-
+ include/linux/spinlock.h        | 11 ++++++++++-
+ kernel/locking/spinlock_debug.c |  6 +++++-
+ 3 files changed, 17 insertions(+), 3 deletions(-)
 
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index 3273d7aedfa0..43e21fe3499c 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -4,7 +4,6 @@ generic-y += exec.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
--generic-y += mmiowb.h
- generic-y += preempt.h
- generic-y += trace_clock.h
- generic-y += vtime.h
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index 1e6fef69bb01..7f2371ba04a4 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -119,8 +119,6 @@ extern int valid_mmap_phys_addr_range (unsigned long pfn, size_t count);
-  * Ensure ordering of I/O space writes.  This will make sure that writes
-  * following the barrier will arrive after all previous writes.  For most
-  * ia64 platforms, this is a simple 'mf.a' instruction.
-- *
-- * See Documentation/driver-api/device-io.rst for more information.
-  */
- static inline void ___ia64_mmiowb(void)
- {
-@@ -296,7 +294,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define __outb		platform_outb
- #define __outw		platform_outw
- #define __outl		platform_outl
--#define __mmiowb	platform_mmiowb
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 303871651f8a..bc490a746602 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -19,6 +19,7 @@
+ #include <asm-generic/iomap.h>
+ #endif
  
- #define inb(p)		__inb(p)
- #define inw(p)		__inw(p)
-@@ -310,7 +307,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define outsb(p,s,c)	__outsb(p,s,c)
- #define outsw(p,s,c)	__outsw(p,s,c)
- #define outsl(p,s,c)	__outsl(p,s,c)
--#define mmiowb()	__mmiowb()
++#include <asm/mmiowb.h>
+ #include <asm-generic/pci_iomap.h>
+ 
+ #ifndef mmiowb
+@@ -49,7 +50,7 @@
+ 
+ /* serialize device access against a spin_unlock, usually handled there. */
+ #ifndef __io_aw
+-#define __io_aw()      barrier()
++#define __io_aw()      mmiowb_set_pending()
+ #endif
+ 
+ #ifndef __io_pbw
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index e089157dcf97..4298b1b31d9b 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -57,6 +57,7 @@
+ #include <linux/stringify.h>
+ #include <linux/bottom_half.h>
+ #include <asm/barrier.h>
++#include <asm/mmiowb.h>
+ 
  
  /*
-  * The address passed to these functions are ioremap()ped already.
-diff --git a/arch/ia64/include/asm/mmiowb.h b/arch/ia64/include/asm/mmiowb.h
-new file mode 100644
-index 000000000000..238d56172c6f
---- /dev/null
-+++ b/arch/ia64/include/asm/mmiowb.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _ASM_IA64_MMIOWB_H
-+#define _ASM_IA64_MMIOWB_H
-+
-+#include <asm/machvec.h>
-+
-+#define mmiowb()	platform_mmiowb()
-+
-+#include <asm-generic/mmiowb.h>
-+
-+#endif	/* _ASM_IA64_MMIOWB_H */
-diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
-index afd0b3121b4c..5f620e66384e 100644
---- a/arch/ia64/include/asm/spinlock.h
-+++ b/arch/ia64/include/asm/spinlock.h
-@@ -73,6 +73,8 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
+@@ -177,6 +178,7 @@ do {								\
+ static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock)
  {
- 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
+ 	__acquire(lock);
++	mmiowb_spin_lock();
+ 	arch_spin_lock(&lock->raw_lock);
+ }
  
-+	/* This could be optimised with ARCH_HAS_MMIOWB */
-+	mmiowb();
- 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
- 	WRITE_ONCE(*p, (tmp + 2) & ~1);
+@@ -188,16 +190,23 @@ static inline void
+ do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acquires(lock)
+ {
+ 	__acquire(lock);
++	mmiowb_spin_lock();
+ 	arch_spin_lock_flags(&lock->raw_lock, *flags);
+ }
+ 
+ static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
+ {
+-	return arch_spin_trylock(&(lock)->raw_lock);
++	int ret = arch_spin_trylock(&(lock)->raw_lock);
++
++	if (ret)
++		mmiowb_spin_lock();
++
++	return ret;
+ }
+ 
+ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
+ {
++	mmiowb_spin_unlock();
+ 	arch_spin_unlock(&lock->raw_lock);
+ 	__release(lock);
+ }
+diff --git a/kernel/locking/spinlock_debug.c b/kernel/locking/spinlock_debug.c
+index 9aa0fccd5d43..654484b6e70c 100644
+--- a/kernel/locking/spinlock_debug.c
++++ b/kernel/locking/spinlock_debug.c
+@@ -109,6 +109,7 @@ static inline void debug_spin_unlock(raw_spinlock_t *lock)
+  */
+ void do_raw_spin_lock(raw_spinlock_t *lock)
+ {
++	mmiowb_spin_lock();
+ 	debug_spin_lock_before(lock);
+ 	arch_spin_lock(&lock->raw_lock);
+ 	debug_spin_lock_after(lock);
+@@ -118,8 +119,10 @@ int do_raw_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	int ret = arch_spin_trylock(&lock->raw_lock);
+ 
+-	if (ret)
++	if (ret) {
++		mmiowb_spin_lock();
+ 		debug_spin_lock_after(lock);
++	}
+ #ifndef CONFIG_SMP
+ 	/*
+ 	 * Must not happen on UP:
+@@ -131,6 +134,7 @@ int do_raw_spin_trylock(raw_spinlock_t *lock)
+ 
+ void do_raw_spin_unlock(raw_spinlock_t *lock)
+ {
++	mmiowb_spin_unlock();
+ 	debug_spin_unlock(lock);
+ 	arch_spin_unlock(&lock->raw_lock);
  }
 -- 
 2.11.0
