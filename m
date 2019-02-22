@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v10 07/12] fs, arm64: untag user pointers in fs/userfaultfd.c
-Date: Fri, 22 Feb 2019 13:53:19 +0100
-Message-ID: <8343cd77ca301df15839796f3b446b75ce5ffbbf.1550839937.git.andreyknvl@google.com>
+Subject: [PATCH v10 10/12] tracing, arm64: untag user pointers in seq_print_user_ip
+Date: Fri, 22 Feb 2019 13:53:22 +0100
+Message-ID: <99b59c349ed81d4b204353f54b89f930f01d6ee3.1550839937.git.andreyknvl@google.com>
 References: <cover.1550839937.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,38 +12,28 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-userfaultfd_register() and userfaultfd_unregister() use provided user
-pointers for vma lookups, which can only by done with untagged pointers.
+seq_print_user_ip() uses provided user pointers for vma lookups, which
+can only by done with untagged pointers.
 
-Untag user pointers in these functions.
+Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- fs/userfaultfd.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ kernel/trace/trace_output.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/userfaultfd.c b/fs/userfaultfd.c
-index 89800fc7dc9d..a3b70e0d9756 100644
---- a/fs/userfaultfd.c
-+++ b/fs/userfaultfd.c
-@@ -1320,6 +1320,9 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
- 		goto out;
- 	}
+diff --git a/kernel/trace/trace_output.c b/kernel/trace/trace_output.c
+index 54373d93e251..7c893328f97b 100644
+--- a/kernel/trace/trace_output.c
++++ b/kernel/trace/trace_output.c
+@@ -379,7 +379,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ 		const struct vm_area_struct *vma;
  
-+	uffdio_register.range.start =
-+		untagged_addr(uffdio_register.range.start);
-+
- 	ret = validate_range(mm, uffdio_register.range.start,
- 			     uffdio_register.range.len);
- 	if (ret)
-@@ -1507,6 +1510,8 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
- 	if (copy_from_user(&uffdio_unregister, buf, sizeof(uffdio_unregister)))
- 		goto out;
- 
-+	uffdio_unregister.start = untagged_addr(uffdio_unregister.start);
-+
- 	ret = validate_range(mm, uffdio_unregister.start,
- 			     uffdio_unregister.len);
- 	if (ret)
+ 		down_read(&mm->mmap_sem);
+-		vma = find_vma(mm, ip);
++		vma = find_vma(mm, untagged_addr(ip));
+ 		if (vma) {
+ 			file = vma->vm_file;
+ 			vmstart = vma->vm_start;
 -- 
 2.21.0.rc0.258.g878e2cd30e-goog
