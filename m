@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v10 11/12] arm64: update Documentation/arm64/tagged-pointers.txt
-Date: Fri, 22 Feb 2019 13:53:23 +0100
-Message-ID: <e555d752859291bc74d550a5ea7e8ecd1876a308.1550839937.git.andreyknvl@google.com>
+Subject: [PATCH v10 09/12] kernel, arm64: untag user pointers in prctl_set_mm*
+Date: Fri, 22 Feb 2019 13:53:21 +0100
+Message-ID: <d6febfc14cf0190f4ccd84fc1bf9bd077a6d6a9f.1550839937.git.andreyknvl@google.com>
 References: <cover.1550839937.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,57 +12,47 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Document the changes in Documentation/arm64/tagged-pointers.txt.
+prctl_set_mm() and prctl_set_mm_map() use provided user pointers for vma
+lookups, which can only by done with untagged pointers.
+
+Untag user pointers in these functions.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- Documentation/arm64/tagged-pointers.txt | 25 +++++++++++++++----------
- 1 file changed, 15 insertions(+), 10 deletions(-)
+ kernel/sys.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..f4cf1f5cf362 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -17,13 +17,22 @@ this byte for application use.
- Passing tagged addresses to the kernel
- --------------------------------------
+diff --git a/kernel/sys.c b/kernel/sys.c
+index f7eb62eceb24..12910be94b7f 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1992,6 +1992,18 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
+ 	if (copy_from_user(&prctl_map, addr, sizeof(prctl_map)))
+ 		return -EFAULT;
  
--All interpretation of userspace memory addresses by the kernel assumes
--an address tag of 0x00.
-+The kernel supports tags in pointer arguments (including pointers in
-+structures) for a limited set of syscalls, the exceptions are:
- 
--This includes, but is not limited to, addresses found in:
-+ - memory syscalls: brk, madvise, mbind, mincore, mlock, mlock2, move_pages,
-+   mprotect, mremap, msync, munlock, munmap, pkey_mprotect, process_vm_readv,
-+   process_vm_writev, remap_file_pages;
- 
-- - pointer arguments to system calls, including pointers in structures
--   passed to system calls,
-+ - ioctls that accept user pointers that describe virtual memory ranges;
++	prctl_map->start_code	= untagged_addr(prctl_map.start_code);
++	prctl_map->end_code	= untagged_addr(prctl_map.end_code);
++	prctl_map->start_data	= untagged_addr(prctl_map.start_data);
++	prctl_map->end_data	= untagged_addr(prctl_map.end_data);
++	prctl_map->start_brk	= untagged_addr(prctl_map.start_brk);
++	prctl_map->brk		= untagged_addr(prctl_map.brk);
++	prctl_map->start_stack	= untagged_addr(prctl_map.start_stack);
++	prctl_map->arg_start	= untagged_addr(prctl_map.arg_start);
++	prctl_map->arg_end	= untagged_addr(prctl_map.arg_end);
++	prctl_map->env_start	= untagged_addr(prctl_map.env_start);
++	prctl_map->env_end	= untagged_addr(prctl_map.env_end);
 +
-+ - TCP_ZEROCOPY_RECEIVE setsockopt.
+ 	error = validate_prctl_map(&prctl_map);
+ 	if (error)
+ 		return error;
+@@ -2105,6 +2117,8 @@ static int prctl_set_mm(int opt, unsigned long addr,
+ 			      opt != PR_SET_MM_MAP_SIZE)))
+ 		return -EINVAL;
+ 
++	addr = untagged_addr(addr);
 +
-+The kernel supports tags in user fault addresses. However the fault_address
-+field in the sigcontext struct will contain an untagged address.
-+
-+All other interpretations of userspace memory addresses by the kernel
-+assume an address tag of 0x00, in particular:
- 
-  - the stack pointer (sp), e.g. when interpreting it to deliver a
-    signal,
-@@ -33,11 +42,7 @@ This includes, but is not limited to, addresses found in:
- 
- Using non-zero address tags in any of these locations may result in an
- error code being returned, a (fatal) signal being raised, or other modes
--of failure.
--
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
--strongly discouraged.
-+of failure. Using a non-zero address tag for sp is strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
- address tags may suffer impaired or inaccurate debug and profiling
+ #ifdef CONFIG_CHECKPOINT_RESTORE
+ 	if (opt == PR_SET_MM_MAP || opt == PR_SET_MM_MAP_SIZE)
+ 		return prctl_set_mm_map(opt, (const void __user *)addr, arg4);
 -- 
 2.21.0.rc0.258.g878e2cd30e-goog
