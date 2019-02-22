@@ -1,133 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44954 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725961AbfBVD3B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 Feb 2019 22:29:01 -0500
-Subject: Re: [PATCH v4 3/3] locking/rwsem: Optimize down_read_trylock()
-References: <1550095217-12047-1-git-send-email-longman@redhat.com>
- <1550095217-12047-4-git-send-email-longman@redhat.com>
- <20190221141420.GC12696@fuggles.cambridge.arm.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <9dc33d11-4570-f2d9-e097-d4e6586d13e2@redhat.com>
-Date: Thu, 21 Feb 2019 22:28:47 -0500
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:35431 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725944AbfBVLVh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Feb 2019 06:21:37 -0500
+Received: by mail-wm1-f67.google.com with SMTP id y15so1629937wma.0
+        for <linux-arch@vger.kernel.org>; Fri, 22 Feb 2019 03:21:35 -0800 (PST)
+Date: Fri, 22 Feb 2019 12:21:28 +0100
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Message-ID: <20190222112128.GA7213@andrea>
+References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20190220020117.GD11787@linux.ibm.com>
+ <20190220092604.GD32494@hirez.programming.kicks-ass.net>
+ <20190220131456.GA3215@andrea>
+ <20190220132714.GI32494@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-In-Reply-To: <20190221141420.GC12696@fuggles.cambridge.arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190220132714.GI32494@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>
-Message-ID: <20190222032847.eTp7Z5iTVqrYp4nkLgo9dctgg4r9rUtHAeKo1JOO-lo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20190222112128.q4iueSP12GV6Lca75_Ohsaxs88bRc5BlMxsKOTeesOk@z>
 
-On 02/21/2019 09:14 AM, Will Deacon wrote:
-> On Wed, Feb 13, 2019 at 05:00:17PM -0500, Waiman Long wrote:
->> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
->> it generate slightly better code.
->>
->> Before this patch, down_read_trylock:
->>
->>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
->>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
->>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
->>    0x000000000000000b <+11>:    mov    %rdx,%rax
->>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
->>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
->>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
->>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
->>    0x000000000000001b <+27>:    test   %rdx,%rdx
->>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
->>    0x0000000000000020 <+32>:    xor    %eax,%eax
->>    0x0000000000000022 <+34>:    retq
->>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
->>    0x000000000000002c <+44>:    or     $0x3,%rax
->>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
->>    0x0000000000000034 <+52>:    mov    $0x1,%eax
->>    0x0000000000000039 <+57>:    retq
->>
->> After patch, down_read_trylock:
->>
->>    0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
->>    0x0000000000000005 <+5>:	xor    %eax,%eax
->>    0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
->>    0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
->>    0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
->>    0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
->>    0x000000000000001b <+27>:	or     $0x3,%rax
->>    0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
->>    0x0000000000000023 <+35>:	mov    $0x1,%eax
->>    0x0000000000000028 <+40>:	retq
->>    0x0000000000000029 <+41>:	test   %rax,%rax
->>    0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
->>    0x000000000000002e <+46>:	xor    %eax,%eax
->>    0x0000000000000030 <+48>:	retq
->>
->> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
->> load of 10 to lengthen the lock critical section) on a x86-64 system
->> before and after the patch were:
->>
->>                  Before Patch    After Patch
->>    # of Threads     rlock           rlock
->>    ------------     -----           -----
->>         1           14,496          14,716
->>         2            8,644           8,453
->> 	4            6,799           6,983
->> 	8            5,664           7,190
->>
->> On a ARM64 system, the performance results were:
->>
->>                  Before Patch    After Patch
->>    # of Threads     rlock           rlock
->>    ------------     -----           -----
->>         1           23,676          24,488
->>         2            7,697           9,502
->>         4            4,945           3,440
->>         8            2,641           1,603
->>
->> For the uncontended case (1 thread), the new down_read_trylock() is a
->> little bit faster. For the contended cases, the new down_read_trylock()
->> perform pretty well in x86-64, but performance degrades at high
->> contention level on ARM64.
->>
->> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
->> Signed-off-by: Waiman Long <longman@redhat.com>
->> ---
->>  kernel/locking/rwsem.h | 13 ++++++++-----
->>  1 file changed, 8 insertions(+), 5 deletions(-)
->>
->> diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
->> index 45ee002..1f5775a 100644
->> --- a/kernel/locking/rwsem.h
->> +++ b/kernel/locking/rwsem.h
->> @@ -174,14 +174,17 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
->>  
->>  static inline int __down_read_trylock(struct rw_semaphore *sem)
->>  {
->> -	long tmp;
->> +	/*
->> +	 * Optimize for the case when the rwsem is not locked at all.
->> +	 */
->> +	long tmp = RWSEM_UNLOCKED_VALUE;
->>  
->> -	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
->> -		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
->> -				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
->> +	do {
->> +		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
->> +					tmp + RWSEM_ACTIVE_READ_BIAS)) {
->>  			return 1;
->>  		}
->> -	}
->> +	} while (tmp >= 0);
-> Nit: but I guess that should be RWSEM_UNLOCKED_VALUE instead of 0.
->
-> Will
+> What I do object to is a model that's weaker than any possible sane
+> hardware.
 
-Using RWSEM_UNLOCKED_VALUE may be better. Anyway, it is not a big deal
-as I am going to change this again in a later patch.
+Not the first time I hear you calling this out.  And inevitably, every
+time, other slogans come to my mind:  "C is not an assembly language",
+"No features (ordering) without users", ...
 
-Thanks,
-Longman
+For the record, I won't try to push this patch further; I also have no
+plans to touch herd7 internals in order to add the ad-hoc flag for the
+(dep ; rfi) thing.  (Maybe others will/can step in here.)
 
-RWSEM_UNLOCKED_VALUE
+In the meantime, the hope (admittedly, probably vain) is that this RFC
+could serve as a further warning or as a reference to those developers
+who are quivering to use (dep ; rfi): enjoy it, be careful.
+
+  Andrea
