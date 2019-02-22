@@ -1,237 +1,112 @@
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [PATCH v10 00/12] arm64: untag user pointers passed to the kernel
-Date: Fri, 22 Feb 2019 16:10:26 +0000
-Message-ID: <96d1086c-ca82-d6d7-24c3-f6686d98d47a@arm.com>
-References: <cover.1550839937.git.andreyknvl@google.com>
- <464111f3-e255-ad45-8964-58462d889e6f@arm.com>
- <CAAeHK+wCZK7F7T1k+Kg_HkK47J8R9ugtH1g1ciLYH_KJ22ZVjg@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Date: Fri, 22 Feb 2019 17:38:34 +0000
+Message-ID: <20190222173834.GC32113@fuggles.cambridge.arm.com>
+References: <20190211172948.3322-1-will.deacon@arm.com>
+ <CAHk-=wiP42aqBApAUJbLAB43u5ips9ArgLxXn5L1r74bowxdow@mail.gmail.com>
+ <20190213172047.GH6346@brain-police>
+ <CAHk-=wigYDMPnoFRC9eBystt0gi6n1yQtAyuEqVg6x+5znOk6A@mail.gmail.com>
+ <20190218165007.GC16713@fuggles.cambridge.arm.com>
+ <20190219161334.GA28803@fuggles.cambridge.arm.com>
+ <87k1htwtis.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAAeHK+wCZK7F7T1k+Kg_HkK47J8R9ugtH1g1ciLYH_KJ22ZVjg@mail.gmail.com>
-Content-Language: en-US
-Content-ID: <377964F0ADA85C4DA3F27A0A85288B86@eurprd08.prod.outlook.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Dave P Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>nd <nd@arm.com>l
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <87k1htwtis.fsf@concordia.ellerman.id.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, paulus@samba.org
 List-Id: linux-arch.vger.kernel.org
 
-On 22/02/2019 15:40, Andrey Konovalov wrote:
-> On Fri, Feb 22, 2019 at 4:35 PM Szabolcs Nagy <Szabolcs.Nagy@arm.com> wrote:
->>
->> On 22/02/2019 12:53, Andrey Konovalov wrote:
->>> This patchset is meant to be merged together with "arm64 relaxed ABI" [1].
->>>
->>> arm64 has a feature called Top Byte Ignore, which allows to embed pointer
->>> tags into the top byte of each pointer. Userspace programs (such as
->>> HWASan, a memory debugging tool [2]) might use this feature and pass
->>> tagged user pointers to the kernel through syscalls or other interfaces.
->>>
->>> Right now the kernel is already able to handle user faults with tagged
->>> pointers, due to these patches:
->>>
->>> 1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
->>>              tagged pointer")
->>> 2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
->>>             pointers")
->>> 3. 276e9327 ("arm64: entry: improve data abort handling of tagged
->>>             pointers")
->>>
->>> This patchset extends tagged pointer support to syscall arguments.
->>>
->>> For non-memory syscalls this is done by untaging user pointers when the
->>> kernel performs pointer checking to find out whether the pointer comes
->>> from userspace (most notably in access_ok). The untagging is done only
->>> when the pointer is being checked, the tag is preserved as the pointer
->>> makes its way through the kernel.
->>>
->>> Since memory syscalls (mmap, mprotect, etc.) don't do memory accesses but
->>> rather deal with memory ranges, untagged pointers are better suited to
->>> describe memory ranges internally. Thus for memory syscalls we untag
->>> pointers completely when they enter the kernel.
->>
->> i think the same is true when user pointers are compared.
->>
->> e.g. i suspect there may be issues with tagged robust mutex
->> list pointers because the kernel does
->>
->> futex.c:3541:   while (entry != &head->list) {
->>
->> where entry is a user pointer that may be tagged, and
->> &head->list is probably not tagged.
+On Thu, Feb 21, 2019 at 05:22:03PM +1100, Michael Ellerman wrote:
+> Will Deacon <will.deacon@arm.com> writes:
+> > [+more ppc folks]
+> >
+> > On Mon, Feb 18, 2019 at 04:50:12PM +0000, Will Deacon wrote:
+> >> On Wed, Feb 13, 2019 at 10:27:09AM -0800, Linus Torvalds wrote:
+> >> > Note that even if mmiowb() is expensive (and I don't think that's
+> >> > actually even the case on ia64), you can - and probably should - do
+> >> > what PowerPC does.
+> >> > 
+> >> > Doing an IO barrier on PowerPC is insanely expensive, but they solve
+> >> > that simply track the whole "have I done any IO" manually. It's not
+> >> > even that expensive, it just uses a percpu flag.
+> >> > 
+> >> > (Admittedly, PowerPC makes it less obvious that it's a percpu variable
+> >> > because it's actually in the special "paca" region that is like a
+> >> > hyper-local percpu area).
+> >
+> > [...]
+> >
+> >> > But we *could* first just do the mmiowb() unconditionally in the ia64
+> >> > unlocking code, and then see if anybody notices?
+> >> 
+> >> I'll hack this up as a starting point. We can always try to be clever later
+> >> on if it's deemed necessary.
+> >
+> > Ok, so I started hacking this up in core code with the percpu flag (since
+> > riscv apparently needs it), but I've now realised that I don't understand
+> > how the PowerPC trick works after all. Consider the following:
+> >
+> > 	spin_lock(&foo);	// io_sync = 0
+> > 	outb(42, port);		// io_sync = 1
+> > 	spin_lock(&bar);	// io_sync = 0
+> > 	...
+> > 	spin_unlock(&bar);
+> > 	spin_unlock(&foo);
+> >
+> > The inner lock could even happen in an irq afaict, but we'll end up skipping
+> > the mmiowb()/sync because the io_sync flag is unconditionally cleared by
+> > spin_lock(). Fixing this is complicated by the fact that I/O writes can be
+> > performed in preemptible context with no locks held, so we can end up
+> > spuriously setting the io_sync flag for arbitrary CPUs, hence the desire
+> > to clear it in spin_lock().
+> >
+> > If the paca entry was more than a byte, we could probably track that a
+> > spinlock is held and then avoid clearing the flag prematurely, but I have
+> > a feeling that I'm missing something. Anybody know how this is supposed to
+> > work?
 > 
-> You're right. I'll expand the cover letter in the next version to
-> describe this more accurately. The patchset however contains "mm,
-> arm64: untag user pointers in mm/gup.c" that should take care of futex
-> pointers.
+> I don't think you're missing anything :/
 
-the robust mutex list pointer is not a futex pointer,
-i'm not sure how the mm/gup.c patch helps.
+Ok, well that's slightly reasurring for me :)
 
->>
->>> One of the alternative approaches to untagging that was considered is to
->>> completely strip the pointer tag as the pointer enters the kernel with
->>> some kind of a syscall wrapper, but that won't work with the countless
->>> number of different ioctl calls. With this approach we would need a custom
->>> wrapper for each ioctl variation, which doesn't seem practical.
->>>
->>> The following testing approaches has been taken to find potential issues
->>> with user pointer untagging:
->>>
->>> 1. Static testing (with sparse [3] and separately with a custom static
->>>    analyzer based on Clang) to track casts of __user pointers to integer
->>>    types to find places where untagging needs to be done.
->>>
->>> 2. Static testing with grep to find parts of the kernel that call
->>>    find_vma() (and other similar functions) or directly compare against
->>>    vm_start/vm_end fields of vma.
->>>
->>> 3. Static testing with grep to find parts of the kernel that compare
->>>    user pointers with TASK_SIZE or other similar consts and macros.
->>>
->>> 4. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
->>>    a modified syzkaller version that passes tagged pointers to the kernel.
->>>
->>> Based on the results of the testing the requried patches have been added
->>> to the patchset.
->>>
->>> This patchset has been merged into the Pixel 2 kernel tree and is now
->>> being used to enable testing of Pixel 2 phones with HWASan.
->>>
->>> This patchset is a prerequisite for ARM's memory tagging hardware feature
->>> support [4].
->>>
->>> Thanks!
->>>
->>> [1] https://lkml.org/lkml/2018/12/10/402
->>>
->>> [2] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
->>>
->>> [3] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
->>>
->>> [4] https://community.arm.com/processors/b/blog/posts/arm-a-profile-architecture-2018-developments-armv85a
->>>
->>> Changes in v10:
->>> - Added "mm, arm64: untag user pointers passed to memory syscalls" back.
->>> - New patch "fs, arm64: untag user pointers in fs/userfaultfd.c".
->>> - New patch "net, arm64: untag user pointers in tcp_zerocopy_receive".
->>> - New patch "kernel, arm64: untag user pointers in prctl_set_mm*".
->>> - New patch "tracing, arm64: untag user pointers in seq_print_user_ip".
->>>
->>> Changes in v9:
->>> - Rebased onto 4.20-rc6.
->>> - Used u64 instead of __u64 in type casts in the untagged_addr macro for
->>>   arm64.
->>> - Added braces around (addr) in the untagged_addr macro for other arches.
->>>
->>> Changes in v8:
->>> - Rebased onto 65102238 (4.20-rc1).
->>> - Added a note to the cover letter on why syscall wrappers/shims that untag
->>>   user pointers won't work.
->>> - Added a note to the cover letter that this patchset has been merged into
->>>   the Pixel 2 kernel tree.
->>> - Documentation fixes, in particular added a list of syscalls that don't
->>>   support tagged user pointers.
->>>
->>> Changes in v7:
->>> - Rebased onto 17b57b18 (4.19-rc6).
->>> - Dropped the "arm64: untag user address in __do_user_fault" patch, since
->>>   the existing patches already handle user faults properly.
->>> - Dropped the "usb, arm64: untag user addresses in devio" patch, since the
->>>   passed pointer must come from a vma and therefore be untagged.
->>> - Dropped the "arm64: annotate user pointers casts detected by sparse"
->>>   patch (see the discussion to the replies of the v6 of this patchset).
->>> - Added more context to the cover letter.
->>> - Updated Documentation/arm64/tagged-pointers.txt.
->>>
->>> Changes in v6:
->>> - Added annotations for user pointer casts found by sparse.
->>> - Rebased onto 050cdc6c (4.19-rc1+).
->>>
->>> Changes in v5:
->>> - Added 3 new patches that add untagging to places found with static
->>>   analysis.
->>> - Rebased onto 44c929e1 (4.18-rc8).
->>>
->>> Changes in v4:
->>> - Added a selftest for checking that passing tagged pointers to the
->>>   kernel succeeds.
->>> - Rebased onto 81e97f013 (4.18-rc1+).
->>>
->>> Changes in v3:
->>> - Rebased onto e5c51f30 (4.17-rc6+).
->>> - Added linux-arch@ to the list of recipients.
->>>
->>> Changes in v2:
->>> - Rebased onto 2d618bdf (4.17-rc3+).
->>> - Removed excessive untagging in gup.c.
->>> - Removed untagging pointers returned from __uaccess_mask_ptr.
->>>
->>> Changes in v1:
->>> - Rebased onto 4.17-rc1.
->>>
->>> Changes in RFC v2:
->>> - Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
->>>   defining it for each arch individually.
->>> - Updated Documentation/arm64/tagged-pointers.txt.
->>> - Dropped "mm, arm64: untag user addresses in memory syscalls".
->>> - Rebased onto 3eb2ce82 (4.16-rc7).
->>>
->>> Reviewed-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
->>> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
->>>
->>> Andrey Konovalov (12):
->>>   uaccess: add untagged_addr definition for other arches
->>>   arm64: untag user pointers in access_ok and __uaccess_mask_ptr
->>>   lib, arm64: untag user pointers in strn*_user
->>>   mm, arm64: untag user pointers passed to memory syscalls
->>>   mm, arm64: untag user pointers in mm/gup.c
->>>   fs, arm64: untag user pointers in copy_mount_options
->>>   fs, arm64: untag user pointers in fs/userfaultfd.c
->>>   net, arm64: untag user pointers in tcp_zerocopy_receive
->>>   kernel, arm64: untag user pointers in prctl_set_mm*
->>>   tracing, arm64: untag user pointers in seq_print_user_ip
->>>   arm64: update Documentation/arm64/tagged-pointers.txt
->>>   selftests, arm64: add a selftest for passing tagged pointers to kernel
->>>
->>>  Documentation/arm64/tagged-pointers.txt       | 25 +++++++++++--------
->>>  arch/arm64/include/asm/uaccess.h              | 10 +++++---
->>>  fs/namespace.c                                |  2 +-
->>>  fs/userfaultfd.c                              |  5 ++++
->>>  include/linux/memory.h                        |  4 +++
->>>  ipc/shm.c                                     |  2 ++
->>>  kernel/sys.c                                  | 14 +++++++++++
->>>  kernel/trace/trace_output.c                   |  2 +-
->>>  lib/strncpy_from_user.c                       |  2 ++
->>>  lib/strnlen_user.c                            |  2 ++
->>>  mm/gup.c                                      |  4 +++
->>>  mm/madvise.c                                  |  2 ++
->>>  mm/mempolicy.c                                |  5 ++++
->>>  mm/migrate.c                                  |  1 +
->>>  mm/mincore.c                                  |  2 ++
->>>  mm/mlock.c                                    |  5 ++++
->>>  mm/mmap.c                                     |  7 ++++++
->>>  mm/mprotect.c                                 |  2 ++
->>>  mm/mremap.c                                   |  2 ++
->>>  mm/msync.c                                    |  2 ++
->>>  net/ipv4/tcp.c                                |  2 ++
->>>  tools/testing/selftests/arm64/.gitignore      |  1 +
->>>  tools/testing/selftests/arm64/Makefile        | 11 ++++++++
->>>  .../testing/selftests/arm64/run_tags_test.sh  | 12 +++++++++
->>>  tools/testing/selftests/arm64/tags_test.c     | 19 ++++++++++++++
->>>  25 files changed, 129 insertions(+), 16 deletions(-)
->>>  create mode 100644 tools/testing/selftests/arm64/.gitignore
->>>  create mode 100644 tools/testing/selftests/arm64/Makefile
->>>  create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
->>>  create mode 100644 tools/testing/selftests/arm64/tags_test.c
->>>
->>
+> Having two flags like you suggest could work. Or you could just make the
+> flag into a nesting counter.
+
+My work-in-progress asm-generic version uses a counter, but I can't squeese
+that into your u8 paca entry. I'll cc you when I post the patches, so
+perhaps you can hack up the ppc side.
+
+> Or do you just remove the clearing from spin_lock()? 
+> 
+> That gets you:
+> 
+>  	spin_lock(&foo);
+>  	outb(42, port);		// io_sync = 1
+>  	spin_lock(&bar);
+>  	...
+>  	spin_unlock(&bar);	// mb(); io_sync = 0
+>  	spin_unlock(&foo);
+> 
+> 
+> And I/O outside of the lock case:
+> 
+>  	outb(42, port);		// io_sync = 1
+> 
+>  	spin_lock(&bar);
+>  	...
+>  	spin_unlock(&bar);	// mb(); io_sync = 0
+> 
+> 
+> Extra barriers are not ideal, but the odd spurious mb() might be
+> preferable to doing another compare and branch or increment in every
+> spin_lock()?
+
+Up to you. I'm working on the assumption that these barriers are insanely
+expensive, otherwise we'd just upgrade spin_unlock() and work on things
+that are more fun instead ;)
+
+Will
