@@ -1,43 +1,25 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 17/20] scsi: qla1280: Remove stale comment about mmiowb()
-Date: Fri, 22 Feb 2019 18:50:23 +0000
-Message-ID: <20190222185026.10973-18-will.deacon@arm.com>
-References: <20190222185026.10973-1-will.deacon@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic/page.h: fix typo in #error text requiring a
+ real asm/page.h
+Date: Fri, 22 Feb 2019 21:53:44 +0100
+Message-ID: <CAK8P3a03ACXyehHTxtefinwEsNbA9F4Ap28SGAFqeA2W_9pq6A@mail.gmail.com>
+References: <1550748991-14362-1-git-send-email-rppt@linux.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190222185026.10973-1-will.deacon@arm.com>
+In-Reply-To: <1550748991-14362-1-git-send-email-rppt@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-All mmiowb() invocations have been removed, so there's no need to keep
-banging on about it.
+On Thu, Feb 21, 2019 at 12:36 PM Mike Rapoport <rppt@linux.ibm.com> wrote:
+>
+> Replace "need to prove a real asm/page.h" with "need to provide a real
+> asm/page.h"
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- drivers/scsi/qla1280.c | 10 ----------
- 1 file changed, 10 deletions(-)
+Applied, thanks!
 
-diff --git a/drivers/scsi/qla1280.c b/drivers/scsi/qla1280.c
-index 93acbc5094f0..327eff67a1ee 100644
---- a/drivers/scsi/qla1280.c
-+++ b/drivers/scsi/qla1280.c
-@@ -3363,16 +3363,6 @@ qla1280_isp_cmd(struct scsi_qla_host *ha)
- 
- 	/*
- 	 * Update request index to mailbox4 (Request Queue In).
--	 * The mmiowb() ensures that this write is ordered with writes by other
--	 * CPUs.  Without the mmiowb(), it is possible for the following:
--	 *    CPUA posts write of index 5 to mailbox4
--	 *    CPUA releases host lock
--	 *    CPUB acquires host lock
--	 *    CPUB posts write of index 6 to mailbox4
--	 *    On PCI bus, order reverses and write of 6 posts, then index 5,
--	 *       causing chip to issue full queue of stale commands
--	 * The mmiowb() prevents future writes from crossing the barrier.
--	 * See Documentation/driver-api/device-io.rst for more information.
- 	 */
- 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
- 
--- 
-2.11.0
+      Arnd
