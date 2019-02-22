@@ -1,69 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60580 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726692AbfBVM6T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Feb 2019 07:58:19 -0500
-Date: Fri, 22 Feb 2019 12:58:13 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v5 01/23] kernel: Standardize vdso_datapage
-Message-ID: <20190222125812.GF42419@lakrids.cambridge.arm.com>
-References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-2-vincenzo.frascino@arm.com>
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:43289 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727209AbfBVMxl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Feb 2019 07:53:41 -0500
+Received: by mail-wr1-f65.google.com with SMTP id d17so2234612wre.10
+        for <linux-arch@vger.kernel.org>; Fri, 22 Feb 2019 04:53:40 -0800 (PST)
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v10 05/12] mm, arm64: untag user pointers in mm/gup.c
+Date: Fri, 22 Feb 2019 13:53:17 +0100
+Message-ID: <12759ef1c30887dd9fc7a04498f5a434a67f98d5.1550839937.git.andreyknvl@google.com>
+In-Reply-To: <cover.1550839937.git.andreyknvl@google.com>
+References: <cover.1550839937.git.andreyknvl@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190222122430.21180-2-vincenzo.frascino@arm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20190222125813.kw28OzTNswBp7Btry9FtBwLHU7oFF1EOrCE2cxJ6bNA@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
+Message-ID: <20190222125317.IyBGc-NHqvAFJD7ab31pSo8heIMPpIxqVSL7NJFX0V4@z>
 
-Hi Vincenzo,
+mm/gup.c provides a kernel interface that accepts user addresses and
+manipulates user pages directly (for example get_user_pages, that is used
+by the futex syscall). Since a user can provided tagged addresses, we need
+to handle such case.
 
-On Fri, Feb 22, 2019 at 12:24:08PM +0000, Vincenzo Frascino wrote:
-> +#ifdef __KERNEL__
+Add untagging to gup.c functions that use user addresses for vma lookup.
 
-I believe that __KERNEL__ guards haven't been necessary (in non-UAPI
-headers) since the UAPI split, and can be removed.
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+ mm/gup.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-[...]
-
-> +#include <linux/bits.h>
-> +#include <linux/types.h>
-> +#include <linux/time.h>
-
-Nit: could we please keep these in alphabetical order?
-
-> +/*
-> + * There is one vdso_timestamp object in vvar for each vDSO-accelerated
-> + * clock_id. For high-resolution clocks, this encodes the time
-> + * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
-> + * the actual time.
-> + *
-> + * To be noticed that for highres clocks nsec is left-shifted by
-> + * vdso_data.cs[x].shift.
-
-Nit: this would read better as:
-
-	Note that for highres clocks nsec is left-shifted by
-	vdso_data.cs[x].shift.
-
-[...]
-
-> +/*
-> + * vdso_data will be accessed by 32 and 64 bit code at the same time
-> + * so we should be careful before modifying this structure.
-> + */
-
-Perhaps:
-
-/*
- * This structure will be accessed by native and compat vDSOs, so we
- * need to ensure the layout is identical for native and compat code.
- */
-
-... which I think is what you're trrying to say?
-
-Thanks,
-Mark.
+diff --git a/mm/gup.c b/mm/gup.c
+index 75029649baca..b6eda1608bea 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -683,6 +683,8 @@ static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
+ 	if (!nr_pages)
+ 		return 0;
+ 
++	start = untagged_addr(start);
++
+ 	VM_BUG_ON(!!pages != !!(gup_flags & FOLL_GET));
+ 
+ 	/*
+@@ -845,6 +847,8 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
+ 	struct vm_area_struct *vma;
+ 	vm_fault_t ret, major = 0;
+ 
++	address = untagged_addr(address);
++
+ 	if (unlocked)
+ 		fault_flags |= FAULT_FLAG_ALLOW_RETRY;
+ 
+-- 
+2.21.0.rc0.258.g878e2cd30e-goog
