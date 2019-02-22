@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 10/23] arm64: compat: Expose signal related structures
-Date: Fri, 22 Feb 2019 12:24:17 +0000
-Message-ID: <20190222122430.21180-11-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 11/23] arm64: compat: Generate asm offsets for signals
+Date: Fri, 22 Feb 2019 12:24:18 +0000
+Message-ID: <20190222122430.21180-12-vincenzo.frascino@arm.com>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,140 +21,75 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-The compat signal data structures are required as part of the compat
-vDSO implementation in order to provide the unwinding information for
-the sigreturn trampolines.
+Update asm-offsets for arm64 to generate the correct offsets for
+compat signals.
 
-Expose the mentioned data structures as part of signal32.h.
+They will be useful for the implementation of the compat sigreturn
+trampolines in vDSO context.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/signal32.h | 46 +++++++++++++++++++++++++++++++
- arch/arm64/kernel/signal32.c      | 46 -------------------------------
- 2 files changed, 46 insertions(+), 46 deletions(-)
+ arch/arm64/include/asm/signal32.h | 14 +++++++++++++-
+ arch/arm64/kernel/asm-offsets.c   |  6 ++++++
+ 2 files changed, 19 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
-index 58e288aaf0ba..1f05268f4c6d 100644
+index 1f05268f4c6d..a6fd7be1b22a 100644
 --- a/arch/arm64/include/asm/signal32.h
 +++ b/arch/arm64/include/asm/signal32.h
-@@ -20,6 +20,52 @@
- #ifdef CONFIG_COMPAT
- #include <linux/compat.h>
+@@ -52,7 +52,7 @@ struct compat_ucontext {
+ 	compat_stack_t			uc_stack;
+ 	struct compat_sigcontext	uc_mcontext;
+ 	compat_sigset_t			uc_sigmask;
+-	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
++	int				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
+ 	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
+ };
  
-+struct compat_sigcontext {
-+	/* We always set these two fields to 0 */
-+	compat_ulong_t			trap_no;
-+	compat_ulong_t			error_code;
+@@ -66,6 +66,18 @@ struct compat_rt_sigframe {
+ 	struct compat_sigframe sig;
+ };
+ 
++/* Macros for asm-offsets.c */
++#define OFFSET_OF_COMPAT_SIGFRAME_REGS (				\
++			offsetof(struct compat_sigframe, uc) +		\
++			offsetof(struct compat_ucontext, uc_mcontext) +	\
++			offsetof(struct compat_sigcontext, arm_r0))
 +
-+	compat_ulong_t			oldmask;
-+	compat_ulong_t			arm_r0;
-+	compat_ulong_t			arm_r1;
-+	compat_ulong_t			arm_r2;
-+	compat_ulong_t			arm_r3;
-+	compat_ulong_t			arm_r4;
-+	compat_ulong_t			arm_r5;
-+	compat_ulong_t			arm_r6;
-+	compat_ulong_t			arm_r7;
-+	compat_ulong_t			arm_r8;
-+	compat_ulong_t			arm_r9;
-+	compat_ulong_t			arm_r10;
-+	compat_ulong_t			arm_fp;
-+	compat_ulong_t			arm_ip;
-+	compat_ulong_t			arm_sp;
-+	compat_ulong_t			arm_lr;
-+	compat_ulong_t			arm_pc;
-+	compat_ulong_t			arm_cpsr;
-+	compat_ulong_t			fault_address;
-+};
-+
-+struct compat_ucontext {
-+	compat_ulong_t			uc_flags;
-+	compat_uptr_t			uc_link;
-+	compat_stack_t			uc_stack;
-+	struct compat_sigcontext	uc_mcontext;
-+	compat_sigset_t			uc_sigmask;
-+	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
-+	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
-+};
-+
-+struct compat_sigframe {
-+	struct compat_ucontext	uc;
-+	compat_ulong_t		retcode[2];
-+};
-+
-+struct compat_rt_sigframe {
-+	struct compat_siginfo info;
-+	struct compat_sigframe sig;
-+};
++#define OFFSET_OF_COMPAT_RT_SIGFRAME_REGS (				\
++			offsetof(struct compat_rt_sigframe, sig) +	\
++			offsetof(struct compat_sigframe, uc) +		\
++			offsetof(struct compat_ucontext, uc_mcontext) +	\
++			offsetof(struct compat_sigcontext, arm_r0))
 +
  int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
  		       struct pt_regs *regs);
  int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index 3846a1b710b5..d916fd7f6409 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -30,42 +30,6 @@
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
- 
--struct compat_sigcontext {
--	/* We always set these two fields to 0 */
--	compat_ulong_t			trap_no;
--	compat_ulong_t			error_code;
--
--	compat_ulong_t			oldmask;
--	compat_ulong_t			arm_r0;
--	compat_ulong_t			arm_r1;
--	compat_ulong_t			arm_r2;
--	compat_ulong_t			arm_r3;
--	compat_ulong_t			arm_r4;
--	compat_ulong_t			arm_r5;
--	compat_ulong_t			arm_r6;
--	compat_ulong_t			arm_r7;
--	compat_ulong_t			arm_r8;
--	compat_ulong_t			arm_r9;
--	compat_ulong_t			arm_r10;
--	compat_ulong_t			arm_fp;
--	compat_ulong_t			arm_ip;
--	compat_ulong_t			arm_sp;
--	compat_ulong_t			arm_lr;
--	compat_ulong_t			arm_pc;
--	compat_ulong_t			arm_cpsr;
--	compat_ulong_t			fault_address;
--};
--
--struct compat_ucontext {
--	compat_ulong_t			uc_flags;
--	compat_uptr_t			uc_link;
--	compat_stack_t			uc_stack;
--	struct compat_sigcontext	uc_mcontext;
--	compat_sigset_t			uc_sigmask;
--	int		__unused[32 - (sizeof (compat_sigset_t) / sizeof (int))];
--	compat_ulong_t	uc_regspace[128] __attribute__((__aligned__(8)));
--};
--
- struct compat_vfp_sigframe {
- 	compat_ulong_t	magic;
- 	compat_ulong_t	size;
-@@ -92,16 +56,6 @@ struct compat_aux_sigframe {
- 	unsigned long			end_magic;
- } __attribute__((__aligned__(8)));
- 
--struct compat_sigframe {
--	struct compat_ucontext	uc;
--	compat_ulong_t		retcode[2];
--};
--
--struct compat_rt_sigframe {
--	struct compat_siginfo info;
--	struct compat_sigframe sig;
--};
--
- #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
- 
- static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
+diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
+index 4adb52190a90..afd28ccda174 100644
+--- a/arch/arm64/kernel/asm-offsets.c
++++ b/arch/arm64/kernel/asm-offsets.c
+@@ -30,6 +30,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
++#include <asm/signal32.h>
+ #include <asm/smp_plat.h>
+ #include <asm/suspend.h>
+ #include <linux/kbuild.h>
+@@ -84,6 +85,11 @@ int main(void)
+   DEFINE(S_STACKFRAME,		offsetof(struct pt_regs, stackframe));
+   DEFINE(S_FRAME_SIZE,		sizeof(struct pt_regs));
+   BLANK();
++#ifdef CONFIG_COMPAT
++  DEFINE(COMPAT_SIGFRAME_REGS_OFFSET,		OFFSET_OF_COMPAT_SIGFRAME_REGS);
++  DEFINE(COMPAT_RT_SIGFRAME_REGS_OFFSET,	OFFSET_OF_COMPAT_RT_SIGFRAME_REGS);
++  BLANK();
++#endif
+   DEFINE(MM_CONTEXT_ID,		offsetof(struct mm_struct, context.id.counter));
+   BLANK();
+   DEFINE(VMA_VM_MM,		offsetof(struct vm_area_struct, vm_mm));
 -- 
 2.20.1
