@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 11/20] ia64: Add unconditional mmiowb() to arch_spin_unlock()
-Date: Fri, 22 Feb 2019 18:50:17 +0000
-Message-ID: <20190222185026.10973-12-will.deacon@arm.com>
+Subject: [RFC PATCH 12/20] powerpc: mmiowb: Hook up mmwiob() implementation to asm-generic code
+Date: Fri, 22 Feb 2019 18:50:18 +0000
+Message-ID: <20190222185026.10973-13-will.deacon@arm.com>
 References: <20190222185026.10973-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190222185026.10973-1-will.deacon@arm.com>
@@ -10,95 +10,226 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-The mmiowb() macro is horribly difficult to use and drivers will continue
-to work most of the time if they omit a call when it is required.
+In a bid to kill off explicit mmiowb() usage in driver code, hook up
+the asm-generic mmiowb() tracking code but override all of the functions
+so that the existing (flawed) implementation is preserved on Power.
 
-Rather than rely on driver authors getting this right, push mmiowb() into
-arch_spin_unlock() for ia64. If this is deemed to be a performance issue,
-a subsequent optimisation could make use of ARCH_HAS_MMIOWB to elide
-the barrier in cases where no I/O writes were performned inside the
-critical section.
+Future work should either use the asm-generic implementation entirely,
+or implement a similar counting mechanism to avoid erroneously skipping
+barrier invocations when they are needed.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/ia64/include/asm/Kbuild     |  1 -
- arch/ia64/include/asm/io.h       |  4 ----
- arch/ia64/include/asm/mmiowb.h   | 12 ++++++++++++
- arch/ia64/include/asm/spinlock.h |  2 ++
- 4 files changed, 14 insertions(+), 5 deletions(-)
- create mode 100644 arch/ia64/include/asm/mmiowb.h
+ arch/powerpc/Kconfig                |  1 +
+ arch/powerpc/include/asm/Kbuild     |  1 -
+ arch/powerpc/include/asm/io.h       | 33 +++--------------------------
+ arch/powerpc/include/asm/mmiowb.h   | 41 +++++++++++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/spinlock.h | 17 ---------------
+ 5 files changed, 45 insertions(+), 48 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/mmiowb.h
 
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index 3273d7aedfa0..43e21fe3499c 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -4,7 +4,6 @@ generic-y += exec.h
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 2890d36eb531..242ee248b922 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -134,6 +134,7 @@ config PPC
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FORTIFY_SOURCE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
++	select ARCH_HAS_MMIOWB			if PPC64 && SMP
+ 	select ARCH_HAS_PHYS_TO_DMA
+ 	select ARCH_HAS_PMEM_API                if PPC64
+ 	select ARCH_HAS_PTE_SPECIAL
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index 57bd1f6660f4..77ff7fb24823 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -8,7 +8,6 @@ generic-y += irq_regs.h
  generic-y += irq_work.h
+ generic-y += local64.h
  generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
 -generic-y += mmiowb.h
  generic-y += preempt.h
- generic-y += trace_clock.h
+ generic-y += rwsem.h
  generic-y += vtime.h
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index 1e6fef69bb01..7f2371ba04a4 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -119,8 +119,6 @@ extern int valid_mmap_phys_addr_range (unsigned long pfn, size_t count);
-  * Ensure ordering of I/O space writes.  This will make sure that writes
-  * following the barrier will arrive after all previous writes.  For most
-  * ia64 platforms, this is a simple 'mf.a' instruction.
-- *
-- * See Documentation/driver-api/device-io.rst for more information.
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+index 7f19fbd3ba55..828100476ba6 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -34,14 +34,11 @@ extern struct pci_dev *isa_bridge_pcidev;
+ #include <asm/byteorder.h>
+ #include <asm/synch.h>
+ #include <asm/delay.h>
++#include <asm/mmiowb.h>
+ #include <asm/mmu.h>
+ #include <asm/ppc_asm.h>
+ #include <asm/pgtable.h>
+ 
+-#ifdef CONFIG_PPC64
+-#include <asm/paca.h>
+-#endif
+-
+ #define SIO_CONFIG_RA	0x398
+ #define SIO_CONFIG_RD	0x399
+ 
+@@ -107,12 +104,6 @@ extern bool isa_io_special;
+  *
   */
- static inline void ___ia64_mmiowb(void)
+ 
+-#ifdef CONFIG_PPC64
+-#define IO_SET_SYNC_FLAG()	do { local_paca->io_sync = 1; } while(0)
+-#else
+-#define IO_SET_SYNC_FLAG()
+-#endif
+-
+ #define DEF_MMIO_IN_X(name, size, insn)				\
+ static inline u##size name(const volatile u##size __iomem *addr)	\
+ {									\
+@@ -127,7 +118,7 @@ static inline void name(volatile u##size __iomem *addr, u##size val)	\
+ {									\
+ 	__asm__ __volatile__("sync;"#insn" %1,%y0"			\
+ 		: "=Z" (*addr) : "r" (val) : "memory");			\
+-	IO_SET_SYNC_FLAG();						\
++	mmiowb_set_pending();						\
+ }
+ 
+ #define DEF_MMIO_IN_D(name, size, insn)				\
+@@ -144,7 +135,7 @@ static inline void name(volatile u##size __iomem *addr, u##size val)	\
+ {									\
+ 	__asm__ __volatile__("sync;"#insn"%U0%X0 %1,%0"			\
+ 		: "=m" (*addr) : "r" (val) : "memory");			\
+-	IO_SET_SYNC_FLAG();						\
++	mmiowb_set_pending();						\
+ }
+ 
+ DEF_MMIO_IN_D(in_8,     8, lbz);
+@@ -652,24 +643,6 @@ static inline void name at					\
+ 
+ #include <asm-generic/iomap.h>
+ 
+-#ifdef CONFIG_PPC32
+-#define mmiowb()
+-#else
+-/*
+- * Enforce synchronisation of stores vs. spin_unlock
+- * (this does it explicitly, though our implementation of spin_unlock
+- * does it implicitely too)
+- */
+-static inline void mmiowb(void)
+-{
+-	unsigned long tmp;
+-
+-	__asm__ __volatile__("sync; li %0,0; stb %0,%1(13)"
+-	: "=&r" (tmp) : "i" (offsetof(struct paca_struct, io_sync))
+-	: "memory");
+-}
+-#endif /* !CONFIG_PPC32 */
+-
+ static inline void iosync(void)
  {
-@@ -296,7 +294,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define __outb		platform_outb
- #define __outw		platform_outw
- #define __outl		platform_outl
--#define __mmiowb	platform_mmiowb
- 
- #define inb(p)		__inb(p)
- #define inw(p)		__inw(p)
-@@ -310,7 +307,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define outsb(p,s,c)	__outsb(p,s,c)
- #define outsw(p,s,c)	__outsw(p,s,c)
- #define outsl(p,s,c)	__outsl(p,s,c)
--#define mmiowb()	__mmiowb()
- 
- /*
-  * The address passed to these functions are ioremap()ped already.
-diff --git a/arch/ia64/include/asm/mmiowb.h b/arch/ia64/include/asm/mmiowb.h
+         __asm__ __volatile__ ("sync" : : : "memory");
+diff --git a/arch/powerpc/include/asm/mmiowb.h b/arch/powerpc/include/asm/mmiowb.h
 new file mode 100644
-index 000000000000..238d56172c6f
+index 000000000000..7647ffcced1c
 --- /dev/null
-+++ b/arch/ia64/include/asm/mmiowb.h
-@@ -0,0 +1,12 @@
++++ b/arch/powerpc/include/asm/mmiowb.h
+@@ -0,0 +1,41 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_POWERPC_MMIOWB_H
++#define _ASM_POWERPC_MMIOWB_H
 +
-+#ifndef _ASM_IA64_MMIOWB_H
-+#define _ASM_IA64_MMIOWB_H
++#ifdef CONFIG_ARCH_HAS_MMIOWB
 +
-+#include <asm/machvec.h>
++#include <linux/compiler.h>
++#include <asm/barrier.h>
++#include <asm/paca.h>
 +
-+#define mmiowb()	platform_mmiowb()
++#define mmiowb()		mb()
++
++/*
++ * Note: this is broken, as it doesn't correctly handle sequences such as:
++ *
++ *	spin_lock(&foo);	// io_sync = 0
++ *	outb(42, port);		// io_sync = 1
++ *	spin_lock(&bar);	// io_sync = 0
++ *	...
++ *	spin_unlock(&bar);
++ *	spin_unlock(&foo);
++ *
++ * The implementation in asm-generic/mmiowb.h deals with this by counting
++ * the critical sections.
++ */
++#define mmiowb_set_pending()	do { local_paca->io_sync = 1; } while (0)
++#define mmiowb_spin_lock()	do { get_paca()->io_sync = 0; } while (0)
++
++#define mmiowb_spin_unlock()	do {					\
++	if (unlikely(get_paca()->io_sync)) {				\
++		mmiowb();						\
++		get_paca()->io_sync = 0;				\
++	}								\
++} while (0)
++#else
++#define mmiowb()		do { } while (0)
++#endif /* CONFIG_ARCH_HAS_MMIOWB */
 +
 +#include <asm-generic/mmiowb.h>
 +
-+#endif	/* _ASM_IA64_MMIOWB_H */
-diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
-index afd0b3121b4c..5f620e66384e 100644
---- a/arch/ia64/include/asm/spinlock.h
-+++ b/arch/ia64/include/asm/spinlock.h
-@@ -73,6 +73,8 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
- {
- 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
++#endif	/* _ASM_POWERPC_MMIOWB_H */
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 685c72310f5d..15b39c407c4e 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -39,19 +39,6 @@
+ #define LOCK_TOKEN	1
+ #endif
  
-+	/* This could be optimised with ARCH_HAS_MMIOWB */
-+	mmiowb();
- 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
- 	WRITE_ONCE(*p, (tmp + 2) & ~1);
+-#if defined(CONFIG_PPC64) && defined(CONFIG_SMP)
+-#define CLEAR_IO_SYNC	(get_paca()->io_sync = 0)
+-#define SYNC_IO		do {						\
+-				if (unlikely(get_paca()->io_sync)) {	\
+-					mb();				\
+-					get_paca()->io_sync = 0;	\
+-				}					\
+-			} while (0)
+-#else
+-#define CLEAR_IO_SYNC
+-#define SYNC_IO
+-#endif
+-
+ #ifdef CONFIG_PPC_PSERIES
+ #define vcpu_is_preempted vcpu_is_preempted
+ static inline bool vcpu_is_preempted(int cpu)
+@@ -99,7 +86,6 @@ static inline unsigned long __arch_spin_trylock(arch_spinlock_t *lock)
+ 
+ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+ {
+-	CLEAR_IO_SYNC;
+ 	return __arch_spin_trylock(lock) == 0;
  }
+ 
+@@ -130,7 +116,6 @@ extern void __rw_yield(arch_rwlock_t *lock);
+ 
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ {
+-	CLEAR_IO_SYNC;
+ 	while (1) {
+ 		if (likely(__arch_spin_trylock(lock) == 0))
+ 			break;
+@@ -148,7 +133,6 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+ {
+ 	unsigned long flags_dis;
+ 
+-	CLEAR_IO_SYNC;
+ 	while (1) {
+ 		if (likely(__arch_spin_trylock(lock) == 0))
+ 			break;
+@@ -167,7 +151,6 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+ 
+ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+ {
+-	SYNC_IO;
+ 	__asm__ __volatile__("# arch_spin_unlock\n\t"
+ 				PPC_RELEASE_BARRIER: : :"memory");
+ 	lock->slock = 0;
 -- 
 2.11.0
