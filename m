@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 10/20] mips: Add unconditional mmiowb() to arch_spin_unlock()
-Date: Fri, 22 Feb 2019 18:50:16 +0000
-Message-ID: <20190222185026.10973-11-will.deacon@arm.com>
+Subject: [RFC PATCH 11/20] ia64: Add unconditional mmiowb() to arch_spin_unlock()
+Date: Fri, 22 Feb 2019 18:50:17 +0000
+Message-ID: <20190222185026.10973-12-will.deacon@arm.com>
 References: <20190222185026.10973-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190222185026.10973-1-will.deacon@arm.com>
@@ -14,88 +14,91 @@ The mmiowb() macro is horribly difficult to use and drivers will continue
 to work most of the time if they omit a call when it is required.
 
 Rather than rely on driver authors getting this right, push mmiowb() into
-arch_spin_unlock() for mips. If this is deemed to be a performance issue,
+arch_spin_unlock() for ia64. If this is deemed to be a performance issue,
 a subsequent optimisation could make use of ARCH_HAS_MMIOWB to elide
 the barrier in cases where no I/O writes were performned inside the
 critical section.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/mips/include/asm/Kbuild     |  1 -
- arch/mips/include/asm/io.h       |  3 ---
- arch/mips/include/asm/mmiowb.h   | 11 +++++++++++
- arch/mips/include/asm/spinlock.h | 15 +++++++++++++++
- 4 files changed, 26 insertions(+), 4 deletions(-)
- create mode 100644 arch/mips/include/asm/mmiowb.h
+ arch/ia64/include/asm/Kbuild     |  1 -
+ arch/ia64/include/asm/io.h       |  4 ----
+ arch/ia64/include/asm/mmiowb.h   | 12 ++++++++++++
+ arch/ia64/include/asm/spinlock.h |  2 ++
+ 4 files changed, 14 insertions(+), 5 deletions(-)
+ create mode 100644 arch/ia64/include/asm/mmiowb.h
 
-diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
-index 5653b1e47dd0..f15d5db5dd67 100644
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -13,7 +13,6 @@ generic-y += irq_work.h
- generic-y += local64.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index 3273d7aedfa0..43e21fe3499c 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -4,7 +4,6 @@ generic-y += exec.h
+ generic-y += irq_work.h
  generic-y += mcs_spinlock.h
  generic-y += mm-arch-hooks.h
 -generic-y += mmiowb.h
- generic-y += msi.h
- generic-y += parport.h
- generic-y += percpu.h
-diff --git a/arch/mips/include/asm/io.h b/arch/mips/include/asm/io.h
-index 845fbbc7a2e3..29997e42480e 100644
---- a/arch/mips/include/asm/io.h
-+++ b/arch/mips/include/asm/io.h
-@@ -102,9 +102,6 @@ static inline void set_io_port_base(unsigned long base)
- #define iobarrier_w() wmb()
- #define iobarrier_sync() iob()
+ generic-y += preempt.h
+ generic-y += trace_clock.h
+ generic-y += vtime.h
+diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
+index 1e6fef69bb01..7f2371ba04a4 100644
+--- a/arch/ia64/include/asm/io.h
++++ b/arch/ia64/include/asm/io.h
+@@ -119,8 +119,6 @@ extern int valid_mmap_phys_addr_range (unsigned long pfn, size_t count);
+  * Ensure ordering of I/O space writes.  This will make sure that writes
+  * following the barrier will arrive after all previous writes.  For most
+  * ia64 platforms, this is a simple 'mf.a' instruction.
+- *
+- * See Documentation/driver-api/device-io.rst for more information.
+  */
+ static inline void ___ia64_mmiowb(void)
+ {
+@@ -296,7 +294,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
+ #define __outb		platform_outb
+ #define __outw		platform_outw
+ #define __outl		platform_outl
+-#define __mmiowb	platform_mmiowb
  
--/* Some callers use this older API instead.  */
--#define mmiowb() iobarrier_w()
--
+ #define inb(p)		__inb(p)
+ #define inw(p)		__inw(p)
+@@ -310,7 +307,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
+ #define outsb(p,s,c)	__outsb(p,s,c)
+ #define outsw(p,s,c)	__outsw(p,s,c)
+ #define outsl(p,s,c)	__outsl(p,s,c)
+-#define mmiowb()	__mmiowb()
+ 
  /*
-  *     virt_to_phys    -       map virtual addresses to physical
-  *     @address: address to remap
-diff --git a/arch/mips/include/asm/mmiowb.h b/arch/mips/include/asm/mmiowb.h
+  * The address passed to these functions are ioremap()ped already.
+diff --git a/arch/ia64/include/asm/mmiowb.h b/arch/ia64/include/asm/mmiowb.h
 new file mode 100644
-index 000000000000..a40824e3ef8e
+index 000000000000..238d56172c6f
 --- /dev/null
-+++ b/arch/mips/include/asm/mmiowb.h
-@@ -0,0 +1,11 @@
++++ b/arch/ia64/include/asm/mmiowb.h
+@@ -0,0 +1,12 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_MMIOWB_H
-+#define _ASM_MMIOWB_H
 +
-+#include <asm/io.h>
++#ifndef _ASM_IA64_MMIOWB_H
++#define _ASM_IA64_MMIOWB_H
 +
-+#define mmiowb()	iobarrier_w()
++#include <asm/machvec.h>
++
++#define mmiowb()	platform_mmiowb()
 +
 +#include <asm-generic/mmiowb.h>
 +
-+#endif	/* _ASM_MMIOWB_H */
-diff --git a/arch/mips/include/asm/spinlock.h b/arch/mips/include/asm/spinlock.h
-index ee81297d9117..8a88eb265516 100644
---- a/arch/mips/include/asm/spinlock.h
-+++ b/arch/mips/include/asm/spinlock.h
-@@ -11,6 +11,21 @@
++#endif	/* _ASM_IA64_MMIOWB_H */
+diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
+index afd0b3121b4c..5f620e66384e 100644
+--- a/arch/ia64/include/asm/spinlock.h
++++ b/arch/ia64/include/asm/spinlock.h
+@@ -73,6 +73,8 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
+ {
+ 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
  
- #include <asm/processor.h>
- #include <asm/qrwlock.h>
-+
-+#include <asm-generic/qspinlock_types.h>
-+
-+#define	queued_spin_unlock queued_spin_unlock
-+/**
-+ * queued_spin_unlock - release a queued spinlock
-+ * @lock : Pointer to queued spinlock structure
-+ */
-+static inline void queued_spin_unlock(struct qspinlock *lock)
-+{
 +	/* This could be optimised with ARCH_HAS_MMIOWB */
 +	mmiowb();
-+	smp_store_release(&lock->locked, 0);
-+}
-+
- #include <asm/qspinlock.h>
- 
- #endif /* _ASM_SPINLOCK_H */
+ 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
+ 	WRITE_ONCE(*p, (tmp + 2) & ~1);
+ }
 -- 
 2.11.0
