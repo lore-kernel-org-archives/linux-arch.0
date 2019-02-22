@@ -1,52 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f68.google.com ([209.85.167.68]:45772 "EHLO
-        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725774AbfBVVzj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Feb 2019 16:55:39 -0500
-Received: by mail-lf1-f68.google.com with SMTP id h10so2808968lfc.12
-        for <linux-arch@vger.kernel.org>; Fri, 22 Feb 2019 13:55:38 -0800 (PST)
-Received: from mail-lf1-f48.google.com (mail-lf1-f48.google.com. [209.85.167.48])
-        by smtp.gmail.com with ESMTPSA id 21sm704059ljw.95.2019.02.22.13.55.37
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Fri, 22 Feb 2019 13:55:37 -0800 (PST)
-Received: by mail-lf1-f48.google.com with SMTP id m11so2836310lfc.6
-        for <linux-arch@vger.kernel.org>; Fri, 22 Feb 2019 13:55:37 -0800 (PST)
+Received: from mga07.intel.com ([134.134.136.100]:35507 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725811AbfBVWyw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Feb 2019 17:54:52 -0500
+Subject: Re: [PATCH v10 00/12] arm64: untag user pointers passed to the kernel
+References: <cover.1550839937.git.andreyknvl@google.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <2ad5f897-25c0-90cf-f54f-827876873a0a@intel.com>
+Date: Fri, 22 Feb 2019 14:54:51 -0800
 MIME-Version: 1.0
-References: <20190222185026.10973-1-will.deacon@arm.com> <20190222185026.10973-2-will.deacon@arm.com>
- <CAHk-=wgamK0=rNsCfDfDzmNXUF_MqUHb0okzqN1Tir9vm65pNg@mail.gmail.com>
-In-Reply-To: <CAHk-=wgamK0=rNsCfDfDzmNXUF_MqUHb0okzqN1Tir9vm65pNg@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 22 Feb 2019 13:55:20 -0800
-Message-ID: <CAHk-=whK=Pb9QZhYkqFGUjK1Sas620qjO1Y_EzSBiHSXxJfTYQ@mail.gmail.com>
-Subject: Re: [RFC PATCH 01/20] asm-generic/mmiowb: Add generic implementation
- of mmiowb() tracking
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <cover.1550839937.git.andreyknvl@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20190222215520.6_cjo6-NLU5cZUmRuZDIJ7t41qjwYghgPnM4_Yk-T6A@z>
+To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190222225451.nDNJHiXeXcV-HBL9UbCX_kEFVOVg_wFVnftKfKLters@z>
 
-On Fri, Feb 22, 2019 at 1:49 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> The case we want to go fast is the spin-lock and unlock case, not the
-> "set pending" case.
->
-> And the way you implemented this, it's exactly the wrong way around.
+On 2/22/19 4:53 AM, Andrey Konovalov wrote:
+> The following testing approaches has been taken to find potential issues
+> with user pointer untagging:
+> 
+> 1. Static testing (with sparse [3] and separately with a custom static
+>    analyzer based on Clang) to track casts of __user pointers to integer
+>    types to find places where untagging needs to be done.
 
-Oh, one more comment: couldn't we make that mmiowb flag be right next
-to the preemption count?
+First of all, it's really cool that you took this approach.  Sounds like
+there was a lot of systematic work to fix up the sites in the existing
+codebase.
 
-Because that's the common case anyway, where a spinlock increments the
-preemption count too. If we put the mmiowb state in the same
-cacheline, we don't cause extra cache effects, which is what really
-matters, I guess.
-
-I realize this is somewhat inconvenient, because some architectures
-put preempt count in the thread structure, and others do it as a
-percpu variable. But maybe the architecture could just declare where
-the mmiowb state is?
-
-                 Linus
+But, isn't this a _bit_ fragile going forward?  Folks can't just "make
+sparse" to find issues with missing untags.  This seems like something
+where we would ideally add an __tagged annotation (or something) to the
+source tree and then have sparse rules that can look for missed untags.
