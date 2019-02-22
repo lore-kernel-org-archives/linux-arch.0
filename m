@@ -1,73 +1,28 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v5 01/23] kernel: Standardize vdso_datapage
-Date: Fri, 22 Feb 2019 12:58:13 +0000
-Message-ID: <20190222125812.GF42419@lakrids.cambridge.arm.com>
-References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-2-vincenzo.frascino@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Date: Fri, 22 Feb 2019 14:00:14 +0100
+Message-ID: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
+References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20190220020117.GD11787@linux.ibm.com>
+ <20190220092604.GD32494@hirez.programming.kicks-ass.net>
+ <20190220131456.GA3215@andrea>
+ <20190220132714.GI32494@hirez.programming.kicks-ass.net>
+ <20190222112128.GA7213@andrea>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190222122430.21180-2-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20190222112128.GA7213@andrea>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Vincenzo,
+On Fri, Feb 22, 2019 at 12:21:28PM +0100, Andrea Parri wrote:
+> > What I do object to is a model that's weaker than any possible sane
+> > hardware.
+> 
+> Not the first time I hear you calling this out.  And inevitably, every
+> time, other slogans come to my mind:  "C is not an assembly language",
 
-On Fri, Feb 22, 2019 at 12:24:08PM +0000, Vincenzo Frascino wrote:
-> +#ifdef __KERNEL__
-
-I believe that __KERNEL__ guards haven't been necessary (in non-UAPI
-headers) since the UAPI split, and can be removed.
-
-[...]
-
-> +#include <linux/bits.h>
-> +#include <linux/types.h>
-> +#include <linux/time.h>
-
-Nit: could we please keep these in alphabetical order?
-
-> +/*
-> + * There is one vdso_timestamp object in vvar for each vDSO-accelerated
-> + * clock_id. For high-resolution clocks, this encodes the time
-> + * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
-> + * the actual time.
-> + *
-> + * To be noticed that for highres clocks nsec is left-shifted by
-> + * vdso_data.cs[x].shift.
-
-Nit: this would read better as:
-
-	Note that for highres clocks nsec is left-shifted by
-	vdso_data.cs[x].shift.
-
-[...]
-
-> +/*
-> + * vdso_data will be accessed by 32 and 64 bit code at the same time
-> + * so we should be careful before modifying this structure.
-> + */
-
-Perhaps:
-
-/*
- * This structure will be accessed by native and compat vDSOs, so we
- * need to ensure the layout is identical for native and compat code.
- */
-
-... which I think is what you're trrying to say?
-
-Thanks,
-Mark.
+But it bloody well should be ;-)
