@@ -1,14 +1,14 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v5 02/23] kernel: Define gettimeofday vdso common code
-Date: Sat, 23 Feb 2019 11:34:51 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1902231123030.1666@nanos.tec.linutronix.de>
+Subject: Re: [PATCH v5 22/23] x86: Add support for generic vDSO
+Date: Sat, 23 Feb 2019 11:45:15 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1902231138130.1666@nanos.tec.linutronix.de>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-3-vincenzo.frascino@arm.com>
+ <20190222122430.21180-23-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190222122430.21180-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20190222122430.21180-23-vincenzo.frascino@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -23,50 +23,40 @@ Cc: linux-arch@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <ar
 List-Id: linux-arch.vger.kernel.org
 
 On Fri, 22 Feb 2019, Vincenzo Frascino wrote:
-> +static notrace int __cvdso_clock_getres(clockid_t clock,
-> +					struct __vdso_timespec *res)
-> +{
-> +	u64 sec, ns;
-> +	u32 msk;
-> +
-> +	/* Check for negative values or invalid clocks */
-> +	if (unlikely((u32) clock >= MAX_CLOCKS))
-> +		goto fallback;
-> +
-> +	/*
-> +	 * Convert the clockid to a bitmask and use it to check which
-> +	 * clocks are handled in the VDSO directly.
-> +	 */
-> +	msk = 1U << clock;
-> +	if (msk & VDSO_HRES) {
-> +		/*
-> +		 * Preserves the behaviour of posix_get_hrtimer_res().
-> +		 */
+>  void update_vsyscall_tz(void)
+>  {
+> -	vsyscall_gtod_data.tz_minuteswest = sys_tz.tz_minuteswest;
+> -	vsyscall_gtod_data.tz_dsttime = sys_tz.tz_dsttime;
+> +	vdso_data.tz_minuteswest = sys_tz.tz_minuteswest;
+> +	vdso_data.tz_dsttime = sys_tz.tz_dsttime;
+>  }
+>  
+>  void update_vsyscall(struct timekeeper *tk)
+>  {
+>  	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
+> -	struct vsyscall_gtod_data *vdata = &vsyscall_gtod_data;
+> -	struct vgtod_ts *base;
+> +	struct vdso_data *vdata = &vdso_data;
+> +	struct vdso_timestamp *vdso_ts;
+>  	u64 nsec;
+>  
+>  	/* Mark the new vclock used. */
+>  	BUILD_BUG_ON(VCLOCK_MAX >= 32);
+>  	WRITE_ONCE(vclocks_used, READ_ONCE(vclocks_used) | (1 << vclock_mode));
+>  
+> -	gtod_write_begin(vdata);
+> +	vdso_write_begin(vdata);
 
-So much for the theory.
+This begs the question why this update code is still architecture
+specific. The vdso data is now generic, so the whole update can be generic
+as well. The only x86 specific thing is this perhaps:
 
-> +		sec = 0;
-> +		ns = MONOTONIC_RES_NSEC;
+  	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
 
-posix_get_hrtimer_res() does:
+	vdata->clock_mode	= vclock_mode;
 
-	sec = 0;
-	ns = hrtimer_resolution;
-
-and hrtimer_resolution depends on the enablement of high resolution timers
-either compile or run time.
-
-So you need to have a copy of hrtimer_resolution in the vdso data and use
-that.
-
-> +	} else if (msk & VDSO_COARSE) {
-> +		/*
-> +		 * Preserves the behaviour of posix_get_coarse_res().
-> +		 */
-> +		ns = LOW_RES_NSEC;
-> +		sec = __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
-
-Do we allow CONFIG_HZ = 1?
+But either than can be made generic and mandatory or easily resolved with a
+trivial arch_update_vsyscall() inline.
 
 Thanks,
 
