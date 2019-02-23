@@ -1,44 +1,73 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v10 04/12] mm, arm64: untag user pointers passed to memory
- syscalls
-Date: Fri, 22 Feb 2019 15:07:45 -0800
-Message-ID: <81ea4e77-90a4-4fd9-2bc8-135e0da30044@intel.com>
-References: <cover.1550839937.git.andreyknvl@google.com>
- <3875fa863b755d8cb43afa7bb0fe543e5fd05a5d.1550839937.git.andreyknvl@google.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v5 02/23] kernel: Define gettimeofday vdso common code
+Date: Sat, 23 Feb 2019 11:34:51 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1902231123030.1666@nanos.tec.linutronix.de>
+References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
+ <20190222122430.21180-3-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3875fa863b755d8cb43afa7bb0fe543e5fd05a5d.1550839937.git.andreyknvl@google.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190222122430.21180-3-vincenzo.frascino@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2/22/19 4:53 AM, Andrey Konovalov wrote:
-> --- a/mm/mprotect.c
-> +++ b/mm/mprotect.c
-> @@ -578,6 +578,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
->  SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
->  		unsigned long, prot)
->  {
-> +	start = untagged_addr(start);
->  	return do_mprotect_pkey(start, len, prot, -1);
->  }
->  
-> @@ -586,6 +587,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
->  SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
->  		unsigned long, prot, int, pkey)
->  {
-> +	start = untagged_addr(start);
->  	return do_mprotect_pkey(start, len, prot, pkey);
->  }
+On Fri, 22 Feb 2019, Vincenzo Frascino wrote:
+> +static notrace int __cvdso_clock_getres(clockid_t clock,
+> +					struct __vdso_timespec *res)
+> +{
+> +	u64 sec, ns;
+> +	u32 msk;
+> +
+> +	/* Check for negative values or invalid clocks */
+> +	if (unlikely((u32) clock >= MAX_CLOCKS))
+> +		goto fallback;
+> +
+> +	/*
+> +	 * Convert the clockid to a bitmask and use it to check which
+> +	 * clocks are handled in the VDSO directly.
+> +	 */
+> +	msk = 1U << clock;
+> +	if (msk & VDSO_HRES) {
+> +		/*
+> +		 * Preserves the behaviour of posix_get_hrtimer_res().
+> +		 */
 
-This seems to have taken the approach of going as close as possible to
-the syscall boundary and untagging the pointer there.  I guess that's
-OK, but it does lead to more churn than necessary.  For instance, why
-not just do the untagging in do_mprotect_pkey()?
+So much for the theory.
 
-I think that's an overall design question.  I kinda asked the same thing
-about patching call sites vs. VMA lookup functions.
+> +		sec = 0;
+> +		ns = MONOTONIC_RES_NSEC;
+
+posix_get_hrtimer_res() does:
+
+	sec = 0;
+	ns = hrtimer_resolution;
+
+and hrtimer_resolution depends on the enablement of high resolution timers
+either compile or run time.
+
+So you need to have a copy of hrtimer_resolution in the vdso data and use
+that.
+
+> +	} else if (msk & VDSO_COARSE) {
+> +		/*
+> +		 * Preserves the behaviour of posix_get_coarse_res().
+> +		 */
+> +		ns = LOW_RES_NSEC;
+> +		sec = __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
+
+Do we allow CONFIG_HZ = 1?
+
+Thanks,
+
+	tglx
