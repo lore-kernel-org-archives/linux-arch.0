@@ -1,113 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr150075.outbound.protection.outlook.com ([40.107.15.75]:24689
-        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726225AbfBYSDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Feb 2019 13:03:01 -0500
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
-Date: Mon, 25 Feb 2019 18:02:50 +0000
-Message-ID: <7afa18b8-f135-036d-943c-b6216e7da481@arm.com>
-References: <20181210143044.12714-1-vincenzo.frascino@arm.com>
- <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
- <20181212150230.GH65138@arrakis.emea.arm.com>
- <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
- <20181218175938.GD20197@arrakis.emea.arm.com>
- <20181219125249.GB22067@e103592.cambridge.arm.com>
- <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
- <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
- <20190212180223.GD199333@arrakis.emea.arm.com>
- <ac8f4e3b-84b8-6067-6a7a-fac7dc48daea@arm.com>
- <20190225165720.GA79300@arrakis.emea.arm.com>
-In-Reply-To: <20190225165720.GA79300@arrakis.emea.arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <63E1CE8D940678418B16F5E6DCE4B04A@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:40942 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726740AbfBYUDR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2019 15:03:17 -0500
 MIME-Version: 1.0
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 25 Feb 2019 21:03:00 +0100
+Message-ID: <CAK8P3a1ZZkBu0zhfATv12OeCtyE5hjSpqt=BOLqkh75U18Z0aA@mail.gmail.com>
+Subject: [GIT PULL] y2038: additional syscall ABI cleanup
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <Catalin.Marinas@arm.com>
-Cc: nd <nd@arm.com>, Evgenii Stepanov <eugenis@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <Robin.Murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20190225180250.XiOeG0_41CZHvcEQVb2-eUCln-_i0vOi5wsbDbXIO3w@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, linux-riscv@lists.infradead.org, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <20190225200300.bgrxTKugh3aXgmkyZ5RQerJ-k7Wg8KX1ygSz3-1OFas@z>
 
-T24gMjUvMDIvMjAxOSAxNjo1NywgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOg0KPiBPbiBUdWUsIEZl
-YiAxOSwgMjAxOSBhdCAwNjozODozMVBNICswMDAwLCBTemFib2xjcyBOYWd5IHdyb3RlOg0KPj4g
-aSB0aGluayB0aGVzZSBydWxlcyB3b3JrIGZvciB0aGUgY2FzZXMgaSBjYXJlIGFib3V0LCBhIG1v
-cmUNCj4+IHRyaWNreSBxdWVzdGlvbiBpcyB3aGVuL2hvdyB0byBjaGVjayBmb3IgdGhlIG5ldyBz
-eXNjYWxsIGFiaQ0KPj4gYW5kIHdoZW4vaG93IHRoZSBUQ1JfRUwxLlRCSTAgc2V0dGluZyBtYXkg
-YmUgdHVybmVkIG9mZi4NCj4gDQo+IEkgZG9uJ3QgdGhpbmsgdHVybmluZyBUQkkwIG9mZiBpcyBj
-cml0aWNhbCAoaXQncyBoYW5keSBmb3IgUEFDIHdpdGgNCj4gNTItYml0IFZBIGJ1dCB0aGVuIGl0
-J3Mgc2hvcnQtbGl2ZWQgaWYgeW91IHdhbnQgbW9yZSBzZWN1cml0eSBmZWF0dXJlcw0KPiBsaWtl
-IE1URSkuDQoNCnllcywgaSBtYWRlIGEgbWlzdGFrZSBhc3N1bWluZyBUQkkwIG9mZiBpcw0KcmVx
-dWlyZWQgZm9yIChvciBhdCBsZWFzdCBjb21wYXRpYmxlIHdpdGgpIE1URS4NCg0KaWYgVEJJMCBu
-ZWVkcyB0byBiZSBvbiBmb3IgTVRFIHRoZW4gc29tZSBvZiBteQ0KYW5hbHlzaXMgaXMgd3Jvbmcs
-IGFuZCBpIGV4cGVjdCBUQkkwIHRvIGJlIG9uDQppbiB0aGUgZm9yZXNlZWFibGUgZnV0dXJlLg0K
-DQo+PiBjb25zaWRlciB0aGUgZm9sbG93aW5nIGNhc2VzICh0YiA9PSB0b3AgYnl0ZSk6DQo+Pg0K
-Pj4gYmluYXJ5IDE6IHVzZXIgdGIgPSBhbnksIHN5c2NhbGwgdGIgPSAwDQo+PiAgIHRiaSBpcyBv
-biwgImxlZ2FjeSBiaW5hcnkiDQo+Pg0KPj4gYmluYXJ5IDI6IHVzZXIgdGIgPSBhbnksIHN5c2Nh
-bGwgdGIgPSBhbnkNCj4+ICAgdGJpIGlzIG9uLCAibmV3IGJpbmFyeSB1c2luZyB0YiINCj4+ICAg
-Zm9yIGJhY2t3YXJkIGNvbXBhdCBpdCBuZWVkcyB0byBjaGVjayBmb3IgbmV3IHN5c2NhbGwgYWJp
-Lg0KPj4NCj4+IGJpbmFyeSAzOiB1c2VyIHRiID0gMCwgc3lzY2FsbCB0YiA9IDANCj4+ICAgdGJp
-IGNhbiBiZSBvZmYsICJuZXcgYmluYXJ5IiwNCj4+ICAgYmluYXJ5IGlzIG1hcmtlZCB0byBpbmRp
-Y2F0ZSB1bnVzZWQgdGIsDQo+PiAgIGtlcm5lbCBtYXkgdHVybiB0Ymkgb2ZmOiBhZGRpdGlvbmFs
-IHBhYyBiaXRzLg0KPj4NCj4+IGJpbmFyeSA0OiB1c2VyIHRiID0gbXRlLCBzeXNjYWxsIHRiID0g
-bXRlDQo+PiAgIGxpa2UgYmluYXJ5IDMsIGJ1dCB3aXRoIG10ZSwgIm5ldyBiaW5hcnkgdXNpbmcg
-bXRlIg0KDQpzbyB0aGlzIHNob3VsZCBiZSAibGlrZSBiaW5hcnkgMiwgYnV0IHdpdGggbXRlIi4N
-Cg0KPj4gICBkb2VzIGl0IGhhdmUgdG8gY2hlY2sgZm9yIG5ldyBzeXNjYWxsIGFiaT8NCj4+ICAg
-b3IgTVRFIEhXQ0FQIHdvdWxkIGltcGx5IGl0Pw0KPj4gICAoaXMgaXQgcG9zc2libGUgdG8gdXNl
-IG10ZSB3aXRob3V0IG5ldyBzeXNjYWxsIGFiaT8pDQo+IA0KPiBJIHRoaW5rIE1URSBIV0NBUCBz
-aG91bGQgaW1wbHkgaXQuDQo+IA0KPj4gaW4gdXNlcnNwYWNlIHdlIHdhbnQgbW9zdCBiaW5hcmll
-cyB0byBiZSBsaWtlIGJpbmFyeSAzIGFuZCA0DQo+PiBldmVudHVhbGx5LCBpLmUuIG1hcmtlZCBh
-cyBub3QtcmVseWluZy1vbi10YmksIGlmIGEgZHNvIGlzDQo+PiBsb2FkZWQgdGhhdCBpcyB1bm1h
-cmtlZCAobGVnYWN5IG9yIG5ldyB0YiB1c2VyKSwgdGhlbiBlaXRoZXINCj4+IHRoZSBsb2FkIGZh
-aWxzIChlLmcuIGlmIG10ZSBpcyBhbHJlYWR5IHVzZWQ/IG9yIGNhbiB3ZSB0dXJuDQo+PiBtdGUg
-b2ZmIGF0IHJ1bnRpbWU/KSBvciB0YmkgaGFzIHRvIGJlIGVuYWJsZWQgKHByY3RsPyBkb2VzDQo+
-PiB0aGlzIHdvcmsgd2l0aCBwYWM/IG9yIG11bHRpLXRocmVhZHM/KS4NCj4gDQo+IFdlIGNvdWxk
-IGVuYWJsZSBpdCB2aWEgcHJjdGwuIFRoYXQncyB0aGUgcGxhbiBmb3IgTVRFIGFzIHdlbGwgKGlu
-DQo+IGFkZGl0aW9uIG1heWJlIHRvIHNvbWUgRUxGIGZsYWcpLg0KPiANCj4+IGFzIGZvciBjaGVj
-a2luZyB0aGUgbmV3IHN5c2NhbGwgYWJpOiBpIGRvbid0IHNlZSBtdWNoIHNlbWFudGljDQo+PiBk
-aWZmZXJlbmNlIGJldHdlZW4gQVRfSFdDQVAgYW5kIEFUX0ZMQUdTIChlaXRoZXIgd2F5LCB0aGUg
-dXNlcg0KPj4gaGFzIHRvIGNoZWNrIGEgZmVhdHVyZSBmbGFnIGJlZm9yZSB1c2luZyB0aGUgZmVh
-dHVyZSBvZiB0aGUNCj4+IHVuZGVybHlpbmcgc3lzdGVtIGFuZCBpdCBkb2VzIG5vdCBtYXR0ZXIg
-bXVjaCBpZiBpdCdzIGEgc3lzY2FsbA0KPj4gYWJpIGZlYXR1cmUgb3IgY3B1IGZlYXR1cmUpLCBi
-dXQgaSBkb24ndCBzZWUgYW55dGhpbmcgd3JvbmcNCj4+IHdpdGggQVRfRkxBR1MgaWYgdGhlIGtl
-cm5lbCBwcmVmZXJzIHRoYXQuDQo+IA0KPiBUaGUgQVRfRkxBR1MgaXMgYWltZWQgYXQgY2FwdHVy
-aW5nIGJpbmFyeSAyIGNhc2UgYWJvdmUsIGkuZS4gdGhlDQo+IHJlbGF4YXRpb24gb2YgdGhlIHN5
-c2NhbGwgQUJJIHRvIGFjY2VwdCB0YiA9IGFueS4gVGhlIE1URSBzdXBwb3J0IHdpbGwNCj4gaGF2
-ZSBpdHMgb3duIEFUX0hXQ0FQLCBsaWtlbHkgaW4gYWRkaXRpb24gdG8gQVRfRkxBR1MuIEFyZ3Vh
-Ymx5LA0KPiBBVF9GTEFHUyBpcyBlaXRoZXIgcmVkdW5kYW50IGhlcmUgaWYgTVRFIGltcGxpZXMg
-aXQgKGFuZCBubyBoYXJtIGluDQo+IGtlZXBpbmcgaXQgYXJvdW5kKSBvciB0aGUgbWVhbmluZyBp
-cyBkaWZmZXJlbnQ6IGEgdGIgIT0gMCBtYXkgYmUgY2hlY2tlZA0KPiBieSB0aGUga2VybmVsIGFn
-YWluc3QgdGhlIGFsbG9jYXRpb24gdGFnIChpLmUuIGdldF91c2VyKCkgY291bGQgZmFpbCwNCj4g
-dGhlIHRhZyBpcyBub3QgZW50aXJlbHkgaWdub3JlZCkuDQo+IA0KPj4gdGhlIGRpc2N1c3Npb24g
-aGVyZSB3YXMgbW9zdGx5IGFib3V0IGJpbmFyeSAyLA0KPiANCj4gVGhhdCdzIGJlY2F1c2UgcGFz
-c2luZyB0YiAhPSAwIGludG8gdGhlIHN5c2NhbGwgQUJJIGlzIHRoZSBtYWluIGJsb2NrZXINCj4g
-aGVyZSB0aGF0IG5lZWRzIGNsZWFyaW5nIG91dCBiZWZvcmUgbWVyZ2luZyB0aGUgTVRFIHN1cHBv
-cnQuIFRoZXJlIGlzLA0KPiBvZiBjb3Vyc2UsIGEgdmFyaWF0aW9uIG9mIGJpbmFyeSAxIGZvciBN
-VEU6DQo+IA0KPiBiaW5hcnkgNTogdXNlciB0YiA9IG10ZSwgc3lzY2FsbCB0YiA9IDANCj4gDQo+
-IGJ1dCB0aGlzIHJlcXVpcmVzIGEgbG90IG9mIEMgbGliIGNoYW5nZXMgdG8gc3VwcG9ydCBwcm9w
-ZXJseS4NCg0KeWVzLCBpIGRvbid0IHRoaW5rIHdlIHdhbnQgdG8gZG8gdGhhdC4NCg0KYnV0IGl0
-J3Mgb2sgdG8gaGF2ZSBib3RoIHN5c2NhbGwgdGJpIEFUX0ZMQUdTIGFuZCBNVEUgSFdDQVAuDQoN
-Cj4+IGJ1dCBmb3INCj4+IG1lIHRoZSBvcGVuIHF1ZXN0aW9uIGlzIGlmIHdlIGNhbiBtYWtlIGJp
-bmFyeSAzLzQgd29yay4NCj4+ICh3aGljaCByZXF1aXJlcyBzb21lIGVsZiBiaW5hcnkgbWFya2lu
-ZywgdGhhdCBpcyByZWNvZ25pc2VkDQo+PiBieSB0aGUga2VybmVsIGFuZCBkeW5hbWljIGxvYWRl
-ciwgYW5kIGVmZmljaWVudCBoYW5kbGluZyBvZg0KPj4gdGhlIFRCSTAgYml0LCAuLmlmIGl0J3Mg
-bm90IHBvc3NpYmxlLCB0aGVuIGkgZG9uJ3Qgc2VlIGhvdw0KPj4gbXRlIHdpbGwgYmUgZGVwbG95
-ZWQpLg0KPiANCj4gSWYgd2UgaWdub3JlIGJpbmFyeSAzLCB3ZSBjYW4ga2VlcCBUQkkwID0gMSBw
-ZXJtYW5lbnRseSwgd2hldGhlciB3ZSBoYXZlDQo+IE1URSBvciBub3QuDQo+IA0KPj4gYW5kIGkg
-Z3Vlc3Mgb24gdGhlIGtlcm5lbCBzaWRlIHRoZSBvcGVuIHF1ZXN0aW9uIGlzIGlmIHRoZQ0KPj4g
-cnVsZXMgMS8yLzMvNCBjYW4gYmUgbWFkZSB0byB3b3JrIGluIGNvcm5lciBjYXNlcyBlLmcuIHdo
-ZW4NCj4+IHBvaW50ZXJzIGVtYmVkZGVkIGludG8gc3RydWN0cyBhcmUgcGFzc2VkIGRvd24gaW4g
-aW9jdGwuDQo+IA0KPiBXZSd2ZSBiZWVuIHRyeWluZyB0byB0cmFjayB0aGVzZSBkb3duIHNpbmNl
-IGxhc3Qgc3VtbWVyIGFuZCB3ZSBjYW1lIHRvDQo+IHRoZSBjb25jbHVzaW9uIHRoYXQgaXQgc2hv
-dWxkIGJlIChtb3N0bHkpIGZpbmUgZm9yIHRoZSBub24td2VpcmQgbWVtb3J5DQo+IGRlc2NyaWJl
-ZCBhYm92ZS4NCg0KaSB0aGluayBhbiBpbnRlcmVzdGluZyBjYXNlIGlzIHdoZW4gdXNlcnNwYWNl
-IHBhc3Nlcw0KYSBwb2ludGVyIHRvIHRoZSBrZXJuZWwgYW5kIGxhdGVyIGdldHMgaXQgYmFjaywN
-CndoaWNoIGlzIHdoeSBpIHByb3Bvc2VkIHJ1bGUgNCAoa2VybmVsIGhhcyB0byBrZWVwDQp0aGUg
-dGFnIHRoZW4pLg0KDQpidXQgaSB3b25kZXIgd2hhdCdzIHRoZSByaWdodCB0aGluZyB0byBkbyBm
-b3Igc3ANCih1c2VyIGNhbiBtYWxsb2MgdGhyZWFkL3NpZ2FsdC9tYWtlY29udGV4dCBzdGFjaw0K
-d2hpY2ggd2lsbCBiZSBtdGUgdGFnZ2VkIGluIHByYWN0aWNlIHdpdGggbXRlIG9uKQ0KZG9lcyB0
-YWdnZWQgc3Agd29yaz8gc2hvdWxkIHVzZXJzcGFjZSB1bnRhZyB0aGUNCnN0YWNrIG1lbW9yeSBi
-ZWZvcmUgc2V0dGluZyBpdCB1cCBhcyBhIHN0YWNrPw0KKGJ1dCB0aGVuIHVzZXIgcG9pbnRlcnMg
-dG8gdGhhdCBhbGxvY2F0aW9uIG1heSBnZXQNCmJyb2tlbi4uKQ0K
+The following changes since commit 48166e6ea47d23984f0b481ca199250e1ce0730a:
+
+  y2038: add 64-bit time_t syscalls to all 32-bit architectures
+(2019-02-07 00:13:28 +0100)
+
+are available in the Git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git
+tags/y2038-syscall-abi
+
+for you to fetch changes up to d4c08b9776b392e20efc6198ebe1bc8ec1911d9b:
+
+  riscv: Use latest system call ABI (2019-02-25 20:53:52 +0100)
+
+----------------------------------------------------------------
+y2038: additional syscall ABI cleanup
+
+This is a follow-up to the y2038 syscall patches already merged in the tip
+tree.  As the final 32-bit RISC-V syscall ABI is still being decided on,
+this is the last chance to make a few corrections to leave out interfaces
+based on 32-bit time_t along with the old off_t and rlimit types.
+
+The series achieves this in a few steps:
+
+- A couple of bug fixes for minor regressions I introduced
+  in the original series
+
+- A couple of older patches from Yury Norov that I had never
+  merged in the past, these fix up the openat/open_by_handle_at and
+  getrlimit/setrlimit syscalls to disallow the old versions of off_t
+  and rlimit.
+
+- Hiding the deprecated system calls behind an #ifdef in
+  include/uapi/asm-generic/unistd.h
+
+- Change arch/riscv to drop all these ABIs.
+
+Originally, the plan was to also leave these out on C-Sky, but that now
+has a glibc port that uses the older interfaces, so we need to leave
+them in place.
+
+----------------------------------------------------------------
+
+Arnd Bergmann (4):
+      asm-generic: Make time32 syscall numbers optional
+      unicore32: Fix __ARCH_WANT_STAT64 definition
+      checksyscalls: fix up mq_timedreceive and stat exceptions
+      riscv: Use latest system call ABI
+
+Yury Norov (3):
+      compat ABI: use non-compat openat and open_by_handle_at variants
+      32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
+      asm-generic: Drop getrlimit and setrlimit syscalls from default list
+
+ arch/Kconfig                             | 10 ++++++++++
+ arch/arc/Kconfig                         |  1 +
+ arch/arc/include/uapi/asm/unistd.h       |  2 ++
+ arch/arm/Kconfig                         |  1 +
+ arch/arm64/include/uapi/asm/unistd.h     |  2 ++
+ arch/c6x/Kconfig                         |  1 +
+ arch/c6x/include/uapi/asm/unistd.h       |  2 ++
+ arch/csky/Kconfig                        |  1 +
+ arch/csky/include/uapi/asm/unistd.h      |  2 ++
+ arch/h8300/Kconfig                       |  1 +
+ arch/h8300/include/uapi/asm/unistd.h     |  2 ++
+ arch/hexagon/Kconfig                     |  1 +
+ arch/hexagon/include/uapi/asm/unistd.h   |  2 ++
+ arch/m68k/Kconfig                        |  1 +
+ arch/microblaze/Kconfig                  |  1 +
+ arch/mips/Kconfig                        |  1 +
+ arch/nds32/Kconfig                       |  1 +
+ arch/nds32/include/uapi/asm/unistd.h     |  2 ++
+ arch/nios2/Kconfig                       |  1 +
+ arch/nios2/include/uapi/asm/unistd.h     |  2 ++
+ arch/openrisc/Kconfig                    |  1 +
+ arch/openrisc/include/uapi/asm/unistd.h  |  2 ++
+ arch/parisc/Kconfig                      |  1 +
+ arch/powerpc/Kconfig                     |  1 +
+ arch/riscv/include/uapi/asm/unistd.h     |  1 +
+ arch/riscv/kernel/vdso/Makefile          |  2 ++
+ arch/sh/Kconfig                          |  1 +
+ arch/sparc/Kconfig                       |  1 +
+ arch/unicore32/Kconfig                   |  1 +
+ arch/unicore32/include/uapi/asm/unistd.h |  4 +++-
+ arch/x86/Kconfig                         |  1 +
+ arch/x86/um/Kconfig                      |  1 +
+ arch/xtensa/Kconfig                      |  1 +
+ include/linux/fcntl.h                    |  2 +-
+ include/uapi/asm-generic/unistd.h        | 46
++++++++++++++++++++++++++++++++++++++++++++---
+ scripts/checksyscalls.sh                 | 15 ++++++++++++---
+ 36 files changed, 110 insertions(+), 8 deletions(-)
