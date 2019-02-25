@@ -1,35 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:60334 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725936AbfBWRjt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 23 Feb 2019 12:39:49 -0500
-Date: Sat, 23 Feb 2019 18:39:45 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v5 00/23] Unify vDSOs across more architectures
-In-Reply-To: <20190222122430.21180-1-vincenzo.frascino@arm.com>
-Message-ID: <alpine.DEB.2.21.1902231835110.1666@nanos.tec.linutronix.de>
-References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
+Received: from mail-ua1-f66.google.com ([209.85.222.66]:42977 "EHLO
+        mail-ua1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726376AbfBYJ0F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2019 04:26:05 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <20190222185026.10973-1-will.deacon@arm.com> <20190222185026.10973-9-will.deacon@arm.com>
+In-Reply-To: <20190222185026.10973-9-will.deacon@arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 25 Feb 2019 10:25:52 +0100
+Message-ID: <CAMuHMdXq5N1e+=dTPUu+AtSgh4QzuDzmhBowG_HFoVHwmndvkg@mail.gmail.com>
+Subject: Re: [RFC PATCH 08/20] m68k: io: Remove useless definition of mmiowb()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20190223173945.fgFNuXDeKDvAb74pCu2d6t_VKcu9jyS-NddG0rqklC8@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20190225092552.Nj8r1-9mtE40pNZ_TtuFbSyjQxzUUcu7v9D8rhJYEZ8@z>
 
-On Fri, 22 Feb 2019, Vincenzo Frascino wrote:
-> This implementation contains the following design choices:
->  * Every architecture defines the arch specific code in an header in
->    "asm/vdso/".
->  * The generic implementation includes the arch specific one and lives
->    in "lib/vdso".
->  * The arch specific code for gettimeofday lives in
->    "<arch path>/vdso/gettimeofday.c" and includes the generic code only.
->  * This approach allows to consolidate the common code in a single place
->    with the benefit of avoiding code duplication.
+Hi Will,
 
-This is moving into the right direction. Good job!
+On Fri, Feb 22, 2019 at 7:51 PM Will Deacon <will.deacon@arm.com> wrote:
+> m68k includes asm-generic/io.h, which provides a dummy definition of
+> mmiowb() if one isn't already provided by the architecture.
+>
+> Remove the useless definition.
+>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
 
-Thanks,
+Thanks!
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-	tglx
+Do you want me to queue this in the m68k tree for v5.2, or would
+you prefer to apply the whole series?
+In case of the latter:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
