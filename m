@@ -1,119 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35036 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728076AbfBYQ53 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Feb 2019 11:57:29 -0500
-Date: Mon, 25 Feb 2019 16:57:21 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
-Message-ID: <20190225165720.GA79300@arrakis.emea.arm.com>
-References: <20181210143044.12714-1-vincenzo.frascino@arm.com>
- <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
- <20181212150230.GH65138@arrakis.emea.arm.com>
- <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
- <20181218175938.GD20197@arrakis.emea.arm.com>
- <20181219125249.GB22067@e103592.cambridge.arm.com>
- <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
- <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
- <20190212180223.GD199333@arrakis.emea.arm.com>
- <ac8f4e3b-84b8-6067-6a7a-fac7dc48daea@arm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43782 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728725AbfBYR6y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Feb 2019 12:58:54 -0500
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1PHwBl4050441
+        for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2019 12:58:53 -0500
+Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2qvkjynwpp-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2019 12:58:52 -0500
+Received: from localhost
+        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 25 Feb 2019 17:55:22 -0000
+Date: Mon, 25 Feb 2019 09:55:17 -0800
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Reply-To: paulmck@linux.ibm.com
+References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20190220020117.GD11787@linux.ibm.com>
+ <20190220092604.GD32494@hirez.programming.kicks-ass.net>
+ <20190220131456.GA3215@andrea>
+ <20190220132714.GI32494@hirez.programming.kicks-ass.net>
+ <20190222112128.GA7213@andrea>
+ <20190222130014.GY32494@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <ac8f4e3b-84b8-6067-6a7a-fac7dc48daea@arm.com>
+In-Reply-To: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
+Message-ID: <20190225175517.GK4072@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Cc: Evgenii Stepanov <eugenis@google.com>, nd <nd@arm.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <Robin.Murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20190225165721.LX--BWSa2djebxZobcY-c235nfGLYVPxuUmL79qPk_w@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20190225175517.cqwC24H5_R0_iJAYZ4W7OtBR7Cq6zLh4kXlaFn-lBaY@z>
 
-Hi Szabolcs,
-
-Thanks for looking into this. Comments below.
-
-On Tue, Feb 19, 2019 at 06:38:31PM +0000, Szabolcs Nagy wrote:
-> i think these rules work for the cases i care about, a more
-> tricky question is when/how to check for the new syscall abi
-> and when/how the TCR_EL1.TBI0 setting may be turned off.
-
-I don't think turning TBI0 off is critical (it's handy for PAC with
-52-bit VA but then it's short-lived if you want more security features
-like MTE).
-
-> consider the following cases (tb == top byte):
+On Fri, Feb 22, 2019 at 02:00:14PM +0100, Peter Zijlstra wrote:
+> On Fri, Feb 22, 2019 at 12:21:28PM +0100, Andrea Parri wrote:
+> > > What I do object to is a model that's weaker than any possible sane
+> > > hardware.
+> > 
+> > Not the first time I hear you calling this out.  And inevitably, every
+> > time, other slogans come to my mind:  "C is not an assembly language",
 > 
-> binary 1: user tb = any, syscall tb = 0
->   tbi is on, "legacy binary"
-> 
-> binary 2: user tb = any, syscall tb = any
->   tbi is on, "new binary using tb"
->   for backward compat it needs to check for new syscall abi.
-> 
-> binary 3: user tb = 0, syscall tb = 0
->   tbi can be off, "new binary",
->   binary is marked to indicate unused tb,
->   kernel may turn tbi off: additional pac bits.
-> 
-> binary 4: user tb = mte, syscall tb = mte
->   like binary 3, but with mte, "new binary using mte"
->   does it have to check for new syscall abi?
->   or MTE HWCAP would imply it?
->   (is it possible to use mte without new syscall abi?)
+> But it bloody well should be ;-)
 
-I think MTE HWCAP should imply it.
+Yeah, we had some debates about this sort of thing at the C++ Standards
+Committee meeting last week.
 
-> in userspace we want most binaries to be like binary 3 and 4
-> eventually, i.e. marked as not-relying-on-tbi, if a dso is
-> loaded that is unmarked (legacy or new tb user), then either
-> the load fails (e.g. if mte is already used? or can we turn
-> mte off at runtime?) or tbi has to be enabled (prctl? does
-> this work with pac? or multi-threads?).
+Pointer provenance and concurrent algorithms, though for once not
+affecting RCU!  We might actually be on the road to a fix that preserves
+the relevant optimizations while still allowing most (if not all) existing
+concurrent C/C++ code to continue working correctly.  (The current thought
+is that loads and stores involving inline assembly, C/C++ atomics, or
+volatile get their provenance stripped.  There may need to be some other
+mechanisms for plain C-language loads and stores in some cases as well.)
 
-We could enable it via prctl. That's the plan for MTE as well (in
-addition maybe to some ELF flag).
+But if you know of any code in the Linux kernel that needs to compare
+pointers, one of which might be in the process of being freed, please
+do point me at it.  I thought that the smp_call_function() code fit,
+but it avoids the problem because only the sending CPU is allowed to
+push onto the stack of pending smp_call_function() invocations.
 
-> as for checking the new syscall abi: i don't see much semantic
-> difference between AT_HWCAP and AT_FLAGS (either way, the user
-> has to check a feature flag before using the feature of the
-> underlying system and it does not matter much if it's a syscall
-> abi feature or cpu feature), but i don't see anything wrong
-> with AT_FLAGS if the kernel prefers that.
+That same concurrent linked stack pattern using cmpxchg() to atomically
+push and xchg() to atomically pop the full list -would- have this problem.
+The old pointer passed to cmpxchg() might reference an object that was
+freed between the time that the old pointer was loaded and the time
+that the cmpxchg() executed.  One way to avoid this is to do the push
+operation in an RCU read-side critical section and use kfree_rcu()
+instead of kfree().  Of course, code in the idle loop or that might
+run on offline CPUs cannot use RCU, plus some data structures are not
+happy with kfree_rcu() delays, so...
 
-The AT_FLAGS is aimed at capturing binary 2 case above, i.e. the
-relaxation of the syscall ABI to accept tb = any. The MTE support will
-have its own AT_HWCAP, likely in addition to AT_FLAGS. Arguably,
-AT_FLAGS is either redundant here if MTE implies it (and no harm in
-keeping it around) or the meaning is different: a tb != 0 may be checked
-by the kernel against the allocation tag (i.e. get_user() could fail,
-the tag is not entirely ignored).
+Again, if you know of any code in the Linux kernel that would have
+problems with aggressive optimizations based on pointer provenance,
+please let me know!
 
-> the discussion here was mostly about binary 2,
-
-That's because passing tb != 0 into the syscall ABI is the main blocker
-here that needs clearing out before merging the MTE support. There is,
-of course, a variation of binary 1 for MTE:
-
-binary 5: user tb = mte, syscall tb = 0
-
-but this requires a lot of C lib changes to support properly.
-
-> but for
-> me the open question is if we can make binary 3/4 work.
-> (which requires some elf binary marking, that is recognised
-> by the kernel and dynamic loader, and efficient handling of
-> the TBI0 bit, ..if it's not possible, then i don't see how
-> mte will be deployed).
-
-If we ignore binary 3, we can keep TBI0 = 1 permanently, whether we have
-MTE or not.
-
-> and i guess on the kernel side the open question is if the
-> rules 1/2/3/4 can be made to work in corner cases e.g. when
-> pointers embedded into structs are passed down in ioctl.
-
-We've been trying to track these down since last summer and we came to
-the conclusion that it should be (mostly) fine for the non-weird memory
-described above.
-
--- 
-Catalin
+							Thanx, Paul
