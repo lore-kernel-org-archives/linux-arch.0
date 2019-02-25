@@ -1,81 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43782 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728725AbfBYR6y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Feb 2019 12:58:54 -0500
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x1PHwBl4050441
-        for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2019 12:58:53 -0500
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2qvkjynwpp-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2019 12:58:52 -0500
-Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 25 Feb 2019 17:55:22 -0000
-Date: Mon, 25 Feb 2019 09:55:17 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Reply-To: paulmck@linux.ibm.com
-References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
- <20190220020117.GD11787@linux.ibm.com>
- <20190220092604.GD32494@hirez.programming.kicks-ass.net>
- <20190220131456.GA3215@andrea>
- <20190220132714.GI32494@hirez.programming.kicks-ass.net>
- <20190222112128.GA7213@andrea>
- <20190222130014.GY32494@hirez.programming.kicks-ass.net>
+Received: from mail-eopbgr150075.outbound.protection.outlook.com ([40.107.15.75]:24689
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726225AbfBYSDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Feb 2019 13:03:01 -0500
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Subject: Re: [RFC][PATCH 0/3] arm64 relaxed ABI
+Date: Mon, 25 Feb 2019 18:02:50 +0000
+Message-ID: <7afa18b8-f135-036d-943c-b6216e7da481@arm.com>
+References: <20181210143044.12714-1-vincenzo.frascino@arm.com>
+ <CAAeHK+xPZ-Z9YUAq=3+hbjj4uyJk32qVaxZkhcSAHYC4mHAkvQ@mail.gmail.com>
+ <20181212150230.GH65138@arrakis.emea.arm.com>
+ <CAAeHK+zxYJDJ7DJuDAOuOMgGvckFwMAoVUTDJzb6MX3WsXhRTQ@mail.gmail.com>
+ <20181218175938.GD20197@arrakis.emea.arm.com>
+ <20181219125249.GB22067@e103592.cambridge.arm.com>
+ <9bbacb1b-6237-f0bb-9bec-b4cf8d42bfc5@arm.com>
+ <CAFKCwrhH5R3e5ntX0t-gxcE6zzbCNm06pzeFfYEN2K13c5WLTg@mail.gmail.com>
+ <20190212180223.GD199333@arrakis.emea.arm.com>
+ <ac8f4e3b-84b8-6067-6a7a-fac7dc48daea@arm.com>
+ <20190225165720.GA79300@arrakis.emea.arm.com>
+In-Reply-To: <20190225165720.GA79300@arrakis.emea.arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <63E1CE8D940678418B16F5E6DCE4B04A@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
-Message-ID: <20190225175517.GK4072@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190225175517.cqwC24H5_R0_iJAYZ4W7OtBR7Cq6zLh4kXlaFn-lBaY@z>
+To: Catalin Marinas <Catalin.Marinas@arm.com>
+Cc: nd <nd@arm.com>, Evgenii Stepanov <eugenis@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <Robin.Murphy@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20190225180250.XiOeG0_41CZHvcEQVb2-eUCln-_i0vOi5wsbDbXIO3w@z>
 
-On Fri, Feb 22, 2019 at 02:00:14PM +0100, Peter Zijlstra wrote:
-> On Fri, Feb 22, 2019 at 12:21:28PM +0100, Andrea Parri wrote:
-> > > What I do object to is a model that's weaker than any possible sane
-> > > hardware.
-> > 
-> > Not the first time I hear you calling this out.  And inevitably, every
-> > time, other slogans come to my mind:  "C is not an assembly language",
-> 
-> But it bloody well should be ;-)
-
-Yeah, we had some debates about this sort of thing at the C++ Standards
-Committee meeting last week.
-
-Pointer provenance and concurrent algorithms, though for once not
-affecting RCU!  We might actually be on the road to a fix that preserves
-the relevant optimizations while still allowing most (if not all) existing
-concurrent C/C++ code to continue working correctly.  (The current thought
-is that loads and stores involving inline assembly, C/C++ atomics, or
-volatile get their provenance stripped.  There may need to be some other
-mechanisms for plain C-language loads and stores in some cases as well.)
-
-But if you know of any code in the Linux kernel that needs to compare
-pointers, one of which might be in the process of being freed, please
-do point me at it.  I thought that the smp_call_function() code fit,
-but it avoids the problem because only the sending CPU is allowed to
-push onto the stack of pending smp_call_function() invocations.
-
-That same concurrent linked stack pattern using cmpxchg() to atomically
-push and xchg() to atomically pop the full list -would- have this problem.
-The old pointer passed to cmpxchg() might reference an object that was
-freed between the time that the old pointer was loaded and the time
-that the cmpxchg() executed.  One way to avoid this is to do the push
-operation in an RCU read-side critical section and use kfree_rcu()
-instead of kfree().  Of course, code in the idle loop or that might
-run on offline CPUs cannot use RCU, plus some data structures are not
-happy with kfree_rcu() delays, so...
-
-Again, if you know of any code in the Linux kernel that would have
-problems with aggressive optimizations based on pointer provenance,
-please let me know!
-
-							Thanx, Paul
+T24gMjUvMDIvMjAxOSAxNjo1NywgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOg0KPiBPbiBUdWUsIEZl
+YiAxOSwgMjAxOSBhdCAwNjozODozMVBNICswMDAwLCBTemFib2xjcyBOYWd5IHdyb3RlOg0KPj4g
+aSB0aGluayB0aGVzZSBydWxlcyB3b3JrIGZvciB0aGUgY2FzZXMgaSBjYXJlIGFib3V0LCBhIG1v
+cmUNCj4+IHRyaWNreSBxdWVzdGlvbiBpcyB3aGVuL2hvdyB0byBjaGVjayBmb3IgdGhlIG5ldyBz
+eXNjYWxsIGFiaQ0KPj4gYW5kIHdoZW4vaG93IHRoZSBUQ1JfRUwxLlRCSTAgc2V0dGluZyBtYXkg
+YmUgdHVybmVkIG9mZi4NCj4gDQo+IEkgZG9uJ3QgdGhpbmsgdHVybmluZyBUQkkwIG9mZiBpcyBj
+cml0aWNhbCAoaXQncyBoYW5keSBmb3IgUEFDIHdpdGgNCj4gNTItYml0IFZBIGJ1dCB0aGVuIGl0
+J3Mgc2hvcnQtbGl2ZWQgaWYgeW91IHdhbnQgbW9yZSBzZWN1cml0eSBmZWF0dXJlcw0KPiBsaWtl
+IE1URSkuDQoNCnllcywgaSBtYWRlIGEgbWlzdGFrZSBhc3N1bWluZyBUQkkwIG9mZiBpcw0KcmVx
+dWlyZWQgZm9yIChvciBhdCBsZWFzdCBjb21wYXRpYmxlIHdpdGgpIE1URS4NCg0KaWYgVEJJMCBu
+ZWVkcyB0byBiZSBvbiBmb3IgTVRFIHRoZW4gc29tZSBvZiBteQ0KYW5hbHlzaXMgaXMgd3Jvbmcs
+IGFuZCBpIGV4cGVjdCBUQkkwIHRvIGJlIG9uDQppbiB0aGUgZm9yZXNlZWFibGUgZnV0dXJlLg0K
+DQo+PiBjb25zaWRlciB0aGUgZm9sbG93aW5nIGNhc2VzICh0YiA9PSB0b3AgYnl0ZSk6DQo+Pg0K
+Pj4gYmluYXJ5IDE6IHVzZXIgdGIgPSBhbnksIHN5c2NhbGwgdGIgPSAwDQo+PiAgIHRiaSBpcyBv
+biwgImxlZ2FjeSBiaW5hcnkiDQo+Pg0KPj4gYmluYXJ5IDI6IHVzZXIgdGIgPSBhbnksIHN5c2Nh
+bGwgdGIgPSBhbnkNCj4+ICAgdGJpIGlzIG9uLCAibmV3IGJpbmFyeSB1c2luZyB0YiINCj4+ICAg
+Zm9yIGJhY2t3YXJkIGNvbXBhdCBpdCBuZWVkcyB0byBjaGVjayBmb3IgbmV3IHN5c2NhbGwgYWJp
+Lg0KPj4NCj4+IGJpbmFyeSAzOiB1c2VyIHRiID0gMCwgc3lzY2FsbCB0YiA9IDANCj4+ICAgdGJp
+IGNhbiBiZSBvZmYsICJuZXcgYmluYXJ5IiwNCj4+ICAgYmluYXJ5IGlzIG1hcmtlZCB0byBpbmRp
+Y2F0ZSB1bnVzZWQgdGIsDQo+PiAgIGtlcm5lbCBtYXkgdHVybiB0Ymkgb2ZmOiBhZGRpdGlvbmFs
+IHBhYyBiaXRzLg0KPj4NCj4+IGJpbmFyeSA0OiB1c2VyIHRiID0gbXRlLCBzeXNjYWxsIHRiID0g
+bXRlDQo+PiAgIGxpa2UgYmluYXJ5IDMsIGJ1dCB3aXRoIG10ZSwgIm5ldyBiaW5hcnkgdXNpbmcg
+bXRlIg0KDQpzbyB0aGlzIHNob3VsZCBiZSAibGlrZSBiaW5hcnkgMiwgYnV0IHdpdGggbXRlIi4N
+Cg0KPj4gICBkb2VzIGl0IGhhdmUgdG8gY2hlY2sgZm9yIG5ldyBzeXNjYWxsIGFiaT8NCj4+ICAg
+b3IgTVRFIEhXQ0FQIHdvdWxkIGltcGx5IGl0Pw0KPj4gICAoaXMgaXQgcG9zc2libGUgdG8gdXNl
+IG10ZSB3aXRob3V0IG5ldyBzeXNjYWxsIGFiaT8pDQo+IA0KPiBJIHRoaW5rIE1URSBIV0NBUCBz
+aG91bGQgaW1wbHkgaXQuDQo+IA0KPj4gaW4gdXNlcnNwYWNlIHdlIHdhbnQgbW9zdCBiaW5hcmll
+cyB0byBiZSBsaWtlIGJpbmFyeSAzIGFuZCA0DQo+PiBldmVudHVhbGx5LCBpLmUuIG1hcmtlZCBh
+cyBub3QtcmVseWluZy1vbi10YmksIGlmIGEgZHNvIGlzDQo+PiBsb2FkZWQgdGhhdCBpcyB1bm1h
+cmtlZCAobGVnYWN5IG9yIG5ldyB0YiB1c2VyKSwgdGhlbiBlaXRoZXINCj4+IHRoZSBsb2FkIGZh
+aWxzIChlLmcuIGlmIG10ZSBpcyBhbHJlYWR5IHVzZWQ/IG9yIGNhbiB3ZSB0dXJuDQo+PiBtdGUg
+b2ZmIGF0IHJ1bnRpbWU/KSBvciB0YmkgaGFzIHRvIGJlIGVuYWJsZWQgKHByY3RsPyBkb2VzDQo+
+PiB0aGlzIHdvcmsgd2l0aCBwYWM/IG9yIG11bHRpLXRocmVhZHM/KS4NCj4gDQo+IFdlIGNvdWxk
+IGVuYWJsZSBpdCB2aWEgcHJjdGwuIFRoYXQncyB0aGUgcGxhbiBmb3IgTVRFIGFzIHdlbGwgKGlu
+DQo+IGFkZGl0aW9uIG1heWJlIHRvIHNvbWUgRUxGIGZsYWcpLg0KPiANCj4+IGFzIGZvciBjaGVj
+a2luZyB0aGUgbmV3IHN5c2NhbGwgYWJpOiBpIGRvbid0IHNlZSBtdWNoIHNlbWFudGljDQo+PiBk
+aWZmZXJlbmNlIGJldHdlZW4gQVRfSFdDQVAgYW5kIEFUX0ZMQUdTIChlaXRoZXIgd2F5LCB0aGUg
+dXNlcg0KPj4gaGFzIHRvIGNoZWNrIGEgZmVhdHVyZSBmbGFnIGJlZm9yZSB1c2luZyB0aGUgZmVh
+dHVyZSBvZiB0aGUNCj4+IHVuZGVybHlpbmcgc3lzdGVtIGFuZCBpdCBkb2VzIG5vdCBtYXR0ZXIg
+bXVjaCBpZiBpdCdzIGEgc3lzY2FsbA0KPj4gYWJpIGZlYXR1cmUgb3IgY3B1IGZlYXR1cmUpLCBi
+dXQgaSBkb24ndCBzZWUgYW55dGhpbmcgd3JvbmcNCj4+IHdpdGggQVRfRkxBR1MgaWYgdGhlIGtl
+cm5lbCBwcmVmZXJzIHRoYXQuDQo+IA0KPiBUaGUgQVRfRkxBR1MgaXMgYWltZWQgYXQgY2FwdHVy
+aW5nIGJpbmFyeSAyIGNhc2UgYWJvdmUsIGkuZS4gdGhlDQo+IHJlbGF4YXRpb24gb2YgdGhlIHN5
+c2NhbGwgQUJJIHRvIGFjY2VwdCB0YiA9IGFueS4gVGhlIE1URSBzdXBwb3J0IHdpbGwNCj4gaGF2
+ZSBpdHMgb3duIEFUX0hXQ0FQLCBsaWtlbHkgaW4gYWRkaXRpb24gdG8gQVRfRkxBR1MuIEFyZ3Vh
+Ymx5LA0KPiBBVF9GTEFHUyBpcyBlaXRoZXIgcmVkdW5kYW50IGhlcmUgaWYgTVRFIGltcGxpZXMg
+aXQgKGFuZCBubyBoYXJtIGluDQo+IGtlZXBpbmcgaXQgYXJvdW5kKSBvciB0aGUgbWVhbmluZyBp
+cyBkaWZmZXJlbnQ6IGEgdGIgIT0gMCBtYXkgYmUgY2hlY2tlZA0KPiBieSB0aGUga2VybmVsIGFn
+YWluc3QgdGhlIGFsbG9jYXRpb24gdGFnIChpLmUuIGdldF91c2VyKCkgY291bGQgZmFpbCwNCj4g
+dGhlIHRhZyBpcyBub3QgZW50aXJlbHkgaWdub3JlZCkuDQo+IA0KPj4gdGhlIGRpc2N1c3Npb24g
+aGVyZSB3YXMgbW9zdGx5IGFib3V0IGJpbmFyeSAyLA0KPiANCj4gVGhhdCdzIGJlY2F1c2UgcGFz
+c2luZyB0YiAhPSAwIGludG8gdGhlIHN5c2NhbGwgQUJJIGlzIHRoZSBtYWluIGJsb2NrZXINCj4g
+aGVyZSB0aGF0IG5lZWRzIGNsZWFyaW5nIG91dCBiZWZvcmUgbWVyZ2luZyB0aGUgTVRFIHN1cHBv
+cnQuIFRoZXJlIGlzLA0KPiBvZiBjb3Vyc2UsIGEgdmFyaWF0aW9uIG9mIGJpbmFyeSAxIGZvciBN
+VEU6DQo+IA0KPiBiaW5hcnkgNTogdXNlciB0YiA9IG10ZSwgc3lzY2FsbCB0YiA9IDANCj4gDQo+
+IGJ1dCB0aGlzIHJlcXVpcmVzIGEgbG90IG9mIEMgbGliIGNoYW5nZXMgdG8gc3VwcG9ydCBwcm9w
+ZXJseS4NCg0KeWVzLCBpIGRvbid0IHRoaW5rIHdlIHdhbnQgdG8gZG8gdGhhdC4NCg0KYnV0IGl0
+J3Mgb2sgdG8gaGF2ZSBib3RoIHN5c2NhbGwgdGJpIEFUX0ZMQUdTIGFuZCBNVEUgSFdDQVAuDQoN
+Cj4+IGJ1dCBmb3INCj4+IG1lIHRoZSBvcGVuIHF1ZXN0aW9uIGlzIGlmIHdlIGNhbiBtYWtlIGJp
+bmFyeSAzLzQgd29yay4NCj4+ICh3aGljaCByZXF1aXJlcyBzb21lIGVsZiBiaW5hcnkgbWFya2lu
+ZywgdGhhdCBpcyByZWNvZ25pc2VkDQo+PiBieSB0aGUga2VybmVsIGFuZCBkeW5hbWljIGxvYWRl
+ciwgYW5kIGVmZmljaWVudCBoYW5kbGluZyBvZg0KPj4gdGhlIFRCSTAgYml0LCAuLmlmIGl0J3Mg
+bm90IHBvc3NpYmxlLCB0aGVuIGkgZG9uJ3Qgc2VlIGhvdw0KPj4gbXRlIHdpbGwgYmUgZGVwbG95
+ZWQpLg0KPiANCj4gSWYgd2UgaWdub3JlIGJpbmFyeSAzLCB3ZSBjYW4ga2VlcCBUQkkwID0gMSBw
+ZXJtYW5lbnRseSwgd2hldGhlciB3ZSBoYXZlDQo+IE1URSBvciBub3QuDQo+IA0KPj4gYW5kIGkg
+Z3Vlc3Mgb24gdGhlIGtlcm5lbCBzaWRlIHRoZSBvcGVuIHF1ZXN0aW9uIGlzIGlmIHRoZQ0KPj4g
+cnVsZXMgMS8yLzMvNCBjYW4gYmUgbWFkZSB0byB3b3JrIGluIGNvcm5lciBjYXNlcyBlLmcuIHdo
+ZW4NCj4+IHBvaW50ZXJzIGVtYmVkZGVkIGludG8gc3RydWN0cyBhcmUgcGFzc2VkIGRvd24gaW4g
+aW9jdGwuDQo+IA0KPiBXZSd2ZSBiZWVuIHRyeWluZyB0byB0cmFjayB0aGVzZSBkb3duIHNpbmNl
+IGxhc3Qgc3VtbWVyIGFuZCB3ZSBjYW1lIHRvDQo+IHRoZSBjb25jbHVzaW9uIHRoYXQgaXQgc2hv
+dWxkIGJlIChtb3N0bHkpIGZpbmUgZm9yIHRoZSBub24td2VpcmQgbWVtb3J5DQo+IGRlc2NyaWJl
+ZCBhYm92ZS4NCg0KaSB0aGluayBhbiBpbnRlcmVzdGluZyBjYXNlIGlzIHdoZW4gdXNlcnNwYWNl
+IHBhc3Nlcw0KYSBwb2ludGVyIHRvIHRoZSBrZXJuZWwgYW5kIGxhdGVyIGdldHMgaXQgYmFjaywN
+CndoaWNoIGlzIHdoeSBpIHByb3Bvc2VkIHJ1bGUgNCAoa2VybmVsIGhhcyB0byBrZWVwDQp0aGUg
+dGFnIHRoZW4pLg0KDQpidXQgaSB3b25kZXIgd2hhdCdzIHRoZSByaWdodCB0aGluZyB0byBkbyBm
+b3Igc3ANCih1c2VyIGNhbiBtYWxsb2MgdGhyZWFkL3NpZ2FsdC9tYWtlY29udGV4dCBzdGFjaw0K
+d2hpY2ggd2lsbCBiZSBtdGUgdGFnZ2VkIGluIHByYWN0aWNlIHdpdGggbXRlIG9uKQ0KZG9lcyB0
+YWdnZWQgc3Agd29yaz8gc2hvdWxkIHVzZXJzcGFjZSB1bnRhZyB0aGUNCnN0YWNrIG1lbW9yeSBi
+ZWZvcmUgc2V0dGluZyBpdCB1cCBhcyBhIHN0YWNrPw0KKGJ1dCB0aGVuIHVzZXIgcG9pbnRlcnMg
+dG8gdGhhdCBhbGxvY2F0aW9uIG1heSBnZXQNCmJyb2tlbi4uKQ0K
