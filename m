@@ -1,40 +1,44 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 08/20] m68k: io: Remove useless definition of mmiowb()
-Date: Mon, 25 Feb 2019 12:12:46 +0000
-Message-ID: <20190225121246.GB17076@fuggles.cambridge.arm.com>
-References: <20190222185026.10973-1-will.deacon@arm.com>
- <20190222185026.10973-9-will.deacon@arm.com>
- <CAMuHMdXq5N1e+=dTPUu+AtSgh4QzuDzmhBowG_HFoVHwmndvkg@mail.gmail.com>
+From: =?UTF-8?q?Jonathan=20Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>
+Subject: [PATCH] div64.h: Fix description of do_div parameter
+Date: Mon, 25 Feb 2019 15:03:54 +0100
+Message-ID: <20190225140355.4335-1-j.neuschaefer@gmx.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXq5N1e+=dTPUu+AtSgh4QzuDzmhBowG_HFoVHwmndvkg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@i>
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Jonathan=20Neusch=C3=A4fer?= <j.neuschaefer@gmx.net>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 25, 2019 at 10:25:52AM +0100, Geert Uytterhoeven wrote:
-> On Fri, Feb 22, 2019 at 7:51 PM Will Deacon <will.deacon@arm.com> wrote:
-> > m68k includes asm-generic/io.h, which provides a dummy definition of
-> > mmiowb() if one isn't already provided by the architecture.
-> >
-> > Remove the useless definition.
-> >
-> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> 
-> Thanks!
-> Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> 
-> Do you want me to queue this in the m68k tree for v5.2, or would
-> you prefer to apply the whole series?
-> In case of the latter:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Contrary to the description, the first parameter (n) should not be
+passed as a pointer, but directly as an lvalue. This is possible because
+do_div is a macro.
 
-Cheers, Geert! For now, I think it's best to keep all the patches together
-since I anticipate a few rounds of rework before I have a good idea about
-what the final series will look like.
+Signed-off-by: Jonathan Neuschäfer <j.neuschaefer@gmx.net>
+---
+ include/asm-generic/div64.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Will
+diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
+index dc9726fdac8f..b2a9c74efa55 100644
+--- a/include/asm-generic/div64.h
++++ b/include/asm-generic/div64.h
+@@ -28,12 +28,12 @@
+ 
+ /**
+  * do_div - returns 2 values: calculate remainder and update new dividend
+- * @n: pointer to uint64_t dividend (will be updated)
++ * @n: uint64_t dividend (will be updated)
+  * @base: uint32_t divisor
+  *
+  * Summary:
+- * ``uint32_t remainder = *n % base;``
+- * ``*n = *n / base;``
++ * ``uint32_t remainder = n % base;``
++ * ``n = n / base;``
+  *
+  * Return: (uint32_t)remainder
+  *
+-- 
+2.20.1
