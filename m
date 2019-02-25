@@ -1,100 +1,74 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v5 02/23] kernel: Define gettimeofday vdso common code
-Date: Mon, 25 Feb 2019 14:09:55 +0000
-Message-ID: <025bc260-85aa-a04e-b29b-b664f50abc3c@arm.com>
-References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-3-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1902231123030.1666@nanos.tec.linutronix.de>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v7 11/28] x86/asm/head: annotate data appropriatelly
+Date: Mon, 25 Feb 2019 15:53:31 +0100
+Message-ID: <20190225145330.GF26145@zn.tnic>
+References: <20190130124711.12463-1-jslaby@suse.cz>
+ <20190130124711.12463-12-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <alpine.DEB.2.21.1902231123030.1666@nanos.tec.linutronix.de>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190130124711.12463-12-jslaby@suse.cz>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Thomas,
+On Wed, Jan 30, 2019 at 01:46:54PM +0100, Jiri Slaby wrote:
+> Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END in both 32 and 64
+> bit heads.  In the 64-bit version, define also
+> SYM_DATA_START_PAGE_ALIGNED locally using the new SYM_START. It is used
+> in the code instead of NEXT_PAGE() which was defined in this file and
+> has been using the obsolete macro GLOBAL().
+> 
+> Now, the data in the 64-bit object file look sane:
+> Value   Size Type    Bind   Vis      Ndx Name
+>   0000  4096 OBJECT  GLOBAL DEFAULT   15 init_level4_pgt
+>   1000  4096 OBJECT  GLOBAL DEFAULT   15 level3_kernel_pgt
+>   2000  2048 OBJECT  GLOBAL DEFAULT   15 level2_kernel_pgt
+	  ^^^^
 
-thank you for your review.
+Except that this size is kinda misleading.
 
-On 23/02/2019 10:34, Thomas Gleixner wrote:
-> On Fri, 22 Feb 2019, Vincenzo Frascino wrote:
->> +static notrace int __cvdso_clock_getres(clockid_t clock,
->> +					struct __vdso_timespec *res)
->> +{
->> +	u64 sec, ns;
->> +	u32 msk;
->> +
->> +	/* Check for negative values or invalid clocks */
->> +	if (unlikely((u32) clock >= MAX_CLOCKS))
->> +		goto fallback;
->> +
->> +	/*
->> +	 * Convert the clockid to a bitmask and use it to check which
->> +	 * clocks are handled in the VDSO directly.
->> +	 */
->> +	msk = 1U << clock;
->> +	if (msk & VDSO_HRES) {
->> +		/*
->> +		 * Preserves the behaviour of posix_get_hrtimer_res().
->> +		 */
-> 
-> So much for the theory.
-> 
->> +		sec = 0;
->> +		ns = MONOTONIC_RES_NSEC;
-> 
-> posix_get_hrtimer_res() does:
-> 
-> 	sec = 0;
-> 	ns = hrtimer_resolution;
-> 
-> and hrtimer_resolution depends on the enablement of high resolution timers
-> either compile or run time.
-> 
-> So you need to have a copy of hrtimer_resolution in the vdso data and use
-> that.
-> 
+We end up using a whole page for this because of the alignment of the
+next one but because we're not filing it up properly, the symbol has the
+size of a half a page:
 
-I agree, MONOTONIC_RES_NSEC can be HIGH_RES_NSEC or LOW_RES_NSEC depending on
-the HIGH_RES_TIMERS configuration option, but does not cover the run time
-switch. I will add a copy of hrtimer_resolution in the vdso data in the next
-iteration of the patches.
+ffffffff8200f000 <level2_kernel_pgt>:
+ffffffff8200f7f6:       00 00                   add    %al,(%rax)
+ffffffff8200f7f8:       e3 01                   jrcxz  ffffffff8200f7fb <level2_kernel_pgt+0x7fb>
+ffffffff8200f7fa:       e0 1f                   loopne ffffffff8200f81b <level2_kernel_pgt+0x81b>
+        ...
 
-I had a look at the other implementations as well, and it seems that all the
-architectures that currently implement getres() make the same wrong assumption I
-made. I am going to provide a separate patch set that targets this.
+ffffffff82010000 <level2_fixmap_pgt>:
 
->> +	} else if (msk & VDSO_COARSE) {
->> +		/*
->> +		 * Preserves the behaviour of posix_get_coarse_res().
->> +		 */
->> +		ns = LOW_RES_NSEC;
->> +		sec = __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
-> 
-> Do we allow CONFIG_HZ = 1?
-> 
+That's a whole page with 2K padding.
 
-I had a closer look at it today and seems that jiffies.h supports CONFIG_HZ=12
-as a minimum case. Hence I think it should be safe to remove __iter_div_u64_rem
-and set sec=0 in this case.
+You can do this in a prepatch:
 
-> Thanks,
-> 
-> 	tglx
-> 
+---
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 5b7a3b430dea..93a9fd294962 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -448,6 +448,7 @@ SYM_DATA_START_PAGE_ALIGNED(level2_kernel_pgt)
+ 	 */
+ 	PMDS(0, __PAGE_KERNEL_LARGE_EXEC,
+ 		KERNEL_IMAGE_SIZE/PMD_SIZE)
++	.fill 512 - KERNEL_IMAGE_SIZE/PMD_SIZE,8,0
+ SYM_DATA_END(level2_kernel_pgt)
+ 
+ SYM_DATA_START_PAGE_ALIGNED(level2_fixmap_pgt)
+---
+
+and then we get the proper symbol size:
+
+ 69952: ffffffff8200f000  4096 OBJECT  GLOBAL DEFAULT   11 level2_kernel_pgt
+
+Thx.
 
 -- 
-Regards,
-Vincenzo
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
