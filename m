@@ -1,91 +1,45 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 2/3] arm64: mm: don't call page table ctors for init_mm
-Date: Tue, 26 Feb 2019 15:13:07 +0000
-Message-ID: <20190226151307.GB20230@lakrids.cambridge.arm.com>
-References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218231319.178224-1-yuzhao@google.com>
- <20190218231319.178224-2-yuzhao@google.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Date: Tue, 26 Feb 2019 07:39:57 -0800
+Message-ID: <20190226153957.GN4072@linux.ibm.com>
+References: <20190225175517.GK4072@linux.ibm.com>
+ <20190226093009.GS32477@hirez.programming.kicks-ass.net>
+ <20190226104551.GF32534@hirez.programming.kicks-ass.net>
+ <20190226112133.GG32534@hirez.programming.kicks-ass.net>
+ <20190226112521.GH32534@hirez.programming.kicks-ass.net>
+ <20190226113008.GI32534@hirez.programming.kicks-ass.net>
+ <20190226113813.GA14753@zn.tnic>
+ <20190226134906.GG32494@hirez.programming.kicks-ass.net>
+ <20190226142845.GK4072@linux.ibm.com>
+ <20190226144730.GV32477@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190218231319.178224-2-yuzhao@google.com>
+In-Reply-To: <20190226144730.GV32477@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu Zhao <yuzhao@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-On Mon, Feb 18, 2019 at 04:13:18PM -0700, Yu Zhao wrote:
-> init_mm doesn't require page table lock to be initialized at
-> any level. Add a separate page table allocator for it, and the
-> new one skips page table ctors.
-
-Just to check, in a previous reply you mentioned we need to call the
-ctors for our efi_mm, since we use apply_to_page_range() on that. Is
-that only because apply_to_pte_range() tries to take the ptl for non
-init_mm?
-
-... or did I miss something else?
-
-> The ctors allocate memory when ALLOC_SPLIT_PTLOCKS is set. Not
-> calling them avoids memory leak in case we call pte_free_kernel()
-> on init_mm.
+On Tue, Feb 26, 2019 at 03:47:30PM +0100, Peter Zijlstra wrote:
+> On Tue, Feb 26, 2019 at 06:28:45AM -0800, Paul E. McKenney wrote:
+> > I must confess to not being all that sympathetic to code that takes
+> > advantage of happenstance stack-frame layout.  Is there some reason
+> > we need that?
 > 
-> Signed-off-by: Yu Zhao <yuzhao@google.com>
-
-Assuming that was all, this patch makes sense to me. FWIW:
-
-Acked-by: Mark Rutland <mark.rutland@arm.com>
-
-Thanks,
-Mark.
-
-> ---
->  arch/arm64/mm/mmu.c | 15 +++++++++++++--
->  1 file changed, 13 insertions(+), 2 deletions(-)
+> Not that I'm aware; but if it gets this 'obvious' case wrong, I worry
+> what else it gets wrong.
 > 
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index fa7351877af3..e8bf8a6300e8 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -370,6 +370,16 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
->  	} while (pgdp++, addr = next, addr != end);
->  }
->  
-> +static phys_addr_t pgd_kernel_pgtable_alloc(int shift)
-> +{
-> +	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-> +	BUG_ON(!ptr);
-> +
-> +	/* Ensure the zeroed page is visible to the page table walker */
-> +	dsb(ishst);
-> +	return __pa(ptr);
-> +}
-> +
->  static phys_addr_t pgd_pgtable_alloc(int shift)
->  {
->  	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-> @@ -591,7 +601,7 @@ static int __init map_entry_trampoline(void)
->  	/* Map only the text into the trampoline page table */
->  	memset(tramp_pg_dir, 0, PGD_SIZE);
->  	__create_pgd_mapping(tramp_pg_dir, pa_start, TRAMP_VALIAS, PAGE_SIZE,
-> -			     prot, pgd_pgtable_alloc, 0);
-> +			     prot, pgd_kernel_pgtable_alloc, 0);
->  
->  	/* Map both the text and data into the kernel page table */
->  	__set_fixmap(FIX_ENTRY_TRAMP_TEXT, pa_start, prot);
-> @@ -1067,7 +1077,8 @@ int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap,
->  		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
->  
->  	__create_pgd_mapping(swapper_pg_dir, start, __phys_to_virt(start),
-> -			     size, PAGE_KERNEL, pgd_pgtable_alloc, flags);
-> +			     size, PAGE_KERNEL, pgd_kernel_pgtable_alloc,
-> +			     flags);
->  
->  	return __add_pages(nid, start >> PAGE_SHIFT, size >> PAGE_SHIFT,
->  			   altmap, want_memblock);
-> -- 
-> 2.21.0.rc0.258.g878e2cd30e-goog
+> At the very least we should get this fixed and compile a kernel with the
+> fixed compiler to see what (if anything) changes in the generated code
+> and analyse the changes (if any) to make sure we were ok (or not).
 > 
+> I mean; yes that example is UB, but the result is also clearly batshit
+> insane.
+
+My understanding is that their goal is better analysis of pointer
+aliasing, and that this case is a side effect.
+
+							Thanx, Paul
