@@ -1,9 +1,8 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Date: Tue, 26 Feb 2019 14:49:06 +0100
-Message-ID: <20190226134906.GG32494@hirez.programming.kicks-ass.net>
-References: <20190220132714.GI32494@hirez.programming.kicks-ass.net>
- <20190222112128.GA7213@andrea>
+Date: Tue, 26 Feb 2019 06:28:45 -0800
+Message-ID: <20190226142845.GK4072@linux.ibm.com>
+References: <20190222112128.GA7213@andrea>
  <20190222130014.GY32494@hirez.programming.kicks-ass.net>
  <20190225175517.GK4072@linux.ibm.com>
  <20190226093009.GS32477@hirez.programming.kicks-ass.net>
@@ -12,22 +11,43 @@ References: <20190220132714.GI32494@hirez.programming.kicks-ass.net>
  <20190226112521.GH32534@hirez.programming.kicks-ass.net>
  <20190226113008.GI32534@hirez.programming.kicks-ass.net>
  <20190226113813.GA14753@zn.tnic>
+ <20190226134906.GG32494@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190226113813.GA14753@zn.tnic>
+In-Reply-To: <20190226134906.GG32494@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
-> On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
-> > When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
-> > still broken.
+On Tue, Feb 26, 2019 at 02:49:06PM +0100, Peter Zijlstra wrote:
+> On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
+> > On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
+> > > When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
+> > > still broken.
+> > 
+> > As requested on IRC:
 > 
-> As requested on IRC:
+> What I asked was if you could get your GCC developer friends to have a
+> look at this :-)
 
-What I asked was if you could get your GCC developer friends to have a
-look at this :-)
+Yes, this all is a bit on the insane side from a kernel viewpoint.
+But the paper you found does not impose this; it has instead been there
+for about 20 years, back before C and C++ admitted to the existence
+of concurrency.  But of course compilers are getting more aggressive,
+and yes, some of the problems show up in single-threaded code.
+
+The usual response is "then cast the pointers to intptr_t!" but of
+course that breaks type checking.
+
+There is an effort to claw back the concurrency pieces, and I would
+be happy to run the resulting paper past you guys.
+
+I must confess to not being all that sympathetic to code that takes
+advantage of happenstance stack-frame layout.  Is there some reason
+we need that?
+
+							Thanx, Paul
