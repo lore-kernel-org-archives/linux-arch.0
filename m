@@ -1,52 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:45192 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728791AbfBZSOd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Feb 2019 13:14:33 -0500
-Received: by mail-pg1-f193.google.com with SMTP id y4so6560885pgc.12
-        for <linux-arch@vger.kernel.org>; Tue, 26 Feb 2019 10:14:32 -0800 (PST)
-Date: Tue, 26 Feb 2019 10:14:31 -0800 (PST)
-Subject: Re: [PATCH v2 0/3] Ensure inX() is ordered wrt delay() routines
-In-Reply-To: <20190222180454.5992-1-will.deacon@arm.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-1f3ce733-8498-47d8-9425-a6eaa3dfbb4c@palmer-si-x1c4>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Received: from foss.arm.com ([217.140.101.70]:51886 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728937AbfBZSZp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Feb 2019 13:25:45 -0500
+Date: Tue, 26 Feb 2019 18:25:39 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 01/20] asm-generic/mmiowb: Add generic implementation
+ of mmiowb() tracking
+Message-ID: <20190226182539.GB28709@fuggles.cambridge.arm.com>
+References: <20190222185026.10973-1-will.deacon@arm.com>
+ <20190222185026.10973-2-will.deacon@arm.com>
+ <CAHk-=wgamK0=rNsCfDfDzmNXUF_MqUHb0okzqN1Tir9vm65pNg@mail.gmail.com>
+ <CAHk-=whK=Pb9QZhYkqFGUjK1Sas620qjO1Y_EzSBiHSXxJfTYQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=whK=Pb9QZhYkqFGUjK1Sas620qjO1Y_EzSBiHSXxJfTYQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andrew.murray@arm.com, Arnd Bergmann <arnd@arndb.de>, catalin.marinas@arm.com, geert@linux-m68k.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20190226181431.pJ_fN6lDsGXD46-6UCtaBwl-ompDHWclWh09Tfu0038@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20190226182539.V3n54vtNXrWQ9e_JNShvJstRVptWzbnbH_MR5WgMuFA@z>
 
-On Fri, 22 Feb 2019 10:04:51 PST (-0800), Will Deacon wrote:
-> Hi all,
->
-> This is version two of the patches I previously posted here:
->
->   https://lore.kernel.org/lkml/20190211174544.4302-1-will.deacon@arm.com/T/#u
->
-> Changes since v2 include:
->
->   * Incorporate riscv changes from Palmer
->   * Update macro definitions as suggested by Geert
->   * Extend to cover non-port reads via __io_ar() as well
->
-> Feedback welcome,
->
-> Will
->
-> --->8
->
-> Will Deacon (3):
->   asm-generic/io: Pass result of I/O accessor to __io_[p]ar()
->   riscv: io: Update __io_[p]ar() macros to take an argument
->   arm64: io: Hook up __io_par() for inX() ordering
->
->  arch/arm64/include/asm/io.h |  1 +
->  arch/riscv/include/asm/io.h | 36 ++++++++++++++++++------------------
->  include/asm-generic/io.h    | 20 ++++++++++----------
->  3 files changed, 29 insertions(+), 28 deletions(-)
+On Fri, Feb 22, 2019 at 01:55:20PM -0800, Linus Torvalds wrote:
+> On Fri, Feb 22, 2019 at 1:49 PM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > The case we want to go fast is the spin-lock and unlock case, not the
+> > "set pending" case.
+> >
+> > And the way you implemented this, it's exactly the wrong way around.
+> 
+> Oh, one more comment: couldn't we make that mmiowb flag be right next
+> to the preemption count?
+> 
+> Because that's the common case anyway, where a spinlock increments the
+> preemption count too. If we put the mmiowb state in the same
+> cacheline, we don't cause extra cache effects, which is what really
+> matters, I guess.
+> 
+> I realize this is somewhat inconvenient, because some architectures
+> put preempt count in the thread structure, and others do it as a
+> percpu variable. But maybe the architecture could just declare where
+> the mmiowb state is?
 
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+I think that should be doable... I'll have a play.
 
-Thanks!
+Will
