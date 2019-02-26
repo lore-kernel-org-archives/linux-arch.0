@@ -1,53 +1,43 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Date: Tue, 26 Feb 2019 06:28:45 -0800
-Message-ID: <20190226142845.GK4072@linux.ibm.com>
-References: <20190222112128.GA7213@andrea>
- <20190222130014.GY32494@hirez.programming.kicks-ass.net>
- <20190225175517.GK4072@linux.ibm.com>
- <20190226093009.GS32477@hirez.programming.kicks-ass.net>
- <20190226104551.GF32534@hirez.programming.kicks-ass.net>
- <20190226112133.GG32534@hirez.programming.kicks-ass.net>
- <20190226112521.GH32534@hirez.programming.kicks-ass.net>
- <20190226113008.GI32534@hirez.programming.kicks-ass.net>
- <20190226113813.GA14753@zn.tnic>
- <20190226134906.GG32494@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@linux.ibm.com
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v10 06/12] fs, arm64: untag user pointers in copy_mount_options
+Date: Tue, 26 Feb 2019 15:35:40 +0100
+Message-ID: <CAAeHK+wLm7zSUC8dJv3LgdyvpkBN8u_24ene6b91PgM570VWbQ@mail.gmail.com>
+References: <cover.1550839937.git.andreyknvl@google.com> <a958e202cdbe6e1bac8a37b7f3d9881d1b22993d.1550839937.git.andreyknvl@google.com>
+ <a38275b0-f6cd-20e1-3c48-544846586a16@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190226134906.GG32494@hirez.programming.kicks-ass.net>
+In-Reply-To: <a38275b0-f6cd-20e1-3c48-544846586a16@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 26, 2019 at 02:49:06PM +0100, Peter Zijlstra wrote:
-> On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
-> > On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
-> > > When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
-> > > still broken.
-> > 
-> > As requested on IRC:
-> 
-> What I asked was if you could get your GCC developer friends to have a
-> look at this :-)
+On Sat, Feb 23, 2019 at 12:03 AM Dave Hansen <dave.hansen@intel.com> wrote:
+>
+> On 2/22/19 4:53 AM, Andrey Konovalov wrote:
+> > --- a/fs/namespace.c
+> > +++ b/fs/namespace.c
+> > @@ -2730,7 +2730,7 @@ void *copy_mount_options(const void __user * data)
+> >        * the remainder of the page.
+> >        */
+> >       /* copy_from_user cannot cross TASK_SIZE ! */
+> > -     size = TASK_SIZE - (unsigned long)data;
+> > +     size = TASK_SIZE - (unsigned long)untagged_addr(data);
+> >       if (size > PAGE_SIZE)
+> >               size = PAGE_SIZE;
+>
+> I would have thought that copy_from_user() *is* entirely capable of
+> detecting and returning an error in the case that its arguments cross
+> TASK_SIZE.  It will fail and return an error, but that's what it's
+> supposed to do.
+>
+> I'd question why this code needs to be doing its own checking in the
+> first place.  Is there something subtle going on?
 
-Yes, this all is a bit on the insane side from a kernel viewpoint.
-But the paper you found does not impose this; it has instead been there
-for about 20 years, back before C and C++ admitted to the existence
-of concurrency.  But of course compilers are getting more aggressive,
-and yes, some of the problems show up in single-threaded code.
+The comment above exact_copy_from_user() states:
 
-The usual response is "then cast the pointers to intptr_t!" but of
-course that breaks type checking.
-
-There is an effort to claw back the concurrency pieces, and I would
-be happy to run the resulting paper past you guys.
-
-I must confess to not being all that sympathetic to code that takes
-advantage of happenstance stack-frame layout.  Is there some reason
-we need that?
-
-							Thanx, Paul
+Some copy_from_user() implementations do not return the exact number of
+bytes remaining to copy on a fault.  But copy_mount_options() requires that.
+Note that this function differs from copy_from_user() in that it will oops
+on bad values of `to', rather than returning a short copy.
