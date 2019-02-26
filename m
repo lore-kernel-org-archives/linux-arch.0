@@ -1,39 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:57629 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727549AbfBZRf1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Feb 2019 12:35:27 -0500
-Subject: Re: [PATCH v10 00/12] arm64: untag user pointers passed to the kernel
-References: <cover.1550839937.git.andreyknvl@google.com>
- <2ad5f897-25c0-90cf-f54f-827876873a0a@intel.com>
- <CAAeHK+xCi2MxaykYWCz9mwbOzNpjrFcHex7B-VXektNNWBT+Hw@mail.gmail.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <6abc8c6a-c7aa-72ec-8a4e-7dcfeb9ea09b@intel.com>
-Date: Tue, 26 Feb 2019 09:35:26 -0800
-MIME-Version: 1.0
-In-Reply-To: <CAAeHK+xCi2MxaykYWCz9mwbOzNpjrFcHex7B-VXektNNWBT+Hw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:45192 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728791AbfBZSOd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Feb 2019 13:14:33 -0500
+Received: by mail-pg1-f193.google.com with SMTP id y4so6560885pgc.12
+        for <linux-arch@vger.kernel.org>; Tue, 26 Feb 2019 10:14:32 -0800 (PST)
+Date: Tue, 26 Feb 2019 10:14:31 -0800 (PST)
+Subject: Re: [PATCH v2 0/3] Ensure inX() is ordered wrt delay() routines
+In-Reply-To: <20190222180454.5992-1-will.deacon@arm.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-1f3ce733-8498-47d8-9425-a6eaa3dfbb4c@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Message-ID: <20190226173526.mIso6bhF9rb0ygjSogq09fN8CpBiOdds_Gl6A53jhXg@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andrew.murray@arm.com, Arnd Bergmann <arnd@arndb.de>, catalin.marinas@arm.com, geert@linux-m68k.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20190226181431.pJ_fN6lDsGXD46-6UCtaBwl-ompDHWclWh09Tfu0038@z>
 
-On 2/26/19 9:18 AM, Andrey Konovalov wrote:
->> This seems like something
->> where we would ideally add an __tagged annotation (or something) to the
->> source tree and then have sparse rules that can look for missed untags.
-> This has been suggested before, search for __untagged here [1].
-> However there are many places in the kernel where a __user pointer is
-> casted into unsigned long and passed further. I'm not sure if it's
-> possible apply a __tagged/__untagged kind of attribute to non-pointer
-> types, is it?
-> 
-> [1] https://patchwork.kernel.org/patch/10581535/
+On Fri, 22 Feb 2019 10:04:51 PST (-0800), Will Deacon wrote:
+> Hi all,
+>
+> This is version two of the patches I previously posted here:
+>
+>   https://lore.kernel.org/lkml/20190211174544.4302-1-will.deacon@arm.com/T/#u
+>
+> Changes since v2 include:
+>
+>   * Incorporate riscv changes from Palmer
+>   * Update macro definitions as suggested by Geert
+>   * Extend to cover non-port reads via __io_ar() as well
+>
+> Feedback welcome,
+>
+> Will
+>
+> --->8
+>
+> Will Deacon (3):
+>   asm-generic/io: Pass result of I/O accessor to __io_[p]ar()
+>   riscv: io: Update __io_[p]ar() macros to take an argument
+>   arm64: io: Hook up __io_par() for inX() ordering
+>
+>  arch/arm64/include/asm/io.h |  1 +
+>  arch/riscv/include/asm/io.h | 36 ++++++++++++++++++------------------
+>  include/asm-generic/io.h    | 20 ++++++++++----------
+>  3 files changed, 29 insertions(+), 28 deletions(-)
 
-I believe we have sparse checking __GFP_* flags.  We also have a gfp_t
-for them and I'm unsure whether the sparse support is tied to _that_ or
-whether it's just by tagging the type itself as being part of a discrete
-address space.
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+
+Thanks!
