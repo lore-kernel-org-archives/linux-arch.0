@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Date: Tue, 26 Feb 2019 10:21:43 +0100
-Message-ID: <20190226092143.GR32477@hirez.programming.kicks-ass.net>
+Date: Tue, 26 Feb 2019 10:30:09 +0100
+Message-ID: <20190226093009.GS32477@hirez.programming.kicks-ass.net>
 References: <1550617057-4911-1-git-send-email-andrea.parri@amarulasolutions.com>
  <20190220020117.GD11787@linux.ibm.com>
  <20190220092604.GD32494@hirez.programming.kicks-ass.net>
@@ -21,8 +21,14 @@ Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.o
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, Feb 25, 2019 at 09:55:17AM -0800, Paul E. McKenney wrote:
-> Again, if you know of any code in the Linux kernel that would have
-> problems with aggressive optimizations based on pointer provenance,
-> please let me know!
+> But if you know of any code in the Linux kernel that needs to compare
+> pointers, one of which might be in the process of being freed, please
+> do point me at it.
 
-I've no clue what pointer provenance is to begin with.
+I'm having the utmost difficulty of understanding why that would be a
+problem. It's just a value. Freeing memory does not affect the actual
+memory or any pointers to it.
+
+*confusion*
+
+None of this makes any kind of sense.
