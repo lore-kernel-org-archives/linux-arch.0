@@ -1,8 +1,9 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Akira Yokosawa <akiyks@gmail.com>
 Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Date: Tue, 26 Feb 2019 15:47:30 +0100
-Message-ID: <20190226144730.GV32477@hirez.programming.kicks-ass.net>
-References: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
+Date: Tue, 26 Feb 2019 23:56:57 +0900
+Message-ID: <b8cdca74-6f7d-cfe3-636c-41a59b0d86da@gmail.com>
+References: <20190222112128.GA7213@andrea>
+ <20190222130014.GY32494@hirez.programming.kicks-ass.net>
  <20190225175517.GK4072@linux.ibm.com>
  <20190226093009.GS32477@hirez.programming.kicks-ass.net>
  <20190226104551.GF32534@hirez.programming.kicks-ass.net>
@@ -13,26 +14,57 @@ References: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
  <20190226134906.GG32494@hirez.programming.kicks-ass.net>
  <20190226142845.GK4072@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
 In-Reply-To: <20190226142845.GK4072@linux.ibm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 26, 2019 at 06:28:45AM -0800, Paul E. McKenney wrote:
+Hi Paul,
+
+On Tue, 26 Feb 2019 06:28:45 -0800, Paul E. McKenney wrote:
+> On Tue, Feb 26, 2019 at 02:49:06PM +0100, Peter Zijlstra wrote:
+>> On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
+>>> On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
+>>>> When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
+>>>> still broken.
+>>>
+>>> As requested on IRC:
+>>
+>> What I asked was if you could get your GCC developer friends to have a
+>> look at this :-)
+> 
+> Yes, this all is a bit on the insane side from a kernel viewpoint.
+> But the paper you found does not impose this; it has instead been there
+> for about 20 years, back before C and C++ admitted to the existence
+> of concurrency.
+
+By "it", do you mean the concept of "pointer provenance"?
+
+I'm asking because the paper's header reads:
+
+        "ISO/IEC JTC1/SC22/WG14 N2311, 2018-11-09"
+
+Just wanted to make sure.
+
+        Thanks, Akira
+
+>                  But of course compilers are getting more aggressive,
+> and yes, some of the problems show up in single-threaded code.
+> 
+> The usual response is "then cast the pointers to intptr_t!" but of
+> course that breaks type checking.
+> 
+> There is an effort to claw back the concurrency pieces, and I would
+> be happy to run the resulting paper past you guys.
+> 
 > I must confess to not being all that sympathetic to code that takes
 > advantage of happenstance stack-frame layout.  Is there some reason
 > we need that?
-
-Not that I'm aware; but if it gets this 'obvious' case wrong, I worry
-what else it gets wrong.
-
-At the very least we should get this fixed and compile a kernel with the
-fixed compiler to see what (if anything) changes in the generated code
-and analyse the changes (if any) to make sure we were ok (or not).
-
-I mean; yes that example is UB, but the result is also clearly batshit
-insane.
+> 
+> 							Thanx, Paul
+> 
