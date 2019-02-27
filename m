@@ -1,19 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35036 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726265AbfB0QGx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 27 Feb 2019 11:06:53 -0500
-Subject: Re: [PATCH v5 02/23] kernel: Define gettimeofday vdso common code
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35194 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728189AbfB0QSs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 27 Feb 2019 11:18:48 -0500
+Subject: Re: [PATCH v5 22/23] x86: Add support for generic vDSO
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-3-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1902231751510.1666@nanos.tec.linutronix.de>
- <9c1da773-7fae-69ad-484b-224f3e76ea09@arm.com>
- <alpine.DEB.2.21.1902271640260.26197@nanos.tec.linutronix.de>
+ <20190222122430.21180-23-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1902231138130.1666@nanos.tec.linutronix.de>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <65173128-04b3-fd03-247b-d090703244ac@arm.com>
-Date: Wed, 27 Feb 2019 16:06:49 +0000
+Message-ID: <82104913-fcce-8012-1815-05ea78081ff4@arm.com>
+Date: Wed, 27 Feb 2019 16:18:44 +0000
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.21.1902271640260.26197@nanos.tec.linutronix.de>
+In-Reply-To: <alpine.DEB.2.21.1902231138130.1666@nanos.tec.linutronix.de>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
@@ -21,45 +19,47 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20190227160649.RZkbv2YCnshXgK3BsAWCohwafJONA0fbySIoVdw5hoc@z>
+Message-ID: <20190227161844.KUm6WXPohvrgDc9u9qNirl11d-I7PB1XCen4NA_Oupc@z>
 
-On 27/02/2019 15:49, Thomas Gleixner wrote:
-> Vincenzo,
+On 23/02/2019 10:45, Thomas Gleixner wrote:
+> On Fri, 22 Feb 2019, Vincenzo Frascino wrote:
+>>  void update_vsyscall_tz(void)
+>>  {
+>> -	vsyscall_gtod_data.tz_minuteswest = sys_tz.tz_minuteswest;
+>> -	vsyscall_gtod_data.tz_dsttime = sys_tz.tz_dsttime;
+>> +	vdso_data.tz_minuteswest = sys_tz.tz_minuteswest;
+>> +	vdso_data.tz_dsttime = sys_tz.tz_dsttime;
+>>  }
+>>  
+>>  void update_vsyscall(struct timekeeper *tk)
+>>  {
+>>  	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
+>> -	struct vsyscall_gtod_data *vdata = &vsyscall_gtod_data;
+>> -	struct vgtod_ts *base;
+>> +	struct vdso_data *vdata = &vdso_data;
+>> +	struct vdso_timestamp *vdso_ts;
+>>  	u64 nsec;
+>>  
+>>  	/* Mark the new vclock used. */
+>>  	BUILD_BUG_ON(VCLOCK_MAX >= 32);
+>>  	WRITE_ONCE(vclocks_used, READ_ONCE(vclocks_used) | (1 << vclock_mode));
+>>  
+>> -	gtod_write_begin(vdata);
+>> +	vdso_write_begin(vdata);
 > 
-> On Wed, 27 Feb 2019, Vincenzo Frascino wrote:
->>
->> The clocksource array has two elements (CLOCKSOURCE_RAW, CLOCKSOURCE_MONO) and
->> the situation with my scheme should be the following:
+> This begs the question why this update code is still architecture
+> specific. The vdso data is now generic, so the whole update can be generic
+> as well. The only x86 specific thing is this perhaps:
 > 
-> Oops. I misread the patch, but still...
+>   	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
 > 
->> 	u32		seq:			+    0
->> 	s32		clock_mode;		+    4
->> 	u64		cycle_last;		+    8
->> 	struct vdso_cs	cs[2];			+    16
->> 	struct vdso_ts	basetime[VDSO_BASES];	+    48
->>
->> which I agree makes still things a bit worse.
+> 	vdata->clock_mode	= vclock_mode;
 > 
->>> It's easy enough to benchmark these implementations and without trying I'm
->>> pretty sure that you can see the performance drop nicely. Please do so next
->>> time and provide the numbers in the changelogs.
->>>
->>
->> I did run some benchmarks this morning to quantify the performance impact and
->> seems that using vdsotest[1] the difference in between a stock linux kernel
->> 5.0.0-rc7 and one that has unified vDSO, running on my x86 machine (Xeon Gold
->> 5120T), is below 1%. Please find the results below, I will add them as well to
->> the next changelog.
-> 
-> I have some doubts about 1%.
-> 			    	   NEW	STOCK
-> clock-gettime-monotonic:    vdso:  31	 28    ~ 10% slower
-> clock-gettime-realtime:     vdso:  32    29    ~ 10% slower
+> But either than can be made generic and mandatory or easily resolved with a
+> trivial arch_update_vsyscall() inline.
 >
 
-Sorry, there was an error in my script that I used to extract percentages. I
-agree! Luckily I shared the numbers. Thanks Thomas.
+I agree, I will make it generic in the next patch series.
 
 > Thanks,
 > 
