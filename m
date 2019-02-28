@@ -1,13 +1,14 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v5 00/23] Unify vDSOs across more architectures
-Date: Thu, 28 Feb 2019 12:40:25 +0100
-Message-ID: <CAK8P3a1Q1uMFLs6eq26Rkv8hQdu0FkPUoq0gDnZPju-Eu1oHgQ@mail.gmail.com>
-References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
+Subject: [PATCH 2/2] vdso: add clock_gettime64
+Date: Thu, 28 Feb 2019 12:58:55 +0100
+Message-ID: <20190228115855.610027-2-arnd@arndb.de>
+References: <CAK8P3a2D44CDXbcKB-WtphYY9E74ovFPs+e4Ti3fUqRL77AYhw@mail.gmail.com>
+ <20190228115855.610027-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190222122430.21180-1-vincenzo.frascino@arm.com>
+In-Reply-To: <20190228115855.610027-1-arnd@arndb.de>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -18,69 +19,129 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Shuah Khan <shuah@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBGZWIgMjIsIDIwMTkgYXQgMToyNSBQTSBWaW5jZW56byBGcmFzY2lubwo8dmluY2Vu
-em8uZnJhc2Npbm9AYXJtLmNvbT4gd3JvdGU6Cj4KPiB2RFNPICh2aXJ0dWFsIGR5bmFtaWMgc2hh
-cmVkIG9iamVjdCkgaXMgYSBtZWNoYW5pc20gdGhhdCB0aGUgTGludXgKPiBrZXJuZWwgcHJvdmlk
-ZXMgYXMgYW4gYWx0ZXJuYXRpdmUgdG8gc3lzdGVtIGNhbGxzIHRvIHJlZHVjZSB3aGVyZQo+IHBv
-c3NpYmxlIHRoZSBjb3N0cyBpbiB0ZXJtcyBvZiBjeWNsZXMuCj4gVGhpcyBpcyBwb3NzaWJsZSBi
-ZWNhdXNlIGNlcnRhaW4gc3lzY2FsbHMgbGlrZSBnZXR0aW1lb2ZkYXkoKSBkbwo+IG5vdCB3cml0
-ZSBhbnkgZGF0YSBhbmQgcmV0dXJuIG9uZSBvciBtb3JlIHZhbHVlcyB0aGF0IGFyZSBzdG9yZWQK
-PiBpbiB0aGUga2VybmVsLCB3aGljaCBtYWtlcyByZWxhdGl2ZWx5IHNhZmUgY2FsbGluZyB0aGVt
-IGRpcmVjdGx5Cj4gYXMgYSBsaWJyYXJ5IGZ1bmN0aW9uLgoKSSB0cmllZCBhcHBseWluZyB0aGUg
-c2VyaWVzIG9uIHRvcCBvZiB2NS4wLXJjNywgYW5kIGdvdCBhIHNldCBvZgpidWlsZCB3YXJuaW5n
-cyB3aXRoIGFybTY0IGRlZmNvbmZpZzoKCkluIGZpbGUgaW5jbHVkZWQgZnJvbSAvZ2l0L2FybS1z
-b2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS90aHJlYWRfaW5mby5oOjMwOjAsCiAgICAgICAgICAg
-ICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9saW51eC90aHJlYWRfaW5mby5oOjM4LAog
-ICAgICAgICAgICAgICAgIGZyb20gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20v
-cHJlZW1wdC5oOjUsCiAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9s
-aW51eC9wcmVlbXB0Lmg6NzgsCiAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5j
-bHVkZS9saW51eC9zcGlubG9jay5oOjUxLAogICAgICAgICAgICAgICAgIGZyb20gL2dpdC9hcm0t
-c29jL2luY2x1ZGUvbGludXgvc2VxbG9jay5oOjM2LAogICAgICAgICAgICAgICAgIGZyb20gL2dp
-dC9hcm0tc29jL2luY2x1ZGUvbGludXgvdGltZS5oOjYsCiAgICAgICAgICAgICAgICAgZnJvbSAv
-Z2l0L2FybS1zb2MvbGliL3Zkc28vZ2V0dGltZW9mZGF5LmM6NywKICAgICAgICAgICAgICAgICBm
-cm9tIDxjb21tYW5kLWxpbmU+OjA6Ci9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNt
-L21lbW9yeS5oOiBJbiBmdW5jdGlvbiDigJhrYXNscl9vZmZzZXTigJk6Ci9naXQvYXJtLXNvYy9h
-cmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjE5MToyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0
-IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KICByZXR1cm4ga2lt
-YWdlX3ZhZGRyIC0gS0lNQUdFX1ZBRERSOwogIF4KL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5j
-bHVkZS9hc20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9uIOKAmHZpcnRfdG9fcGh5c+KAmToKL2dpdC9h
-cm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjgzOjI6IHdhcm5pbmc6IGxl
-ZnQKc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0XQogIHJl
-dHVybiBfX3ZpcnRfdG9fcGh5cygodW5zaWduZWQgbG9uZykoeCkpOwogIF4KL2dpdC9hcm0tc29j
-L2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjgzOjI6IHdhcm5pbmc6IGxlZnQKc2hp
-ZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0XQovZ2l0L2FybS1z
-b2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDogSW4gZnVuY3Rpb24g4oCYcGh5c190
-b192aXJ04oCZOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoy
-ODk6Mjogd2FybmluZzogbGVmdApzaGlmdCBjb3VudCA+PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVk
-IGJ5IGRlZmF1bHRdCiAgcmV0dXJuICh2b2lkICopKF9fcGh5c190b192aXJ0KHgpKTsKICBeCklu
-IGZpbGUgaW5jbHVkZWQgZnJvbSAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9w
-Z3RhYmxlLWh3ZGVmLmg6MTk6MCwKICAgICAgICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9h
-cmNoL2FybTY0L2luY2x1ZGUvYXNtL3Byb2Nlc3Nvci5oOjQ2LAogICAgICAgICAgICAgICAgIGZy
-b20gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vZWxmLmg6MTI5LAogICAgICAg
-ICAgICAgICAgIGZyb20gL2dpdC9hcm0tc29jL2luY2x1ZGUvbGludXgvZWxmLmg6NSwKICAgICAg
-ICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9pbmNsdWRlL2xpbnV4L2VsZm5vdGUuaDo2MiwK
-ICAgICAgICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2tlcm5lbC92ZHNv
-MzIvbm90ZS5jOjExOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnku
-aDogSW4gZnVuY3Rpb24g4oCYa2FzbHJfb2Zmc2V04oCZOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02
-NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoxOTE6Mjogd2FybmluZzogbGVmdApzaGlmdCBjb3VudCA+
-PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVkIGJ5IGRlZmF1bHRdCiAgcmV0dXJuIGtpbWFnZV92YWRk
-ciAtIEtJTUFHRV9WQUREUjsKICBeCi9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNt
-L21lbW9yeS5oOiBJbiBmdW5jdGlvbiDigJh2aXJ0X3RvX3BoeXPigJk6Ci9naXQvYXJtLXNvYy9h
-cmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjI4MzoyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0
-IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KICByZXR1cm4gX192
-aXJ0X3RvX3BoeXMoKHVuc2lnbmVkIGxvbmcpKHgpKTsKICBeCi9naXQvYXJtLXNvYy9hcmNoL2Fy
-bTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjI4MzoyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0IGNvdW50
-ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KL2dpdC9hcm0tc29jL2FyY2gv
-YXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9uIOKAmHBoeXNfdG9fdmlydOKA
-mToKL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6Mjg5OjI6IHdh
-cm5pbmc6IGxlZnQKc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZh
-dWx0XQogIHJldHVybiAodm9pZCAqKShfX3BoeXNfdG9fdmlydCh4KSk7CiAgXgoKSSB0aGluayB0
-aGlzIGlzIGFsbCBoYXJtbGVzcywgYnV0IHdlIG5lZWQgdG8gbGltaXQgdGhlIHNldCBvZiBoZWFk
-ZXIgZmlsZXMKdGhhdCBjYW4gYmUgaW5jbHVkZWQgaW5kaXJlY3RseSB3aGVuIGNvbXBpbGluZyB0
-aGUgdmRzbyBpbiBhcm0zMiBtb2RlLgoKICAgICAgIEFybmQKCl9fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0
-CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFk
-ZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+Adding a clock_gettime64() vdso call on all32-bit machines is now trivial.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/vdso/vdso.lds.S                | 1 +
+ arch/arm/vdso/vgettimeofday.c           | 6 ++++++
+ arch/arm64/kernel/vdso32/vdso.lds.S     | 1 +
+ arch/mips/vdso/vdso.lds.S               | 3 +++
+ arch/mips/vdso/vgettimeofday.c          | 6 ++++++
+ arch/x86/entry/vdso/vclock_gettime.c    | 6 ++++++
+ arch/x86/entry/vdso/vdso32/vdso32.lds.S | 1 +
+ 7 files changed, 24 insertions(+)
+
+diff --git a/arch/arm/vdso/vdso.lds.S b/arch/arm/vdso/vdso.lds.S
+index 1d81e8c3acf6..05581140fd12 100644
+--- a/arch/arm/vdso/vdso.lds.S
++++ b/arch/arm/vdso/vdso.lds.S
+@@ -83,6 +83,7 @@ VERSION
+ 		__vdso_clock_gettime;
+ 		__vdso_gettimeofday;
+ 		__vdso_clock_getres;
++		__vdso_clock_gettime64;
+ 	local: *;
+ 	};
+ }
+diff --git a/arch/arm/vdso/vgettimeofday.c b/arch/arm/vdso/vgettimeofday.c
+index b4607a5ecf31..6762f800a8ea 100644
+--- a/arch/arm/vdso/vgettimeofday.c
++++ b/arch/arm/vdso/vgettimeofday.c
+@@ -14,6 +14,12 @@ notrace int __vdso_clock_gettime(clockid_t clock,
+ 	return __cvdso_clock_gettime32(clock, ts);
+ }
+ 
++notrace int __vdso_clock_gettime64(clockid_t clock,
++				 struct __kernel_timespec *ts)
++{
++	return __cvdso_clock_gettime(clock, ts);
++}
++
+ notrace int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
+ 				struct timezone *tz)
+ {
+diff --git a/arch/arm64/kernel/vdso32/vdso.lds.S b/arch/arm64/kernel/vdso32/vdso.lds.S
+index 4fd3093ea78c..a3944927eaeb 100644
+--- a/arch/arm64/kernel/vdso32/vdso.lds.S
++++ b/arch/arm64/kernel/vdso32/vdso.lds.S
+@@ -68,6 +68,7 @@ VERSION
+ 		__kernel_sigreturn_thumb;
+ 		__kernel_rt_sigreturn_arm;
+ 		__kernel_rt_sigreturn_thumb;
++		__vdso_clock_gettime64;
+ 	local: *;
+ 	};
+ }
+diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
+index 90b2c2785e32..659fe0c3750a 100644
+--- a/arch/mips/vdso/vdso.lds.S
++++ b/arch/mips/vdso/vdso.lds.S
+@@ -100,6 +100,9 @@ VERSION
+ 		__vdso_clock_gettime;
+ 		__vdso_gettimeofday;
+ 		__vdso_clock_getres;
++#if _MIPS_SIM != _MIPS_SIM_ABI64
++		__vdso_clock_gettime64;
++#endif
+ #endif
+ 	local: *;
+ 	};
+diff --git a/arch/mips/vdso/vgettimeofday.c b/arch/mips/vdso/vgettimeofday.c
+index 7a3320faa29a..0b4fea088f89 100644
+--- a/arch/mips/vdso/vgettimeofday.c
++++ b/arch/mips/vdso/vgettimeofday.c
+@@ -27,6 +27,12 @@ notrace int __vdso_clock_getres(clockid_t clock_id,
+ 	return __cvdso_clock_getres_time32(clock_id, res);
+ }
+ 
++notrace int __vdso_clock_gettime_time64(clockid_t clock,
++				 struct __kernel_timespec *ts)
++{
++	return __cvdso_clock_gettime(clock, ts);
++}
++
+ #else
+ 
+ notrace int __vdso_clock_gettime(clockid_t clock,
+diff --git a/arch/x86/entry/vdso/vclock_gettime.c b/arch/x86/entry/vdso/vclock_gettime.c
+index c9512c114ac1..0a7d4bdeadc9 100644
+--- a/arch/x86/entry/vdso/vclock_gettime.c
++++ b/arch/x86/entry/vdso/vclock_gettime.c
+@@ -54,6 +54,7 @@ int clock_getres(clockid_t, struct __kernel_timespec *)
+ #else
+ /* i386 only */
+ extern int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts);
++extern int __vdso_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts);
+ extern int __vdso_clock_getres(clockid_t clock, struct old_timespec32 *res);
+ 
+ notrace int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts)
+@@ -64,6 +65,11 @@ notrace int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts)
+ int clock_gettime(clockid_t, struct old_timespec32 *)
+ 	__attribute__((weak, alias("__vdso_clock_gettime")));
+ 
++notrace int __vdso_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts)
++{
++	return __cvdso_clock_gettime(clock, ts);
++}
++
+ notrace int __vdso_clock_getres(clockid_t clock,
+ 				struct old_timespec32 *res)
+ {
+diff --git a/arch/x86/entry/vdso/vdso32/vdso32.lds.S b/arch/x86/entry/vdso/vdso32/vdso32.lds.S
+index 991b26cc855b..c7720995ab1a 100644
+--- a/arch/x86/entry/vdso/vdso32/vdso32.lds.S
++++ b/arch/x86/entry/vdso/vdso32/vdso32.lds.S
+@@ -27,6 +27,7 @@ VERSION
+ 		__vdso_gettimeofday;
+ 		__vdso_time;
+ 		__vdso_clock_getres;
++		__vdso_clock_gettime64;
+ 	};
+ 
+ 	LINUX_2.5 {
+-- 
+2.20.0
