@@ -1,16 +1,13 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v5 02/23] kernel: Define gettimeofday vdso common code
-Date: Thu, 28 Feb 2019 10:29:50 +0100
-Message-ID: <CAK8P3a2D44CDXbcKB-WtphYY9E74ovFPs+e4Ti3fUqRL77AYhw@mail.gmail.com>
+Subject: Re: [PATCH v5 00/23] Unify vDSOs across more architectures
+Date: Thu, 28 Feb 2019 12:40:25 +0100
+Message-ID: <CAK8P3a1Q1uMFLs6eq26Rkv8hQdu0FkPUoq0gDnZPju-Eu1oHgQ@mail.gmail.com>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
- <20190222122430.21180-3-vincenzo.frascino@arm.com>
- <CAK8P3a1ssUdsqk7YW-tjD-dihEAP-voKLOEGO-W=TL7Lb8E7vw@mail.gmail.com>
- <1f9b21cd-81f5-dfa9-70fb-af8228195cb4@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1f9b21cd-81f5-dfa9-70fb-af8228195cb4@arm.com>
+In-Reply-To: <20190222122430.21180-1-vincenzo.frascino@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -24,55 +21,66 @@ To: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Shuah Khan <shuah@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 27, 2019 at 3:52 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
-> On 22/02/2019 13:49, Arnd Bergmann wrote:
-> > On Fri, Feb 22, 2019 at 1:25 PM Vincenzo Frascino
-> > <vincenzo.frascino@arm.com> wrote:
-> >
-> >> +/*
-> >> + * The definitions below are required to overcome the limitations
-> >> + * of time_t on 32 bit architectures, which overflows in 2038.
-> >> + * The new code should use the replacements based on time64_t and
-> >> + * timespec64.
-> >> + *
-> >> + * The abstraction below will be updated once the migration to
-> >> + * time64_t is complete.
-> >> + */
-> >> +#ifdef CONFIG_GENERIC_VDSO_32
-> >> +#define __vdso_timespec                old_timespec32
-> >> +#define __vdso_timeval         old_timeval32
-> >> +#else
-> >> +#ifdef ENABLE_COMPAT_VDSO
-> >> +#define __vdso_timespec                old_timespec32
-> >> +#define __vdso_timeval         old_timeval32
-> >> +#else
-> >> +#define __vdso_timespec                __kernel_timespec
-> >> +#define __vdso_timeval         __kernel_old_timeval
-> >> +#endif /* CONFIG_COMPAT_VDSO */
-> >> +#endif /* CONFIG_GENERIC_VDSO_32 */
-
-> > For __vdso_timespec, I see how you ended up with this
-> > redefinition, and it makes the current version of your patches
-> > easier, but I fear it will in turn make it harder to add the
-> > __kernel_old_timeval based variant.
-> >
->
-> What is __kernel_old_timespec (based on you next email)? Why do you think it
-> will make harder to add the new variants?
-
-I mean you should ideally use the types that you have listed above
-directly, without the abstraction.
-
-In the long run I want one set of functions using __kernel_timespec that
-implements the 64-bit time interfaces on both 32-bit and 64-bit kernels,
-including the compat vdso, and another set using old_timespec32 for
-just the native 32-bit and compat version.
-
-This would match what we do in the normal system calls (in linux-5.1+),
-where we always have the regular implementation use 64-bit types
-only, and have an optional _time32 version that is used for existing
-32-bit user space, on both native 32 bit kernels and compat syscalls
-on 64-bit.
-
-       Arnd
+T24gRnJpLCBGZWIgMjIsIDIwMTkgYXQgMToyNSBQTSBWaW5jZW56byBGcmFzY2lubwo8dmluY2Vu
+em8uZnJhc2Npbm9AYXJtLmNvbT4gd3JvdGU6Cj4KPiB2RFNPICh2aXJ0dWFsIGR5bmFtaWMgc2hh
+cmVkIG9iamVjdCkgaXMgYSBtZWNoYW5pc20gdGhhdCB0aGUgTGludXgKPiBrZXJuZWwgcHJvdmlk
+ZXMgYXMgYW4gYWx0ZXJuYXRpdmUgdG8gc3lzdGVtIGNhbGxzIHRvIHJlZHVjZSB3aGVyZQo+IHBv
+c3NpYmxlIHRoZSBjb3N0cyBpbiB0ZXJtcyBvZiBjeWNsZXMuCj4gVGhpcyBpcyBwb3NzaWJsZSBi
+ZWNhdXNlIGNlcnRhaW4gc3lzY2FsbHMgbGlrZSBnZXR0aW1lb2ZkYXkoKSBkbwo+IG5vdCB3cml0
+ZSBhbnkgZGF0YSBhbmQgcmV0dXJuIG9uZSBvciBtb3JlIHZhbHVlcyB0aGF0IGFyZSBzdG9yZWQK
+PiBpbiB0aGUga2VybmVsLCB3aGljaCBtYWtlcyByZWxhdGl2ZWx5IHNhZmUgY2FsbGluZyB0aGVt
+IGRpcmVjdGx5Cj4gYXMgYSBsaWJyYXJ5IGZ1bmN0aW9uLgoKSSB0cmllZCBhcHBseWluZyB0aGUg
+c2VyaWVzIG9uIHRvcCBvZiB2NS4wLXJjNywgYW5kIGdvdCBhIHNldCBvZgpidWlsZCB3YXJuaW5n
+cyB3aXRoIGFybTY0IGRlZmNvbmZpZzoKCkluIGZpbGUgaW5jbHVkZWQgZnJvbSAvZ2l0L2FybS1z
+b2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS90aHJlYWRfaW5mby5oOjMwOjAsCiAgICAgICAgICAg
+ICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9saW51eC90aHJlYWRfaW5mby5oOjM4LAog
+ICAgICAgICAgICAgICAgIGZyb20gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20v
+cHJlZW1wdC5oOjUsCiAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9s
+aW51eC9wcmVlbXB0Lmg6NzgsCiAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5j
+bHVkZS9saW51eC9zcGlubG9jay5oOjUxLAogICAgICAgICAgICAgICAgIGZyb20gL2dpdC9hcm0t
+c29jL2luY2x1ZGUvbGludXgvc2VxbG9jay5oOjM2LAogICAgICAgICAgICAgICAgIGZyb20gL2dp
+dC9hcm0tc29jL2luY2x1ZGUvbGludXgvdGltZS5oOjYsCiAgICAgICAgICAgICAgICAgZnJvbSAv
+Z2l0L2FybS1zb2MvbGliL3Zkc28vZ2V0dGltZW9mZGF5LmM6NywKICAgICAgICAgICAgICAgICBm
+cm9tIDxjb21tYW5kLWxpbmU+OjA6Ci9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNt
+L21lbW9yeS5oOiBJbiBmdW5jdGlvbiDigJhrYXNscl9vZmZzZXTigJk6Ci9naXQvYXJtLXNvYy9h
+cmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjE5MToyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0
+IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KICByZXR1cm4ga2lt
+YWdlX3ZhZGRyIC0gS0lNQUdFX1ZBRERSOwogIF4KL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5j
+bHVkZS9hc20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9uIOKAmHZpcnRfdG9fcGh5c+KAmToKL2dpdC9h
+cm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjgzOjI6IHdhcm5pbmc6IGxl
+ZnQKc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0XQogIHJl
+dHVybiBfX3ZpcnRfdG9fcGh5cygodW5zaWduZWQgbG9uZykoeCkpOwogIF4KL2dpdC9hcm0tc29j
+L2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjgzOjI6IHdhcm5pbmc6IGxlZnQKc2hp
+ZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0XQovZ2l0L2FybS1z
+b2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDogSW4gZnVuY3Rpb24g4oCYcGh5c190
+b192aXJ04oCZOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoy
+ODk6Mjogd2FybmluZzogbGVmdApzaGlmdCBjb3VudCA+PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVk
+IGJ5IGRlZmF1bHRdCiAgcmV0dXJuICh2b2lkICopKF9fcGh5c190b192aXJ0KHgpKTsKICBeCklu
+IGZpbGUgaW5jbHVkZWQgZnJvbSAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9w
+Z3RhYmxlLWh3ZGVmLmg6MTk6MCwKICAgICAgICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9h
+cmNoL2FybTY0L2luY2x1ZGUvYXNtL3Byb2Nlc3Nvci5oOjQ2LAogICAgICAgICAgICAgICAgIGZy
+b20gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vZWxmLmg6MTI5LAogICAgICAg
+ICAgICAgICAgIGZyb20gL2dpdC9hcm0tc29jL2luY2x1ZGUvbGludXgvZWxmLmg6NSwKICAgICAg
+ICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9pbmNsdWRlL2xpbnV4L2VsZm5vdGUuaDo2MiwK
+ICAgICAgICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2tlcm5lbC92ZHNv
+MzIvbm90ZS5jOjExOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnku
+aDogSW4gZnVuY3Rpb24g4oCYa2FzbHJfb2Zmc2V04oCZOgovZ2l0L2FybS1zb2MvYXJjaC9hcm02
+NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoxOTE6Mjogd2FybmluZzogbGVmdApzaGlmdCBjb3VudCA+
+PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVkIGJ5IGRlZmF1bHRdCiAgcmV0dXJuIGtpbWFnZV92YWRk
+ciAtIEtJTUFHRV9WQUREUjsKICBeCi9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNt
+L21lbW9yeS5oOiBJbiBmdW5jdGlvbiDigJh2aXJ0X3RvX3BoeXPigJk6Ci9naXQvYXJtLXNvYy9h
+cmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjI4MzoyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0
+IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KICByZXR1cm4gX192
+aXJ0X3RvX3BoeXMoKHVuc2lnbmVkIGxvbmcpKHgpKTsKICBeCi9naXQvYXJtLXNvYy9hcmNoL2Fy
+bTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjI4MzoyOiB3YXJuaW5nOiBsZWZ0CnNoaWZ0IGNvdW50
+ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KL2dpdC9hcm0tc29jL2FyY2gv
+YXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9uIOKAmHBoeXNfdG9fdmlydOKA
+mToKL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6Mjg5OjI6IHdh
+cm5pbmc6IGxlZnQKc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZh
+dWx0XQogIHJldHVybiAodm9pZCAqKShfX3BoeXNfdG9fdmlydCh4KSk7CiAgXgoKSSB0aGluayB0
+aGlzIGlzIGFsbCBoYXJtbGVzcywgYnV0IHdlIG5lZWQgdG8gbGltaXQgdGhlIHNldCBvZiBoZWFk
+ZXIgZmlsZXMKdGhhdCBjYW4gYmUgaW5jbHVkZWQgaW5kaXJlY3RseSB3aGVuIGNvbXBpbGluZyB0
+aGUgdmRzbyBpbiBhcm0zMiBtb2RlLgoKICAgICAgIEFybmQKCl9fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0
+CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFk
+ZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
