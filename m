@@ -1,15 +1,15 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v5 00/23] Unify vDSOs across more architectures
-Date: Thu, 28 Feb 2019 12:09:21 +0000
-Message-ID: <b02ee1da-e756-f7c7-ad8d-944b9b9e56e0@arm.com>
+Date: Thu, 28 Feb 2019 13:38:52 +0100
+Message-ID: <CAK8P3a3__F6jRn6JC2hLWG5yvgV38rBRtjwZKN4cV=yAusuo8Q@mail.gmail.com>
 References: <20190222122430.21180-1-vincenzo.frascino@arm.com>
  <CAK8P3a1Q1uMFLs6eq26Rkv8hQdu0FkPUoq0gDnZPju-Eu1oHgQ@mail.gmail.com>
+ <b02ee1da-e756-f7c7-ad8d-944b9b9e56e0@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a1Q1uMFLs6eq26Rkv8hQdu0FkPUoq0gDnZPju-Eu1oHgQ@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <b02ee1da-e756-f7c7-ad8d-944b9b9e56e0@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,78 +19,30 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Shuah Khan <shuah@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgQXJuZCwKCnRoYW5rIHlvdSBmb3IgdGVzdGluZyBteSBjb2RlLgoKT24gMjgvMDIvMjAxOSAx
-MTo0MCwgQXJuZCBCZXJnbWFubiB3cm90ZToKPiBPbiBGcmksIEZlYiAyMiwgMjAxOSBhdCAxOjI1
-IFBNIFZpbmNlbnpvIEZyYXNjaW5vCj4gPHZpbmNlbnpvLmZyYXNjaW5vQGFybS5jb20+IHdyb3Rl
-Ogo+Pgo+PiB2RFNPICh2aXJ0dWFsIGR5bmFtaWMgc2hhcmVkIG9iamVjdCkgaXMgYSBtZWNoYW5p
-c20gdGhhdCB0aGUgTGludXgKPj4ga2VybmVsIHByb3ZpZGVzIGFzIGFuIGFsdGVybmF0aXZlIHRv
-IHN5c3RlbSBjYWxscyB0byByZWR1Y2Ugd2hlcmUKPj4gcG9zc2libGUgdGhlIGNvc3RzIGluIHRl
-cm1zIG9mIGN5Y2xlcy4KPj4gVGhpcyBpcyBwb3NzaWJsZSBiZWNhdXNlIGNlcnRhaW4gc3lzY2Fs
-bHMgbGlrZSBnZXR0aW1lb2ZkYXkoKSBkbwo+PiBub3Qgd3JpdGUgYW55IGRhdGEgYW5kIHJldHVy
-biBvbmUgb3IgbW9yZSB2YWx1ZXMgdGhhdCBhcmUgc3RvcmVkCj4+IGluIHRoZSBrZXJuZWwsIHdo
-aWNoIG1ha2VzIHJlbGF0aXZlbHkgc2FmZSBjYWxsaW5nIHRoZW0gZGlyZWN0bHkKPj4gYXMgYSBs
-aWJyYXJ5IGZ1bmN0aW9uLgo+IAo+IEkgdHJpZWQgYXBwbHlpbmcgdGhlIHNlcmllcyBvbiB0b3Ag
-b2YgdjUuMC1yYzcsIGFuZCBnb3QgYSBzZXQgb2YKPiBidWlsZCB3YXJuaW5ncyB3aXRoIGFybTY0
-IGRlZmNvbmZpZzoKPiAKPiBJbiBmaWxlIGluY2x1ZGVkIGZyb20gL2dpdC9hcm0tc29jL2FyY2gv
-YXJtNjQvaW5jbHVkZS9hc20vdGhyZWFkX2luZm8uaDozMDowLAo+ICAgICAgICAgICAgICAgICAg
-ZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9saW51eC90aHJlYWRfaW5mby5oOjM4LAo+ICAgICAg
-ICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9wcmVl
-bXB0Lmg6NSwKPiAgICAgICAgICAgICAgICAgIGZyb20gL2dpdC9hcm0tc29jL2luY2x1ZGUvbGlu
-dXgvcHJlZW1wdC5oOjc4LAo+ICAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5j
-bHVkZS9saW51eC9zcGlubG9jay5oOjUxLAo+ICAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2Fy
-bS1zb2MvaW5jbHVkZS9saW51eC9zZXFsb2NrLmg6MzYsCj4gICAgICAgICAgICAgICAgICBmcm9t
-IC9naXQvYXJtLXNvYy9pbmNsdWRlL2xpbnV4L3RpbWUuaDo2LAo+ICAgICAgICAgICAgICAgICAg
-ZnJvbSAvZ2l0L2FybS1zb2MvbGliL3Zkc28vZ2V0dGltZW9mZGF5LmM6NywKPiAgICAgICAgICAg
-ICAgICAgIGZyb20gPGNvbW1hbmQtbGluZT46MDoKPiAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9p
-bmNsdWRlL2FzbS9tZW1vcnkuaDogSW4gZnVuY3Rpb24g4oCYa2FzbHJfb2Zmc2V04oCZOgo+IC9n
-aXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjE5MToyOiB3YXJuaW5n
-OiBsZWZ0Cj4gc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0
-XQo+ICAgcmV0dXJuIGtpbWFnZV92YWRkciAtIEtJTUFHRV9WQUREUjsKPiAgIF4KPiAvZ2l0L2Fy
-bS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDogSW4gZnVuY3Rpb24g4oCYdmly
-dF90b19waHlz4oCZOgo+IC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9y
-eS5oOjI4MzoyOiB3YXJuaW5nOiBsZWZ0Cj4gc2hpZnQgY291bnQgPj0gd2lkdGggb2YgdHlwZSBb
-ZW5hYmxlZCBieSBkZWZhdWx0XQo+ICAgcmV0dXJuIF9fdmlydF90b19waHlzKCh1bnNpZ25lZCBs
-b25nKSh4KSk7Cj4gICBeCj4gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVt
-b3J5Lmg6MjgzOjI6IHdhcm5pbmc6IGxlZnQKPiBzaGlmdCBjb3VudCA+PSB3aWR0aCBvZiB0eXBl
-IFtlbmFibGVkIGJ5IGRlZmF1bHRdCj4gL2dpdC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9h
-c20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9uIOKAmHBoeXNfdG9fdmlydOKAmToKPiAvZ2l0L2FybS1z
-b2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoyODk6Mjogd2FybmluZzogbGVmdAo+
-IHNoaWZ0IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVsdF0KPiAgIHJl
-dHVybiAodm9pZCAqKShfX3BoeXNfdG9fdmlydCh4KSk7Cj4gICBeCj4gSW4gZmlsZSBpbmNsdWRl
-ZCBmcm9tIC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL3BndGFibGUtaHdkZWYu
-aDoxOTowLAo+ICAgICAgICAgICAgICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9p
-bmNsdWRlL2FzbS9wcm9jZXNzb3IuaDo0NiwKPiAgICAgICAgICAgICAgICAgIGZyb20gL2dpdC9h
-cm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vZWxmLmg6MTI5LAo+ICAgICAgICAgICAgICAg
-ICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9saW51eC9lbGYuaDo1LAo+ICAgICAgICAgICAg
-ICAgICAgZnJvbSAvZ2l0L2FybS1zb2MvaW5jbHVkZS9saW51eC9lbGZub3RlLmg6NjIsCj4gICAg
-ICAgICAgICAgICAgICBmcm9tIC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2tlcm5lbC92ZHNvMzIv
-bm90ZS5jOjExOgo+IC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5o
-OiBJbiBmdW5jdGlvbiDigJhrYXNscl9vZmZzZXTigJk6Cj4gL2dpdC9hcm0tc29jL2FyY2gvYXJt
-NjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MTkxOjI6IHdhcm5pbmc6IGxlZnQKPiBzaGlmdCBjb3Vu
-dCA+PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVkIGJ5IGRlZmF1bHRdCj4gICByZXR1cm4ga2ltYWdl
-X3ZhZGRyIC0gS0lNQUdFX1ZBRERSOwo+ICAgXgo+IC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2lu
-Y2x1ZGUvYXNtL21lbW9yeS5oOiBJbiBmdW5jdGlvbiDigJh2aXJ0X3RvX3BoeXPigJk6Cj4gL2dp
-dC9hcm0tc29jL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjgzOjI6IHdhcm5pbmc6
-IGxlZnQKPiBzaGlmdCBjb3VudCA+PSB3aWR0aCBvZiB0eXBlIFtlbmFibGVkIGJ5IGRlZmF1bHRd
-Cj4gICByZXR1cm4gX192aXJ0X3RvX3BoeXMoKHVuc2lnbmVkIGxvbmcpKHgpKTsKPiAgIF4KPiAv
-Z2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDoyODM6Mjogd2Fybmlu
-ZzogbGVmdAo+IHNoaWZ0IGNvdW50ID49IHdpZHRoIG9mIHR5cGUgW2VuYWJsZWQgYnkgZGVmYXVs
-dF0KPiAvZ2l0L2FybS1zb2MvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9tZW1vcnkuaDogSW4gZnVu
-Y3Rpb24g4oCYcGh5c190b192aXJ04oCZOgo+IC9naXQvYXJtLXNvYy9hcmNoL2FybTY0L2luY2x1
-ZGUvYXNtL21lbW9yeS5oOjI4OToyOiB3YXJuaW5nOiBsZWZ0Cj4gc2hpZnQgY291bnQgPj0gd2lk
-dGggb2YgdHlwZSBbZW5hYmxlZCBieSBkZWZhdWx0XQo+ICAgcmV0dXJuICh2b2lkICopKF9fcGh5
-c190b192aXJ0KHgpKTsKPiAgIF4KPiAKPiBJIHRoaW5rIHRoaXMgaXMgYWxsIGhhcm1sZXNzLCBi
-dXQgd2UgbmVlZCB0byBsaW1pdCB0aGUgc2V0IG9mIGhlYWRlciBmaWxlcwo+IHRoYXQgY2FuIGJl
-IGluY2x1ZGVkIGluZGlyZWN0bHkgd2hlbiBjb21waWxpbmcgdGhlIHZkc28gaW4gYXJtMzIgbW9k
-ZS4KPiAKCkkgYWdyZWUgd2l0aCB5b3Ugb24gdGhlIHByaW5jaXBsZSwgYnV0IEkgYW0gdW5hYmxl
-IHRvIHJlcGxpY2F0ZSB0aGUgd2FybmluZ3MuCkRpZCB5b3UgbWFrZSBhbnkgY3VzdG9taXphdGlv
-biB0byB0aGUgZGVmYXVsdCBkZWZjb25maWc/IFdoYXQgaXMgdGhlIHRvcApjb21taXQtaWQgeW91
-IGhhdmUgb24geW91ciB0cmVlPwoKPiAgICAgICAgQXJuZAo+IAoKLS0gClJlZ2FyZHMsClZpbmNl
-bnpvCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51
-eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVh
-ZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1h
-cm0ta2VybmVsCg==
+On Thu, Feb 28, 2019 at 1:09 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
+>
+> thank you for testing my code.
+>
+> On 28/02/2019 11:40, Arnd Bergmann wrote:
+> > On Fri, Feb 22, 2019 at 1:25 PM Vincenzo Frascino
+> > <vincenzo.frascino@arm.com> wrote:
+> >   ^
+> >
+> > I think this is all harmless, but we need to limit the set of header files
+> > that can be included indirectly when compiling the vdso in arm32 mode.
+> >
+>
+> I agree with you on the principle, but I am unable to replicate the warnings.
+> Did you make any customization to the default defconfig? What is the top
+> commit-id you have on your tree?
+
+I observed this on top of v5.0-rc7 earlier, and have since rebased to
+today's linux-next, where it still happens with the regular 'make defconfig',
+on all compiler versions I have (4.8 through 8.1).
+
+     Arnd
