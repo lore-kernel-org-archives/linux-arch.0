@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of mmiowb() tracking
-Date: Fri,  1 Mar 2019 14:03:29 +0000
-Message-ID: <20190301140348.25175-2-will.deacon@arm.com>
+Subject: [PATCH 03/20] mmiowb: Hook up mmiowb helpers to spinlocks and generic I/O accessors
+Date: Fri,  1 Mar 2019 14:03:31 +0000
+Message-ID: <20190301140348.25175-4-will.deacon@arm.com>
 References: <20190301140348.25175-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190301140348.25175-1-will.deacon@arm.com>
@@ -10,141 +10,116 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for removing all explicit mmiowb() calls from driver
-code, implement a tracking system in asm-generic based loosely on the
-PowerPC implementation. This allows architectures with a non-empty
-mmiowb() definition to have the barrier automatically inserted in
-spin_unlock() following a critical section containing an I/O write.
+Removing explicit calls to mmiowb() from driver code means that we must
+now call into the generic mmiowb_spin_{lock,unlock}() functions from the
+core spinlock code. In order to elide barriers following critical
+sections without any I/O writes, we also hook into the asm-generic I/O
+routines.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/mmiowb.h       | 63 ++++++++++++++++++++++++++++++++++++++
- include/asm-generic/mmiowb_types.h | 12 ++++++++
- kernel/Kconfig.locks               |  7 +++++
- kernel/locking/spinlock.c          |  7 +++++
- 4 files changed, 89 insertions(+)
- create mode 100644 include/asm-generic/mmiowb.h
- create mode 100644 include/asm-generic/mmiowb_types.h
+ include/asm-generic/io.h        |  3 ++-
+ include/linux/spinlock.h        | 11 ++++++++++-
+ kernel/locking/spinlock_debug.c |  6 +++++-
+ 3 files changed, 17 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
-new file mode 100644
-index 000000000000..9439ff037b2d
---- /dev/null
-+++ b/include/asm-generic/mmiowb.h
-@@ -0,0 +1,63 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_GENERIC_MMIOWB_H
-+#define __ASM_GENERIC_MMIOWB_H
-+
-+/*
-+ * Generic implementation of mmiowb() tracking for spinlocks.
-+ *
-+ * If your architecture doesn't ensure that writes to an I/O peripheral
-+ * within two spinlocked sections on two different CPUs are seen by the
-+ * peripheral in the order corresponding to the lock handover, then you
-+ * need to follow these FIVE easy steps:
-+ *
-+ * 	1. Implement mmiowb() (and arch_mmiowb_state() if you're fancy)
-+ *	   in asm/mmiowb.h, then #include this file
-+ *	2. Ensure your I/O write accessors call mmiowb_set_pending()
-+ *	3. Select ARCH_HAS_MMIOWB
-+ *	4. Untangle the resulting mess of header files
-+ *	5. Complain to your architects
-+ */
-+#ifdef CONFIG_MMIOWB
-+
-+#include <linux/compiler.h>
-+#include <asm-generic/mmiowb_types.h>
-+
-+#ifndef arch_mmiowb_state
-+#include <asm/percpu.h>
-+#include <asm/smp.h>
-+
-+DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
-+#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
-+#else
-+#define __mmiowb_state()	arch_mmiowb_state()
-+#endif	/* arch_mmiowb_state */
-+
-+static inline void mmiowb_set_pending(void)
-+{
-+	struct mmiowb_state *ms = __mmiowb_state();
-+	ms->mmiowb_pending = ms->nesting_count;
-+}
-+
-+static inline void mmiowb_spin_lock(void)
-+{
-+	struct mmiowb_state *ms = __mmiowb_state();
-+	ms->nesting_count++;
-+}
-+
-+static inline void mmiowb_spin_unlock(void)
-+{
-+	struct mmiowb_state *ms = __mmiowb_state();
-+
-+	if (unlikely(ms->mmiowb_pending)) {
-+		ms->mmiowb_pending = 0;
-+		mmiowb();
-+	}
-+
-+	ms->nesting_count--;
-+}
-+#else
-+#define mmiowb_set_pending()		do { } while (0)
-+#define mmiowb_spin_lock()		do { } while (0)
-+#define mmiowb_spin_unlock()		do { } while (0)
-+#endif	/* CONFIG_MMIOWB */
-+#endif	/* __ASM_GENERIC_MMIOWB_H */
-diff --git a/include/asm-generic/mmiowb_types.h b/include/asm-generic/mmiowb_types.h
-new file mode 100644
-index 000000000000..8eb0095655e7
---- /dev/null
-+++ b/include/asm-generic/mmiowb_types.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_GENERIC_MMIOWB_TYPES_H
-+#define __ASM_GENERIC_MMIOWB_TYPES_H
-+
-+#include <linux/types.h>
-+
-+struct mmiowb_state {
-+	u16	nesting_count;
-+	u16	mmiowb_pending;
-+};
-+
-+#endif	/* __ASM_GENERIC_MMIOWB_TYPES_H */
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index 84d882f3e299..82fa481ecb78 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -248,3 +248,10 @@ config ARCH_USE_QUEUED_RWLOCKS
- config QUEUED_RWLOCKS
- 	def_bool y if ARCH_USE_QUEUED_RWLOCKS
- 	depends on SMP
-+
-+config ARCH_HAS_MMIOWB
-+	bool
-+
-+config MMIOWB
-+	def_bool y if ARCH_HAS_MMIOWB
-+	depends on SMP
-diff --git a/kernel/locking/spinlock.c b/kernel/locking/spinlock.c
-index 936f3d14dd6b..0ff08380f531 100644
---- a/kernel/locking/spinlock.c
-+++ b/kernel/locking/spinlock.c
-@@ -22,6 +22,13 @@
- #include <linux/debug_locks.h>
- #include <linux/export.h>
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 303871651f8a..bc490a746602 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -19,6 +19,7 @@
+ #include <asm-generic/iomap.h>
+ #endif
  
-+#ifdef CONFIG_MMIOWB
-+#ifndef arch_mmiowb_state
-+DEFINE_PER_CPU(struct mmiowb_state, __mmiowb_state);
-+EXPORT_PER_CPU_SYMBOL(__mmiowb_state);
-+#endif
-+#endif
-+
++#include <asm/mmiowb.h>
+ #include <asm-generic/pci_iomap.h>
+ 
+ #ifndef mmiowb
+@@ -49,7 +50,7 @@
+ 
+ /* serialize device access against a spin_unlock, usually handled there. */
+ #ifndef __io_aw
+-#define __io_aw()      barrier()
++#define __io_aw()      mmiowb_set_pending()
+ #endif
+ 
+ #ifndef __io_pbw
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index e089157dcf97..4298b1b31d9b 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -57,6 +57,7 @@
+ #include <linux/stringify.h>
+ #include <linux/bottom_half.h>
+ #include <asm/barrier.h>
++#include <asm/mmiowb.h>
+ 
+ 
  /*
-  * If lockdep is enabled then we use the non-preemption spin-ops
-  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
+@@ -177,6 +178,7 @@ do {								\
+ static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock)
+ {
+ 	__acquire(lock);
++	mmiowb_spin_lock();
+ 	arch_spin_lock(&lock->raw_lock);
+ }
+ 
+@@ -188,16 +190,23 @@ static inline void
+ do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acquires(lock)
+ {
+ 	__acquire(lock);
++	mmiowb_spin_lock();
+ 	arch_spin_lock_flags(&lock->raw_lock, *flags);
+ }
+ 
+ static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
+ {
+-	return arch_spin_trylock(&(lock)->raw_lock);
++	int ret = arch_spin_trylock(&(lock)->raw_lock);
++
++	if (ret)
++		mmiowb_spin_lock();
++
++	return ret;
+ }
+ 
+ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
+ {
++	mmiowb_spin_unlock();
+ 	arch_spin_unlock(&lock->raw_lock);
+ 	__release(lock);
+ }
+diff --git a/kernel/locking/spinlock_debug.c b/kernel/locking/spinlock_debug.c
+index 9aa0fccd5d43..654484b6e70c 100644
+--- a/kernel/locking/spinlock_debug.c
++++ b/kernel/locking/spinlock_debug.c
+@@ -109,6 +109,7 @@ static inline void debug_spin_unlock(raw_spinlock_t *lock)
+  */
+ void do_raw_spin_lock(raw_spinlock_t *lock)
+ {
++	mmiowb_spin_lock();
+ 	debug_spin_lock_before(lock);
+ 	arch_spin_lock(&lock->raw_lock);
+ 	debug_spin_lock_after(lock);
+@@ -118,8 +119,10 @@ int do_raw_spin_trylock(raw_spinlock_t *lock)
+ {
+ 	int ret = arch_spin_trylock(&lock->raw_lock);
+ 
+-	if (ret)
++	if (ret) {
++		mmiowb_spin_lock();
+ 		debug_spin_lock_after(lock);
++	}
+ #ifndef CONFIG_SMP
+ 	/*
+ 	 * Must not happen on UP:
+@@ -131,6 +134,7 @@ int do_raw_spin_trylock(raw_spinlock_t *lock)
+ 
+ void do_raw_spin_unlock(raw_spinlock_t *lock)
+ {
++	mmiowb_spin_unlock();
+ 	debug_spin_unlock(lock);
+ 	arch_spin_unlock(&lock->raw_lock);
+ }
 -- 
 2.11.0
