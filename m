@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 09/20] sh/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
-Date: Fri,  1 Mar 2019 14:03:37 +0000
-Message-ID: <20190301140348.25175-10-will.deacon@arm.com>
+Subject: [PATCH 11/20] ia64/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
+Date: Fri,  1 Mar 2019 14:03:39 +0000
+Message-ID: <20190301140348.25175-12-will.deacon@arm.com>
 References: <20190301140348.25175-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190301140348.25175-1-will.deacon@arm.com>
@@ -14,78 +14,124 @@ The mmiowb() macro is horribly difficult to use and drivers will continue
 to work most of the time if they omit a call when it is required.
 
 Rather than rely on driver authors getting this right, push mmiowb() into
-arch_spin_unlock() for sh. If this is deemed to be a performance issue,
+arch_spin_unlock() for ia64. If this is deemed to be a performance issue,
 a subsequent optimisation could make use of ARCH_HAS_MMIOWB to elide
 the barrier in cases where no I/O writes were performed inside the
 critical section.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/sh/include/asm/Kbuild          |  1 -
- arch/sh/include/asm/io.h            |  3 ---
- arch/sh/include/asm/mmiowb.h        | 12 ++++++++++++
- arch/sh/include/asm/spinlock-llsc.h |  2 ++
- 4 files changed, 14 insertions(+), 4 deletions(-)
- create mode 100644 arch/sh/include/asm/mmiowb.h
+ arch/ia64/include/asm/Kbuild     |  1 -
+ arch/ia64/include/asm/io.h       | 17 -----------------
+ arch/ia64/include/asm/mmiowb.h   | 25 +++++++++++++++++++++++++
+ arch/ia64/include/asm/spinlock.h |  2 ++
+ 4 files changed, 27 insertions(+), 18 deletions(-)
+ create mode 100644 arch/ia64/include/asm/mmiowb.h
 
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index e3f6926c4b86..a6ef3fee5f85 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -13,7 +13,6 @@ generic-y += local.h
- generic-y += local64.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index 3273d7aedfa0..43e21fe3499c 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -4,7 +4,6 @@ generic-y += exec.h
+ generic-y += irq_work.h
  generic-y += mcs_spinlock.h
  generic-y += mm-arch-hooks.h
 -generic-y += mmiowb.h
- generic-y += parport.h
- generic-y += percpu.h
  generic-y += preempt.h
-diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
-index 4f7f235f15f8..c28e37a344ad 100644
---- a/arch/sh/include/asm/io.h
-+++ b/arch/sh/include/asm/io.h
-@@ -229,9 +229,6 @@ __BUILD_IOPORT_STRING(q, u64)
+ generic-y += trace_clock.h
+ generic-y += vtime.h
+diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
+index 1e6fef69bb01..a511d62d447a 100644
+--- a/arch/ia64/include/asm/io.h
++++ b/arch/ia64/include/asm/io.h
+@@ -113,20 +113,6 @@ extern int valid_mmap_phys_addr_range (unsigned long pfn, size_t count);
+  */
+ #define __ia64_mf_a()	ia64_mfa()
  
- #define IO_SPACE_LIMIT 0xffffffff
- 
--/* synco on SH-4A, otherwise a nop */
--#define mmiowb()		wmb()
+-/**
+- * ___ia64_mmiowb - I/O write barrier
+- *
+- * Ensure ordering of I/O space writes.  This will make sure that writes
+- * following the barrier will arrive after all previous writes.  For most
+- * ia64 platforms, this is a simple 'mf.a' instruction.
+- *
+- * See Documentation/driver-api/device-io.rst for more information.
+- */
+-static inline void ___ia64_mmiowb(void)
+-{
+-	ia64_mfa();
+-}
 -
- /* We really want to try and get these to memcpy etc */
- void memcpy_fromio(void *, const volatile void __iomem *, unsigned long);
- void memcpy_toio(volatile void __iomem *, const void *, unsigned long);
-diff --git a/arch/sh/include/asm/mmiowb.h b/arch/sh/include/asm/mmiowb.h
+ static inline void*
+ __ia64_mk_io_addr (unsigned long port)
+ {
+@@ -161,7 +147,6 @@ __ia64_mk_io_addr (unsigned long port)
+ #define __ia64_writew	___ia64_writew
+ #define __ia64_writel	___ia64_writel
+ #define __ia64_writeq	___ia64_writeq
+-#define __ia64_mmiowb	___ia64_mmiowb
+ 
+ /*
+  * For the in/out routines, we need to do "mf.a" _after_ doing the I/O access to ensure
+@@ -296,7 +281,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
+ #define __outb		platform_outb
+ #define __outw		platform_outw
+ #define __outl		platform_outl
+-#define __mmiowb	platform_mmiowb
+ 
+ #define inb(p)		__inb(p)
+ #define inw(p)		__inw(p)
+@@ -310,7 +294,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
+ #define outsb(p,s,c)	__outsb(p,s,c)
+ #define outsw(p,s,c)	__outsw(p,s,c)
+ #define outsl(p,s,c)	__outsl(p,s,c)
+-#define mmiowb()	__mmiowb()
+ 
+ /*
+  * The address passed to these functions are ioremap()ped already.
+diff --git a/arch/ia64/include/asm/mmiowb.h b/arch/ia64/include/asm/mmiowb.h
 new file mode 100644
-index 000000000000..535d59735f1d
+index 000000000000..297b85ac84a0
 --- /dev/null
-+++ b/arch/sh/include/asm/mmiowb.h
-@@ -0,0 +1,12 @@
++++ b/arch/ia64/include/asm/mmiowb.h
+@@ -0,0 +1,25 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_SH_MMIOWB_H
-+#define __ASM_SH_MMIOWB_H
 +
-+#include <asm/barrier.h>
++#ifndef _ASM_IA64_MMIOWB_H
++#define _ASM_IA64_MMIOWB_H
 +
-+/* synco on SH-4A, otherwise a nop */
-+#define mmiowb()			wmb()
++#include <asm/machvec.h>
++
++/**
++ * ___ia64_mmiowb - I/O write barrier
++ *
++ * Ensure ordering of I/O space writes.  This will make sure that writes
++ * following the barrier will arrive after all previous writes.  For most
++ * ia64 platforms, this is a simple 'mf.a' instruction.
++ */
++static inline void ___ia64_mmiowb(void)
++{
++	ia64_mfa();
++}
++
++#define __ia64_mmiowb	___ia64_mmiowb
++#define mmiowb()	platform_mmiowb()
 +
 +#include <asm-generic/mmiowb.h>
 +
-+#endif	/* __ASM_SH_MMIOWB_H */
-diff --git a/arch/sh/include/asm/spinlock-llsc.h b/arch/sh/include/asm/spinlock-llsc.h
-index 786ee0fde3b0..7fd929cd2e7a 100644
---- a/arch/sh/include/asm/spinlock-llsc.h
-+++ b/arch/sh/include/asm/spinlock-llsc.h
-@@ -47,6 +47,8 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
++#endif	/* _ASM_IA64_MMIOWB_H */
+diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
+index afd0b3121b4c..5f620e66384e 100644
+--- a/arch/ia64/include/asm/spinlock.h
++++ b/arch/ia64/include/asm/spinlock.h
+@@ -73,6 +73,8 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
  {
- 	unsigned long tmp;
+ 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
  
 +	/* This could be optimised with ARCH_HAS_MMIOWB */
 +	mmiowb();
- 	__asm__ __volatile__ (
- 		"mov		#1, %0 ! arch_spin_unlock	\n\t"
- 		"mov.l		%0, @%1				\n\t"
+ 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
+ 	WRITE_ONCE(*p, (tmp + 2) & ~1);
+ }
 -- 
 2.11.0
