@@ -1,113 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:36258 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:36180 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388615AbfCAOFN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 1 Mar 2019 09:05:13 -0500
+        id S2388627AbfCAOFG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 1 Mar 2019 09:05:06 -0500
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 20/20] arch: Remove dummy mmiowb() definitions from arch code
-Date: Fri,  1 Mar 2019 14:03:48 +0000
-Message-ID: <20190301140348.25175-21-will.deacon@arm.com>
+Subject: [PATCH 18/20] i40iw: Redefine i40iw_mmiowb() to do nothing
+Date: Fri,  1 Mar 2019 14:03:46 +0000
+Message-ID: <20190301140348.25175-19-will.deacon@arm.com>
 In-Reply-To: <20190301140348.25175-1-will.deacon@arm.com>
 References: <20190301140348.25175-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20190301140348.NHUMqOmV-KrssEaN2C71h9BFhvtaaBkB8T_S1rgPzY8@z>
+Message-ID: <20190301140346.bNwaCh1G7gXvdQ3FPOjuiikQoMhtoXCgwv3VwlIHh2c@z>
 
-Now that no driver code is using mmiowb() directly, we can remove the
-dummy definitions remaining in architectures that don't make use of
-asm-generic/io.h, as well as the definition in asm-generic/io,h itself.
+mmiowb() is now implicit in spin_unlock(), so there's no reason to call
+it from driver code. Redefine i40iw_mmiowb() to do nothing instead.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/alpha/include/asm/io.h       | 2 --
- arch/hexagon/include/asm/io.h     | 2 --
- arch/parisc/include/asm/io.h      | 2 --
- arch/powerpc/include/asm/mmiowb.h | 2 --
- arch/sparc/include/asm/io_64.h    | 2 --
- include/asm-generic/io.h          | 4 ----
- 6 files changed, 14 deletions(-)
+ drivers/infiniband/hw/i40iw/i40iw_osdep.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index 4c533fc94d62..ccf9d65166bb 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -513,8 +513,6 @@ extern inline void writeq(u64 b, volatile void __iomem *addr)
- #define writel_relaxed(b, addr)	__raw_writel(b, addr)
- #define writeq_relaxed(b, addr)	__raw_writeq(b, addr)
- 
--#define mmiowb()
--
- /*
-  * String version of IO memory access ops:
-  */
-diff --git a/arch/hexagon/include/asm/io.h b/arch/hexagon/include/asm/io.h
-index e17262ad125e..3d0ae09c2b8e 100644
---- a/arch/hexagon/include/asm/io.h
-+++ b/arch/hexagon/include/asm/io.h
-@@ -184,8 +184,6 @@ static inline void writel(u32 data, volatile void __iomem *addr)
- #define writew_relaxed __raw_writew
- #define writel_relaxed __raw_writel
- 
--#define mmiowb()
--
- /*
-  * Need an mtype somewhere in here, for cache type deals?
-  * This is probably too long for an inline.
-diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
-index afe493b23d04..b163043d49db 100644
---- a/arch/parisc/include/asm/io.h
-+++ b/arch/parisc/include/asm/io.h
-@@ -229,8 +229,6 @@ static inline void writeq(unsigned long long q, volatile void __iomem *addr)
- #define writel_relaxed(l, addr)	writel(l, addr)
- #define writeq_relaxed(q, addr)	writeq(q, addr)
- 
--#define mmiowb() do { } while (0)
--
- void memset_io(volatile void __iomem *addr, unsigned char val, int count);
- void memcpy_fromio(void *dst, const volatile void __iomem *src, int count);
- void memcpy_toio(volatile void __iomem *dst, const void *src, int count);
-diff --git a/arch/powerpc/include/asm/mmiowb.h b/arch/powerpc/include/asm/mmiowb.h
-index b10180613507..74a00127eb20 100644
---- a/arch/powerpc/include/asm/mmiowb.h
-+++ b/arch/powerpc/include/asm/mmiowb.h
-@@ -11,8 +11,6 @@
- #define arch_mmiowb_state()	(&local_paca->mmiowb_state)
- #define mmiowb()		mb()
- 
--#else
--#define mmiowb()		do { } while (0)
- #endif /* CONFIG_MMIOWB */
- 
- #include <asm-generic/mmiowb.h>
-diff --git a/arch/sparc/include/asm/io_64.h b/arch/sparc/include/asm/io_64.h
-index b162c23ae8c2..688911051b44 100644
---- a/arch/sparc/include/asm/io_64.h
-+++ b/arch/sparc/include/asm/io_64.h
-@@ -396,8 +396,6 @@ static inline void memcpy_toio(volatile void __iomem *dst, const void *src,
- 	}
- }
- 
--#define mmiowb()
--
- #ifdef __KERNEL__
- 
- /* On sparc64 we have the whole physical IO address space accessible
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index bc490a746602..8f3bf95a36d1 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -22,10 +22,6 @@
- #include <asm/mmiowb.h>
- #include <asm-generic/pci_iomap.h>
- 
--#ifndef mmiowb
--#define mmiowb() do {} while (0)
--#endif
--
- #ifndef __io_br
- #define __io_br()      barrier()
- #endif
+diff --git a/drivers/infiniband/hw/i40iw/i40iw_osdep.h b/drivers/infiniband/hw/i40iw/i40iw_osdep.h
+index f27be3e7830b..d474aad62a81 100644
+--- a/drivers/infiniband/hw/i40iw/i40iw_osdep.h
++++ b/drivers/infiniband/hw/i40iw/i40iw_osdep.h
+@@ -211,7 +211,7 @@ enum i40iw_status_code i40iw_hw_manage_vf_pble_bp(struct i40iw_device *iwdev,
+ struct i40iw_sc_vsi;
+ void i40iw_hw_stats_start_timer(struct i40iw_sc_vsi *vsi);
+ void i40iw_hw_stats_stop_timer(struct i40iw_sc_vsi *vsi);
+-#define i40iw_mmiowb() mmiowb()
++#define i40iw_mmiowb() do { } while (0)
+ void i40iw_wr32(struct i40iw_hw *hw, u32 reg, u32 value);
+ u32  i40iw_rd32(struct i40iw_hw *hw, u32 reg);
+ #endif				/* _I40IW_OSDEP_H_ */
 -- 
 2.11.0
