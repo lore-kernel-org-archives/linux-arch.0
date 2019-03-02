@@ -1,28 +1,46 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 00/20] Remove Mysterious Macro Intended to Obscure Weird Behaviours (mmiowb())
-Date: Sat, 02 Mar 2019 23:56:44 +1100
-Message-ID: <871s3pjuyb.fsf@concordia.ellerman.id.au>
-References: <20190301140348.25175-1-will.deacon@arm.com> <CAHk-=wio4duTk=dPJZ+yW-Y-65Q4O8Hc09bexAqs4OQV1R3WhQ@mail.gmail.com>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
+Date: Sun, 3 Mar 2019 00:27:12 +0900
+Message-ID: <8fbdcdc0-1f4e-e268-c183-0d65be3d39c9@gmail.com>
+References: <20190220132714.GI32494@hirez.programming.kicks-ass.net>
+ <20190222112128.GA7213@andrea>
+ <20190222130014.GY32494@hirez.programming.kicks-ass.net>
+ <20190225175517.GK4072@linux.ibm.com>
+ <20190226093009.GS32477@hirez.programming.kicks-ass.net>
+ <20190226104551.GF32534@hirez.programming.kicks-ass.net>
+ <20190226112133.GG32534@hirez.programming.kicks-ass.net>
+ <20190226112521.GH32534@hirez.programming.kicks-ass.net>
+ <20190226113008.GI32534@hirez.programming.kicks-ass.net>
+ <20190226113813.GA14753@zn.tnic>
+ <20190226134906.GG32494@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHk-=wio4duTk=dPJZ+yW-Y-65Q4O8Hc09bexAqs4OQV1R3WhQ@mail.gmail.com>
+In-Reply-To: <20190226134906.GG32494@hirez.programming.kicks-ass.net>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Borislav Petkov <bp@alien8.de>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
+Hello Peter,
 
-> Love the acronym, and the series looks good to me.
->
-> Michael - can you check (or maybe you already did?) that this works
-> for ppc too, and doesn't have any gotcha's?
+On Tue, 26 Feb 2019 14:49:06 +0100, Peter Zijlstra wrote:
+> On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
+>> On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
+>>> When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
+>>> still broken.
+>>
+>> As requested on IRC:
+> 
+> What I asked was if you could get your GCC developer friends to have a
+> look at this :-)
+> 
 
-Yeah it looks fine to me.
+JFYI, there is a bugzilla ticket regarding this behavior of GCC
+at https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61502,
+which started on 13 June 2014 and the latest entry was on
+02 Feb 2019.
 
-I gave it a quick boot with a patch to count how many mb()s we actually
-issue in the spin_unlock() path and it's definitely hitting that path
-correctly. So it works at least as well as the old code.
-
-cheers
+        Thanks, Akira
