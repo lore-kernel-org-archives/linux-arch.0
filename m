@@ -1,73 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:38070 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726017AbfCCBr3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Mar 2019 20:47:29 -0500
-Date: Sun, 03 Mar 2019 11:47:22 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 03/20] mmiowb: Hook up mmiowb helpers to spinlocks and
- generic I/O accessors
-References: <20190301140348.25175-1-will.deacon@arm.com>
-        <20190301140348.25175-4-will.deacon@arm.com>
-In-Reply-To: <20190301140348.25175-4-will.deacon@arm.com>
+Received: from mail-lj1-f193.google.com ([209.85.208.193]:45665 "EHLO
+        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725942AbfCCCTN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Mar 2019 21:19:13 -0500
+Received: by mail-lj1-f193.google.com with SMTP id d24so1333246ljc.12
+        for <linux-arch@vger.kernel.org>; Sat, 02 Mar 2019 18:19:12 -0800 (PST)
+Received: from mail-lf1-f43.google.com (mail-lf1-f43.google.com. [209.85.167.43])
+        by smtp.gmail.com with ESMTPSA id v5sm591410lfa.38.2019.03.02.18.19.07
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Sat, 02 Mar 2019 18:19:07 -0800 (PST)
+Received: by mail-lf1-f43.google.com with SMTP id a8so1104375lfi.7
+        for <linux-arch@vger.kernel.org>; Sat, 02 Mar 2019 18:19:07 -0800 (PST)
 MIME-Version: 1.0
-Message-ID: <1551577391.707a6tsmt3.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+References: <20190301140348.25175-1-will.deacon@arm.com> <20190301140348.25175-2-will.deacon@arm.com>
+ <1551575210.6lwpiqtg5k.astroid@bobo.none>
+In-Reply-To: <1551575210.6lwpiqtg5k.astroid@bobo.none>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 2 Mar 2019 18:18:50 -0800
+Message-ID: <CAHk-=whxaYGTmHyoWeegL=ihHMDW_FJehUJVN_nP++Su=foL+g@mail.gmail.com>
+Subject: Re: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of
+ mmiowb() tracking
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20190303014722.ODkSmAPhaL7MqW1JA0p-2VI_e3bRkqgdOWSqFnRVTaw@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20190303021850.WJPMy0I1Osd-4GCRNXU2r0IE4BX8ssPRULWbwCMSpSs@z>
 
-Will Deacon's on March 2, 2019 12:03 am:
-> @@ -177,6 +178,7 @@ do {								\
->  static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(loc=
-k)
->  {
->  	__acquire(lock);
-> +	mmiowb_spin_lock();
->  	arch_spin_lock(&lock->raw_lock);
->  }
-> =20
-> @@ -188,16 +190,23 @@ static inline void
->  do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acq=
-uires(lock)
->  {
->  	__acquire(lock);
-> +	mmiowb_spin_lock();
->  	arch_spin_lock_flags(&lock->raw_lock, *flags);
->  }
+On Sat, Mar 2, 2019 at 5:43 PM Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> Is there a reason to call this "mmiowb"? We already have wmb that
+> orders cacheable stores vs mmio stores don't we?
 
-You'd be better to put these inside the spin lock, to match your=20
-trylock.
+Sadly no it doesn't. Not on ia64, and people tried to make that the
+new rule because of the platform breakage on what some people thought
+would be a major platform.
 
-Also it means the mmiowb state can be used inside a lock/unlock pair
-without a compiler barrer forcing it to be reloaded, should be better
-code generation for very small critical sections on archs which inline
-lock and unlock.
+Plain wmb() was only guaranteed to order regular memory against each
+other (mostly useful for dma) on some of these platforms, because they
+had such broken IO synchronization.
 
-> =20
->  static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
->  {
-> -	return arch_spin_trylock(&(lock)->raw_lock);
-> +	int ret =3D arch_spin_trylock(&(lock)->raw_lock);
-> +
-> +	if (ret)
-> +		mmiowb_spin_lock();
-> +
-> +	return ret;
->  }
-> =20
->  static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(l=
-ock)
->  {
-> +	mmiowb_spin_unlock();
->  	arch_spin_unlock(&lock->raw_lock);
->  	__release(lock);
->  }
+So mmiowb() is not a new name. It's been around for a while, and the
+people who wanted it have happily become irrelevant. Will is making it
+go away, but the name remains for historical reasons, even if Will's
+new acronym explanation for the name is much better ;)
 
-Thanks,
-Nick
-
-=
+                Linus
