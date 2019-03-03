@@ -1,68 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:36554 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725877AbfCCHu4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Mar 2019 02:50:56 -0500
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v9 9/9] gpio: uniphier: Utilize for_each_set_clump8 macro
-Date: Sun,  3 Mar 2019 16:51:43 +0900
-Message-ID: <0840d55707dacd1121659723246fa9f55737f426.1551598603.git.vilhelm.gray@gmail.com>
-In-Reply-To: <cover.1551598603.git.vilhelm.gray@gmail.com>
-References: <cover.1551598603.git.vilhelm.gray@gmail.com>
+Received: from ozlabs.org ([203.11.71.1]:47799 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725877AbfCCJ0n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 3 Mar 2019 04:26:43 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of mmiowb() tracking
+In-Reply-To: <1551575210.6lwpiqtg5k.astroid@bobo.none>
+References: <20190301140348.25175-1-will.deacon@arm.com> <20190301140348.25175-2-will.deacon@arm.com> <1551575210.6lwpiqtg5k.astroid@bobo.none>
+Date: Sun, 03 Mar 2019 20:26:35 +1100
+Message-ID: <87tvgkia0k.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linus.walleij@linaro.org
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, bgolaszewski@baylibre.com, linux-arm-kernel@lists.infradead.org, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20190303075143.eVu4bqliP74WuYLy4ISMvD6Y3QBdxFjPFLS0KWKuTJk@z>
+To: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20190303092635._lwIn9L7HpMp4z3tw2jKQRVdepiKys6PzdWhTl-7Lig@z>
 
-Replace verbose implementation in set_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity. An
-improvement in this case is that banks that are not masked will now be
-skipped.
+Nicholas Piggin <npiggin@gmail.com> writes:
+> Will Deacon's on March 2, 2019 12:03 am:
+>> In preparation for removing all explicit mmiowb() calls from driver
+>> code, implement a tracking system in asm-generic based loosely on the
+>> PowerPC implementation. This allows architectures with a non-empty
+>> mmiowb() definition to have the barrier automatically inserted in
+>> spin_unlock() following a critical section containing an I/O write.
+>
+> Is there a reason to call this "mmiowb"? We already have wmb that
+> orders cacheable stores vs mmio stores don't we?
+>
+> Yes ia64 "sn2" is broken in that case, but that can be fixed (if
+> anyone really cares about the platform any more). Maybe that's
+> orthogonal to what you're doing here, I just don't like seeing
+> "mmiowb" spread.
+>
+> This series works for spin locks, but you would want a driver to
+> be able to use wmb() to order locks vs mmio when using a bit lock
+> or a mutex or whatever else. Calling your wmb-if-io-is-pending
+> version io_mb_before_unlock() would kind of match with existing
+> patterns.
+>
+>> +static inline void mmiowb_set_pending(void)
+>> +{
+>> +	struct mmiowb_state *ms = __mmiowb_state();
+>> +	ms->mmiowb_pending = ms->nesting_count;
+>> +}
+>> +
+>> +static inline void mmiowb_spin_lock(void)
+>> +{
+>> +	struct mmiowb_state *ms = __mmiowb_state();
+>> +	ms->nesting_count++;
+>> +}
+>> +
+>> +static inline void mmiowb_spin_unlock(void)
+>> +{
+>> +	struct mmiowb_state *ms = __mmiowb_state();
+>> +
+>> +	if (unlikely(ms->mmiowb_pending)) {
+>> +		ms->mmiowb_pending = 0;
+>> +		mmiowb();
+>> +	}
+>> +
+>> +	ms->nesting_count--;
+>> +}
+>
+> Humour me for a minute and tell me what this algorithm is doing, or
+> what was broken about the powerpc one, which is basically:
+>
+> static inline void mmiowb_set_pending(void)
+> {
+> 	struct mmiowb_state *ms = __mmiowb_state();
+> 	ms->mmiowb_pending = 1;
+> }
+>
+> static inline void mmiowb_spin_lock(void)
+> {
+> }
 
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-uniphier.c | 16 ++++++----------
- 1 file changed, 6 insertions(+), 10 deletions(-)
+The current powerpc code clears io_sync in spin_lock().
 
-diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
-index 0f662b297a95..df640cb29b9c 100644
---- a/drivers/gpio/gpio-uniphier.c
-+++ b/drivers/gpio/gpio-uniphier.c
-@@ -15,9 +15,6 @@
- #include <linux/spinlock.h>
- #include <dt-bindings/gpio/uniphier-gpio.h>
- 
--#define UNIPHIER_GPIO_BANK_MASK		\
--				GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
--
- #define UNIPHIER_GPIO_IRQ_MAX_NUM	24
- 
- #define UNIPHIER_GPIO_PORT_DATA		0x0	/* data */
-@@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
- static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
- 				       unsigned long *mask, unsigned long *bits)
- {
--	unsigned int bank, shift, bank_mask, bank_bits;
--	int i;
-+	unsigned int i;
-+	unsigned long bank_mask;
-+	unsigned int bank;
-+	unsigned int bank_bits;
- 
--	for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
-+	for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
- 		bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
--		shift = i % BITS_PER_LONG;
--		bank_mask = (mask[BIT_WORD(i)] >> shift) &
--						UNIPHIER_GPIO_BANK_MASK;
--		bank_bits = bits[BIT_WORD(i)] >> shift;
-+		bank_bits = bitmap_get_value8(bits, chip->ngpio, i);
- 
- 		uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
- 					 bank_mask, bank_bits);
--- 
-2.21.0
+ie, it would be equivalent to:
+
+static inline void mmiowb_spin_lock(void)
+{
+ 	ms->mmiowb_pending = 0;
+}
+
+Which means that:
+
+	spin_lock(a);
+        writel(x, y);
+	spin_lock(b);
+        ...
+	spin_unlock(b);
+	spin_unlock(a);
+
+Does no barrier.
+
+cheers
