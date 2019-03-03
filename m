@@ -1,56 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:42250 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726117AbfCCDeo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 Mar 2019 22:34:44 -0500
-Date: Sun, 03 Mar 2019 13:34:36 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of
- mmiowb() tracking
-References: <20190301140348.25175-1-will.deacon@arm.com>
-        <20190301140348.25175-2-will.deacon@arm.com>
-        <1551575210.6lwpiqtg5k.astroid@bobo.none>
-        <CAHk-=whxaYGTmHyoWeegL=ihHMDW_FJehUJVN_nP++Su=foL+g@mail.gmail.com>
-In-Reply-To: <CAHk-=whxaYGTmHyoWeegL=ihHMDW_FJehUJVN_nP++Su=foL+g@mail.gmail.com>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:36245 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725998AbfCCHoZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Mar 2019 02:44:25 -0500
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v9 0/9] Introduce the for_each_set_clump8 macro
+Date: Sun,  3 Mar 2019 16:44:39 +0900
+Message-ID: <cover.1551598603.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
-Message-ID: <1551583190.duzqnmfnvg.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Will Deacon <will.deacon@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20190303033436.AiKjR1T5iTGkrUgdpqhFFDOG4vN2LRfubO4SreU4sos@z>
+To: linus.walleij@linaro.org
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, bgolaszewski@baylibre.com, linux-arm-kernel@lists.infradead.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20190303074439.jTns0BlhmB5Vl3VyAORhScMBATTWMiu0xeQtcfNQAGk@z>
 
-Linus Torvalds's on March 3, 2019 12:18 pm:
-> On Sat, Mar 2, 2019 at 5:43 PM Nicholas Piggin <npiggin@gmail.com> wrote:
->>
->> Is there a reason to call this "mmiowb"? We already have wmb that
->> orders cacheable stores vs mmio stores don't we?
->=20
-> Sadly no it doesn't. Not on ia64, and people tried to make that the
-> new rule because of the platform breakage on what some people thought
-> would be a major platform.
+Changes in v9:
+  - Return unsigned long for bitmap_get_value8 for consistency
 
-Let me try this again, because I was babbling a train of thought=20
-continuing from my past mails on the subject.
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
-  Kill mmiowb with fire.
+This patchset introduces the for_each_set_clump8 macro and utilizes it
+in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
-It was added for a niche platform that hasn't been produced for 10
-years for a CPU ISA that is no longer being developed. Let's make mb/wmb
-great again (aka actually possible for normal people to understand).
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
 
-If something comes along again that reorders mmios from different CPUs=20
-in the IO controller like the Altix did, they implement wmb the slow and=20
-correct way. They can add a new faster primitive for the few devices=20
-they care about in the couple of perf critical places that matter.
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
 
-It doesn't have to be done all at once with this series, obviously this=20
-is a big improvement on its own. But why perpetuate the nomenclature
-and concept for new code added now?=20
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
 
-Thanks,
-Nick
+The for_each_set_clump8 macro has four parameters:
 
-=
+    * start: set to the bit offset of the current clump
+    * clump: set to the current clump value
+    * bits: bitmap to search within
+    * size: bitmap size in number of bits
+
+In this version of the patchset, the for_each_set_clump macro has been
+reimplemented and simplified based on the suggestions provided by Rasmus
+Villemoes and Andy Shevchenko in the version 4 submission.
+
+In particular, the function of the for_each_set_clump macro has been
+restricted to handle only 8-bit clumps; the drivers that use the
+for_each_set_clump macro only handle 8-bit ports so a generic
+for_each_set_clump implementation is not necessary. Thus, a solution for
+large clumps (i.e. those larger than the width of a bitmap word) can be
+postponed until a driver appears that actually requires such a generic
+for_each_set_clump implementation.
+
+For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
+smaller than the width of a bitmap word) can be implemented by simply
+replacing the hardcoded '8' and '0xFF' instances with respective
+variables. I have not yet had a need for such an implementation, and
+since it falls short of a true generic for_each_set_clump function, I
+have decided to forgo such an implementation for now.
+
+In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+introduced to get and set 8-bit values respectively. Their use is based
+on the behavior suggested in the patchset version 4 review.
+
+William Breathitt Gray (9):
+  bitops: Introduce the for_each_set_clump8 macro
+  lib/test_bitmap.c: Add for_each_set_clump8 test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+  gpio: gpio-mm: Utilize for_each_set_clump8 macro
+  gpio: ws16c48: Utilize for_each_set_clump8 macro
+  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+  gpio: uniphier: Utilize for_each_set_clump8 macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  73 ++++++--------------
+ drivers/gpio/gpio-104-idi-48.c    |  37 +++-------
+ drivers/gpio/gpio-gpio-mm.c       |  73 ++++++--------------
+ drivers/gpio/gpio-pci-idio-16.c   |  75 ++++++++------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 111 +++++++++++-------------------
+ drivers/gpio/gpio-uniphier.c      |  16 ++---
+ drivers/gpio/gpio-ws16c48.c       |  72 ++++++-------------
+ include/asm-generic/bitops/find.h |  14 ++++
+ include/linux/bitops.h            |   5 ++
+ lib/find_bit.c                    |  81 ++++++++++++++++++++++
+ lib/test_bitmap.c                 |  65 +++++++++++++++++
+ 11 files changed, 313 insertions(+), 309 deletions(-)
+
+-- 
+2.21.0
