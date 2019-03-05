@@ -1,66 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50992 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726924AbfCDQJv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Mar 2019 11:09:51 -0500
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x24G5RGw050367
-        for <linux-arch@vger.kernel.org>; Mon, 4 Mar 2019 11:09:50 -0500
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2r14j1h0sf-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 04 Mar 2019 11:09:50 -0500
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 4 Mar 2019 16:09:49 -0000
-Date: Mon, 4 Mar 2019 08:09:47 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Reply-To: paulmck@linux.ibm.com
-References: <20190222130014.GY32494@hirez.programming.kicks-ass.net>
- <20190225175517.GK4072@linux.ibm.com>
- <20190226093009.GS32477@hirez.programming.kicks-ass.net>
- <20190226104551.GF32534@hirez.programming.kicks-ass.net>
- <20190226112133.GG32534@hirez.programming.kicks-ass.net>
- <20190226112521.GH32534@hirez.programming.kicks-ass.net>
- <20190226113008.GI32534@hirez.programming.kicks-ass.net>
- <20190226113813.GA14753@zn.tnic>
- <20190226134906.GG32494@hirez.programming.kicks-ass.net>
- <8fbdcdc0-1f4e-e268-c183-0d65be3d39c9@gmail.com>
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:40975 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726066AbfCEAUS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Mar 2019 19:20:18 -0500
+Received: by mail-lf1-f65.google.com with SMTP id y7so4853471lfg.8
+        for <linux-arch@vger.kernel.org>; Mon, 04 Mar 2019 16:20:17 -0800 (PST)
+Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com. [209.85.167.45])
+        by smtp.gmail.com with ESMTPSA id w69sm1775131lff.22.2019.03.04.16.20.14
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Mon, 04 Mar 2019 16:20:14 -0800 (PST)
+Received: by mail-lf1-f45.google.com with SMTP id a8so4853310lfi.7
+        for <linux-arch@vger.kernel.org>; Mon, 04 Mar 2019 16:20:14 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8fbdcdc0-1f4e-e268-c183-0d65be3d39c9@gmail.com>
-Message-ID: <20190304160947.GB13351@linux.ibm.com>
+References: <20190301140348.25175-1-will.deacon@arm.com> <20190301140348.25175-2-will.deacon@arm.com>
+ <1551575210.6lwpiqtg5k.astroid@bobo.none> <87ef7n7x9v.fsf@concordia.ellerman.id.au>
+In-Reply-To: <87ef7n7x9v.fsf@concordia.ellerman.id.au>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 4 Mar 2019 16:19:58 -0800
+Message-ID: <CAHk-=wgbnn7x+i72NqnvXotbxjsk2Ag56Q5YP0OSvhY9sUk7QA@mail.gmail.com>
+Subject: Re: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of
+ mmiowb() tracking
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akira Yokosawa <akiyks@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190304160947.u_9IfL0iCPxjD2Auaisw9oHVX2b_u_18E2tIn_-kNas@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20190305001958.5RQdaKDqPeqWc9nPsZiH6e6xIVm1J3r2vn5w6CdO9FY@z>
 
-On Sun, Mar 03, 2019 at 12:27:12AM +0900, Akira Yokosawa wrote:
-> Hello Peter,
-> 
-> On Tue, 26 Feb 2019 14:49:06 +0100, Peter Zijlstra wrote:
-> > On Tue, Feb 26, 2019 at 12:38:13PM +0100, Borislav Petkov wrote:
-> >> On Tue, Feb 26, 2019 at 12:30:08PM +0100, Peter Zijlstra wrote:
-> >>> When I used the argc variant, gcc-8 'works', but with s/argc/1/ it is
-> >>> still broken.
-> >>
-> >> As requested on IRC:
-> > 
-> > What I asked was if you could get your GCC developer friends to have a
-> > look at this :-)
-> 
-> JFYI, there is a bugzilla ticket regarding this behavior of GCC
-> at https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61502,
-> which started on 13 June 2014 and the latest entry was on
-> 02 Feb 2019.
+On Mon, Mar 4, 2019 at 2:24 AM Michael Ellerman <mpe@ellerman.id.au> wrote:
+>
+> Without wading into the rest of the discussion, this does raise an
+> interesting point, ie. what about eg. rwlock's?
+>
+> They're basically equivalent to spinlocks, and so could reasonably be
+> expected to have the same behaviour.
+>
+> But we don't check the io_sync flag in arch_read/write_unlock() etc. and
+> both of those use lwsync.
 
-And that bug was submitted by none other than Peter Sewell, thank you!
+I think technically rwlocks should do the same thing, at least when
+they are used for exclusion.
 
-This bug references https://gcc.gnu.org/bugzilla/show_bug.cgi?id=88775,
-where someone appears to -want- this sort of optimization.  :-/
+Because of the exclusion argument, we can presubably limit it to just
+write_unlock(), although at least in theory I guess you could have
+some "one reader does IO, then a writer comes in" situation..
 
-							Thanx, Paul
+Perhaps more importantly, what about sleeping locks? When they
+actually *block*, they get the barrier thanks to the scheduler, but
+you can have a nice non-contended sequence that never does that.
+
+I guess the fact that these cases have never even shown up as an issue
+means that we could just continue to ignore it.
+
+We could even give that approach some fancy name, and claim it as a
+revolutionary new programming paradigm ("ostrich programming" to go
+with "agile" and "pair programming").
+
+                    Linus
