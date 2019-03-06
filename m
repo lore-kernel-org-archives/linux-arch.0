@@ -1,65 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:47884 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727545AbfCFR0K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Mar 2019 12:26:10 -0500
-Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x26HPRnZ059842
-        for <linux-arch@vger.kernel.org>; Wed, 6 Mar 2019 12:26:09 -0500
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2r2j1jt0r9-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 06 Mar 2019 12:26:09 -0500
-Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 6 Mar 2019 17:26:08 -0000
-Date: Wed, 6 Mar 2019 09:26:08 -0800
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [RFC PATCH] tools/memory-model: Remove (dep ; rfi) from ppo
-Reply-To: paulmck@linux.ibm.com
-References: <20190226104551.GF32534@hirez.programming.kicks-ass.net>
- <20190226112133.GG32534@hirez.programming.kicks-ass.net>
- <20190226112521.GH32534@hirez.programming.kicks-ass.net>
- <20190226113008.GI32534@hirez.programming.kicks-ass.net>
- <20190226113813.GA14753@zn.tnic>
- <20190226134906.GG32494@hirez.programming.kicks-ass.net>
- <20190226142845.GK4072@linux.ibm.com>
- <20190226150450.GW32477@hirez.programming.kicks-ass.net>
- <ab631777-7cbd-4658-fb99-05d60ec5a1ea@gmail.com>
- <20190306165831.GZ32477@hirez.programming.kicks-ass.net>
+Received: from mx1.mailbox.org ([80.241.60.212]:46736 "EHLO mx1.mailbox.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726599AbfCFTNv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 Mar 2019 14:13:51 -0500
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: [PATCH RESEND v5 1/5] namei: split out nd->dfd handling to dirfd_path_init
+Date: Thu,  7 Mar 2019 06:12:40 +1100
+Message-ID: <20190306191244.8691-2-cyphar@cyphar.com>
+In-Reply-To: <20190306191244.8691-1-cyphar@cyphar.com>
+References: <20190306191244.8691-1-cyphar@cyphar.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190306165831.GZ32477@hirez.programming.kicks-ass.net>
-Message-ID: <20190306172608.GF13351@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Akira Yokosawa <akiyks@gmail.com>, Borislav Petkov <bp@alien8.de>, Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190306172608.hutYvcylf6F8kr9H3CMOWTm2eWCfIv-KVTs8MNpl444@z>
+To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190306191240.FmVqTOcrd_daLyOao8f86r_oLe2Iy9jm9otF3UPRHFo@z>
 
-On Wed, Mar 06, 2019 at 05:58:31PM +0100, Peter Zijlstra wrote:
-> On Thu, Mar 07, 2019 at 12:46:05AM +0900, Akira Yokosawa wrote:
-> > So, I'm looking at the macro RELOC_HIDE() defined in include/linux/compiler-gcc.h.
-> 
-> > Am I the only one who was not aware of this gcc-specific macro?
-> 
-> It's one I regularly see, but had forgotten about in this context.
-> 
-> However; you can also fix things by adding asm volatile ("":::"memory");
-> in places.
-> 
-> But that's not really the point; I would really rather have a cmdline
-> knob to fix things. That way we can compile the kernel with and without
-> and look for differences. -fno-unicorns or something :-)
-> 
-> While I understand some compiler people revel in UB and love to make
-> unicorns happen, I think in this case the produces result is utterly
-> insane.
+Previously, path_init's handling of *at(dfd, ...) was only done once,
+but with O_BENEATH (and O_THISROOT) we have to parse the initial
+nd->path at different times (before or after absolute path handling)
+depending on whether we have been asked to scope resolution within a
+root.
 
-Because I couldn't resist...
+Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+---
+ fs/namei.c | 103 ++++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 59 insertions(+), 44 deletions(-)
 
-https://raphlinus.github.io/assets/Anything_is_Possible_scaled.jpg
-
-							Thanx, Paul
+diff --git a/fs/namei.c b/fs/namei.c
+index a85deb55d0c9..4fdcb36f7c01 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -2168,9 +2168,59 @@ static int link_path_walk(const char *name, struct nameidata *nd)
+ 	}
+ }
+ 
++/*
++ * Configure nd->path based on the nd->dfd. This is only used as part of
++ * path_init().
++ */
++static inline int dirfd_path_init(struct nameidata *nd)
++{
++	if (nd->dfd == AT_FDCWD) {
++		if (nd->flags & LOOKUP_RCU) {
++			struct fs_struct *fs = current->fs;
++			unsigned seq;
++
++			do {
++				seq = read_seqcount_begin(&fs->seq);
++				nd->path = fs->pwd;
++				nd->inode = nd->path.dentry->d_inode;
++				nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
++			} while (read_seqcount_retry(&fs->seq, seq));
++		} else {
++			get_fs_pwd(current->fs, &nd->path);
++			nd->inode = nd->path.dentry->d_inode;
++		}
++	} else {
++		/* Caller must check execute permissions on the starting path component */
++		struct fd f = fdget_raw(nd->dfd);
++		struct dentry *dentry;
++
++		if (!f.file)
++			return -EBADF;
++
++		dentry = f.file->f_path.dentry;
++
++		if (*nd->name->name && unlikely(!d_can_lookup(dentry))) {
++			fdput(f);
++			return -ENOTDIR;
++		}
++
++		nd->path = f.file->f_path;
++		if (nd->flags & LOOKUP_RCU) {
++			nd->inode = nd->path.dentry->d_inode;
++			nd->seq = read_seqcount_begin(&nd->path.dentry->d_seq);
++		} else {
++			path_get(&nd->path);
++			nd->inode = nd->path.dentry->d_inode;
++		}
++		fdput(f);
++	}
++	return 0;
++}
++
+ /* must be paired with terminate_walk() */
+ static const char *path_init(struct nameidata *nd, unsigned flags)
+ {
++	int error;
+ 	const char *s = nd->name->name;
+ 
+ 	if (!*s)
+@@ -2204,52 +2254,17 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 
+ 	nd->m_seq = read_seqbegin(&mount_lock);
+ 	if (*s == '/') {
+-		set_root(nd);
+-		if (likely(!nd_jump_root(nd)))
+-			return s;
+-		return ERR_PTR(-ECHILD);
+-	} else if (nd->dfd == AT_FDCWD) {
+-		if (flags & LOOKUP_RCU) {
+-			struct fs_struct *fs = current->fs;
+-			unsigned seq;
+-
+-			do {
+-				seq = read_seqcount_begin(&fs->seq);
+-				nd->path = fs->pwd;
+-				nd->inode = nd->path.dentry->d_inode;
+-				nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
+-			} while (read_seqcount_retry(&fs->seq, seq));
+-		} else {
+-			get_fs_pwd(current->fs, &nd->path);
+-			nd->inode = nd->path.dentry->d_inode;
+-		}
+-		return s;
+-	} else {
+-		/* Caller must check execute permissions on the starting path component */
+-		struct fd f = fdget_raw(nd->dfd);
+-		struct dentry *dentry;
+-
+-		if (!f.file)
+-			return ERR_PTR(-EBADF);
+-
+-		dentry = f.file->f_path.dentry;
+-
+-		if (*s && unlikely(!d_can_lookup(dentry))) {
+-			fdput(f);
+-			return ERR_PTR(-ENOTDIR);
+-		}
+-
+-		nd->path = f.file->f_path;
+-		if (flags & LOOKUP_RCU) {
+-			nd->inode = nd->path.dentry->d_inode;
+-			nd->seq = read_seqcount_begin(&nd->path.dentry->d_seq);
+-		} else {
+-			path_get(&nd->path);
+-			nd->inode = nd->path.dentry->d_inode;
+-		}
+-		fdput(f);
++		if (likely(!nd->root.mnt))
++			set_root(nd);
++		error = nd_jump_root(nd);
++		if (unlikely(error))
++			s = ERR_PTR(error);
+ 		return s;
+ 	}
++	error = dirfd_path_init(nd);
++	if (unlikely(error))
++		return ERR_PTR(error);
++	return s;
+ }
+ 
+ static const char *trailing_symlink(struct nameidata *nd)
+-- 
+2.21.0
