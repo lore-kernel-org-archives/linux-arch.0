@@ -1,389 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:17506 "EHLO mx2.mailbox.org"
+Received: from mx1.mailbox.org ([80.241.60.212]:46544 "EHLO mx1.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726599AbfCFTOA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 Mar 2019 14:14:00 -0500
+        id S1726599AbfCFTNq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 Mar 2019 14:13:46 -0500
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v5 2/5] namei: O_BENEATH-style path resolution flags
-Date: Thu,  7 Mar 2019 06:12:41 +1100
-Message-ID: <20190306191244.8691-3-cyphar@cyphar.com>
-In-Reply-To: <20190306191244.8691-1-cyphar@cyphar.com>
-References: <20190306191244.8691-1-cyphar@cyphar.com>
+Subject: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path resolution
+Date: Thu,  7 Mar 2019 06:12:39 +1100
+Message-ID: <20190306191244.8691-1-cyphar@cyphar.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Kees Cook <keescook@chromium.org>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190306191241.eOzs1pL0sS1aicTEoqmIi0dDMQZ2UVm-d03Gw99UFQ8@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190306191239.DqmIljXuFg7xVG3ZrWU_9OZ2rvnSHdSqJ5oImex_C3w@z>
 
-Add the following flags to allow various restrictions on path
-resolution (these affect the *entire* resolution, rather than just the
-final path component -- as is the case with most other AT_* flags).
+Now that the holiday break is over, it's time to re-send this patch
+series (with a few additions, due to new information we got from
+CVE-2019-5736 -- which this patchset mostly protected against but had
+some holes with regards to #!-style scripts).
 
-The primary justification for these flags is to allow for programs to be
-far more strict about how they want path resolution to handle symlinks,
-mountpoint crossings, and paths that escape the dirfd (through an
-absolute path or ".." shenanigans).
+Patch changelog:
+  v5:
+    * In response to CVE-2019-5736 (one of the vectors showed that
+      open(2)+fexec(3) cannot be used to scope binfmt_script's implicit
+      open_exec()), AT_* flags have been re-added and are now piped
+      through to binfmt_script (and other binfmt_* that use open_exec)
+      but are only supported for execveat(2) for now.
+  v4:
+    * Remove AT_* flag reservations, as they require more discussion.
+    * Switch to path_is_under() over __d_path() for breakout checking.
+    * Make O_XDEV no longer block openat("/tmp", "/", O_XDEV) -- dirfd
+      is now ignored for absolute paths to match other flags.
+    * Improve the dirfd_path_init() refactor and move it to a separate
+      commit.
+    * Remove reference to Linux-capsicum.
+    * Switch "proclink" name to "magic link".
+  v3: [resend]
+  v2:
+    * Made ".." resolution with AT_THIS_ROOT and AT_BENEATH safe(r) with
+      some semi-aggressive __d_path checking (see patch 3).
+    * Disallowed "proclinks" with AT_THIS_ROOT and AT_BENEATH, in the
+      hopes they can be re-enabled once safe.
+    * Removed the selftests as they will be reimplemented as xfstests.
+    * Removed stat(2) support, since you can already get it through
+      O_PATH and fstatat(2).
 
-This is of particular concern to container runtimes that want to be very
-careful about malicious root filesystems that a container's init might
-have screwed around with (and there is no real way to protect against
-this in userspace if you consider potential races against a malicious
-container's init). More classical applications (which have their own
-potentially buggy userspace path sanitisation code) include web
-servers, archive extraction tools, network file servers, and so on.
+The need for some sort of control over VFS's path resolution (to avoid
+malicious paths resulting in inadvertent breakouts) has been a very
+long-standing desire of many userspace applications. This patchset is a
+revival of Al Viro's old AT_NO_JUMPS[1,2] patchset (which was a variant
+of David Drysdale's O_BENEATH patchset[3] which was a spin-off of the
+Capsicum project[4]) with a few additions and changes made based on the
+previous discussion within [5] as well as others I felt were useful.
 
-* O_XDEV: Disallow mount-point crossing (both *down* into one, or *up*
-  from one). The primary "scoping" use is to blocking resolution that
-  crosses a bind-mount, which has a similar property to a symlink (in
-  the way that it allows for escape from the starting-point). Since it
-  is not possible to differentiate bind-mounts However since
-  bind-mounting requires privileges (in ways symlinks don't) this has
-  been split from LOOKUP_BENEATH. The naming is based on "find -xdev"
-  (though find(1) doesn't walk upwards, the semantics seem obvious).
+In line with the conclusions of the original discussion of AT_NO_JUMPS,
+the flag has been split up into separate flags:
 
-* O_NOMAGICLINKS: Disallows ->get_link "symlink" jumping. This is a very
-  specific restriction, and it exists because /proc/$pid/fd/...
-  "symlinks" allow for access outside nd->root and pose risk to
-  container runtimes that don't want to be tricked into accessing a host
-  path (but do want to allow no-funny-business symlink resolution).
+  * O_XDEV blocks all mountpoint crossings (upwards, downwards, or
+    through absolute links). Absolute pathnames alone in openat(2) do
+    not trigger this.
 
-* O_NOSYMLINKS: Disallows symlink jumping *of any kind*. Implies
-  O_NOMAGICLINKS (obviously).
+  * O_NOMAGICLINKS blocks resolution through /proc/$pid/fd-style links.
+    This is done by blocking the usage of nd_jump_link() during
+    resolution in a filesystem. The term "magic links" is used to match
+    with the only reference to these links in Documentation/, but I'm
+    happy to change the name.
 
-* O_BENEATH: Disallow "escapes" from the starting point of the
-  filesystem tree during resolution (you must stay "beneath" the
-  starting point at all times). Currently this is done by disallowing
-  ".." and absolute paths (either in the given path or found during
-  symlink resolution) entirely, as well as all "magic link" jumping.
+    It should be noted that this is different to the scope of O_NOFOLLOW
+    in that it applies to all path components. However, you can do
+    open(O_NOFOLLOW|O_NOMAGICLINKS|O_PATH) on a "magic link" and it will
+    *not* fail (assuming that no parent component was a "magic link"),
+    and you will have an fd for the "magic link".
 
-  The wholesale banning of ".." is because it is currently not safe to
-  allow ".." resolution (races can cause the path to be moved outside of
-  the root -- this is conceptually similar to historical chroot(2)
-  escape attacks). Future patches in this series will address this, and
-  will re-enable ".." resolution once it is safe. With those patches,
-  ".." resolution will only be allowed if it remains in the root
-  throughout resolution (such as "a/../b" not "a/../../outside/b").
+  * O_BENEATH disallows escapes to outside the starting dirfd's tree,
+    using techniques such as ".." or absolute links. Absolute paths in
+    openat(2) are also disallowed. Conceptually this flag is to ensure
+    you "stay below" a certain point in the filesystem tree -- but this
+    requires some additional to protect against various races that would
+    allow escape using ".." (see patch 4 for more detail).
 
-  The banning of "magic link" jumping is done because it is not clear
-  whether semantically they should be allowed -- while some "magic
-  links" are safe there are many that can cause escapes (and once a
-  resolution is outside of the root, O_BENEATH will no longer detect
-  it). Future patches may re-enable "magic link" jumping when such jumps
-  would remain inside the root.
+    Currently O_BENEATH implies O_NOMAGICLINKS, because it can trivially
+    beam you around the filesystem (breaking the protection). In future,
+    there might be similar safety checks as in patch 4, but that
+    requires more discussion.
 
-The O_NO*LINK flags return -ELOOP if path resolution would violates
-their requirement, while the others all return -EXDEV. Currently these
-are only enabled for openat(2). In future it may be necessary to enable
-these for *at(2) flags, as well as expanding support for AT_EMPTY_PATH.
+In addition, two new flags were added that expand on the above ideas:
 
-This is a refresh of Al's AT_NO_JUMPS patchset[1] (which was a variation
-on David Drysdale's O_BENEATH patchset[2], which in turn was based on
-the Capsicum project[3]). Input from Linus and Andy in the AT_NO_JUMPS
-thread[4] determined most of the API changes made in this refresh.
+  * O_NOSYMLINKS does what it says on the tin. No symlink resolution is
+    allowed at all, including "magic links". Just as with O_NOMAGICLINKS
+    this can still be used with (O_PATH|O_NOFOLLOW) to open an fd for
+    the symlink as long as no parent path had a symlink component.
+
+  * O_THISROOT is an extension of O_BENEATH that, rather than blocking
+    attempts to move past the root, forces all such movements to be
+    scoped to the starting point. This provides chroot(2)-like
+    protection but without the cost of a chroot(2) for each filesystem
+    operation, as well as being safe against race attacks that chroot(2)
+    is not.
+
+    If a race is detected (as with O_BENEATH) then an error is
+    generated, and similar to O_BENEATH it is not permitted to cross
+    "magic links" with O_THISROOT.
+
+    The primary need for this is from container runtimes, which
+    currently need to do symlink scoping in userspace[6] when opening
+    paths in a potentially malicious container. There is a long list of
+    CVEs that could have bene mitigated by having O_THISROOT (such as
+    CVE-2017-1002101, CVE-2017-1002102, CVE-2018-15664, and
+    CVE-2019-5736, just to name a few).
+
+In addition, a mirror set of AT_* flags have been added (though
+currently these are only supported for execveat(2) -- and not for any
+other syscall). The need for these is explained in the final patch in
+the series (it's motivated by CVE-2019-5736).
+
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jann Horn <jannh@google.com>
+Cc: Christian Brauner <christian@brauner.io>
+Cc: David Drysdale <drysdale@google.com>
+Cc: Tycho Andersen <tycho@tycho.ws>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: <containers@lists.linux-foundation.org>
+Cc: <linux-fsdevel@vger.kernel.org>
+Cc: <linux-api@vger.kernel.org>
 
 [1]: https://lwn.net/Articles/721443/
-[2]: https://lwn.net/Articles/619151/
-[3]: https://lwn.net/Articles/603929/
-[4]: https://lwn.net/Articles/723057/
+[2]: https://lore.kernel.org/patchwork/patch/784221/
+[3]: https://lwn.net/Articles/619151/
+[4]: https://lwn.net/Articles/603929/
+[5]: https://lwn.net/Articles/723057/
+[6]: https://github.com/cyphar/filepath-securejoin
 
-Cc: Eric Biederman <ebiederm@xmission.com>
-Cc: Christian Brauner <christian@brauner.io>
-Cc: Kees Cook <keescook@chromium.org>
-Suggested-by: David Drysdale <drysdale@google.com>
-Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
----
- fs/fcntl.c                       |  2 +-
- fs/namei.c                       | 76 +++++++++++++++++++++++++++-----
- fs/open.c                        | 11 ++++-
- include/linux/fcntl.h            |  3 +-
- include/linux/namei.h            |  7 +++
- include/uapi/asm-generic/fcntl.h | 14 ++++++
- 6 files changed, 99 insertions(+), 14 deletions(-)
+Aleksa Sarai (5):
+  namei: split out nd->dfd handling to dirfd_path_init
+  namei: O_BENEATH-style path resolution flags
+  namei: O_THISROOT: chroot-like path resolution
+  namei: aggressively check for nd->root escape on ".." resolution
+  binfmt_*: scope path resolution of interpreters
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 083185174c6d..f782e99700f0 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -1031,7 +1031,7 @@ static int __init fcntl_init(void)
- 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
- 	 * is defined as O_NONBLOCK on some platforms and not on others.
- 	 */
--	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
-+	BUILD_BUG_ON(25 - 1 /* for O_RDONLY being 0 */ !=
- 		HWEIGHT32(
- 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
- 			__FMODE_EXEC | __FMODE_NONOTIFY));
-diff --git a/fs/namei.c b/fs/namei.c
-index 4fdcb36f7c01..c9a07a8c005a 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -845,6 +845,12 @@ static inline void path_to_nameidata(const struct path *path,
- 
- static int nd_jump_root(struct nameidata *nd)
- {
-+	if (unlikely(nd->flags & LOOKUP_BENEATH))
-+		return -EXDEV;
-+	if (unlikely(nd->flags & LOOKUP_XDEV)) {
-+		if (nd->path.mnt != nd->root.mnt)
-+			return -EXDEV;
-+	}
- 	if (nd->flags & LOOKUP_RCU) {
- 		struct dentry *d;
- 		nd->path = nd->root;
-@@ -1053,6 +1059,9 @@ const char *get_link(struct nameidata *nd)
- 	int error;
- 	const char *res;
- 
-+	if (unlikely(nd->flags & LOOKUP_NO_SYMLINKS))
-+		return ERR_PTR(-ELOOP);
-+
- 	if (!(nd->flags & LOOKUP_RCU)) {
- 		touch_atime(&last->link);
- 		cond_resched();
-@@ -1083,14 +1092,23 @@ const char *get_link(struct nameidata *nd)
- 		} else {
- 			res = get(dentry, inode, &last->done);
- 		}
-+		/* If we just jumped it was because of a procfs-style link. */
-+		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
-+			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
-+				return ERR_PTR(-ELOOP);
-+			/* Not currently safe. */
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return ERR_PTR(-EXDEV);
-+		}
- 		if (IS_ERR_OR_NULL(res))
- 			return res;
- 	}
- 	if (*res == '/') {
- 		if (!nd->root.mnt)
- 			set_root(nd);
--		if (unlikely(nd_jump_root(nd)))
--			return ERR_PTR(-ECHILD);
-+		error = nd_jump_root(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
- 		while (unlikely(*++res == '/'))
- 			;
- 	}
-@@ -1271,12 +1289,16 @@ static int follow_managed(struct path *path, struct nameidata *nd)
- 		break;
- 	}
- 
--	if (need_mntput && path->mnt == mnt)
--		mntput(path->mnt);
-+	if (need_mntput) {
-+		if (path->mnt == mnt)
-+			mntput(path->mnt);
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			ret = -EXDEV;
-+		else
-+			nd->flags |= LOOKUP_JUMPED;
-+	}
- 	if (ret == -EISDIR || !ret)
- 		ret = 1;
--	if (need_mntput)
--		nd->flags |= LOOKUP_JUMPED;
- 	if (unlikely(ret < 0))
- 		path_put_conditional(path, nd);
- 	return ret;
-@@ -1333,6 +1355,8 @@ static bool __follow_mount_rcu(struct nameidata *nd, struct path *path,
- 		mounted = __lookup_mnt(path->mnt, path->dentry);
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return false;
- 		path->mnt = &mounted->mnt;
- 		path->dentry = mounted->mnt.mnt_root;
- 		nd->flags |= LOOKUP_JUMPED;
-@@ -1353,8 +1377,11 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 	struct inode *inode = nd->inode;
- 
- 	while (1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			struct dentry *old = nd->path.dentry;
- 			struct dentry *parent = old->d_parent;
-@@ -1379,6 +1406,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 				return -ECHILD;
- 			if (&mparent->mnt == nd->path.mnt)
- 				break;
-+			if (unlikely(nd->flags & LOOKUP_XDEV))
-+				return -EXDEV;
- 			/* we know that mountpoint was pinned */
- 			nd->path.dentry = mountpoint;
- 			nd->path.mnt = &mparent->mnt;
-@@ -1393,6 +1422,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 			return -ECHILD;
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 		nd->path.mnt = &mounted->mnt;
- 		nd->path.dentry = mounted->mnt.mnt_root;
- 		inode = nd->path.dentry->d_inode;
-@@ -1481,8 +1512,11 @@ static int path_parent_directory(struct path *path)
- static int follow_dotdot(struct nameidata *nd)
- {
- 	while(1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			int ret = path_parent_directory(&nd->path);
- 			if (ret)
-@@ -1491,6 +1525,8 @@ static int follow_dotdot(struct nameidata *nd)
- 		}
- 		if (!follow_up(&nd->path))
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 	}
- 	follow_mount(&nd->path);
- 	nd->inode = nd->path.dentry->d_inode;
-@@ -1705,6 +1741,13 @@ static inline int may_lookup(struct nameidata *nd)
- static inline int handle_dots(struct nameidata *nd, int type)
- {
- 	if (type == LAST_DOTDOT) {
-+		/*
-+		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
-+		 * cause our parent to have moved outside of the root and us to skip
-+		 * over it.
-+		 */
-+		if (unlikely(nd->flags & LOOKUP_BENEATH))
-+			return -EXDEV;
- 		if (!nd->root.mnt)
- 			set_root(nd);
- 		if (nd->flags & LOOKUP_RCU) {
-@@ -2253,6 +2296,15 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.dentry = NULL;
- 
- 	nd->m_seq = read_seqbegin(&mount_lock);
-+
-+	if (unlikely(nd->flags & LOOKUP_BENEATH)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+		nd->root = nd->path;
-+		if (!(nd->flags & LOOKUP_RCU))
-+			path_get(&nd->root);
-+	}
- 	if (*s == '/') {
- 		if (likely(!nd->root.mnt))
- 			set_root(nd);
-@@ -2261,9 +2313,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 			s = ERR_PTR(error);
- 		return s;
- 	}
--	error = dirfd_path_init(nd);
--	if (unlikely(error))
--		return ERR_PTR(error);
-+	if (likely(!nd->path.mnt)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+	}
- 	return s;
- }
- 
-diff --git a/fs/open.c b/fs/open.c
-index 0285ce7dbd51..3e73f940f56e 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -959,7 +959,8 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
- 		 * If we have O_PATH in the open flag. Then we
- 		 * cannot have anything other than the below set of flags
- 		 */
--		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH;
-+		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH | O_BENEATH |
-+			 O_XDEV | O_NOSYMLINKS | O_NOMAGICLINKS;
- 		acc_mode = 0;
- 	}
- 
-@@ -988,6 +989,14 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
- 		lookup_flags |= LOOKUP_DIRECTORY;
- 	if (!(flags & O_NOFOLLOW))
- 		lookup_flags |= LOOKUP_FOLLOW;
-+	if (flags & O_BENEATH)
-+		lookup_flags |= LOOKUP_BENEATH;
-+	if (flags & O_XDEV)
-+		lookup_flags |= LOOKUP_XDEV;
-+	if (flags & O_NOMAGICLINKS)
-+		lookup_flags |= LOOKUP_NO_MAGICLINKS;
-+	if (flags & O_NOSYMLINKS)
-+		lookup_flags |= LOOKUP_NO_SYMLINKS;
- 	op->lookup_flags = lookup_flags;
- 	return 0;
- }
-diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-index 27dc7a60693e..864399c2fdd2 100644
---- a/include/linux/fcntl.h
-+++ b/include/linux/fcntl.h
-@@ -9,7 +9,8 @@
- 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
- 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
- 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
--	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
-+	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_BENEATH | O_XDEV | \
-+	 O_NOMAGICLINKS | O_NOSYMLINKS)
- 
- #ifndef force_o_largefile
- #define force_o_largefile() (BITS_PER_LONG != 32)
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index a78606e8e3df..82b5039d27a6 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -47,6 +47,13 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
- #define LOOKUP_EMPTY		0x4000
- #define LOOKUP_DOWN		0x8000
- 
-+/* Scoping flags for lookup. */
-+#define LOOKUP_BENEATH		0x010000 /* No escaping from starting point. */
-+#define LOOKUP_XDEV		0x020000 /* No mountpoint crossing. */
-+#define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
-+#define LOOKUP_NO_SYMLINKS	0x080000 /* No symlink crossing *at all*.
-+					    Implies LOOKUP_NO_MAGICLINKS. */
-+
- extern int path_pts(struct path *path);
- 
- extern int user_path_at_empty(int, const char __user *, unsigned, struct path *, int *empty);
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 9dc0bf0c5a6e..ba53e0836cd4 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -97,6 +97,20 @@
- #define O_NDELAY	O_NONBLOCK
- #endif
- 
-+/* Type of path-resolution scoping we are applying. */
-+#ifndef O_BENEATH
-+#define O_BENEATH	00040000000 /* - Block "lexical" trickery like "..", symlinks, absolute paths, etc. */
-+#endif
-+#ifndef O_XDEV
-+#define O_XDEV		00100000000 /* - Block mount-point crossings (includes bind-mounts). */
-+#endif
-+#ifndef O_NOMAGICLINKS
-+#define O_NOMAGICLINKS	00200000000 /* - Block procfs-style "magic" symlinks. */
-+#endif
-+#ifndef O_NOSYMLINKS
-+#define O_NOSYMLINKS	01000000000 /* - Block all symlinks (implies AT_NO_MAGICLINKS). */
-+#endif
-+
- #define F_DUPFD		0	/* dup */
- #define F_GETFD		1	/* get close_on_exec */
- #define F_SETFD		2	/* set/clear close_on_exec */
+ fs/binfmt_elf.c                  |   2 +-
+ fs/binfmt_elf_fdpic.c            |   2 +-
+ fs/binfmt_em86.c                 |   4 +-
+ fs/binfmt_misc.c                 |   2 +-
+ fs/binfmt_script.c               |   2 +-
+ fs/exec.c                        |  26 +++-
+ fs/fcntl.c                       |   2 +-
+ fs/namei.c                       | 205 ++++++++++++++++++++++---------
+ fs/open.c                        |  13 +-
+ include/linux/binfmts.h          |   1 +
+ include/linux/fcntl.h            |   3 +-
+ include/linux/fs.h               |   9 +-
+ include/linux/namei.h            |   8 ++
+ include/uapi/asm-generic/fcntl.h |  17 +++
+ include/uapi/linux/fcntl.h       |   6 +
+ 15 files changed, 228 insertions(+), 74 deletions(-)
+
 -- 
 2.21.0
