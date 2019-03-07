@@ -1,171 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:18628 "EHLO mx2.mailbox.org"
+Received: from ozlabs.org ([203.11.71.1]:33331 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726599AbfCFTOU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 Mar 2019 14:14:20 -0500
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v5 4/5] namei: aggressively check for nd->root escape on ".." resolution
-Date: Thu,  7 Mar 2019 06:12:43 +1100
-Message-ID: <20190306191244.8691-5-cyphar@cyphar.com>
-In-Reply-To: <20190306191244.8691-1-cyphar@cyphar.com>
-References: <20190306191244.8691-1-cyphar@cyphar.com>
+        id S1726128AbfCGAsB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 Mar 2019 19:48:01 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 01/20] asm-generic/mmiowb: Add generic implementation of mmiowb() tracking
+In-Reply-To: <CAHk-=wgbnn7x+i72NqnvXotbxjsk2Ag56Q5YP0OSvhY9sUk7QA@mail.gmail.com>
+References: <20190301140348.25175-1-will.deacon@arm.com> <20190301140348.25175-2-will.deacon@arm.com> <1551575210.6lwpiqtg5k.astroid@bobo.none> <87ef7n7x9v.fsf@concordia.ellerman.id.au> <CAHk-=wgbnn7x+i72NqnvXotbxjsk2Ag56Q5YP0OSvhY9sUk7QA@mail.gmail.com>
+Date: Thu, 07 Mar 2019 11:47:53 +1100
+Message-ID: <87k1hbv7ba.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190306191243.a1ZevrIio-ihFGiZMLCSVyHupCRfUWFI9I71pzPLw2s@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20190307004753.zykRFaevQjRGj6Fro50TxvvvB7WzndWdQScrvR7Fs6I@z>
 
-This patch allows for O_BENEATH and O_THISROOT to safely permit ".."
-resolution (in the case of O_BENEATH the resolution will still fail if
-".." resolution would resolve a path outside of the root -- while
-O_THISROOT will chroot(2)-style scope it). "magic link" jumps are still
-disallowed entirely because now they could result in inconsistent
-behaviour if resolution encounters a subsequent "..".
+Linus Torvalds <torvalds@linux-foundation.org> writes:
+> On Mon, Mar 4, 2019 at 2:24 AM Michael Ellerman <mpe@ellerman.id.au> wrote:
+>>
+>> Without wading into the rest of the discussion, this does raise an
+>> interesting point, ie. what about eg. rwlock's?
+>>
+>> They're basically equivalent to spinlocks, and so could reasonably be
+>> expected to have the same behaviour.
+>>
+>> But we don't check the io_sync flag in arch_read/write_unlock() etc. and
+>> both of those use lwsync.
+>
+> I think technically rwlocks should do the same thing, at least when
+> they are used for exclusion.
 
-The need for this patch is explained by observing there is a fairly
-easy-to-exploit race condition with chroot(2) (and thus by extension
-O_THISROOT and O_BENEATH) where a rename(2) of a path can be used to
-"skip over" nd->root and thus escape to the filesystem above nd->root.
+OK.
 
-  thread1 [attacker]:
-    for (;;)
-      renameat2(AT_FDCWD, "/a/b/c", AT_FDCWD, "/a/d", RENAME_EXCHANGE);
-  thread2 [victim]:
-    for (;;)
-      openat(dirb, "b/c/../../etc/shadow", O_THISROOT);
+> Because of the exclusion argument, we can presubably limit it to just
+> write_unlock(), although at least in theory I guess you could have
+> some "one reader does IO, then a writer comes in" situation..
 
-With fairly significant regularity, thread2 will resolve to
-"/etc/shadow" rather than "/a/b/etc/shadow". There is also a similar
-(though somewhat more privileged) attack using MS_MOVE.
+It's a bit hard to grep for, but I did find one case:
 
-With this patch, such cases will be detected *during* ".." resolution
-(which is the weak point of chroot(2) -- since walking *into* a
-subdirectory tautologically cannot result in you walking *outside*
-nd->root -- except through a bind-mount or "magic link"). By detecting
-this at ".." resolution (rather than checking only at the end of the
-entire resolution) we can both correct escapes by jumping back to the
-root (in the case of O_THISROOT), as well as avoid revealing to
-attackers the structure of the filesystem outside of the root (through
-timing attacks for instance).
+static void netxen_nic_io_write_128M(struct netxen_adapter *adapter,
+                void __iomem *addr, u32 data)
+{
+        read_lock(&adapter->ahw.crb_lock);
+        writel(data, addr);
+        read_unlock(&adapter->ahw.crb_lock);
+}
 
-In order to avoid a quadratic lookup with each ".." entry, we only
-activate the slow path if a write through &rename_lock or &mount_lock
-have occurred during path resolution (&rename_lock and &mount_lock are
-re-taken to further optimise the lookup). Since the primary attack being
-protected against is MS_MOVE or rename(2), not doing additional checks
-unless a mount or rename have occurred avoids making the common case
-slow.
+It looks like that driver is using the rwlock to exclude cases that can
+just do a readl()/writel() (readers) vs another case that has to reconfigure a
+window or something, before doing readl()/writel() and then configuring
+the window back. So that seems like a valid use for a rwlock.
 
-The use of path_is_under() here might seem suspect, but on further
-inspection of the most important race (a path was *inside* the root but
-is now *outside*), there appears to be no attack potential. If
-path_is_under() occurs before the rename, then the path will be resolved
-but since the path was originally inside the root there is no escape.
-Subsequent ".." jumps are guaranteed to check path_is_under() (by
-construction, &rename_lock or &mount_lock must have been taken by the
-attacker after path_is_under() returned in the victim), and thus will
-not be able to escape from the previously-inside-root path. Walking down
-is still safe since the entire subtree was moved (either by rename(2) or
-MS_MOVE) and because (as discussed above) walking down is safe.
+Whether we want to penalise all read_unlock() usages with a mmiowb()
+check just to support that one driver is another question.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
----
- fs/namei.c | 48 +++++++++++++++++++++++++++++++++---------------
- 1 file changed, 33 insertions(+), 15 deletions(-)
+> Perhaps more importantly, what about sleeping locks? When they
+> actually *block*, they get the barrier thanks to the scheduler, but
+> you can have a nice non-contended sequence that never does that.
 
-diff --git a/fs/namei.c b/fs/namei.c
-index 798eb1702a0c..af06b10b13a0 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -493,7 +493,7 @@ struct nameidata {
- 	struct path	root;
- 	struct inode	*inode; /* path.dentry.d_inode */
- 	unsigned int	flags;
--	unsigned	seq, m_seq;
-+	unsigned	seq, m_seq, r_seq;
- 	int		last_type;
- 	unsigned	depth;
- 	int		total_link_count;
-@@ -1741,19 +1741,35 @@ static inline int may_lookup(struct nameidata *nd)
- static inline int handle_dots(struct nameidata *nd, int type)
- {
- 	if (type == LAST_DOTDOT) {
--		/*
--		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
--		 * cause our parent to have moved outside of the root and us to skip
--		 * over it.
--		 */
--		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
--			return -EXDEV;
-+		int error = 0;
-+
- 		if (!nd->root.mnt)
- 			set_root(nd);
--		if (nd->flags & LOOKUP_RCU) {
--			return follow_dotdot_rcu(nd);
--		} else
--			return follow_dotdot(nd);
-+		if (nd->flags & LOOKUP_RCU)
-+			error = follow_dotdot_rcu(nd);
-+		else
-+			error = follow_dotdot(nd);
-+		if (error)
-+			return error;
-+
-+		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT))) {
-+			bool m_retry = read_seqretry(&mount_lock, nd->m_seq);
-+			bool r_retry = read_seqretry(&rename_lock, nd->r_seq);
-+
-+			/*
-+			 * Don't bother checking unless there's a racing
-+			 * rename(2) or MS_MOVE.
-+			 */
-+			if (likely(!m_retry && !r_retry))
-+				return 0;
-+
-+			if (m_retry && !(nd->flags & LOOKUP_RCU))
-+				nd->m_seq = read_seqbegin(&mount_lock);
-+			if (r_retry)
-+				nd->r_seq = read_seqbegin(&rename_lock);
-+			if (!path_is_under(&nd->path, &nd->root))
-+				return -EXDEV;
-+		}
- 	}
- 	return 0;
- }
-@@ -2274,6 +2290,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
- 	nd->flags = flags | LOOKUP_JUMPED | LOOKUP_PARENT;
- 	nd->depth = 0;
-+
-+	nd->m_seq = read_seqbegin(&mount_lock);
-+	if (unlikely(flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
-+		nd->r_seq = read_seqbegin(&rename_lock);
-+
- 	if (flags & LOOKUP_ROOT) {
- 		struct dentry *root = nd->root.dentry;
- 		struct inode *inode = root->d_inode;
-@@ -2284,7 +2305,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 		if (flags & LOOKUP_RCU) {
- 			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
- 			nd->root_seq = nd->seq;
--			nd->m_seq = read_seqbegin(&mount_lock);
- 		} else {
- 			path_get(&nd->path);
- 		}
-@@ -2295,8 +2315,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.mnt = NULL;
- 	nd->path.dentry = NULL;
- 
--	nd->m_seq = read_seqbegin(&mount_lock);
--
- 	if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT))) {
- 		error = dirfd_path_init(nd);
- 		if (unlikely(error))
--- 
-2.21.0
+Yeah.
+
+The mutex unlock fast path is just:
+
+	if (atomic_long_cmpxchg_release(&lock->owner, curr, 0UL) == curr)
+		return true;
+
+And because it's the "release" variant we just use lwsync, which doesn't
+order MMIO. If it was just atomic_long_cmpxchg() that would work because
+we use sync for those.
+
+__up_write() uses atomic_long_sub_return_release(), so same story.
+
+> I guess the fact that these cases have never even shown up as an issue
+> means that we could just continue to ignore it.
+>
+> We could even give that approach some fancy name, and claim it as a
+> revolutionary new programming paradigm ("ostrich programming" to go
+> with "agile" and "pair programming").
+
+Maybe. On power we have the double whammy of weaker ordering than
+other arches and infinitesimal market share, which makes me worry that
+there are bugs lurking that we just haven't found, it's happened before.
+
+cheers
