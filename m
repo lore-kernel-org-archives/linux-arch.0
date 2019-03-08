@@ -1,63 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:37429 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726307AbfCHJT3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Mar 2019 04:19:29 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56910 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726279AbfCHLVV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Mar 2019 06:21:21 -0500
+Subject: Re: [PATCH 0/4] vdso fixups
+References: <20190307160532.3328288-1-arnd@arndb.de>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <7fba9c5e-542e-a6d9-e267-7ce3090bce4f@arm.com>
+Date: Fri, 8 Mar 2019 11:21:18 +0000
 MIME-Version: 1.0
-References: <cover.1551598603.git.vilhelm.gray@gmail.com> <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
- <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com> <20190308085733.GA3903@icarus>
-In-Reply-To: <20190308085733.GA3903@icarus>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Fri, 8 Mar 2019 11:19:16 +0200
-Message-ID: <CAHp75VdaHYoXCqmnt=F_mnaTnCedLqs6CL1aC-oPFRdNJCAUCA@mail.gmail.com>
-Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20190307160532.3328288-1-arnd@arndb.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190308091916.WRcOcVi7mDthsAC5dWQb3xH2zmW0rk4nMxiEDsXjL5I@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 
-On Fri, Mar 8, 2019 at 10:56 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
-> On Fri, Mar 08, 2019 at 09:31:00AM +0100, Linus Walleij wrote:
-> > On Sun, Mar 3, 2019 at 8:47 AM William Breathitt Gray
-> > <vilhelm.gray@gmail.com> wrote:
-> >
-> > > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > > within a bitmap memory region. For each iteration, "start" is set to the
-> > > bit offset of the found clump, while the respective clump value is
-> > > stored to the location pointed by "clump". Additionally, the
-> > > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > > respectively get and set an 8-bit value in a bitmap memory region.
+Hi Arnd,
 
-> > Andrew: would you be OK with this being merged in v5.1?
-> >
-> > If we need to move the code to drivers/gpio that's OK (though
-> > I think it's generally useful) but I need to know to proceed with
-> > the William's nice optimization of these drivers.
-> >
-> > Yours,
-> > Linus Walleij
->
-> I was waiting on Andy to suggest some examples out of the GPIO realm,
-> but he may be under a heavy workload right
+On 07/03/2019 16:05, Arnd Bergmann wrote:
+> Hi Vincento,
+> 
+> Here are a couple more patches that I had to apply on top of your series
+> to get the combined vdso to build cleanly in all randconfig configurations.
+> 
+> Unfortunately, I haven't managed to build the arm64 compat vdso at
+> all here, so there may be additional patches needed for that.
+> 
 
-Yeah, sorry for that. I will use your helpers in the future for sure
-in the suitable parts of the code inside and outside of GPIO, just not
-in a highest priority to me.
+Thank you for this. Going forward, I will start using randconfig as well to make
+sure that I catch as many issues as I can.
 
-> so I decided to do a quick
-> Consider this, if I am able to find a use for this macro outside of the
-> GPIO subsystem within a matter minutes, then there must be some benefit
-> in allowing the rest of the kernel to use the for_each_set_clump8 macro.
-> So let's put it in bitops.h rather than restrict it to just the GPIO
-> subsystem.
+For what concerns arm64 compat vdso, the compilation is currently disabled by
+default when the compiler is clang, because there is a problem with the include
+paths that requires further investigation. I was planning to provide a separate
+patchset to address the problem.
 
-As I mentioned earlier I'm pretty sure I found as well opportunity to
-use this new API
-outside of GPIO realm. I just want to be sure (means of testing on real HW).
+
+
+>       Arnd
+> 
+> Arnd Bergmann (4):
+>   vdso: ARM: fix building without ARM_ARCH_TIMER
+>   x86: vdso: fix compat_vdso build
+>   vdso: arm: use __iter_div_u64_rem() for 64-bit division
+>   arm64: vdso: turn off profiling etc
+> 
+>  arch/arm/include/asm/vdso/gettimeofday.h |  4 ++
+>  arch/arm/kernel/vdso.c                   |  7 +--
+>  arch/arm64/kernel/vdso/Makefile          |  6 ++
+>  arch/x86/include/asm/mshyperv-tsc.h      | 76 ++++++++++++++++++++++++
+>  arch/x86/include/asm/mshyperv.h          | 70 +---------------------
+>  arch/x86/include/asm/pvclock.h           |  2 +-
+>  arch/x86/include/asm/vdso/gettimeofday.h |  2 +-
+>  arch/x86/include/asm/vgtod.h             |  2 +-
+>  arch/x86/kernel/pvclock.c                |  1 +
+>  include/linux/hrtimer.h                  | 15 +----
+>  include/linux/hrtimer_defs.h             | 25 ++++++++
+>  lib/vdso/gettimeofday.c                  |  3 +-
+>  12 files changed, 121 insertions(+), 92 deletions(-)
+>  create mode 100644 arch/x86/include/asm/mshyperv-tsc.h
+>  create mode 100644 include/linux/hrtimer_defs.h
+> 
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Regards,
+Vincenzo
