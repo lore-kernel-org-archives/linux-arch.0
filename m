@@ -1,58 +1,41 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
-Date: Fri, 8 Mar 2019 11:19:16 +0200
-Message-ID: <CAHp75VdaHYoXCqmnt=F_mnaTnCedLqs6CL1aC-oPFRdNJCAUCA@mail.gmail.com>
-References: <cover.1551598603.git.vilhelm.gray@gmail.com> <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
- <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com> <20190308085733.GA3903@icarus>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH] signal: fix building with clang
+Date: Fri, 8 Mar 2019 13:09:47 -0800
+Message-ID: <CAKwvOd=+_FjWmo2McyLOAL3r6JOuu1wZEzQknY-GToDnCwzhsQ@mail.gmail.com>
+References: <20190307091218.2343836-1-arnd@arndb.de> <20190307152805.GA25101@redhat.com>
+ <CAK8P3a2fuD-UBJET_OBKekCxrTDpnAxb0Bpu2LCCXaVT3pXTMQ@mail.gmail.com>
+ <20190307164647.GC25101@redhat.com> <CAK8P3a2FU55-7wQnLXDAmRCgiZ-W+2rY6p7CrTiKNe0wda-Hsg@mail.gmail.com>
+ <CAKwvOd=nyhM72CxdO-YYSsXr7rh3LUALn_ezVNzyiBaOD7KZkA@mail.gmail.com> <31b6d5bdfda9cbadffa6d8cb3ad0991e237a364c.camel@perches.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190308085733.GA3903@icarus>
+In-Reply-To: <31b6d5bdfda9cbadffa6d8cb3ad0991e237a364c.camel@perches.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>
+To: Joe Perches <joe@perches.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Eric W . Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Christian Brauner <christian@brauner.io>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, linux-mips@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 8, 2019 at 10:56 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
-> On Fri, Mar 08, 2019 at 09:31:00AM +0100, Linus Walleij wrote:
-> > On Sun, Mar 3, 2019 at 8:47 AM William Breathitt Gray
-> > <vilhelm.gray@gmail.com> wrote:
-> >
-> > > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > > within a bitmap memory region. For each iteration, "start" is set to the
-> > > bit offset of the found clump, while the respective clump value is
-> > > stored to the location pointed by "clump". Additionally, the
-> > > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > > respectively get and set an 8-bit value in a bitmap memory region.
-
-> > Andrew: would you be OK with this being merged in v5.1?
-> >
-> > If we need to move the code to drivers/gpio that's OK (though
-> > I think it's generally useful) but I need to know to proceed with
-> > the William's nice optimization of these drivers.
-> >
-> > Yours,
-> > Linus Walleij
+On Thu, Mar 7, 2019 at 4:27 PM Joe Perches <joe@perches.com> wrote:
 >
-> I was waiting on Andy to suggest some examples out of the GPIO realm,
-> but he may be under a heavy workload right
+> On Thu, 2019-03-07 at 16:22 -0800, Nick Desaulniers wrote:
+> > On Thu, Mar 7, 2019 at 1:45 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > > I'd have to try, but I think you are right. It was probably an
+> > > overoptimization back in 1997 when the code got added to
+> > > linux-2.1.68pre1, and compilers have become smarter in the
+> > > meantime ;-)
+> >
+> > How do you track history pre-git (2.6.XX)?
+>
+> https://landley.net/kdocs/fullhist/
 
-Yeah, sorry for that. I will use your helpers in the future for sure
-in the suitable parts of the code inside and outside of GPIO, just not
-in a highest priority to me.
+Ah neat! Thanks for the link.  Now to wire that up to fugitive:
+http://vimcasts.org/episodes/fugitive-vim-exploring-the-history-of-a-git-repository/
 
-> so I decided to do a quick
-> Consider this, if I am able to find a use for this macro outside of the
-> GPIO subsystem within a matter minutes, then there must be some benefit
-> in allowing the rest of the kernel to use the for_each_set_clump8 macro.
-> So let's put it in bitops.h rather than restrict it to just the GPIO
-> subsystem.
-
-As I mentioned earlier I'm pretty sure I found as well opportunity to
-use this new API
-outside of GPIO realm. I just want to be sure (means of testing on real HW).
-
+The LLVM project recently switched to git from svn.  For quite some
+time the move was delayed in order to preserve history (including for
+parked release branches and all kinds of edge cases and things that
+don't quite translate from svn to git).  Now I better appreciate the
+history preservation.
 -- 
-With Best Regards,
-Andy Shevchenko
+Thanks,
+~Nick Desaulniers
