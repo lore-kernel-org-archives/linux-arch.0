@@ -1,70 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56910 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726279AbfCHLVV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Mar 2019 06:21:21 -0500
-Subject: Re: [PATCH 0/4] vdso fixups
-References: <20190307160532.3328288-1-arnd@arndb.de>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <7fba9c5e-542e-a6d9-e267-7ce3090bce4f@arm.com>
-Date: Fri, 8 Mar 2019 11:21:18 +0000
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:44598 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726258AbfCHVJ7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Mar 2019 16:09:59 -0500
+Received: by mail-pf1-f193.google.com with SMTP id a3so15005122pff.11
+        for <linux-arch@vger.kernel.org>; Fri, 08 Mar 2019 13:09:59 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20190307160532.3328288-1-arnd@arndb.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20190307091218.2343836-1-arnd@arndb.de> <20190307152805.GA25101@redhat.com>
+ <CAK8P3a2fuD-UBJET_OBKekCxrTDpnAxb0Bpu2LCCXaVT3pXTMQ@mail.gmail.com>
+ <20190307164647.GC25101@redhat.com> <CAK8P3a2FU55-7wQnLXDAmRCgiZ-W+2rY6p7CrTiKNe0wda-Hsg@mail.gmail.com>
+ <CAKwvOd=nyhM72CxdO-YYSsXr7rh3LUALn_ezVNzyiBaOD7KZkA@mail.gmail.com> <31b6d5bdfda9cbadffa6d8cb3ad0991e237a364c.camel@perches.com>
+In-Reply-To: <31b6d5bdfda9cbadffa6d8cb3ad0991e237a364c.camel@perches.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Fri, 8 Mar 2019 13:09:47 -0800
+Message-ID: <CAKwvOd=+_FjWmo2McyLOAL3r6JOuu1wZEzQknY-GToDnCwzhsQ@mail.gmail.com>
+Subject: Re: [PATCH] signal: fix building with clang
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+To: Joe Perches <joe@perches.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Eric W . Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Christian Brauner <christian@brauner.io>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, linux-mips@vger.kernel.org
+Message-ID: <20190308210947.4oLXx1MSbOv9Yj3GFPxYuNjjDMGLGeHzgx8qITqj-30@z>
 
-Hi Arnd,
+On Thu, Mar 7, 2019 at 4:27 PM Joe Perches <joe@perches.com> wrote:
+>
+> On Thu, 2019-03-07 at 16:22 -0800, Nick Desaulniers wrote:
+> > On Thu, Mar 7, 2019 at 1:45 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > > I'd have to try, but I think you are right. It was probably an
+> > > overoptimization back in 1997 when the code got added to
+> > > linux-2.1.68pre1, and compilers have become smarter in the
+> > > meantime ;-)
+> >
+> > How do you track history pre-git (2.6.XX)?
+>
+> https://landley.net/kdocs/fullhist/
 
-On 07/03/2019 16:05, Arnd Bergmann wrote:
-> Hi Vincento,
-> 
-> Here are a couple more patches that I had to apply on top of your series
-> to get the combined vdso to build cleanly in all randconfig configurations.
-> 
-> Unfortunately, I haven't managed to build the arm64 compat vdso at
-> all here, so there may be additional patches needed for that.
-> 
+Ah neat! Thanks for the link.  Now to wire that up to fugitive:
+http://vimcasts.org/episodes/fugitive-vim-exploring-the-history-of-a-git-repository/
 
-Thank you for this. Going forward, I will start using randconfig as well to make
-sure that I catch as many issues as I can.
-
-For what concerns arm64 compat vdso, the compilation is currently disabled by
-default when the compiler is clang, because there is a problem with the include
-paths that requires further investigation. I was planning to provide a separate
-patchset to address the problem.
-
-
-
->       Arnd
-> 
-> Arnd Bergmann (4):
->   vdso: ARM: fix building without ARM_ARCH_TIMER
->   x86: vdso: fix compat_vdso build
->   vdso: arm: use __iter_div_u64_rem() for 64-bit division
->   arm64: vdso: turn off profiling etc
-> 
->  arch/arm/include/asm/vdso/gettimeofday.h |  4 ++
->  arch/arm/kernel/vdso.c                   |  7 +--
->  arch/arm64/kernel/vdso/Makefile          |  6 ++
->  arch/x86/include/asm/mshyperv-tsc.h      | 76 ++++++++++++++++++++++++
->  arch/x86/include/asm/mshyperv.h          | 70 +---------------------
->  arch/x86/include/asm/pvclock.h           |  2 +-
->  arch/x86/include/asm/vdso/gettimeofday.h |  2 +-
->  arch/x86/include/asm/vgtod.h             |  2 +-
->  arch/x86/kernel/pvclock.c                |  1 +
->  include/linux/hrtimer.h                  | 15 +----
->  include/linux/hrtimer_defs.h             | 25 ++++++++
->  lib/vdso/gettimeofday.c                  |  3 +-
->  12 files changed, 121 insertions(+), 92 deletions(-)
->  create mode 100644 arch/x86/include/asm/mshyperv-tsc.h
->  create mode 100644 include/linux/hrtimer_defs.h
-> 
-
+The LLVM project recently switched to git from svn.  For quite some
+time the move was delayed in order to preserve history (including for
+parked release branches and all kinds of edge cases and things that
+don't quite translate from svn to git).  Now I better appreciate the
+history preservation.
 -- 
-Regards,
-Vincenzo
+Thanks,
+~Nick Desaulniers
