@@ -1,78 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f195.google.com ([209.85.166.195]:34087 "EHLO
-        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726452AbfCIEB6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Mar 2019 23:01:58 -0500
-Received: by mail-it1-f195.google.com with SMTP id d125so12034270ith.1
-        for <linux-arch@vger.kernel.org>; Fri, 08 Mar 2019 20:01:58 -0800 (PST)
-Date: Fri, 8 Mar 2019 21:01:53 -0700
-From: Yu Zhao <yuzhao@google.com>
-Subject: Re: [PATCH v2 1/3] arm64: mm: use appropriate ctors for page tables
-Message-ID: <20190309040153.GB214016@google.com>
-References: <20190214211642.2200-1-yuzhao@google.com>
- <20190218231319.178224-1-yuzhao@google.com>
- <20190226151230.GA20230@lakrids.cambridge.arm.com>
+Received: from mail-lj1-f196.google.com ([209.85.208.196]:34959 "EHLO
+        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726294AbfCIRHw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2019 12:07:52 -0500
+Received: by mail-lj1-f196.google.com with SMTP id t13so603372lji.2
+        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 09:07:51 -0800 (PST)
+Received: from mail-lj1-f174.google.com (mail-lj1-f174.google.com. [209.85.208.174])
+        by smtp.gmail.com with ESMTPSA id p3sm205494lfc.64.2019.03.09.09.07.49
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Sat, 09 Mar 2019 09:07:49 -0800 (PST)
+Received: by mail-lj1-f174.google.com with SMTP id v16so580060ljg.13
+        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 09:07:49 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190226151230.GA20230@lakrids.cambridge.arm.com>
+References: <20190306191244.8691-1-cyphar@cyphar.com> <20190306191244.8691-3-cyphar@cyphar.com>
+In-Reply-To: <20190306191244.8691-3-cyphar@cyphar.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 9 Mar 2019 09:00:58 -0800
+Message-ID: <CAHk-=wgGKWRTgSYKkgMEf1QOg0PZSpmBha+2LCHCBOar0e8cug@mail.gmail.com>
+Subject: Re: [PATCH RESEND v5 2/5] namei: O_BENEATH-style path resolution flags
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20190309040153.oHp2ui-uEsOcJcLk6eUJJfsDRYCj_xUqmLhcEkUnL-k@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Kees Cook <keescook@chromium.org>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190309170058.Yc6tkTshc31z9jObiGcdCecKMzRtL7UM288H9i_d0QU@z>
 
-On Tue, Feb 26, 2019 at 03:12:31PM +0000, Mark Rutland wrote:
-> Hi,
-> 
-> On Mon, Feb 18, 2019 at 04:13:17PM -0700, Yu Zhao wrote:
-> > For pte page, use pgtable_page_ctor(); for pmd page, use
-> > pgtable_pmd_page_ctor() if not folded; and for the rest (pud,
-> > p4d and pgd), don't use any.
-> > 
-> > Signed-off-by: Yu Zhao <yuzhao@google.com>
-> > ---
-> >  arch/arm64/mm/mmu.c | 33 +++++++++++++++++++++------------
-> >  1 file changed, 21 insertions(+), 12 deletions(-)
-> 
-> [...]
-> 
-> > -static phys_addr_t pgd_pgtable_alloc(void)
-> > +static phys_addr_t pgd_pgtable_alloc(int shift)
-> >  {
-> >  	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-> > -	if (!ptr || !pgtable_page_ctor(virt_to_page(ptr)))
-> > -		BUG();
-> > +	BUG_ON(!ptr);
-> > +
-> > +	/*
-> > +	 * Initialize page table locks in case later we need to
-> > +	 * call core mm functions like apply_to_page_range() on
-> > +	 * this pre-allocated page table.
-> > +	 */
-> > +	if (shift == PAGE_SHIFT)
-> > +		BUG_ON(!pgtable_page_ctor(virt_to_page(ptr)));
-> > +	else if (shift == PMD_SHIFT && PMD_SHIFT != PUD_SHIFT)
-> > +		BUG_ON(!pgtable_pmd_page_ctor(virt_to_page(ptr)));
-> 
-> IIUC, this is for nopmd kernels, where we only have real PGD and PTE
-> levels of table. From my PoV, that would be clearer if we did:
-> 
-> 	else if (shift == PMD_SHIFT && !is_defined(__PAGETABLE_PMD_FOLDED))
-> 
-> ... though IMO it would be a bit nicer if the generic
-> pgtable_pmd_page_ctor() were nop'd out for __PAGETABLE_PMD_FOLDED
-> builds, so that callers don't have to be aware of folding.
+On Wed, Mar 6, 2019 at 11:14 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> This is a refresh of Al's AT_NO_JUMPS patchset[1] (which was a variation
+> on David Drysdale's O_BENEATH patchset[2], which in turn was based on
+> the Capsicum project[3]). Input from Linus and Andy in the AT_NO_JUMPS
+> thread[4] determined most of the API changes made in this refresh.
 
-Agreed. Will make pgtable_pmd_page_ctor() nop when pmd is folded.
+So I still think this is likely a good idea...  BUT.
 
-> I couldn't think of a nicer way of distinguishing levels of table, and
-> having separate function pointers for each level seems over-the-top, so
-> otehr than that this looks good to me.
-> 
-> Assuming you're happy with the above change:
-> 
-> Acked-by: Mark Rutland <mark.rutland@arm.com>
-> 
-> Thanks,
-> Mark.
+The absolutely huge BUT here is "are user space people actually
+interested in using it, or do they already have other solutions to
+this anyway?"
+
+The intent is obviously to make it easy and cheap to to the simple
+pathname lookup in a controlled manner, and then let user space fall
+back to "let's check things much more carefully" for paths that look
+iffy.
+
+But maybe the people who care already have their own solutions, and/or
+need something more anyway (ie samba looking up all names in user
+space first _anyway_ due to ICASE issues or whatever)?
+
+So this is easy and straightforward to do in the kernel, and it
+_feels_ like something that can be useful, and I'm not all that
+concerned about the maintenance overhead either because of the trivial
+semantics.
+
+But I'd still like to actually have some user space person say "yeah,
+we'd actually use this" since quite often non-portable solutions don't
+really end up being used simply because it's not worth the maintenance
+headache in user space..
+
+                     Linus
