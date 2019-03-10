@@ -1,150 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f73.google.com ([209.85.166.73]:50312 "EHLO
-        mail-io1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726378AbfCJBTL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2019 20:19:11 -0500
-Received: by mail-io1-f73.google.com with SMTP id d7so1276155ios.17
-        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 17:19:10 -0800 (PST)
-Date: Sat,  9 Mar 2019 18:19:04 -0700
-In-Reply-To: <20190218231319.178224-1-yuzhao@google.com>
-Message-ID: <20190310011906.254635-1-yuzhao@google.com>
+Received: from mail-qt1-f202.google.com ([209.85.160.202]:53623 "EHLO
+        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726473AbfCJBTO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2019 20:19:14 -0500
+Received: by mail-qt1-f202.google.com with SMTP id g42so1674573qtb.20
+        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 17:19:13 -0800 (PST)
+Date: Sat,  9 Mar 2019 18:19:06 -0700
+In-Reply-To: <20190310011906.254635-1-yuzhao@google.com>
+Message-ID: <20190310011906.254635-3-yuzhao@google.com>
 Mime-Version: 1.0
-References: <20190218231319.178224-1-yuzhao@google.com>
-Subject: [PATCH v3 1/3] arm64: mm: use appropriate ctors for page tables
+References: <20190218231319.178224-1-yuzhao@google.com> <20190310011906.254635-1-yuzhao@google.com>
+Subject: [PATCH v3 3/3] arm64: mm: enable per pmd page table lock
 From: Yu Zhao <yuzhao@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
 Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
-Message-ID: <20190310011904.L97r5SQyXX9zb_AXtc9QitLmAfgonXQjydFhcDqXDV0@z>
+Message-ID: <20190310011906.9cBUZHu_LKVKsRvZvftUME40UOaW59CC4Vw3id2_RjE@z>
 
-For pte page, use pgtable_page_ctor(); for pmd page, use
-pgtable_pmd_page_ctor(); and for the rest (pud, p4d and pgd),
-don't use any.
+Switch from per mm_struct to per pmd page table lock by enabling
+ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
+large system.
 
-For now, we don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK and
-pgtable_pmd_page_ctor() is a nop. When we do in patch 3, we
-make sure pmd is not folded so we won't mistakenly call
-pgtable_pmd_page_ctor() on pud or p4d.
+I'm not sure if there is contention on mm->page_table_lock. Given
+the option comes at no cost (apart from initializing more spin
+locks), why not enable it now.
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+We only do so when pmd is not folded, so we don't mistakenly call
+pgtable_pmd_page_ctor() on pud or p4d in pgd_pgtable_alloc(). (We
+check shift against PMD_SHIFT, which is same as PUD_SHIFT when pmd
+is folded).
+
 Signed-off-by: Yu Zhao <yuzhao@google.com>
 ---
- arch/arm64/mm/mmu.c | 36 ++++++++++++++++++++++++------------
- 1 file changed, 24 insertions(+), 12 deletions(-)
+ arch/arm64/Kconfig               |  3 +++
+ arch/arm64/include/asm/pgalloc.h | 12 +++++++++++-
+ arch/arm64/include/asm/tlb.h     |  5 ++++-
+ 3 files changed, 18 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index b6f5aa52ac67..f704b291f2c5 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -98,7 +98,7 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- }
- EXPORT_SYMBOL(phys_mem_access_prot);
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index cfbf307d6dc4..a3b1b789f766 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -872,6 +872,9 @@ config ARCH_WANT_HUGE_PMD_SHARE
+ config ARCH_HAS_CACHE_LINE_SIZE
+ 	def_bool y
  
--static phys_addr_t __init early_pgtable_alloc(void)
-+static phys_addr_t __init early_pgtable_alloc(int shift)
- {
- 	phys_addr_t phys;
- 	void *ptr;
-@@ -173,7 +173,7 @@ static void init_pte(pmd_t *pmdp, unsigned long addr, unsigned long end,
- static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
- 				unsigned long end, phys_addr_t phys,
- 				pgprot_t prot,
--				phys_addr_t (*pgtable_alloc)(void),
-+				phys_addr_t (*pgtable_alloc)(int),
- 				int flags)
- {
- 	unsigned long next;
-@@ -183,7 +183,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
- 	if (pmd_none(pmd)) {
- 		phys_addr_t pte_phys;
- 		BUG_ON(!pgtable_alloc);
--		pte_phys = pgtable_alloc();
-+		pte_phys = pgtable_alloc(PAGE_SHIFT);
- 		__pmd_populate(pmdp, pte_phys, PMD_TYPE_TABLE);
- 		pmd = READ_ONCE(*pmdp);
- 	}
-@@ -207,7 +207,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
- 
- static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
- 		     phys_addr_t phys, pgprot_t prot,
--		     phys_addr_t (*pgtable_alloc)(void), int flags)
-+		     phys_addr_t (*pgtable_alloc)(int), int flags)
- {
- 	unsigned long next;
- 	pmd_t *pmdp;
-@@ -245,7 +245,7 @@ static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
- static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
- 				unsigned long end, phys_addr_t phys,
- 				pgprot_t prot,
--				phys_addr_t (*pgtable_alloc)(void), int flags)
-+				phys_addr_t (*pgtable_alloc)(int), int flags)
- {
- 	unsigned long next;
- 	pud_t pud = READ_ONCE(*pudp);
-@@ -257,7 +257,7 @@ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
- 	if (pud_none(pud)) {
- 		phys_addr_t pmd_phys;
- 		BUG_ON(!pgtable_alloc);
--		pmd_phys = pgtable_alloc();
-+		pmd_phys = pgtable_alloc(PMD_SHIFT);
- 		__pud_populate(pudp, pmd_phys, PUD_TYPE_TABLE);
- 		pud = READ_ONCE(*pudp);
- 	}
-@@ -293,7 +293,7 @@ static inline bool use_1G_block(unsigned long addr, unsigned long next,
- 
- static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
- 			   phys_addr_t phys, pgprot_t prot,
--			   phys_addr_t (*pgtable_alloc)(void),
-+			   phys_addr_t (*pgtable_alloc)(int),
- 			   int flags)
- {
- 	unsigned long next;
-@@ -303,7 +303,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
- 	if (pgd_none(pgd)) {
- 		phys_addr_t pud_phys;
- 		BUG_ON(!pgtable_alloc);
--		pud_phys = pgtable_alloc();
-+		pud_phys = pgtable_alloc(PUD_SHIFT);
- 		__pgd_populate(pgdp, pud_phys, PUD_TYPE_TABLE);
- 		pgd = READ_ONCE(*pgdp);
- 	}
-@@ -344,7 +344,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
- static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
- 				 unsigned long virt, phys_addr_t size,
- 				 pgprot_t prot,
--				 phys_addr_t (*pgtable_alloc)(void),
-+				 phys_addr_t (*pgtable_alloc)(int),
- 				 int flags)
- {
- 	unsigned long addr, length, end, next;
-@@ -370,11 +370,23 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
- 	} while (pgdp++, addr = next, addr != end);
- }
- 
--static phys_addr_t pgd_pgtable_alloc(void)
-+static phys_addr_t pgd_pgtable_alloc(int shift)
- {
- 	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
--	if (!ptr || !pgtable_page_ctor(virt_to_page(ptr)))
--		BUG();
-+	BUG_ON(!ptr);
++config ARCH_ENABLE_SPLIT_PMD_PTLOCK
++	def_bool y if PGTABLE_LEVELS > 2
 +
-+	/*
-+	 * Call proper page table ctor in case later we need to
-+	 * call core mm functions like apply_to_page_range() on
-+	 * this pre-allocated page table.
-+	 *
-+	 * We don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK if pmd is
-+	 * folded, and if so pgtable_pmd_page_ctor() becomes nop.
-+	 */
-+	if (shift == PAGE_SHIFT)
-+		BUG_ON(!pgtable_page_ctor(virt_to_page(ptr)));
-+	else if (shift == PMD_SHIFT)
-+		BUG_ON(!pgtable_pmd_page_ctor(virt_to_page(ptr)));
+ config SECCOMP
+ 	bool "Enable seccomp to safely compute untrusted bytecode"
+ 	---help---
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index 52fa47c73bf0..dabba4b2c61f 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -33,12 +33,22 @@
  
- 	/* Ensure the zeroed page is visible to the page table walker */
- 	dsb(ishst);
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return (pmd_t *)__get_free_page(PGALLOC_GFP);
++	struct page *page;
++
++	page = alloc_page(PGALLOC_GFP);
++	if (!page)
++		return NULL;
++	if (!pgtable_pmd_page_ctor(page)) {
++		__free_page(page);
++		return NULL;
++	}
++	return page_address(page);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmdp)
+ {
+ 	BUG_ON((unsigned long)pmdp & (PAGE_SIZE-1));
++	pgtable_pmd_page_dtor(virt_to_page(pmdp));
+ 	free_page((unsigned long)pmdp);
+ }
+ 
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 106fdc951b6e..4e3becfed387 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -62,7 +62,10 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 				  unsigned long addr)
+ {
+-	tlb_remove_table(tlb, virt_to_page(pmdp));
++	struct page *page = virt_to_page(pmdp);
++
++	pgtable_pmd_page_dtor(page);
++	tlb_remove_table(tlb, page);
+ }
+ #endif
+ 
 -- 
 2.21.0.360.g471c308f928-goog
