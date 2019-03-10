@@ -1,81 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:16014 "EHLO mx2.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725851AbfCJMMu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 10 Mar 2019 08:12:50 -0400
-Date: Sun, 10 Mar 2019 23:12:22 +1100
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH RESEND v5 2/5] namei: O_BENEATH-style path resolution
- flags
-Message-ID: <20190310121222.p5x5gxi3t3sy7p23@yavin>
-References: <20190306191244.8691-1-cyphar@cyphar.com>
- <20190306191244.8691-3-cyphar@cyphar.com>
- <CAHk-=wgGKWRTgSYKkgMEf1QOg0PZSpmBha+2LCHCBOar0e8cug@mail.gmail.com>
- <20190309172631.ygfdhrn4rcwkgfmk@brauner.io>
- <CAHk-=whMuk-b6rzhbF2=vVNOuEZk8-opRJ1fD07a9ztQ+V97Aw@mail.gmail.com>
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:42821 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726660AbfCJT0M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Mar 2019 15:26:12 -0400
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="qidgb2d5gkyjstpk"
-Content-Disposition: inline
-In-Reply-To: <CAHk-=whMuk-b6rzhbF2=vVNOuEZk8-opRJ1fD07a9ztQ+V97Aw@mail.gmail.com>
+References: <1546173604-26066-1-git-send-email-minipli@googlemail.com>
+ <20190102202938.GA26600@linux-8ccs> <CA+rthh87tutLV=857g-Nrd6gAYK8xhRJX8MqpjC+CnmsjTqqJg@mail.gmail.com>
+In-Reply-To: <CA+rthh87tutLV=857g-Nrd6gAYK8xhRJX8MqpjC+CnmsjTqqJg@mail.gmail.com>
+From: Mathias Krause <minipli@googlemail.com>
+Date: Sun, 10 Mar 2019 20:26:00 +0100
+Message-ID: <CA+rthh_OnmvQQbKAG55rha56HCp2vjhZMv0ahRdgJjbjmG=xRA@mail.gmail.com>
+Subject: Re: [PATCH] vmlinux.lds.h: drop unused __vermagic
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christian Brauner <christian@brauner.io>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Kees Cook <keescook@chromium.org>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190310121222.0i52l3PIWiW5xK9x3HBMbHodZCLS7i4UTLZFgR0khxk@z>
+To: Jessica Yu <jeyu@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190310192600.FnQKkDjzWRMoQ0j2Nz0sfRCpBLp8ot9JIwMquBQgKuo@z>
 
+Hi Jessica,
 
---qidgb2d5gkyjstpk
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, 21 Jan 2019 at 12:39, Mathias Krause <minipli@googlemail.com> wrote:
+>
+> On Wed, 2 Jan 2019 at 21:29, Jessica Yu <jeyu@kernel.org> wrote:
+> >
+> > +++ Mathias Krause [30/12/18 13:40 +0100]:
+> > >The reference to '__vermagic' is a relict from v2.5 times. And even
+> > >there it had a very short life time, from v2.5.59 (commit 1d411b80ee18
+> > >("Module Sanity Check") in the historic tree) to v2.5.69 (commit
+> > >67ac5b866bda ("[PATCH] complete modinfo section")).
+> > >
+> > >Neither current kernels nor modules contain a '__vermagic' section any
+> > >more, so get rid of it.
+> > >
+> > >Signed-off-by: Mathias Krause <minipli@googlemail.com>
+> > >Cc: Rusty Russell <rusty@rustcorp.com.au>
+> > >Cc: Jessica Yu <jeyu@kernel.org>
+> >
+> > Thanks for the cleanup.
+> >
+> > Reviewed-by: Jessica Yu <jeyu@kernel.org>
+> >
+>
+> Arnd, will you carry this patch through your asm-generic tree or did
+> the MAINTAINERS file mislead me here?
+>
 
-On 2019-03-09, Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> On Sat, Mar 9, 2019 at 9:26 AM Christian Brauner <christian@brauner.io> w=
-rote:
-> > Aside from that I want to point out that it is non-trivial to do this in
-> > user space.
->=20
-> Oh, absolutely agreed. It's easy to do it in the kernel, and doing it
-> anywhere else ends up having horrible races that the kernel has to
-> deal with and has long solved anyway.
+looks like Arnd keeps ignoring my Emails. :/ Can you carry this patch
+through your module tree? Or do you think I should ask Andrew Morton
+instead?
 
-We've seen in the past few years, there are also plenty of CVEs from the
-container runtime side of things which show that some of these races are
-also exploitable. Even with some of the most convoluted O_PATH "fd
-re-opening" trickery, it's incredibly difficult to both scope symlinks
-inside a container and safely detect cases where you've been tricked by
-a malicious actor.
+Thanks,
+Mathias
 
-> I've only seen this (2/5) patch, so I won't comment on the other ones,
-> but this still makes sense to me.
-
-I'll make sure to add you to the series Cc if/when there's a v6.
-
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---qidgb2d5gkyjstpk
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlyE/yEACgkQSnvnv3De
-m5/PhQ//VnslIB/uTSS+k6C/M/G8DH5OUhDYC0DJNwIEFBKgXKY9COO28DKVpoWO
-iLYAqhbYXgTKqpjOi5bYJvX7kCuz4zHpMhMXgpWwbXg8dJ748D/qZTmdr/N8I75M
-eQwqxh5Io/2/8EjXXyhDdkq4lSPDT+iPjbrmeaZlKLpqVwFufJb2pAkrJNjWkkgE
-CKKYl6rqaXBy9QFcVrSbCqCsnE+HdNfhRxfO/VfcyjAfEDHQxMKzO/+X2JBBh34B
-+vxBHyZ5vlwNCUXEg4qfkeeRN8EZYcvh+aq95cwxlWbNw8FKVyAIb+tCF9VD25+z
-ta4FfwnCd2mOumQErw57dkqAiwAIeWnVIFqzazGfkFAWEXWBVzq6/4KfKmK3U6Lq
-zWxI2JnnR8XViL18EhKg2l2hQfeU0Ba1WUu46AMJM2VLBSivG65ADNktM2Vl8PZM
-WqinqScExdUxa47uzrfbiUZBBzzekm77Th/a773RoaG6ap/sL0lrwSVnQS+nU5HE
-TnDrnWu/hdqaJSgMYpMaftKE04q9MEyr8VAnKaHc44mnLCZziwAEGcRArngRi5PZ
-1rZ6OcmQf5DkluGyJfg/gzZ47XOpu91JNAXKQFihVERUzSFocncylDvlPMw5LdEZ
-qIOEX+6dPXo+g9SODVO1T4XI8qBZ9VPKEyMbORarpgIKMRGaQbQ=
-=4U9I
------END PGP SIGNATURE-----
-
---qidgb2d5gkyjstpk--
+> > >---
+> > > include/asm-generic/vmlinux.lds.h | 1 -
+> > > 1 file changed, 1 deletion(-)
+> > >
+> > >diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> > >index 3d7a6a9c2370..530ce1e7a1ec 100644
+> > >--- a/include/asm-generic/vmlinux.lds.h
+> > >+++ b/include/asm-generic/vmlinux.lds.h
+> > >@@ -332,7 +332,6 @@
+> > >               __start_rodata = .;                                     \
+> > >               *(.rodata) *(.rodata.*)                                 \
+> > >               RO_AFTER_INIT_DATA      /* Read only after init */      \
+> > >-              KEEP(*(__vermagic))     /* Kernel version magic */      \
+> > >               . = ALIGN(8);                                           \
+> > >               __start___tracepoints_ptrs = .;                         \
+> > >               KEEP(*(__tracepoints_ptrs)) /* Tracepoints: pointer array */ \
+> > >--
+> > >2.19.2
+> > >
