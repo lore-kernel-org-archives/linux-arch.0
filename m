@@ -1,44 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:35521 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726340AbfCISOk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2019 13:14:40 -0500
-Received: by mail-lj1-f194.google.com with SMTP id t13so687706lji.2
-        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 10:14:39 -0800 (PST)
-Received: from mail-lf1-f44.google.com (mail-lf1-f44.google.com. [209.85.167.44])
-        by smtp.gmail.com with ESMTPSA id f1sm232963lfc.48.2019.03.09.10.14.37
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Sat, 09 Mar 2019 10:14:37 -0800 (PST)
-Received: by mail-lf1-f44.google.com with SMTP id u2so612745lfd.4
-        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 10:14:37 -0800 (PST)
-MIME-Version: 1.0
-References: <20190306191244.8691-1-cyphar@cyphar.com> <20190306191244.8691-3-cyphar@cyphar.com>
- <CAHk-=wgGKWRTgSYKkgMEf1QOg0PZSpmBha+2LCHCBOar0e8cug@mail.gmail.com> <20190309172631.ygfdhrn4rcwkgfmk@brauner.io>
-In-Reply-To: <20190309172631.ygfdhrn4rcwkgfmk@brauner.io>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Sat, 9 Mar 2019 10:08:08 -0800
-Message-ID: <CAHk-=whMuk-b6rzhbF2=vVNOuEZk8-opRJ1fD07a9ztQ+V97Aw@mail.gmail.com>
-Subject: Re: [PATCH RESEND v5 2/5] namei: O_BENEATH-style path resolution flags
+Received: from mail-io1-f73.google.com ([209.85.166.73]:50312 "EHLO
+        mail-io1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726378AbfCJBTL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2019 20:19:11 -0500
+Received: by mail-io1-f73.google.com with SMTP id d7so1276155ios.17
+        for <linux-arch@vger.kernel.org>; Sat, 09 Mar 2019 17:19:10 -0800 (PST)
+Date: Sat,  9 Mar 2019 18:19:04 -0700
+In-Reply-To: <20190218231319.178224-1-yuzhao@google.com>
+Message-ID: <20190310011906.254635-1-yuzhao@google.com>
+Mime-Version: 1.0
+References: <20190218231319.178224-1-yuzhao@google.com>
+Subject: [PATCH v3 1/3] arm64: mm: use appropriate ctors for page tables
+From: Yu Zhao <yuzhao@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Brauner <christian@brauner.io>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Kees Cook <keescook@chromium.org>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190309180808.bhQ0bo5LbrdQz_FkRPrKbDmb99VkrcpKmPjOIgZOCyA@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
+Message-ID: <20190310011904.L97r5SQyXX9zb_AXtc9QitLmAfgonXQjydFhcDqXDV0@z>
 
-On Sat, Mar 9, 2019 at 9:26 AM Christian Brauner <christian@brauner.io> wrote:
->
-> Aside from that I want to point out that it is non-trivial to do this in
-> user space.
+For pte page, use pgtable_page_ctor(); for pmd page, use
+pgtable_pmd_page_ctor(); and for the rest (pud, p4d and pgd),
+don't use any.
 
-Oh, absolutely agreed. It's easy to do it in the kernel, and doing it
-anywhere else ends up having horrible races that the kernel has to
-deal with and has long solved anyway.
+For now, we don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK and
+pgtable_pmd_page_ctor() is a nop. When we do in patch 3, we
+make sure pmd is not folded so we won't mistakenly call
+pgtable_pmd_page_ctor() on pud or p4d.
 
-I've only seen this (2/5) patch, so I won't comment on the other ones,
-but this still makes sense to me.
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+---
+ arch/arm64/mm/mmu.c | 36 ++++++++++++++++++++++++------------
+ 1 file changed, 24 insertions(+), 12 deletions(-)
 
-Al, comments?
-
-                  Linus
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index b6f5aa52ac67..f704b291f2c5 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -98,7 +98,7 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+ }
+ EXPORT_SYMBOL(phys_mem_access_prot);
+ 
+-static phys_addr_t __init early_pgtable_alloc(void)
++static phys_addr_t __init early_pgtable_alloc(int shift)
+ {
+ 	phys_addr_t phys;
+ 	void *ptr;
+@@ -173,7 +173,7 @@ static void init_pte(pmd_t *pmdp, unsigned long addr, unsigned long end,
+ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
+ 				unsigned long end, phys_addr_t phys,
+ 				pgprot_t prot,
+-				phys_addr_t (*pgtable_alloc)(void),
++				phys_addr_t (*pgtable_alloc)(int),
+ 				int flags)
+ {
+ 	unsigned long next;
+@@ -183,7 +183,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
+ 	if (pmd_none(pmd)) {
+ 		phys_addr_t pte_phys;
+ 		BUG_ON(!pgtable_alloc);
+-		pte_phys = pgtable_alloc();
++		pte_phys = pgtable_alloc(PAGE_SHIFT);
+ 		__pmd_populate(pmdp, pte_phys, PMD_TYPE_TABLE);
+ 		pmd = READ_ONCE(*pmdp);
+ 	}
+@@ -207,7 +207,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
+ 
+ static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
+ 		     phys_addr_t phys, pgprot_t prot,
+-		     phys_addr_t (*pgtable_alloc)(void), int flags)
++		     phys_addr_t (*pgtable_alloc)(int), int flags)
+ {
+ 	unsigned long next;
+ 	pmd_t *pmdp;
+@@ -245,7 +245,7 @@ static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
+ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
+ 				unsigned long end, phys_addr_t phys,
+ 				pgprot_t prot,
+-				phys_addr_t (*pgtable_alloc)(void), int flags)
++				phys_addr_t (*pgtable_alloc)(int), int flags)
+ {
+ 	unsigned long next;
+ 	pud_t pud = READ_ONCE(*pudp);
+@@ -257,7 +257,7 @@ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
+ 	if (pud_none(pud)) {
+ 		phys_addr_t pmd_phys;
+ 		BUG_ON(!pgtable_alloc);
+-		pmd_phys = pgtable_alloc();
++		pmd_phys = pgtable_alloc(PMD_SHIFT);
+ 		__pud_populate(pudp, pmd_phys, PUD_TYPE_TABLE);
+ 		pud = READ_ONCE(*pudp);
+ 	}
+@@ -293,7 +293,7 @@ static inline bool use_1G_block(unsigned long addr, unsigned long next,
+ 
+ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
+ 			   phys_addr_t phys, pgprot_t prot,
+-			   phys_addr_t (*pgtable_alloc)(void),
++			   phys_addr_t (*pgtable_alloc)(int),
+ 			   int flags)
+ {
+ 	unsigned long next;
+@@ -303,7 +303,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
+ 	if (pgd_none(pgd)) {
+ 		phys_addr_t pud_phys;
+ 		BUG_ON(!pgtable_alloc);
+-		pud_phys = pgtable_alloc();
++		pud_phys = pgtable_alloc(PUD_SHIFT);
+ 		__pgd_populate(pgdp, pud_phys, PUD_TYPE_TABLE);
+ 		pgd = READ_ONCE(*pgdp);
+ 	}
+@@ -344,7 +344,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
+ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
+ 				 unsigned long virt, phys_addr_t size,
+ 				 pgprot_t prot,
+-				 phys_addr_t (*pgtable_alloc)(void),
++				 phys_addr_t (*pgtable_alloc)(int),
+ 				 int flags)
+ {
+ 	unsigned long addr, length, end, next;
+@@ -370,11 +370,23 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
+ 	} while (pgdp++, addr = next, addr != end);
+ }
+ 
+-static phys_addr_t pgd_pgtable_alloc(void)
++static phys_addr_t pgd_pgtable_alloc(int shift)
+ {
+ 	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
+-	if (!ptr || !pgtable_page_ctor(virt_to_page(ptr)))
+-		BUG();
++	BUG_ON(!ptr);
++
++	/*
++	 * Call proper page table ctor in case later we need to
++	 * call core mm functions like apply_to_page_range() on
++	 * this pre-allocated page table.
++	 *
++	 * We don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK if pmd is
++	 * folded, and if so pgtable_pmd_page_ctor() becomes nop.
++	 */
++	if (shift == PAGE_SHIFT)
++		BUG_ON(!pgtable_page_ctor(virt_to_page(ptr)));
++	else if (shift == PMD_SHIFT)
++		BUG_ON(!pgtable_pmd_page_ctor(virt_to_page(ptr)));
+ 
+ 	/* Ensure the zeroed page is visible to the page table walker */
+ 	dsb(ishst);
+-- 
+2.21.0.360.g471c308f928-goog
