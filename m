@@ -1,30 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f196.google.com ([209.85.166.196]:51144 "EHLO
-        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726646AbfCKXKX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 19:10:23 -0400
-Received: by mail-it1-f196.google.com with SMTP id m137so1445415ita.0
-        for <linux-arch@vger.kernel.org>; Mon, 11 Mar 2019 16:10:22 -0700 (PDT)
-Date: Mon, 11 Mar 2019 17:10:17 -0600
+Received: from mail-it1-f193.google.com ([209.85.166.193]:50258 "EHLO
+        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725861AbfCKXLj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 19:11:39 -0400
+Received: by mail-it1-f193.google.com with SMTP id m137so1449376ita.0
+        for <linux-arch@vger.kernel.org>; Mon, 11 Mar 2019 16:11:39 -0700 (PDT)
+Date: Mon, 11 Mar 2019 17:11:33 -0600
 From: Yu Zhao <yuzhao@google.com>
 Subject: Re: [PATCH v3 3/3] arm64: mm: enable per pmd page table lock
-Message-ID: <20190311231017.GA207964@google.com>
+Message-ID: <20190311231133.GB207964@google.com>
 References: <20190218231319.178224-1-yuzhao@google.com>
  <20190310011906.254635-1-yuzhao@google.com>
  <20190310011906.254635-3-yuzhao@google.com>
- <dfc727b4-0806-4867-2f9c-0bb8fdd459ad@arm.com>
+ <20190311121147.GA23361@lakrids.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <dfc727b4-0806-4867-2f9c-0bb8fdd459ad@arm.com>
+In-Reply-To: <20190311121147.GA23361@lakrids.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20190311231017.2hqgk9E7kDs1MhLOvikTFbvDMMfxyKfRXvRe1iI0SPM@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20190311231133._No_QzJV_vs8tCoIO2fb4kkTbFZaHUnLZpKH--ptXtU@z>
 
-On Mon, Mar 11, 2019 at 01:58:27PM +0530, Anshuman Khandual wrote:
-> On 03/10/2019 06:49 AM, Yu Zhao wrote:
+On Mon, Mar 11, 2019 at 12:12:28PM +0000, Mark Rutland wrote:
+> Hi,
+> 
+> On Sat, Mar 09, 2019 at 06:19:06PM -0700, Yu Zhao wrote:
 > > Switch from per mm_struct to per pmd page table lock by enabling
 > > ARCH_ENABLE_SPLIT_PMD_PTLOCK. This provides better granularity for
 > > large system.
@@ -37,7 +39,12 @@ On Mon, Mar 11, 2019 at 01:58:27PM +0530, Anshuman Khandual wrote:
 > > pgtable_pmd_page_ctor() on pud or p4d in pgd_pgtable_alloc(). (We
 > > check shift against PMD_SHIFT, which is same as PUD_SHIFT when pmd
 > > is folded).
-> > 
+> 
+> Just to check, I take it pgtable_pmd_page_ctor() is now a NOP when the
+> PMD is folded, and this last paragraph is stale?
+
+Yes, and will remove it.
+
 > > Signed-off-by: Yu Zhao <yuzhao@google.com>
 > > ---
 > >  arch/arm64/Kconfig               |  3 +++
@@ -87,18 +94,41 @@ On Mon, Mar 11, 2019 at 01:58:27PM +0530, Anshuman Khandual wrote:
 > >  	free_page((unsigned long)pmdp);
 > >  }
 > 
-> There is just one problem here. ARM KVM's stage2_pmd_free() calls into pmd_free() on a page
-> originally allocated with __get_free_page() and never went through pgtable_pmd_page_ctor().
-> So when ARCH_ENABLE_SPLIT_PMD_PTLOCK is enabled
+> It looks like arm64's existing stage-2 code is inconsistent across
+> alloc/free, and IIUC this change might turn that into a real problem.
+> Currently we allocate all levels of stage-2 table with
+> __get_free_page(), but free them with p?d_free(). We always miss the
+> ctor and always use the dtor.
 > 
-> stage2_pmd_free()
-> 	pgtable_pmd_page_dtor()
-> 		ptlock_free()
-> 			kmem_cache_free(page_ptl_cachep, page->ptl)
+> Other than that, this patch looks fine to me, but I'd feel more
+> comfortable if we could first fix the stage-2 code to free those stage-2
+> tables without invoking the dtor.
 > 
-> Though SLUB implementation for kmem_cache_free() seems to be handling NULL page->ptl (as the
-> page never got it's lock allocated or initialized) correctly I am not sure if it is a right
-> thing to do.
+> Anshuman, IIRC you had a patch to fix the stage-2 code to not invoke the
+> dtors. If so, could you please post that so that we could take it as a
+> preparatory patch for this series?
 
-Thanks for reminding me. This should be fixed as well. Will do it
-in a separate patch.
+Will do.
+
+> Thanks,
+> Mark.
+> 
+> > diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+> > index 106fdc951b6e..4e3becfed387 100644
+> > --- a/arch/arm64/include/asm/tlb.h
+> > +++ b/arch/arm64/include/asm/tlb.h
+> > @@ -62,7 +62,10 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+> >  static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+> >  				  unsigned long addr)
+> >  {
+> > -	tlb_remove_table(tlb, virt_to_page(pmdp));
+> > +	struct page *page = virt_to_page(pmdp);
+> > +
+> > +	pgtable_pmd_page_dtor(page);
+> > +	tlb_remove_table(tlb, page);
+> >  }
+> >  #endif
+> >  
+> > -- 
+> > 2.21.0.360.g471c308f928-goog
+> > 
