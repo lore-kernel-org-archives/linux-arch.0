@@ -1,114 +1,200 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f73.google.com ([209.85.166.73]:49038 "EHLO
-        mail-io1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726724AbfCLA6I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 20:58:08 -0400
-Received: by mail-io1-f73.google.com with SMTP id w19so574857ioa.15
-        for <linux-arch@vger.kernel.org>; Mon, 11 Mar 2019 17:58:07 -0700 (PDT)
-Date: Mon, 11 Mar 2019 18:57:48 -0600
-In-Reply-To: <20190312005749.30166-1-yuzhao@google.com>
-Message-ID: <20190312005749.30166-3-yuzhao@google.com>
-Mime-Version: 1.0
-References: <20190310011906.254635-1-yuzhao@google.com> <20190312005749.30166-1-yuzhao@google.com>
-Subject: [PATCH v4 3/4] arm64: mm: call ctor for stage2 pmd page
-From: Yu Zhao <yuzhao@google.com>
+Received: from conssluserg-04.nifty.com ([210.131.2.83]:35338 "EHLO
+        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726789AbfCLDxe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 23:53:34 -0400
+MIME-Version: 1.0
+References: <cover.1551598603.git.vilhelm.gray@gmail.com> <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
+In-Reply-To: <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Tue, 12 Mar 2019 12:52:51 +0900
+Message-ID: <CAK7LNATsuQRj9-zT-+joRxjX1ePVG4ofeT=KS84Cjid2C5_v4Q@mail.gmail.com>
+Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
-Message-ID: <20190312005748.5dUZgSA8EYB7FChE2KWVwoeHEGZSl_hmQyKoSCQ4YS8@z>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, bgolaszewski@baylibre.com, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190312035251.4BtGuioBAxPfABXNY0w5_PxgN53LYOwmhfRd5tfRdEk@z>
 
-Call pgtable_pmd_page_dtor() for pmd page allocated by
-mmu_memory_cache_alloc() so kernel won't crash when it's freed
-through stage2_pmd_free()->pmd_free()->pgtable_pmd_page_dtor().
+On Sun, Mar 3, 2019 at 4:48 PM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
+>
+> This macro iterates for each 8-bit group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to the
+> bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> respectively get and set an 8-bit value in a bitmap memory region.
+>
+> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+> ---
+>  include/asm-generic/bitops/find.h | 14 ++++++
+>  include/linux/bitops.h            |  5 ++
+>  lib/find_bit.c                    | 81 +++++++++++++++++++++++++++++++
+>  3 files changed, 100 insertions(+)
+>
+> diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+> index 8a1ee10014de..9a76adff59c6 100644
+> --- a/include/asm-generic/bitops/find.h
+> +++ b/include/asm-generic/bitops/find.h
+> @@ -80,4 +80,18 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+>
+>  #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+>
+> +unsigned long bitmap_get_value8(const unsigned long *const bitmap,
+> +                               const unsigned int size,
+> +                               const unsigned int start);
+> +
+> +void bitmap_set_value8(unsigned long *const bitmap, const unsigned int size,
+> +                      const unsigned long value, const unsigned int start);
+> +
+> +unsigned int find_next_clump8(unsigned long *const clump,
+> +                             const unsigned long *const addr,
+> +                             unsigned int offset, const unsigned int size);
+> +
+> +#define find_first_clump8(clump, bits, size) \
+> +       find_next_clump8((clump), (bits), 0, (size))
+> +
+>  #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+> index 705f7c442691..61c10f20079e 100644
+> --- a/include/linux/bitops.h
+> +++ b/include/linux/bitops.h
+> @@ -40,6 +40,11 @@ extern unsigned long __sw_hweight64(__u64 w);
+>              (bit) < (size);                                    \
+>              (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+>
+> +#define for_each_set_clump8(start, clump, bits, size) \
+> +       for ((start) = find_first_clump8(&(clump), (bits), (size)); \
+> +            (start) < (size); \
+> +            (start) = find_next_clump8(&(clump), (bits), (start) + 8, (size)))
+> +
+>  static inline int get_bitmask_order(unsigned int count)
+>  {
+>         int order;
+> diff --git a/lib/find_bit.c b/lib/find_bit.c
+> index ee3df93ba69a..c2af1f013ea2 100644
+> --- a/lib/find_bit.c
+> +++ b/lib/find_bit.c
+> @@ -218,3 +218,84 @@ EXPORT_SYMBOL(find_next_bit_le);
+>  #endif
+>
+>  #endif /* __BIG_ENDIAN */
+> +
+> +/**
+> + * bitmap_get_value8 - get an 8-bit value within a memory region
+> + * @bitmap: address to the bitmap memory region
+> + * @size: bitmap size in number of bits
+> + * @start: bit offset of the 8-bit value
+> + *
+> + * Returns the 8-bit value located at the @start bit offset within the @bitmap
+> + * memory region.
+> + */
+> +unsigned long bitmap_get_value8(const unsigned long *const bitmap,
+> +                               const unsigned int size,
+> +                               const unsigned int start)
 
-This is needed if we are going to enable split pmd pt lock.
 
-Signed-off-by: Yu Zhao <yuzhao@google.com>
----
- arch/arm64/include/asm/stage2_pgtable.h | 15 ++++++++++++---
- virt/kvm/arm/mmu.c                      | 13 +++++++++++--
- 2 files changed, 23 insertions(+), 5 deletions(-)
+A bunch of 'const' qualifiers are eyesore.
 
-diff --git a/arch/arm64/include/asm/stage2_pgtable.h b/arch/arm64/include/asm/stage2_pgtable.h
-index 5412fa40825e..0d9207144257 100644
---- a/arch/arm64/include/asm/stage2_pgtable.h
-+++ b/arch/arm64/include/asm/stage2_pgtable.h
-@@ -174,10 +174,19 @@ static inline bool stage2_pud_present(struct kvm *kvm, pud_t pud)
- 		return 1;
- }
- 
--static inline void stage2_pud_populate(struct kvm *kvm, pud_t *pud, pmd_t *pmd)
-+static inline int stage2_pud_populate(struct kvm *kvm, pud_t *pud, pmd_t *pmd)
- {
--	if (kvm_stage2_has_pmd(kvm))
--		pud_populate(NULL, pud, pmd);
-+	if (!kvm_stage2_has_pmd(kvm))
-+		return 0;
-+
-+	/* paired with pgtable_pmd_page_dtor() in pmd_free() below */
-+	if (!pgtable_pmd_page_ctor(virt_to_page(pmd))) {
-+		free_page((unsigned long)pmd);
-+		return -ENOMEM;
-+	}
-+
-+	pud_populate(NULL, pud, pmd);
-+	return 0;
- }
- 
- static inline pmd_t *stage2_pmd_offset(struct kvm *kvm,
-diff --git a/virt/kvm/arm/mmu.c b/virt/kvm/arm/mmu.c
-index e9d28a7ca673..11922d84be83 100644
---- a/virt/kvm/arm/mmu.c
-+++ b/virt/kvm/arm/mmu.c
-@@ -1037,6 +1037,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 			     phys_addr_t addr)
- {
-+	int ret;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 
-@@ -1048,7 +1049,9 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 		if (!cache)
- 			return NULL;
- 		pmd = mmu_memory_cache_alloc(cache);
--		stage2_pud_populate(kvm, pud, pmd);
-+		ret = stage2_pud_populate(kvm, pud, pmd);
-+		if (ret)
-+			return ERR_PTR(ret);
- 		get_page(virt_to_page(pud));
- 	}
- 
-@@ -1061,6 +1064,9 @@ static int stage2_set_pmd_huge(struct kvm *kvm, struct kvm_mmu_memory_cache
- 	pmd_t *pmd, old_pmd;
- 
- 	pmd = stage2_get_pmd(kvm, cache, addr);
-+	if (IS_ERR(pmd))
-+		return PTR_ERR(pmd);
-+
- 	VM_BUG_ON(!pmd);
- 
- 	old_pmd = *pmd;
-@@ -1198,6 +1204,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 			  phys_addr_t addr, const pte_t *new_pte,
- 			  unsigned long flags)
- {
-+	int ret;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte, old_pte;
-@@ -1227,7 +1234,9 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 		if (!cache)
- 			return 0; /* ignore calls from kvm_set_spte_hva */
- 		pmd = mmu_memory_cache_alloc(cache);
--		stage2_pud_populate(kvm, pud, pmd);
-+		ret = stage2_pud_populate(kvm, pud, pmd);
-+		if (ret)
-+			return ret;
- 		get_page(virt_to_page(pud));
- 	}
- 
+The first 'const' of bitmap is the only useful one.
+
+
+unsigned long bitmap_get_value8(const unsigned long *bitmap, unsigned int size,
+                                unsigned int start)
+
+is enough.
+
+
+
+
+
+> +{
+> +       const size_t index = BIT_WORD(start);
+> +       const unsigned int offset = start % BITS_PER_LONG;
+> +       const unsigned int low_width = (offset + 8 > BITS_PER_LONG) ?
+> +                                      BITS_PER_LONG - offset : 8;
+> +       const unsigned long low = bitmap[index] >> offset;
+> +       const unsigned long high = (low_width < 8 && start + 8 <= size) ?
+> +                                  bitmap[index + 1] << low_width : 0;
+
+
+Meh.
+
+
+
+> +
+> +       return (low | high) & 0xFF;
+> +}
+> +EXPORT_SYMBOL(bitmap_get_value8);
+> +
+> +/**
+> + * bitmap_set_value8 - set an 8-bit value within a memory region
+> + * @bitmap: address to the bitmap memory region
+> + * @size: bitmap size in number of bits
+> + * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
+> + * @start: bit offset of the 8-bit value
+> + */
+> +void bitmap_set_value8(unsigned long *const bitmap, const unsigned int size,
+> +                      const unsigned long value, const unsigned int start)
+> +{
+> +       const size_t index = BIT_WORD(start);
+> +       const unsigned int offset = start % BITS_PER_LONG;
+> +       const unsigned int low_width = (offset + 8 > BITS_PER_LONG) ?
+> +                                      BITS_PER_LONG - offset : 8;
+> +       const unsigned long low_mask = GENMASK(offset + low_width - 1, offset);
+> +       const unsigned int high_width = 8 - low_width;
+> +       const unsigned long high_mask = GENMASK(high_width - 1, 0);
+> +
+> +       /* set lower portion */
+> +       bitmap[index] &= ~low_mask;
+> +       bitmap[index] |= value << offset;
+> +
+> +       /* set higher portion if space available in bitmap */
+> +       if (high_width && start + 8 <= size) {
+> +               bitmap[index + 1] &= ~high_mask;
+> +               bitmap[index + 1] |= value >> low_width;
+> +       }
+> +}
+> +EXPORT_SYMBOL(bitmap_set_value8);
+> +
+> +/**
+> + * find_next_clump8 - find next 8-bit clump with set bits in a memory region
+> + * @clump: location to store copy of found clump
+> + * @addr: address to base the search on
+> + * @offset: bit offset at which to start searching
+> + * @size: bitmap size in number of bits
+> + *
+> + * Returns the bit offset for the next set clump; the found clump value is
+> + * copied to the location pointed by @clump. If no bits are set, returns @size.
+> + */
+> +unsigned int find_next_clump8(unsigned long *const clump,
+> +                             const unsigned long *const addr,
+> +                             unsigned int offset, const unsigned int size)
+> +{
+> +       for (; offset < size; offset += 8) {
+> +               *clump = bitmap_get_value8(addr, size, offset);
+> +               if (!*clump)
+> +                       continue;
+> +
+> +               return offset;
+> +       }
+> +
+> +       return size;
+> +}
+> +EXPORT_SYMBOL(find_next_clump8);
+> --
+> 2.21.0
+>
+
+
 -- 
-2.21.0.360.g471c308f928-goog
+Best Regards
+Masahiro Yamada
