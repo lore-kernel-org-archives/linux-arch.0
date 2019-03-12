@@ -1,50 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:41144 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726167AbfCLBBQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 21:01:16 -0400
-Date: Mon, 11 Mar 2019 18:01:13 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
-Message-ID: <20190311180113.c283fdbcba3df10db2c815aa@linux-foundation.org>
-In-Reply-To: <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com>
-References: <cover.1551598603.git.vilhelm.gray@gmail.com>
-        <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
-        <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com>
+Received: from mail-io1-f73.google.com ([209.85.166.73]:49038 "EHLO
+        mail-io1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726724AbfCLA6I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2019 20:58:08 -0400
+Received: by mail-io1-f73.google.com with SMTP id w19so574857ioa.15
+        for <linux-arch@vger.kernel.org>; Mon, 11 Mar 2019 17:58:07 -0700 (PDT)
+Date: Mon, 11 Mar 2019 18:57:48 -0600
+In-Reply-To: <20190312005749.30166-1-yuzhao@google.com>
+Message-ID: <20190312005749.30166-3-yuzhao@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <20190310011906.254635-1-yuzhao@google.com> <20190312005749.30166-1-yuzhao@google.com>
+Subject: [PATCH v4 3/4] arm64: mm: call ctor for stage2 pmd page
+From: Yu Zhao <yuzhao@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190312010113.dnfVJpTb1cwzcJDv0_wUntNOqcBzuM_HRe4M6HbBSmc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
+Message-ID: <20190312005748.5dUZgSA8EYB7FChE2KWVwoeHEGZSl_hmQyKoSCQ4YS8@z>
 
-On Fri, 8 Mar 2019 09:31:00 +0100 Linus Walleij <linus.walleij@linaro.org> wrote:
+Call pgtable_pmd_page_dtor() for pmd page allocated by
+mmu_memory_cache_alloc() so kernel won't crash when it's freed
+through stage2_pmd_free()->pmd_free()->pgtable_pmd_page_dtor().
 
-> On Sun, Mar 3, 2019 at 8:47 AM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
-> 
-> > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > within a bitmap memory region. For each iteration, "start" is set to the
-> > bit offset of the found clump, while the respective clump value is
-> > stored to the location pointed by "clump". Additionally, the
-> > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > respectively get and set an 8-bit value in a bitmap memory region.
-> >
-> > Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Andrew Morton <akpm@linux-foundation.org>
-> > Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
-> > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> 
-> Andrew: would you be OK with this being merged in v5.1?
+This is needed if we are going to enable split pmd pt lock.
 
-Yup.  We have quite a few users there.  I assume this will go via the
-gpio tree?
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+---
+ arch/arm64/include/asm/stage2_pgtable.h | 15 ++++++++++++---
+ virt/kvm/arm/mmu.c                      | 13 +++++++++++--
+ 2 files changed, 23 insertions(+), 5 deletions(-)
 
-Feel free to add Acked-by: Andrew Morton <akpm@linux-foundation.org>,
-although it probably isn't worth churning the git tree to do so at this
-late stage - your cvall.
+diff --git a/arch/arm64/include/asm/stage2_pgtable.h b/arch/arm64/include/asm/stage2_pgtable.h
+index 5412fa40825e..0d9207144257 100644
+--- a/arch/arm64/include/asm/stage2_pgtable.h
++++ b/arch/arm64/include/asm/stage2_pgtable.h
+@@ -174,10 +174,19 @@ static inline bool stage2_pud_present(struct kvm *kvm, pud_t pud)
+ 		return 1;
+ }
+ 
+-static inline void stage2_pud_populate(struct kvm *kvm, pud_t *pud, pmd_t *pmd)
++static inline int stage2_pud_populate(struct kvm *kvm, pud_t *pud, pmd_t *pmd)
+ {
+-	if (kvm_stage2_has_pmd(kvm))
+-		pud_populate(NULL, pud, pmd);
++	if (!kvm_stage2_has_pmd(kvm))
++		return 0;
++
++	/* paired with pgtable_pmd_page_dtor() in pmd_free() below */
++	if (!pgtable_pmd_page_ctor(virt_to_page(pmd))) {
++		free_page((unsigned long)pmd);
++		return -ENOMEM;
++	}
++
++	pud_populate(NULL, pud, pmd);
++	return 0;
+ }
+ 
+ static inline pmd_t *stage2_pmd_offset(struct kvm *kvm,
+diff --git a/virt/kvm/arm/mmu.c b/virt/kvm/arm/mmu.c
+index e9d28a7ca673..11922d84be83 100644
+--- a/virt/kvm/arm/mmu.c
++++ b/virt/kvm/arm/mmu.c
+@@ -1037,6 +1037,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 			     phys_addr_t addr)
+ {
++	int ret;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 
+@@ -1048,7 +1049,9 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 		if (!cache)
+ 			return NULL;
+ 		pmd = mmu_memory_cache_alloc(cache);
+-		stage2_pud_populate(kvm, pud, pmd);
++		ret = stage2_pud_populate(kvm, pud, pmd);
++		if (ret)
++			return ERR_PTR(ret);
+ 		get_page(virt_to_page(pud));
+ 	}
+ 
+@@ -1061,6 +1064,9 @@ static int stage2_set_pmd_huge(struct kvm *kvm, struct kvm_mmu_memory_cache
+ 	pmd_t *pmd, old_pmd;
+ 
+ 	pmd = stage2_get_pmd(kvm, cache, addr);
++	if (IS_ERR(pmd))
++		return PTR_ERR(pmd);
++
+ 	VM_BUG_ON(!pmd);
+ 
+ 	old_pmd = *pmd;
+@@ -1198,6 +1204,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 			  phys_addr_t addr, const pte_t *new_pte,
+ 			  unsigned long flags)
+ {
++	int ret;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte, old_pte;
+@@ -1227,7 +1234,9 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 		if (!cache)
+ 			return 0; /* ignore calls from kvm_set_spte_hva */
+ 		pmd = mmu_memory_cache_alloc(cache);
+-		stage2_pud_populate(kvm, pud, pmd);
++		ret = stage2_pud_populate(kvm, pud, pmd);
++		if (ret)
++			return ret;
+ 		get_page(virt_to_page(pud));
+ 	}
+ 
+-- 
+2.21.0.360.g471c308f928-goog
