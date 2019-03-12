@@ -1,113 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-02.nifty.com ([210.131.2.81]:28562 "EHLO
-        conssluserg-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725855AbfCLFhE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2019 01:37:04 -0400
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:34150 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726463AbfCLHO1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2019 03:14:27 -0400
 MIME-Version: 1.0
 References: <cover.1551598603.git.vilhelm.gray@gmail.com> <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
- <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com> <20190308085733.GA3903@icarus>
-In-Reply-To: <20190308085733.GA3903@icarus>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Tue, 12 Mar 2019 14:36:21 +0900
-Message-ID: <CAK7LNARvv3Z-eJooj7Htv7xWzD_Ow1whxcPrpqn84JHyqUnEJA@mail.gmail.com>
+ <CAK7LNATW7uKB2-wMytLSpb8dPLkWbirptCgU=LAq3PYRtgOuXg@mail.gmail.com>
+In-Reply-To: <CAK7LNATW7uKB2-wMytLSpb8dPLkWbirptCgU=LAq3PYRtgOuXg@mail.gmail.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Tue, 12 Mar 2019 09:14:14 +0200
+Message-ID: <CAHp75Veic69S5uG2VQxYT4L0WHp2H+SwiyJgHhQN_Lk8Atr55g@mail.gmail.com>
 Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190312053621.GE-9FAMZzMKFVctjmRztJ6s6V3c0-kIEDdWcHUiKSFQ@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190312071414.DqYbWAvfhS53OxOtykF0iDkfUGifS-ndZ5ZqVlXTHbw@z>
 
-On Fri, Mar 8, 2019 at 5:57 PM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
->
-> On Fri, Mar 08, 2019 at 09:31:00AM +0100, Linus Walleij wrote:
-> > On Sun, Mar 3, 2019 at 8:47 AM William Breathitt Gray
-> > <vilhelm.gray@gmail.com> wrote:
+On Tue, Mar 12, 2019 at 7:04 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+> On Sun, Mar 3, 2019 at 4:48 PM William Breathitt Gray
+> <vilhelm.gray@gmail.com> wrote:
 > >
-> > > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > > within a bitmap memory region. For each iteration, "start" is set to the
-> > > bit offset of the found clump, while the respective clump value is
-> > > stored to the location pointed by "clump". Additionally, the
-> > > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > > respectively get and set an 8-bit value in a bitmap memory region.
-> > >
-> > > Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > > Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > Cc: Andrew Morton <akpm@linux-foundation.org>
-> > > Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > > Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
-> > > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> >
-> > Andrew: would you be OK with this being merged in v5.1?
-> >
-> > If we need to move the code to drivers/gpio that's OK (though
-> > I think it's generally useful) but I need to know to proceed with
-> > the William's nice optimization of these drivers.
-> >
-> > Yours,
-> > Linus Walleij
+> > This macro iterates for each 8-bit group of bits (clump) with set bits,
+> > within a bitmap memory region. For each iteration, "start" is set to the
+> > bit offset of the found clump, while the respective clump value is
+> > stored to the location pointed by "clump". Additionally, the
+> > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> > respectively get and set an 8-bit value in a bitmap memory region.
+
+> > +/**
+> > + * bitmap_get_value8 - get an 8-bit value within a memory region
+> > + * @bitmap: address to the bitmap memory region
+> > + * @size: bitmap size in number of bits
+> > + * @start: bit offset of the 8-bit value
+> > + *
+> > + * Returns the 8-bit value located at the @start bit offset within the @bitmap
+> > + * memory region.
+> > + */
+> > +unsigned long bitmap_get_value8(const unsigned long *const bitmap,
+> > +                               const unsigned int size,
+> > +                               const unsigned int start)
 >
-> I was waiting on Andy to suggest some examples out of the GPIO realm,
-> but he may be under a heavy workload right so I decided to do a quick
-> search for one.
 >
-> In drivers/of/unittest.c, there is loop across a bitmap in the
-> of_unittest_destroy_tracked_overlays function:
+> The comment says this function returns '8-bit value'.
 >
->         for (id = MAX_UNITTEST_OVERLAYS - 1; id >= 0; id--) {
->                 if (!(overlay_id_bits[BIT_WORD(id)] & BIT_MASK(id)))
->                         continue;
+> The return type should be 'u8' instead of 'unsigned long', then.
 >
-> This section of code is checking each bit individually, and skipping if
-> that bit is not set. This looping can be optimized by using the
-> for_each_set_clump8 macro
+> Same for other helpers.
 
+This is done in a way to be consistent with the rest of bitmap API.
+None of them returns boolean, for example, for single bit.
 
-Probably no.
-
-
-I see this comment before the loop.
-/* remove in reverse order */
-
-
-Also, the unittest code handles per-bit
-whereas your helper does per-byte.
-
-
-
-
-
-> to skip clumps of nonset bits (not to mention
-> make the logic of the code much simpler and easier to follow by reducing
-> the code to a single line):
->
->         for_each_set_clump8(id, clump, overlay_id_bits, MAX_UNITTEST_OVERLAYS-1)
->
-> The for_each_set_clump8 macro is not specific to the GPIO subsystem; I
-> just happen to use it in these GPIO drivers simply because I am most
-> familar with this section of the kernel (it's where most of my
-> contributions occur afterall).
->
-> Consider this, if I am able to find a use for this macro outside of the
-> GPIO subsystem within a matter minutes, then there must be some benefit
-> in allowing the rest of the kernel to use the for_each_set_clump8 macro.
-> So let's put it in bitops.h rather than restrict it to just the GPIO
-> subsystem.
-
-
-If we do not find useful cases in other subsystem,
-this patch set looks over-engineering to me.
-
-
-
-
-
-
-> William Breathitt Gray
-
-
---
-Best Regards
-Masahiro Yamada
+-- 
+With Best Regards,
+Andy Shevchenko
