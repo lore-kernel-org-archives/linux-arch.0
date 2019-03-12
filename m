@@ -1,103 +1,36 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v9 9/9] gpio: uniphier: Utilize for_each_set_clump8 macro
-Date: Tue, 12 Mar 2019 16:29:23 +0900
-Message-ID: <20190312072923.GB2898@icarus>
-References: <cover.1551598603.git.vilhelm.gray@gmail.com>
- <0840d55707dacd1121659723246fa9f55737f426.1551598603.git.vilhelm.gray@gmail.com>
- <CAK7LNARRqYb_ovO_ccQ8xTLTzNYyTEK8whT2r0cq_AqpWqeNXg@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: New syscalls (was: Re: linux-next: manual merge of the pidfd tree
+ with the y2038 tree (now block and tip trees))
+Date: Tue, 12 Mar 2019 09:31:33 +0100
+Message-ID: <CAK8P3a0iW-bhfiLY2po4cwaG0f-S+Xdoowrj0A6CwaY4VHgdWA@mail.gmail.com>
+References: <20190122141027.70cd9166@canb.auug.org.au> <20190213162212.500a7cd5@canb.auug.org.au>
+ <CAK8P3a1hw03ik+tZSG8PnP7Rd=Pzwbo7n59HLJW04ncndyqzsg@mail.gmail.com>
+ <CAMuHMdUmPBeQ=jcDufVBDEGiO1Yk4bWWBSg488Jm_wwAuySHBQ@mail.gmail.com>
+ <CAK8P3a1zHm-WjYjEA65PomrKe7+5Sd110KbXv13=wiMVpxyuaQ@mail.gmail.com> <20190311214307.domy6azaoi4ggtiu@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK7LNARRqYb_ovO_ccQ8xTLTzNYyTEK8whT2r0cq_AqpWqeNXg@mail.gmail.com>
+In-Reply-To: <20190311214307.domy6azaoi4ggtiu@brauner.io>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, bgolaszewski@baylibre.com, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: Christian Brauner <christian@brauner.io>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Jens Axboe <axboe@kernel.dk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Linux Next Mailing List <linux-next@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 12, 2019 at 01:36:57PM +0900, Masahiro Yamada wrote:
-> On Sun, Mar 3, 2019 at 4:51 PM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
+On Mon, Mar 11, 2019 at 10:43 PM Christian Brauner <christian@brauner.io> wrote:
+> On Mon, Mar 11, 2019 at 10:38:07PM +0100, Arnd Bergmann wrote:
+> > On Mon, Mar 11, 2019 at 9:36 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > >
+> > > Shall each architcture maintainer take care of this hxxself, or will
+> > > this be done in
+> > > a coordinated way?
 > >
-> > Replace verbose implementation in set_multiple callback with
-> > for_each_set_clump8 macro to simplify code and improve clarity. An
-> > improvement in this case is that banks that are not masked will now be
-> > skipped.
-> >
-> > Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-> > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> > ---
-> >  drivers/gpio/gpio-uniphier.c | 16 ++++++----------
-> >  1 file changed, 6 insertions(+), 10 deletions(-)
-> >
-> > diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
-> > index 0f662b297a95..df640cb29b9c 100644
-> > --- a/drivers/gpio/gpio-uniphier.c
-> > +++ b/drivers/gpio/gpio-uniphier.c
-> > @@ -15,9 +15,6 @@
-> >  #include <linux/spinlock.h>
-> >  #include <dt-bindings/gpio/uniphier-gpio.h>
-> >
-> > -#define UNIPHIER_GPIO_BANK_MASK                \
-> > -                               GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
-> > -
-> >  #define UNIPHIER_GPIO_IRQ_MAX_NUM      24
-> >
-> >  #define UNIPHIER_GPIO_PORT_DATA                0x0     /* data */
-> > @@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
-> >  static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
-> >                                        unsigned long *mask, unsigned long *bits)
-> >  {
-> > -       unsigned int bank, shift, bank_mask, bank_bits;
-> > -       int i;
-> > +       unsigned int i;
-> > +       unsigned long bank_mask;
-> > +       unsigned int bank;
-> > +       unsigned int bank_bits;
-> >
-> > -       for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
-> > +       for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
-> >                 bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
-> > -               shift = i % BITS_PER_LONG;
-> > -               bank_mask = (mask[BIT_WORD(i)] >> shift) &
-> > -                                               UNIPHIER_GPIO_BANK_MASK;
-> > -               bank_bits = bits[BIT_WORD(i)] >> shift;
-> > +               bank_bits = bitmap_get_value8(bits, chip->ngpio, i);
-> >
-> >                 uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
-> >                                          bank_mask, bank_bits);
-> 
-> 
-> Please do not do this.
-> 
-> Nothing in this driver says the GPIO width is 8-bit.
-> 
-> You are hard-coding '8-bit'.
+> > I was planning to send a patch for all architectures this time
+> > (after all three sets are merged, which is now), and ask future
+>
+> Just to clarify, are you referring to your sets? I think Linus hasn't
+> gotten around to reviewing the PR for pidfd_send_signal() yet. :)
 
-The for_each_set_clump8 macro is hardcoded to 8-bit clumps because the
-current drivers utilizing this functionality are only updating their
-GPIO ports 8-bits at a time.
+Ah, I thought he had already merged both, the confusion was on
+my end.
 
-However, if this driver updates more or less GPIO at a time, we can
-easily update the macro by replacing the hardcoded '8' value with a
-variable, thus giving us the generic for_each_set_clump macro.
-
-How many GPIO can be updated at a time for this device?
-
-William Breathitt Gray
-
-> 
-> 
-> 
-> 
-> 
-> 
-> 
-> > --
-> > 2.21.0
-> >
-> 
-> 
-> -- 
-> Best Regards
-> Masahiro Yamada
+      Arnd
