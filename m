@@ -1,62 +1,70 @@
 From: Yu Zhao <yuzhao@google.com>
-Subject: Re: [PATCH v3 1/3] arm64: mm: use appropriate ctors for page tables
-Date: Mon, 11 Mar 2019 17:23:23 -0600
-Message-ID: <20190311232323.GC207964@google.com>
-References: <20190218231319.178224-1-yuzhao@google.com>
- <20190310011906.254635-1-yuzhao@google.com>
- <b0ae4f65-aa0f-148a-eced-0d9831a7bf01@arm.com>
+Subject: [PATCH v4 2/4] arm64: mm: don't call page table ctors for init_mm
+Date: Mon, 11 Mar 2019 18:57:47 -0600
+Message-ID: <20190312005749.30166-2-yuzhao@google.com>
+References: <20190310011906.254635-1-yuzhao@google.com> <20190312005749.30166-1-yuzhao@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b0ae4f65-aa0f-148a-eced-0d9831a7bf01@arm.com>
+In-Reply-To: <20190312005749.30166-1-yuzhao@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, "Kirill A . Shutemov" <kirill@shutemov.name>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Chintan Pandya <cpandya@codeaurora.org>, Jun Yao <yaojun8558363@gmail.com>, Laura Abbott <labbott@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Yu Zhao <yuzhao@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 11, 2019 at 01:15:55PM +0530, Anshuman Khandual wrote:
-> Hello Yu,
-> 
-> We had some disagreements over this series last time around after which I had
-> posted the following series [1] which tried to enable ARCH_ENABLE_SPLIT_PMD_PTLOCK
-> after doing some pgtable accounting changes. After some thoughts and deliberations
-> I figure that its better not to do pgtable alloc changes on arm64 creating a brand
-> new semantics which ideally should be first debated and agreed upon in generic MM.
-> 
-> Though I still see value in a changed generic pgtable page allocation semantics
-> for user and kernel space that should not stop us from enabling more granular
-> PMD level locks through ARCH_ENABLE_SPLIT_PMD_PTLOCK right now.
-> 
-> [1] https://www.spinics.net/lists/arm-kernel/msg709917.html
-> 
-> Having said that this series attempts to enable ARCH_ENABLE_SPLIT_PMD_PTLOCK with
-> some minimal changes to existing kernel pgtable page allocation code. Hence just
-> trying to re-evaluate the series in that isolation.
-> 
-> On 03/10/2019 06:49 AM, Yu Zhao wrote:
-> 
-> > For pte page, use pgtable_page_ctor(); for pmd page, use
-> > pgtable_pmd_page_ctor(); and for the rest (pud, p4d and pgd),
-> > don't use any.
-> 
-> This is semantics change. Hence the question is why ? Should not we wait until a
-> generic MM agreement in place in this regard ? Can we avoid this ? Is the change
-> really required to enable ARCH_ENABLE_SPLIT_PMD_PTLOCK for user space THP which
-> this series originally intended to achieve ?
-> 
-> > 
-> > For now, we don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK and
-> > pgtable_pmd_page_ctor() is a nop. When we do in patch 3, we
-> > make sure pmd is not folded so we won't mistakenly call
-> > pgtable_pmd_page_ctor() on pud or p4d.
-> 
-> This makes sense from code perspective but I still dont understand the need to
-> change kernel pgtable page allocation semantics without any real benefit or fix at
-> the moment. Cant we keep kernel page table page allocation unchanged for now and
-> just enable ARCH_ENABLE_SPLIT_PMD_PTLOCK for user space THP benefits ? Do you see
-> any concern with that.
+init_mm doesn't require page table lock to be initialized at
+any level. Add a separate page table allocator for it, and the
+new one skips page table ctors.
 
-This is not for kernel page tables (i.e. init_mm). This is to
-accommodate pre-allocated efi_mm page tables because it uses
-apply_to_page_range() which then calls pte_alloc_map_lock().
+The ctors allocate memory when ALLOC_SPLIT_PTLOCKS is set. Not
+calling them avoids memory leak in case we call pte_free_kernel()
+on init_mm.
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+---
+ arch/arm64/mm/mmu.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index f704b291f2c5..d1dc2a2777aa 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -370,6 +370,16 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
+ 	} while (pgdp++, addr = next, addr != end);
+ }
+ 
++static phys_addr_t pgd_kernel_pgtable_alloc(int shift)
++{
++	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
++	BUG_ON(!ptr);
++
++	/* Ensure the zeroed page is visible to the page table walker */
++	dsb(ishst);
++	return __pa(ptr);
++}
++
+ static phys_addr_t pgd_pgtable_alloc(int shift)
+ {
+ 	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
+@@ -594,7 +604,7 @@ static int __init map_entry_trampoline(void)
+ 	/* Map only the text into the trampoline page table */
+ 	memset(tramp_pg_dir, 0, PGD_SIZE);
+ 	__create_pgd_mapping(tramp_pg_dir, pa_start, TRAMP_VALIAS, PAGE_SIZE,
+-			     prot, pgd_pgtable_alloc, 0);
++			     prot, pgd_kernel_pgtable_alloc, 0);
+ 
+ 	/* Map both the text and data into the kernel page table */
+ 	__set_fixmap(FIX_ENTRY_TRAMP_TEXT, pa_start, prot);
+@@ -1070,7 +1080,8 @@ int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap,
+ 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
+ 
+ 	__create_pgd_mapping(swapper_pg_dir, start, __phys_to_virt(start),
+-			     size, PAGE_KERNEL, pgd_pgtable_alloc, flags);
++			     size, PAGE_KERNEL, pgd_kernel_pgtable_alloc,
++			     flags);
+ 
+ 	return __add_pages(nid, start >> PAGE_SHIFT, size >> PAGE_SHIFT,
+ 			   altmap, want_memblock);
+-- 
+2.21.0.360.g471c308f928-goog
