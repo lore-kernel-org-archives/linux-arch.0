@@ -1,128 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f196.google.com ([209.85.166.196]:54174 "EHLO
-        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726209AbfCLHVk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2019 03:21:40 -0400
-Date: Tue, 12 Mar 2019 16:22:22 +0900
+Received: from mail-it1-f195.google.com ([209.85.166.195]:54717 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726218AbfCLH22 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2019 03:28:28 -0400
+Date: Tue, 12 Mar 2019 16:29:23 +0900
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v9 1/9] bitops: Introduce the for_each_set_clump8 macro
-Message-ID: <20190312072222.GA2898@icarus>
+Subject: Re: [PATCH v9 9/9] gpio: uniphier: Utilize for_each_set_clump8 macro
+Message-ID: <20190312072923.GB2898@icarus>
 References: <cover.1551598603.git.vilhelm.gray@gmail.com>
- <12b3a364ac7fc32194fa6f55911dd800aca92a56.1551598603.git.vilhelm.gray@gmail.com>
- <CACRpkdbvCGRjB1sZWqN3wm660cP8S4-j0ub1j1iYpitDK_eXcQ@mail.gmail.com>
- <20190308085733.GA3903@icarus>
- <CAK7LNARvv3Z-eJooj7Htv7xWzD_Ow1whxcPrpqn84JHyqUnEJA@mail.gmail.com>
+ <0840d55707dacd1121659723246fa9f55737f426.1551598603.git.vilhelm.gray@gmail.com>
+ <CAK7LNARRqYb_ovO_ccQ8xTLTzNYyTEK8whT2r0cq_AqpWqeNXg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <CAK7LNARvv3Z-eJooj7Htv7xWzD_Ow1whxcPrpqn84JHyqUnEJA@mail.gmail.com>
+In-Reply-To: <CAK7LNARRqYb_ovO_ccQ8xTLTzNYyTEK8whT2r0cq_AqpWqeNXg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190312072222.XXYrjGp4btlI-wGDk9yP5XNhNuT7ci9TY_iMPnL36Yo@z>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, bgolaszewski@baylibre.com, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190312072923.5zUppw8W2dFpxVeBqxh2ocF-sHWi706AD7gVxyNXvOU@z>
 
-On Tue, Mar 12, 2019 at 02:36:21PM +0900, Masahiro Yamada wrote:
-> On Fri, Mar 8, 2019 at 5:57 PM William Breathitt Gray
+On Tue, Mar 12, 2019 at 01:36:57PM +0900, Masahiro Yamada wrote:
+> On Sun, Mar 3, 2019 at 4:51 PM William Breathitt Gray
 > <vilhelm.gray@gmail.com> wrote:
 > >
-> > On Fri, Mar 08, 2019 at 09:31:00AM +0100, Linus Walleij wrote:
-> > > On Sun, Mar 3, 2019 at 8:47 AM William Breathitt Gray
-> > > <vilhelm.gray@gmail.com> wrote:
-> > >
-> > > > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > > > within a bitmap memory region. For each iteration, "start" is set to the
-> > > > bit offset of the found clump, while the respective clump value is
-> > > > stored to the location pointed by "clump". Additionally, the
-> > > > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > > > respectively get and set an 8-bit value in a bitmap memory region.
-> > > >
-> > > > Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > > > Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> > > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > > Cc: Andrew Morton <akpm@linux-foundation.org>
-> > > > Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> > > > Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
-> > > > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> > >
-> > > Andrew: would you be OK with this being merged in v5.1?
-> > >
-> > > If we need to move the code to drivers/gpio that's OK (though
-> > > I think it's generally useful) but I need to know to proceed with
-> > > the William's nice optimization of these drivers.
-> > >
-> > > Yours,
-> > > Linus Walleij
+> > Replace verbose implementation in set_multiple callback with
+> > for_each_set_clump8 macro to simplify code and improve clarity. An
+> > improvement in this case is that banks that are not masked will now be
+> > skipped.
 > >
-> > I was waiting on Andy to suggest some examples out of the GPIO realm,
-> > but he may be under a heavy workload right so I decided to do a quick
-> > search for one.
+> > Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+> > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+> > ---
+> >  drivers/gpio/gpio-uniphier.c | 16 ++++++----------
+> >  1 file changed, 6 insertions(+), 10 deletions(-)
 > >
-> > In drivers/of/unittest.c, there is loop across a bitmap in the
-> > of_unittest_destroy_tracked_overlays function:
+> > diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
+> > index 0f662b297a95..df640cb29b9c 100644
+> > --- a/drivers/gpio/gpio-uniphier.c
+> > +++ b/drivers/gpio/gpio-uniphier.c
+> > @@ -15,9 +15,6 @@
+> >  #include <linux/spinlock.h>
+> >  #include <dt-bindings/gpio/uniphier-gpio.h>
 > >
-> >         for (id = MAX_UNITTEST_OVERLAYS - 1; id >= 0; id--) {
-> >                 if (!(overlay_id_bits[BIT_WORD(id)] & BIT_MASK(id)))
-> >                         continue;
+> > -#define UNIPHIER_GPIO_BANK_MASK                \
+> > -                               GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
+> > -
+> >  #define UNIPHIER_GPIO_IRQ_MAX_NUM      24
 > >
-> > This section of code is checking each bit individually, and skipping if
-> > that bit is not set. This looping can be optimized by using the
-> > for_each_set_clump8 macro
+> >  #define UNIPHIER_GPIO_PORT_DATA                0x0     /* data */
+> > @@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
+> >  static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
+> >                                        unsigned long *mask, unsigned long *bits)
+> >  {
+> > -       unsigned int bank, shift, bank_mask, bank_bits;
+> > -       int i;
+> > +       unsigned int i;
+> > +       unsigned long bank_mask;
+> > +       unsigned int bank;
+> > +       unsigned int bank_bits;
+> >
+> > -       for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
+> > +       for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
+> >                 bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
+> > -               shift = i % BITS_PER_LONG;
+> > -               bank_mask = (mask[BIT_WORD(i)] >> shift) &
+> > -                                               UNIPHIER_GPIO_BANK_MASK;
+> > -               bank_bits = bits[BIT_WORD(i)] >> shift;
+> > +               bank_bits = bitmap_get_value8(bits, chip->ngpio, i);
+> >
+> >                 uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
+> >                                          bank_mask, bank_bits);
 > 
 > 
-> Probably no.
+> Please do not do this.
 > 
+> Nothing in this driver says the GPIO width is 8-bit.
 > 
-> I see this comment before the loop.
-> /* remove in reverse order */
+> You are hard-coding '8-bit'.
 
-You're right, for_each_set_clump8 wouldn't work in this case since it
-does not loop in reverse order. I shouldn't have rushed to find a case
-and ignored the context of the code like that.
+The for_each_set_clump8 macro is hardcoded to 8-bit clumps because the
+current drivers utilizing this functionality are only updating their
+GPIO ports 8-bits at a time.
 
-Since Andy appears to have hardware outside of the GPIO subsystem he's
-testing, let's wait for that and see how it turns out.
+However, if this driver updates more or less GPIO at a time, we can
+easily update the macro by replacing the hardcoded '8' value with a
+variable, thus giving us the generic for_each_set_clump macro.
+
+How many GPIO can be updated at a time for this device?
 
 William Breathitt Gray
 
 > 
 > 
-> Also, the unittest code handles per-bit
-> whereas your helper does per-byte.
 > 
 > 
 > 
 > 
 > 
-> > to skip clumps of nonset bits (not to mention
-> > make the logic of the code much simpler and easier to follow by reducing
-> > the code to a single line):
+> > --
+> > 2.21.0
 > >
-> >         for_each_set_clump8(id, clump, overlay_id_bits, MAX_UNITTEST_OVERLAYS-1)
-> >
-> > The for_each_set_clump8 macro is not specific to the GPIO subsystem; I
-> > just happen to use it in these GPIO drivers simply because I am most
-> > familar with this section of the kernel (it's where most of my
-> > contributions occur afterall).
-> >
-> > Consider this, if I am able to find a use for this macro outside of the
-> > GPIO subsystem within a matter minutes, then there must be some benefit
-> > in allowing the rest of the kernel to use the for_each_set_clump8 macro.
-> > So let's put it in bitops.h rather than restrict it to just the GPIO
-> > subsystem.
 > 
 > 
-> If we do not find useful cases in other subsystem,
-> this patch set looks over-engineering to me.
-> 
-> 
-> 
-> 
-> 
-> 
-> > William Breathitt Gray
-> 
-> 
-> --
+> -- 
 > Best Regards
 > Masahiro Yamada
