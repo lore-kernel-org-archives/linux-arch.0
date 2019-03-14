@@ -1,167 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:37821 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726501AbfCNOjD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Mar 2019 10:39:03 -0400
-Date: Thu, 14 Mar 2019 23:39:44 +0900
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v10 10/10] thermal: intel: intel_soc_dts_iosf: Utilize
- for_each_set_clump8 macro
-Message-ID: <20190314143944.GA10184@icarus>
-References: <cover.1552566113.git.vilhelm.gray@gmail.com>
- <a240216a143782e3cfecf6f963578067b68b6007.1552566114.git.vilhelm.gray@gmail.com>
- <20190314142640.GZ9224@smile.fi.intel.com>
+Received: from mail-eopbgr820134.outbound.protection.outlook.com ([40.107.82.134]:64425
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726485AbfCNRkV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Mar 2019 13:40:21 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: [PATCH] MIPS: Remove custom MIPS32 __kernel_fsid_t type
+Date: Thu, 14 Mar 2019 17:40:16 +0000
+Message-ID: <20190314173900.25454-1-paul.burton@mips.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190314142640.GZ9224@smile.fi.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, bgolaszewski@baylibre.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190314143944.p0v3UnKeQqTW__c7mdFgiOqUkPPkyXIQIsdpxCddYRw@z>
+To: "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Burton <pburton@wavecomp.com>, Amir Goldstein <amir73il@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.cz>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190314174016.Gaxm2HeuThcSZwZC7CtyQ1VDUzhbTb7SnGVsZ2MbFPs@z>
 
-On Thu, Mar 14, 2019 at 04:26:40PM +0200, Andy Shevchenko wrote:
-> On Thu, Mar 14, 2019 at 09:32:57PM +0900, William Breathitt Gray wrote:
-> > Utilize for_each_set_clump8 macro, and the bitmap_set_value8 and
-> > bitmap_get_value8 functions, where appropriate. In addition, remove the
-> > now unnecessary temp_mask and temp_shift members of the
-> > intel_soc_dts_sensor_entry structure.
-> 
-> I think you need to Cc thermal maintainers.
+For MIPS32 kernels we have a custom definition of __kernel_fsid_t. This
+differs from the asm-generic version used by all other architectures &
+MIPS64 in one way - it declares the val field as an array of long,
+rather than an array of int. Since int & long have identical size &
+alignment when targeting MIPS32 anyway, this makes little sense.
 
-Ah, you're right, I overlooked them. Should I resend this patchset, or
-add them to the CC list on the next version?
+Beyond the pointlessness this causes problems for code which prints
+entries from the val array, for example the fanotify_encode_fid()
+function [1]. If such code uses a format specified suited to an int then
+it encounters compiler warnings when building for MIPS32, such as:
 
-William Breathitt Gray
+  In file included from include/linux/kernel.h:14:0,
+                   from include/linux/list.h:9,
+                   from include/linux/preempt.h:11,
+                   from include/linux/spinlock.h:51,
+                   from include/linux/fdtable.h:11,
+                   from fs/notify/fanotify/fanotify.c:3:
+  fs/notify/fanotify/fanotify.c: In function 'fanotify_encode_fid':
+  include/linux/kern_levels.h:5:18: warning: format '%x' expects argument
+    of type 'unsigned int', but argument 2 has type 'long int' [-Wformat=3D=
+]
 
-> 
-> I will test this next week.
-> Thanks!
-> 
-> > Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-> 
-> Suggested-by?
-> 
-> > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> > ---
-> >  drivers/thermal/intel/intel_soc_dts_iosf.c | 29 +++++++++++++---------
-> >  drivers/thermal/intel/intel_soc_dts_iosf.h |  2 --
-> >  2 files changed, 17 insertions(+), 14 deletions(-)
-> > 
-> > diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.c b/drivers/thermal/intel/intel_soc_dts_iosf.c
-> > index e0813dfaa278..b66f554670f7 100644
-> > --- a/drivers/thermal/intel/intel_soc_dts_iosf.c
-> > +++ b/drivers/thermal/intel/intel_soc_dts_iosf.c
-> > @@ -15,6 +15,7 @@
-> >  
-> >  #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-> >  
-> > +#include <linux/bitops.h>
-> >  #include <linux/module.h>
-> >  #include <linux/slab.h>
-> >  #include <linux/interrupt.h>
-> > @@ -111,6 +112,7 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
-> >  {
-> >  	int status;
-> >  	u32 temp_out;
-> > +	unsigned long update_ptps;
-> >  	u32 out;
-> >  	u32 store_ptps;
-> >  	u32 store_ptmc;
-> > @@ -129,8 +131,9 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
-> >  	if (status)
-> >  		return status;
-> >  
-> > -	out = (store_ptps & ~(0xFF << (thres_index * 8)));
-> > -	out |= (temp_out & 0xFF) << (thres_index * 8);
-> > +	update_ptps = store_ptps;
-> > +	bitmap_set_value8(&update_ptps, 32, temp_out & 0xFF, thres_index * 8);
-> > +	out = update_ptps;
-> >  	status = iosf_mbi_write(BT_MBI_UNIT_PMC, MBI_REG_WRITE,
-> >  				SOC_DTS_OFFSET_PTPS, out);
-> >  	if (status)
-> > @@ -232,6 +235,7 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
-> >  	u32 out;
-> >  	struct intel_soc_dts_sensor_entry *dts;
-> >  	struct intel_soc_dts_sensors *sensors;
-> > +	unsigned long temp_raw;
-> >  
-> >  	dts = tzd->devdata;
-> >  	sensors = dts->sensors;
-> > @@ -240,7 +244,8 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
-> >  	if (status)
-> >  		return status;
-> >  
-> > -	out = (out & dts->temp_mask) >> dts->temp_shift;
-> > +	temp_raw = out;
-> > +	out = bitmap_get_value8(&temp_raw, 32, dts->id * 8);
-> >  	out -= SOC_DTS_TJMAX_ENCODING;
-> >  	*temp = sensors->tj_max - out * 1000;
-> >  
-> > @@ -290,10 +295,13 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
-> >  {
-> >  	char name[10];
-> >  	int trip_count = 0;
-> > +	int writable_trip_count = 0;
-> >  	int trip_mask = 0;
-> >  	u32 store_ptps;
-> >  	int ret;
-> > -	int i;
-> > +	unsigned int i;
-> > +	unsigned long trip;
-> > +	unsigned long ptps;
-> >  
-> >  	/* Store status to restor on exit */
-> >  	ret = iosf_mbi_read(BT_MBI_UNIT_PMC, MBI_REG_READ,
-> > @@ -302,11 +310,10 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
-> >  		goto err_ret;
-> >  
-> >  	dts->id = id;
-> > -	dts->temp_mask = 0x00FF << (id * 8);
-> > -	dts->temp_shift = id * 8;
-> >  	if (notification_support) {
-> >  		trip_count = min(SOC_MAX_DTS_TRIPS, trip_cnt);
-> > -		trip_mask = BIT(trip_count - read_only_trip_cnt) - 1;
-> > +		writable_trip_count = trip_count - read_only_trip_cnt;
-> > +		trip_mask = GENMASK(writable_trip_count - 1, 0);
-> >  	}
-> >  
-> >  	/* Check if the writable trip we provide is not used by BIOS */
-> > @@ -315,11 +322,9 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
-> >  	if (ret)
-> >  		trip_mask = 0;
-> >  	else {
-> > -		for (i = 0; i < trip_count; ++i) {
-> > -			if (trip_mask & BIT(i))
-> > -				if (store_ptps & (0xff << (i * 8)))
-> > -					trip_mask &= ~BIT(i);
-> > -		}
-> > +		ptps = store_ptps;
-> > +		for_each_set_clump8(i, trip, ptps, writable_trip_count * 8)
-> > +			trip_mask &= ~BIT(i / 8);
-> >  	}
-> >  	dts->trip_mask = trip_mask;
-> >  	dts->trip_count = trip_count;
-> > diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.h b/drivers/thermal/intel/intel_soc_dts_iosf.h
-> > index 625e37bf93dc..d0362d7acdef 100644
-> > --- a/drivers/thermal/intel/intel_soc_dts_iosf.h
-> > +++ b/drivers/thermal/intel/intel_soc_dts_iosf.h
-> > @@ -33,8 +33,6 @@ struct intel_soc_dts_sensors;
-> >  
-> >  struct intel_soc_dts_sensor_entry {
-> >  	int id;
-> > -	u32 temp_mask;
-> > -	u32 temp_shift;
-> >  	u32 store_status;
-> >  	u32 trip_mask;
-> >  	u32 trip_count;
-> > -- 
-> > 2.21.0
-> > 
-> 
-> -- 
-> With Best Regards,
-> Andy Shevchenko
-> 
-> 
+Remove the custom __kernel_fsid_t definition & make use of the
+asm-generic version which will have an identical layout in memory
+anyway, in order to remove the inconsistency with other architectures.
+
+One possible regression this could cause if is any code is attempting to
+print entries from the val array with a long-sized format specifier, in
+which case it would begin seeing compiler warnings when built against
+kernel headers including this change. Since such code is exceedingly
+rare, and would have to be MIPS32-specific to expect a long, this seems
+to be a problem that it's extremely unlikely anyone will encounter.
+
+[1] https://lore.kernel.org/linux-mips/CAOQ4uxiEkczB7PNCXegFC-eYb9zAGaio_o=
+=3DOgHAJHFd7eavBxA@mail.gmail.com/T/#mb43103277c79ef06b884359209e817db1c136=
+140
+
+Signed-off-by: Paul Burton <paul.burton@mips.com>
+Cc: Amir Goldstein <amir73il@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Jan Kara <jack@suse.cz>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@vger.kernel.org
+---
+
+ arch/mips/include/uapi/asm/posix_types.h | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/arch/mips/include/uapi/asm/posix_types.h b/arch/mips/include/u=
+api/asm/posix_types.h
+index 6aa49c10f88f..f0ccb5b90ce9 100644
+--- a/arch/mips/include/uapi/asm/posix_types.h
++++ b/arch/mips/include/uapi/asm/posix_types.h
+@@ -21,13 +21,6 @@
+ typedef long		__kernel_daddr_t;
+ #define __kernel_daddr_t __kernel_daddr_t
+=20
+-#if (_MIPS_SZLONG =3D=3D 32)
+-typedef struct {
+-	long	val[2];
+-} __kernel_fsid_t;
+-#define __kernel_fsid_t __kernel_fsid_t
+-#endif
+-
+ #include <asm-generic/posix_types.h>
+=20
+ #endif /* _ASM_POSIX_TYPES_H */
+--=20
+2.21.0
