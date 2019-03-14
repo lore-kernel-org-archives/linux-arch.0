@@ -1,71 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from andre.telenet-ops.be ([195.130.132.53]:37590 "EHLO
-        andre.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726883AbfCLTa0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2019 15:30:26 -0400
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH] m68k/mm: Implement set_pte_at() as an inline function
-Date: Tue, 12 Mar 2019 20:30:23 +0100
-Message-ID: <20190312193023.30731-1-geert@linux-m68k.org>
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:41815 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726697AbfCNM2w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Mar 2019 08:28:52 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v10 00/10] Introduce the for_each_set_clump8 macro
+Date: Thu, 14 Mar 2019 21:29:32 +0900
+Message-ID: <cover.1552566113.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-m68k@lists.linux-m68k.org
-Cc: "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20190312193023.hv36Ofrl57ulZ2RqEZV03-9YTeqiXPJmsVdlwrf3lx4@z>
+To: linus.walleij@linaro.org
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, bgolaszewski@baylibre.com, linux-arm-kernel@lists.infradead.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20190314122932.s55QuZIKhDBKGhIEedVnDNpDSKrUIc2HuG4U41RhRyM@z>
 
-Since commit 0cbe3e26abe0cfe7 ("mm: update ptep_modify_prot_start/commit
-to take vm_area_struct as arg"), using gcc 8.2.0:
+Changes in v10:
+  - Fix off-by-one error in bitmap initialization in the
+    test_for_each_set_clump8 function
+  - Fix typos in clump_exp array definition in test_bitmap.c ("0x28"
+    should have been "0x38")
+  - Utilize for_each_set_clump8 macro in intel_soc_dts_iosf.c
 
-    mm/mprotect.c: In function ‘change_pte_range’:
-    mm/mprotect.c:42:20: warning: unused variable ‘mm’ [-Wunused-variable]
-      struct mm_struct *mm = vma->vm_mm;
-			^~
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
-Fix this by converting set_pte_at() from a macro to a static inline
-function.
+This patchset introduces the for_each_set_clump8 macro and utilizes it
+in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
-The following may want to apply a similar conversion:
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
 
-    arch/alpha/include/asm/pgtable.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/c6x/include/asm/pgtable.h:#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-    arch/csky/include/asm/pgtable.h:#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-    arch/hexagon/include/asm/pgtable.h:#define set_pte_at(mm, addr, ptep, pte) set_pte(ptep, pte)
-    arch/ia64/include/asm/pgtable.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/nds32/include/asm/pgtable.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/openrisc/include/asm/pgtable.h:#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-    arch/sh/include/asm/pgtable_32.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/sh/include/asm/pgtable_64.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/sparc/include/asm/pgtable_32.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/um/include/asm/pgtable.h:#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-    arch/unicore32/include/asm/pgtable.h:#define set_pte_at(mm, addr, ptep, pteval) \
-    arch/unicore32/include/asm/pgtable.h-   do {                                    \
-    arch/unicore32/include/asm/pgtable.h-           set_pte(ptep, pteval);          \
-    arch/unicore32/include/asm/pgtable.h-   } while (0)
----
- arch/m68k/include/asm/pgtable_mm.h | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
 
-diff --git a/arch/m68k/include/asm/pgtable_mm.h b/arch/m68k/include/asm/pgtable_mm.h
-index fe3ddd73a0ccb9e4..d931cfd291f667c9 100644
---- a/arch/m68k/include/asm/pgtable_mm.h
-+++ b/arch/m68k/include/asm/pgtable_mm.h
-@@ -26,7 +26,11 @@
- 	do{							\
- 		*(pteptr) = (pteval);				\
- 	} while(0)
--#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-+			      pte_t *ptep, pte_t pteval)
-+{
-+	set_pte(ptep, pteval);
-+}
- 
- 
- /* PMD_SHIFT determines the size of the area a second-level page table can map */
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+The for_each_set_clump8 macro has four parameters:
+
+    * start: set to the bit offset of the current clump
+    * clump: set to the current clump value
+    * bits: bitmap to search within
+    * size: bitmap size in number of bits
+
+In this version of the patchset, the for_each_set_clump macro has been
+reimplemented and simplified based on the suggestions provided by Rasmus
+Villemoes and Andy Shevchenko in the version 4 submission.
+
+In particular, the function of the for_each_set_clump macro has been
+restricted to handle only 8-bit clumps; the drivers that use the
+for_each_set_clump macro only handle 8-bit ports so a generic
+for_each_set_clump implementation is not necessary. Thus, a solution for
+large clumps (i.e. those larger than the width of a bitmap word) can be
+postponed until a driver appears that actually requires such a generic
+for_each_set_clump implementation.
+
+For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
+smaller than the width of a bitmap word) can be implemented by simply
+replacing the hardcoded '8' and '0xFF' instances with respective
+variables. I have not yet had a need for such an implementation, and
+since it falls short of a true generic for_each_set_clump function, I
+have decided to forgo such an implementation for now.
+
+In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+introduced to get and set 8-bit values respectively. Their use is based
+on the behavior suggested in the patchset version 4 review.
+
+William Breathitt Gray (10):
+  bitops: Introduce the for_each_set_clump8 macro
+  lib/test_bitmap.c: Add for_each_set_clump8 test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+  gpio: gpio-mm: Utilize for_each_set_clump8 macro
+  gpio: ws16c48: Utilize for_each_set_clump8 macro
+  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+  gpio: uniphier: Utilize for_each_set_clump8 macro
+  thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
+
+ drivers/gpio/gpio-104-dio-48e.c            |  73 ++++----------
+ drivers/gpio/gpio-104-idi-48.c             |  37 ++-----
+ drivers/gpio/gpio-gpio-mm.c                |  73 ++++----------
+ drivers/gpio/gpio-pci-idio-16.c            |  75 ++++++--------
+ drivers/gpio/gpio-pcie-idio-24.c           | 111 ++++++++-------------
+ drivers/gpio/gpio-uniphier.c               |  16 ++-
+ drivers/gpio/gpio-ws16c48.c                |  72 ++++---------
+ drivers/thermal/intel/intel_soc_dts_iosf.c |  29 +++---
+ drivers/thermal/intel/intel_soc_dts_iosf.h |   2 -
+ include/asm-generic/bitops/find.h          |  14 +++
+ include/linux/bitops.h                     |   5 +
+ lib/find_bit.c                             |  81 +++++++++++++++
+ lib/test_bitmap.c                          |  65 ++++++++++++
+ 13 files changed, 330 insertions(+), 323 deletions(-)
+
 -- 
-2.17.1
+2.21.0
