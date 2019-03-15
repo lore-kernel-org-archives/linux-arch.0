@@ -1,7 +1,8 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v11 09/14] kernel, arm64: untag user pointers in prctl_set_mm*
-Date: Fri, 15 Mar 2019 20:51:33 +0100
-Message-ID: <c4d65de9867cb3349af6800242da0de751260c6c.1552679409.git.andreyknvl__23815.1717394189$1552679655$gmane$org@google.com>
+Subject: [PATCH v11 11/14] uprobes,
+ arm64: untag user pointers in find_active_uprobe
+Date: Fri, 15 Mar 2019 20:51:35 +0100
+Message-ID: <a5fff68a32941ebce02dbe48f554a76a9c7a36ce.1552679409.git.andreyknvl__28276.6699254111$1552679671$gmane$org@google.com>
 References: <cover.1552679409.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -25,47 +26,29 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-prctl_set_mm() and prctl_set_mm_map() use provided user pointers for vma
-lookups, which can only by done with untagged pointers.
+find_active_uprobe() uses provided user pointer (obtained via
+instruction_pointer(regs)) for vma lookups, which can only by done with
+untagged pointers.
 
-Untag user pointers in these functions.
+Untag the user pointer in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- kernel/sys.c | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ kernel/events/uprobes.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/kernel/sys.c b/kernel/sys.c
-index 12df0e5434b8..8e56d87cc6db 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -1993,6 +1993,18 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
- 	if (copy_from_user(&prctl_map, addr, sizeof(prctl_map)))
- 		return -EFAULT;
+diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
+index c5cde87329c7..d3a2716a813a 100644
+--- a/kernel/events/uprobes.c
++++ b/kernel/events/uprobes.c
+@@ -1992,6 +1992,8 @@ static struct uprobe *find_active_uprobe(unsigned long bp_vaddr, int *is_swbp)
+ 	struct uprobe *uprobe = NULL;
+ 	struct vm_area_struct *vma;
  
-+	prctl_map->start_code	= untagged_addr(prctl_map.start_code);
-+	prctl_map->end_code	= untagged_addr(prctl_map.end_code);
-+	prctl_map->start_data	= untagged_addr(prctl_map.start_data);
-+	prctl_map->end_data	= untagged_addr(prctl_map.end_data);
-+	prctl_map->start_brk	= untagged_addr(prctl_map.start_brk);
-+	prctl_map->brk		= untagged_addr(prctl_map.brk);
-+	prctl_map->start_stack	= untagged_addr(prctl_map.start_stack);
-+	prctl_map->arg_start	= untagged_addr(prctl_map.arg_start);
-+	prctl_map->arg_end	= untagged_addr(prctl_map.arg_end);
-+	prctl_map->env_start	= untagged_addr(prctl_map.env_start);
-+	prctl_map->env_end	= untagged_addr(prctl_map.env_end);
++	bp_vaddr = untagged_addr(bp_vaddr);
 +
- 	error = validate_prctl_map(&prctl_map);
- 	if (error)
- 		return error;
-@@ -2106,6 +2118,8 @@ static int prctl_set_mm(int opt, unsigned long addr,
- 			      opt != PR_SET_MM_MAP_SIZE)))
- 		return -EINVAL;
- 
-+	addr = untagged_addr(addr);
-+
- #ifdef CONFIG_CHECKPOINT_RESTORE
- 	if (opt == PR_SET_MM_MAP || opt == PR_SET_MM_MAP_SIZE)
- 		return prctl_set_mm_map(opt, (const void __user *)addr, arg4);
+ 	down_read(&mm->mmap_sem);
+ 	vma = find_vma(mm, bp_vaddr);
+ 	if (vma && vma->vm_start <= bp_vaddr) {
 -- 
 2.21.0.360.g471c308f928-goog
