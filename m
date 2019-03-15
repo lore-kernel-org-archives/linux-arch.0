@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f202.google.com ([209.85.222.202]:46209 "EHLO
-        mail-qk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727524AbfCOTwT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:52:19 -0400
-Received: by mail-qk1-f202.google.com with SMTP id 75so3537376qki.13
-        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:52:19 -0700 (PDT)
-Date: Fri, 15 Mar 2019 20:51:35 +0100
+Received: from mail-yw1-f73.google.com ([209.85.161.73]:57301 "EHLO
+        mail-yw1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727415AbfCOTwD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:52:03 -0400
+Received: by mail-yw1-f73.google.com with SMTP id b6so13026512ywd.23
+        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:52:03 -0700 (PDT)
+Date: Fri, 15 Mar 2019 20:51:30 +0100
 In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
-Message-Id: <a5fff68a32941ebce02dbe48f554a76a9c7a36ce.1552679409.git.andreyknvl@google.com>
+Message-Id: <e12d6b5008f63b530d25ad73b2e3491939005c22.1552679409.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1552679409.git.andreyknvl@google.com>
-Subject: [PATCH v11 11/14] uprobes, arm64: untag user pointers in find_active_uprobe
+Subject: [PATCH v11 06/14] fs, arm64: untag user pointers in copy_mount_options
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,29 +22,31 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-find_active_uprobe() uses provided user pointer (obtained via
-instruction_pointer(regs)) for vma lookups, which can only by done with
-untagged pointers.
+In copy_mount_options a user address is being subtracted from TASK_SIZE.
+If the address is lower than TASK_SIZE, the size is calculated to not
+allow the exact_copy_from_user() call to cross TASK_SIZE boundary.
+However if the address is tagged, then the size will be calculated
+incorrectly.
 
-Untag the user pointer in this function.
+Untag the address before subtracting.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- kernel/events/uprobes.c | 2 ++
- 1 file changed, 2 insertions(+)
+ fs/namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
-index c5cde87329c7..d3a2716a813a 100644
---- a/kernel/events/uprobes.c
-+++ b/kernel/events/uprobes.c
-@@ -1992,6 +1992,8 @@ static struct uprobe *find_active_uprobe(unsigned long bp_vaddr, int *is_swbp)
- 	struct uprobe *uprobe = NULL;
- 	struct vm_area_struct *vma;
+diff --git a/fs/namespace.c b/fs/namespace.c
+index c9cab307fa77..c27e5713bf04 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -2825,7 +2825,7 @@ void *copy_mount_options(const void __user * data)
+ 	 * the remainder of the page.
+ 	 */
+ 	/* copy_from_user cannot cross TASK_SIZE ! */
+-	size = TASK_SIZE - (unsigned long)data;
++	size = TASK_SIZE - (unsigned long)untagged_addr(data);
+ 	if (size > PAGE_SIZE)
+ 		size = PAGE_SIZE;
  
-+	bp_vaddr = untagged_addr(bp_vaddr);
-+
- 	down_read(&mm->mmap_sem);
- 	vma = find_vma(mm, bp_vaddr);
- 	if (vma && vma->vm_start <= bp_vaddr) {
 -- 
 2.21.0.360.g471c308f928-goog
