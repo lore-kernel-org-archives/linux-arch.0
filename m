@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f73.google.com ([209.85.161.73]:53641 "EHLO
-        mail-yw1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727585AbfCOTw3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:52:29 -0400
-Received: by mail-yw1-f73.google.com with SMTP id 68so13058498ywb.20
-        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:52:28 -0700 (PDT)
-Date: Fri, 15 Mar 2019 20:51:38 +0100
+Received: from mail-it1-f202.google.com ([209.85.166.202]:42632 "EHLO
+        mail-it1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727499AbfCOTwQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:52:16 -0400
+Received: by mail-it1-f202.google.com with SMTP id j127so8706104itj.7
+        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:52:16 -0700 (PDT)
+Date: Fri, 15 Mar 2019 20:51:34 +0100
 In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
-Message-Id: <8e7bfcb3812ae2a1f558864f56eec71a8f78fa2e.1552679409.git.andreyknvl@google.com>
+Message-Id: <355e7c0dadaa2bb79d22e0b7aac7e4efc1114d49.1552679409.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1552679409.git.andreyknvl@google.com>
-Subject: [PATCH v11 14/14] selftests, arm64: add a selftest for passing tagged
- pointers to kernel
+Subject: [PATCH v11 10/14] tracing, arm64: untag user pointers in seq_print_user_ip
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -23,90 +22,98 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-This patch adds a simple test, that calls the uname syscall with a
-tagged user pointer as an argument. Without the kernel accepting tagged
-user pointers the test fails with EFAULT.
+seq_print_user_ip() uses provided user pointers for vma lookups, which
+can only by done with untagged pointers.
+
+Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- tools/testing/selftests/arm64/.gitignore      |  1 +
- tools/testing/selftests/arm64/Makefile        | 11 ++++++++++
- .../testing/selftests/arm64/run_tags_test.sh  | 12 +++++++++++
- tools/testing/selftests/arm64/tags_test.c     | 21 +++++++++++++++++++
- 4 files changed, 45 insertions(+)
- create mode 100644 tools/testing/selftests/arm64/.gitignore
- create mode 100644 tools/testing/selftests/arm64/Makefile
- create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
- create mode 100644 tools/testing/selftests/arm64/tags_test.c
+ kernel/trace/trace_output.c |  5 +++--
+ p                           | 45 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+), 2 deletions(-)
+ create mode 100644 p
 
-diff --git a/tools/testing/selftests/arm64/.gitignore b/tools/testing/selftests/arm64/.gitignore
+diff --git a/kernel/trace/trace_output.c b/kernel/trace/trace_output.c
+index 54373d93e251..6376bee93c84 100644
+--- a/kernel/trace/trace_output.c
++++ b/kernel/trace/trace_output.c
+@@ -370,6 +370,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ {
+ 	struct file *file = NULL;
+ 	unsigned long vmstart = 0;
++	unsigned long untagged_ip = untagged_addr(ip);
+ 	int ret = 1;
+ 
+ 	if (s->full)
+@@ -379,7 +380,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ 		const struct vm_area_struct *vma;
+ 
+ 		down_read(&mm->mmap_sem);
+-		vma = find_vma(mm, ip);
++		vma = find_vma(mm, untagged_ip);
+ 		if (vma) {
+ 			file = vma->vm_file;
+ 			vmstart = vma->vm_start;
+@@ -388,7 +389,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ 			ret = trace_seq_path(s, &file->f_path);
+ 			if (ret)
+ 				trace_seq_printf(s, "[+0x%lx]",
+-						 ip - vmstart);
++						 untagged_ip - vmstart);
+ 		}
+ 		up_read(&mm->mmap_sem);
+ 	}
+diff --git a/p b/p
 new file mode 100644
-index 000000000000..e8fae8d61ed6
+index 000000000000..9d6fa5386e55
 --- /dev/null
-+++ b/tools/testing/selftests/arm64/.gitignore
-@@ -0,0 +1 @@
-+tags_test
-diff --git a/tools/testing/selftests/arm64/Makefile b/tools/testing/selftests/arm64/Makefile
-new file mode 100644
-index 000000000000..a61b2e743e99
---- /dev/null
-+++ b/tools/testing/selftests/arm64/Makefile
-@@ -0,0 +1,11 @@
-+# SPDX-License-Identifier: GPL-2.0
++++ b/p
+@@ -0,0 +1,45 @@
++commit 1fa6fadf644859e8a6a8ecce258444b49be8c7ee
++Author: Andrey Konovalov <andreyknvl@google.com>
++Date:   Mon Mar 4 17:20:32 2019 +0100
 +
-+# ARCH can be overridden by the user for cross compiling
-+ARCH ?= $(shell uname -m 2>/dev/null || echo not)
++    kasan: fix coccinelle warnings in kasan_p*_table
++    
++    kasan_p4d_table, kasan_pmd_table and kasan_pud_table are declared as
++    returning bool, but return 0 instead of false, which produces a coccinelle
++    warning. Fix it.
++    
++    Fixes: 0207df4fa1a8 ("kernel/memremap, kasan: make ZONE_DEVICE with work with KASAN")
++    Reported-by: kbuild test robot <lkp@intel.com>
++    Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 +
-+ifneq (,$(filter $(ARCH),aarch64 arm64))
-+TEST_GEN_PROGS := tags_test
-+TEST_PROGS := run_tags_test.sh
-+endif
-+
-+include ../lib.mk
-diff --git a/tools/testing/selftests/arm64/run_tags_test.sh b/tools/testing/selftests/arm64/run_tags_test.sh
-new file mode 100755
-index 000000000000..745f11379930
---- /dev/null
-+++ b/tools/testing/selftests/arm64/run_tags_test.sh
-@@ -0,0 +1,12 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+echo "--------------------"
-+echo "running tags test"
-+echo "--------------------"
-+./tags_test
-+if [ $? -ne 0 ]; then
-+	echo "[FAIL]"
-+else
-+	echo "[PASS]"
-+fi
-diff --git a/tools/testing/selftests/arm64/tags_test.c b/tools/testing/selftests/arm64/tags_test.c
-new file mode 100644
-index 000000000000..2bd1830a7ebe
---- /dev/null
-+++ b/tools/testing/selftests/arm64/tags_test.c
-@@ -0,0 +1,21 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <unistd.h>
-+#include <stdint.h>
-+#include <sys/utsname.h>
-+
-+#define SHIFT_TAG(tag)		((uint64_t)(tag) << 56)
-+#define SET_TAG(ptr, tag)	(((uint64_t)(ptr) & ~SHIFT_TAG(0xff)) | \
-+					SHIFT_TAG(tag))
-+
-+int main(void)
-+{
-+	struct utsname *ptr = (struct utsname *)malloc(sizeof(*ptr));
-+	void *tagged_ptr = (void *)SET_TAG(ptr, 0x42);
-+	int err = uname(tagged_ptr);
-+
-+	free(ptr);
-+	return err;
-+}
++diff --git a/mm/kasan/init.c b/mm/kasan/init.c
++index 45a1b5e38e1e..fcaa1ca03175 100644
++--- a/mm/kasan/init.c
+++++ b/mm/kasan/init.c
++@@ -42,7 +42,7 @@ static inline bool kasan_p4d_table(pgd_t pgd)
++ #else
++ static inline bool kasan_p4d_table(pgd_t pgd)
++ {
++-	return 0;
+++	return false;
++ }
++ #endif
++ #if CONFIG_PGTABLE_LEVELS > 3
++@@ -54,7 +54,7 @@ static inline bool kasan_pud_table(p4d_t p4d)
++ #else
++ static inline bool kasan_pud_table(p4d_t p4d)
++ {
++-	return 0;
+++	return false;
++ }
++ #endif
++ #if CONFIG_PGTABLE_LEVELS > 2
++@@ -66,7 +66,7 @@ static inline bool kasan_pmd_table(pud_t pud)
++ #else
++ static inline bool kasan_pmd_table(pud_t pud)
++ {
++-	return 0;
+++	return false;
++ }
++ #endif
++ pte_t kasan_early_shadow_pte[PTRS_PER_PTE] __page_aligned_bss;
 -- 
 2.21.0.360.g471c308f928-goog
