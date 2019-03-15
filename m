@@ -1,75 +1,65 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v11 13/14] arm64: update
- Documentation/arm64/tagged-pointers.txt
-Date: Fri, 15 Mar 2019 20:51:37 +0100
-Message-ID: <bf0abceeaf32e6b9cdbc9dde45cc5966b5747ec4.1552679409.git.andreyknvl__40750.1870229439$1552681879$gmane$org@google.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: Re: [PATCH] y2038: fix socket.h header inclusion
+Date: Fri, 15 Mar 2019 22:20:04 +0100
+Message-ID: <87a7hvded7.fsf@mid.deneb.enyo.de>
+References: <20190311153857.563743-1-arnd@arndb.de>
+        <87k1h1fgkk.fsf@mid.deneb.enyo.de>
+        <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@k
-Cc: Kevin Brodsky <kevin.brodsky@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
+        (Arnd Bergmann's message of "Fri, 15 Mar 2019 21:30:25 +0100")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "David S . Miller" <davem@davemloft.net>, Deepa Dinamani <deepa.kernel@gmail.com>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch is a part of a series that extends arm64 kernel ABI to allow to
-pass tagged user pointers (with the top byte set to something else other
-than 0x00) as syscall arguments.
+* Arnd Bergmann:
 
-Document the ABI changes in Documentation/arm64/tagged-pointers.txt.
+> On Thu, Mar 14, 2019 at 7:41 PM Florian Weimer <fw@deneb.enyo.de> wrote:
+>>
+>> * Arnd Bergmann:
+>>
+>> > diff --git a/arch/alpha/include/uapi/asm/socket.h
+>> > b/arch/alpha/include/uapi/asm/socket.h
+>> > index 0d0fddb7e738..976e89b116e5 100644
+>> > --- a/arch/alpha/include/uapi/asm/socket.h
+>> > +++ b/arch/alpha/include/uapi/asm/socket.h
+>> > @@ -2,8 +2,8 @@
+>> >  #ifndef _UAPI_ASM_SOCKET_H
+>> >  #define _UAPI_ASM_SOCKET_H
+>> >
+>> > +#include <linux/posix_types.h>
+>> >  #include <asm/sockios.h>
+>> > -#include <asm/bitsperlong.h>
+>>
+>> This breaks POSIX conformance in glibc because the
+>> <linux/posix_types.h> header is not namespace clean.  It contains the
+>> identifiers fds_bits and val:
+>>
+>>         unsigned long fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
+>>
+>>         int     val[2];
+>
+> What is problematic about the struct members here? I had thought that
+> only the struct names have to be in a namespace to be usable here,
+> but not the members.
 
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
----
- Documentation/arm64/tagged-pointers.txt | 18 ++++++++----------
- 1 file changed, 8 insertions(+), 10 deletions(-)
+According POSIX, a user can do this:
 
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..07fdddeacad0 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -17,13 +17,15 @@ this byte for application use.
- Passing tagged addresses to the kernel
- --------------------------------------
- 
--All interpretation of userspace memory addresses by the kernel assumes
--an address tag of 0x00.
-+The kernel supports tags in pointer arguments (including pointers in
-+structures) of syscalls, however such pointers must point to memory ranges
-+obtained by anonymous mmap() or brk().
- 
--This includes, but is not limited to, addresses found in:
-+The kernel supports tags in user fault addresses. However the fault_address
-+field in the sigcontext struct will contain an untagged address.
- 
-- - pointer arguments to system calls, including pointers in structures
--   passed to system calls,
-+All other interpretations of userspace memory addresses by the kernel
-+assume an address tag of 0x00, in particular:
- 
-  - the stack pointer (sp), e.g. when interpreting it to deliver a
-    signal,
-@@ -33,11 +35,7 @@ This includes, but is not limited to, addresses found in:
- 
- Using non-zero address tags in any of these locations may result in an
- error code being returned, a (fatal) signal being raised, or other modes
--of failure.
--
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
--strongly discouraged.
-+of failure. Using a non-zero address tag for sp is strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
- address tags may suffer impaired or inaccurate debug and profiling
--- 
-2.21.0.360.g471c308f928-goog
+#define fds_bits 1024
+
+before including the <sys/socket.h> header file.  Similarly for val.
+
+Since glibc pulls in <asm/socket.h> indirectly, the result is a parse
+error, even though the programmer did nothing wrong (fds_bits is not
+an identifier used by POSIX, nor is it in the implementation
+namespace, ans <sys/socket.h> is a POSIX header).
+
+> We could use asm/posix_types.h instead of linux/posix_types.h,
+> would that address your concern?
+
+It should fix the fds_bits case, I think.  But
+<asm-generic/posix_types.h> still uses val, so that part of the issue
+remains.
