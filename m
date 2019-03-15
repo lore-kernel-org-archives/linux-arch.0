@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f201.google.com ([209.85.215.201]:35816 "EHLO
-        mail-pg1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727249AbfCOTvv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:51:51 -0400
-Received: by mail-pg1-f201.google.com with SMTP id f12so11247282pgs.2
-        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:51:50 -0700 (PDT)
-Date: Fri, 15 Mar 2019 20:51:26 +0100
+Received: from mail-qk1-f201.google.com ([209.85.222.201]:55128 "EHLO
+        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727298AbfCOTvy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2019 15:51:54 -0400
+Received: by mail-qk1-f201.google.com with SMTP id b3so8685595qkd.21
+        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2019 12:51:53 -0700 (PDT)
+Date: Fri, 15 Mar 2019 20:51:27 +0100
 In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
-Message-Id: <f7b263a20223da2b8b26f6a5b0d84a575af28010.1552679409.git.andreyknvl@google.com>
+Message-Id: <f7fa36ec55ed4b45f61d841f9b726772a04cc0a5.1552679409.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1552679409.git.andreyknvl@google.com>
-Subject: [PATCH v11 02/14] arm64: untag user pointers in access_ok and __uaccess_mask_ptr
+Subject: [PATCH v11 03/14] lib, arm64: untag user pointers in strn*_user
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,59 +22,62 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-copy_from_user (and a few other similar functions) are used to copy data
-from user memory into the kernel memory or vice versa. Since a user can
-provided a tagged pointer to one of the syscalls that use copy_from_user,
-we need to correctly handle such pointers.
+strncpy_from_user and strnlen_user accept user addresses as arguments, and
+do not go through the same path as copy_from_user and others, so here we
+need to handle the case of tagged user addresses separately.
 
-Do this by untagging user pointers in access_ok and in __uaccess_mask_ptr,
-before performing access validity checks.
+Untag user pointers passed to these functions.
 
-Note, that this patch only temporarily untags the pointers to perform the
-checks, but then passes them as is into the kernel internals.
+Note, that this patch only temporarily untags the pointers to perform
+validity checks, but then uses them as is to perform user memory accesses.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/include/asm/uaccess.h | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ lib/strncpy_from_user.c | 3 ++-
+ lib/strnlen_user.c      | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index e5d5f31c6d36..9164ecb5feca 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -94,7 +94,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
- 	return ret;
- }
+diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+index 58eacd41526c..6209bb9507c7 100644
+--- a/lib/strncpy_from_user.c
++++ b/lib/strncpy_from_user.c
+@@ -6,6 +6,7 @@
+ #include <linux/uaccess.h>
+ #include <linux/kernel.h>
+ #include <linux/errno.h>
++#include <linux/mm.h>
  
--#define access_ok(addr, size)	__range_ok(addr, size)
-+#define access_ok(addr, size)	__range_ok(untagged_addr(addr), size)
- #define user_addr_max			get_fs
+ #include <asm/byteorder.h>
+ #include <asm/word-at-a-time.h>
+@@ -107,7 +108,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
+ 		return 0;
  
- #define _ASM_EXTABLE(from, to)						\
-@@ -226,7 +226,8 @@ static inline void uaccess_enable_not_uao(void)
+ 	max_addr = user_addr_max();
+-	src_addr = (unsigned long)src;
++	src_addr = (unsigned long)untagged_addr(src);
+ 	if (likely(src_addr < max_addr)) {
+ 		unsigned long max = max_addr - src_addr;
+ 		long retval;
+diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+index 1c1a1b0e38a5..8ca3d2ac32ec 100644
+--- a/lib/strnlen_user.c
++++ b/lib/strnlen_user.c
+@@ -2,6 +2,7 @@
+ #include <linux/kernel.h>
+ #include <linux/export.h>
+ #include <linux/uaccess.h>
++#include <linux/mm.h>
  
- /*
-  * Sanitise a uaccess pointer such that it becomes NULL if above the
-- * current addr_limit.
-+ * current addr_limit. In case the pointer is tagged (has the top byte set),
-+ * untag the pointer before checking.
-  */
- #define uaccess_mask_ptr(ptr) (__typeof__(ptr))__uaccess_mask_ptr(ptr)
- static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
-@@ -234,10 +235,11 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
- 	void __user *safe_ptr;
+ #include <asm/word-at-a-time.h>
  
- 	asm volatile(
--	"	bics	xzr, %1, %2\n"
-+	"	bics	xzr, %3, %2\n"
- 	"	csel	%0, %1, xzr, eq\n"
- 	: "=&r" (safe_ptr)
--	: "r" (ptr), "r" (current_thread_info()->addr_limit)
-+	: "r" (ptr), "r" (current_thread_info()->addr_limit),
-+	  "r" (untagged_addr(ptr))
- 	: "cc");
+@@ -109,7 +110,7 @@ long strnlen_user(const char __user *str, long count)
+ 		return 0;
  
- 	csdb();
+ 	max_addr = user_addr_max();
+-	src_addr = (unsigned long)str;
++	src_addr = (unsigned long)untagged_addr(str);
+ 	if (likely(src_addr < max_addr)) {
+ 		unsigned long max = max_addr - src_addr;
+ 		long retval;
 -- 
 2.21.0.360.g471c308f928-goog
