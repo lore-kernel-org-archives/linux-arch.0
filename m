@@ -1,161 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37222 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726808AbfCRQfx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Mar 2019 12:35:53 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 0/4] arm64 relaxed ABI
-Date: Mon, 18 Mar 2019 16:35:29 +0000
-Message-ID: <20190318163533.26838-1-vincenzo.frascino@arm.com>
-In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:44461 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727111AbfCRQxO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 12:53:14 -0400
+Received: by mail-pf1-f194.google.com with SMTP id a3so11649583pff.11
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 09:53:13 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <c4d65de9867cb3349af6800242da0de751260c6c.1552679409.git.andreyknvl@google.com>
+ <201903170317.IWsOYXBe%lkp@intel.com>
+In-Reply-To: <201903170317.IWsOYXBe%lkp@intel.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Mon, 18 Mar 2019 17:53:00 +0100
+Message-ID: <CAAeHK+wo5pC2W_zRYMYTAXQbh2a_2=ifgJhMDBZ7p1m=chfSbw@mail.gmail.com>
+Subject: Re: [PATCH v11 09/14] kernel, arm64: untag user pointers in prctl_set_mm*
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Alexei Starovoitov <ast@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Daniel Borkmann <daniel@iogearbox.net>, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Evgeniy Stepanov <eugenis@google.com>, Graeme Barnes <Graeme.Barnes@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, Kevin Brodsky <kevin.brodsky@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Shuah Khan <shuah@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20190318163529.lWIq3UGEvRIvQsIK0A2zxlZuph_XHVi4_8xxhpcvXsw@z>
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, netdev <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190318165300.48C5HxJtudYXa8qJqBYGM21oszrN2CdZ-CFlJsNTIuY@z>
 
-On arm64 the TCR_EL1.TBI0 bit has been always enabled in the Linux
-kernel hence the userspace (EL0) is allowed to set a non-zero value
-in the top byte but the resulting pointers are not allowed at the
-user-kernel syscall ABI boundary.
+On Sat, Mar 16, 2019 at 8:32 PM kbuild test robot <lkp@intel.com> wrote:
+>
+> Hi Andrey,
+>
+> Thank you for the patch! Yet something to improve:
+>
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v5.0 next-20190306]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+>
+> url:    https://github.com/0day-ci/linux/commits/Andrey-Konovalov/uaccess-add-untagged_addr-definition-for-other-arches/20190317-015913
+> config: x86_64-randconfig-x012-201911 (attached as .config)
+> compiler: gcc-7 (Debian 7.3.0-1) 7.3.0
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=x86_64
+>
+> All errors (new ones prefixed by >>):
+>
+>    kernel/sys.c: In function 'prctl_set_mm_map':
+> >> kernel/sys.c:1996:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->start_code = untagged_addr(prctl_map.start_code);
+>               ^~
+>    kernel/sys.c:1997:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->end_code = untagged_addr(prctl_map.end_code);
+>               ^~
+>    kernel/sys.c:1998:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->start_data = untagged_addr(prctl_map.start_data);
+>               ^~
+>    kernel/sys.c:1999:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->end_data = untagged_addr(prctl_map.end_data);
+>               ^~
+>    kernel/sys.c:2000:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->start_brk = untagged_addr(prctl_map.start_brk);
+>               ^~
+>    kernel/sys.c:2001:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->brk  = untagged_addr(prctl_map.brk);
+>               ^~
+>    kernel/sys.c:2002:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->start_stack = untagged_addr(prctl_map.start_stack);
+>               ^~
+>    kernel/sys.c:2003:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->arg_start = untagged_addr(prctl_map.arg_start);
+>               ^~
+>    kernel/sys.c:2004:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->arg_end = untagged_addr(prctl_map.arg_end);
+>               ^~
+>    kernel/sys.c:2005:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->env_start = untagged_addr(prctl_map.env_start);
+>               ^~
+>    kernel/sys.c:2006:11: error: invalid type argument of '->' (have 'struct prctl_mm_map')
+>      prctl_map->env_end = untagged_addr(prctl_map.env_end);
+>               ^~
+>
+> vim +1996 kernel/sys.c
 
-This patchset proposes a relaxation of the ABI and a mechanism to
-advertise it to the userspace via an AT_FLAGS.
+Right, I didn't have the related config options enabled when I did the
+testing...
 
-The rationale behind the choice of AT_FLAGS is that the Unix System V
-ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
-interpretation.
-There are two previous attempts of using AT_FLAGS in the Linux Kernel
-for different reasons: the first was more generic and was used to expose
-the support for the GNU STACK NX feature [1] and the second was done for
-the MIPS architecture and was used to expose the support of "MIPS ABI
-Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
-Both the changes are currently _not_ merged in mainline.
-The only architecture that reserves some of the bits in AT_FLAGS is
-currently MIPS, which introduced the concept of platform specific ABI
-(psABI) reserving the top-byte [3].
-
-When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
-to the userspace that a relaxed ABI is supported hence this type
-of pointers are now allowed to be passed to the syscalls when they are
-in memory ranges obtained by anonymous mmap() or brk().
-
-The userspace _must_ verify that the flag is set before passing tagged
-pointers to the syscalls allowed by this relaxation.
-
-More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
-to the software to check that the feature is present, before using the
-associated functionality, it provides a degree of control on the decision
-of disabling such a feature in future without consequently breaking the
-userspace.
-
-The change required a modification of the elf common code, because in Linux
-the AT_FLAGS are currently set to zero by default by the kernel.
-
-The newly added flag has been verified on arm64 using the code below.
-#include <stdio.h>
-#include <stdbool.h>
-#include <sys/auxv.h>
-
-#define ARM64_AT_FLAGS_SYSCALL_TBI     (1 << 0)
-
-bool arm64_syscall_tbi_is_present(void)
-{
-        unsigned long at_flags = getauxval(AT_FLAGS);
-        if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
-                return true;
-
-        return false;
-}
-
-void main()
-{
-        if (arm64_syscall_tbi_is_present())
-                printf("ARM64_AT_FLAGS_SYSCALL_TBI is present\n");
-}
-
-This patchset should be merged together with [4].
-
-[1] https://patchwork.ozlabs.org/patch/579578/
-[2] https://lore.kernel.org/patchwork/cover/618280/
-[3] ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
-[4] https://patchwork.kernel.org/cover/10674351/
-
-ABI References:
----------------
-Sco SysV ABI: http://www.sco.com/developers/gabi/2003-12-17/contents.html
-PowerPC AUXV: http://openpowerfoundation.org/wp-content/uploads/resources/leabi/content/dbdoclet.50655242_98651.html
-AMD64 ABI: https://www.cs.tufts.edu/comp/40-2012f/readings/amd64-abi.pdf
-x86 ABI: https://www.uclibc.org/docs/psABI-i386.pdf
-MIPS ABI: ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
-ARM ABI: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0044f/IHI0044F_aaelf.pdf
-SPARC ABI: http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
-
-CC: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Alexei Starovoitov <ast@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrey Konovalov <andreyknvl@google.com>
-Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
-Cc: Branislav Rankov <Branislav.Rankov@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Chintan Pandya <cpandya@codeaurora.org>
-Cc: Daniel Borkmann <daniel@iogearbox.net>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Eric Dumazet <edumazet@google.com>
-Cc: Evgeniy Stepanov <eugenis@google.com>
-Cc: Graeme Barnes <Graeme.Barnes@arm.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Jacob Bramley <Jacob.Bramley@arm.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Kostya Serebryany <kcc@google.com>
-Cc: Lee Smith <Lee.Smith@arm.com>
-Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Cc: Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
-Cc: Shuah Khan <shuah@kernel.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Changes:
---------
-v2:
-  - Rebased on 5.1-rc1
-  - Addressed review comments
-  - Modified tagged-pointers.txt to be compliant with the
-    new ABI relaxation
-
-Vincenzo Frascino (4):
-  elf: Make AT_FLAGS arch configurable
-  arm64: Define Documentation/arm64/elf_at_flags.txt
-  arm64: Relax Documentation/arm64/tagged-pointers.txt
-  arm64: elf: Advertise relaxed ABI
-
- Documentation/arm64/elf_at_flags.txt    | 133 ++++++++++++++++++++++++
- Documentation/arm64/tagged-pointers.txt |  23 ++--
- arch/arm64/include/asm/atflags.h        |   7 ++
- arch/arm64/include/asm/elf.h            |   5 +
- arch/arm64/include/uapi/asm/atflags.h   |   8 ++
- fs/binfmt_elf.c                         |   6 +-
- fs/binfmt_elf_fdpic.c                   |   6 +-
- fs/compat_binfmt_elf.c                  |   5 +
- 8 files changed, 184 insertions(+), 9 deletions(-)
- create mode 100644 Documentation/arm64/elf_at_flags.txt
- create mode 100644 arch/arm64/include/asm/atflags.h
- create mode 100644 arch/arm64/include/uapi/asm/atflags.h
-
--- 
-2.21.0
+>
+>   1974
+>   1975  #ifdef CONFIG_CHECKPOINT_RESTORE
+>   1976  static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data_size)
+>   1977  {
+>   1978          struct prctl_mm_map prctl_map = { .exe_fd = (u32)-1, };
+>   1979          unsigned long user_auxv[AT_VECTOR_SIZE];
+>   1980          struct mm_struct *mm = current->mm;
+>   1981          int error;
+>   1982
+>   1983          BUILD_BUG_ON(sizeof(user_auxv) != sizeof(mm->saved_auxv));
+>   1984          BUILD_BUG_ON(sizeof(struct prctl_mm_map) > 256);
+>   1985
+>   1986          if (opt == PR_SET_MM_MAP_SIZE)
+>   1987                  return put_user((unsigned int)sizeof(prctl_map),
+>   1988                                  (unsigned int __user *)addr);
+>   1989
+>   1990          if (data_size != sizeof(prctl_map))
+>   1991                  return -EINVAL;
+>   1992
+>   1993          if (copy_from_user(&prctl_map, addr, sizeof(prctl_map)))
+>   1994                  return -EFAULT;
+>   1995
+> > 1996          prctl_map->start_code   = untagged_addr(prctl_map.start_code);
+>   1997          prctl_map->end_code     = untagged_addr(prctl_map.end_code);
+>   1998          prctl_map->start_data   = untagged_addr(prctl_map.start_data);
+>   1999          prctl_map->end_data     = untagged_addr(prctl_map.end_data);
+>   2000          prctl_map->start_brk    = untagged_addr(prctl_map.start_brk);
+>   2001          prctl_map->brk          = untagged_addr(prctl_map.brk);
+>   2002          prctl_map->start_stack  = untagged_addr(prctl_map.start_stack);
+>   2003          prctl_map->arg_start    = untagged_addr(prctl_map.arg_start);
+>   2004          prctl_map->arg_end      = untagged_addr(prctl_map.arg_end);
+>   2005          prctl_map->env_start    = untagged_addr(prctl_map.env_start);
+>   2006          prctl_map->env_end      = untagged_addr(prctl_map.env_end);
+>   2007
+>   2008          error = validate_prctl_map(&prctl_map);
+>   2009          if (error)
+>   2010                  return error;
+>   2011
+>   2012          if (prctl_map.auxv_size) {
+>   2013                  memset(user_auxv, 0, sizeof(user_auxv));
+>   2014                  if (copy_from_user(user_auxv,
+>   2015                                     (const void __user *)prctl_map.auxv,
+>   2016                                     prctl_map.auxv_size))
+>   2017                          return -EFAULT;
+>   2018
+>   2019                  /* Last entry must be AT_NULL as specification requires */
+>   2020                  user_auxv[AT_VECTOR_SIZE - 2] = AT_NULL;
+>   2021                  user_auxv[AT_VECTOR_SIZE - 1] = AT_NULL;
+>   2022          }
+>   2023
+>   2024          if (prctl_map.exe_fd != (u32)-1) {
+>   2025                  error = prctl_set_mm_exe_file(mm, prctl_map.exe_fd);
+>   2026                  if (error)
+>   2027                          return error;
+>   2028          }
+>   2029
+>   2030          /*
+>   2031           * arg_lock protects concurent updates but we still need mmap_sem for
+>   2032           * read to exclude races with sys_brk.
+>   2033           */
+>   2034          down_read(&mm->mmap_sem);
+>   2035
+>   2036          /*
+>   2037           * We don't validate if these members are pointing to
+>   2038           * real present VMAs because application may have correspond
+>   2039           * VMAs already unmapped and kernel uses these members for statistics
+>   2040           * output in procfs mostly, except
+>   2041           *
+>   2042           *  - @start_brk/@brk which are used in do_brk but kernel lookups
+>   2043           *    for VMAs when updating these memvers so anything wrong written
+>   2044           *    here cause kernel to swear at userspace program but won't lead
+>   2045           *    to any problem in kernel itself
+>   2046           */
+>   2047
+>   2048          spin_lock(&mm->arg_lock);
+>   2049          mm->start_code  = prctl_map.start_code;
+>   2050          mm->end_code    = prctl_map.end_code;
+>   2051          mm->start_data  = prctl_map.start_data;
+>   2052          mm->end_data    = prctl_map.end_data;
+>   2053          mm->start_brk   = prctl_map.start_brk;
+>   2054          mm->brk         = prctl_map.brk;
+>   2055          mm->start_stack = prctl_map.start_stack;
+>   2056          mm->arg_start   = prctl_map.arg_start;
+>   2057          mm->arg_end     = prctl_map.arg_end;
+>   2058          mm->env_start   = prctl_map.env_start;
+>   2059          mm->env_end     = prctl_map.env_end;
+>   2060          spin_unlock(&mm->arg_lock);
+>   2061
+>   2062          /*
+>   2063           * Note this update of @saved_auxv is lockless thus
+>   2064           * if someone reads this member in procfs while we're
+>   2065           * updating -- it may get partly updated results. It's
+>   2066           * known and acceptable trade off: we leave it as is to
+>   2067           * not introduce additional locks here making the kernel
+>   2068           * more complex.
+>   2069           */
+>   2070          if (prctl_map.auxv_size)
+>   2071                  memcpy(mm->saved_auxv, user_auxv, sizeof(user_auxv));
+>   2072
+>   2073          up_read(&mm->mmap_sem);
+>   2074          return 0;
+>   2075  }
+>   2076  #endif /* CONFIG_CHECKPOINT_RESTORE */
+>   2077
+>
+> ---
+> 0-DAY kernel test infrastructure                Open Source Technology Center
+> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
