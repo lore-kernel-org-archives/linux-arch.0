@@ -1,83 +1,57 @@
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Subject: Re: [PATCH v11 09/14] kernel, arm64: untag user pointers in
- prctl_set_mm*
-Date: Mon, 18 Mar 2019 11:47:15 +0000
-Message-ID: <96675b72-d325-0682-4864-b6a96f63f8fd__4023.04140604741$1552909659$gmane$org@arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <c4d65de9867cb3349af6800242da0de751260c6c.1552679409.git.andreyknvl@google.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] y2038: fix socket.h header inclusion
+Date: Mon, 18 Mar 2019 13:56:37 +0100
+Message-ID: <CAK8P3a1DzRhiuNxBeQaTYSX1NhCaN6+B0Ya7aeGfxUGj35LFhw@mail.gmail.com>
+References: <20190311153857.563743-1-arnd@arndb.de> <87k1h1fgkk.fsf@mid.deneb.enyo.de>
+ <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
+ <87a7hvded7.fsf@mid.deneb.enyo.de> <CABeXuvrEecSAkBuN-SmAbGwhLWNCC+bA1=X78fm8xMyw8=hm6Q@mail.gmail.com>
+ <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com> <87o968y1uv.fsf@mid.deneb.enyo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <c4d65de9867cb3349af6800242da0de751260c6c.1552679409.git.andreyknvl@google.com>
-Content-Language: en-GB
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.orglin
-Cc: Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87o968y1uv.fsf@mid.deneb.enyo.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Florian Weimer <fw@deneb.enyo.de>
+Cc: Deepa Dinamani <deepa.kernel@gmail.com>, "David S . Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Josh Boyer <jwboyer@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Law <law@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 15/03/2019 19:51, Andrey Konovalov wrote:
-> This patch is a part of a series that extends arm64 kernel ABI to allow to
-> pass tagged user pointers (with the top byte set to something else other
-> than 0x00) as syscall arguments.
+On Mon, Mar 18, 2019 at 10:25 AM Florian Weimer <fw@deneb.enyo.de> wrote:
 >
-> prctl_set_mm() and prctl_set_mm_map() use provided user pointers for vma
-> lookups, which can only by done with untagged pointers.
+> * Arnd Bergmann:
 >
-> Untag user pointers in these functions.
+> > Should we just remove __kernel_fd_set from the exported headers and
+> > define the internal fd_set directly in include/linux/types.h? (Adding the
+> > folks from the old thread to Cc).
 >
-> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> ---
->   kernel/sys.c | 14 ++++++++++++++
->   1 file changed, 14 insertions(+)
->
-> diff --git a/kernel/sys.c b/kernel/sys.c
-> index 12df0e5434b8..8e56d87cc6db 100644
-> --- a/kernel/sys.c
-> +++ b/kernel/sys.c
-> @@ -1993,6 +1993,18 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
->   	if (copy_from_user(&prctl_map, addr, sizeof(prctl_map)))
->   		return -EFAULT;
->   
-> +	prctl_map->start_code	= untagged_addr(prctl_map.start_code);
-> +	prctl_map->end_code	= untagged_addr(prctl_map.end_code);
-> +	prctl_map->start_data	= untagged_addr(prctl_map.start_data);
-> +	prctl_map->end_data	= untagged_addr(prctl_map.end_data);
-> +	prctl_map->start_brk	= untagged_addr(prctl_map.start_brk);
-> +	prctl_map->brk		= untagged_addr(prctl_map.brk);
-> +	prctl_map->start_stack	= untagged_addr(prctl_map.start_stack);
-> +	prctl_map->arg_start	= untagged_addr(prctl_map.arg_start);
-> +	prctl_map->arg_end	= untagged_addr(prctl_map.arg_end);
-> +	prctl_map->env_start	= untagged_addr(prctl_map.env_start);
-> +	prctl_map->env_end	= untagged_addr(prctl_map.env_end);
+> The type is used in the sanitizers, but incorrectly.  They assume that
+> FD_SETSIZE is always 1024.  (The existence of __kernel_fd_set is
+> itself somewhat questionable because it leads to such bugs.)
+> Moving around the type could cause a build failure in the sanitizers, but I'm
+> not entirely clear how the UAPI headers are included there.
 
-As the buildbot suggests, those -> should be . instead :) You might want to check 
-your local build with CONFIG_CHECKPOINT_RESTORE=y.
+It looks like sanitizer_platform_limits_posix.cc includes
+linux/posix_types.h to ensure that __kernel_fd_set is the same
+size as __sanitizer___kernel_fd_set, and then it uses the
+latter afterwards.
 
-> +
->   	error = validate_prctl_map(&prctl_map);
->   	if (error)
->   		return error;
-> @@ -2106,6 +2118,8 @@ static int prctl_set_mm(int opt, unsigned long addr,
->   			      opt != PR_SET_MM_MAP_SIZE)))
->   		return -EINVAL;
->   
-> +	addr = untagged_addr(addr);
+What I don't see here is what kind of operation is actually done
+on the data, I only see a cast to void. If libsanitizer actually does
+anything interesting here, we should definitely fix it to use the
+correct size, especially since this is actually something that
+can trigger a buffer overflow in subtle ways when used carelessly.
+See for example [1], which we still have not addressed
+(I suspect we actually need to have glibc use __kernel_long_t
+instead of 'long int' here, but that is a separate issue, and
+not overly important given how few users there are on x32).
 
-This is a bit too coarse, addr is indeed used for find_vma() later on, but it is also 
-used to access memory, by prctl_set_mm_mmap() and prctl_set_auxv().
+For this specific use (and probably others like it), renaming the
+fds_bits member to __kernel_fds_bits or something like that
+would keep user space still compiling. That would only break
+if someone was using __kernel_fd_set, and actually doing
+bit operations on it. glibc uses '__fds_bits' unless __USE_XOPEN
+is set, so maybe we should use use that name unconditionally.
 
-Kevin
 
-> +
->   #ifdef CONFIG_CHECKPOINT_RESTORE
->   	if (opt == PR_SET_MM_MAP || opt == PR_SET_MM_MAP_SIZE)
->   		return prctl_set_mm_map(opt, (const void __user *)addr, arg4);
+
+
+> Otherwise, I couldn't find any uses.
