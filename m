@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f74.google.com ([209.85.161.74]:52027 "EHLO
-        mail-yw1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728009AbfCRRS1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 13:18:27 -0400
-Received: by mail-yw1-f74.google.com with SMTP id l11so23250579ywl.18
-        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 10:18:26 -0700 (PDT)
-Date: Mon, 18 Mar 2019 18:17:44 +0100
+Received: from mail-qt1-f202.google.com ([209.85.160.202]:56846 "EHLO
+        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727970AbfCRRSX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 13:18:23 -0400
+Received: by mail-qt1-f202.google.com with SMTP id e1so16850543qth.23
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 10:18:23 -0700 (PDT)
+Date: Mon, 18 Mar 2019 18:17:43 +0100
 In-Reply-To: <cover.1552929301.git.andreyknvl@google.com>
-Message-Id: <7883ff7cbe2e8075c3a0f450eade08587f49f3bc.1552929301.git.andreyknvl@google.com>
+Message-Id: <b24adf53a968b50ba84630f86136ee1251e12a9d.1552929301.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1552929301.git.andreyknvl@google.com>
-Subject: [PATCH v12 12/13] bpf, arm64: untag user pointers in stack_map_get_build_id_offset
+Subject: [PATCH v12 11/13] uprobes, arm64: untag user pointers in find_active_uprobe
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,41 +22,29 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-stack_map_get_build_id_offset() uses provided user pointers for vma
-lookups, which can only by done with untagged pointers.
+find_active_uprobe() uses provided user pointer (obtained via
+instruction_pointer(regs)) for vma lookups, which can only by done with
+untagged pointers.
 
-Untag the user pointer in this function for doing the lookup and
-calculating the offset, but save as is into the bpf_stack_build_id
-struct.
+Untag the user pointer in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- kernel/bpf/stackmap.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ kernel/events/uprobes.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/kernel/bpf/stackmap.c b/kernel/bpf/stackmap.c
-index 950ab2f28922..bb89341d3faf 100644
---- a/kernel/bpf/stackmap.c
-+++ b/kernel/bpf/stackmap.c
-@@ -320,7 +320,9 @@ static void stack_map_get_build_id_offset(struct bpf_stack_build_id *id_offs,
- 	}
+diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
+index c5cde87329c7..d3a2716a813a 100644
+--- a/kernel/events/uprobes.c
++++ b/kernel/events/uprobes.c
+@@ -1992,6 +1992,8 @@ static struct uprobe *find_active_uprobe(unsigned long bp_vaddr, int *is_swbp)
+ 	struct uprobe *uprobe = NULL;
+ 	struct vm_area_struct *vma;
  
- 	for (i = 0; i < trace_nr; i++) {
--		vma = find_vma(current->mm, ips[i]);
-+		u64 untagged_ip = untagged_addr(ips[i]);
++	bp_vaddr = untagged_addr(bp_vaddr);
 +
-+		vma = find_vma(current->mm, untagged_ip);
- 		if (!vma || stack_map_get_build_id(vma, id_offs[i].build_id)) {
- 			/* per entry fall back to ips */
- 			id_offs[i].status = BPF_STACK_BUILD_ID_IP;
-@@ -328,7 +330,7 @@ static void stack_map_get_build_id_offset(struct bpf_stack_build_id *id_offs,
- 			memset(id_offs[i].build_id, 0, BPF_BUILD_ID_SIZE);
- 			continue;
- 		}
--		id_offs[i].offset = (vma->vm_pgoff << PAGE_SHIFT) + ips[i]
-+		id_offs[i].offset = (vma->vm_pgoff << PAGE_SHIFT) + untagged_ip
- 			- vma->vm_start;
- 		id_offs[i].status = BPF_STACK_BUILD_ID_VALID;
- 	}
+ 	down_read(&mm->mmap_sem);
+ 	vma = find_vma(mm, bp_vaddr);
+ 	if (vma && vma->vm_start <= bp_vaddr) {
 -- 
 2.21.0.225.g810b269d1ac-goog
