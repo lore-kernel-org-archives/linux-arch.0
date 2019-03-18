@@ -1,73 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from albireo.enyo.de ([5.158.152.32]:56212 "EHLO albireo.enyo.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726692AbfCRNNE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Mar 2019 09:13:04 -0400
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [PATCH] y2038: fix socket.h header inclusion
-References: <20190311153857.563743-1-arnd@arndb.de>
-        <87k1h1fgkk.fsf@mid.deneb.enyo.de>
-        <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
-        <87a7hvded7.fsf@mid.deneb.enyo.de>
-        <CABeXuvrEecSAkBuN-SmAbGwhLWNCC+bA1=X78fm8xMyw8=hm6Q@mail.gmail.com>
-        <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com>
-        <87o968y1uv.fsf@mid.deneb.enyo.de>
-        <CAK8P3a1DzRhiuNxBeQaTYSX1NhCaN6+B0Ya7aeGfxUGj35LFhw@mail.gmail.com>
-Date: Mon, 18 Mar 2019 14:12:57 +0100
-In-Reply-To: <CAK8P3a1DzRhiuNxBeQaTYSX1NhCaN6+B0Ya7aeGfxUGj35LFhw@mail.gmail.com>
-        (Arnd Bergmann's message of "Mon, 18 Mar 2019 13:56:37 +0100")
-Message-ID: <877ecwwckm.fsf@mid.deneb.enyo.de>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:36887 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727383AbfCRNOo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 09:14:44 -0400
+Received: by mail-pf1-f196.google.com with SMTP id 8so7832310pfr.4
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 06:14:44 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+References: <cover.1552679409.git.andreyknvl@google.com> <56d3373c1c5007d776fcd5de4523f4b9da341fb6.1552679409.git.andreyknvl@google.com>
+ <04c5b2de-7fde-7625-9d42-228160879ea0@gmail.com>
+In-Reply-To: <04c5b2de-7fde-7625-9d42-228160879ea0@gmail.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Mon, 18 Mar 2019 14:14:33 +0100
+Message-ID: <CAAeHK+xXLypBpF1EE73KuzQAo0E6Y=apS46wo+swo2AB6cy3YA@mail.gmail.com>
+Subject: Re: [PATCH v11 08/14] net, arm64: untag user pointers in tcp_zerocopy_receive
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Deepa Dinamani <deepa.kernel@gmail.com>, "David S . Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Josh Boyer <jwboyer@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Law <law@redhat.com>
-Message-ID: <20190318131257.Evob7woKxLNkxosSCIdOsyBbK9FDsjU4rlTZZoK5r24@z>
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, netdev <netdev@vger.kernel.org>, bpf@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190318131433.Jh9iIuzT_GW93ZnFira9umnu0vrecdn3TDQpdgc9czc@z>
 
-* Arnd Bergmann:
-
-> On Mon, Mar 18, 2019 at 10:25 AM Florian Weimer <fw@deneb.enyo.de> wrote:
->>
->> * Arnd Bergmann:
->>
->> > Should we just remove __kernel_fd_set from the exported headers and
->> > define the internal fd_set directly in include/linux/types.h? (Adding the
->> > folks from the old thread to Cc).
->>
->> The type is used in the sanitizers, but incorrectly.  They assume that
->> FD_SETSIZE is always 1024.  (The existence of __kernel_fd_set is
->> itself somewhat questionable because it leads to such bugs.)
->> Moving around the type could cause a build failure in the sanitizers, but I'm
->> not entirely clear how the UAPI headers are included there.
+On Fri, Mar 15, 2019 at 9:03 PM Eric Dumazet <eric.dumazet@gmail.com> wrote:
 >
-> It looks like sanitizer_platform_limits_posix.cc includes
-> linux/posix_types.h to ensure that __kernel_fd_set is the same
-> size as __sanitizer___kernel_fd_set, and then it uses the
-> latter afterwards.
 >
-> What I don't see here is what kind of operation is actually done
-> on the data, I only see a cast to void.
+>
+> On 03/15/2019 12:51 PM, Andrey Konovalov wrote:
+> > This patch is a part of a series that extends arm64 kernel ABI to allow to
+> > pass tagged user pointers (with the top byte set to something else other
+> > than 0x00) as syscall arguments.
+> >
+> > tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
+> > can only by done with untagged pointers.
+> >
+> > Untag user pointers in this function.
+> >
+> > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > ---
+> >  net/ipv4/tcp.c | 2 ++
+> >  1 file changed, 2 insertions(+)
+> >
+> > diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+> > index 6baa6dc1b13b..89db3b4fc753 100644
+> > --- a/net/ipv4/tcp.c
+> > +++ b/net/ipv4/tcp.c
+> > @@ -1758,6 +1758,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
+> >       int inq;
+> >       int ret;
+> >
+> > +     address = untagged_addr(address);
+> > +
+> >       if (address & (PAGE_SIZE - 1) || address != zc->address)
+>
+> The second test will fail, if the top bits are changed in address but not in zc->address
 
-I think it is used to assert that the select family of system calls
-writes to the 1024 bits for each of the passed pointers.  Which is not
-actually true—the write size is controlled by the file descriptor
-count argument.
+Will fix in v12, thanks Eric!
 
-> If libsanitizer actually does
-> anything interesting here, we should definitely fix it to use the
-> correct size, especially since this is actually something that
-> can trigger a buffer overflow in subtle ways when used carelessly.
-> See for example [1], which we still have not addressed
-
-The footnote is missing.
-
-> For this specific use (and probably others like it), renaming the
-> fds_bits member to __kernel_fds_bits or something like that
-> would keep user space still compiling. That would only break
-> if someone was using __kernel_fd_set, and actually doing
-> bit operations on it. glibc uses '__fds_bits' unless __USE_XOPEN
-> is set, so maybe we should use use that name unconditionally.
-
-Please use something that is more obviously Linux-specific.
+>
+> >               return -EINVAL;
+> >
+> >
+>
