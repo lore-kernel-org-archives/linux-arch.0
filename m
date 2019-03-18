@@ -1,36 +1,35 @@
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [PATCH] y2038: fix socket.h header inclusion
-Date: Mon, 18 Mar 2019 15:37:07 +0100
-Message-ID: <87mulsuu3w.fsf@mid.deneb.enyo.de>
-References: <20190311153857.563743-1-arnd@arndb.de>
-        <87k1h1fgkk.fsf@mid.deneb.enyo.de>
-        <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
-        <87a7hvded7.fsf@mid.deneb.enyo.de>
-        <CABeXuvrEecSAkBuN-SmAbGwhLWNCC+bA1=X78fm8xMyw8=hm6Q@mail.gmail.com>
-        <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com>
-        <87o968y1uv.fsf@mid.deneb.enyo.de>
-        <CAK8P3a1DzRhiuNxBeQaTYSX1NhCaN6+B0Ya7aeGfxUGj35LFhw@mail.gmail.com>
-        <877ecwwckm.fsf@mid.deneb.enyo.de>
-        <CAK8P3a3X26niT8Y8mWCNXgcRkWhT=ADK-Tt2vjYz6SLj90shCQ@mail.gmail.com>
+From: Eric Dumazet <edumazet@google.com>
+Subject: Re: [PATCH v11 08/14] net, arm64: untag user pointers in tcp_zerocopy_receive
+Date: Mon, 18 Mar 2019 07:44:52 -0700
+Message-ID: <CANn89iJfjhNcDS_eHg-OUiGui-hyRL5iWQuu_U+BW_N9iSNbeA@mail.gmail.com>
+References: <cover.1552679409.git.andreyknvl@google.com> <56d3373c1c5007d776fcd5de4523f4b9da341fb6.1552679409.git.andreyknvl@google.com>
+ <04c5b2de-7fde-7625-9d42-228160879ea0@gmail.com> <CAAeHK+xXLypBpF1EE73KuzQAo0E6Y=apS46wo+swo2AB6cy3YA@mail.gmail.com>
+ <CAAeHK+yxcG=KBjG0A5BicBA7Zwu6LR6t=g5b-9EAPXA8_Dfm2g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3X26niT8Y8mWCNXgcRkWhT=ADK-Tt2vjYz6SLj90shCQ@mail.gmail.com>
-        (Arnd Bergmann's message of "Mon, 18 Mar 2019 15:34:17 +0100")
+In-Reply-To: <CAAeHK+yxcG=KBjG0A5BicBA7Zwu6LR6t=g5b-9EAPXA8_Dfm2g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Deepa Dinamani <deepa.kernel@gmail.com>, "David S . Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Josh Boyer <jwboyer@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Law <law@redhat.com>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Eric Dumazet <eric.dumazet@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.o>
 List-Id: linux-arch.vger.kernel.org
 
-* Arnd Bergmann:
-
-> Ok, so not '__fds_bits'.
+On Mon, Mar 18, 2019 at 6:17 AM Andrey Konovalov <andreyknvl@google.com> wrote:
 >
-> Is '__kernel_fds_bits' ok? I would prefer to keep at least the
-> name __kernel_ namespace that we have for typedefs and the
-> occasional struct tag.
 
-glibc should be okay with that.  We use __kernel_ in the math
-libraries for something completely different, but those files do not
-(or should not) include UAPI headers, and in any case, the set of such
-identifiers is really small.
+> Looking at the code, what's the point of this address != zc->address
+> check? Should I just remove it?
+
+No you must not remove it.
+
+The test detects if a u64 ->unsigned long  conversion might have truncated bits.
+
+Quite surprisingly some people still use 32bit kernels.
+
+The ABI is 64bit only, because we did not want to have yet another compat layer.
+
+struct tcp_zerocopy_receive {
+    __u64 address; /* in: address of mapping */
+    __u32 length; /* in/out: number of bytes to map/mapped */
+    __u32 recv_skip_hint; /* out: amount of bytes to skip */
+};
