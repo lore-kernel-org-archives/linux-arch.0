@@ -1,38 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from albireo.enyo.de ([5.158.152.32]:51904 "EHLO albireo.enyo.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726763AbfCRJZJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Mar 2019 05:25:09 -0400
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [PATCH] y2038: fix socket.h header inclusion
-References: <20190311153857.563743-1-arnd@arndb.de>
-        <87k1h1fgkk.fsf@mid.deneb.enyo.de>
-        <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
-        <87a7hvded7.fsf@mid.deneb.enyo.de>
-        <CABeXuvrEecSAkBuN-SmAbGwhLWNCC+bA1=X78fm8xMyw8=hm6Q@mail.gmail.com>
-        <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com>
-Date: Mon, 18 Mar 2019 10:21:28 +0100
-In-Reply-To: <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com>
-        (Arnd Bergmann's message of "Mon, 18 Mar 2019 09:27:46 +0100")
-Message-ID: <87o968y1uv.fsf@mid.deneb.enyo.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:60584 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727378AbfCRLdY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Mar 2019 07:33:24 -0400
+Subject: Re: [PATCH v11 03/14] lib, arm64: untag user pointers in strn*_user
+References: <cover.1552679409.git.andreyknvl@google.com>
+ <f7fa36ec55ed4b45f61d841f9b726772a04cc0a5.1552679409.git.andreyknvl@google.com>
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Message-ID: <5de82e7d-6091-e694-8397-fbcfd59f9d0b@arm.com>
+Date: Mon, 18 Mar 2019 11:33:14 +0000
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <f7fa36ec55ed4b45f61d841f9b726772a04cc0a5.1552679409.git.andreyknvl@google.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-GB
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Deepa Dinamani <deepa.kernel@gmail.com>, "David S . Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Josh Boyer <jwboyer@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Law <law@redhat.com>
-Message-ID: <20190318092128.p7CDfezIvkev2w-uwtV6paL5z2PVFEu2M0Wv2e3s2qg@z>
+To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
 
-* Arnd Bergmann:
+On 15/03/2019 19:51, Andrey Konovalov wrote:
+> This patch is a part of a series that extends arm64 kernel ABI to allow to
+> pass tagged user pointers (with the top byte set to something else other
+> than 0x00) as syscall arguments.
+>
+> strncpy_from_user and strnlen_user accept user addresses as arguments, and
+> do not go through the same path as copy_from_user and others, so here we
+> need to handle the case of tagged user addresses separately.
+>
+> Untag user pointers passed to these functions.
+>
+> Note, that this patch only temporarily untags the pointers to perform
+> validity checks, but then uses them as is to perform user memory accesses.
 
-> Should we just remove __kernel_fd_set from the exported headers and
-> define the internal fd_set directly in include/linux/types.h? (Adding the
-> folks from the old thread to Cc).
+Thank you for this new version, looks good to me.
 
-The type is used in the sanitizers, but incorrectly.  They assume that
-FD_SETSIZE is always 1024.  (The existence of __kernel_fd_set is
-itself somewhat questionable because it leads to such bugs.)  Moving
-around the type could cause a build failure in the sanitizers, but I'm
-not entirely clear how the UAPI headers are included there.
+To give a bit of context to the readers, I asked Andrey to make this change, because 
+it makes a difference with hardware memory tagging. Indeed, in that situation, it is 
+always preferable to access the memory using the user-provided tag, so that tag 
+checking can take place; if there is a mismatch, a tag fault will occur (which is 
+handled in a way similar to a page fault). It is also preferable not to assume that 
+an untagged user pointer (tag 0x0) bypasses tag checks.
 
-Otherwise, I couldn't find any uses.
+Kevin
+
+>
+> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> ---
+>   lib/strncpy_from_user.c | 3 ++-
+>   lib/strnlen_user.c      | 3 ++-
+>   2 files changed, 4 insertions(+), 2 deletions(-)
+>
+> diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+> index 58eacd41526c..6209bb9507c7 100644
+> --- a/lib/strncpy_from_user.c
+> +++ b/lib/strncpy_from_user.c
+> @@ -6,6 +6,7 @@
+>   #include <linux/uaccess.h>
+>   #include <linux/kernel.h>
+>   #include <linux/errno.h>
+> +#include <linux/mm.h>
+>   
+>   #include <asm/byteorder.h>
+>   #include <asm/word-at-a-time.h>
+> @@ -107,7 +108,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
+>   		return 0;
+>   
+>   	max_addr = user_addr_max();
+> -	src_addr = (unsigned long)src;
+> +	src_addr = (unsigned long)untagged_addr(src);
+>   	if (likely(src_addr < max_addr)) {
+>   		unsigned long max = max_addr - src_addr;
+>   		long retval;
+> diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+> index 1c1a1b0e38a5..8ca3d2ac32ec 100644
+> --- a/lib/strnlen_user.c
+> +++ b/lib/strnlen_user.c
+> @@ -2,6 +2,7 @@
+>   #include <linux/kernel.h>
+>   #include <linux/export.h>
+>   #include <linux/uaccess.h>
+> +#include <linux/mm.h>
+>   
+>   #include <asm/word-at-a-time.h>
+>   
+> @@ -109,7 +110,7 @@ long strnlen_user(const char __user *str, long count)
+>   		return 0;
+>   
+>   	max_addr = user_addr_max();
+> -	src_addr = (unsigned long)str;
+> +	src_addr = (unsigned long)untagged_addr(str);
+>   	if (likely(src_addr < max_addr)) {
+>   		unsigned long max = max_addr - src_addr;
+>   		long retval;
