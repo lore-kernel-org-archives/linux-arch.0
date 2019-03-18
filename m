@@ -1,7 +1,8 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v12 07/13] fs, arm64: untag user pointers in fs/userfaultfd.c
-Date: Mon, 18 Mar 2019 18:17:39 +0100
-Message-ID: <4368bfa2a799442392ee9582dd1cccb8c96e524d.1552929301.git.andreyknvl__34550.0099867181$1552929579$gmane$org@google.com>
+Subject: [PATCH v12 08/13] net,
+ arm64: untag user pointers in tcp_zerocopy_receive
+Date: Mon, 18 Mar 2019 18:17:40 +0100
+Message-ID: <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl__17618.8918225066$1552929593$gmane$org@google.com>
 References: <cover.1552929301.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -25,38 +26,42 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-userfaultfd_register() and userfaultfd_unregister() use provided user
-pointers for vma lookups, which can only by done with untagged pointers.
+tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
+can only by done with untagged pointers.
 
-Untag user pointers in these functions.
+Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- fs/userfaultfd.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ net/ipv4/tcp.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/fs/userfaultfd.c b/fs/userfaultfd.c
-index 89800fc7dc9d..a3b70e0d9756 100644
---- a/fs/userfaultfd.c
-+++ b/fs/userfaultfd.c
-@@ -1320,6 +1320,9 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
- 		goto out;
- 	}
+diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+index 6baa6dc1b13b..e76beb5ff1ff 100644
+--- a/net/ipv4/tcp.c
++++ b/net/ipv4/tcp.c
+@@ -1749,7 +1749,7 @@ EXPORT_SYMBOL(tcp_mmap);
+ static int tcp_zerocopy_receive(struct sock *sk,
+ 				struct tcp_zerocopy_receive *zc)
+ {
+-	unsigned long address = (unsigned long)zc->address;
++	unsigned long address;
+ 	const skb_frag_t *frags = NULL;
+ 	u32 length = 0, seq, offset;
+ 	struct vm_area_struct *vma;
+@@ -1758,7 +1758,12 @@ static int tcp_zerocopy_receive(struct sock *sk,
+ 	int inq;
+ 	int ret;
  
-+	uffdio_register.range.start =
-+		untagged_addr(uffdio_register.range.start);
+-	if (address & (PAGE_SIZE - 1) || address != zc->address)
++	address = (unsigned long)untagged_addr(zc->address);
 +
- 	ret = validate_range(mm, uffdio_register.range.start,
- 			     uffdio_register.range.len);
- 	if (ret)
-@@ -1507,6 +1510,8 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
- 	if (copy_from_user(&uffdio_unregister, buf, sizeof(uffdio_unregister)))
- 		goto out;
++	/* The second test in this if detects if the u64->unsigned long
++	 * conversion had any truncated bits.
++	 */
++	if (address & (PAGE_SIZE - 1) || address != untagged_addr(zc->address))
+ 		return -EINVAL;
  
-+	uffdio_unregister.start = untagged_addr(uffdio_unregister.start);
-+
- 	ret = validate_range(mm, uffdio_unregister.start,
- 			     uffdio_unregister.len);
- 	if (ret)
+ 	if (sk->sk_state == TCP_LISTEN)
 -- 
 2.21.0.225.g810b269d1ac-goog
