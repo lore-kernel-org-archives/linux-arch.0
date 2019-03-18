@@ -1,83 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f195.google.com ([209.85.166.195]:39074 "EHLO
-        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726835AbfCRRf2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 13:35:28 -0400
-Received: by mail-it1-f195.google.com with SMTP id l15so22624658iti.4
-        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 10:35:27 -0700 (PDT)
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56884 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726623AbfCRRuT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Mar 2019 13:50:19 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2IHhuvC009784
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 13:50:18 -0400
+Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2raex1326a-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 13:50:17 -0400
+Received: from localhost
+        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 18 Mar 2019 17:50:16 -0000
+Date: Mon, 18 Mar 2019 10:50:59 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: LKMM patch status
+Reply-To: paulmck@linux.ibm.com
 MIME-Version: 1.0
-References: <cover.1552929301.git.andreyknvl@google.com> <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl@google.com>
-In-Reply-To: <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl@google.com>
-From: Eric Dumazet <edumazet@google.com>
-Date: Mon, 18 Mar 2019 10:35:14 -0700
-Message-ID: <CANn89iJ4SeccE79gKiv5RFqaouFV8shFA+0dCS8+2D_1aRq_Kw@mail.gmail.com>
-Subject: Re: [PATCH v12 08/13] net, arm64: untag user pointers in tcp_zerocopy_receive
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20190318175059.GA3322@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, netdev <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Message-ID: <20190318173514.wTBgjgW2jzi5LZlPnTPDhOHHpLqgJt5VmYGWie0baA8@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20190318175059.etkb1lJqrebBnR7fd_CKsnvoS97fq-KpCAoDqLEaWW8@z>
 
-On Mon, Mar 18, 2019 at 10:18 AM Andrey Konovalov <andreyknvl@google.com> wrote:
->
-> This patch is a part of a series that extends arm64 kernel ABI to allow to
-> pass tagged user pointers (with the top byte set to something else other
-> than 0x00) as syscall arguments.
->
-> tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
-> can only by done with untagged pointers.
->
-> Untag user pointers in this function.
->
-> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> ---
->  net/ipv4/tcp.c | 9 +++++++--
->  1 file changed, 7 insertions(+), 2 deletions(-)
->
-> diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-> index 6baa6dc1b13b..e76beb5ff1ff 100644
-> --- a/net/ipv4/tcp.c
-> +++ b/net/ipv4/tcp.c
-> @@ -1749,7 +1749,7 @@ EXPORT_SYMBOL(tcp_mmap);
->  static int tcp_zerocopy_receive(struct sock *sk,
->                                 struct tcp_zerocopy_receive *zc)
->  {
-> -       unsigned long address = (unsigned long)zc->address;
-> +       unsigned long address;
->         const skb_frag_t *frags = NULL;
->         u32 length = 0, seq, offset;
->         struct vm_area_struct *vma;
-> @@ -1758,7 +1758,12 @@ static int tcp_zerocopy_receive(struct sock *sk,
->         int inq;
->         int ret;
->
-> -       if (address & (PAGE_SIZE - 1) || address != zc->address)
-> +       address = (unsigned long)untagged_addr(zc->address);
-> +
-> +       /* The second test in this if detects if the u64->unsigned long
-> +        * conversion had any truncated bits.
-> +        */
-> +       if (address & (PAGE_SIZE - 1) || address != untagged_addr(zc->address))
->                 return -EINVAL;
->
->         if (sk->sk_state == TCP_LISTEN)
+Hello!
 
 
-This is quite ugly, the comment does not really help nor belong to this patch.
+pick 0172d9e32203 tools/memory-model: Rename some RCU relations
+pick 284749b0aebb tools/memory-model: Refactor some RCU relations
+pick a3f600d92da5 tools/memory-model: Add SRCU support
+pick ad9fd20b6dad tools/memory-model: Update README for addition of SRCU
+pick 648e717586f2 tools/memory-model: Update Documentation/explanation.txt to include SRCU support
+pick 9393998e9ee0 tools/memory-model: Dynamically check SRCU lock-to-unlock matching
+pick 034fb712a620 tools/memory-model: Avoid duplicating herdtools versions
 
-What about using  untagged_addr()  only once ?
+	Ready to go, sent for inclusion in tip, and will presumably show
+	up there soon.
 
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 6baa6dc1b13b0b94b1da238668b93e167cf444fe..855a1f68c1ea9b0d07a92bd7f5e7c24840a99d3d
-100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -1761,6 +1761,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
-        if (address & (PAGE_SIZE - 1) || address != zc->address)
-                return -EINVAL;
+	http://lkml.kernel.org/r/20190213173650.GA26078@linux.ibm.com
 
-+       address = untagged_addr(address);
-+
-        if (sk->sk_state == TCP_LISTEN)
-                return -ENOTCONN;
+pick 487ecc460732 sched/Documentation/kokr: Update Korean translation to update wake_up() & co. memory-barrier guarantees
+pick db467147f131 locking/memory-barriers/kokr: Update Korean translation to replace smp_cond_acquire() with smp_cond_load_acquire()
+pick f1887143f598 Documentation/atomic_t: Clarify signed vs unsigned
+
+	These have the needed acks/reviews, so I will send them as RFC
+	patches within the next week or two.
+
+pick ece264389af9 tools/memory-model: Make scripts be executable
+pick fd4b7b3c6c0d tools/memory-model: Fix comment in MP+poonceonces.litmus
+pick e9cc6e9437e2 tools/memory-model: Do not use "herd" to refer to "herd7"
+pick 093e4c7dcf79 docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
+
+	These all need at least one Reviewed-by or Acked-by.
+
+								Thanx, Paul
