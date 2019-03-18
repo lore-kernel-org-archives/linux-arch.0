@@ -1,83 +1,90 @@
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Subject: Re: [PATCH v11 13/14] arm64: update
- Documentation/arm64/tagged-pointers.txt
-Date: Mon, 18 Mar 2019 13:26:48 +0000
-Message-ID: <81bc3110-b638-4545-1270-26baec3d59e7__1808.09057071514$1552915634$gmane$org@arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <bf0abceeaf32e6b9cdbc9dde45cc5966b5747ec4.1552679409.git.andreyknvl@google.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] y2038: fix socket.h header inclusion
+Date: Mon, 18 Mar 2019 15:34:17 +0100
+Message-ID: <CAK8P3a3X26niT8Y8mWCNXgcRkWhT=ADK-Tt2vjYz6SLj90shCQ@mail.gmail.com>
+References: <20190311153857.563743-1-arnd@arndb.de> <87k1h1fgkk.fsf@mid.deneb.enyo.de>
+ <CAK8P3a1r8GRC7GTHHqWY-PUn=9rWB-7+Qo=7txanbEjGZ-wppw@mail.gmail.com>
+ <87a7hvded7.fsf@mid.deneb.enyo.de> <CABeXuvrEecSAkBuN-SmAbGwhLWNCC+bA1=X78fm8xMyw8=hm6Q@mail.gmail.com>
+ <CAK8P3a22n5L45Gknqd=2zinVGqRovkk0OABmGLJbGcmg8xXd+A@mail.gmail.com>
+ <87o968y1uv.fsf@mid.deneb.enyo.de> <CAK8P3a1DzRhiuNxBeQaTYSX1NhCaN6+B0Ya7aeGfxUGj35LFhw@mail.gmail.com>
+ <877ecwwckm.fsf@mid.deneb.enyo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <bf0abceeaf32e6b9cdbc9dde45cc5966b5747ec4.1552679409.git.andreyknvl@google.com>
-Content-Language: en-GB
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.orglin
-Cc: Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <877ecwwckm.fsf@mid.deneb.enyo.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Florian Weimer <fw@deneb.enyo.de>
+Cc: Deepa Dinamani <deepa.kernel@gmail.com>, "David S . Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Networking <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Josh Boyer <jwboyer@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Law <law@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 15/03/2019 19:51, Andrey Konovalov wrote:
-> This patch is a part of a series that extends arm64 kernel ABI to allow to
-> pass tagged user pointers (with the top byte set to something else other
-> than 0x00) as syscall arguments.
+On Mon, Mar 18, 2019 at 2:12 PM Florian Weimer <fw@deneb.enyo.de> wrote:
+> > On Mon, Mar 18, 2019 at 10:25 AM Florian Weimer <fw@deneb.enyo.de> wrote:
+> >>
+> >> * Arnd Bergmann:
+> >>
+> >> > Should we just remove __kernel_fd_set from the exported headers and
+> >> > define the internal fd_set directly in include/linux/types.h? (Adding the
+> >> > folks from the old thread to Cc).
+> >>
+> >> The type is used in the sanitizers, but incorrectly.  They assume that
+> >> FD_SETSIZE is always 1024.  (The existence of __kernel_fd_set is
+> >> itself somewhat questionable because it leads to such bugs.)
+> >> Moving around the type could cause a build failure in the sanitizers, but I'm
+> >> not entirely clear how the UAPI headers are included there.
+> >
+> > It looks like sanitizer_platform_limits_posix.cc includes
+> > linux/posix_types.h to ensure that __kernel_fd_set is the same
+> > size as __sanitizer___kernel_fd_set, and then it uses the
+> > latter afterwards.
+> >
+> > What I don't see here is what kind of operation is actually done
+> > on the data, I only see a cast to void.
 >
-> Document the ABI changes in Documentation/arm64/tagged-pointers.txt.
+> I think it is used to assert that the select family of system calls
+> writes to the 1024 bits for each of the passed pointers.
+
+Yes, that is what I expected to see in libsanitizer, I just couldn't
+find any code that actually does this check.
+
+> Which is not actually true—the write size is controlled by the
+> file descriptor count argument.
+
+Yes, of course. In fact, I see multiple possible problems that
+
+- kernel reading uninitialized data if 'FD_ZERO()' was
+  used with a shorter size than the count argument.
+- kernel writing beyond the fd_set data on stack
+  when the declaration had a shorter size than the count
+  argument.
+
+Each one could happen either because __FD_SETSIZE
+is smaller than 'count', or because kernel and user space
+disagree on the element size (32 vs 64 bit on x32).
+
+> > If libsanitizer actually does
+> > anything interesting here, we should definitely fix it to use the
+> > correct size, especially since this is actually something that
+> > can trigger a buffer overflow in subtle ways when used carelessly.
+> > See for example [1], which we still have not addressed
 >
-> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> ---
->   Documentation/arm64/tagged-pointers.txt | 18 ++++++++----------
->   1 file changed, 8 insertions(+), 10 deletions(-)
+> The footnote is missing.
+
+Sorry, I meant [1] https://patchwork.kernel.org/patch/10245053/
+
+> > For this specific use (and probably others like it), renaming the
+> > fds_bits member to __kernel_fds_bits or something like that
+> > would keep user space still compiling. That would only break
+> > if someone was using __kernel_fd_set, and actually doing
+> > bit operations on it. glibc uses '__fds_bits' unless __USE_XOPEN
+> > is set, so maybe we should use use that name unconditionally.
 >
-> diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-> index a25a99e82bb1..07fdddeacad0 100644
-> --- a/Documentation/arm64/tagged-pointers.txt
-> +++ b/Documentation/arm64/tagged-pointers.txt
-> @@ -17,13 +17,15 @@ this byte for application use.
->   Passing tagged addresses to the kernel
->   --------------------------------------
->   
-> -All interpretation of userspace memory addresses by the kernel assumes
-> -an address tag of 0x00.
-> +The kernel supports tags in pointer arguments (including pointers in
-> +structures) of syscalls, however such pointers must point to memory ranges
-> +obtained by anonymous mmap() or brk().
->   
-> -This includes, but is not limited to, addresses found in:
-> +The kernel supports tags in user fault addresses. However the fault_address
-> +field in the sigcontext struct will contain an untagged address.
->   
-> - - pointer arguments to system calls, including pointers in structures
-> -   passed to system calls,
-> +All other interpretations of userspace memory addresses by the kernel
-> +assume an address tag of 0x00, in particular:
->   
->    - the stack pointer (sp), e.g. when interpreting it to deliver a
->      signal,
-> @@ -33,11 +35,7 @@ This includes, but is not limited to, addresses found in:
->   
->   Using non-zero address tags in any of these locations may result in an
->   error code being returned, a (fatal) signal being raised, or other modes
-> -of failure.
-> -
-> -For these reasons, passing non-zero address tags to the kernel via
-> -system calls is forbidden, and using a non-zero address tag for sp is
-> -strongly discouraged.
-> +of failure. Using a non-zero address tag for sp is strongly discouraged.
+> Please use something that is more obviously Linux-specific.
 
-I don't understand why we should keep such a limitation. For MTE, tagging SP is 
-something we are definitely considering. This does bother userspace software in some 
-rare cases, but I'm not sure in what way it bothers the kernel.
+Ok, so not '__fds_bits'.
 
-Kevin
+Is '__kernel_fds_bits' ok? I would prefer to keep at least the
+name __kernel_ namespace that we have for typedefs and the
+occasional struct tag.
 
->   
->   Programs maintaining a frame pointer and frame records that use non-zero
->   address tags may suffer impaired or inaccurate debug and profiling
+        Arnd
