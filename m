@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v12 05/13] mm, arm64: untag user pointers in mm/gup.c
-Date: Mon, 18 Mar 2019 18:17:37 +0100
-Message-ID: <f46caf7bea6bdbb7e50f2abedc83df13d075735c.1552929301.git.andreyknvl__39815.01781834$1552929557$gmane$org@google.com>
+Subject: [PATCH v12 06/13] fs, arm64: untag user pointers in copy_mount_options
+Date: Mon, 18 Mar 2019 18:17:38 +0100
+Message-ID: <e12d6b5008f63b530d25ad73b2e3491939005c22.1552929301.git.andreyknvl__33544.5825172187$1552929567$gmane$org@google.com>
 References: <cover.1552929301.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -25,39 +25,31 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-mm/gup.c provides a kernel interface that accepts user addresses and
-manipulates user pages directly (for example get_user_pages, that is used
-by the futex syscall). Since a user can provided tagged addresses, we need
-to handle this case.
+In copy_mount_options a user address is being subtracted from TASK_SIZE.
+If the address is lower than TASK_SIZE, the size is calculated to not
+allow the exact_copy_from_user() call to cross TASK_SIZE boundary.
+However if the address is tagged, then the size will be calculated
+incorrectly.
 
-Add untagging to gup.c functions that use user addresses for vma lookups.
+Untag the address before subtracting.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- mm/gup.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ fs/namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index f84e22685aaa..3192741e0b3a 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -686,6 +686,8 @@ static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
- 	if (!nr_pages)
- 		return 0;
- 
-+	start = untagged_addr(start);
-+
- 	VM_BUG_ON(!!pages != !!(gup_flags & FOLL_GET));
- 
- 	/*
-@@ -848,6 +850,8 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
- 	struct vm_area_struct *vma;
- 	vm_fault_t ret, major = 0;
- 
-+	address = untagged_addr(address);
-+
- 	if (unlocked)
- 		fault_flags |= FAULT_FLAG_ALLOW_RETRY;
+diff --git a/fs/namespace.c b/fs/namespace.c
+index c9cab307fa77..c27e5713bf04 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -2825,7 +2825,7 @@ void *copy_mount_options(const void __user * data)
+ 	 * the remainder of the page.
+ 	 */
+ 	/* copy_from_user cannot cross TASK_SIZE ! */
+-	size = TASK_SIZE - (unsigned long)data;
++	size = TASK_SIZE - (unsigned long)untagged_addr(data);
+ 	if (size > PAGE_SIZE)
+ 		size = PAGE_SIZE;
  
 -- 
 2.21.0.225.g810b269d1ac-goog
