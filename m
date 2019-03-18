@@ -1,8 +1,8 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v12 08/13] net,
- arm64: untag user pointers in tcp_zerocopy_receive
-Date: Mon, 18 Mar 2019 18:17:40 +0100
-Message-ID: <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl__17618.8918225066$1552929593$gmane$org@google.com>
+Subject: [PATCH v12 10/13] tracing,
+ arm64: untag user pointers in seq_print_user_ip
+Date: Mon, 18 Mar 2019 18:17:42 +0100
+Message-ID: <9733fd0b723aab6bcf4369fe366104ba795eb5a9.1552929301.git.andreyknvl__36990.9319373377$1552929603$gmane$org@google.com>
 References: <cover.1552929301.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -26,42 +26,45 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
+seq_print_user_ip() uses provided user pointers for vma lookups, which
 can only by done with untagged pointers.
 
 Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- net/ipv4/tcp.c | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ kernel/trace/trace_output.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 6baa6dc1b13b..e76beb5ff1ff 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -1749,7 +1749,7 @@ EXPORT_SYMBOL(tcp_mmap);
- static int tcp_zerocopy_receive(struct sock *sk,
- 				struct tcp_zerocopy_receive *zc)
+diff --git a/kernel/trace/trace_output.c b/kernel/trace/trace_output.c
+index 54373d93e251..6376bee93c84 100644
+--- a/kernel/trace/trace_output.c
++++ b/kernel/trace/trace_output.c
+@@ -370,6 +370,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
  {
--	unsigned long address = (unsigned long)zc->address;
-+	unsigned long address;
- 	const skb_frag_t *frags = NULL;
- 	u32 length = 0, seq, offset;
- 	struct vm_area_struct *vma;
-@@ -1758,7 +1758,12 @@ static int tcp_zerocopy_receive(struct sock *sk,
- 	int inq;
- 	int ret;
+ 	struct file *file = NULL;
+ 	unsigned long vmstart = 0;
++	unsigned long untagged_ip = untagged_addr(ip);
+ 	int ret = 1;
  
--	if (address & (PAGE_SIZE - 1) || address != zc->address)
-+	address = (unsigned long)untagged_addr(zc->address);
-+
-+	/* The second test in this if detects if the u64->unsigned long
-+	 * conversion had any truncated bits.
-+	 */
-+	if (address & (PAGE_SIZE - 1) || address != untagged_addr(zc->address))
- 		return -EINVAL;
+ 	if (s->full)
+@@ -379,7 +380,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ 		const struct vm_area_struct *vma;
  
- 	if (sk->sk_state == TCP_LISTEN)
+ 		down_read(&mm->mmap_sem);
+-		vma = find_vma(mm, ip);
++		vma = find_vma(mm, untagged_ip);
+ 		if (vma) {
+ 			file = vma->vm_file;
+ 			vmstart = vma->vm_start;
+@@ -388,7 +389,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
+ 			ret = trace_seq_path(s, &file->f_path);
+ 			if (ret)
+ 				trace_seq_printf(s, "[+0x%lx]",
+-						 ip - vmstart);
++						 untagged_ip - vmstart);
+ 		}
+ 		up_read(&mm->mmap_sem);
+ 	}
 -- 
 2.21.0.225.g810b269d1ac-goog
