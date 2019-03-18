@@ -1,14 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f202.google.com ([209.85.160.202]:52662 "EHLO
-        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727358AbfCRRRv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 13:17:51 -0400
-Received: by mail-qt1-f202.google.com with SMTP id d24so17042434qtj.19
-        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 10:17:49 -0700 (PDT)
-Date: Mon, 18 Mar 2019 18:17:32 +0100
-Message-Id: <cover.1552929301.git.andreyknvl@google.com>
+Received: from mail-it1-f201.google.com ([209.85.166.201]:59661 "EHLO
+        mail-it1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727808AbfCRRR7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Mar 2019 13:17:59 -0400
+Received: by mail-it1-f201.google.com with SMTP id q192so15132855itb.9
+        for <linux-arch@vger.kernel.org>; Mon, 18 Mar 2019 10:17:58 -0700 (PDT)
+Date: Mon, 18 Mar 2019 18:17:35 +0100
+In-Reply-To: <cover.1552929301.git.andreyknvl@google.com>
+Message-Id: <f7fa36ec55ed4b45f61d841f9b726772a04cc0a5.1552929301.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Subject: [PATCH v12 00/13] arm64: untag user pointers passed to the kernel
+References: <cover.1552929301.git.andreyknvl@google.com>
+Subject: [PATCH v12 03/13] lib, arm64: untag user pointers in strn*_user
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,236 +18,66 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 
-=== Overview
+This patch is a part of a series that extends arm64 kernel ABI to allow to
+pass tagged user pointers (with the top byte set to something else other
+than 0x00) as syscall arguments.
 
-arm64 has a feature called Top Byte Ignore, which allows to embed pointer
-tags into the top byte of each pointer. Userspace programs (such as
-HWASan, a memory debugging tool [1]) might use this feature and pass
-tagged user pointers to the kernel through syscalls or other interfaces.
+strncpy_from_user and strnlen_user accept user addresses as arguments, and
+do not go through the same path as copy_from_user and others, so here we
+need to handle the case of tagged user addresses separately.
 
-Right now the kernel is already able to handle user faults with tagged
-pointers, due to these patches:
+Untag user pointers passed to these functions.
 
-1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
-             tagged pointer")
-2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
-	      pointers")
-3. 276e9327 ("arm64: entry: improve data abort handling of tagged
-	      pointers")
-
-This patchset extends tagged pointer support to syscall arguments.
-
-As per the proposed ABI change [3], tagged pointers are only allowed to be
-passed to syscalls when they point to memory ranges obtained by anonymous
-mmap() or sbrk() (see the patchset [3] for more details).
-
-For non-memory syscalls this is done by untaging user pointers when the
-kernel performs pointer checking to find out whether the pointer comes
-from userspace (most notably in access_ok). The untagging is done only
-when the pointer is being checked, the tag is preserved as the pointer
-makes its way through the kernel and stays tagged when the kernel
-dereferences the pointer when perfoming user memory accesses.
-
-Memory syscalls (mmap, mprotect, etc.) don't do user memory accesses but
-rather deal with memory ranges, and untagged pointers are better suited to
-describe memory ranges internally. Thus for memory syscalls we untag
-pointers completely when they enter the kernel.
-
-=== Other approaches
-
-One of the alternative approaches to untagging that was considered is to
-completely strip the pointer tag as the pointer enters the kernel with
-some kind of a syscall wrapper, but that won't work with the countless
-number of different ioctl calls. With this approach we would need a custom
-wrapper for each ioctl variation, which doesn't seem practical.
-
-An alternative approach to untagging pointers in memory syscalls prologues
-is to inspead allow tagged pointers to be passed to find_vma() (and other
-vma related functions) and untag them there. Unfortunately, a lot of
-find_vma() callers then compare or subtract the returned vma start and end
-fields against the pointer that was being searched. Thus this approach
-would still require changing all find_vma() callers.
-
-=== Testing
-
-The following testing approaches has been taken to find potential issues
-with user pointer untagging:
-
-1. Static testing (with sparse [2] and separately with a custom static
-   analyzer based on Clang) to track casts of __user pointers to integer
-   types to find places where untagging needs to be done.
-
-2. Static testing with grep to find parts of the kernel that call
-   find_vma() (and other similar functions) or directly compare against
-   vm_start/vm_end fields of vma.
-
-3. Static testing with grep to find parts of the kernel that compare
-   user pointers with TASK_SIZE or other similar consts and macros.
-
-4. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
-   a modified syzkaller version that passes tagged pointers to the kernel.
-
-Based on the results of the testing the requried patches have been added
-to the patchset.
-
-=== Notes
-
-This patchset is meant to be merged together with "arm64 relaxed ABI" [3].
-
-This patchset is a prerequisite for ARM's memory tagging hardware feature
-support [4].
-
-This patchset has been merged into the Pixel 2 kernel tree and is now
-being used to enable testing of Pixel 2 phones with HWASan.
-
-Thanks!
-
-[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
-
-[2] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
-
-[3] https://lkml.org/lkml/2019/3/18/819
-
-[4] https://community.arm.com/processors/b/blog/posts/arm-a-profile-architecture-2018-developments-armv85a
-
-Changes in v12:
-- Changed untagging in tcp_zerocopy_receive() to also untag zc->address.
-- Fixed untagging in prctl_set_mm* to only untag pointers for vma lookups
-  and validity checks, but leave them as is for actual user space accesses.
-- Updated the link to the v2 of the "arm64 relaxed ABI" patchset [3].
-- Dropped the documentation patch, as the "arm64 relaxed ABI" patchset [3]
-  handles that.
-
-Changes in v11:
-- Added "uprobes, arm64: untag user pointers in find_active_uprobe" patch.
-- Added "bpf, arm64: untag user pointers in stack_map_get_build_id_offset"
-  patch.
-- Fixed "tracing, arm64: untag user pointers in seq_print_user_ip" to
-  correctly perform subtration with a tagged addr.
-- Moved untagged_addr() from SYSCALL_DEFINE3(mprotect) and
-  SYSCALL_DEFINE4(pkey_mprotect) to do_mprotect_pkey().
-- Moved untagged_addr() definition for other arches from
-  include/linux/memory.h to include/linux/mm.h.
-- Changed untagging in strn*_user() to perform userspace accesses through
-  tagged pointers.
-- Updated the documentation to mention that passing tagged pointers to
-  memory syscalls is allowed.
-- Updated the test to use malloc'ed memory instead of stack memory.
-
-Changes in v10:
-- Added "mm, arm64: untag user pointers passed to memory syscalls" back.
-- New patch "fs, arm64: untag user pointers in fs/userfaultfd.c".
-- New patch "net, arm64: untag user pointers in tcp_zerocopy_receive".
-- New patch "kernel, arm64: untag user pointers in prctl_set_mm*".
-- New patch "tracing, arm64: untag user pointers in seq_print_user_ip".
-
-Changes in v9:
-- Rebased onto 4.20-rc6.
-- Used u64 instead of __u64 in type casts in the untagged_addr macro for
-  arm64.
-- Added braces around (addr) in the untagged_addr macro for other arches.
-
-Changes in v8:
-- Rebased onto 65102238 (4.20-rc1).
-- Added a note to the cover letter on why syscall wrappers/shims that untag
-  user pointers won't work.
-- Added a note to the cover letter that this patchset has been merged into
-  the Pixel 2 kernel tree.
-- Documentation fixes, in particular added a list of syscalls that don't
-  support tagged user pointers.
-
-Changes in v7:
-- Rebased onto 17b57b18 (4.19-rc6).
-- Dropped the "arm64: untag user address in __do_user_fault" patch, since
-  the existing patches already handle user faults properly.
-- Dropped the "usb, arm64: untag user addresses in devio" patch, since the
-  passed pointer must come from a vma and therefore be untagged.
-- Dropped the "arm64: annotate user pointers casts detected by sparse"
-  patch (see the discussion to the replies of the v6 of this patchset).
-- Added more context to the cover letter.
-- Updated Documentation/arm64/tagged-pointers.txt.
-
-Changes in v6:
-- Added annotations for user pointer casts found by sparse.
-- Rebased onto 050cdc6c (4.19-rc1+).
-
-Changes in v5:
-- Added 3 new patches that add untagging to places found with static
-  analysis.
-- Rebased onto 44c929e1 (4.18-rc8).
-
-Changes in v4:
-- Added a selftest for checking that passing tagged pointers to the
-  kernel succeeds.
-- Rebased onto 81e97f013 (4.18-rc1+).
-
-Changes in v3:
-- Rebased onto e5c51f30 (4.17-rc6+).
-- Added linux-arch@ to the list of recipients.
-
-Changes in v2:
-- Rebased onto 2d618bdf (4.17-rc3+).
-- Removed excessive untagging in gup.c.
-- Removed untagging pointers returned from __uaccess_mask_ptr.
-
-Changes in v1:
-- Rebased onto 4.17-rc1.
-
-Changes in RFC v2:
-- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
-  defining it for each arch individually.
-- Updated Documentation/arm64/tagged-pointers.txt.
-- Dropped "mm, arm64: untag user addresses in memory syscalls".
-- Rebased onto 3eb2ce82 (4.16-rc7).
+Note, that this patch only temporarily untags the pointers to perform
+validity checks, but then uses them as is to perform user memory accesses.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+ lib/strncpy_from_user.c | 3 ++-
+ lib/strnlen_user.c      | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-Andrey Konovalov (13):
-  uaccess: add untagged_addr definition for other arches
-  arm64: untag user pointers in access_ok and __uaccess_mask_ptr
-  lib, arm64: untag user pointers in strn*_user
-  mm, arm64: untag user pointers passed to memory syscalls
-  mm, arm64: untag user pointers in mm/gup.c
-  fs, arm64: untag user pointers in copy_mount_options
-  fs, arm64: untag user pointers in fs/userfaultfd.c
-  net, arm64: untag user pointers in tcp_zerocopy_receive
-  kernel, arm64: untag user pointers in prctl_set_mm*
-  tracing, arm64: untag user pointers in seq_print_user_ip
-  uprobes, arm64: untag user pointers in find_active_uprobe
-  bpf, arm64: untag user pointers in stack_map_get_build_id_offset
-  selftests, arm64: add a selftest for passing tagged pointers to kernel
-
- arch/arm64/include/asm/uaccess.h              | 10 +++--
- fs/namespace.c                                |  2 +-
- fs/userfaultfd.c                              |  5 +++
- include/linux/mm.h                            |  4 ++
- ipc/shm.c                                     |  2 +
- kernel/bpf/stackmap.c                         |  6 ++-
- kernel/events/uprobes.c                       |  2 +
- kernel/sys.c                                  | 44 +++++++++++++------
- kernel/trace/trace_output.c                   |  5 ++-
- lib/strncpy_from_user.c                       |  3 +-
- lib/strnlen_user.c                            |  3 +-
- mm/gup.c                                      |  4 ++
- mm/madvise.c                                  |  2 +
- mm/mempolicy.c                                |  5 +++
- mm/migrate.c                                  |  1 +
- mm/mincore.c                                  |  2 +
- mm/mlock.c                                    |  5 +++
- mm/mmap.c                                     |  7 +++
- mm/mprotect.c                                 |  1 +
- mm/mremap.c                                   |  2 +
- mm/msync.c                                    |  2 +
- net/ipv4/tcp.c                                |  9 +++-
- tools/testing/selftests/arm64/.gitignore      |  1 +
- tools/testing/selftests/arm64/Makefile        | 11 +++++
- .../testing/selftests/arm64/run_tags_test.sh  | 12 +++++
- tools/testing/selftests/arm64/tags_test.c     | 21 +++++++++
- 26 files changed, 144 insertions(+), 27 deletions(-)
- create mode 100644 tools/testing/selftests/arm64/.gitignore
- create mode 100644 tools/testing/selftests/arm64/Makefile
- create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
- create mode 100644 tools/testing/selftests/arm64/tags_test.c
-
+diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+index 58eacd41526c..6209bb9507c7 100644
+--- a/lib/strncpy_from_user.c
++++ b/lib/strncpy_from_user.c
+@@ -6,6 +6,7 @@
+ #include <linux/uaccess.h>
+ #include <linux/kernel.h>
+ #include <linux/errno.h>
++#include <linux/mm.h>
+ 
+ #include <asm/byteorder.h>
+ #include <asm/word-at-a-time.h>
+@@ -107,7 +108,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
+ 		return 0;
+ 
+ 	max_addr = user_addr_max();
+-	src_addr = (unsigned long)src;
++	src_addr = (unsigned long)untagged_addr(src);
+ 	if (likely(src_addr < max_addr)) {
+ 		unsigned long max = max_addr - src_addr;
+ 		long retval;
+diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+index 1c1a1b0e38a5..8ca3d2ac32ec 100644
+--- a/lib/strnlen_user.c
++++ b/lib/strnlen_user.c
+@@ -2,6 +2,7 @@
+ #include <linux/kernel.h>
+ #include <linux/export.h>
+ #include <linux/uaccess.h>
++#include <linux/mm.h>
+ 
+ #include <asm/word-at-a-time.h>
+ 
+@@ -109,7 +110,7 @@ long strnlen_user(const char __user *str, long count)
+ 		return 0;
+ 
+ 	max_addr = user_addr_max();
+-	src_addr = (unsigned long)str;
++	src_addr = (unsigned long)untagged_addr(str);
+ 	if (likely(src_addr < max_addr)) {
+ 		unsigned long max = max_addr - src_addr;
+ 		long retval;
 -- 
 2.21.0.225.g810b269d1ac-goog
