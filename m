@@ -1,40 +1,156 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v11 08/14] net, arm64: untag user pointers in tcp_zerocopy_receive
-Date: Mon, 18 Mar 2019 17:08:48 +0100
-Message-ID: <CAAeHK+w+koPnKP2=3yQsj5wCVY-c6+NLBnkKWQP8Q6M6pzO4dA@mail.gmail.com>
-References: <cover.1552679409.git.andreyknvl@google.com> <56d3373c1c5007d776fcd5de4523f4b9da341fb6.1552679409.git.andreyknvl@google.com>
- <04c5b2de-7fde-7625-9d42-228160879ea0@gmail.com> <CAAeHK+xXLypBpF1EE73KuzQAo0E6Y=apS46wo+swo2AB6cy3YA@mail.gmail.com>
- <CAAeHK+yxcG=KBjG0A5BicBA7Zwu6LR6t=g5b-9EAPXA8_Dfm2g@mail.gmail.com> <CANn89iJfjhNcDS_eHg-OUiGui-hyRL5iWQuu_U+BW_N9iSNbeA@mail.gmail.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 0/4] arm64 relaxed ABI
+Date: Mon, 18 Mar 2019 16:35:29 +0000
+Message-ID: <20190318163533.26838-1-vincenzo.frascino@arm.com>
+References: <cover.1552679409.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CANn89iJfjhNcDS_eHg-OUiGui-hyRL5iWQuu_U+BW_N9iSNbeA@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Eric Dumazet <edumazet@google.com>
-Cc: Eric Dumazet <eric.dumazet@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.o>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1552679409.git.andreyknvl@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Alexei Starovoitov <ast@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Daniel Borkmann <daniel@iogearbox.net>, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Evgeniy Stepanov <eugenis@google.com>, Graeme Barnes <Graeme.Barnes@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Kate Stewart <kstewart@linuxf>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 18, 2019 at 3:45 PM Eric Dumazet <edumazet@google.com> wrote:
->
-> On Mon, Mar 18, 2019 at 6:17 AM Andrey Konovalov <andreyknvl@google.com> wrote:
-> >
->
-> > Looking at the code, what's the point of this address != zc->address
-> > check? Should I just remove it?
->
-> No you must not remove it.
->
-> The test detects if a u64 ->unsigned long  conversion might have truncated bits.
->
-> Quite surprisingly some people still use 32bit kernels.
->
-> The ABI is 64bit only, because we did not want to have yet another compat layer.
->
-> struct tcp_zerocopy_receive {
->     __u64 address; /* in: address of mapping */
->     __u32 length; /* in/out: number of bytes to map/mapped */
->     __u32 recv_skip_hint; /* out: amount of bytes to skip */
-> };
+On arm64 the TCR_EL1.TBI0 bit has been always enabled in the Linux
+kernel hence the userspace (EL0) is allowed to set a non-zero value
+in the top byte but the resulting pointers are not allowed at the
+user-kernel syscall ABI boundary.
 
-Ah, got it, thanks! I'll add a comment here then, otherwise this looks
-confusing.
+This patchset proposes a relaxation of the ABI and a mechanism to
+advertise it to the userspace via an AT_FLAGS.
+
+The rationale behind the choice of AT_FLAGS is that the Unix System V
+ABI defines AT_FLAGS as "flags", leaving some degree of freedom in
+interpretation.
+There are two previous attempts of using AT_FLAGS in the Linux Kernel
+for different reasons: the first was more generic and was used to expose
+the support for the GNU STACK NX feature [1] and the second was done for
+the MIPS architecture and was used to expose the support of "MIPS ABI
+Extension for IEEE Std 754 Non-Compliant Interlinking" [2].
+Both the changes are currently _not_ merged in mainline.
+The only architecture that reserves some of the bits in AT_FLAGS is
+currently MIPS, which introduced the concept of platform specific ABI
+(psABI) reserving the top-byte [3].
+
+When ARM64_AT_FLAGS_SYSCALL_TBI is set the kernel is advertising
+to the userspace that a relaxed ABI is supported hence this type
+of pointers are now allowed to be passed to the syscalls when they are
+in memory ranges obtained by anonymous mmap() or brk().
+
+The userspace _must_ verify that the flag is set before passing tagged
+pointers to the syscalls allowed by this relaxation.
+
+More in general, exposing the ARM64_AT_FLAGS_SYSCALL_TBI flag and mandating
+to the software to check that the feature is present, before using the
+associated functionality, it provides a degree of control on the decision
+of disabling such a feature in future without consequently breaking the
+userspace.
+
+The change required a modification of the elf common code, because in Linux
+the AT_FLAGS are currently set to zero by default by the kernel.
+
+The newly added flag has been verified on arm64 using the code below.
+#include <stdio.h>
+#include <stdbool.h>
+#include <sys/auxv.h>
+
+#define ARM64_AT_FLAGS_SYSCALL_TBI     (1 << 0)
+
+bool arm64_syscall_tbi_is_present(void)
+{
+        unsigned long at_flags = getauxval(AT_FLAGS);
+        if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
+                return true;
+
+        return false;
+}
+
+void main()
+{
+        if (arm64_syscall_tbi_is_present())
+                printf("ARM64_AT_FLAGS_SYSCALL_TBI is present\n");
+}
+
+This patchset should be merged together with [4].
+
+[1] https://patchwork.ozlabs.org/patch/579578/
+[2] https://lore.kernel.org/patchwork/cover/618280/
+[3] ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
+[4] https://patchwork.kernel.org/cover/10674351/
+
+ABI References:
+---------------
+Sco SysV ABI: http://www.sco.com/developers/gabi/2003-12-17/contents.html
+PowerPC AUXV: http://openpowerfoundation.org/wp-content/uploads/resources/leabi/content/dbdoclet.50655242_98651.html
+AMD64 ABI: https://www.cs.tufts.edu/comp/40-2012f/readings/amd64-abi.pdf
+x86 ABI: https://www.uclibc.org/docs/psABI-i386.pdf
+MIPS ABI: ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/psABI_mips3.0.pdf
+ARM ABI: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0044f/IHI0044F_aaelf.pdf
+SPARC ABI: http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
+
+CC: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Alexei Starovoitov <ast@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andrey Konovalov <andreyknvl@google.com>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Cc: Branislav Rankov <Branislav.Rankov@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Chintan Pandya <cpandya@codeaurora.org>
+Cc: Daniel Borkmann <daniel@iogearbox.net>
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Evgeniy Stepanov <eugenis@google.com>
+Cc: Graeme Barnes <Graeme.Barnes@arm.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Jacob Bramley <Jacob.Bramley@arm.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Kostya Serebryany <kcc@google.com>
+Cc: Lee Smith <Lee.Smith@arm.com>
+Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>
+Cc: Robin Murphy <robin.murphy@arm.com>
+Cc: Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Changes:
+--------
+v2:
+  - Rebased on 5.1-rc1
+  - Addressed review comments
+  - Modified tagged-pointers.txt to be compliant with the
+    new ABI relaxation
+
+Vincenzo Frascino (4):
+  elf: Make AT_FLAGS arch configurable
+  arm64: Define Documentation/arm64/elf_at_flags.txt
+  arm64: Relax Documentation/arm64/tagged-pointers.txt
+  arm64: elf: Advertise relaxed ABI
+
+ Documentation/arm64/elf_at_flags.txt    | 133 ++++++++++++++++++++++++
+ Documentation/arm64/tagged-pointers.txt |  23 ++--
+ arch/arm64/include/asm/atflags.h        |   7 ++
+ arch/arm64/include/asm/elf.h            |   5 +
+ arch/arm64/include/uapi/asm/atflags.h   |   8 ++
+ fs/binfmt_elf.c                         |   6 +-
+ fs/binfmt_elf_fdpic.c                   |   6 +-
+ fs/compat_binfmt_elf.c                  |   5 +
+ 8 files changed, 184 insertions(+), 9 deletions(-)
+ create mode 100644 Documentation/arm64/elf_at_flags.txt
+ create mode 100644 arch/arm64/include/asm/atflags.h
+ create mode 100644 arch/arm64/include/uapi/asm/atflags.h
+
+-- 
+2.21.0
