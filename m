@@ -1,45 +1,72 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: LKMM patch status
-Date: Mon, 18 Mar 2019 10:50:59 -0700
-Message-ID: <20190318175059.GA3322@linux.ibm.com>
-Reply-To: paulmck@linux.ibm.com
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 0/5] arm64: compat: Reduce address limit
+Date: Tue, 19 Mar 2019 15:15:37 +0000
+Message-ID: <20190319151542.19557-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jann Horn <jannh@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello!
+This patchset reduces the size of the user-accessible address space
+for compat tasks by a page.
 
+Currently, compat tasks running on arm64 can allocate memory up to
+TASK_SIZE_32 (UL(0x100000000)).
 
-pick 0172d9e32203 tools/memory-model: Rename some RCU relations
-pick 284749b0aebb tools/memory-model: Refactor some RCU relations
-pick a3f600d92da5 tools/memory-model: Add SRCU support
-pick ad9fd20b6dad tools/memory-model: Update README for addition of SRCU
-pick 648e717586f2 tools/memory-model: Update Documentation/explanation.txt to include SRCU support
-pick 9393998e9ee0 tools/memory-model: Dynamically check SRCU lock-to-unlock matching
-pick 034fb712a620 tools/memory-model: Avoid duplicating herdtools versions
+This means that mmap() allocations, if we treat them as returning an
+array, are not compliant with the sections 6.5.8 of the C standard
+(C99) which states that: "If the expression P points to an element of
+an array object and the expression Q points to the last element of the
+same array object, the pointer expression Q+1 compares greater than P".
 
-	Ready to go, sent for inclusion in tip, and will presumably show
-	up there soon.
+A solution to this problem is to reduce TASK_SIZE_32 of a page.
 
-	http://lkml.kernel.org/r/20190213173650.GA26078@linux.ibm.com
+But, in the current implementation, compat installs a special page
+called "[vectors]" that contains sigreturn trampolines and kuser
+helpers, and this is done at fixed address specified by the kuser
+helpers ABI (0xffff0000) which overlaps with the last page when 64K
+pages are enabled.
 
-pick 487ecc460732 sched/Documentation/kokr: Update Korean translation to update wake_up() & co. memory-barrier guarantees
-pick db467147f131 locking/memory-barriers/kokr: Update Korean translation to replace smp_cond_acquire() with smp_cond_load_acquire()
-pick f1887143f598 Documentation/atomic_t: Clarify signed vs unsigned
+This patchset address the issue creating separate pages for vectors
+and sigpage in a similar way to what happens today on arm and
+disabling kuser helpers when 64K pages are enabled.
 
-	These have the needed acks/reviews, so I will send them as RFC
-	patches within the next week or two.
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Jann Horn <jannh@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-pick ece264389af9 tools/memory-model: Make scripts be executable
-pick fd4b7b3c6c0d tools/memory-model: Fix comment in MP+poonceonces.litmus
-pick e9cc6e9437e2 tools/memory-model: Do not use "herd" to refer to "herd7"
-pick 093e4c7dcf79 docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
+Vincenzo Frascino (5):
+  arm64: compat: Alloc separate pages for vectors and sigpage
+  arm64: compat: Split kuser32
+  arm64: compat: Refactor aarch32_alloc_vdso_pages()
+  arm64: compat: Add KUSER_HELPERS config option
+  arm64: compat: Reduce address limit
 
-	These all need at least one Reviewed-by or Acked-by.
+ arch/arm64/Kconfig                 |  31 ++++++
+ arch/arm64/include/asm/elf.h       |   6 +-
+ arch/arm64/include/asm/processor.h |   6 +-
+ arch/arm64/include/asm/signal32.h  |   2 -
+ arch/arm64/kernel/Makefile         |   5 +-
+ arch/arm64/kernel/kuser32.S        |  65 +------------
+ arch/arm64/kernel/signal32.c       |   5 +-
+ arch/arm64/kernel/sigreturn32.S    |  46 +++++++++
+ arch/arm64/kernel/vdso.c           | 150 +++++++++++++++++++++++------
+ 9 files changed, 213 insertions(+), 103 deletions(-)
+ create mode 100644 arch/arm64/kernel/sigreturn32.S
 
-								Thanx, Paul
+-- 
+2.21.0
