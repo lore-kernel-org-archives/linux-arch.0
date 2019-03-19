@@ -1,176 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:53380 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726839AbfCSPQK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Mar 2019 11:16:10 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 2/5] arm64: compat: Split kuser32
-Date: Tue, 19 Mar 2019 15:15:39 +0000
-Message-ID: <20190319151542.19557-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20190319151542.19557-1-vincenzo.frascino@arm.com>
-References: <20190319151542.19557-1-vincenzo.frascino@arm.com>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:46162 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727443AbfCSQPA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Mar 2019 12:15:00 -0400
+Received: by mail-pf1-f196.google.com with SMTP id s23so14020774pfe.13
+        for <linux-arch@vger.kernel.org>; Tue, 19 Mar 2019 09:14:59 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <cover.1552929301.git.andreyknvl@google.com> <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl@google.com>
+ <CANn89iJ4SeccE79gKiv5RFqaouFV8shFA+0dCS8+2D_1aRq_Kw@mail.gmail.com>
+In-Reply-To: <CANn89iJ4SeccE79gKiv5RFqaouFV8shFA+0dCS8+2D_1aRq_Kw@mail.gmail.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Tue, 19 Mar 2019 17:14:47 +0100
+Message-ID: <CAAeHK+xi4-6pgDYG8ypM8NsbhgncpsxgJeEXL1-BpkARXONvEQ@mail.gmail.com>
+Subject: Re: [PATCH v12 08/13] net, arm64: untag user pointers in tcp_zerocopy_receive
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jann Horn <jannh@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190319151539.-ADk1IKGvsDru6wWog7B-zp42TP9rsPcM7AHkL70EfI@z>
+To: Eric Dumazet <edumazet@google.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, netdev <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190319161447.YexKX7y0Q3qAnIr12755gR0wydQpUeGmhh7dSswEj8Q@z>
 
-To make it possible to disable kuser helpers in aarch32 we need to
-divide the kuser and the sigreturn functionalities.
+On Mon, Mar 18, 2019 at 6:35 PM Eric Dumazet <edumazet@google.com> wrote:
+>
+> On Mon, Mar 18, 2019 at 10:18 AM Andrey Konovalov <andreyknvl@google.com> wrote:
+> >
+> > This patch is a part of a series that extends arm64 kernel ABI to allow to
+> > pass tagged user pointers (with the top byte set to something else other
+> > than 0x00) as syscall arguments.
+> >
+> > tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
+> > can only by done with untagged pointers.
+> >
+> > Untag user pointers in this function.
+> >
+> > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > ---
+> >  net/ipv4/tcp.c | 9 +++++++--
+> >  1 file changed, 7 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+> > index 6baa6dc1b13b..e76beb5ff1ff 100644
+> > --- a/net/ipv4/tcp.c
+> > +++ b/net/ipv4/tcp.c
+> > @@ -1749,7 +1749,7 @@ EXPORT_SYMBOL(tcp_mmap);
+> >  static int tcp_zerocopy_receive(struct sock *sk,
+> >                                 struct tcp_zerocopy_receive *zc)
+> >  {
+> > -       unsigned long address = (unsigned long)zc->address;
+> > +       unsigned long address;
+> >         const skb_frag_t *frags = NULL;
+> >         u32 length = 0, seq, offset;
+> >         struct vm_area_struct *vma;
+> > @@ -1758,7 +1758,12 @@ static int tcp_zerocopy_receive(struct sock *sk,
+> >         int inq;
+> >         int ret;
+> >
+> > -       if (address & (PAGE_SIZE - 1) || address != zc->address)
+> > +       address = (unsigned long)untagged_addr(zc->address);
+> > +
+> > +       /* The second test in this if detects if the u64->unsigned long
+> > +        * conversion had any truncated bits.
+> > +        */
+> > +       if (address & (PAGE_SIZE - 1) || address != untagged_addr(zc->address))
+> >                 return -EINVAL;
+> >
+> >         if (sk->sk_state == TCP_LISTEN)
+>
+>
+> This is quite ugly, the comment does not really help nor belong to this patch.
+>
+> What about using  untagged_addr()  only once ?
+>
+> diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+> index 6baa6dc1b13b0b94b1da238668b93e167cf444fe..855a1f68c1ea9b0d07a92bd7f5e7c24840a99d3d
+> 100644
+> --- a/net/ipv4/tcp.c
+> +++ b/net/ipv4/tcp.c
+> @@ -1761,6 +1761,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
+>         if (address & (PAGE_SIZE - 1) || address != zc->address)
+>                 return -EINVAL;
+>
+> +       address = untagged_addr(address);
+> +
+>         if (sk->sk_state == TCP_LISTEN)
+>                 return -ENOTCONN;
 
-Split the current version of kuser32 in kuser32 (for kuser helpers)
-and sigreturn32 (for sigreturn helpers).
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/kernel/Makefile      |  2 +-
- arch/arm64/kernel/kuser32.S     | 58 ++-------------------------------
- arch/arm64/kernel/sigreturn32.S | 46 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 57 deletions(-)
- create mode 100644 arch/arm64/kernel/sigreturn32.S
-
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index cd434d0719c1..50f76b88a967 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
- 
- obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
--					   sys_compat.o
-+					   sigreturn32.o sys_compat.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
- obj-$(CONFIG_MODULES)			+= module.o
- obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
-diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-index 997e6b27ff6a..f19e2b015097 100644
---- a/arch/arm64/kernel/kuser32.S
-+++ b/arch/arm64/kernel/kuser32.S
-@@ -1,24 +1,9 @@
- /*
-- * Low-level user helpers placed in the vectors page for AArch32.
-+ * AArch32 user helpers.
-  * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-  *
-  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-- * Copyright (C) 2012 ARM Ltd.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-- *
-- *
-- * AArch32 user helpers.
-+ * Copyright (C) 2012-2018 ARM Ltd.
-  *
-  * Each segment is 32-byte aligned and will be moved to the top of the high
-  * vector page.  New segments (if ever needed) must be added in front of
-@@ -77,42 +62,3 @@ __kuser_helper_version:			// 0xffff0ffc
- 	.word	((__kuser_helper_end - __kuser_helper_start) >> 5)
- 	.globl	__kuser_helper_end
- __kuser_helper_end:
--
--/*
-- * AArch32 sigreturn code
-- *
-- * For ARM syscalls, the syscall number has to be loaded into r7.
-- * We do not support an OABI userspace.
-- *
-- * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-- * need two 16-bit instructions.
-- */
--	.globl __aarch32_sigret_code_start
--__aarch32_sigret_code_start:
--
--	/*
--	 * ARM Code
--	 */
--	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
--
--	/*
--	 * ARM code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
--
--        .globl __aarch32_sigret_code_end
--__aarch32_sigret_code_end:
-diff --git a/arch/arm64/kernel/sigreturn32.S b/arch/arm64/kernel/sigreturn32.S
-new file mode 100644
-index 000000000000..475d30d471ac
---- /dev/null
-+++ b/arch/arm64/kernel/sigreturn32.S
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * AArch32 sigreturn code.
-+ * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-+ *
-+ * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-+ * Copyright (C) 2012-2018 ARM Ltd.
-+ *
-+ * For ARM syscalls, the syscall number has to be loaded into r7.
-+ * We do not support an OABI userspace.
-+ *
-+ * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-+ * need two 16-bit instructions.
-+ */
-+
-+#include <asm/unistd.h>
-+
-+	.globl __aarch32_sigret_code_start
-+__aarch32_sigret_code_start:
-+
-+	/*
-+	 * ARM Code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3		// mov	r7, #__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef		// svc	#__NR_compat_sigreturn
-+
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
-+
-+	/*
-+	 * ARM code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
-+
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
-+
-+        .globl __aarch32_sigret_code_end
-+__aarch32_sigret_code_end:
--- 
-2.21.0
+Looks good, will do it like this in the next version. Thanks!
