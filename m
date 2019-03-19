@@ -1,81 +1,89 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v12 08/13] net, arm64: untag user pointers in tcp_zerocopy_receive
-Date: Tue, 19 Mar 2019 17:14:47 +0100
-Message-ID: <CAAeHK+xi4-6pgDYG8ypM8NsbhgncpsxgJeEXL1-BpkARXONvEQ@mail.gmail.com>
-References: <cover.1552929301.git.andreyknvl@google.com> <80e79c47dc7c5ee3572034a1d69bb724fbed2ecb.1552929301.git.andreyknvl@google.com>
- <CANn89iJ4SeccE79gKiv5RFqaouFV8shFA+0dCS8+2D_1aRq_Kw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
+Date: Tue, 19 Mar 2019 17:51:09 +0100
+Message-ID: <20190319165123.3967889-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CANn89iJ4SeccE79gKiv5RFqaouFV8shFA+0dCS8+2D_1aRq_Kw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eric Dumazet <edumazet@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@ker>
+To: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, Laura Abbott <labbott@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Florian Weimer <fw@deneb.enyo.de>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 18, 2019 at 6:35 PM Eric Dumazet <edumazet@google.com> wrote:
->
-> On Mon, Mar 18, 2019 at 10:18 AM Andrey Konovalov <andreyknvl@google.com> wrote:
-> >
-> > This patch is a part of a series that extends arm64 kernel ABI to allow to
-> > pass tagged user pointers (with the top byte set to something else other
-> > than 0x00) as syscall arguments.
-> >
-> > tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
-> > can only by done with untagged pointers.
-> >
-> > Untag user pointers in this function.
-> >
-> > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> > ---
-> >  net/ipv4/tcp.c | 9 +++++++--
-> >  1 file changed, 7 insertions(+), 2 deletions(-)
-> >
-> > diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-> > index 6baa6dc1b13b..e76beb5ff1ff 100644
-> > --- a/net/ipv4/tcp.c
-> > +++ b/net/ipv4/tcp.c
-> > @@ -1749,7 +1749,7 @@ EXPORT_SYMBOL(tcp_mmap);
-> >  static int tcp_zerocopy_receive(struct sock *sk,
-> >                                 struct tcp_zerocopy_receive *zc)
-> >  {
-> > -       unsigned long address = (unsigned long)zc->address;
-> > +       unsigned long address;
-> >         const skb_frag_t *frags = NULL;
-> >         u32 length = 0, seq, offset;
-> >         struct vm_area_struct *vma;
-> > @@ -1758,7 +1758,12 @@ static int tcp_zerocopy_receive(struct sock *sk,
-> >         int inq;
-> >         int ret;
-> >
-> > -       if (address & (PAGE_SIZE - 1) || address != zc->address)
-> > +       address = (unsigned long)untagged_addr(zc->address);
-> > +
-> > +       /* The second test in this if detects if the u64->unsigned long
-> > +        * conversion had any truncated bits.
-> > +        */
-> > +       if (address & (PAGE_SIZE - 1) || address != untagged_addr(zc->address))
-> >                 return -EINVAL;
-> >
-> >         if (sk->sk_state == TCP_LISTEN)
->
->
-> This is quite ugly, the comment does not really help nor belong to this patch.
->
-> What about using  untagged_addr()  only once ?
->
-> diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-> index 6baa6dc1b13b0b94b1da238668b93e167cf444fe..855a1f68c1ea9b0d07a92bd7f5e7c24840a99d3d
-> 100644
-> --- a/net/ipv4/tcp.c
-> +++ b/net/ipv4/tcp.c
-> @@ -1761,6 +1761,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
->         if (address & (PAGE_SIZE - 1) || address != zc->address)
->                 return -EINVAL;
->
-> +       address = untagged_addr(address);
-> +
->         if (sk->sk_state == TCP_LISTEN)
->                 return -ENOTCONN;
+Florian Weimer points out an issue with including linux/posix_types.h
+from arbitrary other headers: if an application has defined a macro
+named 'fds_bits', it may stop compiling after a change in the kernel
+headers. Since fds_bits is a non-reserved identifier in C, that is
+considered a bug in the kernel headers.
 
-Looks good, will do it like this in the next version. Thanks!
+The structure definition does not really seem to be helpful here,
+as the kernel no longer provides macros to manipulate it.
+
+The only user of the structure that we could find was in libsanitize.
+This usage is actually broken, as discussed in the email thread,
+but this means we cannot just remove the definition from the exported
+headers, but we can use the __kernel_* namespace for it, to avoid
+the namespace conflict. The kernel itself just uses bit operations
+on the typedef without accessing the field by name.
+This change should also help with the many other kernel headers that
+include linux/posix_types.h directly or through linux/types.h.
+
+Similarly, the definition of __kernel_fsid_t uses a structure with
+field identifier 'val' that may have the same problem. Again, user
+space should not rely on the specific field name but instead treat
+an fsid_t as an opaque identifier. I'm using an #ifdef __KERNEL__
+guard here to save us from having to change all kernel code accessing
+the field.
+Glibc has changed this from 'val' to '__val' back in 1996/97 when
+they moved away from using the kernel types directly, it it
+is likely that nothing uses __kernel_fsid_t any more. MIPS still
+has another copy of __kernel_fsid_t, but that is in the process
+of being removed as well.
+
+Link: https://lore.kernel.org/lkml/87a7hvded7.fsf@mid.deneb.enyo.de/
+Link: https://lore.kernel.org/lkml/20190314173900.25454-1-paul.burton@mips.com/
+Cc: Florian Weimer <fw@deneb.enyo.de>
+Cc: Paul Burton <pburton@wavecomp.com>
+Fixes: a623a7a1a567 ("y2038: fix socket.h header inclusion")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+There was another bug report for the same change just now, so
+I wouldn't apply this patch yet before we have fully understood
+the other issue. Sending this for review now since the two
+problems are most likely independent.
+---
+ include/uapi/asm-generic/posix_types.h | 4 ++++
+ include/uapi/linux/posix_types.h       | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
+index f0733a26ebfc..2a8c68ac88ca 100644
+--- a/include/uapi/asm-generic/posix_types.h
++++ b/include/uapi/asm-generic/posix_types.h
+@@ -77,7 +77,11 @@ typedef __kernel_long_t	__kernel_ptrdiff_t;
+ 
+ #ifndef __kernel_fsid_t
+ typedef struct {
++#ifdef __KERNEL__
+ 	int	val[2];
++#else
++	int	__kernel_val[2];
++#endif
+ } __kernel_fsid_t;
+ #endif
+ 
+diff --git a/include/uapi/linux/posix_types.h b/include/uapi/linux/posix_types.h
+index 9a7a740b35a2..a5a5cfc38bbf 100644
+--- a/include/uapi/linux/posix_types.h
++++ b/include/uapi/linux/posix_types.h
+@@ -23,7 +23,7 @@
+ #define __FD_SETSIZE	1024
+ 
+ typedef struct {
+-	unsigned long fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
++	unsigned long __kernel_fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
+ } __kernel_fd_set;
+ 
+ /* Type of a signal handler.  */
+-- 
+2.20.0
