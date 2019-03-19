@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:53388 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726831AbfCSPQL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Mar 2019 11:16:11 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:53404 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726831AbfCSPQO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Mar 2019 11:16:14 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 3/5] arm64: compat: Refactor aarch32_alloc_vdso_pages()
-Date: Tue, 19 Mar 2019 15:15:40 +0000
-Message-ID: <20190319151542.19557-4-vincenzo.frascino@arm.com>
+Subject: [PATCH 5/5] arm64: compat: Reduce address limit
+Date: Tue, 19 Mar 2019 15:15:42 +0000
+Message-ID: <20190319151542.19557-6-vincenzo.frascino@arm.com>
 In-Reply-To: <20190319151542.19557-1-vincenzo.frascino@arm.com>
 References: <20190319151542.19557-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,97 +15,40 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jann Horn <jannh@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190319151540.NB6A1jwvQAy0JQTDDfWGPSYECA5wqVC4ZO2VXuOJSTI@z>
+Message-ID: <20190319151542.zxkGZ-DOiqg86LFH2luR7YEBBD0HuBQVFbgLF-wYNBc@z>
 
-aarch32_alloc_vdso_pages() needs to the refactored to make it
-easier to disable kuser helpers.
+Currently, compat tasks running on arm64 can allocate memory up to
+TASK_SIZE_32 (UL(0x100000000)).
 
-Divide the function in aarch32_alloc_kuser_vdso_page() and
-aarch32_alloc_sigreturn_vdso_page().
+This means that mmap() allocations, if we treat them as returning an
+array, are not compliant with the sections 6.5.8 of the C standard
+(C99) which states that: "If the expression P points to an element of
+an array object and the expression Q points to the last element of the
+same array object, the pointer expression Q+1 compares greater than P".
+
+Redefine TASK_SIZE_32 to address the issue.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
+Cc: Jann Horn <jannh@google.com>
+Reported-by: Jann Horn <jannh@google.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/vdso.c | 49 ++++++++++++++++++++++++++--------------
- 1 file changed, 32 insertions(+), 17 deletions(-)
+ arch/arm64/include/asm/processor.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 9556ad2036ef..90663068998a 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -74,40 +74,55 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
- 	},
- };
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index 07c873fce961..4c689740940d 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -57,7 +57,7 @@
+ #define TASK_SIZE_64		(UL(1) << vabits_user)
  
--static int __init aarch32_alloc_vdso_pages(void)
-+static int aarch32_alloc_kuser_vdso_page(void)
- {
- 	extern char __kuser_helper_start[], __kuser_helper_end[];
--	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
--
- 	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
--	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
--	unsigned long vdso_pages[2];
--
--	vdso_pages[0] = get_zeroed_page(GFP_ATOMIC);
--	if (!vdso_pages[0])
--		return -ENOMEM;
-+	unsigned long vdso_page;
- 
--	vdso_pages[1] = get_zeroed_page(GFP_ATOMIC);
--	if (!vdso_pages[1])
-+	vdso_page = get_zeroed_page(GFP_ATOMIC);
-+	if (!vdso_page)
- 		return -ENOMEM;
- 
- 	/* kuser helpers */
--	memcpy((void *)(vdso_pages[0] + 0x1000 - kuser_sz),
-+	memcpy((void *)(vdso_page + 0x1000 - kuser_sz),
- 	       __kuser_helper_start,
- 	       kuser_sz);
- 
-+	flush_icache_range(vdso_page, vdso_page + PAGE_SIZE);
-+
-+	aarch32_vdso_pages[0] = virt_to_page(vdso_page);
-+
-+	return 0;
-+}
-+
-+static int aarch32_alloc_sigreturn_vdso_page(void)
-+{
-+	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
-+	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
-+	unsigned long vdso_page;
-+
-+	vdso_page = get_zeroed_page(GFP_ATOMIC);
-+	if (!vdso_page)
-+		return -ENOMEM;
-+
- 	/* sigreturn code */
--	memcpy((void *)vdso_pages[1],
-+	memcpy((void *)vdso_page,
- 	       __aarch32_sigret_code_start,
- 	       sigret_sz);
- 
--	flush_icache_range(vdso_pages[0], vdso_pages[0] + PAGE_SIZE);
--	flush_icache_range(vdso_pages[1], vdso_pages[1] + PAGE_SIZE);
-+	flush_icache_range(vdso_page, vdso_page + PAGE_SIZE);
- 
--	aarch32_vdso_pages[0] = virt_to_page(vdso_pages[0]);
--	aarch32_vdso_pages[1] = virt_to_page(vdso_pages[1]);
-+	aarch32_vdso_pages[1] = virt_to_page(vdso_page);
- 
- 	return 0;
-+
-+}
-+
-+static int __init aarch32_alloc_vdso_pages(void)
-+{
-+	return aarch32_alloc_kuser_vdso_page() &
-+	       aarch32_alloc_sigreturn_vdso_page();
- }
- arch_initcall(aarch32_alloc_vdso_pages);
- 
+ #ifdef CONFIG_COMPAT
+-#define TASK_SIZE_32		UL(0x100000000)
++#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+ #define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
+ 				TASK_SIZE_32 : TASK_SIZE_64)
+ #define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
 -- 
 2.21.0
