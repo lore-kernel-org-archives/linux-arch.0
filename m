@@ -1,94 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:51607 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726579AbfCSQwE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Mar 2019 12:52:04 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
-Date: Tue, 19 Mar 2019 17:51:09 +0100
-Message-ID: <20190319165123.3967889-1-arnd@arndb.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail.linuxfoundation.org ([140.211.169.12]:34694 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727069AbfCSScP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Mar 2019 14:32:15 -0400
+Date: Tue, 19 Mar 2019 11:32:12 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v12 00/13] arm64: untag user pointers passed to the
+ kernel
+Message-ID: <20190319113212.ca1d56301112454dfb5a39ba@linux-foundation.org>
+In-Reply-To: <cover.1552929301.git.andreyknvl@google.com>
+References: <cover.1552929301.git.andreyknvl@google.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, Laura Abbott <labbott@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Florian Weimer <fw@deneb.enyo.de>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org
-Message-ID: <20190319165109.xOZ6FY1wA7DAn3guueotGL0wYZekBxgevomoJ5WRACQ@z>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190319183212.DWnHobBhJLyQsgImXKSrvwyNEP50MFh3B40mA2BjqeI@z>
 
-Florian Weimer points out an issue with including linux/posix_types.h
-from arbitrary other headers: if an application has defined a macro
-named 'fds_bits', it may stop compiling after a change in the kernel
-headers. Since fds_bits is a non-reserved identifier in C, that is
-considered a bug in the kernel headers.
+On Mon, 18 Mar 2019 18:17:32 +0100 Andrey Konovalov <andreyknvl@google.com> wrote:
 
-The structure definition does not really seem to be helpful here,
-as the kernel no longer provides macros to manipulate it.
+> === Notes
+> 
+> This patchset is meant to be merged together with "arm64 relaxed ABI" [3].
 
-The only user of the structure that we could find was in libsanitize.
-This usage is actually broken, as discussed in the email thread,
-but this means we cannot just remove the definition from the exported
-headers, but we can use the __kernel_* namespace for it, to avoid
-the namespace conflict. The kernel itself just uses bit operations
-on the typedef without accessing the field by name.
-This change should also help with the many other kernel headers that
-include linux/posix_types.h directly or through linux/types.h.
+What does this mean, precisely?  That neither series is useful without
+the other?  That either patchset will break things without the other?
 
-Similarly, the definition of __kernel_fsid_t uses a structure with
-field identifier 'val' that may have the same problem. Again, user
-space should not rely on the specific field name but instead treat
-an fsid_t as an opaque identifier. I'm using an #ifdef __KERNEL__
-guard here to save us from having to change all kernel code accessing
-the field.
-Glibc has changed this from 'val' to '__val' back in 1996/97 when
-they moved away from using the kernel types directly, it it
-is likely that nothing uses __kernel_fsid_t any more. MIPS still
-has another copy of __kernel_fsid_t, but that is in the process
-of being removed as well.
+Only a small fraction of these patches carry evidence of having been
+reviewed.  Fixable?
 
-Link: https://lore.kernel.org/lkml/87a7hvded7.fsf@mid.deneb.enyo.de/
-Link: https://lore.kernel.org/lkml/20190314173900.25454-1-paul.burton@mips.com/
-Cc: Florian Weimer <fw@deneb.enyo.de>
-Cc: Paul Burton <pburton@wavecomp.com>
-Fixes: a623a7a1a567 ("y2038: fix socket.h header inclusion")
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
-There was another bug report for the same change just now, so
-I wouldn't apply this patch yet before we have fully understood
-the other issue. Sending this for review now since the two
-problems are most likely independent.
----
- include/uapi/asm-generic/posix_types.h | 4 ++++
- include/uapi/linux/posix_types.h       | 2 +-
- 2 files changed, 5 insertions(+), 1 deletion(-)
-
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index f0733a26ebfc..2a8c68ac88ca 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -77,7 +77,11 @@ typedef __kernel_long_t	__kernel_ptrdiff_t;
- 
- #ifndef __kernel_fsid_t
- typedef struct {
-+#ifdef __KERNEL__
- 	int	val[2];
-+#else
-+	int	__kernel_val[2];
-+#endif
- } __kernel_fsid_t;
- #endif
- 
-diff --git a/include/uapi/linux/posix_types.h b/include/uapi/linux/posix_types.h
-index 9a7a740b35a2..a5a5cfc38bbf 100644
---- a/include/uapi/linux/posix_types.h
-+++ b/include/uapi/linux/posix_types.h
-@@ -23,7 +23,7 @@
- #define __FD_SETSIZE	1024
- 
- typedef struct {
--	unsigned long fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
-+	unsigned long __kernel_fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
- } __kernel_fd_set;
- 
- /* Type of a signal handler.  */
--- 
-2.20.0
+Which maintainer tree would be appropriate for carrying these patches?
