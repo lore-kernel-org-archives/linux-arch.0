@@ -1,236 +1,243 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:52772 "EHLO mx1.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727928AbfCTOiv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Mar 2019 10:38:51 -0400
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v5 5/5] binfmt_*: scope path resolution of interpreters
-Date: Thu, 21 Mar 2019 01:37:17 +1100
-Message-ID: <20190320143717.2523-6-cyphar@cyphar.com>
-In-Reply-To: <20190320143717.2523-1-cyphar@cyphar.com>
-References: <20190320143717.2523-1-cyphar@cyphar.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-vs1-f73.google.com ([209.85.217.73]:35440 "EHLO
+        mail-vs1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727996AbfCTOv5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:51:57 -0400
+Received: by mail-vs1-f73.google.com with SMTP id e63so872483vsc.2
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:51:56 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:18 +0100
+In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
+Message-Id: <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
+Mime-Version: 1.0
+References: <cover.1553093420.git.andreyknvl@google.com>
+Subject: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
+From: Andrey Konovalov <andreyknvl@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190320143717.jCtE0_HEDbwIWRqEvVtM5U05MLutsQRa2wuzJWWbkRA@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Alex Deucher <alexander.deucher@amd.com>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, "David (ChunMing) Zhou" <David1.Zhou@amd.com>, Yishai Hadas <yishaih@mellanox.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, amd-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, kvm@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 
-The need to be able to scope path resolution of interpreters became
-clear with one of the possible vectors used in CVE-2019-5736 (which
-most major container runtimes were vulnerable to).
+This patch is a part of a series that extends arm64 kernel ABI to allow to
+pass tagged user pointers (with the top byte set to something else other
+than 0x00) as syscall arguments.
 
-Naively, it might seem that openat(2) -- which supports path scoping --
-can be combined with execveat(AT_EMPTY_PATH) to trivially scope the
-binary being executed. Unfortunately, a "bad binary" (usually a symlink)
-could be written as a #!-style script with the symlink target as the
-interpreter -- which would be completely missed by just scoping the
-openat(2). An example of this being exploitable is CVE-2019-5736.
+This patch allows tagged pointers to be passed to the following memory
+syscalls: madvise, mbind, get_mempolicy, mincore, mlock, mlock2, brk,
+mmap_pgoff, old_mmap, munmap, remap_file_pages, mprotect, pkey_mprotect,
+mremap, msync and shmdt.
 
-In order to get around this, we need to pass down to each binfmt_*
-implementation the scoping flags requested in execveat(2). In order to
-maintain backwards-compatibility we only pass the scoping AT_* flags.
+This is done by untagging pointers passed to these syscalls in the
+prologues of their handlers.
 
-To avoid breaking userspace (in the exceptionally rare cases where you
-have #!-scripts with a relative path being execveat(2)-ed with dfd !=
-AT_FDCWD), we only pass dfd down to binfmt_* if any of our new flags are
-set in execveat(2).
-
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- fs/binfmt_elf.c            |  2 +-
- fs/binfmt_elf_fdpic.c      |  2 +-
- fs/binfmt_em86.c           |  4 ++--
- fs/binfmt_misc.c           |  2 +-
- fs/binfmt_script.c         |  2 +-
- fs/exec.c                  | 26 ++++++++++++++++++++++----
- include/linux/binfmts.h    |  1 +
- include/linux/fs.h         |  9 +++++++--
- include/uapi/linux/fcntl.h |  6 ++++++
- 9 files changed, 42 insertions(+), 12 deletions(-)
+ ipc/shm.c      | 2 ++
+ mm/madvise.c   | 2 ++
+ mm/mempolicy.c | 5 +++++
+ mm/migrate.c   | 1 +
+ mm/mincore.c   | 2 ++
+ mm/mlock.c     | 5 +++++
+ mm/mmap.c      | 7 +++++++
+ mm/mprotect.c  | 1 +
+ mm/mremap.c    | 2 ++
+ mm/msync.c     | 2 ++
+ 10 files changed, 29 insertions(+)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 54207327f98f..eef86ffa38c8 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -777,7 +777,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
- 				goto out_free_interp;
+diff --git a/ipc/shm.c b/ipc/shm.c
+index ce1ca9f7c6e9..7af8951e6c41 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+ 	unsigned long ret;
+ 	long err;
  
--			interpreter = open_exec(elf_interpreter);
-+			interpreter = openat_exec(bprm->dfd, elf_interpreter, bprm->flags);
- 			retval = PTR_ERR(interpreter);
- 			if (IS_ERR(interpreter))
- 				goto out_free_interp;
-diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
-index b53bb3729ac1..c463c6428f77 100644
---- a/fs/binfmt_elf_fdpic.c
-+++ b/fs/binfmt_elf_fdpic.c
-@@ -263,7 +263,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
- 			kdebug("Using ELF interpreter %s", interpreter_name);
++	shmaddr = untagged_addr(shmaddr);
+ 	err = do_shmat(shmid, shmaddr, shmflg, &ret, SHMLBA);
+ 	if (err)
+ 		return err;
+@@ -1732,6 +1733,7 @@ long ksys_shmdt(char __user *shmaddr)
  
- 			/* replace the program with the interpreter */
--			interpreter = open_exec(interpreter_name);
-+			interpreter = openat_exec(bprm->dfd, interpreter_name, bprm->flags);
- 			retval = PTR_ERR(interpreter);
- 			if (IS_ERR(interpreter)) {
- 				interpreter = NULL;
-diff --git a/fs/binfmt_em86.c b/fs/binfmt_em86.c
-index dd2d3f0cd55d..3ee46b0dc0d4 100644
---- a/fs/binfmt_em86.c
-+++ b/fs/binfmt_em86.c
-@@ -81,10 +81,10 @@ static int load_em86(struct linux_binprm *bprm)
- 
- 	/*
- 	 * OK, now restart the process with the interpreter's inode.
--	 * Note that we use open_exec() as the name is now in kernel
-+	 * Note that we use openat_exec() as the name is now in kernel
- 	 * space, and we don't need to copy it.
- 	 */
--	file = open_exec(interp);
-+	file = openat_exec(binprm->dfd, interp, binprm->flags);
- 	if (IS_ERR(file))
- 		return PTR_ERR(file);
- 
-diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
-index aa4a7a23ff99..573ef06ff5a1 100644
---- a/fs/binfmt_misc.c
-+++ b/fs/binfmt_misc.c
-@@ -209,7 +209,7 @@ static int load_misc_binary(struct linux_binprm *bprm)
- 		if (!IS_ERR(interp_file))
- 			deny_write_access(interp_file);
- 	} else {
--		interp_file = open_exec(fmt->interpreter);
-+		interp_file = openat_exec(bprm->dfd, fmt->interpreter, bprm->flags);
- 	}
- 	retval = PTR_ERR(interp_file);
- 	if (IS_ERR(interp_file))
-diff --git a/fs/binfmt_script.c b/fs/binfmt_script.c
-index d0078cbb718b..340f63635aac 100644
---- a/fs/binfmt_script.c
-+++ b/fs/binfmt_script.c
-@@ -102,7 +102,7 @@ static int load_script(struct linux_binprm *bprm)
- 	/*
- 	 * OK, now restart the process with the interpreter's dentry.
- 	 */
--	file = open_exec(i_name);
-+	file = openat_exec(bprm->dfd, i_name, bprm->flags);
- 	if (IS_ERR(file))
- 		return PTR_ERR(file);
- 
-diff --git a/fs/exec.c b/fs/exec.c
-index bcf383730bea..e63063b2de23 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -846,12 +846,24 @@ static struct file *do_open_execat(int fd, struct filename *name, int flags)
- 		.lookup_flags = LOOKUP_FOLLOW,
- 	};
- 
--	if ((flags & ~(AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH)) != 0)
-+	if ((flags & ~(AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH | AT_BENEATH |
-+		       AT_XDEV | AT_NO_MAGICLINKS | AT_NO_SYMLINKS |
-+		       AT_THIS_ROOT)) != 0)
- 		return ERR_PTR(-EINVAL);
- 	if (flags & AT_SYMLINK_NOFOLLOW)
- 		open_exec_flags.lookup_flags &= ~LOOKUP_FOLLOW;
- 	if (flags & AT_EMPTY_PATH)
- 		open_exec_flags.lookup_flags |= LOOKUP_EMPTY;
-+	if (flags & AT_BENEATH)
-+		open_exec_flags.lookup_flags |= LOOKUP_BENEATH;
-+	if (flags & AT_XDEV)
-+		open_exec_flags.lookup_flags |= LOOKUP_XDEV;
-+	if (flags & AT_NO_MAGICLINKS)
-+		open_exec_flags.lookup_flags |= LOOKUP_NO_MAGICLINKS;
-+	if (flags & AT_NO_SYMLINKS)
-+		open_exec_flags.lookup_flags |= LOOKUP_NO_SYMLINKS;
-+	if (flags & AT_THIS_ROOT)
-+		open_exec_flags.lookup_flags |= LOOKUP_IN_ROOT;
- 
- 	file = do_filp_open(fd, name, &open_exec_flags);
- 	if (IS_ERR(file))
-@@ -879,18 +891,18 @@ static struct file *do_open_execat(int fd, struct filename *name, int flags)
- 	return ERR_PTR(err);
- }
- 
--struct file *open_exec(const char *name)
-+struct file *openat_exec(int dfd, const char *name, int flags)
+ SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
  {
- 	struct filename *filename = getname_kernel(name);
- 	struct file *f = ERR_CAST(filename);
- 
- 	if (!IS_ERR(filename)) {
--		f = do_open_execat(AT_FDCWD, filename, 0);
-+		f = do_open_execat(dfd, filename, flags);
- 		putname(filename);
- 	}
- 	return f;
++	shmaddr = untagged_addr(shmaddr);
+ 	return ksys_shmdt(shmaddr);
  }
--EXPORT_SYMBOL(open_exec);
-+EXPORT_SYMBOL(openat_exec);
  
- int kernel_read_file(struct file *file, void **buf, loff_t *size,
- 		     loff_t max_size, enum kernel_read_file_id id)
-@@ -1762,6 +1774,12 @@ static int __do_execve_file(int fd, struct filename *filename,
+diff --git a/mm/madvise.c b/mm/madvise.c
+index 21a7881a2db4..64e6d34a7f9b 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -809,6 +809,8 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
+ 	size_t len;
+ 	struct blk_plug plug;
  
- 	sched_exec();
- 
-+	bprm->flags = flags & (AT_XDEV | AT_NO_MAGICLINKS | AT_NO_SYMLINKS |
-+			       AT_THIS_ROOT);
-+	bprm->dfd = AT_FDCWD;
-+	if (bprm->flags)
-+		bprm->dfd = fd;
++	start = untagged_addr(start);
 +
- 	bprm->file = file;
- 	if (!filename) {
- 		bprm->filename = "none";
-diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
-index 688ab0de7810..e4da2d36e97f 100644
---- a/include/linux/binfmts.h
-+++ b/include/linux/binfmts.h
-@@ -50,6 +50,7 @@ struct linux_binprm {
- 	unsigned int taso:1;
- #endif
- 	unsigned int recursion_depth; /* only for search_binary_handler() */
-+	int dfd, flags;		/* passed down to execat_open() */
- 	struct file * file;
- 	struct cred *cred;	/* new credentials */
- 	int unsafe;		/* how unsafe this exec is (mask of LSM_UNSAFE_*) */
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 3e85cb8e8c20..a82c8dd44ad9 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -2937,8 +2937,13 @@ extern int kernel_read_file_from_fd(int, void **, loff_t *, loff_t,
- extern ssize_t kernel_read(struct file *, void *, size_t, loff_t *);
- extern ssize_t kernel_write(struct file *, const void *, size_t, loff_t *);
- extern ssize_t __kernel_write(struct file *, const void *, size_t, loff_t *);
--extern struct file * open_exec(const char *);
-- 
-+
-+extern struct file *openat_exec(int, const char *, int);
-+static inline struct file *open_exec(const char *name)
-+{
-+	return openat_exec(AT_FDCWD, name, 0);
-+}
-+
- /* fs/dcache.c -- generic fs support functions */
- extern bool is_subdir(struct dentry *, struct dentry *);
- extern bool path_is_under(const struct path *, const struct path *);
-diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
-index 6448cdd9a350..607bc98813e3 100644
---- a/include/uapi/linux/fcntl.h
-+++ b/include/uapi/linux/fcntl.h
-@@ -90,5 +90,11 @@
- #define AT_STATX_FORCE_SYNC	0x2000	/* - Force the attributes to be sync'd with the server */
- #define AT_STATX_DONT_SYNC	0x4000	/* - Don't sync attributes with the server */
+ 	if (!madvise_behavior_valid(behavior))
+ 		return error;
  
-+#define AT_RESOLUTION_TYPE	0xF8000 /* Type of path-resolution scoping we are applying. */
-+#define AT_BENEATH		0x08000 /* - Block "lexical" trickery like "..", symlinks, absolute paths, etc. */
-+#define AT_XDEV			0x10000 /* - Block mount-point crossings (includes bind-mounts). */
-+#define AT_NO_MAGICLINKS	0x20000 /* - Block procfs-style "magic" symlinks. */
-+#define AT_NO_SYMLINKS		0x40000 /* - Block all symlinks (implies AT_NO_MAGICLINKS). */
-+#define AT_THIS_ROOT		0x80000 /* - Scope ".." resolution to dirfd (like chroot(2)). */
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index af171ccb56a2..31691737c59c 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1334,6 +1334,7 @@ static long kernel_mbind(unsigned long start, unsigned long len,
+ 	int err;
+ 	unsigned short mode_flags;
  
- #endif /* _UAPI_LINUX_FCNTL_H */
++	start = untagged_addr(start);
+ 	mode_flags = mode & MPOL_MODE_FLAGS;
+ 	mode &= ~MPOL_MODE_FLAGS;
+ 	if (mode >= MPOL_MAX)
+@@ -1491,6 +1492,8 @@ static int kernel_get_mempolicy(int __user *policy,
+ 	int uninitialized_var(pval);
+ 	nodemask_t nodes;
+ 
++	addr = untagged_addr(addr);
++
+ 	if (nmask != NULL && maxnode < nr_node_ids)
+ 		return -EINVAL;
+ 
+@@ -1576,6 +1579,8 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 	unsigned long nr_bits, alloc_size;
+ 	nodemask_t bm;
+ 
++	start = untagged_addr(start);
++
+ 	nr_bits = min_t(unsigned long, maxnode-1, MAX_NUMNODES);
+ 	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+ 
+diff --git a/mm/migrate.c b/mm/migrate.c
+index ac6f4939bb59..ecc6dcdefb1f 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -1612,6 +1612,7 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
+ 		if (get_user(node, nodes + i))
+ 			goto out_flush;
+ 		addr = (unsigned long)p;
++		addr = untagged_addr(addr);
+ 
+ 		err = -ENODEV;
+ 		if (node < 0 || node >= MAX_NUMNODES)
+diff --git a/mm/mincore.c b/mm/mincore.c
+index 218099b5ed31..c4a3f4484b6b 100644
+--- a/mm/mincore.c
++++ b/mm/mincore.c
+@@ -228,6 +228,8 @@ SYSCALL_DEFINE3(mincore, unsigned long, start, size_t, len,
+ 	unsigned long pages;
+ 	unsigned char *tmp;
+ 
++	start = untagged_addr(start);
++
+ 	/* Check the start address: needs to be page-aligned.. */
+ 	if (start & ~PAGE_MASK)
+ 		return -EINVAL;
+diff --git a/mm/mlock.c b/mm/mlock.c
+index 080f3b36415b..6934ec92bf39 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -715,6 +715,7 @@ static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t fla
+ 
+ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
+ {
++	start = untagged_addr(start);
+ 	return do_mlock(start, len, VM_LOCKED);
+ }
+ 
+@@ -722,6 +723,8 @@ SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
+ {
+ 	vm_flags_t vm_flags = VM_LOCKED;
+ 
++	start = untagged_addr(start);
++
+ 	if (flags & ~MLOCK_ONFAULT)
+ 		return -EINVAL;
+ 
+@@ -735,6 +738,8 @@ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
+ {
+ 	int ret;
+ 
++	start = untagged_addr(start);
++
+ 	len = PAGE_ALIGN(len + (offset_in_page(start)));
+ 	start &= PAGE_MASK;
+ 
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 41eb48d9b527..512c679c7f33 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -199,6 +199,8 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
+ 	bool downgraded = false;
+ 	LIST_HEAD(uf);
+ 
++	brk = untagged_addr(brk);
++
+ 	if (down_write_killable(&mm->mmap_sem))
+ 		return -EINTR;
+ 
+@@ -1571,6 +1573,8 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
+ 	struct file *file = NULL;
+ 	unsigned long retval;
+ 
++	addr = untagged_addr(addr);
++
+ 	if (!(flags & MAP_ANONYMOUS)) {
+ 		audit_mmap_fd(fd, flags);
+ 		file = fget(fd);
+@@ -2867,6 +2871,7 @@ EXPORT_SYMBOL(vm_munmap);
+ 
+ SYSCALL_DEFINE2(munmap, unsigned long, addr, size_t, len)
+ {
++	addr = untagged_addr(addr);
+ 	profile_munmap(addr);
+ 	return __vm_munmap(addr, len, true);
+ }
+@@ -2885,6 +2890,8 @@ SYSCALL_DEFINE5(remap_file_pages, unsigned long, start, unsigned long, size,
+ 	unsigned long ret = -EINVAL;
+ 	struct file *file;
+ 
++	start = untagged_addr(start);
++
+ 	pr_warn_once("%s (%d) uses deprecated remap_file_pages() syscall. See Documentation/vm/remap_file_pages.rst.\n",
+ 		     current->comm, current->pid);
+ 
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 028c724dcb1a..3c2b11629f89 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -468,6 +468,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
+ 	if (grows == (PROT_GROWSDOWN|PROT_GROWSUP)) /* can't be both */
+ 		return -EINVAL;
+ 
++	start = untagged_addr(start);
+ 	if (start & ~PAGE_MASK)
+ 		return -EINVAL;
+ 	if (!len)
+diff --git a/mm/mremap.c b/mm/mremap.c
+index e3edef6b7a12..6422aeee65bb 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -605,6 +605,8 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
+ 	LIST_HEAD(uf_unmap_early);
+ 	LIST_HEAD(uf_unmap);
+ 
++	addr = untagged_addr(addr);
++
+ 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
+ 		return ret;
+ 
+diff --git a/mm/msync.c b/mm/msync.c
+index ef30a429623a..c3bd3e75f687 100644
+--- a/mm/msync.c
++++ b/mm/msync.c
+@@ -37,6 +37,8 @@ SYSCALL_DEFINE3(msync, unsigned long, start, size_t, len, int, flags)
+ 	int unmapped_error = 0;
+ 	int error = -EINVAL;
+ 
++	start = untagged_addr(start);
++
+ 	if (flags & ~(MS_ASYNC | MS_INVALIDATE | MS_SYNC))
+ 		goto out;
+ 	if (offset_in_page(start))
 -- 
-2.21.0
+2.21.0.225.g810b269d1ac-goog
