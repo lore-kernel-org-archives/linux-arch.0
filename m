@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f202.google.com ([209.85.210.202]:34071 "EHLO
-        mail-pf1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728503AbfCTOwN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:13 -0400
-Received: by mail-pf1-f202.google.com with SMTP id g125so2782000pfb.1
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:12 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:23 +0100
+Received: from mail-yw1-f74.google.com ([209.85.161.74]:49482 "EHLO
+        mail-yw1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728470AbfCTOwK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:10 -0400
+Received: by mail-yw1-f74.google.com with SMTP id v123so3389684ywf.16
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:09 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:22 +0100
 In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <2280b62096ce1fa5c9e9429d18f08f82f4be1b0b.1553093421.git.andreyknvl@google.com>
+Message-Id: <dc4aa5f958ea98ff0add6350ec238acdc6523779.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 09/20] net, arm64: untag user pointers in tcp_zerocopy_receive
+Subject: [PATCH v13 08/20] fs, arm64: untag user pointers in fs/userfaultfd.c
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,28 +22,38 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
-can only by done with untagged pointers.
+userfaultfd_register() and userfaultfd_unregister() use provided user
+pointers for vma lookups, which can only by done with untagged pointers.
 
-Untag user pointers in this function.
+Untag user pointers in these functions.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- net/ipv4/tcp.c | 2 ++
- 1 file changed, 2 insertions(+)
+ fs/userfaultfd.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 6baa6dc1b13b..855a1f68c1ea 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -1761,6 +1761,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
- 	if (address & (PAGE_SIZE - 1) || address != zc->address)
- 		return -EINVAL;
+diff --git a/fs/userfaultfd.c b/fs/userfaultfd.c
+index 89800fc7dc9d..a3b70e0d9756 100644
+--- a/fs/userfaultfd.c
++++ b/fs/userfaultfd.c
+@@ -1320,6 +1320,9 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
+ 		goto out;
+ 	}
  
-+	address = untagged_addr(address);
++	uffdio_register.range.start =
++		untagged_addr(uffdio_register.range.start);
 +
- 	if (sk->sk_state == TCP_LISTEN)
- 		return -ENOTCONN;
+ 	ret = validate_range(mm, uffdio_register.range.start,
+ 			     uffdio_register.range.len);
+ 	if (ret)
+@@ -1507,6 +1510,8 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
+ 	if (copy_from_user(&uffdio_unregister, buf, sizeof(uffdio_unregister)))
+ 		goto out;
  
++	uffdio_unregister.start = untagged_addr(uffdio_unregister.start);
++
+ 	ret = validate_range(mm, uffdio_unregister.start,
+ 			     uffdio_unregister.len);
+ 	if (ret)
 -- 
 2.21.0.225.g810b269d1ac-goog
