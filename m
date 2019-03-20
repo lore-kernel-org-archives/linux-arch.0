@@ -1,67 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38328 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727154AbfCTLZ4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Mar 2019 07:25:56 -0400
-Date: Wed, 20 Mar 2019 11:25:46 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v12 00/13] arm64: untag user pointers passed to the kernel
-Message-ID: <20190320112545.GB25040@arrakis.emea.arm.com>
-References: <cover.1552929301.git.andreyknvl@google.com>
- <20190319113212.ca1d56301112454dfb5a39ba@linux-foundation.org>
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:34662 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726506AbfCTNEx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 09:04:53 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190319113212.ca1d56301112454dfb5a39ba@linux-foundation.org>
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+ <CAK7LNAQu9hmeSgKO_B1LhXqq9Z923H25HXNS9XYNvFi55WrFYw@mail.gmail.com>
+ <CAK8P3a0-7LRE4ByO2Uf4tb5mR49SbZzBu0AgHpS=03FAMWFLgQ@mail.gmail.com> <CAK7LNATjXoNrbt2SSgR4omiQEBppOkF6mdcVJjpw2B+ihGQvGw@mail.gmail.com>
+In-Reply-To: <CAK7LNATjXoNrbt2SSgR4omiQEBppOkF6mdcVJjpw2B+ihGQvGw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 20 Mar 2019 14:04:34 +0100
+Message-ID: <CAK8P3a3Y+r95FNpHjPznD5g1PSS=OuYdzT8VH9XNY2DTUhB-Tw@mail.gmail.com>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, khalid.aziz@oracle.com
-Message-ID: <20190320112546.LcC8Mo8iV0KrZ7CaUNy7FkY08kJ6KQ-axD8MGKCEU1Q@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Michael Ellerman <mpe@ellerman.id.au>, X86 ML <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190320130434.N0mpi5ZkH8bkaBRXfrauWxLljlYsIPnsV06u5_60-JQ@z>
 
-On Tue, Mar 19, 2019 at 11:32:12AM -0700, Andrew Morton wrote:
-> On Mon, 18 Mar 2019 18:17:32 +0100 Andrey Konovalov <andreyknvl@google.com> wrote:
-> > === Notes
-> > 
-> > This patchset is meant to be merged together with "arm64 relaxed ABI" [3].
-> 
-> What does this mean, precisely?  That neither series is useful without
-> the other?  That either patchset will break things without the other?
+On Wed, Mar 20, 2019 at 11:19 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+> On Wed, Mar 20, 2019 at 6:39 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > On Wed, Mar 20, 2019 at 7:41 AM Masahiro Yamada
+> > <yamada.masahiro@socionext.com> wrote:
+> >
+> > > It is unclear to me how to fix it.
+> > > That's why I ended up with "depends on !MIPS".
+> > >
+> > >
+> > >   MODPOST vmlinux.o
+> > > arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
+> > > sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
+> > > sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
+> > > sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
+> > > sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
+> > > sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
+> > > arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined
+> > > references to `mips_gcr_base'
+> > >
+> > >
+> > > Perhaps, MIPS folks may know how to fix it.
+> >
+> > I would guess like this:
+> >
+> > diff --git a/arch/mips/include/asm/mips-cm.h b/arch/mips/include/asm/mips-cm.h
+> > index 8bc5df49b0e1..a27483fedb7d 100644
+> > --- a/arch/mips/include/asm/mips-cm.h
+> > +++ b/arch/mips/include/asm/mips-cm.h
+> > @@ -79,7 +79,7 @@ static inline int mips_cm_probe(void)
+> >   *
+> >   * Returns true if a CM is present in the system, else false.
+> >   */
+> > -static inline bool mips_cm_present(void)
+> > +static __always_inline bool mips_cm_present(void)
+> >  {
+> >  #ifdef CONFIG_MIPS_CM
+> >         return mips_gcr_base != NULL;
+> > @@ -93,7 +93,7 @@ static inline bool mips_cm_present(void)
+> >   *
+> >   * Returns true if the system implements an L2-only sync region, else false.
+> >   */
+> > -static inline bool mips_cm_has_l2sync(void)
+> > +static __always_inline bool mips_cm_has_l2sync(void)
+> >  {
+> >  #ifdef CONFIG_MIPS_CM
+> >         return mips_cm_l2sync_base != NULL;
+> >
+>
+>
+> Thanks, I applied the above, but I still see
+>  undefined reference to `mips_gcr_base'
+>
+>
+> I attached .config to produce this error.
+>
+> I use prebuilt mips-linux-gcc from
+> https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/8.1.0/
 
-This series does the work of relaxing the ABI w.r.t. pointer syscall
-arguments for arm64 (while preserving backwards compatibility, we can't
-break this). Vincenzo's patches [1] document the ABI relaxation and
-introduce an AT_FLAG bit by which user space can check for the presence
-of such support. So I'd say [1] goes on top of this series.
+I got to this patch experimentally, it fixes the problem for me:
 
-Once we agreed on the ABI definition, they should be posted as a single
-series.
+diff --git a/arch/mips/mm/sc-mips.c b/arch/mips/mm/sc-mips.c
+index 394673991bab..d70d02da038b 100644
+--- a/arch/mips/mm/sc-mips.c
++++ b/arch/mips/mm/sc-mips.c
+@@ -181,7 +181,7 @@ static int __init mips_sc_probe_cm3(void)
+        return 0;
+ }
 
-> Only a small fraction of these patches carry evidence of having been
-> reviewed.  Fixable?
+-static inline int __init mips_sc_probe(void)
++static __always_inline int __init mips_sc_probe(void)
+ {
+        struct cpuinfo_mips *c = &current_cpu_data;
+        unsigned int config1, config2;
+diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
+index 830c93a010c3..186c28463bf3 100644
+--- a/arch/mips/include/asm/bitops.h
++++ b/arch/mips/include/asm/bitops.h
+@@ -548,7 +548,7 @@ static inline unsigned long __fls(unsigned long word)
+  * Returns 0..SZLONG-1
+  * Undefined if no bit exists, so code should check against 0 first.
+  */
+-static inline unsigned long __ffs(unsigned long word)
++static __always_inline unsigned long __ffs(unsigned long word)
+ {
+        return __fls(word & -word);
+ }
 
-That's fixable, though the discussions go back to last summer mostly at
-a higher level: are we sure these are the only places that need
-patching? The outcome of such discussions was a document clarifying
-which pointers user can tag and pass to the kernel based on the origins
-of the memory range (e.g. anonymous mmap()).
 
-I'd very much like to get input from the SPARC ADI guys on these series
-(cc'ing Khalid). While currently for arm64 that's just a software
-feature (the hardware one, MTE - memory tagging extensions, is coming
-later), the ADI has similar requirements regarding the user ABI. AFAICT
-from the SPARC example code, the user is not allowed to pass a tagged
-pointers (non-zero top byte) into the kernel. Feedback from the Google
-hwasan guys is that such approach is not practical for a generic
-deployment of this feature (e.g. automatic tagging of heap allocations).
+It does look like a gcc bug though, as at least some of the references
+are from a function that got split out from an inlined function but that
+has no remaining call sites.
 
-> Which maintainer tree would be appropriate for carrying these patches?
-
-Given that the arm64 changes are fairly minimal, the -mm tree works for
-me (once I reviewed/acked the patches and, ideally, get the SPARC people
-onboard with such approach).
-
-[1] https://lkml.org/lkml/2019/3/18/819
-
--- 
-Catalin
+       Arnd
