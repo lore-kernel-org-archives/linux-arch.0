@@ -1,163 +1,171 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:49408 "EHLO mx1.mailbox.org"
+Received: from mx2.mailbox.org ([80.241.60.215]:52260 "EHLO mx2.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726067AbfCTOiF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Mar 2019 10:38:05 -0400
+        id S1727928AbfCTOio (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Mar 2019 10:38:44 -0400
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path resolution
-Date: Thu, 21 Mar 2019 01:37:12 +1100
-Message-ID: <20190320143717.2523-1-cyphar@cyphar.com>
+Subject: [PATCH RESEND v5 4/5] namei: aggressively check for nd->root escape on ".." resolution
+Date: Thu, 21 Mar 2019 01:37:16 +1100
+Message-ID: <20190320143717.2523-5-cyphar@cyphar.com>
+In-Reply-To: <20190320143717.2523-1-cyphar@cyphar.com>
+References: <20190320143717.2523-1-cyphar@cyphar.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190320143712.7Vb0y7ANy6-h44n8xWc2UQQ2weDXGdWn3hvMSDHzVlw@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190320143716.8X4AOWK_KfsEu3GFxRtT1hIPqTLZ17vxpHMuCHvHtdk@z>
 
-Now that the holiday break is over, it's time to re-send this patch
-series (with a few additions, due to new information we got from
-CVE-2019-5736 -- which this patchset mostly protected against but had
-some holes with regards to #!-style scripts).
+This patch allows for O_BENEATH and O_THISROOT to safely permit ".."
+resolution (in the case of O_BENEATH the resolution will still fail if
+".." resolution would resolve a path outside of the root -- while
+O_THISROOT will chroot(2)-style scope it). "magic link" jumps are still
+disallowed entirely because now they could result in inconsistent
+behaviour if resolution encounters a subsequent "..".
 
-Patch changelog:
-  v5:
-    * In response to CVE-2019-5736 (one of the vectors showed that
-      open(2)+fexec(3) cannot be used to scope binfmt_script's implicit
-      open_exec()), AT_* flags have been re-added and are now piped
-      through to binfmt_script (and other binfmt_* that use open_exec)
-      but are only supported for execveat(2) for now.
-  v4:
-    * Remove AT_* flag reservations, as they require more discussion.
-    * Switch to path_is_under() over __d_path() for breakout checking.
-    * Make O_XDEV no longer block openat("/tmp", "/", O_XDEV) -- dirfd
-      is now ignored for absolute paths to match other flags.
-    * Improve the dirfd_path_init() refactor and move it to a separate
-      commit.
-    * Remove reference to Linux-capsicum.
-    * Switch "proclink" name to "magic link".
-  v3: [resend]
-  v2:
-    * Made ".." resolution with AT_THIS_ROOT and AT_BENEATH safe(r) with
-      some semi-aggressive __d_path checking (see patch 3).
-    * Disallowed "proclinks" with AT_THIS_ROOT and AT_BENEATH, in the
-      hopes they can be re-enabled once safe.
-    * Removed the selftests as they will be reimplemented as xfstests.
-    * Removed stat(2) support, since you can already get it through
-      O_PATH and fstatat(2).
+The need for this patch is explained by observing there is a fairly
+easy-to-exploit race condition with chroot(2) (and thus by extension
+O_THISROOT and O_BENEATH) where a rename(2) of a path can be used to
+"skip over" nd->root and thus escape to the filesystem above nd->root.
 
-The need for some sort of control over VFS's path resolution (to avoid
-malicious paths resulting in inadvertent breakouts) has been a very
-long-standing desire of many userspace applications. This patchset is a
-revival of Al Viro's old AT_NO_JUMPS[1,2] patchset (which was a variant
-of David Drysdale's O_BENEATH patchset[3] which was a spin-off of the
-Capsicum project[4]) with a few additions and changes made based on the
-previous discussion within [5] as well as others I felt were useful.
+  thread1 [attacker]:
+    for (;;)
+      renameat2(AT_FDCWD, "/a/b/c", AT_FDCWD, "/a/d", RENAME_EXCHANGE);
+  thread2 [victim]:
+    for (;;)
+      openat(dirb, "b/c/../../etc/shadow", O_THISROOT);
 
-In line with the conclusions of the original discussion of AT_NO_JUMPS,
-the flag has been split up into separate flags:
+With fairly significant regularity, thread2 will resolve to
+"/etc/shadow" rather than "/a/b/etc/shadow". There is also a similar
+(though somewhat more privileged) attack using MS_MOVE.
 
-  * O_XDEV blocks all mountpoint crossings (upwards, downwards, or
-    through absolute links). Absolute pathnames alone in openat(2) do
-    not trigger this.
+With this patch, such cases will be detected *during* ".." resolution
+(which is the weak point of chroot(2) -- since walking *into* a
+subdirectory tautologically cannot result in you walking *outside*
+nd->root -- except through a bind-mount or "magic link"). By detecting
+this at ".." resolution (rather than checking only at the end of the
+entire resolution) we can both correct escapes by jumping back to the
+root (in the case of O_THISROOT), as well as avoid revealing to
+attackers the structure of the filesystem outside of the root (through
+timing attacks for instance).
 
-  * O_NOMAGICLINKS blocks resolution through /proc/$pid/fd-style links.
-    This is done by blocking the usage of nd_jump_link() during
-    resolution in a filesystem. The term "magic links" is used to match
-    with the only reference to these links in Documentation/, but I'm
-    happy to change the name.
+In order to avoid a quadratic lookup with each ".." entry, we only
+activate the slow path if a write through &rename_lock or &mount_lock
+have occurred during path resolution (&rename_lock and &mount_lock are
+re-taken to further optimise the lookup). Since the primary attack being
+protected against is MS_MOVE or rename(2), not doing additional checks
+unless a mount or rename have occurred avoids making the common case
+slow.
 
-    It should be noted that this is different to the scope of O_NOFOLLOW
-    in that it applies to all path components. However, you can do
-    open(O_NOFOLLOW|O_NOMAGICLINKS|O_PATH) on a "magic link" and it will
-    *not* fail (assuming that no parent component was a "magic link"),
-    and you will have an fd for the "magic link".
-
-  * O_BENEATH disallows escapes to outside the starting dirfd's tree,
-    using techniques such as ".." or absolute links. Absolute paths in
-    openat(2) are also disallowed. Conceptually this flag is to ensure
-    you "stay below" a certain point in the filesystem tree -- but this
-    requires some additional to protect against various races that would
-    allow escape using ".." (see patch 4 for more detail).
-
-    Currently O_BENEATH implies O_NOMAGICLINKS, because it can trivially
-    beam you around the filesystem (breaking the protection). In future,
-    there might be similar safety checks as in patch 4, but that
-    requires more discussion.
-
-In addition, two new flags were added that expand on the above ideas:
-
-  * O_NOSYMLINKS does what it says on the tin. No symlink resolution is
-    allowed at all, including "magic links". Just as with O_NOMAGICLINKS
-    this can still be used with (O_PATH|O_NOFOLLOW) to open an fd for
-    the symlink as long as no parent path had a symlink component.
-
-  * O_THISROOT is an extension of O_BENEATH that, rather than blocking
-    attempts to move past the root, forces all such movements to be
-    scoped to the starting point. This provides chroot(2)-like
-    protection but without the cost of a chroot(2) for each filesystem
-    operation, as well as being safe against race attacks that chroot(2)
-    is not.
-
-    If a race is detected (as with O_BENEATH) then an error is
-    generated, and similar to O_BENEATH it is not permitted to cross
-    "magic links" with O_THISROOT.
-
-    The primary need for this is from container runtimes, which
-    currently need to do symlink scoping in userspace[6] when opening
-    paths in a potentially malicious container. There is a long list of
-    CVEs that could have bene mitigated by having O_THISROOT (such as
-    CVE-2017-1002101, CVE-2017-1002102, CVE-2018-15664, and
-    CVE-2019-5736, just to name a few).
-
-In addition, a mirror set of AT_* flags have been added (though
-currently these are only supported for execveat(2) -- and not for any
-other syscall). The need for these is explained in the final patch in
-the series (it's motivated by CVE-2019-5736).
+The use of path_is_under() here might seem suspect, but on further
+inspection of the most important race (a path was *inside* the root but
+is now *outside*), there appears to be no attack potential. If
+path_is_under() occurs before the rename, then the path will be resolved
+but since the path was originally inside the root there is no escape.
+Subsequent ".." jumps are guaranteed to check path_is_under() (by
+construction, &rename_lock or &mount_lock must have been taken by the
+attacker after path_is_under() returned in the victim), and thus will
+not be able to escape from the previously-inside-root path. Walking down
+is still safe since the entire subtree was moved (either by rename(2) or
+MS_MOVE) and because (as discussed above) walking down is safe.
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Eric Biederman <ebiederm@xmission.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: David Howells <dhowells@redhat.com>
 Cc: Jann Horn <jannh@google.com>
-Cc: Christian Brauner <christian@brauner.io>
-Cc: David Drysdale <drysdale@google.com>
-Cc: Tycho Andersen <tycho@tycho.ws>
 Cc: Kees Cook <keescook@chromium.org>
-Cc: <containers@lists.linux-foundation.org>
-Cc: <linux-fsdevel@vger.kernel.org>
-Cc: <linux-api@vger.kernel.org>
+Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+---
+ fs/namei.c | 48 +++++++++++++++++++++++++++++++++---------------
+ 1 file changed, 33 insertions(+), 15 deletions(-)
 
-[1]: https://lwn.net/Articles/721443/
-[2]: https://lore.kernel.org/patchwork/patch/784221/
-[3]: https://lwn.net/Articles/619151/
-[4]: https://lwn.net/Articles/603929/
-[5]: https://lwn.net/Articles/723057/
-[6]: https://github.com/cyphar/filepath-securejoin
-
-Aleksa Sarai (5):
-  namei: split out nd->dfd handling to dirfd_path_init
-  namei: O_BENEATH-style path resolution flags
-  namei: O_THISROOT: chroot-like path resolution
-  namei: aggressively check for nd->root escape on ".." resolution
-  binfmt_*: scope path resolution of interpreters
-
- fs/binfmt_elf.c                  |   2 +-
- fs/binfmt_elf_fdpic.c            |   2 +-
- fs/binfmt_em86.c                 |   4 +-
- fs/binfmt_misc.c                 |   2 +-
- fs/binfmt_script.c               |   2 +-
- fs/exec.c                        |  26 +++-
- fs/fcntl.c                       |   2 +-
- fs/namei.c                       | 205 ++++++++++++++++++++++---------
- fs/open.c                        |  13 +-
- include/linux/binfmts.h          |   1 +
- include/linux/fcntl.h            |   3 +-
- include/linux/fs.h               |   9 +-
- include/linux/namei.h            |   8 ++
- include/uapi/asm-generic/fcntl.h |  17 +++
- include/uapi/linux/fcntl.h       |   6 +
- 15 files changed, 228 insertions(+), 74 deletions(-)
-
+diff --git a/fs/namei.c b/fs/namei.c
+index 798eb1702a0c..af06b10b13a0 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -493,7 +493,7 @@ struct nameidata {
+ 	struct path	root;
+ 	struct inode	*inode; /* path.dentry.d_inode */
+ 	unsigned int	flags;
+-	unsigned	seq, m_seq;
++	unsigned	seq, m_seq, r_seq;
+ 	int		last_type;
+ 	unsigned	depth;
+ 	int		total_link_count;
+@@ -1741,19 +1741,35 @@ static inline int may_lookup(struct nameidata *nd)
+ static inline int handle_dots(struct nameidata *nd, int type)
+ {
+ 	if (type == LAST_DOTDOT) {
+-		/*
+-		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
+-		 * cause our parent to have moved outside of the root and us to skip
+-		 * over it.
+-		 */
+-		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
+-			return -EXDEV;
++		int error = 0;
++
+ 		if (!nd->root.mnt)
+ 			set_root(nd);
+-		if (nd->flags & LOOKUP_RCU) {
+-			return follow_dotdot_rcu(nd);
+-		} else
+-			return follow_dotdot(nd);
++		if (nd->flags & LOOKUP_RCU)
++			error = follow_dotdot_rcu(nd);
++		else
++			error = follow_dotdot(nd);
++		if (error)
++			return error;
++
++		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT))) {
++			bool m_retry = read_seqretry(&mount_lock, nd->m_seq);
++			bool r_retry = read_seqretry(&rename_lock, nd->r_seq);
++
++			/*
++			 * Don't bother checking unless there's a racing
++			 * rename(2) or MS_MOVE.
++			 */
++			if (likely(!m_retry && !r_retry))
++				return 0;
++
++			if (m_retry && !(nd->flags & LOOKUP_RCU))
++				nd->m_seq = read_seqbegin(&mount_lock);
++			if (r_retry)
++				nd->r_seq = read_seqbegin(&rename_lock);
++			if (!path_is_under(&nd->path, &nd->root))
++				return -EXDEV;
++		}
+ 	}
+ 	return 0;
+ }
+@@ -2274,6 +2290,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
+ 	nd->flags = flags | LOOKUP_JUMPED | LOOKUP_PARENT;
+ 	nd->depth = 0;
++
++	nd->m_seq = read_seqbegin(&mount_lock);
++	if (unlikely(flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
++		nd->r_seq = read_seqbegin(&rename_lock);
++
+ 	if (flags & LOOKUP_ROOT) {
+ 		struct dentry *root = nd->root.dentry;
+ 		struct inode *inode = root->d_inode;
+@@ -2284,7 +2305,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 		if (flags & LOOKUP_RCU) {
+ 			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
+ 			nd->root_seq = nd->seq;
+-			nd->m_seq = read_seqbegin(&mount_lock);
+ 		} else {
+ 			path_get(&nd->path);
+ 		}
+@@ -2295,8 +2315,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 	nd->path.mnt = NULL;
+ 	nd->path.dentry = NULL;
+ 
+-	nd->m_seq = read_seqbegin(&mount_lock);
+-
+ 	if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT))) {
+ 		error = dirfd_path_init(nd);
+ 		if (unlikely(error))
 -- 
 2.21.0
