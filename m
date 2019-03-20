@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f73.google.com ([209.85.217.73]:35440 "EHLO
-        mail-vs1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727996AbfCTOv5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:51:57 -0400
-Received: by mail-vs1-f73.google.com with SMTP id e63so872483vsc.2
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:51:56 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:18 +0100
+Received: from mail-pf1-f201.google.com ([209.85.210.201]:34071 "EHLO
+        mail-pf1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728522AbfCTOwS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:18 -0400
+Received: by mail-pf1-f201.google.com with SMTP id g125so2782137pfb.1
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:17 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:24 +0100
 In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
+Message-Id: <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
+Subject: [PATCH v13 10/20] kernel, arm64: untag user pointers in prctl_set_mm*
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,222 +22,130 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-This patch allows tagged pointers to be passed to the following memory
-syscalls: madvise, mbind, get_mempolicy, mincore, mlock, mlock2, brk,
-mmap_pgoff, old_mmap, munmap, remap_file_pages, mprotect, pkey_mprotect,
-mremap, msync and shmdt.
+prctl_set_mm() and prctl_set_mm_map() use provided user pointers for vma
+lookups and do some pointer comparisons to perform validation, which can
+only by done with untagged pointers.
 
-This is done by untagging pointers passed to these syscalls in the
-prologues of their handlers.
+Untag user pointers in these functions for vma lookup and validity checks.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- ipc/shm.c      | 2 ++
- mm/madvise.c   | 2 ++
- mm/mempolicy.c | 5 +++++
- mm/migrate.c   | 1 +
- mm/mincore.c   | 2 ++
- mm/mlock.c     | 5 +++++
- mm/mmap.c      | 7 +++++++
- mm/mprotect.c  | 1 +
- mm/mremap.c    | 2 ++
- mm/msync.c     | 2 ++
- 10 files changed, 29 insertions(+)
+ kernel/sys.c | 44 ++++++++++++++++++++++++++++++--------------
+ 1 file changed, 30 insertions(+), 14 deletions(-)
 
-diff --git a/ipc/shm.c b/ipc/shm.c
-index ce1ca9f7c6e9..7af8951e6c41 100644
---- a/ipc/shm.c
-+++ b/ipc/shm.c
-@@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
- 	unsigned long ret;
- 	long err;
- 
-+	shmaddr = untagged_addr(shmaddr);
- 	err = do_shmat(shmid, shmaddr, shmflg, &ret, SHMLBA);
- 	if (err)
- 		return err;
-@@ -1732,6 +1733,7 @@ long ksys_shmdt(char __user *shmaddr)
- 
- SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 12df0e5434b8..fe26ccf3c9e6 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1885,11 +1885,12 @@ static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
+  * WARNING: we don't require any capability here so be very careful
+  * in what is allowed for modification from userspace.
+  */
+-static int validate_prctl_map(struct prctl_mm_map *prctl_map)
++static int validate_prctl_map(struct prctl_mm_map *tagged_prctl_map)
  {
-+	shmaddr = untagged_addr(shmaddr);
- 	return ksys_shmdt(shmaddr);
- }
+ 	unsigned long mmap_max_addr = TASK_SIZE;
+ 	struct mm_struct *mm = current->mm;
+ 	int error = -EINVAL, i;
++	struct prctl_mm_map prctl_map;
  
-diff --git a/mm/madvise.c b/mm/madvise.c
-index 21a7881a2db4..64e6d34a7f9b 100644
---- a/mm/madvise.c
-+++ b/mm/madvise.c
-@@ -809,6 +809,8 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
- 	size_t len;
- 	struct blk_plug plug;
+ 	static const unsigned char offsets[] = {
+ 		offsetof(struct prctl_mm_map, start_code),
+@@ -1905,12 +1906,25 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
+ 		offsetof(struct prctl_mm_map, env_end),
+ 	};
  
-+	start = untagged_addr(start);
++	memcpy(&prctl_map, tagged_prctl_map, sizeof(prctl_map));
++	prctl_map.start_code	= untagged_addr(prctl_map.start_code);
++	prctl_map.end_code	= untagged_addr(prctl_map.end_code);
++	prctl_map.start_data	= untagged_addr(prctl_map.start_data);
++	prctl_map.end_data	= untagged_addr(prctl_map.end_data);
++	prctl_map.start_brk	= untagged_addr(prctl_map.start_brk);
++	prctl_map.brk		= untagged_addr(prctl_map.brk);
++	prctl_map.start_stack	= untagged_addr(prctl_map.start_stack);
++	prctl_map.arg_start	= untagged_addr(prctl_map.arg_start);
++	prctl_map.arg_end	= untagged_addr(prctl_map.arg_end);
++	prctl_map.env_start	= untagged_addr(prctl_map.env_start);
++	prctl_map.env_end	= untagged_addr(prctl_map.env_end);
 +
- 	if (!madvise_behavior_valid(behavior))
- 		return error;
+ 	/*
+ 	 * Make sure the members are not somewhere outside
+ 	 * of allowed address space.
+ 	 */
+ 	for (i = 0; i < ARRAY_SIZE(offsets); i++) {
+-		u64 val = *(u64 *)((char *)prctl_map + offsets[i]);
++		u64 val = *(u64 *)((char *)&prctl_map + offsets[i]);
  
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index af171ccb56a2..31691737c59c 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1334,6 +1334,7 @@ static long kernel_mbind(unsigned long start, unsigned long len,
- 	int err;
- 	unsigned short mode_flags;
- 
-+	start = untagged_addr(start);
- 	mode_flags = mode & MPOL_MODE_FLAGS;
- 	mode &= ~MPOL_MODE_FLAGS;
- 	if (mode >= MPOL_MAX)
-@@ -1491,6 +1492,8 @@ static int kernel_get_mempolicy(int __user *policy,
- 	int uninitialized_var(pval);
- 	nodemask_t nodes;
- 
-+	addr = untagged_addr(addr);
-+
- 	if (nmask != NULL && maxnode < nr_node_ids)
- 		return -EINVAL;
- 
-@@ -1576,6 +1579,8 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 	unsigned long nr_bits, alloc_size;
- 	nodemask_t bm;
- 
-+	start = untagged_addr(start);
-+
- 	nr_bits = min_t(unsigned long, maxnode-1, MAX_NUMNODES);
- 	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
- 
-diff --git a/mm/migrate.c b/mm/migrate.c
-index ac6f4939bb59..ecc6dcdefb1f 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -1612,6 +1612,7 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
- 		if (get_user(node, nodes + i))
- 			goto out_flush;
- 		addr = (unsigned long)p;
-+		addr = untagged_addr(addr);
- 
- 		err = -ENODEV;
- 		if (node < 0 || node >= MAX_NUMNODES)
-diff --git a/mm/mincore.c b/mm/mincore.c
-index 218099b5ed31..c4a3f4484b6b 100644
---- a/mm/mincore.c
-+++ b/mm/mincore.c
-@@ -228,6 +228,8 @@ SYSCALL_DEFINE3(mincore, unsigned long, start, size_t, len,
- 	unsigned long pages;
- 	unsigned char *tmp;
- 
-+	start = untagged_addr(start);
-+
- 	/* Check the start address: needs to be page-aligned.. */
- 	if (start & ~PAGE_MASK)
- 		return -EINVAL;
-diff --git a/mm/mlock.c b/mm/mlock.c
-index 080f3b36415b..6934ec92bf39 100644
---- a/mm/mlock.c
-+++ b/mm/mlock.c
-@@ -715,6 +715,7 @@ static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t fla
- 
- SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
- {
-+	start = untagged_addr(start);
- 	return do_mlock(start, len, VM_LOCKED);
- }
- 
-@@ -722,6 +723,8 @@ SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
- {
- 	vm_flags_t vm_flags = VM_LOCKED;
- 
-+	start = untagged_addr(start);
-+
- 	if (flags & ~MLOCK_ONFAULT)
- 		return -EINVAL;
- 
-@@ -735,6 +738,8 @@ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
- {
- 	int ret;
- 
-+	start = untagged_addr(start);
-+
- 	len = PAGE_ALIGN(len + (offset_in_page(start)));
- 	start &= PAGE_MASK;
- 
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 41eb48d9b527..512c679c7f33 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -199,6 +199,8 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
- 	bool downgraded = false;
- 	LIST_HEAD(uf);
- 
-+	brk = untagged_addr(brk);
-+
- 	if (down_write_killable(&mm->mmap_sem))
- 		return -EINTR;
- 
-@@ -1571,6 +1573,8 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
- 	struct file *file = NULL;
- 	unsigned long retval;
- 
-+	addr = untagged_addr(addr);
-+
- 	if (!(flags & MAP_ANONYMOUS)) {
- 		audit_mmap_fd(fd, flags);
- 		file = fget(fd);
-@@ -2867,6 +2871,7 @@ EXPORT_SYMBOL(vm_munmap);
- 
- SYSCALL_DEFINE2(munmap, unsigned long, addr, size_t, len)
- {
-+	addr = untagged_addr(addr);
- 	profile_munmap(addr);
- 	return __vm_munmap(addr, len, true);
- }
-@@ -2885,6 +2890,8 @@ SYSCALL_DEFINE5(remap_file_pages, unsigned long, start, unsigned long, size,
- 	unsigned long ret = -EINVAL;
- 	struct file *file;
- 
-+	start = untagged_addr(start);
-+
- 	pr_warn_once("%s (%d) uses deprecated remap_file_pages() syscall. See Documentation/vm/remap_file_pages.rst.\n",
- 		     current->comm, current->pid);
- 
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index 028c724dcb1a..3c2b11629f89 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -468,6 +468,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- 	if (grows == (PROT_GROWSDOWN|PROT_GROWSUP)) /* can't be both */
- 		return -EINVAL;
- 
-+	start = untagged_addr(start);
- 	if (start & ~PAGE_MASK)
- 		return -EINVAL;
- 	if (!len)
-diff --git a/mm/mremap.c b/mm/mremap.c
-index e3edef6b7a12..6422aeee65bb 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -605,6 +605,8 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
- 	LIST_HEAD(uf_unmap_early);
- 	LIST_HEAD(uf_unmap);
- 
-+	addr = untagged_addr(addr);
-+
- 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
- 		return ret;
- 
-diff --git a/mm/msync.c b/mm/msync.c
-index ef30a429623a..c3bd3e75f687 100644
---- a/mm/msync.c
-+++ b/mm/msync.c
-@@ -37,6 +37,8 @@ SYSCALL_DEFINE3(msync, unsigned long, start, size_t, len, int, flags)
- 	int unmapped_error = 0;
- 	int error = -EINVAL;
- 
-+	start = untagged_addr(start);
-+
- 	if (flags & ~(MS_ASYNC | MS_INVALIDATE | MS_SYNC))
+ 		if ((unsigned long)val >= mmap_max_addr ||
+ 		    (unsigned long)val < mmap_min_addr)
+@@ -1921,8 +1935,8 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
+ 	 * Make sure the pairs are ordered.
+ 	 */
+ #define __prctl_check_order(__m1, __op, __m2)				\
+-	((unsigned long)prctl_map->__m1 __op				\
+-	 (unsigned long)prctl_map->__m2) ? 0 : -EINVAL
++	((unsigned long)prctl_map.__m1 __op				\
++	 (unsigned long)prctl_map.__m2) ? 0 : -EINVAL
+ 	error  = __prctl_check_order(start_code, <, end_code);
+ 	error |= __prctl_check_order(start_data, <, end_data);
+ 	error |= __prctl_check_order(start_brk, <=, brk);
+@@ -1937,23 +1951,24 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
+ 	/*
+ 	 * @brk should be after @end_data in traditional maps.
+ 	 */
+-	if (prctl_map->start_brk <= prctl_map->end_data ||
+-	    prctl_map->brk <= prctl_map->end_data)
++	if (prctl_map.start_brk <= prctl_map.end_data ||
++	    prctl_map.brk <= prctl_map.end_data)
  		goto out;
- 	if (offset_in_page(start))
+ 
+ 	/*
+ 	 * Neither we should allow to override limits if they set.
+ 	 */
+-	if (check_data_rlimit(rlimit(RLIMIT_DATA), prctl_map->brk,
+-			      prctl_map->start_brk, prctl_map->end_data,
+-			      prctl_map->start_data))
++	if (check_data_rlimit(rlimit(RLIMIT_DATA), prctl_map.brk,
++			      prctl_map.start_brk, prctl_map.end_data,
++			      prctl_map.start_data))
+ 			goto out;
+ 
+ 	/*
+ 	 * Someone is trying to cheat the auxv vector.
+ 	 */
+-	if (prctl_map->auxv_size) {
+-		if (!prctl_map->auxv || prctl_map->auxv_size > sizeof(mm->saved_auxv))
++	if (prctl_map.auxv_size) {
++		if (!prctl_map.auxv || prctl_map.auxv_size >
++						sizeof(mm->saved_auxv))
+ 			goto out;
+ 	}
+ 
+@@ -1962,7 +1977,7 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
+ 	 * change /proc/pid/exe link: only local sys admin should
+ 	 * be allowed to.
+ 	 */
+-	if (prctl_map->exe_fd != (u32)-1) {
++	if (prctl_map.exe_fd != (u32)-1) {
+ 		if (!ns_capable(current_user_ns(), CAP_SYS_ADMIN))
+ 			goto out;
+ 	}
+@@ -2120,13 +2135,14 @@ static int prctl_set_mm(int opt, unsigned long addr,
+ 	if (opt == PR_SET_MM_AUXV)
+ 		return prctl_set_auxv(mm, addr, arg4);
+ 
+-	if (addr >= TASK_SIZE || addr < mmap_min_addr)
++	if (untagged_addr(addr) >= TASK_SIZE ||
++			untagged_addr(addr) < mmap_min_addr)
+ 		return -EINVAL;
+ 
+ 	error = -EINVAL;
+ 
+ 	down_write(&mm->mmap_sem);
+-	vma = find_vma(mm, addr);
++	vma = find_vma(mm, untagged_addr(addr));
+ 
+ 	prctl_map.start_code	= mm->start_code;
+ 	prctl_map.end_code	= mm->end_code;
 -- 
 2.21.0.225.g810b269d1ac-goog
