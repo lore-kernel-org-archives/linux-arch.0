@@ -1,238 +1,408 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
-Date: Wed, 20 Mar 2019 15:20:27 +0900
-Message-ID: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Date: Wed, 20 Mar 2019 15:40:39 +0900
+Message-ID: <CAK7LNAQu9hmeSgKO_B1LhXqq9Z923H25HXNS9XYNvFi55WrFYw@mail.gmail.com>
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Dave Hansen <dave@sr71.net>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, X86 ML <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Q29tbWl0IDYwYTNjZGQwNjM5NCAoIng4NjogYWRkIG9wdGltaXplZCBpbmxpbmluZyIpIGludHJv
-ZHVjZWQKQ09ORklHX09QVElNSVpFX0lOTElOSU5HLCBidXQgaXQgaGFzIGJlZW4gYXZhaWxhYmxl
-IG9ubHkgZm9yIHg4Ni4KClRoZSBpZGVhIGlzIG9idmlvdXNseSBhcmNoLWFnbm9zdGljIGFsdGhv
-dWdoIHdlIG5lZWQgc29tZSBjb2RlIGZpeHVwcy4KVGhpcyBjb21taXQgbW92ZXMgdGhlIGNvbmZp
-ZyBlbnRyeSBmcm9tIGFyY2gveDg2L0tjb25maWcuZGVidWcgdG8KbGliL0tjb25maWcuZGVidWcg
-c28gdGhhdCBhbGwgYXJjaGl0ZWN0dXJlcyAoZXhjZXB0IE1JUFMgZm9yIG5vdykgY2FuCmJlbmVm
-aXQgZnJvbSBpdC4KCkF0IHRoaXMgbW9tZW50LCBJIGFkZGVkICJkZXBlbmRzIG9uICFNSVBTIiBi
-ZWNhdXNlIGZpeGluZyAwZGF5IGJvdCByZXBvcnRzCmZvciBNSVBTIHdhcyBjb21wbGV4IHRvIG1l
-LgoKSSB0ZXN0ZWQgdGhpcyBwYXRjaCBvbiBteSBhcm0vYXJtNjQgYm9hcmRzLgoKVGhpcyBjYW4g
-bWFrZSBhIGh1Z2UgZGlmZmVyZW5jZSBpbiBrZXJuZWwgaW1hZ2Ugc2l6ZSBlc3BlY2lhbGx5IHdo
-ZW4KQ09ORklHX09QVElNSVpFX0ZPUl9TSVpFIGlzIGVuYWJsZWQuCgpGb3IgZXhhbXBsZSwgSSBn
-b3QgMy41JSBzbWFsbGVyIGFybTY0IGtlcm5lbCBpbWFnZSBmb3IgdjUuMS1yYzEuCgogIGRlYyAg
-ICAgICBmaWxlCiAgMTg5ODM0MjQgIGFyY2gvYXJtNjQvYm9vdC9JbWFnZS5iZWZvcmUKICAxODMy
-MTkyMCAgYXJjaC9hcm02NC9ib290L0ltYWdlLmFmdGVyCgpUaGlzIGFsc28gc2xpZ2h0bHkgaW1w
-cm92ZXMgdGhlICJLZXJuZWwgaGFja2luZyIgS2NvbmZpZyBtZW51LgpDb21taXQgZTYxYWNhNTE1
-OGE4ICgiTWVyZ2UgYnJhbmNoICdrY29uZmlnLWRpZXQnIGZyb20gRGF2ZSBIYW5zZW4nKQptZW50
-aW9uZWQgdGhpcyBjb25maWcgb3B0aW9uIHdvdWxkIGJlIGEgZ29vZCBmaXQgaW4gdGhlICJjb21w
-aWxlciBvcHRpb24iCm1lbnUuIEkgZGlkIHNvLgoKSSBmaXhlZCB1cCBzb21lIGZpbGVzIHRvIGF2
-b2lkIGJ1aWxkIHdhcm5pbmdzL2Vycm9ycy4KClsxXSBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2Nw
-dWZlYXR1cmUuaAoKSW4gZmlsZSBpbmNsdWRlZCBmcm9tIC4vLi9pbmNsdWRlL2xpbnV4L2NvbXBp
-bGVyX3R5cGVzLmg6NjgsCiAgICAgICAgICAgICAgICAgZnJvbSA8Y29tbWFuZC1saW5lPjoKLi9h
-cmNoL2FybTY0L2luY2x1ZGUvYXNtL2p1bXBfbGFiZWwuaDogSW4gZnVuY3Rpb24gJ2NwdXNfaGF2
-ZV9jb25zdF9jYXAnOgouL2luY2x1ZGUvbGludXgvY29tcGlsZXItZ2NjLmg6MTIwOjM4OiB3YXJu
-aW5nOiBhc20gb3BlcmFuZCAwIHByb2JhYmx5IGRvZXNuJ3QgbWF0Y2ggY29uc3RyYWludHMKICNk
-ZWZpbmUgYXNtX3ZvbGF0aWxlX2dvdG8oeC4uLikgZG8geyBhc20gZ290byh4KTsgYXNtICgiIik7
-IH0gd2hpbGUgKDApCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXn5+Ci4v
-YXJjaC9hcm02NC9pbmNsdWRlL2FzbS9qdW1wX2xhYmVsLmg6MzI6Mjogbm90ZTogaW4gZXhwYW5z
-aW9uIG9mIG1hY3JvICdhc21fdm9sYXRpbGVfZ290bycKICBhc21fdm9sYXRpbGVfZ290bygKICBe
-fn5+fn5+fn5+fn5+fn5+fgouL2luY2x1ZGUvbGludXgvY29tcGlsZXItZ2NjLmg6MTIwOjM4OiBl
-cnJvcjogaW1wb3NzaWJsZSBjb25zdHJhaW50IGluICdhc20nCiAjZGVmaW5lIGFzbV92b2xhdGls
-ZV9nb3RvKHguLi4pIGRvIHsgYXNtIGdvdG8oeCk7IGFzbSAoIiIpOyB9IHdoaWxlICgwKQogICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF5+fgouL2FyY2gvYXJtNjQvaW5jbHVk
-ZS9hc20vanVtcF9sYWJlbC5oOjMyOjI6IG5vdGU6IGluIGV4cGFuc2lvbiBvZiBtYWNybyAnYXNt
-X3ZvbGF0aWxlX2dvdG8nCiAgYXNtX3ZvbGF0aWxlX2dvdG8oCiAgXn5+fn5+fn5+fn5+fn5+fn4K
-ClsyXSBhcmNoL21pcHMva2VybmVsL2NwdS1idWdzNjQuYwoKYXJjaC9taXBzL2tlcm5lbC9jcHUt
-YnVnczY0LmM6IEluIGZ1bmN0aW9uICdtdWx0X3NoX2FsaWduX21vZC5jb25zdHByb3AnOgphcmNo
-L21pcHMva2VybmVsL2NwdS1idWdzNjQuYzozMzoyOiBlcnJvcjogYXNtIG9wZXJhbmQgMSBwcm9i
-YWJseSBkb2Vzbid0IG1hdGNoIGNvbnN0cmFpbnRzIFstV2Vycm9yXQogIGFzbSB2b2xhdGlsZSgK
-ICBefn4KYXJjaC9taXBzL2tlcm5lbC9jcHUtYnVnczY0LmM6MzM6MjogZXJyb3I6IGFzbSBvcGVy
-YW5kIDEgcHJvYmFibHkgZG9lc24ndCBtYXRjaCBjb25zdHJhaW50cyBbLVdlcnJvcl0KICBhc20g
-dm9sYXRpbGUoCiAgXn5+CmFyY2gvbWlwcy9rZXJuZWwvY3B1LWJ1Z3M2NC5jOjMzOjI6IGVycm9y
-OiBpbXBvc3NpYmxlIGNvbnN0cmFpbnQgaW4gJ2FzbScKICBhc20gdm9sYXRpbGUoCiAgXn5+CmFy
-Y2gvbWlwcy9rZXJuZWwvY3B1LWJ1Z3M2NC5jOjMzOjI6IGVycm9yOiBpbXBvc3NpYmxlIGNvbnN0
-cmFpbnQgaW4gJ2FzbScKICBhc20gdm9sYXRpbGUoCiAgXn5+CgpbM10gYXJjaC9wb3dlcnBjL21t
-L3RsYi1yYWRpeC5jCgphcmNoL3Bvd2VycGMvbW0vdGxiLXJhZGl4LmM6IEluIGZ1bmN0aW9uICdf
-X3JhZGl4X19mbHVzaF90bGJfcmFuZ2VfcHNpemUnOgphcmNoL3Bvd2VycGMvbW0vdGxiLXJhZGl4
-LmM6MTA0OjI6IGVycm9yOiBhc20gb3BlcmFuZCAzIHByb2JhYmx5IGRvZXNuJ3QgbWF0Y2ggY29u
-c3RyYWludHMgWy1XZXJyb3JdCiAgYXNtIHZvbGF0aWxlKFBQQ19UTEJJRUwoJTAsICU0LCAlMywg
-JTIsICUxKQogIF5+fgphcmNoL3Bvd2VycGMvbW0vdGxiLXJhZGl4LmM6MTA0OjI6IGVycm9yOiBp
-bXBvc3NpYmxlIGNvbnN0cmFpbnQgaW4gJ2FzbScKICBDQyAgICAgIGFyY2gvcG93ZXJwYy9wZXJm
-L2h2LWdwY2kubwoKWzRdIGFyY2gvczM5MC9pbmNsdWRlL2FzbS9jcGFjZi5oCgpJbiBmaWxlIGlu
-Y2x1ZGVkIGZyb20gYXJjaC9zMzkwL2NyeXB0by9kZXNfczM5MC5jOjE5OgouL2FyY2gvczM5MC9p
-bmNsdWRlL2FzbS9jcGFjZi5oOiBJbiBmdW5jdGlvbiAnY3BhY2ZfcXVlcnknOgouL2FyY2gvczM5
-MC9pbmNsdWRlL2FzbS9jcGFjZi5oOjE3MDoyOiB3YXJuaW5nOiBhc20gb3BlcmFuZCAzIHByb2Jh
-Ymx5IGRvZXNuJ3QgbWF0Y2ggY29uc3RyYWludHMKICBhc20gdm9sYXRpbGUoCiAgXn5+Ci4vYXJj
-aC9zMzkwL2luY2x1ZGUvYXNtL2NwYWNmLmg6MTcwOjI6IGVycm9yOiBpbXBvc3NpYmxlIGNvbnN0
-cmFpbnQgaW4gJ2FzbScKCls1XSBhcmNoL3Bvd2VycGMva2VybmVsL3Byb21faW5pdC5jCgpXQVJO
-SU5HOiB2bWxpbnV4Lm8oLnRleHQudW5saWtlbHkrMHgyMCk6IFNlY3Rpb24gbWlzbWF0Y2ggaW4g
-cmVmZXJlbmNlIGZyb20gdGhlIGZ1bmN0aW9uIC5wcm9tX2dldHByb3AoKSB0byB0aGUgZnVuY3Rp
-b24gLmluaXQudGV4dDouY2FsbF9wcm9tKCkKVGhlIGZ1bmN0aW9uIC5wcm9tX2dldHByb3AoKSBy
-ZWZlcmVuY2VzCnRoZSBmdW5jdGlvbiBfX2luaXQgLmNhbGxfcHJvbSgpLgpUaGlzIGlzIG9mdGVu
-IGJlY2F1c2UgLnByb21fZ2V0cHJvcCBsYWNrcyBhIF9faW5pdAphbm5vdGF0aW9uIG9yIHRoZSBh
-bm5vdGF0aW9uIG9mIC5jYWxsX3Byb20gaXMgd3JvbmcuCgpXQVJOSU5HOiB2bWxpbnV4Lm8oLnRl
-eHQudW5saWtlbHkrMHgzYyk6IFNlY3Rpb24gbWlzbWF0Y2ggaW4gcmVmZXJlbmNlIGZyb20gdGhl
-IGZ1bmN0aW9uIC5wcm9tX2dldHByb3BsZW4oKSB0byB0aGUgZnVuY3Rpb24gLmluaXQudGV4dDou
-Y2FsbF9wcm9tKCkKVGhlIGZ1bmN0aW9uIC5wcm9tX2dldHByb3BsZW4oKSByZWZlcmVuY2VzCnRo
-ZSBmdW5jdGlvbiBfX2luaXQgLmNhbGxfcHJvbSgpLgpUaGlzIGlzIG9mdGVuIGJlY2F1c2UgLnBy
-b21fZ2V0cHJvcGxlbiBsYWNrcyBhIF9faW5pdAphbm5vdGF0aW9uIG9yIHRoZSBhbm5vdGF0aW9u
-IG9mIC5jYWxsX3Byb20gaXMgd3JvbmcuCgpbNl0gZHJpdmVycy9tdGQvbmFuZC9yYXcvdmY2MTBf
-bmZjLmMKCmRyaXZlcnMvbXRkL25hbmQvcmF3L3ZmNjEwX25mYy5jOiBJbiBmdW5jdGlvbiDigJh2
-ZjYxMF9uZmNfY21k4oCZOgpkcml2ZXJzL210ZC9uYW5kL3Jhdy92ZjYxMF9uZmMuYzo0NTU6Mzog
-d2FybmluZzog4oCYb2Zmc2V04oCZIG1heSBiZSB1c2VkIHVuaW5pdGlhbGl6ZWQgaW4gdGhpcyBm
-dW5jdGlvbiBbLVdtYXliZS11bmluaXRpYWxpemVkXQogICB2ZjYxMF9uZmNfcmRfZnJvbV9zcmFt
-KGluc3RyLT5jdHguZGF0YS5idWYuaW4gKyBvZmZzZXQsCiAgIF5+fn5+fn5+fn5+fn5+fn5+fn5+
-fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn4KICAgICAgICAgICAgbmZjLT5yZWdz
-ICsgTkZDX01BSU5fQVJFQSgwKSArIG9mZnNldCwKICAgICAgICAgICAgfn5+fn5+fn5+fn5+fn5+
-fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn4KICAgICAgICAgICAgdHJmcl9zeiwgIW5mYy0+ZGF0YV9h
-Y2Nlc3MpOwogICAgICAgICAgICB+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn4KCls3XSBhcmNo
-L2FybS9rZXJuZWwvc21wLmMKCmFyY2gvYXJtL2tlcm5lbC9zbXAuYzogSW4gZnVuY3Rpb24g4oCY
-cmFpc2Vfbm1p4oCZOgphcmNoL2FybS9rZXJuZWwvc21wLmM6NTIyOjI6IHdhcm5pbmc6IGFycmF5
-IHN1YnNjcmlwdCBpcyBhYm92ZSBhcnJheSBib3VuZHMgWy1XYXJyYXktYm91bmRzXQogIHRyYWNl
-X2lwaV9yYWlzZV9yY3VpZGxlKHRhcmdldCwgaXBpX3R5cGVzW2lwaW5yXSk7CiAgXn5+fn5+fn5+
-fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fgoKVGhlIGZpeHVwIGlzIG5v
-dCBpbmNsdWRlZCBpbiB0aGlzLiBUaGUgcGF0Y2ggaXMgYXZhaWxhYmxlIGluIE1MOgoKaHR0cDov
-L2xpc3RzLmluZnJhZGVhZC5vcmcvcGlwZXJtYWlsL2xpbnV4LWFybS1rZXJuZWwvMjAxNi1GZWJy
-dWFyeS80MDkzOTMuaHRtbAoKU2lnbmVkLW9mZi1ieTogTWFzYWhpcm8gWWFtYWRhIDx5YW1hZGEu
-bWFzYWhpcm9Ac29jaW9uZXh0LmNvbT4KLS0tCgogYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9jcHVm
-ZWF0dXJlLmggfCAgNCArKy0tCiBhcmNoL21pcHMva2VybmVsL2NwdS1idWdzNjQuYyAgICAgICB8
-ICA0ICsrLS0KIGFyY2gvcG93ZXJwYy9rZXJuZWwvcHJvbV9pbml0LmMgICAgIHwgIDYgKysrLS0t
-CiBhcmNoL3Bvd2VycGMvbW0vdGxiLXJhZGl4LmMgICAgICAgICB8ICAyICstCiBhcmNoL3MzOTAv
-aW5jbHVkZS9hc20vY3BhY2YuaCAgICAgICB8ICAyICstCiBhcmNoL3g4Ni9LY29uZmlnICAgICAg
-ICAgICAgICAgICAgICB8ICAzIC0tLQogYXJjaC94ODYvS2NvbmZpZy5kZWJ1ZyAgICAgICAgICAg
-ICAgfCAxNCAtLS0tLS0tLS0tLS0tLQogZHJpdmVycy9tdGQvbmFuZC9yYXcvdmY2MTBfbmZjLmMg
-ICAgfCAgMiArLQogaW5jbHVkZS9saW51eC9jb21waWxlcl90eXBlcy5oICAgICAgfCAgMyArLS0K
-IGxpYi9LY29uZmlnLmRlYnVnICAgICAgICAgICAgICAgICAgIHwgMTUgKysrKysrKysrKysrKysr
-CiAxMCBmaWxlcyBjaGFuZ2VkLCAyNiBpbnNlcnRpb25zKCspLCAyOSBkZWxldGlvbnMoLSkKCmRp
-ZmYgLS1naXQgYS9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL2NwdWZlYXR1cmUuaCBiL2FyY2gvYXJt
-NjQvaW5jbHVkZS9hc20vY3B1ZmVhdHVyZS5oCmluZGV4IGU1MDVlMWYuLjc3ZDFhYTUgMTAwNjQ0
-Ci0tLSBhL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vY3B1ZmVhdHVyZS5oCisrKyBiL2FyY2gvYXJt
-NjQvaW5jbHVkZS9hc20vY3B1ZmVhdHVyZS5oCkBAIC00MDYsNyArNDA2LDcgQEAgc3RhdGljIGlu
-bGluZSBib29sIGNwdV9oYXZlX2ZlYXR1cmUodW5zaWduZWQgaW50IG51bSkKIH0KIAogLyogU3lz
-dGVtIGNhcGFiaWxpdHkgY2hlY2sgZm9yIGNvbnN0YW50IGNhcHMgKi8KLXN0YXRpYyBpbmxpbmUg
-Ym9vbCBfX2NwdXNfaGF2ZV9jb25zdF9jYXAoaW50IG51bSkKK3N0YXRpYyBfX2Fsd2F5c19pbmxp
-bmUgYm9vbCBfX2NwdXNfaGF2ZV9jb25zdF9jYXAoaW50IG51bSkKIHsKIAlpZiAobnVtID49IEFS
-TTY0X05DQVBTKQogCQlyZXR1cm4gZmFsc2U7CkBAIC00MjAsNyArNDIwLDcgQEAgc3RhdGljIGlu
-bGluZSBib29sIGNwdXNfaGF2ZV9jYXAodW5zaWduZWQgaW50IG51bSkKIAlyZXR1cm4gdGVzdF9i
-aXQobnVtLCBjcHVfaHdjYXBzKTsKIH0KIAotc3RhdGljIGlubGluZSBib29sIGNwdXNfaGF2ZV9j
-b25zdF9jYXAoaW50IG51bSkKK3N0YXRpYyBfX2Fsd2F5c19pbmxpbmUgYm9vbCBjcHVzX2hhdmVf
-Y29uc3RfY2FwKGludCBudW0pCiB7CiAJaWYgKHN0YXRpY19icmFuY2hfbGlrZWx5KCZhcm02NF9j
-b25zdF9jYXBzX3JlYWR5KSkKIAkJcmV0dXJuIF9fY3B1c19oYXZlX2NvbnN0X2NhcChudW0pOwpk
-aWZmIC0tZ2l0IGEvYXJjaC9taXBzL2tlcm5lbC9jcHUtYnVnczY0LmMgYi9hcmNoL21pcHMva2Vy
-bmVsL2NwdS1idWdzNjQuYwppbmRleCBiYWRhNzRhLi5jMDRiOTdhIDEwMDY0NAotLS0gYS9hcmNo
-L21pcHMva2VybmVsL2NwdS1idWdzNjQuYworKysgYi9hcmNoL21pcHMva2VybmVsL2NwdS1idWdz
-NjQuYwpAQCAtNDIsOCArNDIsOCBAQCBzdGF0aWMgaW5saW5lIHZvaWQgYWxpZ25fbW9kKGNvbnN0
-IGludCBhbGlnbiwgY29uc3QgaW50IG1vZCkKIAkJOiAibiIoYWxpZ24pLCAibiIobW9kKSk7CiB9
-CiAKLXN0YXRpYyBpbmxpbmUgdm9pZCBtdWx0X3NoX2FsaWduX21vZChsb25nICp2MSwgbG9uZyAq
-djIsIGxvbmcgKncsCi0JCQkJICAgICBjb25zdCBpbnQgYWxpZ24sIGNvbnN0IGludCBtb2QpCitz
-dGF0aWMgX19hbHdheXNfaW5saW5lIHZvaWQgbXVsdF9zaF9hbGlnbl9tb2QobG9uZyAqdjEsIGxv
-bmcgKnYyLCBsb25nICp3LAorCQkJCQkgICAgICBjb25zdCBpbnQgYWxpZ24sIGNvbnN0IGludCBt
-b2QpCiB7CiAJdW5zaWduZWQgbG9uZyBmbGFnczsKIAlpbnQgbTEsIG0yOwpkaWZmIC0tZ2l0IGEv
-YXJjaC9wb3dlcnBjL2tlcm5lbC9wcm9tX2luaXQuYyBiL2FyY2gvcG93ZXJwYy9rZXJuZWwvcHJv
-bV9pbml0LmMKaW5kZXggZjMzZmY0MS4uMjQxZmU2YiAxMDA2NDQKLS0tIGEvYXJjaC9wb3dlcnBj
-L2tlcm5lbC9wcm9tX2luaXQuYworKysgYi9hcmNoL3Bvd2VycGMva2VybmVsL3Byb21faW5pdC5j
-CkBAIC01MDEsMTQgKzUwMSwxNCBAQCBzdGF0aWMgaW50IF9faW5pdCBwcm9tX25leHRfbm9kZShw
-aGFuZGxlICpub2RlcCkKIAl9CiB9CiAKLXN0YXRpYyBpbmxpbmUgaW50IHByb21fZ2V0cHJvcChw
-aGFuZGxlIG5vZGUsIGNvbnN0IGNoYXIgKnBuYW1lLAotCQkJICAgICAgIHZvaWQgKnZhbHVlLCBz
-aXplX3QgdmFsdWVsZW4pCitzdGF0aWMgaW5saW5lIGludCBfX2luaXQgcHJvbV9nZXRwcm9wKHBo
-YW5kbGUgbm9kZSwgY29uc3QgY2hhciAqcG5hbWUsCisJCQkJICAgICAgdm9pZCAqdmFsdWUsIHNp
-emVfdCB2YWx1ZWxlbikKIHsKIAlyZXR1cm4gY2FsbF9wcm9tKCJnZXRwcm9wIiwgNCwgMSwgbm9k
-ZSwgQUREUihwbmFtZSksCiAJCQkgKHUzMikodW5zaWduZWQgbG9uZykgdmFsdWUsICh1MzIpIHZh
-bHVlbGVuKTsKIH0KIAotc3RhdGljIGlubGluZSBpbnQgcHJvbV9nZXRwcm9wbGVuKHBoYW5kbGUg
-bm9kZSwgY29uc3QgY2hhciAqcG5hbWUpCitzdGF0aWMgaW5saW5lIGludCBfX2luaXQgcHJvbV9n
-ZXRwcm9wbGVuKHBoYW5kbGUgbm9kZSwgY29uc3QgY2hhciAqcG5hbWUpCiB7CiAJcmV0dXJuIGNh
-bGxfcHJvbSgiZ2V0cHJvcGxlbiIsIDIsIDEsIG5vZGUsIEFERFIocG5hbWUpKTsKIH0KZGlmZiAt
-LWdpdCBhL2FyY2gvcG93ZXJwYy9tbS90bGItcmFkaXguYyBiL2FyY2gvcG93ZXJwYy9tbS90bGIt
-cmFkaXguYwppbmRleCA2YTIzYjllLi5hMmIyODQ4IDEwMDY0NAotLS0gYS9hcmNoL3Bvd2VycGMv
-bW0vdGxiLXJhZGl4LmMKKysrIGIvYXJjaC9wb3dlcnBjL21tL3RsYi1yYWRpeC5jCkBAIC05Mjgs
-NyArOTI4LDcgQEAgdm9pZCByYWRpeF9fdGxiX2ZsdXNoKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIp
-CiAJdGxiLT5uZWVkX2ZsdXNoX2FsbCA9IDA7CiB9CiAKLXN0YXRpYyBpbmxpbmUgdm9pZCBfX3Jh
-ZGl4X19mbHVzaF90bGJfcmFuZ2VfcHNpemUoc3RydWN0IG1tX3N0cnVjdCAqbW0sCitzdGF0aWMg
-X19hbHdheXNfaW5saW5lIHZvaWQgX19yYWRpeF9fZmx1c2hfdGxiX3JhbmdlX3BzaXplKHN0cnVj
-dCBtbV9zdHJ1Y3QgKm1tLAogCQkJCXVuc2lnbmVkIGxvbmcgc3RhcnQsIHVuc2lnbmVkIGxvbmcg
-ZW5kLAogCQkJCWludCBwc2l6ZSwgYm9vbCBhbHNvX3B3YykKIHsKZGlmZiAtLWdpdCBhL2FyY2gv
-czM5MC9pbmNsdWRlL2FzbS9jcGFjZi5oIGIvYXJjaC9zMzkwL2luY2x1ZGUvYXNtL2NwYWNmLmgK
-aW5kZXggM2NjNTJlMy4uZjMxNmRlNCAxMDA2NDQKLS0tIGEvYXJjaC9zMzkwL2luY2x1ZGUvYXNt
-L2NwYWNmLmgKKysrIGIvYXJjaC9zMzkwL2luY2x1ZGUvYXNtL2NwYWNmLmgKQEAgLTIwMiw3ICsy
-MDIsNyBAQCBzdGF0aWMgaW5saW5lIGludCBfX2NwYWNmX2NoZWNrX29wY29kZSh1bnNpZ25lZCBp
-bnQgb3Bjb2RlKQogCX0KIH0KIAotc3RhdGljIGlubGluZSBpbnQgY3BhY2ZfcXVlcnkodW5zaWdu
-ZWQgaW50IG9wY29kZSwgY3BhY2ZfbWFza190ICptYXNrKQorc3RhdGljIF9fYWx3YXlzX2lubGlu
-ZSBpbnQgY3BhY2ZfcXVlcnkodW5zaWduZWQgaW50IG9wY29kZSwgY3BhY2ZfbWFza190ICptYXNr
-KQogewogCWlmIChfX2NwYWNmX2NoZWNrX29wY29kZShvcGNvZGUpKSB7CiAJCV9fY3BhY2ZfcXVl
-cnkob3Bjb2RlLCBtYXNrKTsKZGlmZiAtLWdpdCBhL2FyY2gveDg2L0tjb25maWcgYi9hcmNoL3g4
-Ni9LY29uZmlnCmluZGV4IGMxZjliM2MuLjFhM2UyYjUgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L0tj
-b25maWcKKysrIGIvYXJjaC94ODYvS2NvbmZpZwpAQCAtMzEwLDkgKzMxMCw2IEBAIGNvbmZpZyBa
-T05FX0RNQTMyCiBjb25maWcgQVVESVRfQVJDSAogCWRlZl9ib29sIHkgaWYgWDg2XzY0CiAKLWNv
-bmZpZyBBUkNIX1NVUFBPUlRTX09QVElNSVpFRF9JTkxJTklORwotCWRlZl9ib29sIHkKLQogY29u
-ZmlnIEFSQ0hfU1VQUE9SVFNfREVCVUdfUEFHRUFMTE9DCiAJZGVmX2Jvb2wgeQogCmRpZmYgLS1n
-aXQgYS9hcmNoL3g4Ni9LY29uZmlnLmRlYnVnIGIvYXJjaC94ODYvS2NvbmZpZy5kZWJ1ZwppbmRl
-eCAxNWQwZmJlLi5mNzMwNjgwIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9LY29uZmlnLmRlYnVnCisr
-KyBiL2FyY2gveDg2L0tjb25maWcuZGVidWcKQEAgLTI2NiwyMCArMjY2LDYgQEAgY29uZmlnIENQ
-QV9ERUJVRwogCS0tLWhlbHAtLS0KIAkgIERvIGNoYW5nZV9wYWdlX2F0dHIoKSBzZWxmLXRlc3Rz
-IGV2ZXJ5IDMwIHNlY29uZHMuCiAKLWNvbmZpZyBPUFRJTUlaRV9JTkxJTklORwotCWJvb2wgIkFs
-bG93IGdjYyB0byB1bmlubGluZSBmdW5jdGlvbnMgbWFya2VkICdpbmxpbmUnIgotCS0tLWhlbHAt
-LS0KLQkgIFRoaXMgb3B0aW9uIGRldGVybWluZXMgaWYgdGhlIGtlcm5lbCBmb3JjZXMgZ2NjIHRv
-IGlubGluZSB0aGUgZnVuY3Rpb25zCi0JICBkZXZlbG9wZXJzIGhhdmUgbWFya2VkICdpbmxpbmUn
-LiBEb2luZyBzbyB0YWtlcyBhd2F5IGZyZWVkb20gZnJvbSBnY2MgdG8KLQkgIGRvIHdoYXQgaXQg
-dGhpbmtzIGlzIGJlc3QsIHdoaWNoIGlzIGRlc2lyYWJsZSBmb3IgdGhlIGdjYyAzLnggc2VyaWVz
-IG9mCi0JICBjb21waWxlcnMuIFRoZSBnY2MgNC54IHNlcmllcyBoYXZlIGEgcmV3cml0dGVuIGlu
-bGluaW5nIGFsZ29yaXRobSBhbmQKLQkgIGVuYWJsaW5nIHRoaXMgb3B0aW9uIHdpbGwgZ2VuZXJh
-dGUgYSBzbWFsbGVyIGtlcm5lbCB0aGVyZS4gSG9wZWZ1bGx5Ci0JICB0aGlzIGFsZ29yaXRobSBp
-cyBzbyBnb29kIHRoYXQgYWxsb3dpbmcgZ2NjIDQueCBhbmQgYWJvdmUgdG8gbWFrZSB0aGUKLQkg
-IGRlY2lzaW9uIHdpbGwgYmVjb21lIHRoZSBkZWZhdWx0IGluIHRoZSBmdXR1cmUuIFVudGlsIHRo
-ZW4gdGhpcyBvcHRpb24KLQkgIGlzIHRoZXJlIHRvIHRlc3QgZ2NjIGZvciB0aGlzLgotCi0JICBJ
-ZiB1bnN1cmUsIHNheSBOLgotCiBjb25maWcgREVCVUdfRU5UUlkKIAlib29sICJEZWJ1ZyBsb3ct
-bGV2ZWwgZW50cnkgY29kZSIKIAlkZXBlbmRzIG9uIERFQlVHX0tFUk5FTApkaWZmIC0tZ2l0IGEv
-ZHJpdmVycy9tdGQvbmFuZC9yYXcvdmY2MTBfbmZjLmMgYi9kcml2ZXJzL210ZC9uYW5kL3Jhdy92
-ZjYxMF9uZmMuYwppbmRleCBhNjYyY2ExLi4xOTc5MmQ3IDEwMDY0NAotLS0gYS9kcml2ZXJzL210
-ZC9uYW5kL3Jhdy92ZjYxMF9uZmMuYworKysgYi9kcml2ZXJzL210ZC9uYW5kL3Jhdy92ZjYxMF9u
-ZmMuYwpAQCAtMzY0LDcgKzM2NCw3IEBAIHN0YXRpYyBpbnQgdmY2MTBfbmZjX2NtZChzdHJ1Y3Qg
-bmFuZF9jaGlwICpjaGlwLAogewogCWNvbnN0IHN0cnVjdCBuYW5kX29wX2luc3RyICppbnN0cjsK
-IAlzdHJ1Y3QgdmY2MTBfbmZjICpuZmMgPSBjaGlwX3RvX25mYyhjaGlwKTsKLQlpbnQgb3BfaWQg
-PSAtMSwgdHJmcl9zeiA9IDAsIG9mZnNldDsKKwlpbnQgb3BfaWQgPSAtMSwgdHJmcl9zeiA9IDAs
-IG9mZnNldCA9IDA7CiAJdTMyIGNvbCA9IDAsIHJvdyA9IDAsIGNtZDEgPSAwLCBjbWQyID0gMCwg
-Y29kZSA9IDA7CiAJYm9vbCBmb3JjZThiaXQgPSBmYWxzZTsKIApkaWZmIC0tZ2l0IGEvaW5jbHVk
-ZS9saW51eC9jb21waWxlcl90eXBlcy5oIGIvaW5jbHVkZS9saW51eC9jb21waWxlcl90eXBlcy5o
-CmluZGV4IGJhODE0ZjEuLjE5ZTU4YjkgMTAwNjQ0Ci0tLSBhL2luY2x1ZGUvbGludXgvY29tcGls
-ZXJfdHlwZXMuaAorKysgYi9pbmNsdWRlL2xpbnV4L2NvbXBpbGVyX3R5cGVzLmgKQEAgLTE0MCw4
-ICsxNDAsNyBAQCBzdHJ1Y3QgZnRyYWNlX2xpa2VseV9kYXRhIHsKICAqIERvIG5vdCB1c2UgX19h
-bHdheXNfaW5saW5lIGhlcmUsIHNpbmNlIGN1cnJlbnRseSBpdCBleHBhbmRzIHRvIGlubGluZSBh
-Z2FpbgogICogKHdoaWNoIHdvdWxkIGJyZWFrIHVzZXJzIG9mIF9fYWx3YXlzX2lubGluZSkuCiAg
-Ki8KLSNpZiAhZGVmaW5lZChDT05GSUdfQVJDSF9TVVBQT1JUU19PUFRJTUlaRURfSU5MSU5JTkcp
-IHx8IFwKLQkhZGVmaW5lZChDT05GSUdfT1BUSU1JWkVfSU5MSU5JTkcpCisjaWYgIWRlZmluZWQo
-Q09ORklHX09QVElNSVpFX0lOTElOSU5HKQogI2RlZmluZSBpbmxpbmUgaW5saW5lIF9fYXR0cmli
-dXRlX18oKF9fYWx3YXlzX2lubGluZV9fKSkgX19nbnVfaW5saW5lIFwKIAlfX21heWJlX3VudXNl
-ZCBub3RyYWNlCiAjZWxzZQpkaWZmIC0tZ2l0IGEvbGliL0tjb25maWcuZGVidWcgYi9saWIvS2Nv
-bmZpZy5kZWJ1ZwppbmRleCAwZDllODE3Li4yMGYzZGZjIDEwMDY0NAotLS0gYS9saWIvS2NvbmZp
-Zy5kZWJ1ZworKysgYi9saWIvS2NvbmZpZy5kZWJ1ZwpAQCAtMzEwLDYgKzMxMCwyMSBAQCBjb25m
-aWcgSEVBREVSU19DSEVDSwogCSAgZXhwb3J0ZWQgdG8gJChJTlNUQUxMX0hEUl9QQVRIKSAodXN1
-YWxseSAndXNyL2luY2x1ZGUnIGluCiAJICB5b3VyIGJ1aWxkIHRyZWUpLCB0byBtYWtlIHN1cmUg
-dGhleSdyZSBzdWl0YWJsZS4KIAorY29uZmlnIE9QVElNSVpFX0lOTElOSU5HCisJYm9vbCAiQWxs
-b3cgY29tcGlsZXIgdG8gdW5pbmxpbmUgZnVuY3Rpb25zIG1hcmtlZCAnaW5saW5lJyIKKwlkZXBl
-bmRzIG9uICFNSVBTICAjIFRPRE86IGxvb2sgaW50byBNSVBTIGNvZGUKKwloZWxwCisJICBUaGlz
-IG9wdGlvbiBkZXRlcm1pbmVzIGlmIHRoZSBrZXJuZWwgZm9yY2VzIGdjYyB0byBpbmxpbmUgdGhl
-IGZ1bmN0aW9ucworCSAgZGV2ZWxvcGVycyBoYXZlIG1hcmtlZCAnaW5saW5lJy4gRG9pbmcgc28g
-dGFrZXMgYXdheSBmcmVlZG9tIGZyb20gZ2NjIHRvCisJICBkbyB3aGF0IGl0IHRoaW5rcyBpcyBi
-ZXN0LCB3aGljaCBpcyBkZXNpcmFibGUgZm9yIHRoZSBnY2MgMy54IHNlcmllcyBvZgorCSAgY29t
-cGlsZXJzLiBUaGUgZ2NjIDQueCBzZXJpZXMgaGF2ZSBhIHJld3JpdHRlbiBpbmxpbmluZyBhbGdv
-cml0aG0gYW5kCisJICBlbmFibGluZyB0aGlzIG9wdGlvbiB3aWxsIGdlbmVyYXRlIGEgc21hbGxl
-ciBrZXJuZWwgdGhlcmUuIEhvcGVmdWxseQorCSAgdGhpcyBhbGdvcml0aG0gaXMgc28gZ29vZCB0
-aGF0IGFsbG93aW5nIGdjYyA0LnggYW5kIGFib3ZlIHRvIG1ha2UgdGhlCisJICBkZWNpc2lvbiB3
-aWxsIGJlY29tZSB0aGUgZGVmYXVsdCBpbiB0aGUgZnV0dXJlLiBVbnRpbCB0aGVuIHRoaXMgb3B0
-aW9uCisJICBpcyB0aGVyZSB0byB0ZXN0IGdjYyBmb3IgdGhpcy4KKworCSAgSWYgdW5zdXJlLCBz
-YXkgTi4KKwogY29uZmlnIERFQlVHX1NFQ1RJT05fTUlTTUFUQ0gKIAlib29sICJFbmFibGUgZnVs
-bCBTZWN0aW9uIG1pc21hdGNoIGFuYWx5c2lzIgogCWhlbHAKLS0gCjIuNy40CgoKX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBt
-YWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9s
-aXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+On Wed, Mar 20, 2019 at 3:21 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
+> CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
+>
+> The idea is obviously arch-agnostic although we need some code fixups.
+> This commit moves the config entry from arch/x86/Kconfig.debug to
+> lib/Kconfig.debug so that all architectures (except MIPS for now) can
+> benefit from it.
+>
+> At this moment, I added "depends on !MIPS" because fixing 0day bot report=
+s
+> for MIPS was complex to me.
+
+BTW, I got the following error if I enabled CONFIG_OPTIMIZE_INLINING for MI=
+PS.
+
+It is unclear to me how to fix it.
+That's why I ended up with "depends on !MIPS".
+
+
+  MODPOST vmlinux.o
+arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
+sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
+sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
+sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
+sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
+sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
+arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined
+references to `mips_gcr_base'
+
+
+Perhaps, MIPS folks may know how to fix it.
+
+
+
+
+> I tested this patch on my arm/arm64 boards.
+>
+> This can make a huge difference in kernel image size especially when
+> CONFIG_OPTIMIZE_FOR_SIZE is enabled.
+>
+> For example, I got 3.5% smaller arm64 kernel image for v5.1-rc1.
+>
+>   dec       file
+>   18983424  arch/arm64/boot/Image.before
+>   18321920  arch/arm64/boot/Image.after
+>
+> This also slightly improves the "Kernel hacking" Kconfig menu.
+> Commit e61aca5158a8 ("Merge branch 'kconfig-diet' from Dave Hansen')
+> mentioned this config option would be a good fit in the "compiler option"
+> menu. I did so.
+>
+> I fixed up some files to avoid build warnings/errors.
+>
+> [1] arch/arm64/include/asm/cpufeature.h
+>
+> In file included from ././include/linux/compiler_types.h:68,
+>                  from <command-line>:
+> ./arch/arm64/include/asm/jump_label.h: In function 'cpus_have_const_cap':
+> ./include/linux/compiler-gcc.h:120:38: warning: asm operand 0 probably do=
+esn't match constraints
+>  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
+>                                       ^~~
+> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro '=
+asm_volatile_goto'
+>   asm_volatile_goto(
+>   ^~~~~~~~~~~~~~~~~
+> ./include/linux/compiler-gcc.h:120:38: error: impossible constraint in 'a=
+sm'
+>  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
+>                                       ^~~
+> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro '=
+asm_volatile_goto'
+>   asm_volatile_goto(
+>   ^~~~~~~~~~~~~~~~~
+>
+> [2] arch/mips/kernel/cpu-bugs64.c
+>
+> arch/mips/kernel/cpu-bugs64.c: In function 'mult_sh_align_mod.constprop':
+> arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't=
+ match constraints [-Werror]
+>   asm volatile(
+>   ^~~
+> arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't=
+ match constraints [-Werror]
+>   asm volatile(
+>   ^~~
+> arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
+>   asm volatile(
+>   ^~~
+> arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
+>   asm volatile(
+>   ^~~
+>
+> [3] arch/powerpc/mm/tlb-radix.c
+>
+> arch/powerpc/mm/tlb-radix.c: In function '__radix__flush_tlb_range_psize'=
+:
+> arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't =
+match constraints [-Werror]
+>   asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
+>   ^~~
+> arch/powerpc/mm/tlb-radix.c:104:2: error: impossible constraint in 'asm'
+>   CC      arch/powerpc/perf/hv-gpci.o
+>
+> [4] arch/s390/include/asm/cpacf.h
+>
+> In file included from arch/s390/crypto/des_s390.c:19:
+> ./arch/s390/include/asm/cpacf.h: In function 'cpacf_query':
+> ./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably do=
+esn't match constraints
+>   asm volatile(
+>   ^~~
+> ./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'a=
+sm'
+>
+> [5] arch/powerpc/kernel/prom_init.c
+>
+> WARNING: vmlinux.o(.text.unlikely+0x20): Section mismatch in reference fr=
+om the function .prom_getprop() to the function .init.text:.call_prom()
+> The function .prom_getprop() references
+> the function __init .call_prom().
+> This is often because .prom_getprop lacks a __init
+> annotation or the annotation of .call_prom is wrong.
+>
+> WARNING: vmlinux.o(.text.unlikely+0x3c): Section mismatch in reference fr=
+om the function .prom_getproplen() to the function .init.text:.call_prom()
+> The function .prom_getproplen() references
+> the function __init .call_prom().
+> This is often because .prom_getproplen lacks a __init
+> annotation or the annotation of .call_prom is wrong.
+>
+> [6] drivers/mtd/nand/raw/vf610_nfc.c
+>
+> drivers/mtd/nand/raw/vf610_nfc.c: In function =E2=80=98vf610_nfc_cmd=E2=
+=80=99:
+> drivers/mtd/nand/raw/vf610_nfc.c:455:3: warning: =E2=80=98offset=E2=80=99=
+ may be used uninitialized in this function [-Wmaybe-uninitialized]
+>    vf610_nfc_rd_from_sram(instr->ctx.data.buf.in + offset,
+>    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>             nfc->regs + NFC_MAIN_AREA(0) + offset,
+>             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>             trfr_sz, !nfc->data_access);
+>             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>
+> [7] arch/arm/kernel/smp.c
+>
+> arch/arm/kernel/smp.c: In function =E2=80=98raise_nmi=E2=80=99:
+> arch/arm/kernel/smp.c:522:2: warning: array subscript is above array boun=
+ds [-Warray-bounds]
+>   trace_ipi_raise_rcuidle(target, ipi_types[ipinr]);
+>   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>
+> The fixup is not included in this. The patch is available in ML:
+>
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2016-February/40939=
+3.html
+>
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
+>
+>  arch/arm64/include/asm/cpufeature.h |  4 ++--
+>  arch/mips/kernel/cpu-bugs64.c       |  4 ++--
+>  arch/powerpc/kernel/prom_init.c     |  6 +++---
+>  arch/powerpc/mm/tlb-radix.c         |  2 +-
+>  arch/s390/include/asm/cpacf.h       |  2 +-
+>  arch/x86/Kconfig                    |  3 ---
+>  arch/x86/Kconfig.debug              | 14 --------------
+>  drivers/mtd/nand/raw/vf610_nfc.c    |  2 +-
+>  include/linux/compiler_types.h      |  3 +--
+>  lib/Kconfig.debug                   | 15 +++++++++++++++
+>  10 files changed, 26 insertions(+), 29 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm=
+/cpufeature.h
+> index e505e1f..77d1aa5 100644
+> --- a/arch/arm64/include/asm/cpufeature.h
+> +++ b/arch/arm64/include/asm/cpufeature.h
+> @@ -406,7 +406,7 @@ static inline bool cpu_have_feature(unsigned int num)
+>  }
+>
+>  /* System capability check for constant caps */
+> -static inline bool __cpus_have_const_cap(int num)
+> +static __always_inline bool __cpus_have_const_cap(int num)
+>  {
+>         if (num >=3D ARM64_NCAPS)
+>                 return false;
+> @@ -420,7 +420,7 @@ static inline bool cpus_have_cap(unsigned int num)
+>         return test_bit(num, cpu_hwcaps);
+>  }
+>
+> -static inline bool cpus_have_const_cap(int num)
+> +static __always_inline bool cpus_have_const_cap(int num)
+>  {
+>         if (static_branch_likely(&arm64_const_caps_ready))
+>                 return __cpus_have_const_cap(num);
+> diff --git a/arch/mips/kernel/cpu-bugs64.c b/arch/mips/kernel/cpu-bugs64.=
+c
+> index bada74a..c04b97a 100644
+> --- a/arch/mips/kernel/cpu-bugs64.c
+> +++ b/arch/mips/kernel/cpu-bugs64.c
+> @@ -42,8 +42,8 @@ static inline void align_mod(const int align, const int=
+ mod)
+>                 : "n"(align), "n"(mod));
+>  }
+>
+> -static inline void mult_sh_align_mod(long *v1, long *v2, long *w,
+> -                                    const int align, const int mod)
+> +static __always_inline void mult_sh_align_mod(long *v1, long *v2, long *=
+w,
+> +                                             const int align, const int =
+mod)
+>  {
+>         unsigned long flags;
+>         int m1, m2;
+> diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_i=
+nit.c
+> index f33ff41..241fe6b 100644
+> --- a/arch/powerpc/kernel/prom_init.c
+> +++ b/arch/powerpc/kernel/prom_init.c
+> @@ -501,14 +501,14 @@ static int __init prom_next_node(phandle *nodep)
+>         }
+>  }
+>
+> -static inline int prom_getprop(phandle node, const char *pname,
+> -                              void *value, size_t valuelen)
+> +static inline int __init prom_getprop(phandle node, const char *pname,
+> +                                     void *value, size_t valuelen)
+>  {
+>         return call_prom("getprop", 4, 1, node, ADDR(pname),
+>                          (u32)(unsigned long) value, (u32) valuelen);
+>  }
+>
+> -static inline int prom_getproplen(phandle node, const char *pname)
+> +static inline int __init prom_getproplen(phandle node, const char *pname=
+)
+>  {
+>         return call_prom("getproplen", 2, 1, node, ADDR(pname));
+>  }
+> diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
+> index 6a23b9e..a2b2848 100644
+> --- a/arch/powerpc/mm/tlb-radix.c
+> +++ b/arch/powerpc/mm/tlb-radix.c
+> @@ -928,7 +928,7 @@ void radix__tlb_flush(struct mmu_gather *tlb)
+>         tlb->need_flush_all =3D 0;
+>  }
+>
+> -static inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
+> +static __always_inline void __radix__flush_tlb_range_psize(struct mm_str=
+uct *mm,
+>                                 unsigned long start, unsigned long end,
+>                                 int psize, bool also_pwc)
+>  {
+> diff --git a/arch/s390/include/asm/cpacf.h b/arch/s390/include/asm/cpacf.=
+h
+> index 3cc52e3..f316de4 100644
+> --- a/arch/s390/include/asm/cpacf.h
+> +++ b/arch/s390/include/asm/cpacf.h
+> @@ -202,7 +202,7 @@ static inline int __cpacf_check_opcode(unsigned int o=
+pcode)
+>         }
+>  }
+>
+> -static inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
+> +static __always_inline int cpacf_query(unsigned int opcode, cpacf_mask_t=
+ *mask)
+>  {
+>         if (__cpacf_check_opcode(opcode)) {
+>                 __cpacf_query(opcode, mask);
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index c1f9b3c..1a3e2b5 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -310,9 +310,6 @@ config ZONE_DMA32
+>  config AUDIT_ARCH
+>         def_bool y if X86_64
+>
+> -config ARCH_SUPPORTS_OPTIMIZED_INLINING
+> -       def_bool y
+> -
+>  config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+>         def_bool y
+>
+> diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+> index 15d0fbe..f730680 100644
+> --- a/arch/x86/Kconfig.debug
+> +++ b/arch/x86/Kconfig.debug
+> @@ -266,20 +266,6 @@ config CPA_DEBUG
+>         ---help---
+>           Do change_page_attr() self-tests every 30 seconds.
+>
+> -config OPTIMIZE_INLINING
+> -       bool "Allow gcc to uninline functions marked 'inline'"
+> -       ---help---
+> -         This option determines if the kernel forces gcc to inline the f=
+unctions
+> -         developers have marked 'inline'. Doing so takes away freedom fr=
+om gcc to
+> -         do what it thinks is best, which is desirable for the gcc 3.x s=
+eries of
+> -         compilers. The gcc 4.x series have a rewritten inlining algorit=
+hm and
+> -         enabling this option will generate a smaller kernel there. Hope=
+fully
+> -         this algorithm is so good that allowing gcc 4.x and above to ma=
+ke the
+> -         decision will become the default in the future. Until then this=
+ option
+> -         is there to test gcc for this.
+> -
+> -         If unsure, say N.
+> -
+>  config DEBUG_ENTRY
+>         bool "Debug low-level entry code"
+>         depends on DEBUG_KERNEL
+> diff --git a/drivers/mtd/nand/raw/vf610_nfc.c b/drivers/mtd/nand/raw/vf61=
+0_nfc.c
+> index a662ca1..19792d7 100644
+> --- a/drivers/mtd/nand/raw/vf610_nfc.c
+> +++ b/drivers/mtd/nand/raw/vf610_nfc.c
+> @@ -364,7 +364,7 @@ static int vf610_nfc_cmd(struct nand_chip *chip,
+>  {
+>         const struct nand_op_instr *instr;
+>         struct vf610_nfc *nfc =3D chip_to_nfc(chip);
+> -       int op_id =3D -1, trfr_sz =3D 0, offset;
+> +       int op_id =3D -1, trfr_sz =3D 0, offset =3D 0;
+>         u32 col =3D 0, row =3D 0, cmd1 =3D 0, cmd2 =3D 0, code =3D 0;
+>         bool force8bit =3D false;
+>
+> diff --git a/include/linux/compiler_types.h b/include/linux/compiler_type=
+s.h
+> index ba814f1..19e58b9 100644
+> --- a/include/linux/compiler_types.h
+> +++ b/include/linux/compiler_types.h
+> @@ -140,8 +140,7 @@ struct ftrace_likely_data {
+>   * Do not use __always_inline here, since currently it expands to inline=
+ again
+>   * (which would break users of __always_inline).
+>   */
+> -#if !defined(CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING) || \
+> -       !defined(CONFIG_OPTIMIZE_INLINING)
+> +#if !defined(CONFIG_OPTIMIZE_INLINING)
+>  #define inline inline __attribute__((__always_inline__)) __gnu_inline \
+>         __maybe_unused notrace
+>  #else
+> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> index 0d9e817..20f3dfc 100644
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -310,6 +310,21 @@ config HEADERS_CHECK
+>           exported to $(INSTALL_HDR_PATH) (usually 'usr/include' in
+>           your build tree), to make sure they're suitable.
+>
+> +config OPTIMIZE_INLINING
+> +       bool "Allow compiler to uninline functions marked 'inline'"
+> +       depends on !MIPS  # TODO: look into MIPS code
+> +       help
+> +         This option determines if the kernel forces gcc to inline the f=
+unctions
+> +         developers have marked 'inline'. Doing so takes away freedom fr=
+om gcc to
+> +         do what it thinks is best, which is desirable for the gcc 3.x s=
+eries of
+> +         compilers. The gcc 4.x series have a rewritten inlining algorit=
+hm and
+> +         enabling this option will generate a smaller kernel there. Hope=
+fully
+> +         this algorithm is so good that allowing gcc 4.x and above to ma=
+ke the
+> +         decision will become the default in the future. Until then this=
+ option
+> +         is there to test gcc for this.
+> +
+> +         If unsure, say N.
+> +
+>  config DEBUG_SECTION_MISMATCH
+>         bool "Enable full Section mismatch analysis"
+>         help
+> --
+> 2.7.4
+>
+>
+> ______________________________________________________
+> Linux MTD discussion mailing list
+> http://lists.infradead.org/mailman/listinfo/linux-mtd/
+
+
+
+--=20
+Best Regards
+Masahiro Yamada
