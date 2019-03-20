@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f73.google.com ([209.85.166.73]:54007 "EHLO
-        mail-io1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728667AbfCTOwr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:47 -0400
-Received: by mail-io1-f73.google.com with SMTP id w11so2230797iom.20
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:46 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:33 +0100
+Received: from mail-pg1-f202.google.com ([209.85.215.202]:38634 "EHLO
+        mail-pg1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728655AbfCTOwo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:44 -0400
+Received: by mail-pg1-f202.google.com with SMTP id o24so2930756pgh.5
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:43 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:32 +0100
 In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <a49ac1a8e6d033dafd3beab0818900bde3d55860.1553093421.git.andreyknvl@google.com>
+Message-Id: <665632a911273ab537ded9acb78f4bafd91cbc19.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 19/20] vfio/type1, arm64: untag user pointers in vaddr_get_pfn
+Subject: [PATCH v13 18/20] tee/optee, arm64: untag user pointers in check_mem_type
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,28 +22,27 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-vaddr_get_pfn() uses provided user pointers for vma lookups, which can
-only by done with untagged pointers.
+check_mem_type() uses provided user pointers for vma lookups (via
+__check_mem_type()), which can only by done with untagged pointers.
 
 Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- drivers/vfio/vfio_iommu_type1.c | 2 ++
- 1 file changed, 2 insertions(+)
+ drivers/tee/optee/call.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/vfio/vfio_iommu_type1.c b/drivers/vfio/vfio_iommu_type1.c
-index 73652e21efec..e556caa64f83 100644
---- a/drivers/vfio/vfio_iommu_type1.c
-+++ b/drivers/vfio/vfio_iommu_type1.c
-@@ -376,6 +376,8 @@ static int vaddr_get_pfn(struct mm_struct *mm, unsigned long vaddr,
+diff --git a/drivers/tee/optee/call.c b/drivers/tee/optee/call.c
+index a5afbe6dee68..e3be20264092 100644
+--- a/drivers/tee/optee/call.c
++++ b/drivers/tee/optee/call.c
+@@ -563,6 +563,7 @@ static int check_mem_type(unsigned long start, size_t num_pages)
+ 	int rc;
  
  	down_read(&mm->mmap_sem);
- 
-+	vaddr = untagged_addr(vaddr);
-+
- 	vma = find_vma_intersection(mm, vaddr, vaddr + 1);
- 
- 	if (vma && vma->vm_flags & VM_PFNMAP) {
++	start = untagged_addr(start);
+ 	rc = __check_mem_type(find_vma(mm, start),
+ 			      start + num_pages * PAGE_SIZE);
+ 	up_read(&mm->mmap_sem);
 -- 
 2.21.0.225.g810b269d1ac-goog
