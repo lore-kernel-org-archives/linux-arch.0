@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f201.google.com ([209.85.160.201]:39542 "EHLO
-        mail-qt1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728543AbfCTOwV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:21 -0400
-Received: by mail-qt1-f201.google.com with SMTP id n13so2658941qtn.6
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:20 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:25 +0100
+Received: from mail-pf1-f202.google.com ([209.85.210.202]:34071 "EHLO
+        mail-pf1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728503AbfCTOwN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:13 -0400
+Received: by mail-pf1-f202.google.com with SMTP id g125so2782000pfb.1
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:12 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:23 +0100
 In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <c9553c3a4850d43c8af0c00e97850d70428b7de7.1553093421.git.andreyknvl@google.com>
+Message-Id: <2280b62096ce1fa5c9e9429d18f08f82f4be1b0b.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 11/20] tracing, arm64: untag user pointers in seq_print_user_ip
+Subject: [PATCH v13 09/20] net, arm64: untag user pointers in tcp_zerocopy_receive
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,45 +22,28 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-seq_print_user_ip() uses provided user pointers for vma lookups, which
+tcp_zerocopy_receive() uses provided user pointers for vma lookups, which
 can only by done with untagged pointers.
 
 Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- kernel/trace/trace_output.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ net/ipv4/tcp.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/kernel/trace/trace_output.c b/kernel/trace/trace_output.c
-index 54373d93e251..6376bee93c84 100644
---- a/kernel/trace/trace_output.c
-+++ b/kernel/trace/trace_output.c
-@@ -370,6 +370,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
- {
- 	struct file *file = NULL;
- 	unsigned long vmstart = 0;
-+	unsigned long untagged_ip = untagged_addr(ip);
- 	int ret = 1;
+diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+index 6baa6dc1b13b..855a1f68c1ea 100644
+--- a/net/ipv4/tcp.c
++++ b/net/ipv4/tcp.c
+@@ -1761,6 +1761,8 @@ static int tcp_zerocopy_receive(struct sock *sk,
+ 	if (address & (PAGE_SIZE - 1) || address != zc->address)
+ 		return -EINVAL;
  
- 	if (s->full)
-@@ -379,7 +380,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
- 		const struct vm_area_struct *vma;
++	address = untagged_addr(address);
++
+ 	if (sk->sk_state == TCP_LISTEN)
+ 		return -ENOTCONN;
  
- 		down_read(&mm->mmap_sem);
--		vma = find_vma(mm, ip);
-+		vma = find_vma(mm, untagged_ip);
- 		if (vma) {
- 			file = vma->vm_file;
- 			vmstart = vma->vm_start;
-@@ -388,7 +389,7 @@ static int seq_print_user_ip(struct trace_seq *s, struct mm_struct *mm,
- 			ret = trace_seq_path(s, &file->f_path);
- 			if (ret)
- 				trace_seq_printf(s, "[+0x%lx]",
--						 ip - vmstart);
-+						 untagged_ip - vmstart);
- 		}
- 		up_read(&mm->mmap_sem);
- 	}
 -- 
 2.21.0.225.g810b269d1ac-goog
