@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f74.google.com ([209.85.161.74]:56161 "EHLO
-        mail-yw1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728637AbfCTOwh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:37 -0400
-Received: by mail-yw1-f74.google.com with SMTP id y9so3343849ywc.22
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:36 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:30 +0100
+Received: from mail-vk1-f202.google.com ([209.85.221.202]:36733 "EHLO
+        mail-vk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728607AbfCTOwb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:52:31 -0400
+Received: by mail-vk1-f202.google.com with SMTP id k129so1070406vke.3
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:52:30 -0700 (PDT)
+Date: Wed, 20 Mar 2019 15:51:28 +0100
 In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <1e2824fd77e8eeb351c6c6246f384d0d89fd2d58.1553093421.git.andreyknvl@google.com>
+Message-Id: <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
 References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 16/20] IB/mlx4, arm64: untag user pointers in mlx4_get_umem_mr
+Subject: [PATCH v13 14/20] drm/amdgpu, arm64: untag user pointers in amdgpu_ttm_tt_get_user_pages
 From: Andrey Konovalov <andreyknvl@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,40 +22,33 @@ This patch is a part of a series that extends arm64 kernel ABI to allow to
 pass tagged user pointers (with the top byte set to something else other
 than 0x00) as syscall arguments.
 
-mlx4_get_umem_mr() uses provided user pointers for vma lookups, which can
-only by done with untagged pointers.
+amdgpu_ttm_tt_get_user_pages() uses provided user pointers for vma
+lookups, which can only by done with untagged pointers.
 
 Untag user pointers in this function.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- drivers/infiniband/hw/mlx4/mr.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/infiniband/hw/mlx4/mr.c b/drivers/infiniband/hw/mlx4/mr.c
-index 395379a480cb..9a35ed2c6a6f 100644
---- a/drivers/infiniband/hw/mlx4/mr.c
-+++ b/drivers/infiniband/hw/mlx4/mr.c
-@@ -378,6 +378,7 @@ static struct ib_umem *mlx4_get_umem_mr(struct ib_udata *udata, u64 start,
- 	 * again
- 	 */
- 	if (!ib_access_writable(access_flags)) {
-+		unsigned long untagged_start = untagged_addr(start);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+index 73e71e61dc99..891b027fa33b 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+@@ -751,10 +751,11 @@ int amdgpu_ttm_tt_get_user_pages(struct ttm_tt *ttm, struct page **pages)
+ 		 * check that we only use anonymous memory to prevent problems
+ 		 * with writeback
+ 		 */
+-		unsigned long end = gtt->userptr + ttm->num_pages * PAGE_SIZE;
++		unsigned long userptr = untagged_addr(gtt->userptr);
++		unsigned long end = userptr + ttm->num_pages * PAGE_SIZE;
  		struct vm_area_struct *vma;
  
- 		down_read(&current->mm->mmap_sem);
-@@ -386,9 +387,9 @@ static struct ib_umem *mlx4_get_umem_mr(struct ib_udata *udata, u64 start,
- 		 * cover the memory, but for now it requires a single vma to
- 		 * entirely cover the MR to support RO mappings.
- 		 */
--		vma = find_vma(current->mm, start);
--		if (vma && vma->vm_end >= start + length &&
--		    vma->vm_start <= start) {
-+		vma = find_vma(current->mm, untagged_start);
-+		if (vma && vma->vm_end >= untagged_start + length &&
-+		    vma->vm_start <= untagged_start) {
- 			if (vma->vm_flags & VM_WRITE)
- 				access_flags |= IB_ACCESS_LOCAL_WRITE;
- 		} else {
+-		vma = find_vma(mm, gtt->userptr);
++		vma = find_vma(mm, userptr);
+ 		if (!vma || vma->vm_file || vma->vm_end < end) {
+ 			up_read(&mm->mmap_sem);
+ 			return -EPERM;
 -- 
 2.21.0.225.g810b269d1ac-goog
