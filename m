@@ -1,173 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:51158 "EHLO mx1.mailbox.org"
+Received: from mx1.mailbox.org ([80.241.60.212]:49408 "EHLO mx1.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727928AbfCTOi3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Mar 2019 10:38:29 -0400
+        id S1726067AbfCTOiF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Mar 2019 10:38:05 -0400
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v5 3/5] namei: O_THISROOT: chroot-like path resolution
-Date: Thu, 21 Mar 2019 01:37:15 +1100
-Message-ID: <20190320143717.2523-4-cyphar@cyphar.com>
-In-Reply-To: <20190320143717.2523-1-cyphar@cyphar.com>
-References: <20190320143717.2523-1-cyphar@cyphar.com>
+Subject: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path resolution
+Date: Thu, 21 Mar 2019 01:37:12 +1100
+Message-ID: <20190320143717.2523-1-cyphar@cyphar.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190320143715.6xqNlVGDvH31PsF6vDAzfdA7MuFbqsiRAEDbAYsIfcg@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190320143712.7Vb0y7ANy6-h44n8xWc2UQQ2weDXGdWn3hvMSDHzVlw@z>
 
-The primary motivation for the need for this flag is container runtimes
-which have to interact with malicious root filesystems in the host
-namespaces. One of the first requirements for a container runtime to be
-secure against a malicious rootfs is that they correctly scope symlinks
-(that is, they should be scoped as though they are chroot(2)ed into the
-container's rootfs) and ".."-style paths[*]. The already-existing O_XDEV
-and O_NOMAGICLINKS[**] help defend against other potential attacks in a
-malicious rootfs scenario.
+Now that the holiday break is over, it's time to re-send this patch
+series (with a few additions, due to new information we got from
+CVE-2019-5736 -- which this patchset mostly protected against but had
+some holes with regards to #!-style scripts).
 
-Currently most container runtimes try to do this resolution in
-userspace[1], causing many potential race conditions. In addition, the
-"obvious" alternative (actually performing a {ch,pivot_}root(2))
-requires a fork+exec (for some runtimes) which is *very* costly if
-necessary for every filesystem operation involving a container.
+Patch changelog:
+  v5:
+    * In response to CVE-2019-5736 (one of the vectors showed that
+      open(2)+fexec(3) cannot be used to scope binfmt_script's implicit
+      open_exec()), AT_* flags have been re-added and are now piped
+      through to binfmt_script (and other binfmt_* that use open_exec)
+      but are only supported for execveat(2) for now.
+  v4:
+    * Remove AT_* flag reservations, as they require more discussion.
+    * Switch to path_is_under() over __d_path() for breakout checking.
+    * Make O_XDEV no longer block openat("/tmp", "/", O_XDEV) -- dirfd
+      is now ignored for absolute paths to match other flags.
+    * Improve the dirfd_path_init() refactor and move it to a separate
+      commit.
+    * Remove reference to Linux-capsicum.
+    * Switch "proclink" name to "magic link".
+  v3: [resend]
+  v2:
+    * Made ".." resolution with AT_THIS_ROOT and AT_BENEATH safe(r) with
+      some semi-aggressive __d_path checking (see patch 3).
+    * Disallowed "proclinks" with AT_THIS_ROOT and AT_BENEATH, in the
+      hopes they can be re-enabled once safe.
+    * Removed the selftests as they will be reimplemented as xfstests.
+    * Removed stat(2) support, since you can already get it through
+      O_PATH and fstatat(2).
 
-[*] At the moment, ".." and "magic link" jumping are disallowed for the
-    same reason it is disabled for O_BENEATH -- currently it is not safe
-    to allow it. Future patches may enable it unconditionally once we
-    have resolved the possible races (for "..") and semantics (for
-    "magic link" jumping).
+The need for some sort of control over VFS's path resolution (to avoid
+malicious paths resulting in inadvertent breakouts) has been a very
+long-standing desire of many userspace applications. This patchset is a
+revival of Al Viro's old AT_NO_JUMPS[1,2] patchset (which was a variant
+of David Drysdale's O_BENEATH patchset[3] which was a spin-off of the
+Capsicum project[4]) with a few additions and changes made based on the
+previous discussion within [5] as well as others I felt were useful.
 
-The most significant openat(2) semantic change with O_THISROOT is that
-absolute pathnames no longer cause dirfd to be ignored completely. The
-rationale is that O_THISROOT must necessarily chroot-scope symlinks with
-absolute paths to dirfd, and so doing it for the base path seems to be
-the most consistent behaviour (and also avoids foot-gunning users who
-want to scope paths that are absolute).
+In line with the conclusions of the original discussion of AT_NO_JUMPS,
+the flag has been split up into separate flags:
 
-Currently this is only enabled for openat(2), and similar to O_BENEATH
-and family requires more discussion about extending it to more *at(2)
-syscalls as well as extending AT_EMPTY_PATH support.
+  * O_XDEV blocks all mountpoint crossings (upwards, downwards, or
+    through absolute links). Absolute pathnames alone in openat(2) do
+    not trigger this.
 
-[1]: https://github.com/cyphar/filepath-securejoin
+  * O_NOMAGICLINKS blocks resolution through /proc/$pid/fd-style links.
+    This is done by blocking the usage of nd_jump_link() during
+    resolution in a filesystem. The term "magic links" is used to match
+    with the only reference to these links in Documentation/, but I'm
+    happy to change the name.
 
+    It should be noted that this is different to the scope of O_NOFOLLOW
+    in that it applies to all path components. However, you can do
+    open(O_NOFOLLOW|O_NOMAGICLINKS|O_PATH) on a "magic link" and it will
+    *not* fail (assuming that no parent component was a "magic link"),
+    and you will have an fd for the "magic link".
+
+  * O_BENEATH disallows escapes to outside the starting dirfd's tree,
+    using techniques such as ".." or absolute links. Absolute paths in
+    openat(2) are also disallowed. Conceptually this flag is to ensure
+    you "stay below" a certain point in the filesystem tree -- but this
+    requires some additional to protect against various races that would
+    allow escape using ".." (see patch 4 for more detail).
+
+    Currently O_BENEATH implies O_NOMAGICLINKS, because it can trivially
+    beam you around the filesystem (breaking the protection). In future,
+    there might be similar safety checks as in patch 4, but that
+    requires more discussion.
+
+In addition, two new flags were added that expand on the above ideas:
+
+  * O_NOSYMLINKS does what it says on the tin. No symlink resolution is
+    allowed at all, including "magic links". Just as with O_NOMAGICLINKS
+    this can still be used with (O_PATH|O_NOFOLLOW) to open an fd for
+    the symlink as long as no parent path had a symlink component.
+
+  * O_THISROOT is an extension of O_BENEATH that, rather than blocking
+    attempts to move past the root, forces all such movements to be
+    scoped to the starting point. This provides chroot(2)-like
+    protection but without the cost of a chroot(2) for each filesystem
+    operation, as well as being safe against race attacks that chroot(2)
+    is not.
+
+    If a race is detected (as with O_BENEATH) then an error is
+    generated, and similar to O_BENEATH it is not permitted to cross
+    "magic links" with O_THISROOT.
+
+    The primary need for this is from container runtimes, which
+    currently need to do symlink scoping in userspace[6] when opening
+    paths in a potentially malicious container. There is a long list of
+    CVEs that could have bene mitigated by having O_THISROOT (such as
+    CVE-2017-1002101, CVE-2017-1002102, CVE-2018-15664, and
+    CVE-2019-5736, just to name a few).
+
+In addition, a mirror set of AT_* flags have been added (though
+currently these are only supported for execveat(2) -- and not for any
+other syscall). The need for these is explained in the final patch in
+the series (it's motivated by CVE-2019-5736).
+
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jann Horn <jannh@google.com>
 Cc: Christian Brauner <christian@brauner.io>
+Cc: David Drysdale <drysdale@google.com>
+Cc: Tycho Andersen <tycho@tycho.ws>
 Cc: Kees Cook <keescook@chromium.org>
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
----
- fs/fcntl.c                       | 2 +-
- fs/namei.c                       | 6 +++---
- fs/open.c                        | 4 +++-
- include/linux/fcntl.h            | 2 +-
- include/linux/namei.h            | 1 +
- include/uapi/asm-generic/fcntl.h | 3 +++
- 6 files changed, 12 insertions(+), 6 deletions(-)
+Cc: <containers@lists.linux-foundation.org>
+Cc: <linux-fsdevel@vger.kernel.org>
+Cc: <linux-api@vger.kernel.org>
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index f782e99700f0..a6b4565a903d 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -1031,7 +1031,7 @@ static int __init fcntl_init(void)
- 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
- 	 * is defined as O_NONBLOCK on some platforms and not on others.
- 	 */
--	BUILD_BUG_ON(25 - 1 /* for O_RDONLY being 0 */ !=
-+	BUILD_BUG_ON(26 - 1 /* for O_RDONLY being 0 */ !=
- 		HWEIGHT32(
- 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
- 			__FMODE_EXEC | __FMODE_NONOTIFY));
-diff --git a/fs/namei.c b/fs/namei.c
-index c9a07a8c005a..798eb1702a0c 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -1097,7 +1097,7 @@ const char *get_link(struct nameidata *nd)
- 			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
- 				return ERR_PTR(-ELOOP);
- 			/* Not currently safe. */
--			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+			if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
- 				return ERR_PTR(-EXDEV);
- 		}
- 		if (IS_ERR_OR_NULL(res))
-@@ -1746,7 +1746,7 @@ static inline int handle_dots(struct nameidata *nd, int type)
- 		 * cause our parent to have moved outside of the root and us to skip
- 		 * over it.
- 		 */
--		if (unlikely(nd->flags & LOOKUP_BENEATH))
-+		if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT)))
- 			return -EXDEV;
- 		if (!nd->root.mnt)
- 			set_root(nd);
-@@ -2297,7 +2297,7 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 
- 	nd->m_seq = read_seqbegin(&mount_lock);
- 
--	if (unlikely(nd->flags & LOOKUP_BENEATH)) {
-+	if (unlikely(nd->flags & (LOOKUP_BENEATH | LOOKUP_IN_ROOT))) {
- 		error = dirfd_path_init(nd);
- 		if (unlikely(error))
- 			return ERR_PTR(error);
-diff --git a/fs/open.c b/fs/open.c
-index 3e73f940f56e..5914aed2fac8 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -960,7 +960,7 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
- 		 * cannot have anything other than the below set of flags
- 		 */
- 		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH | O_BENEATH |
--			 O_XDEV | O_NOSYMLINKS | O_NOMAGICLINKS;
-+			 O_XDEV | O_NOSYMLINKS | O_NOMAGICLINKS | O_THISROOT;
- 		acc_mode = 0;
- 	}
- 
-@@ -997,6 +997,8 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
- 		lookup_flags |= LOOKUP_NO_MAGICLINKS;
- 	if (flags & O_NOSYMLINKS)
- 		lookup_flags |= LOOKUP_NO_SYMLINKS;
-+	if (flags & O_THISROOT)
-+		lookup_flags |= LOOKUP_IN_ROOT;
- 	op->lookup_flags = lookup_flags;
- 	return 0;
- }
-diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-index 864399c2fdd2..46c92bbfce4a 100644
---- a/include/linux/fcntl.h
-+++ b/include/linux/fcntl.h
-@@ -10,7 +10,7 @@
- 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
- 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
- 	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_BENEATH | O_XDEV | \
--	 O_NOMAGICLINKS | O_NOSYMLINKS)
-+	 O_NOMAGICLINKS | O_NOSYMLINKS | O_THISROOT)
- 
- #ifndef force_o_largefile
- #define force_o_largefile() (BITS_PER_LONG != 32)
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index 82b5039d27a6..0969313b518f 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -53,6 +53,7 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
- #define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
- #define LOOKUP_NO_SYMLINKS	0x080000 /* No symlink crossing *at all*.
- 					    Implies LOOKUP_NO_MAGICLINKS. */
-+#define LOOKUP_IN_ROOT		0x100000 /* Treat dirfd as %current->fs->root. */
- 
- extern int path_pts(struct path *path);
- 
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index ba53e0836cd4..3d0fe0de2ba2 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -110,6 +110,9 @@
- #ifndef O_NOSYMLINKS
- #define O_NOSYMLINKS	01000000000 /* - Block all symlinks (implies AT_NO_MAGICLINKS). */
- #endif
-+#ifndef O_THISROOT
-+#define O_THISROOT	02000000000 /* - Scope ".." resolution to dirfd (like chroot(2)). */
-+#endif
- 
- #define F_DUPFD		0	/* dup */
- #define F_GETFD		1	/* get close_on_exec */
+[1]: https://lwn.net/Articles/721443/
+[2]: https://lore.kernel.org/patchwork/patch/784221/
+[3]: https://lwn.net/Articles/619151/
+[4]: https://lwn.net/Articles/603929/
+[5]: https://lwn.net/Articles/723057/
+[6]: https://github.com/cyphar/filepath-securejoin
+
+Aleksa Sarai (5):
+  namei: split out nd->dfd handling to dirfd_path_init
+  namei: O_BENEATH-style path resolution flags
+  namei: O_THISROOT: chroot-like path resolution
+  namei: aggressively check for nd->root escape on ".." resolution
+  binfmt_*: scope path resolution of interpreters
+
+ fs/binfmt_elf.c                  |   2 +-
+ fs/binfmt_elf_fdpic.c            |   2 +-
+ fs/binfmt_em86.c                 |   4 +-
+ fs/binfmt_misc.c                 |   2 +-
+ fs/binfmt_script.c               |   2 +-
+ fs/exec.c                        |  26 +++-
+ fs/fcntl.c                       |   2 +-
+ fs/namei.c                       | 205 ++++++++++++++++++++++---------
+ fs/open.c                        |  13 +-
+ include/linux/binfmts.h          |   1 +
+ include/linux/fcntl.h            |   3 +-
+ include/linux/fs.h               |   9 +-
+ include/linux/namei.h            |   8 ++
+ include/uapi/asm-generic/fcntl.h |  17 +++
+ include/uapi/linux/fcntl.h       |   6 +
+ 15 files changed, 228 insertions(+), 74 deletions(-)
+
 -- 
 2.21.0
