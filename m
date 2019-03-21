@@ -1,83 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f202.google.com ([209.85.215.202]:50569 "EHLO
-        mail-pg1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728363AbfCTOvy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 10:51:54 -0400
-Received: by mail-pg1-f202.google.com with SMTP id 33so2905996pgv.17
-        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 07:51:53 -0700 (PDT)
-Date: Wed, 20 Mar 2019 15:51:17 +0100
-In-Reply-To: <cover.1553093420.git.andreyknvl@google.com>
-Message-Id: <3faedcd2495a07e13b8611b2c63779d1d6d2b3f0.1553093421.git.andreyknvl@google.com>
-Mime-Version: 1.0
-References: <cover.1553093420.git.andreyknvl@google.com>
-Subject: [PATCH v13 03/20] lib, arm64: untag user pointers in strn*_user
-From: Andrey Konovalov <andreyknvl@google.com>
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:46153 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727780AbfCUBWt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2019 21:22:49 -0400
+Received: by mail-lj1-f194.google.com with SMTP id z26so3893099lja.13
+        for <linux-arch@vger.kernel.org>; Wed, 20 Mar 2019 18:22:47 -0700 (PDT)
+MIME-Version: 1.0
+References: <20190317233018.GN16301@altlinux.org>
+In-Reply-To: <20190317233018.GN16301@altlinux.org>
+From: Paul Moore <paul@paul-moore.com>
+Date: Wed, 20 Mar 2019 21:22:35 -0400
+Message-ID: <CAHC9VhQWKT8Mr=_pcmiccpChMB9oufUHO-4Agzmot7M=6ShNnw@mail.gmail.com>
+Subject: Re: [PATCH v2 13/13] syscall_get_arch: add "struct task_struct *" argument
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Alex Deucher <alexander.deucher@amd.com>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, "David (ChunMing) Zhou" <David1.Zhou@amd.com>, Yishai Hadas <yishaih@mellanox.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, amd-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, kvm@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Michael Ellerman <mpe@ellerman.id.au>, Kees Cook <keescook@chromium.org>, Mark Salter <msalter@redhat.com>, Elvira Khabirova <lineprinter@altlinux.org>, Eugene Syromyatnikov <esyr@redhat.com>, Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-audit@redhat.com, linux-kernel@vger.kernel.org
+Message-ID: <20190321012235.VhfOcEYn9U-xCxs5SVG2N1d3bOuL7rV86cpi7tfUOeY@z>
 
-This patch is a part of a series that extends arm64 kernel ABI to allow to
-pass tagged user pointers (with the top byte set to something else other
-than 0x00) as syscall arguments.
+On Sun, Mar 17, 2019 at 7:30 PM Dmitry V. Levin <ldv@altlinux.org> wrote:
+>
+> This argument is required to extend the generic ptrace API with
+> PTRACE_GET_SYSCALL_INFO request: syscall_get_arch() is going
+> to be called from ptrace_request() along with syscall_get_nr(),
+> syscall_get_arguments(), syscall_get_error(), and
+> syscall_get_return_value() functions with a tracee as their argument.
+>
+> The primary intent is that the triple (audit_arch, syscall_nr, arg1..arg6)
+> should describe what system call is being called and what its arguments
+> are.
+>
+> Reverts: 5e937a9ae913 ("syscall_get_arch: remove useless function arguments")
+> Reverts: 1002d94d3076 ("syscall.h: fix doc text for syscall_get_arch()")
+> Reviewed-by: Andy Lutomirski <luto@kernel.org> # for x86
+> Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+> Acked-by: Paul Moore <paul@paul-moore.com>
+> Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
+> Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+> Acked-by: Kees Cook <keescook@chromium.org> # seccomp parts
+> Acked-by: Mark Salter <msalter@redhat.com> # for the c6x bit
+> Cc: Elvira Khabirova <lineprinter@altlinux.org>
+> Cc: Eugene Syromyatnikov <esyr@redhat.com>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Cc: x86@kernel.org
+> Cc: linux-alpha@vger.kernel.org
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-ia64@vger.kernel.org
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-mips@vger.kernel.org
+> Cc: nios2-dev@lists.rocketboards.org
+> Cc: openrisc@lists.librecores.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: linux-um@lists.infradead.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-audit@redhat.com
+> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+> ---
+>
+> Notes:
+>     v2: unchanged
+>
+>  arch/alpha/include/asm/syscall.h      |  2 +-
+>  arch/arc/include/asm/syscall.h        |  2 +-
+>  arch/arm/include/asm/syscall.h        |  2 +-
+>  arch/arm64/include/asm/syscall.h      |  4 ++--
+>  arch/c6x/include/asm/syscall.h        |  2 +-
+>  arch/csky/include/asm/syscall.h       |  2 +-
+>  arch/h8300/include/asm/syscall.h      |  2 +-
+>  arch/hexagon/include/asm/syscall.h    |  2 +-
+>  arch/ia64/include/asm/syscall.h       |  2 +-
+>  arch/m68k/include/asm/syscall.h       |  2 +-
+>  arch/microblaze/include/asm/syscall.h |  2 +-
+>  arch/mips/include/asm/syscall.h       |  6 +++---
+>  arch/mips/kernel/ptrace.c             |  2 +-
+>  arch/nds32/include/asm/syscall.h      |  2 +-
+>  arch/nios2/include/asm/syscall.h      |  2 +-
+>  arch/openrisc/include/asm/syscall.h   |  2 +-
+>  arch/parisc/include/asm/syscall.h     |  4 ++--
+>  arch/powerpc/include/asm/syscall.h    | 10 ++++++++--
+>  arch/riscv/include/asm/syscall.h      |  2 +-
+>  arch/s390/include/asm/syscall.h       |  4 ++--
+>  arch/sh/include/asm/syscall_32.h      |  2 +-
+>  arch/sh/include/asm/syscall_64.h      |  2 +-
+>  arch/sparc/include/asm/syscall.h      |  5 +++--
+>  arch/unicore32/include/asm/syscall.h  |  2 +-
+>  arch/x86/include/asm/syscall.h        |  8 +++++---
+>  arch/x86/um/asm/syscall.h             |  2 +-
+>  arch/xtensa/include/asm/syscall.h     |  2 +-
+>  include/asm-generic/syscall.h         |  5 +++--
+>  kernel/auditsc.c                      |  4 ++--
+>  kernel/seccomp.c                      |  4 ++--
+>  30 files changed, 52 insertions(+), 42 deletions(-)
 
-strncpy_from_user and strnlen_user accept user addresses as arguments, and
-do not go through the same path as copy_from_user and others, so here we
-need to handle the case of tagged user addresses separately.
+Merged into audit/next, thanks everyone.
 
-Untag user pointers passed to these functions.
-
-Note, that this patch only temporarily untags the pointers to perform
-validity checks, but then uses them as is to perform user memory accesses.
-
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
----
- lib/strncpy_from_user.c | 3 ++-
- lib/strnlen_user.c      | 3 ++-
- 2 files changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
-index 58eacd41526c..6209bb9507c7 100644
---- a/lib/strncpy_from_user.c
-+++ b/lib/strncpy_from_user.c
-@@ -6,6 +6,7 @@
- #include <linux/uaccess.h>
- #include <linux/kernel.h>
- #include <linux/errno.h>
-+#include <linux/mm.h>
- 
- #include <asm/byteorder.h>
- #include <asm/word-at-a-time.h>
-@@ -107,7 +108,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
- 		return 0;
- 
- 	max_addr = user_addr_max();
--	src_addr = (unsigned long)src;
-+	src_addr = (unsigned long)untagged_addr(src);
- 	if (likely(src_addr < max_addr)) {
- 		unsigned long max = max_addr - src_addr;
- 		long retval;
-diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
-index 1c1a1b0e38a5..8ca3d2ac32ec 100644
---- a/lib/strnlen_user.c
-+++ b/lib/strnlen_user.c
-@@ -2,6 +2,7 @@
- #include <linux/kernel.h>
- #include <linux/export.h>
- #include <linux/uaccess.h>
-+#include <linux/mm.h>
- 
- #include <asm/word-at-a-time.h>
- 
-@@ -109,7 +110,7 @@ long strnlen_user(const char __user *str, long count)
- 		return 0;
- 
- 	max_addr = user_addr_max();
--	src_addr = (unsigned long)str;
-+	src_addr = (unsigned long)untagged_addr(str);
- 	if (likely(src_addr < max_addr)) {
- 		unsigned long max = max_addr - src_addr;
- 		long retval;
 -- 
-2.21.0.225.g810b269d1ac-goog
+paul moore
+www.paul-moore.com
