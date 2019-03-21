@@ -1,63 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43442 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727875AbfCUIBp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 Mar 2019 04:01:45 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2L7sfSG085015
-        for <linux-arch@vger.kernel.org>; Thu, 21 Mar 2019 04:01:43 -0400
-Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2rc5ftu164-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 21 Mar 2019 04:01:43 -0400
-Received: from localhost
-        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Thu, 21 Mar 2019 08:01:33 -0000
-Date: Thu, 21 Mar 2019 09:01:33 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH] compiler: allow all arches to enable
- CONFIG_OPTIMIZE_INLINING
-References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:38005 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728049AbfCUMtd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2019 08:49:33 -0400
+From: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Subject: [PATCH] [RESEND] bitops/find: Fix function description argument ordering
+Date: Thu, 21 Mar 2019 13:48:33 +0100
+Message-Id: <20190321124833.17630-1-anna-maria@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
-Message-ID: <20190321080133.GB3916@osiris>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Paul Burton <paul.burton@mips.com>, linux-mips@vger.kernel.org, x86@kernel.org, linux-mtd@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, Dave Hansen <dave@sr71.net>, linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20190321080133.WZv7jYxtsdyGEdQE1OAlyOY9VXT4GSmjkug7UK4a4Kc@z>
+To: linux-arch@vger.kernel.org
+Cc: arnd@arndb.de, corbet@lwn.net, tglx@linutronix.de, Anna-Maria Gleixner <anna-maria@linutronix.de>
 
-On Wed, Mar 20, 2019 at 03:20:27PM +0900, Masahiro Yamada wrote:
-> Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
-> CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
-> 
-> The idea is obviously arch-agnostic although we need some code fixups.
-> This commit moves the config entry from arch/x86/Kconfig.debug to
-> lib/Kconfig.debug so that all architectures (except MIPS for now) can
-> benefit from it.
-> 
-> At this moment, I added "depends on !MIPS" because fixing 0day bot reports
-> for MIPS was complex to me.
-> 
-> I tested this patch on my arm/arm64 boards.
-> 
-> This can make a huge difference in kernel image size especially when
-> CONFIG_OPTIMIZE_FOR_SIZE is enabled.
-> 
-> For example, I got 3.5% smaller arm64 kernel image for v5.1-rc1.
-> 
->   dec       file
->   18983424  arch/arm64/boot/Image.before
->   18321920  arch/arm64/boot/Image.after
+The order of the arguments in function documentation doesn't fit with
+the implementation. Change the documentation so that it corresponds to
+the code. This prevents to confuse people reading the documentation.
 
-Well, this will change, since now people (have to) start adding
-__always_inline annotations on all architectures, most likely until
-all have about the same amount of annotations like x86. This will
-reduce the benefit.
+While at it fixing the line breaks between the type of an argument and
+the arguments name in function declaration for better readability.
 
-Not sure if it's really a win that we get the inline vs
-__always_inline discussion now on all architectures.
+Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
+---
+ include/asm-generic/bitops/find.h | 22 ++++++++++++----------
+ 1 file changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 8a1ee10014de..30f0f8d0bd79 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -6,14 +6,15 @@
+ /**
+  * find_next_bit - find the next set bit in a memory region
+  * @addr: The address to base the search on
+- * @offset: The bitnumber to start searching at
+  * @size: The bitmap size in bits
++ * @offset: The bitnumber to start searching at
+  *
+  * Returns the bit number for the next set bit
+  * If no bits are set, returns @size.
+  */
+-extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
+-		size, unsigned long offset);
++extern unsigned long
++find_next_bit(const unsigned long *addr, unsigned long size,
++	      unsigned long offset);
+ #endif
+ 
+ #ifndef find_next_and_bit
+@@ -21,29 +22,30 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
+  * find_next_and_bit - find the next set bit in both memory regions
+  * @addr1: The first address to base the search on
+  * @addr2: The second address to base the search on
+- * @offset: The bitnumber to start searching at
+  * @size: The bitmap size in bits
++ * @offset: The bitnumber to start searching at
+  *
+  * Returns the bit number for the next set bit
+  * If no bits are set, returns @size.
+  */
+-extern unsigned long find_next_and_bit(const unsigned long *addr1,
+-		const unsigned long *addr2, unsigned long size,
+-		unsigned long offset);
++extern unsigned long
++find_next_and_bit(const unsigned long *addr1, const unsigned long *addr2,
++		  unsigned long size, unsigned long offset);
+ #endif
+ 
+ #ifndef find_next_zero_bit
+ /**
+  * find_next_zero_bit - find the next cleared bit in a memory region
+  * @addr: The address to base the search on
+- * @offset: The bitnumber to start searching at
+  * @size: The bitmap size in bits
++ * @offset: The bitnumber to start searching at
+  *
+  * Returns the bit number of the next zero bit
+  * If no bits are zero, returns @size.
+  */
+-extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
+-		long size, unsigned long offset);
++extern unsigned long
++find_next_zero_bit(const unsigned long *addr, unsigned long size,
++		   unsigned long offset);
+ #endif
+ 
+ #ifdef CONFIG_GENERIC_FIND_FIRST_BIT
+-- 
+2.20.1
