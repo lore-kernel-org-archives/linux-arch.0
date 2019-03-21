@@ -1,91 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:38005 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728049AbfCUMtd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2019 08:49:33 -0400
-From: Anna-Maria Gleixner <anna-maria@linutronix.de>
-Subject: [PATCH] [RESEND] bitops/find: Fix function description argument ordering
-Date: Thu, 21 Mar 2019 13:48:33 +0100
-Message-Id: <20190321124833.17630-1-anna-maria@linutronix.de>
+Received: from mail.kernel.org ([198.145.29.99]:45440 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728604AbfCURGx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 21 Mar 2019 13:06:53 -0400
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 86BA42192D
+        for <linux-arch@vger.kernel.org>; Thu, 21 Mar 2019 17:06:52 +0000 (UTC)
+Received: by mail-wm1-f42.google.com with SMTP id z6so2487280wmi.0
+        for <linux-arch@vger.kernel.org>; Thu, 21 Mar 2019 10:06:52 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20190320143717.2523-1-cyphar@cyphar.com>
+In-Reply-To: <20190320143717.2523-1-cyphar@cyphar.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 21 Mar 2019 10:06:38 -0700
+Message-ID: <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
+Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path resolution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: arnd@arndb.de, corbet@lwn.net, tglx@linutronix.de, Anna-Maria Gleixner <anna-maria@linutronix.de>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190321170638.6XWLbXl0WnaEl4KVaMHmSR4cIS_X8yfjZh8GY5-38cw@z>
 
-The order of the arguments in function documentation doesn't fit with
-the implementation. Change the documentation so that it corresponds to
-the code. This prevents to confuse people reading the documentation.
+On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> Now that the holiday break is over, it's time to re-send this patch
+> series (with a few additions, due to new information we got from
+> CVE-2019-5736 -- which this patchset mostly protected against but had
+> some holes with regards to #!-style scripts).
 
-While at it fixing the line breaks between the type of an argument and
-the arguments name in function declaration for better readability.
+I generally like this, but, as Linus pointed out, it will be
+unfortunate if application authors see this as just another
+non-portable weird Linux API and don't use it.  Would it be worthwhile
+to put some thought into making it an API that other OSes might be
+willing to implement?  As it stands, the openat(2) flags are getting
+rather crazy in this patch set.
 
-Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
----
- include/asm-generic/bitops/find.h | 22 ++++++++++++----------
- 1 file changed, 12 insertions(+), 10 deletions(-)
-
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 8a1ee10014de..30f0f8d0bd79 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -6,14 +6,15 @@
- /**
-  * find_next_bit - find the next set bit in a memory region
-  * @addr: The address to base the search on
-- * @offset: The bitnumber to start searching at
-  * @size: The bitmap size in bits
-+ * @offset: The bitnumber to start searching at
-  *
-  * Returns the bit number for the next set bit
-  * If no bits are set, returns @size.
-  */
--extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
--		size, unsigned long offset);
-+extern unsigned long
-+find_next_bit(const unsigned long *addr, unsigned long size,
-+	      unsigned long offset);
- #endif
- 
- #ifndef find_next_and_bit
-@@ -21,29 +22,30 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
-  * find_next_and_bit - find the next set bit in both memory regions
-  * @addr1: The first address to base the search on
-  * @addr2: The second address to base the search on
-- * @offset: The bitnumber to start searching at
-  * @size: The bitmap size in bits
-+ * @offset: The bitnumber to start searching at
-  *
-  * Returns the bit number for the next set bit
-  * If no bits are set, returns @size.
-  */
--extern unsigned long find_next_and_bit(const unsigned long *addr1,
--		const unsigned long *addr2, unsigned long size,
--		unsigned long offset);
-+extern unsigned long
-+find_next_and_bit(const unsigned long *addr1, const unsigned long *addr2,
-+		  unsigned long size, unsigned long offset);
- #endif
- 
- #ifndef find_next_zero_bit
- /**
-  * find_next_zero_bit - find the next cleared bit in a memory region
-  * @addr: The address to base the search on
-- * @offset: The bitnumber to start searching at
-  * @size: The bitmap size in bits
-+ * @offset: The bitnumber to start searching at
-  *
-  * Returns the bit number of the next zero bit
-  * If no bits are zero, returns @size.
-  */
--extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
--		long size, unsigned long offset);
-+extern unsigned long
-+find_next_zero_bit(const unsigned long *addr, unsigned long size,
-+		   unsigned long offset);
- #endif
- 
- #ifdef CONFIG_GENERIC_FIND_FIRST_BIT
--- 
-2.20.1
+Aleksa had a resolveat(2) proposal that really didn't seem too bad.
