@@ -1,46 +1,29 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH] compiler: allow all arches to enable
- CONFIG_OPTIMIZE_INLINING
-Date: Thu, 21 Mar 2019 09:01:33 +0100
-Message-ID: <20190321080133.GB3916@osiris>
-References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path resolution
+Date: Thu, 21 Mar 2019 10:06:38 -0700
+Message-ID: <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
+References: <20190320143717.2523-1-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <20190320143717.2523-1-cyphar@cyphar.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Paul Burton <paul.burton@mips.com>, linux-mips@vger.kernel.org, x86@kernel.org, linux-mtd@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, Dave Hansen <dave@sr71.net>, linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 20, 2019 at 03:20:27PM +0900, Masahiro Yamada wrote:
-> Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
-> CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
-> 
-> The idea is obviously arch-agnostic although we need some code fixups.
-> This commit moves the config entry from arch/x86/Kconfig.debug to
-> lib/Kconfig.debug so that all architectures (except MIPS for now) can
-> benefit from it.
-> 
-> At this moment, I added "depends on !MIPS" because fixing 0day bot reports
-> for MIPS was complex to me.
-> 
-> I tested this patch on my arm/arm64 boards.
-> 
-> This can make a huge difference in kernel image size especially when
-> CONFIG_OPTIMIZE_FOR_SIZE is enabled.
-> 
-> For example, I got 3.5% smaller arm64 kernel image for v5.1-rc1.
-> 
->   dec       file
->   18983424  arch/arm64/boot/Image.before
->   18321920  arch/arm64/boot/Image.after
+On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> Now that the holiday break is over, it's time to re-send this patch
+> series (with a few additions, due to new information we got from
+> CVE-2019-5736 -- which this patchset mostly protected against but had
+> some holes with regards to #!-style scripts).
 
-Well, this will change, since now people (have to) start adding
-__always_inline annotations on all architectures, most likely until
-all have about the same amount of annotations like x86. This will
-reduce the benefit.
+I generally like this, but, as Linus pointed out, it will be
+unfortunate if application authors see this as just another
+non-portable weird Linux API and don't use it.  Would it be worthwhile
+to put some thought into making it an API that other OSes might be
+willing to implement?  As it stands, the openat(2) flags are getting
+rather crazy in this patch set.
 
-Not sure if it's really a win that we get the inline vs
-__always_inline discussion now on all architectures.
+Aleksa had a resolveat(2) proposal that really didn't seem too bad.
