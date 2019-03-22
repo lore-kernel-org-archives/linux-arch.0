@@ -1,202 +1,622 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38876 "EHLO foss.arm.com"
+Received: from frisell.zx2c4.com ([192.95.5.64]:57927 "EHLO frisell.zx2c4.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726029AbfCVGWt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Mar 2019 02:22:49 -0400
+        id S1726041AbfCVHSo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Mar 2019 03:18:44 -0400
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Subject: [PATCH net-next v9 01/19] asm: simd context helper API
+Date: Fri, 22 Mar 2019 01:11:04 -0600
+Message-ID: <20190322071122.6677-2-Jason@zx2c4.com>
+In-Reply-To: <20190322071122.6677-1-Jason@zx2c4.com>
+References: <20190322071122.6677-1-Jason@zx2c4.com>
 MIME-Version: 1.0
-References: <cover.1552679409.git.andreyknvl@google.com> <20190318163533.26838-1-vincenzo.frascino@arm.com>
- <20190318163533.26838-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20190318163533.26838-3-vincenzo.frascino@arm.com>
-From: Amit Daniel Kachhap <amit.kachhap@arm.com>
-Date: Fri, 22 Mar 2019 11:52:37 +0530
-Message-ID: <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
-Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: LAK <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Kate Stewart <kstewart@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Kostya Serebryany <kcc@google.com>, Eric Dumazet <edumazet@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Daniel Borkmann <daniel@iogearbox.net>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Graeme Barnes <Graeme.Barnes@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Branislav Rankov <Branislav.Rankov@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "David S. Miller" <davem@davemloft.net>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20190322062237.l6_-JYS3smJoz3wx9eNbsnFh_DM78u2sMWN0Kf3pNgM@z>
+To: linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, Samuel Neves <sneves@dei.uc.pt>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20190322071104.LpaizdUjEZWAdTgwQKclKpSSN9lG5wkfDQQbTLLG0f4@z>
 
-Hi Vincenzo,
+Sometimes it's useful to amortize calls to XSAVE/XRSTOR and the related
+FPU/SIMD functions over a number of calls, because FPU restoration is
+quite expensive. This adds a simple header for carrying out this pattern:
 
-On Mon, Mar 18, 2019 at 10:06 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
->
-> On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
-> the userspace (EL0) is allowed to set a non-zero value in the
-> top byte but the resulting pointers are not allowed at the
-> user-kernel syscall ABI boundary.
->
-> With the relaxed ABI proposed through this document, it is now possible
-> to pass tagged pointers to the syscalls, when these pointers are in
-> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap() or brk().
->
-> This change in the ABI requires a mechanism to inform the userspace
-> that such an option is available.
->
-> Specify and document the way in which AT_FLAGS can be used to advertise
-> this feature to the userspace.
->
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> CC: Andrey Konovalov <andreyknvl@google.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->
-> Squash with "arm64: Define Documentation/arm64/elf_at_flags.txt"
-> ---
->  Documentation/arm64/elf_at_flags.txt | 133 +++++++++++++++++++++++++++
->  1 file changed, 133 insertions(+)
->  create mode 100644 Documentation/arm64/elf_at_flags.txt
->
-> diff --git a/Documentation/arm64/elf_at_flags.txt b/Documentation/arm64/elf_at_flags.txt
-> new file mode 100644
-> index 000000000000..9b3494207c14
-> --- /dev/null
-> +++ b/Documentation/arm64/elf_at_flags.txt
-> @@ -0,0 +1,133 @@
-> +ARM64 ELF AT_FLAGS
-> +==================
-> +
-> +This document describes the usage and semantics of AT_FLAGS on arm64.
-> +
-> +1. Introduction
-> +---------------
-> +
-> +AT_FLAGS is part of the Auxiliary Vector, contains the flags and it
-> +is set to zero by the kernel on arm64 unless one or more of the
-> +features detailed in paragraph 2 are present.
-> +
-> +The auxiliary vector can be accessed by the userspace using the
-> +getauxval() API provided by the C library.
-> +getauxval() returns an unsigned long and when a flag is present in
-> +the AT_FLAGS, the corresponding bit in the returned value is set to 1.
-> +
-> +The AT_FLAGS with a "defined semantics" on arm64 are exposed to the
-> +userspace via user API (uapi/asm/atflags.h).
-> +The AT_FLAGS bits with "undefined semantics" are set to zero by default.
-> +This means that the AT_FLAGS bits to which this document does not assign
-> +an explicit meaning are to be intended reserved for future use.
-> +The kernel will populate all such bits with zero until meanings are
-> +assigned to them. If and when meanings are assigned, it is guaranteed
-> +that they will not impact the functional operation of existing userspace
-> +software. Userspace software should ignore any AT_FLAGS bit whose meaning
-> +is not defined when the software is written.
-> +
-> +The userspace software can test for features by acquiring the AT_FLAGS
-> +entry of the auxiliary vector, and testing whether a relevant flag
-> +is set.
-> +
-> +Example of a userspace test function:
-> +
-> +bool feature_x_is_present(void)
-> +{
-> +       unsigned long at_flags = getauxval(AT_FLAGS);
-> +       if (at_flags & FEATURE_X)
-> +               return true;
-> +
-> +       return false;
-> +}
-> +
-> +Where the software relies on a feature advertised by AT_FLAGS, it
-> +must check that the feature is present before attempting to
-> +use it.
-> +
-> +2. Features exposed via AT_FLAGS
-> +--------------------------------
-> +
-> +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
-> +
-> +    On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64
-> +    kernel, hence the userspace (EL0) is allowed to set a non-zero value
-> +    in the top byte but the resulting pointers are not allowed at the
-> +    user-kernel syscall ABI boundary.
-> +    When bit[0] is set to 1 the kernel is advertising to the userspace
-> +    that a relaxed ABI is supported hence this type of pointers are now
-> +    allowed to be passed to the syscalls, when these pointers are in
-> +    memory ranges privately owned by a process and obtained by the
-> +    process in accordance with the definition of "valid tagged pointer"
-> +    in paragraph 3.
-> +    In these cases the tag is preserved as the pointer goes through the
-> +    kernel. Only when the kernel needs to check if a pointer is coming
-> +    from userspace an untag operation is required.
-> +
-> +3. ARM64_AT_FLAGS_SYSCALL_TBI
-> +-----------------------------
-> +
-> +From the kernel syscall interface prospective, we define, for the purposes
-> +of this document, a "valid tagged pointer" as a pointer that either it has
-> +a zero value set in the top byte or it has a non-zero value, it is in memory
-> +ranges privately owned by a userspace process and it is obtained in one of
-> +the following ways:
-> +  - mmap() done by the process itself, where either:
-> +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
-> +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
-> +      file or "/dev/zero"
-> +  - a mapping below sbrk(0) done by the process itself
-> +  - any memory mapped by the kernel in the process's address space during
-> +    creation and following the restrictions presented above (i.e. data, bss,
-> +    stack).
-> +
-> +When the ARM64_AT_FLAGS_SYSCALL_TBI flag is set by the kernel, the following
-> +behaviours are guaranteed by the ABI:
-> +
-> +  - Every current or newly introduced syscall can accept any valid tagged
-> +    pointers.
-> +
-> +  - If a non valid tagged pointer is passed to a syscall then the behaviour
-> +    is undefined.
-> +
-> +  - Every valid tagged pointer is expected to work as an untagged one.
-> +
-> +  - The kernel preserves any valid tagged pointers and returns them to the
-> +    userspace unchanged in all the cases except the ones documented in the
-> +    "Preserving tags" paragraph of tagged-pointers.txt.
-> +
-> +A definition of the meaning of tagged pointers on arm64 can be found in:
-> +Documentation/arm64/tagged-pointers.txt.
-> +
-> +Example of correct usage (pseudo-code) for a userspace application:
-> +
-> +bool arm64_syscall_tbi_is_present(void)
-> +{
-> +       unsigned long at_flags = getauxval(AT_FLAGS);
-> +       if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
-> +                       return true;
-> +
-> +       return false;
-> +}
-> +
-> +void main(void)
-> +{
-> +       char *addr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
-> +                         MAP_ANONYMOUS, -1, 0);
-> +
-> +       int fd = open("test.txt", O_WRONLY);
-> +
-> +       /* Check if the relaxed ABI is supported */
-> +       if (arm64_syscall_tbi_is_present()) {
-> +               /* Add a tag to the pointer */
-> +               addr = tag_pointer(addr);
-> +       }
-> +
-> +       strcpy("Hello World\n", addr);
-Nit: s/strcpy("Hello World\n", addr)/strcpy(addr, "Hello World\n")
+    simd_context_t simd_context;
 
-Thanks,
-Amit D
-> +
-> +       /* Write to a file */
-> +       write(fd, addr, sizeof(addr));
-> +
-> +       close(fd);
-> +}
-> +
-> --
-> 2.21.0
->
->
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+    simd_get(&simd_context);
+    while ((item = get_item_from_queue()) != NULL) {
+        encrypt_item(item, &simd_context);
+        simd_relax(&simd_context);
+    }
+    simd_put(&simd_context);
+
+The relaxation step ensures that we don't trample over preemption, and
+the get/put API should be a familiar paradigm in the kernel.
+
+On the other end, code that actually wants to use SIMD instructions can
+accept this as a parameter and check it via:
+
+   void encrypt_item(struct item *item, simd_context_t *simd_context)
+   {
+       if (item->len > LARGE_FOR_SIMD && simd_use(simd_context))
+           wild_simd_code(item);
+       else
+           boring_scalar_code(item);
+   }
+
+The actual XSAVE happens during simd_use (and only on the first time),
+so that if the context is never actually used, no performance penalty is
+hit.
+
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+Cc: Samuel Neves <sneves@dei.uc.pt>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Greg KH <gregkh@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org
+---
+ arch/alpha/include/asm/Kbuild      |  1 +
+ arch/arc/include/asm/Kbuild        |  1 +
+ arch/arm/include/asm/Kbuild        |  1 -
+ arch/arm/include/asm/simd.h        | 63 ++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/simd.h      | 51 +++++++++++++++++++++---
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/ia64/include/asm/Kbuild       |  1 +
+ arch/m68k/include/asm/Kbuild       |  1 +
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/mips/include/asm/Kbuild       |  1 +
+ arch/nds32/include/asm/Kbuild      |  1 +
+ arch/nios2/include/asm/Kbuild      |  1 +
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/parisc/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild    |  1 +
+ arch/riscv/include/asm/Kbuild      |  1 +
+ arch/s390/include/asm/Kbuild       |  1 +
+ arch/sh/include/asm/Kbuild         |  1 +
+ arch/sparc/include/asm/Kbuild      |  1 +
+ arch/um/include/asm/Kbuild         |  1 +
+ arch/unicore32/include/asm/Kbuild  |  1 +
+ arch/x86/include/asm/simd.h        | 44 ++++++++++++++++++++-
+ arch/xtensa/include/asm/Kbuild     |  1 +
+ include/asm-generic/simd.h         | 20 ++++++++++
+ include/linux/simd.h               | 32 +++++++++++++++
+ 27 files changed, 224 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm/include/asm/simd.h
+ create mode 100644 include/linux/simd.h
+
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index dc0ab28baca1..b385c2036290 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -13,3 +13,4 @@ generic-y += sections.h
+ generic-y += trace_clock.h
+ generic-y += current.h
+ generic-y += kprobes.h
++generic-y += simd.h
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index b41f8881ecc8..3028a2246ab4 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -19,6 +19,7 @@ generic-y += msi.h
+ generic-y += parport.h
+ generic-y += percpu.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += user.h
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index 1d66db9c9db5..ebdc9eeb8d39 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -16,7 +16,6 @@ generic-y += rwsem.h
+ generic-y += seccomp.h
+ generic-y += segment.h
+ generic-y += serial.h
+-generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += timex.h
+ generic-y += trace_clock.h
+diff --git a/arch/arm/include/asm/simd.h b/arch/arm/include/asm/simd.h
+new file mode 100644
+index 000000000000..264ed84b41d8
+--- /dev/null
++++ b/arch/arm/include/asm/simd.h
+@@ -0,0 +1,63 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
++#ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++
++static __must_check inline bool may_use_simd(void)
++{
++	return !in_nmi() && !in_irq() && !in_serving_softirq();
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_neon_end();
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_neon_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
++#else
++
++static __must_check inline bool may_use_simd(void)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++#endif
++
++#endif /* _ASM_SIMD_H */
+diff --git a/arch/arm64/include/asm/simd.h b/arch/arm64/include/asm/simd.h
+index 6495cc51246f..a45ff1600040 100644
+--- a/arch/arm64/include/asm/simd.h
++++ b/arch/arm64/include/asm/simd.h
+@@ -1,11 +1,10 @@
+-/*
+- * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
++/* SPDX-License-Identifier: GPL-2.0
+  *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License version 2 as published
+- * by the Free Software Foundation.
++ * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+  */
+ 
++#include <linux/simd.h>
+ #ifndef __ASM_SIMD_H
+ #define __ASM_SIMD_H
+ 
+@@ -16,6 +15,8 @@
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++#include <asm/simd.h>
+ 
+ DECLARE_PER_CPU(bool, kernel_neon_busy);
+ 
+@@ -40,9 +41,47 @@ static __must_check inline bool may_use_simd(void)
+ 		!this_cpu_read(kernel_neon_busy);
+ }
+ 
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_neon_end();
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_neon_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
+ #else /* ! CONFIG_KERNEL_MODE_NEON */
+ 
+-static __must_check inline bool may_use_simd(void) {
++static __must_check inline bool may_use_simd(void)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
+ 	return false;
+ }
+ 
+diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
+index 63b4a1705182..b0aa9d783d2b 100644
+--- a/arch/c6x/include/asm/Kbuild
++++ b/arch/c6x/include/asm/Kbuild
+@@ -31,6 +31,7 @@ generic-y += preempt.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += tlbflush.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index 961c1dc064e1..3de740b33f6e 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -41,6 +41,7 @@ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += spinlock.h
+ generic-y += timex.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index b25fd42aa0f4..843ae8d5c4d9 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -31,6 +31,7 @@ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index 43e21fe3499c..4f4a969c4611 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -5,6 +5,7 @@ generic-y += irq_work.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += vtime.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index 95f8f631c4df..d60a481e6f73 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -21,6 +21,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += spinlock.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+index 791cc8d54d0a..103ed3592214 100644
+--- a/arch/microblaze/include/asm/Kbuild
++++ b/arch/microblaze/include/asm/Kbuild
+@@ -27,6 +27,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += syscalls.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 87b86cdf126a..fb3345c870c6 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -20,6 +20,7 @@ generic-y += qrwlock.h
+ generic-y += qspinlock.h
+ generic-y += sections.h
+ generic-y += segment.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+ generic-y += user.h
+diff --git a/arch/nds32/include/asm/Kbuild b/arch/nds32/include/asm/Kbuild
+index 64ceff7ab99b..887923fdbb65 100644
+--- a/arch/nds32/include/asm/Kbuild
++++ b/arch/nds32/include/asm/Kbuild
+@@ -38,6 +38,7 @@ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += switch_to.h
+ generic-y += timex.h
+diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
+index 8fde4fa2c34f..571a9d9ad107 100644
+--- a/arch/nios2/include/asm/Kbuild
++++ b/arch/nios2/include/asm/Kbuild
+@@ -33,6 +33,7 @@ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += spinlock.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index 1f04844b6b82..82c06dd1519d 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -35,6 +35,7 @@ generic-y += qrwlock.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += string.h
+ generic-y += switch_to.h
+ generic-y += topology.h
+diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
+index 0b1e354c8c24..087fb8b05e5e 100644
+--- a/arch/parisc/include/asm/Kbuild
++++ b/arch/parisc/include/asm/Kbuild
+@@ -20,6 +20,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += seccomp.h
+ generic-y += segment.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += user.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index 77ff7fb24823..96269741bfb9 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -12,3 +12,4 @@ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += vtime.h
+ generic-y += msi.h
++generic-y += simd.h
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index cccd12cf27d4..525bd8707c7d 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -28,6 +28,7 @@ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index e3239772887a..3744c4c61fb5 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -22,6 +22,7 @@ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
+index a6ef3fee5f85..74b7bb3ba96a 100644
+--- a/arch/sh/include/asm/Kbuild
++++ b/arch/sh/include/asm/Kbuild
+@@ -18,6 +18,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index b82f64e28f55..d053d5bad630 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -19,5 +19,6 @@ generic-y += msi.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+index 00bcbe2326d9..a4dfffb2c22b 100644
+--- a/arch/um/include/asm/Kbuild
++++ b/arch/um/include/asm/Kbuild
+@@ -20,6 +20,7 @@ generic-y += param.h
+ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += switch_to.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
+index 1d1544b6ca74..c428158a3a19 100644
+--- a/arch/unicore32/include/asm/Kbuild
++++ b/arch/unicore32/include/asm/Kbuild
+@@ -29,6 +29,7 @@ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmparam.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += syscalls.h
+ generic-y += topology.h
+diff --git a/arch/x86/include/asm/simd.h b/arch/x86/include/asm/simd.h
+index a341c878e977..4aad7f158dcb 100644
+--- a/arch/x86/include/asm/simd.h
++++ b/arch/x86/include/asm/simd.h
+@@ -1,4 +1,11 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
+ 
+ #include <asm/fpu/api.h>
+ 
+@@ -10,3 +17,38 @@ static __must_check inline bool may_use_simd(void)
+ {
+ 	return irq_fpu_usable();
+ }
++
++static inline void simd_get(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++#else
++	*ctx = HAVE_NO_SIMD;
++#endif
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_fpu_end();
++#endif
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_fpu_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++#else
++	return false;
++#endif
++}
++
++#endif /* _ASM_SIMD_H */
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index d939e13e8d84..dce09e76b71e 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -27,6 +27,7 @@ generic-y += qrwlock.h
+ generic-y += qspinlock.h
+ generic-y += rwsem.h
+ generic-y += sections.h
++generic-y += simd.h
+ generic-y += socket.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
+index d0343d58a74a..b3dd61ac010e 100644
+--- a/include/asm-generic/simd.h
++++ b/include/asm-generic/simd.h
+@@ -1,5 +1,9 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ 
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
+ #include <linux/hardirq.h>
+ 
+ /*
+@@ -13,3 +17,19 @@ static __must_check inline bool may_use_simd(void)
+ {
+ 	return !in_interrupt();
+ }
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++
++#endif /* _ASM_SIMD_H */
+diff --git a/include/linux/simd.h b/include/linux/simd.h
+new file mode 100644
+index 000000000000..4e0b8a9bdc14
+--- /dev/null
++++ b/include/linux/simd.h
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _SIMD_H
++#define _SIMD_H
++
++typedef enum {
++	HAVE_NO_SIMD = 1 << 0,
++	HAVE_FULL_SIMD = 1 << 1,
++	HAVE_SIMD_IN_USE = 1 << 31
++} simd_context_t;
++
++#define DONT_USE_SIMD ((simd_context_t []){ HAVE_NO_SIMD })
++
++#include <linux/sched.h>
++#include <asm/simd.h>
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++#ifdef CONFIG_PREEMPT
++	if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
++		simd_put(ctx);
++		simd_get(ctx);
++		return true;
++	}
++#endif
++	return false;
++}
++
++#endif /* _SIMD_H */
+-- 
+2.21.0
