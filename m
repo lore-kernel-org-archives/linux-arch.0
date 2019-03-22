@@ -1,140 +1,309 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 5.0 171/238] arm64: Fix HCR.TGE status for NMI contexts
-Date: Fri, 22 Mar 2019 12:16:30 +0100
-Message-ID: <20190322111308.378002300@linuxfoundation.org>
-References: <20190322111258.383569278@linuxfoundation.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH net-next v9 01/19] asm: simd context helper API
+Date: Fri, 22 Mar 2019 12:21:51 +0100 (CET)
+Message-ID: <alpine.DEB.2.21.1903221212310.1729@nanos.tec.linutronix.de>
+References: <20190322071122.6677-1-Jason@zx2c4.com> <20190322071122.6677-2-Jason@zx2c4.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190322111258.383569278@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Julien Thierry <julien.thierry@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20190322071122.6677-2-Jason@zx2c4.com>
+Sender: netdev-owner@vger.kernel.org
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, Samuel Neves <sneves@dei.uc.pt>, Andy Lutomirski <luto@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-5.0-stable review patch.  If anyone has any objections, please let me know.
+Jason,
 
-------------------
+On Fri, 22 Mar 2019, Jason A. Donenfeld wrote:
+> index 000000000000..264ed84b41d8
+> --- /dev/null
+> +++ b/arch/arm/include/asm/simd.h
+> @@ -0,0 +1,63 @@
+> +/* SPDX-License-Identifier: GPL-2.0
 
-From: Julien Thierry <julien.thierry@arm.com>
+The SPDX identifier has to be in a separate comment line.
 
-commit 5870970b9a828d8693aa6d15742573289d7dbcd0 upstream.
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2015-2018 Jason....
+ */
 
-When using VHE, the host needs to clear HCR_EL2.TGE bit in order
-to interact with guest TLBs, switching from EL2&0 translation regime
-to EL1&0.
+Yes, it looks odd, but it's defined that way.
 
-However, some non-maskable asynchronous event could happen while TGE is
-cleared like SDEI. Because of this address translation operations
-relying on EL2&0 translation regime could fail (tlb invalidation,
-userspace access, ...).
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_neon_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +}
 
-Fix this by properly setting HCR_EL2.TGE when entering NMI context and
-clear it if necessary when returning to the interrupted context.
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_neon_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +}
 
-Signed-off-by: Julien Thierry <julien.thierry@arm.com>
-Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
-Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
-Reviewed-by: James Morse <james.morse@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: James Morse <james.morse@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +#if !defined(CONFIG_UML)
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_fpu_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +#else
+> +	return false;
+> +#endif
+> +}
 
----
- arch/arm64/include/asm/hardirq.h |   31 +++++++++++++++++++++++++++++++
- arch/arm64/kernel/irq.c          |    3 +++
- include/linux/hardirq.h          |    7 +++++++
- 3 files changed, 41 insertions(+)
+So now we have 3 almost identical copies of the same thing and x86/UM
+handling it differently than the ARM(64) ones.
 
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -17,8 +17,12 @@
- #define __ASM_HARDIRQ_H
- 
- #include <linux/cache.h>
-+#include <linux/percpu.h>
- #include <linux/threads.h>
-+#include <asm/barrier.h>
- #include <asm/irq.h>
-+#include <asm/kvm_arm.h>
-+#include <asm/sysreg.h>
- 
- #define NR_IPI	7
- 
-@@ -37,6 +41,33 @@ u64 smp_irq_stat_cpu(unsigned int cpu);
- 
- #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
- 
-+struct nmi_ctx {
-+	u64 hcr;
-+};
+That can be completely avoided. Untested patch below.
+
+Thanks,
+
+	tglx
+
+8<-------------
+--- /dev/null
++++ b/arch/arm/include/asm/simd.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
 +
-+DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
++#ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
 +
-+#define arch_nmi_enter()							\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
-+			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
-+				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
-+				isb();						\
-+			}							\
-+		}								\
-+	} while (0)
++static __must_check inline bool may_use_simd(void)
++{
++	return !in_nmi() && !in_irq() && !in_serving_softirq();
++}
 +
-+#define arch_nmi_exit()								\
-+	do {									\
-+		if (is_kernel_in_hyp_mode()) {					\
-+			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-+			if (!(nmi_ctx->hcr & HCR_TGE))				\
-+				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
-+		}								\
-+	} while (0)
++static inline void arch_simd_end(void)
++{
++	kernel_neon_end();
++}
 +
- static inline void ack_bad_irq(unsigned int irq)
- {
- 	extern unsigned long irq_err_count;
---- a/arch/arm64/kernel/irq.c
-+++ b/arch/arm64/kernel/irq.c
-@@ -33,6 +33,9 @@
- 
- unsigned long irq_err_count;
- 
-+/* Only access this in an NMI enter/exit */
-+DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
++static inline void arch_simd_begin(void)
++{
++	kernel_neon_begin();
++}
 +
- DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
- 
- int arch_show_interrupts(struct seq_file *p, int prec)
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -60,8 +60,14 @@ extern void irq_enter(void);
-  */
- extern void irq_exit(void);
- 
-+#ifndef arch_nmi_enter
-+#define arch_nmi_enter()	do { } while (0)
-+#define arch_nmi_exit()		do { } while (0)
++#else
++#include <asm-generic/simd.h>
 +#endif
 +
- #define nmi_enter()						\
- 	do {							\
-+		arch_nmi_enter();				\
- 		printk_nmi_enter();				\
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
-@@ -80,6 +86,7 @@ extern void irq_exit(void);
- 		ftrace_nmi_exit();				\
- 		lockdep_on();					\
- 		printk_nmi_exit();				\
-+		arch_nmi_exit();				\
- 	} while (0)
++#endif /* _ASM_SIMD_H */
+--- a/arch/arm64/include/asm/simd.h
++++ b/arch/arm64/include/asm/simd.h
+@@ -1,11 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
+ /*
+  * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License version 2 as published
+- * by the Free Software Foundation.
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+  */
  
- #endif /* LINUX_HARDIRQ_H */
++#include <linux/simd.h>
+ #ifndef __ASM_SIMD_H
+ #define __ASM_SIMD_H
+ 
+@@ -16,6 +15,8 @@
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++#include <asm/simd.h>
+ 
+ DECLARE_PER_CPU(bool, kernel_neon_busy);
+ 
+@@ -40,12 +41,18 @@ static __must_check inline bool may_use_
+ 		!this_cpu_read(kernel_neon_busy);
+ }
+ 
+-#else /* ! CONFIG_KERNEL_MODE_NEON */
++static inline void arch_simd_end(void)
++{
++	kernel_neon_end();
++}
+ 
+-static __must_check inline bool may_use_simd(void) {
+-	return false;
++static inline void arch_simd_begin(void)
++{
++	kernel_neon_begin();
+ }
+ 
+-#endif /* ! CONFIG_KERNEL_MODE_NEON */
++#else
++#include <asm-generic/simd.h>
++#endif
+ 
+ #endif
+--- a/arch/x86/include/asm/simd.h
++++ b/arch/x86/include/asm/simd.h
+@@ -1,4 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
++#ifndef CONFIG_UML
+ 
+ #include <asm/fpu/api.h>
+ 
+@@ -10,3 +18,21 @@ static __must_check inline bool may_use_
+ {
+ 	return irq_fpu_usable();
+ }
++
++static inline void arch_simd_begin(void)
++{
++	kernel_fpu_begin();
++}
++
++static inline void arch_simd_end(void)
++{
++	kernel_fpu_end();
++}
++
++#else
++#include <asm-generic/simd.h>
++#endif
++
++#include <linux/simd.h>
++
++#endif /* _ASM_SIMD_H */
+--- a/include/asm-generic/simd.h
++++ b/include/asm-generic/simd.h
+@@ -1,7 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ 
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
+ #include <linux/hardirq.h>
+ 
++#define SIMD_GENERIC	1
++
+ /*
+  * may_use_simd - whether it is allowable at this time to issue SIMD
+  *                instructions or access the SIMD register file
+@@ -13,3 +18,10 @@ static __must_check inline bool may_use_
+ {
+ 	return !in_interrupt();
+ }
++
++static inline void arch_simd_begin(void) { }
++static inline void arch_simd_end(void) { }
++
++#include <linux/simd.h>
++
++#endif /* _ASM_SIMD_H */
+--- /dev/null
++++ b/include/linux/simd.h
+@@ -0,0 +1,82 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _SIMD_H
++#define _SIMD_H
++
++typedef enum {
++	HAVE_NO_SIMD		= 1 << 0,
++	HAVE_FULL_SIMD		= 1 << 1,
++	HAVE_SIMD_IN_USE	= 1 << 31
++} simd_context_t;
++
++#define DONT_USE_SIMD ((simd_context_t []){ HAVE_NO_SIMD })
++
++#include <asm/simd.h>
++
++#ifndef SIMD_GENERIC
++
++#include <linux/sched.h>
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++#ifdef CONFIG_PREEMPT
++	if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
++		simd_put(ctx);
++		simd_get(ctx);
++		return true;
++	}
++#endif
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		arch_simd_end();
++
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	arch_simd_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
++#else /* !SIMD_GENERIC */
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++
++#endif /* SIMD_GENERIC */
++
++#endif /* _SIMD_H */
