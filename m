@@ -1,19 +1,19 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.19 232/280] arm64: Fix HCR.TGE status for NMI contexts
-Date: Fri, 22 Mar 2019 12:16:25 +0100
-Message-ID: <20190322111337.497700154@linuxfoundation.org>
-References: <20190322111306.356185024@linuxfoundation.org>
+Subject: [PATCH 5.0 171/238] arm64: Fix HCR.TGE status for NMI contexts
+Date: Fri, 22 Mar 2019 12:16:30 +0100
+Message-ID: <20190322111308.378002300@linuxfoundation.org>
+References: <20190322111258.383569278@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190322111306.356185024@linuxfoundation.org>
+In-Reply-To: <20190322111258.383569278@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Julien Thierry <julien.thierry@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-4.19-stable review patch.  If anyone has any objections, please let me know.
+5.0-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
