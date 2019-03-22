@@ -1,70 +1,314 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41654 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727867AbfCVKsu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Mar 2019 06:48:50 -0400
-Date: Fri, 22 Mar 2019 10:48:40 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
-Message-ID: <20190322104839.GA13384@arrakis.emea.arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <20190318163533.26838-1-vincenzo.frascino@arm.com>
- <20190318163533.26838-3-vincenzo.frascino@arm.com>
- <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:40721 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728243AbfCVLWG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2019 07:22:06 -0400
+Date: Fri, 22 Mar 2019 12:21:51 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH net-next v9 01/19] asm: simd context helper API
+In-Reply-To: <20190322071122.6677-2-Jason@zx2c4.com>
+Message-ID: <alpine.DEB.2.21.1903221212310.1729@nanos.tec.linutronix.de>
+References: <20190322071122.6677-1-Jason@zx2c4.com> <20190322071122.6677-2-Jason@zx2c4.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Amit Daniel Kachhap <amit.kachhap@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, LAK <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Kate Stewart <kstewart@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Kostya Serebryany <kcc@google.com>, Eric Dumazet <edumazet@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Daniel Borkmann <daniel@iogearbox.net>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Graeme Barnes <Graeme.Barnes@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Branislav Rankov <Branislav.Rankov@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "David S. Miller" <davem@davemloft.net>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20190322104840.rfrCiOwzIfJM8hb9Bkfz0fhyiB51dXwNl9BBdp496Ng@z>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, Samuel Neves <sneves@dei.uc.pt>, Andy Lutomirski <luto@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20190322112151.t2Ei-PLDc5nsvjHeRxJdRLfUB2jO-P1R-BpcLISFh1g@z>
 
-On Fri, Mar 22, 2019 at 11:52:37AM +0530, Amit Daniel Kachhap wrote:
-> On Mon, Mar 18, 2019 at 10:06 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
-> > +Example of correct usage (pseudo-code) for a userspace application:
-> > +
-> > +bool arm64_syscall_tbi_is_present(void)
-> > +{
-> > +       unsigned long at_flags = getauxval(AT_FLAGS);
-> > +       if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
-> > +                       return true;
-> > +
-> > +       return false;
-> > +}
-> > +
-> > +void main(void)
-> > +{
-> > +       char *addr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
-> > +                         MAP_ANONYMOUS, -1, 0);
-> > +
-> > +       int fd = open("test.txt", O_WRONLY);
-> > +
-> > +       /* Check if the relaxed ABI is supported */
-> > +       if (arm64_syscall_tbi_is_present()) {
-> > +               /* Add a tag to the pointer */
-> > +               addr = tag_pointer(addr);
-> > +       }
-> > +
-> > +       strcpy("Hello World\n", addr);
-> 
-> Nit: s/strcpy("Hello World\n", addr)/strcpy(addr, "Hello World\n")
+Jason,
 
-Not exactly a nit ;).
+On Fri, 22 Mar 2019, Jason A. Donenfeld wrote:
+> index 000000000000..264ed84b41d8
+> --- /dev/null
+> +++ b/arch/arm/include/asm/simd.h
+> @@ -0,0 +1,63 @@
+> +/* SPDX-License-Identifier: GPL-2.0
 
-> > +
-> > +       /* Write to a file */
-> > +       write(fd, addr, sizeof(addr));
+The SPDX identifier has to be in a separate comment line.
 
-I presume this was supposed to write "Hello World\n" to a file but
-sizeof(addr) is 1.
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2015-2018 Jason....
+ */
 
-Since we already support tagged pointers in user space (as long as they
-are not passed into the kernel), the above example could tag the pointer
-unconditionally and only clear it before write() if
-!arm64_syscall_tbi_is_present().
+Yes, it looks odd, but it's defined that way.
 
--- 
-Catalin
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_neon_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +}
+
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_neon_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +}
+
+> +static __must_check inline bool simd_use(simd_context_t *ctx)
+> +{
+> +#if !defined(CONFIG_UML)
+> +	if (!(*ctx & HAVE_FULL_SIMD))
+> +		return false;
+> +	if (*ctx & HAVE_SIMD_IN_USE)
+> +		return true;
+> +	kernel_fpu_begin();
+> +	*ctx |= HAVE_SIMD_IN_USE;
+> +	return true;
+> +#else
+> +	return false;
+> +#endif
+> +}
+
+So now we have 3 almost identical copies of the same thing and x86/UM
+handling it differently than the ARM(64) ones.
+
+That can be completely avoided. Untested patch below.
+
+Thanks,
+
+	tglx
+
+8<-------------
+--- /dev/null
++++ b/arch/arm/include/asm/simd.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
++#ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++
++static __must_check inline bool may_use_simd(void)
++{
++	return !in_nmi() && !in_irq() && !in_serving_softirq();
++}
++
++static inline void arch_simd_end(void)
++{
++	kernel_neon_end();
++}
++
++static inline void arch_simd_begin(void)
++{
++	kernel_neon_begin();
++}
++
++#else
++#include <asm-generic/simd.h>
++#endif
++
++#endif /* _ASM_SIMD_H */
+--- a/arch/arm64/include/asm/simd.h
++++ b/arch/arm64/include/asm/simd.h
+@@ -1,11 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
+ /*
+  * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License version 2 as published
+- * by the Free Software Foundation.
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+  */
+ 
++#include <linux/simd.h>
+ #ifndef __ASM_SIMD_H
+ #define __ASM_SIMD_H
+ 
+@@ -16,6 +15,8 @@
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++#include <asm/simd.h>
+ 
+ DECLARE_PER_CPU(bool, kernel_neon_busy);
+ 
+@@ -40,12 +41,18 @@ static __must_check inline bool may_use_
+ 		!this_cpu_read(kernel_neon_busy);
+ }
+ 
+-#else /* ! CONFIG_KERNEL_MODE_NEON */
++static inline void arch_simd_end(void)
++{
++	kernel_neon_end();
++}
+ 
+-static __must_check inline bool may_use_simd(void) {
+-	return false;
++static inline void arch_simd_begin(void)
++{
++	kernel_neon_begin();
+ }
+ 
+-#endif /* ! CONFIG_KERNEL_MODE_NEON */
++#else
++#include <asm-generic/simd.h>
++#endif
+ 
+ #endif
+--- a/arch/x86/include/asm/simd.h
++++ b/arch/x86/include/asm/simd.h
+@@ -1,4 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
++#ifndef CONFIG_UML
+ 
+ #include <asm/fpu/api.h>
+ 
+@@ -10,3 +18,21 @@ static __must_check inline bool may_use_
+ {
+ 	return irq_fpu_usable();
+ }
++
++static inline void arch_simd_begin(void)
++{
++	kernel_fpu_begin();
++}
++
++static inline void arch_simd_end(void)
++{
++	kernel_fpu_end();
++}
++
++#else
++#include <asm-generic/simd.h>
++#endif
++
++#include <linux/simd.h>
++
++#endif /* _ASM_SIMD_H */
+--- a/include/asm-generic/simd.h
++++ b/include/asm-generic/simd.h
+@@ -1,7 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ 
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
+ #include <linux/hardirq.h>
+ 
++#define SIMD_GENERIC	1
++
+ /*
+  * may_use_simd - whether it is allowable at this time to issue SIMD
+  *                instructions or access the SIMD register file
+@@ -13,3 +18,10 @@ static __must_check inline bool may_use_
+ {
+ 	return !in_interrupt();
+ }
++
++static inline void arch_simd_begin(void) { }
++static inline void arch_simd_end(void) { }
++
++#include <linux/simd.h>
++
++#endif /* _ASM_SIMD_H */
+--- /dev/null
++++ b/include/linux/simd.h
+@@ -0,0 +1,82 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _SIMD_H
++#define _SIMD_H
++
++typedef enum {
++	HAVE_NO_SIMD		= 1 << 0,
++	HAVE_FULL_SIMD		= 1 << 1,
++	HAVE_SIMD_IN_USE	= 1 << 31
++} simd_context_t;
++
++#define DONT_USE_SIMD ((simd_context_t []){ HAVE_NO_SIMD })
++
++#include <asm/simd.h>
++
++#ifndef SIMD_GENERIC
++
++#include <linux/sched.h>
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++#ifdef CONFIG_PREEMPT
++	if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
++		simd_put(ctx);
++		simd_get(ctx);
++		return true;
++	}
++#endif
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		arch_simd_end();
++
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	arch_simd_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
++#else /* !SIMD_GENERIC */
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++
++#endif /* SIMD_GENERIC */
++
++#endif /* _SIMD_H */
