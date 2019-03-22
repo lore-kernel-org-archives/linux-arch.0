@@ -1,19 +1,19 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 148/183] arm64: Fix HCR.TGE status for NMI contexts
-Date: Fri, 22 Mar 2019 12:16:16 +0100
-Message-ID: <20190322111252.544449190@linuxfoundation.org>
-References: <20190322111241.819468003@linuxfoundation.org>
+Subject: [PATCH 4.19 232/280] arm64: Fix HCR.TGE status for NMI contexts
+Date: Fri, 22 Mar 2019 12:16:25 +0100
+Message-ID: <20190322111337.497700154@linuxfoundation.org>
+References: <20190322111306.356185024@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190322111241.819468003@linuxfoundation.org>
+In-Reply-To: <20190322111306.356185024@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Julien Thierry <julien.thierry@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.19-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -103,7 +103,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	extern unsigned long irq_err_count;
 --- a/arch/arm64/kernel/irq.c
 +++ b/arch/arm64/kernel/irq.c
-@@ -32,6 +32,9 @@
+@@ -33,6 +33,9 @@
  
  unsigned long irq_err_count;
  
