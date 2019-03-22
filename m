@@ -1,92 +1,57 @@
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH v5 3/3] locking/rwsem: Optimize down_read_trylock()
-Date: Fri, 22 Mar 2019 17:25:01 +0000
-Message-ID: <20190322172501.3nbjw6e2wqsaisgw@shell.armlinux.org.uk>
-References: <20190322143008.21313-1-longman@redhat.com>
- <20190322143008.21313-4-longman@redhat.com>
+From: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v13 14/20] drm/amdgpu, arm64: untag user pointers in
+ amdgpu_ttm_tt_get_user_pages
+Date: Fri, 22 Mar 2019 15:59:55 +0000
+Message-ID: <20190322155955.GT13384@arrakis.emea.arm.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20190322143008.21313-4-longman@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <longman@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-mips@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Borislav Petkov <bp@alien8.de>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@>
+In-Reply-To: <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
+List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
+Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
+Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+To: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan-5wv7dgnIgG8@public.gmane.org>, Dave Martin <Dave.Ma>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 22, 2019 at 10:30:08AM -0400, Waiman Long wrote:
-> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
-> it generate slightly better code.
-> 
-> Before this patch, down_read_trylock:
-> 
->    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
->    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
->    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
->    0x000000000000000b <+11>:    mov    %rdx,%rax
->    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
->    0x0000000000000013 <+19>:    cmp    %rax,%rdx
->    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
->    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
->    0x000000000000001b <+27>:    test   %rdx,%rdx
->    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
->    0x0000000000000020 <+32>:    xor    %eax,%eax
->    0x0000000000000022 <+34>:    retq
->    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
->    0x000000000000002c <+44>:    or     $0x3,%rax
->    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
->    0x0000000000000034 <+52>:    mov    $0x1,%eax
->    0x0000000000000039 <+57>:    retq
-> 
-> After patch, down_read_trylock:
-> 
->    0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
->    0x0000000000000005 <+5>:	xor    %eax,%eax
->    0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
->    0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
->    0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
->    0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
->    0x000000000000001b <+27>:	or     $0x3,%rax
->    0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
->    0x0000000000000023 <+35>:	mov    $0x1,%eax
->    0x0000000000000028 <+40>:	retq
->    0x0000000000000029 <+41>:	test   %rax,%rax
->    0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
->    0x000000000000002e <+46>:	xor    %eax,%eax
->    0x0000000000000030 <+48>:	retq
-> 
-> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
-> load of 10 to lengthen the lock critical section) on a x86-64 system
-> before and after the patch were:
-> 
->                  Before Patch    After Patch
->    # of Threads     rlock           rlock
->    ------------     -----           -----
->         1           14,496          14,716
->         2            8,644           8,453
-> 	4            6,799           6,983
-> 	8            5,664           7,190
-> 
-> On a ARM64 system, the performance results were:
-> 
->                  Before Patch    After Patch
->    # of Threads     rlock           rlock
->    ------------     -----           -----
->         1           23,676          24,488
->         2            7,697           9,502
->         4            4,945           3,440
->         8            2,641           1,603
-> 
-> For the uncontended case (1 thread), the new down_read_trylock() is a
-> little bit faster. For the contended cases, the new down_read_trylock()
-> perform pretty well in x86-64, but performance degrades at high
-> contention level on ARM64.
-
-So, 70% for 4 threads, 61% for 4 threads - does this trend
-continue tailing off as the number of threads (and cores)
-increase?
-
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
-According to speedtest.net: 11.9Mbps down 500kbps up
+T24gV2VkLCBNYXIgMjAsIDIwMTkgYXQgMDM6NTE6MjhQTSArMDEwMCwgQW5kcmV5IEtvbm92YWxv
+diB3cm90ZToKPiBUaGlzIHBhdGNoIGlzIGEgcGFydCBvZiBhIHNlcmllcyB0aGF0IGV4dGVuZHMg
+YXJtNjQga2VybmVsIEFCSSB0byBhbGxvdyB0bwo+IHBhc3MgdGFnZ2VkIHVzZXIgcG9pbnRlcnMg
+KHdpdGggdGhlIHRvcCBieXRlIHNldCB0byBzb21ldGhpbmcgZWxzZSBvdGhlcgo+IHRoYW4gMHgw
+MCkgYXMgc3lzY2FsbCBhcmd1bWVudHMuCj4gCj4gYW1kZ3B1X3R0bV90dF9nZXRfdXNlcl9wYWdl
+cygpIHVzZXMgcHJvdmlkZWQgdXNlciBwb2ludGVycyBmb3Igdm1hCj4gbG9va3Vwcywgd2hpY2gg
+Y2FuIG9ubHkgYnkgZG9uZSB3aXRoIHVudGFnZ2VkIHBvaW50ZXJzLgo+IAo+IFVudGFnIHVzZXIg
+cG9pbnRlcnMgaW4gdGhpcyBmdW5jdGlvbi4KPiAKPiBTaWduZWQtb2ZmLWJ5OiBBbmRyZXkgS29u
+b3ZhbG92IDxhbmRyZXlrbnZsQGdvb2dsZS5jb20+Cj4gLS0tCj4gIGRyaXZlcnMvZ3B1L2RybS9h
+bWQvYW1kZ3B1L2FtZGdwdV90dG0uYyB8IDUgKysrLS0KPiAgMSBmaWxlIGNoYW5nZWQsIDMgaW5z
+ZXJ0aW9ucygrKSwgMiBkZWxldGlvbnMoLSkKPiAKPiBkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUv
+ZHJtL2FtZC9hbWRncHUvYW1kZ3B1X3R0bS5jIGIvZHJpdmVycy9ncHUvZHJtL2FtZC9hbWRncHUv
+YW1kZ3B1X3R0bS5jCj4gaW5kZXggNzNlNzFlNjFkYzk5Li44OTFiMDI3ZmEzM2IgMTAwNjQ0Cj4g
+LS0tIGEvZHJpdmVycy9ncHUvZHJtL2FtZC9hbWRncHUvYW1kZ3B1X3R0bS5jCj4gKysrIGIvZHJp
+dmVycy9ncHUvZHJtL2FtZC9hbWRncHUvYW1kZ3B1X3R0bS5jCj4gQEAgLTc1MSwxMCArNzUxLDEx
+IEBAIGludCBhbWRncHVfdHRtX3R0X2dldF91c2VyX3BhZ2VzKHN0cnVjdCB0dG1fdHQgKnR0bSwg
+c3RydWN0IHBhZ2UgKipwYWdlcykKPiAgCQkgKiBjaGVjayB0aGF0IHdlIG9ubHkgdXNlIGFub255
+bW91cyBtZW1vcnkgdG8gcHJldmVudCBwcm9ibGVtcwo+ICAJCSAqIHdpdGggd3JpdGViYWNrCj4g
+IAkJICovCj4gLQkJdW5zaWduZWQgbG9uZyBlbmQgPSBndHQtPnVzZXJwdHIgKyB0dG0tPm51bV9w
+YWdlcyAqIFBBR0VfU0laRTsKPiArCQl1bnNpZ25lZCBsb25nIHVzZXJwdHIgPSB1bnRhZ2dlZF9h
+ZGRyKGd0dC0+dXNlcnB0cik7Cj4gKwkJdW5zaWduZWQgbG9uZyBlbmQgPSB1c2VycHRyICsgdHRt
+LT5udW1fcGFnZXMgKiBQQUdFX1NJWkU7Cj4gIAkJc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWE7
+Cj4gIAo+IC0JCXZtYSA9IGZpbmRfdm1hKG1tLCBndHQtPnVzZXJwdHIpOwo+ICsJCXZtYSA9IGZp
+bmRfdm1hKG1tLCB1c2VycHRyKTsKPiAgCQlpZiAoIXZtYSB8fCB2bWEtPnZtX2ZpbGUgfHwgdm1h
+LT52bV9lbmQgPCBlbmQpIHsKPiAgCQkJdXBfcmVhZCgmbW0tPm1tYXBfc2VtKTsKPiAgCQkJcmV0
+dXJuIC1FUEVSTTsKCkkgdHJpZWQgdG8gdHJhY2sgdGhpcyBkb3duIGJ1dCBJIGZhaWxlZCB0byBz
+ZWUgd2hldGhlciB1c2VyIGNvdWxkCnByb3ZpZGUgYW4gdGFnZ2VkIHBvaW50ZXIgaGVyZSAodW5k
+ZXIgdGhlIHJlc3RyaWN0aW9ucyBhcyBwZXIgVmluY2Vuem8ncwpBQkkgZG9jdW1lbnQpLgoKLS0g
+CkNhdGFsaW4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18K
+YW1kLWdmeCBtYWlsaW5nIGxpc3QKYW1kLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6
+Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9hbWQtZ2Z4
