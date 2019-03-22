@@ -1,314 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:40721 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728243AbfCVLWG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2019 07:22:06 -0400
-Date: Fri, 22 Mar 2019 12:21:51 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH net-next v9 01/19] asm: simd context helper API
-In-Reply-To: <20190322071122.6677-2-Jason@zx2c4.com>
-Message-ID: <alpine.DEB.2.21.1903221212310.1729@nanos.tec.linutronix.de>
-References: <20190322071122.6677-1-Jason@zx2c4.com> <20190322071122.6677-2-Jason@zx2c4.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mx1.redhat.com ([209.132.183.28]:57012 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727719AbfCVOaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Mar 2019 10:30:22 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v5 0/3] locking/rwsem: Rwsem rearchitecture part 0
+Date: Fri, 22 Mar 2019 10:30:05 -0400
+Message-ID: <20190322143008.21313-1-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, Samuel Neves <sneves@dei.uc.pt>, Andy Lutomirski <luto@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org
-Message-ID: <20190322112151.t2Ei-PLDc5nsvjHeRxJdRLfUB2jO-P1R-BpcLISFh1g@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20190322143005.p-zxfS0ckJ2a6gbQzJYWsIxfQYN9weIdEw7kyXBl-RM@z>
 
-Jason,
+v5:
+ - Rebase to the latest v5.1 tree and fix conflicts in 
+   arch/{xtensa,s390}/include/asm/Kbuild.
 
-On Fri, 22 Mar 2019, Jason A. Donenfeld wrote:
-> index 000000000000..264ed84b41d8
-> --- /dev/null
-> +++ b/arch/arm/include/asm/simd.h
-> @@ -0,0 +1,63 @@
-> +/* SPDX-License-Identifier: GPL-2.0
+v4:
+ - Remove rwsem-spinlock.c and make all archs use rwsem-xadd.c.
 
-The SPDX identifier has to be in a separate comment line.
+v3:
+ - Optimize __down_read_trylock() for the uncontended case as suggested
+   by Linus.
 
-/* SPDX-License-Identifier: GPL-2.0 */
-/*
- * Copyright (C) 2015-2018 Jason....
- */
+v2:
+ - Add patch 2 to optimize __down_read_trylock() as suggested by PeterZ.
+ - Update performance test data in patch 1.
 
-Yes, it looks odd, but it's defined that way.
+The goal of this patchset is to remove the architecture specific files
+for rwsem-xadd to make it easer to add enhancements in the later rwsem
+patches. It also removes the legacy rwsem-spinlock.c file and make all
+the architectures use one single implementation of rwsem - rwsem-xadd.c.
 
-> +static __must_check inline bool simd_use(simd_context_t *ctx)
-> +{
-> +	if (!(*ctx & HAVE_FULL_SIMD))
-> +		return false;
-> +	if (*ctx & HAVE_SIMD_IN_USE)
-> +		return true;
-> +	kernel_neon_begin();
-> +	*ctx |= HAVE_SIMD_IN_USE;
-> +	return true;
-> +}
+Waiman Long (3):
+  locking/rwsem: Remove arch specific rwsem files
+  locking/rwsem: Remove rwsem-spinlock.c & use rwsem-xadd.c for all
+    archs
+  locking/rwsem: Optimize down_read_trylock()
 
-> +static __must_check inline bool simd_use(simd_context_t *ctx)
-> +{
-> +	if (!(*ctx & HAVE_FULL_SIMD))
-> +		return false;
-> +	if (*ctx & HAVE_SIMD_IN_USE)
-> +		return true;
-> +	kernel_neon_begin();
-> +	*ctx |= HAVE_SIMD_IN_USE;
-> +	return true;
-> +}
+ MAINTAINERS                     |   1 -
+ arch/alpha/Kconfig              |   7 -
+ arch/alpha/include/asm/rwsem.h  | 211 --------------------
+ arch/arc/Kconfig                |   3 -
+ arch/arm/Kconfig                |   4 -
+ arch/arm/include/asm/Kbuild     |   1 -
+ arch/arm64/Kconfig              |   3 -
+ arch/arm64/include/asm/Kbuild   |   1 -
+ arch/c6x/Kconfig                |   3 -
+ arch/csky/Kconfig               |   3 -
+ arch/h8300/Kconfig              |   3 -
+ arch/hexagon/Kconfig            |   6 -
+ arch/hexagon/include/asm/Kbuild |   1 -
+ arch/ia64/Kconfig               |   4 -
+ arch/ia64/include/asm/rwsem.h   | 172 ----------------
+ arch/m68k/Kconfig               |   7 -
+ arch/microblaze/Kconfig         |   6 -
+ arch/mips/Kconfig               |   7 -
+ arch/nds32/Kconfig              |   3 -
+ arch/nios2/Kconfig              |   3 -
+ arch/openrisc/Kconfig           |   6 -
+ arch/parisc/Kconfig             |   6 -
+ arch/powerpc/Kconfig            |   7 -
+ arch/powerpc/include/asm/Kbuild |   1 -
+ arch/riscv/Kconfig              |   3 -
+ arch/s390/Kconfig               |   6 -
+ arch/s390/include/asm/Kbuild    |   1 -
+ arch/sh/Kconfig                 |   6 -
+ arch/sh/include/asm/Kbuild      |   1 -
+ arch/sparc/Kconfig              |   8 -
+ arch/sparc/include/asm/Kbuild   |   1 -
+ arch/unicore32/Kconfig          |   6 -
+ arch/x86/Kconfig                |   3 -
+ arch/x86/include/asm/rwsem.h    | 237 ----------------------
+ arch/x86/lib/Makefile           |   1 -
+ arch/x86/lib/rwsem.S            | 156 ---------------
+ arch/x86/um/Kconfig             |   6 -
+ arch/x86/um/Makefile            |   1 -
+ arch/xtensa/Kconfig             |   3 -
+ arch/xtensa/include/asm/Kbuild  |   1 -
+ include/asm-generic/rwsem.h     | 140 -------------
+ include/linux/rwsem-spinlock.h  |  47 -----
+ include/linux/rwsem.h           |   9 +-
+ kernel/Kconfig.locks            |   2 +-
+ kernel/locking/Makefile         |   4 +-
+ kernel/locking/percpu-rwsem.c   |   2 +
+ kernel/locking/rwsem-spinlock.c | 339 --------------------------------
+ kernel/locking/rwsem.h          | 130 ++++++++++++
+ 48 files changed, 135 insertions(+), 1447 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/rwsem.h
+ delete mode 100644 arch/ia64/include/asm/rwsem.h
+ delete mode 100644 arch/x86/include/asm/rwsem.h
+ delete mode 100644 arch/x86/lib/rwsem.S
+ delete mode 100644 include/asm-generic/rwsem.h
+ delete mode 100644 include/linux/rwsem-spinlock.h
+ delete mode 100644 kernel/locking/rwsem-spinlock.c
 
-> +static __must_check inline bool simd_use(simd_context_t *ctx)
-> +{
-> +#if !defined(CONFIG_UML)
-> +	if (!(*ctx & HAVE_FULL_SIMD))
-> +		return false;
-> +	if (*ctx & HAVE_SIMD_IN_USE)
-> +		return true;
-> +	kernel_fpu_begin();
-> +	*ctx |= HAVE_SIMD_IN_USE;
-> +	return true;
-> +#else
-> +	return false;
-> +#endif
-> +}
-
-So now we have 3 almost identical copies of the same thing and x86/UM
-handling it differently than the ARM(64) ones.
-
-That can be completely avoided. Untested patch below.
-
-Thanks,
-
-	tglx
-
-8<-------------
---- /dev/null
-+++ b/arch/arm/include/asm/simd.h
-@@ -0,0 +1,30 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-+ */
-+#ifndef _ASM_SIMD_H
-+#define _ASM_SIMD_H
-+
-+#ifdef CONFIG_KERNEL_MODE_NEON
-+#include <asm/neon.h>
-+
-+static __must_check inline bool may_use_simd(void)
-+{
-+	return !in_nmi() && !in_irq() && !in_serving_softirq();
-+}
-+
-+static inline void arch_simd_end(void)
-+{
-+	kernel_neon_end();
-+}
-+
-+static inline void arch_simd_begin(void)
-+{
-+	kernel_neon_begin();
-+}
-+
-+#else
-+#include <asm-generic/simd.h>
-+#endif
-+
-+#endif /* _ASM_SIMD_H */
---- a/arch/arm64/include/asm/simd.h
-+++ b/arch/arm64/include/asm/simd.h
-@@ -1,11 +1,10 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
- /*
-  * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
-- *
-- * This program is free software; you can redistribute it and/or modify it
-- * under the terms of the GNU General Public License version 2 as published
-- * by the Free Software Foundation.
-+ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-  */
- 
-+#include <linux/simd.h>
- #ifndef __ASM_SIMD_H
- #define __ASM_SIMD_H
- 
-@@ -16,6 +15,8 @@
- #include <linux/types.h>
- 
- #ifdef CONFIG_KERNEL_MODE_NEON
-+#include <asm/neon.h>
-+#include <asm/simd.h>
- 
- DECLARE_PER_CPU(bool, kernel_neon_busy);
- 
-@@ -40,12 +41,18 @@ static __must_check inline bool may_use_
- 		!this_cpu_read(kernel_neon_busy);
- }
- 
--#else /* ! CONFIG_KERNEL_MODE_NEON */
-+static inline void arch_simd_end(void)
-+{
-+	kernel_neon_end();
-+}
- 
--static __must_check inline bool may_use_simd(void) {
--	return false;
-+static inline void arch_simd_begin(void)
-+{
-+	kernel_neon_begin();
- }
- 
--#endif /* ! CONFIG_KERNEL_MODE_NEON */
-+#else
-+#include <asm-generic/simd.h>
-+#endif
- 
- #endif
---- a/arch/x86/include/asm/simd.h
-+++ b/arch/x86/include/asm/simd.h
-@@ -1,4 +1,12 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-+ */
-+
-+#ifndef _ASM_SIMD_H
-+#define _ASM_SIMD_H
-+
-+#ifndef CONFIG_UML
- 
- #include <asm/fpu/api.h>
- 
-@@ -10,3 +18,21 @@ static __must_check inline bool may_use_
- {
- 	return irq_fpu_usable();
- }
-+
-+static inline void arch_simd_begin(void)
-+{
-+	kernel_fpu_begin();
-+}
-+
-+static inline void arch_simd_end(void)
-+{
-+	kernel_fpu_end();
-+}
-+
-+#else
-+#include <asm-generic/simd.h>
-+#endif
-+
-+#include <linux/simd.h>
-+
-+#endif /* _ASM_SIMD_H */
---- a/include/asm-generic/simd.h
-+++ b/include/asm-generic/simd.h
-@@ -1,7 +1,12 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- 
-+#ifndef _ASM_SIMD_H
-+#define _ASM_SIMD_H
-+
- #include <linux/hardirq.h>
- 
-+#define SIMD_GENERIC	1
-+
- /*
-  * may_use_simd - whether it is allowable at this time to issue SIMD
-  *                instructions or access the SIMD register file
-@@ -13,3 +18,10 @@ static __must_check inline bool may_use_
- {
- 	return !in_interrupt();
- }
-+
-+static inline void arch_simd_begin(void) { }
-+static inline void arch_simd_end(void) { }
-+
-+#include <linux/simd.h>
-+
-+#endif /* _ASM_SIMD_H */
---- /dev/null
-+++ b/include/linux/simd.h
-@@ -0,0 +1,82 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-+ */
-+
-+#ifndef _SIMD_H
-+#define _SIMD_H
-+
-+typedef enum {
-+	HAVE_NO_SIMD		= 1 << 0,
-+	HAVE_FULL_SIMD		= 1 << 1,
-+	HAVE_SIMD_IN_USE	= 1 << 31
-+} simd_context_t;
-+
-+#define DONT_USE_SIMD ((simd_context_t []){ HAVE_NO_SIMD })
-+
-+#include <asm/simd.h>
-+
-+#ifndef SIMD_GENERIC
-+
-+#include <linux/sched.h>
-+
-+static inline bool simd_relax(simd_context_t *ctx)
-+{
-+#ifdef CONFIG_PREEMPT
-+	if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
-+		simd_put(ctx);
-+		simd_get(ctx);
-+		return true;
-+	}
-+#endif
-+	return false;
-+}
-+
-+static inline void simd_get(simd_context_t *ctx)
-+{
-+	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
-+}
-+
-+static inline void simd_put(simd_context_t *ctx)
-+{
-+	if (*ctx & HAVE_SIMD_IN_USE)
-+		arch_simd_end();
-+
-+	*ctx = HAVE_NO_SIMD;
-+}
-+
-+static __must_check inline bool simd_use(simd_context_t *ctx)
-+{
-+	if (!(*ctx & HAVE_FULL_SIMD))
-+		return false;
-+	if (*ctx & HAVE_SIMD_IN_USE)
-+		return true;
-+	arch_simd_begin();
-+	*ctx |= HAVE_SIMD_IN_USE;
-+	return true;
-+}
-+
-+#else /* !SIMD_GENERIC */
-+
-+static inline bool simd_relax(simd_context_t *ctx)
-+{
-+	return false;
-+}
-+
-+static inline void simd_get(simd_context_t *ctx)
-+{
-+	*ctx = HAVE_NO_SIMD;
-+}
-+
-+static inline void simd_put(simd_context_t *ctx)
-+{
-+}
-+
-+static __must_check inline bool simd_use(simd_context_t *ctx)
-+{
-+	return false;
-+}
-+
-+#endif /* SIMD_GENERIC */
-+
-+#endif /* _SIMD_H */
+-- 
+2.18.1
