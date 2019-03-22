@@ -1,119 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57248 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728898AbfCVOam (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Mar 2019 10:30:42 -0400
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v5 3/3] locking/rwsem: Optimize down_read_trylock()
-Date: Fri, 22 Mar 2019 10:30:08 -0400
-Message-ID: <20190322143008.21313-4-longman@redhat.com>
-In-Reply-To: <20190322143008.21313-1-longman@redhat.com>
-References: <20190322143008.21313-1-longman@redhat.com>
+Received: from conuserg-12.nifty.com ([210.131.2.79]:22663 "EHLO
+        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725982AbfCVPPJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2019 11:15:09 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 2/2] arch: remove <asm/sizes.h> amd <asm-generic/sizes.h>
+Date: Sat, 23 Mar 2019 00:14:25 +0900
+Message-ID: <1553267665-27228-2-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <1553267665-27228-1-git-send-email-yamada.masahiro@socionext.com>
+References: <1553267665-27228-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20190322143008.ijI-2cFP3GYfixHyx0ea0QcP93kjpVQbGCjPxraFWnE@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>
+Message-ID: <20190322151425.xqnjMFIu5dkFLWELd0fG6qpo0AKfLNJbyxDDFgwbXuU@z>
 
-Modify __down_read_trylock() to optimize for an unlocked rwsem and make
-it generate slightly better code.
+Now that all instances of #include <asm/sizes.h> have been replaced
+with #include <linux/sizes.h>, we can remove these.
 
-Before this patch, down_read_trylock:
-
-   0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
-   0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
-   0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
-   0x000000000000000b <+11>:    mov    %rdx,%rax
-   0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
-   0x0000000000000013 <+19>:    cmp    %rax,%rdx
-   0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
-   0x0000000000000018 <+24>:    mov    (%rdi),%rdx
-   0x000000000000001b <+27>:    test   %rdx,%rdx
-   0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
-   0x0000000000000020 <+32>:    xor    %eax,%eax
-   0x0000000000000022 <+34>:    retq
-   0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
-   0x000000000000002c <+44>:    or     $0x3,%rax
-   0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
-   0x0000000000000034 <+52>:    mov    $0x1,%eax
-   0x0000000000000039 <+57>:    retq
-
-After patch, down_read_trylock:
-
-   0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
-   0x0000000000000005 <+5>:	xor    %eax,%eax
-   0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
-   0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
-   0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
-   0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
-   0x000000000000001b <+27>:	or     $0x3,%rax
-   0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
-   0x0000000000000023 <+35>:	mov    $0x1,%eax
-   0x0000000000000028 <+40>:	retq
-   0x0000000000000029 <+41>:	test   %rax,%rax
-   0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
-   0x000000000000002e <+46>:	xor    %eax,%eax
-   0x0000000000000030 <+48>:	retq
-
-By using a rwsem microbenchmark, the down_read_trylock() rate (with a
-load of 10 to lengthen the lock critical section) on a x86-64 system
-before and after the patch were:
-
-                 Before Patch    After Patch
-   # of Threads     rlock           rlock
-   ------------     -----           -----
-        1           14,496          14,716
-        2            8,644           8,453
-	4            6,799           6,983
-	8            5,664           7,190
-
-On a ARM64 system, the performance results were:
-
-                 Before Patch    After Patch
-   # of Threads     rlock           rlock
-   ------------     -----           -----
-        1           23,676          24,488
-        2            7,697           9,502
-        4            4,945           3,440
-        8            2,641           1,603
-
-For the uncontended case (1 thread), the new down_read_trylock() is a
-little bit faster. For the contended cases, the new down_read_trylock()
-perform pretty well in x86-64, but performance degrades at high
-contention level on ARM64.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Waiman Long <longman@redhat.com>
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
- kernel/locking/rwsem.h | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
 
-diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
-index 45ee00236e03..1f5775aa6a1d 100644
---- a/kernel/locking/rwsem.h
-+++ b/kernel/locking/rwsem.h
-@@ -174,14 +174,17 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+ arch/arm/include/asm/Kbuild       | 1 -
+ arch/arm64/include/asm/Kbuild     | 1 -
+ arch/h8300/include/asm/Kbuild     | 1 -
+ arch/hexagon/include/asm/Kbuild   | 1 -
+ arch/nds32/include/asm/Kbuild     | 1 -
+ arch/sh/include/asm/Kbuild        | 1 -
+ arch/unicore32/include/asm/Kbuild | 1 -
+ include/asm-generic/sizes.h       | 2 --
+ 8 files changed, 9 deletions(-)
+ delete mode 100644 include/asm-generic/sizes.h
+
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index a8a4eb7..1e8ab83 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -17,7 +17,6 @@ generic-y += seccomp.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += simd.h
+-generic-y += sizes.h
+ generic-y += trace_clock.h
  
- static inline int __down_read_trylock(struct rw_semaphore *sem)
- {
--	long tmp;
-+	/*
-+	 * Optimize for the case when the rwsem is not locked at all.
-+	 */
-+	long tmp = RWSEM_UNLOCKED_VALUE;
- 
--	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
--		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
--				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
-+	do {
-+		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
-+					tmp + RWSEM_ACTIVE_READ_BIAS)) {
- 			return 1;
- 		}
--	}
-+	} while (tmp >= 0);
- 	return 0;
- }
- 
+ generated-y += mach-types.h
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 1e17ea5..7ef561c 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -20,7 +20,6 @@ generic-y += rwsem.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += set_memory.h
+-generic-y += sizes.h
+ generic-y += switch_to.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index 3e7c8ec..63f59b0 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -40,7 +40,6 @@ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += serial.h
+ generic-y += shmparam.h
+-generic-y += sizes.h
+ generic-y += spinlock.h
+ generic-y += timex.h
+ generic-y += tlbflush.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index b25fd42..e8d12ee 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -31,7 +31,6 @@ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmparam.h
+-generic-y += sizes.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+diff --git a/arch/nds32/include/asm/Kbuild b/arch/nds32/include/asm/Kbuild
+index 64ceff7..82c1206 100644
+--- a/arch/nds32/include/asm/Kbuild
++++ b/arch/nds32/include/asm/Kbuild
+@@ -38,7 +38,6 @@ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+-generic-y += sizes.h
+ generic-y += switch_to.h
+ generic-y += timex.h
+ generic-y += topology.h
+diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
+index a6ef3fe..d283257 100644
+--- a/arch/sh/include/asm/Kbuild
++++ b/arch/sh/include/asm/Kbuild
+@@ -18,6 +18,5 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
+-generic-y += sizes.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
+index 1d1544b..f061a24 100644
+--- a/arch/unicore32/include/asm/Kbuild
++++ b/arch/unicore32/include/asm/Kbuild
+@@ -29,7 +29,6 @@ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmparam.h
+-generic-y += sizes.h
+ generic-y += syscalls.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/include/asm-generic/sizes.h b/include/asm-generic/sizes.h
+deleted file mode 100644
+index 1dcfad9..0000000
+--- a/include/asm-generic/sizes.h
++++ /dev/null
+@@ -1,2 +0,0 @@
+-/* This is a placeholder, to be removed over time */
+-#include <linux/sizes.h>
 -- 
-2.18.1
+2.7.4
