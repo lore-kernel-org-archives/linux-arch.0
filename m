@@ -1,50 +1,104 @@
-From: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v13 10/20] kernel, arm64: untag user pointers in
- prctl_set_mm*
-Date: Fri, 22 Mar 2019 15:41:37 +0000
-Message-ID: <20190322154136.GP13384@arrakis.emea.arm.com>
-References: <cover.1553093420.git.andreyknvl@google.com>
- <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v5 3/3] locking/rwsem: Optimize down_read_trylock()
+Date: Fri, 22 Mar 2019 13:41:05 -0400
+Message-ID: <27c2fb96-daa4-ba2c-da06-e559dc5b693e@redhat.com>
+References: <20190322143008.21313-1-longman@redhat.com>
+ <20190322143008.21313-4-longman@redhat.com>
+ <20190322172501.3nbjw6e2wqsaisgw@shell.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
-List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
-Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
-Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-To: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan-5wv7dgnIgG8@public.gmane.org>, Dave Martin <Dave.Ma>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190322172501.3nbjw6e2wqsaisgw@shell.armlinux.org.uk>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-mips@vger.k
 List-Id: linux-arch.vger.kernel.org
 
-T24gV2VkLCBNYXIgMjAsIDIwMTkgYXQgMDM6NTE6MjRQTSArMDEwMCwgQW5kcmV5IEtvbm92YWxv
-diB3cm90ZToKPiBAQCAtMjEyMCwxMyArMjEzNSwxNCBAQCBzdGF0aWMgaW50IHByY3RsX3NldF9t
-bShpbnQgb3B0LCB1bnNpZ25lZCBsb25nIGFkZHIsCj4gIAlpZiAob3B0ID09IFBSX1NFVF9NTV9B
-VVhWKQo+ICAJCXJldHVybiBwcmN0bF9zZXRfYXV4dihtbSwgYWRkciwgYXJnNCk7Cj4gIAo+IC0J
-aWYgKGFkZHIgPj0gVEFTS19TSVpFIHx8IGFkZHIgPCBtbWFwX21pbl9hZGRyKQo+ICsJaWYgKHVu
-dGFnZ2VkX2FkZHIoYWRkcikgPj0gVEFTS19TSVpFIHx8Cj4gKwkJCXVudGFnZ2VkX2FkZHIoYWRk
-cikgPCBtbWFwX21pbl9hZGRyKQo+ICAJCXJldHVybiAtRUlOVkFMOwo+ICAKPiAgCWVycm9yID0g
-LUVJTlZBTDsKPiAgCj4gIAlkb3duX3dyaXRlKCZtbS0+bW1hcF9zZW0pOwo+IC0Jdm1hID0gZmlu
-ZF92bWEobW0sIGFkZHIpOwo+ICsJdm1hID0gZmluZF92bWEobW0sIHVudGFnZ2VkX2FkZHIoYWRk
-cikpOwo+ICAKPiAgCXByY3RsX21hcC5zdGFydF9jb2RlCT0gbW0tPnN0YXJ0X2NvZGU7Cj4gIAlw
-cmN0bF9tYXAuZW5kX2NvZGUJPSBtbS0+ZW5kX2NvZGU7CgpEb2VzIHRoaXMgbWVhbiB0aGF0IHdl
-IGFyZSBsZWZ0IHdpdGggdGFnZ2VkIGFkZHJlc3NlcyBmb3IgdGhlCm1tLT5zdGFydF9jb2RlIGV0
-Yy4gdmFsdWVzPyBJIHJlYWxseSBkb24ndCB0aGluayB3ZSBzaG91bGQgYWxsb3cgdGhpcywKSSdt
-IG5vdCBzdXJlIHdoYXQgdGhlIGltcGxpY2F0aW9ucyBhcmUgaW4gb3RoZXIgcGFydHMgb2YgdGhl
-IGtlcm5lbC4KCkFyZ3VhYmx5LCB0aGVzZSBhcmUgbm90IGV2ZW4gcG9pbnRlciB2YWx1ZXMgYnV0
-IHNvbWUgYWRkcmVzcyByYW5nZXMuIEkKa25vdyB3ZSBkZWNpZGVkIHRvIHJlbGF4IHRoaXMgbm90
-aW9uIGZvciBtbWFwL21wcm90ZWN0L21hZHZpc2UoKSBzaW5jZQp0aGUgdXNlciBmdW5jdGlvbiBw
-cm90b3R5cGVzIHRha2UgcG9pbnRlciBhcyBhcmd1bWVudHMgYnV0IGl0IGZlZWxzIGxpa2UKd2Ug
-YXJlIG92ZXJkb2luZyBpdCBoZXJlIChzdHJ1Y3QgcHJjdGxfbW1fbWFwIGRvZXNuJ3QgZXZlbiBo
-YXZlCnBvaW50ZXJzKS4KCldoYXQgaXMgdGhlIHVzZS1jYXNlIGZvciBhbGxvd2luZyB0YWdnZWQg
-YWRkcmVzc2VzIGhlcmU/IENhbiB1c2VyIHNwYWNlCmhhbmRsZSB1bnRhZ2dpbmc/CgotLSAKQ2F0
-YWxpbgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwphbWQt
-Z2Z4IG1haWxpbmcgbGlzdAphbWQtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczovL2xp
-c3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2FtZC1nZng=
+On 03/22/2019 01:25 PM, Russell King - ARM Linux admin wrote:
+> On Fri, Mar 22, 2019 at 10:30:08AM -0400, Waiman Long wrote:
+>> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
+>> it generate slightly better code.
+>>
+>> Before this patch, down_read_trylock:
+>>
+>>    0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>>    0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+>>    0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+>>    0x000000000000000b <+11>:    mov    %rdx,%rax
+>>    0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+>>    0x0000000000000013 <+19>:    cmp    %rax,%rdx
+>>    0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+>>    0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+>>    0x000000000000001b <+27>:    test   %rdx,%rdx
+>>    0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+>>    0x0000000000000020 <+32>:    xor    %eax,%eax
+>>    0x0000000000000022 <+34>:    retq
+>>    0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+>>    0x000000000000002c <+44>:    or     $0x3,%rax
+>>    0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+>>    0x0000000000000034 <+52>:    mov    $0x1,%eax
+>>    0x0000000000000039 <+57>:    retq
+>>
+>> After patch, down_read_trylock:
+>>
+>>    0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
+>>    0x0000000000000005 <+5>:	xor    %eax,%eax
+>>    0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
+>>    0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
+>>    0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
+>>    0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
+>>    0x000000000000001b <+27>:	or     $0x3,%rax
+>>    0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
+>>    0x0000000000000023 <+35>:	mov    $0x1,%eax
+>>    0x0000000000000028 <+40>:	retq
+>>    0x0000000000000029 <+41>:	test   %rax,%rax
+>>    0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
+>>    0x000000000000002e <+46>:	xor    %eax,%eax
+>>    0x0000000000000030 <+48>:	retq
+>>
+>> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
+>> load of 10 to lengthen the lock critical section) on a x86-64 system
+>> before and after the patch were:
+>>
+>>                  Before Patch    After Patch
+>>    # of Threads     rlock           rlock
+>>    ------------     -----           -----
+>>         1           14,496          14,716
+>>         2            8,644           8,453
+>> 	4            6,799           6,983
+>> 	8            5,664           7,190
+>>
+>> On a ARM64 system, the performance results were:
+>>
+>>                  Before Patch    After Patch
+>>    # of Threads     rlock           rlock
+>>    ------------     -----           -----
+>>         1           23,676          24,488
+>>         2            7,697           9,502
+>>         4            4,945           3,440
+>>         8            2,641           1,603
+>>
+>> For the uncontended case (1 thread), the new down_read_trylock() is a
+>> little bit faster. For the contended cases, the new down_read_trylock()
+>> perform pretty well in x86-64, but performance degrades at high
+>> contention level on ARM64.
+> So, 70% for 4 threads, 61% for 4 threads - does this trend
+> continue tailing off as the number of threads (and cores)
+> increase?
+>
+I didn't try higher number of contending threads. I won't worry too much
+about contention as trylock is a one-off event. The chance of having
+more than one trylock happening simultaneously is very small.
+
+Cheers,
+Longman
