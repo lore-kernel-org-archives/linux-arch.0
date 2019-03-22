@@ -1,162 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60902 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:38876 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728157AbfCURwu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 Mar 2019 13:52:50 -0400
-Subject: Re: [PATCH v13 10/20] kernel, arm64: untag user pointers in
- prctl_set_mm*
-References: <cover.1553093420.git.andreyknvl@google.com>
- <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Message-ID: <c5b9f421-0dd8-d56f-c591-0c841cbdfe3b@arm.com>
-Date: Thu, 21 Mar 2019 17:52:37 +0000
+        id S1726029AbfCVGWt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Mar 2019 02:22:49 -0400
 MIME-Version: 1.0
-In-Reply-To: <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-GB
+References: <cover.1552679409.git.andreyknvl@google.com> <20190318163533.26838-1-vincenzo.frascino@arm.com>
+ <20190318163533.26838-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20190318163533.26838-3-vincenzo.frascino@arm.com>
+From: Amit Daniel Kachhap <amit.kachhap@arm.com>
+Date: Fri, 22 Mar 2019 11:52:37 +0530
+Message-ID: <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
+Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Alex Deucher <alexander.deucher@amd.com>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, "David (ChunMing) Zhou" <David1.Zhou@amd.com>, Yishai Hadas <yishaih@mellanox.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, amd-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, kvm@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: LAK <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Kate Stewart <kstewart@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Kostya Serebryany <kcc@google.com>, Eric Dumazet <edumazet@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Daniel Borkmann <daniel@iogearbox.net>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Dave Martin <Dave.Martin@arm.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Graeme Barnes <Graeme.Barnes@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Branislav Rankov <Branislav.Rankov@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "David S. Miller" <davem@davemloft.net>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20190322062237.l6_-JYS3smJoz3wx9eNbsnFh_DM78u2sMWN0Kf3pNgM@z>
 
-On 20/03/2019 14:51, Andrey Konovalov wrote:
-> This patch is a part of a series that extends arm64 kernel ABI to allow to
-> pass tagged user pointers (with the top byte set to something else other
-> than 0x00) as syscall arguments.
+Hi Vincenzo,
+
+On Mon, Mar 18, 2019 at 10:06 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
 >
-> prctl_set_mm() and prctl_set_mm_map() use provided user pointers for vma
-> lookups and do some pointer comparisons to perform validation, which can
-> only by done with untagged pointers.
+> On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
+> the userspace (EL0) is allowed to set a non-zero value in the
+> top byte but the resulting pointers are not allowed at the
+> user-kernel syscall ABI boundary.
 >
-> Untag user pointers in these functions for vma lookup and validity checks.
+> With the relaxed ABI proposed through this document, it is now possible
+> to pass tagged pointers to the syscalls, when these pointers are in
+> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap() or brk().
 >
-> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> This change in the ABI requires a mechanism to inform the userspace
+> that such an option is available.
+>
+> Specify and document the way in which AT_FLAGS can be used to advertise
+> this feature to the userspace.
+>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> CC: Andrey Konovalov <andreyknvl@google.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>
+> Squash with "arm64: Define Documentation/arm64/elf_at_flags.txt"
 > ---
->   kernel/sys.c | 44 ++++++++++++++++++++++++++++++--------------
->   1 file changed, 30 insertions(+), 14 deletions(-)
+>  Documentation/arm64/elf_at_flags.txt | 133 +++++++++++++++++++++++++++
+>  1 file changed, 133 insertions(+)
+>  create mode 100644 Documentation/arm64/elf_at_flags.txt
 >
-> diff --git a/kernel/sys.c b/kernel/sys.c
-> index 12df0e5434b8..fe26ccf3c9e6 100644
-> --- a/kernel/sys.c
-> +++ b/kernel/sys.c
-> @@ -1885,11 +1885,12 @@ static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
->    * WARNING: we don't require any capability here so be very careful
->    * in what is allowed for modification from userspace.
->    */
-> -static int validate_prctl_map(struct prctl_mm_map *prctl_map)
-> +static int validate_prctl_map(struct prctl_mm_map *tagged_prctl_map)
->   {
->   	unsigned long mmap_max_addr = TASK_SIZE;
->   	struct mm_struct *mm = current->mm;
->   	int error = -EINVAL, i;
-> +	struct prctl_mm_map prctl_map;
->   
->   	static const unsigned char offsets[] = {
->   		offsetof(struct prctl_mm_map, start_code),
-> @@ -1905,12 +1906,25 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
->   		offsetof(struct prctl_mm_map, env_end),
->   	};
->   
-> +	memcpy(&prctl_map, tagged_prctl_map, sizeof(prctl_map));
-> +	prctl_map.start_code	= untagged_addr(prctl_map.start_code);
-> +	prctl_map.end_code	= untagged_addr(prctl_map.end_code);
-> +	prctl_map.start_data	= untagged_addr(prctl_map.start_data);
-> +	prctl_map.end_data	= untagged_addr(prctl_map.end_data);
-> +	prctl_map.start_brk	= untagged_addr(prctl_map.start_brk);
-> +	prctl_map.brk		= untagged_addr(prctl_map.brk);
-> +	prctl_map.start_stack	= untagged_addr(prctl_map.start_stack);
-> +	prctl_map.arg_start	= untagged_addr(prctl_map.arg_start);
-> +	prctl_map.arg_end	= untagged_addr(prctl_map.arg_end);
-> +	prctl_map.env_start	= untagged_addr(prctl_map.env_start);
-> +	prctl_map.env_end	= untagged_addr(prctl_map.env_end);
+> diff --git a/Documentation/arm64/elf_at_flags.txt b/Documentation/arm64/elf_at_flags.txt
+> new file mode 100644
+> index 000000000000..9b3494207c14
+> --- /dev/null
+> +++ b/Documentation/arm64/elf_at_flags.txt
+> @@ -0,0 +1,133 @@
+> +ARM64 ELF AT_FLAGS
+> +==================
 > +
->   	/*
->   	 * Make sure the members are not somewhere outside
->   	 * of allowed address space.
->   	 */
->   	for (i = 0; i < ARRAY_SIZE(offsets); i++) {
-> -		u64 val = *(u64 *)((char *)prctl_map + offsets[i]);
-> +		u64 val = *(u64 *)((char *)&prctl_map + offsets[i]);
->   
->   		if ((unsigned long)val >= mmap_max_addr ||
->   		    (unsigned long)val < mmap_min_addr)
-> @@ -1921,8 +1935,8 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
->   	 * Make sure the pairs are ordered.
->   	 */
->   #define __prctl_check_order(__m1, __op, __m2)				\
-> -	((unsigned long)prctl_map->__m1 __op				\
-> -	 (unsigned long)prctl_map->__m2) ? 0 : -EINVAL
-> +	((unsigned long)prctl_map.__m1 __op				\
-> +	 (unsigned long)prctl_map.__m2) ? 0 : -EINVAL
->   	error  = __prctl_check_order(start_code, <, end_code);
->   	error |= __prctl_check_order(start_data, <, end_data);
->   	error |= __prctl_check_order(start_brk, <=, brk);
-> @@ -1937,23 +1951,24 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
->   	/*
->   	 * @brk should be after @end_data in traditional maps.
->   	 */
-> -	if (prctl_map->start_brk <= prctl_map->end_data ||
-> -	    prctl_map->brk <= prctl_map->end_data)
-> +	if (prctl_map.start_brk <= prctl_map.end_data ||
-> +	    prctl_map.brk <= prctl_map.end_data)
->   		goto out;
->   
->   	/*
->   	 * Neither we should allow to override limits if they set.
->   	 */
-> -	if (check_data_rlimit(rlimit(RLIMIT_DATA), prctl_map->brk,
-> -			      prctl_map->start_brk, prctl_map->end_data,
-> -			      prctl_map->start_data))
-> +	if (check_data_rlimit(rlimit(RLIMIT_DATA), prctl_map.brk,
-> +			      prctl_map.start_brk, prctl_map.end_data,
-> +			      prctl_map.start_data))
->   			goto out;
->   
->   	/*
->   	 * Someone is trying to cheat the auxv vector.
->   	 */
-> -	if (prctl_map->auxv_size) {
-> -		if (!prctl_map->auxv || prctl_map->auxv_size > sizeof(mm->saved_auxv))
-> +	if (prctl_map.auxv_size) {
-> +		if (!prctl_map.auxv || prctl_map.auxv_size >
-> +						sizeof(mm->saved_auxv))
->   			goto out;
->   	}
->   
-> @@ -1962,7 +1977,7 @@ static int validate_prctl_map(struct prctl_mm_map *prctl_map)
->   	 * change /proc/pid/exe link: only local sys admin should
->   	 * be allowed to.
->   	 */
-> -	if (prctl_map->exe_fd != (u32)-1) {
-> +	if (prctl_map.exe_fd != (u32)-1) {
->   		if (!ns_capable(current_user_ns(), CAP_SYS_ADMIN))
->   			goto out;
->   	}
-> @@ -2120,13 +2135,14 @@ static int prctl_set_mm(int opt, unsigned long addr,
->   	if (opt == PR_SET_MM_AUXV)
->   		return prctl_set_auxv(mm, addr, arg4);
->   
-> -	if (addr >= TASK_SIZE || addr < mmap_min_addr)
-> +	if (untagged_addr(addr) >= TASK_SIZE ||
-> +			untagged_addr(addr) < mmap_min_addr)
->   		return -EINVAL;
->   
->   	error = -EINVAL;
->   
->   	down_write(&mm->mmap_sem);
-> -	vma = find_vma(mm, addr);
-> +	vma = find_vma(mm, untagged_addr(addr));
->   
->   	prctl_map.start_code	= mm->start_code;
->   	prctl_map.end_code	= mm->end_code;
+> +This document describes the usage and semantics of AT_FLAGS on arm64.
+> +
+> +1. Introduction
+> +---------------
+> +
+> +AT_FLAGS is part of the Auxiliary Vector, contains the flags and it
+> +is set to zero by the kernel on arm64 unless one or more of the
+> +features detailed in paragraph 2 are present.
+> +
+> +The auxiliary vector can be accessed by the userspace using the
+> +getauxval() API provided by the C library.
+> +getauxval() returns an unsigned long and when a flag is present in
+> +the AT_FLAGS, the corresponding bit in the returned value is set to 1.
+> +
+> +The AT_FLAGS with a "defined semantics" on arm64 are exposed to the
+> +userspace via user API (uapi/asm/atflags.h).
+> +The AT_FLAGS bits with "undefined semantics" are set to zero by default.
+> +This means that the AT_FLAGS bits to which this document does not assign
+> +an explicit meaning are to be intended reserved for future use.
+> +The kernel will populate all such bits with zero until meanings are
+> +assigned to them. If and when meanings are assigned, it is guaranteed
+> +that they will not impact the functional operation of existing userspace
+> +software. Userspace software should ignore any AT_FLAGS bit whose meaning
+> +is not defined when the software is written.
+> +
+> +The userspace software can test for features by acquiring the AT_FLAGS
+> +entry of the auxiliary vector, and testing whether a relevant flag
+> +is set.
+> +
+> +Example of a userspace test function:
+> +
+> +bool feature_x_is_present(void)
+> +{
+> +       unsigned long at_flags = getauxval(AT_FLAGS);
+> +       if (at_flags & FEATURE_X)
+> +               return true;
+> +
+> +       return false;
+> +}
+> +
+> +Where the software relies on a feature advertised by AT_FLAGS, it
+> +must check that the feature is present before attempting to
+> +use it.
+> +
+> +2. Features exposed via AT_FLAGS
+> +--------------------------------
+> +
+> +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
+> +
+> +    On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64
+> +    kernel, hence the userspace (EL0) is allowed to set a non-zero value
+> +    in the top byte but the resulting pointers are not allowed at the
+> +    user-kernel syscall ABI boundary.
+> +    When bit[0] is set to 1 the kernel is advertising to the userspace
+> +    that a relaxed ABI is supported hence this type of pointers are now
+> +    allowed to be passed to the syscalls, when these pointers are in
+> +    memory ranges privately owned by a process and obtained by the
+> +    process in accordance with the definition of "valid tagged pointer"
+> +    in paragraph 3.
+> +    In these cases the tag is preserved as the pointer goes through the
+> +    kernel. Only when the kernel needs to check if a pointer is coming
+> +    from userspace an untag operation is required.
+> +
+> +3. ARM64_AT_FLAGS_SYSCALL_TBI
+> +-----------------------------
+> +
+> +From the kernel syscall interface prospective, we define, for the purposes
+> +of this document, a "valid tagged pointer" as a pointer that either it has
+> +a zero value set in the top byte or it has a non-zero value, it is in memory
+> +ranges privately owned by a userspace process and it is obtained in one of
+> +the following ways:
+> +  - mmap() done by the process itself, where either:
+> +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+> +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
+> +      file or "/dev/zero"
+> +  - a mapping below sbrk(0) done by the process itself
+> +  - any memory mapped by the kernel in the process's address space during
+> +    creation and following the restrictions presented above (i.e. data, bss,
+> +    stack).
+> +
+> +When the ARM64_AT_FLAGS_SYSCALL_TBI flag is set by the kernel, the following
+> +behaviours are guaranteed by the ABI:
+> +
+> +  - Every current or newly introduced syscall can accept any valid tagged
+> +    pointers.
+> +
+> +  - If a non valid tagged pointer is passed to a syscall then the behaviour
+> +    is undefined.
+> +
+> +  - Every valid tagged pointer is expected to work as an untagged one.
+> +
+> +  - The kernel preserves any valid tagged pointers and returns them to the
+> +    userspace unchanged in all the cases except the ones documented in the
+> +    "Preserving tags" paragraph of tagged-pointers.txt.
+> +
+> +A definition of the meaning of tagged pointers on arm64 can be found in:
+> +Documentation/arm64/tagged-pointers.txt.
+> +
+> +Example of correct usage (pseudo-code) for a userspace application:
+> +
+> +bool arm64_syscall_tbi_is_present(void)
+> +{
+> +       unsigned long at_flags = getauxval(AT_FLAGS);
+> +       if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
+> +                       return true;
+> +
+> +       return false;
+> +}
+> +
+> +void main(void)
+> +{
+> +       char *addr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
+> +                         MAP_ANONYMOUS, -1, 0);
+> +
+> +       int fd = open("test.txt", O_WRONLY);
+> +
+> +       /* Check if the relaxed ABI is supported */
+> +       if (arm64_syscall_tbi_is_present()) {
+> +               /* Add a tag to the pointer */
+> +               addr = tag_pointer(addr);
+> +       }
+> +
+> +       strcpy("Hello World\n", addr);
+Nit: s/strcpy("Hello World\n", addr)/strcpy(addr, "Hello World\n")
 
-I think this new version is consistent w.r.t. tagged/untagged pointer usage. However, 
-I also note that a significant change has been introduced: it is now possible to set 
-MM fields to tagged addresses (tags are ignored by validate_prctl_map()). I am not 
-opposed to this as such, but have you considered the implications? Does it make sense 
-to have a tagged value for e.g. prctl_map.arg_start? Is the kernel able to handle 
-tagged values in those fields? I have the feeling that it's safer to discard tags for 
-now, and if necessary allow them to be preserved later on.
-
-Kevin
+Thanks,
+Amit D
+> +
+> +       /* Write to a file */
+> +       write(fd, addr, sizeof(addr));
+> +
+> +       close(fd);
+> +}
+> +
+> --
+> 2.21.0
+>
+>
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
