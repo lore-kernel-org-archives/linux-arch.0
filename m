@@ -1,65 +1,140 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
-Date: Fri, 22 Mar 2019 10:48:40 +0000
-Message-ID: <20190322104839.GA13384@arrakis.emea.arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <20190318163533.26838-1-vincenzo.frascino@arm.com>
- <20190318163533.26838-3-vincenzo.frascino@arm.com>
- <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.14 148/183] arm64: Fix HCR.TGE status for NMI contexts
+Date: Fri, 22 Mar 2019 12:16:16 +0100
+Message-ID: <20190322111252.544449190@linuxfoundation.org>
+References: <20190322111241.819468003@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CADGdYn7HYcj4vxw2bCS6McdNRmWu7o13=VAQra5A1Z18JNPMXQ@mail.gmail.com>
+In-Reply-To: <20190322111241.819468003@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Amit Daniel Kachhap <amit.kachhap@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, LAK <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Kate Stewart <kstewart@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Kostya Serebryany <kcc@google.com>, Eric Dumazet <edumazet@google.com>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Daniel Borkmann <daniel@iogearbox.net>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Steven Rostedt <rostedt@goodmis.org>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Julien Thierry <julien.thierry@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 22, 2019 at 11:52:37AM +0530, Amit Daniel Kachhap wrote:
-> On Mon, Mar 18, 2019 at 10:06 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
-> > +Example of correct usage (pseudo-code) for a userspace application:
-> > +
-> > +bool arm64_syscall_tbi_is_present(void)
-> > +{
-> > +       unsigned long at_flags = getauxval(AT_FLAGS);
-> > +       if (at_flags & ARM64_AT_FLAGS_SYSCALL_TBI)
-> > +                       return true;
-> > +
-> > +       return false;
-> > +}
-> > +
-> > +void main(void)
-> > +{
-> > +       char *addr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
-> > +                         MAP_ANONYMOUS, -1, 0);
-> > +
-> > +       int fd = open("test.txt", O_WRONLY);
-> > +
-> > +       /* Check if the relaxed ABI is supported */
-> > +       if (arm64_syscall_tbi_is_present()) {
-> > +               /* Add a tag to the pointer */
-> > +               addr = tag_pointer(addr);
-> > +       }
-> > +
-> > +       strcpy("Hello World\n", addr);
-> 
-> Nit: s/strcpy("Hello World\n", addr)/strcpy(addr, "Hello World\n")
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
-Not exactly a nit ;).
+------------------
 
-> > +
-> > +       /* Write to a file */
-> > +       write(fd, addr, sizeof(addr));
+From: Julien Thierry <julien.thierry@arm.com>
 
-I presume this was supposed to write "Hello World\n" to a file but
-sizeof(addr) is 1.
+commit 5870970b9a828d8693aa6d15742573289d7dbcd0 upstream.
 
-Since we already support tagged pointers in user space (as long as they
-are not passed into the kernel), the above example could tag the pointer
-unconditionally and only clear it before write() if
-!arm64_syscall_tbi_is_present().
+When using VHE, the host needs to clear HCR_EL2.TGE bit in order
+to interact with guest TLBs, switching from EL2&0 translation regime
+to EL1&0.
 
--- 
-Catalin
+However, some non-maskable asynchronous event could happen while TGE is
+cleared like SDEI. Because of this address translation operations
+relying on EL2&0 translation regime could fail (tlb invalidation,
+userspace access, ...).
+
+Fix this by properly setting HCR_EL2.TGE when entering NMI context and
+clear it if necessary when returning to the interrupted context.
+
+Signed-off-by: Julien Thierry <julien.thierry@arm.com>
+Suggested-by: Marc Zyngier <marc.zyngier@arm.com>
+Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+Reviewed-by: James Morse <james.morse@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Marc Zyngier <marc.zyngier@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: linux-arch@vger.kernel.org
+Cc: stable@vger.kernel.org
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ arch/arm64/include/asm/hardirq.h |   31 +++++++++++++++++++++++++++++++
+ arch/arm64/kernel/irq.c          |    3 +++
+ include/linux/hardirq.h          |    7 +++++++
+ 3 files changed, 41 insertions(+)
+
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -17,8 +17,12 @@
+ #define __ASM_HARDIRQ_H
+ 
+ #include <linux/cache.h>
++#include <linux/percpu.h>
+ #include <linux/threads.h>
++#include <asm/barrier.h>
+ #include <asm/irq.h>
++#include <asm/kvm_arm.h>
++#include <asm/sysreg.h>
+ 
+ #define NR_IPI	7
+ 
+@@ -37,6 +41,33 @@ u64 smp_irq_stat_cpu(unsigned int cpu);
+ 
+ #define __ARCH_IRQ_EXIT_IRQS_DISABLED	1
+ 
++struct nmi_ctx {
++	u64 hcr;
++};
++
++DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
++#define arch_nmi_enter()							\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
++			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
++				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
++				isb();						\
++			}							\
++		}								\
++	} while (0)
++
++#define arch_nmi_exit()								\
++	do {									\
++		if (is_kernel_in_hyp_mode()) {					\
++			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
++			if (!(nmi_ctx->hcr & HCR_TGE))				\
++				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
++		}								\
++	} while (0)
++
+ static inline void ack_bad_irq(unsigned int irq)
+ {
+ 	extern unsigned long irq_err_count;
+--- a/arch/arm64/kernel/irq.c
++++ b/arch/arm64/kernel/irq.c
+@@ -32,6 +32,9 @@
+ 
+ unsigned long irq_err_count;
+ 
++/* Only access this in an NMI enter/exit */
++DEFINE_PER_CPU(struct nmi_ctx, nmi_contexts);
++
+ DEFINE_PER_CPU(unsigned long *, irq_stack_ptr);
+ 
+ int arch_show_interrupts(struct seq_file *p, int prec)
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -60,8 +60,14 @@ extern void irq_enter(void);
+  */
+ extern void irq_exit(void);
+ 
++#ifndef arch_nmi_enter
++#define arch_nmi_enter()	do { } while (0)
++#define arch_nmi_exit()		do { } while (0)
++#endif
++
+ #define nmi_enter()						\
+ 	do {							\
++		arch_nmi_enter();				\
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+@@ -80,6 +86,7 @@ extern void irq_exit(void);
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
++		arch_nmi_exit();				\
+ 	} while (0)
+ 
+ #endif /* LINUX_HARDIRQ_H */
