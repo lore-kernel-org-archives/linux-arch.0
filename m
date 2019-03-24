@@ -1,51 +1,66 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v10 00/10] Introduce the for_each_set_clump8 macro
-Date: Sun, 24 Mar 2019 14:08:29 +0200
-Message-ID: <CAHp75Ve2zR9uZE6c42gY6xcruEEfaS5gv7gD1gr_GR-DgZ2vrA@mail.gmail.com>
-References: <cover.1552566113.git.vilhelm.gray@gmail.com> <20190322191202.GC9224@smile.fi.intel.com>
- <20190324040704.GA8285@icarus>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v10 10/10] thermal: intel: intel_soc_dts_iosf: Utilize
+ for_each_set_clump8 macro
+Date: Sun, 24 Mar 2019 15:52:47 +0200
+Message-ID: <20190324135247.GG9224@smile.fi.intel.com>
+References: <cover.1552566113.git.vilhelm.gray@gmail.com>
+ <a240216a143782e3cfecf6f963578067b68b6007.1552566114.git.vilhelm.gray@gmail.com>
+ <20190322190243.GA9224@smile.fi.intel.com>
+ <20190324033747.GA7697@icarus>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190324040704.GA8285@icarus>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20190324033747.GA7697@icarus>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Phil Reid <preid@electromag.com.au>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch@vger.kernel.org, yamada.masahiro@socionext.com, linus.walleij@linaro.org, linux@rasmusvillemoes.dk, linux-kernel@vger.kernel.org, linux-gpio@vger.kernel.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Mar 24, 2019 at 6:12 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
->
-> On Fri, Mar 22, 2019 at 09:12:02PM +0200, Andy Shevchenko wrote:
-> > On Thu, Mar 14, 2019 at 09:29:32PM +0900, William Breathitt Gray wrote:
-> > > Changes in v10:
-> > >   - Fix off-by-one error in bitmap initialization in the
-> > >     test_for_each_set_clump8 function
-> > >   - Fix typos in clump_exp array definition in test_bitmap.c ("0x28"
-> > >     should have been "0x38")
-> > >   - Utilize for_each_set_clump8 macro in intel_soc_dts_iosf.c
-> >
-> > One more, can you look at gen_74x164_set_multiple() ? It seems a candidate as
-> > well, if I'm not mistaken.
->
-> We can utilize the for_each_set_clump8 macro in the
-> gen_74x164_set_multiple function, but I skipped over it earlier since I
-> noticed it used the BITS_PER_BYTE define rather than a hardcoded 8. If
-> it always loops 8 bits at a time, then we can use the
-> for_each_set_clump8 macro;
+On Sun, Mar 24, 2019 at 12:38:29PM +0900, William Breathitt Gray wrote:
+> On Fri, Mar 22, 2019 at 09:02:43PM +0200, Andy Shevchenko wrote:
+> > On Thu, Mar 14, 2019 at 09:32:57PM +0900, William Breathitt Gray wrote:
+> > > Utilize for_each_set_clump8 macro, and the bitmap_set_value8 and
+> > > bitmap_get_value8 functions, where appropriate. In addition, remove the
+> > > now unnecessary temp_mask and temp_shift members of the
+> > > intel_soc_dts_sensor_entry structure.
+> > 
+> > One comment below, otherwise
+> > Tested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+> > Thanks!
+> 
+> Thank you for testing out the patch. I'll fix the bug your pointed out
+> and add the Tested-by line.
+> 
+> I have a couple minor comments below.
 
-Yes, see below.
+> > >  	u32 store_ptps;
 
-> otherwise we would need the more generic
-> for_each_set_clump macro to handle the non-8-bit looping cases.
+> > > -	out = (store_ptps & ~(0xFF << (thres_index * 8)));
+> > > -	out |= (temp_out & 0xFF) << (thres_index * 8);
+> > > +	update_ptps = store_ptps;
+> > > +	bitmap_set_value8(&update_ptps, 32, temp_out & 0xFF, thres_index * 8);
+> 
+> I chose to hardcode a bitmap width of 32 here because that is the width
+> of the store_ptps variables, but I don't think we necessarily use all 32
+> bits here. Would the actual width of store_ptps be the number of
+> writable trip count bits (writable_trip_count * 8)?
 
-> Will BITS_PER_BYTE always be defined as 8 bits?
+I think 32 is okay, but sizeof(store_ptps) would be better. It's easy to read
+since no need to check what is the actual size inside this variable is used.
 
-It's not correct question, the right one "is the hardware always in
-8-bit chunks". And datasheet is crystal clear about this.
-This very old and famous IC has 8-bit from the 70-s (IIRC the epoch of
-the design).
-So, it is always in 8-bit chunks.
+
+Same for below.
+
 
 -- 
 With Best Regards,
