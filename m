@@ -1,64 +1,57 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH v2 0/4] provide a generic free_initmem implementation
-Date: Mon, 25 Mar 2019 09:20:23 +0200
-Message-ID: <20190325072022.GD2925@rapoport-lnx>
-References: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Date: Mon, 25 Mar 2019 08:32:48 +0100
+Message-ID: <CAK8P3a1P812avY8reSSguYB0jPzgjs+30dSJpKZCnWwzyLoSVQ@mail.gmail.com>
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+ <CAK8P3a3BG_mxYxxCx4S_+ZKAer_+5FpmkzLk0VrACZekuD=2GQ@mail.gmail.com>
+ <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com> <CAK7LNAQvvCVsQtd9ZYkechOSCg4HAeZFaNXCgaBbWWxBYXOgaQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
+In-Reply-To: <CAK7LNAQvvCVsQtd9ZYkechOSCg4HAeZFaNXCgaBbWWxBYXOgaQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Any comments on this?
+On Mon, Mar 25, 2019 at 7:11 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+> On Wed, Mar 20, 2019 at 10:34 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > On Wed, Mar 20, 2019 at 10:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> > >
+> > > I've added your patch to my randconfig test setup and will let you
+> > > know if I see anything noticeable. I'm currently testing clang-arm32,
+> > > clang-arm64 and gcc-x86.
+> >
+> > This is the only additional bug that has come up so far:
+> >
+> > `.exit.text' referenced in section `.alt.smp.init' of
+> > drivers/char/ipmi/ipmi_msghandler.o: defined in discarded section
+> > `exit.text' of drivers/char/ipmi/ipmi_msghandler.o
+> >
+> > diff --git a/arch/arm/kernel/atags.h b/arch/arm/kernel/atags.h
+> > index 201100226301..84b12e33104d 100644
+> > --- a/arch/arm/kernel/atags.h
+> > +++ b/arch/arm/kernel/atags.h
+> > @@ -5,7 +5,7 @@ void convert_to_tag_list(struct tag *tags);
+> >  const struct machine_desc *setup_machine_tags(phys_addr_t __atags_pointer,
+> >         unsigned int machine_nr);
+> >  #else
+> > -static inline const struct machine_desc *
+> > +static __always_inline const struct machine_desc *
+> >  setup_machine_tags(phys_addr_t __atags_pointer, unsigned int machine_nr)
+> >  {
+> >         early_print("no ATAGS support: can't continue\n");
+> >
+>
+>
+> I do not know why to reproduce it,
+> but is "__init __noreturn" more sensible than
+> "__always_inline" here?
 
-On Mon, Feb 18, 2019 at 08:41:21PM +0200, Mike Rapoport wrote:
-> Hi,
-> 
-> Many architectures implement free_initmem() in exactly the same or very
-> similar way: they wrap the call to free_initmem_default() with sometimes
-> different 'poison' parameter.
-> 
-> These patches switch those architectures to use a generic implementation
-> that does free_initmem_default(POISON_FREE_INITMEM).
-> 
-> This was inspired by Christoph's patches for free_initrd_mem [1] and I
-> shamelessly copied changelog entries from his patches :)
-> 
-> v2: rebased on top of v5.0-rc7 + Christoph's patches for free_initrd_mem
-> 
-> [1] https://lore.kernel.org/lkml/20190213174621.29297-1-hch@lst.de/
-> 
-> Mike Rapoport (4):
->   init: provide a generic free_initmem implementation
->   hexagon: switch over to generic free_initmem()
->   init: free_initmem: poison freed init memory
->   riscv: switch over to generic free_initmem()
-> 
->  arch/alpha/mm/init.c      |  6 ------
->  arch/arc/mm/init.c        |  8 --------
->  arch/c6x/mm/init.c        |  5 -----
->  arch/h8300/mm/init.c      |  6 ------
->  arch/hexagon/mm/init.c    | 10 ----------
->  arch/microblaze/mm/init.c |  5 -----
->  arch/nds32/mm/init.c      |  5 -----
->  arch/nios2/mm/init.c      |  5 -----
->  arch/openrisc/mm/init.c   |  5 -----
->  arch/riscv/mm/init.c      |  5 -----
->  arch/sh/mm/init.c         |  5 -----
->  arch/sparc/mm/init_32.c   |  5 -----
->  arch/unicore32/mm/init.c  |  5 -----
->  arch/xtensa/mm/init.c     |  5 -----
->  init/main.c               |  5 +++++
->  15 files changed, 5 insertions(+), 80 deletions(-)
-> 
-> -- 
-> 2.7.4
-> 
+It's in a header file, so it has to be 'inline'. We could make it
+static inline __init __noreturn, but I don't see an advantage over
+__always_inline there.
 
--- 
-Sincerely yours,
-Mike.
+        Arnd
