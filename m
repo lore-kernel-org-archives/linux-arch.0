@@ -1,56 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bmailout2.hostsharing.net ([83.223.90.240]:44887 "EHLO
-        bmailout2.hostsharing.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729608AbfCYJi4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 05:38:56 -0400
-Date: Mon, 25 Mar 2019 10:38:54 +0100
-From: Lukas Wunner <lukas@wunner.de>
-Subject: Re: [PATCH v12 01/11] bitops: Introduce the for_each_set_clump8 macro
-Message-ID: <20190325093854.jzkkwaksxi7zvtrg@wunner.de>
-References: <cover.1553494625.git.vilhelm.gray@gmail.com>
- <9afc30a574ce3e6a86b51dd522146a1d2156dedd.1553494625.git.vilhelm.gray@gmail.com>
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:45552 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730491AbfCYKZw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 06:25:52 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9afc30a574ce3e6a86b51dd522146a1d2156dedd.1553494625.git.vilhelm.gray@gmail.com>
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+ <CAK8P3a3BG_mxYxxCx4S_+ZKAer_+5FpmkzLk0VrACZekuD=2GQ@mail.gmail.com>
+ <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com>
+ <CAK7LNAQvvCVsQtd9ZYkechOSCg4HAeZFaNXCgaBbWWxBYXOgaQ@mail.gmail.com>
+ <CAK8P3a1P812avY8reSSguYB0jPzgjs+30dSJpKZCnWwzyLoSVQ@mail.gmail.com> <CAK7LNARatcRQ2u0JhiZHx4qU+mzS=SUv-kj7F-7-Vx--RFX5tw@mail.gmail.com>
+In-Reply-To: <CAK7LNARatcRQ2u0JhiZHx4qU+mzS=SUv-kj7F-7-Vx--RFX5tw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 25 Mar 2019 11:25:33 +0100
+Message-ID: <CAK8P3a1QQeK1cBN2O8=p+zceQ7tw-ovYtWq6sBeavDucDWA7Lg@mail.gmail.com>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190325093854.9b8x84MoKx9hO9DYpp5OS_6U5906SP6ErCx3vRfgipY@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190325102533.AbN6qGOaZyiwwKlH0ZqjQovDP-evqusUbGVx7tbTYQk@z>
 
-On Mon, Mar 25, 2019 at 03:22:23PM +0900, William Breathitt Gray wrote:
-> +/**
-> + * find_next_clump8 - find next 8-bit clump with set bits in a memory region
-> + * @clump: location to store copy of found clump
-> + * @addr: address to base the search on
-> + * @offset: bit offset at which to start searching
-> + * @size: bitmap size in number of bits
-> + *
-> + * Returns the bit offset for the next set clump; the found clump value is
-> + * copied to the location pointed by @clump. If no bits are set, returns @size.
-> + */
-> +unsigned int find_next_clump8(unsigned long *const clump,
-> +			      const unsigned long *const addr,
-> +			      unsigned int offset, const unsigned int size)
-> +{
-> +	for (; offset < size; offset += 8) {
-> +		*clump = bitmap_get_value8(addr, size, offset);
-> +		if (!*clump)
-> +			continue;
-> +
-> +		return offset;
-> +	}
-> +
-> +	return size;
-> +}
-> +EXPORT_SYMBOL(find_next_clump8);
+On Mon, Mar 25, 2019 at 8:55 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> On Mon, Mar 25, 2019 at 4:33 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > On Mon, Mar 25, 2019 at 7:11 AM Masahiro Yamada
+> > <yamada.masahiro@socionext.com> wrote:
+> > > I do not know why to reproduce it,
+> > > but is "__init __noreturn" more sensible than
+> > > "__always_inline" here?
+> >
+> > It's in a header file, so it has to be 'inline'. We could make it
+> > static inline __init __noreturn,
+>
+> Yes, I like 'static inline __init __noreturn'
+>
+> > but I don't see an advantage over
+> > __always_inline there.
+>
+> __always_inline takes away the compiler's freedom.
+>
+> I'd like to leave it up to the compiler where possible.
 
-Just use find_first_bit() / find_next_bit() to use optimized arch-specific
-bitops instead of open-coding the iteration over the bitmap.
+Ok, fair enough.
 
-See max3191x_get_multiple() for an example.
-
-Thanks,
-
-Lukas
+      Arnd
