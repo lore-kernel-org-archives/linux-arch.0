@@ -1,175 +1,62 @@
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v12 01/11] bitops: Introduce the for_each_set_clump8 macro
-Date: Mon, 25 Mar 2019 15:12:36 +0200
-Message-ID: <20190325131236.GW9224@smile.fi.intel.com>
-References: <cover.1553494625.git.vilhelm.gray@gmail.com>
- <9afc30a574ce3e6a86b51dd522146a1d2156dedd.1553494625.git.vilhelm.gray@gmail.com>
+From: Kevin Brodsky <kevin.brodsky-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v13 14/20] drm/amdgpu, arm64: untag user pointers in
+ amdgpu_ttm_tt_get_user_pages
+Date: Mon, 25 Mar 2019 14:02:11 +0000
+Message-ID: <d054d40e-3f38-5728-8116-3cb0a5957f9b@arm.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl@google.com>
+ <20190322155955.GT13384@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <9afc30a574ce3e6a86b51dd522146a1d2156dedd.1553494625.git.vilhelm.gray@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="utf-8"; Format="flowed"
+Content-Transfer-Encoding: base64
+Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+In-Reply-To: <20190322155955.GT13384-pQd4kjVL+RGcEQQL7YIRtlaTQe2KTcn/@public.gmane.org>
+Content-Language: en-GB
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
+List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
+Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
+Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan-5wv7dgnIgG8@public.gmane.org>, Dave Martin <Dave.Ma>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 25, 2019 at 03:22:23PM +0900, William Breathitt Gray wrote:
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
-
-
-This seems to miss Randy's (IIRC) comment about too many const specifiers.
-
-> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Acked-by: Andrew Morton <akpm@linux-foundation.org>
-> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
-> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> ---
->  include/asm-generic/bitops/find.h | 14 ++++++
->  include/linux/bitops.h            |  5 ++
->  lib/find_bit.c                    | 81 +++++++++++++++++++++++++++++++
->  3 files changed, 100 insertions(+)
-> 
-> diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-> index 8a1ee10014de..9a76adff59c6 100644
-> --- a/include/asm-generic/bitops/find.h
-> +++ b/include/asm-generic/bitops/find.h
-> @@ -80,4 +80,18 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
->  
->  #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
->  
-> +unsigned long bitmap_get_value8(const unsigned long *const bitmap,
-> +				const unsigned int size,
-> +				const unsigned int start);
-> +
-> +void bitmap_set_value8(unsigned long *const bitmap, const unsigned int size,
-> +		       const unsigned long value, const unsigned int start);
-> +
-> +unsigned int find_next_clump8(unsigned long *const clump,
-> +			      const unsigned long *const addr,
-> +			      unsigned int offset, const unsigned int size);
-> +
-> +#define find_first_clump8(clump, bits, size) \
-> +	find_next_clump8((clump), (bits), 0, (size))
-> +
->  #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
-> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-> index 602af23b98c7..f19a7bc8f559 100644
-> --- a/include/linux/bitops.h
-> +++ b/include/linux/bitops.h
-> @@ -40,6 +40,11 @@ extern unsigned long __sw_hweight64(__u64 w);
->  	     (bit) < (size);					\
->  	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
->  
-> +#define for_each_set_clump8(start, clump, bits, size) \
-> +	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
-> +	     (start) < (size); \
-> +	     (start) = find_next_clump8(&(clump), (bits), (start) + 8, (size)))
-> +
->  static inline int get_bitmask_order(unsigned int count)
->  {
->  	int order;
-> diff --git a/lib/find_bit.c b/lib/find_bit.c
-> index ee3df93ba69a..1b6f8a6f1957 100644
-> --- a/lib/find_bit.c
-> +++ b/lib/find_bit.c
-> @@ -218,3 +218,84 @@ EXPORT_SYMBOL(find_next_bit_le);
->  #endif
->  
->  #endif /* __BIG_ENDIAN */
-> +
-> +/**
-> + * bitmap_get_value8 - get an 8-bit value within a memory region
-> + * @bitmap: address to the bitmap memory region
-> + * @size: bitmap size in number of bits
-> + * @start: bit offset of the 8-bit value
-> + *
-> + * Returns the 8-bit value located at the @start bit offset within the @bitmap
-> + * memory region.
-> + */
-> +unsigned long bitmap_get_value8(const unsigned long *const bitmap,
-> +				const unsigned int size,
-> +				const unsigned int start)
-> +{
-> +	const size_t index = BIT_WORD(start);
-> +	const unsigned int offset = start % BITS_PER_LONG;
-> +	const unsigned int low_width = (offset + 8 > BITS_PER_LONG) ?
-> +				       BITS_PER_LONG - offset : 8;
-> +	const unsigned long low = bitmap[index] >> offset;
-> +	const unsigned long high = (low_width < 8 && start + 8 <= size) ?
-> +				   bitmap[index + 1] << low_width : 0;
-> +
-> +	return (low | high) & 0xFF;
-> +}
-> +EXPORT_SYMBOL(bitmap_get_value8);
-> +
-> +/**
-> + * bitmap_set_value8 - set an 8-bit value within a memory region
-> + * @bitmap: address to the bitmap memory region
-> + * @size: bitmap size in number of bits
-> + * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
-> + * @start: bit offset of the 8-bit value
-> + */
-> +void bitmap_set_value8(unsigned long *const bitmap, const unsigned int size,
-> +		       const unsigned long value, const unsigned int start)
-> +{
-> +	const size_t index = BIT_WORD(start);
-> +	const unsigned int offset = start % BITS_PER_LONG;
-> +	const unsigned int low_width = (offset + 8 > BITS_PER_LONG) ?
-> +				       BITS_PER_LONG - offset : 8;
-> +	const unsigned long low_mask = GENMASK(low_width - 1, 0) << offset;
-> +	const unsigned int high_width = 8 - low_width;
-> +	const unsigned long high_mask = GENMASK(high_width - 1, 0);
-> +
-> +	/* set lower portion */
-> +	bitmap[index] &= ~low_mask;
-> +	bitmap[index] |= value << offset;
-> +
-> +	/* set higher portion if space available in bitmap */
-> +	if (high_width && start + 8 <= size) {
-> +		bitmap[index + 1] &= ~high_mask;
-> +		bitmap[index + 1] |= value >> low_width;
-> +	}
-> +}
-> +EXPORT_SYMBOL(bitmap_set_value8);
-> +
-> +/**
-> + * find_next_clump8 - find next 8-bit clump with set bits in a memory region
-> + * @clump: location to store copy of found clump
-> + * @addr: address to base the search on
-> + * @offset: bit offset at which to start searching
-> + * @size: bitmap size in number of bits
-> + *
-> + * Returns the bit offset for the next set clump; the found clump value is
-> + * copied to the location pointed by @clump. If no bits are set, returns @size.
-> + */
-> +unsigned int find_next_clump8(unsigned long *const clump,
-> +			      const unsigned long *const addr,
-> +			      unsigned int offset, const unsigned int size)
-> +{
-> +	for (; offset < size; offset += 8) {
-> +		*clump = bitmap_get_value8(addr, size, offset);
-> +		if (!*clump)
-> +			continue;
-> +
-> +		return offset;
-> +	}
-> +
-> +	return size;
-> +}
-> +EXPORT_SYMBOL(find_next_clump8);
-> -- 
-> 2.21.0
-> 
-
--- 
-With Best Regards,
-Andy Shevchenko
+T24gMjIvMDMvMjAxOSAxNTo1OSwgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOgo+IE9uIFdlZCwgTWFy
+IDIwLCAyMDE5IGF0IDAzOjUxOjI4UE0gKzAxMDAsIEFuZHJleSBLb25vdmFsb3Ygd3JvdGU6Cj4+
+IFRoaXMgcGF0Y2ggaXMgYSBwYXJ0IG9mIGEgc2VyaWVzIHRoYXQgZXh0ZW5kcyBhcm02NCBrZXJu
+ZWwgQUJJIHRvIGFsbG93IHRvCj4+IHBhc3MgdGFnZ2VkIHVzZXIgcG9pbnRlcnMgKHdpdGggdGhl
+IHRvcCBieXRlIHNldCB0byBzb21ldGhpbmcgZWxzZSBvdGhlcgo+PiB0aGFuIDB4MDApIGFzIHN5
+c2NhbGwgYXJndW1lbnRzLgo+Pgo+PiBhbWRncHVfdHRtX3R0X2dldF91c2VyX3BhZ2VzKCkgdXNl
+cyBwcm92aWRlZCB1c2VyIHBvaW50ZXJzIGZvciB2bWEKPj4gbG9va3Vwcywgd2hpY2ggY2FuIG9u
+bHkgYnkgZG9uZSB3aXRoIHVudGFnZ2VkIHBvaW50ZXJzLgo+Pgo+PiBVbnRhZyB1c2VyIHBvaW50
+ZXJzIGluIHRoaXMgZnVuY3Rpb24uCj4+Cj4+IFNpZ25lZC1vZmYtYnk6IEFuZHJleSBLb25vdmFs
+b3YgPGFuZHJleWtudmxAZ29vZ2xlLmNvbT4KPj4gLS0tCj4+ICAgZHJpdmVycy9ncHUvZHJtL2Ft
+ZC9hbWRncHUvYW1kZ3B1X3R0bS5jIHwgNSArKystLQo+PiAgIDEgZmlsZSBjaGFuZ2VkLCAzIGlu
+c2VydGlvbnMoKyksIDIgZGVsZXRpb25zKC0pCj4+Cj4+IGRpZmYgLS1naXQgYS9kcml2ZXJzL2dw
+dS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMgYi9kcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdw
+dS9hbWRncHVfdHRtLmMKPj4gaW5kZXggNzNlNzFlNjFkYzk5Li44OTFiMDI3ZmEzM2IgMTAwNjQ0
+Cj4+IC0tLSBhL2RyaXZlcnMvZ3B1L2RybS9hbWQvYW1kZ3B1L2FtZGdwdV90dG0uYwo+PiArKysg
+Yi9kcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMKPj4gQEAgLTc1MSwxMCAr
+NzUxLDExIEBAIGludCBhbWRncHVfdHRtX3R0X2dldF91c2VyX3BhZ2VzKHN0cnVjdCB0dG1fdHQg
+KnR0bSwgc3RydWN0IHBhZ2UgKipwYWdlcykKPj4gICAJCSAqIGNoZWNrIHRoYXQgd2Ugb25seSB1
+c2UgYW5vbnltb3VzIG1lbW9yeSB0byBwcmV2ZW50IHByb2JsZW1zCj4+ICAgCQkgKiB3aXRoIHdy
+aXRlYmFjawo+PiAgIAkJICovCj4+IC0JCXVuc2lnbmVkIGxvbmcgZW5kID0gZ3R0LT51c2VycHRy
+ICsgdHRtLT5udW1fcGFnZXMgKiBQQUdFX1NJWkU7Cj4+ICsJCXVuc2lnbmVkIGxvbmcgdXNlcnB0
+ciA9IHVudGFnZ2VkX2FkZHIoZ3R0LT51c2VycHRyKTsKPj4gKwkJdW5zaWduZWQgbG9uZyBlbmQg
+PSB1c2VycHRyICsgdHRtLT5udW1fcGFnZXMgKiBQQUdFX1NJWkU7Cj4+ICAgCQlzdHJ1Y3Qgdm1f
+YXJlYV9zdHJ1Y3QgKnZtYTsKPj4gICAKPj4gLQkJdm1hID0gZmluZF92bWEobW0sIGd0dC0+dXNl
+cnB0cik7Cj4+ICsJCXZtYSA9IGZpbmRfdm1hKG1tLCB1c2VycHRyKTsKPj4gICAJCWlmICghdm1h
+IHx8IHZtYS0+dm1fZmlsZSB8fCB2bWEtPnZtX2VuZCA8IGVuZCkgewo+PiAgIAkJCXVwX3JlYWQo
+Jm1tLT5tbWFwX3NlbSk7Cj4+ICAgCQkJcmV0dXJuIC1FUEVSTTsKPiBJIHRyaWVkIHRvIHRyYWNr
+IHRoaXMgZG93biBidXQgSSBmYWlsZWQgdG8gc2VlIHdoZXRoZXIgdXNlciBjb3VsZAo+IHByb3Zp
+ZGUgYW4gdGFnZ2VkIHBvaW50ZXIgaGVyZSAodW5kZXIgdGhlIHJlc3RyaWN0aW9ucyBhcyBwZXIg
+VmluY2Vuem8ncwo+IEFCSSBkb2N1bWVudCkuCgotPnVzZXJwdHIgaXMgc2V0IGJ5IHJhZGVvbl90
+dG1fdHRfc2V0X3VzZXJwdHIoKSwgaXRzZWxmIGNhbGxlZCBmcm9tIApyYWRlb25fZ2VtX3VzZXJw
+dHJfaW9jdGwoKS4gQW55IHBhZ2UtYWxpZ25lZCB2YWx1ZSBpcyBhbGxvd2VkLgoKS2V2aW4KX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KYW1kLWdmeCBtYWls
+aW5nIGxpc3QKYW1kLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVl
+ZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9hbWQtZ2Z4
