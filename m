@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:35028 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729421AbfCYGDl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 02:03:41 -0400
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:35065 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729342AbfCYGEC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 02:04:02 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v11 05/11] gpio: gpio-mm: Utilize for_each_set_clump8 macro
-Date: Mon, 25 Mar 2019 15:04:35 +0900
-Message-ID: <72cd757e67c1f4651a0066f25f142080b4501f13.1553492741.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v11 06/11] gpio: ws16c48: Utilize for_each_set_clump8 macro
+Date: Mon, 25 Mar 2019 15:04:54 +0900
+Message-ID: <186e263055b327f3333677db67f0ac4a3b428def.1553492741.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1553492741.git.vilhelm.gray@gmail.com>
 References: <cover.1553492741.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -15,7 +15,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
 Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20190325060435.HcHxmOwbk6hTF2GJujolg5Qs6F7agRPEUY4as9FrXJw@z>
+Message-ID: <20190325060454.DVuXsHSdOiso_Ggv-gITBejGiOmIobvqPuvs2wfqU18@z>
 
 Replace verbose implementation in get_multiple/set_multiple callbacks
 with for_each_set_clump8 macro to simplify code and improve clarity.
@@ -23,26 +23,20 @@ with for_each_set_clump8 macro to simplify code and improve clarity.
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-gpio-mm.c | 73 +++++++++++--------------------------
- 1 file changed, 22 insertions(+), 51 deletions(-)
+ drivers/gpio/gpio-ws16c48.c | 72 +++++++++++--------------------------
+ 1 file changed, 20 insertions(+), 52 deletions(-)
 
-diff --git a/drivers/gpio/gpio-gpio-mm.c b/drivers/gpio/gpio-gpio-mm.c
-index 8c150fd68d9d..4c1037a005ab 100644
---- a/drivers/gpio/gpio-gpio-mm.c
-+++ b/drivers/gpio/gpio-gpio-mm.c
-@@ -172,46 +172,26 @@ static int gpiomm_gpio_get(struct gpio_chip *chip, unsigned int offset)
- 	return !!(port_state & mask);
- }
- 
-+static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
-+
- static int gpiomm_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
- 	unsigned long *bits)
+diff --git a/drivers/gpio/gpio-ws16c48.c b/drivers/gpio/gpio-ws16c48.c
+index 5cf3697bfb15..1d071a3d3e81 100644
+--- a/drivers/gpio/gpio-ws16c48.c
++++ b/drivers/gpio/gpio-ws16c48.c
+@@ -134,42 +134,19 @@ static int ws16c48_gpio_get_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
  {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
--	size_t i;
--	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
+ 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
 -	const unsigned int gpio_reg_size = 8;
+-	size_t i;
+-	const size_t num_ports = chip->ngpio / gpio_reg_size;
 -	unsigned int bits_offset;
 -	size_t word_index;
 -	unsigned int word_offset;
@@ -50,7 +44,6 @@ index 8c150fd68d9d..4c1037a005ab 100644
 -	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
 +	unsigned int offset;
 +	unsigned long gpio_mask;
-+	const unsigned int ngpio = ARRAY_SIZE(ports) * 8;
 +	unsigned int port_addr;
  	unsigned long port_state;
  
@@ -58,10 +51,13 @@ index 8c150fd68d9d..4c1037a005ab 100644
  	bitmap_zero(bits, chip->ngpio);
  
 -	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-	for (i = 0; i < num_ports; i++) {
 -		/* gpio offset in bits array */
 -		bits_offset = i * gpio_reg_size;
--
++	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
++		port_addr = ws16c48gpio->base + offset / 8;
++		port_state = inb(port_addr) & gpio_mask;
+ 
 -		/* word index for bits array */
 -		word_index = BIT_WORD(bits_offset);
 -
@@ -76,28 +72,24 @@ index 8c150fd68d9d..4c1037a005ab 100644
 -		}
 -
 -		/* read bits from current gpio port */
--		port_state = inb(gpiommgpio->base + ports[i]);
-+	for_each_set_clump8(offset, gpio_mask, mask, ngpio) {
-+		port_addr = gpiommgpio->base + ports[offset / 8];
-+		port_state = inb(port_addr) & gpio_mask;
- 
+-		port_state = inb(ws16c48gpio->base + i);
+-
 -		/* store acquired bits at respective bits array offset */
 -		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, ngpio, port_state, offset);
++		bitmap_set_value8(bits, chip->ngpio, port_state, offset);
  	}
  
  	return 0;
-@@ -242,37 +222,28 @@ static void gpiomm_gpio_set_multiple(struct gpio_chip *chip,
+@@ -203,39 +180,30 @@ static void ws16c48_gpio_set_multiple(struct gpio_chip *chip,
  	unsigned long *mask, unsigned long *bits)
  {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
+ 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
 -	unsigned int i;
 -	const unsigned int gpio_reg_size = 8;
 -	unsigned int port;
--	unsigned int out_port;
+-	unsigned int iomask;
 +	unsigned int offset;
 +	unsigned long gpio_mask;
-+	const unsigned int ngpio = ARRAY_SIZE(ports) * 8;
 +	size_t index;
 +	unsigned int port_addr;
  	unsigned int bitmask;
@@ -110,26 +102,30 @@ index 8c150fd68d9d..4c1037a005ab 100644
 -			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
 -			continue;
 -		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ngpio) {
-+		index = offset / 8;
-+		port_addr = gpiommgpio->base + ports[index];
- 
+-
 -		port = i / gpio_reg_size;
--		out_port = (port > 2) ? port + 1 : port;
--		bitmask = mask[BIT_WORD(i)] & bits[BIT_WORD(i)];
-+		bitmask = bitmap_get_value8(bits, ngpio, offset) & gpio_mask;
++	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
++		index = offset / 8;
++		port_addr = ws16c48gpio->base + index;
  
- 		spin_lock_irqsave(&gpiommgpio->lock, flags);
+ 		/* mask out GPIO configured for input */
+-		iomask = mask[BIT_WORD(i)] & ~ws16c48gpio->io_state[port];
+-		bitmask = iomask & bits[BIT_WORD(i)];
++		gpio_mask &= ~ws16c48gpio->io_state[index];
++		bitmask = bitmap_get_value8(bits, chip->ngpio, offset) &
++			  gpio_mask;
+ 
+ 		raw_spin_lock_irqsave(&ws16c48gpio->lock, flags);
  
  		/* update output state data and set device gpio register */
--		gpiommgpio->out_state[port] &= ~mask[BIT_WORD(i)];
--		gpiommgpio->out_state[port] |= bitmask;
--		outb(gpiommgpio->out_state[port], gpiommgpio->base + out_port);
-+		gpiommgpio->out_state[index] &= ~gpio_mask;
-+		gpiommgpio->out_state[index] |= bitmask;
-+		outb(gpiommgpio->out_state[index], port_addr);
+-		ws16c48gpio->out_state[port] &= ~iomask;
+-		ws16c48gpio->out_state[port] |= bitmask;
+-		outb(ws16c48gpio->out_state[port], ws16c48gpio->base + port);
++		ws16c48gpio->out_state[index] &= ~gpio_mask;
++		ws16c48gpio->out_state[index] |= bitmask;
++		outb(ws16c48gpio->out_state[index], port_addr);
  
- 		spin_unlock_irqrestore(&gpiommgpio->lock, flags);
+ 		raw_spin_unlock_irqrestore(&ws16c48gpio->lock, flags);
 -
 -		/* prepare for next gpio register set */
 -		mask[BIT_WORD(i)] >>= gpio_reg_size;
