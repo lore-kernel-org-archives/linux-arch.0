@@ -1,87 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47906 "EHLO mail.kernel.org"
+Received: from pegase1.c-s.fr ([93.17.236.30]:45723 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726166AbfCYOjf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Mar 2019 10:39:35 -0400
-Date: Mon, 25 Mar 2019 22:39:26 +0800
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH] csky: Update syscall_trace_enter/exit implementation
-Message-ID: <20190325143926.GA25867@guoren-Inspiron-7460>
-References: <1553515419-1797-1-git-send-email-guoren@kernel.org>
+        id S1725810AbfCYPZ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Mar 2019 11:25:28 -0400
+Subject: Re: [PATCH v5 3/3] locking/rwsem: Optimize down_read_trylock()
+References: <20190322143008.21313-1-longman@redhat.com>
+ <20190322143008.21313-4-longman@redhat.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <014279a5-8998-8e03-adb3-c3d611dff171@c-s.fr>
+Date: Mon, 25 Mar 2019 16:25:24 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1553515419-1797-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <20190322143008.21313-4-longman@redhat.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, ldv@altlinux.org
-Cc: linux-arch@vger.kernel.org, strace-devel@lists.strace.io, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190325143926.G325R9MQ5D0eWe9mPPCVgHP5Pcu6I20SMB3c_7ooTY0@z>
+To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-mips@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Borislav Petkov <bp@alien8.de>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, nios2-dev@lists.rocketboards.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190325152524.OUFgOeL35dE3M0EHSlUE5gSyqe2FncmYIV1v1a__R_U@z>
 
-On Mon, Mar 25, 2019 at 08:03:39PM +0800, guoren@kernel.org wrote:
-> From: Guo Ren <ren_guo@c-sky.com>
+Hi,
+
+Could you share the microbenchmark you are using ?
+
+I'd like to test the series on powerpc.
+
+Thanks
+Christophe
+
+Le 22/03/2019 à 15:30, Waiman Long a écrit :
+> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
+> it generate slightly better code.
 > 
-> Previous syscall_trace implementation couldn't support AUDITSYSCALL and
-> SYSCALL_TRACEPOINTS. Now we redesign it to support audit_syscall
-> and syscall_tracepoints just like other archs'.
+> Before this patch, down_read_trylock:
 > 
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> Cc: Dmitry V. Levin <ldv@altlinux.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+>     0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
+>     0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
+>     0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
+>     0x000000000000000b <+11>:    mov    %rdx,%rax
+>     0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
+>     0x0000000000000013 <+19>:    cmp    %rax,%rdx
+>     0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
+>     0x0000000000000018 <+24>:    mov    (%rdi),%rdx
+>     0x000000000000001b <+27>:    test   %rdx,%rdx
+>     0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
+>     0x0000000000000020 <+32>:    xor    %eax,%eax
+>     0x0000000000000022 <+34>:    retq
+>     0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
+>     0x000000000000002c <+44>:    or     $0x3,%rax
+>     0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
+>     0x0000000000000034 <+52>:    mov    $0x1,%eax
+>     0x0000000000000039 <+57>:    retq
+> 
+> After patch, down_read_trylock:
+> 
+>     0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
+>     0x0000000000000005 <+5>:	xor    %eax,%eax
+>     0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
+>     0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
+>     0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
+>     0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
+>     0x000000000000001b <+27>:	or     $0x3,%rax
+>     0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
+>     0x0000000000000023 <+35>:	mov    $0x1,%eax
+>     0x0000000000000028 <+40>:	retq
+>     0x0000000000000029 <+41>:	test   %rax,%rax
+>     0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
+>     0x000000000000002e <+46>:	xor    %eax,%eax
+>     0x0000000000000030 <+48>:	retq
+> 
+> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
+> load of 10 to lengthen the lock critical section) on a x86-64 system
+> before and after the patch were:
+> 
+>                   Before Patch    After Patch
+>     # of Threads     rlock           rlock
+>     ------------     -----           -----
+>          1           14,496          14,716
+>          2            8,644           8,453
+> 	4            6,799           6,983
+> 	8            5,664           7,190
+> 
+> On a ARM64 system, the performance results were:
+> 
+>                   Before Patch    After Patch
+>     # of Threads     rlock           rlock
+>     ------------     -----           -----
+>          1           23,676          24,488
+>          2            7,697           9,502
+>          4            4,945           3,440
+>          8            2,641           1,603
+> 
+> For the uncontended case (1 thread), the new down_read_trylock() is a
+> little bit faster. For the contended cases, the new down_read_trylock()
+> perform pretty well in x86-64, but performance degrades at high
+> contention level on ARM64.
+> 
+> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Waiman Long <longman@redhat.com>
 > ---
->  arch/csky/Kconfig                   |  2 ++
->  arch/csky/include/asm/syscall.h     |  2 ++
->  arch/csky/include/asm/thread_info.h | 25 ++++++++-----------
->  arch/csky/include/asm/unistd.h      |  2 ++
->  arch/csky/include/uapi/asm/ptrace.h |  5 ++++
->  arch/csky/kernel/entry.S            | 21 +++++++---------
-...
-> diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
-> index 5137ed9..ebd1957 100644
-> --- a/arch/csky/kernel/entry.S
-> +++ b/arch/csky/kernel/entry.S
-> @@ -136,8 +136,8 @@ ENTRY(csky_systemcall)
->  	bmaski  r10, THREAD_SHIFT
->  	andn    r9, r10
->  	ldw     r8, (r9, TINFO_FLAGS)
-> -	btsti   r8, TIF_SYSCALL_TRACE
-> -	bt      1f
-> +	andi	r8, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
-> +	bt      csky_syscall_trace
->  #if defined(__CSKYABIV2__)
->  	subi    sp, 8
->  	stw  	r5, (sp, 0x4)
-> @@ -150,10 +150,9 @@ ENTRY(csky_systemcall)
->  	stw     a0, (sp, LSAVE_A0)      /* Save return value */
->  	jmpi    ret_from_exception
->  
-> -1:
-> -	movi	a0, 0                   /* enter system call */
-> -	mov	a1, sp                  /* sp = pt_regs pointer */
-> -	jbsr	syscall_trace
-> +csky_syscall_trace:
-> +	mov	a0, sp                  /* sp = pt_regs pointer */
-> +	jbsr	syscall_trace_enter
->  	/* Prepare args before do system call */
->  	ldw	a0, (sp, LSAVE_A0)
->  	ldw	a1, (sp, LSAVE_A1)
-> @@ -173,9 +172,8 @@ ENTRY(csky_systemcall)
->  #endif
->  	stw	a0, (sp, LSAVE_A0)	/* Save return value */
->  
-> -	movi    a0, 1                   /* leave system call */
-> -	mov     a1, sp                  /* right now, sp --> pt_regs */
-> -	jbsr    syscall_trace
-> +	mov     a0, sp                  /* right now, sp --> pt_regs */
-> +	jbsr    syscall_trace_exit
->  	br	ret_from_exception
->  
->  ENTRY(ret_from_kernel_thread)
-> @@ -193,9 +191,8 @@ ENTRY(ret_from_fork)
->  	movi	r11_sig, 1
->  	btsti	r8, TIF_SYSCALL_TRACE
-It's wrong, I should use: 
-+	andi	r8, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
-
-Best Regards
- Guo Ren
+>   kernel/locking/rwsem.h | 13 ++++++++-----
+>   1 file changed, 8 insertions(+), 5 deletions(-)
+> 
+> diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
+> index 45ee00236e03..1f5775aa6a1d 100644
+> --- a/kernel/locking/rwsem.h
+> +++ b/kernel/locking/rwsem.h
+> @@ -174,14 +174,17 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
+>   
+>   static inline int __down_read_trylock(struct rw_semaphore *sem)
+>   {
+> -	long tmp;
+> +	/*
+> +	 * Optimize for the case when the rwsem is not locked at all.
+> +	 */
+> +	long tmp = RWSEM_UNLOCKED_VALUE;
+>   
+> -	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
+> -		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
+> -				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+> +	do {
+> +		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
+> +					tmp + RWSEM_ACTIVE_READ_BIAS)) {
+>   			return 1;
+>   		}
+> -	}
+> +	} while (tmp >= 0);
+>   	return 0;
+>   }
+>   
+> 
