@@ -1,52 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37680 "EHLO mail.kernel.org"
+Received: from mx2.mailbox.org ([80.241.60.215]:27230 "EHLO mx2.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731251AbfCYMmC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Mar 2019 08:42:02 -0400
-Date: Mon, 25 Mar 2019 20:41:54 +0800
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH] csky: Update syscall_trace_enter/exit implementation
-Message-ID: <20190325124154.GA2653@guoren-Inspiron-7460>
-References: <1553515419-1797-1-git-send-email-guoren@kernel.org>
- <20190325121754.GB19244@altlinux.org>
+        id S1731076AbfCYNFA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Mar 2019 09:05:00 -0400
+Date: Tue, 26 Mar 2019 00:04:29 +1100
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
+ resolution
+Message-ID: <20190325130429.dbrgjxnvq3w5cpb3@yavin>
+References: <20190320143717.2523-1-cyphar@cyphar.com>
+ <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="57yveyjfb6o3za6g"
 Content-Disposition: inline
-In-Reply-To: <20190325121754.GB19244@altlinux.org>
+In-Reply-To: <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, strace-devel@lists.strace.io, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190325124154.t_D1f-htB6xYCg92ci54RcDkWyh87dNMrkqgw7lxXH4@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190325130429.GsgFzhXqsdQKDxtrlBr3GVI35zUs7XJaG6q9fUMftyw@z>
 
-Thx Dmitry,
 
-On Mon, Mar 25, 2019 at 03:17:54PM +0300, Dmitry V. Levin wrote:
-> On Mon, Mar 25, 2019 at 08:03:39PM +0800, guoren@kernel.org wrote:
-> [...]
-> > diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
-> > index a4eaa8d..9bf5b1a 100644
-> > --- a/arch/csky/include/uapi/asm/ptrace.h
-> > +++ b/arch/csky/include/uapi/asm/ptrace.h
-> > @@ -62,6 +62,11 @@ struct user_fp {
-> >  #define instruction_pointer(regs) ((regs)->pc)
-> >  #define profile_pc(regs) instruction_pointer(regs)
-> >  
-> > +static inline unsigned long regs_return_value(struct pt_regs *regs)
-> > +{
-> > +	return regs->a0;
-> > +}
-> > +
-> >  #endif /* __KERNEL__ */
-> >  #endif /* __ASSEMBLY__ */
-> >  #endif /* _CSKY_PTRACE_H */
-> 
-> I wonder why we have this #ifdef __KERNEL__ code in the uapi namespace,
-> it defeats the idea of uapi.  Doesn't it belong to non-uapi
-> include/asm/ptrace.h namespace?
+--57yveyjfb6o3za6g
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Yes, I should move __KERNEL__ codes into arch/csky/include/asm/ptrace.h.
-But it'll be another patch for the modification. Any other problems?
+On 2019-03-21, Andy Lutomirski <luto@kernel.org> wrote:
+> On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > Now that the holiday break is over, it's time to re-send this patch
+> > series (with a few additions, due to new information we got from
+> > CVE-2019-5736 -- which this patchset mostly protected against but had
+> > some holes with regards to #!-style scripts).
+>=20
+> I generally like this, but, as Linus pointed out, it will be
+> unfortunate if application authors see this as just another
+> non-portable weird Linux API and don't use it.  Would it be worthwhile
+> to put some thought into making it an API that other OSes might be
+> willing to implement?  As it stands, the openat(2) flags are getting
+> rather crazy in this patch set.
+>=20
+> Aleksa had a resolveat(2) proposal that really didn't seem too bad.
 
-Best Regards
- Guo Ren
+I agree having a bunch of O_* flags for resolution feels quite ugly (and
+crazy) -- but the last time I pitched resolveat(2) the reaction was
+lukewarm to say the least. It's basically an O_PATHv2 and I don't know
+how popular that suggestion might be. I wouldn't mind pitching it again
+though (now that I have a better idea of how to handle some of the UX
+worries I had).
+
+But, if we have a resolveat(2) we'll need to add O_EMPTYPATH support for
+openat(2) so that you can open scoped paths without using the
+/proc/self/fd/$n trick. However, you run into reopening permission
+issues (as we saw in CVE-2019-5736 and countless other CVEs). There
+might be a solution for this which Andy and I have talked about
+off-list.
+
+There is also the problem of the execveat(2) attack -- which is dealt
+with in patch 5 of this series. In order to scope #!-script resolution
+we need to have AT_* flags for the same resolution restriction
+(defeating the point of a resolveat(2) slightly).
+
+There is an argument that we shouldn't need AT_THIS_ROOT or AT_BENEATH
+support (because ideally you should be doing execve(2) in a pivot_root
+anyway) but AT_NO_MAGICLINKS is pretty important -- since it allows you
+to block the circumvention mm->dumpable in certain situations (as we saw
+in CVE-2019-5736).
+
+The solution Andy and I have discussed is a way to make fd-reopening (a
+seemingly little-known trick outside of container runtimes) much safer
+such that we don't need mitigations like AT_NO_MAGICLINKS on
+execveat(2). If we assume that idea works out (I'm still trying to get a
+working patch for that idea) then resolveat(2) would be sufficient and
+we don't need AT_* flags on execveat(2).
+
+tl;dr: I think resolveat(2) is much nicer, and assuming it's not an
+	   unpopular idea I think we should go for it. But there are several
+	   other threads of discussion that we might want to have first
+	   (such as how to improve the fd-reopening design so it's safer
+	   before we expose it to everyone).
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--57yveyjfb6o3za6g
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlyY0doACgkQSnvnv3De
+m5/H1Q//S6p57BAirsEx/gjAUOkKIGGK1zQ034Jjplmx7/gAOWKECS86LhV9c6We
+IBDVMVXfeG+iL7yRT7lk2wRTwpeB4DBrqrqD2lpDj2dhzB8b8yzPU4rY027k5r+e
+L/caAoPI6X0NX1nyFiK3MkuQtUNR0GbBI1LOwdwcxFDH0SrCNOrJMCD2VSOtVo5Z
+ktHED0T7KIEDdwS9ZTvEw4yhaxyWhoNGj/V5uU8av1Hbceq8MIxW+Y7aUytr9l4d
+XT0VJWaC9cjEuZWzmZDuZlqTFKFuiupHgE22O4prPJZOAhOMiqrQr76hbSz1ChbN
+iFsHU7JYnUcFd1rPhKwI25kKq2eGWvaj0VLCylQ/ZluMRLPrD3blYJYB9BYIaSss
+XVn9rjdRJG5t3tNKOMEDF9GYuVAE5w9Y+ZZJ1l8eZlUf3C7V6jISDkzvtfYu7xs+
+ish7dFWE3CKrrMJR9eR2zQ0ZoFicCPxBkp7beThQ7JVV24gno7EMS+wF7NdNHKFc
+HwWq6hk1e9wh2FHxQfvloBlFr2FV+lGWhFNFdZ0LzOFJu5Swa1BsPn93KoHi2T7F
+5XK+WAQBtzWuq7J8GN8T9LlhMlXs11QH6FKzt/vsuwEV35M3F4tKgur81bfkdsau
+w+prkX7aetu9qGthO9AFicPDXOXY6HyBcPTDMbGNkHz2/zILvpY=
+=Hj/g
+-----END PGP SIGNATURE-----
+
+--57yveyjfb6o3za6g--
