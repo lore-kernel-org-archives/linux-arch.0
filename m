@@ -1,69 +1,72 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v12 11/11] gpio: 74x164: Utilize the for_each_set_clump8 macro
-Date: Mon, 25 Mar 2019 15:26:18 +0900
-Message-ID: <d3cc8680aa3d0d741649ac7402a213db1a789583.1553494625.git.vilhelm.gray@gmail.com>
-References: <cover.1553494625.git.vilhelm.gray@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Date: Mon, 25 Mar 2019 15:41:40 +0900
+Message-ID: <CAK7LNAR0JxvKOEOE6-SvFWzAueZL0qb6XaANDud0pVa_Ew3NWg@mail.gmail.com>
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com> <20190321080133.GB3916@osiris>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1553494625.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20190321080133.GB3916@osiris>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, William Breathitt Gray <vilhelm.gray@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, X86 ML <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in set_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity.
+Hi Heiko,
 
-Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Geert Uytterhoeven <geert+renesas@glider.be>
-Cc: Phil Reid <preid@electromag.com.au>
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-74x164.c | 20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
-index fb7b620763a2..e43a6de3b6eb 100644
---- a/drivers/gpio/gpio-74x164.c
-+++ b/drivers/gpio/gpio-74x164.c
-@@ -9,6 +9,7 @@
-  *  published by the Free Software Foundation.
-  */
- 
-+#include <linux/bitops.h>
- #include <linux/init.h>
- #include <linux/mutex.h>
- #include <linux/spi/spi.h>
-@@ -75,20 +76,19 @@ static void gen_74x164_set_multiple(struct gpio_chip *gc, unsigned long *mask,
- 				    unsigned long *bits)
- {
- 	struct gen_74x164_chip *chip = gpiochip_get_data(gc);
--	unsigned int i, idx, shift;
--	u8 bank, bankmask;
-+	unsigned int offset;
-+	unsigned long bankmask;
-+	const unsigned int ngpio = chip->registers * 8;
-+	size_t bank;
-+	unsigned int bitmask;
- 
- 	mutex_lock(&chip->lock);
--	for (i = 0, bank = chip->registers - 1; i < chip->registers;
--	     i++, bank--) {
--		idx = i / sizeof(*mask);
--		shift = i % sizeof(*mask) * BITS_PER_BYTE;
--		bankmask = mask[idx] >> shift;
--		if (!bankmask)
--			continue;
-+	for_each_set_clump8(offset, bankmask, mask, ngpio) {
-+		bank = (chip->registers - 1) - (offset / 8);
-+		bitmask = bitmap_get_value8(bits, ngpio, offset) & bankmask;
- 
- 		chip->buffer[bank] &= ~bankmask;
--		chip->buffer[bank] |= bankmask & (bits[idx] >> shift);
-+		chip->buffer[bank] |= bitmask;
- 	}
- 	__gen_74x164_write_config(chip);
- 	mutex_unlock(&chip->lock);
+On Thu, Mar 21, 2019 at 5:02 PM Heiko Carstens
+<heiko.carstens@de.ibm.com> wrote:
+>
+> On Wed, Mar 20, 2019 at 03:20:27PM +0900, Masahiro Yamada wrote:
+> > Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
+> > CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
+> >
+> > The idea is obviously arch-agnostic although we need some code fixups.
+> > This commit moves the config entry from arch/x86/Kconfig.debug to
+> > lib/Kconfig.debug so that all architectures (except MIPS for now) can
+> > benefit from it.
+> >
+> > At this moment, I added "depends on !MIPS" because fixing 0day bot reports
+> > for MIPS was complex to me.
+> >
+> > I tested this patch on my arm/arm64 boards.
+> >
+> > This can make a huge difference in kernel image size especially when
+> > CONFIG_OPTIMIZE_FOR_SIZE is enabled.
+> >
+> > For example, I got 3.5% smaller arm64 kernel image for v5.1-rc1.
+> >
+> >   dec       file
+> >   18983424  arch/arm64/boot/Image.before
+> >   18321920  arch/arm64/boot/Image.after
+>
+> Well, this will change, since now people (have to) start adding
+> __always_inline annotations on all architectures, most likely until
+> all have about the same amount of annotations like x86. This will
+> reduce the benefit.
+
+
+If people start to replace inline with __always_inline here and there,
+yes, the difference will be reduced.
+
+Perhaps, we might end up with fixing dozens of places or so,
+but I guess we would still get benefit.
+
+
+> Not sure if it's really a win that we get the inline vs
+> __always_inline discussion now on all architectures.
+
+
+This feature is not x86-specific.
+
+I prefer "do it for all arches or don't do it at all"
+instead of the half-baked state.
+
+If we force inlining for the 'inline' marker
+there is no point of having __always_inline.
+
+
 -- 
-2.21.0
+Best Regards
+Masahiro Yamada
