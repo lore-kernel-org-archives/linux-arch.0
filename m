@@ -1,51 +1,64 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
-Date: Mon, 25 Mar 2019 15:44:06 +0900
-Message-ID: <CAK7LNAQGifytZRQXcqma9VuvQPfL2w8NjzLRt7CxzFgvaMhyRw@mail.gmail.com>
-References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
- <CAK8P3a3BG_mxYxxCx4S_+ZKAer_+5FpmkzLk0VrACZekuD=2GQ@mail.gmail.com>
- <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com> <20190323092640.Horde.2lm4u26aZox5ialxuIRcYw2@messagerie.si.c-s.fr>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v2 0/4] provide a generic free_initmem implementation
+Date: Mon, 25 Mar 2019 09:20:23 +0200
+Message-ID: <20190325072022.GD2925@rapoport-lnx>
+References: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190323092640.Horde.2lm4u26aZox5ialxuIRcYw2@messagerie.si.c-s.fr>
+Content-Disposition: inline
+In-Reply-To: <1550515285-17446-1-git-send-email-rppt@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: LEROY Christophe <christophe.leroy@c-s.fr>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christophe,
+Any comments on this?
 
+On Mon, Feb 18, 2019 at 08:41:21PM +0200, Mike Rapoport wrote:
+> Hi,
+> 
+> Many architectures implement free_initmem() in exactly the same or very
+> similar way: they wrap the call to free_initmem_default() with sometimes
+> different 'poison' parameter.
+> 
+> These patches switch those architectures to use a generic implementation
+> that does free_initmem_default(POISON_FREE_INITMEM).
+> 
+> This was inspired by Christoph's patches for free_initrd_mem [1] and I
+> shamelessly copied changelog entries from his patches :)
+> 
+> v2: rebased on top of v5.0-rc7 + Christoph's patches for free_initrd_mem
+> 
+> [1] https://lore.kernel.org/lkml/20190213174621.29297-1-hch@lst.de/
+> 
+> Mike Rapoport (4):
+>   init: provide a generic free_initmem implementation
+>   hexagon: switch over to generic free_initmem()
+>   init: free_initmem: poison freed init memory
+>   riscv: switch over to generic free_initmem()
+> 
+>  arch/alpha/mm/init.c      |  6 ------
+>  arch/arc/mm/init.c        |  8 --------
+>  arch/c6x/mm/init.c        |  5 -----
+>  arch/h8300/mm/init.c      |  6 ------
+>  arch/hexagon/mm/init.c    | 10 ----------
+>  arch/microblaze/mm/init.c |  5 -----
+>  arch/nds32/mm/init.c      |  5 -----
+>  arch/nios2/mm/init.c      |  5 -----
+>  arch/openrisc/mm/init.c   |  5 -----
+>  arch/riscv/mm/init.c      |  5 -----
+>  arch/sh/mm/init.c         |  5 -----
+>  arch/sparc/mm/init_32.c   |  5 -----
+>  arch/unicore32/mm/init.c  |  5 -----
+>  arch/xtensa/mm/init.c     |  5 -----
+>  init/main.c               |  5 +++++
+>  15 files changed, 5 insertions(+), 80 deletions(-)
+> 
+> -- 
+> 2.7.4
+> 
 
-On Sat, Mar 23, 2019 at 5:27 PM LEROY Christophe
-<christophe.leroy@c-s.fr> wrote:
->
-> Arnd Bergmann <arnd@arndb.de> a =C3=A9crit :
->
-> > On Wed, Mar 20, 2019 at 10:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >>
-> >> I've added your patch to my randconfig test setup and will let you
-> >> know if I see anything noticeable. I'm currently testing clang-arm32,
-> >> clang-arm64 and gcc-x86.
-> >
-> > This is the only additional bug that has come up so far:
-> >
-> > `.exit.text' referenced in section `.alt.smp.init' of
-> > drivers/char/ipmi/ipmi_msghandler.o: defined in discarded section
-> > `exit.text' of drivers/char/ipmi/ipmi_msghandler.o
->
-> Wouldn't it be useful to activate -Winline gcc warning to ease finding
-> out problematic usage of inline keyword ?
-
-
-Yes, it is useful to find out
-which function is causing the error.
-Thanks for the tip.
-
-
-
-
---=20
-Best Regards
-Masahiro Yamada
+-- 
+Sincerely yours,
+Mike.
