@@ -1,133 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:45723 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725810AbfCYPZ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 Mar 2019 11:25:28 -0400
-Subject: Re: [PATCH v5 3/3] locking/rwsem: Optimize down_read_trylock()
-References: <20190322143008.21313-1-longman@redhat.com>
- <20190322143008.21313-4-longman@redhat.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <014279a5-8998-8e03-adb3-c3d611dff171@c-s.fr>
-Date: Mon, 25 Mar 2019 16:25:24 +0100
+Received: from vmicros1.altlinux.org ([194.107.17.57]:51594 "EHLO
+        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726203AbfCYP10 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 11:27:26 -0400
+Date: Mon, 25 Mar 2019 18:27:23 +0300
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: Re: [PATCH] csky: Update syscall_trace_enter/exit implementation
+Message-ID: <20190325152722.GA23169@altlinux.org>
+References: <1553515419-1797-1-git-send-email-guoren@kernel.org>
+ <20190325121754.GB19244@altlinux.org>
+ <20190325124154.GA2653@guoren-Inspiron-7460>
 MIME-Version: 1.0
-In-Reply-To: <20190322143008.21313-4-longman@redhat.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="+HP7ph2BbKc20aGI"
+Content-Disposition: inline
+In-Reply-To: <20190325124154.GA2653@guoren-Inspiron-7460>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-mips@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Borislav Petkov <bp@alien8.de>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, nios2-dev@lists.rocketboards.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190325152524.OUFgOeL35dE3M0EHSlUE5gSyqe2FncmYIV1v1a__R_U@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: linux-arch@vger.kernel.org, ren_guo@c-sky.com, strace-devel@lists.strace.io, arnd@arndb.de, linux-kernel@vger.kernel.org
+Message-ID: <20190325152723.YaOFd_RF1DObr4ula0B102-l996f7RKLD9pPolrfPmI@z>
 
-Hi,
 
-Could you share the microbenchmark you are using ?
+--+HP7ph2BbKc20aGI
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I'd like to test the series on powerpc.
+On Mon, Mar 25, 2019 at 08:41:54PM +0800, Guo Ren wrote:
+> On Mon, Mar 25, 2019 at 03:17:54PM +0300, Dmitry V. Levin wrote:
+> > On Mon, Mar 25, 2019 at 08:03:39PM +0800, guoren@kernel.org wrote:
+> > [...]
+> > > diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/=
+uapi/asm/ptrace.h
+> > > index a4eaa8d..9bf5b1a 100644
+> > > --- a/arch/csky/include/uapi/asm/ptrace.h
+> > > +++ b/arch/csky/include/uapi/asm/ptrace.h
+> > > @@ -62,6 +62,11 @@ struct user_fp {
+> > >  #define instruction_pointer(regs) ((regs)->pc)
+> > >  #define profile_pc(regs) instruction_pointer(regs)
+> > > =20
+> > > +static inline unsigned long regs_return_value(struct pt_regs *regs)
+> > > +{
+> > > +	return regs->a0;
+> > > +}
+> > > +
+> > >  #endif /* __KERNEL__ */
+> > >  #endif /* __ASSEMBLY__ */
+> > >  #endif /* _CSKY_PTRACE_H */
+> >=20
+> > I wonder why we have this #ifdef __KERNEL__ code in the uapi namespace,
+> > it defeats the idea of uapi.  Doesn't it belong to non-uapi
+> > include/asm/ptrace.h namespace?
+>=20
+> Yes, I should move __KERNEL__ codes into arch/csky/include/asm/ptrace.h.
+> But it'll be another patch for the modification. Any other problems?
 
-Thanks
-Christophe
+=46rom UAPI perspective?  No, I don't see any more UAPI issues with the pat=
+ch.
 
-Le 22/03/2019 à 15:30, Waiman Long a écrit :
-> Modify __down_read_trylock() to optimize for an unlocked rwsem and make
-> it generate slightly better code.
-> 
-> Before this patch, down_read_trylock:
-> 
->     0x0000000000000000 <+0>:     callq  0x5 <down_read_trylock+5>
->     0x0000000000000005 <+5>:     jmp    0x18 <down_read_trylock+24>
->     0x0000000000000007 <+7>:     lea    0x1(%rdx),%rcx
->     0x000000000000000b <+11>:    mov    %rdx,%rax
->     0x000000000000000e <+14>:    lock cmpxchg %rcx,(%rdi)
->     0x0000000000000013 <+19>:    cmp    %rax,%rdx
->     0x0000000000000016 <+22>:    je     0x23 <down_read_trylock+35>
->     0x0000000000000018 <+24>:    mov    (%rdi),%rdx
->     0x000000000000001b <+27>:    test   %rdx,%rdx
->     0x000000000000001e <+30>:    jns    0x7 <down_read_trylock+7>
->     0x0000000000000020 <+32>:    xor    %eax,%eax
->     0x0000000000000022 <+34>:    retq
->     0x0000000000000023 <+35>:    mov    %gs:0x0,%rax
->     0x000000000000002c <+44>:    or     $0x3,%rax
->     0x0000000000000030 <+48>:    mov    %rax,0x20(%rdi)
->     0x0000000000000034 <+52>:    mov    $0x1,%eax
->     0x0000000000000039 <+57>:    retq
-> 
-> After patch, down_read_trylock:
-> 
->     0x0000000000000000 <+0>:	callq  0x5 <down_read_trylock+5>
->     0x0000000000000005 <+5>:	xor    %eax,%eax
->     0x0000000000000007 <+7>:	lea    0x1(%rax),%rdx
->     0x000000000000000b <+11>:	lock cmpxchg %rdx,(%rdi)
->     0x0000000000000010 <+16>:	jne    0x29 <down_read_trylock+41>
->     0x0000000000000012 <+18>:	mov    %gs:0x0,%rax
->     0x000000000000001b <+27>:	or     $0x3,%rax
->     0x000000000000001f <+31>:	mov    %rax,0x20(%rdi)
->     0x0000000000000023 <+35>:	mov    $0x1,%eax
->     0x0000000000000028 <+40>:	retq
->     0x0000000000000029 <+41>:	test   %rax,%rax
->     0x000000000000002c <+44>:	jns    0x7 <down_read_trylock+7>
->     0x000000000000002e <+46>:	xor    %eax,%eax
->     0x0000000000000030 <+48>:	retq
-> 
-> By using a rwsem microbenchmark, the down_read_trylock() rate (with a
-> load of 10 to lengthen the lock critical section) on a x86-64 system
-> before and after the patch were:
-> 
->                   Before Patch    After Patch
->     # of Threads     rlock           rlock
->     ------------     -----           -----
->          1           14,496          14,716
->          2            8,644           8,453
-> 	4            6,799           6,983
-> 	8            5,664           7,190
-> 
-> On a ARM64 system, the performance results were:
-> 
->                   Before Patch    After Patch
->     # of Threads     rlock           rlock
->     ------------     -----           -----
->          1           23,676          24,488
->          2            7,697           9,502
->          4            4,945           3,440
->          8            2,641           1,603
-> 
-> For the uncontended case (1 thread), the new down_read_trylock() is a
-> little bit faster. For the contended cases, the new down_read_trylock()
-> perform pretty well in x86-64, but performance degrades at high
-> contention level on ARM64.
-> 
-> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Waiman Long <longman@redhat.com>
-> ---
->   kernel/locking/rwsem.h | 13 ++++++++-----
->   1 file changed, 8 insertions(+), 5 deletions(-)
-> 
-> diff --git a/kernel/locking/rwsem.h b/kernel/locking/rwsem.h
-> index 45ee00236e03..1f5775aa6a1d 100644
-> --- a/kernel/locking/rwsem.h
-> +++ b/kernel/locking/rwsem.h
-> @@ -174,14 +174,17 @@ static inline int __down_read_killable(struct rw_semaphore *sem)
->   
->   static inline int __down_read_trylock(struct rw_semaphore *sem)
->   {
-> -	long tmp;
-> +	/*
-> +	 * Optimize for the case when the rwsem is not locked at all.
-> +	 */
-> +	long tmp = RWSEM_UNLOCKED_VALUE;
->   
-> -	while ((tmp = atomic_long_read(&sem->count)) >= 0) {
-> -		if (tmp == atomic_long_cmpxchg_acquire(&sem->count, tmp,
-> -				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
-> +	do {
-> +		if (atomic_long_try_cmpxchg_acquire(&sem->count, &tmp,
-> +					tmp + RWSEM_ACTIVE_READ_BIAS)) {
->   			return 1;
->   		}
-> -	}
-> +	} while (tmp >= 0);
->   	return 0;
->   }
->   
-> 
+
+--=20
+ldv
+
+--+HP7ph2BbKc20aGI
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJcmPNaAAoJEAVFT+BVnCUIcrAP+wRDIzrJTdAGamQ3viXl2Hoc
+mU2kNmYBr8p/xgLGeQsDNgiajI+ar0cklCjrXVJHP6A/H68GpVKuNNbVzo3znin6
+xmauwBBDIHqFBMooTP+nkA8201GDhWW+Br/VKbf9SkD+qgDypcf9aYBxBBI7X4G+
+ZTtAq1y3kEqsX+sUNKad381P5fUphd4vHow4B8NM9TQElS6dy0ztWrv6DIFVYWrl
+BPNPWNAalsSYBxg6U2FYqfzGsx/ZGHDAfo/8NaGosi+lIvQzSBS+ZwRbBFCOhdpR
+aqN8cyrZOmCAc8w0Z7DnoKP07Ex7D9C3Up0SPlsYpdL4CkBvFn+kF9zyN4jlKKC4
+m+ErATsKYDWOOU816ONLGm/H3Y+UXwsYlZxLJ8ob/bTTBFqbbtg5e/cZM+KwqkBp
+VYOzYw69JBwZ3K0sLy8egVf9jqJaMoGTcRmflYabFafSunG8Pu4l/M+tsodrqMye
+W1rwa6CPjRLKTMWTIXGzt7rrup2s7a3pPp91JT/kzbceNHVa1bUah0OzbYpr7JTh
+MHOzHmuqNiPctqWPwXtBDMetffUCr6Waf0yktrkV8cHtUU4sRG0seOZF8Uae2x0T
+m70gRi4ustN2EkOLUnjUFw1pqPB9iAb3FsVckLbUfgiIZWUoRHAySrmEjtt6/eQy
+xby6WSO+AlnXr2R5wdVr
+=Lg4C
+-----END PGP SIGNATURE-----
+
+--+HP7ph2BbKc20aGI--
