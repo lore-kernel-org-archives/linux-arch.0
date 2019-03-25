@@ -1,74 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:44248 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729373AbfCYGFy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 02:05:54 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v11 11/11] gpio: 74x164: Utilize the for_each_set_clump8 macro
-Date: Mon, 25 Mar 2019 15:06:47 +0900
-Message-ID: <8a2e010aa62e00e1fd56802d6c842ae972d2f283.1553492741.git.vilhelm.gray@gmail.com>
-In-Reply-To: <cover.1553492741.git.vilhelm.gray@gmail.com>
-References: <cover.1553492741.git.vilhelm.gray@gmail.com>
+Received: from conssluserg-04.nifty.com ([210.131.2.83]:52602 "EHLO
+        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729373AbfCYGLQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2019 02:11:16 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+ <CAK8P3a3BG_mxYxxCx4S_+ZKAer_+5FpmkzLk0VrACZekuD=2GQ@mail.gmail.com> <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com>
+In-Reply-To: <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 25 Mar 2019 15:10:27 +0900
+Message-ID: <CAK7LNAQvvCVsQtd9ZYkechOSCg4HAeZFaNXCgaBbWWxBYXOgaQ@mail.gmail.com>
+Subject: Re: [PATCH] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, William Breathitt Gray <vilhelm.gray@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>
-Message-ID: <20190325060647.gYFtOZD-CAkqm_kP66I14UK0O4xZWEpjdLvwS42iGBY@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190325061027.ODct8f-SMsB9qZOj06Uk3LKCHIwsesWnOO8_8Qnpck4@z>
 
-Replace verbose implementation in set_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity.
+Hi Arnd,
 
-Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Geert Uytterhoeven <geert+renesas@glider.be>
-Cc: Phil Reid <preid@electromag.com.au>
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-74x164.c | 20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
-index fb7b620763a2..e43a6de3b6eb 100644
---- a/drivers/gpio/gpio-74x164.c
-+++ b/drivers/gpio/gpio-74x164.c
-@@ -9,6 +9,7 @@
-  *  published by the Free Software Foundation.
-  */
- 
-+#include <linux/bitops.h>
- #include <linux/init.h>
- #include <linux/mutex.h>
- #include <linux/spi/spi.h>
-@@ -75,20 +76,19 @@ static void gen_74x164_set_multiple(struct gpio_chip *gc, unsigned long *mask,
- 				    unsigned long *bits)
- {
- 	struct gen_74x164_chip *chip = gpiochip_get_data(gc);
--	unsigned int i, idx, shift;
--	u8 bank, bankmask;
-+	unsigned int offset;
-+	unsigned long bankmask;
-+	const unsigned int ngpio = chip->registers * 8;
-+	size_t bank;
-+	unsigned int bitmask;
- 
- 	mutex_lock(&chip->lock);
--	for (i = 0, bank = chip->registers - 1; i < chip->registers;
--	     i++, bank--) {
--		idx = i / sizeof(*mask);
--		shift = i % sizeof(*mask) * BITS_PER_BYTE;
--		bankmask = mask[idx] >> shift;
--		if (!bankmask)
--			continue;
-+	for_each_set_clump8(offset, bankmask, mask, ngpio) {
-+		bank = (chip->registers - 1) - (offset / 8);
-+		bitmask = bitmap_get_value8(bits, ngpio, offset) & bankmask;
- 
- 		chip->buffer[bank] &= ~bankmask;
--		chip->buffer[bank] |= bankmask & (bits[idx] >> shift);
-+		chip->buffer[bank] |= bitmask;
- 	}
- 	__gen_74x164_write_config(chip);
- 	mutex_unlock(&chip->lock);
+
+
+On Wed, Mar 20, 2019 at 10:34 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Mar 20, 2019 at 10:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > I've added your patch to my randconfig test setup and will let you
+> > know if I see anything noticeable. I'm currently testing clang-arm32,
+> > clang-arm64 and gcc-x86.
+>
+> This is the only additional bug that has come up so far:
+>
+> `.exit.text' referenced in section `.alt.smp.init' of
+> drivers/char/ipmi/ipmi_msghandler.o: defined in discarded section
+> `exit.text' of drivers/char/ipmi/ipmi_msghandler.o
+>
+> diff --git a/arch/arm/kernel/atags.h b/arch/arm/kernel/atags.h
+> index 201100226301..84b12e33104d 100644
+> --- a/arch/arm/kernel/atags.h
+> +++ b/arch/arm/kernel/atags.h
+> @@ -5,7 +5,7 @@ void convert_to_tag_list(struct tag *tags);
+>  const struct machine_desc *setup_machine_tags(phys_addr_t __atags_pointer,
+>         unsigned int machine_nr);
+>  #else
+> -static inline const struct machine_desc *
+> +static __always_inline const struct machine_desc *
+>  setup_machine_tags(phys_addr_t __atags_pointer, unsigned int machine_nr)
+>  {
+>         early_print("no ATAGS support: can't continue\n");
+>
+
+
+I do not know why to reproduce it,
+but is "__init __noreturn" more sensible than
+"__always_inline" here?
+
+
 -- 
-2.21.0
+Best Regards
+Masahiro Yamada
