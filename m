@@ -1,77 +1,82 @@
-From: Kevin Brodsky <kevin.brodsky-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v13 17/20] media/v4l2-core, arm64: untag user pointers in
- videobuf_dma_contig_user_get
-Date: Mon, 25 Mar 2019 14:08:30 +0000
-Message-ID: <bfaae923-98aa-63e7-c50b-8649dc5fe2bb@arm.com>
-References: <cover.1553093420.git.andreyknvl@google.com>
- <ae6961bcdd82e529c76d0747abd310546f81e58e.1553093421.git.andreyknvl@google.com>
- <20190322160726.GV13384@arrakis.emea.arm.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] csky: Update syscall_trace_enter/exit implementation
+Date: Mon, 25 Mar 2019 22:39:26 +0800
+Message-ID: <20190325143926.GA25867@guoren-Inspiron-7460>
+References: <1553515419-1797-1-git-send-email-guoren@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-In-Reply-To: <20190322160726.GV13384-pQd4kjVL+RGcEQQL7YIRtlaTQe2KTcn/@public.gmane.org>
-Content-Language: en-GB
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
-List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
-Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
-Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan-5wv7dgnIgG8@public.gmane.org>, Dave Martin <Dave.Ma>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1553515419-1797-1-git-send-email-guoren@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, ldv@altlinux.org
+Cc: linux-arch@vger.kernel.org, strace-devel@lists.strace.io, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-T24gMjIvMDMvMjAxOSAxNjowNywgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOgo+IE9uIFdlZCwgTWFy
-IDIwLCAyMDE5IGF0IDAzOjUxOjMxUE0gKzAxMDAsIEFuZHJleSBLb25vdmFsb3Ygd3JvdGU6Cj4+
-IFRoaXMgcGF0Y2ggaXMgYSBwYXJ0IG9mIGEgc2VyaWVzIHRoYXQgZXh0ZW5kcyBhcm02NCBrZXJu
-ZWwgQUJJIHRvIGFsbG93IHRvCj4+IHBhc3MgdGFnZ2VkIHVzZXIgcG9pbnRlcnMgKHdpdGggdGhl
-IHRvcCBieXRlIHNldCB0byBzb21ldGhpbmcgZWxzZSBvdGhlcgo+PiB0aGFuIDB4MDApIGFzIHN5
-c2NhbGwgYXJndW1lbnRzLgo+Pgo+PiB2aWRlb2J1Zl9kbWFfY29udGlnX3VzZXJfZ2V0KCkgdXNl
-cyBwcm92aWRlZCB1c2VyIHBvaW50ZXJzIGZvciB2bWEKPj4gbG9va3Vwcywgd2hpY2ggY2FuIG9u
-bHkgYnkgZG9uZSB3aXRoIHVudGFnZ2VkIHBvaW50ZXJzLgo+Pgo+PiBVbnRhZyB0aGUgcG9pbnRl
-cnMgaW4gdGhpcyBmdW5jdGlvbi4KPj4KPj4gU2lnbmVkLW9mZi1ieTogQW5kcmV5IEtvbm92YWxv
-diA8YW5kcmV5a252bEBnb29nbGUuY29tPgo+PiAtLS0KPj4gICBkcml2ZXJzL21lZGlhL3Y0bDIt
-Y29yZS92aWRlb2J1Zi1kbWEtY29udGlnLmMgfCA5ICsrKysrLS0tLQo+PiAgIDEgZmlsZSBjaGFu
-Z2VkLCA1IGluc2VydGlvbnMoKyksIDQgZGVsZXRpb25zKC0pCj4+Cj4+IGRpZmYgLS1naXQgYS9k
-cml2ZXJzL21lZGlhL3Y0bDItY29yZS92aWRlb2J1Zi1kbWEtY29udGlnLmMgYi9kcml2ZXJzL21l
-ZGlhL3Y0bDItY29yZS92aWRlb2J1Zi1kbWEtY29udGlnLmMKPj4gaW5kZXggZTFiZjUwZGY0Yzcw
-Li44YTFkZGQxNDZiMTcgMTAwNjQ0Cj4+IC0tLSBhL2RyaXZlcnMvbWVkaWEvdjRsMi1jb3JlL3Zp
-ZGVvYnVmLWRtYS1jb250aWcuYwo+PiArKysgYi9kcml2ZXJzL21lZGlhL3Y0bDItY29yZS92aWRl
-b2J1Zi1kbWEtY29udGlnLmMKPj4gQEAgLTE2MCw2ICsxNjAsNyBAQCBzdGF0aWMgdm9pZCB2aWRl
-b2J1Zl9kbWFfY29udGlnX3VzZXJfcHV0KHN0cnVjdCB2aWRlb2J1Zl9kbWFfY29udGlnX21lbW9y
-eSAqbWVtKQo+PiAgIHN0YXRpYyBpbnQgdmlkZW9idWZfZG1hX2NvbnRpZ191c2VyX2dldChzdHJ1
-Y3QgdmlkZW9idWZfZG1hX2NvbnRpZ19tZW1vcnkgKm1lbSwKPj4gICAJCQkJCXN0cnVjdCB2aWRl
-b2J1Zl9idWZmZXIgKnZiKQo+PiAgIHsKPj4gKwl1bnNpZ25lZCBsb25nIHVudGFnZ2VkX2JhZGRy
-ID0gdW50YWdnZWRfYWRkcih2Yi0+YmFkZHIpOwo+PiAgIAlzdHJ1Y3QgbW1fc3RydWN0ICptbSA9
-IGN1cnJlbnQtPm1tOwo+PiAgIAlzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYTsKPj4gICAJdW5z
-aWduZWQgbG9uZyBwcmV2X3BmbiwgdGhpc19wZm47Cj4+IEBAIC0xNjcsMjIgKzE2OCwyMiBAQCBz
-dGF0aWMgaW50IHZpZGVvYnVmX2RtYV9jb250aWdfdXNlcl9nZXQoc3RydWN0IHZpZGVvYnVmX2Rt
-YV9jb250aWdfbWVtb3J5ICptZW0sCj4+ICAgCXVuc2lnbmVkIGludCBvZmZzZXQ7Cj4+ICAgCWlu
-dCByZXQ7Cj4+ICAgCj4+IC0Jb2Zmc2V0ID0gdmItPmJhZGRyICYgflBBR0VfTUFTSzsKPj4gKwlv
-ZmZzZXQgPSB1bnRhZ2dlZF9iYWRkciAmIH5QQUdFX01BU0s7Cj4+ICAgCW1lbS0+c2l6ZSA9IFBB
-R0VfQUxJR04odmItPnNpemUgKyBvZmZzZXQpOwo+PiAgIAlyZXQgPSAtRUlOVkFMOwo+PiAgIAo+
-PiAgIAlkb3duX3JlYWQoJm1tLT5tbWFwX3NlbSk7Cj4+ICAgCj4+IC0Jdm1hID0gZmluZF92bWEo
-bW0sIHZiLT5iYWRkcik7Cj4+ICsJdm1hID0gZmluZF92bWEobW0sIHVudGFnZ2VkX2JhZGRyKTsK
-Pj4gICAJaWYgKCF2bWEpCj4+ICAgCQlnb3RvIG91dF91cDsKPj4gICAKPj4gLQlpZiAoKHZiLT5i
-YWRkciArIG1lbS0+c2l6ZSkgPiB2bWEtPnZtX2VuZCkKPj4gKwlpZiAoKHVudGFnZ2VkX2JhZGRy
-ICsgbWVtLT5zaXplKSA+IHZtYS0+dm1fZW5kKQo+PiAgIAkJZ290byBvdXRfdXA7Cj4+ICAgCj4+
-ICAgCXBhZ2VzX2RvbmUgPSAwOwo+PiAgIAlwcmV2X3BmbiA9IDA7IC8qIGtpbGwgd2FybmluZyAq
-Lwo+PiAtCXVzZXJfYWRkcmVzcyA9IHZiLT5iYWRkcjsKPj4gKwl1c2VyX2FkZHJlc3MgPSB1bnRh
-Z2dlZF9iYWRkcjsKPj4gICAKPj4gICAJd2hpbGUgKHBhZ2VzX2RvbmUgPCAobWVtLT5zaXplID4+
-IFBBR0VfU0hJRlQpKSB7Cj4+ICAgCQlyZXQgPSBmb2xsb3dfcGZuKHZtYSwgdXNlcl9hZGRyZXNz
-LCAmdGhpc19wZm4pOwo+IEkgZG9uJ3QgdGhpbmsgdmItPmJhZGRyIGhlcmUgaXMgYW5vbnltb3Vz
-IG1tYXAoKSBidXQgd29ydGggY2hlY2tpbmcgdGhlCj4gY2FsbCBwYXRocy4KCkkgc3BlbnQgc29t
-ZSB0aW1lIG9uIHRoaXMsIEkgZGlkbid0IGZpbmQgYW55IHJlc3RyaWN0aW9uIG9uIHRoZSBraW5k
-IG9mIG1hcHBpbmcgCnRoYXQncyBhbGxvd2VkIGhlcmUuIFRoZSBBUEkgcmVnYXJkaW5nIFY0TDJf
-TUVNT1JZX1VTRVJQVFIgZG9lc24ndCBzZWVtIHRvIHNheSAKYW55dGhpbmcgYWJvdXQgdGhhdCBl
-aXRoZXIgWzBdIFsxXS4gSXQncyBwcm9iYWJseSBiZXN0IHRvIGFzayB0aGUgVjRMMiBtYWludGFp
-bmVycy4KCktldmluCgpbMF0gaHR0cHM6Ly93d3cua2VybmVsLm9yZy9kb2MvaHRtbC9sYXRlc3Qv
-bWVkaWEvdWFwaS92NGwvdmlkaW9jLXFidWYuaHRtbApbMV0gaHR0cHM6Ly93d3cua2VybmVsLm9y
-Zy9kb2MvaHRtbC9sYXRlc3QvbWVkaWEvdWFwaS92NGwvdXNlcnAuaHRtbApfX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwphbWQtZ2Z4IG1haWxpbmcgbGlzdAph
-bWQtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczovL2xpc3RzLmZyZWVkZXNrdG9wLm9y
-Zy9tYWlsbWFuL2xpc3RpbmZvL2FtZC1nZng=
+On Mon, Mar 25, 2019 at 08:03:39PM +0800, guoren@kernel.org wrote:
+> From: Guo Ren <ren_guo@c-sky.com>
+> 
+> Previous syscall_trace implementation couldn't support AUDITSYSCALL and
+> SYSCALL_TRACEPOINTS. Now we redesign it to support audit_syscall
+> and syscall_tracepoints just like other archs'.
+> 
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> Cc: Dmitry V. Levin <ldv@altlinux.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  arch/csky/Kconfig                   |  2 ++
+>  arch/csky/include/asm/syscall.h     |  2 ++
+>  arch/csky/include/asm/thread_info.h | 25 ++++++++-----------
+>  arch/csky/include/asm/unistd.h      |  2 ++
+>  arch/csky/include/uapi/asm/ptrace.h |  5 ++++
+>  arch/csky/kernel/entry.S            | 21 +++++++---------
+...
+> diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+> index 5137ed9..ebd1957 100644
+> --- a/arch/csky/kernel/entry.S
+> +++ b/arch/csky/kernel/entry.S
+> @@ -136,8 +136,8 @@ ENTRY(csky_systemcall)
+>  	bmaski  r10, THREAD_SHIFT
+>  	andn    r9, r10
+>  	ldw     r8, (r9, TINFO_FLAGS)
+> -	btsti   r8, TIF_SYSCALL_TRACE
+> -	bt      1f
+> +	andi	r8, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
+> +	bt      csky_syscall_trace
+>  #if defined(__CSKYABIV2__)
+>  	subi    sp, 8
+>  	stw  	r5, (sp, 0x4)
+> @@ -150,10 +150,9 @@ ENTRY(csky_systemcall)
+>  	stw     a0, (sp, LSAVE_A0)      /* Save return value */
+>  	jmpi    ret_from_exception
+>  
+> -1:
+> -	movi	a0, 0                   /* enter system call */
+> -	mov	a1, sp                  /* sp = pt_regs pointer */
+> -	jbsr	syscall_trace
+> +csky_syscall_trace:
+> +	mov	a0, sp                  /* sp = pt_regs pointer */
+> +	jbsr	syscall_trace_enter
+>  	/* Prepare args before do system call */
+>  	ldw	a0, (sp, LSAVE_A0)
+>  	ldw	a1, (sp, LSAVE_A1)
+> @@ -173,9 +172,8 @@ ENTRY(csky_systemcall)
+>  #endif
+>  	stw	a0, (sp, LSAVE_A0)	/* Save return value */
+>  
+> -	movi    a0, 1                   /* leave system call */
+> -	mov     a1, sp                  /* right now, sp --> pt_regs */
+> -	jbsr    syscall_trace
+> +	mov     a0, sp                  /* right now, sp --> pt_regs */
+> +	jbsr    syscall_trace_exit
+>  	br	ret_from_exception
+>  
+>  ENTRY(ret_from_kernel_thread)
+> @@ -193,9 +191,8 @@ ENTRY(ret_from_fork)
+>  	movi	r11_sig, 1
+>  	btsti	r8, TIF_SYSCALL_TRACE
+It's wrong, I should use: 
++	andi	r8, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
+
+Best Regards
+ Guo Ren
