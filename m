@@ -1,56 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:60180 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1732894AbfCZXlm (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50170 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1732686AbfCZXlm (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Tue, 26 Mar 2019 19:41:42 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXUi0036985
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2rfuftdbdx-1
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXUkX059356
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:40 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rfv1yc291-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:40 -0400
 Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 26 Mar 2019 23:41:40 -0000
+        Tue, 26 Mar 2019 23:41:39 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 21/21] tools/memory-model: Make runlitmus.sh check for jingle errors
-Date: Tue, 26 Mar 2019 16:41:33 -0700
+Subject: [PATCH tip/core/rcu 07/21] tools/memory-model: Make judgelitmus.sh identify bad macros
+Date: Tue, 26 Mar 2019 16:41:19 -0700
 In-Reply-To: <20190326234114.GA23843@linux.ibm.com>
 References: <20190326234114.GA23843@linux.ibm.com>
-Message-ID: <20190326234133.24962-21-paulmck@linux.ibm.com>
+Message-ID: <20190326234133.24962-7-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190326234133.zrLopdE5XDQqEod0mhnwmCfcy0QFqkUBUAAepsBOho4@z>
+Message-ID: <20190326234119.6uKJPb2fHi5XG08GY0aXIat8RSE86rI3k-lgeq9pZkE@z>
 
-It turns out that the jingle7 tool is currently a bit picky about
-the litmus tests it is willing to process.  This commit therefore
-ensures that jingle7 failures are reported.
+Currently, judgelitmus.sh treats use of unknown primitives (such as
+srcu_read_lock() prior to SRCU support) as "!!! Verification error".
+This can be misleading because it fails to call out typos and running
+a version LKMM on a litmus test requiring a feature not provided by
+that version.  This commit therefore changes judgelitmus.sh to check
+for unknown primitives and to report them, for example, with:
+
+	'!!! Current LKMM version does not know "rcu_write_lock"'.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 5 +++++
- 1 file changed, 5 insertions(+)
+ tools/memory-model/scripts/cmplitmushist.sh | 31 ++++++++++++++++++---
+ tools/memory-model/scripts/judgelitmus.sh   | 12 ++++++++
+ 2 files changed, 39 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 482ed7a08951..6a997a6df3ce 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -69,6 +69,11 @@ fi
- # Generate the assembly code and run herd on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
- jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
-+if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
-+then
-+	echo ' !!! ' jingle7 failed, no $hwlitmus generated
-+	exit 253
-+fi
- /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
+index b9c174dd8004..ca1ac8b64614 100755
+--- a/tools/memory-model/scripts/cmplitmushist.sh
++++ b/tools/memory-model/scripts/cmplitmushist.sh
+@@ -12,6 +12,7 @@ trap 'rm -rf $T' 0
+ mkdir $T
  
- exit $?
+ # comparetest oldpath newpath
++badmacnam=0
+ timedout=0
+ perfect=0
+ obsline=0
+@@ -19,8 +20,26 @@ noobsline=0
+ obsresult=0
+ badcompare=0
+ comparetest () {
+-	if grep -q '^Command exited with non-zero status 124' $1 ||
+-	   grep -q '^Command exited with non-zero status 124' $2
++	if grep -q ': Unknown macro ' $1 || grep -q ': Unknown macro ' $2
++	then
++		if grep -q ': Unknown macro ' $1
++		then
++			badname=`grep ': Unknown macro ' $1 |
++				sed -e 's/^.*: Unknown macro //' |
++				sed -e 's/ (User error).*$//'`
++			echo 'Current LKMM version does not know "'$badname'"' $1
++		fi
++		if grep -q ': Unknown macro ' $2
++		then
++			badname=`grep ': Unknown macro ' $2 |
++				sed -e 's/^.*: Unknown macro //' |
++				sed -e 's/ (User error).*$//'`
++			echo 'Current LKMM version does not know "'$badname'"' $2
++		fi
++		badmacnam=`expr "$badmacnam" + 1`
++		return 0
++	elif grep -q '^Command exited with non-zero status 124' $1 ||
++	     grep -q '^Command exited with non-zero status 124' $2
+ 	then
+ 		if grep -q '^Command exited with non-zero status 124' $1 &&
+ 		   grep -q '^Command exited with non-zero status 124' $2
+@@ -56,7 +75,7 @@ comparetest () {
+ 			return 0
+ 		fi
+ 	else
+-		echo Missing Observation line "(e.g., herd7 timeout)": $2
++		echo Missing Observation line "(e.g., syntax error)": $2
+ 		noobsline=`expr "$noobsline" + 1`
+ 		return 0
+ 	fi
+@@ -90,7 +109,7 @@ then
+ fi
+ if test "$noobsline" -ne 0
+ then
+-	echo Missing Observation line "(e.g., herd7 timeout)": $noobsline 1>&2
++	echo Missing Observation line "(e.g., syntax error)": $noobsline 1>&2
+ fi
+ if test "$obsresult" -ne 0
+ then
+@@ -100,6 +119,10 @@ if test "$timedout" -ne 0
+ then
+ 	echo "!!!" Timed out: $timedout 1>&2
+ fi
++if test "$badmacnam" -ne 0
++then
++	echo "!!!" Unknown primitive: $badmacnam 1>&2
++fi
+ if test "$badcompare" -ne 0
+ then
+ 	echo "!!!" Result changed: $badcompare 1>&2
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index d3c313b9a458..d40439c7b71e 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -42,6 +42,18 @@ grep '^Observation' $LKMM_DESTDIR/$litmus.out
+ if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
+ then
+ 	:
++elif grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out
++then
++	badname=`grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out |
++		sed -e 's/^.*: Unknown macro //' |
++		sed -e 's/ (User error).*$//'`
++	badmsg=' !!! Current LKMM version does not know "'$badname'"'" $litmus"
++	echo $badmsg
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	then
++		echo ' !!! '$badmsg >> $LKMM_DESTDIR/$litmus.out 2>&1
++	fi
++	exit 254
+ elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
+ then
+ 	echo ' !!! Timeout' $litmus
 -- 
 2.17.1
