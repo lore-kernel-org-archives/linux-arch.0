@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 10/21] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Tue, 26 Mar 2019 16:41:22 -0700
-Message-ID: <20190326234133.24962-10-paulmck@linux.ibm.com>
+Subject: [PATCH tip/core/rcu 20/21] tools/memory-model: Allow herd to deduce CPU type
+Date: Tue, 26 Mar 2019 16:41:32 -0700
+Message-ID: <20190326234133.24962-20-paulmck@linux.ibm.com>
 References: <20190326234114.GA23843@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190326234114.GA23843@linux.ibm.com>
@@ -10,54 +10,40 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+Currently, the scripts specify the CPU's .cat file to herd.  But this is
+pointless because herd will select a good and sufficient .cat file from
+the assembly-language litmus test itself.  This commit therefore removes
+the -model argument to herd, allowing herd to figure the CPU family out
+itself.
 
+Note that the user can override herd's choice using the "--herdopts"
+argument to the scripts.
+
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/runlitmus.sh | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 40f52080fdbd..0dd087a8410e 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index 71d13bb0c764..482ed7a08951 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -53,7 +53,6 @@ trap 'rm -rf $T' 0 2
+ mkdir $T
  
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
+ # Generate filenames
+-catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+ mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+ themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+ herdoptions="-model $LKMM_HW_CAT_FILE"
+@@ -70,6 +69,6 @@ fi
+ # Generate the assembly code and run herd on it.
+ gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+ jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
+-/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
  
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+ exit $?
 -- 
 2.17.1
