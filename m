@@ -1,88 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:5345 "EHLO pegase1.c-s.fr"
+Received: from mail.kernel.org ([198.145.29.99]:46456 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725766AbfCZGC7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Mar 2019 02:02:59 -0400
-Subject: Re: [PATCH] compiler: allow all arches to enable
- CONFIG_OPTIMIZE_INLINING
-References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
- <CAK8P3a3BG_mxYxxCx4S_+ZKAer_+5FpmkzLk0VrACZekuD=2GQ@mail.gmail.com>
- <CAK8P3a0GEYTbw5XCwzVeZe_-pGF=7e=1kXhH3U+fidnMZeP0CA@mail.gmail.com>
- <20190323092640.Horde.2lm4u26aZox5ialxuIRcYw2@messagerie.si.c-s.fr>
- <CAK7LNAQGifytZRQXcqma9VuvQPfL2w8NjzLRt7CxzFgvaMhyRw@mail.gmail.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <686abdd5-863a-02ce-5ac9-f573208b8315@c-s.fr>
-Date: Tue, 26 Mar 2019 07:02:54 +0100
-MIME-Version: 1.0
-In-Reply-To: <CAK7LNAQGifytZRQXcqma9VuvQPfL2w8NjzLRt7CxzFgvaMhyRw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+        id S1726175AbfCZIWv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Mar 2019 04:22:51 -0400
+From: guoren@kernel.org
+Subject: [PATCH] csky: Add non-uapi asm/ptrace.h namespace
+Date: Tue, 26 Mar 2019 16:22:31 +0800
+Message-ID: <1553588551-30020-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Dave Hansen <dave@sr71.net>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20190326060254.To1KKyX90FsS_KdJCUr5ba4B-HiMWDKDUzgNslrzAzk@z>
+To: arnd@arndb.de, ldv@altlinux.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com, strace-devel@lists.strace.io
+Message-ID: <20190326082231.mirwH3W_Na_EZgi1DlDusOXRxCKz9L6EX_ek2i_juwE@z>
 
-Hi Masahiro,
+From: Guo Ren <ren_guo@c-sky.com>
 
-Le 25/03/2019 à 07:44, Masahiro Yamada a écrit :
-> Hi Christophe,
-> 
-> 
-> On Sat, Mar 23, 2019 at 5:27 PM LEROY Christophe
-> <christophe.leroy@c-s.fr> wrote:
->>
->> Arnd Bergmann <arnd@arndb.de> a écrit :
->>
->>> On Wed, Mar 20, 2019 at 10:41 AM Arnd Bergmann <arnd@arndb.de> wrote:
->>>>
->>>> I've added your patch to my randconfig test setup and will let you
->>>> know if I see anything noticeable. I'm currently testing clang-arm32,
->>>> clang-arm64 and gcc-x86.
->>>
->>> This is the only additional bug that has come up so far:
->>>
->>> `.exit.text' referenced in section `.alt.smp.init' of
->>> drivers/char/ipmi/ipmi_msghandler.o: defined in discarded section
->>> `exit.text' of drivers/char/ipmi/ipmi_msghandler.o
->>
->> Wouldn't it be useful to activate -Winline gcc warning to ease finding
->> out problematic usage of inline keyword ?
-> 
-> 
-> Yes, it is useful to find out
-> which function is causing the error.
-> Thanks for the tip.
-> 
+Move #ifdef __KERNEL__ code in the uapi namespace to non-uapi
+include/asm/ptrace.h namespace and remove #ifdef __KERNEL__ in
+include/asm/ptrace.h. Seperate ptrace.h in uapi and non-uapi is more
+common and clear.
 
-I did a mass build on kisskb. Almost ok, see results at 
-http://kisskb.ellerman.id.au/kisskb/head/203d912edf8dde291977c71aa64024065e197f79/
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Dmitry V. Levin <ldv@altlinux.org>
+---
+ arch/csky/include/asm/ptrace.h      | 29 +++++++++++++++++++++++++++++
+ arch/csky/include/uapi/asm/ptrace.h | 20 --------------------
+ 2 files changed, 29 insertions(+), 20 deletions(-)
+ create mode 100644 arch/csky/include/asm/ptrace.h
 
-ps3_defconfig with GCC 5 fails 
-(http://kisskb.ellerman.id.au/kisskb/buildresult/13742711/) with:
-
-arch/powerpc/mm/tlb-radix.c:148:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-arch/powerpc/mm/tlb-radix.c:148:2: error: impossible constraint in 'asm'
-arch/powerpc/mm/tlb-radix.c:118:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-
-ps3_defconfig with GCC 4.6 fails 
-(http://kisskb.ellerman.id.au/kisskb/buildresult/13742591/) with:
-
-arch/powerpc/mm/tlb-radix.c:148:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-arch/powerpc/mm/tlb-radix.c:118:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't 
-match constraints [-Werror]
-
-randconfig with GCC 4.6 fails 
-(http://kisskb.ellerman.id.au/kisskb/buildresult/13742698/) with:
-
-arch/powerpc/mm/tlb-radix.c:104:2: error: impossible constraint in 'asm'
-
-Christophe
+diff --git a/arch/csky/include/asm/ptrace.h b/arch/csky/include/asm/ptrace.h
+new file mode 100644
+index 0000000..1e00578
+--- /dev/null
++++ b/arch/csky/include/asm/ptrace.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_PTRACE_H
++#define __ASM_CSKY_PTRACE_H
++
++#include <uapi/asm/ptrace.h>
++
++#ifndef __ASSEMBLY__
++
++#define PS_S	0x80000000 /* Supervisor Mode */
++
++#define arch_has_single_step() (1)
++#define current_pt_regs() \
++({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
++
++#define user_stack_pointer(regs) ((regs)->usp)
++
++#define user_mode(regs) (!((regs)->sr & PS_S))
++#define instruction_pointer(regs) ((regs)->pc)
++#define profile_pc(regs) instruction_pointer(regs)
++
++static inline unsigned long regs_return_value(struct pt_regs *regs)
++{
++	return regs->a0;
++}
++
++#endif /* __ASSEMBLY__ */
++#endif /* __ASM_CSKY_PTRACE_H */
+diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
+index 9bf5b1a..4e248d5 100644
+--- a/arch/csky/include/uapi/asm/ptrace.h
++++ b/arch/csky/include/uapi/asm/ptrace.h
+@@ -48,25 +48,5 @@ struct user_fp {
+ 	unsigned long	reserved;
+ };
+ 
+-#ifdef __KERNEL__
+-
+-#define PS_S	0x80000000 /* Supervisor Mode */
+-
+-#define arch_has_single_step() (1)
+-#define current_pt_regs() \
+-({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
+-
+-#define user_stack_pointer(regs) ((regs)->usp)
+-
+-#define user_mode(regs) (!((regs)->sr & PS_S))
+-#define instruction_pointer(regs) ((regs)->pc)
+-#define profile_pc(regs) instruction_pointer(regs)
+-
+-static inline unsigned long regs_return_value(struct pt_regs *regs)
+-{
+-	return regs->a0;
+-}
+-
+-#endif /* __KERNEL__ */
+ #endif /* __ASSEMBLY__ */
+ #endif /* _CSKY_PTRACE_H */
+-- 
+2.7.4
