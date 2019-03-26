@@ -1,118 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:60482 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50292 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1733018AbfCZXln (ORCPT
+        by vger.kernel.org with ESMTP id S1732971AbfCZXln (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Tue, 26 Mar 2019 19:41:43 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXUqU117582
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:42 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2rftkx7nqx-1
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXYsq059536
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
+Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rfv1yc29w-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:42 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
 Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 26 Mar 2019 23:41:42 -0000
+        Tue, 26 Mar 2019 23:41:40 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 17/21] tools/memory-model: Make runlitmus.sh generate .litmus.out for --hw
-Date: Tue, 26 Mar 2019 16:41:29 -0700
+Subject: [PATCH tip/core/rcu 10/21] tools/memory-model: Update parseargs.sh for hardware verification
+Date: Tue, 26 Mar 2019 16:41:22 -0700
 In-Reply-To: <20190326234114.GA23843@linux.ibm.com>
 References: <20190326234114.GA23843@linux.ibm.com>
-Message-ID: <20190326234133.24962-17-paulmck@linux.ibm.com>
+Message-ID: <20190326234133.24962-10-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190326234129.QhylOxiVja-Le00asWytA_nTZ-9Ps4wWCSz2ahTrkdk@z>
+Message-ID: <20190326234122.TYC3WMKWGVnY1MQmgnnKG5U9bdjs8FK6GIpYSvPvz2g@z>
 
-In the absence of "Result:" comments, the runlitmus.sh script relies on
-litmus.out files from prior LKMM runs.  This can be a bit user-hostile,
-so this commit makes runlitmus.sh generate any needed .litmus.out files
-that don't already exist.
+This commit adds a --hw argument to parseargs.sh to specify the CPU
+family for a hardware verification.  For example, "--hw AArch64" will
+specify that a C-language litmus test is to be translated to ARMv8 and
+the result verified.  This will set the LKMM_HW_MAP_FILE environment
+variable accordingly.  If there is no --hw argument, this environment
+variable will be set to the empty string.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 54 ++++++++++++++-----------
- 1 file changed, 30 insertions(+), 24 deletions(-)
+ tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 0ae46ab08cbd..186944a7a528 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -28,42 +28,48 @@ if test -f "$litmus" -a -r "$litmus"
- then
- 	:
- else
--	echo ' --- ' error: \"$litmus\" is not a readable file
-+	echo ' !!! ' error: \"$litmus\" is not a readable file
- 	exit 255
- fi
+diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
+index 40f52080fdbd..0dd087a8410e 100755
+--- a/tools/memory-model/scripts/parseargs.sh
++++ b/tools/memory-model/scripts/parseargs.sh
+@@ -27,6 +27,7 @@ initparam () {
  
--if test -z "$LKMM_HW_MAP_FILE"
-+if test -z "$LKMM_HW_MAP_FILE" -o ! -e $LKMM_DESTDIR/$litmus.out
- then
- 	# LKMM run
- 	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
- 	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
- 	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
--else
--	# Hardware run
-+	ret=$?
-+	if test -z "$LKMM_HW_MAP_FILE"
-+	then
-+		exit $ret
-+	fi
-+	echo " --- " Automatically generated LKMM output for '"'--hw $LKMM_HW_MAP_FILE'"' run
-+fi
+ initparam LKMM_DESTDIR "."
+ initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
++initparam LKMM_HW_MAP_FILE ""
+ initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
+ initparam LKMM_PROCS "3"
+ initparam LKMM_TIMEOUT "1m"
+@@ -37,10 +38,11 @@ usagehelp () {
+ 	echo "Usage $scriptname [ arguments ]"
+ 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
+ 	echo "      --herdopts -conf linux-kernel.cfg ..."
++	echo "      --hw AArch64"
+ 	echo "      --jobs N (number of jobs, default one per CPU)"
+ 	echo "      --procs N (litmus tests with at most this many processes)"
+ 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
+-	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
++	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
+ 	exit 1
+ }
  
--	T=/tmp/checklitmushw.sh.$$
--	trap 'rm -rf $T' 0 2
--	mkdir $T
-+# Hardware run
- 
--	# Generate filenames
--	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
--	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
--	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
--	herdoptions="-model $LKMM_HW_CAT_FILE"
--	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
--	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
-+T=/tmp/checklitmushw.sh.$$
-+trap 'rm -rf $T' 0 2
-+mkdir $T
- 
--	# Don't run on litmus tests with complex synchronization
--	if ! scripts/simpletest.sh $litmus
--	then
--		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
--		exit 254
--	fi
-+# Generate filenames
-+catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
-+mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
-+themefile="$T/${LKMM_HW_MAP_FILE}.theme"
-+herdoptions="-model $LKMM_HW_CAT_FILE"
-+hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
-+hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
- 
--	# Generate the assembly code and run herd on it.
--	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
--	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
--	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+# Don't run on litmus tests with complex synchronization
-+if ! scripts/simpletest.sh $litmus
-+then
-+	echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
-+	exit 254
- fi
- 
-+# Generate the assembly code and run herd on it.
-+gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
-+jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+
- exit $?
+@@ -95,6 +97,11 @@ do
+ 		LKMM_HERD_OPTIONS="$2"
+ 		shift
+ 		;;
++	--hw)
++		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
++		LKMM_HW_MAP_FILE="$2"
++		shift
++		;;
+ 	-j[1-9]*)
+ 		njobs="`echo $1 | sed -e 's/^-j//'`"
+ 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
 -- 
 2.17.1
