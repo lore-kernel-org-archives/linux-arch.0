@@ -1,51 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:20074 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726177AbfCZNTB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Mar 2019 09:19:01 -0400
-Date: Tue, 26 Mar 2019 15:18:54 +0200
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v12 01/11] bitops: Introduce the for_each_set_clump8 macro
-Message-ID: <20190326131854.GA9224@smile.fi.intel.com>
-References: <20190326102843.GA10264@icarus>
- <20190326100743.GA10005@icarus>
- <20190326130319.cwn5zl4e222zh6ak@wunner.de>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48658 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1731824AbfCZXlU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Mar 2019 19:41:20 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXWtH123372
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:18 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rftk1qmd2-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:18 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 26 Mar 2019 23:41:17 -0000
+Date: Tue, 26 Mar 2019 16:41:14 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 0/21] LKMM updates for review
+Reply-To: paulmck@linux.ibm.com
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190326130319.cwn5zl4e222zh6ak@wunner.de>
+Message-ID: <20190326234114.GA23843@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lukas Wunner <lukas@wunner.de>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190326131854.Ts4VEo6bQw384t37Q-OE7Fa8O6V4DLq35wO3N5dUinQ@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20190326234114.DB9Kd0NyTdtvM3fEN0ukQENkpdH49cUMumC-jVcpsW8@z>
 
-On Tue, Mar 26, 2019 at 02:03:19PM +0100, Lukas Wunner wrote:
-> On Tue, Mar 26, 2019 at 07:08:18PM +0900, William Breathitt Gray wrote:
-> > On Tue, Mar 26, 2019 at 10:43:45AM +0100, Lukas Wunner wrote:
+Hello!
 
-> > In this case, bitmap_get_value8 could be simplified to something like
-> > this:
-> > 
-> >         index = BIT_WORD(start);
-> >         offset = start % BITS_PER_LONG;
-> >         return (bitmap[index] >> offset) & 0xFF;
-> 
+This series contains LKMM updates:
 
-> Hm, shouldn't that be "offset = round_down(start, 8)" ?
+1.	Make scripts be executable.
 
-No, the index points to the word, the offset points to the offset inside word.
+2.	Fix comment in MP+poonceonces.litmus, courtesy of Andrea Parri.
 
-> (I prefer the multi-line version FWIW.)
+3.	Do not use "herd" to refer to "herd7", courtesy of Andrea Parri.
 
-+1 here.
+4.	Rewrite "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt,
+	courtesy of Will Deacon.
 
-> > Would it be better to define bitmap_get_value8 as a macro then?
-> 
-> Or a static inline.
+5-6.	Make LKMM scripts note timeouts instead of just saying that
+	the validation was bad.
 
-Please, no macro. It disadvantages in terms of type checking. 
+7.	Make LKMM scripts identify litmus-test typos and use of
+	unsupported primitives instead of just saying that the validation
+	was bad.
 
--- 
-With Best Regards,
-Andy Shevchenko
+8.	Add support for synchronize_srcu_expedited().
+
+9.	Make LKMM scripts detect unconditional deadlocks.
+
+10-21.	Leverage Boqun Feng's C-to-assembly litmus-test-translation
+	capability to allow verifying LKMM against hardware models
+	for checkalllitmus.sh.  This is a work in progress.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/memory-barriers.txt                     |  115 +++++++++------
+ tools/memory-model/linux-kernel.def                   |    1 
+ tools/memory-model/litmus-tests/.gitignore            |    4 
+ tools/memory-model/litmus-tests/MP+poonceonces.litmus |    2 
+ tools/memory-model/litmus-tests/README                |    2 
+ tools/memory-model/lock.cat                           |    2 
+ tools/memory-model/scripts/README                     |   12 -
+ tools/memory-model/scripts/checkalllitmus.sh          |   29 +--
+ tools/memory-model/scripts/checklitmus.sh             |  101 +++++--------
+ tools/memory-model/scripts/cmplitmushist.sh           |   53 ++++++
+ tools/memory-model/scripts/judgelitmus.sh             |  114 +++++++++++---
+ tools/memory-model/scripts/parseargs.sh               |   11 +
+ tools/memory-model/scripts/runlitmus.sh               |  137 ++++++++++++++----
+ tools/memory-model/scripts/runlitmushist.sh           |    3 
+ tools/memory-model/scripts/simpletest.sh              |   35 ++++
+ 15 files changed, 425 insertions(+), 196 deletions(-)
