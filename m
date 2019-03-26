@@ -1,209 +1,189 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:59828 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1733045AbfCZXlo (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:55136 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1733021AbfCZXlo (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Tue, 26 Mar 2019 19:41:44 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNf6c1015101
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXdjt004225
         for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:43 -0400
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2rfwyar0ka-1
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rfvt9t8eg-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:43 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:42 -0400
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Tue, 26 Mar 2019 23:41:42 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 04/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
-Date: Tue, 26 Mar 2019 16:41:16 -0700
+Subject: [PATCH tip/core/rcu 16/21] tools/memory-model: Split runlitmus.sh out of checklitmus.sh
+Date: Tue, 26 Mar 2019 16:41:28 -0700
 In-Reply-To: <20190326234114.GA23843@linux.ibm.com>
 References: <20190326234114.GA23843@linux.ibm.com>
-Message-ID: <20190326234133.24962-4-paulmck@linux.ibm.com>
+Message-ID: <20190326234133.24962-16-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Mikulas Patocka <mpatocka@redhat.com>
-Message-ID: <20190326234116.eF9DyrkCR1qml-qlehi4HHsP0H1ltD-ne9vh1KTRvlU@z>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190326234128.zuBNG0dy4yk2ayA4z3WQ34Np_2I-J3-PgORC4Bwj3iU@z>
 
-From: Will Deacon <will.deacon@arm.com>
+This commit prepares for adding --hw capability to github litmus-test
+scripts by splitting runlitmus.sh (which simply runs the verification)
+out of checklitmus.sh (which also judges the results).
 
-The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
-x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
-This is largely because I/O ordering is a horrible can of worms, but also
-because the document has stagnated as our understanding has evolved.
-
-Attempt to address some of that, by rewriting the section based on
-recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
-find a way to formalise this stuff, but for now let's at least try to
-make the English easier to understand.
-
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>
-Cc: Mikulas Patocka <mpatocka@redhat.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- Documentation/memory-barriers.txt | 115 ++++++++++++++++++------------
- 1 file changed, 70 insertions(+), 45 deletions(-)
+ tools/memory-model/scripts/checklitmus.sh | 57 ++-----------------
+ tools/memory-model/scripts/runlitmus.sh   | 69 +++++++++++++++++++++++
+ 2 files changed, 73 insertions(+), 53 deletions(-)
+ create mode 100755 tools/memory-model/scripts/runlitmus.sh
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 1c22b21ae922..158947ae78c2 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -2599,72 +2599,97 @@ likely, then interrupt-disabling locks should be used to guarantee ordering.
- KERNEL I/O BARRIER EFFECTS
- ==========================
+diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
+index 1922a5af2c17..31a120d68a79 100755
+--- a/tools/memory-model/scripts/checklitmus.sh
++++ b/tools/memory-model/scripts/checklitmus.sh
+@@ -1,15 +1,8 @@
+ #!/bin/sh
+ # SPDX-License-Identifier: GPL-2.0+
+ #
+-# Run a herd7 test and invokes judgelitmus.sh to check the result against
+-# a "Result:" comment within the litmus test.  It also outputs verification
+-# results to a file whose name is that of the specified litmus test, but
+-# with ".out" appended.
+-#
+-# If the --hw argument is specified, this script translates the .litmus
+-# C-language file to the specified type of assembly and verifies that.
+-# But in this case, litmus tests using complex synchronization (such as
+-# locking, RCU, and SRCU) are cheerfully ignored.
++# Invokes runlitmus.sh and judgelitmus.sh on its arguments to run the
++# specified litmus test and pass judgment on the results.
+ #
+ # Usage:
+ #	checklitmus.sh file.litmus
+@@ -22,47 +15,5 @@
+ #
+ # Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
  
--When accessing I/O memory, drivers should use the appropriate accessor
--functions:
-+Interfacing with peripherals via I/O accesses is deeply architecture and device
-+specific. Therefore, drivers which are inherently non-portable may rely on
-+specific behaviours of their target systems in order to achieve synchronization
-+in the most lightweight manner possible. For drivers intending to be portable
-+between multiple architectures and bus implementations, the kernel offers a
-+series of accessor functions that provide various degrees of ordering
-+guarantees:
- 
-- (*) inX(), outX():
-+ (*) readX(), writeX():
- 
--     These are intended to talk to I/O space rather than memory space, but
--     that's primarily a CPU-specific concept.  The i386 and x86_64 processors
--     do indeed have special I/O space access cycles and instructions, but many
--     CPUs don't have such a concept.
-+     The readX() and writeX() MMIO accessors take a pointer to the peripheral
-+     being accessed as an __iomem * parameter. For pointers mapped with the
-+     default I/O attributes (e.g. those returned by ioremap()), then the
-+     ordering guarantees are as follows:
- 
--     The PCI bus, amongst others, defines an I/O space concept which - on such
--     CPUs as i386 and x86_64 - readily maps to the CPU's concept of I/O
--     space.  However, it may also be mapped as a virtual I/O space in the CPU's
--     memory map, particularly on those CPUs that don't support alternate I/O
--     spaces.
-+     1. All readX() and writeX() accesses to the same peripheral are ordered
-+        with respect to each other. For example, this ensures that MMIO register
-+	writes by the CPU to a particular device will arrive in program order.
- 
--     Accesses to this space may be fully synchronous (as on i386), but
--     intermediary bridges (such as the PCI host bridge) may not fully honour
--     that.
-+     2. A writeX() by the CPU to the peripheral will first wait for the
-+        completion of all prior CPU writes to memory. For example, this ensures
-+        that writes by the CPU to an outbound DMA buffer allocated by
-+        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
-+        to its MMIO control register to trigger the transfer.
- 
--     They are guaranteed to be fully ordered with respect to each other.
-+     3. A readX() by the CPU from the peripheral will complete before any
-+	subsequent CPU reads from memory can begin. For example, this ensures
-+	that reads by the CPU from an incoming DMA buffer allocated by
-+	dma_alloc_coherent() will not see stale data after reading from the DMA
-+	engine's MMIO status register to establish that the DMA transfer has
-+	completed.
- 
--     They are not guaranteed to be fully ordered with respect to other types of
--     memory and I/O operation.
-+     4. A readX() by the CPU from the peripheral will complete before any
-+	subsequent delay() loop can begin execution. For example, this ensures
-+	that two MMIO register writes by the CPU to a peripheral will arrive at
-+	least 1us apart if the first write is immediately read back with readX()
-+	and udelay(1) is called prior to the second writeX().
- 
-- (*) readX(), writeX():
-+     __iomem pointers obtained with non-default attributes (e.g. those returned
-+     by ioremap_wc()) are unlikely to provide many of these guarantees.
- 
--     Whether these are guaranteed to be fully ordered and uncombined with
--     respect to each other on the issuing CPU depends on the characteristics
--     defined for the memory window through which they're accessing.  On later
--     i386 architecture machines, for example, this is controlled by way of the
--     MTRR registers.
-+ (*) readX_relaxed(), writeX_relaxed():
- 
--     Ordinarily, these will be guaranteed to be fully ordered and uncombined,
--     provided they're not accessing a prefetchable device.
-+     These are similar to readX() and writeX(), but provide weaker memory
-+     ordering guarantees. Specifically, they do not guarantee ordering with
-+     respect to normal memory accesses or delay() loops (i.e bullets 2-4 above)
-+     but they are still guaranteed to be ordered with respect to other accesses
-+     to the same peripheral when operating on __iomem pointers mapped with the
-+     default I/O attributes.
- 
--     However, intermediary hardware (such as a PCI bridge) may indulge in
--     deferral if it so wishes; to flush a store, a load from the same location
--     is preferred[*], but a load from the same device or from configuration
--     space should suffice for PCI.
-+ (*) readsX(), writesX():
- 
--     [*] NOTE! attempting to load from the same location as was written to may
--	 cause a malfunction - consider the 16550 Rx/Tx serial registers for
--	 example.
-+     The readsX() and writesX() MMIO accessors are designed for accessing
-+     register-based, memory-mapped FIFOs residing on peripherals that are not
-+     capable of performing DMA. Consequently, they provide only the ordering
-+     guarantees of readX_relaxed() and writeX_relaxed(), as documented above.
- 
--     Used with prefetchable I/O memory, an mmiowb() barrier may be required to
--     force stores to be ordered.
-+ (*) inX(), outX():
- 
--     Please refer to the PCI specification for more information on interactions
--     between PCI transactions.
-+     The inX() and outX() accessors are intended to access legacy port-mapped
-+     I/O peripherals, which may require special instructions on some
-+     architectures (notably x86). The port number of the peripheral being
-+     accessed is passed as an argument.
- 
-- (*) readX_relaxed(), writeX_relaxed()
-+     Since many CPU architectures ultimately access these peripherals via an
-+     internal virtual memory mapping, the portable ordering guarantees provided
-+     by inX() and outX() are the same as those provided by readX() and writeX()
-+     respectively when accessing a mapping with the default I/O attributes.
- 
--     These are similar to readX() and writeX(), but provide weaker memory
--     ordering guarantees.  Specifically, they do not guarantee ordering with
--     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
--     ordering with respect to LOCK or UNLOCK operations.  If the latter is
--     required, an mmiowb() barrier can be used.  Note that relaxed accesses to
--     the same peripheral are guaranteed to be ordered with respect to each
--     other.
-+     Device drivers may expect outX() to emit a non-posted write transaction
-+     that waits for a completion response from the I/O peripheral before
-+     returning. This is not guaranteed by all architectures and is therefore
-+     not part of the portable ordering semantics.
+-litmus=$1
+-if test -f "$litmus" -a -r "$litmus"
+-then
+-	:
+-else
+-	echo ' --- ' error: \"$litmus\" is not a readable file
+-	exit 255
+-fi
+-
+-if test -z "$LKMM_HW_MAP_FILE"
+-then
+-	# LKMM run
+-	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
+-	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
+-	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
+-else
+-	# Hardware run
+-
+-	T=/tmp/checklitmushw.sh.$$
+-	trap 'rm -rf $T' 0 2
+-	mkdir $T
+-
+-	# Generate filenames
+-	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+-	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+-	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+-	herdoptions="-model $LKMM_HW_CAT_FILE"
+-	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
+-	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
+-
+-	# Don't run on litmus tests with complex synchronization
+-	if ! scripts/simpletest.sh $litmus
+-	then
+-		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
+-		exit 254
+-	fi
+-
+-	# Generate the assembly code and run herd on it.
+-	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+-	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
+-	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+-fi
+-
+-scripts/judgelitmus.sh $litmus
++scripts/runlitmus.sh $1
++scripts/judgelitmus.sh $1
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+new file mode 100755
+index 000000000000..0ae46ab08cbd
+--- /dev/null
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -0,0 +1,69 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Without the -hw argument, runs a herd7 test and outputs verification
++# results to a file whose name is that of the specified litmus test,
++# but with ".out" appended.
++#
++# If the --hw argument is specified, this script translates the .litmus
++# C-language file to the specified type of assembly and verifies that.
++# But in this case, litmus tests using complex synchronization (such as
++# locking, RCU, and SRCU) are cheerfully ignored.
++#
++# Either way, return the status of the herd command.
++#
++# Usage:
++#	runlitmus.sh file.litmus
++#
++# Run this in the directory containing the memory model, specifying the
++# pathname of the litmus test to check.  The caller is expected to have
++# properly set up the LKMM environment variables.
++#
++# Copyright IBM Corporation, 2019
++#
++# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 +
-+ (*) insX(), outsX():
++litmus=$1
++if test -f "$litmus" -a -r "$litmus"
++then
++	:
++else
++	echo ' --- ' error: \"$litmus\" is not a readable file
++	exit 255
++fi
 +
-+     As above, the insX() and outX() accessors provide the same ordering
-+     guarantees as readsX() and writesX() respectively when accessing a mapping
-+     with the default I/O attributes.
- 
-  (*) ioreadX(), iowriteX()
- 
-      These will perform appropriately for the type of access they're actually
-      doing, be it inX()/outX() or readX()/writeX().
- 
-+All of these accessors assume that the underlying peripheral is little-endian,
-+and will therefore perform byte-swapping operations on big-endian architectures.
++if test -z "$LKMM_HW_MAP_FILE"
++then
++	# LKMM run
++	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
++	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
++	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
++else
++	# Hardware run
 +
-+Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
-+operations is a dangerous sport which may require the use of mmiowb(). See the
-+subsection "Acquires vs I/O accesses" for more information.
- 
- ========================================
- ASSUMED MINIMUM EXECUTION ORDERING MODEL
++	T=/tmp/checklitmushw.sh.$$
++	trap 'rm -rf $T' 0 2
++	mkdir $T
++
++	# Generate filenames
++	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
++	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
++	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
++	herdoptions="-model $LKMM_HW_CAT_FILE"
++	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
++	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
++
++	# Don't run on litmus tests with complex synchronization
++	if ! scripts/simpletest.sh $litmus
++	then
++		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
++		exit 254
++	fi
++
++	# Generate the assembly code and run herd on it.
++	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
++	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
++	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++fi
++
++exit $?
 -- 
 2.17.1
