@@ -1,97 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46456 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726175AbfCZIWv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Mar 2019 04:22:51 -0400
-From: guoren@kernel.org
-Subject: [PATCH] csky: Add non-uapi asm/ptrace.h namespace
-Date: Tue, 26 Mar 2019 16:22:31 +0800
-Message-ID: <1553588551-30020-1-git-send-email-guoren@kernel.org>
+Received: from bmailout1.hostsharing.net ([83.223.95.100]:48909 "EHLO
+        bmailout1.hostsharing.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726111AbfCZJns (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2019 05:43:48 -0400
+Date: Tue, 26 Mar 2019 10:43:45 +0100
+From: Lukas Wunner <lukas@wunner.de>
+Subject: Re: [PATCH v12 01/11] bitops: Introduce the for_each_set_clump8 macro
+Message-ID: <20190326094345.v7l7xjvfs2scbvbv@wunner.de>
+References: <cover.1553494625.git.vilhelm.gray@gmail.com>
+ <9afc30a574ce3e6a86b51dd522146a1d2156dedd.1553494625.git.vilhelm.gray@gmail.com>
+ <20190325093854.jzkkwaksxi7zvtrg@wunner.de>
+ <20190326031422.GB3356@icarus>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190326031422.GB3356@icarus>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, ldv@altlinux.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com, strace-devel@lists.strace.io
-Message-ID: <20190326082231.mirwH3W_Na_EZgi1DlDusOXRxCKz9L6EX_ek2i_juwE@z>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190326094345.DzUw1NOtyz65Wcbij5x3V40BINcyUvyEy4N4gfj9p54@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Tue, Mar 26, 2019 at 12:14:22PM +0900, William Breathitt Gray wrote:
+> On Mon, Mar 25, 2019 at 10:38:54AM +0100, Lukas Wunner wrote:
+> > On Mon, Mar 25, 2019 at 03:22:23PM +0900, William Breathitt Gray wrote:
+> > > +/**
+> > > + * find_next_clump8 - find next 8-bit clump with set bits in a memory region
+> > > + * @clump: location to store copy of found clump
+> > > + * @addr: address to base the search on
+> > > + * @offset: bit offset at which to start searching
+> > > + * @size: bitmap size in number of bits
+> > > + *
+> > > + * Returns the bit offset for the next set clump; the found clump value is
+> > > + * copied to the location pointed by @clump. If no bits are set, returns @size.
+> > > + */
+> > > +unsigned int find_next_clump8(unsigned long *const clump,
+> > > +			      const unsigned long *const addr,
+> > > +			      unsigned int offset, const unsigned int size)
+> > > +{
+> > > +	for (; offset < size; offset += 8) {
+> > > +		*clump = bitmap_get_value8(addr, size, offset);
+> > > +		if (!*clump)
+> > > +			continue;
+> > > +
+> > > +		return offset;
+> > > +	}
+> > > +
+> > > +	return size;
+> > > +}
+> > > +EXPORT_SYMBOL(find_next_clump8);
+> > 
+> > Just use find_first_bit() / find_next_bit() to use optimized arch-specific
+> > bitops instead of open-coding the iteration over the bitmap.
+> > 
+> > See max3191x_get_multiple() for an example.
+> 
+> Is this the sort of implementation you had in mind:
+> 
+>         offset = find_next_bit(addr, size, offset);
+>         if (offset == size)
+>                 return size;
+> 
+>         offset -= offset % 8;
+>         *clump = bitmap_get_value8(addr, size, offset);
+> 
+>         return offset;
 
-Move #ifdef __KERNEL__ code in the uapi namespace to non-uapi
-include/asm/ptrace.h namespace and remove #ifdef __KERNEL__ in
-include/asm/ptrace.h. Seperate ptrace.h in uapi and non-uapi is more
-common and clear.
+Almost.  I'd use round_down() instead of "offset -= offset % 8".
+Then it's just a single cheap logical and operation at runtime.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Dmitry V. Levin <ldv@altlinux.org>
----
- arch/csky/include/asm/ptrace.h      | 29 +++++++++++++++++++++++++++++
- arch/csky/include/uapi/asm/ptrace.h | 20 --------------------
- 2 files changed, 29 insertions(+), 20 deletions(-)
- create mode 100644 arch/csky/include/asm/ptrace.h
+I'd try to avoid copying around the clump value and use a pointer
+to u8 instead.
 
-diff --git a/arch/csky/include/asm/ptrace.h b/arch/csky/include/asm/ptrace.h
-new file mode 100644
-index 0000000..1e00578
---- /dev/null
-+++ b/arch/csky/include/asm/ptrace.h
-@@ -0,0 +1,29 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_PTRACE_H
-+#define __ASM_CSKY_PTRACE_H
-+
-+#include <uapi/asm/ptrace.h>
-+
-+#ifndef __ASSEMBLY__
-+
-+#define PS_S	0x80000000 /* Supervisor Mode */
-+
-+#define arch_has_single_step() (1)
-+#define current_pt_regs() \
-+({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
-+
-+#define user_stack_pointer(regs) ((regs)->usp)
-+
-+#define user_mode(regs) (!((regs)->sr & PS_S))
-+#define instruction_pointer(regs) ((regs)->pc)
-+#define profile_pc(regs) instruction_pointer(regs)
-+
-+static inline unsigned long regs_return_value(struct pt_regs *regs)
-+{
-+	return regs->a0;
-+}
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASM_CSKY_PTRACE_H */
-diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
-index 9bf5b1a..4e248d5 100644
---- a/arch/csky/include/uapi/asm/ptrace.h
-+++ b/arch/csky/include/uapi/asm/ptrace.h
-@@ -48,25 +48,5 @@ struct user_fp {
- 	unsigned long	reserved;
- };
- 
--#ifdef __KERNEL__
--
--#define PS_S	0x80000000 /* Supervisor Mode */
--
--#define arch_has_single_step() (1)
--#define current_pt_regs() \
--({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
--
--#define user_stack_pointer(regs) ((regs)->usp)
--
--#define user_mode(regs) (!((regs)->sr & PS_S))
--#define instruction_pointer(regs) ((regs)->pc)
--#define profile_pc(regs) instruction_pointer(regs)
--
--static inline unsigned long regs_return_value(struct pt_regs *regs)
--{
--	return regs->a0;
--}
--
--#endif /* __KERNEL__ */
- #endif /* __ASSEMBLY__ */
- #endif /* _CSKY_PTRACE_H */
--- 
-2.7.4
+I don't understand the calculations in bitmap_get_value8() at all.
+Why is it so complicated, does it allow passing in a start value
+that's not a multiple of 8?  Do you really need that?  I imagine
+a simplification is possible if that assumption can be made (and
+is spelled out in the kerneldoc).
+
+
+> Should the offset and size parameters be redefined as unsigned long to
+> match the find_first_bit/find_next_bit function parameters?
+
+Yes, probably.  It's just the CPU's native length anyway.
+
+Thanks,
+
+Lukas
