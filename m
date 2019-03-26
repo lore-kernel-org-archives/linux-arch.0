@@ -1,80 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50292 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50214 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1732971AbfCZXln (ORCPT
+        by vger.kernel.org with ESMTP id S1732843AbfCZXlm (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Mar 2019 19:41:43 -0400
+        Tue, 26 Mar 2019 19:41:42 -0400
 Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXYsq059536
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x2QNXUMZ059328
         for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2rfv1yc29w-1
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rfv1yc29c-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:41 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2019 19:41:40 -0400
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Tue, 26 Mar 2019 23:41:40 -0000
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH tip/core/rcu 10/21] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Tue, 26 Mar 2019 16:41:22 -0700
+Subject: [PATCH tip/core/rcu 01/21] tools/memory-model: Make scripts be executable
+Date: Tue, 26 Mar 2019 16:41:13 -0700
 In-Reply-To: <20190326234114.GA23843@linux.ibm.com>
 References: <20190326234114.GA23843@linux.ibm.com>
-Message-ID: <20190326234133.24962-10-paulmck@linux.ibm.com>
+Message-ID: <20190326234133.24962-1-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190326234122.TYC3WMKWGVnY1MQmgnnKG5U9bdjs8FK6GIpYSvPvz2g@z>
+Message-ID: <20190326234113.6XfHYL0kYqQxycKAyMRyFiN3y9PFe7mXwbMpW8vVL2g@z>
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+This commit simplifies life a bit by making all of the scripts in
+tools/memory-model/scripts be executable.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/checkghlitmus.sh   | 0
+ tools/memory-model/scripts/checklitmushist.sh | 0
+ tools/memory-model/scripts/cmplitmushist.sh   | 0
+ tools/memory-model/scripts/initlitmushist.sh  | 0
+ tools/memory-model/scripts/judgelitmus.sh     | 0
+ tools/memory-model/scripts/newlitmushist.sh   | 0
+ tools/memory-model/scripts/parseargs.sh       | 0
+ tools/memory-model/scripts/runlitmushist.sh   | 0
+ 8 files changed, 0 insertions(+), 0 deletions(-)
+ mode change 100644 => 100755 tools/memory-model/scripts/checkghlitmus.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/checklitmushist.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/cmplitmushist.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/initlitmushist.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/judgelitmus.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/newlitmushist.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/parseargs.sh
+ mode change 100644 => 100755 tools/memory-model/scripts/runlitmushist.sh
 
+diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/checklitmushist.sh b/tools/memory-model/scripts/checklitmushist.sh
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/initlitmushist.sh b/tools/memory-model/scripts/initlitmushist.sh
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
+old mode 100644
+new mode 100755
 diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 40f52080fdbd..0dd087a8410e 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
- 
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
- 
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+old mode 100644
+new mode 100755
+diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
+old mode 100644
+new mode 100755
 -- 
 2.17.1
