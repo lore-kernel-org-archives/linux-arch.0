@@ -1,7 +1,7 @@
-From: Lukas Wunner <lukas@wunner.de>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
 Subject: Re: [PATCH v13 01/11] bitops: Introduce the for_each_set_clump8 macro
-Date: Wed, 27 Mar 2019 07:42:54 +0100
-Message-ID: <20190327064254.lwj7ew37mxphieco@wunner.de>
+Date: Wed, 27 Mar 2019 14:30:59 +0200
+Message-ID: <20190327123059.GI9224@smile.fi.intel.com>
 References: <cover.1553661964.git.vilhelm.gray@gmail.com>
  <497dc4b5b1f668b54e008e10a43d4108f4a41213.1553661964.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
@@ -11,7 +11,7 @@ Content-Disposition: inline
 In-Reply-To: <497dc4b5b1f668b54e008e10a43d4108f4a41213.1553661964.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, Lukas Wunner <lukas@wunner.de>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, Mar 27, 2019 at 01:58:45PM +0900, William Breathitt Gray wrote:
@@ -22,12 +22,17 @@ On Wed, Mar 27, 2019 at 01:58:45PM +0900, William Breathitt Gray wrote:
 > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
 > respectively get and set an 8-bit value in a bitmap memory region.
 
-I would have preferred static inlines for bitmap_get_value8(),
-bitmap_set_value8() and find_next_clump8() to make this as fast
-as possible in the callers because I've personally worked with
-an industrial application where the GPIO pins of a 74x164 are
-written every 250 usec.
+> +unsigned long bitmap_get_value8(const unsigned long *addr, unsigned long start)
+> +{
+> +	const size_t idx = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+> +
+> +	return (addr[idx] >> offset) & 0xFF;
 
-But apart from that I like this series a lot, thanks for working on it.
+I would spell index instead of idx, but it's minor and up to you.
 
-Lukas
+> +}
+
+-- 
+With Best Regards,
+Andy Shevchenko
