@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:40989 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725613AbfC0E77 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Mar 2019 00:59:59 -0400
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:41155 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725613AbfC0FBo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Mar 2019 01:01:44 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v13 07/11] gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-Date: Wed, 27 Mar 2019 14:00:53 +0900
-Message-ID: <4698abb45402d0671e0400be7133e3ccdc2b9fe1.1553661964.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v13 10/11] gpio: 74x164: Utilize the for_each_set_clump8 macro
+Date: Wed, 27 Mar 2019 14:02:39 +0900
+Message-ID: <645f16f1d1ad3f215e34a82f457e06725fcf8f56.1553661964.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1553661964.git.vilhelm.gray@gmail.com>
 References: <cover.1553661964.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -14,125 +14,60 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20190327050053.xhTpLfmi_bnbhABfw3_8mRfcU7vpwBiCU7S8yXa2Nhk@z>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, William Breathitt Gray <vilhelm.gray@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>
+Message-ID: <20190327050239.Y3D3SZXFJ5UmkkINzLM3VrIjtnpnAd1WpXIBKv85tyc@z>
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+Replace verbose implementation in set_multiple callback with
+for_each_set_clump8 macro to simplify code and improve clarity.
 
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Geert Uytterhoeven <geert+renesas@glider.be>
+Cc: Phil Reid <preid@electromag.com.au>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-pci-idio-16.c | 75 ++++++++++++---------------------
- 1 file changed, 27 insertions(+), 48 deletions(-)
+ drivers/gpio/gpio-74x164.c | 19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
-index 6b7349783223..a67388db28ad 100644
---- a/drivers/gpio/gpio-pci-idio-16.c
-+++ b/drivers/gpio/gpio-pci-idio-16.c
-@@ -108,45 +108,23 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
+diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
+index fb7b620763a2..0bbf1162bb31 100644
+--- a/drivers/gpio/gpio-74x164.c
++++ b/drivers/gpio/gpio-74x164.c
+@@ -9,6 +9,7 @@
+  *  published by the Free Software Foundation.
+  */
+ 
++#include <linux/bitops.h>
+ #include <linux/init.h>
+ #include <linux/mutex.h>
+ #include <linux/spi/spi.h>
+@@ -75,20 +76,18 @@ static void gen_74x164_set_multiple(struct gpio_chip *gc, unsigned long *mask,
+ 				    unsigned long *bits)
  {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
--	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
+ 	struct gen_74x164_chip *chip = gpiochip_get_data(gc);
+-	unsigned int i, idx, shift;
+-	u8 bank, bankmask;
 +	unsigned long offset;
-+	unsigned long gpio_mask;
- 	void __iomem *ports[] = {
- 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
- 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
- 	};
-+	void __iomem *port_addr;
-+	unsigned long port_state;
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = ports[offset / 8];
-+		port_state = ioread8(port_addr) & gpio_mask;
- 
--		/* read bits from current gpio port */
--		port_state = ioread8(ports[i]);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, port_state, offset);
- 	}
- 
- 	return 0;
-@@ -186,30 +164,31 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
-+	unsigned long offset;
-+	unsigned long gpio_mask;
-+	void __iomem *ports[] = {
-+		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
-+	};
-+	size_t index;
-+	void __iomem *port_addr;
++	unsigned long bankmask;
++	size_t bank;
 +	unsigned long bitmask;
- 	unsigned long flags;
--	unsigned int out_state;
-+	unsigned long out_state;
  
--	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
-+		port_addr = ports[index];
+ 	mutex_lock(&chip->lock);
+-	for (i = 0, bank = chip->registers - 1; i < chip->registers;
+-	     i++, bank--) {
+-		idx = i / sizeof(*mask);
+-		shift = i % sizeof(*mask) * BITS_PER_BYTE;
+-		bankmask = mask[idx] >> shift;
+-		if (!bankmask)
+-			continue;
++	for_each_set_clump8(offset, bankmask, mask, chip->registers * 8) {
++		bank = (chip->registers - 1) - (offset / 8);
++		bitmask = bitmap_get_value8(bits, offset) & bankmask;
  
--	/* process output lines 0-7 */
--	if (*mask & 0xFF) {
--		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out0_7);
--	}
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
-+
-+		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
- 
--	/* shift to next output line word */
--	*mask >>= 8;
-+		out_state = ioread8(port_addr) & ~gpio_mask;
-+		out_state |= bitmask;
-+		iowrite8(out_state, port_addr);
- 
--	/* process output lines 8-15 */
--	if (*mask & 0xFF) {
--		*bits >>= 8;
--		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out8_15);
-+		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+ 		chip->buffer[bank] &= ~bankmask;
+-		chip->buffer[bank] |= bankmask & (bits[idx] >> shift);
++		chip->buffer[bank] |= bitmask;
  	}
--
--	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- }
- 
- static void idio_16_irq_ack(struct irq_data *data)
+ 	__gen_74x164_write_config(chip);
+ 	mutex_unlock(&chip->lock);
 -- 
 2.21.0
