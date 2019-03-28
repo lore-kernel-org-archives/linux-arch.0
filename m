@@ -1,230 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43138 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:43132 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728551AbfC2DWz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1728547AbfC2DWz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 28 Mar 2019 23:22:55 -0400
-Message-ID: <20190329032252.898738604@goodmis.org>
-Date: Thu, 28 Mar 2019 19:05:13 -0400
+Message-ID: <20190328230512.486297455@goodmis.org>
+Date: Thu, 28 Mar 2019 19:05:12 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFC][PATCH 1/4 v2] ptrace: Remove maxargs from task_current_syscall()
-References: <20190328230512.486297455@goodmis.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Subject: [RFC][PATCH 0/4 v2] sycalls: Remove args i and n from syscall_get_arguments()
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Alexey Dobriyan <adobriyan@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
-Message-ID: <20190328230513.DUOqmQB9CDbGGV8u7ezoQqYD-pKlSD1SYSLyyF-YspU@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20190328230512.zx3n6TLajLloMCKD76aJe2RUmhWv6PkGUpczfOmNMyw@z>
 
-From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-task_current_syscall() has a single user that passes in 6 for maxargs, which
-is the maximum arguments that can be used to get system calls from
-syscall_get_arguments(). Instead of passing in a number of arguments to
-grab, just get 6 arguments. The args argument even specifies that it's an
-array of 6 items.
+Two and a half years ago I sent out 3 patches and a title letter that
+had this[1]:
 
-This will also allow changing syscall_get_arguments() to not get a variable
-number of arguments, but always grab 6.
+  At Linux Plumbers, Andy Lutomirski approached me to tell me that the
+  syscall_get_arguments() implementation in x86 was horrible and gcc
+  certainly gets it wrong. He said that since the tracepoints only pass
+  in 0 and 6 for i and n repectively, it should be optimized for that case.
+  Inspecting the kernel, I discovered that all users pass in 0 for i and
+  only one file passing in something other than 6 for the number of arguments.
+  That code happens to be my own code used for the special syscall tracing.
+  That can easily be converted to just using 0 and 6 as well, and only copying
+  what is needed. Which is probably the faster path anyway for that case.
 
-Linus also suggested not passing in a bunch of arguments to
-task_current_syscall() but to instead pass in a pointer to a structure, and
-just fill the structure. struct seccomp_data has almost all the parameters
-that is needed except for the stack pointer (sp). As seccomp_data is part of
-uapi, and I'm afraid to change it, a new structure was created
-"syscall_info", which includes seccomp_data and adds the "sp" field.
+  I haven't run the numbers (I can do that when I get some time), but since
+  pretty much all use cases use 0 and 6 and that would allow these functions
+  not to need strange logic to handle odd cases, I think this is still a win.
 
-Link: http://lkml.kernel.org/r/20161107213233.466776454@goodmis.org
+It received positive comments but also Linus asked to remove the separate
+arg pointers and replace them with a single structure and fill that
+instead. But for some reason, this got pushed aside and forgotten (probably,
+had to do with the fact that I left Red Hat shortly after this).
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org
-Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
----
- fs/proc/base.c         | 17 +++++++------
- include/linux/ptrace.h | 11 +++++---
- lib/syscall.c          | 57 ++++++++++++++++++------------------------
- 3 files changed, 42 insertions(+), 43 deletions(-)
+Recently, it was brought back up again[2] and I decided to dust off these
+patches and resubmit them. I also added one more patch to do the same
+for syscall_set_arguments() that I did for syscall_get_arguments() even
+though syscall_set_arguments() currently (and never has) had any callers.
+But we are told that in the near future it may have one.
 
-diff --git a/fs/proc/base.c b/fs/proc/base.c
-index ddef482f1334..6a803a0b75df 100644
---- a/fs/proc/base.c
-+++ b/fs/proc/base.c
-@@ -616,24 +616,25 @@ static int proc_pid_limits(struct seq_file *m, struct pid_namespace *ns,
- static int proc_pid_syscall(struct seq_file *m, struct pid_namespace *ns,
- 			    struct pid *pid, struct task_struct *task)
- {
--	long nr;
--	unsigned long args[6], sp, pc;
-+	struct syscall_info info;
-+	u64 *args = &info.data.args[0];
- 	int res;
- 
- 	res = lock_trace(task);
- 	if (res)
- 		return res;
- 
--	if (task_current_syscall(task, &nr, args, 6, &sp, &pc))
-+	if (task_current_syscall(task, &info))
- 		seq_puts(m, "running\n");
--	else if (nr < 0)
--		seq_printf(m, "%ld 0x%lx 0x%lx\n", nr, sp, pc);
-+	else if (info.data.nr < 0)
-+		seq_printf(m, "%d 0x%llx 0x%llx\n",
-+			   info.data.nr, info.sp, info.data.instruction_pointer);
- 	else
- 		seq_printf(m,
--		       "%ld 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n",
--		       nr,
-+		       "%d 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx\n",
-+		       info.data.nr,
- 		       args[0], args[1], args[2], args[3], args[4], args[5],
--		       sp, pc);
-+		       info.sp, info.data.instruction_pointer);
- 	unlock_trace(task);
- 
- 	return 0;
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index edb9b040c94c..d5084ebd9f03 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -9,6 +9,13 @@
- #include <linux/bug.h>			/* For BUG_ON.  */
- #include <linux/pid_namespace.h>	/* For task_active_pid_ns.  */
- #include <uapi/linux/ptrace.h>
-+#include <linux/seccomp.h>
-+
-+/* Add sp to seccomp_data, as seccomp is user API, we don't want to modify it */
-+struct syscall_info {
-+	__u64			sp;
-+	struct seccomp_data	data;
-+};
- 
- extern int ptrace_access_vm(struct task_struct *tsk, unsigned long addr,
- 			    void *buf, int len, unsigned int gup_flags);
-@@ -407,9 +414,7 @@ static inline void user_single_step_report(struct pt_regs *regs)
- #define current_user_stack_pointer() user_stack_pointer(current_pt_regs())
- #endif
- 
--extern int task_current_syscall(struct task_struct *target, long *callno,
--				unsigned long args[6], unsigned int maxargs,
--				unsigned long *sp, unsigned long *pc);
-+extern int task_current_syscall(struct task_struct *target, struct syscall_info *info);
- 
- extern void sigaction_compat_abi(struct k_sigaction *act, struct k_sigaction *oact);
- #endif
-diff --git a/lib/syscall.c b/lib/syscall.c
-index 1a7077f20eae..e8467e17b9a2 100644
---- a/lib/syscall.c
-+++ b/lib/syscall.c
-@@ -5,16 +5,14 @@
- #include <linux/export.h>
- #include <asm/syscall.h>
- 
--static int collect_syscall(struct task_struct *target, long *callno,
--			   unsigned long args[6], unsigned int maxargs,
--			   unsigned long *sp, unsigned long *pc)
-+static int collect_syscall(struct task_struct *target, struct syscall_info *info)
- {
- 	struct pt_regs *regs;
- 
- 	if (!try_get_task_stack(target)) {
- 		/* Task has no stack, so the task isn't in a syscall. */
--		*sp = *pc = 0;
--		*callno = -1;
-+		memset(info, 0, sizeof(*info));
-+		info->data.nr = -1;
- 		return 0;
- 	}
- 
-@@ -24,12 +22,13 @@ static int collect_syscall(struct task_struct *target, long *callno,
- 		return -EAGAIN;
- 	}
- 
--	*sp = user_stack_pointer(regs);
--	*pc = instruction_pointer(regs);
-+	info->sp = user_stack_pointer(regs);
-+	info->data.instruction_pointer = instruction_pointer(regs);
- 
--	*callno = syscall_get_nr(target, regs);
--	if (*callno != -1L && maxargs > 0)
--		syscall_get_arguments(target, regs, 0, maxargs, args);
-+	info->data.nr = syscall_get_nr(target, regs);
-+	if (info->data.nr != -1L)
-+		syscall_get_arguments(target, regs, 0, 6,
-+				      (unsigned long *)&info->data.args[0]);
- 
- 	put_task_stack(target);
- 	return 0;
-@@ -38,41 +37,35 @@ static int collect_syscall(struct task_struct *target, long *callno,
- /**
-  * task_current_syscall - Discover what a blocked task is doing.
-  * @target:		thread to examine
-- * @callno:		filled with system call number or -1
-- * @args:		filled with @maxargs system call arguments
-- * @maxargs:		number of elements in @args to fill
-- * @sp:			filled with user stack pointer
-- * @pc:			filled with user PC
-+ * @info:		structure with the following fields:
-+ *			 .sp        - filled with user stack pointer
-+ *			 .data.nr   - filled with system call number or -1
-+ *			 .data.args - filled with @maxargs system call arguments
-+ *			 .data.instruction_pointer - filled with user PC
-  *
-- * If @target is blocked in a system call, returns zero with *@callno
-- * set to the the call's number and @args filled in with its arguments.
-- * Registers not used for system call arguments may not be available and
-- * it is not kosher to use &struct user_regset calls while the system
-+ * If @target is blocked in a system call, returns zero with @info.data.nr
-+ * set to the the call's number and @info.data.args filled in with its
-+ * arguments. Registers not used for system call arguments may not be available
-+ * and it is not kosher to use &struct user_regset calls while the system
-  * call is still in progress.  Note we may get this result if @target
-  * has finished its system call but not yet returned to user mode, such
-  * as when it's stopped for signal handling or syscall exit tracing.
-  *
-  * If @target is blocked in the kernel during a fault or exception,
-- * returns zero with *@callno set to -1 and does not fill in @args.
-- * If so, it's now safe to examine @target using &struct user_regset
-- * get() calls as long as we're sure @target won't return to user mode.
-+ * returns zero with *@info.data.nr set to -1 and does not fill in
-+ * @info.data.args. If so, it's now safe to examine @target using
-+ * &struct user_regset get() calls as long as we're sure @target won't return
-+ * to user mode.
-  *
-  * Returns -%EAGAIN if @target does not remain blocked.
-- *
-- * Returns -%EINVAL if @maxargs is too large (maximum is six).
-  */
--int task_current_syscall(struct task_struct *target, long *callno,
--			 unsigned long args[6], unsigned int maxargs,
--			 unsigned long *sp, unsigned long *pc)
-+int task_current_syscall(struct task_struct *target, struct syscall_info *info)
- {
- 	long state;
- 	unsigned long ncsw;
- 
--	if (unlikely(maxargs > 6))
--		return -EINVAL;
--
- 	if (target == current)
--		return collect_syscall(target, callno, args, maxargs, sp, pc);
-+		return collect_syscall(target, info);
- 
- 	state = target->state;
- 	if (unlikely(!state))
-@@ -80,7 +73,7 @@ int task_current_syscall(struct task_struct *target, long *callno,
- 
- 	ncsw = wait_task_inactive(target, state);
- 	if (unlikely(!ncsw) ||
--	    unlikely(collect_syscall(target, callno, args, maxargs, sp, pc)) ||
-+	    unlikely(collect_syscall(target, info)) ||
- 	    unlikely(wait_task_inactive(target, state) != ncsw))
- 		return -EAGAIN;
- 
--- 
-2.20.1
+The changes do optimize the logic a little, but for most archs I just kept
+the same logic (loops and such) as I don't have a way to test it, and
+didn't want to break the logic.
+
+I added a new struct syscall_info that holds seccomp_data and also
+includes a stack pointer (sp) field. I would change seccomp_data,
+but because its in include/uapi/linux/seccomp.h I didn't want to
+touch it and break userspace. Perhaps we could add the field at the
+end, but I didn't want to chance it (unless others say its OK).
+
+I ran these through zero-day-bot and compiled tested these changes for
+all architectures except for csky which I do not have a cross compiler
+for.
+
+Note the following archs fail normal builds, but they fail the same
+with these patches:
+
+   arc
+   h8300
+   parisc64
+
+Note, you may notice that I have "(Red Hat)" as the author of the
+first three patches (even though they are signed off by "(VMware)").
+This is because those patches were originally written while I was
+working for Red Hat. But as I forward ported them while working for
+VMware, my signed-off-by reflects that.
+
+[1] - https://lore.kernel.org/lkml/20161107212634.529267342@goodmis.org/T/#u
+[2] - https://lore.kernel.org/lkml/20190326151244.GC16837@redhat.com/T/#u
+
+Steven Rostedt (Red Hat) (3):
+      ptrace: Remove maxargs from task_current_syscall()
+      tracing/syscalls: Pass in hardcoded 6 into syscall_get_arguments()
+      syscalls: Remove start and number from syscall_get_arguments() args
+
+Steven Rostedt (VMware) (1):
+      syscalls: Remove start and number from syscall_set_arguments() args
+
+----
+ arch/arc/include/asm/syscall.h        |   7 +-
+ arch/arm/include/asm/syscall.h        |  47 ++---------
+ arch/arm64/include/asm/syscall.h      |  46 ++---------
+ arch/c6x/include/asm/syscall.h        |  79 ++++---------------
+ arch/csky/include/asm/syscall.h       |  26 ++-----
+ arch/h8300/include/asm/syscall.h      |  34 ++------
+ arch/hexagon/include/asm/syscall.h    |   4 +-
+ arch/ia64/include/asm/syscall.h       |  13 +---
+ arch/ia64/kernel/ptrace.c             |   7 +-
+ arch/microblaze/include/asm/syscall.h |   8 +-
+ arch/mips/include/asm/syscall.h       |   3 +-
+ arch/mips/kernel/ptrace.c             |   2 +-
+ arch/nds32/include/asm/syscall.h      |  62 +++------------
+ arch/nios2/include/asm/syscall.h      |  84 ++++----------------
+ arch/openrisc/include/asm/syscall.h   |  12 +--
+ arch/parisc/include/asm/syscall.h     |  30 ++-----
+ arch/powerpc/include/asm/syscall.h    |  15 ++--
+ arch/riscv/include/asm/syscall.h      |  24 ++----
+ arch/s390/include/asm/syscall.h       |  28 +++----
+ arch/sh/include/asm/syscall_32.h      |  47 +++--------
+ arch/sh/include/asm/syscall_64.h      |   8 +-
+ arch/sparc/include/asm/syscall.h      |  11 ++-
+ arch/um/include/asm/syscall-generic.h |  78 +++----------------
+ arch/x86/include/asm/syscall.h        | 142 ++++++++--------------------------
+ arch/xtensa/include/asm/syscall.h     |  33 ++------
+ fs/proc/base.c                        |  17 ++--
+ include/asm-generic/syscall.h         |  21 ++---
+ include/linux/ptrace.h                |  11 ++-
+ include/trace/events/syscalls.h       |   2 +-
+ kernel/seccomp.c                      |   2 +-
+ kernel/trace/trace_syscalls.c         |   9 ++-
+ lib/syscall.c                         |  57 ++++++--------
+ 32 files changed, 247 insertions(+), 722 deletions(-)
