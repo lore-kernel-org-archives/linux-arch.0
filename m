@@ -1,7 +1,7 @@
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v2 2/5] locking/qspinlock: Refactor the qspinlock slow path
-Date: Fri, 29 Mar 2019 11:20:03 -0400
-Message-ID: <20190329152006.110370-3-alex.kogan@oracle.com>
+Subject: [PATCH v2 1/5] locking/qspinlock: Make arch_mcs_spin_unlock_contended more generic
+Date: Fri, 29 Mar 2019 11:20:02 -0400
+Message-ID: <20190329152006.110370-2-alex.kogan@oracle.com>
 References: <20190329152006.110370-1-alex.kogan@oracle.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190329152006.110370-1-alex.kogan@oracle.com>
@@ -10,98 +10,70 @@ To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@a
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Move some of the code manipulating MCS nodes into separate functions.
-This would allow easier integration of alternative ways to manipulate
-those nodes.
+The arch_mcs_spin_unlock_contended macro should accept the value to be
+stored into the lock argument as another argument. This allows using the
+same macro in cases where the value to be stored is different from 1.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
- kernel/locking/qspinlock.c | 48 +++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 41 insertions(+), 7 deletions(-)
+ arch/arm/include/asm/mcs_spinlock.h | 4 ++--
+ kernel/locking/mcs_spinlock.h       | 6 +++---
+ kernel/locking/qspinlock.c          | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 5941ce3527ce..074f65b9bedc 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -297,6 +297,43 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
+index 529d2cf4d06f..ae6d763477f4 100644
+--- a/arch/arm/include/asm/mcs_spinlock.h
++++ b/arch/arm/include/asm/mcs_spinlock.h
+@@ -14,9 +14,9 @@ do {									\
+ 		wfe();							\
+ } while (0)								\
+ 
+-#define arch_mcs_spin_unlock_contended(lock)				\
++#define arch_mcs_spin_unlock_contended(lock, val)			\
+ do {									\
+-	smp_store_release(lock, 1);					\
++	smp_store_release(lock, (val));					\
+ 	dsb_sev();							\
+ } while (0)
+ 
+diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+index 5e10153b4d3c..bc6d3244e1af 100644
+--- a/kernel/locking/mcs_spinlock.h
++++ b/kernel/locking/mcs_spinlock.h
+@@ -41,8 +41,8 @@ do {									\
+  * operations in the critical section has been completed before
+  * unlocking.
+  */
+-#define arch_mcs_spin_unlock_contended(l)				\
+-	smp_store_release((l), 1)
++#define arch_mcs_spin_unlock_contended(l, val)				\
++	smp_store_release((l), (val))
  #endif
  
-+static __always_inline int get_node_index(struct mcs_spinlock *node)
-+{
-+	return node->count++;
-+}
-+
-+static __always_inline void release_mcs_node(struct mcs_spinlock *node)
-+{
-+	__this_cpu_dec(node->count);
-+}
-+
-+/*
-+ * set_locked_empty_mcs - Try to set the spinlock value to _Q_LOCKED_VAL,
-+ * and by doing that unlock the MCS lock when its waiting queue is empty
-+ * @lock: Pointer to queued spinlock structure
-+ * @val: Current value of the lock
-+ * @node: Pointer to the MCS node of the lock holder
-+ *
-+ *  *,*,* -> 0,0,1
-+ */
-+static __always_inline bool set_locked_empty_mcs(struct qspinlock *lock,
-+						 u32 val,
-+						 struct mcs_spinlock *node)
-+{
-+	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
-+}
-+
-+/*
-+ * pass_mcs_lock - pass the MCS lock to the next waiter
-+ * @node: Pointer to the MCS node of the lock holder
-+ * @next: Pointer to the MCS node of the first waiter in the MCS queue
-+ */
-+static __always_inline void pass_mcs_lock(struct mcs_spinlock *node,
-+					  struct mcs_spinlock *next)
-+{
-+	arch_mcs_spin_unlock_contended(&next->locked, 1);
-+}
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
- /**
-@@ -406,7 +443,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	qstat_inc(qstat_lock_slowpath, true);
- pv_queue:
- 	node = this_cpu_ptr(&qnodes[0].mcs);
--	idx = node->count++;
-+	idx = get_node_index(node);
- 	tail = encode_tail(smp_processor_id(), idx);
- 
- 	/*
-@@ -541,7 +578,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *       PENDING will make the uncontended transition fail.
- 	 */
- 	if ((val & _Q_TAIL_MASK) == tail) {
--		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
-+		if (set_locked_empty_mcs(lock, val, node))
- 			goto release; /* No contention */
+ /*
+@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
  	}
  
-@@ -558,14 +595,11 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	/* Pass lock to next waiter. */
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_spin_unlock_contended(&next->locked, 1);
+ }
+ 
+ #endif /* __LINUX_MCS_SPINLOCK_H */
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 5e9247dc2515..5941ce3527ce 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -558,7 +558,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
  	if (!next)
  		next = smp_cond_load_relaxed(&node->next, (VAL));
  
--	arch_mcs_spin_unlock_contended(&next->locked, 1);
-+	pass_mcs_lock(node, next);
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_spin_unlock_contended(&next->locked, 1);
  	pv_kick_node(lock, next);
  
  release:
--	/*
--	 * release the node
--	 */
--	__this_cpu_dec(qnodes[0].mcs.count);
-+	release_mcs_node(&qnodes[0].mcs);
- }
- EXPORT_SYMBOL(queued_spin_lock_slowpath);
- 
 -- 
 2.11.0 (Apple Git-81)
