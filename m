@@ -1,74 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57650 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728550AbfC2Kas (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 29 Mar 2019 06:30:48 -0400
-Date: Fri, 29 Mar 2019 10:30:40 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to
- memory syscalls
-Message-ID: <20190329103039.GA44339@arrakis.emea.arm.com>
-References: <cover.1553093420.git.andreyknvl@google.com>
- <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
- <20190322114357.GC13384@arrakis.emea.arm.com>
- <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
- <20190328141934.38960af0@gandalf.local.home>
+Received: from mga02.intel.com ([134.134.136.20]:52229 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728704AbfC2LiZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Mar 2019 07:38:25 -0400
+Date: Fri, 29 Mar 2019 13:38:19 +0200
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v14 00/11] Introduce the for_each_set_clump8 macro
+Message-ID: <20190329113819.GR9224@smile.fi.intel.com>
+References: <cover.1553828158.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190328141934.38960af0@gandalf.local.home>
+In-Reply-To: <cover.1553828158.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Message-ID: <20190329103040.PQXqhjCA9x0RtcZTdsl2zEhadEy4bLys2j0gVUNdIY8@z>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de
+Message-ID: <20190329113819.9rUIqChBOfa-yJ2oxPS5IwvQ0mqSOVTfOMo6pL92boc@z>
 
-(I trimmed down the cc list a bit since it's always bouncing)
+On Fri, Mar 29, 2019 at 12:03:30PM +0900, William Breathitt Gray wrote:
+> Changes in v14:
+>   - Redefine bitmap_get_value8, bitmap_set_value8, and find_next_clump8
+>     as static inline functions
+>   - Rename 'idx' variable to 'index' in the bitmap_get_value8 and
+>     bitmap_set_value8 functions
+>   - Remove superfluous parens in gen_74x164_set_multiple
+> 
 
-On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
-> On Thu, 28 Mar 2019 19:10:07 +0100
-> Andrey Konovalov <andreyknvl@google.com> wrote:
-> 
-> > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> > > > ---
-> > > >  ipc/shm.c      | 2 ++
-> > > >  mm/madvise.c   | 2 ++
-> > > >  mm/mempolicy.c | 5 +++++
-> > > >  mm/migrate.c   | 1 +
-> > > >  mm/mincore.c   | 2 ++
-> > > >  mm/mlock.c     | 5 +++++
-> > > >  mm/mmap.c      | 7 +++++++
-> > > >  mm/mprotect.c  | 1 +
-> > > >  mm/mremap.c    | 2 ++
-> > > >  mm/msync.c     | 2 ++
-> > > >  10 files changed, 29 insertions(+)  
-> > >
-> > > I wonder whether it's better to keep these as wrappers in the arm64
-> > > code.  
-> > 
-> > I don't think I understand what you propose, could you elaborate?
-> 
-> I believe Catalin is saying that instead of placing things like:
-> 
-> @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
->  	unsigned long ret;
->  	long err;
->  
-> +	shmaddr = untagged_addr(shmaddr);
-> 
-> To instead have the shmaddr set to the untagged_addr() before calling
-> the system call, and passing the untagged addr to the system call, as
-> that goes through the arm64 architecture specific code first.
+Thank you!
 
-Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
-arch/arm64/kernel/sys.c, just add the untagging there. We could do
-something similar for the other syscalls. I don't mind doing this in the
-generic code but if it's only needed for arm64, I'd rather keep the
-generic changes to a minimum.
+FWIW,
+Reviewed-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
 
-(I had a hack overriding __SC_CAST to do this automatically for pointer
-arguments but this wouldn't work on mmap() and friends as the argument
-is unsigned long)
+> While adding GPIO get_multiple/set_multiple callback support for various
+> drivers, I noticed a pattern of looping manifesting that would be useful
+> standardized as a macro.
+> 
+> This patchset introduces the for_each_set_clump8 macro and utilizes it
+> in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+> for-loop syntax that iterates over a memory region entire groups of set
+> bits at a time.
+> 
+> For example, suppose you would like to iterate over a 32-bit integer 8
+> bits at a time, skipping over 8-bit groups with no set bit, where
+> XXXXXXXX represents the current 8-bit group:
+> 
+>     Example:        10111110 00000000 11111111 00110011
+>     First loop:     10111110 00000000 11111111 XXXXXXXX
+>     Second loop:    10111110 00000000 XXXXXXXX 00110011
+>     Third loop:     XXXXXXXX 00000000 11111111 00110011
+> 
+> Each iteration of the loop returns the next 8-bit group that has at
+> least one set bit.
+> 
+> The for_each_set_clump8 macro has four parameters:
+> 
+>     * start: set to the bit offset of the current clump
+>     * clump: set to the current clump value
+>     * bits: bitmap to search within
+>     * size: bitmap size in number of bits
+> 
+> In this version of the patchset, the for_each_set_clump macro has been
+> reimplemented and simplified based on the suggestions provided by Rasmus
+> Villemoes and Andy Shevchenko in the version 4 submission.
+> 
+> In particular, the function of the for_each_set_clump macro has been
+> restricted to handle only 8-bit clumps; the drivers that use the
+> for_each_set_clump macro only handle 8-bit ports so a generic
+> for_each_set_clump implementation is not necessary. Thus, a solution for
+> large clumps (i.e. those larger than the width of a bitmap word) can be
+> postponed until a driver appears that actually requires such a generic
+> for_each_set_clump implementation.
+> 
+> For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
+> smaller than the width of a bitmap word) can be implemented by simply
+> replacing the hardcoded '8' and '0xFF' instances with respective
+> variables. I have not yet had a need for such an implementation, and
+> since it falls short of a true generic for_each_set_clump function, I
+> have decided to forgo such an implementation for now.
+> 
+> In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+> introduced to get and set 8-bit values respectively. Their use is based
+> on the behavior suggested in the patchset version 4 review.
+> 
+> William Breathitt Gray (11):
+>   bitops: Introduce the for_each_set_clump8 macro
+>   lib/test_bitmap.c: Add for_each_set_clump8 test cases
+>   gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+>   gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+>   gpio: gpio-mm: Utilize for_each_set_clump8 macro
+>   gpio: ws16c48: Utilize for_each_set_clump8 macro
+>   gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+>   gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+>   gpio: uniphier: Utilize for_each_set_clump8 macro
+>   gpio: 74x164: Utilize the for_each_set_clump8 macro
+>   thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
+> 
+>  drivers/gpio/gpio-104-dio-48e.c            |  73 ++++----------
+>  drivers/gpio/gpio-104-idi-48.c             |  36 ++-----
+>  drivers/gpio/gpio-74x164.c                 |  19 ++--
+>  drivers/gpio/gpio-gpio-mm.c                |  73 ++++----------
+>  drivers/gpio/gpio-pci-idio-16.c            |  75 +++++---------
+>  drivers/gpio/gpio-pcie-idio-24.c           | 109 ++++++++-------------
+>  drivers/gpio/gpio-uniphier.c               |  16 ++-
+>  drivers/gpio/gpio-ws16c48.c                |  73 ++++----------
+>  drivers/thermal/intel/intel_soc_dts_iosf.c |  29 +++---
+>  drivers/thermal/intel/intel_soc_dts_iosf.h |   2 -
+>  include/asm-generic/bitops/find.h          |  61 ++++++++++++
+>  include/linux/bitops.h                     |   5 +
+>  lib/test_bitmap.c                          |  65 ++++++++++++
+>  13 files changed, 299 insertions(+), 337 deletions(-)
+> 
+> -- 
+> 2.21.0
+> 
 
 -- 
-Catalin
+With Best Regards,
+Andy Shevchenko
