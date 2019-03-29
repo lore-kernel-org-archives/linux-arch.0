@@ -1,52 +1,265 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 4/5] arm64: compat: Add KUSER_HELPERS config option
-Date: Fri, 29 Mar 2019 12:22:16 +0000
-Message-ID: <20190329122216.xa6va62qwyynoldt@mbp>
-References: <20190319151542.19557-1-vincenzo.frascino@arm.com>
- <20190319151542.19557-5-vincenzo.frascino@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190319151542.19557-5-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Jann Horn <jannh@google.com>
+From: guoren@kernel.org
+Subject: [PATCH] csky: Remove pre-processing pte-dirty&young in entry.S
+Date: Fri, 29 Mar 2019 21:47:14 +0800
+Message-ID: <1553867234-3769-1-git-send-email-guoren@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 19, 2019 at 03:15:41PM +0000, Vincenzo Frascino wrote:
-> When kuser helpers are enabled the kernel maps the relative code at
-> a fixed address (0xffff0000). Making configurable the option to disable
-> them means that the kernel can remove this mapping and any access to
-> this memory area results in a sigfault.
-> 
-> Add a KUSER_HELPERS config option that can be used to disable the
-> mapping when it is turned off.
-> 
-> This option can be turned off if and only if the applications are
-> designed specifically for the platform and they do not make use of the
-> kuser helpers code.
-> 
-> Note: kuser helpers is disabled by default with 64K pages.
+From: Guo Ren <ren_guo@c-sky.com>
 
-Actually this last sentence is more than just the default y/n for this
-option. It adds a hard dependency, which means it cannot be enabled.
-Currently we do allow COMPAT with 64K pages if EXPERT.
+do_page_fault()->
+  handle_mm_fault()->
+    __handle_mm_fault()->
+      handle_pte_fault()
 
-Is the main reason for this just to be able to subtract PAGE_SIZE for
-TASK_SIZE_32 in the last patch? What happens if we leave TASK_SIZE_32
-set to 0x100000000 for the 64K page configuration? Do we still have the
-C99 issue mentioned in the cover letter (assuming that the last page is
-already occupied by the vectors page)?
+The handle_pte_fault() will call pte_mkdirty() and pte_mkyoung() to set
+up dirty or valid bit in page-table entry. So there is no need to
+pre-process first-access and first-write in entry.S with assembly code.
 
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/abiv1/inc/abi/entry.h |  20 --------
+ arch/csky/abiv2/inc/abi/entry.h |  24 ----------
+ arch/csky/include/asm/pgtable.h |  10 ++--
+ arch/csky/kernel/entry.S        | 101 ++++++++--------------------------------
+ 4 files changed, 24 insertions(+), 131 deletions(-)
+
+diff --git a/arch/csky/abiv1/inc/abi/entry.h b/arch/csky/abiv1/inc/abi/entry.h
+index 7dacce4..9e343f4 100644
+--- a/arch/csky/abiv1/inc/abi/entry.h
++++ b/arch/csky/abiv1/inc/abi/entry.h
+@@ -126,30 +126,10 @@
+ .endm
+ 
+ /* MMU registers operators. */
+-.macro RD_MIR	rx
+-	cprcr   \rx, cpcr0
+-.endm
+-
+ .macro RD_MEH	rx
+ 	cprcr   \rx, cpcr4
+ .endm
+ 
+-.macro RD_MCIR	rx
+-	cprcr   \rx, cpcr8
+-.endm
+-
+-.macro RD_PGDR  rx
+-	cprcr   \rx, cpcr29
+-.endm
+-
+-.macro WR_MEH	rx
+-	cpwcr   \rx, cpcr4
+-.endm
+-
+-.macro WR_MCIR	rx
+-	cpwcr   \rx, cpcr8
+-.endm
+-
+ .macro SETUP_MMU rx
+ 	lrw	\rx, PHYS_OFFSET | 0xe
+ 	cpwcr	\rx, cpcr30
+diff --git a/arch/csky/abiv2/inc/abi/entry.h b/arch/csky/abiv2/inc/abi/entry.h
+index ea376ed..eb8fecc 100644
+--- a/arch/csky/abiv2/inc/abi/entry.h
++++ b/arch/csky/abiv2/inc/abi/entry.h
+@@ -141,34 +141,10 @@
+ .endm
+ 
+ /* MMU registers operators. */
+-.macro RD_MIR rx
+-	mfcr	\rx, cr<0, 15>
+-.endm
+-
+ .macro RD_MEH rx
+ 	mfcr	\rx, cr<4, 15>
+ .endm
+ 
+-.macro RD_MCIR rx
+-	mfcr	\rx, cr<8, 15>
+-.endm
+-
+-.macro RD_PGDR rx
+-	mfcr	\rx, cr<29, 15>
+-.endm
+-
+-.macro RD_PGDR_K rx
+-	mfcr	\rx, cr<28, 15>
+-.endm
+-
+-.macro WR_MEH rx
+-	mtcr	\rx, cr<4, 15>
+-.endm
+-
+-.macro WR_MCIR rx
+-	mtcr	\rx, cr<8, 15>
+-.endm
+-
+ .macro SETUP_MMU rx
+ 	lrw	\rx, PHYS_OFFSET | 0xe
+ 	mtcr	\rx, cr<30, 15>
+diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
+index dcea277..60382aa 100644
+--- a/arch/csky/include/asm/pgtable.h
++++ b/arch/csky/include/asm/pgtable.h
+@@ -218,17 +218,15 @@ static inline pte_t pte_mkwrite(pte_t pte)
+ 
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
+-	pte_val(pte) |= _PAGE_MODIFIED;
+-	if (pte_val(pte) & _PAGE_WRITE)
+-		pte_val(pte) |= _PAGE_DIRTY;
++	pte_val(pte) |= _PAGE_MODIFIED | _PAGE_DIRTY;
++
+ 	return pte;
+ }
+ 
+ static inline pte_t pte_mkyoung(pte_t pte)
+ {
+-	pte_val(pte) |= _PAGE_ACCESSED;
+-	if (pte_val(pte) & _PAGE_READ)
+-		pte_val(pte) |= _PAGE_VALID;
++	pte_val(pte) |= _PAGE_ACCESSED | _PAGE_VALID;
++
+ 	return pte;
+ }
+ 
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index ecc6e7d..6d89837 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -13,91 +13,24 @@
+ #include <asm/page.h>
+ #include <asm/thread_info.h>
+ 
+-#define PTE_INDX_MSK    0xffc
+-#define PTE_INDX_SHIFT  10
+-#define _PGDIR_SHIFT    22
+-
+-.macro tlbop_begin name, val0, val1, val2
+-ENTRY(csky_\name)
+-	mtcr    a3, ss2
+-	mtcr    r6, ss3
+-	mtcr    a2, ss4
+-
+-	RD_PGDR	r6
+-	RD_MEH	a3
++.macro tlbop_begin
++	SAVE_ALL EPC_KEEP
+ #ifdef CONFIG_CPU_HAS_TLBI
+-	tlbi.vaas a3
++	RD_MEH	a2
++	tlbi.vaas a2
+ 	sync.is
+-
+-	btsti	a3, 31
+-	bf	1f
+-	RD_PGDR_K r6
+-1:
+ #else
+ 	bgeni	a2, 31
+ 	WR_MCIR	a2
+ 	bgeni	a2, 25
+ 	WR_MCIR	a2
+ #endif
+-	bclri   r6, 0
+-	lrw	a2, PHYS_OFFSET
+-	subu	r6, a2
+-	bseti	r6, 31
+-
+-	mov     a2, a3
+-	lsri    a2, _PGDIR_SHIFT
+-	lsli    a2, 2
+-	addu    r6, a2
+-	ldw     r6, (r6)
+-
+-	lrw	a2, PHYS_OFFSET
+-	subu	r6, a2
+-	bseti	r6, 31
+-
+-	lsri    a3, PTE_INDX_SHIFT
+-	lrw     a2, PTE_INDX_MSK
+-	and     a3, a2
+-	addu    r6, a3
+-	ldw     a3, (r6)
+-
+-	movi	a2, (_PAGE_PRESENT | \val0)
+-	and     a3, a2
+-	cmpne   a3, a2
+-	bt	\name
+-
+-	/* First read/write the page, just update the flags */
+-	ldw     a3, (r6)
+-	bgeni   a2, PAGE_VALID_BIT
+-	bseti   a2, PAGE_ACCESSED_BIT
+-	bseti   a2, \val1
+-	bseti   a2, \val2
+-	or      a3, a2
+-	stw     a3, (r6)
+-
+-	/* Some cpu tlb-hardrefill bypass the cache */
+-#ifdef CONFIG_CPU_NEED_TLBSYNC
+-	movi	a2, 0x22
+-	bseti	a2, 6
+-	mtcr	r6, cr22
+-	mtcr	a2, cr17
+-	sync
+-#endif
+-
+-	mfcr    a3, ss2
+-	mfcr    r6, ss3
+-	mfcr    a2, ss4
+-	rte
+-\name:
+-	mfcr    a3, ss2
+-	mfcr    r6, ss3
+-	mfcr    a2, ss4
+-	SAVE_ALL EPC_KEEP
+ .endm
+-.macro tlbop_end is_write
++
++.macro tlbop_end
++	mov     a0, sp
+ 	RD_MEH	a2
+ 	psrset  ee, ie
+-	mov     a0, sp
+-	movi    a1, \is_write
+ 	jbsr    do_page_fault
+ 	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
+ 	jmpi    ret_from_exception
+@@ -105,17 +38,23 @@ ENTRY(csky_\name)
+ 
+ .text
+ 
+-tlbop_begin tlbinvalidl, _PAGE_READ, PAGE_VALID_BIT, PAGE_ACCESSED_BIT
+-tlbop_end 0
++ENTRY(csky_tlbinvalidl)
++	tlbop_begin
++	movi	a1, 0
++	tlbop_end
+ 
+-tlbop_begin tlbinvalids, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
+-tlbop_end 1
++ENTRY(csky_tlbinvalids)
++	tlbop_begin
++	movi	a1, 1
++	tlbop_end
+ 
+-tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
++ENTRY(csky_tlbmodified)
++	tlbop_begin
+ #ifndef CONFIG_CPU_HAS_LDSTEX
+-jbsr csky_cmpxchg_fixup
++	jbsr csky_cmpxchg_fixup
+ #endif
+-tlbop_end 1
++	movi	a1, 1
++	tlbop_end
+ 
+ ENTRY(csky_systemcall)
+ 	SAVE_ALL EPC_INCREASE
 -- 
-Catalin
+2.7.4
