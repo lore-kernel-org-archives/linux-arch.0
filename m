@@ -1,116 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43132 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728547AbfC2DWz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 Mar 2019 23:22:55 -0400
-Message-ID: <20190328230512.486297455@goodmis.org>
-Date: Thu, 28 Mar 2019 19:05:12 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFC][PATCH 0/4 v2] sycalls: Remove args i and n from syscall_get_arguments()
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57650 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728550AbfC2Kas (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Mar 2019 06:30:48 -0400
+Date: Fri, 29 Mar 2019 10:30:40 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to
+ memory syscalls
+Message-ID: <20190329103039.GA44339@arrakis.emea.arm.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
+ <20190322114357.GC13384@arrakis.emea.arm.com>
+ <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
+ <20190328141934.38960af0@gandalf.local.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190328141934.38960af0@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20190328230512.zx3n6TLajLloMCKD76aJe2RUmhWv6PkGUpczfOmNMyw@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190329103040.PQXqhjCA9x0RtcZTdsl2zEhadEy4bLys2j0gVUNdIY8@z>
 
+(I trimmed down the cc list a bit since it's always bouncing)
 
-Two and a half years ago I sent out 3 patches and a title letter that
-had this[1]:
+On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
+> On Thu, 28 Mar 2019 19:10:07 +0100
+> Andrey Konovalov <andreyknvl@google.com> wrote:
+> 
+> > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > > > ---
+> > > >  ipc/shm.c      | 2 ++
+> > > >  mm/madvise.c   | 2 ++
+> > > >  mm/mempolicy.c | 5 +++++
+> > > >  mm/migrate.c   | 1 +
+> > > >  mm/mincore.c   | 2 ++
+> > > >  mm/mlock.c     | 5 +++++
+> > > >  mm/mmap.c      | 7 +++++++
+> > > >  mm/mprotect.c  | 1 +
+> > > >  mm/mremap.c    | 2 ++
+> > > >  mm/msync.c     | 2 ++
+> > > >  10 files changed, 29 insertions(+)  
+> > >
+> > > I wonder whether it's better to keep these as wrappers in the arm64
+> > > code.  
+> > 
+> > I don't think I understand what you propose, could you elaborate?
+> 
+> I believe Catalin is saying that instead of placing things like:
+> 
+> @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+>  	unsigned long ret;
+>  	long err;
+>  
+> +	shmaddr = untagged_addr(shmaddr);
+> 
+> To instead have the shmaddr set to the untagged_addr() before calling
+> the system call, and passing the untagged addr to the system call, as
+> that goes through the arm64 architecture specific code first.
 
-  At Linux Plumbers, Andy Lutomirski approached me to tell me that the
-  syscall_get_arguments() implementation in x86 was horrible and gcc
-  certainly gets it wrong. He said that since the tracepoints only pass
-  in 0 and 6 for i and n repectively, it should be optimized for that case.
-  Inspecting the kernel, I discovered that all users pass in 0 for i and
-  only one file passing in something other than 6 for the number of arguments.
-  That code happens to be my own code used for the special syscall tracing.
-  That can easily be converted to just using 0 and 6 as well, and only copying
-  what is needed. Which is probably the faster path anyway for that case.
+Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
+arch/arm64/kernel/sys.c, just add the untagging there. We could do
+something similar for the other syscalls. I don't mind doing this in the
+generic code but if it's only needed for arm64, I'd rather keep the
+generic changes to a minimum.
 
-  I haven't run the numbers (I can do that when I get some time), but since
-  pretty much all use cases use 0 and 6 and that would allow these functions
-  not to need strange logic to handle odd cases, I think this is still a win.
+(I had a hack overriding __SC_CAST to do this automatically for pointer
+arguments but this wouldn't work on mmap() and friends as the argument
+is unsigned long)
 
-It received positive comments but also Linus asked to remove the separate
-arg pointers and replace them with a single structure and fill that
-instead. But for some reason, this got pushed aside and forgotten (probably,
-had to do with the fact that I left Red Hat shortly after this).
-
-Recently, it was brought back up again[2] and I decided to dust off these
-patches and resubmit them. I also added one more patch to do the same
-for syscall_set_arguments() that I did for syscall_get_arguments() even
-though syscall_set_arguments() currently (and never has) had any callers.
-But we are told that in the near future it may have one.
-
-The changes do optimize the logic a little, but for most archs I just kept
-the same logic (loops and such) as I don't have a way to test it, and
-didn't want to break the logic.
-
-I added a new struct syscall_info that holds seccomp_data and also
-includes a stack pointer (sp) field. I would change seccomp_data,
-but because its in include/uapi/linux/seccomp.h I didn't want to
-touch it and break userspace. Perhaps we could add the field at the
-end, but I didn't want to chance it (unless others say its OK).
-
-I ran these through zero-day-bot and compiled tested these changes for
-all architectures except for csky which I do not have a cross compiler
-for.
-
-Note the following archs fail normal builds, but they fail the same
-with these patches:
-
-   arc
-   h8300
-   parisc64
-
-Note, you may notice that I have "(Red Hat)" as the author of the
-first three patches (even though they are signed off by "(VMware)").
-This is because those patches were originally written while I was
-working for Red Hat. But as I forward ported them while working for
-VMware, my signed-off-by reflects that.
-
-[1] - https://lore.kernel.org/lkml/20161107212634.529267342@goodmis.org/T/#u
-[2] - https://lore.kernel.org/lkml/20190326151244.GC16837@redhat.com/T/#u
-
-Steven Rostedt (Red Hat) (3):
-      ptrace: Remove maxargs from task_current_syscall()
-      tracing/syscalls: Pass in hardcoded 6 into syscall_get_arguments()
-      syscalls: Remove start and number from syscall_get_arguments() args
-
-Steven Rostedt (VMware) (1):
-      syscalls: Remove start and number from syscall_set_arguments() args
-
-----
- arch/arc/include/asm/syscall.h        |   7 +-
- arch/arm/include/asm/syscall.h        |  47 ++---------
- arch/arm64/include/asm/syscall.h      |  46 ++---------
- arch/c6x/include/asm/syscall.h        |  79 ++++---------------
- arch/csky/include/asm/syscall.h       |  26 ++-----
- arch/h8300/include/asm/syscall.h      |  34 ++------
- arch/hexagon/include/asm/syscall.h    |   4 +-
- arch/ia64/include/asm/syscall.h       |  13 +---
- arch/ia64/kernel/ptrace.c             |   7 +-
- arch/microblaze/include/asm/syscall.h |   8 +-
- arch/mips/include/asm/syscall.h       |   3 +-
- arch/mips/kernel/ptrace.c             |   2 +-
- arch/nds32/include/asm/syscall.h      |  62 +++------------
- arch/nios2/include/asm/syscall.h      |  84 ++++----------------
- arch/openrisc/include/asm/syscall.h   |  12 +--
- arch/parisc/include/asm/syscall.h     |  30 ++-----
- arch/powerpc/include/asm/syscall.h    |  15 ++--
- arch/riscv/include/asm/syscall.h      |  24 ++----
- arch/s390/include/asm/syscall.h       |  28 +++----
- arch/sh/include/asm/syscall_32.h      |  47 +++--------
- arch/sh/include/asm/syscall_64.h      |   8 +-
- arch/sparc/include/asm/syscall.h      |  11 ++-
- arch/um/include/asm/syscall-generic.h |  78 +++----------------
- arch/x86/include/asm/syscall.h        | 142 ++++++++--------------------------
- arch/xtensa/include/asm/syscall.h     |  33 ++------
- fs/proc/base.c                        |  17 ++--
- include/asm-generic/syscall.h         |  21 ++---
- include/linux/ptrace.h                |  11 ++-
- include/trace/events/syscalls.h       |   2 +-
- kernel/seccomp.c                      |   2 +-
- kernel/trace/trace_syscalls.c         |   9 ++-
- lib/syscall.c                         |  57 ++++++--------
- 32 files changed, 247 insertions(+), 722 deletions(-)
+-- 
+Catalin
