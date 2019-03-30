@@ -1,43 +1,75 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [RFC][PATCH 0/4 v2] sycalls: Remove args i and n from syscall_get_arguments()
-Date: Fri, 29 Mar 2019 21:05:27 -0700 (PDT)
-Message-ID: <mhng-8e9b547b-7fe3-43d2-9dea-b217de923605@palmer-si-x1c4>
-References: <20190329134045.3fb2e69f@gandalf.local.home>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] Remove SPDX "WITH Linux-syscall-note" from kernel-space headers
+Date: Sat, 30 Mar 2019 13:50:53 +0900
+Message-ID: <1553921453-23777-1-git-send-email-yamada.masahiro@socionext.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190329134045.3fb2e69f@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: rostedt@goodmis.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, mingo@kernel.org, akpm@linux-foundation.org, luto@amacapital.net, roland@hack.frob.com, oleg@redhat.com, linux-arch@vger.kernel.org, peterz@infradead.org, tglx@linutronix.de, gustavo@embeddedor.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, linux@dominikbrodowski.net, luto@kernel.org, keescook@chromium.org, ebiederm@xmission.com, ldv@altlinux.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Karthikeyan Ramasubramanian <kramasub@codeaurora.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Gross <andy.gross@linaro.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Girish Mahadevan <girishm@codeaurora.org>, Sagar Dharia <sdharia@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Haiyang Zhang <haiyangz@microsoft.com>, "K. Y. Srinivasan" <kys@microsoft.com>, Sasha Levin <sashal@kernel.org>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Hemminger <sthemmin@microsoft.com>, Ingo Molnar <mingo@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 29 Mar 2019 10:40:45 PDT (-0700), rostedt@goodmis.org wrote:
-> On Fri, 29 Mar 2019 10:24:58 -0700
-> Linus Torvalds <torvalds@linux-foundation.org> wrote:
->
->> The whole series looks fine to me.
->
-> Great! I may just send a pull request to you, after some fixes (see
-> below).
->
->>
->> I still suspect that we should just remove the syscall_set_arguments()
->> thing entirely, but even without that, the cleanup of the calling
->> convention is at least an improvement.
->
-> I'll keep it around for now, but this should go as a warning to Dmitry,
-> to get something using it soon, or they may be dropped.
->
-> Also, Dmitry found a few bugs with the current
-> syscall_set/get_arguments() on some of the archs (riscv and csky). Which
-> I'll add at the front of this series and update my changes to keep the
-> same logic.
+The "WITH Linux-syscall-note" should be added to headers exported to
+the user-space.
 
-Thanks.  I'm happy to have you take the RISC-V fix through your tree.
+Some kernel-space headers have "WITH Linux-syscall-note", which seems
+a mistake.
 
->
-> Then I'll post a non RFC version.
->
-> -- Steve
+[1] arch/x86/include/asm/hyperv-tlfs.h
+
+5a4858032217 ("x86/hyper-v: move hyperv.h out of uapi") moved this file
+out of uapi, but missed to update the SPDX License tag.
+
+[2] include/asm-generic/shmparam.h
+
+76ce2a80a28e ("Rename include/{uapi => }/asm-generic/shmparam.h really")
+moved this file out of uapi, but missed to update the SPDX License tag.
+
+[3] include/linux/qcom-geni-se.h
+
+eddac5af0654 ("soc: qcom: Add GENI based QUP Wrapper driver") added this
+file, but I do now see a good reason why its license tag must include
+"WITH Linux-syscall-note".
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ arch/x86/include/asm/hyperv-tlfs.h | 2 +-
+ include/asm-generic/shmparam.h     | 2 +-
+ include/linux/qcom-geni-se.h       | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+index 2bdbbbc..cdf44aa 100644
+--- a/arch/x86/include/asm/hyperv-tlfs.h
++++ b/arch/x86/include/asm/hyperv-tlfs.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ 
+ /*
+  * This file contains definitions from Hyper-V Hypervisor Top-Level Functional
+diff --git a/include/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
+index 8b78c0b..b8f9035 100644
+--- a/include/asm-generic/shmparam.h
++++ b/include/asm-generic/shmparam.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef __ASM_GENERIC_SHMPARAM_H
+ #define __ASM_GENERIC_SHMPARAM_H
+ 
+diff --git a/include/linux/qcom-geni-se.h b/include/linux/qcom-geni-se.h
+index 3bcd67f..dd46494 100644
+--- a/include/linux/qcom-geni-se.h
++++ b/include/linux/qcom-geni-se.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ /*
+  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+  */
+-- 
+2.7.4
