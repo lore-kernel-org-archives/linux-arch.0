@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:32902 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:32908 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726412AbfDALUi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 07:20:38 -0400
+        id S1726412AbfDALUk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 07:20:40 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 2/4] arm64: compat: Split kuser32
-Date: Mon,  1 Apr 2019 12:20:23 +0100
-Message-ID: <20190401112025.40807-3-vincenzo.frascino@arm.com>
+Subject: [PATCH 3/4] arm64: compat: Refactor aarch32_alloc_vdso_pages()
+Date: Mon,  1 Apr 2019 12:20:24 +0100
+Message-ID: <20190401112025.40807-4-vincenzo.frascino@arm.com>
 In-Reply-To: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,162 +15,97 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190401112023.OvtBxmTqYRl5DqK3UybUSWsv2JnV58N_l-YBJaJYezA@z>
+Message-ID: <20190401112024.UDmQI6lgO-rI68By_eP9ViPkc9ATEDg_bEZ8DBc-PDM@z>
 
-To make it possible to disable kuser helpers in aarch32 we need to
-divide the kuser and the sigreturn functionalities.
+aarch32_alloc_vdso_pages() needs to the refactored to make it
+easier to disable kuser helpers.
 
-Split the current version of kuser32 in kuser32 (for kuser helpers)
-and sigreturn32 (for sigreturn helpers).
+Divide the function in aarch32_alloc_kuser_vdso_page() and
+aarch32_alloc_sigreturn_vdso_page().
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/Makefile      |  2 +-
- arch/arm64/kernel/kuser32.S     | 58 ++-------------------------------
- arch/arm64/kernel/sigreturn32.S | 46 ++++++++++++++++++++++++++
- 3 files changed, 49 insertions(+), 57 deletions(-)
- create mode 100644 arch/arm64/kernel/sigreturn32.S
+ arch/arm64/kernel/vdso.c | 49 ++++++++++++++++++++++++++--------------
+ 1 file changed, 32 insertions(+), 17 deletions(-)
 
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index cd434d0719c1..50f76b88a967 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 9556ad2036ef..afbbdccbf05b 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -74,40 +74,55 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
+ 	},
+ };
  
- obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
--					   sys_compat.o
-+					   sigreturn32.o sys_compat.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
- obj-$(CONFIG_MODULES)			+= module.o
- obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
-diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-index 997e6b27ff6a..f19e2b015097 100644
---- a/arch/arm64/kernel/kuser32.S
-+++ b/arch/arm64/kernel/kuser32.S
-@@ -1,24 +1,9 @@
- /*
-- * Low-level user helpers placed in the vectors page for AArch32.
-+ * AArch32 user helpers.
-  * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-  *
-  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-- * Copyright (C) 2012 ARM Ltd.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-- *
-- *
-- * AArch32 user helpers.
-+ * Copyright (C) 2012-2018 ARM Ltd.
-  *
-  * Each segment is 32-byte aligned and will be moved to the top of the high
-  * vector page.  New segments (if ever needed) must be added in front of
-@@ -77,42 +62,3 @@ __kuser_helper_version:			// 0xffff0ffc
- 	.word	((__kuser_helper_end - __kuser_helper_start) >> 5)
- 	.globl	__kuser_helper_end
- __kuser_helper_end:
+-static int __init aarch32_alloc_vdso_pages(void)
++static int aarch32_alloc_kuser_vdso_page(void)
+ {
+ 	extern char __kuser_helper_start[], __kuser_helper_end[];
+-	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
 -
--/*
-- * AArch32 sigreturn code
-- *
-- * For ARM syscalls, the syscall number has to be loaded into r7.
-- * We do not support an OABI userspace.
-- *
-- * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-- * need two 16-bit instructions.
-- */
--	.globl __aarch32_sigret_code_start
--__aarch32_sigret_code_start:
+ 	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
+-	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
+-	unsigned long vdso_pages[2];
 -
--	/*
--	 * ARM Code
--	 */
--	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
--	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
--
--	/*
--	 * ARM code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
--
--	/*
--	 * Thumb code
--	 */
--	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
--	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
--
--        .globl __aarch32_sigret_code_end
--__aarch32_sigret_code_end:
-diff --git a/arch/arm64/kernel/sigreturn32.S b/arch/arm64/kernel/sigreturn32.S
-new file mode 100644
-index 000000000000..475d30d471ac
---- /dev/null
-+++ b/arch/arm64/kernel/sigreturn32.S
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * AArch32 sigreturn code.
-+ * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
-+ *
-+ * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-+ * Copyright (C) 2012-2018 ARM Ltd.
-+ *
-+ * For ARM syscalls, the syscall number has to be loaded into r7.
-+ * We do not support an OABI userspace.
-+ *
-+ * For Thumb syscalls, we also pass the syscall number via r7. We therefore
-+ * need two 16-bit instructions.
-+ */
+-	vdso_pages[0] = get_zeroed_page(GFP_ATOMIC);
+-	if (!vdso_pages[0])
+-		return -ENOMEM;
++	unsigned long vdso_page;
+ 
+-	vdso_pages[1] = get_zeroed_page(GFP_ATOMIC);
+-	if (!vdso_pages[1])
++	vdso_page = get_zeroed_page(GFP_ATOMIC);
++	if (!vdso_page)
+ 		return -ENOMEM;
+ 
+ 	/* kuser helpers */
+-	memcpy((void *)(vdso_pages[0] + 0x1000 - kuser_sz),
++	memcpy((void *)(vdso_page + 0x1000 - kuser_sz),
+ 	       __kuser_helper_start,
+ 	       kuser_sz);
+ 
++	aarch32_vdso_pages[0] = virt_to_page(vdso_page);
 +
-+#include <asm/unistd.h>
++	flush_dcache_page(aarch32_vdso_pages[0]);
 +
-+	.globl __aarch32_sigret_code_start
-+__aarch32_sigret_code_start:
++	return 0;
++}
 +
-+	/*
-+	 * ARM Code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3		// mov	r7, #__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef		// svc	#__NR_compat_sigreturn
++static int aarch32_alloc_sigreturn_vdso_page(void)
++{
++	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
++	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
++	unsigned long vdso_page;
 +
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
-+	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
++	vdso_page = get_zeroed_page(GFP_ATOMIC);
++	if (!vdso_page)
++		return -ENOMEM;
 +
-+	/*
-+	 * ARM code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
+ 	/* sigreturn code */
+-	memcpy((void *)vdso_pages[1],
++	memcpy((void *)vdso_page,
+ 	       __aarch32_sigret_code_start,
+ 	       sigret_sz);
+ 
+-	flush_icache_range(vdso_pages[0], vdso_pages[0] + PAGE_SIZE);
+-	flush_icache_range(vdso_pages[1], vdso_pages[1] + PAGE_SIZE);
++	aarch32_vdso_pages[1] = virt_to_page(vdso_page);
+ 
+-	aarch32_vdso_pages[0] = virt_to_page(vdso_pages[0]);
+-	aarch32_vdso_pages[1] = virt_to_page(vdso_pages[1]);
++	flush_dcache_page(aarch32_vdso_pages[1]);
+ 
+ 	return 0;
 +
-+	/*
-+	 * Thumb code
-+	 */
-+	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
-+	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
++}
 +
-+        .globl __aarch32_sigret_code_end
-+__aarch32_sigret_code_end:
++static int __init aarch32_alloc_vdso_pages(void)
++{
++	return aarch32_alloc_kuser_vdso_page() &
++	       aarch32_alloc_sigreturn_vdso_page();
+ }
+ arch_initcall(aarch32_alloc_vdso_pages);
+ 
 -- 
 2.21.0
