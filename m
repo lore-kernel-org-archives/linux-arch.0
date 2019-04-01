@@ -1,17 +1,16 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH 1/5] arm64: compat: Alloc separate pages for vectors and
- sigpage
-Date: Mon, 1 Apr 2019 10:00:44 +0100
-Message-ID: <725414ad-63a3-1d4f-1cd4-3c406bc809c5@arm.com>
-References: <20190319151542.19557-1-vincenzo.frascino@arm.com>
- <20190319151542.19557-2-vincenzo.frascino@arm.com>
- <20190329121211.gv7i7fqt74h3rtls@mbp>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Mon, 1 Apr 2019 11:06:53 +0200
+Message-ID: <20190401090653.GF11158@hirez.programming.kicks-ass.net>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190329121211.gv7i7fqt74h3rtls@mbp>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20190329152006.110370-4-alex.kogan@oracle.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -21,63 +20,57 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Jann Horn <jannh@google.com>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Catalin,
+On Fri, Mar 29, 2019 at 11:20:04AM -0400, Alex Kogan wrote:
+> diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+> index bc6d3244e1af..71ee4b64c5d4 100644
+> --- a/kernel/locking/mcs_spinlock.h
+> +++ b/kernel/locking/mcs_spinlock.h
+> @@ -17,8 +17,18 @@
+>  
+>  struct mcs_spinlock {
+>  	struct mcs_spinlock *next;
+> +#ifndef CONFIG_NUMA_AWARE_SPINLOCKS
+>  	int locked; /* 1 if lock acquired */
+>  	int count;  /* nesting count, see qspinlock.c */
+> +#else /* CONFIG_NUMA_AWARE_SPINLOCKS */
+> +	uintptr_t locked; /* 1 if lock acquired, 0 if not, other values */
+> +			  /* represent a pointer to the secondary queue head */
+> +	u32 node_and_count;	/* node id on which this thread is running */
+> +				/* with two lower bits reserved for nesting */
+> +				/* count, see qspinlock.c */
+> +	u32 encoded_tail; /* encoding of this node as the main queue tail */
+> +	struct mcs_spinlock *tail;    /* points to the secondary queue tail */
+> +#endif /* CONFIG_NUMA_AWARE_SPINLOCKS */
+>  };
 
-thank you for your review.
+Please, have another look at the paravirt code, in particular at struct
+pv_node and its usage. This is horrible.
 
-On 29/03/2019 12:12, Catalin Marinas wrote:
-> On Tue, Mar 19, 2019 at 03:15:38PM +0000, Vincenzo Frascino wrote:
->> +static int __init aarch32_alloc_vdso_pages(void)
->>  {
->>  	extern char __kuser_helper_start[], __kuser_helper_end[];
->>  	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
->>  
->>  	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
->>  	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
->> -	unsigned long vpage;
->> +	unsigned long vdso_pages[2];
->>  
->> -	vpage = get_zeroed_page(GFP_ATOMIC);
->> +	vdso_pages[0] = get_zeroed_page(GFP_ATOMIC);
->> +	if (!vdso_pages[0])
->> +		return -ENOMEM;
->>  
->> -	if (!vpage)
->> +	vdso_pages[1] = get_zeroed_page(GFP_ATOMIC);
->> +	if (!vdso_pages[1])
->>  		return -ENOMEM;
->>  
->>  	/* kuser helpers */
->> -	memcpy((void *)vpage + 0x1000 - kuser_sz, __kuser_helper_start,
->> -		kuser_sz);
->> +	memcpy((void *)(vdso_pages[0] + 0x1000 - kuser_sz),
->> +	       __kuser_helper_start,
->> +	       kuser_sz);
->>  
->>  	/* sigreturn code */
->> -	memcpy((void *)vpage + AARCH32_KERN_SIGRET_CODE_OFFSET,
->> -               __aarch32_sigret_code_start, sigret_sz);
->> +	memcpy((void *)vdso_pages[1],
->> +	       __aarch32_sigret_code_start,
->> +	       sigret_sz);
->>  
->> -	flush_icache_range(vpage, vpage + PAGE_SIZE);
->> -	vectors_page[0] = virt_to_page(vpage);
->> +	flush_icache_range(vdso_pages[0], vdso_pages[0] + PAGE_SIZE);
->> +	flush_icache_range(vdso_pages[1], vdso_pages[1] + PAGE_SIZE);
-> 
-> I wonder whether we still need the flush_icache_range() calls here.
-> Normally set_pte_at() handles cache maintenance automatically if
-> PG_dcache_clean is not set. We could probably just call
-> flush_dcache_page() here.
-> 
+>  #ifndef arch_mcs_spin_lock_contended
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index 074f65b9bedc..7cc923a59716 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
 
-I agree, I am going to update the code accordingly and re-post the set.
+> @@ -527,6 +544,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>  		next = READ_ONCE(node->next);
+>  		if (next)
+>  			prefetchw(next);
+> +	} else {
+> +		 /* In CNA, we must pass a non-zero value to successor when
+> +		  * we unlock. This store should be harmless performance-wise,
+> +		  * as we just initialized @node.
+> +		  */
 
--- 
-Regards,
-Vincenzo
+Buggered comment style, also, it confuses the heck out of me. What does
+it want to say?
+
+Also, why isn't it hidden in your pv_wait_head_or_lock() implementation?
+
+> +		node->locked = 1;
+>  	}
+>  
