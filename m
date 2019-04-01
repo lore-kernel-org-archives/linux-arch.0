@@ -1,55 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:32888 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726412AbfDALUg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 07:20:36 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:32902 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726412AbfDALUi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 07:20:38 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 0/4] arm64: compat: Add kuser helpers config option
-Date: Mon,  1 Apr 2019 12:20:21 +0100
-Message-ID: <20190401112025.40807-1-vincenzo.frascino@arm.com>
+Subject: [PATCH 2/4] arm64: compat: Split kuser32
+Date: Mon,  1 Apr 2019 12:20:23 +0100
+Message-ID: <20190401112025.40807-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20190401112025.40807-1-vincenzo.frascino@arm.com>
+References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190401112021.GbnK09rhUiCcxf1JCvKVKT9YNeskRR3Gj-iGHOrguIE@z>
+Message-ID: <20190401112023.OvtBxmTqYRl5DqK3UybUSWsv2JnV58N_l-YBJaJYezA@z>
 
-Currently on arm64 compat kuser helper are enabled by default.
+To make it possible to disable kuser helpers in aarch32 we need to
+divide the kuser and the sigreturn functionalities.
 
-To be on pair with arm32, this patchset makes it possible to disable
-the kuser helpers by adding a CONFIG_KUSER_HELPERS option which is
-enabled by default to avoid compatibility issues.
-
-When the config option is disabled:
- - The kuser helpers-related code is not compiled with the kernel.
- - The kuser helpers mapping, for any compat process, at 0xffff0000
-   is not done.
- - Any attempt to use a kuser helper from a compat process will result
-   in a segfault.
+Split the current version of kuser32 in kuser32 (for kuser helpers)
+and sigreturn32 (for sigreturn helpers).
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Vincenzo Frascino (4):
-  arm64: compat: Alloc separate pages for vectors and sigpage
-  arm64: compat: Split kuser32
-  arm64: compat: Refactor aarch32_alloc_vdso_pages()
-  arm64: compat: Add KUSER_HELPERS config option
-
- arch/arm64/Kconfig                 |  30 ++++++
- arch/arm64/include/asm/elf.h       |   6 +-
- arch/arm64/include/asm/processor.h |   4 +-
- arch/arm64/include/asm/signal32.h  |   2 -
- arch/arm64/kernel/Makefile         |   5 +-
- arch/arm64/kernel/kuser32.S        |  65 +------------
- arch/arm64/kernel/signal32.c       |   5 +-
- arch/arm64/kernel/sigreturn32.S    |  46 +++++++++
- arch/arm64/kernel/vdso.c           | 150 +++++++++++++++++++++++------
- 9 files changed, 211 insertions(+), 102 deletions(-)
+---
+ arch/arm64/kernel/Makefile      |  2 +-
+ arch/arm64/kernel/kuser32.S     | 58 ++-------------------------------
+ arch/arm64/kernel/sigreturn32.S | 46 ++++++++++++++++++++++++++
+ 3 files changed, 49 insertions(+), 57 deletions(-)
  create mode 100644 arch/arm64/kernel/sigreturn32.S
 
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index cd434d0719c1..50f76b88a967 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 	$(call if_changed,objcopy)
+ 
+ obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
+-					   sys_compat.o
++					   sigreturn32.o sys_compat.o
+ obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
+ obj-$(CONFIG_MODULES)			+= module.o
+ obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
+diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
+index 997e6b27ff6a..f19e2b015097 100644
+--- a/arch/arm64/kernel/kuser32.S
++++ b/arch/arm64/kernel/kuser32.S
+@@ -1,24 +1,9 @@
+ /*
+- * Low-level user helpers placed in the vectors page for AArch32.
++ * AArch32 user helpers.
+  * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
+  *
+  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
+- * Copyright (C) 2012 ARM Ltd.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+- *
+- *
+- * AArch32 user helpers.
++ * Copyright (C) 2012-2018 ARM Ltd.
+  *
+  * Each segment is 32-byte aligned and will be moved to the top of the high
+  * vector page.  New segments (if ever needed) must be added in front of
+@@ -77,42 +62,3 @@ __kuser_helper_version:			// 0xffff0ffc
+ 	.word	((__kuser_helper_end - __kuser_helper_start) >> 5)
+ 	.globl	__kuser_helper_end
+ __kuser_helper_end:
+-
+-/*
+- * AArch32 sigreturn code
+- *
+- * For ARM syscalls, the syscall number has to be loaded into r7.
+- * We do not support an OABI userspace.
+- *
+- * For Thumb syscalls, we also pass the syscall number via r7. We therefore
+- * need two 16-bit instructions.
+- */
+-	.globl __aarch32_sigret_code_start
+-__aarch32_sigret_code_start:
+-
+-	/*
+-	 * ARM Code
+-	 */
+-	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_sigreturn
+-	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_sigreturn
+-
+-	/*
+-	 * Thumb code
+-	 */
+-	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
+-	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
+-
+-	/*
+-	 * ARM code
+-	 */
+-	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
+-	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
+-
+-	/*
+-	 * Thumb code
+-	 */
+-	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
+-	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
+-
+-        .globl __aarch32_sigret_code_end
+-__aarch32_sigret_code_end:
+diff --git a/arch/arm64/kernel/sigreturn32.S b/arch/arm64/kernel/sigreturn32.S
+new file mode 100644
+index 000000000000..475d30d471ac
+--- /dev/null
++++ b/arch/arm64/kernel/sigreturn32.S
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * AArch32 sigreturn code.
++ * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
++ *
++ * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
++ * Copyright (C) 2012-2018 ARM Ltd.
++ *
++ * For ARM syscalls, the syscall number has to be loaded into r7.
++ * We do not support an OABI userspace.
++ *
++ * For Thumb syscalls, we also pass the syscall number via r7. We therefore
++ * need two 16-bit instructions.
++ */
++
++#include <asm/unistd.h>
++
++	.globl __aarch32_sigret_code_start
++__aarch32_sigret_code_start:
++
++	/*
++	 * ARM Code
++	 */
++	.byte	__NR_compat_sigreturn, 0x70, 0xa0, 0xe3		// mov	r7, #__NR_compat_sigreturn
++	.byte	__NR_compat_sigreturn, 0x00, 0x00, 0xef		// svc	#__NR_compat_sigreturn
++
++	/*
++	 * Thumb code
++	 */
++	.byte	__NR_compat_sigreturn, 0x27			// svc	#__NR_compat_sigreturn
++	.byte	__NR_compat_sigreturn, 0xdf			// mov	r7, #__NR_compat_sigreturn
++
++	/*
++	 * ARM code
++	 */
++	.byte	__NR_compat_rt_sigreturn, 0x70, 0xa0, 0xe3	// mov	r7, #__NR_compat_rt_sigreturn
++	.byte	__NR_compat_rt_sigreturn, 0x00, 0x00, 0xef	// svc	#__NR_compat_rt_sigreturn
++
++	/*
++	 * Thumb code
++	 */
++	.byte	__NR_compat_rt_sigreturn, 0x27			// svc	#__NR_compat_rt_sigreturn
++	.byte	__NR_compat_rt_sigreturn, 0xdf			// mov	r7, #__NR_compat_rt_sigreturn
++
++        .globl __aarch32_sigret_code_end
++__aarch32_sigret_code_end:
 -- 
 2.21.0
