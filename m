@@ -1,14 +1,16 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 1 Apr 2019 11:09:43 +0200
-Message-ID: <20190401090943.GG11158@hirez.programming.kicks-ass.net>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH 5/5] arm64: compat: Reduce address limit
+Date: Mon, 1 Apr 2019 10:13:48 +0100
+Message-ID: <682cdfd5-200c-4e1e-2863-605e44f3e5e8@arm.com>
+References: <20190319151542.19557-1-vincenzo.frascino@arm.com>
+ <20190319151542.19557-6-vincenzo.frascino@arm.com>
+ <20190329155937.GA48010@arrakis.emea.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190329152006.110370-1-alex.kogan@oracle.com>
+In-Reply-To: <20190329155937.GA48010@arrakis.emea.arm.com>
+Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -18,14 +20,83 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Jann Horn <jannh@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 29, 2019 at 11:20:01AM -0400, Alex Kogan wrote:
-> The following locktorture results are from an Oracle X5-4 server
-> (four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
-> cores each). 
 
-The other interesting number is on a !NUMA machine. What do these
-patches do there? Remember, most people do not in fact have numa.
+On 29/03/2019 15:59, Catalin Marinas wrote:
+> On Tue, Mar 19, 2019 at 03:15:42PM +0000, Vincenzo Frascino wrote:
+>> Currently, compat tasks running on arm64 can allocate memory up to
+>> TASK_SIZE_32 (UL(0x100000000)).
+>>
+>> This means that mmap() allocations, if we treat them as returning an
+>> array, are not compliant with the sections 6.5.8 of the C standard
+>> (C99) which states that: "If the expression P points to an element of
+>> an array object and the expression Q points to the last element of the
+>> same array object, the pointer expression Q+1 compares greater than P".
+>>
+>> Redefine TASK_SIZE_32 to address the issue.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: Jann Horn <jannh@google.com>
+>> Reported-by: Jann Horn <jannh@google.com>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>  arch/arm64/include/asm/processor.h | 2 +-
+>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>
+>> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+>> index 07c873fce961..4c689740940d 100644
+>> --- a/arch/arm64/include/asm/processor.h
+>> +++ b/arch/arm64/include/asm/processor.h
+>> @@ -57,7 +57,7 @@
+>>  #define TASK_SIZE_64		(UL(1) << vabits_user)
+>>  
+>>  #ifdef CONFIG_COMPAT
+>> -#define TASK_SIZE_32		UL(0x100000000)
+>> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+>>  #define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
+>>  				TASK_SIZE_32 : TASK_SIZE_64)
+>>  #define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
+> 
+> So what I meant with the previous comment, can we have this:
+> 
+> #ifndef CONFIG_ARM64_64K_PAGES
+> #define TASK_SIZE_32		(UK(0x100000000) - PAGE_SIZE)
+> #endif
+> 
+> and still have a vectors page with 64K configuration? Assuming that it
+> is not unmapped, an mmap() wouldn't return the 0xffff0000 page to break
+> the C99 requirements. There is the case of user unmapping the vectors
+> page (which seems to be allowed based on my reading of the code) and
+> then getting an mmap() at the end for the 32-bit address range but I
+> really don't think we should cover for this case.
+>
+
+The current set is designed to cover all the cases, but I am fine either way.
+
+> Another option which I think would cover the unmap case as well in all
+> configurations is to handle the limit in arch_get_mmap_end(). We already
+> define this to handle mmap limitation on 52-bit user VA but you can make
+> it handle compat tasks (and probably turn it into a static inline
+> function).
+> 
+
+I like this approach more than what I proposed in the current series, but I
+think this is not easily back-portable to stable.
+
+> The other patches for splitting the vectors page in two are still valid
+> (to be on par with arm32) but they would not be required for this fix.
+> 
+
+Ok, to summarize, this is what I am going to do next:
+ - Send a patch that includes your comments about CONFIG_ARM64_64K_PAGES.
+ - Send a separate series for kuser helpers leaving them enabled by default in
+all the cases.
+ - Create a new series based on arch_get_mmap_end().
+
+-- 
+Regards,
+Vincenzo
