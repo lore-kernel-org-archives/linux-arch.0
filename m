@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:32908 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726412AbfDALUk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 07:20:40 -0400
+Received: from foss.arm.com ([217.140.101.70]:32914 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726412AbfDALUl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 07:20:41 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 3/4] arm64: compat: Refactor aarch32_alloc_vdso_pages()
-Date: Mon,  1 Apr 2019 12:20:24 +0100
-Message-ID: <20190401112025.40807-4-vincenzo.frascino@arm.com>
+Subject: [PATCH 4/4] arm64: compat: Add KUSER_HELPERS config option
+Date: Mon,  1 Apr 2019 12:20:25 +0100
+Message-ID: <20190401112025.40807-5-vincenzo.frascino@arm.com>
 In-Reply-To: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,97 +15,150 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190401112024.UDmQI6lgO-rI68By_eP9ViPkc9ATEDg_bEZ8DBc-PDM@z>
+Message-ID: <20190401112025.6HC6QEyRDIMwjCU0MxRgcljPoTN2ttsXfEj0MDr_LbM@z>
 
-aarch32_alloc_vdso_pages() needs to the refactored to make it
-easier to disable kuser helpers.
+When kuser helpers are enabled the kernel maps the relative code at
+a fixed address (0xffff0000). Making configurable the option to disable
+them means that the kernel can remove this mapping and any access to
+this memory area results in a sigfault.
 
-Divide the function in aarch32_alloc_kuser_vdso_page() and
-aarch32_alloc_sigreturn_vdso_page().
+Add a KUSER_HELPERS config option that can be used to disable the
+mapping when it is turned off.
+
+This option can be turned off if and only if the applications are
+designed specifically for the platform and they do not make use of the
+kuser helpers code.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/vdso.c | 49 ++++++++++++++++++++++++++--------------
- 1 file changed, 32 insertions(+), 17 deletions(-)
+ arch/arm64/Kconfig          | 30 ++++++++++++++++++++++++++++++
+ arch/arm64/kernel/Makefile  |  3 ++-
+ arch/arm64/kernel/kuser32.S |  7 +++----
+ arch/arm64/kernel/vdso.c    | 15 +++++++++++++++
+ 4 files changed, 50 insertions(+), 5 deletions(-)
 
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 7e34b9eba5de..35c98e91bfeb 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1494,6 +1494,36 @@ config COMPAT
+ 
+ 	  If you want to execute 32-bit userspace applications, say Y.
+ 
++config KUSER_HELPERS
++	bool "Enable kuser helpers page for compatibility with 32 bit applications."
++	depends on COMPAT
++	default y
++	help
++	  Warning: disabling this option may break user programs.
++
++	  Provide kuser helpers to compat tasks. The kernel provides
++	  helper code to userspace in read only form at a fixed location
++	  to allow userspace to be independent of the CPU type fitted to
++	  the system. This permits binaries to be run on ARMv4 through
++	  to ARMv8 without modification.
++
++	  See Documentation/arm/kernel_user_helpers.txt for details.
++
++	  However, the fixed address nature of these helpers can be used
++	  by ROP (return orientated programming) authors when creating
++	  exploits.
++
++	  If all of the binaries and libraries which run on your platform
++	  are built specifically for your platform, and make no use of
++	  these helpers, then you can turn this option off to hinder
++	  such exploits. However, in that case, if a binary or library
++	  relying on those helpers is run, it will not function correctly.
++
++	  Note: kuser helpers is disabled by default with 64K pages.
++
++	  Say N here only if you are absolutely certain that you do not
++	  need these helpers; otherwise, the safe option is to say Y.
++
+ config SYSVIPC_COMPAT
+ 	def_bool y
+ 	depends on COMPAT && SYSVIPC
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 50f76b88a967..c7bd0794855a 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -27,8 +27,9 @@ OBJCOPYFLAGS := --prefix-symbols=__efistub_
+ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 	$(call if_changed,objcopy)
+ 
+-obj-$(CONFIG_COMPAT)			+= sys32.o kuser32.o signal32.o 	\
++obj-$(CONFIG_COMPAT)			+= sys32.o signal32.o			\
+ 					   sigreturn32.o sys_compat.o
++obj-$(CONFIG_KUSER_HELPERS)		+= kuser32.o
+ obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
+ obj-$(CONFIG_MODULES)			+= module.o
+ obj-$(CONFIG_ARM64_MODULE_PLTS)		+= module-plts.o
+diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
+index f19e2b015097..7d38633bf33f 100644
+--- a/arch/arm64/kernel/kuser32.S
++++ b/arch/arm64/kernel/kuser32.S
+@@ -5,10 +5,9 @@
+  * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
+  * Copyright (C) 2012-2018 ARM Ltd.
+  *
+- * Each segment is 32-byte aligned and will be moved to the top of the high
+- * vector page.  New segments (if ever needed) must be added in front of
+- * existing ones.  This mechanism should be used only for things that are
+- * really small and justified, and not be abused freely.
++ * The kuser helpers below are mapped at a fixed address by
++ * aarch32_setup_additional_pages() ad are provided for compatibility
++ * reasons with 32 bit (aarch32) applications that need them.
+  *
+  * See Documentation/arm/kernel_user_helpers.txt for formal definitions.
+  */
 diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 9556ad2036ef..afbbdccbf05b 100644
+index afbbdccbf05b..b3f0c4ae28aa 100644
 --- a/arch/arm64/kernel/vdso.c
 +++ b/arch/arm64/kernel/vdso.c
-@@ -74,40 +74,55 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
+@@ -74,6 +74,7 @@ static const struct vm_special_mapping aarch32_vdso_spec[2] = {
  	},
  };
  
--static int __init aarch32_alloc_vdso_pages(void)
-+static int aarch32_alloc_kuser_vdso_page(void)
++#ifdef CONFIG_KUSER_HELPERS
+ static int aarch32_alloc_kuser_vdso_page(void)
  {
  	extern char __kuser_helper_start[], __kuser_helper_end[];
--	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
--
- 	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
--	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
--	unsigned long vdso_pages[2];
--
--	vdso_pages[0] = get_zeroed_page(GFP_ATOMIC);
--	if (!vdso_pages[0])
--		return -ENOMEM;
-+	unsigned long vdso_page;
- 
--	vdso_pages[1] = get_zeroed_page(GFP_ATOMIC);
--	if (!vdso_pages[1])
-+	vdso_page = get_zeroed_page(GFP_ATOMIC);
-+	if (!vdso_page)
- 		return -ENOMEM;
- 
- 	/* kuser helpers */
--	memcpy((void *)(vdso_pages[0] + 0x1000 - kuser_sz),
-+	memcpy((void *)(vdso_page + 0x1000 - kuser_sz),
- 	       __kuser_helper_start,
- 	       kuser_sz);
- 
-+	aarch32_vdso_pages[0] = virt_to_page(vdso_page);
-+
-+	flush_dcache_page(aarch32_vdso_pages[0]);
-+
-+	return 0;
-+}
-+
-+static int aarch32_alloc_sigreturn_vdso_page(void)
-+{
-+	extern char __aarch32_sigret_code_start[], __aarch32_sigret_code_end[];
-+	int sigret_sz = __aarch32_sigret_code_end - __aarch32_sigret_code_start;
-+	unsigned long vdso_page;
-+
-+	vdso_page = get_zeroed_page(GFP_ATOMIC);
-+	if (!vdso_page)
-+		return -ENOMEM;
-+
- 	/* sigreturn code */
--	memcpy((void *)vdso_pages[1],
-+	memcpy((void *)vdso_page,
- 	       __aarch32_sigret_code_start,
- 	       sigret_sz);
- 
--	flush_icache_range(vdso_pages[0], vdso_pages[0] + PAGE_SIZE);
--	flush_icache_range(vdso_pages[1], vdso_pages[1] + PAGE_SIZE);
-+	aarch32_vdso_pages[1] = virt_to_page(vdso_page);
- 
--	aarch32_vdso_pages[0] = virt_to_page(vdso_pages[0]);
--	aarch32_vdso_pages[1] = virt_to_page(vdso_pages[1]);
-+	flush_dcache_page(aarch32_vdso_pages[1]);
+@@ -95,6 +96,12 @@ static int aarch32_alloc_kuser_vdso_page(void)
  
  	return 0;
-+
-+}
-+
-+static int __init aarch32_alloc_vdso_pages(void)
+ }
++#else
++static int aarch32_alloc_kuser_vdso_page(void)
 +{
-+	return aarch32_alloc_kuser_vdso_page() &
-+	       aarch32_alloc_sigreturn_vdso_page();
++	return 0;
++}
++#endif /* CONFIG_KUSER_HELPER */
+ 
+ static int aarch32_alloc_sigreturn_vdso_page(void)
+ {
+@@ -126,6 +133,7 @@ static int __init aarch32_alloc_vdso_pages(void)
  }
  arch_initcall(aarch32_alloc_vdso_pages);
  
++#ifdef CONFIG_KUSER_HELPERS
+ static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
+ {
+ 	void *ret;
+@@ -138,6 +146,13 @@ static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
+ 
+ 	return PTR_ERR_OR_ZERO(ret);
+ }
++#else
++static int aarch32_kuser_helpers_setup(struct mm_struct *mm)
++{
++	/* kuser helpers not enabled */
++	return 0;
++}
++#endif /* CONFIG_KUSER_HELPERS */
+ 
+ static int aarch32_sigreturn_setup(struct mm_struct *mm)
+ {
 -- 
 2.21.0
