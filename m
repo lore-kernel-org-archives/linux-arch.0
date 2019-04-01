@@ -1,60 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:60862 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725868AbfDAK7S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 06:59:18 -0400
-Date: Mon, 1 Apr 2019 11:59:14 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] arm64: compat: Reduce address limit
-Message-ID: <20190401105913.GC14874@arrakis.emea.arm.com>
-References: <20190401103201.9268-1-vincenzo.frascino@arm.com>
+Received: from foss.arm.com ([217.140.101.70]:32888 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726412AbfDALUg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 07:20:36 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 0/4] arm64: compat: Add kuser helpers config option
+Date: Mon,  1 Apr 2019 12:20:21 +0100
+Message-ID: <20190401112025.40807-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190401103201.9268-1-vincenzo.frascino@arm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, stable@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Jann Horn <jannh@google.com>
-Message-ID: <20190401105914.vDuGISTa4CoUyuneFTnkF-0RwpbtdY6IIJ1o7F49DlI@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20190401112021.GbnK09rhUiCcxf1JCvKVKT9YNeskRR3Gj-iGHOrguIE@z>
 
-On Mon, Apr 01, 2019 at 11:32:01AM +0100, Vincenzo Frascino wrote:
-> Currently, compat tasks running on arm64 can allocate memory up to
-> TASK_SIZE_32 (UL(0x100000000)).
-> 
-> This means that mmap() allocations, if we treat them as returning an
-> array, are not compliant with the sections 6.5.8 of the C standard
-> (C99) which states that: "If the expression P points to an element of
-> an array object and the expression Q points to the last element of the
-> same array object, the pointer expression Q+1 compares greater than P".
-> 
-> Redefine TASK_SIZE_32 to address the issue.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Jann Horn <jannh@google.com>
-> Reported-by: Jann Horn <jannh@google.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->  arch/arm64/include/asm/processor.h | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-> index 5d9ce62bdebd..f8235f7df29b 100644
-> --- a/arch/arm64/include/asm/processor.h
-> +++ b/arch/arm64/include/asm/processor.h
-> @@ -57,7 +57,11 @@
->  #define TASK_SIZE_64		(UL(1) << vabits_user)
->  
->  #ifdef CONFIG_COMPAT
-> +#ifdef CONFIG_ARM64_64K_PAGES
->  #define TASK_SIZE_32		UL(0x100000000)
-> +#else
-> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
-> +#endif /* CONFIG_ARM64_64K_PAGES */
+Currently on arm64 compat kuser helper are enabled by default.
 
-I'd add a comment above stating that with the 64K page configuration,
-the last page is occupied by the compat vectors page.
+To be on pair with arm32, this patchset makes it possible to disable
+the kuser helpers by adding a CONFIG_KUSER_HELPERS option which is
+enabled by default to avoid compatibility issues.
+
+When the config option is disabled:
+ - The kuser helpers-related code is not compiled with the kernel.
+ - The kuser helpers mapping, for any compat process, at 0xffff0000
+   is not done.
+ - Any attempt to use a kuser helper from a compat process will result
+   in a segfault.
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Vincenzo Frascino (4):
+  arm64: compat: Alloc separate pages for vectors and sigpage
+  arm64: compat: Split kuser32
+  arm64: compat: Refactor aarch32_alloc_vdso_pages()
+  arm64: compat: Add KUSER_HELPERS config option
+
+ arch/arm64/Kconfig                 |  30 ++++++
+ arch/arm64/include/asm/elf.h       |   6 +-
+ arch/arm64/include/asm/processor.h |   4 +-
+ arch/arm64/include/asm/signal32.h  |   2 -
+ arch/arm64/kernel/Makefile         |   5 +-
+ arch/arm64/kernel/kuser32.S        |  65 +------------
+ arch/arm64/kernel/signal32.c       |   5 +-
+ arch/arm64/kernel/sigreturn32.S    |  46 +++++++++
+ arch/arm64/kernel/vdso.c           | 150 +++++++++++++++++++++++------
+ 9 files changed, 211 insertions(+), 102 deletions(-)
+ create mode 100644 arch/arm64/kernel/sigreturn32.S
 
 -- 
-Catalin
+2.21.0
