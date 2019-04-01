@@ -1,92 +1,75 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 4/5] nds32: Fix vDSO clock_getres()
-Date: Mon,  1 Apr 2019 12:51:51 +0100
-Message-ID: <20190401115152.32751-5-vincenzo.frascino@arm.com>
-References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [PATCH 3/6 v3] riscv: Fix syscall_get_arguments() and syscall_set_arguments()
+Date: Mon, 01 Apr 2019 09:41:07 -0400
+Message-ID: <20190401134420.958530155@goodmis.org>
+References: <20190401134104.676620247@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190401115152.32751-1-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
+Content-Type: text/plain; charset=ISO-8859-15
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Palmer Dabbelt <palmer@sifive.com>, Will Drewry <wad@chrom>
 List-Id: linux-arch.vger.kernel.org
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+From: "Dmitry V. Levin" <ldv@altlinux.org>
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+RISC-V syscall arguments are located in orig_a0,a1..a5 fields
+of struct pt_regs.
 
-Fix the nds32 vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
+Due to an off-by-one bug and a bug in pointer arithmetic
+syscall_get_arguments() was reading s3..s7 fields instead of a1..a5.
+Likewise, syscall_set_arguments() was writing s3..s7 fields
+instead of a1..a5.
 
-Cc: Greentime Hu <green.hu@gmail.com>
-Cc: Vincent Chen <deanbo422@gmail.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Link: http://lkml.kernel.org/r/20190329171221.GA32456@altlinux.org
+
+Fixes: e2c0cdfba7f69 ("RISC-V: User-facing API")
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Will Drewry <wad@chromium.org>
+Cc: Palmer Dabbelt <palmer@sifive.com>
+Cc: Albert Ou <aou@eecs.berkeley.edu>
+Cc: linux-riscv@lists.infradead.org
+Cc: stable@vger.kernel.org # v4.15+
+Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/nds32/include/asm/vdso_datapage.h | 1 +
- arch/nds32/kernel/vdso.c               | 1 +
- arch/nds32/kernel/vdso/gettimeofday.c  | 4 +++-
- 3 files changed, 5 insertions(+), 1 deletion(-)
+ arch/riscv/include/asm/syscall.h | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/arch/nds32/include/asm/vdso_datapage.h b/arch/nds32/include/asm/vdso_datapage.h
-index 79db5a12ca5e..34d80548297f 100644
---- a/arch/nds32/include/asm/vdso_datapage.h
-+++ b/arch/nds32/include/asm/vdso_datapage.h
-@@ -20,6 +20,7 @@ struct vdso_data {
- 	u32 xtime_clock_sec;	/* CLOCK_REALTIME - seconds */
- 	u32 cs_mult;		/* clocksource multiplier */
- 	u32 cs_shift;		/* Cycle to nanosecond divisor (power of two) */
-+	u32 hrtimer_res;	/* hrtimer resolution */
- 
- 	u64 cs_cycle_last;	/* last cycle value */
- 	u64 cs_mask;		/* clocksource mask */
-diff --git a/arch/nds32/kernel/vdso.c b/arch/nds32/kernel/vdso.c
-index 016f15891f6d..90bcae6f8554 100644
---- a/arch/nds32/kernel/vdso.c
-+++ b/arch/nds32/kernel/vdso.c
-@@ -220,6 +220,7 @@ void update_vsyscall(struct timekeeper *tk)
- 	vdso_data->xtime_coarse_sec = tk->xtime_sec;
- 	vdso_data->xtime_coarse_nsec = tk->tkr_mono.xtime_nsec >>
- 	    tk->tkr_mono.shift;
-+	vdso_data->hrtimer_res = hrtimer_resolution;
- 	vdso_write_end(vdso_data);
+diff --git a/arch/riscv/include/asm/syscall.h b/arch/riscv/include/asm/syscall.h
+index bba3da6ef157..6ea9e1804233 100644
+--- a/arch/riscv/include/asm/syscall.h
++++ b/arch/riscv/include/asm/syscall.h
+@@ -79,10 +79,11 @@ static inline void syscall_get_arguments(struct task_struct *task,
+ 	if (i == 0) {
+ 		args[0] = regs->orig_a0;
+ 		args++;
+-		i++;
+ 		n--;
++	} else {
++		i--;
+ 	}
+-	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
++	memcpy(args, &regs->a1 + i, n * sizeof(args[0]));
  }
  
-diff --git a/arch/nds32/kernel/vdso/gettimeofday.c b/arch/nds32/kernel/vdso/gettimeofday.c
-index 038721af40e3..b02581891c33 100644
---- a/arch/nds32/kernel/vdso/gettimeofday.c
-+++ b/arch/nds32/kernel/vdso/gettimeofday.c
-@@ -208,6 +208,8 @@ static notrace int clock_getres_fallback(clockid_t _clk_id,
+ static inline void syscall_set_arguments(struct task_struct *task,
+@@ -94,10 +95,11 @@ static inline void syscall_set_arguments(struct task_struct *task,
+         if (i == 0) {
+                 regs->orig_a0 = args[0];
+                 args++;
+-                i++;
+                 n--;
+-        }
+-	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
++	} else {
++		i--;
++	}
++	memcpy(&regs->a1 + i, args, n * sizeof(regs->a1));
+ }
  
- notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
- {
-+	struct vdso_data *vdata = __get_datapage();
-+
- 	if (res == NULL)
- 		return 0;
- 	switch (clk_id) {
-@@ -215,7 +217,7 @@ notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
- 	case CLOCK_MONOTONIC:
- 	case CLOCK_MONOTONIC_RAW:
- 		res->tv_sec = 0;
--		res->tv_nsec = CLOCK_REALTIME_RES;
-+		res->tv_nsec = vdata->hrtimer_res;
- 		break;
- 	case CLOCK_REALTIME_COARSE:
- 	case CLOCK_MONOTONIC_COARSE:
+ static inline int syscall_get_arch(void)
 -- 
-2.21.0
+2.20.1
