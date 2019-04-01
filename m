@@ -1,78 +1,71 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 4/4] arm64: compat: Add KUSER_HELPERS config option
-Date: Mon, 1 Apr 2019 15:48:56 +0100
-Message-ID: <20190401144855.GJ14874@arrakis.emea.arm.com>
-References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
- <20190401112025.40807-5-vincenzo.frascino@arm.com>
+From: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v13 11/20] tracing,
+ arm64: untag user pointers in seq_print_user_ip
+Date: Mon, 1 Apr 2019 17:38:40 +0200
+Message-ID: <CAAeHK+zxo4aY0qLzSmT8QDHFhas0_=hrXBo6dSamuVE+-VUyQQ@mail.gmail.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <c9553c3a4850d43c8af0c00e97850d70428b7de7.1553093421.git.andreyknvl@google.com>
+ <20190322154513.GQ13384@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190401112025.40807-5-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+In-Reply-To: <20190322154513.GQ13384-pQd4kjVL+RGcEQQL7YIRtlaTQe2KTcn/@public.gmane.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
+List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
+Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
+Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov@go>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 01, 2019 at 12:20:25PM +0100, Vincenzo Frascino wrote:
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 7e34b9eba5de..35c98e91bfeb 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -1494,6 +1494,36 @@ config COMPAT
->  
->  	  If you want to execute 32-bit userspace applications, say Y.
->  
-> +config KUSER_HELPERS
-> +	bool "Enable kuser helpers page for compatibility with 32 bit applications."
-
-I'd say only "Enable kuser helpers page for 32-bit applications" (my
-first reading of this sounded like it would be enabled for 64-bit apps
-to be on par with 32-bit ones).
-
-> +	depends on COMPAT
-> +	default y
-> +	help
-> +	  Warning: disabling this option may break user programs.
-
-"may break 32-bit user programs."
-
-> +
-> +	  Provide kuser helpers to compat tasks. The kernel provides
-> +	  helper code to userspace in read only form at a fixed location
-> +	  to allow userspace to be independent of the CPU type fitted to
-> +	  the system. This permits binaries to be run on ARMv4 through
-> +	  to ARMv8 without modification.
-> +
-> +	  See Documentation/arm/kernel_user_helpers.txt for details.
-> +
-> +	  However, the fixed address nature of these helpers can be used
-> +	  by ROP (return orientated programming) authors when creating
-> +	  exploits.
-> +
-> +	  If all of the binaries and libraries which run on your platform
-> +	  are built specifically for your platform, and make no use of
-> +	  these helpers, then you can turn this option off to hinder
-> +	  such exploits. However, in that case, if a binary or library
-> +	  relying on those helpers is run, it will not function correctly.
-> +
-> +	  Note: kuser helpers is disabled by default with 64K pages.
-
-Is it?
-
-> +
-> +	  Say N here only if you are absolutely certain that you do not
-> +	  need these helpers; otherwise, the safe option is to say Y.
-> +
-
--- 
-Catalin
+T24gRnJpLCBNYXIgMjIsIDIwMTkgYXQgNDo0NSBQTSBDYXRhbGluIE1hcmluYXMgPGNhdGFsaW4u
+bWFyaW5hc0Bhcm0uY29tPiB3cm90ZToKPgo+IE9uIFdlZCwgTWFyIDIwLCAyMDE5IGF0IDAzOjUx
+OjI1UE0gKzAxMDAsIEFuZHJleSBLb25vdmFsb3Ygd3JvdGU6Cj4gPiBUaGlzIHBhdGNoIGlzIGEg
+cGFydCBvZiBhIHNlcmllcyB0aGF0IGV4dGVuZHMgYXJtNjQga2VybmVsIEFCSSB0byBhbGxvdyB0
+bwo+ID4gcGFzcyB0YWdnZWQgdXNlciBwb2ludGVycyAod2l0aCB0aGUgdG9wIGJ5dGUgc2V0IHRv
+IHNvbWV0aGluZyBlbHNlIG90aGVyCj4gPiB0aGFuIDB4MDApIGFzIHN5c2NhbGwgYXJndW1lbnRz
+Lgo+ID4KPiA+IHNlcV9wcmludF91c2VyX2lwKCkgdXNlcyBwcm92aWRlZCB1c2VyIHBvaW50ZXJz
+IGZvciB2bWEgbG9va3Vwcywgd2hpY2gKPiA+IGNhbiBvbmx5IGJ5IGRvbmUgd2l0aCB1bnRhZ2dl
+ZCBwb2ludGVycy4KPiA+Cj4gPiBVbnRhZyB1c2VyIHBvaW50ZXJzIGluIHRoaXMgZnVuY3Rpb24u
+Cj4gPgo+ID4gU2lnbmVkLW9mZi1ieTogQW5kcmV5IEtvbm92YWxvdiA8YW5kcmV5a252bEBnb29n
+bGUuY29tPgo+ID4gLS0tCj4gPiAga2VybmVsL3RyYWNlL3RyYWNlX291dHB1dC5jIHwgNSArKyst
+LQo+ID4gIDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25zKC0pCj4g
+Pgo+ID4gZGlmZiAtLWdpdCBhL2tlcm5lbC90cmFjZS90cmFjZV9vdXRwdXQuYyBiL2tlcm5lbC90
+cmFjZS90cmFjZV9vdXRwdXQuYwo+ID4gaW5kZXggNTQzNzNkOTNlMjUxLi42Mzc2YmVlOTNjODQg
+MTAwNjQ0Cj4gPiAtLS0gYS9rZXJuZWwvdHJhY2UvdHJhY2Vfb3V0cHV0LmMKPiA+ICsrKyBiL2tl
+cm5lbC90cmFjZS90cmFjZV9vdXRwdXQuYwo+ID4gQEAgLTM3MCw2ICszNzAsNyBAQCBzdGF0aWMg
+aW50IHNlcV9wcmludF91c2VyX2lwKHN0cnVjdCB0cmFjZV9zZXEgKnMsIHN0cnVjdCBtbV9zdHJ1
+Y3QgKm1tLAo+ID4gIHsKPiA+ICAgICAgIHN0cnVjdCBmaWxlICpmaWxlID0gTlVMTDsKPiA+ICAg
+ICAgIHVuc2lnbmVkIGxvbmcgdm1zdGFydCA9IDA7Cj4gPiArICAgICB1bnNpZ25lZCBsb25nIHVu
+dGFnZ2VkX2lwID0gdW50YWdnZWRfYWRkcihpcCk7Cj4gPiAgICAgICBpbnQgcmV0ID0gMTsKPiA+
+Cj4gPiAgICAgICBpZiAocy0+ZnVsbCkKPiA+IEBAIC0zNzksNyArMzgwLDcgQEAgc3RhdGljIGlu
+dCBzZXFfcHJpbnRfdXNlcl9pcChzdHJ1Y3QgdHJhY2Vfc2VxICpzLCBzdHJ1Y3QgbW1fc3RydWN0
+ICptbSwKPiA+ICAgICAgICAgICAgICAgY29uc3Qgc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWE7
+Cj4gPgo+ID4gICAgICAgICAgICAgICBkb3duX3JlYWQoJm1tLT5tbWFwX3NlbSk7Cj4gPiAtICAg
+ICAgICAgICAgIHZtYSA9IGZpbmRfdm1hKG1tLCBpcCk7Cj4gPiArICAgICAgICAgICAgIHZtYSA9
+IGZpbmRfdm1hKG1tLCB1bnRhZ2dlZF9pcCk7Cj4gPiAgICAgICAgICAgICAgIGlmICh2bWEpIHsK
+PiA+ICAgICAgICAgICAgICAgICAgICAgICBmaWxlID0gdm1hLT52bV9maWxlOwo+ID4gICAgICAg
+ICAgICAgICAgICAgICAgIHZtc3RhcnQgPSB2bWEtPnZtX3N0YXJ0Owo+ID4gQEAgLTM4OCw3ICsz
+ODksNyBAQCBzdGF0aWMgaW50IHNlcV9wcmludF91c2VyX2lwKHN0cnVjdCB0cmFjZV9zZXEgKnMs
+IHN0cnVjdCBtbV9zdHJ1Y3QgKm1tLAo+ID4gICAgICAgICAgICAgICAgICAgICAgIHJldCA9IHRy
+YWNlX3NlcV9wYXRoKHMsICZmaWxlLT5mX3BhdGgpOwo+ID4gICAgICAgICAgICAgICAgICAgICAg
+IGlmIChyZXQpCj4gPiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0cmFjZV9zZXFfcHJp
+bnRmKHMsICJbKzB4JWx4XSIsCj4gPiAtICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIGlwIC0gdm1zdGFydCk7Cj4gPiArICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgIHVudGFnZ2VkX2lwIC0gdm1zdGFydCk7Cj4gPiAgICAgICAg
+ICAgICAgIH0KPiA+ICAgICAgICAgICAgICAgdXBfcmVhZCgmbW0tPm1tYXBfc2VtKTsKPiA+ICAg
+ICAgIH0KPgo+IEhvdyB3b3VsZCB3ZSBlbmQgdXAgd2l0aCBhIHRhZ2dlZCBhZGRyZXNzIGhlcmU/
+IERvZXMgImlwIiBoZXJlIGltcGx5Cj4gaW5zdHJ1Y3Rpb24gcG9pbnRlciwgd2hpY2ggd2Ugd291
+bGRuJ3QgdGFnPwoKWWVzLCBpdCdzIHRoZSBpbnN0cnVjdGlvbiBwb2ludGVyLiBJIHRoaW5rIEkg
+Z290IGNvbmZ1c2VkIGFuZCBkZWNpZGVkCnRoYXQgaXQncyBPSyB0byBoYXZlIGluc3RydWN0aW9u
+IHBvaW50ZXIgdGFnZ2VkLCBidXQgSSBndWVzcyBpdCdzIG5vdAphIHBhcnQgb2YgdGhpcyBBQkkg
+cmVsYXhhdGlvbi4gSSdsbCBkcm9wIHRoZSBwYXRjaGVzIHRoYXQgdW50YWcKaW5zdHJ1Y3Rpb24g
+cG9pbnRlcnMuCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+CmFtZC1nZnggbWFpbGluZyBsaXN0CmFtZC1nZnhAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCmh0dHBz
+Oi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vYW1kLWdmeA==
