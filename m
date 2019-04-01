@@ -1,132 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33418 "EHLO foss.arm.com"
+Received: from mail.kernel.org ([198.145.29.99]:50702 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725882AbfDALwQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 07:52:16 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 1/5] arm64: Fix vDSO clock_getres()
-Date: Mon,  1 Apr 2019 12:51:48 +0100
-Message-ID: <20190401115152.32751-2-vincenzo.frascino@arm.com>
-In-Reply-To: <20190401115152.32751-1-vincenzo.frascino@arm.com>
-References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+        id S1726968AbfDANoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 09:44:22 -0400
+Message-ID: <20190401134421.121919570@goodmis.org>
+Date: Mon, 01 Apr 2019 09:41:08 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [PATCH 4/6 v3] csky: Fix syscall_get_arguments() and syscall_set_arguments()
+References: <20190401134104.676620247@goodmis.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190401115148.ZZMC5Gwp5zi9A1PJEoX5IB8v63KNmSM4NMFBIcqi908@z>
+To: linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Palmer Dabbelt <palmer@sifive.com>, Will Drewry <wad@chromium.org>, Guo Ren <guoren@kernel.org>
+Message-ID: <20190401134108.Bue3nLvV16L7XjiWlvpl-RQVWgmUhRrj1jzg-ACXAR4@z>
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+From: "Dmitry V. Levin" <ldv@altlinux.org>
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+C-SKY syscall arguments are located in orig_a0,a1,a2,a3,regs[0],regs[1]
+fields of struct pt_regs.
 
-Fix the arm64 vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
+Due to an off-by-one bug and a bug in pointer arithmetic
+syscall_get_arguments() was reading orig_a0,regs[1..5] fields instead.
+Likewise, syscall_set_arguments() was writing orig_a0,regs[1..5] fields
+instead.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Link: http://lkml.kernel.org/r/20190329171230.GB32456@altlinux.org
+
+Fixes: 4859bfca11c7d ("csky: System Call")
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Will Drewry <wad@chromium.org>
+Cc: Guo Ren <guoren@kernel.org>
+Cc: stable@vger.kernel.org # v4.20+
+Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- arch/arm64/include/asm/vdso_datapage.h |  1 +
- arch/arm64/kernel/asm-offsets.c        |  2 +-
- arch/arm64/kernel/vdso.c               |  2 ++
- arch/arm64/kernel/vdso/gettimeofday.S  | 25 ++++++++++++++-----------
- 4 files changed, 18 insertions(+), 12 deletions(-)
+ arch/csky/include/asm/syscall.h | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vdso_datapage.h b/arch/arm64/include/asm/vdso_datapage.h
-index 2b9a63771eda..f89263c8e11a 100644
---- a/arch/arm64/include/asm/vdso_datapage.h
-+++ b/arch/arm64/include/asm/vdso_datapage.h
-@@ -38,6 +38,7 @@ struct vdso_data {
- 	__u32 tz_minuteswest;	/* Whacky timezone stuff */
- 	__u32 tz_dsttime;
- 	__u32 use_syscall;
-+	__u32 hrtimer_res;
- };
- 
- #endif /* !__ASSEMBLY__ */
-diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-index 7f40dcbdd51d..e10e2a5d9ddc 100644
---- a/arch/arm64/kernel/asm-offsets.c
-+++ b/arch/arm64/kernel/asm-offsets.c
-@@ -94,7 +94,7 @@ int main(void)
-   DEFINE(CLOCK_REALTIME,	CLOCK_REALTIME);
-   DEFINE(CLOCK_MONOTONIC,	CLOCK_MONOTONIC);
-   DEFINE(CLOCK_MONOTONIC_RAW,	CLOCK_MONOTONIC_RAW);
--  DEFINE(CLOCK_REALTIME_RES,	MONOTONIC_RES_NSEC);
-+  DEFINE(CLOCK_REALTIME_RES,	offsetof(struct vdso_data, hrtimer_res));
-   DEFINE(CLOCK_REALTIME_COARSE,	CLOCK_REALTIME_COARSE);
-   DEFINE(CLOCK_MONOTONIC_COARSE,CLOCK_MONOTONIC_COARSE);
-   DEFINE(CLOCK_COARSE_RES,	LOW_RES_NSEC);
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 2d419006ad43..47ba72345739 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -245,6 +245,8 @@ void update_vsyscall(struct timekeeper *tk)
- 		vdso_data->cs_shift		= tk->tkr_mono.shift;
+diff --git a/arch/csky/include/asm/syscall.h b/arch/csky/include/asm/syscall.h
+index d637445737b7..9a9cd81e66c1 100644
+--- a/arch/csky/include/asm/syscall.h
++++ b/arch/csky/include/asm/syscall.h
+@@ -49,10 +49,11 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+ 	if (i == 0) {
+ 		args[0] = regs->orig_a0;
+ 		args++;
+-		i++;
+ 		n--;
++	} else {
++		i--;
  	}
- 
-+	vdso_data->hrtimer_res			= hrtimer_resolution;
-+
- 	smp_wmb();
- 	++vdso_data->tb_seq_count;
+-	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
++	memcpy(args, &regs->a1 + i, n * sizeof(args[0]));
  }
-diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
-index c39872a7b03c..7a2cd2f8e13a 100644
---- a/arch/arm64/kernel/vdso/gettimeofday.S
-+++ b/arch/arm64/kernel/vdso/gettimeofday.S
-@@ -296,32 +296,35 @@ ENDPROC(__kernel_clock_gettime)
- /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
- ENTRY(__kernel_clock_getres)
- 	.cfi_startproc
-+	adr	vdso_data, _vdso_data
- 	cmp	w0, #CLOCK_REALTIME
- 	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
- 	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
--	b.ne	1f
-+	b.ne	2f
  
--	ldr	x2, 5f
--	b	2f
--1:
-+1:	/* Get hrtimer_res */
-+	seqcnt_acquire
-+	syscall_check fail=5f
-+	ldr	x2, [vdso_data, #CLOCK_REALTIME_RES]
-+	seqcnt_check fail=1b
-+	b	3f
-+2:
- 	cmp	w0, #CLOCK_REALTIME_COARSE
- 	ccmp	w0, #CLOCK_MONOTONIC_COARSE, #0x4, ne
--	b.ne	4f
-+	b.ne	5f
- 	ldr	x2, 6f
--2:
--	cbz	x1, 3f
-+3:
-+	cbz	x1, 4f
- 	stp	xzr, x2, [x1]
+ static inline void
+@@ -63,10 +64,11 @@ syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
+ 	if (i == 0) {
+ 		regs->orig_a0 = args[0];
+ 		args++;
+-		i++;
+ 		n--;
++	} else {
++		i--;
+ 	}
+-	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
++	memcpy(&regs->a1 + i, args, n * sizeof(regs->a1));
+ }
  
--3:	/* res == NULL. */
-+4:	/* res == NULL. */
- 	mov	w0, wzr
- 	ret
- 
--4:	/* Syscall fallback. */
-+5:	/* Syscall fallback. */
- 	mov	x8, #__NR_clock_getres
- 	svc	#0
- 	ret
--5:
--	.quad	CLOCK_REALTIME_RES
- 6:
- 	.quad	CLOCK_COARSE_RES
- 	.cfi_endproc
+ static inline int
 -- 
-2.21.0
+2.20.1
