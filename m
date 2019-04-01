@@ -1,55 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:35748 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726882AbfDAOaf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Apr 2019 10:30:35 -0400
-Date: Mon, 1 Apr 2019 15:30:31 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 2/4] arm64: compat: Split kuser32
-Message-ID: <20190401143030.GG14874@arrakis.emea.arm.com>
-References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
- <20190401112025.40807-3-vincenzo.frascino@arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:53452 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726514AbfDAOgX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Apr 2019 10:36:23 -0400
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+Date: Mon, 1 Apr 2019 10:36:19 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190401112025.40807-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20190329152006.110370-4-alex.kogan@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20190401143031.9-sEE0TljMj4GX8NCalmj_UeLrcJO58c_CMtaqmxgsw@z>
+To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190401143619.ZPnQu09Fu4FLyHbZ55MNIGh6rWwPAcZORUPeKO2EdKQ@z>
 
-On Mon, Apr 01, 2019 at 12:20:23PM +0100, Vincenzo Frascino wrote:
-> diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
-> index 997e6b27ff6a..f19e2b015097 100644
-> --- a/arch/arm64/kernel/kuser32.S
-> +++ b/arch/arm64/kernel/kuser32.S
-> @@ -1,24 +1,9 @@
->  /*
-> - * Low-level user helpers placed in the vectors page for AArch32.
-> + * AArch32 user helpers.
->   * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
->   *
->   * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
-> - * Copyright (C) 2012 ARM Ltd.
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - *
-> - * This program is distributed in the hope that it will be useful,
-> - * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> - * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> - * GNU General Public License for more details.
-> - *
-> - * You should have received a copy of the GNU General Public License
-> - * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> - *
-> - *
-> - * AArch32 user helpers.
-> + * Copyright (C) 2012-2018 ARM Ltd.
+On 03/29/2019 11:20 AM, Alex Kogan wrote:
+> In CNA, spinning threads are organized in two queues, a main queue for
+> threads running on the same node as the current lock holder, and a
+> secondary queue for threads running on other nodes. At the unlock time,
+> the lock holder scans the main queue looking for a thread running on
+> the same node. If found (call it thread T), all threads in the main queue
+> between the current lock holder and T are moved to the end of the
+> secondary queue, and the lock is passed to T. If such T is not found, the
+> lock is passed to the first node in the secondary queue. Finally, if the
+> secondary queue is empty, the lock is passed to the next thread in the
+> main queue. For more details, see https://arxiv.org/abs/1810.05600.
+>
+> Note that this variant of CNA may introduce starvation by continuously
+> passing the lock to threads running on the same node. This issue
+> will be addressed later in the series.
+>
+> Enabling CNA is controlled via a new configuration option
+> (NUMA_AWARE_SPINLOCKS), which is enabled by default if NUMA is enabled.
+>
+> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+> ---
+>  arch/x86/Kconfig                      |  14 +++
+>  include/asm-generic/qspinlock_types.h |  13 +++
+>  kernel/locking/mcs_spinlock.h         |  10 ++
+>  kernel/locking/qspinlock.c            |  29 +++++-
+>  kernel/locking/qspinlock_cna.h        | 173 ++++++++++++++++++++++++++++++++++
+>  5 files changed, 236 insertions(+), 3 deletions(-)
+>  create mode 100644 kernel/locking/qspinlock_cna.h
+>
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 68261430fe6e..e70c39a901f2 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -1554,6 +1554,20 @@ config NUMA
+>  
+>  	  Otherwise, you should say N.
+>  
+> +config NUMA_AWARE_SPINLOCKS
+> +	bool "Numa-aware spinlocks"
+> +	depends on NUMA
+> +	default y
+> +	help
+> +	  Introduce NUMA (Non Uniform Memory Access) awareness into
+> +	  the slow path of spinlocks.
+> +
+> +	  The kernel will try to keep the lock on the same node,
+> +	  thus reducing the number of remote cache misses, while
+> +	  trading some of the short term fairness for better performance.
+> +
+> +	  Say N if you want absolute first come first serve fairness.
+> +
 
-If you remove the license text, please add the SPDX header.
+The patch that I am looking for is to have a separate
+numa_queued_spinlock_slowpath() that coexists with
+native_queued_spinlock_slowpath() and
+paravirt_queued_spinlock_slowpath(). At boot time, we select the most
+appropriate one for the system at hand.
 
--- 
-Catalin
+If you are going for the configuration option route, keep in mind that
+we optimize for the most common cases which are single-socket systems.
+Please default to "n" unless you can prove that your change won't
+regress performance for single-socket systems.
+
+Cheers,
+Longman
