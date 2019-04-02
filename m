@@ -1,84 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:34703 "EHLO pegase1.c-s.fr"
+Received: from pegase1.c-s.fr ([93.17.236.30]:52499 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729848AbfDBJIk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 05:08:40 -0400
-Message-ID: <a65e145d464451885f8d2570f7fca1e433155c13.1554195798.git.christophe.leroy@c-s.fr>
+        id S1729924AbfDBJIp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:08:45 -0400
+Message-ID: <f42400db206bcc94f99b38c7d7b2967bb7591bd2.1554195798.git.christophe.leroy@c-s.fr>
 In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
 References: <cover.1554195798.git.christophe.leroy@c-s.fr>
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 3/9] drivers: of: use cmdline building function
-Date: Tue,  2 Apr 2019 09:08:37 +0000 (UTC)
+Subject: [PATCH 8/9] Gives arches opportunity to use generically defined boot
+ cmdline manipulation
+Date: Tue,  2 Apr 2019 09:08:43 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20190402090837.1ldJ37YnfK8EVT3Q2Kko3kWXFORu0iTEoMXb2AYTVrA@z>
+Message-ID: <20190402090843.U1nIoeV0Dg40TzUknKp2W23w1x7mcpQGz8QmvKtBGEI@z>
 
-This patch uses the new cmdline building function to
-concatenate the of provided cmdline with built-in parts
-based on compile-time options.
+Most arches have similar boot command line manipulation options.
+This patchs adds the definition in init/Kconfig, gated by
+CONFIG_HAVE_CMDLINE that the arches can select to use them.
+
+In order to use this, a few arches will have to change their
+CONFIG options:
+- riscv has to replace CMDLINE_FALLBACK by CMDLINE_FROM_BOOTLOADER
+- arches using CONFIG_CMDLINE_OVERRIDE or CONFIG_CMDLINE_OVERWRITE
+have to replace them by CONFIG_CMDLINE_FORCE
+
+Arches also have to define CONFIG_DEFAULT_CMDLINE
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- drivers/of/fdt.c        | 23 ++++-------------------
- include/linux/cmdline.h |  2 +-
- 2 files changed, 5 insertions(+), 20 deletions(-)
+ init/Kconfig | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
 
-diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 4734223ab702..c6d941785b37 100644
---- a/drivers/of/fdt.c
-+++ b/drivers/of/fdt.c
-@@ -24,6 +24,7 @@
- #include <linux/debugfs.h>
- #include <linux/serial_core.h>
- #include <linux/sysfs.h>
-+#include <linux/cmdline.h>
+diff --git a/init/Kconfig b/init/Kconfig
+index 4592bf7997c0..83537603412c 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -80,6 +80,62 @@ config INIT_ENV_ARG_LIMIT
+ 	  Maximum of each of the number of arguments and environment
+ 	  variables passed to init from the kernel command line.
  
- #include <asm/setup.h>  /* for COMMAND_LINE_SIZE */
- #include <asm/page.h>
-@@ -1090,26 +1091,10 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
- 
- 	/* Retrieve command line */
- 	p = of_get_flat_dt_prop(node, "bootargs", &l);
--	if (p != NULL && l > 0)
--		strlcpy(data, p, min((int)l, COMMAND_LINE_SIZE));
-+	if (l <= 0)
-+		p = NULL;
- 
--	/*
--	 * CONFIG_CMDLINE is meant to be a default in case nothing else
--	 * managed to set the command line, unless CONFIG_CMDLINE_FORCE
--	 * is set in which case we override whatever was found earlier.
--	 */
--#ifdef CONFIG_CMDLINE
--#if defined(CONFIG_CMDLINE_EXTEND)
--	strlcat(data, " ", COMMAND_LINE_SIZE);
--	strlcat(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#elif defined(CONFIG_CMDLINE_FORCE)
--	strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#else
--	/* No arguments from boot loader, use kernel's  cmdl*/
--	if (!((char *)data)[0])
--		strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#endif
--#endif /* CONFIG_CMDLINE */
-+	cmdline_build(data, p, COMMAND_LINE_SIZE);
- 
- 	pr_debug("Command line is: %s\n", (char*)data);
- 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-index 8610ddf813ff..afcc00d7628d 100644
---- a/include/linux/cmdline.h
-+++ b/include/linux/cmdline.h
-@@ -10,7 +10,7 @@
-  * @src: The starting string or NULL if there isn't one. Must not equal dest.
-  * @length: the length of dest buffer.
-  */
--static __always_inline void cmdline_build(char *dest, char *src, size_t length)
-+static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
- {
- 	if (length <= 0)
- 		return;
++config HAVE_CMDLINE
++	bool
++
++config CMDLINE_BOOL
++	bool "Default bootloader kernel arguments"
++	depends on HAVE_CMDLINE
++	help
++	  On some platforms, there is currently no way for the boot loader to
++	  pass arguments to the kernel. For these platforms, you can supply
++	  some command-line options at build time by entering them here.  In
++	  most cases you will need to specify the root device here.
++
++config CMDLINE
++	string "Initial kernel command string"
++	depends on CMDLINE_BOOL
++	default DEFAULT_CMDLINE
++	help
++	  On some platforms, there is currently no way for the boot loader to
++	  pass arguments to the kernel. For these platforms, you can supply
++	  some command-line options at build time by entering them here.  In
++	  most cases you will need to specify the root device here.
++
++choice
++	prompt "Kernel command line type" if CMDLINE != ""
++	default CMDLINE_FROM_BOOTLOADER
++	help
++	  Selects the way you want to use the default kernel arguments.
++
++config CMDLINE_FROM_BOOTLOADER
++	bool "Use bootloader kernel arguments if available"
++	help
++	  Uses the command-line options passed by the boot loader. If
++	  the boot loader doesn't provide any, the default kernel command
++	  string provided in CMDLINE will be used.
++
++config CMDLINE_EXTEND
++	bool "Extend bootloader kernel arguments"
++	help
++	  The default kernel command string will be appended to the
++	  command-line arguments provided during boot.
++
++config CMDLINE_PREPEND
++	bool "Prepend bootloader kernel arguments"
++	help
++	  The default kernel command string will be prepend to the
++	  command-line arguments provided during boot.
++
++config CMDLINE_FORCE
++	bool "Always use the default kernel command string"
++	help
++	  Always use the default kernel command string, even if the boot
++	  loader passes other arguments to the kernel.
++	  This is useful if you cannot or don't want to change the
++	  command-line options your boot loader passes to the kernel.
++endchoice
++
+ config COMPILE_TEST
+ 	bool "Compile also drivers which will not load"
+ 	depends on !UML
 -- 
 2.13.3
