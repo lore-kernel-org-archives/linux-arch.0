@@ -1,7 +1,7 @@
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 6/9] Add capability to prepend the command line
-Date: Tue,  2 Apr 2019 09:08:40 +0000 (UTC)
-Message-ID: <cbd5b58e286d891cded00eb46f279d0e9d86f819.1554195798.git.christophe.leroy@c-s.fr>
+Subject: [PATCH 7/9] powerpc: add capability to prepend default command line
+Date: Tue,  2 Apr 2019 09:08:42 +0000 (UTC)
+Message-ID: <5afa3240df486cfaf29d46a3c59546171c4c4799.1554195798.git.christophe.leroy@c-s.fr>
 References: <cover.1554195798.git.christophe.leroy@c-s.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
@@ -10,36 +10,30 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This patchs adds an option of prepend a text to the command
-line instead of appending it.
+This patch activates the capability to prepend default
+arguments to the command line.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- include/linux/cmdline.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/powerpc/Kconfig | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-index afcc00d7628d..5caf3724c1ab 100644
---- a/include/linux/cmdline.h
-+++ b/include/linux/cmdline.h
-@@ -3,7 +3,7 @@
- #define _LINUX_CMDLINE_H
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 2972348e52be..22d6a48bd2ca 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -860,6 +860,12 @@ config CMDLINE_EXTEND
+ 	  The default kernel command string will be appended to the
+ 	  command-line arguments provided during boot.
  
- /*
-- * This function will append a builtin command line to the command
-+ * This function will append or prepend a builtin command line to the command
-  * line provided by the bootloader. Kconfig options can be used to alter
-  * the behavior of this builtin command line.
-  * @dest: The destination of the final appended/prepended string.
-@@ -22,6 +22,9 @@ static __always_inline void cmdline_build(char *dest, const char *src, size_t le
- 		strlcat(dest, CONFIG_CMDLINE, length);
- 		return;
- 	}
++config CMDLINE_PREPEND
++	bool "Prepend bootloader kernel arguments"
++	help
++	  The default kernel command string will be prepend to the
++	  command-line arguments provided during boot.
 +
-+	if (IS_ENABLED(CONFIG_CMDLINE_PREPEND) && sizeof(CONFIG_CMDLINE) > 1)
-+		strlcat(dest, CONFIG_CMDLINE " ", length);
- #endif
- 	if (dest != src)
- 		strlcat(dest, src, length);
+ config CMDLINE_FORCE
+ 	bool "Always use the default kernel command string"
+ 	help
 -- 
 2.13.3
