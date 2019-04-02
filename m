@@ -1,65 +1,65 @@
-From: guoren@kernel.org
-Subject: [PATCH 3/3] riscv/signal: Fixup additional syscall restarting
-Date: Tue,  2 Apr 2019 16:02:33 +0800
-Message-ID: <1554192153-2587-3-git-send-email-guoren@kernel.org>
-References: <1554192153-2587-1-git-send-email-guoren@kernel.org>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH 2/5] powerpc: Fix vDSO clock_getres()
+Date: Tue, 2 Apr 2019 10:00:25 +0100
+Message-ID: <f4919c8a-e0dd-ab78-d6a3-b792fa388aa9@arm.com>
+References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+ <20190401115152.32751-3-vincenzo.frascino@arm.com>
+ <f54a24fe-f893-10c9-9177-4985bad2e745@c-s.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1554192153-2587-1-git-send-email-guoren@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
-To: arnd@arndb.de, palmer@sifive.com
-Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <f54a24fe-f893-10c9-9177-4985bad2e745@c-s.fr>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+Hi Christophe,
 
-The function of do_notify_resume called by entry.S could be entered
-in loop when SIGPENDING was setted again before sret. So we must add
-prevent code to make syscall restart (regs->sepc -= 0x4) or it may
-re-execute unexpected instructions.
+thank you for your review.
 
-Just like in_syscall & forget_syscall used by arm.
+On 02/04/2019 06:54, Christophe Leroy wrote:
+> 
+> 
+> On 04/01/2019 11:51 AM, Vincenzo Frascino wrote:
+>> clock_getres in the vDSO library has to preserve the same behaviour
+>> of posix_get_hrtimer_res().
+>>
+>> In particular, posix_get_hrtimer_res() does:
+>>      sec = 0;
+>>      ns = hrtimer_resolution;
+>> and hrtimer_resolution depends on the enablement of the high
+>> resolution timers that can happen either at compile or at run time.
+>>
+>> Fix the powerpc vdso implementation of clock_getres keeping a copy of
+>> hrtimer_resolution in vdso data and using that directly.
+>>
+>> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>> Cc: Paul Mackerras <paulus@samba.org>
+>> Cc: Michael Ellerman <mpe@ellerman.id.au>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>   arch/powerpc/include/asm/vdso_datapage.h  |  2 ++
+> 
+> Conflicts with commit b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC 
+> inconsistencies across Y2038")
+> 
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/riscv/kernel/signal.c | 6 ++++++
- 1 file changed, 6 insertions(+)
+Thanks for pointing this out, I will rebase my code on top of the latest version
+before reissuing v2.
 
-diff --git a/arch/riscv/kernel/signal.c b/arch/riscv/kernel/signal.c
-index 837e164..804d6ee 100644
---- a/arch/riscv/kernel/signal.c
-+++ b/arch/riscv/kernel/signal.c
-@@ -234,6 +234,9 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- 
- 	/* Are we from a system call? */
- 	if (regs->scause == EXC_SYSCALL) {
-+		/* Avoid additional syscall restarting via ret_from_exception */
-+		regs->scause = -1UL;
-+
- 		/* If so, check system call restarting.. */
- 		switch (regs->a0) {
- 		case -ERESTART_RESTARTBLOCK:
-@@ -272,6 +275,9 @@ static void do_signal(struct pt_regs *regs)
- 
- 	/* Did we come from a system call? */
- 	if (regs->scause == EXC_SYSCALL) {
-+		/* Avoid additional syscall restarting via ret_from_exception */
-+		regs->scause = -1UL;
-+
- 		/* Restart the system call - no handlers present */
- 		switch (regs->a0) {
- 		case -ERESTARTNOHAND:
+...
+
 -- 
-2.7.4
+Regards,
+Vincenzo
