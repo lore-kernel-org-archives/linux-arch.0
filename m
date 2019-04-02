@@ -1,79 +1,78 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 3/9] drivers: of: use cmdline building function
-Date: Tue,  2 Apr 2019 09:08:37 +0000 (UTC)
-Message-ID: <a65e145d464451885f8d2570f7fca1e433155c13.1554195798.git.christophe.leroy@c-s.fr>
-References: <cover.1554195798.git.christophe.leroy@c-s.fr>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v2] Remove SPDX "WITH Linux-syscall-note" from kernel-space headers
+Date: Tue,  2 Apr 2019 18:08:24 +0900
+Message-ID: <1554196104-3522-1-git-send-email-yamada.masahiro@socionext.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Karthikeyan Ramasubramanian <kramasub@codeaurora.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Gross <andy.gross@linaro.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Girish Mahadevan <girishm@codeaurora.org>, Sagar Dharia <sdharia@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Haiyang Zhang <haiyangz@microsoft.com>, "K. Y. Srinivasan" <kys@microsoft.com>, Sasha Levin <sashal@kernel.org>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Hemminger <sthemmin@microsoft.com>, Ingo Molnar <mingo@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch uses the new cmdline building function to
-concatenate the of provided cmdline with built-in parts
-based on compile-time options.
+The "WITH Linux-syscall-note" should be added to headers exported to
+the user-space.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Some kernel-space headers have "WITH Linux-syscall-note", which seems
+a mistake.
+
+[1] arch/x86/include/asm/hyperv-tlfs.h
+
+5a4858032217 ("x86/hyper-v: move hyperv.h out of uapi") moved this file
+out of uapi, but missed to update the SPDX License tag.
+
+[2] include/asm-generic/shmparam.h
+
+76ce2a80a28e ("Rename include/{uapi => }/asm-generic/shmparam.h really")
+moved this file out of uapi, but missed to update the SPDX License tag.
+
+[3] include/linux/qcom-geni-se.h
+
+eddac5af0654 ("soc: qcom: Add GENI based QUP Wrapper driver") added this
+file, but I do not see a good reason why its license tag must include
+"WITH Linux-syscall-note".
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
- drivers/of/fdt.c        | 23 ++++-------------------
- include/linux/cmdline.h |  2 +-
- 2 files changed, 5 insertions(+), 20 deletions(-)
 
-diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 4734223ab702..c6d941785b37 100644
---- a/drivers/of/fdt.c
-+++ b/drivers/of/fdt.c
-@@ -24,6 +24,7 @@
- #include <linux/debugfs.h>
- #include <linux/serial_core.h>
- #include <linux/sysfs.h>
-+#include <linux/cmdline.h>
+Changes in v2:
+  - Fix a typo in commit log
+
+ arch/x86/include/asm/hyperv-tlfs.h | 2 +-
+ include/asm-generic/shmparam.h     | 2 +-
+ include/linux/qcom-geni-se.h       | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+index 2bdbbbc..cdf44aa 100644
+--- a/arch/x86/include/asm/hyperv-tlfs.h
++++ b/arch/x86/include/asm/hyperv-tlfs.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
  
- #include <asm/setup.h>  /* for COMMAND_LINE_SIZE */
- #include <asm/page.h>
-@@ -1090,26 +1091,10 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
+ /*
+  * This file contains definitions from Hyper-V Hypervisor Top-Level Functional
+diff --git a/include/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
+index 8b78c0b..b8f9035 100644
+--- a/include/asm-generic/shmparam.h
++++ b/include/asm-generic/shmparam.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef __ASM_GENERIC_SHMPARAM_H
+ #define __ASM_GENERIC_SHMPARAM_H
  
- 	/* Retrieve command line */
- 	p = of_get_flat_dt_prop(node, "bootargs", &l);
--	if (p != NULL && l > 0)
--		strlcpy(data, p, min((int)l, COMMAND_LINE_SIZE));
-+	if (l <= 0)
-+		p = NULL;
- 
--	/*
--	 * CONFIG_CMDLINE is meant to be a default in case nothing else
--	 * managed to set the command line, unless CONFIG_CMDLINE_FORCE
--	 * is set in which case we override whatever was found earlier.
--	 */
--#ifdef CONFIG_CMDLINE
--#if defined(CONFIG_CMDLINE_EXTEND)
--	strlcat(data, " ", COMMAND_LINE_SIZE);
--	strlcat(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#elif defined(CONFIG_CMDLINE_FORCE)
--	strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#else
--	/* No arguments from boot loader, use kernel's  cmdl*/
--	if (!((char *)data)[0])
--		strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
--#endif
--#endif /* CONFIG_CMDLINE */
-+	cmdline_build(data, p, COMMAND_LINE_SIZE);
- 
- 	pr_debug("Command line is: %s\n", (char*)data);
- 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-index 8610ddf813ff..afcc00d7628d 100644
---- a/include/linux/cmdline.h
-+++ b/include/linux/cmdline.h
-@@ -10,7 +10,7 @@
-  * @src: The starting string or NULL if there isn't one. Must not equal dest.
-  * @length: the length of dest buffer.
+diff --git a/include/linux/qcom-geni-se.h b/include/linux/qcom-geni-se.h
+index 3bcd67f..dd46494 100644
+--- a/include/linux/qcom-geni-se.h
++++ b/include/linux/qcom-geni-se.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ /*
+  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
   */
--static __always_inline void cmdline_build(char *dest, char *src, size_t length)
-+static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
- {
- 	if (length <= 0)
- 		return;
 -- 
-2.13.3
+2.7.4
