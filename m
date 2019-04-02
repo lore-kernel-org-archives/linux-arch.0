@@ -1,64 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53958 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726496AbfDBJnn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 05:43:43 -0400
-Date: Tue, 2 Apr 2019 11:43:20 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20190402094320.GM11158@hirez.programming.kicks-ass.net>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+Received: from foss.arm.com ([217.140.101.70]:47454 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725920AbfDBJrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:47:23 -0400
+Subject: Re: [PATCH 2/4] arm64: compat: Split kuser32
+References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
+ <20190401112025.40807-3-vincenzo.frascino@arm.com>
+ <20190401143030.GG14874@arrakis.emea.arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <9cf9bb3c-7183-f01f-7c13-9874aeea1b3f@arm.com>
+Date: Tue, 2 Apr 2019 10:47:18 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+In-Reply-To: <20190401143030.GG14874@arrakis.emea.arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190402094320.zSMNjop3_JNrhsuStrwBOgcziR9MH5vLC9-LQliphoo@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20190402094718.quePIVC6HCixrK6Ilq8VX1RCOtliDe9OxbiXO1Lrl-Y@z>
 
-On Mon, Apr 01, 2019 at 10:36:19AM -0400, Waiman Long wrote:
-> On 03/29/2019 11:20 AM, Alex Kogan wrote:
-> > +config NUMA_AWARE_SPINLOCKS
-> > +	bool "Numa-aware spinlocks"
-> > +	depends on NUMA
-> > +	default y
-> > +	help
-> > +	  Introduce NUMA (Non Uniform Memory Access) awareness into
-> > +	  the slow path of spinlocks.
-> > +
-> > +	  The kernel will try to keep the lock on the same node,
-> > +	  thus reducing the number of remote cache misses, while
-> > +	  trading some of the short term fairness for better performance.
-> > +
-> > +	  Say N if you want absolute first come first serve fairness.
-> > +
+On 01/04/2019 15:30, Catalin Marinas wrote:
+> On Mon, Apr 01, 2019 at 12:20:23PM +0100, Vincenzo Frascino wrote:
+>> diff --git a/arch/arm64/kernel/kuser32.S b/arch/arm64/kernel/kuser32.S
+>> index 997e6b27ff6a..f19e2b015097 100644
+>> --- a/arch/arm64/kernel/kuser32.S
+>> +++ b/arch/arm64/kernel/kuser32.S
+>> @@ -1,24 +1,9 @@
+>>  /*
+>> - * Low-level user helpers placed in the vectors page for AArch32.
+>> + * AArch32 user helpers.
+>>   * Based on the kuser helpers in arch/arm/kernel/entry-armv.S.
+>>   *
+>>   * Copyright (C) 2005-2011 Nicolas Pitre <nico@fluxnic.net>
+>> - * Copyright (C) 2012 ARM Ltd.
+>> - *
+>> - * This program is free software; you can redistribute it and/or modify
+>> - * it under the terms of the GNU General Public License version 2 as
+>> - * published by the Free Software Foundation.
+>> - *
+>> - * This program is distributed in the hope that it will be useful,
+>> - * but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> - * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> - * GNU General Public License for more details.
+>> - *
+>> - * You should have received a copy of the GNU General Public License
+>> - * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>> - *
+>> - *
+>> - * AArch32 user helpers.
+>> + * Copyright (C) 2012-2018 ARM Ltd.
 > 
-> The patch that I am looking for is to have a separate
-> numa_queued_spinlock_slowpath() that coexists with
-> native_queued_spinlock_slowpath() and
-> paravirt_queued_spinlock_slowpath(). At boot time, we select the most
-> appropriate one for the system at hand.
+> If you remove the license text, please add the SPDX header.
+> 
 
-Agreed; and until we have static_call, I think we can abuse the paravirt
-stuff for this.
+Oops... I will fix it in v2.
 
-By the time we patch the paravirt stuff:
-
-  check_bugs()
-    alternative_instructions()
-      apply_paravirt()
-
-we should already have enumerated the NODE topology and so nr_node_ids()
-should be set.
-
-So if we frob pv_ops.lock.queued_spin_lock_slowpath to
-numa_queued_spin_lock_slowpath before that, it should all get patched
-just right.
-
-That of course means the whole NUMA_AWARE_SPINLOCKS thing depends on
-PARAVIRT_SPINLOCK, which is a bit awkward...
+-- 
+Regards,
+Vincenzo
