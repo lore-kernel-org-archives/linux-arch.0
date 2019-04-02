@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46768 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46832 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729162AbfDBJA3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 05:00:29 -0400
+        id S1726337AbfDBJBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:01:51 -0400
 Subject: Re: [PATCH 2/5] powerpc: Fix vDSO clock_getres()
 References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
  <20190401115152.32751-3-vincenzo.frascino@arm.com>
- <f54a24fe-f893-10c9-9177-4985bad2e745@c-s.fr>
+ <5a76f55d-eb0d-fb49-8e59-f0e89e561f7b@c-s.fr>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <f4919c8a-e0dd-ab78-d6a3-b792fa388aa9@arm.com>
-Date: Tue, 2 Apr 2019 10:00:25 +0100
+Message-ID: <f8206e04-79d2-87e7-0cf0-04d099b3ad40@arm.com>
+Date: Tue, 2 Apr 2019 10:01:46 +0100
 MIME-Version: 1.0
-In-Reply-To: <f54a24fe-f893-10c9-9177-4985bad2e745@c-s.fr>
+In-Reply-To: <5a76f55d-eb0d-fb49-8e59-f0e89e561f7b@c-s.fr>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
@@ -19,13 +19,9 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
-Message-ID: <20190402090025.rDGKpoQzC7K4sKSo-1Hu_C980w2e4YYkPm1knNKmxcI@z>
+Message-ID: <20190402090146.J0TBChIq3R2uVjPKeNqJXUChSfB4vzOFKe8L9cogusw@z>
 
-Hi Christophe,
-
-thank you for your review.
-
-On 02/04/2019 06:54, Christophe Leroy wrote:
+On 02/04/2019 07:14, Christophe Leroy wrote:
 > 
 > 
 > On 04/01/2019 11:51 AM, Vincenzo Frascino wrote:
@@ -47,15 +43,131 @@ On 02/04/2019 06:54, Christophe Leroy wrote:
 >> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 >> ---
 >>   arch/powerpc/include/asm/vdso_datapage.h  |  2 ++
+>>   arch/powerpc/kernel/asm-offsets.c         |  2 +-
+>>   arch/powerpc/kernel/time.c                |  1 +
+>>   arch/powerpc/kernel/vdso32/gettimeofday.S | 22 +++++++++++++++-------
+>>   arch/powerpc/kernel/vdso64/gettimeofday.S | 22 +++++++++++++++-------
+>>   5 files changed, 34 insertions(+), 15 deletions(-)
+>>
 > 
-> Conflicts with commit b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC 
-> inconsistencies across Y2038")
+> [...]
+> 
+>> diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+>> index 1e0bc5955a40..b21630079496 100644
+>> --- a/arch/powerpc/kernel/vdso32/gettimeofday.S
+>> +++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+>> @@ -160,14 +160,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>>   	bne	cr0,99f
+>>   
+>> -	li	r3,0
+>> -	cmpli	cr0,r4,0
+>> +	mflr	r12
+>> +  .cfi_register lr,r12
+>> +	mr	r11,r4
+>> +	bl	__get_datapage@local
+>> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+>> +	li	r4,0
+>> +	cmplwi	r11,0		/* check if res is NULL */
+>> +	beq	1f
+>> +
+>> +	stw	r4,TSPC32_TV_SEC(r11)
+>> +	stw	r5,TSPC32_TV_NSEC(r11)
+>> +
+>> +1:	mtlr	r12
+>>   	crclr	cr0*4+so
+>> -	beqlr
+>> -	lis	r5,CLOCK_REALTIME_RES@h
+>> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+>> -	stw	r3,TSPC32_TV_SEC(r4)
+>> -	stw	r5,TSPC32_TV_NSEC(r4)
+>> +	li	r3,0
+>>   	blr
+> 
+> The above can be done simpler, see below
+> 
+> @@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>   	bne	cr0,99f
+> 
+> +	mflr	r12
+> +  .cfi_register lr,r12
+> +	bl	__get_datapage@local
+> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+> +	mtlr	r12
+>   	li	r3,0
+>   	cmpli	cr0,r4,0
+>   	crclr	cr0*4+so
+>   	beqlr
+> -	lis	r5,CLOCK_REALTIME_RES@h
+> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+>   	stw	r3,TSPC32_TV_SEC(r4)
+>   	stw	r5,TSPC32_TV_NSEC(r4)
+>   	blr
 > 
 
-Thanks for pointing this out, I will rebase my code on top of the latest version
-before reissuing v2.
+Thank you for this, I will update my code accordingly before posting v2.
 
-...
+> Christophe
+> 
+>>   
+>>   	/*
+>> @@ -175,6 +182,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>>   	 */
+>>   99:
+>>   	li	r0,__NR_clock_getres
+>> +  .cfi_restore lr
+>>   	sc
+>>   	blr
+>>     .cfi_endproc
+>> diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
+>> index a4ed9edfd5f0..a7e49bddd475 100644
+>> --- a/arch/powerpc/kernel/vdso64/gettimeofday.S
+>> +++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
+>> @@ -190,14 +190,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>>   	bne	cr0,99f
+>>   
+>> -	li	r3,0
+>> -	cmpldi	cr0,r4,0
+>> +	mflr	r12
+>> +  .cfi_register lr,r12
+>> +	mr	r11, r4
+>> +	bl	V_LOCAL_FUNC(__get_datapage)
+>> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+>> +	li	r4,0
+>> +	cmpldi	r11,0		/* check if res is NULL */
+>> +	beq	1f
+>> +
+>> +	std	r4,TSPC64_TV_SEC(r11)
+>> +	std	r5,TSPC64_TV_NSEC(r11)
+>> +
+>> +1:	mtlr	r12
+>>   	crclr	cr0*4+so
+>> -	beqlr
+>> -	lis	r5,CLOCK_REALTIME_RES@h
+>> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+>> -	std	r3,TSPC64_TV_SEC(r4)
+>> -	std	r5,TSPC64_TV_NSEC(r4)
+>> +	li	r3,0
+>>   	blr
+> 
+> The same type of simplification applies here too.
+> 
+> Christophe
+> 
+> 
+>>   
+>>   	/*
+>> @@ -205,6 +212,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>>   	 */
+>>   99:
+>>   	li	r0,__NR_clock_getres
+>> +  .cfi_restore lr
+>>   	sc
+>>   	blr
+>>     .cfi_endproc
+>>
 
 -- 
 Regards,
