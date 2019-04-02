@@ -1,8 +1,7 @@
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 1/9] powerpc: enable appending of CONFIG_CMDLINE to
- bootloader's cmdline.
-Date: Tue,  2 Apr 2019 09:08:35 +0000 (UTC)
-Message-ID: <38f2f75fdcbdee71322f3a41f45eab33ffe61b4e.1554195798.git.christophe.leroy@c-s.fr>
+Subject: [PATCH 4/9] powerpc/prom_init: get rid of PROM_SCRATCH_SIZE
+Date: Tue,  2 Apr 2019 09:08:38 +0000 (UTC)
+Message-ID: <5ad9ed13155f55e1715274561354aa7ab57973fc.1554195798.git.christophe.leroy@c-s.fr>
 References: <cover.1554195798.git.christophe.leroy@c-s.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
@@ -11,86 +10,80 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Today, powerpc defined CONFIG_CMDLINE for when bootloader doesn't
-provide a command line or for overriding it.
-
-On same way as ARM, this patch adds the option of appending the
-CONFIG_CMDLINE to bootloader's provided command line.
+PROM_SCRATCH_SIZE is same as sizeof(prom_scratch)
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- arch/powerpc/Kconfig                   | 21 ++++++++++++++++++++-
- arch/powerpc/kernel/prom_init.c        |  5 ++---
- arch/powerpc/kernel/prom_init_check.sh |  2 +-
- 3 files changed, 23 insertions(+), 5 deletions(-)
+ arch/powerpc/kernel/prom_init.c | 20 +++++++++-----------
+ 1 file changed, 9 insertions(+), 11 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 2d0be82c3061..2972348e52be 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -841,14 +841,33 @@ config CMDLINE
- 	  some command-line options at build time by entering them here.  In
- 	  most cases you will need to specify the root device here.
- 
-+choice
-+	prompt "Kernel command line type" if CMDLINE != ""
-+	default CMDLINE_FROM_BOOTLOADER
-+	help
-+	  Selects the way you want to use the default kernel arguments.
-+
-+config CMDLINE_FROM_BOOTLOADER
-+	bool "Use bootloader kernel arguments if available"
-+	help
-+	  Uses the command-line options passed by the boot loader. If
-+	  the boot loader doesn't provide any, the default kernel command
-+	  string provided in CMDLINE will be used.
-+
-+config CMDLINE_EXTEND
-+	bool "Extend bootloader kernel arguments"
-+	help
-+	  The default kernel command string will be appended to the
-+	  command-line arguments provided during boot.
-+
- config CMDLINE_FORCE
- 	bool "Always use the default kernel command string"
--	depends on CMDLINE_BOOL
- 	help
- 	  Always use the default kernel command string, even if the boot
- 	  loader passes other arguments to the kernel.
- 	  This is useful if you cannot or don't want to change the
- 	  command-line options your boot loader passes to the kernel.
-+endchoice
- 
- config EXTRA_TARGETS
- 	string "Additional default image types"
 diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
-index f33ff4163a51..a6cd52240c58 100644
+index a6cd52240c58..d4889ba04ddd 100644
 --- a/arch/powerpc/kernel/prom_init.c
 +++ b/arch/powerpc/kernel/prom_init.c
-@@ -638,9 +638,8 @@ static void __init early_cmdline_parse(void)
- 	if ((long)prom.chosen > 0)
- 		l = prom_getprop(prom.chosen, "bootargs", p, COMMAND_LINE_SIZE-1);
- #ifdef CONFIG_CMDLINE
--	if (l <= 0 || p[0] == '\0') /* dbl check */
--		strlcpy(prom_cmd_line,
--			CONFIG_CMDLINE, sizeof(prom_cmd_line));
-+	if (l <= 0 || p[0] == '\0' || IS_ENABLED(CONFIG_CMDLINE_EXTEND)) /* dbl check */
-+		strlcat(prom_cmd_line, CONFIG_CMDLINE, sizeof(prom_cmd_line));
- #endif /* CONFIG_CMDLINE */
- 	prom_printf("command line: %s\n", prom_cmd_line);
+@@ -154,10 +154,8 @@ static struct prom_t __prombss prom;
  
-diff --git a/arch/powerpc/kernel/prom_init_check.sh b/arch/powerpc/kernel/prom_init_check.sh
-index 667df97d2595..cbcf18846392 100644
---- a/arch/powerpc/kernel/prom_init_check.sh
-+++ b/arch/powerpc/kernel/prom_init_check.sh
-@@ -19,7 +19,7 @@
- WHITELIST="add_reloc_offset __bss_start __bss_stop copy_and_flush
- _end enter_prom memcpy memset reloc_offset __secondary_hold
- __secondary_hold_acknowledge __secondary_hold_spinloop __start
--strcmp strcpy strlcpy strlen strncmp strstr kstrtobool logo_linux_clut224
-+strcmp strcpy strlcat strlen strncmp strstr kstrtobool logo_linux_clut224
- reloc_got2 kernstart_addr memstart_addr linux_banner _stext
- __prom_init_toc_start __prom_init_toc_end btext_setup_display TOC."
+ static unsigned long __prombss prom_entry;
  
+-#define PROM_SCRATCH_SIZE 256
+-
+ static char __prombss of_stdout_device[256];
+-static char __prombss prom_scratch[PROM_SCRATCH_SIZE];
++static char __prombss prom_scratch[256];
+ 
+ static unsigned long __prombss dt_header_start;
+ static unsigned long __prombss dt_struct_start, dt_struct_end;
+@@ -1486,8 +1484,8 @@ static void __init prom_init_mem(void)
+ 		endp = p + (plen / sizeof(cell_t));
+ 
+ #ifdef DEBUG_PROM
+-		memset(path, 0, PROM_SCRATCH_SIZE);
+-		call_prom("package-to-path", 3, 1, node, path, PROM_SCRATCH_SIZE-1);
++		memset(path, 0, sizeof(prom_scratch));
++		call_prom("package-to-path", 3, 1, node, path, sizeof(prom_scratch) - 1);
+ 		prom_debug("  node %s :\n", path);
+ #endif /* DEBUG_PROM */
+ 
+@@ -1795,10 +1793,10 @@ static void __init prom_initialize_tce_table(void)
+ 			local_alloc_bottom = base;
+ 
+ 		/* It seems OF doesn't null-terminate the path :-( */
+-		memset(path, 0, PROM_SCRATCH_SIZE);
++		memset(path, 0, sizeof(prom_scratch));
+ 		/* Call OF to setup the TCE hardware */
+ 		if (call_prom("package-to-path", 3, 1, node,
+-			      path, PROM_SCRATCH_SIZE-1) == PROM_ERROR) {
++			      path, sizeof(prom_scratch) - 1) == PROM_ERROR) {
+ 			prom_printf("package-to-path failed\n");
+ 		}
+ 
+@@ -2159,14 +2157,14 @@ static void __init prom_check_displays(void)
+ 
+ 		/* It seems OF doesn't null-terminate the path :-( */
+ 		path = prom_scratch;
+-		memset(path, 0, PROM_SCRATCH_SIZE);
++		memset(path, 0, sizeof(prom_scratch));
+ 
+ 		/*
+ 		 * leave some room at the end of the path for appending extra
+ 		 * arguments
+ 		 */
+ 		if (call_prom("package-to-path", 3, 1, node, path,
+-			      PROM_SCRATCH_SIZE-10) == PROM_ERROR)
++			      sizeof(prom_scratch) - 10) == PROM_ERROR)
+ 			continue;
+ 		prom_printf("found display   : %s, opening... ", path);
+ 		
+@@ -2362,8 +2360,8 @@ static void __init scan_dt_build_struct(phandle node, unsigned long *mem_start,
+ 
+ 	/* get it again for debugging */
+ 	path = prom_scratch;
+-	memset(path, 0, PROM_SCRATCH_SIZE);
+-	call_prom("package-to-path", 3, 1, node, path, PROM_SCRATCH_SIZE-1);
++	memset(path, 0, sizeof(prom_scratch));
++	call_prom("package-to-path", 3, 1, node, path, sizeof(prom_scratch) - 1);
+ 
+ 	/* get and store all properties */
+ 	prev_name = "";
 -- 
 2.13.3
