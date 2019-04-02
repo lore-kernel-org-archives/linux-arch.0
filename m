@@ -1,7 +1,7 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v2] arm64: compat: Reduce address limit
-Date: Tue, 2 Apr 2019 16:23:05 +0100
-Message-ID: <20190402152305.b43qnvavrhnnavgi@mbp>
+Date: Tue, 2 Apr 2019 16:32:01 +0100
+Message-ID: <20190402153201.GA18557@fuggles.cambridge.arm.com>
 References: <20190401113014.20866-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -10,7 +10,7 @@ Content-Disposition: inline
 In-Reply-To: <20190401113014.20866-1-vincenzo.frascino@arm.com>
 Sender: stable-owner@vger.kernel.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, Jann Horn <jannh@google.com>, stable@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Jann Horn <jannh@google.com>, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, Apr 01, 2019 at 12:30:14PM +0100, Vincenzo Frascino wrote:
@@ -31,8 +31,23 @@ On Mon, Apr 01, 2019 at 12:30:14PM +0100, Vincenzo Frascino wrote:
 > Cc: <stable@vger.kernel.org>
 > Reported-by: Jann Horn <jannh@google.com>
 > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
+>  arch/arm64/include/asm/processor.h | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 5d9ce62bdebd..9c831d9d3cd2 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -57,7 +57,15 @@
+>  #define TASK_SIZE_64		(UL(1) << vabits_user)
+>  
+>  #ifdef CONFIG_COMPAT
+> +#ifdef CONFIG_ARM64_64K_PAGES
+> +/*
+> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+> + * by the compact vectors page.
 
-I'll queue this patch for -rc4.
+s/compact/compat/
 
--- 
-Catalin
+Will
