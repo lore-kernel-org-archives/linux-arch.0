@@ -1,69 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:41472 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729822AbfDBJIi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 05:08:38 -0400
-Message-ID: <f4e5809587336135de2df2cbf623ead34c0a56f5.1554195798.git.christophe.leroy@c-s.fr>
-In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
-References: <cover.1554195798.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 2/9] Add generic function to build command line.
-Date: Tue,  2 Apr 2019 09:08:36 +0000 (UTC)
+Received: from conuserg-09.nifty.com ([210.131.2.76]:22833 "EHLO
+        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729162AbfDBJK0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 05:10:26 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v2] Remove SPDX "WITH Linux-syscall-note" from kernel-space headers
+Date: Tue,  2 Apr 2019 18:08:24 +0900
+Message-ID: <1554196104-3522-1-git-send-email-yamada.masahiro@socionext.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20190402090836.5lBNaLoJWySkgDmtzFTy_EUCV42e1XaIUAMC8izAv2c@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Karthikeyan Ramasubramanian <kramasub@codeaurora.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Gross <andy.gross@linaro.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Girish Mahadevan <girishm@codeaurora.org>, Sagar Dharia <sdharia@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Haiyang Zhang <haiyangz@microsoft.com>, "K. Y. Srinivasan" <kys@microsoft.com>, Sasha Levin <sashal@kernel.org>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Hemminger <sthemmin@microsoft.com>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20190402090824.D5tf2GpgCukFqLxOPe1NuDXc3aouRLapK-DlnvVBNwk@z>
 
-This code provides architectures with a way to build command line
-based on what is built in the kernel and what is handed over by the
-bootloader, based on selected compile-time options.
+The "WITH Linux-syscall-note" should be added to headers exported to
+the user-space.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Some kernel-space headers have "WITH Linux-syscall-note", which seems
+a mistake.
+
+[1] arch/x86/include/asm/hyperv-tlfs.h
+
+5a4858032217 ("x86/hyper-v: move hyperv.h out of uapi") moved this file
+out of uapi, but missed to update the SPDX License tag.
+
+[2] include/asm-generic/shmparam.h
+
+76ce2a80a28e ("Rename include/{uapi => }/asm-generic/shmparam.h really")
+moved this file out of uapi, but missed to update the SPDX License tag.
+
+[3] include/linux/qcom-geni-se.h
+
+eddac5af0654 ("soc: qcom: Add GENI based QUP Wrapper driver") added this
+file, but I do not see a good reason why its license tag must include
+"WITH Linux-syscall-note".
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
- include/linux/cmdline.h | 34 ++++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
- create mode 100644 include/linux/cmdline.h
 
-diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-new file mode 100644
-index 000000000000..8610ddf813ff
---- /dev/null
-+++ b/include/linux/cmdline.h
-@@ -0,0 +1,34 @@
+Changes in v2:
+  - Fix a typo in commit log
+
+ arch/x86/include/asm/hyperv-tlfs.h | 2 +-
+ include/asm-generic/shmparam.h     | 2 +-
+ include/linux/qcom-geni-se.h       | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+index 2bdbbbc..cdf44aa 100644
+--- a/arch/x86/include/asm/hyperv-tlfs.h
++++ b/arch/x86/include/asm/hyperv-tlfs.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_CMDLINE_H
-+#define _LINUX_CMDLINE_H
-+
-+/*
-+ * This function will append a builtin command line to the command
-+ * line provided by the bootloader. Kconfig options can be used to alter
-+ * the behavior of this builtin command line.
-+ * @dest: The destination of the final appended/prepended string.
-+ * @src: The starting string or NULL if there isn't one. Must not equal dest.
-+ * @length: the length of dest buffer.
-+ */
-+static __always_inline void cmdline_build(char *dest, char *src, size_t length)
-+{
-+	if (length <= 0)
-+		return;
-+
-+	dest[0] = 0;
-+
-+#ifdef CONFIG_CMDLINE
-+	if (IS_ENABLED(CONFIG_CMDLINE_FORCE) || !src || !src[0]) {
-+		strlcat(dest, CONFIG_CMDLINE, length);
-+		return;
-+	}
-+#endif
-+	if (dest != src)
-+		strlcat(dest, src, length);
-+#ifdef CONFIG_CMDLINE
-+	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND) && sizeof(CONFIG_CMDLINE) > 1)
-+		strlcat(dest, " " CONFIG_CMDLINE, length);
-+#endif
-+}
-+
-+#endif /* _LINUX_CMDLINE_H */
+ 
+ /*
+  * This file contains definitions from Hyper-V Hypervisor Top-Level Functional
+diff --git a/include/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
+index 8b78c0b..b8f9035 100644
+--- a/include/asm-generic/shmparam.h
++++ b/include/asm-generic/shmparam.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef __ASM_GENERIC_SHMPARAM_H
+ #define __ASM_GENERIC_SHMPARAM_H
+ 
+diff --git a/include/linux/qcom-geni-se.h b/include/linux/qcom-geni-se.h
+index 3bcd67f..dd46494 100644
+--- a/include/linux/qcom-geni-se.h
++++ b/include/linux/qcom-geni-se.h
+@@ -1,4 +1,4 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* SPDX-License-Identifier: GPL-2.0 */
+ /*
+  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+  */
 -- 
-2.13.3
+2.7.4
