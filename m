@@ -1,94 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:41472 "EHLO pegase1.c-s.fr"
+Received: from pegase1.c-s.fr ([93.17.236.30]:34703 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729872AbfDBJIl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 05:08:41 -0400
-Message-ID: <5ad9ed13155f55e1715274561354aa7ab57973fc.1554195798.git.christophe.leroy@c-s.fr>
+        id S1729848AbfDBJIk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:08:40 -0400
+Message-ID: <a65e145d464451885f8d2570f7fca1e433155c13.1554195798.git.christophe.leroy@c-s.fr>
 In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
 References: <cover.1554195798.git.christophe.leroy@c-s.fr>
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 4/9] powerpc/prom_init: get rid of PROM_SCRATCH_SIZE
-Date: Tue,  2 Apr 2019 09:08:38 +0000 (UTC)
+Subject: [PATCH 3/9] drivers: of: use cmdline building function
+Date: Tue,  2 Apr 2019 09:08:37 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20190402090838.GvpI7ymgkrYmarzK-I4K_gsUcTBovpKF_sy-gAUh_P8@z>
+Message-ID: <20190402090837.1ldJ37YnfK8EVT3Q2Kko3kWXFORu0iTEoMXb2AYTVrA@z>
 
-PROM_SCRATCH_SIZE is same as sizeof(prom_scratch)
+This patch uses the new cmdline building function to
+concatenate the of provided cmdline with built-in parts
+based on compile-time options.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- arch/powerpc/kernel/prom_init.c | 20 +++++++++-----------
- 1 file changed, 9 insertions(+), 11 deletions(-)
+ drivers/of/fdt.c        | 23 ++++-------------------
+ include/linux/cmdline.h |  2 +-
+ 2 files changed, 5 insertions(+), 20 deletions(-)
 
-diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
-index a6cd52240c58..d4889ba04ddd 100644
---- a/arch/powerpc/kernel/prom_init.c
-+++ b/arch/powerpc/kernel/prom_init.c
-@@ -154,10 +154,8 @@ static struct prom_t __prombss prom;
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 4734223ab702..c6d941785b37 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -24,6 +24,7 @@
+ #include <linux/debugfs.h>
+ #include <linux/serial_core.h>
+ #include <linux/sysfs.h>
++#include <linux/cmdline.h>
  
- static unsigned long __prombss prom_entry;
+ #include <asm/setup.h>  /* for COMMAND_LINE_SIZE */
+ #include <asm/page.h>
+@@ -1090,26 +1091,10 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
  
--#define PROM_SCRATCH_SIZE 256
--
- static char __prombss of_stdout_device[256];
--static char __prombss prom_scratch[PROM_SCRATCH_SIZE];
-+static char __prombss prom_scratch[256];
+ 	/* Retrieve command line */
+ 	p = of_get_flat_dt_prop(node, "bootargs", &l);
+-	if (p != NULL && l > 0)
+-		strlcpy(data, p, min((int)l, COMMAND_LINE_SIZE));
++	if (l <= 0)
++		p = NULL;
  
- static unsigned long __prombss dt_header_start;
- static unsigned long __prombss dt_struct_start, dt_struct_end;
-@@ -1486,8 +1484,8 @@ static void __init prom_init_mem(void)
- 		endp = p + (plen / sizeof(cell_t));
+-	/*
+-	 * CONFIG_CMDLINE is meant to be a default in case nothing else
+-	 * managed to set the command line, unless CONFIG_CMDLINE_FORCE
+-	 * is set in which case we override whatever was found earlier.
+-	 */
+-#ifdef CONFIG_CMDLINE
+-#if defined(CONFIG_CMDLINE_EXTEND)
+-	strlcat(data, " ", COMMAND_LINE_SIZE);
+-	strlcat(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+-#elif defined(CONFIG_CMDLINE_FORCE)
+-	strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+-#else
+-	/* No arguments from boot loader, use kernel's  cmdl*/
+-	if (!((char *)data)[0])
+-		strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+-#endif
+-#endif /* CONFIG_CMDLINE */
++	cmdline_build(data, p, COMMAND_LINE_SIZE);
  
- #ifdef DEBUG_PROM
--		memset(path, 0, PROM_SCRATCH_SIZE);
--		call_prom("package-to-path", 3, 1, node, path, PROM_SCRATCH_SIZE-1);
-+		memset(path, 0, sizeof(prom_scratch));
-+		call_prom("package-to-path", 3, 1, node, path, sizeof(prom_scratch) - 1);
- 		prom_debug("  node %s :\n", path);
- #endif /* DEBUG_PROM */
+ 	pr_debug("Command line is: %s\n", (char*)data);
  
-@@ -1795,10 +1793,10 @@ static void __init prom_initialize_tce_table(void)
- 			local_alloc_bottom = base;
- 
- 		/* It seems OF doesn't null-terminate the path :-( */
--		memset(path, 0, PROM_SCRATCH_SIZE);
-+		memset(path, 0, sizeof(prom_scratch));
- 		/* Call OF to setup the TCE hardware */
- 		if (call_prom("package-to-path", 3, 1, node,
--			      path, PROM_SCRATCH_SIZE-1) == PROM_ERROR) {
-+			      path, sizeof(prom_scratch) - 1) == PROM_ERROR) {
- 			prom_printf("package-to-path failed\n");
- 		}
- 
-@@ -2159,14 +2157,14 @@ static void __init prom_check_displays(void)
- 
- 		/* It seems OF doesn't null-terminate the path :-( */
- 		path = prom_scratch;
--		memset(path, 0, PROM_SCRATCH_SIZE);
-+		memset(path, 0, sizeof(prom_scratch));
- 
- 		/*
- 		 * leave some room at the end of the path for appending extra
- 		 * arguments
- 		 */
- 		if (call_prom("package-to-path", 3, 1, node, path,
--			      PROM_SCRATCH_SIZE-10) == PROM_ERROR)
-+			      sizeof(prom_scratch) - 10) == PROM_ERROR)
- 			continue;
- 		prom_printf("found display   : %s, opening... ", path);
- 		
-@@ -2362,8 +2360,8 @@ static void __init scan_dt_build_struct(phandle node, unsigned long *mem_start,
- 
- 	/* get it again for debugging */
- 	path = prom_scratch;
--	memset(path, 0, PROM_SCRATCH_SIZE);
--	call_prom("package-to-path", 3, 1, node, path, PROM_SCRATCH_SIZE-1);
-+	memset(path, 0, sizeof(prom_scratch));
-+	call_prom("package-to-path", 3, 1, node, path, sizeof(prom_scratch) - 1);
- 
- 	/* get and store all properties */
- 	prev_name = "";
+diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
+index 8610ddf813ff..afcc00d7628d 100644
+--- a/include/linux/cmdline.h
++++ b/include/linux/cmdline.h
+@@ -10,7 +10,7 @@
+  * @src: The starting string or NULL if there isn't one. Must not equal dest.
+  * @length: the length of dest buffer.
+  */
+-static __always_inline void cmdline_build(char *dest, char *src, size_t length)
++static __always_inline void cmdline_build(char *dest, const char *src, size_t length)
+ {
+ 	if (length <= 0)
+ 		return;
 -- 
 2.13.3
