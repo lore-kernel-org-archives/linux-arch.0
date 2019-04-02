@@ -1,174 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46832 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726337AbfDBJBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 05:01:51 -0400
-Subject: Re: [PATCH 2/5] powerpc: Fix vDSO clock_getres()
-References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
- <20190401115152.32751-3-vincenzo.frascino@arm.com>
- <5a76f55d-eb0d-fb49-8e59-f0e89e561f7b@c-s.fr>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <f8206e04-79d2-87e7-0cf0-04d099b3ad40@arm.com>
-Date: Tue, 2 Apr 2019 10:01:46 +0100
-MIME-Version: 1.0
-In-Reply-To: <5a76f55d-eb0d-fb49-8e59-f0e89e561f7b@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from pegase1.c-s.fr ([93.17.236.30]:25450 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726790AbfDBJIg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:08:36 -0400
+Message-ID: <cover.1554195798.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH 0/9] Improve boot command line handling
+Date: Tue,  2 Apr 2019 09:08:34 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
-Message-ID: <20190402090146.J0TBChIq3R2uVjPKeNqJXUChSfB4vzOFKe8L9cogusw@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20190402090834.HnoMEZJrSEjYNFh7uWwtNDwpbLfDluE8WTD-gLJnOCk@z>
 
-On 02/04/2019 07:14, Christophe Leroy wrote:
-> 
-> 
-> On 04/01/2019 11:51 AM, Vincenzo Frascino wrote:
->> clock_getres in the vDSO library has to preserve the same behaviour
->> of posix_get_hrtimer_res().
->>
->> In particular, posix_get_hrtimer_res() does:
->>      sec = 0;
->>      ns = hrtimer_resolution;
->> and hrtimer_resolution depends on the enablement of the high
->> resolution timers that can happen either at compile or at run time.
->>
->> Fix the powerpc vdso implementation of clock_getres keeping a copy of
->> hrtimer_resolution in vdso data and using that directly.
->>
->> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> Cc: Paul Mackerras <paulus@samba.org>
->> Cc: Michael Ellerman <mpe@ellerman.id.au>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->> ---
->>   arch/powerpc/include/asm/vdso_datapage.h  |  2 ++
->>   arch/powerpc/kernel/asm-offsets.c         |  2 +-
->>   arch/powerpc/kernel/time.c                |  1 +
->>   arch/powerpc/kernel/vdso32/gettimeofday.S | 22 +++++++++++++++-------
->>   arch/powerpc/kernel/vdso64/gettimeofday.S | 22 +++++++++++++++-------
->>   5 files changed, 34 insertions(+), 15 deletions(-)
->>
-> 
-> [...]
-> 
->> diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
->> index 1e0bc5955a40..b21630079496 100644
->> --- a/arch/powerpc/kernel/vdso32/gettimeofday.S
->> +++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
->> @@ -160,14 +160,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
->>   	bne	cr0,99f
->>   
->> -	li	r3,0
->> -	cmpli	cr0,r4,0
->> +	mflr	r12
->> +  .cfi_register lr,r12
->> +	mr	r11,r4
->> +	bl	__get_datapage@local
->> +	lwz	r5,CLOCK_REALTIME_RES(r3)
->> +	li	r4,0
->> +	cmplwi	r11,0		/* check if res is NULL */
->> +	beq	1f
->> +
->> +	stw	r4,TSPC32_TV_SEC(r11)
->> +	stw	r5,TSPC32_TV_NSEC(r11)
->> +
->> +1:	mtlr	r12
->>   	crclr	cr0*4+so
->> -	beqlr
->> -	lis	r5,CLOCK_REALTIME_RES@h
->> -	ori	r5,r5,CLOCK_REALTIME_RES@l
->> -	stw	r3,TSPC32_TV_SEC(r4)
->> -	stw	r5,TSPC32_TV_NSEC(r4)
->> +	li	r3,0
->>   	blr
-> 
-> The above can be done simpler, see below
-> 
-> @@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
->   	bne	cr0,99f
-> 
-> +	mflr	r12
-> +  .cfi_register lr,r12
-> +	bl	__get_datapage@local
-> +	lwz	r5,CLOCK_REALTIME_RES(r3)
-> +	mtlr	r12
->   	li	r3,0
->   	cmpli	cr0,r4,0
->   	crclr	cr0*4+so
->   	beqlr
-> -	lis	r5,CLOCK_REALTIME_RES@h
-> -	ori	r5,r5,CLOCK_REALTIME_RES@l
->   	stw	r3,TSPC32_TV_SEC(r4)
->   	stw	r5,TSPC32_TV_NSEC(r4)
->   	blr
-> 
+The purpose of this series is to improve and enhance the
+handling of kernel boot arguments.
 
-Thank you for this, I will update my code accordingly before posting v2.
+It is first focussed on powerpc but also extends the capability
+for other arches.
 
-> Christophe
-> 
->>   
->>   	/*
->> @@ -175,6 +182,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->>   	 */
->>   99:
->>   	li	r0,__NR_clock_getres
->> +  .cfi_restore lr
->>   	sc
->>   	blr
->>     .cfi_endproc
->> diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
->> index a4ed9edfd5f0..a7e49bddd475 100644
->> --- a/arch/powerpc/kernel/vdso64/gettimeofday.S
->> +++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
->> @@ -190,14 +190,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
->>   	bne	cr0,99f
->>   
->> -	li	r3,0
->> -	cmpldi	cr0,r4,0
->> +	mflr	r12
->> +  .cfi_register lr,r12
->> +	mr	r11, r4
->> +	bl	V_LOCAL_FUNC(__get_datapage)
->> +	lwz	r5,CLOCK_REALTIME_RES(r3)
->> +	li	r4,0
->> +	cmpldi	r11,0		/* check if res is NULL */
->> +	beq	1f
->> +
->> +	std	r4,TSPC64_TV_SEC(r11)
->> +	std	r5,TSPC64_TV_NSEC(r11)
->> +
->> +1:	mtlr	r12
->>   	crclr	cr0*4+so
->> -	beqlr
->> -	lis	r5,CLOCK_REALTIME_RES@h
->> -	ori	r5,r5,CLOCK_REALTIME_RES@l
->> -	std	r3,TSPC64_TV_SEC(r4)
->> -	std	r5,TSPC64_TV_NSEC(r4)
->> +	li	r3,0
->>   	blr
-> 
-> The same type of simplification applies here too.
-> 
-> Christophe
-> 
-> 
->>   
->>   	/*
->> @@ -205,6 +212,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->>   	 */
->>   99:
->>   	li	r0,__NR_clock_getres
->> +  .cfi_restore lr
->>   	sc
->>   	blr
->>     .cfi_endproc
->>
+This is based on suggestion from Daniel Walker <danielwa@cisco.com>
+
+Christophe Leroy (9):
+  powerpc: enable appending of CONFIG_CMDLINE to bootloader's cmdline.
+  Add generic function to build command line.
+  drivers: of: use cmdline building function
+  powerpc/prom_init: get rid of PROM_SCRATCH_SIZE
+  powerpc: convert to generic builtin command line
+  Add capability to prepend the command line
+  powerpc: add capability to prepend default command line
+  Gives arches opportunity to use generically defined boot cmdline
+    manipulation
+  powerpc: use generic CMDLINE manipulations
+
+ arch/powerpc/Kconfig                   | 23 ++------------
+ arch/powerpc/kernel/prom_init.c        | 38 ++++++++++-------------
+ arch/powerpc/kernel/prom_init_check.sh |  2 +-
+ drivers/of/fdt.c                       | 23 +++-----------
+ include/linux/cmdline.h                | 37 ++++++++++++++++++++++
+ init/Kconfig                           | 56 ++++++++++++++++++++++++++++++++++
+ 6 files changed, 117 insertions(+), 62 deletions(-)
+ create mode 100644 include/linux/cmdline.h
 
 -- 
-Regards,
-Vincenzo
+2.13.3
