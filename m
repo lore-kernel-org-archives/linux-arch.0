@@ -1,117 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:37464 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726193AbfDBKiE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 06:38:04 -0400
-Date: Tue, 2 Apr 2019 12:37:50 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Message-ID: <20190402103750.GN11158@hirez.programming.kicks-ass.net>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-5-alex.kogan@oracle.com>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:34122 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729162AbfDBMrr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 08:47:47 -0400
+Received: by mail-pf1-f196.google.com with SMTP id b3so6344519pfd.1
+        for <linux-arch@vger.kernel.org>; Tue, 02 Apr 2019 05:47:46 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190329152006.110370-5-alex.kogan@oracle.com>
+References: <cover.1553093420.git.andreyknvl@google.com> <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
+ <20190322114357.GC13384@arrakis.emea.arm.com> <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
+ <20190328141934.38960af0@gandalf.local.home> <20190329103039.GA44339@arrakis.emea.arm.com>
+In-Reply-To: <20190329103039.GA44339@arrakis.emea.arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Tue, 2 Apr 2019 14:47:34 +0200
+Message-ID: <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
+Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, tytso@mit.edu
-Message-ID: <20190402103750.ZtrGaMGKsS5Z7zIcibJnU7HXa-znVOhiez9sPw0TkSk@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190402124734.XsquDul5ZjXlg5vKfrqDv9ZB1Ku3ols4pvwvP1uMm50@z>
 
-On Fri, Mar 29, 2019 at 11:20:05AM -0400, Alex Kogan wrote:
-> @@ -25,6 +29,18 @@
->  
->  #define MCS_NODE(ptr) ((struct mcs_spinlock *)(ptr))
->  
-> +/* Per-CPU pseudo-random number seed */
-> +static DEFINE_PER_CPU(u32, seed);
-> +
-> +/*
-> + * Controls the probability for intra-node lock hand-off. It can be
-> + * tuned and depend, e.g., on the number of CPUs per node. For now,
-> + * choose a value that provides reasonable long-term fairness without
-> + * sacrificing performance compared to a version that does not have any
-> + * fairness guarantees.
-> + */
-> +#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
-> +
->  static inline __pure int decode_numa_node(u32 node_and_count)
->  {
->  	int node = (node_and_count >> _Q_NODE_OFFSET) - 1;
-> @@ -102,6 +118,35 @@ static struct mcs_spinlock *find_successor(struct mcs_spinlock *me)
->  	return NULL;
->  }
->  
-> +/*
-> + * xorshift function for generating pseudo-random numbers:
-> + * https://en.wikipedia.org/wiki/Xorshift
+On Fri, Mar 29, 2019 at 11:30 AM Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+>
+> (I trimmed down the cc list a bit since it's always bouncing)
+>
+> On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
+> > On Thu, 28 Mar 2019 19:10:07 +0100
+> > Andrey Konovalov <andreyknvl@google.com> wrote:
+> >
+> > > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > > > > ---
+> > > > >  ipc/shm.c      | 2 ++
+> > > > >  mm/madvise.c   | 2 ++
+> > > > >  mm/mempolicy.c | 5 +++++
+> > > > >  mm/migrate.c   | 1 +
+> > > > >  mm/mincore.c   | 2 ++
+> > > > >  mm/mlock.c     | 5 +++++
+> > > > >  mm/mmap.c      | 7 +++++++
+> > > > >  mm/mprotect.c  | 1 +
+> > > > >  mm/mremap.c    | 2 ++
+> > > > >  mm/msync.c     | 2 ++
+> > > > >  10 files changed, 29 insertions(+)
+> > > >
+> > > > I wonder whether it's better to keep these as wrappers in the arm64
+> > > > code.
+> > >
+> > > I don't think I understand what you propose, could you elaborate?
+> >
+> > I believe Catalin is saying that instead of placing things like:
+> >
+> > @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+> >       unsigned long ret;
+> >       long err;
+> >
+> > +     shmaddr = untagged_addr(shmaddr);
+> >
+> > To instead have the shmaddr set to the untagged_addr() before calling
+> > the system call, and passing the untagged addr to the system call, as
+> > that goes through the arm64 architecture specific code first.
+>
+> Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
+> arch/arm64/kernel/sys.c, just add the untagging there. We could do
+> something similar for the other syscalls. I don't mind doing this in the
+> generic code but if it's only needed for arm64, I'd rather keep the
+> generic changes to a minimum.
 
-Cute; so clearly you've read that page, but then you provide us a
-variant that isn't actually listed there.
+Do I understand correctly, that I'll need to add ksys_ wrappers for
+each of the memory syscalls, and then redefine them in
+arch/arm64/kernel/sys.c with arm64_ prefix, like it is done for the
+personality syscall right now? This will require generic changes as
+well.
 
-Your naming is also non-standard in that it does not relay the period.
-The type seems to suggest 32bit, so the name should then have been:
-
-  xorshift32()
-
-Now, where did you get those parameters from; is this a proper
-xorshift32 ?
-
-> + */
-> +static inline u32 xor_random(void)
-> +{
-> +	u32 v;
-> +
-> +	v = this_cpu_read(seed);
-> +	if (v == 0)
-> +		get_random_bytes(&v, sizeof(u32));
-
-Given xorshift is a LFSR subset, the above case will only ever happen
-_once_ and it seems like bad form to stick it here instead of in a init
-function.
-
-Also, does it really matter, can't we simply initialize the variable
-with a !0 value and call it a day?
-
-As to that variable, seed is clearly a misnomer, the wiki page you
-reference calls it state, which might be a little ambiguous, xs_state
-otoh should work just fine.
-
-> +	v ^= v << 6;
-> +	v ^= v >> 21;
-> +	v ^= v << 7;
-> +	this_cpu_write(seed, v);
-> +
-> +	return v;
-> +}
-
-Now, you've read that page and you know there's 'trivial' improvements
-on the pure xorshift, why not pick one of those? xorwow seems cheap
-enough, or that xorshift128plus() one.
-
-> +
-> +/*
-> + * Return false with probability 1 / @range.
-> + * @range must be a power of 2.
-> + */
-> +static bool probably(unsigned int range)
-> +{
-> +	return xor_random() & (range - 1);
-> +}
-
-Uhh, you sure that's what it does? The only way for that to return false
-is when all @range bits are 0, which happens once (2^32/range)-1 times,
-or am I mistaken?
-
-Also, linux/random.h includes next_pseudo_random32(), should we be using
-that? Arguably that's more expensive on a number of platforms due to the
-multiplication. Also, we actually have xorshift32 already in tree in
-lib/test_hash.c.
-
-The advantage of next_psuedo_random32() is that it doesn't have that 0
-identify that pure LFSRs suffer from and it has 0 state.  Now at a
-glance, the xorwow/xorshift128plus variants don't seem to suffer that 0
-identify, so that's good, but they still have fairly large state. It
-also seems unfortunate to litter the tree with custom PRNGs. Ted?
+>
+> (I had a hack overriding __SC_CAST to do this automatically for pointer
+> arguments but this wouldn't work on mmap() and friends as the argument
+> is unsigned long)
+>
+> --
+> Catalin
