@@ -1,50 +1,81 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH tip/core/rcu 08/21] tools/memory-model: Add support for
- synchronize_srcu_expedited()
-Date: Tue, 2 Apr 2019 16:49:11 +0200
-Message-ID: <20190402144911.GA10044@andrea>
-References: <20190326234114.GA23843@linux.ibm.com>
- <20190326234133.24962-8-paulmck@linux.ibm.com>
+From: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v13 14/20] drm/amdgpu,
+ arm64: untag user pointers in amdgpu_ttm_tt_get_user_pages
+Date: Tue, 2 Apr 2019 16:37:08 +0200
+Message-ID: <CAAeHK+yQG_oYbBpcZWO80Pr=tdAgEHe80wuAHwuTMWNr=on+Qw@mail.gmail.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl@google.com>
+ <574648a3-3a05-bea7-3f4e-7d71adedf1dc@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190326234133.24962-8-paulmck@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+In-Reply-To: <574648a3-3a05-bea7-3f4e-7d71adedf1dc-5C7GfCeVMHo@public.gmane.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
+List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
+Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
+Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+To: "Kuehling, Felix" <Felix.Kuehling-5C7GfCeVMHo@public.gmane.org>
+Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, "kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org" <dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Lee Smith <Lee.Smith-5wv7dgnIgG8@public.gmane.org>, "linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "Zhou,
+ David(ChunMing)" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma@v
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 26, 2019 at 04:41:20PM -0700, Paul E. McKenney wrote:
-> Given that synchronize_rcu_expedited() is supported, this commit adds
-> support for synchronize_srcu_expedited().
-> 
-> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
-> ---
->  tools/memory-model/linux-kernel.def | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-> index 0c3f0ef486f4..551eeaa389d4 100644
-> --- a/tools/memory-model/linux-kernel.def
-> +++ b/tools/memory-model/linux-kernel.def
-> @@ -51,6 +51,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
->  srcu_read_lock(X)  __srcu{srcu-lock}(X)
->  srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
->  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
-> +synchronize_srcu_expedited(X)  { __srcu{sync-srcu}(X); }
-
-This and the other patches from the series do not apply to "tip/core/rcu"
-(from the Subject), but this seems straightforward enough:
-
-Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-
-  Andrea
-
-
->  
->  // Atomic
->  atomic_read(X) READ_ONCE(*X)
-> -- 
-> 2.17.1
-> 
+T24gTW9uLCBNYXIgMjUsIDIwMTkgYXQgMTE6MjEgUE0gS3VlaGxpbmcsIEZlbGl4IDxGZWxpeC5L
+dWVobGluZ0BhbWQuY29tPiB3cm90ZToKPgo+IE9uIDIwMTktMDMtMjAgMTA6NTEgYS5tLiwgQW5k
+cmV5IEtvbm92YWxvdiB3cm90ZToKPiA+IFRoaXMgcGF0Y2ggaXMgYSBwYXJ0IG9mIGEgc2VyaWVz
+IHRoYXQgZXh0ZW5kcyBhcm02NCBrZXJuZWwgQUJJIHRvIGFsbG93IHRvCj4gPiBwYXNzIHRhZ2dl
+ZCB1c2VyIHBvaW50ZXJzICh3aXRoIHRoZSB0b3AgYnl0ZSBzZXQgdG8gc29tZXRoaW5nIGVsc2Ug
+b3RoZXIKPiA+IHRoYW4gMHgwMCkgYXMgc3lzY2FsbCBhcmd1bWVudHMuCj4gPgo+ID4gYW1kZ3B1
+X3R0bV90dF9nZXRfdXNlcl9wYWdlcygpIHVzZXMgcHJvdmlkZWQgdXNlciBwb2ludGVycyBmb3Ig
+dm1hCj4gPiBsb29rdXBzLCB3aGljaCBjYW4gb25seSBieSBkb25lIHdpdGggdW50YWdnZWQgcG9p
+bnRlcnMuCj4gPgo+ID4gVW50YWcgdXNlciBwb2ludGVycyBpbiB0aGlzIGZ1bmN0aW9uLgo+ID4K
+PiA+IFNpZ25lZC1vZmYtYnk6IEFuZHJleSBLb25vdmFsb3YgPGFuZHJleWtudmxAZ29vZ2xlLmNv
+bT4KPiA+IC0tLQo+ID4gICBkcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMg
+fCA1ICsrKy0tCj4gPiAgIDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyksIDIgZGVsZXRp
+b25zKC0pCj4gPgo+ID4gZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9hbWQvYW1kZ3B1L2Ft
+ZGdwdV90dG0uYyBiL2RyaXZlcnMvZ3B1L2RybS9hbWQvYW1kZ3B1L2FtZGdwdV90dG0uYwo+ID4g
+aW5kZXggNzNlNzFlNjFkYzk5Li44OTFiMDI3ZmEzM2IgMTAwNjQ0Cj4gPiAtLS0gYS9kcml2ZXJz
+L2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMKPiA+ICsrKyBiL2RyaXZlcnMvZ3B1L2Ry
+bS9hbWQvYW1kZ3B1L2FtZGdwdV90dG0uYwo+ID4gQEAgLTc1MSwxMCArNzUxLDExIEBAIGludCBh
+bWRncHVfdHRtX3R0X2dldF91c2VyX3BhZ2VzKHN0cnVjdCB0dG1fdHQgKnR0bSwgc3RydWN0IHBh
+Z2UgKipwYWdlcykKPiA+ICAgICAgICAgICAgICAgICogY2hlY2sgdGhhdCB3ZSBvbmx5IHVzZSBh
+bm9ueW1vdXMgbWVtb3J5IHRvIHByZXZlbnQgcHJvYmxlbXMKPiA+ICAgICAgICAgICAgICAgICog
+d2l0aCB3cml0ZWJhY2sKPiA+ICAgICAgICAgICAgICAgICovCj4gPiAtICAgICAgICAgICAgIHVu
+c2lnbmVkIGxvbmcgZW5kID0gZ3R0LT51c2VycHRyICsgdHRtLT5udW1fcGFnZXMgKiBQQUdFX1NJ
+WkU7Cj4gPiArICAgICAgICAgICAgIHVuc2lnbmVkIGxvbmcgdXNlcnB0ciA9IHVudGFnZ2VkX2Fk
+ZHIoZ3R0LT51c2VycHRyKTsKPiA+ICsgICAgICAgICAgICAgdW5zaWduZWQgbG9uZyBlbmQgPSB1
+c2VycHRyICsgdHRtLT5udW1fcGFnZXMgKiBQQUdFX1NJWkU7Cj4gPiAgICAgICAgICAgICAgIHN0
+cnVjdCB2bV9hcmVhX3N0cnVjdCAqdm1hOwo+ID4KPiA+IC0gICAgICAgICAgICAgdm1hID0gZmlu
+ZF92bWEobW0sIGd0dC0+dXNlcnB0cik7Cj4gPiArICAgICAgICAgICAgIHZtYSA9IGZpbmRfdm1h
+KG1tLCB1c2VycHRyKTsKPiA+ICAgICAgICAgICAgICAgaWYgKCF2bWEgfHwgdm1hLT52bV9maWxl
+IHx8IHZtYS0+dm1fZW5kIDwgZW5kKSB7Cj4gPiAgICAgICAgICAgICAgICAgICAgICAgdXBfcmVh
+ZCgmbW0tPm1tYXBfc2VtKTsKPiA+ICAgICAgICAgICAgICAgICAgICAgICByZXR1cm4gLUVQRVJN
+Owo+Cj4gV2UnbGwgbmVlZCB0byBiZSBjYXJlZnVsIHRoYXQgd2UgZG9uJ3QgYnJlYWsgeW91ciBj
+aGFuZ2Ugd2hlbiB0aGUKPiBmb2xsb3dpbmcgY29tbWl0IGdldHMgYXBwbGllZCB0aHJvdWdoIGRy
+bS1uZXh0IGZvciBMaW51eCA1LjI6Cj4KPiBodHRwczovL2NnaXQuZnJlZWRlc2t0b3Aub3JnL35h
+Z2Q1Zi9saW51eC9jb21taXQvP2g9ZHJtLW5leHQtNS4yLXdpcCZpZD05MTVkM2VlY2ZhMjM2OTNi
+YWM5ZTU0Y2RhY2Y4NGZiNGVmZGNjNWM0Cj4KPiBXb3VsZCBpdCBtYWtlIHNlbnNlIHRvIGFwcGx5
+IHRoZSB1bnRhZ2dpbmcgaW4gYW1kZ3B1X3R0bV90dF9zZXRfdXNlcnB0cgo+IGluc3RlYWQ/IFRo
+YXQgd291bGQgYXZvaWQgdGhpcyBjb25mbGljdCBhbmQgSSB0aGluayBpdCB3b3VsZCBjbGVhcmx5
+IHB1dAo+IHRoZSB1bnRhZ2dpbmcgaW50byB0aGUgdXNlciBtb2RlIGNvZGUgcGF0aCB3aGVyZSB0
+aGUgdGFnZ2VkIHBvaW50ZXIKPiBvcmlnaW5hdGVzLgo+Cj4gSW4gYW1kZ3B1X2dlbV91c2VycHRy
+X2lvY3RsIGFuZCBhbWRncHVfYW1ka2ZkX2dwdXZtLmMgKGluaXRfdXNlcl9wYWdlcykKPiB3ZSBh
+bHNvIHNldCB1cCBhbiBNTVUgbm90aWZpZXIgd2l0aCB0aGUgKHRhZ2dlZCkgcG9pbnRlciBmcm9t
+IHVzZXIgbW9kZS4KPiBUaGF0IHNob3VsZCBwcm9iYWJseSBhbHNvIHVzZSB0aGUgdW50YWdnZWQg
+YWRkcmVzcyBzbyB0aGF0IE1NVSBub3RpZmllcnMKPiBmb3IgdGhlIHVudGFnZ2VkIGFkZHJlc3Mg
+Z2V0IGNvcnJlY3RseSBtYXRjaGVkIHVwIHdpdGggdGhlIHJpZ2h0IEJPLiBJJ2QKPiBtb3ZlIHRo
+ZSB1bnRhZ2dpbmcgZnVydGhlciB1cCB0aGUgY2FsbCBzdGFjayB0byBjb3ZlciB0aGF0LiBGb3Ig
+dGhlIEdFTQo+IGNhc2UgSSB0aGluayBhbWRncHVfZ2VtX3VzZXJwdHJfaW9jdGwgd291bGQgYmUg
+dGhlIHJpZ2h0IHBsYWNlLiBGb3IgdGhlCj4gS0ZEIGNhc2UsIEknZCBkbyB0aGlzIGluIGFtZGdw
+dV9hbWRrZmRfZ3B1dm1fYWxsb2NfbWVtb3J5X29mX2dwdS4KCldpbGwgZG8gaW4gdjE0LCB0aGFu
+a3MgYSBsb3QgZm9yIGxvb2tpbmcgYXQgdGhpcyEKCklzIHRoaXMgYXBwbGljYWJsZSB0byB0aGUg
+cmFkZW9uIGRyaXZlciAoZHJpdmVycy9ncHUvZHJtL3JhZGVvbikgYXMKd2VsbD8gSXQgc2VlbXMg
+dG8gYmUgdXNpbmcgdmVyeSBzaW1pbGFyIHN0cnVjdHVyZS4KCj4KPiBSZWdhcmRzLAo+ICAgIEZl
+bGl4Cj4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KYW1k
+LWdmeCBtYWlsaW5nIGxpc3QKYW1kLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9s
+aXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9hbWQtZ2Z4
