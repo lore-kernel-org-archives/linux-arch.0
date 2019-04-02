@@ -1,7 +1,7 @@
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH 2/9] Add generic function to build command line.
-Date: Tue,  2 Apr 2019 09:08:36 +0000 (UTC)
-Message-ID: <f4e5809587336135de2df2cbf623ead34c0a56f5.1554195798.git.christophe.leroy@c-s.fr>
+Subject: [PATCH 6/9] Add capability to prepend the command line
+Date: Tue,  2 Apr 2019 09:08:40 +0000 (UTC)
+Message-ID: <cbd5b58e286d891cded00eb46f279d0e9d86f819.1554195798.git.christophe.leroy@c-s.fr>
 References: <cover.1554195798.git.christophe.leroy@c-s.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
@@ -10,55 +10,36 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This code provides architectures with a way to build command line
-based on what is built in the kernel and what is handed over by the
-bootloader, based on selected compile-time options.
+This patchs adds an option of prepend a text to the command
+line instead of appending it.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- include/linux/cmdline.h | 34 ++++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
- create mode 100644 include/linux/cmdline.h
+ include/linux/cmdline.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/include/linux/cmdline.h b/include/linux/cmdline.h
-new file mode 100644
-index 000000000000..8610ddf813ff
---- /dev/null
+index afcc00d7628d..5caf3724c1ab 100644
+--- a/include/linux/cmdline.h
 +++ b/include/linux/cmdline.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_CMDLINE_H
-+#define _LINUX_CMDLINE_H
+@@ -3,7 +3,7 @@
+ #define _LINUX_CMDLINE_H
+ 
+ /*
+- * This function will append a builtin command line to the command
++ * This function will append or prepend a builtin command line to the command
+  * line provided by the bootloader. Kconfig options can be used to alter
+  * the behavior of this builtin command line.
+  * @dest: The destination of the final appended/prepended string.
+@@ -22,6 +22,9 @@ static __always_inline void cmdline_build(char *dest, const char *src, size_t le
+ 		strlcat(dest, CONFIG_CMDLINE, length);
+ 		return;
+ 	}
 +
-+/*
-+ * This function will append a builtin command line to the command
-+ * line provided by the bootloader. Kconfig options can be used to alter
-+ * the behavior of this builtin command line.
-+ * @dest: The destination of the final appended/prepended string.
-+ * @src: The starting string or NULL if there isn't one. Must not equal dest.
-+ * @length: the length of dest buffer.
-+ */
-+static __always_inline void cmdline_build(char *dest, char *src, size_t length)
-+{
-+	if (length <= 0)
-+		return;
-+
-+	dest[0] = 0;
-+
-+#ifdef CONFIG_CMDLINE
-+	if (IS_ENABLED(CONFIG_CMDLINE_FORCE) || !src || !src[0]) {
-+		strlcat(dest, CONFIG_CMDLINE, length);
-+		return;
-+	}
-+#endif
-+	if (dest != src)
-+		strlcat(dest, src, length);
-+#ifdef CONFIG_CMDLINE
-+	if (IS_ENABLED(CONFIG_CMDLINE_EXTEND) && sizeof(CONFIG_CMDLINE) > 1)
-+		strlcat(dest, " " CONFIG_CMDLINE, length);
-+#endif
-+}
-+
-+#endif /* _LINUX_CMDLINE_H */
++	if (IS_ENABLED(CONFIG_CMDLINE_PREPEND) && sizeof(CONFIG_CMDLINE) > 1)
++		strlcat(dest, CONFIG_CMDLINE " ", length);
+ #endif
+ 	if (dest != src)
+ 		strlcat(dest, src, length);
 -- 
 2.13.3
