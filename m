@@ -1,82 +1,217 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:34122 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729162AbfDBMrr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 08:47:47 -0400
-Received: by mail-pf1-f196.google.com with SMTP id b3so6344519pfd.1
-        for <linux-arch@vger.kernel.org>; Tue, 02 Apr 2019 05:47:46 -0700 (PDT)
+Received: from foss.arm.com ([217.140.101.70]:50906 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726314AbfDBND5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 09:03:57 -0400
+Date: Tue, 2 Apr 2019 14:03:46 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH tip/core/rcu 04/21] docs/memory-barriers.txt: Rewrite
+ "KERNEL I/O BARRIER EFFECTS" section
+Message-ID: <20190402130346.GA14559@fuggles.cambridge.arm.com>
+References: <20190326234114.GA23843@linux.ibm.com>
+ <20190326234133.24962-4-paulmck@linux.ibm.com>
 MIME-Version: 1.0
-References: <cover.1553093420.git.andreyknvl@google.com> <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
- <20190322114357.GC13384@arrakis.emea.arm.com> <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
- <20190328141934.38960af0@gandalf.local.home> <20190329103039.GA44339@arrakis.emea.arm.com>
-In-Reply-To: <20190329103039.GA44339@arrakis.emea.arm.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Tue, 2 Apr 2019 14:47:34 +0200
-Message-ID: <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
-Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190326234133.24962-4-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Message-ID: <20190402124734.XsquDul5ZjXlg5vKfrqDv9ZB1Ku3ols4pvwvP1uMm50@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Mikulas Patocka <mpatocka@redhat.com>
+Message-ID: <20190402130346.B4GjUNbdBsUl4eSsFBal39QC9li55lQXW4aI72UMpBE@z>
 
-On Fri, Mar 29, 2019 at 11:30 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
->
-> (I trimmed down the cc list a bit since it's always bouncing)
->
-> On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
-> > On Thu, 28 Mar 2019 19:10:07 +0100
-> > Andrey Konovalov <andreyknvl@google.com> wrote:
-> >
-> > > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> > > > > ---
-> > > > >  ipc/shm.c      | 2 ++
-> > > > >  mm/madvise.c   | 2 ++
-> > > > >  mm/mempolicy.c | 5 +++++
-> > > > >  mm/migrate.c   | 1 +
-> > > > >  mm/mincore.c   | 2 ++
-> > > > >  mm/mlock.c     | 5 +++++
-> > > > >  mm/mmap.c      | 7 +++++++
-> > > > >  mm/mprotect.c  | 1 +
-> > > > >  mm/mremap.c    | 2 ++
-> > > > >  mm/msync.c     | 2 ++
-> > > > >  10 files changed, 29 insertions(+)
-> > > >
-> > > > I wonder whether it's better to keep these as wrappers in the arm64
-> > > > code.
-> > >
-> > > I don't think I understand what you propose, could you elaborate?
-> >
-> > I believe Catalin is saying that instead of placing things like:
-> >
-> > @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
-> >       unsigned long ret;
-> >       long err;
-> >
-> > +     shmaddr = untagged_addr(shmaddr);
-> >
-> > To instead have the shmaddr set to the untagged_addr() before calling
-> > the system call, and passing the untagged addr to the system call, as
-> > that goes through the arm64 architecture specific code first.
->
-> Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
-> arch/arm64/kernel/sys.c, just add the untagging there. We could do
-> something similar for the other syscalls. I don't mind doing this in the
-> generic code but if it's only needed for arm64, I'd rather keep the
-> generic changes to a minimum.
+On Tue, Mar 26, 2019 at 04:41:16PM -0700, Paul E. McKenney wrote:
+> From: Will Deacon <will.deacon@arm.com>
+> 
+> The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
+> x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
+> This is largely because I/O ordering is a horrible can of worms, but also
+> because the document has stagnated as our understanding has evolved.
+> 
+> Attempt to address some of that, by rewriting the section based on
+> recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
+> find a way to formalise this stuff, but for now let's at least try to
+> make the English easier to understand.
+> 
+> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+> Cc: Palmer Dabbelt <palmer@sifive.com>
+> Cc: Daniel Lustig <dlustig@nvidia.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: "Maciej W. Rozycki" <macro@linux-mips.org>
+> Cc: Mikulas Patocka <mpatocka@redhat.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+> ---
+>  Documentation/memory-barriers.txt | 115 ++++++++++++++++++------------
+>  1 file changed, 70 insertions(+), 45 deletions(-)
 
-Do I understand correctly, that I'll need to add ksys_ wrappers for
-each of the memory syscalls, and then redefine them in
-arch/arm64/kernel/sys.c with arm64_ prefix, like it is done for the
-personality syscall right now? This will require generic changes as
-well.
+If somebody could provide an Ack on this patch, I'd really appreciate it,
+please. Whilst the portable ordering guarantees that I've documented are
+fairly conservative, I do think that this change is a big improvement and
+gives you what you need if you're writing a portable device driver for a new
+piece of hardware. I'm tackling the removal of MMIOWB as a separate series.
 
->
-> (I had a hack overriding __SC_CAST to do this automatically for pointer
-> arguments but this wouldn't work on mmap() and friends as the argument
-> is unsigned long)
->
-> --
-> Catalin
+I think Paul now requires an Ack before he'll send a patch to mainline,
+hence the grovelling.
+
+Cheers,
+
+Will
+
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index 1c22b21ae922..158947ae78c2 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -2599,72 +2599,97 @@ likely, then interrupt-disabling locks should be used to guarantee ordering.
+>  KERNEL I/O BARRIER EFFECTS
+>  ==========================
+>  
+> -When accessing I/O memory, drivers should use the appropriate accessor
+> -functions:
+> +Interfacing with peripherals via I/O accesses is deeply architecture and device
+> +specific. Therefore, drivers which are inherently non-portable may rely on
+> +specific behaviours of their target systems in order to achieve synchronization
+> +in the most lightweight manner possible. For drivers intending to be portable
+> +between multiple architectures and bus implementations, the kernel offers a
+> +series of accessor functions that provide various degrees of ordering
+> +guarantees:
+>  
+> - (*) inX(), outX():
+> + (*) readX(), writeX():
+>  
+> -     These are intended to talk to I/O space rather than memory space, but
+> -     that's primarily a CPU-specific concept.  The i386 and x86_64 processors
+> -     do indeed have special I/O space access cycles and instructions, but many
+> -     CPUs don't have such a concept.
+> +     The readX() and writeX() MMIO accessors take a pointer to the peripheral
+> +     being accessed as an __iomem * parameter. For pointers mapped with the
+> +     default I/O attributes (e.g. those returned by ioremap()), then the
+> +     ordering guarantees are as follows:
+>  
+> -     The PCI bus, amongst others, defines an I/O space concept which - on such
+> -     CPUs as i386 and x86_64 - readily maps to the CPU's concept of I/O
+> -     space.  However, it may also be mapped as a virtual I/O space in the CPU's
+> -     memory map, particularly on those CPUs that don't support alternate I/O
+> -     spaces.
+> +     1. All readX() and writeX() accesses to the same peripheral are ordered
+> +        with respect to each other. For example, this ensures that MMIO register
+> +	writes by the CPU to a particular device will arrive in program order.
+>  
+> -     Accesses to this space may be fully synchronous (as on i386), but
+> -     intermediary bridges (such as the PCI host bridge) may not fully honour
+> -     that.
+> +     2. A writeX() by the CPU to the peripheral will first wait for the
+> +        completion of all prior CPU writes to memory. For example, this ensures
+> +        that writes by the CPU to an outbound DMA buffer allocated by
+> +        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
+> +        to its MMIO control register to trigger the transfer.
+>  
+> -     They are guaranteed to be fully ordered with respect to each other.
+> +     3. A readX() by the CPU from the peripheral will complete before any
+> +	subsequent CPU reads from memory can begin. For example, this ensures
+> +	that reads by the CPU from an incoming DMA buffer allocated by
+> +	dma_alloc_coherent() will not see stale data after reading from the DMA
+> +	engine's MMIO status register to establish that the DMA transfer has
+> +	completed.
+>  
+> -     They are not guaranteed to be fully ordered with respect to other types of
+> -     memory and I/O operation.
+> +     4. A readX() by the CPU from the peripheral will complete before any
+> +	subsequent delay() loop can begin execution. For example, this ensures
+> +	that two MMIO register writes by the CPU to a peripheral will arrive at
+> +	least 1us apart if the first write is immediately read back with readX()
+> +	and udelay(1) is called prior to the second writeX().
+>  
+> - (*) readX(), writeX():
+> +     __iomem pointers obtained with non-default attributes (e.g. those returned
+> +     by ioremap_wc()) are unlikely to provide many of these guarantees.
+>  
+> -     Whether these are guaranteed to be fully ordered and uncombined with
+> -     respect to each other on the issuing CPU depends on the characteristics
+> -     defined for the memory window through which they're accessing.  On later
+> -     i386 architecture machines, for example, this is controlled by way of the
+> -     MTRR registers.
+> + (*) readX_relaxed(), writeX_relaxed():
+>  
+> -     Ordinarily, these will be guaranteed to be fully ordered and uncombined,
+> -     provided they're not accessing a prefetchable device.
+> +     These are similar to readX() and writeX(), but provide weaker memory
+> +     ordering guarantees. Specifically, they do not guarantee ordering with
+> +     respect to normal memory accesses or delay() loops (i.e bullets 2-4 above)
+> +     but they are still guaranteed to be ordered with respect to other accesses
+> +     to the same peripheral when operating on __iomem pointers mapped with the
+> +     default I/O attributes.
+>  
+> -     However, intermediary hardware (such as a PCI bridge) may indulge in
+> -     deferral if it so wishes; to flush a store, a load from the same location
+> -     is preferred[*], but a load from the same device or from configuration
+> -     space should suffice for PCI.
+> + (*) readsX(), writesX():
+>  
+> -     [*] NOTE! attempting to load from the same location as was written to may
+> -	 cause a malfunction - consider the 16550 Rx/Tx serial registers for
+> -	 example.
+> +     The readsX() and writesX() MMIO accessors are designed for accessing
+> +     register-based, memory-mapped FIFOs residing on peripherals that are not
+> +     capable of performing DMA. Consequently, they provide only the ordering
+> +     guarantees of readX_relaxed() and writeX_relaxed(), as documented above.
+>  
+> -     Used with prefetchable I/O memory, an mmiowb() barrier may be required to
+> -     force stores to be ordered.
+> + (*) inX(), outX():
+>  
+> -     Please refer to the PCI specification for more information on interactions
+> -     between PCI transactions.
+> +     The inX() and outX() accessors are intended to access legacy port-mapped
+> +     I/O peripherals, which may require special instructions on some
+> +     architectures (notably x86). The port number of the peripheral being
+> +     accessed is passed as an argument.
+>  
+> - (*) readX_relaxed(), writeX_relaxed()
+> +     Since many CPU architectures ultimately access these peripherals via an
+> +     internal virtual memory mapping, the portable ordering guarantees provided
+> +     by inX() and outX() are the same as those provided by readX() and writeX()
+> +     respectively when accessing a mapping with the default I/O attributes.
+>  
+> -     These are similar to readX() and writeX(), but provide weaker memory
+> -     ordering guarantees.  Specifically, they do not guarantee ordering with
+> -     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
+> -     ordering with respect to LOCK or UNLOCK operations.  If the latter is
+> -     required, an mmiowb() barrier can be used.  Note that relaxed accesses to
+> -     the same peripheral are guaranteed to be ordered with respect to each
+> -     other.
+> +     Device drivers may expect outX() to emit a non-posted write transaction
+> +     that waits for a completion response from the I/O peripheral before
+> +     returning. This is not guaranteed by all architectures and is therefore
+> +     not part of the portable ordering semantics.
+> +
+> + (*) insX(), outsX():
+> +
+> +     As above, the insX() and outX() accessors provide the same ordering
+> +     guarantees as readsX() and writesX() respectively when accessing a mapping
+> +     with the default I/O attributes.
+>  
+>   (*) ioreadX(), iowriteX()
+>  
+>       These will perform appropriately for the type of access they're actually
+>       doing, be it inX()/outX() or readX()/writeX().
+>  
+> +All of these accessors assume that the underlying peripheral is little-endian,
+> +and will therefore perform byte-swapping operations on big-endian architectures.
+> +
+> +Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
+> +operations is a dangerous sport which may require the use of mmiowb(). See the
+> +subsection "Acquires vs I/O accesses" for more information.
+>  
+>  ========================================
+>  ASSUMED MINIMUM EXECUTION ORDERING MODEL
+> -- 
+> 2.17.1
+> 
