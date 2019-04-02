@@ -1,79 +1,192 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:57398 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728863AbfDASnc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Apr 2019 14:43:32 -0400
-From: Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>
-Subject: [PATCH] ARC: fix memory nodes topology in case of highmem enabled
-Date: Mon,  1 Apr 2019 21:42:42 +0300
-Message-ID: <20190401184242.7636-1-Eugeniy.Paltsev@synopsys.com>
+Received: from pegase1.c-s.fr ([93.17.236.30]:9235 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726387AbfDBFzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 01:55:16 -0400
+Subject: Re: [PATCH 2/5] powerpc: Fix vDSO clock_getres()
+References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+ <20190401115152.32751-3-vincenzo.frascino@arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <f54a24fe-f893-10c9-9177-4985bad2e745@c-s.fr>
+Date: Tue, 2 Apr 2019 05:54:47 +0000
+MIME-Version: 1.0
+In-Reply-To: <20190401115152.32751-3-vincenzo.frascino@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org, Vineet Gupta <vineet.gupta1@synopsys.com>
-Cc: linux-kernel@vger.kernel.org, Alexey Brodkin <alexey.brodkin@synopsys.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>
-Message-ID: <20190401184242.27ys9u7samFwCjlYrrWpUou8zbcOJN6OXjhTga2a6xA@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
+Message-ID: <20190402055447.KSyaeSZauZ_drhkPPJyPR6oCgIb365Y-tXYXFPldl5g@z>
 
-Tweak generic node topology in case of CONFIG_HIGHMEM enabled to
-prioritize allocations from ZONE_HIGHMEM to avoid ZONE_NORMAL
-pressure.
 
-Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
----
-Tested on both NSIM and HSDK (require memory apertures remmaping and
-device tree patching)
 
- arch/arc/include/asm/Kbuild     |  1 -
- arch/arc/include/asm/topology.h | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 30 insertions(+), 1 deletion(-)
- create mode 100644 arch/arc/include/asm/topology.h
+On 04/01/2019 11:51 AM, Vincenzo Frascino wrote:
+> clock_getres in the vDSO library has to preserve the same behaviour
+> of posix_get_hrtimer_res().
+> 
+> In particular, posix_get_hrtimer_res() does:
+>      sec = 0;
+>      ns = hrtimer_resolution;
+> and hrtimer_resolution depends on the enablement of the high
+> resolution timers that can happen either at compile or at run time.
+> 
+> Fix the powerpc vdso implementation of clock_getres keeping a copy of
+> hrtimer_resolution in vdso data and using that directly.
+> 
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
+>   arch/powerpc/include/asm/vdso_datapage.h  |  2 ++
 
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index caa270261521..e64e0439baff 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -18,7 +18,6 @@ generic-y += msi.h
- generic-y += parport.h
- generic-y += percpu.h
- generic-y += preempt.h
--generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += user.h
- generic-y += vga.h
-diff --git a/arch/arc/include/asm/topology.h b/arch/arc/include/asm/topology.h
-new file mode 100644
-index 000000000000..c273506931c9
---- /dev/null
-+++ b/arch/arc/include/asm/topology.h
-@@ -0,0 +1,30 @@
-+#ifndef _ASM_ARC_TOPOLOGY_H
-+#define _ASM_ARC_TOPOLOGY_H
-+
-+/*
-+ * On ARC (w/o PAE) HIGHMEM addresses are smaller (0x0 based) than addresses in
-+ * NORMAL aka low memory (0x8000_0000 based).
-+ * Thus HIGHMEM on ARC is imlemented with DISCONTIGMEM which requires multiple
-+ * nodes. So here is memory node map depending on the CONFIG_HIGHMEM
-+ * enabled/disabled:
-+ *
-+ * CONFIG_HIGHMEM disabled:
-+ *  - node 0: ZONE_NORMAL memory only.
-+ *
-+ * CONFIG_HIGHMEM enabled:
-+ *  - node 0: ZONE_NORMAL memory only.
-+ *  - node 1: ZONE_HIGHMEM memory only.
-+ *
-+ * In case of CONFIG_HIGHMEM enabled we tweak generic node topology and mark
-+ * node 1 as the closest to all CPUs to prioritize allocations from ZONE_HIGHMEM
-+ * where it is possible to avoid ZONE_NORMAL pressure.
-+ */
-+#ifdef CONFIG_HIGHMEM
-+#define cpu_to_node(cpu)	((void)(cpu), 1)
-+#define cpu_to_mem(cpu)		((void)(cpu), 1)
-+#define cpumask_of_node(node)	((node) == 1 ? cpu_online_mask : cpu_none_mask)
-+#endif /* CONFIG_HIGHMEM */
-+
-+#include <asm-generic/topology.h>
-+
-+#endif /* _ASM_ARC_TOPOLOGY_H */
--- 
-2.14.5
+Conflicts with commit b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC 
+inconsistencies across Y2038")
+
+Christophe
+
+
+
+>   arch/powerpc/kernel/asm-offsets.c         |  2 +-
+>   arch/powerpc/kernel/time.c                |  1 +
+>   arch/powerpc/kernel/vdso32/gettimeofday.S | 22 +++++++++++++++-------
+>   arch/powerpc/kernel/vdso64/gettimeofday.S | 22 +++++++++++++++-------
+>   5 files changed, 34 insertions(+), 15 deletions(-)
+> 
+> diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
+> index 1afe90ade595..4ae43fc77fe9 100644
+> --- a/arch/powerpc/include/asm/vdso_datapage.h
+> +++ b/arch/powerpc/include/asm/vdso_datapage.h
+> @@ -86,6 +86,7 @@ struct vdso_data {
+>   	__s32 wtom_clock_nsec;
+>   	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
+>   	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
+> +	__u32 hrtimer_res;		/* hrtimer resolution */
+>      	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
+>      	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+>   };
+> @@ -107,6 +108,7 @@ struct vdso_data {
+>   	__s32 wtom_clock_nsec;
+>   	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
+>   	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
+> +	__u32 hrtimer_res;		/* hrtimer resolution */
+>      	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+>   	__u32 dcache_block_size;	/* L1 d-cache block size     */
+>   	__u32 icache_block_size;	/* L1 i-cache block size     */
+> diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+> index 86a61e5f8285..52e4b98a8492 100644
+> --- a/arch/powerpc/kernel/asm-offsets.c
+> +++ b/arch/powerpc/kernel/asm-offsets.c
+> @@ -383,6 +383,7 @@ int main(void)
+>   	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
+>   	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
+>   	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
+> +	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
+>   	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
+>   	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
+>   	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
+> @@ -413,7 +414,6 @@ int main(void)
+>   	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
+>   	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
+>   	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
+> -	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
+>   
+>   #ifdef CONFIG_BUG
+>   	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
+> diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
+> index bc0503ef9c9c..62c04a6746d8 100644
+> --- a/arch/powerpc/kernel/time.c
+> +++ b/arch/powerpc/kernel/time.c
+> @@ -955,6 +955,7 @@ void update_vsyscall(struct timekeeper *tk)
+>   	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
+>   	vdso_data->stamp_xtime = xt;
+>   	vdso_data->stamp_sec_fraction = frac_sec;
+> +	vdso_data->hrtimer_res = hrtimer_resolution;
+>   	smp_wmb();
+>   	++(vdso_data->tb_update_count);
+>   }
+> diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+> index 1e0bc5955a40..b21630079496 100644
+> --- a/arch/powerpc/kernel/vdso32/gettimeofday.S
+> +++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+> @@ -160,14 +160,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>   	bne	cr0,99f
+>   
+> -	li	r3,0
+> -	cmpli	cr0,r4,0
+> +	mflr	r12
+> +  .cfi_register lr,r12
+> +	mr	r11,r4
+> +	bl	__get_datapage@local
+> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+> +	li	r4,0
+> +	cmplwi	r11,0		/* check if res is NULL */
+> +	beq	1f
+> +
+> +	stw	r4,TSPC32_TV_SEC(r11)
+> +	stw	r5,TSPC32_TV_NSEC(r11)
+> +
+> +1:	mtlr	r12
+>   	crclr	cr0*4+so
+> -	beqlr
+> -	lis	r5,CLOCK_REALTIME_RES@h
+> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+> -	stw	r3,TSPC32_TV_SEC(r4)
+> -	stw	r5,TSPC32_TV_NSEC(r4)
+> +	li	r3,0
+>   	blr
+>   
+>   	/*
+> @@ -175,6 +182,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	 */
+>   99:
+>   	li	r0,__NR_clock_getres
+> +  .cfi_restore lr
+>   	sc
+>   	blr
+>     .cfi_endproc
+> diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
+> index a4ed9edfd5f0..a7e49bddd475 100644
+> --- a/arch/powerpc/kernel/vdso64/gettimeofday.S
+> +++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
+> @@ -190,14 +190,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>   	bne	cr0,99f
+>   
+> -	li	r3,0
+> -	cmpldi	cr0,r4,0
+> +	mflr	r12
+> +  .cfi_register lr,r12
+> +	mr	r11, r4
+> +	bl	V_LOCAL_FUNC(__get_datapage)
+> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+> +	li	r4,0
+> +	cmpldi	r11,0		/* check if res is NULL */
+> +	beq	1f
+> +
+> +	std	r4,TSPC64_TV_SEC(r11)
+> +	std	r5,TSPC64_TV_NSEC(r11)
+> +
+> +1:	mtlr	r12
+>   	crclr	cr0*4+so
+> -	beqlr
+> -	lis	r5,CLOCK_REALTIME_RES@h
+> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+> -	std	r3,TSPC64_TV_SEC(r4)
+> -	std	r5,TSPC64_TV_NSEC(r4)
+> +	li	r3,0
+>   	blr
+>   
+>   	/*
+> @@ -205,6 +212,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	 */
+>   99:
+>   	li	r0,__NR_clock_getres
+> +  .cfi_restore lr
+>   	sc
+>   	blr
+>     .cfi_endproc
+> 
