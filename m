@@ -1,83 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:22833 "EHLO
-        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729162AbfDBJK0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2019 05:10:26 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2] Remove SPDX "WITH Linux-syscall-note" from kernel-space headers
-Date: Tue,  2 Apr 2019 18:08:24 +0900
-Message-ID: <1554196104-3522-1-git-send-email-yamada.masahiro@socionext.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from pegase1.c-s.fr ([93.17.236.30]:14171 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726790AbfDBJIi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 05:08:38 -0400
+Message-ID: <38f2f75fdcbdee71322f3a41f45eab33ffe61b4e.1554195798.git.christophe.leroy@c-s.fr>
+In-Reply-To: <cover.1554195798.git.christophe.leroy@c-s.fr>
+References: <cover.1554195798.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH 1/9] powerpc: enable appending of CONFIG_CMDLINE to
+ bootloader's cmdline.
+Date: Tue,  2 Apr 2019 09:08:35 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Karthikeyan Ramasubramanian <kramasub@codeaurora.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Gross <andy.gross@linaro.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Girish Mahadevan <girishm@codeaurora.org>, Sagar Dharia <sdharia@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Haiyang Zhang <haiyangz@microsoft.com>, "K. Y. Srinivasan" <kys@microsoft.com>, Sasha Levin <sashal@kernel.org>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Hemminger <sthemmin@microsoft.com>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20190402090824.D5tf2GpgCukFqLxOPe1NuDXc3aouRLapK-DlnvVBNwk@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, danielwa@cisco.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20190402090835.ZiKImyP3YoWefsfM2KymEOb__0QbRea4jGgOOx6AD_Y@z>
 
-The "WITH Linux-syscall-note" should be added to headers exported to
-the user-space.
+Today, powerpc defined CONFIG_CMDLINE for when bootloader doesn't
+provide a command line or for overriding it.
 
-Some kernel-space headers have "WITH Linux-syscall-note", which seems
-a mistake.
+On same way as ARM, this patch adds the option of appending the
+CONFIG_CMDLINE to bootloader's provided command line.
 
-[1] arch/x86/include/asm/hyperv-tlfs.h
-
-5a4858032217 ("x86/hyper-v: move hyperv.h out of uapi") moved this file
-out of uapi, but missed to update the SPDX License tag.
-
-[2] include/asm-generic/shmparam.h
-
-76ce2a80a28e ("Rename include/{uapi => }/asm-generic/shmparam.h really")
-moved this file out of uapi, but missed to update the SPDX License tag.
-
-[3] include/linux/qcom-geni-se.h
-
-eddac5af0654 ("soc: qcom: Add GENI based QUP Wrapper driver") added this
-file, but I do not see a good reason why its license tag must include
-"WITH Linux-syscall-note".
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
+ arch/powerpc/Kconfig                   | 21 ++++++++++++++++++++-
+ arch/powerpc/kernel/prom_init.c        |  5 ++---
+ arch/powerpc/kernel/prom_init_check.sh |  2 +-
+ 3 files changed, 23 insertions(+), 5 deletions(-)
 
-Changes in v2:
-  - Fix a typo in commit log
-
- arch/x86/include/asm/hyperv-tlfs.h | 2 +-
- include/asm-generic/shmparam.h     | 2 +-
- include/linux/qcom-geni-se.h       | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
-index 2bdbbbc..cdf44aa 100644
---- a/arch/x86/include/asm/hyperv-tlfs.h
-+++ b/arch/x86/include/asm/hyperv-tlfs.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 2d0be82c3061..2972348e52be 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -841,14 +841,33 @@ config CMDLINE
+ 	  some command-line options at build time by entering them here.  In
+ 	  most cases you will need to specify the root device here.
  
- /*
-  * This file contains definitions from Hyper-V Hypervisor Top-Level Functional
-diff --git a/include/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
-index 8b78c0b..b8f9035 100644
---- a/include/asm-generic/shmparam.h
-+++ b/include/asm-generic/shmparam.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
- #ifndef __ASM_GENERIC_SHMPARAM_H
- #define __ASM_GENERIC_SHMPARAM_H
++choice
++	prompt "Kernel command line type" if CMDLINE != ""
++	default CMDLINE_FROM_BOOTLOADER
++	help
++	  Selects the way you want to use the default kernel arguments.
++
++config CMDLINE_FROM_BOOTLOADER
++	bool "Use bootloader kernel arguments if available"
++	help
++	  Uses the command-line options passed by the boot loader. If
++	  the boot loader doesn't provide any, the default kernel command
++	  string provided in CMDLINE will be used.
++
++config CMDLINE_EXTEND
++	bool "Extend bootloader kernel arguments"
++	help
++	  The default kernel command string will be appended to the
++	  command-line arguments provided during boot.
++
+ config CMDLINE_FORCE
+ 	bool "Always use the default kernel command string"
+-	depends on CMDLINE_BOOL
+ 	help
+ 	  Always use the default kernel command string, even if the boot
+ 	  loader passes other arguments to the kernel.
+ 	  This is useful if you cannot or don't want to change the
+ 	  command-line options your boot loader passes to the kernel.
++endchoice
  
-diff --git a/include/linux/qcom-geni-se.h b/include/linux/qcom-geni-se.h
-index 3bcd67f..dd46494 100644
---- a/include/linux/qcom-geni-se.h
-+++ b/include/linux/qcom-geni-se.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
- /*
-  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
-  */
+ config EXTRA_TARGETS
+ 	string "Additional default image types"
+diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
+index f33ff4163a51..a6cd52240c58 100644
+--- a/arch/powerpc/kernel/prom_init.c
++++ b/arch/powerpc/kernel/prom_init.c
+@@ -638,9 +638,8 @@ static void __init early_cmdline_parse(void)
+ 	if ((long)prom.chosen > 0)
+ 		l = prom_getprop(prom.chosen, "bootargs", p, COMMAND_LINE_SIZE-1);
+ #ifdef CONFIG_CMDLINE
+-	if (l <= 0 || p[0] == '\0') /* dbl check */
+-		strlcpy(prom_cmd_line,
+-			CONFIG_CMDLINE, sizeof(prom_cmd_line));
++	if (l <= 0 || p[0] == '\0' || IS_ENABLED(CONFIG_CMDLINE_EXTEND)) /* dbl check */
++		strlcat(prom_cmd_line, CONFIG_CMDLINE, sizeof(prom_cmd_line));
+ #endif /* CONFIG_CMDLINE */
+ 	prom_printf("command line: %s\n", prom_cmd_line);
+ 
+diff --git a/arch/powerpc/kernel/prom_init_check.sh b/arch/powerpc/kernel/prom_init_check.sh
+index 667df97d2595..cbcf18846392 100644
+--- a/arch/powerpc/kernel/prom_init_check.sh
++++ b/arch/powerpc/kernel/prom_init_check.sh
+@@ -19,7 +19,7 @@
+ WHITELIST="add_reloc_offset __bss_start __bss_stop copy_and_flush
+ _end enter_prom memcpy memset reloc_offset __secondary_hold
+ __secondary_hold_acknowledge __secondary_hold_spinloop __start
+-strcmp strcpy strlcpy strlen strncmp strstr kstrtobool logo_linux_clut224
++strcmp strcpy strlcat strlen strncmp strstr kstrtobool logo_linux_clut224
+ reloc_got2 kernstart_addr memstart_addr linux_banner _stext
+ __prom_init_toc_start __prom_init_toc_end btext_setup_display TOC."
+ 
 -- 
-2.7.4
+2.13.3
