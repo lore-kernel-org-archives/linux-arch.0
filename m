@@ -1,85 +1,88 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: [PATCH 3/7] thermal/drivers/core: Add init section table for self-encapsulation
-Date: Tue,  2 Apr 2019 18:12:46 +0200
-Message-ID: <20190402161256.11044-3-daniel.lezcano@linaro.org>
-References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190402161256.11044-1-daniel.lezcano@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: rui.zhang@intel.com, edubezval@gmail.com
-Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+From: "Kuehling, Felix" <Felix.Kuehling@amd.com>
+Subject: Re: [PATCH v13 14/20] drm/amdgpu, arm64: untag user pointers in
+ amdgpu_ttm_tt_get_user_pages
+Date: Tue, 2 Apr 2019 17:52:24 +0000
+Message-ID: <cd669813-0279-35bb-6deb-f3e5fb60b16d@amd.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <017804b2198a906463d634f84777b6087c9b4a40.1553093421.git.andreyknvl@google.com>
+ <574648a3-3a05-bea7-3f4e-7d71adedf1dc@amd.com>
+ <CAAeHK+yQG_oYbBpcZWO80Pr=tdAgEHe80wuAHwuTMWNr=on+Qw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <CAAeHK+yQG_oYbBpcZWO80Pr=tdAgEHe80wuAHwuTMWNr=on+Qw@mail.gmail.com>
+Content-Language: en-US
+Content-ID: <EA0C6C3A4A41004299A64E0CA716F0A2@namprd12.prod.outlook.com>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Eric Dumazet <edumazet@google.com>, Lee Smith <Lee.Smith@arm.com>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Daniel Borkmann <daniel@iogearbox.net>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>am
 List-Id: linux-arch.vger.kernel.org
 
-Currently the governors are declared in their respective files but they
-export their [un]register functions which in turn call the [un]register
-the governors core's functions. That implies a cyclic dependency which is
-not desirable. There is a way to self-encapsulate the governors by letting
-them to declare themselves in a __init section table.
-
-Define the table in the asm generic linker description like the other
-tables and provide the specific macros to deal with.
-
-Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
----
- drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
- include/asm-generic/vmlinux.lds.h | 11 +++++++++++
- 2 files changed, 27 insertions(+)
-
-diff --git a/drivers/thermal/thermal_core.h b/drivers/thermal/thermal_core.h
-index 0df190ed82a7..28d18083e969 100644
---- a/drivers/thermal/thermal_core.h
-+++ b/drivers/thermal/thermal_core.h
-@@ -15,6 +15,22 @@
- /* Initial state of a cooling device during binding */
- #define THERMAL_NO_TARGET -1UL
- 
-+/* Init section thermal table */
-+extern struct thermal_governor * __governor_thermal_table[];
-+extern struct thermal_governor * __governor_thermal_table_end[];
-+
-+#define THERMAL_TABLE_ENTRY(table, name)			\
-+        static typeof(name) * __thermal_table_entry_##name	\
-+	__used __section(__##table##_thermal_table)		\
-+		= &name;
-+
-+#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTRY(governor, name)
-+
-+#define for_each_governor_table(__governor)		\
-+	for (__governor = __governor_thermal_table;	\
-+	     __governor < __governor_thermal_table_end;	\
-+	     __governor++)
-+
- /*
-  * This structure is used to describe the behavior of
-  * a certain cooling device on a certain trip point
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f8f6f04c4453..9893a3ed242a 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -239,6 +239,16 @@
- #define ACPI_PROBE_TABLE(name)
- #endif
- 
-+#ifdef CONFIG_THERMAL
-+#define THERMAL_TABLE(name)						\
-+        . = ALIGN(8);							\
-+        __##name##_thermal_table = .;					\
-+        KEEP(*(__##name##_thermal_table))				\
-+        __##name##_thermal_table_end = .;
-+#else
-+#define THERMAL_TABLE(name)
-+#endif
-+
- #define KERNEL_DTB()							\
- 	STRUCT_ALIGN();							\
- 	__dtb_start = .;						\
-@@ -609,6 +619,7 @@
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(timer)						\
-+	THERMAL_TABLE(governor)						\
- 	EARLYCON_TABLE()						\
- 	LSM_TABLE()
- 
--- 
-2.17.1
+T24gMjAxOS0wNC0wMiAxMDozNyBhLm0uLCBBbmRyZXkgS29ub3ZhbG92IHdyb3RlOg0KPiBPbiBN
+b24sIE1hciAyNSwgMjAxOSBhdCAxMToyMSBQTSBLdWVobGluZywgRmVsaXggPEZlbGl4Lkt1ZWhs
+aW5nQGFtZC5jb20+IHdyb3RlOg0KPj4gT24gMjAxOS0wMy0yMCAxMDo1MSBhLm0uLCBBbmRyZXkg
+S29ub3ZhbG92IHdyb3RlOg0KPj4+IFRoaXMgcGF0Y2ggaXMgYSBwYXJ0IG9mIGEgc2VyaWVzIHRo
+YXQgZXh0ZW5kcyBhcm02NCBrZXJuZWwgQUJJIHRvIGFsbG93IHRvDQo+Pj4gcGFzcyB0YWdnZWQg
+dXNlciBwb2ludGVycyAod2l0aCB0aGUgdG9wIGJ5dGUgc2V0IHRvIHNvbWV0aGluZyBlbHNlIG90
+aGVyDQo+Pj4gdGhhbiAweDAwKSBhcyBzeXNjYWxsIGFyZ3VtZW50cy4NCj4+Pg0KPj4+IGFtZGdw
+dV90dG1fdHRfZ2V0X3VzZXJfcGFnZXMoKSB1c2VzIHByb3ZpZGVkIHVzZXIgcG9pbnRlcnMgZm9y
+IHZtYQ0KPj4+IGxvb2t1cHMsIHdoaWNoIGNhbiBvbmx5IGJ5IGRvbmUgd2l0aCB1bnRhZ2dlZCBw
+b2ludGVycy4NCj4+Pg0KPj4+IFVudGFnIHVzZXIgcG9pbnRlcnMgaW4gdGhpcyBmdW5jdGlvbi4N
+Cj4+Pg0KPj4+IFNpZ25lZC1vZmYtYnk6IEFuZHJleSBLb25vdmFsb3YgPGFuZHJleWtudmxAZ29v
+Z2xlLmNvbT4NCj4+PiAtLS0NCj4+PiAgICBkcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRn
+cHVfdHRtLmMgfCA1ICsrKy0tDQo+Pj4gICAgMSBmaWxlIGNoYW5nZWQsIDMgaW5zZXJ0aW9ucygr
+KSwgMiBkZWxldGlvbnMoLSkNCj4+Pg0KPj4+IGRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0v
+YW1kL2FtZGdwdS9hbWRncHVfdHRtLmMgYi9kcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRn
+cHVfdHRtLmMNCj4+PiBpbmRleCA3M2U3MWU2MWRjOTkuLjg5MWIwMjdmYTMzYiAxMDA2NDQNCj4+
+PiAtLS0gYS9kcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMNCj4+PiArKysg
+Yi9kcml2ZXJzL2dwdS9kcm0vYW1kL2FtZGdwdS9hbWRncHVfdHRtLmMNCj4+PiBAQCAtNzUxLDEw
+ICs3NTEsMTEgQEAgaW50IGFtZGdwdV90dG1fdHRfZ2V0X3VzZXJfcGFnZXMoc3RydWN0IHR0bV90
+dCAqdHRtLCBzdHJ1Y3QgcGFnZSAqKnBhZ2VzKQ0KPj4+ICAgICAgICAgICAgICAgICAqIGNoZWNr
+IHRoYXQgd2Ugb25seSB1c2UgYW5vbnltb3VzIG1lbW9yeSB0byBwcmV2ZW50IHByb2JsZW1zDQo+
+Pj4gICAgICAgICAgICAgICAgICogd2l0aCB3cml0ZWJhY2sNCj4+PiAgICAgICAgICAgICAgICAg
+Ki8NCj4+PiAtICAgICAgICAgICAgIHVuc2lnbmVkIGxvbmcgZW5kID0gZ3R0LT51c2VycHRyICsg
+dHRtLT5udW1fcGFnZXMgKiBQQUdFX1NJWkU7DQo+Pj4gKyAgICAgICAgICAgICB1bnNpZ25lZCBs
+b25nIHVzZXJwdHIgPSB1bnRhZ2dlZF9hZGRyKGd0dC0+dXNlcnB0cik7DQo+Pj4gKyAgICAgICAg
+ICAgICB1bnNpZ25lZCBsb25nIGVuZCA9IHVzZXJwdHIgKyB0dG0tPm51bV9wYWdlcyAqIFBBR0Vf
+U0laRTsNCj4+PiAgICAgICAgICAgICAgICBzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYTsNCj4+
+Pg0KPj4+IC0gICAgICAgICAgICAgdm1hID0gZmluZF92bWEobW0sIGd0dC0+dXNlcnB0cik7DQo+
+Pj4gKyAgICAgICAgICAgICB2bWEgPSBmaW5kX3ZtYShtbSwgdXNlcnB0cik7DQo+Pj4gICAgICAg
+ICAgICAgICAgaWYgKCF2bWEgfHwgdm1hLT52bV9maWxlIHx8IHZtYS0+dm1fZW5kIDwgZW5kKSB7
+DQo+Pj4gICAgICAgICAgICAgICAgICAgICAgICB1cF9yZWFkKCZtbS0+bW1hcF9zZW0pOw0KPj4+
+ICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIC1FUEVSTTsNCj4+IFdlJ2xsIG5lZWQgdG8g
+YmUgY2FyZWZ1bCB0aGF0IHdlIGRvbid0IGJyZWFrIHlvdXIgY2hhbmdlIHdoZW4gdGhlDQo+PiBm
+b2xsb3dpbmcgY29tbWl0IGdldHMgYXBwbGllZCB0aHJvdWdoIGRybS1uZXh0IGZvciBMaW51eCA1
+LjI6DQo+Pg0KPj4gaHR0cHM6Ly9jZ2l0LmZyZWVkZXNrdG9wLm9yZy9+YWdkNWYvbGludXgvY29t
+bWl0Lz9oPWRybS1uZXh0LTUuMi13aXAmaWQ9OTE1ZDNlZWNmYTIzNjkzYmFjOWU1NGNkYWNmODRm
+YjRlZmRjYzVjNA0KPj4NCj4+IFdvdWxkIGl0IG1ha2Ugc2Vuc2UgdG8gYXBwbHkgdGhlIHVudGFn
+Z2luZyBpbiBhbWRncHVfdHRtX3R0X3NldF91c2VycHRyDQo+PiBpbnN0ZWFkPyBUaGF0IHdvdWxk
+IGF2b2lkIHRoaXMgY29uZmxpY3QgYW5kIEkgdGhpbmsgaXQgd291bGQgY2xlYXJseSBwdXQNCj4+
+IHRoZSB1bnRhZ2dpbmcgaW50byB0aGUgdXNlciBtb2RlIGNvZGUgcGF0aCB3aGVyZSB0aGUgdGFn
+Z2VkIHBvaW50ZXINCj4+IG9yaWdpbmF0ZXMuDQo+Pg0KPj4gSW4gYW1kZ3B1X2dlbV91c2VycHRy
+X2lvY3RsIGFuZCBhbWRncHVfYW1ka2ZkX2dwdXZtLmMgKGluaXRfdXNlcl9wYWdlcykNCj4+IHdl
+IGFsc28gc2V0IHVwIGFuIE1NVSBub3RpZmllciB3aXRoIHRoZSAodGFnZ2VkKSBwb2ludGVyIGZy
+b20gdXNlciBtb2RlLg0KPj4gVGhhdCBzaG91bGQgcHJvYmFibHkgYWxzbyB1c2UgdGhlIHVudGFn
+Z2VkIGFkZHJlc3Mgc28gdGhhdCBNTVUgbm90aWZpZXJzDQo+PiBmb3IgdGhlIHVudGFnZ2VkIGFk
+ZHJlc3MgZ2V0IGNvcnJlY3RseSBtYXRjaGVkIHVwIHdpdGggdGhlIHJpZ2h0IEJPLiBJJ2QNCj4+
+IG1vdmUgdGhlIHVudGFnZ2luZyBmdXJ0aGVyIHVwIHRoZSBjYWxsIHN0YWNrIHRvIGNvdmVyIHRo
+YXQuIEZvciB0aGUgR0VNDQo+PiBjYXNlIEkgdGhpbmsgYW1kZ3B1X2dlbV91c2VycHRyX2lvY3Rs
+IHdvdWxkIGJlIHRoZSByaWdodCBwbGFjZS4gRm9yIHRoZQ0KPj4gS0ZEIGNhc2UsIEknZCBkbyB0
+aGlzIGluIGFtZGdwdV9hbWRrZmRfZ3B1dm1fYWxsb2NfbWVtb3J5X29mX2dwdS4NCj4gV2lsbCBk
+byBpbiB2MTQsIHRoYW5rcyBhIGxvdCBmb3IgbG9va2luZyBhdCB0aGlzIQ0KPg0KPiBJcyB0aGlz
+IGFwcGxpY2FibGUgdG8gdGhlIHJhZGVvbiBkcml2ZXIgKGRyaXZlcnMvZ3B1L2RybS9yYWRlb24p
+IGFzDQo+IHdlbGw/IEl0IHNlZW1zIHRvIGJlIHVzaW5nIHZlcnkgc2ltaWxhciBzdHJ1Y3R1cmUu
+DQoNCkkgdGhpbmsgc28uIFJhZGVvbiBkb2Vzbid0IGhhdmUgdGhlIEtGRCBiaXRzIGFueSBtb3Jl
+LiBCdXQgdGhlIEdFTSANCmludGVyZmFjZSBhbmQgTU1VIG5vdGlmaWVyIGFyZSB2ZXJ5IHNpbWls
+YXIuDQoNClJlZ2FyZHMsDQogwqAgRmVsaXgNCg0KDQpfX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fXwpkcmktZGV2ZWwgbWFpbGluZyBsaXN0CmRyaS1kZXZlbEBs
+aXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1h
+bi9saXN0aW5mby9kcmktZGV2ZWw=
