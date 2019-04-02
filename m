@@ -1,16 +1,16 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH 4/4] arm64: compat: Add KUSER_HELPERS config option
-Date: Tue, 2 Apr 2019 11:12:37 +0100
-Message-ID: <4a56f2ed-9325-a6c1-7005-9e7e64a787fe@arm.com>
-References: <20190401112025.40807-1-vincenzo.frascino@arm.com>
- <20190401112025.40807-5-vincenzo.frascino@arm.com>
- <20190401144855.GJ14874@arrakis.emea.arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Tue, 2 Apr 2019 12:37:50 +0200
+Message-ID: <20190402103750.GN11158@hirez.programming.kicks-ass.net>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-5-alex.kogan@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190401144855.GJ14874@arrakis.emea.arm.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20190329152006.110370-5-alex.kogan@oracle.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,72 +20,102 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, tytso@mit.edu, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 01/04/2019 15:48, Catalin Marinas wrote:
-> On Mon, Apr 01, 2019 at 12:20:25PM +0100, Vincenzo Frascino wrote:
->> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
->> index 7e34b9eba5de..35c98e91bfeb 100644
->> --- a/arch/arm64/Kconfig
->> +++ b/arch/arm64/Kconfig
->> @@ -1494,6 +1494,36 @@ config COMPAT
->>  
->>  	  If you want to execute 32-bit userspace applications, say Y.
->>  
->> +config KUSER_HELPERS
->> +	bool "Enable kuser helpers page for compatibility with 32 bit applications."
-> 
-> I'd say only "Enable kuser helpers page for 32-bit applications" (my
-> first reading of this sounded like it would be enabled for 64-bit apps
-> to be on par with 32-bit ones).
-> 
+On Fri, Mar 29, 2019 at 11:20:05AM -0400, Alex Kogan wrote:
+> @@ -25,6 +29,18 @@
+>  
+>  #define MCS_NODE(ptr) ((struct mcs_spinlock *)(ptr))
+>  
+> +/* Per-CPU pseudo-random number seed */
+> +static DEFINE_PER_CPU(u32, seed);
+> +
+> +/*
+> + * Controls the probability for intra-node lock hand-off. It can be
+> + * tuned and depend, e.g., on the number of CPUs per node. For now,
+> + * choose a value that provides reasonable long-term fairness without
+> + * sacrificing performance compared to a version that does not have any
+> + * fairness guarantees.
+> + */
+> +#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
+> +
+>  static inline __pure int decode_numa_node(u32 node_and_count)
+>  {
+>  	int node = (node_and_count >> _Q_NODE_OFFSET) - 1;
+> @@ -102,6 +118,35 @@ static struct mcs_spinlock *find_successor(struct mcs_spinlock *me)
+>  	return NULL;
+>  }
+>  
+> +/*
+> + * xorshift function for generating pseudo-random numbers:
+> + * https://en.wikipedia.org/wiki/Xorshift
 
-Ok, I agree, it can be misleading.
+Cute; so clearly you've read that page, but then you provide us a
+variant that isn't actually listed there.
 
->> +	depends on COMPAT
->> +	default y
->> +	help
->> +	  Warning: disabling this option may break user programs.
-> 
-> "may break 32-bit user programs."
-> 
+Your naming is also non-standard in that it does not relay the period.
+The type seems to suggest 32bit, so the name should then have been:
 
-Ok.
+  xorshift32()
 
->> +
->> +	  Provide kuser helpers to compat tasks. The kernel provides
->> +	  helper code to userspace in read only form at a fixed location
->> +	  to allow userspace to be independent of the CPU type fitted to
->> +	  the system. This permits binaries to be run on ARMv4 through
->> +	  to ARMv8 without modification.
->> +
->> +	  See Documentation/arm/kernel_user_helpers.txt for details.
->> +
->> +	  However, the fixed address nature of these helpers can be used
->> +	  by ROP (return orientated programming) authors when creating
->> +	  exploits.
->> +
->> +	  If all of the binaries and libraries which run on your platform
->> +	  are built specifically for your platform, and make no use of
->> +	  these helpers, then you can turn this option off to hinder
->> +	  such exploits. However, in that case, if a binary or library
->> +	  relying on those helpers is run, it will not function correctly.
->> +
->> +	  Note: kuser helpers is disabled by default with 64K pages.
-> 
-> Is it?
-> 
+Now, where did you get those parameters from; is this a proper
+xorshift32 ?
 
-Oops... I removed it from all the places except here. Will fix in v2.
+> + */
+> +static inline u32 xor_random(void)
+> +{
+> +	u32 v;
+> +
+> +	v = this_cpu_read(seed);
+> +	if (v == 0)
+> +		get_random_bytes(&v, sizeof(u32));
 
->> +
->> +	  Say N here only if you are absolutely certain that you do not
->> +	  need these helpers; otherwise, the safe option is to say Y.
->> +
-> 
+Given xorshift is a LFSR subset, the above case will only ever happen
+_once_ and it seems like bad form to stick it here instead of in a init
+function.
 
--- 
-Regards,
-Vincenzo
+Also, does it really matter, can't we simply initialize the variable
+with a !0 value and call it a day?
+
+As to that variable, seed is clearly a misnomer, the wiki page you
+reference calls it state, which might be a little ambiguous, xs_state
+otoh should work just fine.
+
+> +	v ^= v << 6;
+> +	v ^= v >> 21;
+> +	v ^= v << 7;
+> +	this_cpu_write(seed, v);
+> +
+> +	return v;
+> +}
+
+Now, you've read that page and you know there's 'trivial' improvements
+on the pure xorshift, why not pick one of those? xorwow seems cheap
+enough, or that xorshift128plus() one.
+
+> +
+> +/*
+> + * Return false with probability 1 / @range.
+> + * @range must be a power of 2.
+> + */
+> +static bool probably(unsigned int range)
+> +{
+> +	return xor_random() & (range - 1);
+> +}
+
+Uhh, you sure that's what it does? The only way for that to return false
+is when all @range bits are 0, which happens once (2^32/range)-1 times,
+or am I mistaken?
+
+Also, linux/random.h includes next_pseudo_random32(), should we be using
+that? Arguably that's more expensive on a number of platforms due to the
+multiplication. Also, we actually have xorshift32 already in tree in
+lib/test_hash.c.
+
+The advantage of next_psuedo_random32() is that it doesn't have that 0
+identify that pure LFSRs suffer from and it has 0 state.  Now at a
+glance, the xorwow/xorshift128plus variants don't seem to suffer that 0
+identify, so that's good, but they still have fairly large state. It
+also seems unfortunate to litter the tree with custom PRNGs. Ted?
