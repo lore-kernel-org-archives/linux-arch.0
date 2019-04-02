@@ -1,78 +1,68 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2] Remove SPDX "WITH Linux-syscall-note" from kernel-space headers
-Date: Tue,  2 Apr 2019 18:08:24 +0900
-Message-ID: <1554196104-3522-1-git-send-email-yamada.masahiro@socionext.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Tue, 2 Apr 2019 11:43:20 +0200
+Message-ID: <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Karthikeyan Ramasubramanian <kramasub@codeaurora.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Gross <andy.gross@linaro.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Girish Mahadevan <girishm@codeaurora.org>, Sagar Dharia <sdharia@codeaurora.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Haiyang Zhang <haiyangz@microsoft.com>, "K. Y. Srinivasan" <kys@microsoft.com>, Sasha Levin <sashal@kernel.org>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Hemminger <sthemmin@microsoft.com>, Ingo Molnar <mingo@redhat.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-The "WITH Linux-syscall-note" should be added to headers exported to
-the user-space.
+On Mon, Apr 01, 2019 at 10:36:19AM -0400, Waiman Long wrote:
+> On 03/29/2019 11:20 AM, Alex Kogan wrote:
+> > +config NUMA_AWARE_SPINLOCKS
+> > +	bool "Numa-aware spinlocks"
+> > +	depends on NUMA
+> > +	default y
+> > +	help
+> > +	  Introduce NUMA (Non Uniform Memory Access) awareness into
+> > +	  the slow path of spinlocks.
+> > +
+> > +	  The kernel will try to keep the lock on the same node,
+> > +	  thus reducing the number of remote cache misses, while
+> > +	  trading some of the short term fairness for better performance.
+> > +
+> > +	  Say N if you want absolute first come first serve fairness.
+> > +
+> 
+> The patch that I am looking for is to have a separate
+> numa_queued_spinlock_slowpath() that coexists with
+> native_queued_spinlock_slowpath() and
+> paravirt_queued_spinlock_slowpath(). At boot time, we select the most
+> appropriate one for the system at hand.
 
-Some kernel-space headers have "WITH Linux-syscall-note", which seems
-a mistake.
+Agreed; and until we have static_call, I think we can abuse the paravirt
+stuff for this.
 
-[1] arch/x86/include/asm/hyperv-tlfs.h
+By the time we patch the paravirt stuff:
 
-5a4858032217 ("x86/hyper-v: move hyperv.h out of uapi") moved this file
-out of uapi, but missed to update the SPDX License tag.
+  check_bugs()
+    alternative_instructions()
+      apply_paravirt()
 
-[2] include/asm-generic/shmparam.h
+we should already have enumerated the NODE topology and so nr_node_ids()
+should be set.
 
-76ce2a80a28e ("Rename include/{uapi => }/asm-generic/shmparam.h really")
-moved this file out of uapi, but missed to update the SPDX License tag.
+So if we frob pv_ops.lock.queued_spin_lock_slowpath to
+numa_queued_spin_lock_slowpath before that, it should all get patched
+just right.
 
-[3] include/linux/qcom-geni-se.h
-
-eddac5af0654 ("soc: qcom: Add GENI based QUP Wrapper driver") added this
-file, but I do not see a good reason why its license tag must include
-"WITH Linux-syscall-note".
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
-Changes in v2:
-  - Fix a typo in commit log
-
- arch/x86/include/asm/hyperv-tlfs.h | 2 +-
- include/asm-generic/shmparam.h     | 2 +-
- include/linux/qcom-geni-se.h       | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
-index 2bdbbbc..cdf44aa 100644
---- a/arch/x86/include/asm/hyperv-tlfs.h
-+++ b/arch/x86/include/asm/hyperv-tlfs.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
- 
- /*
-  * This file contains definitions from Hyper-V Hypervisor Top-Level Functional
-diff --git a/include/asm-generic/shmparam.h b/include/asm-generic/shmparam.h
-index 8b78c0b..b8f9035 100644
---- a/include/asm-generic/shmparam.h
-+++ b/include/asm-generic/shmparam.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
- #ifndef __ASM_GENERIC_SHMPARAM_H
- #define __ASM_GENERIC_SHMPARAM_H
- 
-diff --git a/include/linux/qcom-geni-se.h b/include/linux/qcom-geni-se.h
-index 3bcd67f..dd46494 100644
---- a/include/linux/qcom-geni-se.h
-+++ b/include/linux/qcom-geni-se.h
-@@ -1,4 +1,4 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+/* SPDX-License-Identifier: GPL-2.0 */
- /*
-  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
-  */
--- 
-2.7.4
+That of course means the whole NUMA_AWARE_SPINLOCKS thing depends on
+PARAVIRT_SPINLOCK, which is a bit awkward...
