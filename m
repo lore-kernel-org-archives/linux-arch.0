@@ -1,165 +1,208 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:2650 "EHLO pegase1.c-s.fr"
+Received: from mail.kernel.org ([198.145.29.99]:41292 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726337AbfDBGOz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Apr 2019 02:14:55 -0400
-Subject: Re: [PATCH 2/5] powerpc: Fix vDSO clock_getres()
-References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
- <20190401115152.32751-3-vincenzo.frascino@arm.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <5a76f55d-eb0d-fb49-8e59-f0e89e561f7b@c-s.fr>
-Date: Tue, 2 Apr 2019 06:14:18 +0000
-MIME-Version: 1.0
-In-Reply-To: <20190401115152.32751-3-vincenzo.frascino@arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+        id S1725778AbfDBIDR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Apr 2019 04:03:17 -0400
+From: guoren@kernel.org
+Subject: [PATCH 1/3] csky: Use in_syscall & forget_syscall instead of r11_sig
+Date: Tue,  2 Apr 2019 16:02:31 +0800
+Message-ID: <1554192153-2587-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
-Message-ID: <20190402061418.OoYPh-tulQT4iN2kjme7KraxaqqwcWiRU0c7PpEqwS4@z>
+To: arnd@arndb.de, palmer@sifive.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com, linux-riscv@lists.infradead.org
+Message-ID: <20190402080231.DvFXNv4F6B20Ahusg-QmGo0y_hPqX-MDAZNVcrhxq78@z>
 
+From: Guo Ren <ren_guo@c-sky.com>
 
+We could use regs->sr 16-24 bits to detect syscall: VEC_TRAP0 and
+r11_sig is no necessary for current implementation.
 
-On 04/01/2019 11:51 AM, Vincenzo Frascino wrote:
-> clock_getres in the vDSO library has to preserve the same behaviour
-> of posix_get_hrtimer_res().
-> 
-> In particular, posix_get_hrtimer_res() does:
->      sec = 0;
->      ns = hrtimer_resolution;
-> and hrtimer_resolution depends on the enablement of the high
-> resolution timers that can happen either at compile or at run time.
-> 
-> Fix the powerpc vdso implementation of clock_getres keeping a copy of
-> hrtimer_resolution in vdso data and using that directly.
-> 
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->   arch/powerpc/include/asm/vdso_datapage.h  |  2 ++
->   arch/powerpc/kernel/asm-offsets.c         |  2 +-
->   arch/powerpc/kernel/time.c                |  1 +
->   arch/powerpc/kernel/vdso32/gettimeofday.S | 22 +++++++++++++++-------
->   arch/powerpc/kernel/vdso64/gettimeofday.S | 22 +++++++++++++++-------
->   5 files changed, 34 insertions(+), 15 deletions(-)
-> 
+In this patch, we implement the in_syscall and forget_syscall which are
+inspired from arm & nds32, but csky pt_regs has no syscall_num element
+and we just set zero to regs->sr's vector-bits-field instead.
 
-[...]
+For ret_from_fork, current task was forked from parent which is in syscall
+progress and its regs->sr has been already setted with VEC_TRAP0. See:
+arch/csky/kernel/process.c: copy_thread()
 
-> diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
-> index 1e0bc5955a40..b21630079496 100644
-> --- a/arch/powerpc/kernel/vdso32/gettimeofday.S
-> +++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
-> @@ -160,14 +160,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
->   	bne	cr0,99f
->   
-> -	li	r3,0
-> -	cmpli	cr0,r4,0
-> +	mflr	r12
-> +  .cfi_register lr,r12
-> +	mr	r11,r4
-> +	bl	__get_datapage@local
-> +	lwz	r5,CLOCK_REALTIME_RES(r3)
-> +	li	r4,0
-> +	cmplwi	r11,0		/* check if res is NULL */
-> +	beq	1f
-> +
-> +	stw	r4,TSPC32_TV_SEC(r11)
-> +	stw	r5,TSPC32_TV_NSEC(r11)
-> +
-> +1:	mtlr	r12
->   	crclr	cr0*4+so
-> -	beqlr
-> -	lis	r5,CLOCK_REALTIME_RES@h
-> -	ori	r5,r5,CLOCK_REALTIME_RES@l
-> -	stw	r3,TSPC32_TV_SEC(r4)
-> -	stw	r5,TSPC32_TV_NSEC(r4)
-> +	li	r3,0
->   	blr
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/csky/abiv1/inc/abi/regdef.h |  2 --
+ arch/csky/abiv2/inc/abi/regdef.h |  2 --
+ arch/csky/include/asm/ptrace.h   | 12 ++++++++++++
+ arch/csky/kernel/entry.S         | 11 +----------
+ arch/csky/kernel/signal.c        | 15 +++++++++------
+ 5 files changed, 22 insertions(+), 20 deletions(-)
 
-The above can be done simpler, see below
-
-@@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
-  	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
-  	bne	cr0,99f
-
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	__get_datapage@local
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
-  	li	r3,0
-  	cmpli	cr0,r4,0
-  	crclr	cr0*4+so
-  	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
-  	stw	r3,TSPC32_TV_SEC(r4)
-  	stw	r5,TSPC32_TV_NSEC(r4)
-  	blr
-
-Christophe
-
->   
->   	/*
-> @@ -175,6 +182,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->   	 */
->   99:
->   	li	r0,__NR_clock_getres
-> +  .cfi_restore lr
->   	sc
->   	blr
->     .cfi_endproc
-> diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
-> index a4ed9edfd5f0..a7e49bddd475 100644
-> --- a/arch/powerpc/kernel/vdso64/gettimeofday.S
-> +++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
-> @@ -190,14 +190,21 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
->   	bne	cr0,99f
->   
-> -	li	r3,0
-> -	cmpldi	cr0,r4,0
-> +	mflr	r12
-> +  .cfi_register lr,r12
-> +	mr	r11, r4
-> +	bl	V_LOCAL_FUNC(__get_datapage)
-> +	lwz	r5,CLOCK_REALTIME_RES(r3)
-> +	li	r4,0
-> +	cmpldi	r11,0		/* check if res is NULL */
-> +	beq	1f
-> +
-> +	std	r4,TSPC64_TV_SEC(r11)
-> +	std	r5,TSPC64_TV_NSEC(r11)
-> +
-> +1:	mtlr	r12
->   	crclr	cr0*4+so
-> -	beqlr
-> -	lis	r5,CLOCK_REALTIME_RES@h
-> -	ori	r5,r5,CLOCK_REALTIME_RES@l
-> -	std	r3,TSPC64_TV_SEC(r4)
-> -	std	r5,TSPC64_TV_NSEC(r4)
-> +	li	r3,0
->   	blr
-
-The same type of simplification applies here too.
-
-Christophe
-
-
->   
->   	/*
-> @@ -205,6 +212,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
->   	 */
->   99:
->   	li	r0,__NR_clock_getres
-> +  .cfi_restore lr
->   	sc
->   	blr
->     .cfi_endproc
-> 
+diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
+index 8766892..9e7e692 100644
+--- a/arch/csky/abiv1/inc/abi/regdef.h
++++ b/arch/csky/abiv1/inc/abi/regdef.h
+@@ -5,8 +5,6 @@
+ #define __ASM_CSKY_REGDEF_H
+ 
+ #define syscallid	r1
+-#define r11_sig		r11
+-
+ #define regs_syscallid(regs) regs->regs[9]
+ 
+ /*
+diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+index c72abb7..652f5ce 100644
+--- a/arch/csky/abiv2/inc/abi/regdef.h
++++ b/arch/csky/abiv2/inc/abi/regdef.h
+@@ -5,8 +5,6 @@
+ #define __ASM_CSKY_REGDEF_H
+ 
+ #define syscallid	r7
+-#define r11_sig		r11
+-
+ #define regs_syscallid(regs) regs->regs[3]
+ 
+ /*
+diff --git a/arch/csky/include/asm/ptrace.h b/arch/csky/include/asm/ptrace.h
+index 1e00578..d0aba7b 100644
+--- a/arch/csky/include/asm/ptrace.h
++++ b/arch/csky/include/asm/ptrace.h
+@@ -5,6 +5,8 @@
+ #define __ASM_CSKY_PTRACE_H
+ 
+ #include <uapi/asm/ptrace.h>
++#include <asm/traps.h>
++#include <linux/types.h>
+ 
+ #ifndef __ASSEMBLY__
+ 
+@@ -20,6 +22,16 @@
+ #define instruction_pointer(regs) ((regs)->pc)
+ #define profile_pc(regs) instruction_pointer(regs)
+ 
++static inline bool in_syscall(struct pt_regs const *regs)
++{
++	return ((regs->sr >> 16) & 0xff) == VEC_TRAP0;
++}
++
++static inline void forget_syscall(struct pt_regs *regs)
++{
++	regs->sr &= ~(0xff << 16);
++}
++
+ static inline unsigned long regs_return_value(struct pt_regs *regs)
+ {
+ 	return regs->a0;
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index c18859a..d40fbd5 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -32,7 +32,6 @@
+ 	RD_MEH	a1
+ 	psrset  ee, ie
+ 	jbsr    do_page_fault
+-	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
+ 	jmpi    ret_from_exception
+ .endm
+ 
+@@ -125,7 +124,6 @@ ENTRY(ret_from_fork)
+ 	bmaski	r10, THREAD_SHIFT
+ 	andn	r9, r10
+ 	ldw	r8, (r9, TINFO_FLAGS)
+-	movi	r11_sig, 1
+ 	ANDI_R3	r8, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
+ 	cmpnei	r8, 0
+ 	bf	3f
+@@ -160,12 +158,8 @@ exit_work:
+ 	/* If thread_info->flag is empty, RESTORE_ALL */
+ 	cmpnei	r8, 0
+ 	bf	1b
+-	mov	a1, sp
+ 	mov	a0, r8
+-	mov	a2, r11_sig		/* syscall? */
+-	btsti	r8, TIF_SIGPENDING	/* delivering a signal? */
+-	/* prevent further restarts(set r11 = 0) */
+-	clrt	r11_sig
++	mov	a1, sp
+ 	jbsr	do_notify_resume	/* do signals */
+ 	br	resume_userspace
+ 
+@@ -175,13 +169,11 @@ work_resched:
+ 	jmpi	schedule
+ 
+ ENTRY(sys_rt_sigreturn)
+-	movi	r11_sig, 0
+ 	jmpi	do_rt_sigreturn
+ 
+ ENTRY(csky_trap)
+ 	SAVE_ALL EPC_KEEP
+ 	psrset	ee
+-	movi	r11_sig, 0             /* r11 = 0, Not a syscall. */
+ 	mov	a0, sp                 /* Push Stack pointer arg */
+ 	jbsr	trap_c                 /* Call C-level trap handler */
+ 	jmpi	ret_from_exception
+@@ -215,7 +207,6 @@ ENTRY(csky_get_tls)
+ ENTRY(csky_irq)
+ 	SAVE_ALL EPC_KEEP
+ 	psrset	ee
+-	movi	r11_sig, 0		/* r11 = 0, Not a syscall. */
+ 
+ #ifdef CONFIG_PREEMPT
+ 	mov	r9, sp			/* Get current stack  pointer */
+diff --git a/arch/csky/kernel/signal.c b/arch/csky/kernel/signal.c
+index 207a891..5a18940 100644
+--- a/arch/csky/kernel/signal.c
++++ b/arch/csky/kernel/signal.c
+@@ -224,7 +224,7 @@ handle_signal(struct ksignal *ksig, struct pt_regs *regs)
+  * that the kernel can handle, and then we build all the user-level signal
+  * handling stack-frames in one go after that.
+  */
+-static void do_signal(struct pt_regs *regs, int syscall)
++static void do_signal(struct pt_regs *regs)
+ {
+ 	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
+ 	struct ksignal ksig;
+@@ -241,7 +241,9 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ 	/*
+ 	 * If we were from a system call, check for system call restarting...
+ 	 */
+-	if (syscall) {
++	if (in_syscall(regs)) {
++		forget_syscall(regs);
++
+ 		continue_addr = regs->pc;
+ #if defined(__CSKYABIV2__)
+ 		restart_addr = continue_addr - 4;
+@@ -249,7 +251,6 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ 		restart_addr = continue_addr - 2;
+ #endif
+ 		retval = regs->a0;
+-
+ 		/*
+ 		 * Prepare for system call restart.  We do this here so that a
+ 		 * debugger will see the already changed.
+@@ -304,7 +305,9 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ 	}
+ 
+ no_signal:
+-	if (syscall) {
++	if (in_syscall(regs)) {
++		forget_syscall(regs);
++
+ 		/*
+ 		 * Handle restarting a different system call.  As above,
+ 		 * if a debugger has chosen to restart at a different PC,
+@@ -333,10 +336,10 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ }
+ 
+ asmlinkage void
+-do_notify_resume(unsigned int thread_flags, struct pt_regs *regs, int syscall)
++do_notify_resume(unsigned int thread_flags, struct pt_regs *regs)
+ {
+ 	if (thread_flags & _TIF_SIGPENDING)
+-		do_signal(regs, syscall);
++		do_signal(regs);
+ 
+ 	if (thread_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+-- 
+2.7.4
