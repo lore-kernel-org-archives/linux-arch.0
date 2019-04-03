@@ -1,92 +1,78 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Wed, 3 Apr 2019 11:53:53 -0400
-Message-ID: <7A8A6827-BF79-47FC-99A1-C9EE00D9C3B1@oracle.com>
+Date: Wed, 3 Apr 2019 18:01:12 +0200
+Message-ID: <20190403160112.GK4038@hirez.programming.kicks-ass.net>
 References: <20190329152006.110370-1-alex.kogan@oracle.com>
  <20190329152006.110370-4-alex.kogan@oracle.com>
- <20190401090653.GF11158@hirez.programming.kicks-ass.net>
- <20190401093345.GA14281@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190401093345.GA14281@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+ <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+ <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Waiman Long <longman@redhat.com>, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-
-> On Apr 1, 2019, at 5:33 AM, Peter Zijlstra <peterz@infradead.org> =
-wrote:
->=20
-> On Mon, Apr 01, 2019 at 11:06:53AM +0200, Peter Zijlstra wrote:
->> On Fri, Mar 29, 2019 at 11:20:04AM -0400, Alex Kogan wrote:
->>> diff --git a/kernel/locking/mcs_spinlock.h =
-b/kernel/locking/mcs_spinlock.h
->>> index bc6d3244e1af..71ee4b64c5d4 100644
->>> --- a/kernel/locking/mcs_spinlock.h
->>> +++ b/kernel/locking/mcs_spinlock.h
->>> @@ -17,8 +17,18 @@
->>>=20
->>> struct mcs_spinlock {
->>> 	struct mcs_spinlock *next;
->>> +#ifndef CONFIG_NUMA_AWARE_SPINLOCKS
->>> 	int locked; /* 1 if lock acquired */
->>> 	int count;  /* nesting count, see qspinlock.c */
->>> +#else /* CONFIG_NUMA_AWARE_SPINLOCKS */
->>> +	uintptr_t locked; /* 1 if lock acquired, 0 if not, other values =
-*/
->>> +			  /* represent a pointer to the secondary queue =
-head */
->>> +	u32 node_and_count;	/* node id on which this thread is =
-running */
->>> +				/* with two lower bits reserved for =
-nesting */
->>> +				/* count, see qspinlock.c */
->>> +	u32 encoded_tail; /* encoding of this node as the main queue =
-tail */
->>> +	struct mcs_spinlock *tail;    /* points to the secondary queue =
-tail */
->>> +#endif /* CONFIG_NUMA_AWARE_SPINLOCKS */
->>> };
->>=20
->> Please, have another look at the paravirt code, in particular at =
-struct
->> pv_node and its usage. This is horrible.
->=20
-> Thing is, this turns into a right mess when you also have PV spinlocks
-> on.
->=20
-> One thing we could maybe do is change locked and count to u8, then =
-your
-> overlay structure could be something like:
->=20
-> struct mcs_spinlock {
-> 	struct mcs_spinlock *next;
-> 	u8 locked;
-> 	u8 count;
-> };
-I was trying to keep the size of the mcs_spinlock structure for the =
-non-NUMA variant unchanged.
-If this is not a huge concern, changing the fields as above would indeed =
-simplify a few things.
-
-=E2=80=94 Alex=20
-
->=20
-> struct cna_node {
-> 	/* struct mcs_spinlock overlay */
-> 	struct mcs_spinlock *next;
-> 	u8 locked;
-> 	u8 count;
->=20
-> 	/* our CNA bits, consuming the slack and PV space */
-> 	u16 node;
-> 	u32 encoded_tail;
-> 	struct mcs_spinlock *head;
-> 	struct mcs_spinlock *tail;
-> };
->=20
-> Then you also don't need the first two patches.
+T24gV2VkLCBBcHIgMDMsIDIwMTkgYXQgMTE6Mzk6MDlBTSAtMDQwMCwgQWxleCBLb2dhbiB3cm90
+ZToKCj4gPj4gVGhlIHBhdGNoIHRoYXQgSSBhbSBsb29raW5nIGZvciBpcyB0byBoYXZlIGEgc2Vw
+YXJhdGUKPiA+PiBudW1hX3F1ZXVlZF9zcGlubG9ja19zbG93cGF0aCgpIHRoYXQgY29leGlzdHMg
+d2l0aAo+ID4+IG5hdGl2ZV9xdWV1ZWRfc3BpbmxvY2tfc2xvd3BhdGgoKSBhbmQKPiA+PiBwYXJh
+dmlydF9xdWV1ZWRfc3BpbmxvY2tfc2xvd3BhdGgoKS4gQXQgYm9vdCB0aW1lLCB3ZSBzZWxlY3Qg
+dGhlIG1vc3QKPiA+PiBhcHByb3ByaWF0ZSBvbmUgZm9yIHRoZSBzeXN0ZW0gYXQgaGFuZC4KPiBJ
+cyB0aGlzIGhvdyB0aGlzIHNlbGVjdGlvbiB3b3JrcyB0b2RheSBmb3IgcGFyYXZpcnQ/Cj4gSSBz
+ZWUgYSBQQVJBVklSVF9TUElOTE9DS1MgY29uZmlnIG9wdGlvbiwgYnV0IElJVUMgeW91IGFyZSB0
+YWxraW5nIGFib3V0IGEgZGlmZmVyZW50IG1lY2hhbmlzbSBoZXJlLgo+IENhbiB5b3UsIHBsZWFz
+ZSwgZWxhYm9yYXRlIG9yIGdpdmUgbWUgYSBsaW5rIHRvIGEgcGFnZSB0aGF0IGV4cGxhaW5zIHRo
+YXQ/CgpPaCBtYW4sIHlvdSBhc2sgdXMgdG8gZXhwbGFpbiBob3cgcGFyYXZpcnQgcGF0Y2hpbmcg
+d29ya3MuLi4gdGhhdCdzCm1hZ2ljIDotKQoKQmFzaWNhbGx5LCB0aGUgY29tcGlsZXIgd2lsbCBl
+bWl0IGEgYnVuY2ggb2YgaW5kaXJlY3QgY2FsbHMgdG8gdGhlCnZhcmlvdXMgcHZfb3BzLiouKiBm
+dW5jdGlvbnMuCgpUaGVuLCBhdCBhbHRlcm5hdGl2ZV9pbnN0cnVjdGlvbnMoKSA8LSBhcHBseV9w
+YXJhdmlydCgpIGl0IHdpbGwgcmV3cml0ZQphbGwgdGhlc2UgaW5kaXJlY3QgY2FsbHMgdG8gZGly
+ZWN0IGNhbGxzIHRvIHRoZSBmdW5jdGlvbiBwb2ludGVycyB0aGF0CmFyZSBpbiB0aGUgcHZfb3Bz
+IHN0cnVjdHVyZSBhdCB0aGF0IHRpbWUgKCstIG1vcmUgbWFnaWMpLgoKU28gd2UgaW5pdGlhbGl6
+ZSB0aGUgcHZfb3BzLmxvY2suKiBtZXRob2RzIHRvIHRoZSBub3JtYWwKbmF0aXZlX3F1ZXVlZF9z
+cGluKigpIHN0dWZmLCBpZiBLVk0vWGVuL3doYXRldmVyIHNldHVwIGRldGVjdG9ycyBwdgpzcG5s
+b2NrIHN1cHBvcnQgY2hhbmdlcyB0aGUgbWV0aG9kcyB0byB0aGUgcGFyYXZpcnRfcXVldWVkXyoo
+KSBzdHVmZi4KCklmIHlvdSB3bnQgbW9yZSBkZXRhaWxzLCB5b3UnbGwganVzdCBoYXZlIHRvIHJl
+YWQKYXJjaC94ODYvaW5jbHVkZS9hc20vcGFyYXZpcnQqLmggYW5kIGFyY2gveDg2L2tlcm5lbC9w
+YXJhdmlydCouYywgSQpkb24ndCB0aGluayB0aGVyZSdzIGEgY29oZXJlbnQgd3JpdGV1cCBvZiBh
+bGwgdGhhdC4KCj4gPiBBZ3JlZWQ7IGFuZCB1bnRpbCB3ZSBoYXZlIHN0YXRpY19jYWxsLCBJIHRo
+aW5rIHdlIGNhbiBhYnVzZSB0aGUgcGFyYXZpcnQKPiA+IHN0dWZmIGZvciB0aGlzLgo+ID4gCj4g
+PiBCeSB0aGUgdGltZSB3ZSBwYXRjaCB0aGUgcGFyYXZpcnQgc3R1ZmY6Cj4gPiAKPiA+ICBjaGVj
+a19idWdzKCkKPiA+ICAgIGFsdGVybmF0aXZlX2luc3RydWN0aW9ucygpCj4gPiAgICAgIGFwcGx5
+X3BhcmF2aXJ0KCkKPiA+IAo+ID4gd2Ugc2hvdWxkIGFscmVhZHkgaGF2ZSBlbnVtZXJhdGVkIHRo
+ZSBOT0RFIHRvcG9sb2d5IGFuZCBzbyBucl9ub2RlX2lkcygpCj4gPiBzaG91bGQgYmUgc2V0Lgo+
+ID4gCj4gPiBTbyBpZiB3ZSBmcm9iIHB2X29wcy5sb2NrLnF1ZXVlZF9zcGluX2xvY2tfc2xvd3Bh
+dGggdG8KPiA+IG51bWFfcXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCBiZWZvcmUgdGhhdCwgaXQg
+c2hvdWxkIGFsbCBnZXQgcGF0Y2hlZAo+ID4ganVzdCByaWdodC4KPiA+IAo+ID4gVGhhdCBvZiBj
+b3Vyc2UgbWVhbnMgdGhlIHdob2xlIE5VTUFfQVdBUkVfU1BJTkxPQ0tTIHRoaW5nIGRlcGVuZHMg
+b24KPiA+IFBBUkFWSVJUX1NQSU5MT0NLLCB3aGljaCBpcyBhIGJpdCBhd2t3YXJk4oCmCgo+IEp1
+c3QgdG8gbWVudGlvbiBoZXJlLCB0aGUgcGF0Y2ggc28gZmFyIGRvZXMgbm90IGFkZHJlc3MgcGFy
+YXZpcnQsIGJ1dAo+IG91ciBnb2FsIGlzIHRvIGFkZCB0aGlzIHN1cHBvcnQgb25jZSB3ZSBhZGRy
+ZXNzIGFsbCB0aGUgY29uY2VybnMgZm9yCj4gdGhlIG5hdGl2ZSB2ZXJzaW9uLiAgU28gd2Ugd2ls
+bCBlbmQgdXAgd2l0aCBmb3VyIHZhcmlhbnRzIGZvciB0aGUKPiBxdWV1ZWRfc3BpbmxvY2tfc2xv
+d3BhdGgoKSDigJQgb25lIGZvciBlYWNoIGNvbWJpbmF0aW9uIG9mCj4gbmF0aXZlL3BhcmF2aXJ0
+IGFuZCBOVU1BL25vbi1OVU1BLiAgT3IgcGVyaGFwcyB3ZSBkbyBub3QgbmVlZCBhCj4gTlVNQS9w
+YXJhdmlydCB2YXJpYW50PwoKSSB3b3VsZG4ndCBib3RoZXIgd2l0aCBhIHB2IHZlcnNpb24gb2Yg
+dGhlIG51bWEgYXdhcmUgY29kZSBhdCBhbGwuIElmCnlvdSBoYXZlIG92ZXJjb21taXR0ZWQgZ3Vl
+c3RzLCB0b3BvbG9neSBpcyBsaWtlbHkgaXJyZWxldmFudCBhbnl3YXkuIElmCnlvdSBoYXZlIDE6
+MSBwaW5uZWQgZ3Vlc3RzLCB0aGV5J2xsIG5vdCB1c2UgcHYgc3BpbmxvY2tzIGFueXdheS4KClNv
+IGtlZXAgaXQgdG8gdGVydGlhcnkgY2hvaWNlOgoKIC0gbmF0aXZlCiAtIG5hdGl2ZS9udW1hCiAt
+IHBhcmF2aXJ0CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+XwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmlu
+ZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9s
+aW51eC1hcm0ta2VybmVsCg==
