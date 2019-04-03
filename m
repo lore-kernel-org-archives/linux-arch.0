@@ -1,89 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48668 "EHLO mx1.redhat.com"
+Received: from foss.arm.com ([217.140.101.70]:44894 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726074AbfDCQdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Apr 2019 12:33:23 -0400
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
- <20190402094320.GM11158@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <9ec3d8dc-d1e0-1b8a-5e00-ba92b9756c58@redhat.com>
-Date: Wed, 3 Apr 2019 12:33:20 -0400
+        id S1726074AbfDCQul (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Apr 2019 12:50:41 -0400
+Date: Wed, 3 Apr 2019 17:50:31 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
+Message-ID: <20190403165031.GE34351@arrakis.emea.arm.com>
+References: <cover.1552679409.git.andreyknvl@google.com>
+ <20190318163533.26838-1-vincenzo.frascino@arm.com>
+ <20190318163533.26838-3-vincenzo.frascino@arm.com>
+ <859341c2-b352-e914-312a-d3de652495b6@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20190402094320.GM11158@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <859341c2-b352-e914-312a-d3de652495b6@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190403163320.tIrylwmb0jTHgEw-UVRZSH-iZKFMSjM3snlSeRES8as@z>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Alexei Starovoitov <ast@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Daniel Borkmann <daniel@iogearbox.net>, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Evgeniy Stepanov <eugenis@google.com>, Graeme Barnes <Graeme.Barnes@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Shuah Khan <shuah@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20190403165031.1pimUok6GlZOyyOrTUh6Cc5tA-mMZFEZZi4uxRrzMso@z>
 
-On 04/02/2019 05:43 AM, Peter Zijlstra wrote:
-> On Mon, Apr 01, 2019 at 10:36:19AM -0400, Waiman Long wrote:
->> On 03/29/2019 11:20 AM, Alex Kogan wrote:
->>> +config NUMA_AWARE_SPINLOCKS
->>> +	bool "Numa-aware spinlocks"
->>> +	depends on NUMA
->>> +	default y
->>> +	help
->>> +	  Introduce NUMA (Non Uniform Memory Access) awareness into
->>> +	  the slow path of spinlocks.
->>> +
->>> +	  The kernel will try to keep the lock on the same node,
->>> +	  thus reducing the number of remote cache misses, while
->>> +	  trading some of the short term fairness for better performance.
->>> +
->>> +	  Say N if you want absolute first come first serve fairness.
->>> +
->> The patch that I am looking for is to have a separate
->> numa_queued_spinlock_slowpath() that coexists with
->> native_queued_spinlock_slowpath() and
->> paravirt_queued_spinlock_slowpath(). At boot time, we select the most
->> appropriate one for the system at hand.
-> Agreed; and until we have static_call, I think we can abuse the paravirt
-> stuff for this.
+On Fri, Mar 22, 2019 at 03:52:49PM +0000, Kevin Brodsky wrote:
+> On 18/03/2019 16:35, Vincenzo Frascino wrote:
+> > +2. Features exposed via AT_FLAGS
+> > +--------------------------------
+> > +
+> > +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
+> > +
+> > +    On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64
+> > +    kernel, hence the userspace (EL0) is allowed to set a non-zero value
+> > +    in the top byte but the resulting pointers are not allowed at the
+> > +    user-kernel syscall ABI boundary.
+> > +    When bit[0] is set to 1 the kernel is advertising to the userspace
+> > +    that a relaxed ABI is supported hence this type of pointers are now
+> > +    allowed to be passed to the syscalls, when these pointers are in
+> > +    memory ranges privately owned by a process and obtained by the
+> > +    process in accordance with the definition of "valid tagged pointer"
+> > +    in paragraph 3.
+> > +    In these cases the tag is preserved as the pointer goes through the
+> > +    kernel. Only when the kernel needs to check if a pointer is coming
+> > +    from userspace an untag operation is required.
+> 
+> I would leave this last sentence out, because:
+> 1. It is an implementation detail that doesn't impact this user ABI.
+> 2. It is not entirely accurate: untagging the pointer may be needed for
+> various kinds of address lookup (like finding the corresponding VMA), at
+> which point the kernel usually already knows it is a userspace pointer.
 
-I haven't checked Josh's patch to see if it is doing. The availability
-of static_call will certainly make thing easier for this case.
+I fully agree, the above paragraph should not be part of the user ABI
+document.
 
-> By the time we patch the paravirt stuff:
->
->   check_bugs()
->     alternative_instructions()
->       apply_paravirt()
->
-> we should already have enumerated the NODE topology and so nr_node_ids()
-> should be set.
->
-> So if we frob pv_ops.lock.queued_spin_lock_slowpath to
-> numa_queued_spin_lock_slowpath before that, it should all get patched
-> just right.
->
-> That of course means the whole NUMA_AWARE_SPINLOCKS thing depends on
-> PARAVIRT_SPINLOCK, which is a bit awkward...
+> > +3. ARM64_AT_FLAGS_SYSCALL_TBI
+> > +-----------------------------
+> > +
+> > +From the kernel syscall interface prospective, we define, for the purposes
+> > +of this document, a "valid tagged pointer" as a pointer that either it has
+> > +a zero value set in the top byte or it has a non-zero value, it is in memory
+> > +ranges privately owned by a userspace process and it is obtained in one of
+> > +the following ways:
+> > +  - mmap() done by the process itself, where either:
+> > +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+> > +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
+> > +      file or "/dev/zero"
+> > +  - a mapping below sbrk(0) done by the process itself
+> 
+> I don't think that's very clear, this doesn't say how the mapping is
+> obtained. Maybe "a mapping obtained by the process using brk() or sbrk()"?
 
-Yes, this is one way of doing it. Another way to use static key to
-switch between the native and numa version. So if PARAVIRT_SPINLOCK is
-defined, we use the paravirt patching to point to the right function. If
-PARAVIRT_SPINLOCK isn't enabled, we can do something like
+I think what we mean here is anything in the "[heap]" section as per
+/proc/*/maps (in the kernel this would be start_brk to brk).
 
-static inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32
-val)
-{
-        if (static_branch_unlikely(&use_numa_spinlock))
-                numa_queued_spin_lock_slowpath(lock, val);
-        else   
-                native_queued_spin_lock_slowpath(lock, val);
-}
+> > +  - any memory mapped by the kernel in the process's address space during
+> > +    creation and following the restrictions presented above (i.e. data, bss,
+> > +    stack).
+> 
+> With the rules above, the code section is included as well. Replacing "i.e."
+> with "e.g." would avoid having to list every single section (which is
+> probably not a good idea anyway).
 
-Alternatively, we can also call numa_queued_spin_lock_slowpath() in
-native_queued_spin_lock_slowpath() if we don't want to increase the code
-size of spinlock call sites.
+We could mention [stack] explicitly as that's documented in the
+Documentation/filesystems/proc.txt and it's likely considered ABI
+already.
 
-Cheers,
-Longman
+The code section is MAP_PRIVATE, and can be done by the dynamic loader
+(user process), so it falls under the mmap() rules listed above. I guess
+we could simply drop "done by the process itself" here and allow
+MAP_PRIVATE|MAP_ANONYMOUS or MAP_PRIVATE of regular file. This would
+cover the [heap] and [stack] and we won't have to debate the brk() case
+at all.
+
+We probably mention somewhere (or we should in the tagged pointers doc)
+that we don't support tagged PC.
+
+-- 
+Catalin
