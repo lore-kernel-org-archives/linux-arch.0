@@ -1,52 +1,65 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Does vdso_install attempt to re-compile objects under root privilege?
-Date: Wed, 3 Apr 2019 14:17:43 +0900
-Message-ID: <CAK7LNAQwHRJL=3yD_7P2mMSVnwZbayww+dHC22+v4oTpMZv58w@mail.gmail.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 3/5] s390: Fix vDSO clock_getres()
+Date: Wed, 3 Apr 2019 11:38:44 +0200
+Message-ID: <20190403113844.334a32d9@mschwideX1>
+References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+ <20190401115152.32751-4-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190401115152.32751-4-vincenzo.frascino@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi.
+On Mon,  1 Apr 2019 12:51:50 +0100
+Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
 
-I have a question about 'vdso_install'.
+> clock_getres in the vDSO library has to preserve the same behaviour
+> of posix_get_hrtimer_res().
+> 
+> In particular, posix_get_hrtimer_res() does:
+>     sec = 0;
+>     ns = hrtimer_resolution;
+> and hrtimer_resolution depends on the enablement of the high
+> resolution timers that can happen either at compile or at run time.
+> 
+> Fix the s390 vdso implementation of clock_getres keeping a copy of
+> hrtimer_resolution in vdso data and using that directly.
+> 
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
+>  arch/s390/include/asm/vdso.h           |  1 +
+>  arch/s390/kernel/asm-offsets.c         |  2 +-
+>  arch/s390/kernel/time.c                |  1 +
+>  arch/s390/kernel/vdso32/clock_getres.S | 17 ++++++++++++-----
+>  arch/s390/kernel/vdso64/clock_getres.S | 15 ++++++++++-----
+>  5 files changed, 25 insertions(+), 11 deletions(-)
 
+I tried this patch and in principle this works. In that regard
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-In my understanding, vdso is embedded in the kernel.
-In addition, you can run 'make vdso_install'
-to install an unstripped version of vdso.
-(Mainly, debugging purpose?)
-
-By default, 'make vdso_install' will install it to
-/lib/modules/$(uname -r)/vdso/.
-
-
-Since that directly is owned by root,
-'make vdso_install' could potentially be
-executed by root, isn't it?
-
-
-Currently, 'vdso_install' depends on vdso,
-so it may cause recompilation of objects
-in the source tree.
-
-
-This violates the basic rule:
-"Installation targets must not modify the source tree".
-
-We often miss this point. For example, see
-commit 19514fc665ffbce624785f76ee7ad0ea6378a527
-
-
-If this is a problem, I will fix Makefiles to
-make 'vdso_install' not depend on vdso
-
-Thanks.
-
+But I wonder if the loop to check the update counter is really
+necessary. The hrtimer_resolution value can only changes once with
+the first call to hrtimer_switch_to_hres(). With the TOD clock
+as the only clock available on s390 we always have the ability
+to do hrtimer. It then all depends on the highres=[on|off] kernel
+parameter what value we get with clock_getres().
 
 -- 
-Best Regards
-Masahiro Yamada
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
