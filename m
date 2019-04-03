@@ -1,92 +1,90 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
-Date: Wed, 3 Apr 2019 17:50:31 +0100
-Message-ID: <20190403165031.GE34351@arrakis.emea.arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <20190318163533.26838-1-vincenzo.frascino@arm.com>
- <20190318163533.26838-3-vincenzo.frascino@arm.com>
- <859341c2-b352-e914-312a-d3de652495b6@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <859341c2-b352-e914-312a-d3de652495b6@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Alexei Starovoitov <ast@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Daniel Borkmann <daniel@iogearbox.net>, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Evgeniy Stepanov <eugenis@google.com>, Graeme Barnes <G>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v2 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Wed, 3 Apr 2019 13:06:12 -0400
+Message-ID: <AC118CEC-7394-44F7-BCA9-BFA321AF3E09@oracle.com>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-5-alex.kogan@oracle.com>
+ <20190402103750.GN11158@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190402103750.GN11158@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, tytso@mit.edu, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 22, 2019 at 03:52:49PM +0000, Kevin Brodsky wrote:
-> On 18/03/2019 16:35, Vincenzo Frascino wrote:
-> > +2. Features exposed via AT_FLAGS
-> > +--------------------------------
-> > +
-> > +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
-> > +
-> > +    On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64
-> > +    kernel, hence the userspace (EL0) is allowed to set a non-zero value
-> > +    in the top byte but the resulting pointers are not allowed at the
-> > +    user-kernel syscall ABI boundary.
-> > +    When bit[0] is set to 1 the kernel is advertising to the userspace
-> > +    that a relaxed ABI is supported hence this type of pointers are now
-> > +    allowed to be passed to the syscalls, when these pointers are in
-> > +    memory ranges privately owned by a process and obtained by the
-> > +    process in accordance with the definition of "valid tagged pointer"
-> > +    in paragraph 3.
-> > +    In these cases the tag is preserved as the pointer goes through the
-> > +    kernel. Only when the kernel needs to check if a pointer is coming
-> > +    from userspace an untag operation is required.
-> 
-> I would leave this last sentence out, because:
-> 1. It is an implementation detail that doesn't impact this user ABI.
-> 2. It is not entirely accurate: untagging the pointer may be needed for
-> various kinds of address lookup (like finding the corresponding VMA), at
-> which point the kernel usually already knows it is a userspace pointer.
-
-I fully agree, the above paragraph should not be part of the user ABI
-document.
-
-> > +3. ARM64_AT_FLAGS_SYSCALL_TBI
-> > +-----------------------------
-> > +
-> > +From the kernel syscall interface prospective, we define, for the purposes
-> > +of this document, a "valid tagged pointer" as a pointer that either it has
-> > +a zero value set in the top byte or it has a non-zero value, it is in memory
-> > +ranges privately owned by a userspace process and it is obtained in one of
-> > +the following ways:
-> > +  - mmap() done by the process itself, where either:
-> > +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
-> > +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
-> > +      file or "/dev/zero"
-> > +  - a mapping below sbrk(0) done by the process itself
-> 
-> I don't think that's very clear, this doesn't say how the mapping is
-> obtained. Maybe "a mapping obtained by the process using brk() or sbrk()"?
-
-I think what we mean here is anything in the "[heap]" section as per
-/proc/*/maps (in the kernel this would be start_brk to brk).
-
-> > +  - any memory mapped by the kernel in the process's address space during
-> > +    creation and following the restrictions presented above (i.e. data, bss,
-> > +    stack).
-> 
-> With the rules above, the code section is included as well. Replacing "i.e."
-> with "e.g." would avoid having to list every single section (which is
-> probably not a good idea anyway).
-
-We could mention [stack] explicitly as that's documented in the
-Documentation/filesystems/proc.txt and it's likely considered ABI
-already.
-
-The code section is MAP_PRIVATE, and can be done by the dynamic loader
-(user process), so it falls under the mmap() rules listed above. I guess
-we could simply drop "done by the process itself" here and allow
-MAP_PRIVATE|MAP_ANONYMOUS or MAP_PRIVATE of regular file. This would
-cover the [heap] and [stack] and we won't have to debate the brk() case
-at all.
-
-We probably mention somewhere (or we should in the tagged pointers doc)
-that we don't support tagged PC.
-
--- 
-Catalin
+Cj4gT24gQXByIDIsIDIwMTksIGF0IDY6MzcgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5m
+cmFkZWFkLm9yZz4gd3JvdGU6Cj4gCj4gT24gRnJpLCBNYXIgMjksIDIwMTkgYXQgMTE6MjA6MDVB
+TSAtMDQwMCwgQWxleCBLb2dhbiB3cm90ZToKPj4gQEAgLTI1LDYgKzI5LDE4IEBACj4+IAo+PiAj
+ZGVmaW5lIE1DU19OT0RFKHB0cikgKChzdHJ1Y3QgbWNzX3NwaW5sb2NrICopKHB0cikpCj4+IAo+
+PiArLyogUGVyLUNQVSBwc2V1ZG8tcmFuZG9tIG51bWJlciBzZWVkICovCj4+ICtzdGF0aWMgREVG
+SU5FX1BFUl9DUFUodTMyLCBzZWVkKTsKPj4gKwo+PiArLyoKPj4gKyAqIENvbnRyb2xzIHRoZSBw
+cm9iYWJpbGl0eSBmb3IgaW50cmEtbm9kZSBsb2NrIGhhbmQtb2ZmLiBJdCBjYW4gYmUKPj4gKyAq
+IHR1bmVkIGFuZCBkZXBlbmQsIGUuZy4sIG9uIHRoZSBudW1iZXIgb2YgQ1BVcyBwZXIgbm9kZS4g
+Rm9yIG5vdywKPj4gKyAqIGNob29zZSBhIHZhbHVlIHRoYXQgcHJvdmlkZXMgcmVhc29uYWJsZSBs
+b25nLXRlcm0gZmFpcm5lc3Mgd2l0aG91dAo+PiArICogc2FjcmlmaWNpbmcgcGVyZm9ybWFuY2Ug
+Y29tcGFyZWQgdG8gYSB2ZXJzaW9uIHRoYXQgZG9lcyBub3QgaGF2ZSBhbnkKPj4gKyAqIGZhaXJu
+ZXNzIGd1YXJhbnRlZXMuCj4+ICsgKi8KPj4gKyNkZWZpbmUgSU5UUkFfTk9ERV9IQU5ET0ZGX1BS
+T0JfQVJHIDB4MTAwMDAKPj4gKwo+PiBzdGF0aWMgaW5saW5lIF9fcHVyZSBpbnQgZGVjb2RlX251
+bWFfbm9kZSh1MzIgbm9kZV9hbmRfY291bnQpCj4+IHsKPj4gCWludCBub2RlID0gKG5vZGVfYW5k
+X2NvdW50ID4+IF9RX05PREVfT0ZGU0VUKSAtIDE7Cj4+IEBAIC0xMDIsNiArMTE4LDM1IEBAIHN0
+YXRpYyBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpmaW5kX3N1Y2Nlc3NvcihzdHJ1Y3QgbWNzX3NwaW5s
+b2NrICptZSkKPj4gCXJldHVybiBOVUxMOwo+PiB9Cj4+IAo+PiArLyoKPj4gKyAqIHhvcnNoaWZ0
+IGZ1bmN0aW9uIGZvciBnZW5lcmF0aW5nIHBzZXVkby1yYW5kb20gbnVtYmVyczoKPj4gKyAqIGh0
+dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fZW4ud2lr
+aXBlZGlhLm9yZ193aWtpX1hvcnNoaWZ0JmQ9RHdJQkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQ
+Wmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oy
+YVpMVHVWeEZLNGsmbT1idFlJZUpKZlNEQU0wVWxvS2gtenJHNC1QZ2RDTWpRTUtudkRJcVB1RVFr
+JnM9MVVZTTlRZDVub3psSW1ZSHViMHlxUm1RQ2phNWhKdG56Ykh1dWR0ei1uTSZlPQo+IAo+IEN1
+dGU7IHNvIGNsZWFybHkgeW91J3ZlIHJlYWQgdGhhdCBwYWdlLCBidXQgdGhlbiB5b3UgcHJvdmlk
+ZSB1cyBhCj4gdmFyaWFudCB0aGF0IGlzbid0IGFjdHVhbGx5IGxpc3RlZCB0aGVyZS4KPiAKPiBZ
+b3VyIG5hbWluZyBpcyBhbHNvIG5vbi1zdGFuZGFyZCBpbiB0aGF0IGl0IGRvZXMgbm90IHJlbGF5
+IHRoZSBwZXJpb2QuCj4gVGhlIHR5cGUgc2VlbXMgdG8gc3VnZ2VzdCAzMmJpdCwgc28gdGhlIG5h
+bWUgc2hvdWxkIHRoZW4gaGF2ZSBiZWVuOgo+IAo+ICB4b3JzaGlmdDMyKCkKPiAKPiBOb3csIHdo
+ZXJlIGRpZCB5b3UgZ2V0IHRob3NlIHBhcmFtZXRlcnMgZnJvbTsgaXMgdGhpcyBhIHByb3Blcgo+
+IHhvcnNoaWZ0MzIgPwpBcG9sb2dpZXMgZm9yIHRoZSBjb25mdXNpb24uCldlIGFyZSB1c2luZyBv
+bmUgb2YgdGhlIHNoaWZ0IHR1cGxlcyBmcm9tIHRoZSBYb3JzaGlmdCBwYXBlciAoaHR0cHM6Ly93
+d3cuanN0YXRzb2Z0Lm9yZy92MDgvaTE0L3BhcGVyKSwgd2hpY2ggaXMgcmVmZXJlbmNlZCBieSB0
+aGUgd2lraSBwYWdlLgpUaG9zZSB0dXBsZXMgaGFwcGVuIHRvIGJlIGRpZmZlcmVudCBmcm9tIHRo
+ZSBvbmVzIG9uIHRoZSB3aWtpIHBhZ2UgaXRzZWxmLgpJIGRvIG5vdCB0aGluayB3ZSBjYXJlIG11
+Y2gsIHRob3VnaCDigJQgaWYgd2Uga2VlcCB1c2luZyB4b3JzaGlmdCAoc2VlIGJlbG93KSwgd2Ug
+d2lsbCBzd2l0Y2ggdG8gdGhlIHZhcmlhbnQgZnJvbSB0aGUgd2lraSB0byBhdm9pZCBhbnkgY29u
+ZnVzaW9uLgoKPiAKPiBOb3csIHlvdSd2ZSByZWFkIHRoYXQgcGFnZSBhbmQgeW91IGtub3cgdGhl
+cmUncyAndHJpdmlhbCcgaW1wcm92ZW1lbnRzCj4gb24gdGhlIHB1cmUgeG9yc2hpZnQsIHdoeSBu
+b3QgcGljayBvbmUgb2YgdGhvc2U/IHhvcndvdyBzZWVtcyBjaGVhcAo+IGVub3VnaCwgb3IgdGhh
+dCB4b3JzaGlmdDEyOHBsdXMoKSBvbmUuClhvcnNoaWZ0IHNlZW1zIHRvIGJlIHdvcmtpbmcgd2Vs
+bCBlbm91Z2ggZm9yIG91ciBwdXJwb3Nlcywgd2hpbGUgdGhvc2Ugb3RoZXIgdmFyaWFudHMgYXJl
+IHNsaWdodGx5IG1vcmUgZXhwZW5zaXZlIGFuZCBoYXZlIGEgbGFyZ2VyIHN0YXRlLgoKPiAKPj4g
+Kwo+PiArLyoKPj4gKyAqIFJldHVybiBmYWxzZSB3aXRoIHByb2JhYmlsaXR5IDEgLyBAcmFuZ2Uu
+Cj4+ICsgKiBAcmFuZ2UgbXVzdCBiZSBhIHBvd2VyIG9mIDIuCj4+ICsgKi8KPj4gK3N0YXRpYyBi
+b29sIHByb2JhYmx5KHVuc2lnbmVkIGludCByYW5nZSkKPj4gK3sKPj4gKwlyZXR1cm4geG9yX3Jh
+bmRvbSgpICYgKHJhbmdlIC0gMSk7Cj4+ICt9Cj4gCj4gVWhoLCB5b3Ugc3VyZSB0aGF0J3Mgd2hh
+dCBpdCBkb2VzPyBUaGUgb25seSB3YXkgZm9yIHRoYXQgdG8gcmV0dXJuIGZhbHNlCj4gaXMgd2hl
+biBhbGwgQHJhbmdlIGJpdHMgYXJlIDAsIHdoaWNoIGhhcHBlbnMgb25jZSAoMl4zMi9yYW5nZSkt
+MSB0aW1lcywKPiBvciBhbSBJIG1pc3Rha2VuPwoKcHJvYmFibHkoKSB3b3VsZCByZXR1cm4gMCBp
+ZiBhbmQgb25seSBpZiB4b3JfcmFuZG9tKCkgcmV0dXJucyAwIGluIHRoZSBsb3dlc3QgbG9nXzIo
+cmFuZ2UpIGJpdHMsCndoaWNoIHNob3VsZCBoYXBwZW4gd2l0aCBwcm9iYWJpbGl0eSBvZiAxLygy
+XmxvZ18yKHJhbmdlKSk9MS9yYW5nZS4KCj4gCj4gQWxzbywgbGludXgvcmFuZG9tLmggaW5jbHVk
+ZXMgbmV4dF9wc2V1ZG9fcmFuZG9tMzIoKSwgc2hvdWxkIHdlIGJlIHVzaW5nCj4gdGhhdD8gQXJn
+dWFibHkgdGhhdCdzIG1vcmUgZXhwZW5zaXZlIG9uIGEgbnVtYmVyIG9mIHBsYXRmb3JtcyBkdWUg
+dG8gdGhlCj4gbXVsdGlwbGljYXRpb24uCldlIHdpbGwgY2hlY2sgdGhlIGltcGFjdCBvZiB1c2lu
+ZyBuZXh0X3BzZXVkb19yYW5kb20zMigpLgoKPiBBbHNvLCB3ZSBhY3R1YWxseSBoYXZlIHhvcnNo
+aWZ0MzIgYWxyZWFkeSBpbiB0cmVlIGluCj4gbGliL3Rlc3RfaGFzaC5jLgpJIHNlZSB0aGF0IG5v
+dy4gV2UgY2FuIGNlcnRhaW5seSB1c2UgdGhpcyBmdW5jdGlvbiBpbnN0ZWFkLiAKSWYgd2UgZW5k
+IHVwIGRvaW5nIHRoYXQsIGFueSBzdWdnZXN0aW9uIHdoZXJlIGl0IHNob3VsZCBiZSBtb3ZlZCB0
+byBiZSBjYWxsZWQgZnJvbSBtdWx0aXBsZSBwbGFjZXMgKHRoZSBvcmlnaW5hbCBsaWIvdGVzdF9o
+YXNoLmMgYW5kIG91ciBDTkEgY29kZSk/CgpUaGFua3MsCuKAlCBBbGV4Cl9fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGlu
+ZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMu
+aW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
