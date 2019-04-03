@@ -1,97 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44894 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726074AbfDCQul (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Apr 2019 12:50:41 -0400
-Date: Wed, 3 Apr 2019 17:50:31 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/4] arm64: Define Documentation/arm64/elf_at_flags.txt
-Message-ID: <20190403165031.GE34351@arrakis.emea.arm.com>
-References: <cover.1552679409.git.andreyknvl@google.com>
- <20190318163533.26838-1-vincenzo.frascino@arm.com>
- <20190318163533.26838-3-vincenzo.frascino@arm.com>
- <859341c2-b352-e914-312a-d3de652495b6@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <859341c2-b352-e914-312a-d3de652495b6@arm.com>
+Received: from userp2130.oracle.com ([156.151.31.86]:36634 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726099AbfDCRHB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2019 13:07:01 -0400
+Content-Type: text/plain; charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Subject: Re: [PATCH v2 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <20190402103750.GN11158@hirez.programming.kicks-ass.net>
+Date: Wed, 3 Apr 2019 13:06:12 -0400
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <AC118CEC-7394-44F7-BCA9-BFA321AF3E09@oracle.com>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-5-alex.kogan@oracle.com>
+ <20190402103750.GN11158@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Alexei Starovoitov <ast@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Branislav Rankov <Branislav.Rankov@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Daniel Borkmann <daniel@iogearbox.net>, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Evgeniy Stepanov <eugenis@google.com>, Graeme Barnes <Graeme.Barnes@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Shuah Khan <shuah@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20190403165031.1pimUok6GlZOyyOrTUh6Cc5tA-mMZFEZZi4uxRrzMso@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, tytso@mit.edu
+Message-ID: <20190403170612.GHzH_EsC0m07CaQwjs3bqY9Z9PZfkXOlV6-aJJNjWaI@z>
 
-On Fri, Mar 22, 2019 at 03:52:49PM +0000, Kevin Brodsky wrote:
-> On 18/03/2019 16:35, Vincenzo Frascino wrote:
-> > +2. Features exposed via AT_FLAGS
-> > +--------------------------------
-> > +
-> > +bit[0]: ARM64_AT_FLAGS_SYSCALL_TBI
-> > +
-> > +    On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64
-> > +    kernel, hence the userspace (EL0) is allowed to set a non-zero value
-> > +    in the top byte but the resulting pointers are not allowed at the
-> > +    user-kernel syscall ABI boundary.
-> > +    When bit[0] is set to 1 the kernel is advertising to the userspace
-> > +    that a relaxed ABI is supported hence this type of pointers are now
-> > +    allowed to be passed to the syscalls, when these pointers are in
-> > +    memory ranges privately owned by a process and obtained by the
-> > +    process in accordance with the definition of "valid tagged pointer"
-> > +    in paragraph 3.
-> > +    In these cases the tag is preserved as the pointer goes through the
-> > +    kernel. Only when the kernel needs to check if a pointer is coming
-> > +    from userspace an untag operation is required.
-> 
-> I would leave this last sentence out, because:
-> 1. It is an implementation detail that doesn't impact this user ABI.
-> 2. It is not entirely accurate: untagging the pointer may be needed for
-> various kinds of address lookup (like finding the corresponding VMA), at
-> which point the kernel usually already knows it is a userspace pointer.
 
-I fully agree, the above paragraph should not be part of the user ABI
-document.
+> On Apr 2, 2019, at 6:37 AM, Peter Zijlstra <peterz@infradead.org> =
+wrote:
+>=20
+> On Fri, Mar 29, 2019 at 11:20:05AM -0400, Alex Kogan wrote:
+>> @@ -25,6 +29,18 @@
+>>=20
+>> #define MCS_NODE(ptr) ((struct mcs_spinlock *)(ptr))
+>>=20
+>> +/* Per-CPU pseudo-random number seed */
+>> +static DEFINE_PER_CPU(u32, seed);
+>> +
+>> +/*
+>> + * Controls the probability for intra-node lock hand-off. It can be
+>> + * tuned and depend, e.g., on the number of CPUs per node. For now,
+>> + * choose a value that provides reasonable long-term fairness =
+without
+>> + * sacrificing performance compared to a version that does not have =
+any
+>> + * fairness guarantees.
+>> + */
+>> +#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
+>> +
+>> static inline __pure int decode_numa_node(u32 node_and_count)
+>> {
+>> 	int node =3D (node_and_count >> _Q_NODE_OFFSET) - 1;
+>> @@ -102,6 +118,35 @@ static struct mcs_spinlock =
+*find_successor(struct mcs_spinlock *me)
+>> 	return NULL;
+>> }
+>>=20
+>> +/*
+>> + * xorshift function for generating pseudo-random numbers:
+>> + * =
+https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__en.wikipedia.org_wi=
+ki_Xorshift&d=3DDwIBAg&c=3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3D=
+Hvhk3F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=3DbtYIeJJfSDAM0UloKh-zrG4-Pg=
+dCMjQMKnvDIqPuEQk&s=3D1UYM9Qd5nozlImYHub0yqRmQCja5hJtnzbHuudtz-nM&e=3D
+>=20
+> Cute; so clearly you've read that page, but then you provide us a
+> variant that isn't actually listed there.
+>=20
+> Your naming is also non-standard in that it does not relay the period.
+> The type seems to suggest 32bit, so the name should then have been:
+>=20
+>  xorshift32()
+>=20
+> Now, where did you get those parameters from; is this a proper
+> xorshift32 ?
+Apologies for the confusion.
+We are using one of the shift tuples from the Xorshift paper =
+(https://www.jstatsoft.org/v08/i14/paper), which is referenced by the =
+wiki page.
+Those tuples happen to be different from the ones on the wiki page =
+itself.
+I do not think we care much, though =E2=80=94 if we keep using xorshift =
+(see below), we will switch to the variant from the wiki to avoid any =
+confusion.
 
-> > +3. ARM64_AT_FLAGS_SYSCALL_TBI
-> > +-----------------------------
-> > +
-> > +From the kernel syscall interface prospective, we define, for the purposes
-> > +of this document, a "valid tagged pointer" as a pointer that either it has
-> > +a zero value set in the top byte or it has a non-zero value, it is in memory
-> > +ranges privately owned by a userspace process and it is obtained in one of
-> > +the following ways:
-> > +  - mmap() done by the process itself, where either:
-> > +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
-> > +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
-> > +      file or "/dev/zero"
-> > +  - a mapping below sbrk(0) done by the process itself
-> 
-> I don't think that's very clear, this doesn't say how the mapping is
-> obtained. Maybe "a mapping obtained by the process using brk() or sbrk()"?
+>=20
+> Now, you've read that page and you know there's 'trivial' improvements
+> on the pure xorshift, why not pick one of those? xorwow seems cheap
+> enough, or that xorshift128plus() one.
+Xorshift seems to be working well enough for our purposes, while those =
+other variants are slightly more expensive and have a larger state.
 
-I think what we mean here is anything in the "[heap]" section as per
-/proc/*/maps (in the kernel this would be start_brk to brk).
+>=20
+>> +
+>> +/*
+>> + * Return false with probability 1 / @range.
+>> + * @range must be a power of 2.
+>> + */
+>> +static bool probably(unsigned int range)
+>> +{
+>> +	return xor_random() & (range - 1);
+>> +}
+>=20
+> Uhh, you sure that's what it does? The only way for that to return =
+false
+> is when all @range bits are 0, which happens once (2^32/range)-1 =
+times,
+> or am I mistaken?
 
-> > +  - any memory mapped by the kernel in the process's address space during
-> > +    creation and following the restrictions presented above (i.e. data, bss,
-> > +    stack).
-> 
-> With the rules above, the code section is included as well. Replacing "i.e."
-> with "e.g." would avoid having to list every single section (which is
-> probably not a good idea anyway).
+probably() would return 0 if and only if xor_random() returns 0 in the =
+lowest log_2(range) bits,
+which should happen with probability of 1/(2^log_2(range))=3D1/range.
 
-We could mention [stack] explicitly as that's documented in the
-Documentation/filesystems/proc.txt and it's likely considered ABI
-already.
+>=20
+> Also, linux/random.h includes next_pseudo_random32(), should we be =
+using
+> that? Arguably that's more expensive on a number of platforms due to =
+the
+> multiplication.
+We will check the impact of using next_pseudo_random32().
 
-The code section is MAP_PRIVATE, and can be done by the dynamic loader
-(user process), so it falls under the mmap() rules listed above. I guess
-we could simply drop "done by the process itself" here and allow
-MAP_PRIVATE|MAP_ANONYMOUS or MAP_PRIVATE of regular file. This would
-cover the [heap] and [stack] and we won't have to debate the brk() case
-at all.
+> Also, we actually have xorshift32 already in tree in
+> lib/test_hash.c.
+I see that now. We can certainly use this function instead.=20
+If we end up doing that, any suggestion where it should be moved to be =
+called from multiple places (the original lib/test_hash.c and our CNA =
+code)?
 
-We probably mention somewhere (or we should in the tagged pointers doc)
-that we don't support tagged PC.
-
--- 
-Catalin
+Thanks,
+=E2=80=94 Alex=
