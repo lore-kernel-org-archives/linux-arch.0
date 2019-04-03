@@ -1,90 +1,32 @@
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v2 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Wed, 3 Apr 2019 13:06:12 -0400
-Message-ID: <AC118CEC-7394-44F7-BCA9-BFA321AF3E09@oracle.com>
+Subject: Re: [PATCH v2 0/5] Add NUMA-awareness to qspinlock
+Date: Wed, 3 Apr 2019 13:13:39 -0400
+Message-ID: <6E1DD598-2493-4C81-9CB6-8024E9244574@oracle.com>
 References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-5-alex.kogan@oracle.com>
- <20190402103750.GN11158@hirez.programming.kicks-ass.net>
+ <20190401090943.GG11158@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190402103750.GN11158@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190401090943.GG11158@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, tytso@mit.edu, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Cj4gT24gQXByIDIsIDIwMTksIGF0IDY6MzcgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5m
-cmFkZWFkLm9yZz4gd3JvdGU6Cj4gCj4gT24gRnJpLCBNYXIgMjksIDIwMTkgYXQgMTE6MjA6MDVB
-TSAtMDQwMCwgQWxleCBLb2dhbiB3cm90ZToKPj4gQEAgLTI1LDYgKzI5LDE4IEBACj4+IAo+PiAj
-ZGVmaW5lIE1DU19OT0RFKHB0cikgKChzdHJ1Y3QgbWNzX3NwaW5sb2NrICopKHB0cikpCj4+IAo+
-PiArLyogUGVyLUNQVSBwc2V1ZG8tcmFuZG9tIG51bWJlciBzZWVkICovCj4+ICtzdGF0aWMgREVG
-SU5FX1BFUl9DUFUodTMyLCBzZWVkKTsKPj4gKwo+PiArLyoKPj4gKyAqIENvbnRyb2xzIHRoZSBw
-cm9iYWJpbGl0eSBmb3IgaW50cmEtbm9kZSBsb2NrIGhhbmQtb2ZmLiBJdCBjYW4gYmUKPj4gKyAq
-IHR1bmVkIGFuZCBkZXBlbmQsIGUuZy4sIG9uIHRoZSBudW1iZXIgb2YgQ1BVcyBwZXIgbm9kZS4g
-Rm9yIG5vdywKPj4gKyAqIGNob29zZSBhIHZhbHVlIHRoYXQgcHJvdmlkZXMgcmVhc29uYWJsZSBs
-b25nLXRlcm0gZmFpcm5lc3Mgd2l0aG91dAo+PiArICogc2FjcmlmaWNpbmcgcGVyZm9ybWFuY2Ug
-Y29tcGFyZWQgdG8gYSB2ZXJzaW9uIHRoYXQgZG9lcyBub3QgaGF2ZSBhbnkKPj4gKyAqIGZhaXJu
-ZXNzIGd1YXJhbnRlZXMuCj4+ICsgKi8KPj4gKyNkZWZpbmUgSU5UUkFfTk9ERV9IQU5ET0ZGX1BS
-T0JfQVJHIDB4MTAwMDAKPj4gKwo+PiBzdGF0aWMgaW5saW5lIF9fcHVyZSBpbnQgZGVjb2RlX251
-bWFfbm9kZSh1MzIgbm9kZV9hbmRfY291bnQpCj4+IHsKPj4gCWludCBub2RlID0gKG5vZGVfYW5k
-X2NvdW50ID4+IF9RX05PREVfT0ZGU0VUKSAtIDE7Cj4+IEBAIC0xMDIsNiArMTE4LDM1IEBAIHN0
-YXRpYyBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpmaW5kX3N1Y2Nlc3NvcihzdHJ1Y3QgbWNzX3NwaW5s
-b2NrICptZSkKPj4gCXJldHVybiBOVUxMOwo+PiB9Cj4+IAo+PiArLyoKPj4gKyAqIHhvcnNoaWZ0
-IGZ1bmN0aW9uIGZvciBnZW5lcmF0aW5nIHBzZXVkby1yYW5kb20gbnVtYmVyczoKPj4gKyAqIGh0
-dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fZW4ud2lr
-aXBlZGlhLm9yZ193aWtpX1hvcnNoaWZ0JmQ9RHdJQkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQ
-Wmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oy
-YVpMVHVWeEZLNGsmbT1idFlJZUpKZlNEQU0wVWxvS2gtenJHNC1QZ2RDTWpRTUtudkRJcVB1RVFr
-JnM9MVVZTTlRZDVub3psSW1ZSHViMHlxUm1RQ2phNWhKdG56Ykh1dWR0ei1uTSZlPQo+IAo+IEN1
-dGU7IHNvIGNsZWFybHkgeW91J3ZlIHJlYWQgdGhhdCBwYWdlLCBidXQgdGhlbiB5b3UgcHJvdmlk
-ZSB1cyBhCj4gdmFyaWFudCB0aGF0IGlzbid0IGFjdHVhbGx5IGxpc3RlZCB0aGVyZS4KPiAKPiBZ
-b3VyIG5hbWluZyBpcyBhbHNvIG5vbi1zdGFuZGFyZCBpbiB0aGF0IGl0IGRvZXMgbm90IHJlbGF5
-IHRoZSBwZXJpb2QuCj4gVGhlIHR5cGUgc2VlbXMgdG8gc3VnZ2VzdCAzMmJpdCwgc28gdGhlIG5h
-bWUgc2hvdWxkIHRoZW4gaGF2ZSBiZWVuOgo+IAo+ICB4b3JzaGlmdDMyKCkKPiAKPiBOb3csIHdo
-ZXJlIGRpZCB5b3UgZ2V0IHRob3NlIHBhcmFtZXRlcnMgZnJvbTsgaXMgdGhpcyBhIHByb3Blcgo+
-IHhvcnNoaWZ0MzIgPwpBcG9sb2dpZXMgZm9yIHRoZSBjb25mdXNpb24uCldlIGFyZSB1c2luZyBv
-bmUgb2YgdGhlIHNoaWZ0IHR1cGxlcyBmcm9tIHRoZSBYb3JzaGlmdCBwYXBlciAoaHR0cHM6Ly93
-d3cuanN0YXRzb2Z0Lm9yZy92MDgvaTE0L3BhcGVyKSwgd2hpY2ggaXMgcmVmZXJlbmNlZCBieSB0
-aGUgd2lraSBwYWdlLgpUaG9zZSB0dXBsZXMgaGFwcGVuIHRvIGJlIGRpZmZlcmVudCBmcm9tIHRo
-ZSBvbmVzIG9uIHRoZSB3aWtpIHBhZ2UgaXRzZWxmLgpJIGRvIG5vdCB0aGluayB3ZSBjYXJlIG11
-Y2gsIHRob3VnaCDigJQgaWYgd2Uga2VlcCB1c2luZyB4b3JzaGlmdCAoc2VlIGJlbG93KSwgd2Ug
-d2lsbCBzd2l0Y2ggdG8gdGhlIHZhcmlhbnQgZnJvbSB0aGUgd2lraSB0byBhdm9pZCBhbnkgY29u
-ZnVzaW9uLgoKPiAKPiBOb3csIHlvdSd2ZSByZWFkIHRoYXQgcGFnZSBhbmQgeW91IGtub3cgdGhl
-cmUncyAndHJpdmlhbCcgaW1wcm92ZW1lbnRzCj4gb24gdGhlIHB1cmUgeG9yc2hpZnQsIHdoeSBu
-b3QgcGljayBvbmUgb2YgdGhvc2U/IHhvcndvdyBzZWVtcyBjaGVhcAo+IGVub3VnaCwgb3IgdGhh
-dCB4b3JzaGlmdDEyOHBsdXMoKSBvbmUuClhvcnNoaWZ0IHNlZW1zIHRvIGJlIHdvcmtpbmcgd2Vs
-bCBlbm91Z2ggZm9yIG91ciBwdXJwb3Nlcywgd2hpbGUgdGhvc2Ugb3RoZXIgdmFyaWFudHMgYXJl
-IHNsaWdodGx5IG1vcmUgZXhwZW5zaXZlIGFuZCBoYXZlIGEgbGFyZ2VyIHN0YXRlLgoKPiAKPj4g
-Kwo+PiArLyoKPj4gKyAqIFJldHVybiBmYWxzZSB3aXRoIHByb2JhYmlsaXR5IDEgLyBAcmFuZ2Uu
-Cj4+ICsgKiBAcmFuZ2UgbXVzdCBiZSBhIHBvd2VyIG9mIDIuCj4+ICsgKi8KPj4gK3N0YXRpYyBi
-b29sIHByb2JhYmx5KHVuc2lnbmVkIGludCByYW5nZSkKPj4gK3sKPj4gKwlyZXR1cm4geG9yX3Jh
-bmRvbSgpICYgKHJhbmdlIC0gMSk7Cj4+ICt9Cj4gCj4gVWhoLCB5b3Ugc3VyZSB0aGF0J3Mgd2hh
-dCBpdCBkb2VzPyBUaGUgb25seSB3YXkgZm9yIHRoYXQgdG8gcmV0dXJuIGZhbHNlCj4gaXMgd2hl
-biBhbGwgQHJhbmdlIGJpdHMgYXJlIDAsIHdoaWNoIGhhcHBlbnMgb25jZSAoMl4zMi9yYW5nZSkt
-MSB0aW1lcywKPiBvciBhbSBJIG1pc3Rha2VuPwoKcHJvYmFibHkoKSB3b3VsZCByZXR1cm4gMCBp
-ZiBhbmQgb25seSBpZiB4b3JfcmFuZG9tKCkgcmV0dXJucyAwIGluIHRoZSBsb3dlc3QgbG9nXzIo
-cmFuZ2UpIGJpdHMsCndoaWNoIHNob3VsZCBoYXBwZW4gd2l0aCBwcm9iYWJpbGl0eSBvZiAxLygy
-XmxvZ18yKHJhbmdlKSk9MS9yYW5nZS4KCj4gCj4gQWxzbywgbGludXgvcmFuZG9tLmggaW5jbHVk
-ZXMgbmV4dF9wc2V1ZG9fcmFuZG9tMzIoKSwgc2hvdWxkIHdlIGJlIHVzaW5nCj4gdGhhdD8gQXJn
-dWFibHkgdGhhdCdzIG1vcmUgZXhwZW5zaXZlIG9uIGEgbnVtYmVyIG9mIHBsYXRmb3JtcyBkdWUg
-dG8gdGhlCj4gbXVsdGlwbGljYXRpb24uCldlIHdpbGwgY2hlY2sgdGhlIGltcGFjdCBvZiB1c2lu
-ZyBuZXh0X3BzZXVkb19yYW5kb20zMigpLgoKPiBBbHNvLCB3ZSBhY3R1YWxseSBoYXZlIHhvcnNo
-aWZ0MzIgYWxyZWFkeSBpbiB0cmVlIGluCj4gbGliL3Rlc3RfaGFzaC5jLgpJIHNlZSB0aGF0IG5v
-dy4gV2UgY2FuIGNlcnRhaW5seSB1c2UgdGhpcyBmdW5jdGlvbiBpbnN0ZWFkLiAKSWYgd2UgZW5k
-IHVwIGRvaW5nIHRoYXQsIGFueSBzdWdnZXN0aW9uIHdoZXJlIGl0IHNob3VsZCBiZSBtb3ZlZCB0
-byBiZSBjYWxsZWQgZnJvbSBtdWx0aXBsZSBwbGFjZXMgKHRoZSBvcmlnaW5hbCBsaWIvdGVzdF9o
-YXNoLmMgYW5kIG91ciBDTkEgY29kZSk/CgpUaGFua3MsCuKAlCBBbGV4Cl9fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGlu
-ZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMu
-aW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+
+> On Apr 1, 2019, at 5:09 AM, Peter Zijlstra <peterz@infradead.org> =
+wrote:
+>=20
+> On Fri, Mar 29, 2019 at 11:20:01AM -0400, Alex Kogan wrote:
+>> The following locktorture results are from an Oracle X5-4 server
+>> (four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
+>> cores each).=20
+>=20
+> The other interesting number is on a !NUMA machine. What do these
+> patches do there? Remember, most people do not in fact have numa.
+I will make sure to include numbers from a !NUMA machine in the next =
+revision of the patch.
+
+Regards,
+=E2=80=94 Alex=
