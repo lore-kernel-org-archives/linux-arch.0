@@ -1,125 +1,80 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Re: [PATCH] ARC: fix memory nodes topology in case of highmem
- enabled
-Date: Wed, 3 Apr 2019 19:29:22 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA230750146440183@US01WEMBX2.internal.synopsys.com>
-References: <20190401184242.7636-1-Eugeniy.Paltsev@synopsys.com>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH 5/6 v3] syscalls: Remove start and number from
+ syscall_get_arguments() args
+Date: Wed, 3 Apr 2019 22:51:56 +0000
+Message-ID: <20190403225151.s5suxxmu6b2c4svt@pburton-laptop>
+References: <20190401134104.676620247@goodmis.org>
+ <20190401134421.278590567@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190401134421.278590567@goodmis.org>
 Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <alexey.brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Content-ID: <1E78680F2A383A49931E90A79241CAA3@namprd22.prod.outlook.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Peter Zijlstra <peterz@infradead.org>, Palmer Dabbelt <palmer@sifive.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Oleg Nesterov <oleg@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.>
 List-Id: linux-arch.vger.kernel.org
 
-On 4/1/19 11:43 AM, Eugeniy Paltsev wrote:=0A=
-> Tweak generic node topology in case of CONFIG_HIGHMEM enabled to=0A=
-> prioritize allocations from ZONE_HIGHMEM to avoid ZONE_NORMAL=0A=
-> pressure.=0A=
-=0A=
-Can you explain the "pressure" part a bit more concretely - as in when did =
-you saw=0A=
-crashes, oom, yadi yada ....=0A=
-=0A=
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>=0A=
-> ---=0A=
-> Tested on both NSIM and HSDK (require memory apertures remmaping and=0A=
-> device tree patching)=0A=
-=0A=
-How can one test this patch w/o those - are they secret which rest of world=
- should=0A=
-not know about :-)=0A=
-Jokes apart, at the very least, please include them as part of changelog "a=
-s=0A=
-indicative code" which people can use in testing if needed.=0A=
-Preferably they need to be part of platform code under the right config (HI=
-GHMEM +=0A=
-PAE etc)=0A=
-=0A=
-FWIW as mentioned on other thread, for my setup of PAE + 2GB  HIGHMEM (so 2=
- nodes)=0A=
-1. I didn't need any AXI aperture remapping=0A=
-2. Didn't see any extra mem pressure / failures when running glibc testsuit=
-e=0A=
-=0A=
->=0A=
->  arch/arc/include/asm/Kbuild     |  1 -=0A=
->  arch/arc/include/asm/topology.h | 30 ++++++++++++++++++++++++++++++=0A=
->  2 files changed, 30 insertions(+), 1 deletion(-)=0A=
->  create mode 100644 arch/arc/include/asm/topology.h=0A=
->=0A=
-> diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild=0A=
-> index caa270261521..e64e0439baff 100644=0A=
-> --- a/arch/arc/include/asm/Kbuild=0A=
-> +++ b/arch/arc/include/asm/Kbuild=0A=
-> @@ -18,7 +18,6 @@ generic-y +=3D msi.h=0A=
->  generic-y +=3D parport.h=0A=
->  generic-y +=3D percpu.h=0A=
->  generic-y +=3D preempt.h=0A=
-> -generic-y +=3D topology.h=0A=
->  generic-y +=3D trace_clock.h=0A=
->  generic-y +=3D user.h=0A=
->  generic-y +=3D vga.h=0A=
-> diff --git a/arch/arc/include/asm/topology.h b/arch/arc/include/asm/topol=
-ogy.h=0A=
-> new file mode 100644=0A=
-> index 000000000000..c273506931c9=0A=
-> --- /dev/null=0A=
-> +++ b/arch/arc/include/asm/topology.h=0A=
-> @@ -0,0 +1,30 @@=0A=
-> +#ifndef _ASM_ARC_TOPOLOGY_H=0A=
-> +#define _ASM_ARC_TOPOLOGY_H=0A=
-> +=0A=
-> +/*=0A=
-> + * On ARC (w/o PAE) HIGHMEM addresses are smaller (0x0 based) than addre=
-sses in=0A=
-> + * NORMAL aka low memory (0x8000_0000 based).=0A=
-> + * Thus HIGHMEM on ARC is imlemented with DISCONTIGMEM which requires mu=
-ltiple=0A=
-=0A=
-s/imlemented/implemented=0A=
-> + * nodes. So here is memory node map depending on the CONFIG_HIGHMEM=0A=
-> + * enabled/disabled:=0A=
-> + *=0A=
-> + * CONFIG_HIGHMEM disabled:=0A=
-> + *  - node 0: ZONE_NORMAL memory only.=0A=
-> + *=0A=
-> + * CONFIG_HIGHMEM enabled:=0A=
-> + *  - node 0: ZONE_NORMAL memory only.=0A=
-> + *  - node 1: ZONE_HIGHMEM memory only.=0A=
-=0A=
-Perhaps we could reduce the text above by having 2 lines and adding a "()" =
-comment=0A=
-for node 1=0A=
-=0A=
-+ *  - node 0: ZONE_NORMAL memory  (always)=0A=
-+ *  - node 1: ZONE_HIGHMEM memory (HIGHMEM only)=0A=
-=0A=
-=0A=
-=0A=
-> + *=0A=
-> + * In case of CONFIG_HIGHMEM enabled we tweak generic node topology and =
-mark=0A=
-> + * node 1 as the closest to all CPUs to prioritize allocations from ZONE=
-_HIGHMEM=0A=
-> + * where it is possible to avoid ZONE_NORMAL pressure.=0A=
-> + */=0A=
-> +#ifdef CONFIG_HIGHMEM=0A=
-> +#define cpu_to_node(cpu)	((void)(cpu), 1)=0A=
-> +#define cpu_to_mem(cpu)		((void)(cpu), 1)=0A=
-> +#define cpumask_of_node(node)	((node) =3D=3D 1 ? cpu_online_mask : cpu_n=
-one_mask)=0A=
-> +#endif /* CONFIG_HIGHMEM */=0A=
-> +=0A=
-> +#include <asm-generic/topology.h>=0A=
-> +=0A=
-> +#endif /* _ASM_ARC_TOPOLOGY_H */=0A=
-=0A=
-Otherwise LGTM. I would like to give this a spin myself, but first need to =
-know=0A=
-what tests cause the increased failures which this patch mitigates.=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
+Hi Steven,
+
+On Mon, Apr 01, 2019 at 09:41:09AM -0400, Steven Rostedt wrote:
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+> 
+> At Linux Plumbers, Andy Lutomirski approached me and pointed out that the
+> function call syscall_get_arguments() implemented in x86 was horribly
+> written and not optimized for the standard case of passing in 0 and 6 for
+> the starting index and the number of system calls to get. When looking at
+> all the users of this function, I discovered that all instances pass in only
+> 0 and 6 for these arguments. Instead of having this function handle
+> different cases that are never used, simply rewrite it to return the first 6
+> arguments of a system call.
+> 
+> This should help out the performance of tracing system calls by ptrace,
+> ftrace and perf.
+> 
+> Link: http://lkml.kernel.org/r/20161107213233.754809394@goodmis.org
+> 
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Andy Lutomirski <luto@amacapital.net>
+> Cc: Dominik Brodowski <linux@dominikbrodowski.net>
+> Cc: Dave Martin <dave.martin@arm.com>
+> Cc: "Dmitry V. Levin" <ldv@altlinux.org>
+> Cc: x86@kernel.org
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-ia64@vger.kernel.org
+> Cc: linux-mips@vger.kernel.org
+> Cc: nios2-dev@lists.rocketboards.org
+> Cc: openrisc@lists.librecores.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: linux-um@lists.infradead.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: linux-arch@vger.kernel.org
+> Reported-by: Andy Lutomirski <luto@amacapital.net>
+> Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+
+Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
+
+Thanks,
+    Paul
