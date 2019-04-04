@@ -1,62 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.rptsys.com ([23.155.224.45]:4802 "EHLO mail.rptsys.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729497AbfDDUJt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Apr 2019 16:09:49 -0400
-Date: Thu, 4 Apr 2019 15:01:04 -0500 (CDT)
-From: Timothy Pearson <tpearson@raptorengineering.com>
-Message-ID: <401506569.4710878.1554408064001.JavaMail.zimbra@raptorengineeringinc.com>
-In-Reply-To: <nycvar.YFH.7.76.1904042145590.9803@cbobk.fhfr.pm>
-References: <cover.1554396090.git.jpoimboe@redhat.com> <91b92d8182d2f114d92c95689fcd4bb1a8dda1b0.1554396090.git.jpoimboe@redhat.com> <nycvar.YFH.7.76.1904042145590.9803@cbobk.fhfr.pm>
-Subject: Re: [PATCH RFC 3/5] powerpc/speculation: Add support for
- 'cpu_spec_mitigations=' cmdline options
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40682 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727398AbfDDUue (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2019 16:50:34 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x34Km4Zs053034
+        for <linux-arch@vger.kernel.org>; Thu, 4 Apr 2019 16:50:33 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2rnqfycy2m-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 04 Apr 2019 16:50:32 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 4 Apr 2019 21:50:31 +0100
+Date: Thu, 4 Apr 2019 13:50:27 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH tip/core/rcu 08/21] tools/memory-model: Add support for
+ synchronize_srcu_expedited()
+Reply-To: paulmck@linux.ibm.com
+References: <20190326234114.GA23843@linux.ibm.com>
+ <20190326234133.24962-8-paulmck@linux.ibm.com>
+ <20190402144911.GA10044@andrea>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190402144911.GA10044@andrea>
+Message-ID: <20190404205027.GM14111@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Kosina <jikos@kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H . Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-s390@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Waiman Long <longman@redhat.com>, linux-arch@vger.kernel.org, Jon Masters <jcm@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Tyler Hicks <tyhicks@canonical.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190404200104.INe2nbO9Bg__dm-H_nSr2d4XkjWKVig0XnWHSYky-mk@z>
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20190404205027.vmlf0uebhSEuLYI8aXRoUI1Wfc2sMc-SmRNZJuTOKPg@z>
 
-Will be joining in ~ 5 mins.  Getting Chromium set up here.
+On Tue, Apr 02, 2019 at 04:49:11PM +0200, Andrea Parri wrote:
+> On Tue, Mar 26, 2019 at 04:41:20PM -0700, Paul E. McKenney wrote:
+> > Given that synchronize_rcu_expedited() is supported, this commit adds
+> > support for synchronize_srcu_expedited().
+> > 
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+> > ---
+> >  tools/memory-model/linux-kernel.def | 1 +
+> >  1 file changed, 1 insertion(+)
+> > 
+> > diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+> > index 0c3f0ef486f4..551eeaa389d4 100644
+> > --- a/tools/memory-model/linux-kernel.def
+> > +++ b/tools/memory-model/linux-kernel.def
+> > @@ -51,6 +51,7 @@ synchronize_rcu_expedited() { __fence{sync-rcu}; }
+> >  srcu_read_lock(X)  __srcu{srcu-lock}(X)
+> >  srcu_read_unlock(X,Y) { __srcu{srcu-unlock}(X,Y); }
+> >  synchronize_srcu(X)  { __srcu{sync-srcu}(X); }
+> > +synchronize_srcu_expedited(X)  { __srcu{sync-srcu}(X); }
+> 
+> This and the other patches from the series do not apply to "tip/core/rcu"
 
------ Original Message -----
-> From: "Jiri Kosina" <jikos@kernel.org>
-> To: "Josh Poimboeuf" <jpoimboe@redhat.com>
-> Cc: "Peter Zijlstra" <peterz@infradead.org>, "Heiko Carstens" <heiko.carstens@de.ibm.com>, "Paul Mackerras"
-> <paulus@samba.org>, "H . Peter Anvin" <hpa@zytor.com>, "Ingo Molnar" <mingo@kernel.org>, "Andrea Arcangeli"
-> <aarcange@redhat.com>, linux-s390@vger.kernel.org, x86@kernel.org, "Will Deacon" <will.deacon@arm.com>, "Linus
-> Torvalds" <torvalds@linux-foundation.org>, "Catalin Marinas" <catalin.marinas@arm.com>, "Waiman Long"
-> <longman@redhat.com>, linux-arch@vger.kernel.org, "Jon Masters" <jcm@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
-> "Andy Lutomirski" <luto@kernel.org>, "Thomas Gleixner" <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org,
-> "Greg Kroah-Hartman" <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, "Tyler Hicks" <tyhicks@canonical.com>,
-> "Martin Schwidefsky" <schwidefsky@de.ibm.com>, linuxppc-dev@lists.ozlabs.org
-> Sent: Thursday, April 4, 2019 2:49:05 PM
-> Subject: Re: [PATCH RFC 3/5] powerpc/speculation: Add support for 'cpu_spec_mitigations=' cmdline options
+Ah, that is instead their hoped-for destination within the -tip tree.
+They are included in -rcu branch "dev".
 
-> On Thu, 4 Apr 2019, Josh Poimboeuf wrote:
+> (from the Subject), but this seems straightforward enough:
 > 
->> Configure powerpc CPU runtime speculation bug mitigations in accordance
->> with the 'cpu_spec_mitigations=' cmdline options.  This affects
->> Meltdown, Spectre v1, Spectre v2, and Speculative Store Bypass.
-> [ ... snip ... ]
->> -	if (!no_nospec)
->> +	if (!no_nospec && cpu_spec_mitigations != CPU_SPEC_MITIGATIONS_OFF)
+> Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+
+Applied, thank you!
+
+							Thanx, Paul
+
+>   Andrea
 > 
-> '!no_nospec' is something that I am sure will come back to hunt me in my
-> bad dreams.
 > 
-> But that's been there already, and fixing it is out of scope of this
-> patch. Other than that, as discussed previously -- I really like this new
-> global option. Feel free to add
+> >  
+> >  // Atomic
+> >  atomic_read(X) READ_ONCE(*X)
+> > -- 
+> > 2.17.1
+> > 
 > 
->	Reviewed-by: Jiri Kosina <jkosina@suse.cz>
-> 
-> for the whole set.
-> 
-> Thanks,
-> 
-> --
-> Jiri Kosina
-> SUSE Labs
