@@ -1,40 +1,103 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Juergen Gross <jgross@suse.com>
 Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Wed, 3 Apr 2019 23:14:49 -0400
-Message-ID: <C74425B5-3006-4721-8BEF-55E86830C13D@oracle.com>
+Date: Thu, 4 Apr 2019 07:05:24 +0200
+Message-ID: <faf4ffdd-b0d9-e18b-d394-2d1c19811dc5@suse.com>
 References: <20190329152006.110370-1-alex.kogan@oracle.com>
  <20190329152006.110370-4-alex.kogan@oracle.com>
- <5ac2fb0e-744b-3bb5-133a-ac684e061d17@huawei.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <5ac2fb0e-744b-3bb5-133a-ac684e061d17@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Hanjun Guo <guohanjun@huawei.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+ <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+ <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+ <20190403160112.GK4038@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190403160112.GK4038@hirez.programming.kicks-ass.net>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
+Cc: Waiman Long <longman@redhat.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-SGksIEhhbmp1bi4gCgo+IE9uIEFwciAzLCAyMDE5LCBhdCAxMDowMiBQTSwgSGFuanVuIEd1byA8
-Z3VvaGFuanVuQGh1YXdlaS5jb20+IHdyb3RlOgo+IAo+IEhpIEFsZXgsCj4gCj4gT24gMjAxOS8z
-LzI5IDIzOjIwLCBBbGV4IEtvZ2FuIHdyb3RlOgo+PiArCj4+ICtzdGF0aWMgX19hbHdheXNfaW5s
-aW5lIHZvaWQgY25hX2luaXRfbm9kZShzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlLCBpbnQgY3B1
-aWQsCj4+ICsJCQkJCSAgdTMyIHRhaWwpCj4+ICt7Cj4+ICsJaWYgKGRlY29kZV9udW1hX25vZGUo
-bm9kZS0+bm9kZV9hbmRfY291bnQpID09IC0xKQo+PiArCQlzdG9yZV9udW1hX25vZGUobm9kZSwg
-bnVtYV9jcHVfbm9kZShjcHVpZCkpOwo+IAo+IEhvdyBhYm91dCB1c2luZyBjcHVfdG9fbm9kZSgp
-IGhlcmUgYW5kICNpbmNsdWRlIDxsaW51eC90b3BvbG9neS5oPiBpbiB0aGlzCj4gZmlsZSwgdGhl
-biB0aGUgY29kZSBjYW4gYmUgcmV1c2VkIGZvciBvdGhlciBhcmNoaXRlY3R1cmVzIHN1Y2ggYXMg
-QVJNNjQ/Ckdvb2QgcG9pbnQuIFRoYW5rcyEKCuKAlCBBbGV4Cgo+IAo+IFRoYW5rcwo+IEhhbmp1
-bgo+IAoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxp
-bnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFk
-ZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4
-LWFybS1rZXJuZWwK
+On 03/04/2019 18:01, Peter Zijlstra wrote:
+> On Wed, Apr 03, 2019 at 11:39:09AM -0400, Alex Kogan wrote:
+> 
+>>>> The patch that I am looking for is to have a separate
+>>>> numa_queued_spinlock_slowpath() that coexists with
+>>>> native_queued_spinlock_slowpath() and
+>>>> paravirt_queued_spinlock_slowpath(). At boot time, we select the most
+>>>> appropriate one for the system at hand.
+>> Is this how this selection works today for paravirt?
+>> I see a PARAVIRT_SPINLOCKS config option, but IIUC you are talking about a different mechanism here.
+>> Can you, please, elaborate or give me a link to a page that explains that?
+> 
+> Oh man, you ask us to explain how paravirt patching works... that's
+> magic :-)
+> 
+> Basically, the compiler will emit a bunch of indirect calls to the
+> various pv_ops.*.* functions.
+> 
+> Then, at alternative_instructions() <- apply_paravirt() it will rewrite
+> all these indirect calls to direct calls to the function pointers that
+> are in the pv_ops structure at that time (+- more magic).
+> 
+> So we initialize the pv_ops.lock.* methods to the normal
+> native_queued_spin*() stuff, if KVM/Xen/whatever setup detectors pv
+> spnlock support changes the methods to the paravirt_queued_*() stuff.
+> 
+> If you wnt more details, you'll just have to read
+> arch/x86/include/asm/paravirt*.h and arch/x86/kernel/paravirt*.c, I
+> don't think there's a coherent writeup of all that.
+> 
+>>> Agreed; and until we have static_call, I think we can abuse the paravirt
+>>> stuff for this.
+>>>
+>>> By the time we patch the paravirt stuff:
+>>>
+>>>  check_bugs()
+>>>    alternative_instructions()
+>>>      apply_paravirt()
+>>>
+>>> we should already have enumerated the NODE topology and so nr_node_ids()
+>>> should be set.
+>>>
+>>> So if we frob pv_ops.lock.queued_spin_lock_slowpath to
+>>> numa_queued_spin_lock_slowpath before that, it should all get patched
+>>> just right.
+>>>
+>>> That of course means the whole NUMA_AWARE_SPINLOCKS thing depends on
+>>> PARAVIRT_SPINLOCK, which is a bit awkward…
+> 
+>> Just to mention here, the patch so far does not address paravirt, but
+>> our goal is to add this support once we address all the concerns for
+>> the native version.  So we will end up with four variants for the
+>> queued_spinlock_slowpath() — one for each combination of
+>> native/paravirt and NUMA/non-NUMA.  Or perhaps we do not need a
+>> NUMA/paravirt variant?
+> 
+> I wouldn't bother with a pv version of the numa aware code at all. If
+> you have overcommitted guests, topology is likely irrelevant anyway. If
+> you have 1:1 pinned guests, they'll not use pv spinlocks anyway.
+> 
+> So keep it to tertiary choice:
+> 
+>  - native
+>  - native/numa
+>  - paravirt
+
+Just for the records: the paravirt variant could easily choose whether
+it wants to include a numa version just by using the existing hooks.
+With PARAVIRT_SPINLOCK configured I guess even the native case would
+need to use the paravirt hooks for selection of native or native/numa.
+
+Without PARAVIRT_SPINLOCK this would be just an alternative() then?
+
+Maybe the resulting code would be much more readable if we'd just
+make PARAVIRT_SPINLOCK usable without the other PARAVIRT hooks? So
+splitting up PARAVIRT into PARAVIRT_GUEST (timer hooks et al) and
+the patching infrastructure, with PARAVIRT_GUEST and PARAVIRT_SPINLOCK
+selecting PARAVIRT, and PARAVIRT_XXL selecting PARAVIRT_GUEST.
+
+
+Juergen
