@@ -1,41 +1,40 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 5/6 v3] syscalls: Remove start and number from
- syscall_get_arguments() args
-Date: Thu, 4 Apr 2019 11:56:23 -0700
-Message-ID: <CAMo8BfK8gdgni3z3PKv1rd0KPFMXgDCpicQQ_obuoDAEz3PkZQ@mail.gmail.com>
-References: <20190401134104.676620247@goodmis.org> <20190401134421.278590567@goodmis.org>
+From: Jiri Kosina <jikos@kernel.org>
+Subject: Re: [PATCH RFC 3/5] powerpc/speculation: Add support for
+ 'cpu_spec_mitigations=' cmdline options
+Date: Thu, 4 Apr 2019 21:49:05 +0200 (CEST)
+Message-ID: <nycvar.YFH.7.76.1904042145590.9803@cbobk.fhfr.pm>
+References: <cover.1554396090.git.jpoimboe@redhat.com> <91b92d8182d2f114d92c95689fcd4bb1a8dda1b0.1554396090.git.jpoimboe@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190401134421.278590567@goodmis.org>
+In-Reply-To: <91b92d8182d2f114d92c95689fcd4bb1a8dda1b0.1554396090.git.jpoimboe@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, Linux-Arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "maintainer:X86 ARCHITECTURE..." <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dm
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.orgli
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 1, 2019 at 6:45 AM Steven Rostedt <rostedt@goodmis.org> wrote:
->
-> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
->
-> At Linux Plumbers, Andy Lutomirski approached me and pointed out that the
-> function call syscall_get_arguments() implemented in x86 was horribly
-> written and not optimized for the standard case of passing in 0 and 6 for
-> the starting index and the number of system calls to get. When looking at
-> all the users of this function, I discovered that all instances pass in only
-> 0 and 6 for these arguments. Instead of having this function handle
-> different cases that are never used, simply rewrite it to return the first 6
-> arguments of a system call.
->
-> This should help out the performance of tracing system calls by ptrace,
-> ftrace and perf.
+On Thu, 4 Apr 2019, Josh Poimboeuf wrote:
 
-[...]
+> Configure powerpc CPU runtime speculation bug mitigations in accordance
+> with the 'cpu_spec_mitigations=' cmdline options.  This affects
+> Meltdown, Spectre v1, Spectre v2, and Speculative Store Bypass.
+[ ... snip ... ]
+> -	if (!no_nospec)
+> +	if (!no_nospec && cpu_spec_mitigations != CPU_SPEC_MITIGATIONS_OFF)
 
->  arch/xtensa/include/asm/syscall.h     | 16 ++----
+'!no_nospec' is something that I am sure will come back to hunt me in my 
+bad dreams.
 
-For xtensa changes:
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+But that's been there already, and fixing it is out of scope of this 
+patch. Other than that, as discussed previously -- I really like this new 
+global option. Feel free to add
+
+	Reviewed-by: Jiri Kosina <jkosina@suse.cz>
+
+for the whole set.
+
+Thanks,
 
 -- 
-Thanks.
--- Max
+Jiri Kosina
+SUSE Labs
