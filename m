@@ -1,44 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49352 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49266 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731383AbfDEOAW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 10:00:22 -0400
+        id S1731306AbfDEOAO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 10:00:14 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 09/21] m68k/io: Remove useless definition of mmiowb()
-Date: Fri,  5 Apr 2019 14:59:24 +0100
-Message-ID: <20190405135936.7266-10-will.deacon@arm.com>
+Subject: [PATCH v2 07/21] x86/io: Remove useless definition of mmiowb()
+Date: Fri,  5 Apr 2019 14:59:22 +0100
+Message-ID: <20190405135936.7266-8-will.deacon@arm.com>
 In-Reply-To: <20190405135936.7266-1-will.deacon@arm.com>
 References: <20190405135936.7266-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20190405135924.bV7-WDkJWXqpuPxUEvVOZLfJm7yYrRk-PMChVCycR98@z>
+Message-ID: <20190405135922.wwMCmbSWMTQCP3j1RzRyGsSDkOamAXGc6ritbzba-Zo@z>
 
-m68k includes asm-generic/io.h, which provides a dummy definition of
-mmiowb() if one isn't already provided by the architecture.
+x86 maps mmiowb() to barrier(), but this is superfluous because a
+compiler barrier is already implied by spin_unlock(). Since x86 also
+includes asm-generic/io.h in its asm/io.h file, we can remove the
+definition entirely and pick up the dummy definition from core code.
 
-Remove the useless definition.
-
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/m68k/include/asm/io_mm.h | 2 --
+ arch/x86/include/asm/io.h | 2 --
  1 file changed, 2 deletions(-)
 
-diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
-index 782b78f8a048..6c03ca5bc436 100644
---- a/arch/m68k/include/asm/io_mm.h
-+++ b/arch/m68k/include/asm/io_mm.h
-@@ -377,8 +377,6 @@ static inline void isa_delay(void)
- #define writesw(port, buf, nr)    raw_outsw((port), (u16 *)(buf), (nr))
- #define writesl(port, buf, nr)    raw_outsl((port), (u32 *)(buf), (nr))
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 686247db3106..a06a9f8294ea 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -90,8 +90,6 @@ build_mmio_write(__writel, "l", unsigned int, "r", )
+ #define __raw_writew __writew
+ #define __raw_writel __writel
  
--#define mmiowb()
+-#define mmiowb() barrier()
 -
- #ifndef CONFIG_SUN3
- #define IO_SPACE_LIMIT 0xffff
- #else
+ #ifdef CONFIG_X86_64
+ 
+ build_mmio_read(readq, "q", u64, "=r", :"memory")
 -- 
 2.11.0
