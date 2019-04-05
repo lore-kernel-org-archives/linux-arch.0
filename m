@@ -1,38 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34274 "EHLO mail.skyhub.de"
+Received: from mx1.redhat.com ([209.132.183.28]:51740 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726135AbfDEQBp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 12:01:45 -0400
-Date: Fri, 5 Apr 2019 18:01:36 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH RFC 1/5] cpu/speculation: Add 'cpu_spec_mitigations='
- cmdline options
-Message-ID: <20190405160136.GI23348@zn.tnic>
+        id S1726135AbfDEQEA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 12:04:00 -0400
+Date: Fri, 5 Apr 2019 11:03:51 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH RFC 5/5] arm64/speculation: Add support for
+ 'cpu_spec_mitigations=' cmdline options
+Message-ID: <20190405160351.5l4wbmool5m4rkua@treble>
 References: <cover.1554396090.git.jpoimboe@redhat.com>
- <f0bd17358ab478eaca52f3b1da8305c150911b40.1554396090.git.jpoimboe@redhat.com>
- <20190405131211.GE23348@zn.tnic>
- <20190405142048.burthk2jnpcvi2om@treble>
- <20190405152059.GG23348@zn.tnic>
+ <5f70df57b19bbccc4a0d5d76134b4681c9a50b0b.1554396090.git.jpoimboe@redhat.com>
+ <20190405144414.GB7662@fuggles.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20190405152059.GG23348@zn.tnic>
+In-Reply-To: <20190405144414.GB7662@fuggles.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190405160136.4tt7RfRZIEc9AAQ_k2zJ0AX2Oh1p-cAAYSJuQZnqAA0@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190405160351.TRVxAF9Eo5u2SlE4Wtk3pRAplAYHdHU-YePj-h7S_Mk@z>
 
-Thinking about this more, we can shave off the first 4 chars and have it
-be:
+On Fri, Apr 05, 2019 at 03:44:14PM +0100, Will Deacon wrote:
+> Hi Josh,
+> 
+> On Thu, Apr 04, 2019 at 11:44:15AM -0500, Josh Poimboeuf wrote:
+> > Configure arm64 runtime CPU speculation bug mitigations in accordance
+> > with the 'cpu_spec_mitigations=' cmdline options.  This affects
+> > Meltdown and Speculative Store Bypass.
+> > 
+> > The default behavior is unchanged.
+> > 
+> > Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+> > ---
+> >  Documentation/admin-guide/kernel-parameters.txt | 2 ++
+> >  arch/arm64/kernel/cpu_errata.c                  | 4 ++++
+> >  arch/arm64/kernel/cpufeature.c                  | 6 ++++++
+> >  3 files changed, 12 insertions(+)
+> 
+> Just wanted to make you aware that this is probably going to conflict badly
+> with some patches we have pending to hook up the sysfs entries:
+> 
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2019-March/640326.html
+> 
+> That patch series isn't quite there yet, so I'm expecting a v7, but I think
+> it will change the shape of this patch quite a lot.
 
-spec_mitigations=
-
-I think it is painfully clear which speculation mitigations we mean. And
-the other switches don't have "cpu_" prefixes too so...
+Thanks for the heads up Will.  I will drop the arm64 patch for now then.
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Josh
