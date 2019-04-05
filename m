@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 05/21] ARM/io: Remove useless definition of mmiowb()
-Date: Fri,  5 Apr 2019 14:59:20 +0100
-Message-ID: <20190405135936.7266-6-will.deacon@arm.com>
+Subject: [PATCH v2 07/21] x86/io: Remove useless definition of mmiowb()
+Date: Fri,  5 Apr 2019 14:59:22 +0100
+Message-ID: <20190405135936.7266-8-will.deacon@arm.com>
 References: <20190405135936.7266-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190405135936.7266-1-will.deacon@arm.com>
@@ -10,28 +10,28 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatoc>
 List-Id: linux-arch.vger.kernel.org
 
-ARM includes asm-generic/io.h, which provides a dummy definition of
-mmiowb() if one isn't already provided by the architecture.
-
-Remove the useless definition.
+x86 maps mmiowb() to barrier(), but this is superfluous because a
+compiler barrier is already implied by spin_unlock(). Since x86 also
+includes asm-generic/io.h in its asm/io.h file, we can remove the
+definition entirely and pick up the dummy definition from core code.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm/include/asm/io.h | 2 --
+ arch/x86/include/asm/io.h | 2 --
  1 file changed, 2 deletions(-)
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 6b51826ab3d1..7e22c81398c4 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -281,8 +281,6 @@ extern void _memcpy_fromio(void *, const volatile void __iomem *, size_t);
- extern void _memcpy_toio(volatile void __iomem *, const void *, size_t);
- extern void _memset_io(volatile void __iomem *, int, size_t);
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 686247db3106..a06a9f8294ea 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -90,8 +90,6 @@ build_mmio_write(__writel, "l", unsigned int, "r", )
+ #define __raw_writew __writew
+ #define __raw_writel __writel
  
--#define mmiowb()
+-#define mmiowb() barrier()
 -
- /*
-  *  Memory access primitives
-  *  ------------------------
+ #ifdef CONFIG_X86_64
+ 
+ build_mmio_read(readq, "q", u64, "=r", :"memory")
 -- 
 2.11.0
