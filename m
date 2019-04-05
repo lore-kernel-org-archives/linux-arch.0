@@ -1,204 +1,282 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:42692 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726027AbfDEN5V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 09:57:21 -0400
-Date: Fri, 5 Apr 2019 15:57:12 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH RFC 2/5] x86/speculation: Add support for
- 'cpu_spec_mitigations=' cmdline options
-Message-ID: <20190405135712.GF23348@zn.tnic>
-References: <cover.1554396090.git.jpoimboe@redhat.com>
- <78c63cb08f36f55407f534d49cc2543079e44dbb.1554396090.git.jpoimboe@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <78c63cb08f36f55407f534d49cc2543079e44dbb.1554396090.git.jpoimboe@redhat.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48958 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726027AbfDEN7p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 09:59:45 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v2 00/21] Remove Mysterious Macro Intended to Obscure Weird Behaviours (mmiowb())
+Date: Fri,  5 Apr 2019 14:59:15 +0100
+Message-ID: <20190405135936.7266-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190405135712.h8C5NFnWFSMYwkqvOodZqwvUhkB0wm8DZ17FpWjVXoY@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
+Message-ID: <20190405135915.YPobEdeVsLe1z7dwsmekCcnI9Irssp1I8PWjkk2To1Y@z>
 
-On Thu, Apr 04, 2019 at 11:44:12AM -0500, Josh Poimboeuf wrote:
-> Configure x86 runtime CPU speculation bug mitigations in accordance with
-> the 'cpu_spec_mitigations=' cmdline options.  This affects Meltdown,
-> Spectre v2, Speculative Store Bypass, and L1TF.
-> 
-> The default behavior is unchanged.
-> 
-> Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
-> ---
->  .../admin-guide/kernel-parameters.txt         | 15 +++++++++
->  arch/x86/include/asm/processor.h              |  1 +
->  arch/x86/kernel/cpu/bugs.c                    | 32 ++++++++++++++++---
->  arch/x86/kvm/vmx/vmx.c                        |  2 ++
->  arch/x86/mm/pti.c                             |  4 ++-
->  5 files changed, 49 insertions(+), 5 deletions(-)
-> 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index ac42e510bd6e..29dc03971630 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -2552,6 +2552,11 @@
->  
->  			off
->  				Disable all speculative CPU mitigations.
-> +				Equivalent to: nopti [x86]
-> +					       nospectre_v2 [x86]
-> +					       spectre_v2_user=off [x86]
-> +					       spec_store_bypass_disable=off [x86]
-> +					       l1tf=off [x86]
->  
->  			auto (default)
->  				Mitigate all speculative CPU vulnerabilities,
-> @@ -2560,12 +2565,22 @@
->  				surprised by SMT getting disabled across kernel
->  				upgrades, or who have other ways of avoiding
->  				SMT-based attacks.
-> +				Equivalent to: pti=auto [x86]
-> +					       spectre_v2=auto [x86]
-> +					       spectre_v2_user=auto [x86]
-> +					       spec_store_bypass_disable=auto [x86]
-> +					       l1tf=flush [x86]
->  
->  			auto,nosmt
->  				Mitigate all speculative CPU vulnerabilities,
->  				disabling SMT if needed.  This is for users who
->  				always want to be fully mitigated, even if it
->  				means losing SMT.
-> +				Equivalent to: pti=auto [x86]
-> +					       spectre_v2=auto [x86]
-> +					       spectre_v2_user=auto [x86]
-> +					       spec_store_bypass_disable=auto [x86]
-> +					       l1tf=flush,nosmt [x86]
->  
->  	mminit_loglevel=
->  			[KNL] When CONFIG_DEBUG_MEMORY_INIT is set, this
+Hi everybody,
 
-Yap, those sets look ok.
+This is version two of the patches I previously posted here:
 
-> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-> index 2bb3a648fc12..7e95b310f869 100644
-> --- a/arch/x86/include/asm/processor.h
-> +++ b/arch/x86/include/asm/processor.h
-> @@ -982,6 +982,7 @@ void microcode_check(void);
->  
->  enum l1tf_mitigations {
->  	L1TF_MITIGATION_OFF,
-> +	L1TF_MITIGATION_DEFAULT,
->  	L1TF_MITIGATION_FLUSH_NOWARN,
->  	L1TF_MITIGATION_FLUSH,
->  	L1TF_MITIGATION_FLUSH_NOSMT,
-> diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-> index 2da82eff0eb4..65b95fb95ba5 100644
-> --- a/arch/x86/kernel/cpu/bugs.c
-> +++ b/arch/x86/kernel/cpu/bugs.c
-> @@ -308,8 +308,11 @@ spectre_v2_parse_user_cmdline(enum spectre_v2_mitigation_cmd v2_cmd)
->  
->  	ret = cmdline_find_option(boot_command_line, "spectre_v2_user",
->  				  arg, sizeof(arg));
-> -	if (ret < 0)
-> +	if (ret < 0) {
-> +		if (cpu_spec_mitigations == CPU_SPEC_MITIGATIONS_OFF)
-> +			return SPECTRE_V2_USER_CMD_NONE;
+  RFC: https://lwn.net/ml/linux-kernel/20190222185026.10973-1-will.deacon@arm.com/
+  v1: https://lkml.kernel.org/r/20190301140348.25175-1-will.deacon@arm.com
 
-Instead of sprinkling that test in those three functions, just do it
-once above in check_bugs(), before those *_select_mitigation() functions
-get to run and depending on the value, you either run them or use the
-default settings, for the OFF case, for example.
+I would really appreciate review comments and/or Acks on the first patch, since
+it was that change which triggered the rest of the series and, without an ack,
+it's holding the rest of the patches up.
 
->  		return SPECTRE_V2_USER_CMD_AUTO;
-> +	}
->  
->  	for (i = 0; i < ARRAY_SIZE(v2_user_options); i++) {
->  		if (match_option(arg, ret, v2_user_options[i].option)) {
-> @@ -444,8 +447,11 @@ static enum spectre_v2_mitigation_cmd __init spectre_v2_parse_cmdline(void)
->  		return SPECTRE_V2_CMD_NONE;
->  
->  	ret = cmdline_find_option(boot_command_line, "spectre_v2", arg, sizeof(arg));
-> -	if (ret < 0)
-> +	if (ret < 0) {
-> +		if (cpu_spec_mitigations == CPU_SPEC_MITIGATIONS_OFF)
-> +			return SPECTRE_V2_CMD_NONE;
->  		return SPECTRE_V2_CMD_AUTO;
-> +	}
->  
->  	for (i = 0; i < ARRAY_SIZE(mitigation_options); i++) {
->  		if (!match_option(arg, ret, mitigation_options[i].option))
-> @@ -677,8 +683,11 @@ static enum ssb_mitigation_cmd __init ssb_parse_cmdline(void)
->  	} else {
->  		ret = cmdline_find_option(boot_command_line, "spec_store_bypass_disable",
->  					  arg, sizeof(arg));
-> -		if (ret < 0)
-> +		if (ret < 0) {
-> +			if (cpu_spec_mitigations == CPU_SPEC_MITIGATIONS_OFF)
-> +				return SPEC_STORE_BYPASS_CMD_NONE;
->  			return SPEC_STORE_BYPASS_CMD_AUTO;
-> +		}
->  
->  		for (i = 0; i < ARRAY_SIZE(ssb_mitigation_options); i++) {
->  			if (!match_option(arg, ret, ssb_mitigation_options[i].option))
-> @@ -955,7 +964,7 @@ void x86_spec_ctrl_setup_ap(void)
->  #define pr_fmt(fmt)	"L1TF: " fmt
->  
->  /* Default mitigation for L1TF-affected CPUs */
-> -enum l1tf_mitigations l1tf_mitigation __ro_after_init = L1TF_MITIGATION_FLUSH;
-> +enum l1tf_mitigations l1tf_mitigation __ro_after_init = L1TF_MITIGATION_DEFAULT;
->  #if IS_ENABLED(CONFIG_KVM_INTEL)
->  EXPORT_SYMBOL_GPL(l1tf_mitigation);
->  #endif
-> @@ -1010,8 +1019,23 @@ static void __init l1tf_select_mitigation(void)
->  
->  	override_cache_bits(&boot_cpu_data);
->  
-> +	if (l1tf_mitigation == L1TF_MITIGATION_DEFAULT) {
-> +		switch (cpu_spec_mitigations) {
-> +		case CPU_SPEC_MITIGATIONS_OFF:
-> +			l1tf_mitigation = L1TF_MITIGATION_OFF;
-> +			break;
-> +		case CPU_SPEC_MITIGATIONS_AUTO:
-> +			l1tf_mitigation = L1TF_MITIGATION_FLUSH;
-> +			break;
-> +		case CPU_SPEC_MITIGATIONS_AUTO_NOSMT:
-> +			l1tf_mitigation = L1TF_MITIGATION_FLUSH_NOSMT;
-> +			break;
-> +		}
-> +	}
-> +
->  	switch (l1tf_mitigation) {
->  	case L1TF_MITIGATION_OFF:
-> +	case L1TF_MITIGATION_DEFAULT:
->  	case L1TF_MITIGATION_FLUSH_NOWARN:
->  	case L1TF_MITIGATION_FLUSH:
->  		break;
-> diff --git a/arch/x86/kvm/vmx/vmx.c b/arch/x86/kvm/vmx/vmx.c
-> index ab432a930ae8..83b5bdc3c777 100644
-> --- a/arch/x86/kvm/vmx/vmx.c
-> +++ b/arch/x86/kvm/vmx/vmx.c
-> @@ -233,6 +233,7 @@ static int vmx_setup_l1d_flush(enum vmx_l1d_flush_state l1tf)
->  		case L1TF_MITIGATION_FLUSH_NOWARN:
->  		case L1TF_MITIGATION_FLUSH:
->  		case L1TF_MITIGATION_FLUSH_NOSMT:
-> +		case L1TF_MITIGATION_DEFAULT:
->  			l1tf = VMENTER_L1D_FLUSH_COND;
->  			break;
->  		case L1TF_MITIGATION_FULL:
-> @@ -6686,6 +6687,7 @@ static int vmx_vm_init(struct kvm *kvm)
->  		case L1TF_MITIGATION_FLUSH:
->  		case L1TF_MITIGATION_FLUSH_NOSMT:
->  		case L1TF_MITIGATION_FULL:
-> +		case L1TF_MITIGATION_DEFAULT:
->  			/*
->  			 * Warn upon starting the first VM in a potentially
->  			 * insecure environment.
+Changes since v1 include:
 
-The L1TF bits need to be a separate patch.
+  * Move mmiowb_spin_{lock,unlock}() calls into the critical section
+  * Included memory-barriers.txt patch on which this lot depends
+  * Added acks
+  * Based on v5.1-rc3
 
-Thx.
+I've also pushed this series out here:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/mmiowb
+
+and I would like to get it into -next once the first patch has been acked.
+
+Cheers,
+
+Will
+
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Palmer Dabbelt <palmer@sifive.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Maciej W. Rozycki" <macro@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Mikulas Patocka <mpatocka@redhat.com>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Cc: Luis Chamberlain <mcgrof@kernel.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+
+--->8
+
+Will Deacon (21):
+  docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
+  asm-generic/mmiowb: Add generic implementation of mmiowb() tracking
+  arch: Use asm-generic header for asm/mmiowb.h
+  mmiowb: Hook up mmiowb helpers to spinlocks and generic I/O accessors
+  ARM/io: Remove useless definition of mmiowb()
+  arm64/io: Remove useless definition of mmiowb()
+  x86/io: Remove useless definition of mmiowb()
+  nds32/io: Remove useless definition of mmiowb()
+  m68k/io: Remove useless definition of mmiowb()
+  sh/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
+  mips/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
+  ia64/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
+  powerpc/mmiowb: Hook up mmwiob() implementation to asm-generic code
+  riscv/mmiowb: Hook up mmwiob() implementation to asm-generic code
+  Documentation: Kill all references to mmiowb()
+  drivers: Remove useless trailing comments from mmiowb() invocations
+  drivers: Remove explicit invocations of mmiowb()
+  scsi/qla1280: Remove stale comment about mmiowb()
+  i40iw: Redefine i40iw_mmiowb() to do nothing
+  net/ethernet/silan/sc92031: Remove stale comment about mmiowb()
+  arch: Remove dummy mmiowb() definitions from arch code
+
+ Documentation/driver-api/device-io.rst             |  45 -----
+ Documentation/driver-api/pci/p2pdma.rst            |   4 -
+ Documentation/memory-barriers.txt                  | 212 +++++++--------------
+ arch/alpha/include/asm/Kbuild                      |   1 +
+ arch/alpha/include/asm/io.h                        |   2 -
+ arch/arc/include/asm/Kbuild                        |   1 +
+ arch/arm/include/asm/Kbuild                        |   1 +
+ arch/arm/include/asm/io.h                          |   2 -
+ arch/arm64/include/asm/Kbuild                      |   1 +
+ arch/arm64/include/asm/io.h                        |   2 -
+ arch/c6x/include/asm/Kbuild                        |   1 +
+ arch/csky/include/asm/Kbuild                       |   1 +
+ arch/h8300/include/asm/Kbuild                      |   1 +
+ arch/hexagon/include/asm/Kbuild                    |   1 +
+ arch/hexagon/include/asm/io.h                      |   2 -
+ arch/ia64/include/asm/io.h                         |  17 --
+ arch/ia64/include/asm/mmiowb.h                     |  25 +++
+ arch/ia64/include/asm/spinlock.h                   |   2 +
+ arch/m68k/include/asm/Kbuild                       |   1 +
+ arch/m68k/include/asm/io_mm.h                      |   2 -
+ arch/microblaze/include/asm/Kbuild                 |   1 +
+ arch/mips/include/asm/io.h                         |   3 -
+ arch/mips/include/asm/mmiowb.h                     |  11 ++
+ arch/mips/include/asm/spinlock.h                   |  15 ++
+ arch/nds32/include/asm/Kbuild                      |   1 +
+ arch/nds32/include/asm/io.h                        |   2 -
+ arch/nios2/include/asm/Kbuild                      |   1 +
+ arch/openrisc/include/asm/Kbuild                   |   1 +
+ arch/parisc/include/asm/Kbuild                     |   1 +
+ arch/parisc/include/asm/io.h                       |   2 -
+ arch/powerpc/Kconfig                               |   1 +
+ arch/powerpc/include/asm/io.h                      |  33 +---
+ arch/powerpc/include/asm/mmiowb.h                  |  18 ++
+ arch/powerpc/include/asm/paca.h                    |   6 +-
+ arch/powerpc/include/asm/spinlock.h                |  17 --
+ arch/powerpc/xmon/xmon.c                           |   5 +-
+ arch/riscv/Kconfig                                 |   1 +
+ arch/riscv/include/asm/io.h                        |  15 +-
+ arch/riscv/include/asm/mmiowb.h                    |  14 ++
+ arch/s390/include/asm/Kbuild                       |   1 +
+ arch/sh/include/asm/io.h                           |   3 -
+ arch/sh/include/asm/mmiowb.h                       |  12 ++
+ arch/sh/include/asm/spinlock-llsc.h                |   2 +
+ arch/sparc/include/asm/Kbuild                      |   1 +
+ arch/sparc/include/asm/io_64.h                     |   2 -
+ arch/um/include/asm/Kbuild                         |   1 +
+ arch/unicore32/include/asm/Kbuild                  |   1 +
+ arch/x86/include/asm/Kbuild                        |   1 +
+ arch/x86/include/asm/io.h                          |   2 -
+ arch/xtensa/include/asm/Kbuild                     |   1 +
+ drivers/crypto/cavium/nitrox/nitrox_reqmgr.c       |   4 -
+ drivers/dma/txx9dmac.c                             |   3 -
+ drivers/firewire/ohci.c                            |   1 -
+ drivers/gpu/drm/i915/intel_hdmi.c                  |  10 -
+ drivers/ide/tx4939ide.c                            |   2 -
+ drivers/infiniband/hw/hfi1/chip.c                  |   3 -
+ drivers/infiniband/hw/hfi1/pio.c                   |   1 -
+ drivers/infiniband/hw/hns/hns_roce_hw_v1.c         |   2 -
+ drivers/infiniband/hw/i40iw/i40iw_osdep.h          |   2 +-
+ drivers/infiniband/hw/mlx4/qp.c                    |   6 -
+ drivers/infiniband/hw/mlx5/qp.c                    |   1 -
+ drivers/infiniband/hw/mthca/mthca_cmd.c            |   6 -
+ drivers/infiniband/hw/mthca/mthca_cq.c             |   5 -
+ drivers/infiniband/hw/mthca/mthca_qp.c             |  17 --
+ drivers/infiniband/hw/mthca/mthca_srq.c            |   6 -
+ drivers/infiniband/hw/qedr/verbs.c                 |  12 --
+ drivers/infiniband/hw/qib/qib_iba6120.c            |   4 -
+ drivers/infiniband/hw/qib/qib_iba7220.c            |   3 -
+ drivers/infiniband/hw/qib/qib_iba7322.c            |   3 -
+ drivers/infiniband/hw/qib/qib_sd7220.c             |   4 -
+ drivers/media/pci/dt3155/dt3155.c                  |   8 -
+ drivers/memstick/host/jmb38x_ms.c                  |   4 -
+ drivers/misc/ioc4.c                                |   2 -
+ drivers/misc/mei/hw-me.c                           |   3 -
+ drivers/misc/tifm_7xx1.c                           |   1 -
+ drivers/mmc/host/alcor.c                           |   1 -
+ drivers/mmc/host/sdhci.c                           |  13 --
+ drivers/mmc/host/tifm_sd.c                         |   3 -
+ drivers/mmc/host/via-sdmmc.c                       |  10 -
+ drivers/mtd/nand/raw/r852.c                        |   2 -
+ drivers/mtd/nand/raw/txx9ndfmc.c                   |   1 -
+ drivers/net/ethernet/aeroflex/greth.c              |   1 -
+ drivers/net/ethernet/alacritech/slicoss.c          |   4 -
+ drivers/net/ethernet/amazon/ena/ena_com.c          |   1 -
+ drivers/net/ethernet/atheros/atlx/atl1.c           |   1 -
+ drivers/net/ethernet/atheros/atlx/atl2.c           |   1 -
+ drivers/net/ethernet/broadcom/bnx2.c               |   4 -
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_cmn.c    |   2 -
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_cmn.h    |   4 -
+ .../net/ethernet/broadcom/bnx2x/bnx2x_ethtool.c    |   1 -
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_main.c   |  29 ---
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_sp.c     |   1 -
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_sriov.c  |   2 -
+ drivers/net/ethernet/broadcom/bnx2x/bnx2x_vfpf.c   |   4 -
+ drivers/net/ethernet/broadcom/bnxt/bnxt.c          |   3 -
+ drivers/net/ethernet/broadcom/tg3.c                |   6 -
+ .../net/ethernet/cavium/liquidio/cn66xx_device.c   |  10 -
+ .../net/ethernet/cavium/liquidio/octeon_device.c   |   1 -
+ drivers/net/ethernet/cavium/liquidio/octeon_droq.c |   4 -
+ .../net/ethernet/cavium/liquidio/request_manager.c |   1 -
+ drivers/net/ethernet/intel/e1000/e1000_main.c      |   5 -
+ drivers/net/ethernet/intel/e1000e/netdev.c         |   7 -
+ drivers/net/ethernet/intel/fm10k/fm10k_iov.c       |   2 -
+ drivers/net/ethernet/intel/fm10k/fm10k_main.c      |   5 -
+ drivers/net/ethernet/intel/i40e/i40e_txrx.c        |   5 -
+ drivers/net/ethernet/intel/iavf/iavf_txrx.c        |   5 -
+ drivers/net/ethernet/intel/ice/ice_txrx.c          |   5 -
+ drivers/net/ethernet/intel/igb/igb_main.c          |   5 -
+ drivers/net/ethernet/intel/igbvf/netdev.c          |   4 -
+ drivers/net/ethernet/intel/igc/igc_main.c          |   5 -
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c      |   5 -
+ drivers/net/ethernet/marvell/sky2.c                |   4 -
+ drivers/net/ethernet/mellanox/mlx4/catas.c         |   4 -
+ drivers/net/ethernet/mellanox/mlx4/cmd.c           |  13 --
+ drivers/net/ethernet/mellanox/mlx5/core/cmd.c      |   1 -
+ drivers/net/ethernet/myricom/myri10ge/myri10ge.c   |   2 -
+ drivers/net/ethernet/neterion/s2io.c               |   2 -
+ drivers/net/ethernet/neterion/vxge/vxge-main.c     |   5 -
+ drivers/net/ethernet/neterion/vxge/vxge-traffic.c  |   4 -
+ drivers/net/ethernet/qlogic/qed/qed_int.c          |  13 --
+ drivers/net/ethernet/qlogic/qed/qed_spq.c          |   3 -
+ drivers/net/ethernet/qlogic/qede/qede_ethtool.c    |   8 -
+ drivers/net/ethernet/qlogic/qede/qede_fp.c         |   8 -
+ drivers/net/ethernet/qlogic/qla3xxx.c              |   1 -
+ drivers/net/ethernet/qlogic/qlge/qlge.h            |   1 -
+ drivers/net/ethernet/qlogic/qlge/qlge_main.c       |   1 -
+ drivers/net/ethernet/renesas/ravb_main.c           |   9 -
+ drivers/net/ethernet/renesas/ravb_ptp.c            |   3 -
+ drivers/net/ethernet/renesas/sh_eth.c              |   1 -
+ drivers/net/ethernet/sfc/falcon/io.h               |   2 -
+ drivers/net/ethernet/sfc/io.h                      |   2 -
+ drivers/net/ethernet/silan/sc92031.c               |  15 --
+ drivers/net/ethernet/via/via-rhine.c               |   3 -
+ drivers/net/ethernet/wiznet/w5100.c                |   6 -
+ drivers/net/ethernet/wiznet/w5300.c                |  15 --
+ drivers/net/wireless/ath/ath5k/base.c              |   4 -
+ drivers/net/wireless/ath/ath5k/mac80211-ops.c      |   2 -
+ drivers/net/wireless/broadcom/b43/main.c           |   7 -
+ drivers/net/wireless/broadcom/b43/sysfs.c          |   1 -
+ drivers/net/wireless/broadcom/b43legacy/ilt.c      |   2 -
+ drivers/net/wireless/broadcom/b43legacy/main.c     |  20 --
+ drivers/net/wireless/broadcom/b43legacy/phy.c      |   1 -
+ drivers/net/wireless/broadcom/b43legacy/pio.h      |   1 -
+ drivers/net/wireless/broadcom/b43legacy/radio.c    |   4 -
+ drivers/net/wireless/broadcom/b43legacy/sysfs.c    |   1 -
+ drivers/net/wireless/intel/iwlegacy/common.h       |   7 -
+ drivers/net/wireless/intel/iwlwifi/pcie/trans.c    |   1 -
+ drivers/ntb/hw/idt/ntb_hw_idt.c                    |   7 -
+ drivers/ntb/test/ntb_perf.c                        |   3 -
+ drivers/scsi/bfa/bfa.h                             |   3 +-
+ drivers/scsi/bfa/bfa_hw_cb.c                       |   2 -
+ drivers/scsi/bfa/bfa_hw_ct.c                       |   2 -
+ drivers/scsi/bnx2fc/bnx2fc_hwi.c                   |   2 -
+ drivers/scsi/bnx2i/bnx2i_hwi.c                     |   3 -
+ drivers/scsi/megaraid/megaraid_sas_base.c          |   1 -
+ drivers/scsi/megaraid/megaraid_sas_fusion.c        |   1 -
+ drivers/scsi/mpt3sas/mpt3sas_base.c                |   1 -
+ drivers/scsi/qedf/qedf_io.c                        |   1 -
+ drivers/scsi/qedi/qedi_fw.c                        |   1 -
+ drivers/scsi/qla1280.c                             |  15 --
+ drivers/ssb/pci.c                                  |   1 -
+ drivers/ssb/pcmcia.c                               |   4 -
+ drivers/staging/comedi/drivers/mite.c              |   3 -
+ drivers/staging/comedi/drivers/ni_660x.c           |   2 -
+ drivers/staging/comedi/drivers/ni_mio_common.c     |   1 -
+ drivers/staging/comedi/drivers/ni_pcidio.c         |   2 -
+ drivers/staging/comedi/drivers/ni_tio.c            |   1 -
+ drivers/staging/comedi/drivers/s626.c              |   2 -
+ drivers/tty/serial/men_z135_uart.c                 |   1 -
+ drivers/tty/serial/serial_txx9.c                   |   1 -
+ drivers/usb/early/xhci-dbc.c                       |   4 -
+ drivers/usb/host/xhci-dbgcap.c                     |   2 -
+ include/asm-generic/io.h                           |   7 +-
+ include/asm-generic/mmiowb.h                       |  63 ++++++
+ include/asm-generic/mmiowb_types.h                 |  12 ++
+ include/linux/qed/qed_if.h                         |   2 -
+ include/linux/spinlock.h                           |  11 +-
+ kernel/Kconfig.locks                               |   7 +
+ kernel/locking/spinlock.c                          |   7 +
+ kernel/locking/spinlock_debug.c                    |   6 +-
+ sound/soc/txx9/txx9aclc-ac97.c                     |   1 -
+ 181 files changed, 314 insertions(+), 820 deletions(-)
+ create mode 100644 arch/ia64/include/asm/mmiowb.h
+ create mode 100644 arch/mips/include/asm/mmiowb.h
+ create mode 100644 arch/powerpc/include/asm/mmiowb.h
+ create mode 100644 arch/riscv/include/asm/mmiowb.h
+ create mode 100644 arch/sh/include/asm/mmiowb.h
+ create mode 100644 include/asm-generic/mmiowb.h
+ create mode 100644 include/asm-generic/mmiowb_types.h
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.11.0
