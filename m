@@ -1,48 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:49730 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731545AbfDEOBB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 10:01:01 -0400
+Received: from foss.arm.com ([217.140.101.70]:49776 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730587AbfDEOBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 10:01:05 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 18/21] scsi/qla1280: Remove stale comment about mmiowb()
-Date: Fri,  5 Apr 2019 14:59:33 +0100
-Message-ID: <20190405135936.7266-19-will.deacon@arm.com>
+Subject: [PATCH v2 19/21] i40iw: Redefine i40iw_mmiowb() to do nothing
+Date: Fri,  5 Apr 2019 14:59:34 +0100
+Message-ID: <20190405135936.7266-20-will.deacon@arm.com>
 In-Reply-To: <20190405135936.7266-1-will.deacon@arm.com>
 References: <20190405135936.7266-1-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20190405135933.3cWaRmpumahzmXAJm5DuM2a3vvnrw-677Z1GjGqs4Tc@z>
+Message-ID: <20190405135934.SjuJ0EKQNUv2pF0sN76fKbLnOPyXhbN1LpeTEh9dpf4@z>
 
-All mmiowb() invocations have been removed, so there's no need to keep
-banging on about it.
+mmiowb() is now implicit in spin_unlock(), so there's no reason to call
+it from driver code. Redefine i40iw_mmiowb() to do nothing instead.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- drivers/scsi/qla1280.c | 10 ----------
- 1 file changed, 10 deletions(-)
+ drivers/infiniband/hw/i40iw/i40iw_osdep.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/scsi/qla1280.c b/drivers/scsi/qla1280.c
-index 93acbc5094f0..327eff67a1ee 100644
---- a/drivers/scsi/qla1280.c
-+++ b/drivers/scsi/qla1280.c
-@@ -3363,16 +3363,6 @@ qla1280_isp_cmd(struct scsi_qla_host *ha)
- 
- 	/*
- 	 * Update request index to mailbox4 (Request Queue In).
--	 * The mmiowb() ensures that this write is ordered with writes by other
--	 * CPUs.  Without the mmiowb(), it is possible for the following:
--	 *    CPUA posts write of index 5 to mailbox4
--	 *    CPUA releases host lock
--	 *    CPUB acquires host lock
--	 *    CPUB posts write of index 6 to mailbox4
--	 *    On PCI bus, order reverses and write of 6 posts, then index 5,
--	 *       causing chip to issue full queue of stale commands
--	 * The mmiowb() prevents future writes from crossing the barrier.
--	 * See Documentation/driver-api/device-io.rst for more information.
- 	 */
- 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
- 
+diff --git a/drivers/infiniband/hw/i40iw/i40iw_osdep.h b/drivers/infiniband/hw/i40iw/i40iw_osdep.h
+index f27be3e7830b..d474aad62a81 100644
+--- a/drivers/infiniband/hw/i40iw/i40iw_osdep.h
++++ b/drivers/infiniband/hw/i40iw/i40iw_osdep.h
+@@ -211,7 +211,7 @@ enum i40iw_status_code i40iw_hw_manage_vf_pble_bp(struct i40iw_device *iwdev,
+ struct i40iw_sc_vsi;
+ void i40iw_hw_stats_start_timer(struct i40iw_sc_vsi *vsi);
+ void i40iw_hw_stats_stop_timer(struct i40iw_sc_vsi *vsi);
+-#define i40iw_mmiowb() mmiowb()
++#define i40iw_mmiowb() do { } while (0)
+ void i40iw_wr32(struct i40iw_hw *hw, u32 reg, u32 value);
+ u32  i40iw_rd32(struct i40iw_hw *hw, u32 reg);
+ #endif				/* _I40IW_OSDEP_H_ */
 -- 
 2.11.0
