@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 01/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O BARRIER EFFECTS" section
-Date: Fri,  5 Apr 2019 14:59:16 +0100
-Message-ID: <20190405135936.7266-2-will.deacon@arm.com>
+Subject: [PATCH v2 02/21] asm-generic/mmiowb: Add generic implementation of mmiowb() tracking
+Date: Fri,  5 Apr 2019 14:59:17 +0100
+Message-ID: <20190405135936.7266-3-will.deacon@arm.com>
 References: <20190405135936.7266-1-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190405135936.7266-1-will.deacon@arm.com>
@@ -10,180 +10,141 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatoc>
 List-Id: linux-arch.vger.kernel.org
 
-The "KERNEL I/O BARRIER EFFECTS" section of memory-barriers.txt is vague,
-x86-centric, out-of-date, incomplete and demonstrably incorrect in places.
-This is largely because I/O ordering is a horrible can of worms, but also
-because the document has stagnated as our understanding has evolved.
+In preparation for removing all explicit mmiowb() calls from driver
+code, implement a tracking system in asm-generic based loosely on the
+PowerPC implementation. This allows architectures with a non-empty
+mmiowb() definition to have the barrier automatically inserted in
+spin_unlock() following a critical section containing an I/O write.
 
-Attempt to address some of that, by rewriting the section based on
-recent(-ish) discussions with Arnd, BenH and others. Maybe one day we'll
-find a way to formalise this stuff, but for now let's at least try to
-make the English easier to understand.
-
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>
-Cc: Mikulas Patocka <mpatocka@redhat.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- Documentation/memory-barriers.txt | 115 +++++++++++++++++++++++---------------
- 1 file changed, 70 insertions(+), 45 deletions(-)
+ include/asm-generic/mmiowb.h       | 63 ++++++++++++++++++++++++++++++++++++++
+ include/asm-generic/mmiowb_types.h | 12 ++++++++
+ kernel/Kconfig.locks               |  7 +++++
+ kernel/locking/spinlock.c          |  7 +++++
+ 4 files changed, 89 insertions(+)
+ create mode 100644 include/asm-generic/mmiowb.h
+ create mode 100644 include/asm-generic/mmiowb_types.h
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 1c22b21ae922..5eb6f4c6a133 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -2599,72 +2599,97 @@ likely, then interrupt-disabling locks should be used to guarantee ordering.
- KERNEL I/O BARRIER EFFECTS
- ==========================
- 
--When accessing I/O memory, drivers should use the appropriate accessor
--functions:
-+Interfacing with peripherals via I/O accesses is deeply architecture and device
-+specific. Therefore, drivers which are inherently non-portable may rely on
-+specific behaviours of their target systems in order to achieve synchronization
-+in the most lightweight manner possible. For drivers intending to be portable
-+between multiple architectures and bus implementations, the kernel offers a
-+series of accessor functions that provide various degrees of ordering
-+guarantees:
- 
-- (*) inX(), outX():
-+ (*) readX(), writeX():
- 
--     These are intended to talk to I/O space rather than memory space, but
--     that's primarily a CPU-specific concept.  The i386 and x86_64 processors
--     do indeed have special I/O space access cycles and instructions, but many
--     CPUs don't have such a concept.
-+     The readX() and writeX() MMIO accessors take a pointer to the peripheral
-+     being accessed as an __iomem * parameter. For pointers mapped with the
-+     default I/O attributes (e.g. those returned by ioremap()), then the
-+     ordering guarantees are as follows:
- 
--     The PCI bus, amongst others, defines an I/O space concept which - on such
--     CPUs as i386 and x86_64 - readily maps to the CPU's concept of I/O
--     space.  However, it may also be mapped as a virtual I/O space in the CPU's
--     memory map, particularly on those CPUs that don't support alternate I/O
--     spaces.
-+     1. All readX() and writeX() accesses to the same peripheral are ordered
-+        with respect to each other. For example, this ensures that MMIO register
-+	writes by the CPU to a particular device will arrive in program order.
- 
--     Accesses to this space may be fully synchronous (as on i386), but
--     intermediary bridges (such as the PCI host bridge) may not fully honour
--     that.
-+     2. A writeX() by the CPU to the peripheral will first wait for the
-+        completion of all prior CPU writes to memory. For example, this ensures
-+        that writes by the CPU to an outbound DMA buffer allocated by
-+        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
-+        to its MMIO control register to trigger the transfer.
- 
--     They are guaranteed to be fully ordered with respect to each other.
-+     3. A readX() by the CPU from the peripheral will complete before any
-+	subsequent CPU reads from memory can begin. For example, this ensures
-+	that reads by the CPU from an incoming DMA buffer allocated by
-+	dma_alloc_coherent() will not see stale data after reading from the DMA
-+	engine's MMIO status register to establish that the DMA transfer has
-+	completed.
- 
--     They are not guaranteed to be fully ordered with respect to other types of
--     memory and I/O operation.
-+     4. A readX() by the CPU from the peripheral will complete before any
-+	subsequent delay() loop can begin execution. For example, this ensures
-+	that two MMIO register writes by the CPU to a peripheral will arrive at
-+	least 1us apart if the first write is immediately read back with readX()
-+	and udelay(1) is called prior to the second writeX().
- 
-- (*) readX(), writeX():
-+     __iomem pointers obtained with non-default attributes (e.g. those returned
-+     by ioremap_wc()) are unlikely to provide many of these guarantees.
- 
--     Whether these are guaranteed to be fully ordered and uncombined with
--     respect to each other on the issuing CPU depends on the characteristics
--     defined for the memory window through which they're accessing.  On later
--     i386 architecture machines, for example, this is controlled by way of the
--     MTRR registers.
-+ (*) readX_relaxed(), writeX_relaxed():
- 
--     Ordinarily, these will be guaranteed to be fully ordered and uncombined,
--     provided they're not accessing a prefetchable device.
-+     These are similar to readX() and writeX(), but provide weaker memory
-+     ordering guarantees. Specifically, they do not guarantee ordering with
-+     respect to normal memory accesses or delay() loops (i.e bullets 2-4 above)
-+     but they are still guaranteed to be ordered with respect to other accesses
-+     to the same peripheral when operating on __iomem pointers mapped with the
-+     default I/O attributes.
- 
--     However, intermediary hardware (such as a PCI bridge) may indulge in
--     deferral if it so wishes; to flush a store, a load from the same location
--     is preferred[*], but a load from the same device or from configuration
--     space should suffice for PCI.
-+ (*) readsX(), writesX():
- 
--     [*] NOTE! attempting to load from the same location as was written to may
--	 cause a malfunction - consider the 16550 Rx/Tx serial registers for
--	 example.
-+     The readsX() and writesX() MMIO accessors are designed for accessing
-+     register-based, memory-mapped FIFOs residing on peripherals that are not
-+     capable of performing DMA. Consequently, they provide only the ordering
-+     guarantees of readX_relaxed() and writeX_relaxed(), as documented above.
- 
--     Used with prefetchable I/O memory, an mmiowb() barrier may be required to
--     force stores to be ordered.
-+ (*) inX(), outX():
- 
--     Please refer to the PCI specification for more information on interactions
--     between PCI transactions.
-+     The inX() and outX() accessors are intended to access legacy port-mapped
-+     I/O peripherals, which may require special instructions on some
-+     architectures (notably x86). The port number of the peripheral being
-+     accessed is passed as an argument.
- 
-- (*) readX_relaxed(), writeX_relaxed()
-+     Since many CPU architectures ultimately access these peripherals via an
-+     internal virtual memory mapping, the portable ordering guarantees provided
-+     by inX() and outX() are the same as those provided by readX() and writeX()
-+     respectively when accessing a mapping with the default I/O attributes.
- 
--     These are similar to readX() and writeX(), but provide weaker memory
--     ordering guarantees.  Specifically, they do not guarantee ordering with
--     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
--     ordering with respect to LOCK or UNLOCK operations.  If the latter is
--     required, an mmiowb() barrier can be used.  Note that relaxed accesses to
--     the same peripheral are guaranteed to be ordered with respect to each
--     other.
-+     Device drivers may expect outX() to emit a non-posted write transaction
-+     that waits for a completion response from the I/O peripheral before
-+     returning. This is not guaranteed by all architectures and is therefore
-+     not part of the portable ordering semantics.
+diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
+new file mode 100644
+index 000000000000..9439ff037b2d
+--- /dev/null
++++ b/include/asm-generic/mmiowb.h
+@@ -0,0 +1,63 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_MMIOWB_H
++#define __ASM_GENERIC_MMIOWB_H
 +
-+ (*) insX(), outsX():
++/*
++ * Generic implementation of mmiowb() tracking for spinlocks.
++ *
++ * If your architecture doesn't ensure that writes to an I/O peripheral
++ * within two spinlocked sections on two different CPUs are seen by the
++ * peripheral in the order corresponding to the lock handover, then you
++ * need to follow these FIVE easy steps:
++ *
++ * 	1. Implement mmiowb() (and arch_mmiowb_state() if you're fancy)
++ *	   in asm/mmiowb.h, then #include this file
++ *	2. Ensure your I/O write accessors call mmiowb_set_pending()
++ *	3. Select ARCH_HAS_MMIOWB
++ *	4. Untangle the resulting mess of header files
++ *	5. Complain to your architects
++ */
++#ifdef CONFIG_MMIOWB
 +
-+     As above, the insX() and outsX() accessors provide the same ordering
-+     guarantees as readsX() and writesX() respectively when accessing a mapping
-+     with the default I/O attributes.
- 
-  (*) ioreadX(), iowriteX()
- 
-      These will perform appropriately for the type of access they're actually
-      doing, be it inX()/outX() or readX()/writeX().
- 
-+All of these accessors assume that the underlying peripheral is little-endian,
-+and will therefore perform byte-swapping operations on big-endian architectures.
++#include <linux/compiler.h>
++#include <asm-generic/mmiowb_types.h>
 +
-+Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
-+operations is a dangerous sport which may require the use of mmiowb(). See the
-+subsection "Acquires vs I/O accesses" for more information.
++#ifndef arch_mmiowb_state
++#include <asm/percpu.h>
++#include <asm/smp.h>
++
++DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
++#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
++#else
++#define __mmiowb_state()	arch_mmiowb_state()
++#endif	/* arch_mmiowb_state */
++
++static inline void mmiowb_set_pending(void)
++{
++	struct mmiowb_state *ms = __mmiowb_state();
++	ms->mmiowb_pending = ms->nesting_count;
++}
++
++static inline void mmiowb_spin_lock(void)
++{
++	struct mmiowb_state *ms = __mmiowb_state();
++	ms->nesting_count++;
++}
++
++static inline void mmiowb_spin_unlock(void)
++{
++	struct mmiowb_state *ms = __mmiowb_state();
++
++	if (unlikely(ms->mmiowb_pending)) {
++		ms->mmiowb_pending = 0;
++		mmiowb();
++	}
++
++	ms->nesting_count--;
++}
++#else
++#define mmiowb_set_pending()		do { } while (0)
++#define mmiowb_spin_lock()		do { } while (0)
++#define mmiowb_spin_unlock()		do { } while (0)
++#endif	/* CONFIG_MMIOWB */
++#endif	/* __ASM_GENERIC_MMIOWB_H */
+diff --git a/include/asm-generic/mmiowb_types.h b/include/asm-generic/mmiowb_types.h
+new file mode 100644
+index 000000000000..8eb0095655e7
+--- /dev/null
++++ b/include/asm-generic/mmiowb_types.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_MMIOWB_TYPES_H
++#define __ASM_GENERIC_MMIOWB_TYPES_H
++
++#include <linux/types.h>
++
++struct mmiowb_state {
++	u16	nesting_count;
++	u16	mmiowb_pending;
++};
++
++#endif	/* __ASM_GENERIC_MMIOWB_TYPES_H */
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index fbba478ae522..6ba2570eddad 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -251,3 +251,10 @@ config ARCH_USE_QUEUED_RWLOCKS
+ config QUEUED_RWLOCKS
+ 	def_bool y if ARCH_USE_QUEUED_RWLOCKS
+ 	depends on SMP
++
++config ARCH_HAS_MMIOWB
++	bool
++
++config MMIOWB
++	def_bool y if ARCH_HAS_MMIOWB
++	depends on SMP
+diff --git a/kernel/locking/spinlock.c b/kernel/locking/spinlock.c
+index 936f3d14dd6b..0ff08380f531 100644
+--- a/kernel/locking/spinlock.c
++++ b/kernel/locking/spinlock.c
+@@ -22,6 +22,13 @@
+ #include <linux/debug_locks.h>
+ #include <linux/export.h>
  
- ========================================
- ASSUMED MINIMUM EXECUTION ORDERING MODEL
++#ifdef CONFIG_MMIOWB
++#ifndef arch_mmiowb_state
++DEFINE_PER_CPU(struct mmiowb_state, __mmiowb_state);
++EXPORT_PER_CPU_SYMBOL(__mmiowb_state);
++#endif
++#endif
++
+ /*
+  * If lockdep is enabled then we use the non-preemption spin-ops
+  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
 -- 
 2.11.0
