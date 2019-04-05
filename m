@@ -1,92 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35268 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726291AbfDEPa5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 11:30:57 -0400
-Date: Fri, 5 Apr 2019 10:30:48 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH RFC 2/5] x86/speculation: Add support for
- 'cpu_spec_mitigations=' cmdline options
-Message-ID: <20190405153048.knaizips2n27fwtx@treble>
-References: <cover.1554396090.git.jpoimboe@redhat.com>
- <78c63cb08f36f55407f534d49cc2543079e44dbb.1554396090.git.jpoimboe@redhat.com>
- <20190405135712.GF23348@zn.tnic>
- <5ccc7515-33e6-b726-833e-9553ab0f4c6a@infradead.org>
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:40551 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726643AbfDEPux (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Apr 2019 11:50:53 -0400
+Received: by mail-lf1-f65.google.com with SMTP id a28so4726791lfo.7
+        for <linux-arch@vger.kernel.org>; Fri, 05 Apr 2019 08:50:52 -0700 (PDT)
+Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com. [209.85.167.41])
+        by smtp.gmail.com with ESMTPSA id w1sm4438295lfn.79.2019.04.05.08.50.48
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 05 Apr 2019 08:50:49 -0700 (PDT)
+Received: by mail-lf1-f41.google.com with SMTP id 10so4723691lfr.8
+        for <linux-arch@vger.kernel.org>; Fri, 05 Apr 2019 08:50:48 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <5ccc7515-33e6-b726-833e-9553ab0f4c6a@infradead.org>
+References: <20190405135936.7266-1-will.deacon@arm.com> <20190405135936.7266-18-will.deacon@arm.com>
+In-Reply-To: <20190405135936.7266-18-will.deacon@arm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 5 Apr 2019 05:50:32 -1000
+Message-ID: <CAHk-=wj6ymuXDS1Azr4fFJC7Z77zOfN5vaKZjDzUA4izvULWXg@mail.gmail.com>
+Subject: Re: [PATCH v2 17/21] drivers: Remove explicit invocations of mmiowb()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190405153048.O_Br143nVxVMU9csW4aOtbQpM08-f4KvQ02DvzZx_s8@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
+Message-ID: <20190405155032.ZmHPn5YG91SFFp83cn6XxnV9A6s-xhlxkoIW7GByl7E@z>
 
-On Fri, Apr 05, 2019 at 08:18:09AM -0700, Randy Dunlap wrote:
-> On 4/5/19 6:57 AM, Borislav Petkov wrote:
-> > On Thu, Apr 04, 2019 at 11:44:12AM -0500, Josh Poimboeuf wrote:
-> >> Configure x86 runtime CPU speculation bug mitigations in accordance with
-> >> the 'cpu_spec_mitigations=' cmdline options.  This affects Meltdown,
-> >> Spectre v2, Speculative Store Bypass, and L1TF.
-> >>
-> >> The default behavior is unchanged.
-> >>
-> >> Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
-> >> ---
-> >>  .../admin-guide/kernel-parameters.txt         | 15 +++++++++
-> >>  arch/x86/include/asm/processor.h              |  1 +
-> >>  arch/x86/kernel/cpu/bugs.c                    | 32 ++++++++++++++++---
-> >>  arch/x86/kvm/vmx/vmx.c                        |  2 ++
-> >>  arch/x86/mm/pti.c                             |  4 ++-
-> >>  5 files changed, 49 insertions(+), 5 deletions(-)
-> >>
-> >> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> >> index ac42e510bd6e..29dc03971630 100644
-> >> --- a/Documentation/admin-guide/kernel-parameters.txt
-> >> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> >> @@ -2552,6 +2552,11 @@
-> >>  
-> >>  			off
-> >>  				Disable all speculative CPU mitigations.
-> >> +				Equivalent to: nopti [x86]
-> >> +					       nospectre_v2 [x86]
-> >> +					       spectre_v2_user=off [x86]
-> >> +					       spec_store_bypass_disable=off [x86]
-> >> +					       l1tf=off [x86]
-> >>  
-> >>  			auto (default)
-> >>  				Mitigate all speculative CPU vulnerabilities,
-> >> @@ -2560,12 +2565,22 @@
-> >>  				surprised by SMT getting disabled across kernel
-> >>  				upgrades, or who have other ways of avoiding
-> >>  				SMT-based attacks.
-> >> +				Equivalent to: pti=auto [x86]
-> >> +					       spectre_v2=auto [x86]
-> >> +					       spectre_v2_user=auto [x86]
-> >> +					       spec_store_bypass_disable=auto [x86]
-> >> +					       l1tf=flush [x86]
-> >>  
-> >>  			auto,nosmt
-> >>  				Mitigate all speculative CPU vulnerabilities,
-> >>  				disabling SMT if needed.  This is for users who
-> >>  				always want to be fully mitigated, even if it
-> >>  				means losing SMT.
-> >> +				Equivalent to: pti=auto [x86]
-> >> +					       spectre_v2=auto [x86]
-> >> +					       spectre_v2_user=auto [x86]
-> >> +					       spec_store_bypass_disable=auto [x86]
-> >> +					       l1tf=flush,nosmt [x86]
-> >>  
-> >>  	mminit_loglevel=
-> >>  			[KNL] When CONFIG_DEBUG_MEMORY_INIT is set, this
-> > 
-> > Yap, those sets look ok.
-> 
-> nit:  s/x86/X86/g
-> according to Documentation/admin-guide/kernel-parameters.rst
+On Fri, Apr 5, 2019 at 4:01 AM Will Deacon <will.deacon@arm.com> wrote:
+>
+> mmiowb() is now implied by spin_unlock() on architectures that require
+> it, so there is no reason to call it from driver code. This patch was
+> generated using coccinelle:
+>
+>         @mmiowb@
+>         @@
+>         - mmiowb();
 
-Ah, I didn't realize I was conforming to a standard.  I will update the
-other arch strings as well.  Thanks.
+So I love the patch series, and think we should just do it, but I do
+wonder if some of the drivers involved end up relying on memory
+ordering things (store_release -> load_aquire) and IO ordering rather
+than using locking...
 
--- 
-Josh
+Wouldn't such use now be broken on ia64 SN platforms? Do we care?
+
+So it might be worth noting that a lot of the mmiowb()s here weren't
+paired with spin_unlock?
+
+                    Linus
