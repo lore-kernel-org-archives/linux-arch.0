@@ -1,137 +1,33 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 12/21] ia64/mmiowb: Add unconditional mmiowb() to arch_spin_unlock()
-Date: Fri,  5 Apr 2019 14:59:27 +0100
-Message-ID: <20190405135936.7266-13-will.deacon@arm.com>
-References: <20190405135936.7266-1-will.deacon@arm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH 0/6 v3] sycalls: Remove args i and n from
+ syscall_get_arguments()
+Date: Fri, 5 Apr 2019 10:07:49 -0400
+Message-ID: <20190405100749.56bf86a2@gandalf.local.home>
+References: <20190401134104.676620247@goodmis.org>
+ <20190404092803.1bffd135@gandalf.local.home>
+ <CAHk-=wh1wv_g2cW07OG1n5oHFXxZUc2192ZQ+6p5Cj+46FDQVQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190405135936.7266-1-will.deacon@arm.com>
+In-Reply-To: <CAHk-=wh1wv_g2cW07OG1n5oHFXxZUc2192ZQ+6p5Cj+46FDQVQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatoc>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Dmitry V. Levin" <ldv@altlinux.org>
 List-Id: linux-arch.vger.kernel.org
 
-The mmiowb() macro is horribly difficult to use and drivers will continue
-to work most of the time if they omit a call when it is required.
+On Thu, 4 Apr 2019 15:24:16 -1000
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Rather than rely on driver authors getting this right, push mmiowb() into
-arch_spin_unlock() for ia64. If this is deemed to be a performance issue,
-a subsequent optimisation could make use of ARCH_HAS_MMIOWB to elide
-the barrier in cases where no I/O writes were performed inside the
-critical section.
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- arch/ia64/include/asm/Kbuild     |  1 -
- arch/ia64/include/asm/io.h       | 17 -----------------
- arch/ia64/include/asm/mmiowb.h   | 25 +++++++++++++++++++++++++
- arch/ia64/include/asm/spinlock.h |  2 ++
- 4 files changed, 27 insertions(+), 18 deletions(-)
- create mode 100644 arch/ia64/include/asm/mmiowb.h
+> I assume you've actually used this and can trace system calls with
+> arguments properly, so that it's all tested at least on x86-64?
+>
 
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index cabfe0280c33..11f191689c9e 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -5,7 +5,6 @@ generic-y += irq_work.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
--generic-y += mmiowb.h
- generic-y += preempt.h
- generic-y += trace_clock.h
- generic-y += vtime.h
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index 1e6fef69bb01..a511d62d447a 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -113,20 +113,6 @@ extern int valid_mmap_phys_addr_range (unsigned long pfn, size_t count);
-  */
- #define __ia64_mf_a()	ia64_mfa()
- 
--/**
-- * ___ia64_mmiowb - I/O write barrier
-- *
-- * Ensure ordering of I/O space writes.  This will make sure that writes
-- * following the barrier will arrive after all previous writes.  For most
-- * ia64 platforms, this is a simple 'mf.a' instruction.
-- *
-- * See Documentation/driver-api/device-io.rst for more information.
-- */
--static inline void ___ia64_mmiowb(void)
--{
--	ia64_mfa();
--}
--
- static inline void*
- __ia64_mk_io_addr (unsigned long port)
- {
-@@ -161,7 +147,6 @@ __ia64_mk_io_addr (unsigned long port)
- #define __ia64_writew	___ia64_writew
- #define __ia64_writel	___ia64_writel
- #define __ia64_writeq	___ia64_writeq
--#define __ia64_mmiowb	___ia64_mmiowb
- 
- /*
-  * For the in/out routines, we need to do "mf.a" _after_ doing the I/O access to ensure
-@@ -296,7 +281,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define __outb		platform_outb
- #define __outw		platform_outw
- #define __outl		platform_outl
--#define __mmiowb	platform_mmiowb
- 
- #define inb(p)		__inb(p)
- #define inw(p)		__inw(p)
-@@ -310,7 +294,6 @@ __outsl (unsigned long port, const void *src, unsigned long count)
- #define outsb(p,s,c)	__outsb(p,s,c)
- #define outsw(p,s,c)	__outsw(p,s,c)
- #define outsl(p,s,c)	__outsl(p,s,c)
--#define mmiowb()	__mmiowb()
- 
- /*
-  * The address passed to these functions are ioremap()ped already.
-diff --git a/arch/ia64/include/asm/mmiowb.h b/arch/ia64/include/asm/mmiowb.h
-new file mode 100644
-index 000000000000..297b85ac84a0
---- /dev/null
-+++ b/arch/ia64/include/asm/mmiowb.h
-@@ -0,0 +1,25 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _ASM_IA64_MMIOWB_H
-+#define _ASM_IA64_MMIOWB_H
-+
-+#include <asm/machvec.h>
-+
-+/**
-+ * ___ia64_mmiowb - I/O write barrier
-+ *
-+ * Ensure ordering of I/O space writes.  This will make sure that writes
-+ * following the barrier will arrive after all previous writes.  For most
-+ * ia64 platforms, this is a simple 'mf.a' instruction.
-+ */
-+static inline void ___ia64_mmiowb(void)
-+{
-+	ia64_mfa();
-+}
-+
-+#define __ia64_mmiowb	___ia64_mmiowb
-+#define mmiowb()	platform_mmiowb()
-+
-+#include <asm-generic/mmiowb.h>
-+
-+#endif	/* _ASM_IA64_MMIOWB_H */
-diff --git a/arch/ia64/include/asm/spinlock.h b/arch/ia64/include/asm/spinlock.h
-index afd0b3121b4c..5f620e66384e 100644
---- a/arch/ia64/include/asm/spinlock.h
-+++ b/arch/ia64/include/asm/spinlock.h
-@@ -73,6 +73,8 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
- {
- 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
- 
-+	/* This could be optimised with ARCH_HAS_MMIOWB */
-+	mmiowb();
- 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
- 	WRITE_ONCE(*p, (tmp + 2) & ~1);
- }
--- 
-2.11.0
+Yep, and even tested it against strace. Looks fine. I also ran it
+through my entire ftrace test suite (takes around 10 hours or more),
+and it all passed.
+
+I'll collect the last bit of acks and then send you a pull request.
+
+-- Steve
