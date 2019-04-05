@@ -1,57 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:52608 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730554AbfDEQaf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 12:30:35 -0400
-Date: Fri, 5 Apr 2019 17:30:27 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 00/21] Remove Mysterious Macro Intended to Obscure
- Weird Behaviours (mmiowb())
-Message-ID: <20190405163027.GA19813@fuggles.cambridge.arm.com>
-References: <20190405135936.7266-1-will.deacon@arm.com>
- <CAHk-=wiarqZVH52VuKDiPk7Jqf1H-znf-NMoGkKnM7H08VN5fg@mail.gmail.com>
- <20190405160919.GA7857@fuggles.cambridge.arm.com>
- <CAHk-=wiBQwAL5hoLD9-EmCAf1N9CUmUkuj_jJhUCsboNLy-uLw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wiBQwAL5hoLD9-EmCAf1N9CUmUkuj_jJhUCsboNLy-uLw@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:38082 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726204AbfDEXuH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 19:50:07 -0400
+Subject: Re: [GIT PULL] tracing/syscalls: Remove args i and n from
+ syscall_get_arguments()
+From: pr-tracker-bot@kernel.org
+In-Reply-To: <20190405101832.1273bfac@gandalf.local.home>
+References: <20190405101832.1273bfac@gandalf.local.home>
+Message-ID: <155450820724.23520.4400725686653324143.pr-tracker-bot@kernel.org>
+Date: Fri, 05 Apr 2019 23:50:07 +0000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20190405163027.b3xOvHh388hqpcO1cRDyl_GywdYj9V8xJKJDktX9UXk@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <20190405235007.7OWOvx_fSr3ode_TcmP_pJ1Jf0L_K259M4uIlk2MRig@z>
 
-On Fri, Apr 05, 2019 at 06:15:12AM -1000, Linus Torvalds wrote:
-> On Fri, Apr 5, 2019 at 6:09 AM Will Deacon <will.deacon@arm.com> wrote:
-> > >
-> > > Or did I miss something? I think the ia64() mb/rmb/wmb stuff only
-> > > works on normal memory on ia64.
-> >
-> > I was worried about RISC-V, but actually their wmb() is "fence ow,ow"
-> > which I think is stronger than their mmiowb() "fence o,w" implementation.
-> 
-> Also with smp_store_release -> smp_load_acquire kind of ordering?
+The pull request you sent on Fri, 5 Apr 2019 10:18:32 -0400:
 
-Hmm, to be honest, I'm not convinced that smp_load_acquire() is ordered
-wrt subsequent I/O on RISC-V anyway, so in the pattern of:
+> git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git trace-5.1-rc3
 
-CPU 0:
-writel(1, dev);
-wmb();
-smp_store_release(&x, 1);
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/970b766cfd3f3cb7275bf51144b1678c547882fc
 
-CPU 1:
-if (smp_load_acquire(&x) == 1)
-	writel(2, dev)
+Thank you!
 
-then I think it's actually the control dependency in CPU 1 that provides
-the expected ordering. That's probably quite fragile.
-
-> Again, this is not at all a NAK - I think we should do this - just
-> perhaps a request to add a note to the commit and make people aware of
-> the issue.
-
-Right, I'll do that.
-
-Will
+-- 
+Deet-doot-dot, I am a bot.
+https://korg.wiki.kernel.org/userdoc/prtracker
