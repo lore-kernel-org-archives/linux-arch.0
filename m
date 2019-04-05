@@ -1,56 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38760 "EHLO mx1.redhat.com"
+Received: from foss.arm.com ([217.140.101.70]:52308 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726135AbfDEQFo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 12:05:44 -0400
-Date: Fri, 5 Apr 2019 11:05:36 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH RFC 2/5] x86/speculation: Add support for
- 'cpu_spec_mitigations=' cmdline options
-Message-ID: <20190405160536.sks2hmo6sxnxg3tl@treble>
-References: <cover.1554396090.git.jpoimboe@redhat.com>
- <78c63cb08f36f55407f534d49cc2543079e44dbb.1554396090.git.jpoimboe@redhat.com>
- <20190405135712.GF23348@zn.tnic>
- <20190405143101.ksj7ayjis4p52dgt@treble>
- <20190405152650.GH23348@zn.tnic>
+        id S1731369AbfDEQJ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Apr 2019 12:09:29 -0400
+Date: Fri, 5 Apr 2019 17:09:19 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 00/21] Remove Mysterious Macro Intended to Obscure
+ Weird Behaviours (mmiowb())
+Message-ID: <20190405160919.GA7857@fuggles.cambridge.arm.com>
+References: <20190405135936.7266-1-will.deacon@arm.com>
+ <CAHk-=wiarqZVH52VuKDiPk7Jqf1H-znf-NMoGkKnM7H08VN5fg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190405152650.GH23348@zn.tnic>
+In-Reply-To: <CAHk-=wiarqZVH52VuKDiPk7Jqf1H-znf-NMoGkKnM7H08VN5fg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190405160536.QPWhlHsvgBm_kAUrhLLsn_ruQrtPacGUZ5ZFjc5vBS8@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
+Message-ID: <20190405160919.yIMTprtTJC4hl5ejSYfK9JKPOfKczluWcXjD4U-C_Po@z>
 
-On Fri, Apr 05, 2019 at 05:26:50PM +0200, Borislav Petkov wrote:
-> On Fri, Apr 05, 2019 at 09:31:01AM -0500, Josh Poimboeuf wrote:
-> > My thinking was that the individual options could be used to override
-> > the global option.  But maybe that's overkill?  I dunno.
+On Fri, Apr 05, 2019 at 05:55:37AM -1000, Linus Torvalds wrote:
+> On Fri, Apr 5, 2019 at 3:59 AM Will Deacon <will.deacon@arm.com> wrote:
+> >
+> > I've also pushed this series out here:
+> >
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/mmiowb
+> >
+> > and I would like to get it into -next once the first patch has been acked.
 > 
-> You mean if the user deliberately types:
-> 
-> "cpu_spec_mitigations=off spectre_v2=auto"
-> 
-> on the cmdline to turn off all and then enable only one?
-> 
-> Hmm, yap, sounds like an overkill to me. Then I'd probably do:
-> 
-> 	pr_err("Make up your mind already!\n");
-> 	return;
-> 
-> :-))
-> 
-> I'd say let's do the simpler and cleaner thing now and think about
-> supporting this overkill when it really turns out that it is needed.
+> Ack on it all.
 
-Fair enough.
+Thanks.
 
-> > I assume you mean just the part where L1TF_MITIGATION_DEFAULT is added?
+> With the afore-mentioned slight worry about non-spinlocked IO
+> ordering, but I _think_ it's purely limited to ia64 and wmb() and
+> friends should work elsewhere?
 > 
-> Yap.
+> Or did I miss something? I think the ia64() mb/rmb/wmb stuff only
+> works on normal memory on ia64.
 
-Ok.
+I was worried about RISC-V, but actually their wmb() is "fence ow,ow"
+which I think is stronger than their mmiowb() "fence o,w" implementation.
 
--- 
-Josh
+Everybody else should be fine with wmb() afaict, so if a driver writer
+is smart enough to want this ordering outside of spinlocks, they can
+do that for everybody apart from ia64.
+
+Will
