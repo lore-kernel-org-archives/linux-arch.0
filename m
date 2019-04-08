@@ -1,30 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38082 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726204AbfDEXuH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Apr 2019 19:50:07 -0400
-Subject: Re: [GIT PULL] tracing/syscalls: Remove args i and n from
- syscall_get_arguments()
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <20190405101832.1273bfac@gandalf.local.home>
-References: <20190405101832.1273bfac@gandalf.local.home>
-Message-ID: <155450820724.23520.4400725686653324143.pr-tracker-bot@kernel.org>
-Date: Fri, 05 Apr 2019 23:50:07 +0000
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:33556 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726352AbfDHAmg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Apr 2019 20:42:36 -0400
+Received: by mail-pf1-f196.google.com with SMTP id h5so1943545pfo.0
+        for <linux-arch@vger.kernel.org>; Sun, 07 Apr 2019 17:42:35 -0700 (PDT)
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Subject: [PATCH] srcu: Remove unused vmlinux srcu linker entries
+Date: Sun,  7 Apr 2019 20:42:17 -0400
+Message-ID: <20190408004217.176946-1-joel@joelfernandes.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <20190405235007.7OWOvx_fSr3ode_TcmP_pJ1Jf0L_K259M4uIlk2MRig@z>
+To: linux-kernel@vger.kernel.org
+Cc: "Joel Fernandes (Google)" <joel@joelfernandes.org>, kernel-team@android.com, paulmck@linux.vnet.ibm.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20190408004217.Cmm68LYv_hbwSZFTQCezRCFy-e_7HUlAg0rg4EIbxHE@z>
 
-The pull request you sent on Fri, 5 Apr 2019 10:18:32 -0400:
+The SRCU for modules optimization introduced vmlinux linker entries
+which is unused since it applies only to the built-in vmlinux. So remove
+it to prevent any space usage due to the 8 byte alignment it added.
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git trace-5.1-rc3
+Tested with SRCU torture_type and rcutorture. Put prints in module
+loader to confirm it is able to find and initialize the srcu structures.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/970b766cfd3f3cb7275bf51144b1678c547882fc
+Cc: kernel-team@android.com
+Cc: paulmck@linux.vnet.ibm.com
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
 
-Thank you!
+---
+ include/asm-generic/vmlinux.lds.h | 4 ----
+ 1 file changed, 4 deletions(-)
 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index c2d919a1566e..f8f6f04c4453 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -338,10 +338,6 @@
+ 		KEEP(*(__tracepoints_ptrs)) /* Tracepoints: pointer array */ \
+ 		__stop___tracepoints_ptrs = .;				\
+ 		*(__tracepoints_strings)/* Tracepoints: strings */	\
+-		. = ALIGN(8);						\
+-		__start___srcu_struct = .;				\
+-		*(___srcu_struct_ptrs)					\
+-		__end___srcu_struct = .;				\
+ 	}								\
+ 									\
+ 	.rodata1          : AT(ADDR(.rodata1) - LOAD_OFFSET) {		\
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+2.21.0.392.gf8f6787159e-goog
