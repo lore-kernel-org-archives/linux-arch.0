@@ -1,32 +1,52 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: CONFIG_* symbols in UAPI headers?
-Date: Mon, 8 Apr 2019 14:46:40 +0200
-Message-ID: <20190408124640.GA607@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: CONFIG_* symbols in UAPI headers?
+Date: Mon, 8 Apr 2019 15:58:44 +0200
+Message-ID: <CAK8P3a13NVbkJzzoZG_7HrDT9qGPR5ptbRUL=xH1oZ1a+5ksHw@mail.gmail.com>
+References: <20190408124640.GA607@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <20190408124640.GA607@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jie Zhang <jie.zhang@analog.com>
-Cc: Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jie Zhang <jie.zhang@analog.com>, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-I just stumbled over the MAP_UNINITIALIZED defintion, initially
-added by:
+On Mon, Apr 8, 2019 at 2:46 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> I just stumbled over the MAP_UNINITIALIZED defintion, initially
+> added by:
+>
+> commit ea637639591def87a54cea811cbac796980cb30d
+> Author: Jie Zhang <jie.zhang@analog.com>
+> Date:   Mon Dec 14 18:00:02 2009 -0800
+>
+>     nommu: fix malloc performance by adding uninitialized flag
+>
+> The defintion depends on CONFIG_MMAP_ALLOW_UNINITIALIZED, which
+> will never be set by userspace.  How is this supposed to work?
+>
+> Shoudn't we define the symbol unconditionally and just turn it
+> into a no-op in the implementation?
 
-commit ea637639591def87a54cea811cbac796980cb30d
-Author: Jie Zhang <jie.zhang@analog.com>
-Date:   Mon Dec 14 18:00:02 2009 -0800
+Right, good catch. That should work. It can probably be done
+by adding another check before the conditional, like:
 
-    nommu: fix malloc performance by adding uninitialized flag
+       /* clear anonymous mappings that don't ask for uninitialized data */
+       if (!vma->vm_file &&
+           !(IS_ENABLED(CONFIG_MMAP_ALLOW_UNINITIALIZED) &&
+             (flags & MAP_UNINITIALIZED))
+               memset((void *)region->vm_start, 0,
+                      region->vm_end - region->vm_start);
 
-The defintion depends on CONFIG_MMAP_ALLOW_UNINITIALIZED, which
-will never be set by userspace.  How is this supposed to work?
+> There are a few similar issues, like struct elf_prstatus having
+> a different layout depending on CONFIG_BINFMT_ELF_FDPIC, or
+> MAX_SHARED_LIBS defending on CONFIG_BINFMT_SHARED_FLAT.
 
-Shoudn't we define the symbol unconditionally and just turn it
-into a no-op in the implementation?
+I thought we had cleaned them out a long time ago, but it looks
+like those have been there since the uapi headers got split out,
+and are still wrong.
 
+Why doesn't scripts/headers_check.pl find those?
 
-There are a few similar issues, like struct elf_prstatus having
-a different layout depending on CONFIG_BINFMT_ELF_FDPIC, or
-MAX_SHARED_LIBS defending on CONFIG_BINFMT_SHARED_FLAT.
+      Arnd
