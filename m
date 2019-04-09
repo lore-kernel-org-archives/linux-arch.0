@@ -1,93 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38318 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726001AbfDINqX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Apr 2019 09:46:23 -0400
-Date: Tue, 9 Apr 2019 14:46:16 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 17/21] drivers: Remove explicit invocations of mmiowb()
-Message-ID: <20190409134616.GD2990@fuggles.cambridge.arm.com>
-References: <20190405135936.7266-1-will.deacon@arm.com>
- <20190405135936.7266-18-will.deacon@arm.com>
- <CAHk-=wj6ymuXDS1Azr4fFJC7Z77zOfN5vaKZjDzUA4izvULWXg@mail.gmail.com>
- <1554798941.svmfd0sejb.astroid@bobo.none>
+Received: from mx1.redhat.com ([209.132.183.28]:60778 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726509AbfDISR1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Apr 2019 14:17:27 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <CAK8P3a13NVbkJzzoZG_7HrDT9qGPR5ptbRUL=xH1oZ1a+5ksHw@mail.gmail.com>
+References: <CAK8P3a13NVbkJzzoZG_7HrDT9qGPR5ptbRUL=xH1oZ1a+5ksHw@mail.gmail.com> <20190408124640.GA607@lst.de>
+Subject: Re: CONFIG_* symbols in UAPI headers?
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1554798941.svmfd0sejb.astroid@bobo.none>
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <3478.1554833845.1@warthog.procyon.org.uk>
+Date: Tue, 09 Apr 2019 19:17:25 +0100
+Message-ID: <3479.1554833845@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Luis Chamberlain <mcgrof@kernel.org>, Ingo Molnar <mingo@kernel.org>, Mikulas Patocka <mpatocka@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Stern <stern@rowland.harvard.edu>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20190409134616.xA5uwT2qNZWoncEu4-3JCpYlSM23TI8e8D7JqWk2xMg@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: dhowells@redhat.com, Christoph Hellwig <hch@lst.de>, Jie Zhang <jie.zhang@analog.com>, Mike Frysinger <vapier@gentoo.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190409181725.l6CzAfrsx6vNn1NlnxKykWijNZF577bIOKjUWmI7X28@z>
 
-Hi Nick,
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-On Tue, Apr 09, 2019 at 07:00:52PM +1000, Nicholas Piggin wrote:
-> Linus Torvalds's on April 6, 2019 1:50 am:
-> > On Fri, Apr 5, 2019 at 4:01 AM Will Deacon <will.deacon@arm.com> wrote:
-> >>
-> >> mmiowb() is now implied by spin_unlock() on architectures that require
-> >> it, so there is no reason to call it from driver code. This patch was
-> >> generated using coccinelle:
-> >>
-> >>         @mmiowb@
-> >>         @@
-> >>         - mmiowb();
-> > 
-> > So I love the patch series, and think we should just do it, but I do
-> > wonder if some of the drivers involved end up relying on memory
-> > ordering things (store_release -> load_aquire) and IO ordering rather
-> > than using locking...
+> > I just stumbled over the MAP_UNINITIALIZED defintion, initially
+> > added by:
+> >
+> > commit ea637639591def87a54cea811cbac796980cb30d
+> > Author: Jie Zhang <jie.zhang@analog.com>
+> > Date:   Mon Dec 14 18:00:02 2009 -0800
+> >
+> >     nommu: fix malloc performance by adding uninitialized flag
+> >
+> > The defintion depends on CONFIG_MMAP_ALLOW_UNINITIALIZED, which
+> > will never be set by userspace.  How is this supposed to work?
+> >
+> > Shoudn't we define the symbol unconditionally and just turn it
+> > into a no-op in the implementation?
+
+Yes.
+
+> Right, good catch. That should work. It can probably be done
+> by adding another check before the conditional, like:
 > 
-> Hopefully the convention that smp_ prefix does not work for MMIO
-> ordering helps there. Drivers relying on that would be broken today
-> on powerpc, at least.
-> 
-> > Wouldn't such use now be broken on ia64 SN platforms? Do we care?
-> 
-> Hopefully not too much, what changed since last thread? :)
-> 
-> > So it might be worth noting that a lot of the mmiowb()s here weren't
-> > paired with spin_unlock?
-> 
-> I repeat myself, but the correct change is for ia64 to #define wmb to
-> mmiowb, then nothing is silently broken, nothing has to be noted, and 
-> nobody has to care. The ia64/sn2 platform will run a little slower 
-> that's all.
+>        /* clear anonymous mappings that don't ask for uninitialized data */
+>        if (!vma->vm_file &&
+>            !(IS_ENABLED(CONFIG_MMAP_ALLOW_UNINITIALIZED) &&
+>              (flags & MAP_UNINITIALIZED))
+>                memset((void *)region->vm_start, 0,
+>                       region->vm_end - region->vm_start);
 
-That's certainly something for the ia64 maintainers to consider, if they
-care about this behaviour. I still have hope that we'll drop ia64 in the
-near future :)
+Sounds good.
 
-> But deliberately breaking sn2 I guess is implicitly acknowledging the 
-> same end result that I wanted, so fine.
-> 
-> I think it might be an idea to remove all the mmiowb() that obviously
-> come before spin_unlock in one big patch, but then submit the rest 
-> individually to driver maintainers. I could do that rather than ask
-> more work from Will, if he and you agree.
+> > There are a few similar issues, like struct elf_prstatus having
+> > a different layout depending on CONFIG_BINFMT_ELF_FDPIC, or
+> > MAX_SHARED_LIBS defending on CONFIG_BINFMT_SHARED_FLAT.
 
-That's an option, I suppose, but I'd much rather just kill off mmiowb() in
-one fell swoop and be done with it. I've added the following message to
-the commit of the coccinelle patch so any breakage should be easily
-rectified:
+Because the kernel code uses that header and that struct too, so you'd break
+compilation of binfmt_elf_fdpic.c.  There is a way round it - and that's to
+copy the struct into the non-UAPI backing header and delete the conditional
+section from the UAPI one.  You'd have to stop the non-UAPI header from
+#including the UAPI header, though, and you'd have to hope that no one is
+trying to set it in userspace (gdb doesn't).
 
- | NOTE: mmiowb() has only ever guaranteed ordering in conjunction with
- | spin_unlock(). However, pairing each mmiowb() removal in this patch
- | with the corresponding call to spin_unlock() is not at all trivial,
- | so there is a small chance that this change may regress any drivers
- | incorrectly relying on mmiowb() to order MMIO writes between CPUs using
- | lock-free synchronisation. If you've ended up bisecting to this commit,
- | you can reintroduce the mmiowb() calls using wmb() instead, which should
- | restore the old behaviour on all architectures other than some esoteric
- | ia64 systems.
-
-That way we don't have to worry about the long tail of commits removing
-undocumented, dangling barriers.
-
-It's not like we're losing the information about where the mmiowb()s used to
-be, so it should be easy to address any fallout (but I'm not really expecting
-anything significant, to be honest with you).
-
-Will
+David
