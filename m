@@ -1,19 +1,22 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH 3/3] riscv/signal: Fixup additional syscall restarting
-Date: Tue, 9 Apr 2019 23:53:04 -0700
-Message-ID: <20190410065304.GA2942@infradead.org>
-References: <1554192153-2587-1-git-send-email-guoren@kernel.org>
- <1554192153-2587-3-git-send-email-guoren@kernel.org>
+From: huang ying <huang.ying.caritas@gmail.com>
+Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
+Date: Wed, 10 Apr 2019 16:15:44 +0800
+Message-ID: <CAC=cRTM5=e7rJX80m0vL10aQoLawK_VTnQubH8A7_sUO2VUCNA@mail.gmail.com>
+References: <1549566446-27967-1-git-send-email-longman@redhat.com>
+ <20190213091936.GA22829@shao2-debian> <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1554192153-2587-3-git-send-email-guoren@kernel.org>
+In-Reply-To: <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org
-Cc: arnd@arndb.de, palmer@sifive.com, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
+To: Waiman Long <longman@redhat.com>
+Cc: Chen Rong <rong.a.chen@intel.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation>
 List-Id: linux-arch.vger.kernel.org
 
-Looks good,
+Hi, Waiman,
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+What's the status of this patchset?  And its merging plan?
+
+Best Regards,
+Huang, Ying
