@@ -1,33 +1,43 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH RFC 1/5] cpu/speculation: Add 'cpu_spec_mitigations='
- cmdline options
-Date: Wed, 10 Apr 2019 10:30:28 +0200
-Message-ID: <20190410083028.GA26580@zn.tnic>
-References: <cover.1554396090.git.jpoimboe@redhat.com>
- <f0bd17358ab478eaca52f3b1da8305c150911b40.1554396090.git.jpoimboe@redhat.com>
- <20190405131211.GE23348@zn.tnic>
- <20190405142048.burthk2jnpcvi2om@treble>
- <20190405152059.GG23348@zn.tnic>
- <20190405160136.GI23348@zn.tnic>
- <20190405161852.nmpk22omgiety4df@treble>
- <87sguqwgu7.fsf@concordia.ellerman.id.au>
+From: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Subject: [PATCH 0/8] Prepare files under Documentation/*.txt to build with Sphinx
+Date: Wed, 10 Apr 2019 06:56:19 -0300
+Message-ID: <cover.1554889999.git.mchehab+samsung@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87sguqwgu7.fsf@concordia.ellerman.id.au>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.orglin
+To: Linux Doc Mailing List <linux-doc@vger.kernel.org>
+Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, David Howells <dhowells@redhat.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Luc Maranget <luc.maranget@inria.fr>, Alan Stern <stern@rowland.harvard.edu>, Akira Yokosawa <akiyks@gmail.com>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>, Jade Alglave <j.alglave@ucl.ac.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 10, 2019 at 03:48:48PM +1000, Michael Ellerman wrote:
-> What about when we have a mitigation for a non-speculation related bug :)
+In the past, we did some efforts to ensure that almost all files under
+Documentation/*.txt could be built with Sphinx.
 
-Like that is *ever* going to happen... :-P
+Some regressions happened there (and some new files got added).
+Fix those files in order to allow them to be able to build with Sphinx.
+
+The changes on this series are trivial, adding the minimum stuff to allow
+building those files with sphinx-build with no warnings and to make the
+contents minimally consistent with other documentation files.
+
+Mauro Carvalho Chehab (8):
+  docs: DMA-API-HOWTO: add a missing "="
+  docs: atomic_bitops.txt: add a title for this document
+  docs: clearing-warn-once.txt: add a title for this document
+  docs: ntb.txt: use Sphinx notation for the two ascii figures
+  docs: unaligned-memory-access.txt: use a lowercase title
+  docs: video-output.txt: convert it to ReST format
+  docs: ntb.txt: add blank lines to clean up some Sphinx warnings
+  docs: speculation.txt: mark example blocks as such
+
+ Documentation/DMA-API-HOWTO.txt           |  2 +-
+ Documentation/atomic_bitops.txt           |  6 +--
+ Documentation/clearing-warn-once.txt      |  2 +
+ Documentation/ntb.txt                     | 14 ++++--
+ Documentation/speculation.txt             |  8 ++--
+ Documentation/unaligned-memory-access.txt |  2 +-
+ Documentation/video-output.txt            | 52 +++++++++++------------
+ 7 files changed, 47 insertions(+), 39 deletions(-)
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.20.1
