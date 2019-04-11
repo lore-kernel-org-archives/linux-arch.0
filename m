@@ -1,61 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51868 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726145AbfDKNPs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Apr 2019 09:15:48 -0400
-Date: Thu, 11 Apr 2019 08:15:40 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH RFC 1/5] cpu/speculation: Add 'cpu_spec_mitigations='
- cmdline options
-Message-ID: <20190411131540.754t5t4tp55i6vjq@treble>
-References: <cover.1554396090.git.jpoimboe@redhat.com>
- <f0bd17358ab478eaca52f3b1da8305c150911b40.1554396090.git.jpoimboe@redhat.com>
- <20190405131211.GE23348@zn.tnic>
- <20190405142048.burthk2jnpcvi2om@treble>
- <20190405152059.GG23348@zn.tnic>
- <20190405160136.GI23348@zn.tnic>
- <20190405161852.nmpk22omgiety4df@treble>
- <87sguqwgu7.fsf@concordia.ellerman.id.au>
- <alpine.DEB.2.21.1904101408580.3479@nanos.tec.linutronix.de>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:35613 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726391AbfDKQkZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2019 12:40:25 -0400
+Received: by mail-pf1-f195.google.com with SMTP id t21so3728721pfh.2
+        for <linux-arch@vger.kernel.org>; Thu, 11 Apr 2019 09:40:25 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1904101408580.3479@nanos.tec.linutronix.de>
+References: <cover.1553093420.git.andreyknvl@google.com> <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
+ <20190322114357.GC13384@arrakis.emea.arm.com> <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
+ <20190328141934.38960af0@gandalf.local.home> <20190329103039.GA44339@arrakis.emea.arm.com>
+ <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
+In-Reply-To: <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Thu, 11 Apr 2019 18:40:12 +0200
+Message-ID: <CAAeHK+zzMukPL3SXJOqZkCfdT4UaVi=7sxrRfuktZt4DodgO7g@mail.gmail.com>
+Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190411131540.rY6i4FDK19ArqK45JgfwPt245jwOTOiknGEZFt7eVHg@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190411164012.mmPvMTfeYONi6WRwRE4ymROpaFeVTIbHC3DNqxzQ_kw@z>
 
-On Wed, Apr 10, 2019 at 02:10:01PM +0200, Thomas Gleixner wrote:
-> On Wed, 10 Apr 2019, Michael Ellerman wrote:
-> > Josh Poimboeuf <jpoimboe@redhat.com> writes:
-> > 
-> > > On Fri, Apr 05, 2019 at 06:01:36PM +0200, Borislav Petkov wrote:
-> > >> Thinking about this more, we can shave off the first 4 chars and have it
-> > >> be:
-> > >> 
-> > >> spec_mitigations=
-> > >> 
-> > >> I think it is painfully clear which speculation mitigations we mean. And
-> > >> the other switches don't have "cpu_" prefixes too so...
+On Tue, Apr 2, 2019 at 2:47 PM Andrey Konovalov <andreyknvl@google.com> wrote:
+>
+> On Fri, Mar 29, 2019 at 11:30 AM Catalin Marinas
+> <catalin.marinas@arm.com> wrote:
+> >
+> > (I trimmed down the cc list a bit since it's always bouncing)
+> >
+> > On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
+> > > On Thu, 28 Mar 2019 19:10:07 +0100
+> > > Andrey Konovalov <andreyknvl@google.com> wrote:
 > > >
-> > > Sure, I'm ok with renaming it to that, if there are no objections.
-> > 
-> > What about when we have a mitigation for a non-speculation related bug :)
-> 
-> Those kind of silicon bugs are usually mitigated unconditionally.
+> > > > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+> > > > > > ---
+> > > > > >  ipc/shm.c      | 2 ++
+> > > > > >  mm/madvise.c   | 2 ++
+> > > > > >  mm/mempolicy.c | 5 +++++
+> > > > > >  mm/migrate.c   | 1 +
+> > > > > >  mm/mincore.c   | 2 ++
+> > > > > >  mm/mlock.c     | 5 +++++
+> > > > > >  mm/mmap.c      | 7 +++++++
+> > > > > >  mm/mprotect.c  | 1 +
+> > > > > >  mm/mremap.c    | 2 ++
+> > > > > >  mm/msync.c     | 2 ++
+> > > > > >  10 files changed, 29 insertions(+)
+> > > > >
+> > > > > I wonder whether it's better to keep these as wrappers in the arm64
+> > > > > code.
+> > > >
+> > > > I don't think I understand what you propose, could you elaborate?
+> > >
+> > > I believe Catalin is saying that instead of placing things like:
+> > >
+> > > @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+> > >       unsigned long ret;
+> > >       long err;
+> > >
+> > > +     shmaddr = untagged_addr(shmaddr);
+> > >
+> > > To instead have the shmaddr set to the untagged_addr() before calling
+> > > the system call, and passing the untagged addr to the system call, as
+> > > that goes through the arm64 architecture specific code first.
+> >
+> > Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
+> > arch/arm64/kernel/sys.c, just add the untagging there. We could do
+> > something similar for the other syscalls. I don't mind doing this in the
+> > generic code but if it's only needed for arm64, I'd rather keep the
+> > generic changes to a minimum.
+>
+> Do I understand correctly, that I'll need to add ksys_ wrappers for
+> each of the memory syscalls, and then redefine them in
+> arch/arm64/kernel/sys.c with arm64_ prefix, like it is done for the
+> personality syscall right now? This will require generic changes as
+> well.
 
-Right.
+ping
 
-But at least "mitigations=" is nice and short.  We could clarify in the
-documentation that it doesn't apply to *all* mitigations, only the ones
-which are optional and which can affect performance.
-
-And it would give us the freedom to include any future "optional"
-mitigations, spec or not.
-
-I kind of like it.  But I could go either way.
-
--- 
-Josh
+>
+> >
+> > (I had a hack overriding __SC_CAST to do this automatically for pointer
+> > arguments but this wouldn't work on mmap() and friends as the argument
+> > is unsigned long)
+> >
+> > --
+> > Catalin
