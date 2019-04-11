@@ -1,38 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58246 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730663AbfDJQI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Apr 2019 12:08:56 -0400
-Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
- rwsem features
-References: <1549566446-27967-1-git-send-email-longman@redhat.com>
- <20190213091936.GA22829@shao2-debian>
- <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
- <CAC=cRTM5=e7rJX80m0vL10aQoLawK_VTnQubH8A7_sUO2VUCNA@mail.gmail.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <cc8af095-50e0-cd3e-e498-8c3350d314b7@redhat.com>
-Date: Wed, 10 Apr 2019 12:08:48 -0400
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:38564 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726230AbfDKDfD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2019 23:35:03 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 0/5] Allow CPU0 to be nohz full
+Date: Thu, 11 Apr 2019 13:34:43 +1000
+Message-ID: <20190411033448.20842-1-npiggin@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAC=cRTM5=e7rJX80m0vL10aQoLawK_VTnQubH8A7_sUO2VUCNA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: huang ying <huang.ying.caritas@gmail.com>
-Cc: Chen Rong <rong.a.chen@intel.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190410160848.h-VcOMQmwaNB3CahX8EQbhgvoJNPwAu6G_toLxQv7sc@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20190411033443.dn4SEx5DajEJx2ROPrp9-8jn4AX0fBWrJZXgrowfpLI@z>
 
-On 04/10/2019 04:15 AM, huang ying wrote:
-> Hi, Waiman,
->
-> What's the status of this patchset?  And its merging plan?
->
-> Best Regards,
-> Huang, Ying
+Since last time, I added a compile time option to opt-out of this
+if the platform does not support suspend on non-zero, and tried to
+improve legibility of changelogs and explain the justification
+better.
 
-I have broken the patch into 3 parts (0/1/2) and rewritten some of them.
-Part 0 has been merged into tip. Parts 1 and 2 are still under testing.
+I have been testing this on powerpc/pseries and it seems to work
+fine (the firmware call to suspend can be called on any CPU and
+resumes where it left off), but not included here because the
+code has some bitrot unrelated to this series which I hacked to
+fix. I will discuss it and either send an acked patch to go with
+this series if it is small, or fix it in powerpc tree.
 
-Cheers,
-Longman
+Thanks,
+Nick
+
+Nicholas Piggin (5):
+  sched/core: allow the remote scheduler tick to be started on CPU0
+  PM / suspend: add function to disable secondaries for suspend
+  kernel/cpu: Allow non-zero CPU to be primary for suspend / kexec
+    freeze
+  kernel/sched/isolation: require a present CPU in housekeeping mask
+  nohz_full: Allow the boot CPU to be nohz_full
+
+ include/linux/cpu.h       | 15 ++++++++++++
+ kernel/cpu.c              | 10 +++++++-
+ kernel/kexec_core.c       |  4 ++--
+ kernel/power/Kconfig      |  9 +++++++
+ kernel/power/hibernate.c  | 12 +++++-----
+ kernel/power/suspend.c    |  4 ++--
+ kernel/sched/core.c       |  2 +-
+ kernel/sched/isolation.c  | 18 ++++++++++----
+ kernel/time/tick-common.c | 50 +++++++++++++++++++++++++++++++++++----
+ kernel/time/tick-sched.c  | 34 ++++++++++++++++++--------
+ 11 files changed, 131 insertions(+), 31 deletions(-)
+
+-- 
+2.20.1
