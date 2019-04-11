@@ -1,81 +1,61 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v13 04/20] mm, arm64: untag user pointers passed to memory syscalls
-Date: Thu, 11 Apr 2019 18:40:12 +0200
-Message-ID: <CAAeHK+zzMukPL3SXJOqZkCfdT4UaVi=7sxrRfuktZt4DodgO7g@mail.gmail.com>
-References: <cover.1553093420.git.andreyknvl@google.com> <44ad2d0c55dbad449edac23ae46d151a04102a1d.1553093421.git.andreyknvl@google.com>
- <20190322114357.GC13384@arrakis.emea.arm.com> <CAAeHK+xE-ywfpVHRhBJVGiqOe0+BYW9awUa10ZP4P6Ggc8nxMg@mail.gmail.com>
- <20190328141934.38960af0@gandalf.local.home> <20190329103039.GA44339@arrakis.emea.arm.com>
- <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
+From: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v13 10/20] kernel,
+ arm64: untag user pointers in prctl_set_mm*
+Date: Thu, 11 Apr 2019 18:40:40 +0200
+Message-ID: <CAAeHK+zeeTw7fpXoV6YYRyizGCL0d8pqDS=-z2pBoWmBzm+eTQ@mail.gmail.com>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
+ <20190322154136.GP13384@arrakis.emea.arm.com>
+ <CAAeHK+yHp27eT+wTE3Uy4DkN8XN3ZjHATE+=HgjgRjrHjiXs3Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAAeHK+xe-zWn8WpCxUxBB2tXL8oiLkshkPi1J3Ly87mACaA4-A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jens Wiklander <jens.wiklander@linaro.org>, Alex Williamson <alex.williamson@redhat.com>, Linux
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+In-Reply-To: <CAAeHK+yHp27eT+wTE3Uy4DkN8XN3ZjHATE+=HgjgRjrHjiXs3Q-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
+List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
+ <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
+Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
+Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
+To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov@go>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 2, 2019 at 2:47 PM Andrey Konovalov <andreyknvl@google.com> wrote:
->
-> On Fri, Mar 29, 2019 at 11:30 AM Catalin Marinas
-> <catalin.marinas@arm.com> wrote:
-> >
-> > (I trimmed down the cc list a bit since it's always bouncing)
-> >
-> > On Thu, Mar 28, 2019 at 02:19:34PM -0400, Steven Rostedt wrote:
-> > > On Thu, 28 Mar 2019 19:10:07 +0100
-> > > Andrey Konovalov <andreyknvl@google.com> wrote:
-> > >
-> > > > > > Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-> > > > > > ---
-> > > > > >  ipc/shm.c      | 2 ++
-> > > > > >  mm/madvise.c   | 2 ++
-> > > > > >  mm/mempolicy.c | 5 +++++
-> > > > > >  mm/migrate.c   | 1 +
-> > > > > >  mm/mincore.c   | 2 ++
-> > > > > >  mm/mlock.c     | 5 +++++
-> > > > > >  mm/mmap.c      | 7 +++++++
-> > > > > >  mm/mprotect.c  | 1 +
-> > > > > >  mm/mremap.c    | 2 ++
-> > > > > >  mm/msync.c     | 2 ++
-> > > > > >  10 files changed, 29 insertions(+)
-> > > > >
-> > > > > I wonder whether it's better to keep these as wrappers in the arm64
-> > > > > code.
-> > > >
-> > > > I don't think I understand what you propose, could you elaborate?
-> > >
-> > > I believe Catalin is saying that instead of placing things like:
-> > >
-> > > @@ -1593,6 +1593,7 @@ SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
-> > >       unsigned long ret;
-> > >       long err;
-> > >
-> > > +     shmaddr = untagged_addr(shmaddr);
-> > >
-> > > To instead have the shmaddr set to the untagged_addr() before calling
-> > > the system call, and passing the untagged addr to the system call, as
-> > > that goes through the arm64 architecture specific code first.
-> >
-> > Indeed. For example, we already have a SYSCALL_DEFINE6(mmap, ...) in
-> > arch/arm64/kernel/sys.c, just add the untagging there. We could do
-> > something similar for the other syscalls. I don't mind doing this in the
-> > generic code but if it's only needed for arm64, I'd rather keep the
-> > generic changes to a minimum.
->
-> Do I understand correctly, that I'll need to add ksys_ wrappers for
-> each of the memory syscalls, and then redefine them in
-> arch/arm64/kernel/sys.c with arm64_ prefix, like it is done for the
-> personality syscall right now? This will require generic changes as
-> well.
-
-ping
-
->
-> >
-> > (I had a hack overriding __SC_CAST to do this automatically for pointer
-> > arguments but this wouldn't work on mmap() and friends as the argument
-> > is unsigned long)
-> >
-> > --
-> > Catalin
+T24gTW9uLCBBcHIgMSwgMjAxOSBhdCA2OjQ0IFBNIEFuZHJleSBLb25vdmFsb3YgPGFuZHJleWtu
+dmxAZ29vZ2xlLmNvbT4gd3JvdGU6Cj4KPiBPbiBGcmksIE1hciAyMiwgMjAxOSBhdCA0OjQxIFBN
+IENhdGFsaW4gTWFyaW5hcyA8Y2F0YWxpbi5tYXJpbmFzQGFybS5jb20+IHdyb3RlOgo+ID4KPiA+
+IE9uIFdlZCwgTWFyIDIwLCAyMDE5IGF0IDAzOjUxOjI0UE0gKzAxMDAsIEFuZHJleSBLb25vdmFs
+b3Ygd3JvdGU6Cj4gPiA+IEBAIC0yMTIwLDEzICsyMTM1LDE0IEBAIHN0YXRpYyBpbnQgcHJjdGxf
+c2V0X21tKGludCBvcHQsIHVuc2lnbmVkIGxvbmcgYWRkciwKPiA+ID4gICAgICAgaWYgKG9wdCA9
+PSBQUl9TRVRfTU1fQVVYVikKPiA+ID4gICAgICAgICAgICAgICByZXR1cm4gcHJjdGxfc2V0X2F1
+eHYobW0sIGFkZHIsIGFyZzQpOwo+ID4gPgo+ID4gPiAtICAgICBpZiAoYWRkciA+PSBUQVNLX1NJ
+WkUgfHwgYWRkciA8IG1tYXBfbWluX2FkZHIpCj4gPiA+ICsgICAgIGlmICh1bnRhZ2dlZF9hZGRy
+KGFkZHIpID49IFRBU0tfU0laRSB8fAo+ID4gPiArICAgICAgICAgICAgICAgICAgICAgdW50YWdn
+ZWRfYWRkcihhZGRyKSA8IG1tYXBfbWluX2FkZHIpCj4gPiA+ICAgICAgICAgICAgICAgcmV0dXJu
+IC1FSU5WQUw7Cj4gPiA+Cj4gPiA+ICAgICAgIGVycm9yID0gLUVJTlZBTDsKPiA+ID4KPiA+ID4g
+ICAgICAgZG93bl93cml0ZSgmbW0tPm1tYXBfc2VtKTsKPiA+ID4gLSAgICAgdm1hID0gZmluZF92
+bWEobW0sIGFkZHIpOwo+ID4gPiArICAgICB2bWEgPSBmaW5kX3ZtYShtbSwgdW50YWdnZWRfYWRk
+cihhZGRyKSk7Cj4gPiA+Cj4gPiA+ICAgICAgIHByY3RsX21hcC5zdGFydF9jb2RlICAgID0gbW0t
+PnN0YXJ0X2NvZGU7Cj4gPiA+ICAgICAgIHByY3RsX21hcC5lbmRfY29kZSAgICAgID0gbW0tPmVu
+ZF9jb2RlOwo+ID4KPiA+IERvZXMgdGhpcyBtZWFuIHRoYXQgd2UgYXJlIGxlZnQgd2l0aCB0YWdn
+ZWQgYWRkcmVzc2VzIGZvciB0aGUKPiA+IG1tLT5zdGFydF9jb2RlIGV0Yy4gdmFsdWVzPyBJIHJl
+YWxseSBkb24ndCB0aGluayB3ZSBzaG91bGQgYWxsb3cgdGhpcywKPiA+IEknbSBub3Qgc3VyZSB3
+aGF0IHRoZSBpbXBsaWNhdGlvbnMgYXJlIGluIG90aGVyIHBhcnRzIG9mIHRoZSBrZXJuZWwuCj4g
+Pgo+ID4gQXJndWFibHksIHRoZXNlIGFyZSBub3QgZXZlbiBwb2ludGVyIHZhbHVlcyBidXQgc29t
+ZSBhZGRyZXNzIHJhbmdlcy4gSQo+ID4ga25vdyB3ZSBkZWNpZGVkIHRvIHJlbGF4IHRoaXMgbm90
+aW9uIGZvciBtbWFwL21wcm90ZWN0L21hZHZpc2UoKSBzaW5jZQo+ID4gdGhlIHVzZXIgZnVuY3Rp
+b24gcHJvdG90eXBlcyB0YWtlIHBvaW50ZXIgYXMgYXJndW1lbnRzIGJ1dCBpdCBmZWVscyBsaWtl
+Cj4gPiB3ZSBhcmUgb3ZlcmRvaW5nIGl0IGhlcmUgKHN0cnVjdCBwcmN0bF9tbV9tYXAgZG9lc24n
+dCBldmVuIGhhdmUKPiA+IHBvaW50ZXJzKS4KPiA+Cj4gPiBXaGF0IGlzIHRoZSB1c2UtY2FzZSBm
+b3IgYWxsb3dpbmcgdGFnZ2VkIGFkZHJlc3NlcyBoZXJlPyBDYW4gdXNlciBzcGFjZQo+ID4gaGFu
+ZGxlIHVudGFnZ2luZz8KPgo+IEkgZG9uJ3Qga25vdyBhbnkgdXNlIGNhc2VzIGZvciB0aGlzLiBJ
+IGRpZCBpdCBiZWNhdXNlIGl0IHNlZW1zIHRvIGJlCj4gY292ZXJlZCBieSB0aGUgcmVsYXhlZCBB
+QkkuIEknbSBub3QgZW50aXJlbHkgc3VyZSB3aGF0IHRvIGRvIGhlcmUsCj4gc2hvdWxkIEkganVz
+dCBkcm9wIHRoaXMgcGF0Y2g/CgpwaW5nCgo+Cj4gPgo+ID4gLS0KPiA+IENhdGFsaW4KX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KYW1kLWdmeCBtYWlsaW5n
+IGxpc3QKYW1kLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVlZGVz
+a3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9hbWQtZ2Z4
