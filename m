@@ -1,73 +1,27 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH v2 01/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O
  BARRIER EFFECTS" section
-Date: Fri, 12 Apr 2019 08:12:26 +1000
-Message-ID: <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
-References: <20190405135936.7266-1-will.deacon@arm.com>
-         <20190405135936.7266-2-will.deacon@arm.com>
+Date: Thu, 11 Apr 2019 15:34:33 -0700
+Message-ID: <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
+References: <20190405135936.7266-1-will.deacon@arm.com> <20190405135936.7266-2-will.deacon@arm.com>
+ <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190405135936.7266-2-will.deacon@arm.com>
+In-Reply-To: <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Linus Torvalds <torvalds@linux-foundation.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@ke>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2019-04-05 at 14:59 +0100, Will Deacon wrote:
-> +     1. All readX() and writeX() accesses to the same peripheral are ordered
-> +        with respect to each other. For example, this ensures that MMIO register
-> +       writes by the CPU to a particular device will arrive in program order.
+On Thu, Apr 11, 2019 at 3:13 PM Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+>
+> Minor nit... I would have said "All readX() and writeX() accesses _from
+> the same CPU_ to the same peripheral... and then s/the CPU/this CPU.
 
-Minor nit... I would have said "All readX() and writeX() accesses _from
-the same CPU_ to the same peripheral... and then s/the CPU/this CPU.
+Maybe talk about "same thread" rather than "same cpu", with the
+understanding that scheduling/preemption has to include the
+appropriate cross-CPU IO barrier?
 
-> -     Accesses to this space may be fully synchronous (as on i386), but
-> -     intermediary bridges (such as the PCI host bridge) may not fully honour
-> -     that.
-> +     2. A writeX() by the CPU to the peripheral will first wait for the
-> +        completion of all prior CPU writes to memory. For example, this ensures
-> +        that writes by the CPU to an outbound DMA buffer allocated by
-> +        dma_alloc_coherent() will be visible to a DMA engine when the CPU writes
-> +        to its MMIO control register to trigger the transfer.
-
-Similarily "the CPU" -> "a CPU"
->  
-> -     They are guaranteed to be fully ordered with respect to each other.
-> +     3. A readX() by the CPU from the peripheral will complete before any
-> +       subsequent CPU reads from memory can begin. For example, this ensures
-> +       that reads by the CPU from an incoming DMA buffer allocated by
-> +       dma_alloc_coherent() will not see stale data after reading from the DMA
-> +       engine's MMIO status register to establish that the DMA transfer has
-> +       completed.
->  
-> -     They are not guaranteed to be fully ordered with respect to other types of
-> -     memory and I/O operation.
-> +     4. A readX() by the CPU from the peripheral will complete before any
-> +       subsequent delay() loop can begin execution. For example, this ensures
-> +       that two MMIO register writes by the CPU to a peripheral will arrive at
-> +       least 1us apart if the first write is immediately read back with readX()
-> +       and udelay(1) is called prior to the second writeX().
->  
-> - (*) readX(), writeX():
-> +     __iomem pointers obtained with non-default attributes (e.g. those returned
-> +     by ioremap_wc()) are unlikely to provide many of these guarantees.
-
-So we give up on defining _wc semantics ? :-) Fair enough, it's a
-mess...
-
- .../...
-
-> +All of these accessors assume that the underlying peripheral is little-endian,
-> +and will therefore perform byte-swapping operations on big-endian architectures.
-
-This is not true of readsX/writesX, those will perform native accesses and are
-intrinsically endian neutral.
-
-> +Composing I/O ordering barriers with SMP ordering barriers and LOCK/UNLOCK
-> +operations is a dangerous sport which may require the use of mmiowb(). See the
-> +subsection "Acquires vs I/O accesses" for more information.
-
-Cheers,
-Ben.
+                   Linus
