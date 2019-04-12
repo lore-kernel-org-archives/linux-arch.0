@@ -1,8 +1,8 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Nadav Amit <namit@vmware.com>
 Subject: Re: 1808d65b55 ("asm-generic/tlb: Remove arch_tlb*_mmu()"):  BUG:
  KASAN: stack-out-of-bounds in __change_page_attr_set_clr
-Date: Fri, 12 Apr 2019 20:19:30 +0200
-Message-ID: <20190412181930.GD12232@hirez.programming.kicks-ass.net>
+Date: Fri, 12 Apr 2019 19:42:37 +0000
+Message-ID: <721948C9-0E56-4E70-B9C5-58F0A4A5C126@vmware.com>
 References: <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com>
  <20190411193906.GA12232@hirez.programming.kicks-ass.net>
  <20190411195424.GL14281@hirez.programming.kicks-ass.net>
@@ -10,39 +10,32 @@ References: <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com>
  <20190412105633.GM14281@hirez.programming.kicks-ass.net>
  <20190412111756.GO14281@hirez.programming.kicks-ass.net>
  <F18AF0D5-D8B4-4F4B-8469-F9DEC49683C7@vmware.com>
+ <20190412181930.GD12232@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <F18AF0D5-D8B4-4F4B-8469-F9DEC49683C7@vmware.com>
+In-Reply-To: <20190412181930.GD12232@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <B2CC06664A851F43A6C8D26D535F1709@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: kernel test robot <lkp@intel.com>, LKP <lkp@01.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 12, 2019 at 03:11:22PM +0000, Nadav Amit wrote:
-> > On Apr 12, 2019, at 4:17 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-
-> > To clarify, 'that' is Nadav's patch:
-> > 
-> >  515ab7c41306 ("x86/mm: Align TLB invalidation info")
-> > 
-> > which turns out to be the real problem.
-> 
-> Sorry for that. I still think it should be aligned, especially with all the
-> effort the Intel puts around to avoid bus-locking on unaligned atomic
-> operations.
-
-No atomics anywhere in sight, so that's not a concern.
-
-> So the right solution seems to me as putting this data structure off stack.
-> It would prevent flush_tlb_mm_range() from being reentrant, so we can keep a
-> few entries for this matter and atomically increase the entry number every
-> time we enter flush_tlb_mm_range().
-> 
-> But my question is - should flush_tlb_mm_range() be reentrant, or can we
-> assume no TLB shootdowns are initiated in interrupt handlers and #MC
-> handlers?
-
-There _should_ not be, but then don't look at those XPFO patches that
-were posted (they're broken anyway).
+PiBPbiBBcHIgMTIsIDIwMTksIGF0IDExOjE5IEFNLCBQZXRlciBaaWpsc3RyYSA8cGV0ZXJ6QGlu
+ZnJhZGVhZC5vcmc+IHdyb3RlOg0KPiANCj4gT24gRnJpLCBBcHIgMTIsIDIwMTkgYXQgMDM6MTE6
+MjJQTSArMDAwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+PiBPbiBBcHIgMTIsIDIwMTksIGF0IDQ6
+MTcgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6DQo+IA0K
+Pj4+IFRvIGNsYXJpZnksICd0aGF0JyBpcyBOYWRhdidzIHBhdGNoOg0KPj4+IA0KPj4+IDUxNWFi
+N2M0MTMwNiAoIng4Ni9tbTogQWxpZ24gVExCIGludmFsaWRhdGlvbiBpbmZvIikNCj4+PiANCj4+
+PiB3aGljaCB0dXJucyBvdXQgdG8gYmUgdGhlIHJlYWwgcHJvYmxlbS4NCj4+IA0KPj4gU29ycnkg
+Zm9yIHRoYXQuIEkgc3RpbGwgdGhpbmsgaXQgc2hvdWxkIGJlIGFsaWduZWQsIGVzcGVjaWFsbHkg
+d2l0aCBhbGwgdGhlDQo+PiBlZmZvcnQgdGhlIEludGVsIHB1dHMgYXJvdW5kIHRvIGF2b2lkIGJ1
+cy1sb2NraW5nIG9uIHVuYWxpZ25lZCBhdG9taWMNCj4+IG9wZXJhdGlvbnMuDQo+IA0KPiBObyBh
+dG9taWNzIGFueXdoZXJlIGluIHNpZ2h0LCBzbyB0aGF0J3Mgbm90IGEgY29uY2Vybi4NCg0KWW91
+IGFyZSByaWdodC4gSSBzdGlsbCB0aGluayB0aGF0IGF0IGxlYXN0IFRMQi13aXNlIGl0IHNob3Vs
+ZCBiZSBiZXR0ZXIgdG8NCmhhdmUgdGhlIGFyZ3VtZW50IG9mZi1zdGFjay4gSeKAmWxsIHRyeSB0
+byBydW4gc29tZSBleHBlcmltZW50cywgYmFzZWQgb24NCnlvdXIgZmVlZGJhY2ssIGFuZCBzZW5k
+IGEgcGF0Y2ggb24gdG9wIG9mIHlvdXIgcmV2ZXJ0Lg0KDQpTb3JyeSBmb3IgdGhlIG1lc3MsIGFn
+YWluLg0KDQoNCg==
