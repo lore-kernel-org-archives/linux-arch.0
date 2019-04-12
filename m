@@ -1,86 +1,54 @@
-From: Nick Kossifidis <mick@ics.forth.gr>
-Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel
- endianess
-Date: Fri, 12 Apr 2019 19:05:33 +0300
-Message-ID: <fd59e6e22594f740eaf86abad76ee04d@mailhost.ics.forth.gr>
-References: <20190412143538.11780-1-hch@lst.de>
- <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
+From: Markus Heiser <markus.heiser@darmarit.de>
+Subject: Re: [PATCH 0/8] Prepare files under Documentation/*.txt to build with
+ Sphinx
+Date: Fri, 12 Apr 2019 18:45:42 +0200
+Message-ID: <06b2aeb4-825a-28d6-fa7d-f1f5900e53d8@darmarit.de>
+References: <94c47f05-0412-b938-908d-1ef8a91243ed@darmarit.de>
+ <cover.1554889999.git.mchehab+samsung@kernel.org>
+ <18261.1555064496@warthog.procyon.org.uk>
+ <27303.1555071586@warthog.procyon.org.uk>
+ <df609cad-fa5b-ac15-314f-ac8759771d90@darmarit.de>
+ <20190412093947.62913186@lwn.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
+In-Reply-To: <20190412093947.62913186@lwn.net>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, mick@ics.forth.gr, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Jonathan Corbet <corbet@lwn.net>
+Cc: David Howells <dhowells@redhat.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Luc Maranget <luc.maranget@inria.fr>, Alan Stern <stern@rowland.harvard.edu>, Akira Yokosawa <akiyks@gmail.com>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>, Jade Alglave <j.alglave@ucl.ac.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Στις 2019-04-12 17:53, Arnd Bergmann έγραψε:
-> On Fri, Apr 12, 2019 at 4:36 PM Christoph Hellwig <hch@lst.de> wrote:
->> 
->> When removing some dead big endian checks in the RISC-V code Nick
->> suggested that we should have some generic sanity checks.  I don't 
->> think
->> we should have thos inside the RISC-V code, but maybe it might make
->> sense to have these in the generic byteorder headers.  Note that these
->> are UAPI headers and some compilers might not actually define
->> __BYTE_ORDER__, so we first check that it actually exists.
->> 
->> Suggested-by: Nick Kossifidis <mick@ics.forth.gr>
->> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> Extra checking like this is good in general, but I'm not sure I see
-> exactly what kind of issue one might expect to prevent with this:
-> 
-> All architecture asm/byteorder.h headers either include the only
-> possible option, or they check the compiler defined macros:
-> 
-> arch/arc/include/uapi/asm/byteorder.h:#ifdef __BIG_ENDIAN__
-> arch/arm/include/uapi/asm/byteorder.h:#ifdef __ARMEB__
-> arch/arm64/include/uapi/asm/byteorder.h:#ifdef __AARCH64EB__
-> arch/c6x/include/uapi/asm/byteorder.h:#ifdef _BIG_ENDIAN
-> arch/microblaze/include/uapi/asm/byteorder.h:#ifdef __MICROBLAZEEL__
-> arch/mips/include/uapi/asm/byteorder.h:#if defined(__MIPSEB__)
-> arch/nds32/include/uapi/asm/byteorder.h:#ifdef __NDS32_EB__
-> arch/powerpc/include/uapi/asm/byteorder.h:#ifdef __LITTLE_ENDIAN__
-> arch/sh/include/uapi/asm/byteorder.h:#ifdef __LITTLE_ENDIAN__
-> arch/xtensa/include/uapi/asm/byteorder.h:#ifdef __XTENSA_EL__
-> 
-> Are you worried about toolchains that define those differently
-> from what these headers expect? Did you encounter such a case?
-> 
->       Arnd
 
-The following architectures just include the header file without
-checking for any compiler macro:
+Am 12.04.19 um 17:39 schrieb Jonathan Corbet:
+> On Fri, 12 Apr 2019 14:34:25 +0200
+> Markus Heiser <markus.heiser@darmarit.de> wrote:
+> 
+>> Am 12.04.19 um 14:19 schrieb David Howells:
+>>> Markus Heiser <markus.heiser@darmarit.de> wrote:
+>>>    
+>>>> Which is already named in our 'How to write kernel documentation' introduction
+>>>>
+>>>> - https://www.kernel.org/doc/html/latest/doc-guide/sphinx.html#writing-documentation
+>>>
+>>> This should really be in Documentation/ directory.
+>>>    
+>>
+>> I agree with you, it is a kind of information hiding.  If you know proper
+>> places, please send a patch to Jon.
+> 
+> As Jani pointed out, it's in Documentation/doc-guide.
+> 
+> If you're saying it should be in the top level, I kind of disagree.
+> Documentation/ is an exercise in hiding information by placing it in the
+> middle of 200 other, unrelated files.  We've made some progress on that,
+> and I would like to continue to do so.
 
-alpha: little_endian.h
-csky: little_endian.h
-h8300: big_endian.h
-hexagon: little_endian.h
-ia64: little_endian.h
-m68k: big_endian.h
-nios2: little_endian.h
-openrisc: big_endian.h
-parisc: big_endian.h
-riscv: little_endian.h
-s390: big_endian.h
-sparc: big_endian.h
-unicore32: little_endian.h
-x86: little_endian.h
+For those who are new and are willing to document, it migth be a good idea
+to have a simple Documentation/README.txt  with a link to doc-guide?
 
-Of those who do check for a compiler macro, they don't use the
-generic macros (__ORDER_*_ENDIAN__) but arch-specific ones.
+Just a few words, I find with my editor, this is what I find often helpful
+when I'am new to a project.
 
-Only two architectures (mips and xtensa) that support both big
-and little endian return an error in case the endianess can't be
-determined, the rest will move on without including any
-of *_endian.h files.
-
-I think it's good to have a sanity check in-place for consistency.
-
-Regards,
-Nick
+-- Markus --
