@@ -1,47 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr750059.outbound.protection.outlook.com ([40.107.75.59]:54084
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726815AbfDLTmn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Apr 2019 15:42:43 -0400
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: 1808d65b55 ("asm-generic/tlb: Remove arch_tlb*_mmu()"):  BUG:
- KASAN: stack-out-of-bounds in __change_page_attr_set_clr
-Date: Fri, 12 Apr 2019 19:42:37 +0000
-Message-ID: <721948C9-0E56-4E70-B9C5-58F0A4A5C126@vmware.com>
-References: <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com>
- <20190411193906.GA12232@hirez.programming.kicks-ass.net>
- <20190411195424.GL14281@hirez.programming.kicks-ass.net>
- <20190411211348.GA8451@worktop.programming.kicks-ass.net>
- <20190412105633.GM14281@hirez.programming.kicks-ass.net>
- <20190412111756.GO14281@hirez.programming.kicks-ass.net>
- <F18AF0D5-D8B4-4F4B-8469-F9DEC49683C7@vmware.com>
- <20190412181930.GD12232@hirez.programming.kicks-ass.net>
-In-Reply-To: <20190412181930.GD12232@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <B2CC06664A851F43A6C8D26D535F1709@namprd05.prod.outlook.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mx1.redhat.com ([209.132.183.28]:55582 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726771AbfDLUjr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Apr 2019 16:39:47 -0400
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: [PATCH v2 0/5] cpu/speculation: Add 'mitigations=' cmdline option
+Date: Fri, 12 Apr 2019 15:39:27 -0500
+Message-ID: <cover.1555085500.git.jpoimboe@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: kernel test robot <lkp@intel.com>, LKP <lkp@01.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>
-Message-ID: <20190412194237.e469PYaiLeLTdYC1e1lr0VnNT9YdY40lz915s7Uj2Uo@z>
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>, Randy Dunlap <rdunlap@infradead.org>, Steven Price <steven.price@arm.com>, Phil Auld <pauld@redhat.com>
+Message-ID: <20190412203927.GqjOnEw9WLkRpmak28qB9aG5qvxuwKWKeEwe3zPA6K0@z>
 
-PiBPbiBBcHIgMTIsIDIwMTksIGF0IDExOjE5IEFNLCBQZXRlciBaaWpsc3RyYSA8cGV0ZXJ6QGlu
-ZnJhZGVhZC5vcmc+IHdyb3RlOg0KPiANCj4gT24gRnJpLCBBcHIgMTIsIDIwMTkgYXQgMDM6MTE6
-MjJQTSArMDAwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+PiBPbiBBcHIgMTIsIDIwMTksIGF0IDQ6
-MTcgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6DQo+IA0K
-Pj4+IFRvIGNsYXJpZnksICd0aGF0JyBpcyBOYWRhdidzIHBhdGNoOg0KPj4+IA0KPj4+IDUxNWFi
-N2M0MTMwNiAoIng4Ni9tbTogQWxpZ24gVExCIGludmFsaWRhdGlvbiBpbmZvIikNCj4+PiANCj4+
-PiB3aGljaCB0dXJucyBvdXQgdG8gYmUgdGhlIHJlYWwgcHJvYmxlbS4NCj4+IA0KPj4gU29ycnkg
-Zm9yIHRoYXQuIEkgc3RpbGwgdGhpbmsgaXQgc2hvdWxkIGJlIGFsaWduZWQsIGVzcGVjaWFsbHkg
-d2l0aCBhbGwgdGhlDQo+PiBlZmZvcnQgdGhlIEludGVsIHB1dHMgYXJvdW5kIHRvIGF2b2lkIGJ1
-cy1sb2NraW5nIG9uIHVuYWxpZ25lZCBhdG9taWMNCj4+IG9wZXJhdGlvbnMuDQo+IA0KPiBObyBh
-dG9taWNzIGFueXdoZXJlIGluIHNpZ2h0LCBzbyB0aGF0J3Mgbm90IGEgY29uY2Vybi4NCg0KWW91
-IGFyZSByaWdodC4gSSBzdGlsbCB0aGluayB0aGF0IGF0IGxlYXN0IFRMQi13aXNlIGl0IHNob3Vs
-ZCBiZSBiZXR0ZXIgdG8NCmhhdmUgdGhlIGFyZ3VtZW50IG9mZi1zdGFjay4gSeKAmWxsIHRyeSB0
-byBydW4gc29tZSBleHBlcmltZW50cywgYmFzZWQgb24NCnlvdXIgZmVlZGJhY2ssIGFuZCBzZW5k
-IGEgcGF0Y2ggb24gdG9wIG9mIHlvdXIgcmV2ZXJ0Lg0KDQpTb3JyeSBmb3IgdGhlIG1lc3MsIGFn
-YWluLg0KDQoNCg==
+v2:
+- docs improvements: [Randy, Michael]
+- Rename to "mitigations=" [Michael]
+- Add cpu_mitigations_off() function wrapper [Michael]
+- x86: Simplify logic [Boris]
+- powerpc: Fix no_rfi_flush checking bug (use '&&' instead of '||')
+- arm64: Rebase onto Jeremy Linton's v7 patches [Will]
+- arm64: "kpti command line option" [Steve P]
+- arm64: Add nospectre_v2 support
+
+-----------
+
+Keeping track of the number of mitigations for all the CPU speculation
+bugs has become overwhelming for many users.  It's getting more and more
+complicated to decide which mitigations are needed for a given
+architecture.  Complicating matters is the fact that each arch tends to
+have its own custom way to mitigate the same vulnerability.
+
+Most users fall into a few basic categories:
+
+a) they want all mitigations off;
+
+b) they want all reasonable mitigations on, with SMT enabled even if
+   it's vulnerable; or
+
+c) they want all reasonable mitigations on, with SMT disabled if
+   vulnerable.
+
+Define a set of curated, arch-independent options, each of which is an
+aggregation of existing options:
+
+- mitigations=off: Disable all mitigations.
+
+- mitigations=auto: [default] Enable all the default mitigations, but
+  leave SMT enabled, even if it's vulnerable.
+
+- mitigations=auto,nosmt: Enable all the default mitigations, disabling
+  SMT if needed by a mitigation.
+
+Josh Poimboeuf (5):
+  cpu/speculation: Add 'mitigations=' cmdline option
+  x86/speculation: Support 'mitigations=' cmdline option
+  powerpc/speculation: Support 'mitigations=' cmdline option
+  s390/speculation: Support 'mitigations=' cmdline option
+  arm64/speculation: Support 'mitigations=' cmdline option
+
+ .../admin-guide/kernel-parameters.txt         | 34 +++++++++++++++++++
+ arch/arm64/kernel/cpu_errata.c                |  6 +++-
+ arch/arm64/kernel/cpufeature.c                |  8 ++++-
+ arch/powerpc/kernel/security.c                |  6 ++--
+ arch/powerpc/kernel/setup_64.c                |  2 +-
+ arch/s390/kernel/nospec-branch.c              |  3 +-
+ arch/x86/kernel/cpu/bugs.c                    | 11 ++++--
+ arch/x86/mm/pti.c                             |  4 ++-
+ include/linux/cpu.h                           | 24 +++++++++++++
+ kernel/cpu.c                                  | 15 ++++++++
+ 10 files changed, 103 insertions(+), 10 deletions(-)
+
+-- 
+2.17.2
