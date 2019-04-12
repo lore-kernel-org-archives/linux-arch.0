@@ -1,163 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr740087.outbound.protection.outlook.com ([40.107.74.87]:39444
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726755AbfDLPS6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Apr 2019 11:18:58 -0400
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: 1808d65b55 ("asm-generic/tlb: Remove arch_tlb*_mmu()"):  BUG:
- KASAN: stack-out-of-bounds in __change_page_attr_set_clr
-Date: Fri, 12 Apr 2019 15:18:50 +0000
-Message-ID: <EA0B97AF-D046-4EE8-9897-F90254085724@vmware.com>
-References: <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com>
- <20190411193906.GA12232@hirez.programming.kicks-ass.net>
- <20190411195424.GL14281@hirez.programming.kicks-ass.net>
- <20190411211348.GA8451@worktop.programming.kicks-ass.net>
- <20190412105633.GM14281@hirez.programming.kicks-ass.net>
- <20190412111756.GO14281@hirez.programming.kicks-ass.net>
- <F18AF0D5-D8B4-4F4B-8469-F9DEC49683C7@vmware.com>
-In-Reply-To: <F18AF0D5-D8B4-4F4B-8469-F9DEC49683C7@vmware.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <4D374FA26FC0D54A8F36E822321AB309@namprd05.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:46905 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726765AbfDLPWu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2019 11:22:50 -0400
 MIME-Version: 1.0
+References: <20190412143538.11780-1-hch@lst.de> <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
+ <20190412145538.GA24473@lst.de>
+In-Reply-To: <20190412145538.GA24473@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 12 Apr 2019 17:22:32 +0200
+Message-ID: <CAK8P3a0hNp39POcMD8nO5y487UAWEjmQzGyPbb4xW-o-R6HUCA@mail.gmail.com>
+Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel endianess
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nadav Amit <namit@vmware.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, kernel test robot <lkp@intel.com>, LKP <lkp@01.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>
-Message-ID: <20190412151850.RnSGGMQbI17KJTZ1wKCx1QqnoNbVqk3TkqRkFVAeESk@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, mick@ics.forth.gr, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190412152232.jINrMUeTzRxWOSGPU-ksXYm7-q96vbzenuE-Ptt7wpI@z>
 
-> On Apr 12, 2019, at 8:11 AM, Nadav Amit <namit@vmware.com> wrote:
->=20
->> On Apr 12, 2019, at 4:17 AM, Peter Zijlstra <peterz@infradead.org> wrote=
-:
->>=20
->> On Fri, Apr 12, 2019 at 12:56:33PM +0200, Peter Zijlstra wrote:
->>> On Thu, Apr 11, 2019 at 11:13:48PM +0200, Peter Zijlstra wrote:
->>>> On Thu, Apr 11, 2019 at 09:54:24PM +0200, Peter Zijlstra wrote:
->>>>> On Thu, Apr 11, 2019 at 09:39:06PM +0200, Peter Zijlstra wrote:
->>>>>> I think this bisect is bad. If you look at your own logs this patch
->>>>>> merely changes the failure, but doesn't make it go away.
->>>>>>=20
->>>>>> Before this patch (in fact, before tip/core/mm entirely) the errror
->>>>>> reads like the below, which suggests there is memory corruption
->>>>>> somewhere, and the fingered patch just makes it trigger differently.
->>>>>>=20
->>>>>> It would be very good to find the source of this corruption, but I'm
->>>>>> fairly certain it is not here.
->>>>>=20
->>>>> I went back to v4.20 to try and find a time when the below error did =
-not
->>>>> occur, but even that reliably triggers the warning.
->>>>=20
->>>> So I also tested v4.19 and found that that was good, which made me
->>>> bisect v4.19..v4.20
->>>>=20
->>>> # bad: [8fe28cb58bcb235034b64cbbb7550a8a43fd88be] Linux 4.20
->>>> # good: [84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d] Linux 4.19
->>>> git bisect start 'v4.20' 'v4.19'
->>>> # bad: [ec9c166434595382be3babf266febf876327774d] Merge tag 'mips_fixe=
-s_4.20_1' of git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux
->>>> git bisect bad ec9c166434595382be3babf266febf876327774d
->>>> # bad: [50b825d7e87f4cff7070df6eb26390152bb29537] Merge git://git.kern=
-el.org/pub/scm/linux/kernel/git/davem/net-next
->>>> git bisect bad 50b825d7e87f4cff7070df6eb26390152bb29537
->>>> # good: [99e9acd85ccbdc8f5785f9e961d4956e96bd6aa5] Merge tag 'mlx5-upd=
-ates-2018-10-17' of git://git.kernel.org/pub/scm/linux/kernel/git/saeed/lin=
-ux
->>>> git bisect good 99e9acd85ccbdc8f5785f9e961d4956e96bd6aa5
->>>> # good: [c403993a41d50db1e7d9bc2d43c3c8498162312f] Merge tag 'for-linu=
-s-4.20' of https://nam04.safelinks.protection.outlook.com/?url=3Dhttps%3A%2=
-F%2Fgithub.com%2Fcminyard%2Flinux-ipmi&amp;data=3D02%7C01%7Cnamit%40vmware.=
-com%7Ca1c3ea5d4bc34cfc785508d6bf388ff3%7Cb39138ca3cee4b4aa4d6cd83d9dd62f0%7=
-C0%7C0%7C636906647013777573&amp;sdata=3D3VSR3VdE5rxOitAdkqFNPpAnAtLgDmYLzJt=
-oUrs5v9Y%3D&amp;reserved=3D0
->>>> git bisect good c403993a41d50db1e7d9bc2d43c3c8498162312f
->>>> # good: [c05f3642f4304dd081876e77a68555b6aba4483f] Merge branch 'perf-=
-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
->>>> git bisect good c05f3642f4304dd081876e77a68555b6aba4483f
->>>> # bad: [44786880df196a4200c178945c4d41675faf9fb7] Merge branch 'parisc=
--4.20-1' of git://git.kernel.org/pub/scm/linux/kernel/git/deller/parisc-lin=
-ux
->>>> git bisect bad 44786880df196a4200c178945c4d41675faf9fb7
->>>> # bad: [99792e0cea1ed733cdc8d0758677981e0cbebfed] Merge branch 'x86-mm=
--for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
->>>> git bisect bad 99792e0cea1ed733cdc8d0758677981e0cbebfed
->>>> # good: [fec98069fb72fb656304a3e52265e0c2fc9adf87] Merge branch 'x86-c=
-pu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
->>>> git bisect good fec98069fb72fb656304a3e52265e0c2fc9adf87
->>>> # bad: [a31acd3ee8f7dbc0370bdf4a4bfef7a8c13c7542] x86/mm: Page size aw=
-are flush_tlb_mm_range()
->>>> git bisect bad a31acd3ee8f7dbc0370bdf4a4bfef7a8c13c7542
->>>> # good: [a7295fd53c39ce781a9792c9dd2c8747bf274160] x86/mm/cpa: Use flu=
-sh_tlb_kernel_range()
->>>> git bisect good a7295fd53c39ce781a9792c9dd2c8747bf274160
->>>> # good: [9cf38d5559e813cccdba8b44c82cc46ba48d0896] kexec: Allocate dec=
-rypted control pages for kdump if SME is enabled
->>>> git bisect good 9cf38d5559e813cccdba8b44c82cc46ba48d0896
->>>> # good: [5b12904065798fee8b153a506ac7b72d5ebbe26c] x86/mm/doc: Clean u=
-p the x86-64 virtual memory layout descriptions
->>>> git bisect good 5b12904065798fee8b153a506ac7b72d5ebbe26c
->>>> # good: [cf089611f4c446285046fcd426d90c18f37d2905] proc/vmcore: Fix i3=
-86 build error of missing copy_oldmem_page_encrypted()
->>>> git bisect good cf089611f4c446285046fcd426d90c18f37d2905
->>>> # good: [a5b966ae42a70b194b03eaa5eaea70d8b3790c40] Merge branch 'tlb/a=
-sm-generic' of git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux in=
-to x86/mm
->>>> git bisect good a5b966ae42a70b194b03eaa5eaea70d8b3790c40
->>>> # first bad commit: [a31acd3ee8f7dbc0370bdf4a4bfef7a8c13c7542] x86/mm:=
- Page size aware flush_tlb_mm_range()
->>>>=20
->>>> And 'funnily' the bad patch is one of mine too :/
->>>>=20
->>>> I'll go have a look at that tomorrow, because currrently I'm way past
->>>> tired.
->>>=20
->>> OK, so the below patchlet makes it all good. It turns out that the
->>> provided config has:
->>>=20
->>> CONFIG_X86_L1_CACHE_SHIFT=3D7
->>>=20
->>> which then, for some obscure raisin, results in flush_tlb_mm_range()
->>> compiling to use 320 bytes of stack:
->>>=20
->>> sub    $0x140,%rsp
->>>=20
->>> Where a 'defconfig' build results in:
->>>=20
->>> sub    $0x58,%rsp
->>>=20
->>> The thing that pushes it over the edge in the above fingered patch is
->>> the addition of a field to struct flush_tlb_info, which grows if from 3=
-2
->>> to 36 bytes.
->>>=20
->>> So my proposal is to basically revert that, unless we can come up with
->>> something that GCC can't screw up.
->>=20
->> To clarify, 'that' is Nadav's patch:
->>=20
->> 515ab7c41306 ("x86/mm: Align TLB invalidation info")
->>=20
->> which turns out to be the real problem.
->=20
-> Sorry for that. I still think it should be aligned, especially with all t=
-he
-> effort the Intel puts around to avoid bus-locking on unaligned atomic
-> operations.
->=20
-> So the right solution seems to me as putting this data structure off stac=
-k.
-> It would prevent flush_tlb_mm_range() from being reentrant, so we can kee=
-p a
-> few entries for this matter and atomically increase the entry number ever=
-y
-> time we enter flush_tlb_mm_range().
->=20
-> But my question is - should flush_tlb_mm_range() be reentrant, or can we
-> assume no TLB shootdowns are initiated in interrupt handlers and #MC
-> handlers?
+On Fri, Apr 12, 2019 at 4:55 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> On Fri, Apr 12, 2019 at 04:53:28PM +0200, Arnd Bergmann wrote:
+> > On Fri, Apr 12, 2019 at 4:36 PM Christoph Hellwig <hch@lst.de> wrote:
+> > >
+> > > When removing some dead big endian checks in the RISC-V code Nick
+> > > suggested that we should have some generic sanity checks.  I don't think
+> > > we should have thos inside the RISC-V code, but maybe it might make
+> > > sense to have these in the generic byteorder headers.  Note that these
+> > > are UAPI headers and some compilers might not actually define
+> > > __BYTE_ORDER__, so we first check that it actually exists.
+> > >
+> > > Suggested-by: Nick Kossifidis <mick@ics.forth.gr>
+> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> >
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> >
+> > Extra checking like this is good in general, but I'm not sure I see
+> > exactly what kind of issue one might expect to prevent with this:
+>
+> I'm personally not worried at all. Just trying to respond to Nicks
+> review comment and make it reasonable generic if we have to have these
+> checks at all.  I personally would be ok without them, I just don't
+> want them hidden somewhere in the RISC-V code (RISC-V is always little
+> endian at least right now).
 
-Just to clarify - I obviously suggest a per-cpu structure. The question
-is about one core reentering flush_tlb_mm_range().
+Ok, makes sense.
+
+Note: I hope we won't ever see big-endian RISC-V, I think that ship has
+sailed long ago, regardless of any personal preferences one might hold.
+
+The architectures that allow both (arm, arc, mips, c6x, microblaze,
+modern ppc64, superh) tend to just use little-endian in practice, and the
+ones that are hardcoded to big-endian (sparc, parisc, m68k, h8300, s390,
+ppc32, some mips) are all 25+ years old and do so only for historic
+reasons, with openrisc being the notable exception.
+
+       Arnd
