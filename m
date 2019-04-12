@@ -1,41 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:38480 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726677AbfDKWex (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2019 18:34:53 -0400
-Received: by mail-lj1-f195.google.com with SMTP id p14so7019094ljg.5
-        for <linux-arch@vger.kernel.org>; Thu, 11 Apr 2019 15:34:52 -0700 (PDT)
-Received: from mail-lf1-f47.google.com (mail-lf1-f47.google.com. [209.85.167.47])
-        by smtp.gmail.com with ESMTPSA id j27sm7741774lfk.97.2019.04.11.15.34.49
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 11 Apr 2019 15:34:49 -0700 (PDT)
-Received: by mail-lf1-f47.google.com with SMTP id u17so5948261lfi.3
-        for <linux-arch@vger.kernel.org>; Thu, 11 Apr 2019 15:34:49 -0700 (PDT)
+Received: from mail-vs1-f66.google.com ([209.85.217.66]:35029 "EHLO
+        mail-vs1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726636AbfDLAte (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2019 20:49:34 -0400
 MIME-Version: 1.0
-References: <20190405135936.7266-1-will.deacon@arm.com> <20190405135936.7266-2-will.deacon@arm.com>
- <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
-In-Reply-To: <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 11 Apr 2019 15:34:33 -0700
-Message-ID: <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
-Subject: Re: [PATCH v2 01/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
+References: <1549566446-27967-1-git-send-email-longman@redhat.com>
+ <20190213091936.GA22829@shao2-debian> <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
+ <CAC=cRTM5=e7rJX80m0vL10aQoLawK_VTnQubH8A7_sUO2VUCNA@mail.gmail.com> <cc8af095-50e0-cd3e-e498-8c3350d314b7@redhat.com>
+In-Reply-To: <cc8af095-50e0-cd3e-e498-8c3350d314b7@redhat.com>
+From: huang ying <huang.ying.caritas@gmail.com>
+Date: Fri, 12 Apr 2019 08:49:21 +0800
+Message-ID: <CAC=cRTP38JmFWe8C=y6ew_m1Lswb8DghnqLtdiMc0EW_fyPH7g@mail.gmail.com>
+Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
+ rwsem features
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20190411223433.EPcyGz3u1la9YfN0SvlJwIjJW0GifOZ1XTIsP0z6VMo@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Chen Rong <rong.a.chen@intel.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190412004921.Ymvczi884b01bx7gv0ihdcAbDH5cBnrpKJxK9oML-3w@z>
 
-On Thu, Apr 11, 2019 at 3:13 PM Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
+On Thu, Apr 11, 2019 at 12:08 AM Waiman Long <longman@redhat.com> wrote:
 >
-> Minor nit... I would have said "All readX() and writeX() accesses _from
-> the same CPU_ to the same peripheral... and then s/the CPU/this CPU.
+> On 04/10/2019 04:15 AM, huang ying wrote:
+> > Hi, Waiman,
+> >
+> > What's the status of this patchset?  And its merging plan?
+> >
+> > Best Regards,
+> > Huang, Ying
+>
+> I have broken the patch into 3 parts (0/1/2) and rewritten some of them.
+> Part 0 has been merged into tip. Parts 1 and 2 are still under testing.
 
-Maybe talk about "same thread" rather than "same cpu", with the
-understanding that scheduling/preemption has to include the
-appropriate cross-CPU IO barrier?
+Thanks!  Please keep me updated!
 
-                   Linus
+Best Regards,
+Huang, Ying
+
+> Cheers,
+> Longman
+>
