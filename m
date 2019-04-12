@@ -1,58 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:46905 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726765AbfDLPWu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2019 11:22:50 -0400
+Received: from mail-lf1-f53.google.com ([209.85.167.53]:36685 "EHLO
+        mail-lf1-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726965AbfDLPc7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2019 11:32:59 -0400
+Received: by mail-lf1-f53.google.com with SMTP id u17so7842745lfi.3
+        for <linux-arch@vger.kernel.org>; Fri, 12 Apr 2019 08:32:57 -0700 (PDT)
+Received: from mail-lj1-f170.google.com (mail-lj1-f170.google.com. [209.85.208.170])
+        by smtp.gmail.com with ESMTPSA id 1sm8258950ljw.56.2019.04.12.08.32.55
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 12 Apr 2019 08:32:55 -0700 (PDT)
+Received: by mail-lj1-f170.google.com with SMTP id k8so9247027lja.8
+        for <linux-arch@vger.kernel.org>; Fri, 12 Apr 2019 08:32:55 -0700 (PDT)
 MIME-Version: 1.0
-References: <20190412143538.11780-1-hch@lst.de> <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
- <20190412145538.GA24473@lst.de>
-In-Reply-To: <20190412145538.GA24473@lst.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 12 Apr 2019 17:22:32 +0200
-Message-ID: <CAK8P3a0hNp39POcMD8nO5y487UAWEjmQzGyPbb4xW-o-R6HUCA@mail.gmail.com>
-Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel endianess
+References: <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com> <20190411193906.GA12232@hirez.programming.kicks-ass.net>
+ <20190411195424.GL14281@hirez.programming.kicks-ass.net> <20190411211348.GA8451@worktop.programming.kicks-ass.net>
+ <20190412105633.GM14281@hirez.programming.kicks-ass.net>
+In-Reply-To: <20190412105633.GM14281@hirez.programming.kicks-ass.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 12 Apr 2019 08:32:38 -0700
+Message-ID: <CAHk-=wieBr3G=_ZGoCndi8XnuG1wtkedaGqkWB+=AVq65=_8sQ@mail.gmail.com>
+Subject: Re: 1808d65b55 ("asm-generic/tlb: Remove arch_tlb*_mmu()"): BUG:
+ KASAN: stack-out-of-bounds in __change_page_attr_set_clr
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, mick@ics.forth.gr, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20190412152232.jINrMUeTzRxWOSGPU-ksXYm7-q96vbzenuE-Ptt7wpI@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: kernel test robot <lkp@intel.com>, LKP <lkp@01.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Nadav Amit <namit@vmware.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190412153238._oae3MkJsMC-5xQuPVrNWcriQHa3MJ5_XJg4SSgZCFY@z>
 
-On Fri, Apr 12, 2019 at 4:55 PM Christoph Hellwig <hch@lst.de> wrote:
+On Fri, Apr 12, 2019 at 3:56 AM Peter Zijlstra <peterz@infradead.org> wrote:
 >
-> On Fri, Apr 12, 2019 at 04:53:28PM +0200, Arnd Bergmann wrote:
-> > On Fri, Apr 12, 2019 at 4:36 PM Christoph Hellwig <hch@lst.de> wrote:
-> > >
-> > > When removing some dead big endian checks in the RISC-V code Nick
-> > > suggested that we should have some generic sanity checks.  I don't think
-> > > we should have thos inside the RISC-V code, but maybe it might make
-> > > sense to have these in the generic byteorder headers.  Note that these
-> > > are UAPI headers and some compilers might not actually define
-> > > __BYTE_ORDER__, so we first check that it actually exists.
-> > >
-> > > Suggested-by: Nick Kossifidis <mick@ics.forth.gr>
-> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> >
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> >
-> > Extra checking like this is good in general, but I'm not sure I see
-> > exactly what kind of issue one might expect to prevent with this:
+> --- a/arch/x86/mm/tlb.c
+> +++ b/arch/x86/mm/tlb.c
+> @@ -728,7 +728,7 @@ void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+>  {
+>         int cpu;
 >
-> I'm personally not worried at all. Just trying to respond to Nicks
-> review comment and make it reasonable generic if we have to have these
-> checks at all.  I personally would be ok without them, I just don't
-> want them hidden somewhere in the RISC-V code (RISC-V is always little
-> endian at least right now).
+> -       struct flush_tlb_info info __aligned(SMP_CACHE_BYTES) = {
+> +       struct flush_tlb_info info = {
+>                 .mm = mm,
+>                 .stride_shift = stride_shift,
+>                 .freed_tables = freed_tables,
+>
 
-Ok, makes sense.
+Ack.
 
-Note: I hope we won't ever see big-endian RISC-V, I think that ship has
-sailed long ago, regardless of any personal preferences one might hold.
+We should never have stack alignment bigger than 16 bytes.  And
+preferably not even that. Trying to align stack at a cacheline
+boundary is wrong - if you *really* need things to be that aligned, do
+something else (regular kmalloc, percpu temp area, static allocation -
+whatever).
 
-The architectures that allow both (arm, arc, mips, c6x, microblaze,
-modern ppc64, superh) tend to just use little-endian in practice, and the
-ones that are hardcoded to big-endian (sparc, parisc, m68k, h8300, s390,
-ppc32, some mips) are all 25+ years old and do so only for historic
-reasons, with openrisc being the notable exception.
-
-       Arnd
+           Linus
