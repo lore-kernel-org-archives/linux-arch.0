@@ -1,54 +1,30 @@
-From: Markus Heiser <markus.heiser@darmarit.de>
-Subject: Re: [PATCH 0/8] Prepare files under Documentation/*.txt to build with
- Sphinx
-Date: Fri, 12 Apr 2019 18:45:42 +0200
-Message-ID: <06b2aeb4-825a-28d6-fa7d-f1f5900e53d8@darmarit.de>
-References: <94c47f05-0412-b938-908d-1ef8a91243ed@darmarit.de>
- <cover.1554889999.git.mchehab+samsung@kernel.org>
- <18261.1555064496@warthog.procyon.org.uk>
- <27303.1555071586@warthog.procyon.org.uk>
- <df609cad-fa5b-ac15-314f-ac8759771d90@darmarit.de>
- <20190412093947.62913186@lwn.net>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: 1808d65b55 ("asm-generic/tlb: Remove arch_tlb*_mmu()"): BUG: KASAN: stack-out-of-bounds in __change_page_attr_set_clr
+Date: Fri, 12 Apr 2019 17:50:30 +0100
+Message-ID: <5890.1555087830@warthog.procyon.org.uk>
+References: <CAHk-=wieBr3G=_ZGoCndi8XnuG1wtkedaGqkWB+=AVq65=_8sQ@mail.gmail.com> <5cae03c4.iIPk2cWlfmzP0Zgy%lkp@intel.com> <20190411193906.GA12232@hirez.programming.kicks-ass.net> <20190411195424.GL14281@hirez.programming.kicks-ass.net> <20190411211348.GA8451@worktop.programming.kicks-ass.net> <20190412105633.GM14281@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190412093947.62913186@lwn.net>
-Content-Language: de-DE
+In-Reply-To: <CAHk-=wieBr3G=_ZGoCndi8XnuG1wtkedaGqkWB+=AVq65=_8sQ@mail.gmail.com>
+Content-ID: <5889.1555087830.1@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: David Howells <dhowells@redhat.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Luc Maranget <luc.maranget@inria.fr>, Alan Stern <stern@rowland.harvard.edu>, Akira Yokosawa <akiyks@gmail.com>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>, Jade Alglave <j.alglave@ucl.ac.uk>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, kernel test robot <lkp@intel.com>, LKP <lkp@01.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>, Nadav Amit <namit@vmware.com>
 List-Id: linux-arch.vger.kernel.org
 
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Am 12.04.19 um 17:39 schrieb Jonathan Corbet:
-> On Fri, 12 Apr 2019 14:34:25 +0200
-> Markus Heiser <markus.heiser@darmarit.de> wrote:
-> 
->> Am 12.04.19 um 14:19 schrieb David Howells:
->>> Markus Heiser <markus.heiser@darmarit.de> wrote:
->>>    
->>>> Which is already named in our 'How to write kernel documentation' introduction
->>>>
->>>> - https://www.kernel.org/doc/html/latest/doc-guide/sphinx.html#writing-documentation
->>>
->>> This should really be in Documentation/ directory.
->>>    
->>
->> I agree with you, it is a kind of information hiding.  If you know proper
->> places, please send a patch to Jon.
-> 
-> As Jani pointed out, it's in Documentation/doc-guide.
-> 
-> If you're saying it should be in the top level, I kind of disagree.
-> Documentation/ is an exercise in hiding information by placing it in the
-> middle of 200 other, unrelated files.  We've made some progress on that,
-> and I would like to continue to do so.
+> We should never have stack alignment bigger than 16 bytes.  And
+> preferably not even that.
 
-For those who are new and are willing to document, it migth be a good idea
-to have a simple Documentation/README.txt  with a link to doc-guide?
+At least one arch I know of (FRV) had instructions that could atomically
+load/store register pairs or register quads, but they had to be pair- or
+quad-aligned (ie. 8- or 16-byte), which made for more efficient code if you
+could use them.
 
-Just a few words, I find with my editor, this is what I find often helpful
-when I'am new to a project.
+I don't know whether any arch we currently support has features like this (I
+know some have multi-reg load/stores, but they seem to require only
+word-alignment).
 
--- Markus --
+David
