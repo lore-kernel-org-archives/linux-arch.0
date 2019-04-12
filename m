@@ -1,38 +1,37 @@
-From: huang ying <huang.ying.caritas@gmail.com>
-Subject: Re: [PATCH-tip 00/22] locking/rwsem: Rework rwsem-xadd & enable new
- rwsem features
-Date: Fri, 12 Apr 2019 08:49:21 +0800
-Message-ID: <CAC=cRTP38JmFWe8C=y6ew_m1Lswb8DghnqLtdiMc0EW_fyPH7g@mail.gmail.com>
-References: <1549566446-27967-1-git-send-email-longman@redhat.com>
- <20190213091936.GA22829@shao2-debian> <CAHk-=wiF2qv4TdKOTaTYeMnmsn4h6z9ot+MRj1=s7dm5y1FUwQ@mail.gmail.com>
- <CAC=cRTM5=e7rJX80m0vL10aQoLawK_VTnQubH8A7_sUO2VUCNA@mail.gmail.com> <cc8af095-50e0-cd3e-e498-8c3350d314b7@redhat.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH v2 01/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O
+ BARRIER EFFECTS" section
+Date: Fri, 12 Apr 2019 12:07:09 +1000
+Message-ID: <e172bf1d741eafd8c056ae3692b400f24bb7c3a7.camel@kernel.crashing.org>
+References: <20190405135936.7266-1-will.deacon@arm.com>
+         <20190405135936.7266-2-will.deacon@arm.com>
+         <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
+         <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cc8af095-50e0-cd3e-e498-8c3350d314b7@redhat.com>
+In-Reply-To: <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <longman@redhat.com>
-Cc: Chen Rong <rong.a.chen@intel.com>, Peter Zijlstra <peterz@infradead.org>, "IngoMolnar@shao2-debian" <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Davidlohr Bueso <dave@stgolabs.net>, Andrew Morton <akpm@linux-foundation>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 11, 2019 at 12:08 AM Waiman Long <longman@redhat.com> wrote:
->
-> On 04/10/2019 04:15 AM, huang ying wrote:
-> > Hi, Waiman,
-> >
-> > What's the status of this patchset?  And its merging plan?
-> >
-> > Best Regards,
-> > Huang, Ying
->
-> I have broken the patch into 3 parts (0/1/2) and rewritten some of them.
-> Part 0 has been merged into tip. Parts 1 and 2 are still under testing.
+On Thu, 2019-04-11 at 15:34 -0700, Linus Torvalds wrote:
+> On Thu, Apr 11, 2019 at 3:13 PM Benjamin Herrenschmidt
+> <benh@kernel.crashing.org> wrote:
+> > 
+> > Minor nit... I would have said "All readX() and writeX() accesses
+> > _from
+> > the same CPU_ to the same peripheral... and then s/the CPU/this
+> > CPU.
+> 
+> Maybe talk about "same thread" rather than "same cpu", with the
+> understanding that scheduling/preemption has to include the
+> appropriate cross-CPU IO barrier?
 
-Thanks!  Please keep me updated!
+Works for me, but why not spell all this out in the document ? We know,
+but others might not.
 
-Best Regards,
-Huang, Ying
-
-> Cheers,
-> Longman
->
+Cheers,
+Ben.
