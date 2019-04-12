@@ -1,55 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:41967 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([209.132.183.28]:50734 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726656AbfDLClY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Apr 2019 22:41:24 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH RFC 1/5] cpu/speculation: Add 'cpu_spec_mitigations=' cmdline options
-In-Reply-To: <20190411131540.754t5t4tp55i6vjq@treble>
-References: <cover.1554396090.git.jpoimboe@redhat.com> <f0bd17358ab478eaca52f3b1da8305c150911b40.1554396090.git.jpoimboe@redhat.com> <20190405131211.GE23348@zn.tnic> <20190405142048.burthk2jnpcvi2om@treble> <20190405152059.GG23348@zn.tnic> <20190405160136.GI23348@zn.tnic> <20190405161852.nmpk22omgiety4df@treble> <87sguqwgu7.fsf@concordia.ellerman.id.au> <alpine.DEB.2.21.1904101408580.3479@nanos.tec.linutronix.de> <20190411131540.754t5t4tp55i6vjq@treble>
-Date: Fri, 12 Apr 2019 12:41:21 +1000
-Message-ID: <878swguer2.fsf@concordia.ellerman.id.au>
+        id S1726327AbfDLKVo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Apr 2019 06:21:44 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <cover.1554889999.git.mchehab+samsung@kernel.org>
+References: <cover.1554889999.git.mchehab+samsung@kernel.org>
+Subject: Re: [PATCH 0/8] Prepare files under Documentation/*.txt to build with Sphinx
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <18260.1555064496.1@warthog.procyon.org.uk>
+Date: Fri, 12 Apr 2019 11:21:36 +0100
+Message-ID: <18261.1555064496@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190412024121.gh7DtQsDbWdN6Ptp5VPmdqMYnzi70f1oxwauLy7SZ_w@z>
+To: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Cc: dhowells@redhat.com, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Andrea Parri <andrea.parri@amarulasolutions.com>, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Luc Maranget <luc.maranget@inria.fr>, Alan Stern <stern@rowland.harvard.edu>, Akira Yokosawa <akiyks@gmail.com>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>, Jade Alglave <j.alglave@ucl.ac.uk>
+Message-ID: <20190412102136.a-476R0yQCkTJblqpjOnfPnimH6LlntbWnc1tkMAZM0@z>
 
-Josh Poimboeuf <jpoimboe@redhat.com> writes:
-> On Wed, Apr 10, 2019 at 02:10:01PM +0200, Thomas Gleixner wrote:
->> On Wed, 10 Apr 2019, Michael Ellerman wrote:
->> > Josh Poimboeuf <jpoimboe@redhat.com> writes:
->> > 
->> > > On Fri, Apr 05, 2019 at 06:01:36PM +0200, Borislav Petkov wrote:
->> > >> Thinking about this more, we can shave off the first 4 chars and have it
->> > >> be:
->> > >> 
->> > >> spec_mitigations=
->> > >> 
->> > >> I think it is painfully clear which speculation mitigations we mean. And
->> > >> the other switches don't have "cpu_" prefixes too so...
->> > >
->> > > Sure, I'm ok with renaming it to that, if there are no objections.
->> > 
->> > What about when we have a mitigation for a non-speculation related bug :)
->> 
->> Those kind of silicon bugs are usually mitigated unconditionally.
->
-> Right.
->
-> But at least "mitigations=" is nice and short.  We could clarify in the
-> documentation that it doesn't apply to *all* mitigations, only the ones
-> which are optional and which can affect performance.
->
-> And it would give us the freedom to include any future "optional"
-> mitigations, spec or not.
->
-> I kind of like it.  But I could go either way.
+Mauro Carvalho Chehab <mchehab+samsung@kernel.org> wrote:
 
-Some of the published SMT attacks are not speculation based.
+> In the past, we did some efforts to ensure that almost all files under
+> Documentation/*.txt could be built with Sphinx.
 
-And arguably we already have an optional mitigation for those, ie. nosmt.
+Would recommend a URL.  Presumably this: http://www.sphinx-doc.org
 
-cheers
+David
