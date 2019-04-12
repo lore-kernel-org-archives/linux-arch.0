@@ -1,42 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:52087 "EHLO gate.crashing.org"
+Received: from bilbo.ozlabs.org ([203.11.71.1]:34321 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726640AbfDLCIU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Apr 2019 22:08:20 -0400
-Message-ID: <e172bf1d741eafd8c056ae3692b400f24bb7c3a7.camel@kernel.crashing.org>
-Subject: Re: [PATCH v2 01/21] docs/memory-barriers.txt: Rewrite "KERNEL I/O
- BARRIER EFFECTS" section
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 12 Apr 2019 12:07:09 +1000
-In-Reply-To: <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
-References: <20190405135936.7266-1-will.deacon@arm.com>
-         <20190405135936.7266-2-will.deacon@arm.com>
-         <080d1ec73e3e29d6ffeeeb50b39b613da28afb37.camel@kernel.crashing.org>
-         <CAHk-=wgLLOmocrOw2uH9QxsV=SK236gv0Df8SWXGS8c8LAiyCA@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1726667AbfDLC3F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Apr 2019 22:29:05 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH RFC 1/5] cpu/speculation: Add 'cpu_spec_mitigations=' cmdline options
+In-Reply-To: <alpine.DEB.2.21.1904101408580.3479@nanos.tec.linutronix.de>
+References: <cover.1554396090.git.jpoimboe@redhat.com> <f0bd17358ab478eaca52f3b1da8305c150911b40.1554396090.git.jpoimboe@redhat.com> <20190405131211.GE23348@zn.tnic> <20190405142048.burthk2jnpcvi2om@treble> <20190405152059.GG23348@zn.tnic> <20190405160136.GI23348@zn.tnic> <20190405161852.nmpk22omgiety4df@treble> <87sguqwgu7.fsf@concordia.ellerman.id.au> <alpine.DEB.2.21.1904101408580.3479@nanos.tec.linutronix.de>
+Date: Fri, 12 Apr 2019 12:29:01 +1000
+Message-ID: <87bm1cufbm.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Andrea Parri <andrea.parri@amarulasolutions.com>, Palmer Dabbelt <palmer@sifive.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, "Maciej W. Rozycki" <macro@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Ingo Molnar <mingo@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Tony Luck <tony.luck@intel.com>, Mikulas Patocka <mpatocka@redhat.com>, Akira Yokosawa <akiyks@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Nicholas Piggin <npiggin@gmail.com>
-Message-ID: <20190412020709.JjAg2RxShUtSggP1RFhmPNXs0YHMbdXLm5oQi-azaco@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190412022901.HX9O4LN02HwVHzJGEaeHne287U_F3KFSlRPM89489HE@z>
 
-On Thu, 2019-04-11 at 15:34 -0700, Linus Torvalds wrote:
-> On Thu, Apr 11, 2019 at 3:13 PM Benjamin Herrenschmidt
-> <benh@kernel.crashing.org> wrote:
-> > 
-> > Minor nit... I would have said "All readX() and writeX() accesses
-> > _from
-> > the same CPU_ to the same peripheral... and then s/the CPU/this
-> > CPU.
-> 
-> Maybe talk about "same thread" rather than "same cpu", with the
-> understanding that scheduling/preemption has to include the
-> appropriate cross-CPU IO barrier?
+Thomas Gleixner <tglx@linutronix.de> writes:
+> On Wed, 10 Apr 2019, Michael Ellerman wrote:
+>> Josh Poimboeuf <jpoimboe@redhat.com> writes:
+>> 
+>> > On Fri, Apr 05, 2019 at 06:01:36PM +0200, Borislav Petkov wrote:
+>> >> Thinking about this more, we can shave off the first 4 chars and have it
+>> >> be:
+>> >> 
+>> >> spec_mitigations=
+>> >> 
+>> >> I think it is painfully clear which speculation mitigations we mean. And
+>> >> the other switches don't have "cpu_" prefixes too so...
+>> >
+>> > Sure, I'm ok with renaming it to that, if there are no objections.
+>> 
+>> What about when we have a mitigation for a non-speculation related bug :)
+>
+> Those kind of silicon bugs are usually mitigated unconditionally.
 
-Works for me, but why not spell all this out in the document ? We know,
-but others might not.
+I guess that's true, usually :)
 
-Cheers,
-Ben.
+cheers
