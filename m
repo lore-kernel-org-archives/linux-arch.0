@@ -1,165 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58804 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726037AbfDPQPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Apr 2019 12:15:00 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 3/5] s390: Fix vDSO clock_getres()
-Date: Tue, 16 Apr 2019 17:14:32 +0100
-Message-ID: <20190416161434.32691-4-vincenzo.frascino@arm.com>
-In-Reply-To: <20190416161434.32691-1-vincenzo.frascino@arm.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:59134 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726946AbfDPQYi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Apr 2019 12:24:38 -0400
+Date: Tue, 16 Apr 2019 17:24:33 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 1/5] arm64: Fix vDSO clock_getres()
+Message-ID: <20190416162432.GI28994@arrakis.emea.arm.com>
 References: <20190416161434.32691-1-vincenzo.frascino@arm.com>
+ <20190416161434.32691-2-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190416161434.32691-2-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190416161432.Uctva3nubJJOyaiBcXsASLSnceBbIp-HewSeBNhZDTk@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190416162433.sfwY48aLOdjqW07eSScZ8Q54NZG-U6cEdt1OtHcgv_k@z>
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+On Tue, Apr 16, 2019 at 05:14:30PM +0100, Vincenzo Frascino wrote:
+> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+> index 2d419006ad43..5f5759d51c33 100644
+> --- a/arch/arm64/kernel/vdso.c
+> +++ b/arch/arm64/kernel/vdso.c
+> @@ -245,6 +245,8 @@ void update_vsyscall(struct timekeeper *tk)
+>  		vdso_data->cs_shift		= tk->tkr_mono.shift;
+>  	}
+>  
+> +	vdso_data->hrtimer_res		= hrtimer_resolution;
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+This should be a WRITE_ONCE(), just in case.
 
-Fix the s390 vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
+> +
+>  	smp_wmb();
+>  	++vdso_data->tb_seq_count;
+>  }
+> diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
+> index c39872a7b03c..e2e9dfe9ba4a 100644
+> --- a/arch/arm64/kernel/vdso/gettimeofday.S
+> +++ b/arch/arm64/kernel/vdso/gettimeofday.S
+> @@ -296,32 +296,32 @@ ENDPROC(__kernel_clock_gettime)
+>  /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
+>  ENTRY(__kernel_clock_getres)
+>  	.cfi_startproc
+> +	adr	vdso_data, _vdso_data
+>  	cmp	w0, #CLOCK_REALTIME
+>  	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
+>  	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
+> -	b.ne	1f
+> +	b.ne	2f
+>  
+> -	ldr	x2, 5f
+> -	b	2f
+> -1:
+> +1:	/* Get hrtimer_res */
+> +	ldr	x2, [vdso_data, #CLOCK_REALTIME_RES]
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- arch/s390/include/asm/vdso.h           |  1 +
- arch/s390/kernel/asm-offsets.c         |  2 +-
- arch/s390/kernel/time.c                |  1 +
- arch/s390/kernel/vdso32/clock_getres.S | 12 +++++++-----
- arch/s390/kernel/vdso64/clock_getres.S | 10 +++++-----
- 5 files changed, 15 insertions(+), 11 deletions(-)
+And here we need an "ldr w2, ..." since hrtimer_res is u32.
 
-diff --git a/arch/s390/include/asm/vdso.h b/arch/s390/include/asm/vdso.h
-index 169d7604eb80..f3ba84fa9bd1 100644
---- a/arch/s390/include/asm/vdso.h
-+++ b/arch/s390/include/asm/vdso.h
-@@ -36,6 +36,7 @@ struct vdso_data {
- 	__u32 tk_shift;			/* Shift used for xtime_nsec	0x60 */
- 	__u32 ts_dir;			/* TOD steering direction	0x64 */
- 	__u64 ts_end;			/* TOD steering end		0x68 */
-+	__u32 hrtimer_res;		/* hrtimer resolution		0x70 */
- };
- 
- struct vdso_per_cpu_data {
-diff --git a/arch/s390/kernel/asm-offsets.c b/arch/s390/kernel/asm-offsets.c
-index 164bec175628..36db4a9ee703 100644
---- a/arch/s390/kernel/asm-offsets.c
-+++ b/arch/s390/kernel/asm-offsets.c
-@@ -75,6 +75,7 @@ int main(void)
- 	OFFSET(__VDSO_TK_SHIFT, vdso_data, tk_shift);
- 	OFFSET(__VDSO_TS_DIR, vdso_data, ts_dir);
- 	OFFSET(__VDSO_TS_END, vdso_data, ts_end);
-+	OFFSET(__VDSO_CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
- 	OFFSET(__VDSO_ECTG_BASE, vdso_per_cpu_data, ectg_timer_base);
- 	OFFSET(__VDSO_ECTG_USER, vdso_per_cpu_data, ectg_user_time);
- 	OFFSET(__VDSO_CPU_NR, vdso_per_cpu_data, cpu_nr);
-@@ -86,7 +87,6 @@ int main(void)
- 	DEFINE(__CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
- 	DEFINE(__CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
- 	DEFINE(__CLOCK_THREAD_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID);
--	DEFINE(__CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
- 	DEFINE(__CLOCK_COARSE_RES, LOW_RES_NSEC);
- 	BLANK();
- 	/* idle data offsets */
-diff --git a/arch/s390/kernel/time.c b/arch/s390/kernel/time.c
-index e8766beee5ad..8ea9db599d38 100644
---- a/arch/s390/kernel/time.c
-+++ b/arch/s390/kernel/time.c
-@@ -310,6 +310,7 @@ void update_vsyscall(struct timekeeper *tk)
- 
- 	vdso_data->tk_mult = tk->tkr_mono.mult;
- 	vdso_data->tk_shift = tk->tkr_mono.shift;
-+	vdso_data->hrtimer_res = hrtimer_resolution;
- 	smp_wmb();
- 	++vdso_data->tb_update_count;
- }
-diff --git a/arch/s390/kernel/vdso32/clock_getres.S b/arch/s390/kernel/vdso32/clock_getres.S
-index eaf9cf1417f6..fecd7684c645 100644
---- a/arch/s390/kernel/vdso32/clock_getres.S
-+++ b/arch/s390/kernel/vdso32/clock_getres.S
-@@ -18,20 +18,22 @@
- __kernel_clock_getres:
- 	CFI_STARTPROC
- 	basr	%r1,0
--	la	%r1,4f-.(%r1)
-+10:	al	%r1,4f-10b(%r1)
-+	l	%r0,__VDSO_CLOCK_REALTIME_RES(%r1)
- 	chi	%r2,__CLOCK_REALTIME
- 	je	0f
- 	chi	%r2,__CLOCK_MONOTONIC
- 	je	0f
--	la	%r1,5f-4f(%r1)
-+	basr	%r1,0
-+	la	%r1,5f-.(%r1)
-+	l	%r0,0(%r1)
- 	chi	%r2,__CLOCK_REALTIME_COARSE
- 	je	0f
- 	chi	%r2,__CLOCK_MONOTONIC_COARSE
- 	jne	3f
- 0:	ltr	%r3,%r3
- 	jz	2f				/* res == NULL */
--1:	l	%r0,0(%r1)
--	xc	0(4,%r3),0(%r3)			/* set tp->tv_sec to zero */
-+1:	xc	0(4,%r3),0(%r3)			/* set tp->tv_sec to zero */
- 	st	%r0,4(%r3)			/* store tp->tv_usec */
- 2:	lhi	%r2,0
- 	br	%r14
-@@ -39,6 +41,6 @@ __kernel_clock_getres:
- 	svc	0
- 	br	%r14
- 	CFI_ENDPROC
--4:	.long	__CLOCK_REALTIME_RES
-+4:	.long	_vdso_data - 10b
- 5:	.long	__CLOCK_COARSE_RES
- 	.size	__kernel_clock_getres,.-__kernel_clock_getres
-diff --git a/arch/s390/kernel/vdso64/clock_getres.S b/arch/s390/kernel/vdso64/clock_getres.S
-index 081435398e0a..022b58c980db 100644
---- a/arch/s390/kernel/vdso64/clock_getres.S
-+++ b/arch/s390/kernel/vdso64/clock_getres.S
-@@ -17,12 +17,14 @@
- 	.type  __kernel_clock_getres,@function
- __kernel_clock_getres:
- 	CFI_STARTPROC
--	larl	%r1,4f
-+	larl	%r1,3f
-+	lg	%r0,0(%r1)
- 	cghi	%r2,__CLOCK_REALTIME_COARSE
- 	je	0f
- 	cghi	%r2,__CLOCK_MONOTONIC_COARSE
- 	je	0f
--	larl	%r1,3f
-+	larl	%r1,_vdso_data
-+	l	%r0,__VDSO_CLOCK_REALTIME_RES(%r1)
- 	cghi	%r2,__CLOCK_REALTIME
- 	je	0f
- 	cghi	%r2,__CLOCK_MONOTONIC
-@@ -36,7 +38,6 @@ __kernel_clock_getres:
- 	jz	2f
- 0:	ltgr	%r3,%r3
- 	jz	1f				/* res == NULL */
--	lg	%r0,0(%r1)
- 	xc	0(8,%r3),0(%r3)			/* set tp->tv_sec to zero */
- 	stg	%r0,8(%r3)			/* store tp->tv_usec */
- 1:	lghi	%r2,0
-@@ -45,6 +46,5 @@ __kernel_clock_getres:
- 	svc	0
- 	br	%r14
- 	CFI_ENDPROC
--3:	.quad	__CLOCK_REALTIME_RES
--4:	.quad	__CLOCK_COARSE_RES
-+3:	.quad	__CLOCK_COARSE_RES
- 	.size	__kernel_clock_getres,.-__kernel_clock_getres
--- 
-2.21.0
+With the above (which Will can fix up):
+
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
