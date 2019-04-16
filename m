@@ -1,12 +1,16 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 2/5] powerpc: Fix vDSO clock_getres()
-Date: Tue, 16 Apr 2019 17:14:31 +0100
-Message-ID: <20190416161434.32691-3-vincenzo.frascino@arm.com>
-References: <20190416161434.32691-1-vincenzo.frascino@arm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/5] arm64: Fix vDSO clock_getres()
+Date: Tue, 16 Apr 2019 15:23:46 +0100
+Message-ID: <20190416142346.GA3803@fuggles.cambridge.arm.com>
+References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
+ <20190401115152.32751-2-vincenzo.frascino@arm.com>
+ <20190415173521.GA901@arrakis.emea.arm.com>
+ <efaafc72-79da-b25a-78b7-36424d9350ad@arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20190416161434.32691-1-vincenzo.frascino@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <efaafc72-79da-b25a-78b7-36424d9350ad@arm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -14,132 +18,75 @@ List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
 List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
 List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+On Tue, Apr 16, 2019 at 01:42:58PM +0100, Vincenzo Frascino wrote:
+> On 15/04/2019 18:35, Catalin Marinas wrote:
+> > On Mon, Apr 01, 2019 at 12:51:48PM +0100, Vincenzo Frascino wrote:
+> >> +1:	/* Get hrtimer_res */
+> >> +	seqcnt_acquire
+> >> +	syscall_check fail=5f
+> >> +	ldr	x2, [vdso_data, #CLOCK_REALTIME_RES]
+> >> +	seqcnt_check fail=1b
+> >> +	b	3f
+> >> +2:
+> > 
+> > We talked briefly but I'm still confused why we need the fallback to the
+> > syscall here if archdata.vdso_direct is false. Is it because if the
+> > timer driver code sets vdso_direct to false, we don't don't support
+> > highres timers? If my understanding is correct, you may want to move the
+> > hrtimer_res setting in update_vsyscall() to the !use_syscall block.
+> > 
+> 
+> Ok, so let me try to provide more details on what I mentioned yesterday:
+> - clock_getres syscall follows the rules of what defined in posix-timers.c
+> - based on the clock_id that, for this purpose, can be separated in coarse and
+> non-coarse calls either posix_get_coarse_res() or posix_get_hrtimer_res().
+> - if clock id is set to a coarse clock and posix_get_coarse_res() is invoked,
+> happens what follows:
+> 
+> static int posix_get_coarse_res(const clockid_t which_clock,
+> 				struct timespec64 *tp)
+> {
+> 	*tp = ktime_to_timespec64(KTIME_LOW_RES);
+> 	return 0;
+> }
+> 
+> Note that since CONFIG_1HZ seems not supported (jiffies.h) by the kernel in this
+> case we do not need rounding in our vDSO implementation.
+> 
+> - if clock id is set to non-coarse and posix_get_hrtimer_res() is invoked,
+> happens the following:
+> 
+> static int posix_get_hrtimer_res(clockid_t which_clock, struct timespec64 *tp)
+> {
+> 	tp->tv_sec = 0;
+> 	tp->tv_nsec = hrtimer_resolution;
+> 	return 0;
+> }
+> 
+> hrtimer_resolution can be high res or low res depending on the call of
+> hrtimer_switch_to_hres(). For us the only way to preserve the correct value is
+> to keep it in the vdso data page.
+> 
+> - The assembly code mimics exactly the same behaviour detailed above, with one
+> difference: the one related to the use_syscall parameter which is specific to arm64.
+> The use_syscall parameter is set by arm_arch_timer and consumed by
+> update_vsyscall(). To mirror what update_vsyscall does in update_vsyscall() I
+> check "syscall_check fail=5f" in clock_getres vdso function.
+> 
+> Said that, even if functionally it is the same thing, I think it is logically
+> more correct to have hrtimer_res setting inside the !use_syscall block, hence I
+> am going to change it in the next iteration.
+> 
+> Please let me know your thoughts.
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+I think you can ignore the syscall_check, just like we seem to do for
+CLOCK_REALTIME_COARSE and CLOCK_MONOTONIC_COARSE in clock_gettime().
 
-Fix the powerpc vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/powerpc/include/asm/vdso_datapage.h  | 2 ++
- arch/powerpc/kernel/asm-offsets.c         | 2 +-
- arch/powerpc/kernel/time.c                | 1 +
- arch/powerpc/kernel/vdso32/gettimeofday.S | 7 +++++--
- arch/powerpc/kernel/vdso64/gettimeofday.S | 7 +++++--
- 5 files changed, 14 insertions(+), 5 deletions(-)
-
-diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
-index bbc06bd72b1f..4333b9a473dc 100644
---- a/arch/powerpc/include/asm/vdso_datapage.h
-+++ b/arch/powerpc/include/asm/vdso_datapage.h
-@@ -86,6 +86,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;			/* Wall to monotonic clock nsec */
- 	__s64 wtom_clock_sec;			/* Wall to monotonic clock sec */
- 	struct timespec stamp_xtime;		/* xtime as at tb_orig_stamp */
-+	__u32 hrtimer_res;			/* hrtimer resolution */
-    	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- };
-@@ -107,6 +108,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;
- 	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
- 	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
-+	__u32 hrtimer_res;		/* hrtimer resolution */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- 	__u32 dcache_block_size;	/* L1 d-cache block size     */
- 	__u32 icache_block_size;	/* L1 i-cache block size     */
-diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
-index 86a61e5f8285..52e4b98a8492 100644
---- a/arch/powerpc/kernel/asm-offsets.c
-+++ b/arch/powerpc/kernel/asm-offsets.c
-@@ -383,6 +383,7 @@ int main(void)
- 	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
- 	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
- 	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
-+	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
- 	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
- 	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
- 	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
-@@ -413,7 +414,6 @@ int main(void)
- 	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
- 	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
- 	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
--	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
- 
- #ifdef CONFIG_BUG
- 	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
-diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
-index bc0503ef9c9c..62c04a6746d8 100644
---- a/arch/powerpc/kernel/time.c
-+++ b/arch/powerpc/kernel/time.c
-@@ -955,6 +955,7 @@ void update_vsyscall(struct timekeeper *tk)
- 	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
- 	vdso_data->stamp_xtime = xt;
- 	vdso_data->stamp_sec_fraction = frac_sec;
-+	vdso_data->hrtimer_res = hrtimer_resolution;
- 	smp_wmb();
- 	++(vdso_data->tb_update_count);
- }
-diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
-index afd516b572f8..2b5f9e83c610 100644
---- a/arch/powerpc/kernel/vdso32/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
-@@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
- 
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	__get_datapage@local
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpli	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	stw	r3,TSPC32_TV_SEC(r4)
- 	stw	r5,TSPC32_TV_NSEC(r4)
- 	blr
-diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
-index 1f324c28705b..f07730f73d5e 100644
---- a/arch/powerpc/kernel/vdso64/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
-@@ -190,12 +190,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
- 
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	V_LOCAL_FUNC(__get_datapage)
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpldi	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	std	r3,TSPC64_TV_SEC(r4)
- 	std	r5,TSPC64_TV_NSEC(r4)
- 	blr
--- 
-2.21.0
+Will
