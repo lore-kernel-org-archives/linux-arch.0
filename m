@@ -1,119 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54218 "EHLO foss.arm.com"
+Received: from mail.skyhub.de ([5.9.137.197]:59698 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726907AbfDPMnD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Apr 2019 08:43:03 -0400
-Subject: Re: [PATCH 1/5] arm64: Fix vDSO clock_getres()
-References: <20190401115152.32751-1-vincenzo.frascino@arm.com>
- <20190401115152.32751-2-vincenzo.frascino@arm.com>
- <20190415173521.GA901@arrakis.emea.arm.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <efaafc72-79da-b25a-78b7-36424d9350ad@arm.com>
-Date: Tue, 16 Apr 2019 13:42:58 +0100
+        id S1725861AbfDPONl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Apr 2019 10:13:41 -0400
+Date: Tue, 16 Apr 2019 16:13:35 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 1/5] cpu/speculation: Add 'mitigations=' cmdline option
+Message-ID: <20190416141335.GH31772@zn.tnic>
+References: <cover.1555085500.git.jpoimboe@redhat.com>
+ <b07a8ef9b7c5055c3a4637c87d07c296d5016fe0.1555085500.git.jpoimboe@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20190415173521.GA901@arrakis.emea.arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <b07a8ef9b7c5055c3a4637c87d07c296d5016fe0.1555085500.git.jpoimboe@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190416124258.zcAQ2JtADI3msPXn-fAXK_yYparGvrcwssdc60GplMk@z>
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>, Randy Dunlap <rdunlap@infradead.org>, Steven Price <steven.price@arm.com>, Phil Auld <pauld@redhat.com>
+Message-ID: <20190416141335.y67wtJ3m8fkN-XpvdvDpqRMM1qKZjkvbz7qOljwput8@z>
 
-Hi Catalin,
+On Fri, Apr 12, 2019 at 03:39:28PM -0500, Josh Poimboeuf wrote:
+> diff --git a/kernel/cpu.c b/kernel/cpu.c
+> index 38890f62f9a8..aed9083f8eac 100644
+> --- a/kernel/cpu.c
+> +++ b/kernel/cpu.c
+> @@ -2320,3 +2320,18 @@ void __init boot_cpu_hotplug_init(void)
+>  #endif
+>  	this_cpu_write(cpuhp_state.state, CPUHP_ONLINE);
+>  }
+> +
+> +enum cpu_mitigations cpu_mitigations __ro_after_init = CPU_MITIGATIONS_AUTO;
+> +
+> +static int __init mitigations_cmdline(char *arg)
 
-On 15/04/2019 18:35, Catalin Marinas wrote:
-> On Mon, Apr 01, 2019 at 12:51:48PM +0100, Vincenzo Frascino wrote:
->> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
->> index 2d419006ad43..47ba72345739 100644
->> --- a/arch/arm64/kernel/vdso.c
->> +++ b/arch/arm64/kernel/vdso.c
->> @@ -245,6 +245,8 @@ void update_vsyscall(struct timekeeper *tk)
->>  		vdso_data->cs_shift		= tk->tkr_mono.shift;
->>  	}
->>  
->> +	vdso_data->hrtimer_res			= hrtimer_resolution;
->> +
->>  	smp_wmb();
->>  	++vdso_data->tb_seq_count;
->>  }
->> diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
->> index c39872a7b03c..7a2cd2f8e13a 100644
->> --- a/arch/arm64/kernel/vdso/gettimeofday.S
->> +++ b/arch/arm64/kernel/vdso/gettimeofday.S
->> @@ -296,32 +296,35 @@ ENDPROC(__kernel_clock_gettime)
->>  /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
->>  ENTRY(__kernel_clock_getres)
->>  	.cfi_startproc
->> +	adr	vdso_data, _vdso_data
->>  	cmp	w0, #CLOCK_REALTIME
->>  	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
->>  	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
->> -	b.ne	1f
->> +	b.ne	2f
->>  
->> -	ldr	x2, 5f
->> -	b	2f
->> -1:
->> +1:	/* Get hrtimer_res */
->> +	seqcnt_acquire
->> +	syscall_check fail=5f
->> +	ldr	x2, [vdso_data, #CLOCK_REALTIME_RES]
->> +	seqcnt_check fail=1b
->> +	b	3f
->> +2:
-> 
-> We talked briefly but I'm still confused why we need the fallback to the
-> syscall here if archdata.vdso_direct is false. Is it because if the
-> timer driver code sets vdso_direct to false, we don't don't support
-> highres timers? If my understanding is correct, you may want to move the
-> hrtimer_res setting in update_vsyscall() to the !use_syscall block.
-> 
-
-Ok, so let me try to provide more details on what I mentioned yesterday:
-- clock_getres syscall follows the rules of what defined in posix-timers.c
-- based on the clock_id that, for this purpose, can be separated in coarse and
-non-coarse calls either posix_get_coarse_res() or posix_get_hrtimer_res().
-- if clock id is set to a coarse clock and posix_get_coarse_res() is invoked,
-happens what follows:
-
-static int posix_get_coarse_res(const clockid_t which_clock,
-				struct timespec64 *tp)
-{
-	*tp = ktime_to_timespec64(KTIME_LOW_RES);
-	return 0;
-}
-
-Note that since CONFIG_1HZ seems not supported (jiffies.h) by the kernel in this
-case we do not need rounding in our vDSO implementation.
-
-- if clock id is set to non-coarse and posix_get_hrtimer_res() is invoked,
-happens the following:
-
-static int posix_get_hrtimer_res(clockid_t which_clock, struct timespec64 *tp)
-{
-	tp->tv_sec = 0;
-	tp->tv_nsec = hrtimer_resolution;
-	return 0;
-}
-
-hrtimer_resolution can be high res or low res depending on the call of
-hrtimer_switch_to_hres(). For us the only way to preserve the correct value is
-to keep it in the vdso data page.
-
-- The assembly code mimics exactly the same behaviour detailed above, with one
-difference: the one related to the use_syscall parameter which is specific to arm64.
-The use_syscall parameter is set by arm_arch_timer and consumed by
-update_vsyscall(). To mirror what update_vsyscall does in update_vsyscall() I
-check "syscall_check fail=5f" in clock_getres vdso function.
-
-Said that, even if functionally it is the same thing, I think it is logically
-more correct to have hrtimer_res setting inside the !use_syscall block, hence I
-am going to change it in the next iteration.
-
-Please let me know your thoughts.
+Forgot the verb: "mitigations_parse_cmdline".
 
 -- 
-Regards,
-Vincenzo
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
