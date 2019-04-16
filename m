@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58736 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726037AbfDPQOy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Apr 2019 12:14:54 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58836 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726037AbfDPQPD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Apr 2019 12:15:03 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 1/5] arm64: Fix vDSO clock_getres()
-Date: Tue, 16 Apr 2019 17:14:30 +0100
-Message-ID: <20190416161434.32691-2-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 4/5] nds32: Fix vDSO clock_getres()
+Date: Tue, 16 Apr 2019 17:14:33 +0100
+Message-ID: <20190416161434.32691-5-vincenzo.frascino@arm.com>
 In-Reply-To: <20190416161434.32691-1-vincenzo.frascino@arm.com>
 References: <20190416161434.32691-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,7 +15,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190416161430.2oexMgTt07dwq0dqYBJNPVwKT7oymC_A9pCfL_jmSpo@z>
+Message-ID: <20190416161433.StBYIwSf0hcG-fSYg02B3fLrmbbKnl2fvf1-coJpTUA@z>
 
 clock_getres in the vDSO library has to preserve the same behaviour
 of posix_get_hrtimer_res().
@@ -26,104 +26,63 @@ In particular, posix_get_hrtimer_res() does:
 and hrtimer_resolution depends on the enablement of the high
 resolution timers that can happen either at compile or at run time.
 
-Fix the arm64 vdso implementation of clock_getres keeping a copy of
+Fix the nds32 vdso implementation of clock_getres keeping a copy of
 hrtimer_resolution in vdso data and using that directly.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Greentime Hu <green.hu@gmail.com>
+Cc: Vincent Chen <deanbo422@gmail.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/vdso_datapage.h |  1 +
- arch/arm64/kernel/asm-offsets.c        |  2 +-
- arch/arm64/kernel/vdso.c               |  2 ++
- arch/arm64/kernel/vdso/gettimeofday.S  | 22 +++++++++++-----------
- 4 files changed, 15 insertions(+), 12 deletions(-)
+ arch/nds32/include/asm/vdso_datapage.h | 1 +
+ arch/nds32/kernel/vdso.c               | 1 +
+ arch/nds32/kernel/vdso/gettimeofday.c  | 4 +++-
+ 3 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/vdso_datapage.h b/arch/arm64/include/asm/vdso_datapage.h
-index 2b9a63771eda..f89263c8e11a 100644
---- a/arch/arm64/include/asm/vdso_datapage.h
-+++ b/arch/arm64/include/asm/vdso_datapage.h
-@@ -38,6 +38,7 @@ struct vdso_data {
- 	__u32 tz_minuteswest;	/* Whacky timezone stuff */
- 	__u32 tz_dsttime;
- 	__u32 use_syscall;
-+	__u32 hrtimer_res;
- };
+diff --git a/arch/nds32/include/asm/vdso_datapage.h b/arch/nds32/include/asm/vdso_datapage.h
+index 79db5a12ca5e..34d80548297f 100644
+--- a/arch/nds32/include/asm/vdso_datapage.h
++++ b/arch/nds32/include/asm/vdso_datapage.h
+@@ -20,6 +20,7 @@ struct vdso_data {
+ 	u32 xtime_clock_sec;	/* CLOCK_REALTIME - seconds */
+ 	u32 cs_mult;		/* clocksource multiplier */
+ 	u32 cs_shift;		/* Cycle to nanosecond divisor (power of two) */
++	u32 hrtimer_res;	/* hrtimer resolution */
  
- #endif /* !__ASSEMBLY__ */
-diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-index 7f40dcbdd51d..e10e2a5d9ddc 100644
---- a/arch/arm64/kernel/asm-offsets.c
-+++ b/arch/arm64/kernel/asm-offsets.c
-@@ -94,7 +94,7 @@ int main(void)
-   DEFINE(CLOCK_REALTIME,	CLOCK_REALTIME);
-   DEFINE(CLOCK_MONOTONIC,	CLOCK_MONOTONIC);
-   DEFINE(CLOCK_MONOTONIC_RAW,	CLOCK_MONOTONIC_RAW);
--  DEFINE(CLOCK_REALTIME_RES,	MONOTONIC_RES_NSEC);
-+  DEFINE(CLOCK_REALTIME_RES,	offsetof(struct vdso_data, hrtimer_res));
-   DEFINE(CLOCK_REALTIME_COARSE,	CLOCK_REALTIME_COARSE);
-   DEFINE(CLOCK_MONOTONIC_COARSE,CLOCK_MONOTONIC_COARSE);
-   DEFINE(CLOCK_COARSE_RES,	LOW_RES_NSEC);
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 2d419006ad43..5f5759d51c33 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -245,6 +245,8 @@ void update_vsyscall(struct timekeeper *tk)
- 		vdso_data->cs_shift		= tk->tkr_mono.shift;
- 	}
- 
-+	vdso_data->hrtimer_res		= hrtimer_resolution;
-+
- 	smp_wmb();
- 	++vdso_data->tb_seq_count;
+ 	u64 cs_cycle_last;	/* last cycle value */
+ 	u64 cs_mask;		/* clocksource mask */
+diff --git a/arch/nds32/kernel/vdso.c b/arch/nds32/kernel/vdso.c
+index 016f15891f6d..90bcae6f8554 100644
+--- a/arch/nds32/kernel/vdso.c
++++ b/arch/nds32/kernel/vdso.c
+@@ -220,6 +220,7 @@ void update_vsyscall(struct timekeeper *tk)
+ 	vdso_data->xtime_coarse_sec = tk->xtime_sec;
+ 	vdso_data->xtime_coarse_nsec = tk->tkr_mono.xtime_nsec >>
+ 	    tk->tkr_mono.shift;
++	vdso_data->hrtimer_res = hrtimer_resolution;
+ 	vdso_write_end(vdso_data);
  }
-diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
-index c39872a7b03c..e2e9dfe9ba4a 100644
---- a/arch/arm64/kernel/vdso/gettimeofday.S
-+++ b/arch/arm64/kernel/vdso/gettimeofday.S
-@@ -296,32 +296,32 @@ ENDPROC(__kernel_clock_gettime)
- /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
- ENTRY(__kernel_clock_getres)
- 	.cfi_startproc
-+	adr	vdso_data, _vdso_data
- 	cmp	w0, #CLOCK_REALTIME
- 	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
- 	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
--	b.ne	1f
-+	b.ne	2f
  
--	ldr	x2, 5f
--	b	2f
--1:
-+1:	/* Get hrtimer_res */
-+	ldr	x2, [vdso_data, #CLOCK_REALTIME_RES]
-+	b	3f
-+2:
- 	cmp	w0, #CLOCK_REALTIME_COARSE
- 	ccmp	w0, #CLOCK_MONOTONIC_COARSE, #0x4, ne
--	b.ne	4f
-+	b.ne	5f
- 	ldr	x2, 6f
--2:
--	cbz	x1, 3f
-+3:
-+	cbz	x1, 4f
- 	stp	xzr, x2, [x1]
+diff --git a/arch/nds32/kernel/vdso/gettimeofday.c b/arch/nds32/kernel/vdso/gettimeofday.c
+index 038721af40e3..b02581891c33 100644
+--- a/arch/nds32/kernel/vdso/gettimeofday.c
++++ b/arch/nds32/kernel/vdso/gettimeofday.c
+@@ -208,6 +208,8 @@ static notrace int clock_getres_fallback(clockid_t _clk_id,
  
--3:	/* res == NULL. */
-+4:	/* res == NULL. */
- 	mov	w0, wzr
- 	ret
- 
--4:	/* Syscall fallback. */
-+5:	/* Syscall fallback. */
- 	mov	x8, #__NR_clock_getres
- 	svc	#0
- 	ret
--5:
--	.quad	CLOCK_REALTIME_RES
- 6:
- 	.quad	CLOCK_COARSE_RES
- 	.cfi_endproc
+ notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
+ {
++	struct vdso_data *vdata = __get_datapage();
++
+ 	if (res == NULL)
+ 		return 0;
+ 	switch (clk_id) {
+@@ -215,7 +217,7 @@ notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
+ 	case CLOCK_MONOTONIC:
+ 	case CLOCK_MONOTONIC_RAW:
+ 		res->tv_sec = 0;
+-		res->tv_nsec = CLOCK_REALTIME_RES;
++		res->tv_nsec = vdata->hrtimer_res;
+ 		break;
+ 	case CLOCK_REALTIME_COARSE:
+ 	case CLOCK_MONOTONIC_COARSE:
 -- 
 2.21.0
