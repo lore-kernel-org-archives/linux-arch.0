@@ -1,146 +1,221 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:42728 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725792AbfDQKqY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2019 06:46:24 -0400
-From: Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>
-Subject: [PATCH v2] ARC: fix memory nodes topology in case of highmem enabled
-Date: Wed, 17 Apr 2019 13:46:11 +0300
-Message-ID: <20190417104611.13257-1-Eugeniy.Paltsev@synopsys.com>
+Received: from mout.kundenserver.de ([212.227.126.134]:45069 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727013AbfDQU5h (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2019 16:57:37 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 3/3 v3] net: socket: implement 64-bit timestamps
+Date: Wed, 17 Apr 2019 22:56:11 +0200
+Message-ID: <20190417205659.2036372-1-arnd@arndb.de>
+In-Reply-To: <20190417205404.1877560-1-arnd@arndb.de>
+References: <20190417205404.1877560-1-arnd@arndb.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org, Vineet Gupta <vineet.gupta1@synopsys.com>
-Cc: linux-kernel@vger.kernel.org, Alexey Brodkin <alexey.brodkin@synopsys.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Eugeniy Paltsev <eugeniy.paltsev@synopsys.com>
-Message-ID: <20190417104611.QXzPdbOK3GGdazTCgUBXMHvj3t545iDUl_hQKdnF86g@z>
+To: netdev@vger.kernel.org
+Cc: y2038@lists.linaro.org, Willem de Bruijn <willemdebruijn.kernel@gmail.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S. Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190417205611.IlGZxxk0TZbvx_PFZfdATZCSH8dIq_OltF_5CgqDyiU@z>
 
-Tweak generic node topology in case of CONFIG_HIGHMEM enabled to
-prioritize allocations from ZONE_HIGHMEM to avoid ZONE_NORMAL
-pressure.
+The 'timeval' and 'timespec' data structures used for socket timestamps
+are going to be redefined in user space based on 64-bit time_t in future
+versions of the C library to deal with the y2038 overflow problem,
+which breaks the ABI definition.
 
-Here is example when we can see problems on ARC with currently
-existing topology configuration:
+Unlike many modern ioctl commands, SIOCGSTAMP and SIOCGSTAMPNS do not
+use the _IOR() macro to encode the size of the transferred data, so it
+remains ambiguous whether the application uses the old or new layout.
 
-Generic statements:
- - *NOT* every memory allocation which could be done from
-   ZONE_NORMAL also could be done from ZONE_HIGHMEM.
- - Every memory allocation which could be done from ZONE_HIGHMEM
-   also could be done from ZONE_NORMAL (In other words ZONE_NORMAL
-   is more universal than ZONE_HIGHMEM)
+The best workaround I could find is rather ugly: we redefine the command
+code based on the size of the respective data structure with a ternary
+operator. This lets it get evaluated as late as possible, hopefully after
+that structure is visible to the caller. We cannot use an #ifdef here,
+because inux/sockios.h might have been included before any libc header
+that could determine the size of time_t.
 
-ARC statements:
-In case of CONFIG_HIGHMEM enabled we have 2 memory nodes:
- - "node 0" has only ZONE_NORMAL memory.
- - "node 1" has only ZONE_HIGHMEM memory.
+The ioctl implementation now interprets the new command codes as always
+referring to the 64-bit structure on all architectures, while the old
+architecture specific command code still refers to the old architecture
+specific layout. The new command number is only used when they are
+actually different.
 
-Steps to reproduce the problem:
-1) Let's try to allocate some memory from userspace. It can be
-   allocate from anywhere (ZONE_HIGHMEM/ZONE_NORMAL).
-2) Kernel tries to allocate memory from the closest memory node
-   to this CPU. As we don't have NUMA enabled and don't override
-   any define from "include/asm-generic/topology.h" the closest
-   memory node to any CPU will be "node 0"
-3) OK, we'll allocate memory from "node 0". Let's choose ZONE
-   to allocate from. This allocation could be done from both
-   ZONE_HIGHMEM / ZONE_NORMAL in this node. The allocation
-   priority between zones is ZONE_HIGHMEM > ZONE_NORMAL.
-   This is pretty logical - we don't want waste *universal*
-   ZONE_NORMAL if we can use ZONE_HIGHMEM. But we don't have
-   ZONE_HIGHMEM in "node 0" that's why we rollback to
-   ZONE_NORMAL and allocate memory from it.
-4) Let's try to allocate a lot of memory [more than we have free
-   memory in lowmem] from userspace.
-5) Kernel allocates as much memory as it can from the closest
-   memory node ("node 0"). But there is no enough memory in
-   "node 0". So we'll rollback to another memory node ("node 1")
-   and allocate the rest of the amount from it.
-
-   In other words we have following memory lookup path:
-      (node 0, ZONE_HIGHMEM) ->
-   -> (node 0, ZONE_NORMAL)  ->
-   -> (node 1, ZONE_HIGHMEM)
-
-   Now we don't have any free memory in (node 0, ZONE_NORMAL)
-   [Actually this is a simplification, but it doesn't matter
-   in this example]
-6) Oops, some internal kernel memory allocation happen which
-   requires ZONE_NORMAL. For example "kmalloc(size, GFP_KERNEL)"
-   was called.
-   So the we have following memory lookup path:
-   (node 0, ZONE_NORMAL) -> ("node 1", ZONE_NORMAL)
-   There is no free memory in "node 0". And there is no
-   ZONE_NORMAL in "node 1". We only have some free memory in
-   (node 1, ZONE_HIGHMEM) but HIGHMEM isn't suitable in this
-   case.
-7) As we can't allocate memory OOM-Killer is invoked, even if
-   we have some free memory in (node 1, ZONE_HIGHMEM).
-
-This patch tweaks generic node topology and mark memory from
-"node 1" as the closest to any CPU.
-
-So the we'll have following memory lookup path:
-    (node 1, ZONE_HIGHMEM) ->
- -> (node 1, ZONE_NORMAL)  ->
- -> (node 0, ZONE_HIGHMEM) ->
- -> (node 0, ZONE_NORMAL)
-In case of node configuration on ARC we obtain the degenerate case
-of this path:
-(node 1, ZONE_HIGHMEM) -> (node 0, ZONE_NORMAL)
-
-In this case we don't waste *universal* ZONE_NORMAL if we can use
-ZONE_HIGHMEM so we don't face with the issue pointed in [5-7]
-
-Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
-Changes v1->v2:
- * Changes in commit message and comments in a code. No functional
-   change intended.
+v3: no changes since v1
+---
+ arch/alpha/include/uapi/asm/sockios.h  |  4 ++--
+ arch/mips/include/uapi/asm/sockios.h   |  4 ++--
+ arch/sh/include/uapi/asm/sockios.h     |  5 +++--
+ arch/xtensa/include/uapi/asm/sockios.h |  4 ++--
+ include/uapi/asm-generic/sockios.h     |  4 ++--
+ include/uapi/linux/sockios.h           | 21 +++++++++++++++++++++
+ net/socket.c                           | 24 ++++++++++++++++++------
+ 7 files changed, 50 insertions(+), 16 deletions(-)
 
- arch/arc/include/asm/Kbuild     |  1 -
- arch/arc/include/asm/topology.h | 24 ++++++++++++++++++++++++
- 2 files changed, 24 insertions(+), 1 deletion(-)
- create mode 100644 arch/arc/include/asm/topology.h
-
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index caa270261521..e64e0439baff 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -18,7 +18,6 @@ generic-y += msi.h
- generic-y += parport.h
- generic-y += percpu.h
- generic-y += preempt.h
--generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += user.h
- generic-y += vga.h
-diff --git a/arch/arc/include/asm/topology.h b/arch/arc/include/asm/topology.h
-new file mode 100644
-index 000000000000..c3b8ab7ed011
---- /dev/null
-+++ b/arch/arc/include/asm/topology.h
-@@ -0,0 +1,24 @@
-+#ifndef _ASM_ARC_TOPOLOGY_H
-+#define _ASM_ARC_TOPOLOGY_H
+diff --git a/arch/alpha/include/uapi/asm/sockios.h b/arch/alpha/include/uapi/asm/sockios.h
+index ba287e4b01bf..af92bc27c3be 100644
+--- a/arch/alpha/include/uapi/asm/sockios.h
++++ b/arch/alpha/include/uapi/asm/sockios.h
+@@ -11,7 +11,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* _ASM_ALPHA_SOCKIOS_H */
+diff --git a/arch/mips/include/uapi/asm/sockios.h b/arch/mips/include/uapi/asm/sockios.h
+index 5b40a88593fa..66f60234f290 100644
+--- a/arch/mips/include/uapi/asm/sockios.h
++++ b/arch/mips/include/uapi/asm/sockios.h
+@@ -21,7 +21,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* _ASM_SOCKIOS_H */
+diff --git a/arch/sh/include/uapi/asm/sockios.h b/arch/sh/include/uapi/asm/sockios.h
+index 17313d2c3527..ef18a668456d 100644
+--- a/arch/sh/include/uapi/asm/sockios.h
++++ b/arch/sh/include/uapi/asm/sockios.h
+@@ -10,6 +10,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
+-#define SIOCGSTAMPNS	_IOR('s', 101, struct timespec) /* Get stamp (timespec) */
++#define SIOCGSTAMP_OLD	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
++#define SIOCGSTAMPNS_OLD _IOR('s', 101, struct timespec) /* Get stamp (timespec) */
 +
+ #endif /* __ASM_SH_SOCKIOS_H */
+diff --git a/arch/xtensa/include/uapi/asm/sockios.h b/arch/xtensa/include/uapi/asm/sockios.h
+index fb8ac3607189..1a1f58f4b75a 100644
+--- a/arch/xtensa/include/uapi/asm/sockios.h
++++ b/arch/xtensa/include/uapi/asm/sockios.h
+@@ -26,7 +26,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ 
+ #endif	/* _XTENSA_SOCKIOS_H */
+diff --git a/include/uapi/asm-generic/sockios.h b/include/uapi/asm-generic/sockios.h
+index 64f658c7cec2..44fa3ed70483 100644
+--- a/include/uapi/asm-generic/sockios.h
++++ b/include/uapi/asm-generic/sockios.h
+@@ -8,7 +8,7 @@
+ #define FIOGETOWN	0x8903
+ #define SIOCGPGRP	0x8904
+ #define SIOCATMARK	0x8905
+-#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* __ASM_GENERIC_SOCKIOS_H */
+diff --git a/include/uapi/linux/sockios.h b/include/uapi/linux/sockios.h
+index d393e9ed3964..7d1bccbbef78 100644
+--- a/include/uapi/linux/sockios.h
++++ b/include/uapi/linux/sockios.h
+@@ -19,6 +19,7 @@
+ #ifndef _LINUX_SOCKIOS_H
+ #define _LINUX_SOCKIOS_H
+ 
++#include <asm/bitsperlong.h>
+ #include <asm/sockios.h>
+ 
+ /* Linux-specific socket ioctls */
+@@ -27,6 +28,26 @@
+ 
+ #define SOCK_IOC_TYPE	0x89
+ 
 +/*
-+ * On ARC (w/o PAE) HIGHMEM addresses are smaller (0x0 based) than addresses in
-+ * NORMAL aka low memory (0x8000_0000 based).
-+ * Thus HIGHMEM on ARC is implemented with DISCONTIGMEM which requires multiple
-+ * nodes. So here is memory node map on ARC:
-+ *  - node 0: ZONE_NORMAL  memory (always)
-+ *  - node 1: ZONE_HIGHMEM memory (only if CONFIG_HIGHMEM is enabled)
-+ *
-+ * In case of CONFIG_HIGHMEM enabled we tweak generic node topology and mark
-+ * node 1 as the closest to all CPUs to prioritize allocations from ZONE_HIGHMEM
-+ * where it is possible to avoid ZONE_NORMAL pressure.
++ * the timeval/timespec data structure layout is defined by libc,
++ * so we need to cover both possible versions on 32-bit.
 + */
-+#ifdef CONFIG_HIGHMEM
-+#define cpu_to_node(cpu)	((void)(cpu), 1)
-+#define cpu_to_mem(cpu)		((void)(cpu), 1)
-+#define cpumask_of_node(node)	((node) == 1 ? cpu_online_mask : cpu_none_mask)
-+#endif /* CONFIG_HIGHMEM */
++/* Get stamp (timeval) */
++#define SIOCGSTAMP_NEW	 _IOR(SOCK_IOC_TYPE, 0x06, long long[2])
++/* Get stamp (timespec) */
++#define SIOCGSTAMPNS_NEW _IOR(SOCK_IOC_TYPE, 0x07, long long[2])
 +
-+#include <asm-generic/topology.h>
++#if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
++/* on 64-bit and x32, avoid the ?: operator */
++#define SIOCGSTAMP	SIOCGSTAMP_OLD
++#define SIOCGSTAMPNS	SIOCGSTAMPNS_OLD
++#else
++#define SIOCGSTAMP	((sizeof(struct timeval))  == 8 ? \
++			 SIOCGSTAMP_OLD   : SIOCGSTAMP_NEW)
++#define SIOCGSTAMPNS	((sizeof(struct timespec)) == 8 ? \
++			 SIOCGSTAMPNS_OLD : SIOCGSTAMPNS_NEW)
++#endif
 +
-+#endif /* _ASM_ARC_TOPOLOGY_H */
+ /* Routing table calls. */
+ #define SIOCADDRT	0x890B		/* add routing table entry	*/
+ #define SIOCDELRT	0x890C		/* delete routing table entry	*/
+diff --git a/net/socket.c b/net/socket.c
+index ab624d42ead5..8d9d4fc7d962 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1164,14 +1164,24 @@ static long sock_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ 
+ 			err = open_related_ns(&net->ns, get_net_ns);
+ 			break;
+-		case SIOCGSTAMP:
+-		case SIOCGSTAMPNS:
++		case SIOCGSTAMP_OLD:
++		case SIOCGSTAMPNS_OLD:
+ 			if (!sock->ops->gettstamp) {
+ 				err = -ENOIOCTLCMD;
+ 				break;
+ 			}
+ 			err = sock->ops->gettstamp(sock, argp,
+-						   cmd == SIOCGSTAMP, false);
++						   cmd == SIOCGSTAMP_OLD,
++						   !IS_ENABLED(CONFIG_64BIT));
++		case SIOCGSTAMP_NEW:
++		case SIOCGSTAMPNS_NEW:
++			if (!sock->ops->gettstamp) {
++				err = -ENOIOCTLCMD;
++				break;
++			}
++			err = sock->ops->gettstamp(sock, argp,
++						   cmd == SIOCGSTAMP_NEW,
++						   false);
+ 			break;
+ 		default:
+ 			err = sock_do_ioctl(net, sock, cmd, arg);
+@@ -3324,11 +3334,11 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
+ 	case SIOCADDRT:
+ 	case SIOCDELRT:
+ 		return routing_ioctl(net, sock, cmd, argp);
+-	case SIOCGSTAMP:
+-	case SIOCGSTAMPNS:
++	case SIOCGSTAMP_OLD:
++	case SIOCGSTAMPNS_OLD:
+ 		if (!sock->ops->gettstamp)
+ 			return -ENOIOCTLCMD;
+-		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP,
++		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP_OLD,
+ 					    !COMPAT_USE_64BIT_TIME);
+ 
+ 	case SIOCBONDSLAVEINFOQUERY:
+@@ -3348,6 +3358,8 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
+ 	case SIOCADDDLCI:
+ 	case SIOCDELDLCI:
+ 	case SIOCGSKNS:
++	case SIOCGSTAMP_NEW:
++	case SIOCGSTAMPNS_NEW:
+ 		return sock_ioctl(file, cmd, arg);
+ 
+ 	case SIOCGIFFLAGS:
 -- 
-2.14.5
+2.20.0
