@@ -1,74 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:34115 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:34157 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388571AbfDRJHr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:07:47 -0400
-Message-ID: <20190418084254.361284697@linutronix.de>
-Date: Thu, 18 Apr 2019 10:41:33 +0200
+        with ESMTP id S2388674AbfDRJIE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:08:04 -0400
+Message-ID: <20190418084254.729689921@linutronix.de>
+Date: Thu, 18 Apr 2019 10:41:37 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 14/29] dm bufio: Simplify stack trace retrieval
+Subject: [patch V2 18/29] lockdep: Move stack trace logic into check_prev_add()
 References: <20190418084119.056416939@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190418084133.r3WG8ndWRN-1KTNQAuwvXWAyFx6nu_v8DzYFX7Xk1o8@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418084137.-MNf3zW2c13TdCZj2pLW0sgp6mQ4ih7MY4gSj9uZPJo@z>
 
-Replace the indirection through struct stack_trace with an invocation of
-the storage array based interface.
+There is only one caller of check_prev_add() which hands in a zeroed struct
+stack trace and a function pointer to save_stack(). Inside check_prev_add()
+the stack_trace struct is checked for being empty, which is always
+true. Based on that one code path stores a stack trace which is unused. The
+comment there does not make sense either. It's all leftovers from
+historical lockdep code (cross release).
+
+Move the variable into check_prev_add() itself and cleanup the nonsensical
+checks and the pointless stack trace recording.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: dm-devel@redhat.com
-Cc: Mike Snitzer <snitzer@redhat.com>
-Cc: Alasdair Kergon <agk@redhat.com>
 ---
- drivers/md/dm-bufio.c |   15 ++++++---------
- 1 file changed, 6 insertions(+), 9 deletions(-)
+ kernel/locking/lockdep.c |   30 ++++++++----------------------
+ 1 file changed, 8 insertions(+), 22 deletions(-)
 
---- a/drivers/md/dm-bufio.c
-+++ b/drivers/md/dm-bufio.c
-@@ -150,7 +150,7 @@ struct dm_buffer {
- 	void (*end_io)(struct dm_buffer *, blk_status_t);
- #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
- #define MAX_STACK 10
--	struct stack_trace stack_trace;
-+	unsigned int stack_len;
- 	unsigned long stack_entries[MAX_STACK];
- #endif
- };
-@@ -232,11 +232,7 @@ static DEFINE_MUTEX(dm_bufio_clients_loc
- #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
- static void buffer_record_stack(struct dm_buffer *b)
+--- a/kernel/locking/lockdep.c
++++ b/kernel/locking/lockdep.c
+@@ -2158,10 +2158,10 @@ check_deadlock(struct task_struct *curr,
+  */
+ static int
+ check_prev_add(struct task_struct *curr, struct held_lock *prev,
+-	       struct held_lock *next, int distance, struct stack_trace *trace,
+-	       int (*save)(struct stack_trace *trace))
++	       struct held_lock *next, int distance)
  {
--	b->stack_trace.nr_entries = 0;
--	b->stack_trace.max_entries = MAX_STACK;
--	b->stack_trace.entries = b->stack_entries;
--	b->stack_trace.skip = 2;
--	save_stack_trace(&b->stack_trace);
-+	b->stack_len = stack_trace_save(b->stack_entries, MAX_STACK, 2);
- }
- #endif
+ 	struct lock_list *uninitialized_var(target_entry);
++	struct stack_trace trace;
+ 	struct lock_list *entry;
+ 	struct lock_list this;
+ 	int ret;
+@@ -2196,17 +2196,8 @@ check_prev_add(struct task_struct *curr,
+ 	this.class = hlock_class(next);
+ 	this.parent = NULL;
+ 	ret = check_noncircular(&this, hlock_class(prev), &target_entry);
+-	if (unlikely(!ret)) {
+-		if (!trace->entries) {
+-			/*
+-			 * If @save fails here, the printing might trigger
+-			 * a WARN but because of the !nr_entries it should
+-			 * not do bad things.
+-			 */
+-			save(trace);
+-		}
++	if (unlikely(!ret))
+ 		return print_circular_bug(&this, target_entry, next, prev);
+-	}
+ 	else if (unlikely(ret < 0))
+ 		return print_bfs_bug(ret);
  
-@@ -438,7 +434,7 @@ static struct dm_buffer *alloc_buffer(st
- 	adjust_total_allocated(b->data_mode, (long)c->block_size);
+@@ -2253,7 +2244,7 @@ check_prev_add(struct task_struct *curr,
+ 		return print_bfs_bug(ret);
  
- #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
--	memset(&b->stack_trace, 0, sizeof(b->stack_trace));
-+	b->stack_len = 0;
- #endif
- 	return b;
- }
-@@ -1520,8 +1516,9 @@ static void drop_buffers(struct dm_bufio
- 			DMERR("leaked buffer %llx, hold count %u, list %d",
- 			      (unsigned long long)b->block, b->hold_count, i);
- #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
--			print_stack_trace(&b->stack_trace, 1);
--			b->hold_count = 0; /* mark unclaimed to avoid BUG_ON below */
-+			stack_trace_print(b->stack_entries, b->stack_len, 1);
-+			/* mark unclaimed to avoid BUG_ON below */
-+			b->hold_count = 0;
- #endif
- 		}
+ 
+-	if (!trace->entries && !save(trace))
++	if (!save_trace(&trace))
+ 		return 0;
+ 
+ 	/*
+@@ -2262,14 +2253,14 @@ check_prev_add(struct task_struct *curr,
+ 	 */
+ 	ret = add_lock_to_list(hlock_class(next), hlock_class(prev),
+ 			       &hlock_class(prev)->locks_after,
+-			       next->acquire_ip, distance, trace);
++			       next->acquire_ip, distance, &trace);
+ 
+ 	if (!ret)
+ 		return 0;
+ 
+ 	ret = add_lock_to_list(hlock_class(prev), hlock_class(next),
+ 			       &hlock_class(next)->locks_before,
+-			       next->acquire_ip, distance, trace);
++			       next->acquire_ip, distance, &trace);
+ 	if (!ret)
+ 		return 0;
+ 
+@@ -2287,12 +2278,6 @@ check_prevs_add(struct task_struct *curr
+ {
+ 	int depth = curr->lockdep_depth;
+ 	struct held_lock *hlock;
+-	struct stack_trace trace = {
+-		.nr_entries = 0,
+-		.max_entries = 0,
+-		.entries = NULL,
+-		.skip = 0,
+-	};
+ 
+ 	/*
+ 	 * Debugging checks.
+@@ -2318,7 +2303,8 @@ check_prevs_add(struct task_struct *curr
+ 		 * added:
+ 		 */
+ 		if (hlock->read != 2 && hlock->check) {
+-			int ret = check_prev_add(curr, hlock, next, distance, &trace, save_trace);
++			int ret = check_prev_add(curr, hlock, next, distance);
++
+ 			if (!ret)
+ 				return 0;
  
