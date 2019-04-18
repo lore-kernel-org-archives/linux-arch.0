@@ -1,216 +1,164 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/3 v3] net: socket: implement 64-bit timestamps
-Date: Wed, 17 Apr 2019 22:56:11 +0200
-Message-ID: <20190417205659.2036372-1-arnd@arndb.de>
-References: <20190417205404.1877560-1-arnd@arndb.de>
+From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Subject: [patch V2 03/29] lib/stackdepot: Provide functions which operate on
+	plain storage arrays
+Date: Thu, 18 Apr 2019 10:41:22 +0200
+Message-ID: <20190418084253.337266121@linutronix.de>
+References: <20190418084119.056416939@linutronix.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190417205404.1877560-1-arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: netdev@vger.kernel.org
-Cc: y2038@lists.linaro.org, Willem de Bruijn <willemdebruijn.kernel@gmail.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S. Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Joonas Lahtinen <joonas.lahtinen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, dm-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Christoph Lameter <cl-vYTEC60ixJUAvxtiuMwx3w@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Alasdair Kergon <agk-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Johannes Thumshirn <jthumshirn-l3A5Bk7waGM@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Alexey Dobriyan <adobriyan-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, intel-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, David Rientjes <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Maarten Lankhorst <maarten.lankhorst-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Akinobu Mita <akinobu.mita-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Steven Rostedt <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, Josef Bacik <josef-DigfWCa+lFGyeJad7bwFQA@public.gmane.org>, Rodrigo Vivi <rodrigo.vivi-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Mike Rapoport <rppt-23VcF4HTsmKsTnJN9+BGXg@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-The 'timeval' and 'timespec' data structures used for socket timestamps
-are going to be redefined in user space based on 64-bit time_t in future
-versions of the C library to deal with the y2038 overflow problem,
-which breaks the ABI definition.
+The struct stack_trace indirection in the stack depot functions is a truly
+pointless excercise which requires horrible code at the callsites.
 
-Unlike many modern ioctl commands, SIOCGSTAMP and SIOCGSTAMPNS do not
-use the _IOR() macro to encode the size of the transferred data, so it
-remains ambiguous whether the application uses the old or new layout.
+Provide interfaces based on plain storage arrays.
 
-The best workaround I could find is rather ugly: we redefine the command
-code based on the size of the respective data structure with a ternary
-operator. This lets it get evaluated as late as possible, hopefully after
-that structure is visible to the caller. We cannot use an #ifdef here,
-because inux/sockios.h might have been included before any libc header
-that could determine the size of time_t.
-
-The ioctl implementation now interprets the new command codes as always
-referring to the 64-bit structure on all architectures, while the old
-architecture specific command code still refers to the old architecture
-specific layout. The new command number is only used when they are
-actually different.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Acked-by: Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
 ---
-v3: no changes since v1
----
- arch/alpha/include/uapi/asm/sockios.h  |  4 ++--
- arch/mips/include/uapi/asm/sockios.h   |  4 ++--
- arch/sh/include/uapi/asm/sockios.h     |  5 +++--
- arch/xtensa/include/uapi/asm/sockios.h |  4 ++--
- include/uapi/asm-generic/sockios.h     |  4 ++--
- include/uapi/linux/sockios.h           | 21 +++++++++++++++++++++
- net/socket.c                           | 24 ++++++++++++++++++------
- 7 files changed, 50 insertions(+), 16 deletions(-)
+ include/linux/stackdepot.h |    4 ++
+ lib/stackdepot.c           |   66 ++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 51 insertions(+), 19 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/sockios.h b/arch/alpha/include/uapi/asm/sockios.h
-index ba287e4b01bf..af92bc27c3be 100644
---- a/arch/alpha/include/uapi/asm/sockios.h
-+++ b/arch/alpha/include/uapi/asm/sockios.h
-@@ -11,7 +11,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
+--- a/include/linux/stackdepot.h
++++ b/include/linux/stackdepot.h
+@@ -26,7 +26,11 @@ typedef u32 depot_stack_handle_t;
+ struct stack_trace;
  
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ depot_stack_handle_t depot_save_stack(struct stack_trace *trace, gfp_t flags);
++depot_stack_handle_t stack_depot_save(unsigned long *entries,
++				      unsigned int nr_entries, gfp_t gfp_flags);
  
- #endif /* _ASM_ALPHA_SOCKIOS_H */
-diff --git a/arch/mips/include/uapi/asm/sockios.h b/arch/mips/include/uapi/asm/sockios.h
-index 5b40a88593fa..66f60234f290 100644
---- a/arch/mips/include/uapi/asm/sockios.h
-+++ b/arch/mips/include/uapi/asm/sockios.h
-@@ -21,7 +21,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace);
++unsigned int stack_depot_fetch(depot_stack_handle_t handle,
++			       unsigned long **entries);
  
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ #endif
+--- a/lib/stackdepot.c
++++ b/lib/stackdepot.c
+@@ -194,40 +194,56 @@ static inline struct stack_record *find_
+ 	return NULL;
+ }
  
- #endif /* _ASM_SOCKIOS_H */
-diff --git a/arch/sh/include/uapi/asm/sockios.h b/arch/sh/include/uapi/asm/sockios.h
-index 17313d2c3527..ef18a668456d 100644
---- a/arch/sh/include/uapi/asm/sockios.h
-+++ b/arch/sh/include/uapi/asm/sockios.h
-@@ -10,6 +10,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
- 
--#define SIOCGSTAMP	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
--#define SIOCGSTAMPNS	_IOR('s', 101, struct timespec) /* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD _IOR('s', 101, struct timespec) /* Get stamp (timespec) */
-+
- #endif /* __ASM_SH_SOCKIOS_H */
-diff --git a/arch/xtensa/include/uapi/asm/sockios.h b/arch/xtensa/include/uapi/asm/sockios.h
-index fb8ac3607189..1a1f58f4b75a 100644
---- a/arch/xtensa/include/uapi/asm/sockios.h
-+++ b/arch/xtensa/include/uapi/asm/sockios.h
-@@ -26,7 +26,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
- 
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
- 
- #endif	/* _XTENSA_SOCKIOS_H */
-diff --git a/include/uapi/asm-generic/sockios.h b/include/uapi/asm-generic/sockios.h
-index 64f658c7cec2..44fa3ed70483 100644
---- a/include/uapi/asm-generic/sockios.h
-+++ b/include/uapi/asm-generic/sockios.h
-@@ -8,7 +8,7 @@
- #define FIOGETOWN	0x8903
- #define SIOCGPGRP	0x8904
- #define SIOCATMARK	0x8905
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
- 
- #endif /* __ASM_GENERIC_SOCKIOS_H */
-diff --git a/include/uapi/linux/sockios.h b/include/uapi/linux/sockios.h
-index d393e9ed3964..7d1bccbbef78 100644
---- a/include/uapi/linux/sockios.h
-+++ b/include/uapi/linux/sockios.h
-@@ -19,6 +19,7 @@
- #ifndef _LINUX_SOCKIOS_H
- #define _LINUX_SOCKIOS_H
- 
-+#include <asm/bitsperlong.h>
- #include <asm/sockios.h>
- 
- /* Linux-specific socket ioctls */
-@@ -27,6 +28,26 @@
- 
- #define SOCK_IOC_TYPE	0x89
- 
-+/*
-+ * the timeval/timespec data structure layout is defined by libc,
-+ * so we need to cover both possible versions on 32-bit.
+-void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
++/**
++ * stack_depot_fetch - Fetch stack entries from a depot
++ *
++ * @entries:		Pointer to store the entries address
 + */
-+/* Get stamp (timeval) */
-+#define SIOCGSTAMP_NEW	 _IOR(SOCK_IOC_TYPE, 0x06, long long[2])
-+/* Get stamp (timespec) */
-+#define SIOCGSTAMPNS_NEW _IOR(SOCK_IOC_TYPE, 0x07, long long[2])
++unsigned int stack_depot_fetch(depot_stack_handle_t handle,
++			       unsigned long **entries)
+ {
+ 	union handle_parts parts = { .handle = handle };
+ 	void *slab = stack_slabs[parts.slabindex];
+ 	size_t offset = parts.offset << STACK_ALLOC_ALIGN;
+ 	struct stack_record *stack = slab + offset;
+ 
+-	trace->nr_entries = trace->max_entries = stack->size;
+-	trace->entries = stack->entries;
+-	trace->skip = 0;
++	*entries = stack->entries;
++	return stack->size;
++}
++EXPORT_SYMBOL_GPL(stack_depot_fetch);
 +
-+#if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
-+/* on 64-bit and x32, avoid the ?: operator */
-+#define SIOCGSTAMP	SIOCGSTAMP_OLD
-+#define SIOCGSTAMPNS	SIOCGSTAMPNS_OLD
-+#else
-+#define SIOCGSTAMP	((sizeof(struct timeval))  == 8 ? \
-+			 SIOCGSTAMP_OLD   : SIOCGSTAMP_NEW)
-+#define SIOCGSTAMPNS	((sizeof(struct timespec)) == 8 ? \
-+			 SIOCGSTAMPNS_OLD : SIOCGSTAMPNS_NEW)
-+#endif
++void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
++{
++	unsigned int nent = stack_depot_fetch(handle, &trace->entries);
 +
- /* Routing table calls. */
- #define SIOCADDRT	0x890B		/* add routing table entry	*/
- #define SIOCDELRT	0x890C		/* delete routing table entry	*/
-diff --git a/net/socket.c b/net/socket.c
-index ab624d42ead5..8d9d4fc7d962 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1164,14 +1164,24 @@ static long sock_ioctl(struct file *file, unsigned cmd, unsigned long arg)
++	trace->max_entries = trace->nr_entries = nent;
+ }
+ EXPORT_SYMBOL_GPL(depot_fetch_stack);
  
- 			err = open_related_ns(&net->ns, get_net_ns);
- 			break;
--		case SIOCGSTAMP:
--		case SIOCGSTAMPNS:
-+		case SIOCGSTAMP_OLD:
-+		case SIOCGSTAMPNS_OLD:
- 			if (!sock->ops->gettstamp) {
- 				err = -ENOIOCTLCMD;
- 				break;
- 			}
- 			err = sock->ops->gettstamp(sock, argp,
--						   cmd == SIOCGSTAMP, false);
-+						   cmd == SIOCGSTAMP_OLD,
-+						   !IS_ENABLED(CONFIG_64BIT));
-+		case SIOCGSTAMP_NEW:
-+		case SIOCGSTAMPNS_NEW:
-+			if (!sock->ops->gettstamp) {
-+				err = -ENOIOCTLCMD;
-+				break;
-+			}
-+			err = sock->ops->gettstamp(sock, argp,
-+						   cmd == SIOCGSTAMP_NEW,
-+						   false);
- 			break;
- 		default:
- 			err = sock_do_ioctl(net, sock, cmd, arg);
-@@ -3324,11 +3334,11 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
- 	case SIOCADDRT:
- 	case SIOCDELRT:
- 		return routing_ioctl(net, sock, cmd, argp);
--	case SIOCGSTAMP:
--	case SIOCGSTAMPNS:
-+	case SIOCGSTAMP_OLD:
-+	case SIOCGSTAMPNS_OLD:
- 		if (!sock->ops->gettstamp)
- 			return -ENOIOCTLCMD;
--		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP,
-+		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP_OLD,
- 					    !COMPAT_USE_64BIT_TIME);
+ /**
+- * depot_save_stack - save stack in a stack depot.
+- * @trace - the stacktrace to save.
+- * @alloc_flags - flags for allocating additional memory if required.
++ * stack_depot_save - Save a stack trace from an array
+  *
+- * Returns the handle of the stack struct stored in depot.
++ * @entries:		Pointer to storage array
++ * @nr_entries:		Size of the storage array
++ * @alloc_flags:	Allocation gfp flags
++ *
++ * Returns the handle of the stack struct stored in depot
+  */
+-depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
+-				    gfp_t alloc_flags)
++depot_stack_handle_t stack_depot_save(unsigned long *entries,
++				      unsigned int nr_entries,
++				      gfp_t alloc_flags)
+ {
+-	u32 hash;
+-	depot_stack_handle_t retval = 0;
+ 	struct stack_record *found = NULL, **bucket;
+-	unsigned long flags;
++	depot_stack_handle_t retval = 0;
+ 	struct page *page = NULL;
+ 	void *prealloc = NULL;
++	unsigned long flags;
++	u32 hash;
  
- 	case SIOCBONDSLAVEINFOQUERY:
-@@ -3348,6 +3358,8 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
- 	case SIOCADDDLCI:
- 	case SIOCDELDLCI:
- 	case SIOCGSKNS:
-+	case SIOCGSTAMP_NEW:
-+	case SIOCGSTAMPNS_NEW:
- 		return sock_ioctl(file, cmd, arg);
+-	if (unlikely(trace->nr_entries == 0))
++	if (unlikely(nr_entries == 0))
+ 		goto fast_exit;
  
- 	case SIOCGIFFLAGS:
--- 
-2.20.0
+-	hash = hash_stack(trace->entries, trace->nr_entries);
++	hash = hash_stack(entries, nr_entries);
+ 	bucket = &stack_table[hash & STACK_HASH_MASK];
+ 
+ 	/*
+@@ -235,8 +251,8 @@ depot_stack_handle_t depot_save_stack(st
+ 	 * The smp_load_acquire() here pairs with smp_store_release() to
+ 	 * |bucket| below.
+ 	 */
+-	found = find_stack(smp_load_acquire(bucket), trace->entries,
+-			   trace->nr_entries, hash);
++	found = find_stack(smp_load_acquire(bucket), entries,
++			   nr_entries, hash);
+ 	if (found)
+ 		goto exit;
+ 
+@@ -264,10 +280,10 @@ depot_stack_handle_t depot_save_stack(st
+ 
+ 	spin_lock_irqsave(&depot_lock, flags);
+ 
+-	found = find_stack(*bucket, trace->entries, trace->nr_entries, hash);
++	found = find_stack(*bucket, entries, nr_entries, hash);
+ 	if (!found) {
+ 		struct stack_record *new =
+-			depot_alloc_stack(trace->entries, trace->nr_entries,
++			depot_alloc_stack(entries, nr_entries,
+ 					  hash, &prealloc, alloc_flags);
+ 		if (new) {
+ 			new->next = *bucket;
+@@ -297,4 +313,16 @@ depot_stack_handle_t depot_save_stack(st
+ fast_exit:
+ 	return retval;
+ }
++EXPORT_SYMBOL_GPL(stack_depot_save);
++
++/**
++ * depot_save_stack - save stack in a stack depot.
++ * @trace - the stacktrace to save.
++ * @alloc_flags - flags for allocating additional memory if required.
++ */
++depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
++				      gfp_t alloc_flags)
++{
++	return stack_depot_save(trace->entries, trace->nr_entries, alloc_flags);
++}
+ EXPORT_SYMBOL_GPL(depot_save_stack);
