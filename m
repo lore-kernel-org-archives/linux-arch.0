@@ -1,157 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:34065 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:34126 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388476AbfDRJHb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:07:31 -0400
-Message-ID: <20190418084254.549410214@linutronix.de>
-Date: Thu, 18 Apr 2019 10:41:35 +0200
+        with ESMTP id S2388631AbfDRJHv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:07:51 -0400
+Message-ID: <20190418084254.459090858@linutronix.de>
+Date: Thu, 18 Apr 2019 10:41:34 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 16/29] drm: Simplify stacktrace handling
+Subject: [patch V2 15/29] dm persistent data: Simplify stack trace handling
 References: <20190418084119.056416939@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20190418084135.-KpswW7CI7U4ITSaiu99MYe-Zv75Hq7y6z9mqYM9ggM@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418084134.kUTxzbIZ7pE0N6NWjcR9aKT2wiPcNilMqAlgBsvvD_s@z>
 
-Replace the indirection through struct stack_trace by using the storage
-array based interfaces.
-
-The original code in all printing functions is really wrong. It allocates a
-storage array on stack which is unused because depot_fetch_stack() does not
-store anything in it. It overwrites the entries pointer in the stack_trace
-struct so it points to the depot storage.
+Replace the indirection through struct stack_trace with an invocation of
+the storage array based interface. This results in less storage space and
+indirection.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: intel-gfx@lists.freedesktop.org
-Cc: Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
-Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
-Cc: dri-devel@lists.freedesktop.org
-Cc: David Airlie <airlied@linux.ie>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>
-Cc: Daniel Vetter <daniel@ffwll.ch>
-Cc: Rodrigo Vivi <rodrigo.vivi@intel.com>
+Cc: dm-devel@redhat.com
+Cc: Mike Snitzer <snitzer@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
 ---
- drivers/gpu/drm/drm_mm.c                |   22 +++++++---------------
- drivers/gpu/drm/i915/i915_vma.c         |   11 ++++-------
- drivers/gpu/drm/i915/intel_runtime_pm.c |   21 +++++++--------------
- 3 files changed, 18 insertions(+), 36 deletions(-)
+ drivers/md/persistent-data/dm-block-manager.c |   19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
 
---- a/drivers/gpu/drm/drm_mm.c
-+++ b/drivers/gpu/drm/drm_mm.c
-@@ -106,22 +106,19 @@
- static noinline void save_stack(struct drm_mm_node *node)
+--- a/drivers/md/persistent-data/dm-block-manager.c
++++ b/drivers/md/persistent-data/dm-block-manager.c
+@@ -35,7 +35,10 @@
+ #define MAX_HOLDERS 4
+ #define MAX_STACK 10
+ 
+-typedef unsigned long stack_entries[MAX_STACK];
++struct stack_store {
++	unsigned int	nr_entries;
++	unsigned long	entries[MAX_STACK];
++};
+ 
+ struct block_lock {
+ 	spinlock_t lock;
+@@ -44,8 +47,7 @@ struct block_lock {
+ 	struct task_struct *holders[MAX_HOLDERS];
+ 
+ #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
+-	struct stack_trace traces[MAX_HOLDERS];
+-	stack_entries entries[MAX_HOLDERS];
++	struct stack_store traces[MAX_HOLDERS];
+ #endif
+ };
+ 
+@@ -73,7 +75,7 @@ static void __add_holder(struct block_lo
  {
- 	unsigned long entries[STACKDEPTH];
--	struct stack_trace trace = {
--		.entries = entries,
--		.max_entries = STACKDEPTH,
--		.skip = 1
--	};
-+	unsigned int n;
+ 	unsigned h = __find_holder(lock, NULL);
+ #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
+-	struct stack_trace *t;
++	struct stack_store *t;
+ #endif
  
--	save_stack_trace(&trace);
-+	n = stack_trace_save(entries, ARRAY_SIZE(entries), 1);
+ 	get_task_struct(task);
+@@ -81,11 +83,7 @@ static void __add_holder(struct block_lo
  
- 	/* May be called under spinlock, so avoid sleeping */
--	node->stack = depot_save_stack(&trace, GFP_NOWAIT);
-+	node->stack = stack_depot_save(entries, n, GFP_NOWAIT);
+ #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
+ 	t = lock->traces + h;
+-	t->nr_entries = 0;
+-	t->max_entries = MAX_STACK;
+-	t->entries = lock->entries[h];
+-	t->skip = 2;
+-	save_stack_trace(t);
++	t->nr_entries = stack_trace_save(t->entries, MAX_STACK, 2);
+ #endif
  }
  
- static void show_leaks(struct drm_mm *mm)
- {
- 	struct drm_mm_node *node;
--	unsigned long entries[STACKDEPTH];
-+	unsigned long *entries;
-+	unsigned int nr_entries;
- 	char *buf;
+@@ -106,7 +104,8 @@ static int __check_holder(struct block_l
+ 			DMERR("recursive lock detected in metadata");
+ #ifdef CONFIG_DM_DEBUG_BLOCK_STACK_TRACING
+ 			DMERR("previously held here:");
+-			print_stack_trace(lock->traces + i, 4);
++			stack_trace_print(lock->traces[i].entries,
++					  lock->traces[i].nr_entries, 4);
  
- 	buf = kmalloc(BUFSZ, GFP_KERNEL);
-@@ -129,19 +126,14 @@ static void show_leaks(struct drm_mm *mm
- 		return;
- 
- 	list_for_each_entry(node, drm_mm_nodes(mm), node_list) {
--		struct stack_trace trace = {
--			.entries = entries,
--			.max_entries = STACKDEPTH
--		};
--
- 		if (!node->stack) {
- 			DRM_ERROR("node [%08llx + %08llx]: unknown owner\n",
- 				  node->start, node->size);
- 			continue;
- 		}
- 
--		depot_fetch_stack(node->stack, &trace);
--		snprint_stack_trace(buf, BUFSZ, &trace, 0);
-+		nr_entries = stack_depot_fetch(node->stack, &entries);
-+		stack_trace_snprint(buf, BUFSZ, entries, nr_entries, 0);
- 		DRM_ERROR("node [%08llx + %08llx]: inserted at\n%s",
- 			  node->start, node->size, buf);
- 	}
---- a/drivers/gpu/drm/i915/i915_vma.c
-+++ b/drivers/gpu/drm/i915/i915_vma.c
-@@ -36,11 +36,8 @@
- 
- static void vma_print_allocator(struct i915_vma *vma, const char *reason)
- {
--	unsigned long entries[12];
--	struct stack_trace trace = {
--		.entries = entries,
--		.max_entries = ARRAY_SIZE(entries),
--	};
-+	unsigned long *entries;
-+	unsigned int nr_entries;
- 	char buf[512];
- 
- 	if (!vma->node.stack) {
-@@ -49,8 +46,8 @@ static void vma_print_allocator(struct i
- 		return;
- 	}
- 
--	depot_fetch_stack(vma->node.stack, &trace);
--	snprint_stack_trace(buf, sizeof(buf), &trace, 0);
-+	nr_entries = stack_depot_fetch(vma->node.stack, &entries);
-+	stack_trace_snprint(buf, sizeof(buf), entries, nr_entries, 0);
- 	DRM_DEBUG_DRIVER("vma.node [%08llx + %08llx] %s: inserted at %s\n",
- 			 vma->node.start, vma->node.size, reason, buf);
- }
---- a/drivers/gpu/drm/i915/intel_runtime_pm.c
-+++ b/drivers/gpu/drm/i915/intel_runtime_pm.c
-@@ -60,27 +60,20 @@
- static noinline depot_stack_handle_t __save_depot_stack(void)
- {
- 	unsigned long entries[STACKDEPTH];
--	struct stack_trace trace = {
--		.entries = entries,
--		.max_entries = ARRAY_SIZE(entries),
--		.skip = 1,
--	};
-+	unsigned int n;
- 
--	save_stack_trace(&trace);
--	return depot_save_stack(&trace, GFP_NOWAIT | __GFP_NOWARN);
-+	n = stack_trace_save(entries, ARRAY_SIZE(entries), 1);
-+	return stack_depot_save(entries, n, GFP_NOWAIT | __GFP_NOWARN);
- }
- 
- static void __print_depot_stack(depot_stack_handle_t stack,
- 				char *buf, int sz, int indent)
- {
--	unsigned long entries[STACKDEPTH];
--	struct stack_trace trace = {
--		.entries = entries,
--		.max_entries = ARRAY_SIZE(entries),
--	};
-+	unsigned long *entries;
-+	unsigned int nr_entries;
- 
--	depot_fetch_stack(stack, &trace);
--	snprint_stack_trace(buf, sz, &trace, indent);
-+	nr_entries = stack_depot_fetch(stack, &entries);
-+	stack_trace_snprint(buf, sz, entries, nr_entries, indent);
- }
- 
- static void init_intel_runtime_pm_wakeref(struct drm_i915_private *i915)
+ 			DMERR("subsequent acquisition attempted here:");
+ 			dump_stack();
