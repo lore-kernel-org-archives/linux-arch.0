@@ -1,221 +1,276 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:45069 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727013AbfDQU5h (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2019 16:57:37 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/3 v3] net: socket: implement 64-bit timestamps
-Date: Wed, 17 Apr 2019 22:56:11 +0200
-Message-ID: <20190417205659.2036372-1-arnd@arndb.de>
-In-Reply-To: <20190417205404.1877560-1-arnd@arndb.de>
-References: <20190417205404.1877560-1-arnd@arndb.de>
+Received: from Galois.linutronix.de ([146.0.238.70]:33576 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726873AbfDRJGn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:06:43 -0400
+Message-ID: <20190418084253.234868907@linutronix.de>
+Date: Thu, 18 Apr 2019 10:41:21 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V2 02/29] stacktrace: Provide helpers for common stack trace
+ operations
+References: <20190418084119.056416939@linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: netdev@vger.kernel.org
-Cc: y2038@lists.linaro.org, Willem de Bruijn <willemdebruijn.kernel@gmail.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, "David S. Miller" <davem@davemloft.net>, Willem de Bruijn <willemb@google.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190417205611.IlGZxxk0TZbvx_PFZfdATZCSH8dIq_OltF_5CgqDyiU@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418084121.Vkq0prWEcpBYz6DS0nMLr3HIbACHGnN_bDq4sBBUHE4@z>
 
-The 'timeval' and 'timespec' data structures used for socket timestamps
-are going to be redefined in user space based on 64-bit time_t in future
-versions of the C library to deal with the y2038 overflow problem,
-which breaks the ABI definition.
+All operations with stack traces are based on struct stack_trace. That's a
+horrible construct as the struct is a kitchen sink for input and
+output. Quite some usage sites embed it into their own data structures
+which creates weird indirections.
 
-Unlike many modern ioctl commands, SIOCGSTAMP and SIOCGSTAMPNS do not
-use the _IOR() macro to encode the size of the transferred data, so it
-remains ambiguous whether the application uses the old or new layout.
+There is absolutely no point in doing so. For all use cases a storage array
+and the number of valid stack trace entries in the array is sufficient.
 
-The best workaround I could find is rather ugly: we redefine the command
-code based on the size of the respective data structure with a ternary
-operator. This lets it get evaluated as late as possible, hopefully after
-that structure is visible to the caller. We cannot use an #ifdef here,
-because inux/sockios.h might have been included before any libc header
-that could determine the size of time_t.
+Provide helper functions which avoid the struct stack_trace indirection so
+the usage sites can be cleaned up.
 
-The ioctl implementation now interprets the new command codes as always
-referring to the 64-bit structure on all architectures, while the old
-architecture specific command code still refers to the old architecture
-specific layout. The new command number is only used when they are
-actually different.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
-v3: no changes since v1
----
- arch/alpha/include/uapi/asm/sockios.h  |  4 ++--
- arch/mips/include/uapi/asm/sockios.h   |  4 ++--
- arch/sh/include/uapi/asm/sockios.h     |  5 +++--
- arch/xtensa/include/uapi/asm/sockios.h |  4 ++--
- include/uapi/asm-generic/sockios.h     |  4 ++--
- include/uapi/linux/sockios.h           | 21 +++++++++++++++++++++
- net/socket.c                           | 24 ++++++++++++++++++------
- 7 files changed, 50 insertions(+), 16 deletions(-)
+ include/linux/stacktrace.h |   27 +++++++
+ kernel/stacktrace.c        |  160 ++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 172 insertions(+), 15 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/sockios.h b/arch/alpha/include/uapi/asm/sockios.h
-index ba287e4b01bf..af92bc27c3be 100644
---- a/arch/alpha/include/uapi/asm/sockios.h
-+++ b/arch/alpha/include/uapi/asm/sockios.h
-@@ -11,7 +11,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
+--- a/include/linux/stacktrace.h
++++ b/include/linux/stacktrace.h
+@@ -3,11 +3,26 @@
+ #define __LINUX_STACKTRACE_H
  
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
+ #include <linux/types.h>
++#include <asm/errno.h>
  
- #endif /* _ASM_ALPHA_SOCKIOS_H */
-diff --git a/arch/mips/include/uapi/asm/sockios.h b/arch/mips/include/uapi/asm/sockios.h
-index 5b40a88593fa..66f60234f290 100644
---- a/arch/mips/include/uapi/asm/sockios.h
-+++ b/arch/mips/include/uapi/asm/sockios.h
-@@ -21,7 +21,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ struct task_struct;
+ struct pt_regs;
  
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
- 
- #endif /* _ASM_SOCKIOS_H */
-diff --git a/arch/sh/include/uapi/asm/sockios.h b/arch/sh/include/uapi/asm/sockios.h
-index 17313d2c3527..ef18a668456d 100644
---- a/arch/sh/include/uapi/asm/sockios.h
-+++ b/arch/sh/include/uapi/asm/sockios.h
-@@ -10,6 +10,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
- 
--#define SIOCGSTAMP	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
--#define SIOCGSTAMPNS	_IOR('s', 101, struct timespec) /* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD _IOR('s', 101, struct timespec) /* Get stamp (timespec) */
+ #ifdef CONFIG_STACKTRACE
++void stack_trace_print(unsigned long *trace, unsigned int nr_entries,
++		       int spaces);
++int stack_trace_snprint(char *buf, size_t size, unsigned long *entries,
++			unsigned int nr_entries, int spaces);
++unsigned int stack_trace_save(unsigned long *store, unsigned int size,
++			      unsigned int skipnr);
++unsigned int stack_trace_save_tsk(struct task_struct *task,
++				  unsigned long *store, unsigned int size,
++				  unsigned int skipnr);
++unsigned int stack_trace_save_regs(struct pt_regs *regs, unsigned long *store,
++				   unsigned int size, unsigned int skipnr);
++unsigned int stack_trace_save_user(unsigned long *store, unsigned int size);
 +
- #endif /* __ASM_SH_SOCKIOS_H */
-diff --git a/arch/xtensa/include/uapi/asm/sockios.h b/arch/xtensa/include/uapi/asm/sockios.h
-index fb8ac3607189..1a1f58f4b75a 100644
---- a/arch/xtensa/include/uapi/asm/sockios.h
-+++ b/arch/xtensa/include/uapi/asm/sockios.h
-@@ -26,7 +26,7 @@
- #define SIOCSPGRP	_IOW('s', 8, pid_t)
- #define SIOCGPGRP	_IOR('s', 9, pid_t)
++/* Internal interfaces. Do not use in generic code */
+ struct stack_trace {
+ 	unsigned int nr_entries, max_entries;
+ 	unsigned long *entries;
+@@ -41,4 +56,16 @@ extern void save_stack_trace_user(struct
+ # define save_stack_trace_tsk_reliable(tsk, trace)	({ -ENOSYS; })
+ #endif /* CONFIG_STACKTRACE */
  
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
- 
- #endif	/* _XTENSA_SOCKIOS_H */
-diff --git a/include/uapi/asm-generic/sockios.h b/include/uapi/asm-generic/sockios.h
-index 64f658c7cec2..44fa3ed70483 100644
---- a/include/uapi/asm-generic/sockios.h
-+++ b/include/uapi/asm-generic/sockios.h
-@@ -8,7 +8,7 @@
- #define FIOGETOWN	0x8903
- #define SIOCGPGRP	0x8904
- #define SIOCATMARK	0x8905
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-+#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
-+#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
- 
- #endif /* __ASM_GENERIC_SOCKIOS_H */
-diff --git a/include/uapi/linux/sockios.h b/include/uapi/linux/sockios.h
-index d393e9ed3964..7d1bccbbef78 100644
---- a/include/uapi/linux/sockios.h
-+++ b/include/uapi/linux/sockios.h
-@@ -19,6 +19,7 @@
- #ifndef _LINUX_SOCKIOS_H
- #define _LINUX_SOCKIOS_H
- 
-+#include <asm/bitsperlong.h>
- #include <asm/sockios.h>
- 
- /* Linux-specific socket ioctls */
-@@ -27,6 +28,26 @@
- 
- #define SOCK_IOC_TYPE	0x89
- 
-+/*
-+ * the timeval/timespec data structure layout is defined by libc,
-+ * so we need to cover both possible versions on 32-bit.
-+ */
-+/* Get stamp (timeval) */
-+#define SIOCGSTAMP_NEW	 _IOR(SOCK_IOC_TYPE, 0x06, long long[2])
-+/* Get stamp (timespec) */
-+#define SIOCGSTAMPNS_NEW _IOR(SOCK_IOC_TYPE, 0x07, long long[2])
-+
-+#if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
-+/* on 64-bit and x32, avoid the ?: operator */
-+#define SIOCGSTAMP	SIOCGSTAMP_OLD
-+#define SIOCGSTAMPNS	SIOCGSTAMPNS_OLD
++#if defined(CONFIG_STACKTRACE) && defined(CONFIG_HAVE_RELIABLE_STACKTRACE)
++int stack_trace_save_tsk_reliable(struct task_struct *tsk, unsigned long *store,
++				  unsigned int size);
 +#else
-+#define SIOCGSTAMP	((sizeof(struct timeval))  == 8 ? \
-+			 SIOCGSTAMP_OLD   : SIOCGSTAMP_NEW)
-+#define SIOCGSTAMPNS	((sizeof(struct timespec)) == 8 ? \
-+			 SIOCGSTAMPNS_OLD : SIOCGSTAMPNS_NEW)
++static inline int stack_trace_save_tsk_reliable(struct task_struct *tsk,
++						unsigned long *store,
++						unsigned int size)
++{
++	return -ENOSYS;
++}
 +#endif
 +
- /* Routing table calls. */
- #define SIOCADDRT	0x890B		/* add routing table entry	*/
- #define SIOCDELRT	0x890C		/* delete routing table entry	*/
-diff --git a/net/socket.c b/net/socket.c
-index ab624d42ead5..8d9d4fc7d962 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1164,14 +1164,24 @@ static long sock_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ #endif /* __LINUX_STACKTRACE_H */
+--- a/kernel/stacktrace.c
++++ b/kernel/stacktrace.c
+@@ -11,35 +11,52 @@
+ #include <linux/kallsyms.h>
+ #include <linux/stacktrace.h>
  
- 			err = open_related_ns(&net->ns, get_net_ns);
- 			break;
--		case SIOCGSTAMP:
--		case SIOCGSTAMPNS:
-+		case SIOCGSTAMP_OLD:
-+		case SIOCGSTAMPNS_OLD:
- 			if (!sock->ops->gettstamp) {
- 				err = -ENOIOCTLCMD;
- 				break;
- 			}
- 			err = sock->ops->gettstamp(sock, argp,
--						   cmd == SIOCGSTAMP, false);
-+						   cmd == SIOCGSTAMP_OLD,
-+						   !IS_ENABLED(CONFIG_64BIT));
-+		case SIOCGSTAMP_NEW:
-+		case SIOCGSTAMPNS_NEW:
-+			if (!sock->ops->gettstamp) {
-+				err = -ENOIOCTLCMD;
-+				break;
-+			}
-+			err = sock->ops->gettstamp(sock, argp,
-+						   cmd == SIOCGSTAMP_NEW,
-+						   false);
- 			break;
- 		default:
- 			err = sock_do_ioctl(net, sock, cmd, arg);
-@@ -3324,11 +3334,11 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
- 	case SIOCADDRT:
- 	case SIOCDELRT:
- 		return routing_ioctl(net, sock, cmd, argp);
--	case SIOCGSTAMP:
--	case SIOCGSTAMPNS:
-+	case SIOCGSTAMP_OLD:
-+	case SIOCGSTAMPNS_OLD:
- 		if (!sock->ops->gettstamp)
- 			return -ENOIOCTLCMD;
--		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP,
-+		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP_OLD,
- 					    !COMPAT_USE_64BIT_TIME);
+-void print_stack_trace(struct stack_trace *trace, int spaces)
++/**
++ * stack_trace_print - Print the entries in the stack trace
++ * @entries:	Pointer to storage array
++ * @nr_entries:	Number of entries in the storage array
++ * @spaces:	Number of leading spaces to print
++ */
++void stack_trace_print(unsigned long *entries, unsigned int nr_entries,
++		       int spaces)
+ {
+-	int i;
++	unsigned int i;
  
- 	case SIOCBONDSLAVEINFOQUERY:
-@@ -3348,6 +3358,8 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
- 	case SIOCADDDLCI:
- 	case SIOCDELDLCI:
- 	case SIOCGSKNS:
-+	case SIOCGSTAMP_NEW:
-+	case SIOCGSTAMPNS_NEW:
- 		return sock_ioctl(file, cmd, arg);
+-	if (WARN_ON(!trace->entries))
++	if (WARN_ON(!entries))
+ 		return;
  
- 	case SIOCGIFFLAGS:
--- 
-2.20.0
+-	for (i = 0; i < trace->nr_entries; i++)
+-		printk("%*c%pS\n", 1 + spaces, ' ', (void *)trace->entries[i]);
++	for (i = 0; i < nr_entries; i++)
++		printk("%*c%pS\n", 1 + spaces, ' ', (void *)entries[i]);
++}
++EXPORT_SYMBOL_GPL(stack_trace_print);
++
++void print_stack_trace(struct stack_trace *trace, int spaces)
++{
++	stack_trace_print(trace->entries, trace->nr_entries, spaces);
+ }
+ EXPORT_SYMBOL_GPL(print_stack_trace);
+ 
+-int snprint_stack_trace(char *buf, size_t size,
+-			struct stack_trace *trace, int spaces)
++/**
++ * stack_trace_snprint - Print the entries in the stack trace into a buffer
++ * @buf:	Pointer to the print buffer
++ * @size:	Size of the print buffer
++ * @entries:	Pointer to storage array
++ * @nr_entries:	Number of entries in the storage array
++ * @spaces:	Number of leading spaces to print
++ */
++int stack_trace_snprint(char *buf, size_t size, unsigned long *entries,
++			unsigned int nr_entries, int spaces)
+ {
+-	int i;
+-	int generated;
+-	int total = 0;
++	unsigned int generated, i, total = 0;
+ 
+-	if (WARN_ON(!trace->entries))
++	if (WARN_ON(!entries))
+ 		return 0;
+ 
+-	for (i = 0; i < trace->nr_entries; i++) {
++	for (i = 0; i < nr_entries; i++) {
+ 		generated = snprintf(buf, size, "%*c%pS\n", 1 + spaces, ' ',
+-				     (void *)trace->entries[i]);
++				     (void *)entries[i]);
+ 
+ 		total += generated;
+-
+-		/* Assume that generated isn't a negative number */
+ 		if (generated >= size) {
+ 			buf += size;
+ 			size = 0;
+@@ -51,6 +68,14 @@ int snprint_stack_trace(char *buf, size_
+ 
+ 	return total;
+ }
++EXPORT_SYMBOL_GPL(stack_trace_snprint);
++
++int snprint_stack_trace(char *buf, size_t size,
++			struct stack_trace *trace, int spaces)
++{
++	return stack_trace_snprint(buf, size, trace->entries,
++				   trace->nr_entries, spaces);
++}
+ EXPORT_SYMBOL_GPL(snprint_stack_trace);
+ 
+ /*
+@@ -77,3 +102,108 @@ save_stack_trace_tsk_reliable(struct tas
+ 	WARN_ONCE(1, KERN_INFO "save_stack_tsk_reliable() not implemented yet.\n");
+ 	return -ENOSYS;
+ }
++
++/**
++ * stack_trace_save - Save a stack trace into a storage array
++ * @store:	Pointer to storage array
++ * @size:	Size of the storage array
++ * @skipnr:	Number of entries to skip at the start of the stack trace
++ */
++unsigned int stack_trace_save(unsigned long *store, unsigned int size,
++			      unsigned int skipnr)
++{
++	struct stack_trace trace = {
++		.entries	= store,
++		.max_entries	= size,
++		.skip		= skipnr + 1,
++	};
++
++	save_stack_trace(&trace);
++	return trace.nr_entries;
++}
++EXPORT_SYMBOL_GPL(stack_trace_save);
++
++/**
++ * stack_trace_save_tsk - Save a task stack trace into a storage array
++ * @task:	The task to examine
++ * @store:	Pointer to storage array
++ * @size:	Size of the storage array
++ * @skipnr:	Number of entries to skip at the start of the stack trace
++ */
++unsigned int stack_trace_save_tsk(struct task_struct *task,
++				  unsigned long *store, unsigned int size,
++				  unsigned int skipnr)
++{
++	struct stack_trace trace = {
++		.entries	= store,
++		.max_entries	= size,
++		.skip		= skipnr + 1,
++	};
++
++	save_stack_trace_tsk(task, &trace);
++	return trace.nr_entries;
++}
++
++/**
++ * stack_trace_save_regs - Save a stack trace based on pt_regs into a storage array
++ * @regs:	Pointer to pt_regs to examine
++ * @store:	Pointer to storage array
++ * @size:	Size of the storage array
++ * @skipnr:	Number of entries to skip at the start of the stack trace
++ */
++unsigned int stack_trace_save_regs(struct pt_regs *regs, unsigned long *store,
++				   unsigned int size, unsigned int skipnr)
++{
++	struct stack_trace trace = {
++		.entries	= store,
++		.max_entries	= size,
++		.skip		= skipnr,
++	};
++
++	save_stack_trace_regs(regs, &trace);
++	return trace.nr_entries;
++}
++
++#ifdef CONFIG_HAVE_RELIABLE_STACKTRACE
++/**
++ * stack_trace_save_tsk_reliable - Save task stack with verification
++ * @tsk:	Pointer to the task to examine
++ * @store:	Pointer to storage array
++ * @size:	Size of the storage array
++ *
++ * Returns:	An error if it detects any unreliable features of the
++ *		stack. Otherwise it guarantees that the stack trace is
++ *		reliable and returns the number of entries stored.
++ *
++ * If the task is not 'current', the caller *must* ensure the task is inactive.
++ */
++int stack_trace_save_tsk_reliable(struct task_struct *tsk, unsigned long *store,
++				  unsigned int size)
++{
++	struct stack_trace trace = {
++		.entries	= store,
++		.max_entries	= size,
++	};
++	int ret = save_stack_trace_tsk_reliable(tsk, &trace);
++
++	return ret ? ret : trace.nr_entries;
++}
++#endif
++
++#ifdef CONFIG_USER_STACKTRACE_SUPPORT
++/**
++ * stack_trace_save_user - Save a user space stack trace into a storage array
++ * @store:	Pointer to storage array
++ * @size:	Size of the storage array
++ */
++unsigned int stack_trace_save_user(unsigned long *store, unsigned int size)
++{
++	struct stack_trace trace = {
++		.entries	= store,
++		.max_entries	= size,
++	};
++
++	save_stack_trace_user(&trace);
++	return trace.nr_entries;
++}
++#endif /* CONFIG_USER_STACKTRACE_SUPPORT */
