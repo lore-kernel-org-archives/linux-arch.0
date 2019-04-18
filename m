@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:34076 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:34075 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388526AbfDRJHe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:07:34 -0400
-Message-ID: <20190418084254.999521114@linutronix.de>
-Date: Thu, 18 Apr 2019 10:41:40 +0200
+        with ESMTP id S2388426AbfDRJHd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 05:07:33 -0400
+Message-ID: <20190418084255.364915116@linutronix.de>
+Date: Thu, 18 Apr 2019 10:41:44 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 21/29] tracing: Use percpu stack trace buffer more
- intelligently
+Subject: [patch V2 25/29] livepatch: Simplify stack trace retrieval
 References: <20190418084119.056416939@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -15,137 +14,70 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190418084140.NGganQXUwF7hziq0-uM4U0x358zldSjRKa_UNVSsK2s@z>
+Message-ID: <20190418084144.MLCjc32GoQC9F_T7TxqbUR0PxOO0-azVukdiAnrsI2c@z>
 
-The per cpu stack trace buffer usage pattern is odd at best. The buffer has
-place for 512 stack trace entries on 64-bit and 1024 on 32-bit. When
-interrupts or exceptions nest after the per cpu buffer was acquired the
-stacktrace length is hardcoded to 8 entries. 512/1024 stack trace entries
-in kernel stacks are unrealistic so the buffer is a complete waste.
-
-Split the buffer into chunks of 64 stack entries which is plenty. This
-allows nesting contexts (interrupts, exceptions) to utilize the cpu buffer
-for stack retrieval and avoids the fixed length allocation along with the
-conditional execution pathes.
+Replace the indirection through struct stack_trace by using the storage
+array based interfaces.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Steven Rostedt <rostedt@goodmis.org>
 ---
- kernel/trace/trace.c |   77 +++++++++++++++++++++++++--------------------------
- 1 file changed, 39 insertions(+), 38 deletions(-)
+ kernel/livepatch/transition.c |   22 +++++++++-------------
+ 1 file changed, 9 insertions(+), 13 deletions(-)
 
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -2749,12 +2749,21 @@ trace_function(struct trace_array *tr,
- 
- #ifdef CONFIG_STACKTRACE
- 
--#define FTRACE_STACK_MAX_ENTRIES (PAGE_SIZE / sizeof(unsigned long))
-+/* 64 entries for kernel stacks are plenty */
-+#define FTRACE_KSTACK_ENTRIES	64
-+
- struct ftrace_stack {
--	unsigned long		calls[FTRACE_STACK_MAX_ENTRIES];
-+	unsigned long		calls[FTRACE_KSTACK_ENTRIES];
- };
- 
--static DEFINE_PER_CPU(struct ftrace_stack, ftrace_stack);
-+/* This allows 8 level nesting which is plenty */
-+#define FTRACE_KSTACK_NESTING	(PAGE_SIZE / sizeof(struct ftrace_stack))
-+
-+struct ftrace_stacks {
-+	struct ftrace_stack	stacks[FTRACE_KSTACK_NESTING];
-+};
-+
-+static DEFINE_PER_CPU(struct ftrace_stacks, ftrace_stacks);
- static DEFINE_PER_CPU(int, ftrace_stack_reserve);
- 
- static void __ftrace_trace_stack(struct ring_buffer *buffer,
-@@ -2763,10 +2772,11 @@ static void __ftrace_trace_stack(struct
+--- a/kernel/livepatch/transition.c
++++ b/kernel/livepatch/transition.c
+@@ -202,15 +202,15 @@ void klp_update_patch_state(struct task_
+  * Determine whether the given stack trace includes any references to a
+  * to-be-patched or to-be-unpatched function.
+  */
+-static int klp_check_stack_func(struct klp_func *func,
+-				struct stack_trace *trace)
++static int klp_check_stack_func(struct klp_func *func, unsigned long *entries,
++				unsigned int nr_entries)
  {
- 	struct trace_event_call *call = &event_kernel_stack;
- 	struct ring_buffer_event *event;
-+	struct ftrace_stack *fstack;
- 	struct stack_entry *entry;
- 	struct stack_trace trace;
--	int use_stack;
--	int size = FTRACE_STACK_ENTRIES;
-+	int size = FTRACE_KSTACK_ENTRIES;
-+	int stackidx;
+ 	unsigned long func_addr, func_size, address;
+ 	struct klp_ops *ops;
+ 	int i;
  
- 	trace.nr_entries	= 0;
- 	trace.skip		= skip;
-@@ -2788,29 +2798,32 @@ static void __ftrace_trace_stack(struct
- 	 */
- 	preempt_disable_notrace();
+-	for (i = 0; i < trace->nr_entries; i++) {
+-		address = trace->entries[i];
++	for (i = 0; i < nr_entries; i++) {
++		address = entries[i];
  
--	use_stack = __this_cpu_inc_return(ftrace_stack_reserve);
-+	stackidx = __this_cpu_inc_return(ftrace_stack_reserve);
-+
-+	/* This should never happen. If it does, yell once and skip */
-+	if (WARN_ON_ONCE(stackidx >= FTRACE_KSTACK_NESTING))
-+		goto out;
-+
- 	/*
--	 * We don't need any atomic variables, just a barrier.
--	 * If an interrupt comes in, we don't care, because it would
--	 * have exited and put the counter back to what we want.
--	 * We just need a barrier to keep gcc from moving things
--	 * around.
-+	 * The above __this_cpu_inc_return() is 'atomic' cpu local. An
-+	 * interrupt will either see the value pre increment or post
-+	 * increment. If the interrupt happens pre increment it will have
-+	 * restored the counter when it returns.  We just need a barrier to
-+	 * keep gcc from moving things around.
- 	 */
- 	barrier();
--	if (use_stack == 1) {
--		trace.entries		= this_cpu_ptr(ftrace_stack.calls);
--		trace.max_entries	= FTRACE_STACK_MAX_ENTRIES;
--
--		if (regs)
--			save_stack_trace_regs(regs, &trace);
--		else
--			save_stack_trace(&trace);
--
--		if (trace.nr_entries > size)
--			size = trace.nr_entries;
--	} else
--		/* From now on, use_stack is a boolean */
--		use_stack = 0;
-+
-+	fstack = this_cpu_ptr(ftrace_stacks.stacks) + (stackidx - 1);
-+	trace.entries		= fstack->calls;
-+	trace.max_entries	= FTRACE_KSTACK_ENTRIES;
-+
-+	if (regs)
-+		save_stack_trace_regs(regs, &trace);
-+	else
-+		save_stack_trace(&trace);
-+
-+	if (trace.nr_entries > size)
-+		size = trace.nr_entries;
+ 		if (klp_target_state == KLP_UNPATCHED) {
+ 			 /*
+@@ -254,29 +254,25 @@ static int klp_check_stack_func(struct k
+ static int klp_check_stack(struct task_struct *task, char *err_buf)
+ {
+ 	static unsigned long entries[MAX_STACK_ENTRIES];
+-	struct stack_trace trace;
+ 	struct klp_object *obj;
+ 	struct klp_func *func;
+-	int ret;
++	int ret, nr_entries;
  
- 	size *= sizeof(unsigned long);
+-	trace.skip = 0;
+-	trace.nr_entries = 0;
+-	trace.max_entries = MAX_STACK_ENTRIES;
+-	trace.entries = entries;
+-	ret = save_stack_trace_tsk_reliable(task, &trace);
++	ret = stack_trace_save_tsk_reliable(task, entries, ARRAY_SIZE(entries));
+ 	WARN_ON_ONCE(ret == -ENOSYS);
+-	if (ret) {
++	if (ret < 0) {
+ 		snprintf(err_buf, STACK_ERR_BUF_SIZE,
+ 			 "%s: %s:%d has an unreliable stack\n",
+ 			 __func__, task->comm, task->pid);
+ 		return ret;
+ 	}
++	nr_entries = ret;
  
-@@ -2820,19 +2833,7 @@ static void __ftrace_trace_stack(struct
- 		goto out;
- 	entry = ring_buffer_event_data(event);
- 
--	memset(&entry->caller, 0, size);
--
--	if (use_stack)
--		memcpy(&entry->caller, trace.entries,
--		       trace.nr_entries * sizeof(unsigned long));
--	else {
--		trace.max_entries	= FTRACE_STACK_ENTRIES;
--		trace.entries		= entry->caller;
--		if (regs)
--			save_stack_trace_regs(regs, &trace);
--		else
--			save_stack_trace(&trace);
--	}
-+	memcpy(&entry->caller, trace.entries, size);
- 
- 	entry->size = trace.nr_entries;
- 
+ 	klp_for_each_object(klp_transition_patch, obj) {
+ 		if (!obj->patched)
+ 			continue;
+ 		klp_for_each_func(obj, func) {
+-			ret = klp_check_stack_func(func, &trace);
++			ret = klp_check_stack_func(func, entries, nr_entries);
+ 			if (ret) {
+ 				snprintf(err_buf, STACK_ERR_BUF_SIZE,
+ 					 "%s: %s:%d is sleeping on function %s\n",
