@@ -1,63 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60865 "EHLO mx1.redhat.com"
+Received: from mail.kernel.org ([198.145.29.99]:39810 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1733192AbfDROwP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Apr 2019 10:52:15 -0400
-Date: Thu, 18 Apr 2019 09:52:01 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [patch V2 28/29] stacktrace: Provide common infrastructure
-Message-ID: <20190418145201.mjzyqbmkjcghqzex@treble>
+        id S2388301AbfDROxk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Apr 2019 10:53:40 -0400
+Date: Thu, 18 Apr 2019 10:53:34 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [patch V2 21/29] tracing: Use percpu stack trace buffer more
+ intelligently
+Message-ID: <20190418105334.5093528d@gandalf.local.home>
+In-Reply-To: <20190418084254.999521114@linutronix.de>
 References: <20190418084119.056416939@linutronix.de>
- <20190418084255.652003111@linutronix.de>
+        <20190418084254.999521114@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190418084255.652003111@linutronix.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, linux-arch@vger.kernel.org, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>
-Message-ID: <20190418145201.-xJvrVz6blmATOQej_0DdhTFwCHfTKjkG63BkD3pPJk@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418145334.-qwuhHYR6KNPbzQMF21qx_MI8LNvU_sOjI_KnWgNlpo@z>
 
-On Thu, Apr 18, 2019 at 10:41:47AM +0200, Thomas Gleixner wrote:
-> All architectures which support stacktrace carry duplicated code and
-> do the stack storage and filtering at the architecture side.
+On Thu, 18 Apr 2019 10:41:40 +0200
+Thomas Gleixner <tglx@linutronix.de> wrote:
+
+> The per cpu stack trace buffer usage pattern is odd at best. The buffer has
+> place for 512 stack trace entries on 64-bit and 1024 on 32-bit. When
+> interrupts or exceptions nest after the per cpu buffer was acquired the
+> stacktrace length is hardcoded to 8 entries. 512/1024 stack trace entries
+> in kernel stacks are unrealistic so the buffer is a complete waste.
 > 
-> Provide a consolidated interface with a callback function for consuming the
-> stack entries provided by the architecture specific stack walker. This
-> removes lots of duplicated code and allows to implement better filtering
-> than 'skip number of entries' in the future without touching any
-> architecture specific code.
+> Split the buffer into chunks of 64 stack entries which is plenty. This
+> allows nesting contexts (interrupts, exceptions) to utilize the cpu buffer
+> for stack retrieval and avoids the fixed length allocation along with the
+> conditional execution pathes.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: linux-arch@vger.kernel.org
+> Cc: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  kernel/trace/trace.c |   77 +++++++++++++++++++++++++--------------------------
+>  1 file changed, 39 insertions(+), 38 deletions(-)
+> 
+> --- a/kernel/trace/trace.c
+> +++ b/kernel/trace/trace.c
+> @@ -2749,12 +2749,21 @@ trace_function(struct trace_array *tr,
+>  
+>  #ifdef CONFIG_STACKTRACE
+>  
+> -#define FTRACE_STACK_MAX_ENTRIES (PAGE_SIZE / sizeof(unsigned long))
+> +/* 64 entries for kernel stacks are plenty */
+> +#define FTRACE_KSTACK_ENTRIES	64
+> +
+>  struct ftrace_stack {
+> -	unsigned long		calls[FTRACE_STACK_MAX_ENTRIES];
+> +	unsigned long		calls[FTRACE_KSTACK_ENTRIES];
+>  };
+>  
+> -static DEFINE_PER_CPU(struct ftrace_stack, ftrace_stack);
+> +/* This allows 8 level nesting which is plenty */
 
-This is a step in the right direction, especially if it allows us to get
-rid of the 'skip' stuff.  But I'm not crazy about the callbacks.
+Can we make this 4 level nesting and increase the size? (I can see us
+going more than 64 deep, kernel developers never cease to amaze me ;-)
+That's all we need:
 
-Another idea I had (but never got a chance to work on) was to extend the
-x86 unwind interface to all arches.  So instead of the callbacks, each
-arch would implement something like this API:
+ Context: Normal, softirq, irq, NMI
 
+Is there any other way to nest?
 
-struct unwind_state state;
+-- Steve
 
-void unwind_start(struct unwind_state *state, struct task_struct *task,
-		  struct pt_regs *regs, unsigned long *first_frame);
-
-bool unwind_next_frame(struct unwind_state *state);
-
-inline bool unwind_done(struct unwind_state *state);
-
-
-Not only would it avoid the callbacks (which is a nice benefit already),
-it would also allow the interfaces to be used outside of the
-stack_trace_*() interfaces.  That would come in handy in cases like the
-ftrace stack tracer code, which needs more than the stack_trace_*() API
-can give.
-
-Of course, this may be more work than what you thought you signed up for
-;-)
-
--- 
-Josh
+> +#define FTRACE_KSTACK_NESTING	(PAGE_SIZE / sizeof(struct ftrace_stack))
+> +
+> +struct ftrace_stacks {
+> +	struct ftrace_stack	stacks[FTRACE_KSTACK_NESTING];
+> +};
+> +
+> +static DEFINE_PER_CPU(struct ftrace_stacks, ftrace_stacks);
+>  static DEFINE_PER_CPU(int, ftrace_stack_reserve);
+>  
+> 
