@@ -1,56 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f68.google.com ([209.85.221.68]:33744 "EHLO
-        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727807AbfDRNUw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Apr 2019 09:20:52 -0400
-Date: Thu, 18 Apr 2019 15:20:47 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] compiler: allow all arches to enable
- CONFIG_OPTIMIZE_INLINING
-Message-ID: <20190418132047.GA21430@gmail.com>
-References: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mail.kernel.org ([198.145.29.99]:37160 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727807AbfDRNeB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Apr 2019 09:34:01 -0400
+Date: Thu, 18 Apr 2019 09:33:56 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [patch V2 14/29] dm bufio: Simplify stack trace retrieval
+Message-ID: <20190418093356.5d4b7732@gandalf.local.home>
+In-Reply-To: <CAG_fn=WL0yLqavV_mhodT=B6KcAzJ+LS0hss1jqany9Cn92RHw@mail.gmail.com>
+References: <20190418084119.056416939@linutronix.de>
+        <20190418084254.361284697@linutronix.de>
+        <CAG_fn=WP9+bVv9hedoaTzWK+xBzedxaGJGVOPnF0o115s-oWvg@mail.gmail.com>
+        <alpine.DEB.2.21.1904181353420.3174@nanos.tec.linutronix.de>
+        <CAG_fn=WL0yLqavV_mhodT=B6KcAzJ+LS0hss1jqany9Cn92RHw@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1553062828-27798-1-git-send-email-yamada.masahiro@socionext.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Ingo Molnar <mingo@redhat.com>, Paul Burton <paul.burton@mips.com>, linux-mips@vger.kernel.org, x86@kernel.org, linux-mtd@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, Dave Hansen <dave@sr71.net>, linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20190418132047.2-XQ3RYd93F4mlPNB4LhY1lfP_dDuxItqVsujhiwNAw@z>
+To: Alexander Potapenko <glider@google.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418133356.Kg-Bey2ZEtrfSpFS1p-sEQJ98xtgAzTZRUDXeiuDpcg@z>
 
+On Thu, 18 Apr 2019 14:11:44 +0200
+Alexander Potapenko <glider@google.com> wrote:
 
-* Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+> On Thu, Apr 18, 2019 at 1:54 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> >
+> > On Thu, 18 Apr 2019, Alexander Potapenko wrote:  
+> > > On Thu, Apr 18, 2019 at 11:06 AM Thomas Gleixner <tglx@linutronix.de> wrote:  
+> > > > -       save_stack_trace(&b->stack_trace);
+> > > > +       b->stack_len = stack_trace_save(b->stack_entries, MAX_STACK, 2);  
+> > > As noted in one of similar patches before, can we have an inline
+> > > comment to indicate what does this "2" stand for?  
+> >
+> > Come on. We have gazillion of functions which take numerical constant
+> > arguments. Should we add comments to all of them?  
+> Ok, sorry. I might not be familiar enough with the kernel style guide.
 
-> Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
-> CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
-> 
-> The idea is obviously arch-agnostic although we need some code fixups.
-> This commit moves the config entry from arch/x86/Kconfig.debug to
-> lib/Kconfig.debug so that all architectures (except MIPS for now) can
-> benefit from it.
-> 
-> At this moment, I added "depends on !MIPS" because fixing 0day bot reports
-> for MIPS was complex to me.
-> 
-> I tested this patch on my arm/arm64 boards.
-> 
-> This can make a huge difference in kernel image size especially when
-> CONFIG_OPTIMIZE_FOR_SIZE is enabled.
-> 
-> For example, I got 3.5% smaller arm64 kernel image for v5.1-rc1.
-> 
->   dec       file
->   18983424  arch/arm64/boot/Image.before
->   18321920  arch/arm64/boot/Image.after
-> 
-> This also slightly improves the "Kernel hacking" Kconfig menu.
-> Commit e61aca5158a8 ("Merge branch 'kconfig-diet' from Dave Hansen')
-> mentioned this config option would be a good fit in the "compiler option"
-> menu. I did so.
+It is a legitimate complaint but not for this series. I only complain
+about hard coded constants when they are added. That "2" was not
+added by this series. This patch set is a clean up of the stack tracing
+code, not a clean up of removing hard coded constants, or commenting
+them.
 
-No objections against moving it from x86 code to generic code.
+The hard coded "2" was there without a comment before this patch series
+and Thomas is correct to leave it as is for these changes. This patch
+series should not modify what was already there which is out of scope
+for the purpose of these changes.
 
-Thanks,
+A separate clean up patch to the maintainer of the subsystem (dm bufio
+in this case) is fine. But it's not Thomas's responsibility.
 
-	Ingo
+-- Steve
