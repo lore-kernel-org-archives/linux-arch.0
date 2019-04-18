@@ -1,67 +1,189 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59892 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388535AbfDRL20 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Apr 2019 07:28:26 -0400
-Date: Thu, 18 Apr 2019 12:28:18 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH] The patch solves =?utf-8?Q?the?=
- =?utf-8?Q?_type_error__of_the_parameter_=E2=80=9Coff?= =?utf-8?B?4oCd?= in
- syscall mmap on the ARM64 platform.
-Message-ID: <20190418112818.GA31923@lakrids.cambridge.arm.com>
-References: <1555504525-17962-1-git-send-email-zhouby_cn@126.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:53064 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2388599AbfDRLwM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Apr 2019 07:52:12 -0400
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x3IBnDMk061698
+        for <linux-arch@vger.kernel.org>; Thu, 18 Apr 2019 07:52:11 -0400
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2rxrg80p08-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 18 Apr 2019 07:52:11 -0400
+Received: from localhost
+        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
+        Thu, 18 Apr 2019 12:52:07 +0100
+Date: Thu, 18 Apr 2019 14:51:53 +0300
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [patch V2 03/29] lib/stackdepot: Provide functions which operate
+ on plain storage arrays
+References: <20190418084119.056416939@linutronix.de>
+ <20190418084253.337266121@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1555504525-17962-1-git-send-email-zhouby_cn@126.com>
+In-Reply-To: <20190418084253.337266121@linutronix.de>
+Message-ID: <20190418115152.GA13304@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boyang Zhou <zhouby_cn@126.com>
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, haozhu@nudt.edu.cn, linux@dominikbrodowski.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, viro@zeniv.linux.org.uk, akpm@linux-foundation.org
-Message-ID: <20190418112818.OGwkv0ST_ssO3AgFeJ5tG4cVv-mYqy1Q2czISfyHuAk@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190418115153.VT8RTJFxGKJYeScumjIy7rP4_8fFt4GwOHoSYeAblcE@z>
 
-[adding linux-arch and relevant folk]
-
-On Wed, Apr 17, 2019 at 08:35:25PM +0800, Boyang Zhou wrote:
-> The error information is that “offset value too large for defined data type”.
-> Reason:
-> On the X86 platform, the data type of “off" is unsigned long; but on the ARM64 platform, the data type is defined as off_t, and off_t is by type long instead of unsigned long.
-> When the off right shifts in the function “sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT)"on ARM64, high address of off is filled with sign bit 1instead of 0.
-> In our case, we mmap GPU doorbell on both platform. On the x86 platform, the value of off is f009c00000000000, after shift the value becomes f009c00000000; while on the ARM64, the value of off changes from ed35c00000000000 to fffed35c00000000. This value is treated as unsigned long in later functions. So it is too big for off and the error happened.
-> We have tested the patchs in Huawei ARM64 server with a couples of AMD GPUs.
-
-It looks like the generic mmap uses unsigned long, as do sparc and x86.
-
-However, arm64, microblase, powerpc and riscv all use off_t.
-
-Should those all be using unsigned long? If so, that seems like it
-should be a treewide cleanup.
-
-Similar applies to pgoff for mmap2.
-
-Thanks,
-Mark.
-
+On Thu, Apr 18, 2019 at 10:41:22AM +0200, Thomas Gleixner wrote:
+> The struct stack_trace indirection in the stack depot functions is a truly
+> pointless excercise which requires horrible code at the callsites.
 > 
-> Signed-off-by: Boyang Zhou <zhouby_cn@126.com>
+> Provide interfaces based on plain storage arrays.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Acked-by: Alexander Potapenko <glider@google.com>
 > ---
->  arch/arm64/kernel/sys.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  include/linux/stackdepot.h |    4 ++
+>  lib/stackdepot.c           |   66 ++++++++++++++++++++++++++++++++-------------
+>  2 files changed, 51 insertions(+), 19 deletions(-)
 > 
-> diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-> index b44065f..6f91e81 100644
-> --- a/arch/arm64/kernel/sys.c
-> +++ b/arch/arm64/kernel/sys.c
-> @@ -31,7 +31,7 @@
->  
->  SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
->  		unsigned long, prot, unsigned long, flags,
-> -		unsigned long, fd, off_t, off)
-> +		unsigned long, fd, unsigned long, off)
+> --- a/include/linux/stackdepot.h
+> +++ b/include/linux/stackdepot.h
+> @@ -26,7 +26,11 @@ typedef u32 depot_stack_handle_t;
+>  struct stack_trace;
+> 
+>  depot_stack_handle_t depot_save_stack(struct stack_trace *trace, gfp_t flags);
+> +depot_stack_handle_t stack_depot_save(unsigned long *entries,
+> +				      unsigned int nr_entries, gfp_t gfp_flags);
+> 
+>  void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace);
+> +unsigned int stack_depot_fetch(depot_stack_handle_t handle,
+> +			       unsigned long **entries);
+> 
+>  #endif
+> --- a/lib/stackdepot.c
+> +++ b/lib/stackdepot.c
+> @@ -194,40 +194,56 @@ static inline struct stack_record *find_
+>  	return NULL;
+>  }
+> 
+> -void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
+> +/**
+> + * stack_depot_fetch - Fetch stack entries from a depot
+> + *
+
+Nit: kernel-doc will complain about missing description of @handle.
+
+> + * @entries:		Pointer to store the entries address
+> + */
+> +unsigned int stack_depot_fetch(depot_stack_handle_t handle,
+> +			       unsigned long **entries)
 >  {
->  	if (offset_in_page(off) != 0)
->  		return -EINVAL;
-> -- 
-> 2.7.4
+>  	union handle_parts parts = { .handle = handle };
+>  	void *slab = stack_slabs[parts.slabindex];
+>  	size_t offset = parts.offset << STACK_ALLOC_ALIGN;
+>  	struct stack_record *stack = slab + offset;
 > 
+> -	trace->nr_entries = trace->max_entries = stack->size;
+> -	trace->entries = stack->entries;
+> -	trace->skip = 0;
+> +	*entries = stack->entries;
+> +	return stack->size;
+> +}
+> +EXPORT_SYMBOL_GPL(stack_depot_fetch);
+> +
+> +void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
+> +{
+> +	unsigned int nent = stack_depot_fetch(handle, &trace->entries);
+> +
+> +	trace->max_entries = trace->nr_entries = nent;
+>  }
+>  EXPORT_SYMBOL_GPL(depot_fetch_stack);
+> 
+>  /**
+> - * depot_save_stack - save stack in a stack depot.
+> - * @trace - the stacktrace to save.
+> - * @alloc_flags - flags for allocating additional memory if required.
+> + * stack_depot_save - Save a stack trace from an array
+>   *
+> - * Returns the handle of the stack struct stored in depot.
+> + * @entries:		Pointer to storage array
+> + * @nr_entries:		Size of the storage array
+> + * @alloc_flags:	Allocation gfp flags
+> + *
+> + * Returns the handle of the stack struct stored in depot
+
+Can you please s/Returns/Return:/ so that kernel-doc will recognize this as
+return section.
+
+>   */
+> -depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
+> -				    gfp_t alloc_flags)
+> +depot_stack_handle_t stack_depot_save(unsigned long *entries,
+> +				      unsigned int nr_entries,
+> +				      gfp_t alloc_flags)
+>  {
+> -	u32 hash;
+> -	depot_stack_handle_t retval = 0;
+>  	struct stack_record *found = NULL, **bucket;
+> -	unsigned long flags;
+> +	depot_stack_handle_t retval = 0;
+>  	struct page *page = NULL;
+>  	void *prealloc = NULL;
+> +	unsigned long flags;
+> +	u32 hash;
+> 
+> -	if (unlikely(trace->nr_entries == 0))
+> +	if (unlikely(nr_entries == 0))
+>  		goto fast_exit;
+> 
+> -	hash = hash_stack(trace->entries, trace->nr_entries);
+> +	hash = hash_stack(entries, nr_entries);
+>  	bucket = &stack_table[hash & STACK_HASH_MASK];
+> 
+>  	/*
+> @@ -235,8 +251,8 @@ depot_stack_handle_t depot_save_stack(st
+>  	 * The smp_load_acquire() here pairs with smp_store_release() to
+>  	 * |bucket| below.
+>  	 */
+> -	found = find_stack(smp_load_acquire(bucket), trace->entries,
+> -			   trace->nr_entries, hash);
+> +	found = find_stack(smp_load_acquire(bucket), entries,
+> +			   nr_entries, hash);
+>  	if (found)
+>  		goto exit;
+> 
+> @@ -264,10 +280,10 @@ depot_stack_handle_t depot_save_stack(st
+> 
+>  	spin_lock_irqsave(&depot_lock, flags);
+> 
+> -	found = find_stack(*bucket, trace->entries, trace->nr_entries, hash);
+> +	found = find_stack(*bucket, entries, nr_entries, hash);
+>  	if (!found) {
+>  		struct stack_record *new =
+> -			depot_alloc_stack(trace->entries, trace->nr_entries,
+> +			depot_alloc_stack(entries, nr_entries,
+>  					  hash, &prealloc, alloc_flags);
+>  		if (new) {
+>  			new->next = *bucket;
+> @@ -297,4 +313,16 @@ depot_stack_handle_t depot_save_stack(st
+>  fast_exit:
+>  	return retval;
+>  }
+> +EXPORT_SYMBOL_GPL(stack_depot_save);
+> +
+> +/**
+> + * depot_save_stack - save stack in a stack depot.
+> + * @trace - the stacktrace to save.
+> + * @alloc_flags - flags for allocating additional memory if required.
+> + */
+> +depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
+> +				      gfp_t alloc_flags)
+> +{
+> +	return stack_depot_save(trace->entries, trace->nr_entries, alloc_flags);
+> +}
+>  EXPORT_SYMBOL_GPL(depot_save_stack);
+> 
+> 
+
+-- 
+Sincerely yours,
+Mike.
