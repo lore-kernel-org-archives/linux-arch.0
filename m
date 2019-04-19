@@ -1,68 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-05.nifty.com ([202.248.20.70]:50968 "EHLO
-        condef-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727676AbfDSSUC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 14:20:02 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 08/11] powerpc/prom_init: mark prom_getprop() and prom_getproplen() as __init
-Date: Fri, 19 Apr 2019 18:47:51 +0900
-Message-ID: <20190419094754.24667-9-yamada.masahiro@socionext.com>
-In-Reply-To: <20190419094754.24667-1-yamada.masahiro@socionext.com>
-References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
+Received: from mail-ot1-f68.google.com ([209.85.210.68]:36062 "EHLO
+        mail-ot1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725844AbfDSSnd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 14:43:33 -0400
+MIME-Version: 1.0
+References: <20190419094754.24667-1-yamada.masahiro@socionext.com> <20190419094754.24667-7-yamada.masahiro@socionext.com>
+In-Reply-To: <20190419094754.24667-7-yamada.masahiro@socionext.com>
+From: Mathieu Malaterre <malat@debian.org>
+Date: Fri, 19 Apr 2019 17:45:31 +0200
+Message-ID: <CA+7wUsygTo=AN_giku_X6_a4mQWdJL48RoVbVB4hBqkZSKkP0Q@mail.gmail.com>
+Subject: Re: [PATCH v2 06/11] MIPS: mark __fls() as __always_inline
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190419094751.xPfSLq2YI9r39hEbBkvgEAwDxkTQlHI50Rj-A-i3LRM@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190419154531.knoDSPv_dulmaEW6lRlF22A2sTUWxd7HMn_tKFhicI8@z>
 
-This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-place. We need to eliminate potential issues beforehand.
+Hi,
 
-If it is enabled for powerpc, the following modpost warnings are
-reported:
+On Fri, Apr 19, 2019 at 12:06 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+> place. We need to eliminate potential issues beforehand.
+>
+> If it is enabled for mips, the following errors are reported:
+>
+> arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
+> sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
+> arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
 
-WARNING: vmlinux.o(.text.unlikely+0x20): Section mismatch in reference from the function .prom_getprop() to the function .init.text:.call_prom()
-The function .prom_getprop() references
-the function __init .call_prom().
-This is often because .prom_getprop lacks a __init
-annotation or the annotation of .call_prom is wrong.
+Tested with success on ppc32/G4. But on CI20 (ci20_defconfig from
+master), I get:
 
-WARNING: vmlinux.o(.text.unlikely+0x3c): Section mismatch in reference from the function .prom_getproplen() to the function .init.text:.call_prom()
-The function .prom_getproplen() references
-the function __init .call_prom().
-This is often because .prom_getproplen lacks a __init
-annotation or the annotation of .call_prom is wrong.
+  MODPOST vmlinux.o
+mipsel-linux-gnu-ld: arch/mips/kernel/traps.o: in function
+`addr_gcr_err_control':
+/home/mathieu/tmp/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld: arch/mips/mm/sc-mips.o: in function
+`addr_gcr_l2_pft_control':
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+arch/mips/mm/sc-mips.o:/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+more undefined references to `mips_gcr_base' follow
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
 
-Changes in v2:
-  - split into a separate patch
-
- arch/powerpc/kernel/prom_init.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
-index f33ff4163a51..241fe6b7a8cc 100644
---- a/arch/powerpc/kernel/prom_init.c
-+++ b/arch/powerpc/kernel/prom_init.c
-@@ -501,14 +501,14 @@ static int __init prom_next_node(phandle *nodep)
- 	}
- }
- 
--static inline int prom_getprop(phandle node, const char *pname,
--			       void *value, size_t valuelen)
-+static inline int __init prom_getprop(phandle node, const char *pname,
-+				      void *value, size_t valuelen)
- {
- 	return call_prom("getprop", 4, 1, node, ADDR(pname),
- 			 (u32)(unsigned long) value, (u32) valuelen);
- }
- 
--static inline int prom_getproplen(phandle node, const char *pname)
-+static inline int __init prom_getproplen(phandle node, const char *pname)
- {
- 	return call_prom("getproplen", 2, 1, node, ADDR(pname));
- }
--- 
-2.17.1
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
+>
+> Changes in v2:
+>   - new patch
+>
+>  arch/mips/include/asm/bitops.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
+> index 830c93a010c3..6a26ead1c2b6 100644
+> --- a/arch/mips/include/asm/bitops.h
+> +++ b/arch/mips/include/asm/bitops.h
+> @@ -482,7 +482,7 @@ static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *
+>   * Return the bit position (0..63) of the most significant 1 bit in a word
+>   * Returns -1 if no 1 bit exists
+>   */
+> -static inline unsigned long __fls(unsigned long word)
+> +static __always_inline unsigned long __fls(unsigned long word)
+>  {
+>         int num;
+>
+> --
+> 2.17.1
+>
