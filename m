@@ -1,8 +1,7 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 08/11] powerpc/prom_init: mark prom_getprop() and
- prom_getproplen() as __init
-Date: Fri, 19 Apr 2019 18:47:51 +0900
-Message-ID: <20190419094754.24667-9-yamada.masahiro@socionext.com>
+Subject: [PATCH v2 04/11] s390/cpacf: mark scpacf_query() as __always_inline
+Date: Fri, 19 Apr 2019 18:47:47 +0900
+Message-ID: <20190419094754.24667-5-yamada.masahiro@socionext.com>
 References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -25,20 +24,14 @@ List-Id: linux-arch.vger.kernel.org
 This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
 place. We need to eliminate potential issues beforehand.
 
-If it is enabled for powerpc, the following modpost warnings are
-reported:
+If it is enabled for s390, the following error is reported:
 
-WARNING: vmlinux.o(.text.unlikely+0x20): Section mismatch in reference from the function .prom_getprop() to the function .init.text:.call_prom()
-The function .prom_getprop() references
-the function __init .call_prom().
-This is often because .prom_getprop lacks a __init
-annotation or the annotation of .call_prom is wrong.
-
-WARNING: vmlinux.o(.text.unlikely+0x3c): Section mismatch in reference from the function .prom_getproplen() to the function .init.text:.call_prom()
-The function .prom_getproplen() references
-the function __init .call_prom().
-This is often because .prom_getproplen lacks a __init
-annotation or the annotation of .call_prom is wrong.
+In file included from arch/s390/crypto/des_s390.c:19:
+./arch/s390/include/asm/cpacf.h: In function 'cpacf_query':
+./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably doesn't match constraints
+  asm volatile(
+  ^~~
+./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'asm'
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
@@ -46,31 +39,22 @@ Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 Changes in v2:
   - split into a separate patch
 
- arch/powerpc/kernel/prom_init.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/s390/include/asm/cpacf.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
-index f33ff4163a51..241fe6b7a8cc 100644
---- a/arch/powerpc/kernel/prom_init.c
-+++ b/arch/powerpc/kernel/prom_init.c
-@@ -501,14 +501,14 @@ static int __init prom_next_node(phandle *nodep)
+diff --git a/arch/s390/include/asm/cpacf.h b/arch/s390/include/asm/cpacf.h
+index 3cc52e37b4b2..f316de40e51b 100644
+--- a/arch/s390/include/asm/cpacf.h
++++ b/arch/s390/include/asm/cpacf.h
+@@ -202,7 +202,7 @@ static inline int __cpacf_check_opcode(unsigned int opcode)
  	}
  }
  
--static inline int prom_getprop(phandle node, const char *pname,
--			       void *value, size_t valuelen)
-+static inline int __init prom_getprop(phandle node, const char *pname,
-+				      void *value, size_t valuelen)
+-static inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
++static __always_inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
  {
- 	return call_prom("getprop", 4, 1, node, ADDR(pname),
- 			 (u32)(unsigned long) value, (u32) valuelen);
- }
- 
--static inline int prom_getproplen(phandle node, const char *pname)
-+static inline int __init prom_getproplen(phandle node, const char *pname)
- {
- 	return call_prom("getproplen", 2, 1, node, ADDR(pname));
- }
+ 	if (__cpacf_check_opcode(opcode)) {
+ 		__cpacf_query(opcode, mask);
 -- 
 2.17.1
 
