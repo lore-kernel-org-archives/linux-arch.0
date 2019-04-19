@@ -1,33 +1,32 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [patch V2 24/29] tracing: Remove the last struct
- stack_trace usage
-Date: Fri, 19 Apr 2019 16:11:16 -0400
-Message-ID: <20190419161116.14f52ff8@gandalf.local.home>
-References: <20190418084119.056416939@linutronix.de>
- <20190418084255.275696472@linutronix.de>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: DISCONTIGMEM is deprecated
+Date: Fri, 19 Apr 2019 07:05:21 -0700
+Message-ID: <20190419140521.GI7751@bombadil.infradead.org>
+References: <20190419094335.GJ18914@techsingularity.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <intel-gfx-bounces@lists.freedesktop.org>
-In-Reply-To: <20190418084255.275696472@linutronix.de>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/intel-gfx>
-List-Post: <mailto:intel-gfx@lists.freedesktop.org>
-List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: intel-gfx-bounces@lists.freedesktop.org
-Sender: "Intel-gfx" <intel-gfx-bounces@lists.freedesktop.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mike Snitzer <snitzer@redhat.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, dm-devel@redhat.com, Alexander Potapenko <glider@google.com>, Christoph Lameter <cl@linux.com>, Christoph Hellwig <hch@lst.de>, Alasdair Kergon <agk@redhat.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, Johannes Thumshirn <jthumshirn@suse.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, intel-gfx@lists.freedesktop.org, David Rientjes <rientjes@google.com>, Akinobu Mita <akinobu.mita@gmail.com>, Josef Bacik <josef@toxicpanda.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, David Sterba <dsterba@suse.com>, Dmitry Vyukov <dvyukov@g>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190419094335.GJ18914@techsingularity.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mel Gorman <mgorman@techsingularity.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCAxOCBBcHIgMjAxOSAxMDo0MTo0MyArMDIwMApUaG9tYXMgR2xlaXhuZXIgPHRnbHhA
-bGludXRyb25peC5kZT4gd3JvdGU6Cgo+IFNpbXBsaWZ5IHRoZSBzdGFjayByZXRyaWV2YWwgY29k
-ZSBieSB1c2luZyB0aGUgc3RvcmFnZSBhcnJheSBiYXNlZAo+IGludGVyZmFjZS4KPiAKPiBTaWdu
-ZWQtb2ZmLWJ5OiBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGludXRyb25peC5kZT4KCgpSZXZpZXdl
-ZC1ieTogU3RldmVuIFJvc3RlZHQgKFZNd2FyZSkgPHJvc3RlZHRAZ29vZG1pcy5vcmc+CgotLSBT
-dGV2ZQpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpJbnRl
-bC1nZnggbWFpbGluZyBsaXN0CkludGVsLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6
-Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9pbnRlbC1nZng=
+On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
+> DISCONTIG is essentially deprecated and even parisc plans to move to
+> SPARSEMEM so there is no need to be fancy, this patch simply disables
+> watermark boosting by default on DISCONTIGMEM.
+
+I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
+scenarios.  Grepping the arch/ directories shows:
+
+alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
+arc (for supporting more than 1GB of memory)
+ia64 (looks complicated ...)
+m68k (for multiple chunks of memory)
+mips (does support NUMA but also non-NUMA)
+parisc (both NUMA and non-NUMA)
+
+I'm not sure that these architecture maintainers even know that DISCONTIGMEM
+is deprecated.  Adding linux-arch to the cc.
