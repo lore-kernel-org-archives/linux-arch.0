@@ -1,37 +1,33 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: DISCONTIGMEM is deprecated
-Date: Mon, 29 Apr 2019 16:58:09 +0000
-Message-ID: <3908561D78D1C84285E8C5FCA982C28F7E9140BA@ORSMSX104.amr.corp.intel.com>
+Date: Fri, 19 Apr 2019 07:05:21 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: DISCONTIGMEM is deprecated
+Message-ID: <20190419140521.GI7751@bombadil.infradead.org>
 References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
- <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
- <20190428081353.GB30901@infradead.org>
-In-Reply-To: <20190428081353.GB30901@infradead.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190419094335.GJ18914@techsingularity.net>
 Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>, Meelis Roos <mroos@linux.ee>
-Cc: Christopher Lameter <cl@linux.com>, Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Yu,
- Fenghua" <fenghua.yu@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>
+To: Mel Gorman <mgorman@techsingularity.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190429165809.2EUWUvoX_ILAxDMsqQM0r-z2TB7UOZzcimAqK3glaeA@z>
+Message-ID: <20190419140521.FpfhUm-s26NrcSvgomxlyucmBnx5Wb4R3iZzh-j1sgE@z>
 
-> ia64 has a such a huge number of memory model choices.  Maybe we
-> need to cut it down to a small set that actually work.
+On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
+> DISCONTIG is essentially deprecated and even parisc plans to move to
+> SPARSEMEM so there is no need to be fancy, this patch simply disables
+> watermark boosting by default on DISCONTIGMEM.
 
-SGI systems had extremely discontiguous memory (they used some high
-order physical address bits in the tens/hundreds of terabyte range for the
-node number ... so there would be a few GBytes of actual memory then
-a huge gap before the next node had a few more Gbytes).
+I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
+scenarios.  Grepping the arch/ directories shows:
 
-I don't know of anyone still booting upstream on an SN2, so if we start doi=
-ng
-serious hack and slash the chances are high that SN2 will be broken (if it =
-isn't
-already).
+alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
+arc (for supporting more than 1GB of memory)
+ia64 (looks complicated ...)
+m68k (for multiple chunks of memory)
+mips (does support NUMA but also non-NUMA)
+parisc (both NUMA and non-NUMA)
 
--Tony
+I'm not sure that these architecture maintainers even know that DISCONTIGMEM
+is deprecated.  Adding linux-arch to the cc.
