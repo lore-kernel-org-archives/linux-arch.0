@@ -1,78 +1,93 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [patch V2 22/29] tracing: Make
- ftrace_trace_userstack() static and conditional
-Date: Fri, 19 Apr 2019 09:28:23 -0400
-Message-ID: <20190419092823.094a6061@gandalf.local.home>
-References: <20190418084119.056416939@linutronix.de>
- <20190418084255.088813838@linutronix.de>
+From: Mathieu Malaterre <malat@debian.org>
+Subject: Re: [PATCH v2 06/11] MIPS: mark __fls() as __always_inline
+Date: Fri, 19 Apr 2019 17:45:31 +0200
+Message-ID: <CA+7wUsygTo=AN_giku_X6_a4mQWdJL48RoVbVB4hBqkZSKkP0Q@mail.gmail.com>
+References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
+ <20190419094754.24667-7-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <intel-gfx-bounces@lists.freedesktop.org>
-In-Reply-To: <20190418084255.088813838@linutronix.de>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/intel-gfx>
-List-Post: <mailto:intel-gfx@lists.freedesktop.org>
-List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: intel-gfx-bounces@lists.freedesktop.org
-Sender: "Intel-gfx" <intel-gfx-bounces@lists.freedesktop.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mike Snitzer <snitzer@redhat.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, dm-devel@redhat.com, Alexander Potapenko <glider@google.com>, Christoph Lameter <cl@linux.com>, Christoph Hellwig <hch@lst.de>, Alasdair Kergon <agk@redhat.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, Johannes Thumshirn <jthumshirn@suse.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, intel-gfx@lists.freedesktop.org, David Rientjes <rientjes@google.com>, Akinobu Mita <akinobu.mita@gmail.com>, Josef Bacik <josef@toxicpanda.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, David Sterba <dsterba@suse.com>, Dmitry Vyukov <dvyukov@g>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190419094754.24667-7-yamada.masahiro@socionext.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCAxOCBBcHIgMjAxOSAxMDo0MTo0MSArMDIwMApUaG9tYXMgR2xlaXhuZXIgPHRnbHhA
-bGludXRyb25peC5kZT4gd3JvdGU6Cgo+IEl0J3Mgb25seSB1c2VkIGluIHRyYWNlLmMgYW5kIHRo
-ZXJlIGlzIGFic29sdXRlbHkgbm8gcG9pbnQgaW4gY29tcGlsaW5nIGl0Cj4gaW4gd2hlbiB1c2Vy
-IHNwYWNlIHN0YWNrIHRyYWNlcyBhcmUgbm90IHN1cHBvcnRlZC4KPiAKPiBTaWduZWQtb2ZmLWJ5
-OiBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGludXRyb25peC5kZT4KPiBDYzogU3RldmVuIFJvc3Rl
-ZHQgPHJvc3RlZHRAZ29vZG1pcy5vcmc+CgpGdW5ueSwgdGhlc2Ugd2VyZSBtb3ZlZCBvdXQgdG8g
-Z2xvYmFsIGZ1bmN0aW9ucyBhbG9uZyB3aXRoIHRoZQpmdHJhY2VfdHJhY2Vfc3RhY2soKSBidXQg
-SSBndWVzcyB0aGV5IHdlcmUgbmV2ZXIgdXNlZC4KClRoaXMgYmFzaWNhbGx5IGp1c3QgZG9lcyBh
-IHBhcnRpYWwgcmV2ZXJ0IG9mOgoKIGMwYTBkMGQzZjY1MjggKCJ0cmFjaW5nL2NvcmU6IE1ha2Ug
-dGhlIHN0YWNrIGVudHJ5IGhlbHBlcnMgZ2xvYmFsIikKCgo+IC0tLQo+ICBrZXJuZWwvdHJhY2Uv
-dHJhY2UuYyB8ICAgMTQgKysrKysrKystLS0tLS0KPiAga2VybmVsL3RyYWNlL3RyYWNlLmggfCAg
-ICA4IC0tLS0tLS0tCj4gIDIgZmlsZXMgY2hhbmdlZCwgOCBpbnNlcnRpb25zKCspLCAxNCBkZWxl
-dGlvbnMoLSkKPiAKPiAtLS0gYS9rZXJuZWwvdHJhY2UvdHJhY2UuYwo+ICsrKyBiL2tlcm5lbC90
-cmFjZS90cmFjZS5jCj4gQEAgLTE1OSw2ICsxNTksOCBAQCBzdGF0aWMgdW5pb24gdHJhY2VfZXZh
-bF9tYXBfaXRlbSAqdHJhY2VfCj4gICNlbmRpZiAvKiBDT05GSUdfVFJBQ0VfRVZBTF9NQVBfRklM
-RSAqLwo+ICAKPiAgc3RhdGljIGludCB0cmFjaW5nX3NldF90cmFjZXIoc3RydWN0IHRyYWNlX2Fy
-cmF5ICp0ciwgY29uc3QgY2hhciAqYnVmKTsKPiArc3RhdGljIHZvaWQgZnRyYWNlX3RyYWNlX3Vz
-ZXJzdGFjayhzdHJ1Y3QgcmluZ19idWZmZXIgKmJ1ZmZlciwKPiArCQkJCSAgIHVuc2lnbmVkIGxv
-bmcgZmxhZ3MsIGludCBwYyk7Cj4gIAo+ICAjZGVmaW5lIE1BWF9UUkFDRVJfU0laRQkJMTAwCj4g
-IHN0YXRpYyBjaGFyIGJvb3R1cF90cmFjZXJfYnVmW01BWF9UUkFDRVJfU0laRV0gX19pbml0ZGF0
-YTsKPiBAQCAtMjkwNSw5ICsyOTA3LDEwIEBAIHZvaWQgdHJhY2VfZHVtcF9zdGFjayhpbnQgc2tp
-cCkKPiAgfQo+ICBFWFBPUlRfU1lNQk9MX0dQTCh0cmFjZV9kdW1wX3N0YWNrKTsKPiAgCj4gKyNp
-ZmRlZiBDT05GSUdfVVNFUl9TVEFDS1RSQUNFX1NVUFBPUlQKPiAgc3RhdGljIERFRklORV9QRVJf
-Q1BVKGludCwgdXNlcl9zdGFja19jb3VudCk7Cj4gIAo+IC12b2lkCj4gK3N0YXRpYyB2b2lkCj4g
-IGZ0cmFjZV90cmFjZV91c2Vyc3RhY2soc3RydWN0IHJpbmdfYnVmZmVyICpidWZmZXIsIHVuc2ln
-bmVkIGxvbmcgZmxhZ3MsIGludCBwYykKPiAgewo+ICAJc3RydWN0IHRyYWNlX2V2ZW50X2NhbGwg
-KmNhbGwgPSAmZXZlbnRfdXNlcl9zdGFjazsKPiBAQCAtMjk1OCwxMyArMjk2MSwxMiBAQCBmdHJh
-Y2VfdHJhY2VfdXNlcnN0YWNrKHN0cnVjdCByaW5nX2J1ZmZlCj4gICBvdXQ6Cj4gIAlwcmVlbXB0
-X2VuYWJsZSgpOwo+ICB9Cj4gLQo+IC0jaWZkZWYgVU5VU0VECgpTdHJhbmdlLCBJIG5ldmVyIGtu
-ZXcgYWJvdXQgdGhpcyBpZmRlZi4gSSB3b3VsZCBoYXZlIG51a2VkIGl0IHdoZW4gSQpzYXcgaXQu
-CgpBbnl3YXksCgpSZXZpZXdlZC1ieTogU3RldmVuIFJvc3RlZHQgKFZNd2FyZSkgPHJvc3RlZHRA
-Z29vZG1pcy5vcmc+CgotLSBTdGV2ZQoKCj4gLXN0YXRpYyB2b2lkIF9fdHJhY2VfdXNlcnN0YWNr
-KHN0cnVjdCB0cmFjZV9hcnJheSAqdHIsIHVuc2lnbmVkIGxvbmcgZmxhZ3MpCj4gKyNlbHNlIC8q
-IENPTkZJR19VU0VSX1NUQUNLVFJBQ0VfU1VQUE9SVCAqLwo+ICtzdGF0aWMgdm9pZCBmdHJhY2Vf
-dHJhY2VfdXNlcnN0YWNrKHN0cnVjdCByaW5nX2J1ZmZlciAqYnVmZmVyLAo+ICsJCQkJICAgdW5z
-aWduZWQgbG9uZyBmbGFncywgaW50IHBjKQo+ICB7Cj4gLQlmdHJhY2VfdHJhY2VfdXNlcnN0YWNr
-KHRyLCBmbGFncywgcHJlZW1wdF9jb3VudCgpKTsKPiAgfQo+IC0jZW5kaWYgLyogVU5VU0VEICov
-Cj4gKyNlbmRpZiAvKiAhQ09ORklHX1VTRVJfU1RBQ0tUUkFDRV9TVVBQT1JUICovCj4gIAo+ICAj
-ZW5kaWYgLyogQ09ORklHX1NUQUNLVFJBQ0UgKi8KPiAgCj4gLS0tIGEva2VybmVsL3RyYWNlL3Ry
-YWNlLmgKPiArKysgYi9rZXJuZWwvdHJhY2UvdHJhY2UuaAo+IEBAIC03ODIsMTcgKzc4Miw5IEBA
-IHZvaWQgdXBkYXRlX21heF90cl9zaW5nbGUoc3RydWN0IHRyYWNlX2EKPiAgI2VuZGlmIC8qIENP
-TkZJR19UUkFDRVJfTUFYX1RSQUNFICovCj4gIAo+ICAjaWZkZWYgQ09ORklHX1NUQUNLVFJBQ0UK
-PiAtdm9pZCBmdHJhY2VfdHJhY2VfdXNlcnN0YWNrKHN0cnVjdCByaW5nX2J1ZmZlciAqYnVmZmVy
-LCB1bnNpZ25lZCBsb25nIGZsYWdzLAo+IC0JCQkgICAgaW50IHBjKTsKPiAtCj4gIHZvaWQgX190
-cmFjZV9zdGFjayhzdHJ1Y3QgdHJhY2VfYXJyYXkgKnRyLCB1bnNpZ25lZCBsb25nIGZsYWdzLCBp
-bnQgc2tpcCwKPiAgCQkgICBpbnQgcGMpOwo+ICAjZWxzZQo+IC1zdGF0aWMgaW5saW5lIHZvaWQg
-ZnRyYWNlX3RyYWNlX3VzZXJzdGFjayhzdHJ1Y3QgcmluZ19idWZmZXIgKmJ1ZmZlciwKPiAtCQkJ
-CQkgIHVuc2lnbmVkIGxvbmcgZmxhZ3MsIGludCBwYykKPiAtewo+IC19Cj4gLQo+ICBzdGF0aWMg
-aW5saW5lIHZvaWQgX190cmFjZV9zdGFjayhzdHJ1Y3QgdHJhY2VfYXJyYXkgKnRyLCB1bnNpZ25l
-ZCBsb25nIGZsYWdzLAo+ICAJCQkJIGludCBza2lwLCBpbnQgcGMpCj4gIHsKPiAKCl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkludGVsLWdmeCBtYWlsaW5n
-IGxpc3QKSW50ZWwtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczovL2xpc3RzLmZyZWVk
-ZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2ludGVsLWdmeA==
+Hi,
+
+On Fri, Apr 19, 2019 at 12:06 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+> place. We need to eliminate potential issues beforehand.
+>
+> If it is enabled for mips, the following errors are reported:
+>
+> arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
+> sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
+> sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
+> arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
+
+Tested with success on ppc32/G4. But on CI20 (ci20_defconfig from
+master), I get:
+
+  MODPOST vmlinux.o
+mipsel-linux-gnu-ld: arch/mips/kernel/traps.o: in function
+`addr_gcr_err_control':
+/home/mathieu/tmp/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld: arch/mips/mm/sc-mips.o: in function
+`addr_gcr_l2_pft_control':
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+undefined reference to `mips_gcr_base'
+mipsel-linux-gnu-ld:
+arch/mips/mm/sc-mips.o:/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
+more undefined references to `mips_gcr_base' follow
+
+
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
+>
+> Changes in v2:
+>   - new patch
+>
+>  arch/mips/include/asm/bitops.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
+> index 830c93a010c3..6a26ead1c2b6 100644
+> --- a/arch/mips/include/asm/bitops.h
+> +++ b/arch/mips/include/asm/bitops.h
+> @@ -482,7 +482,7 @@ static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *
+>   * Return the bit position (0..63) of the most significant 1 bit in a word
+>   * Returns -1 if no 1 bit exists
+>   */
+> -static inline unsigned long __fls(unsigned long word)
+> +static __always_inline unsigned long __fls(unsigned long word)
+>  {
+>         int num;
+>
+> --
+> 2.17.1
+>
