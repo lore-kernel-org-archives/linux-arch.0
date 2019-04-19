@@ -1,89 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-07.nifty.com ([202.248.20.72]:40749 "EHLO
-        condef-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727378AbfDSSZv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 14:25:51 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2 10/11] powerpc/mm/radix: mark as __tlbie_pid() and friends as__always_inline
-Date: Fri, 19 Apr 2019 18:47:53 +0900
-Message-ID: <20190419094754.24667-11-yamada.masahiro@socionext.com>
-In-Reply-To: <20190419094754.24667-1-yamada.masahiro@socionext.com>
-References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
+Received: from mail.kernel.org ([198.145.29.99]:53896 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727533AbfDSS3Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Apr 2019 14:29:16 -0400
+Date: Fri, 19 Apr 2019 09:28:23 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [patch V2 22/29] tracing: Make ftrace_trace_userstack() static
+ and conditional
+Message-ID: <20190419092823.094a6061@gandalf.local.home>
+In-Reply-To: <20190418084255.088813838@linutronix.de>
+References: <20190418084119.056416939@linutronix.de>
+        <20190418084255.088813838@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190419094753.lKs8hNigq_sTzuuxp56vhU1nqIQQF-JRSlaH6qYpQic@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190419132823.ZS9XHJ8TffhLKm4qOyyeNxxBEiCkb7BRYlqNuJYJ8vg@z>
 
-This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-place. We need to eliminate potential issues beforehand.
+On Thu, 18 Apr 2019 10:41:41 +0200
+Thomas Gleixner <tglx@linutronix.de> wrote:
 
-If it is enabled for powerpc, the following errors are reported:
+> It's only used in trace.c and there is absolutely no point in compiling it
+> in when user space stack traces are not supported.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
 
-arch/powerpc/mm/tlb-radix.c: In function '__tlbie_lpid':
-arch/powerpc/mm/tlb-radix.c:148:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIE_5(%0, %4, %3, %2, %1)
-  ^~~
-arch/powerpc/mm/tlb-radix.c:148:2: error: impossible constraint in 'asm'
-arch/powerpc/mm/tlb-radix.c: In function '__tlbie_pid':
-arch/powerpc/mm/tlb-radix.c:118:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIE_5(%0, %4, %3, %2, %1)
-  ^~~
-arch/powerpc/mm/tlb-radix.c: In function '__tlbiel_pid':
-arch/powerpc/mm/tlb-radix.c:104:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
-  ^~~
+Funny, these were moved out to global functions along with the
+ftrace_trace_stack() but I guess they were never used.
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+This basically just does a partial revert of:
 
-Changes in v2:
-  - new patch
+ c0a0d0d3f6528 ("tracing/core: Make the stack entry helpers global")
 
- arch/powerpc/mm/tlb-radix.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
-index a2b2848f0ae3..14ff414d1545 100644
---- a/arch/powerpc/mm/tlb-radix.c
-+++ b/arch/powerpc/mm/tlb-radix.c
-@@ -90,8 +90,8 @@ void radix__tlbiel_all(unsigned int action)
- 	asm volatile(PPC_INVALIDATE_ERAT "; isync" : : :"memory");
- }
- 
--static inline void __tlbiel_pid(unsigned long pid, int set,
--				unsigned long ric)
-+static __always_inline void __tlbiel_pid(unsigned long pid, int set,
-+					 unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -106,7 +106,7 @@ static inline void __tlbiel_pid(unsigned long pid, int set,
- 	trace_tlbie(0, 1, rb, rs, ric, prs, r);
- }
- 
--static inline void __tlbie_pid(unsigned long pid, unsigned long ric)
-+static __always_inline void __tlbie_pid(unsigned long pid, unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -136,7 +136,7 @@ static inline void __tlbiel_lpid(unsigned long lpid, int set,
- 	trace_tlbie(lpid, 1, rb, rs, ric, prs, r);
- }
- 
--static inline void __tlbie_lpid(unsigned long lpid, unsigned long ric)
-+static __always_inline void __tlbie_lpid(unsigned long lpid, unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -239,7 +239,7 @@ static inline void fixup_tlbie_lpid(unsigned long lpid)
- /*
-  * We use 128 set in radix mode and 256 set in hpt mode.
-  */
--static inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
-+static __always_inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
- {
- 	int set;
- 
--- 
-2.17.1
+> ---
+>  kernel/trace/trace.c |   14 ++++++++------
+>  kernel/trace/trace.h |    8 --------
+>  2 files changed, 8 insertions(+), 14 deletions(-)
+> 
+> --- a/kernel/trace/trace.c
+> +++ b/kernel/trace/trace.c
+> @@ -159,6 +159,8 @@ static union trace_eval_map_item *trace_
+>  #endif /* CONFIG_TRACE_EVAL_MAP_FILE */
+>  
+>  static int tracing_set_tracer(struct trace_array *tr, const char *buf);
+> +static void ftrace_trace_userstack(struct ring_buffer *buffer,
+> +				   unsigned long flags, int pc);
+>  
+>  #define MAX_TRACER_SIZE		100
+>  static char bootup_tracer_buf[MAX_TRACER_SIZE] __initdata;
+> @@ -2905,9 +2907,10 @@ void trace_dump_stack(int skip)
+>  }
+>  EXPORT_SYMBOL_GPL(trace_dump_stack);
+>  
+> +#ifdef CONFIG_USER_STACKTRACE_SUPPORT
+>  static DEFINE_PER_CPU(int, user_stack_count);
+>  
+> -void
+> +static void
+>  ftrace_trace_userstack(struct ring_buffer *buffer, unsigned long flags, int pc)
+>  {
+>  	struct trace_event_call *call = &event_user_stack;
+> @@ -2958,13 +2961,12 @@ ftrace_trace_userstack(struct ring_buffe
+>   out:
+>  	preempt_enable();
+>  }
+> -
+> -#ifdef UNUSED
+
+Strange, I never knew about this ifdef. I would have nuked it when I
+saw it.
+
+Anyway,
+
+Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+
+-- Steve
+
+
+> -static void __trace_userstack(struct trace_array *tr, unsigned long flags)
+> +#else /* CONFIG_USER_STACKTRACE_SUPPORT */
+> +static void ftrace_trace_userstack(struct ring_buffer *buffer,
+> +				   unsigned long flags, int pc)
+>  {
+> -	ftrace_trace_userstack(tr, flags, preempt_count());
+>  }
+> -#endif /* UNUSED */
+> +#endif /* !CONFIG_USER_STACKTRACE_SUPPORT */
+>  
+>  #endif /* CONFIG_STACKTRACE */
+>  
+> --- a/kernel/trace/trace.h
+> +++ b/kernel/trace/trace.h
+> @@ -782,17 +782,9 @@ void update_max_tr_single(struct trace_a
+>  #endif /* CONFIG_TRACER_MAX_TRACE */
+>  
+>  #ifdef CONFIG_STACKTRACE
+> -void ftrace_trace_userstack(struct ring_buffer *buffer, unsigned long flags,
+> -			    int pc);
+> -
+>  void __trace_stack(struct trace_array *tr, unsigned long flags, int skip,
+>  		   int pc);
+>  #else
+> -static inline void ftrace_trace_userstack(struct ring_buffer *buffer,
+> -					  unsigned long flags, int pc)
+> -{
+> -}
+> -
+>  static inline void __trace_stack(struct trace_array *tr, unsigned long flags,
+>  				 int skip, int pc)
+>  {
+> 
