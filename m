@@ -1,73 +1,45 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [patch V2 28/29] stacktrace: Provide common infrastructure
-Date: Fri, 19 Apr 2019 11:17:30 -0500
-Message-ID: <20190419161730.zgpa3e5fhny42wq7@treble>
-References: <20190418084119.056416939@linutronix.de>
- <20190418084255.652003111@linutronix.de>
- <20190419071843.GM4038@hirez.programming.kicks-ass.net>
- <alpine.DEB.2.21.1904191031390.3174@nanos.tec.linutronix.de>
- <20190419090717.GN7905@worktop.programming.kicks-ass.net>
+From: Mel Gorman <mgorman@techsingularity.net>
+Subject: Re: DISCONTIGMEM is deprecated
+Date: Fri, 19 Apr 2019 15:28:35 +0100
+Message-ID: <20190419142835.GM18914@techsingularity.net>
+References: <20190419094335.GJ18914@techsingularity.net>
+ <20190419140521.GI7751@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
+Content-Type: text/plain; charset=iso-8859-15
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190419090717.GN7905@worktop.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mike Snitzer <snitzer@redhat.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, dm-devel@redhat.com, Alexander Potapenko <glider@google.com>, Christoph Lameter <cl@linux.com>, Christoph Hellwig <hch@lst.de>, Alasdair Kergon <agk@redhat.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, David Rientjes <rientjes@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, intel-gfx@lists.freedesktop.org, Johannes Thumshirn <jthumshirn@suse.de>, Akinobu Mita <akinobu.mita@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Josef Bacik <josef@toxicpanda.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, Rodrigo Vivi <rodrigo.vivi@intel.com>, David Sterba <dste>
+In-Reply-To: <20190419140521.GI7751@bombadil.infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBBcHIgMTksIDIwMTkgYXQgMTE6MDc6MTdBTSArMDIwMCwgUGV0ZXIgWmlqbHN0cmEg
-d3JvdGU6Cj4gT24gRnJpLCBBcHIgMTksIDIwMTkgYXQgMTA6MzI6MzBBTSArMDIwMCwgVGhvbWFz
-IEdsZWl4bmVyIHdyb3RlOgo+ID4gT24gRnJpLCAxOSBBcHIgMjAxOSwgUGV0ZXIgWmlqbHN0cmEg
-d3JvdGU6Cj4gPiA+IE9uIFRodSwgQXByIDE4LCAyMDE5IGF0IDEwOjQxOjQ3QU0gKzAyMDAsIFRo
-b21hcyBHbGVpeG5lciB3cm90ZToKPiA+ID4gCj4gPiA+ID4gK3R5cGVkZWYgYm9vbCAoKnN0YWNr
-X3RyYWNlX2NvbnN1bWVfZm4pKHZvaWQgKmNvb2tpZSwgdW5zaWduZWQgbG9uZyBhZGRyLAo+ID4g
-PiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJvb2wgcmVsaWFibGUp
-Owo+ID4gPiAKPiA+ID4gPiArdm9pZCBhcmNoX3N0YWNrX3dhbGsoc3RhY2tfdHJhY2VfY29uc3Vt
-ZV9mbiBjb25zdW1lX2VudHJ5LCB2b2lkICpjb29raWUsCj4gPiA+ID4gKwkJICAgICBzdHJ1Y3Qg
-dGFza19zdHJ1Y3QgKnRhc2ssIHN0cnVjdCBwdF9yZWdzICpyZWdzKTsKPiA+ID4gPiAraW50IGFy
-Y2hfc3RhY2tfd2Fsa19yZWxpYWJsZShzdGFja190cmFjZV9jb25zdW1lX2ZuIGNvbnN1bWVfZW50
-cnksIHZvaWQgKmNvb2tpZSwKPiA+ID4gPiArCQkJICAgICBzdHJ1Y3QgdGFza19zdHJ1Y3QgKnRh
-c2spOwo+ID4gPiAKPiA+ID4gVGhpcyBidWdzIG1lIGEgbGl0dGxlOyBpZGVhbGx5IHRoZSBfcmVs
-aWFibGUoKSB0aGluZyB3b3VsZCBub3QgZXhpc3RzLgo+ID4gPiAKPiA+ID4gVGhvbWFzIHNhaWQg
-dGhhdCB0aGUgZXhpc3RpbmcgX19zYXZlX3N0YWNrX3RyYWNlX3JlbGlhYmxlKCkgaXMgZGlmZmVy
-ZW50Cj4gPiA+IGVub3VnaCBmb3IgdGhlIHVuaWZpY2F0aW9uIHRvIGJlIG5vbi10cml2aWFsLCBi
-dXQgbWF5YmUgSm9zaCBjYW4gaGVscAo+ID4gPiBvdXQ/Cj4gPiA+IAo+ID4gPiA+RnJvbSB3aGF0
-IEkgY2FuIHNlZSB0aGUgYmlnZ2VzdCBzaWduaWZpY2FudCBkaWZmZXJlbmNlcyBhcmU6Cj4gPiA+
-IAo+ID4gPiAgLSBpdCBsb29rcyBhdCB0aGUgcmVncyBzZXRzIG9uIHRoZSBzdGFjayBhbmQgZm9y
-IEZQIGJhaWxzIGVhcmx5Cj4gPiA+ICAtIGJhaWxzIGZvciBraHJlYWRzIGFuZCBpZGxlIChhZnRl
-ciBpdCBkb2VzIGFsbCB0aGUgaGFyZCB3b3JrIT8hKQoKVGhhdCdzIGRvbmUgZm9yIGEgcmVhc29u
-LCBzZWUgdGhlICJTdWNjZXNzIHBhdGgiIGNvbW1lbnRzLgoKPiA+ID4gVGhlIGZpcnN0IChGUCBj
-aGVja2luZyBmb3IgZXhjZXB0aW9ucykgc2hvdWxkIHByb2JhYmx5IGJlIHJlZmxlY3RlZCBpbgo+
-ID4gPiBjb25zdW1lX2ZuKC5yZWxpYWJsZSkgYW55d2F5IC0tIGFsdGhvdWdoIHRoYXQgd291bGQg
-bWVhbiBhIGxvdCBvZiBleHRyYQo+ID4gPiAnPycgZW50cmllcyB3aGVyZSB0aGVyZSBhcmUgbm9u
-ZSB0b2RheS4KPiA+ID4gCj4gPiA+IEFuZCB0aGUgc2Vjb25kIChLVEhSRUFEL0lETEUpIGlzIHNv
-bWV0aGluZyB0aGF0IHRoZSBnZW5lcmljIGNvZGUgY2FuCj4gPiA+IGVhc2lseSBkbyBiZWZvcmUg
-Y2FsbGluZyBpbnRvIHRoZSBhcmNoIHVud2luZGVyLgo+ID4gCj4gPiBBbmQgbG9va2luZyBhdCB0
-aGUgcG93ZXJwYyB2ZXJzaW9uIG9mIGl0LCB0aGF0IGhhcyBldmVuIG1vcmUgaW50ZXJlc3RpbmcK
-PiA+IGV4dHJhIGNoZWNrcyBpbiB0aGF0IGZ1bmN0aW9uLgo+IAo+IFJpZ2h0LCBidXQgbm90IGZ1
-bmRhbWVudGFsbHkgZGlmZmVyZW50IGZyb20gZGV0ZXJtaW5pbmcgQHJlbGlhYmxlIEkKPiB0aGlu
-ay4KPiAKPiBBbnl3YXksIGl0IHdvdWxkIGJlIGdvb2QgaWYgc29tZW9uZSBrbm93bGVkZ2FibGUg
-Y291bGQgaGF2ZSBhIGxvb2sgYXQKPiB0aGlzLgoKWWVhaCwgd2UgY291bGQgcHJvYmFibHkgZG8g
-dGhhdC4KClRoZSBmbG93IHdvdWxkIG5lZWQgdG8gYmUgY2hhbmdlZCBhIGJpdCAtLSBzb21lIG9m
-IHRoZSBlcnJvcnMgYXJlIHNvZnQKZXJyb3JzIHdoaWNoIG1vc3QgdXNlcnMgZG9uJ3QgY2FyZSBh
-Ym91dCBiZWNhdXNlIHRoZXkganVzdCB3YW50IGEgYmVzdAplZmZvcnQuICBUaGUgc29mdCBlcnJv
-cnMgY2FuIGJlIHJlbWVtYmVyZWQgd2l0aG91dCBicmVha2luZyBvdXQgb2YgdGhlCmxvb3AsIGFu
-ZCBqdXN0IHJldHVybmVkIGF0IHRoZSBlbmQuICBNb3N0IHVzZXJzIGNvdWxkIGp1c3QgaWdub3Jl
-IHRoZQpyZXR1cm4gY29kZS4KClRoZSBvbmx5IHRoaW5nIEknZCBiZSB3b3JyaWVkIGFib3V0IGlz
-IHBlcmZvcm1hbmNlIGZvciB0aGUgbm9uLWxpdmVwYXRjaAp1c2VycywgYnV0IEkgZ3Vlc3MgdGhv
-c2UgY2hlY2tzIGRvbid0IGxvb2sgdmVyeSBleHBlbnNpdmUuICBBbmQgdGhlIHg4Ngp1bndpbmRl
-cnMgYXJlIGFscmVhZHkgcHJldHR5IHNsb3cgYW55d2F5Li4uCgotLSAKSm9zaApfX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpkcmktZGV2ZWwgbWFpbGluZyBs
-aXN0CmRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVlZGVz
-a3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9kcmktZGV2ZWw=
+On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
+> On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
+> > DISCONTIG is essentially deprecated and even parisc plans to move to
+> > SPARSEMEM so there is no need to be fancy, this patch simply disables
+> > watermark boosting by default on DISCONTIGMEM.
+> 
+> I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
+> scenarios.  Grepping the arch/ directories shows:
+> 
+> alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
+> arc (for supporting more than 1GB of memory)
+> ia64 (looks complicated ...)
+> m68k (for multiple chunks of memory)
+> mips (does support NUMA but also non-NUMA)
+> parisc (both NUMA and non-NUMA)
+> 
+> I'm not sure that these architecture maintainers even know that DISCONTIGMEM
+> is deprecated.  Adding linux-arch to the cc.
+
+Poor wording then -- yes, DISCONTIGMEM is still used but look where it's
+used. I find it impossible to believe that any new arch would support
+DISCONTIGMEM or that DISCONTIGMEM would be selected when SPARSEMEM is
+available.`It's even more insane when you consider that SPARSEMEM can be
+extended to support VMEMMAP so that it has similar overhead to FLATMEM
+when mapping pfns to struct pages and vice-versa.
+
+-- 
+Mel Gorman
+SUSE Labs
