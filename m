@@ -1,72 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60306 "EHLO mail.kernel.org"
+Received: from mx1.redhat.com ([209.132.183.28]:41136 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725917AbfDSAkA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Apr 2019 20:40:00 -0400
-Date: Thu, 18 Apr 2019 20:39:54 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [patch V2 01/29] tracing: Cleanup stack trace code
-Message-ID: <20190418203954.631914cb@oasis.local.home>
-In-Reply-To: <alpine.DEB.2.21.1904190040510.3174@nanos.tec.linutronix.de>
+        id S1726525AbfDSSTr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Apr 2019 14:19:47 -0400
+Date: Fri, 19 Apr 2019 10:50:44 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [patch V2 28/29] stacktrace: Provide common infrastructure
+Message-ID: <20190419155044.2uch7eaj4vzg47w6@treble>
 References: <20190418084119.056416939@linutronix.de>
-        <20190418084253.142712304@linutronix.de>
-        <20190418181938.2e2a9a04@gandalf.local.home>
-        <alpine.DEB.2.21.1904190040510.3174@nanos.tec.linutronix.de>
+ <20190418084255.652003111@linutronix.de>
+ <20190418145201.mjzyqbmkjcghqzex@treble>
+ <alpine.DEB.2.21.1904181734200.3174@nanos.tec.linutronix.de>
+ <20190419070211.GL4038@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20190419070211.GL4038@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190419003954.hbjRVNNNEBkPZOM6xbzVezPZOR6k6VnOY4ljzmxlT-o@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, linux-arch@vger.kernel.org, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>
+Message-ID: <20190419155044.PcMTkR9n-C3Vpqx6DLmd5djl34bmg1ZUakTjSVHL-qI@z>
 
-On Fri, 19 Apr 2019 00:44:17 +0200 (CEST)
-Thomas Gleixner <tglx@linutronix.de> wrote:
-
-> On Thu, 18 Apr 2019, Steven Rostedt wrote:
-> > On Thu, 18 Apr 2019 10:41:20 +0200
-> > Thomas Gleixner <tglx@linutronix.de> wrote:
-> >   
-> > > @@ -412,23 +404,20 @@ stack_trace_sysctl(struct ctl_table *tab
-> > >  		   void __user *buffer, size_t *lenp,
-> > >  		   loff_t *ppos)
-> > >  {
-> > > -	int ret;
-> > > +	int ret, was_enabled;  
+On Fri, Apr 19, 2019 at 09:02:11AM +0200, Peter Zijlstra wrote:
+> On Thu, Apr 18, 2019 at 05:42:55PM +0200, Thomas Gleixner wrote:
+> > On Thu, 18 Apr 2019, Josh Poimboeuf wrote:
+> 
+> > > Another idea I had (but never got a chance to work on) was to extend the
+> > > x86 unwind interface to all arches.  So instead of the callbacks, each
+> > > arch would implement something like this API:
+> 
+> > I surely thought about that, but after staring at all incarnations of
+> > arch/*/stacktrace.c I just gave up.
 > > 
-> > One small nit. Could this be:
+> > Aside of that quite some archs already have callback based unwinders
+> > because they use them for more than stacktracing and just have a single
+> > implementation of that loop.
 > > 
-> > 	int was_enabled;
-> > 	int ret;
-> > 
-> > I prefer only joining variables that are related on the same line.
-> > Makes it look cleaner IMO.  
+> > I'm fine either way. We can start with x86 and then let archs convert over
+> > their stuff, but I wouldn't hold my breath that this will be completed in
+> > the forseeable future.
 > 
-> If you wish so. To me it's waste of screen space :)
-
-At least you didn't say it helps the compiler ;-)
-
+> I suggested the same to Thomas early on, and I even spend the time to
+> convert some $random arch to the iterator interface, and while it is
+> indeed entirely feasible, it is _far_ more work.
 > 
-> > >  
-> > >  	mutex_lock(&stack_sysctl_mutex);
-> > > +	was_enabled = !!stack_tracer_enabled;
-> > >    
-> > 
-> > Bah, not sure why I didn't do it this way to begin with. I think I
-> > copied something else that couldn't do it this way for some reason and
-> > didn't put any brain power behind the copy. :-/ But that was back in
-> > 2008 so I blame it on being "young and stupid" ;-)  
+> The callback thing OTOH is flexible enough to do what we want to do now,
+> and allows converting most archs to it without too much pain (as Thomas
+> said, many archs are already in this form and only need minor API
+> adjustments), which gets us in a far better place than we are now.
 > 
-> The young part is gone for sure :)
+> And we can always go to iterators later on. But I think getting the
+> generic unwinder improved across all archs is a really important first
+> step here.
 
-I purposely set you up for that response.
+Fair enough.
 
-> 
-> > Other then the above nit and removing the unneeded +1 in max_entries:  
-> 
-> s/+1/-1/
-
-That was an ode to G+
-
--- Steve
+-- 
+Josh
