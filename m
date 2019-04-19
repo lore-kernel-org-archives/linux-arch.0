@@ -1,117 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53896 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727533AbfDSS3Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Apr 2019 14:29:16 -0400
-Date: Fri, 19 Apr 2019 09:28:23 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [patch V2 22/29] tracing: Make ftrace_trace_userstack() static
- and conditional
-Message-ID: <20190419092823.094a6061@gandalf.local.home>
-In-Reply-To: <20190418084255.088813838@linutronix.de>
-References: <20190418084119.056416939@linutronix.de>
-        <20190418084255.088813838@linutronix.de>
+Received: from condef-06.nifty.com ([202.248.20.71]:25329 "EHLO
+        condef-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726103AbfDSSbC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 14:31:02 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v2 00/11] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Date: Fri, 19 Apr 2019 18:47:43 +0900
+Message-ID: <20190419094754.24667-1-yamada.masahiro@socionext.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190419132823.ZS9XHJ8TffhLKm4qOyyeNxxBEiCkb7BRYlqNuJYJ8vg@z>
-
-On Thu, 18 Apr 2019 10:41:41 +0200
-Thomas Gleixner <tglx@linutronix.de> wrote:
-
-> It's only used in trace.c and there is absolutely no point in compiling it
-> in when user space stack traces are not supported.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-
-Funny, these were moved out to global functions along with the
-ftrace_trace_stack() but I guess they were never used.
-
-This basically just does a partial revert of:
-
- c0a0d0d3f6528 ("tracing/core: Make the stack entry helpers global")
+To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Masahiro Yamada <yamada.masahiro@socionext.com>
+Message-ID: <20190419094743.4njOIHeTzKs72WjxKwBNrBoYGkdTgthRqm-9zkgC_RY@z>
 
 
-> ---
->  kernel/trace/trace.c |   14 ++++++++------
->  kernel/trace/trace.h |    8 --------
->  2 files changed, 8 insertions(+), 14 deletions(-)
-> 
-> --- a/kernel/trace/trace.c
-> +++ b/kernel/trace/trace.c
-> @@ -159,6 +159,8 @@ static union trace_eval_map_item *trace_
->  #endif /* CONFIG_TRACE_EVAL_MAP_FILE */
->  
->  static int tracing_set_tracer(struct trace_array *tr, const char *buf);
-> +static void ftrace_trace_userstack(struct ring_buffer *buffer,
-> +				   unsigned long flags, int pc);
->  
->  #define MAX_TRACER_SIZE		100
->  static char bootup_tracer_buf[MAX_TRACER_SIZE] __initdata;
-> @@ -2905,9 +2907,10 @@ void trace_dump_stack(int skip)
->  }
->  EXPORT_SYMBOL_GPL(trace_dump_stack);
->  
-> +#ifdef CONFIG_USER_STACKTRACE_SUPPORT
->  static DEFINE_PER_CPU(int, user_stack_count);
->  
-> -void
-> +static void
->  ftrace_trace_userstack(struct ring_buffer *buffer, unsigned long flags, int pc)
->  {
->  	struct trace_event_call *call = &event_user_stack;
-> @@ -2958,13 +2961,12 @@ ftrace_trace_userstack(struct ring_buffe
->   out:
->  	preempt_enable();
->  }
-> -
-> -#ifdef UNUSED
+Major changes in v2:
+ - Eliminate more errors and warnings
+ - Delete 'depends on !MIPS'
+ - Split into separate patches
 
-Strange, I never knew about this ifdef. I would have nuked it when I
-saw it.
+Arnd Bergmann (1):
+  ARM: prevent tracing IPI_CPU_BACKTRACE
 
-Anyway,
+Masahiro Yamada (10):
+  arm64: mark (__)cpus_have_const_cap as __always_inline
+  MIPS: mark mult_sh_align_mod() as __always_inline
+  s390/cpacf: mark scpacf_query() as __always_inline
+  mtd: rawnand: vf610_nfc: add initializer to avoid
+    -Wmaybe-uninitialized
+  MIPS: mark __fls() as __always_inline
+  ARM: mark setup_machine_tags() stub as __init __noreturn
+  powerpc/prom_init: mark prom_getprop() and prom_getproplen() as __init
+  powerpc/mm/radix: mark __radix__flush_tlb_range_psize() as
+    __always_inline
+  powerpc/mm/radix: mark as __tlbie_pid() and friends as__always_inline
+  compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
 
-Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+ arch/arm/include/asm/hardirq.h      |  1 +
+ arch/arm/kernel/atags.h             |  2 +-
+ arch/arm/kernel/smp.c               |  6 +++++-
+ arch/arm64/include/asm/cpufeature.h |  4 ++--
+ arch/mips/include/asm/bitops.h      |  2 +-
+ arch/mips/kernel/cpu-bugs64.c       |  4 ++--
+ arch/powerpc/kernel/prom_init.c     |  6 +++---
+ arch/powerpc/mm/tlb-radix.c         | 12 ++++++------
+ arch/s390/include/asm/cpacf.h       |  2 +-
+ arch/x86/Kconfig                    |  3 ---
+ arch/x86/Kconfig.debug              | 14 --------------
+ drivers/mtd/nand/raw/vf610_nfc.c    |  2 +-
+ include/linux/compiler_types.h      |  3 +--
+ lib/Kconfig.debug                   | 14 ++++++++++++++
+ 14 files changed, 38 insertions(+), 37 deletions(-)
 
--- Steve
-
-
-> -static void __trace_userstack(struct trace_array *tr, unsigned long flags)
-> +#else /* CONFIG_USER_STACKTRACE_SUPPORT */
-> +static void ftrace_trace_userstack(struct ring_buffer *buffer,
-> +				   unsigned long flags, int pc)
->  {
-> -	ftrace_trace_userstack(tr, flags, preempt_count());
->  }
-> -#endif /* UNUSED */
-> +#endif /* !CONFIG_USER_STACKTRACE_SUPPORT */
->  
->  #endif /* CONFIG_STACKTRACE */
->  
-> --- a/kernel/trace/trace.h
-> +++ b/kernel/trace/trace.h
-> @@ -782,17 +782,9 @@ void update_max_tr_single(struct trace_a
->  #endif /* CONFIG_TRACER_MAX_TRACE */
->  
->  #ifdef CONFIG_STACKTRACE
-> -void ftrace_trace_userstack(struct ring_buffer *buffer, unsigned long flags,
-> -			    int pc);
-> -
->  void __trace_stack(struct trace_array *tr, unsigned long flags, int skip,
->  		   int pc);
->  #else
-> -static inline void ftrace_trace_userstack(struct ring_buffer *buffer,
-> -					  unsigned long flags, int pc)
-> -{
-> -}
-> -
->  static inline void __trace_stack(struct trace_array *tr, unsigned long flags,
->  				 int skip, int pc)
->  {
-> 
+-- 
+2.17.1
