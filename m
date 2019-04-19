@@ -1,60 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41136 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726525AbfDSSTr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Apr 2019 14:19:47 -0400
-Date: Fri, 19 Apr 2019 10:50:44 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [patch V2 28/29] stacktrace: Provide common infrastructure
-Message-ID: <20190419155044.2uch7eaj4vzg47w6@treble>
-References: <20190418084119.056416939@linutronix.de>
- <20190418084255.652003111@linutronix.de>
- <20190418145201.mjzyqbmkjcghqzex@treble>
- <alpine.DEB.2.21.1904181734200.3174@nanos.tec.linutronix.de>
- <20190419070211.GL4038@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190419070211.GL4038@hirez.programming.kicks-ass.net>
+Received: from condef-05.nifty.com ([202.248.20.70]:51348 "EHLO
+        condef-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727330AbfDSSUV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 14:20:21 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v2 03/11] MIPS: mark mult_sh_align_mod() as __always_inline
+Date: Fri, 19 Apr 2019 18:47:46 +0900
+Message-ID: <20190419094754.24667-4-yamada.masahiro@socionext.com>
+In-Reply-To: <20190419094754.24667-1-yamada.masahiro@socionext.com>
+References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, linux-arch@vger.kernel.org, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>
-Message-ID: <20190419155044.PcMTkR9n-C3Vpqx6DLmd5djl34bmg1ZUakTjSVHL-qI@z>
+To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Masahiro Yamada <yamada.masahiro@socionext.com>
+Message-ID: <20190419094746.1Ja-zbJa4Lo7awWRgMoz9gwRryKb0eimzDjxPkRiYcY@z>
 
-On Fri, Apr 19, 2019 at 09:02:11AM +0200, Peter Zijlstra wrote:
-> On Thu, Apr 18, 2019 at 05:42:55PM +0200, Thomas Gleixner wrote:
-> > On Thu, 18 Apr 2019, Josh Poimboeuf wrote:
-> 
-> > > Another idea I had (but never got a chance to work on) was to extend the
-> > > x86 unwind interface to all arches.  So instead of the callbacks, each
-> > > arch would implement something like this API:
-> 
-> > I surely thought about that, but after staring at all incarnations of
-> > arch/*/stacktrace.c I just gave up.
-> > 
-> > Aside of that quite some archs already have callback based unwinders
-> > because they use them for more than stacktracing and just have a single
-> > implementation of that loop.
-> > 
-> > I'm fine either way. We can start with x86 and then let archs convert over
-> > their stuff, but I wouldn't hold my breath that this will be completed in
-> > the forseeable future.
-> 
-> I suggested the same to Thomas early on, and I even spend the time to
-> convert some $random arch to the iterator interface, and while it is
-> indeed entirely feasible, it is _far_ more work.
-> 
-> The callback thing OTOH is flexible enough to do what we want to do now,
-> and allows converting most archs to it without too much pain (as Thomas
-> said, many archs are already in this form and only need minor API
-> adjustments), which gets us in a far better place than we are now.
-> 
-> And we can always go to iterators later on. But I think getting the
-> generic unwinder improved across all archs is a really important first
-> step here.
+This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+place. We need to eliminate potential issues beforehand.
 
-Fair enough.
+If it is enabled for mips, the following error is reported:
 
+arch/mips/kernel/cpu-bugs64.c: In function 'mult_sh_align_mod.constprop':
+arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't match constraints [-Werror]
+  asm volatile(
+  ^~~
+arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't match constraints [-Werror]
+  asm volatile(
+  ^~~
+arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
+  asm volatile(
+  ^~~
+arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
+  asm volatile(
+  ^~~
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+Changes in v2:
+  - split into a separate patch
+
+ arch/mips/kernel/cpu-bugs64.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/mips/kernel/cpu-bugs64.c b/arch/mips/kernel/cpu-bugs64.c
+index bada74af7641..c04b97aace4a 100644
+--- a/arch/mips/kernel/cpu-bugs64.c
++++ b/arch/mips/kernel/cpu-bugs64.c
+@@ -42,8 +42,8 @@ static inline void align_mod(const int align, const int mod)
+ 		: "n"(align), "n"(mod));
+ }
+ 
+-static inline void mult_sh_align_mod(long *v1, long *v2, long *w,
+-				     const int align, const int mod)
++static __always_inline void mult_sh_align_mod(long *v1, long *v2, long *w,
++					      const int align, const int mod)
+ {
+ 	unsigned long flags;
+ 	int m1, m2;
 -- 
-Josh
+2.17.1
