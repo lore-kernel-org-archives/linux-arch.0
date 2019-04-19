@@ -1,93 +1,59 @@
-From: Mathieu Malaterre <malat@debian.org>
-Subject: Re: [PATCH v2 06/11] MIPS: mark __fls() as __always_inline
-Date: Fri, 19 Apr 2019 17:45:31 +0200
-Message-ID: <CA+7wUsygTo=AN_giku_X6_a4mQWdJL48RoVbVB4hBqkZSKkP0Q@mail.gmail.com>
-References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
- <20190419094754.24667-7-yamada.masahiro@socionext.com>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [patch V2 28/29] stacktrace: Provide common
+ infrastructure
+Date: Fri, 19 Apr 2019 10:50:44 -0500
+Message-ID: <20190419155044.2uch7eaj4vzg47w6@treble>
+References: <20190418084119.056416939@linutronix.de>
+ <20190418084255.652003111@linutronix.de>
+ <20190418145201.mjzyqbmkjcghqzex@treble>
+ <alpine.DEB.2.21.1904181734200.3174@nanos.tec.linutronix.de>
+ <20190419070211.GL4038@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190419094754.24667-7-yamada.masahiro@socionext.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <intel-gfx-bounces@lists.freedesktop.org>
+Content-Disposition: inline
+In-Reply-To: <20190419070211.GL4038@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/intel-gfx>,
+ <mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/intel-gfx>
+List-Post: <mailto:intel-gfx@lists.freedesktop.org>
+List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
+ <mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: intel-gfx-bounces@lists.freedesktop.org
+Sender: "Intel-gfx" <intel-gfx-bounces@lists.freedesktop.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Mike Snitzer <snitzer@redhat.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, dm-devel@redhat.com, Alexander Potapenko <glider@google.com>, Christoph Lameter <cl@linux.com>, Christoph Hellwig <hch@lst.de>, Alasdair Kergon <agk@redhat.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, David Rientjes <rientjes@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, intel-gfx@lists.freedesktop.org, Johannes Thumshirn <jthumshirn@suse.de>, Akinobu Mita <akinobu.mita@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Josef Bacik <josef@toxicpanda.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, David Sterba <dsterba@suse.com>, Thomas Gleixner <tglx@li>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-On Fri, Apr 19, 2019 at 12:06 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
->
-> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-> place. We need to eliminate potential issues beforehand.
->
-> If it is enabled for mips, the following errors are reported:
->
-> arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
-> sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
-> sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
-> sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
-> sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
-> sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
-> arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
-
-Tested with success on ppc32/G4. But on CI20 (ci20_defconfig from
-master), I get:
-
-  MODPOST vmlinux.o
-mipsel-linux-gnu-ld: arch/mips/kernel/traps.o: in function
-`addr_gcr_err_control':
-/home/mathieu/tmp/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
-undefined reference to `mips_gcr_base'
-mipsel-linux-gnu-ld:
-/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
-undefined reference to `mips_gcr_base'
-mipsel-linux-gnu-ld: arch/mips/mm/sc-mips.o: in function
-`addr_gcr_l2_pft_control':
-/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-undefined reference to `mips_gcr_base'
-mipsel-linux-gnu-ld:
-/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-undefined reference to `mips_gcr_base'
-mipsel-linux-gnu-ld:
-/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-undefined reference to `mips_gcr_base'
-mipsel-linux-gnu-ld:
-arch/mips/mm/sc-mips.o:/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-more undefined references to `mips_gcr_base' follow
-
-
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
->
-> Changes in v2:
->   - new patch
->
->  arch/mips/include/asm/bitops.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
-> index 830c93a010c3..6a26ead1c2b6 100644
-> --- a/arch/mips/include/asm/bitops.h
-> +++ b/arch/mips/include/asm/bitops.h
-> @@ -482,7 +482,7 @@ static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *
->   * Return the bit position (0..63) of the most significant 1 bit in a word
->   * Returns -1 if no 1 bit exists
->   */
-> -static inline unsigned long __fls(unsigned long word)
-> +static __always_inline unsigned long __fls(unsigned long word)
->  {
->         int num;
->
-> --
-> 2.17.1
->
+T24gRnJpLCBBcHIgMTksIDIwMTkgYXQgMDk6MDI6MTFBTSArMDIwMCwgUGV0ZXIgWmlqbHN0cmEg
+d3JvdGU6Cj4gT24gVGh1LCBBcHIgMTgsIDIwMTkgYXQgMDU6NDI6NTVQTSArMDIwMCwgVGhvbWFz
+IEdsZWl4bmVyIHdyb3RlOgo+ID4gT24gVGh1LCAxOCBBcHIgMjAxOSwgSm9zaCBQb2ltYm9ldWYg
+d3JvdGU6Cj4gCj4gPiA+IEFub3RoZXIgaWRlYSBJIGhhZCAoYnV0IG5ldmVyIGdvdCBhIGNoYW5j
+ZSB0byB3b3JrIG9uKSB3YXMgdG8gZXh0ZW5kIHRoZQo+ID4gPiB4ODYgdW53aW5kIGludGVyZmFj
+ZSB0byBhbGwgYXJjaGVzLiAgU28gaW5zdGVhZCBvZiB0aGUgY2FsbGJhY2tzLCBlYWNoCj4gPiA+
+IGFyY2ggd291bGQgaW1wbGVtZW50IHNvbWV0aGluZyBsaWtlIHRoaXMgQVBJOgo+IAo+ID4gSSBz
+dXJlbHkgdGhvdWdodCBhYm91dCB0aGF0LCBidXQgYWZ0ZXIgc3RhcmluZyBhdCBhbGwgaW5jYXJu
+YXRpb25zIG9mCj4gPiBhcmNoLyovc3RhY2t0cmFjZS5jIEkganVzdCBnYXZlIHVwLgo+ID4gCj4g
+PiBBc2lkZSBvZiB0aGF0IHF1aXRlIHNvbWUgYXJjaHMgYWxyZWFkeSBoYXZlIGNhbGxiYWNrIGJh
+c2VkIHVud2luZGVycwo+ID4gYmVjYXVzZSB0aGV5IHVzZSB0aGVtIGZvciBtb3JlIHRoYW4gc3Rh
+Y2t0cmFjaW5nIGFuZCBqdXN0IGhhdmUgYSBzaW5nbGUKPiA+IGltcGxlbWVudGF0aW9uIG9mIHRo
+YXQgbG9vcC4KPiA+IAo+ID4gSSdtIGZpbmUgZWl0aGVyIHdheS4gV2UgY2FuIHN0YXJ0IHdpdGgg
+eDg2IGFuZCB0aGVuIGxldCBhcmNocyBjb252ZXJ0IG92ZXIKPiA+IHRoZWlyIHN0dWZmLCBidXQg
+SSB3b3VsZG4ndCBob2xkIG15IGJyZWF0aCB0aGF0IHRoaXMgd2lsbCBiZSBjb21wbGV0ZWQgaW4K
+PiA+IHRoZSBmb3JzZWVhYmxlIGZ1dHVyZS4KPiAKPiBJIHN1Z2dlc3RlZCB0aGUgc2FtZSB0byBU
+aG9tYXMgZWFybHkgb24sIGFuZCBJIGV2ZW4gc3BlbmQgdGhlIHRpbWUgdG8KPiBjb252ZXJ0IHNv
+bWUgJHJhbmRvbSBhcmNoIHRvIHRoZSBpdGVyYXRvciBpbnRlcmZhY2UsIGFuZCB3aGlsZSBpdCBp
+cwo+IGluZGVlZCBlbnRpcmVseSBmZWFzaWJsZSwgaXQgaXMgX2Zhcl8gbW9yZSB3b3JrLgo+IAo+
+IFRoZSBjYWxsYmFjayB0aGluZyBPVE9IIGlzIGZsZXhpYmxlIGVub3VnaCB0byBkbyB3aGF0IHdl
+IHdhbnQgdG8gZG8gbm93LAo+IGFuZCBhbGxvd3MgY29udmVydGluZyBtb3N0IGFyY2hzIHRvIGl0
+IHdpdGhvdXQgdG9vIG11Y2ggcGFpbiAoYXMgVGhvbWFzCj4gc2FpZCwgbWFueSBhcmNocyBhcmUg
+YWxyZWFkeSBpbiB0aGlzIGZvcm0gYW5kIG9ubHkgbmVlZCBtaW5vciBBUEkKPiBhZGp1c3RtZW50
+cyksIHdoaWNoIGdldHMgdXMgaW4gYSBmYXIgYmV0dGVyIHBsYWNlIHRoYW4gd2UgYXJlIG5vdy4K
+PiAKPiBBbmQgd2UgY2FuIGFsd2F5cyBnbyB0byBpdGVyYXRvcnMgbGF0ZXIgb24uIEJ1dCBJIHRo
+aW5rIGdldHRpbmcgdGhlCj4gZ2VuZXJpYyB1bndpbmRlciBpbXByb3ZlZCBhY3Jvc3MgYWxsIGFy
+Y2hzIGlzIGEgcmVhbGx5IGltcG9ydGFudCBmaXJzdAo+IHN0ZXAgaGVyZS4KCkZhaXIgZW5vdWdo
+LgoKLS0gCkpvc2gKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X18KSW50ZWwtZ2Z4IG1haWxpbmcgbGlzdApJbnRlbC1nZnhAbGlzdHMuZnJlZWRlc2t0b3Aub3Jn
+Cmh0dHBzOi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vaW50ZWwtZ2Z4
