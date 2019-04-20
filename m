@@ -1,53 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49702 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725280AbfDSWyV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2019 18:54:21 -0400
-Date: Fri, 19 Apr 2019 09:02:11 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch V2 28/29] stacktrace: Provide common infrastructure
-Message-ID: <20190419070211.GL4038@hirez.programming.kicks-ass.net>
-References: <20190418084119.056416939@linutronix.de>
- <20190418084255.652003111@linutronix.de>
- <20190418145201.mjzyqbmkjcghqzex@treble>
- <alpine.DEB.2.21.1904181734200.3174@nanos.tec.linutronix.de>
+Received: from ozlabs.org ([203.11.71.1]:51065 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725920AbfDTLAb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 20 Apr 2019 07:00:31 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH] [v2] x86/mpx: fix recursive munmap() corruption
+In-Reply-To: <20190419194747.5E1AD6DC@viggo.jf.intel.com>
+References: <20190419194747.5E1AD6DC@viggo.jf.intel.com>
+Date: Sat, 20 Apr 2019 21:00:21 +1000
+Message-ID: <878sw5szzu.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1904181734200.3174@nanos.tec.linutronix.de>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, linux-arch@vger.kernel.org, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>
-Message-ID: <20190419070211._41ANixINaZi9ssCPhRO-40pXW_eA52BCsoiLnpwFKo@z>
+To: Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org
+Cc: rguenther@suse.de, hjl.tools@gmail.com, yang.shi@linux.alibaba.com, mhocko@suse.com, vbabka@suse.cz, luto@amacapital.net, x86@kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, stable@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-um@lists.infradead.org, benh@kernel.crashing.org, paulus@samba.org, linux-arch@vger.kernel.org, gxt@pku.edu.cn, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com
+Message-ID: <20190420110021.QSLCW5aTkbpiy1N-MRGC12IYJBql9DcNkAWULQdiBnU@z>
 
-On Thu, Apr 18, 2019 at 05:42:55PM +0200, Thomas Gleixner wrote:
-> On Thu, 18 Apr 2019, Josh Poimboeuf wrote:
+Dave Hansen <dave.hansen@linux.intel.com> writes:
+> Changes from v1:
+>  * Fix compile errors on UML and non-x86 arches
+>  * Clarify commit message and Fixes about the origin of the
+>    bug and add the impact to powerpc / uml / unicore32
+>
+> --
+>
+> This is a bit of a mess, to put it mildly.  But, it's a bug
+> that only seems to have showed up in 4.20 but wasn't noticed
+> until now because nobody uses MPX.
+>
+> MPX has the arch_unmap() hook inside of munmap() because MPX
+> uses bounds tables that protect other areas of memory.  When
+> memory is unmapped, there is also a need to unmap the MPX
+> bounds tables.  Barring this, unused bounds tables can eat 80%
+> of the address space.
+>
+> But, the recursive do_munmap() that gets called vi arch_unmap()
+> wreaks havoc with __do_munmap()'s state.  It can result in
+> freeing populated page tables, accessing bogus VMA state,
+> double-freed VMAs and more.
+>
+> To fix this, call arch_unmap() before __do_unmap() has a chance
+> to do anything meaningful.  Also, remove the 'vma' argument
+> and force the MPX code to do its own, independent VMA lookup.
+>
+> == UML / unicore32 impact ==
+>
+> Remove unused 'vma' argument to arch_unmap().  No functional
+> change.
+>
+> I compile tested this on UML but not unicore32.
+>
+> == powerpc impact ==
+>
+> powerpc uses arch_unmap() well to watch for munmap() on the
+> VDSO and zeroes out 'current->mm->context.vdso_base'.  Moving
+> arch_unmap() makes this happen earlier in __do_munmap().  But,
+> 'vdso_base' seems to only be used in perf and in the signal
+> delivery that happens near the return to userspace.  I can not
+> find any likely impact to powerpc, other than the zeroing
+> happening a little earlier.
 
-> > Another idea I had (but never got a chance to work on) was to extend the
-> > x86 unwind interface to all arches.  So instead of the callbacks, each
-> > arch would implement something like this API:
+Yeah I agree.
 
-> I surely thought about that, but after staring at all incarnations of
-> arch/*/stacktrace.c I just gave up.
-> 
-> Aside of that quite some archs already have callback based unwinders
-> because they use them for more than stacktracing and just have a single
-> implementation of that loop.
-> 
-> I'm fine either way. We can start with x86 and then let archs convert over
-> their stuff, but I wouldn't hold my breath that this will be completed in
-> the forseeable future.
+> powerpc does not use the 'vma' argument and is unaffected by
+> its removal.
+>
+> I compile-tested a 64-bit powerpc defconfig.
 
-I suggested the same to Thomas early on, and I even spend the time to
-convert some $random arch to the iterator interface, and while it is
-indeed entirely feasible, it is _far_ more work.
+Thanks.
 
-The callback thing OTOH is flexible enough to do what we want to do now,
-and allows converting most archs to it without too much pain (as Thomas
-said, many archs are already in this form and only need minor API
-adjustments), which gets us in a far better place than we are now.
-
-And we can always go to iterators later on. But I think getting the
-generic unwinder improved across all archs is a really important first
-step here.
+cheers
