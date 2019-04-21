@@ -1,43 +1,39 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54526 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1726466AbfD1IOA (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sun,
- 28 Apr 2019 04:14:00 -0400
-Date: Sun, 28 Apr 2019 01:13:53 -0700
-From: Christoph Hellwig <hch@infradead.org>
+Return-Path: <willy@infradead.org>
+Date: Sun, 21 Apr 2019 06:26:07 -0700
+From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: DISCONTIGMEM is deprecated
-Message-ID: <20190428081353.GB30901@infradead.org>
+Message-ID: <20190421132606.GJ7751@bombadil.infradead.org>
 References: <20190419094335.GJ18914@techsingularity.net>
  <20190419140521.GI7751@bombadil.infradead.org>
- <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
- <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
+ <20190421063859.GA19926@rapoport-lnx>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20190421063859.GA19926@rapoport-lnx>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Meelis Roos <mroos@linux.ee>
-Cc: Christopher Lameter <cl@linux.com>, Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20190428081353.22PzyAPOEg_iF8y3pvAHES_7oomCDGyC4oxJXSMXC78@z>
+Message-ID: <20190421132607.pDo3aJNEXqD6YzmlWOZmT0Qta6CQw0hdH5_Ne9EgGoo@z>
 
-On Tue, Apr 23, 2019 at 07:49:57PM +0300, Meelis Roos wrote:
-> > > ia64 (looks complicated ...)
+On Sun, Apr 21, 2019 at 09:38:59AM +0300, Mike Rapoport wrote:
+> On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
+> > On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
+> > > DISCONTIG is essentially deprecated and even parisc plans to move to
+> > > SPARSEMEM so there is no need to be fancy, this patch simply disables
+> > > watermark boosting by default on DISCONTIGMEM.
 > > 
-> > Well as far as I can tell it was not even used 12 or so years ago on
-> > Itanium when I worked on that stuff.
+> > I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
+> > scenarios.  Grepping the arch/ directories shows:
+> > 
+> > alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
+> > arc (for supporting more than 1GB of memory)
+> > ia64 (looks complicated ...)
+> > m68k (for multiple chunks of memory)
+> > mips (does support NUMA but also non-NUMA)
+> > parisc (both NUMA and non-NUMA)
 > 
-> My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
-> SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
-> NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
+> i386 NUMA as well
 
-ia64 has a such a huge number of memory model choices.  Maybe we
-need to cut it down to a small set that actually work.
-
-That includes fund bits like the 'VIRTUAL_MEM_MAP' option where the
-comment claims:
-
-# VIRTUAL_MEM_MAP and FLAT_NODE_MEM_MAP are functionally equivalent.
-# VIRTUAL_MEM_MAP has been retained for historical reasons.
-
-but it still is selected as the default if sparsemem is not enabled..
+I clearly over-trimmed.  The original assumption that Mel had was that
+DISCONTIGMEM => NUMA, and that's not true on the above six architectures.
+It is true on i386 ;-)
