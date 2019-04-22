@@ -1,401 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:32774 "EHLO mail.kernel.org"
+Received: from mga18.intel.com ([134.134.136.126]:8378 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726786AbfDUPds (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 21 Apr 2019 11:33:48 -0400
-From: guoren@kernel.org
-Subject: [PATCH] csky: Add support for libdw
-Date: Sun, 21 Apr 2019 23:33:14 +0800
-Message-ID: <1555860794-10572-1-git-send-email-guoren@kernel.org>
+        id S1726911AbfDVIsL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Apr 2019 04:48:11 -0400
+Message-ID: <1555922585.26198.19.camel@intel.com>
+Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
+ self-encapsulation
+From: Zhang Rui <rui.zhang@intel.com>
+Date: Mon, 22 Apr 2019 16:43:05 +0800
+In-Reply-To: <20190402161256.11044-3-daniel.lezcano@linaro.org>
+References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
+         <20190402161256.11044-3-daniel.lezcano@linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mao Han <han_mao@c-sky.com>, Guo Ren <ren_guo@c-sky.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Arnd Bergmann <arnd@arnd.de>
-Message-ID: <20190421153314.PiHqfqUHvw0TCgoMuGSSOMmTwzhHqPPmJiryq67Sob4@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>, edubezval@gmail.com
+Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20190422084305.dfjwadCgdXL84lE-thgd-eJ4qK4OfarJ79TtNUfawDM@z>
 
-From: Mao Han <han_mao@c-sky.com>
+Hi, Daniel,
 
-This patch add support for DWARF register mappings and libdw registers
-initialization, which is used by perf callchain analyzing when
---call-graph=dwarf is given.
+Thanks for the patches, it looks good to me except this one and patch
+4/7.
 
-Here is elfutils csky backend patch set:
-https://sourceware.org/ml/elfutils-devel/2019-q2/msg00007.html
+First, I don't think this is a cyclic dependency issue as they are in
+the same module.
+Second, I have not read include/asm-generic/vmlinux.lds.h before, it
+seems that it is used for architecture specific stuff. Fix a thermal
+issue in this way seems overkill to me.
 
-Signed-off-by: Mao Han <han_mao@c-sky.com>
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
-Cc: Alexander Shishkin <alexander.shishkin@linux.intel.com>
-Cc: Jiri Olsa <jolsa@redhat.com>
-Cc: Namhyung Kim <namhyung@kernel.org>
-Cc: Arnd Bergmann <arnd@arnd.de>
----
- tools/arch/csky/include/uapi/asm/perf_regs.h |  51 ++++++++++++++
- tools/perf/Makefile.config                   |   6 +-
- tools/perf/arch/csky/Build                   |   1 +
- tools/perf/arch/csky/Makefile                |   3 +
- tools/perf/arch/csky/include/perf_regs.h     | 100 +++++++++++++++++++++++++++
- tools/perf/arch/csky/util/Build              |   2 +
- tools/perf/arch/csky/util/dwarf-regs.c       |  49 +++++++++++++
- tools/perf/arch/csky/util/unwind-libdw.c     |  77 +++++++++++++++++++++
- 8 files changed, 288 insertions(+), 1 deletion(-)
- create mode 100644 tools/arch/csky/include/uapi/asm/perf_regs.h
- create mode 100644 tools/perf/arch/csky/Build
- create mode 100644 tools/perf/arch/csky/Makefile
- create mode 100644 tools/perf/arch/csky/include/perf_regs.h
- create mode 100644 tools/perf/arch/csky/util/Build
- create mode 100644 tools/perf/arch/csky/util/dwarf-regs.c
- create mode 100644 tools/perf/arch/csky/util/unwind-libdw.c
+IMO, to make the code clean, we can build the governors as separate
+modules just like we do for cpu governors.
+This brings to the old commit 80a26a5c22b9("Thermal: build thermal
+governors into thermal_sys module"), and that was introduced to fix a
+problem when CONFIG_THERMAL is set to 'm'. So I think we can switch
+back to the old way as the problem is gone now.
 
-diff --git a/tools/arch/csky/include/uapi/asm/perf_regs.h b/tools/arch/csky/include/uapi/asm/perf_regs.h
-new file mode 100644
-index 0000000..ee323d8
---- /dev/null
-+++ b/tools/arch/csky/include/uapi/asm/perf_regs.h
-@@ -0,0 +1,51 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2019 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef _ASM_CSKY_PERF_REGS_H
-+#define _ASM_CSKY_PERF_REGS_H
-+
-+/* Index of struct pt_regs */
-+enum perf_event_csky_regs {
-+	PERF_REG_CSKY_TLS,
-+	PERF_REG_CSKY_LR,
-+	PERF_REG_CSKY_PC,
-+	PERF_REG_CSKY_SR,
-+	PERF_REG_CSKY_SP,
-+	PERF_REG_CSKY_ORIG_A0,
-+	PERF_REG_CSKY_A0,
-+	PERF_REG_CSKY_A1,
-+	PERF_REG_CSKY_A2,
-+	PERF_REG_CSKY_A3,
-+	PERF_REG_CSKY_REGS0,
-+	PERF_REG_CSKY_REGS1,
-+	PERF_REG_CSKY_REGS2,
-+	PERF_REG_CSKY_REGS3,
-+	PERF_REG_CSKY_REGS4,
-+	PERF_REG_CSKY_REGS5,
-+	PERF_REG_CSKY_REGS6,
-+	PERF_REG_CSKY_REGS7,
-+	PERF_REG_CSKY_REGS8,
-+	PERF_REG_CSKY_REGS9,
-+#if defined(__CSKYABIV2__)
-+	PERF_REG_CSKY_EXREGS0,
-+	PERF_REG_CSKY_EXREGS1,
-+	PERF_REG_CSKY_EXREGS2,
-+	PERF_REG_CSKY_EXREGS3,
-+	PERF_REG_CSKY_EXREGS4,
-+	PERF_REG_CSKY_EXREGS5,
-+	PERF_REG_CSKY_EXREGS6,
-+	PERF_REG_CSKY_EXREGS7,
-+	PERF_REG_CSKY_EXREGS8,
-+	PERF_REG_CSKY_EXREGS9,
-+	PERF_REG_CSKY_EXREGS10,
-+	PERF_REG_CSKY_EXREGS11,
-+	PERF_REG_CSKY_EXREGS12,
-+	PERF_REG_CSKY_EXREGS13,
-+	PERF_REG_CSKY_EXREGS14,
-+	PERF_REG_CSKY_HI,
-+	PERF_REG_CSKY_LO,
-+	PERF_REG_CSKY_DCSR,
-+#endif
-+	PERF_REG_CSKY_MAX,
-+};
-+#endif /* _ASM_CSKY_PERF_REGS_H */
-diff --git a/tools/perf/Makefile.config b/tools/perf/Makefile.config
-index fe3f97e..42985ae 100644
---- a/tools/perf/Makefile.config
-+++ b/tools/perf/Makefile.config
-@@ -59,6 +59,10 @@ ifeq ($(SRCARCH),arm64)
-   LIBUNWIND_LIBS = -lunwind -lunwind-aarch64
- endif
- 
-+ifeq ($(SRCARCH),csky)
-+  NO_PERF_REGS := 0
-+endif
-+
- ifeq ($(ARCH),s390)
-   NO_PERF_REGS := 0
-   NO_SYSCALL_TABLE := 0
-@@ -77,7 +81,7 @@ endif
- # Disable it on all other architectures in case libdw unwind
- # support is detected in system. Add supported architectures
- # to the check.
--ifneq ($(SRCARCH),$(filter $(SRCARCH),x86 arm arm64 powerpc s390))
-+ifneq ($(SRCARCH),$(filter $(SRCARCH),x86 arm arm64 powerpc s390 csky))
-   NO_LIBDW_DWARF_UNWIND := 1
- endif
- 
-diff --git a/tools/perf/arch/csky/Build b/tools/perf/arch/csky/Build
-new file mode 100644
-index 0000000..e4e5f33
---- /dev/null
-+++ b/tools/perf/arch/csky/Build
-@@ -0,0 +1 @@
-+perf-y += util/
-diff --git a/tools/perf/arch/csky/Makefile b/tools/perf/arch/csky/Makefile
-new file mode 100644
-index 0000000..7fbca17
---- /dev/null
-+++ b/tools/perf/arch/csky/Makefile
-@@ -0,0 +1,3 @@
-+ifndef NO_DWARF
-+PERF_HAVE_DWARF_REGS := 1
-+endif
-diff --git a/tools/perf/arch/csky/include/perf_regs.h b/tools/perf/arch/csky/include/perf_regs.h
-new file mode 100644
-index 0000000..8f336ea
---- /dev/null
-+++ b/tools/perf/arch/csky/include/perf_regs.h
-@@ -0,0 +1,100 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2019 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef ARCH_PERF_REGS_H
-+#define ARCH_PERF_REGS_H
-+
-+#include <stdlib.h>
-+#include <linux/types.h>
-+#include <asm/perf_regs.h>
-+
-+#define PERF_REGS_MASK	((1ULL << PERF_REG_CSKY_MAX) - 1)
-+#define PERF_REGS_MAX	PERF_REG_CSKY_MAX
-+#define PERF_SAMPLE_REGS_ABI	PERF_SAMPLE_REGS_ABI_32
-+
-+#define PERF_REG_IP	PERF_REG_CSKY_PC
-+#define PERF_REG_SP	PERF_REG_CSKY_SP
-+
-+static inline const char *perf_reg_name(int id)
-+{
-+	switch (id) {
-+	case PERF_REG_CSKY_A0:
-+		return "a0";
-+	case PERF_REG_CSKY_A1:
-+		return "a1";
-+	case PERF_REG_CSKY_A2:
-+		return "a2";
-+	case PERF_REG_CSKY_A3:
-+		return "a3";
-+	case PERF_REG_CSKY_REGS0:
-+		return "regs0";
-+	case PERF_REG_CSKY_REGS1:
-+		return "regs1";
-+	case PERF_REG_CSKY_REGS2:
-+		return "regs2";
-+	case PERF_REG_CSKY_REGS3:
-+		return "regs3";
-+	case PERF_REG_CSKY_REGS4:
-+		return "regs4";
-+	case PERF_REG_CSKY_REGS5:
-+		return "regs5";
-+	case PERF_REG_CSKY_REGS6:
-+		return "regs6";
-+	case PERF_REG_CSKY_REGS7:
-+		return "regs7";
-+	case PERF_REG_CSKY_REGS8:
-+		return "regs8";
-+	case PERF_REG_CSKY_REGS9:
-+		return "regs9";
-+	case PERF_REG_CSKY_SP:
-+		return "sp";
-+	case PERF_REG_CSKY_LR:
-+		return "lr";
-+	case PERF_REG_CSKY_PC:
-+		return "pc";
-+#if defined(__CSKYABIV2__)
-+	case PERF_REG_CSKY_EXREGS0:
-+		return "exregs0";
-+	case PERF_REG_CSKY_EXREGS1:
-+		return "exregs1";
-+	case PERF_REG_CSKY_EXREGS2:
-+		return "exregs2";
-+	case PERF_REG_CSKY_EXREGS3:
-+		return "exregs3";
-+	case PERF_REG_CSKY_EXREGS4:
-+		return "exregs4";
-+	case PERF_REG_CSKY_EXREGS5:
-+		return "exregs5";
-+	case PERF_REG_CSKY_EXREGS6:
-+		return "exregs6";
-+	case PERF_REG_CSKY_EXREGS7:
-+		return "exregs7";
-+	case PERF_REG_CSKY_EXREGS8:
-+		return "exregs8";
-+	case PERF_REG_CSKY_EXREGS9:
-+		return "exregs9";
-+	case PERF_REG_CSKY_EXREGS10:
-+		return "exregs10";
-+	case PERF_REG_CSKY_EXREGS11:
-+		return "exregs11";
-+	case PERF_REG_CSKY_EXREGS12:
-+		return "exregs12";
-+	case PERF_REG_CSKY_EXREGS13:
-+		return "exregs13";
-+	case PERF_REG_CSKY_EXREGS14:
-+		return "exregs14";
-+	case PERF_REG_CSKY_TLS:
-+		return "tls";
-+	case PERF_REG_CSKY_HI:
-+		return "hi";
-+	case PERF_REG_CSKY_LO:
-+		return "lo";
-+#endif
-+	default:
-+		return NULL;
-+	}
-+
-+	return NULL;
-+}
-+
-+#endif /* ARCH_PERF_REGS_H */
-diff --git a/tools/perf/arch/csky/util/Build b/tools/perf/arch/csky/util/Build
-new file mode 100644
-index 0000000..1160bb2
---- /dev/null
-+++ b/tools/perf/arch/csky/util/Build
-@@ -0,0 +1,2 @@
-+perf-$(CONFIG_DWARF) += dwarf-regs.o
-+perf-$(CONFIG_LIBDW_DWARF_UNWIND) += unwind-libdw.o
-diff --git a/tools/perf/arch/csky/util/dwarf-regs.c b/tools/perf/arch/csky/util/dwarf-regs.c
-new file mode 100644
-index 0000000..ca86eca
---- /dev/null
-+++ b/tools/perf/arch/csky/util/dwarf-regs.c
-@@ -0,0 +1,49 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2019 Hangzhou C-SKY Microsystems co.,ltd.
-+// Mapping of DWARF debug register numbers into register names.
-+
-+#include <stddef.h>
-+#include <dwarf-regs.h>
-+
-+#if defined(__CSKYABIV2__)
-+#define CSKY_MAX_REGS 73
-+const char *csky_dwarf_regs_table[CSKY_MAX_REGS] = {
-+	/* r0 ~ r8 */
-+	"%a0", "%a1", "%a2", "%a3", "%regs0", "%regs1", "%regs2", "%regs3",
-+	/* r9 ~ r15 */
-+	"%regs4", "%regs5", "%regs6", "%regs7", "%regs8", "%regs9", "%sp",
-+	"%lr",
-+	/* r16 ~ r23 */
-+	"%exregs0", "%exregs1", "%exregs2", "%exregs3", "%exregs4",
-+	"%exregs5", "%exregs6", "%exregs7",
-+	/* r24 ~ r31 */
-+	"%exregs8", "%exregs9", "%exregs10", "%exregs11", "%exregs12",
-+	"%exregs13", "%exregs14", "%tls",
-+	"%pc", NULL, NULL, NULL, "%hi", "%lo", NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	"%epc",
-+};
-+#else
-+#define CSKY_MAX_REGS 57
-+const char *csky_dwarf_regs_table[CSKY_MAX_REGS] = {
-+	/* r0 ~ r8 */
-+	"%sp", "%regs9", "%a0", "%a1", "%a2", "%a3", "%regs0", "%regs1",
-+	/* r9 ~ r15 */
-+	"%regs2", "%regs3", "%regs4", "%regs5", "%regs6", "%regs7", "%regs8",
-+	"%lr",
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-+	"%epc",
-+};
-+#endif
-+
-+const char *get_arch_regstr(unsigned int n)
-+{
-+	return (n < CSKY_MAX_REGS) ? csky_dwarf_regs_table[n] : NULL;
-+}
-diff --git a/tools/perf/arch/csky/util/unwind-libdw.c b/tools/perf/arch/csky/util/unwind-libdw.c
-new file mode 100644
-index 0000000..4bb4a06
---- /dev/null
-+++ b/tools/perf/arch/csky/util/unwind-libdw.c
-@@ -0,0 +1,77 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2019 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <elfutils/libdwfl.h>
-+#include "../../util/unwind-libdw.h"
-+#include "../../util/perf_regs.h"
-+#include "../../util/event.h"
-+
-+bool libdw__arch_set_initial_registers(Dwfl_Thread *thread, void *arg)
-+{
-+	struct unwind_info *ui = arg;
-+	struct regs_dump *user_regs = &ui->sample->user_regs;
-+	Dwarf_Word dwarf_regs[PERF_REG_CSKY_MAX];
-+
-+#define REG(r) ({						\
-+	Dwarf_Word val = 0;					\
-+	perf_reg_value(&val, user_regs, PERF_REG_CSKY_##r);	\
-+	val;							\
-+})
-+
-+#if defined(__CSKYABIV2__)
-+	dwarf_regs[0]  = REG(A0);
-+	dwarf_regs[1]  = REG(A1);
-+	dwarf_regs[2]  = REG(A2);
-+	dwarf_regs[3]  = REG(A3);
-+	dwarf_regs[4]  = REG(REGS0);
-+	dwarf_regs[5]  = REG(REGS1);
-+	dwarf_regs[6]  = REG(REGS2);
-+	dwarf_regs[7]  = REG(REGS3);
-+	dwarf_regs[8]  = REG(REGS4);
-+	dwarf_regs[9]  = REG(REGS5);
-+	dwarf_regs[10] = REG(REGS6);
-+	dwarf_regs[11] = REG(REGS7);
-+	dwarf_regs[12] = REG(REGS8);
-+	dwarf_regs[13] = REG(REGS9);
-+	dwarf_regs[14] = REG(SP);
-+	dwarf_regs[15] = REG(LR);
-+	dwarf_regs[16] = REG(EXREGS0);
-+	dwarf_regs[17] = REG(EXREGS1);
-+	dwarf_regs[18] = REG(EXREGS2);
-+	dwarf_regs[19] = REG(EXREGS3);
-+	dwarf_regs[20] = REG(EXREGS4);
-+	dwarf_regs[21] = REG(EXREGS5);
-+	dwarf_regs[22] = REG(EXREGS6);
-+	dwarf_regs[23] = REG(EXREGS7);
-+	dwarf_regs[24] = REG(EXREGS8);
-+	dwarf_regs[25] = REG(EXREGS9);
-+	dwarf_regs[26] = REG(EXREGS10);
-+	dwarf_regs[27] = REG(EXREGS11);
-+	dwarf_regs[28] = REG(EXREGS12);
-+	dwarf_regs[29] = REG(EXREGS13);
-+	dwarf_regs[30] = REG(EXREGS14);
-+	dwarf_regs[31] = REG(TLS);
-+	dwarf_regs[32] = REG(PC);
-+#else
-+	dwarf_regs[0]  = REG(SP);
-+	dwarf_regs[1]  = REG(REGS9);
-+	dwarf_regs[2]  = REG(A0);
-+	dwarf_regs[3]  = REG(A1);
-+	dwarf_regs[4]  = REG(A2);
-+	dwarf_regs[5]  = REG(A3);
-+	dwarf_regs[6]  = REG(REGS0);
-+	dwarf_regs[7]  = REG(REGS1);
-+	dwarf_regs[8]  = REG(REGS2);
-+	dwarf_regs[9]  = REG(REGS3);
-+	dwarf_regs[10] = REG(REGS4);
-+	dwarf_regs[11] = REG(REGS5);
-+	dwarf_regs[12] = REG(REGS6);
-+	dwarf_regs[13] = REG(REGS7);
-+	dwarf_regs[14] = REG(REGS8);
-+	dwarf_regs[15] = REG(LR);
-+#endif
-+	dwfl_thread_state_register_pc(thread, REG(PC));
-+
-+	return dwfl_thread_state_registers(thread, 0, PERF_REG_CSKY_MAX,
-+					   dwarf_regs);
-+}
--- 
-2.7.4
+what do you think?
+
+Patch 1,2,5,6,7 applied first.
+
+thanks,
+rui
+
+On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
+> Currently the governors are declared in their respective files but
+> they
+> export their [un]register functions which in turn call the
+> [un]register
+> the governors core's functions. That implies a cyclic dependency
+> which is
+> not desirable. There is a way to self-encapsulate the governors by
+> letting
+> them to declare themselves in a __init section table.
+> 
+> Define the table in the asm generic linker description like the other
+> tables and provide the specific macros to deal with.
+> 
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> ---
+>  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
+>  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
+>  2 files changed, 27 insertions(+)
+> 
+> diff --git a/drivers/thermal/thermal_core.h
+> b/drivers/thermal/thermal_core.h
+> index 0df190ed82a7..28d18083e969 100644
+> --- a/drivers/thermal/thermal_core.h
+> +++ b/drivers/thermal/thermal_core.h
+> @@ -15,6 +15,22 @@
+>  /* Initial state of a cooling device during binding */
+>  #define THERMAL_NO_TARGET -1UL
+>  
+> +/* Init section thermal table */
+> +extern struct thermal_governor * __governor_thermal_table[];
+> +extern struct thermal_governor * __governor_thermal_table_end[];
+> +
+> +#define THERMAL_TABLE_ENTRY(table, name)			\
+> +        static typeof(name) * __thermal_table_entry_##name	\
+> +	__used __section(__##table##_thermal_table)		\
+> +		= &name;
+> +
+> +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTRY(go
+> vernor, name)
+> +
+> +#define for_each_governor_table(__governor)		\
+> +	for (__governor = __governor_thermal_table;	\
+> +	     __governor < __governor_thermal_table_end;	\
+> +	     __governor++)
+> +
+>  /*
+>   * This structure is used to describe the behavior of
+>   * a certain cooling device on a certain trip point
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
+> generic/vmlinux.lds.h
+> index f8f6f04c4453..9893a3ed242a 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -239,6 +239,16 @@
+>  #define ACPI_PROBE_TABLE(name)
+>  #endif
+>  
+> +#ifdef CONFIG_THERMAL
+> +#define THERMAL_TABLE(name)						
+> \
+> +        . = ALIGN(8);						
+> 	\
+> +        __##name##_thermal_table = .;				
+> 	\
+> +        KEEP(*(__##name##_thermal_table))				
+> \
+> +        __##name##_thermal_table_end = .;
+> +#else
+> +#define THERMAL_TABLE(name)
+> +#endif
+> +
+>  #define KERNEL_DTB()							
+> \
+>  	STRUCT_ALIGN();						
+> 	\
+>  	__dtb_start = .;						
+> \
+> @@ -609,6 +619,7 @@
+>  	IRQCHIP_OF_MATCH_TABLE()					
+> \
+>  	ACPI_PROBE_TABLE(irqchip)					
+> \
+>  	ACPI_PROBE_TABLE(timer)					
+> 	\
+> +	THERMAL_TABLE(governor)					
+> 	\
+>  	EARLYCON_TABLE()						
+> \
+>  	LSM_TABLE()
+>  
