@@ -1,57 +1,183 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v2 11/11] compiler: allow all arches to enable
- CONFIG_OPTIMIZE_INLINING
-Date: Mon, 22 Apr 2019 12:14:20 +0200
-Message-ID: <20190422101420.GA21457@zn.tnic>
-References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
- <20190419094754.24667-12-yamada.masahiro@socionext.com>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
+ self-encapsulation
+Date: Mon, 22 Apr 2019 14:11:08 +0200
+Message-ID: <fb45157c-38c4-7940-3252-af459d446323@linaro.org>
+References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
+ <20190402161256.11044-3-daniel.lezcano@linaro.org>
+ <1555922585.26198.19.camel@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190419094754.24667-12-yamada.masahiro@socionext.com>
+In-Reply-To: <1555922585.26198.19.camel@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>
+To: Zhang Rui <rui.zhang@intel.com>, edubezval@gmail.com
+Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 19, 2019 at 06:47:54PM +0900, Masahiro Yamada wrote:
-> Commit 60a3cdd06394 ("x86: add optimized inlining") introduced
-> CONFIG_OPTIMIZE_INLINING, but it has been available only for x86.
-> 
-> The idea is obviously arch-agnostic. This commit moves the config
-> entry from arch/x86/Kconfig.debug to lib/Kconfig.debug so that all
-> architectures can benefit from it.
-> 
-> This can make a huge difference in kernel image size especially when
-> CONFIG_OPTIMIZE_FOR_SIZE is enabled.
-> 
-> For example, I got 3.5% smaller arm64 kernel for v5.1-rc1.
-> 
->   dec       file
->   18983424  arch/arm64/boot/Image.before
->   18321920  arch/arm64/boot/Image.after
-> 
-> This also slightly improves the "Kernel hacking" Kconfig menu as
-> e61aca5158a8 ("Merge branch 'kconfig-diet' from Dave Hansen') suggested;
-> this config option would be a good fit in the "compiler option" menu.
-> 
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
-> 
-> Changes in v2:
->   - split into a separate patch
-> 
->  arch/x86/Kconfig               |  3 ---
->  arch/x86/Kconfig.debug         | 14 --------------
->  include/linux/compiler_types.h |  3 +--
->  lib/Kconfig.debug              | 14 ++++++++++++++
->  4 files changed, 15 insertions(+), 19 deletions(-)
 
-Acked-by: Borislav Petkov <bp@suse.de>
+Hi Zhang,
+
+
+On 22/04/2019 10:43, Zhang Rui wrote:
+> Hi, Daniel,
+> 
+> Thanks for the patches, it looks good to me except this one and patch
+> 4/7.
+> 
+> First, I don't think this is a cyclic dependency issue as they are in
+> the same module.
+
+The governors have to export their [un]register functions in order to
+have the core to use them.
+
+The core has to export the [un]register function in order to have the
+governors to use them.
+
+From my point of view it is a cyclic dependency. In any other
+subsystems, the plugins/governor/drivers/whatever don't have to export
+their functions to the core, they use the core's exported functions.
+
+> Second, I have not read include/asm-generic/vmlinux.lds.h before, it
+> seems that it is used for architecture specific stuff. Fix a thermal
+> issue in this way seems overkill to me.
+
+It is not architecture specific, it belongs to asm-generic. All init
+calls are defined in it and more. It is a common way to define static
+tables from different files without adding dependency and unload it
+after init.
+
+All clk, timers, acpi tables, irq chip, cpuidle and cpu methods are
+defined this way.
+
+When the thermal_core.c uses at the end fs_initcall it uses the same
+mechanism.
+
+
+> IMO, to make the code clean, we can build the governors as separate
+> modules just like we do for cpu governors.
+> This brings to the old commit 80a26a5c22b9("Thermal: build thermal
+> governors into thermal_sys module"), and that was introduced to fix a
+> problem when CONFIG_THERMAL is set to 'm'. So I think we can switch
+> back to the old way as the problem is gone now.
+> 
+> what do you think?
+
+IMO, having the governors built as module is not a good thing because
+the SoC needs the governor to be ready as soon as possible at boot time.
+I've been told some boards reboot at boot time because the governor
+comes too late with the userspace governor for example.
+
+If you don't like the vmlinuz.lds.h approch (but again it is a common
+way to initialize table and I wrote it to extend to more thermal table
+in the future) we can change the thermal core to replace fs_initcall()
+by core_initcall() and use postcore_initcall() in the governor.
+
+
+
+> Patch 1,2,5,6,7 applied first.
+> 
+> thanks,
+> rui
+> 
+> On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
+>> Currently the governors are declared in their respective files but
+>> they
+>> export their [un]register functions which in turn call the
+>> [un]register
+>> the governors core's functions. That implies a cyclic dependency
+>> which is
+>> not desirable. There is a way to self-encapsulate the governors by
+>> letting
+>> them to declare themselves in a __init section table.
+>>
+>> Define the table in the asm generic linker description like the other
+>> tables and provide the specific macros to deal with.
+>>
+>> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+>> ---
+>>  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
+>>  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
+>>  2 files changed, 27 insertions(+)
+>>
+>> diff --git a/drivers/thermal/thermal_core.h
+>> b/drivers/thermal/thermal_core.h
+>> index 0df190ed82a7..28d18083e969 100644
+>> --- a/drivers/thermal/thermal_core.h
+>> +++ b/drivers/thermal/thermal_core.h
+>> @@ -15,6 +15,22 @@
+>>  /* Initial state of a cooling device during binding */
+>>  #define THERMAL_NO_TARGET -1UL
+>>  
+>> +/* Init section thermal table */
+>> +extern struct thermal_governor * __governor_thermal_table[];
+>> +extern struct thermal_governor * __governor_thermal_table_end[];
+>> +
+>> +#define THERMAL_TABLE_ENTRY(table, name)			\
+>> +        static typeof(name) * __thermal_table_entry_##name	\
+>> +	__used __section(__##table##_thermal_table)		\
+>> +		= &name;
+>> +
+>> +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTRY(go
+>> vernor, name)
+>> +
+>> +#define for_each_governor_table(__governor)		\
+>> +	for (__governor = __governor_thermal_table;	\
+>> +	     __governor < __governor_thermal_table_end;	\
+>> +	     __governor++)
+>> +
+>>  /*
+>>   * This structure is used to describe the behavior of
+>>   * a certain cooling device on a certain trip point
+>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
+>> generic/vmlinux.lds.h
+>> index f8f6f04c4453..9893a3ed242a 100644
+>> --- a/include/asm-generic/vmlinux.lds.h
+>> +++ b/include/asm-generic/vmlinux.lds.h
+>> @@ -239,6 +239,16 @@
+>>  #define ACPI_PROBE_TABLE(name)
+>>  #endif
+>>  
+>> +#ifdef CONFIG_THERMAL
+>> +#define THERMAL_TABLE(name)						
+>> \
+>> +        . = ALIGN(8);						
+>> 	\
+>> +        __##name##_thermal_table = .;				
+>> 	\
+>> +        KEEP(*(__##name##_thermal_table))				
+>> \
+>> +        __##name##_thermal_table_end = .;
+>> +#else
+>> +#define THERMAL_TABLE(name)
+>> +#endif
+>> +
+>>  #define KERNEL_DTB()							
+>> \
+>>  	STRUCT_ALIGN();						
+>> 	\
+>>  	__dtb_start = .;						
+>> \
+>> @@ -609,6 +619,7 @@
+>>  	IRQCHIP_OF_MATCH_TABLE()					
+>> \
+>>  	ACPI_PROBE_TABLE(irqchip)					
+>> \
+>>  	ACPI_PROBE_TABLE(timer)					
+>> 	\
+>> +	THERMAL_TABLE(governor)					
+>> 	\
+>>  	EARLYCON_TABLE()						
+>> \
+>>  	LSM_TABLE()
+>>  
+
 
 -- 
-Regards/Gruss,
-    Boris.
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
