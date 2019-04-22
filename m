@@ -1,47 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f178.google.com ([209.85.208.178]:39997 "EHLO
-        mail-lj1-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728123AbfDVQ2V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 12:28:21 -0400
-Received: by mail-lj1-f178.google.com with SMTP id q66so10792763ljq.7
-        for <linux-arch@vger.kernel.org>; Mon, 22 Apr 2019 09:28:19 -0700 (PDT)
-Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com. [209.85.167.49])
-        by smtp.gmail.com with ESMTPSA id v13sm2771014lje.84.2019.04.22.09.28.14
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 22 Apr 2019 09:28:15 -0700 (PDT)
-Received: by mail-lf1-f49.google.com with SMTP id t30so9381281lfd.8
-        for <linux-arch@vger.kernel.org>; Mon, 22 Apr 2019 09:28:14 -0700 (PDT)
-MIME-Version: 1.0
-References: <00000000000043fe9c058720a5d3@google.com> <ad884b18-0e03-d6be-02b0-4e5273f068ce@kernel.dk>
-In-Reply-To: <ad884b18-0e03-d6be-02b0-4e5273f068ce@kernel.dk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 22 Apr 2019 09:27:58 -0700
-Message-ID: <CAHk-=wgG=RqK8T5kWiZfH7da6rBuqp3kAesP=ETgceb6RzvZng@mail.gmail.com>
+Received: from mail-it1-f195.google.com ([209.85.166.195]:36222 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728129AbfDVQ2f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 12:28:35 -0400
+Received: by mail-it1-f195.google.com with SMTP id y10so19097334itc.1
+        for <linux-arch@vger.kernel.org>; Mon, 22 Apr 2019 09:28:35 -0700 (PDT)
 Subject: Re: WARNING in percpu_ref_kill_and_confirm
-Content-Type: text/plain; charset="UTF-8"
+References: <00000000000043fe9c058720a5d3@google.com>
+ <CAHk-=wgC5mNgPN5excXyTNtFpOyF4+9jk3tLiC+s-VezgGbVTA@mail.gmail.com>
+From: Jens Axboe <axboe@kernel.dk>
+Message-ID: <224b0113-979a-01c3-49a0-6170f075cdae@kernel.dk>
+Date: Mon, 22 Apr 2019 10:28:32 -0600
+MIME-Version: 1.0
+In-Reply-To: <CAHk-=wgC5mNgPN5excXyTNtFpOyF4+9jk3tLiC+s-VezgGbVTA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Anvin <hpa@zytor.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, syzkaller-bugs <syzkaller-bugs@googlegroups.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20190422162758.I7teUUkK6jXC9Zob0R0OU4OFT5UlhGGMgp_4YktFTWU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Anvin <hpa@zytor.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, syzkaller-bugs <syzkaller-bugs@googlegroups.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20190422162832.5STFsc8m4WLaBK_HYsyX-5DnuQEluVQmBtShjwlpsWc@z>
 
-[ Crossed emails ]
+On 4/22/19 10:23 AM, Linus Torvalds wrote:
+> On Mon, Apr 22, 2019 at 9:06 AM syzbot
+> <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com> wrote:
+>>
+>>
+>> The bug was bisected to:
+>>
+>> commit 38e7571c07be01f9f19b355a9306a4e3d5cb0f5b
+>> Author: Linus Torvalds <torvalds@linux-foundation.org>
+>> Date:   Fri Mar 8 22:48:40 2019 +0000
+>>
+>>      Merge tag 'io_uring-2019-03-06' of git://git.kernel.dk/linux-block
+>>
+>> percpu_ref_kill_and_confirm called more than once on io_ring_ctx_ref_free!
+> 
+> So I don't see how that happens in the original code (because
+> __io_uring_register() is called with the uring_lock held), but let's
+> see.
+> 
+> HOWEVER.
+> 
+> I do see how it happens now as of the latest kernel as of commit
+> b19062a56726 ("io_uring: fix possible deadlock between
+> io_uring_{enter,register}") where the code explicitly drops the mutex
+> in order to wait for other uring users to finish.
+> 
+> So Jens, I think that commit was buggy. I suspect that
+> io_uring_register() should perhaps do something like
+> 
+> --- a/fs/io_uring.c
+> +++ b/fs/io_uring.c
+> @@ -2934,7 +2934,10 @@ static int __io_uring_register(struct
+> io_ring_ctx *ctx, unsigned opcode,
+>  {
+>         int ret;
+> 
+> +       if (!percpu_ref_tryget(&ctx->refs))
+> +               return -EBUSY;
+>         percpu_ref_kill(&ctx->refs);
+> +       percpu_ref_put(&ctx->refs);
+> 
+>         /*
+>          * Drop uring mutex before waiting for references to exit. If another
+> 
+> to guarantee that it's the *only* case of io_uring_register() doing that kill.
+> 
+> Hmm?
 
-On Mon, Apr 22, 2019 at 9:23 AM Jens Axboe <axboe@kernel.dk> wrote:
->
-> I think the below should fix this. Very early versions of io_uring didn't
-> have this issue, since we did the percpu ref tryget for io_uring_register().
+Just sent out something as well. I think we can get by with just
+checking if it's dying, or we can go the route of what you did which is
+actually very similar to what the earlier versions did. Both versions
+should fix the issue.
 
-Ok, so I like your patch better than mine, but note how syzbot
-bisected this to the initial merge of the io_uring code.
+I'll test just to be totally sure.
 
-I agree that code shouldn't have had this particular issue, but it
-looks like it does.
-
-Is there some way to race with io_ring_ctx_wait_and_kill(), which
-_also_ does that ref_kill() thing? I'm not seeing how that could
-happen, but maybe if the file ref counts get screwed up you have
-->release() called early..
-
-                  Linus
+-- 
+Jens Axboe
