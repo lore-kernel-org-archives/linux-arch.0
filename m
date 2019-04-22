@@ -1,50 +1,133 @@
-From: Mel Gorman <mgorman@techsingularity.net>
-Subject: Re: DISCONTIGMEM is deprecated
-Date: Sun, 21 Apr 2019 22:16:04 +0100
-Message-ID: <20190421211604.GN18914@techsingularity.net>
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
+From: Zhang Rui <rui.zhang@intel.com>
+Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
+ self-encapsulation
+Date: Mon, 22 Apr 2019 16:43:05 +0800
+Message-ID: <1555922585.26198.19.camel@intel.com>
+References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
+         <20190402161256.11044-3-daniel.lezcano@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190421132606.GJ7751@bombadil.infradead.org>
+In-Reply-To: <20190402161256.11044-3-daniel.lezcano@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Daniel Lezcano <daniel.lezcano@linaro.org>, edubezval@gmail.com
+Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 21, 2019 at 06:26:07AM -0700, Matthew Wilcox wrote:
-> On Sun, Apr 21, 2019 at 09:38:59AM +0300, Mike Rapoport wrote:
-> > On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
-> > > On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
-> > > > DISCONTIG is essentially deprecated and even parisc plans to move to
-> > > > SPARSEMEM so there is no need to be fancy, this patch simply disables
-> > > > watermark boosting by default on DISCONTIGMEM.
-> > > 
-> > > I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
-> > > scenarios.  Grepping the arch/ directories shows:
-> > > 
-> > > alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
-> > > arc (for supporting more than 1GB of memory)
-> > > ia64 (looks complicated ...)
-> > > m68k (for multiple chunks of memory)
-> > > mips (does support NUMA but also non-NUMA)
-> > > parisc (both NUMA and non-NUMA)
-> > 
-> > i386 NUMA as well
+Hi, Daniel,
+
+Thanks for the patches, it looks good to me except this one and patch
+4/7.
+
+First, I don't think this is a cyclic dependency issue as they are in
+the same module.
+Second, I have not read include/asm-generic/vmlinux.lds.h before, it
+seems that it is used for architecture specific stuff. Fix a thermal
+issue in this way seems overkill to me.
+
+IMO, to make the code clean, we can build the governors as separate
+modules just like we do for cpu governors.
+This brings to the old commit 80a26a5c22b9("Thermal: build thermal
+governors into thermal_sys module"), and that was introduced to fix a
+problem when CONFIG_THERMAL is set to 'm'. So I think we can switch
+back to the old way as the problem is gone now.
+
+what do you think?
+
+Patch 1,2,5,6,7 applied first.
+
+thanks,
+rui
+
+On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
+> Currently the governors are declared in their respective files but
+> they
+> export their [un]register functions which in turn call the
+> [un]register
+> the governors core's functions. That implies a cyclic dependency
+> which is
+> not desirable. There is a way to self-encapsulate the governors by
+> letting
+> them to declare themselves in a __init section table.
 > 
-> I clearly over-trimmed.  The original assumption that Mel had was that
-> DISCONTIGMEM => NUMA, and that's not true on the above six architectures.
-> It is true on i386 ;-)
-
-32-bit NUMA systems should be non-existent in practice. The last NUMA
-system I'm aware of that was both NUMA and 32-bit only died somewhere
-between 2004 and 2007. If someone is running a 64-bit capable system in
-32-bit mode with NUMA, they really are just punishing themselves for fun.
-
--- 
-Mel Gorman
-SUSE Labs
+> Define the table in the asm generic linker description like the other
+> tables and provide the specific macros to deal with.
+> 
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> ---
+>  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
+>  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
+>  2 files changed, 27 insertions(+)
+> 
+> diff --git a/drivers/thermal/thermal_core.h
+> b/drivers/thermal/thermal_core.h
+> index 0df190ed82a7..28d18083e969 100644
+> --- a/drivers/thermal/thermal_core.h
+> +++ b/drivers/thermal/thermal_core.h
+> @@ -15,6 +15,22 @@
+>  /* Initial state of a cooling device during binding */
+>  #define THERMAL_NO_TARGET -1UL
+>  
+> +/* Init section thermal table */
+> +extern struct thermal_governor * __governor_thermal_table[];
+> +extern struct thermal_governor * __governor_thermal_table_end[];
+> +
+> +#define THERMAL_TABLE_ENTRY(table, name)			\
+> +        static typeof(name) * __thermal_table_entry_##name	\
+> +	__used __section(__##table##_thermal_table)		\
+> +		= &name;
+> +
+> +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTRY(go
+> vernor, name)
+> +
+> +#define for_each_governor_table(__governor)		\
+> +	for (__governor = __governor_thermal_table;	\
+> +	     __governor < __governor_thermal_table_end;	\
+> +	     __governor++)
+> +
+>  /*
+>   * This structure is used to describe the behavior of
+>   * a certain cooling device on a certain trip point
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
+> generic/vmlinux.lds.h
+> index f8f6f04c4453..9893a3ed242a 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -239,6 +239,16 @@
+>  #define ACPI_PROBE_TABLE(name)
+>  #endif
+>  
+> +#ifdef CONFIG_THERMAL
+> +#define THERMAL_TABLE(name)						
+> \
+> +        . = ALIGN(8);						
+> 	\
+> +        __##name##_thermal_table = .;				
+> 	\
+> +        KEEP(*(__##name##_thermal_table))				
+> \
+> +        __##name##_thermal_table_end = .;
+> +#else
+> +#define THERMAL_TABLE(name)
+> +#endif
+> +
+>  #define KERNEL_DTB()							
+> \
+>  	STRUCT_ALIGN();						
+> 	\
+>  	__dtb_start = .;						
+> \
+> @@ -609,6 +619,7 @@
+>  	IRQCHIP_OF_MATCH_TABLE()					
+> \
+>  	ACPI_PROBE_TABLE(irqchip)					
+> \
+>  	ACPI_PROBE_TABLE(timer)					
+> 	\
+> +	THERMAL_TABLE(governor)					
+> 	\
+>  	EARLYCON_TABLE()						
+> \
+>  	LSM_TABLE()
+>  
