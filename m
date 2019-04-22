@@ -1,286 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49884 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726132AbfDVPpS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Apr 2019 11:45:18 -0400
-From: guoren@kernel.org
-Subject: [PATCH] riscv: Support non-coherency memory model
-Date: Mon, 22 Apr 2019 23:44:30 +0800
-Message-ID: <1555947870-23014-1-git-send-email-guoren@kernel.org>
+Received: from mail-io1-f71.google.com ([209.85.166.71]:40733 "EHLO
+        mail-io1-f71.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726421AbfDVQGF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 12:06:05 -0400
+Received: by mail-io1-f71.google.com with SMTP id y10so2305181ioj.7
+        for <linux-arch@vger.kernel.org>; Mon, 22 Apr 2019 09:06:05 -0700 (PDT)
+MIME-Version: 1.0
+Date: Mon, 22 Apr 2019 09:06:04 -0700
+Message-ID: <00000000000043fe9c058720a5d3@google.com>
+Subject: WARNING in percpu_ref_kill_and_confirm
+From: syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>
+Content-Type: text/plain; charset="UTF-8"; format=flowed; delsp=yes
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ren_guo@c-sky.com, guoren@kernel.org
-Cc: linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
-Message-ID: <20190422154430.slEfwJRBrAYD7KDrYouuIjcAncOfNnw_8SoPCbYFRQ0@z>
+To: arnd@arndb.de, axboe@kernel.dk, bp@alien8.de, darrick.wong@oracle.com, gregkh@linuxfoundation.org, hpa@zytor.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, luto@kernel.org, mathieu.desnoyers@efficios.com, mingo@redhat.com, mpe@ellerman.id.au, syzkaller-bugs@googlegroups.com, tglx@linutronix.de, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, x86@kernel.org
+Message-ID: <20190422160604.1Nj8VCYn1bTfp4MxvpZYEw5ut2cDRs6BAQy6J-kfRE4@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+Hello,
 
-The current riscv linux implementation requires SOC system to support
-memory coherence between all I/O devices and CPUs. But some SOC systems
-cannot maintain the coherence and they need support cache clean/invalid
-operations to synchronize data.
+syzbot found the following crash on:
 
-Current implementation is no problem with SiFive FU540, because FU540
-keeps all IO devices and DMA master devices coherence with CPU. But to a
-traditional SOC vendor, it may already have a stable non-coherency SOC
-system, the need is simply to replace the CPU with RV CPU and rebuild
-the whole system with IO-coherency is very expensive.
+HEAD commit:    9e5de623 Merge tag 'nfs-for-5.1-5' of git://git.linux-nfs...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=15624257200000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=856fc6d0fbbeede9
+dashboard link: https://syzkaller.appspot.com/bug?extid=10d25e23199614b7721f
+compiler:       gcc (GCC) 9.0.0 20181231 (experimental)
+userspace arch: i386
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=17ff39f3200000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15758647200000
 
-So we should make riscv linux also support non-coherency memory model.
-Here are the two points that riscv linux needs to be modified:
+The bug was bisected to:
 
- - Add _PAGE_COHERENCY bit in current page table entry attributes. The bit
-   designates a coherence for this page mapping. Software set the bit to
-   tell the hardware that the region of the page's memory area must be
-   coherent with IOs devices in SOC system by PMA settings.
-   If IOs and CPU are already coherent in SOC system, CPU just ignore
-   this bit.
+commit 38e7571c07be01f9f19b355a9306a4e3d5cb0f5b
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Mar 8 22:48:40 2019 +0000
 
-   PTE format:
-   | XLEN-1  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
-         PFN      C  RSW  D   A   G   U   X   W   R   V
-                  ^
-   BIT(9): Coherence attribute bit
-          0: hardware needn't keep the page coherenct and software will
-             maintain the coherence with cache clear/invalid operations.
-          1: hardware must keep the page coherenct and software needn't
-             maintain the coherence.
-   BIT(8): Reserved for software and now it's _PAGE_SPECIAL in linux
+     Merge tag 'io_uring-2019-03-06' of git://git.kernel.dk/linux-block
 
-   Add a new hardware bit in PTE also need to modify Privileged
-   Architecture Supervisor-Level ISA:
-   https://github.com/riscv/riscv-isa-manual/pull/374
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=1736bc57200000
+final crash:    https://syzkaller.appspot.com/x/report.txt?x=14b6bc57200000
+console output: https://syzkaller.appspot.com/x/log.txt?x=10b6bc57200000
 
- - Add SBI_FENCE_DMA 9 in riscv-sbi.
-   sbi_fence_dma(start, size, dir) could synchronize CPU cache data with
-   DMA device in non-coherency memory model. The third param's definition
-   is the same with linux's in include/linux/dma-direction.h:
+IMPORTANT: if you fix the bug, please add the following tag to the commit:
+Reported-by: syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com
+Fixes: 38e7571c07be ("Merge tag 'io_uring-2019-03-06' of  
+git://git.kernel.dk/linux-block")
 
-   enum dma_data_direction {
-	DMA_BIDIRECTIONAL = 0,
-	DMA_TO_DEVICE = 1,
-	DMA_FROM_DEVICE = 2,
-	DMA_NONE = 3,
-   };
+------------[ cut here ]------------
+percpu_ref_kill_and_confirm called more than once on io_ring_ctx_ref_free!
+WARNING: CPU: 1 PID: 7815 at lib/percpu-refcount.c:335  
+percpu_ref_kill_and_confirm+0x341/0x3b0 lib/percpu-refcount.c:335
+Kernel panic - not syncing: panic_on_warn set ...
+CPU: 1 PID: 7815 Comm: syz-executor269 Not tainted 5.1.0-rc5+ #77
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS  
+Google 01/01/2011
+Call Trace:
+  __dump_stack lib/dump_stack.c:77 [inline]
+  dump_stack+0x172/0x1f0 lib/dump_stack.c:113
+  panic+0x2cb/0x65c kernel/panic.c:214
+  __warn.cold+0x20/0x45 kernel/panic.c:571
+  report_bug+0x263/0x2b0 lib/bug.c:186
+  fixup_bug arch/x86/kernel/traps.c:179 [inline]
+  fixup_bug arch/x86/kernel/traps.c:174 [inline]
+  do_error_trap+0x11b/0x200 arch/x86/kernel/traps.c:272
+  do_invalid_op+0x37/0x50 arch/x86/kernel/traps.c:291
+  invalid_op+0x14/0x20 arch/x86/entry/entry_64.S:973
+RIP: 0010:percpu_ref_kill_and_confirm+0x341/0x3b0 lib/percpu-refcount.c:335
+Code: 42 e0 2a 06 01 48 89 fa 48 c1 ea 03 80 3c 02 00 75 76 49 8b 54 24 10  
+48 c7 c6 a0 71 a1 87 48 c7 c7 40 71 a1 87 e8 ad 92 13 fe <0f> 0b 48 b8 00  
+00 00 00 00 fc ff df 4c 89 ea 48 c1 ea 03 80 3c 02
+RSP: 0018:ffff8880a96cfce0 EFLAGS: 00010086
+RAX: 0000000000000000 RBX: 0000607f5142e35b RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff815afcf6 RDI: ffffed10152d9f8e
+RBP: ffff8880a96cfd10 R08: ffff8880a85c40c0 R09: fffffbfff1133639
+R10: fffffbfff1133638 R11: ffffffff8899b1c3 R12: ffff88809ee571c0
+R13: ffff88809ee571c8 R14: 0000000000000286 R15: 0000000000000000
+  percpu_ref_kill include/linux/percpu-refcount.h:128 [inline]
+  __io_uring_register+0xa7/0x1fe0 fs/io_uring.c:2937
+  __do_sys_io_uring_register fs/io_uring.c:2998 [inline]
+  __se_sys_io_uring_register fs/io_uring.c:2980 [inline]
+  __ia32_sys_io_uring_register+0x193/0x1f0 fs/io_uring.c:2980
+  do_syscall_32_irqs_on arch/x86/entry/common.c:326 [inline]
+  do_fast_syscall_32+0x281/0xc98 arch/x86/entry/common.c:397
+  entry_SYSENTER_compat+0x70/0x7f arch/x86/entry/entry_64_compat.S:139
+RIP: 0023:0xf7f16869
+Code: 85 d2 74 02 89 0a 5b 5d c3 8b 04 24 c3 8b 14 24 c3 8b 3c 24 c3 90 90  
+90 90 90 90 90 90 90 90 90 90 51 52 55 89 e5 0f 34 cd 80 <5d> 5a 59 c3 90  
+90 90 90 eb 0d 90 90 90 90 90 90 90 90 90 90 90 90
+RSP: 002b:00000000f7ef11ec EFLAGS: 00000296 ORIG_RAX: 00000000000001ab
+RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
 
-   The first param:start must be physical address which could be handled
-   in M-state.
 
-   Here is a pull request to the riscv-sbi-doc:
-   https://github.com/riscv/riscv-sbi-doc/pull/15
-
-We have tested the patch on our fpga SOC system which network controller
-connected to a non-cache-coherency interconnect in and it couldn't work
-without the patch.
-
-There is no side effect for FU540 whose CPU don't care _PAGE_COHERENCY
-in PTE, but FU540's bbl also need to implement a simple sbi_fence_dma
-by directly return. In fact, if you give a correct configuration for
-dev_is_dma_conherent(), linux dma framework wouldn't call sbi_fence_dma
-any more.
-
-Changelog:
- - Use coherency instead of consistency for all to maintain term
-   consistency. (Xiang Xiaoyan)
- - Add riscv-isa-manual modification pull request link.
- - Correct grammatical errors.
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Andrew Waterman <andrew@sifive.com>
-Cc: Anup Patel <anup.patel@wdc.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Greentime Hu <green.hu@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Cc: Scott Wood <swood@redhat.com>
-Cc: Vincent Chen <vincentc@andestech.com>
-Cc: Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
 ---
- arch/riscv/Kconfig                    |  4 ++++
- arch/riscv/include/asm/pgtable-bits.h |  1 +
- arch/riscv/include/asm/pgtable.h      | 11 +++++++++
- arch/riscv/include/asm/sbi.h          | 10 ++++++++
- arch/riscv/mm/Makefile                |  1 +
- arch/riscv/mm/dma-mapping.c           | 44 +++++++++++++++++++++++++++++++++++
- arch/riscv/mm/ioremap.c               |  2 +-
- 7 files changed, 72 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/mm/dma-mapping.c
+This bug is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index eb56c82..f0fc503 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -16,9 +16,12 @@ config RISCV
- 	select OF
- 	select OF_EARLY_FLATTREE
- 	select OF_IRQ
-+	select ARCH_HAS_SYNC_DMA_FOR_CPU
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_WANT_FRAME_POINTERS
- 	select CLONE_BACKWARDS
- 	select COMMON_CLK
-+	select DMA_DIRECT_REMAP
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_IRQ_SHOW
-@@ -27,6 +30,7 @@ config RISCV
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_ALLOCATOR
- 	select GENERIC_ATOMIC64 if !64BIT || !RISCV_ISA_A
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_MEMBLOCK_NODE_MAP
-diff --git a/arch/riscv/include/asm/pgtable-bits.h b/arch/riscv/include/asm/pgtable-bits.h
-index 470755c..104f8c0 100644
---- a/arch/riscv/include/asm/pgtable-bits.h
-+++ b/arch/riscv/include/asm/pgtable-bits.h
-@@ -31,6 +31,7 @@
- #define _PAGE_ACCESSED  (1 << 6)    /* Set by hardware on any access */
- #define _PAGE_DIRTY     (1 << 7)    /* Set by hardware on any write */
- #define _PAGE_SOFT      (1 << 8)    /* Reserved for software */
-+#define _PAGE_COHERENCY (1 << 9)    /* Coherency */
- 
- #define _PAGE_SPECIAL   _PAGE_SOFT
- #define _PAGE_TABLE     _PAGE_PRESENT
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index 1141364..26debb4 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -66,6 +66,7 @@
- 
- #define PAGE_KERNEL		__pgprot(_PAGE_KERNEL)
- #define PAGE_KERNEL_EXEC	__pgprot(_PAGE_KERNEL | _PAGE_EXEC)
-+#define PAGE_KERNEL_COHERENCY	__pgprot(_PAGE_KERNEL | _PAGE_COHERENCY)
- 
- extern pgd_t swapper_pg_dir[];
- 
-@@ -375,6 +376,16 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
- 	return ptep_test_and_clear_young(vma, address, ptep);
- }
- 
-+#define pgprot_noncached pgprot_noncached
-+static inline pgprot_t pgprot_noncached(pgprot_t _prot)
-+{
-+	unsigned long prot = pgprot_val(_prot);
-+
-+	prot |= _PAGE_COHERENCY;
-+
-+	return __pgprot(prot);
-+}
-+
- /*
-  * Encode and decode a swap entry
-  *
-diff --git a/arch/riscv/include/asm/sbi.h b/arch/riscv/include/asm/sbi.h
-index b6bb10b..b945e50 100644
---- a/arch/riscv/include/asm/sbi.h
-+++ b/arch/riscv/include/asm/sbi.h
-@@ -25,6 +25,7 @@
- #define SBI_REMOTE_SFENCE_VMA 6
- #define SBI_REMOTE_SFENCE_VMA_ASID 7
- #define SBI_SHUTDOWN 8
-+#define SBI_FENCE_DMA 9
- 
- #define SBI_CALL(which, arg0, arg1, arg2) ({			\
- 	register uintptr_t a0 asm ("a0") = (uintptr_t)(arg0);	\
-@@ -42,6 +43,8 @@
- #define SBI_CALL_0(which) SBI_CALL(which, 0, 0, 0)
- #define SBI_CALL_1(which, arg0) SBI_CALL(which, arg0, 0, 0)
- #define SBI_CALL_2(which, arg0, arg1) SBI_CALL(which, arg0, arg1, 0)
-+#define SBI_CALL_3(which, arg0, arg1, arg2) \
-+			SBI_CALL(which, arg0, arg1, arg2)
- 
- static inline void sbi_console_putchar(int ch)
- {
-@@ -82,6 +85,13 @@ static inline void sbi_remote_fence_i(const unsigned long *hart_mask)
- 	SBI_CALL_1(SBI_REMOTE_FENCE_I, hart_mask);
- }
- 
-+static inline void sbi_fence_dma(unsigned long start,
-+			       unsigned long size,
-+			       unsigned long dir)
-+{
-+	SBI_CALL_3(SBI_FENCE_DMA, start, size, dir);
-+}
-+
- static inline void sbi_remote_sfence_vma(const unsigned long *hart_mask,
- 					 unsigned long start,
- 					 unsigned long size)
-diff --git a/arch/riscv/mm/Makefile b/arch/riscv/mm/Makefile
-index b68aac7..adc563a 100644
---- a/arch/riscv/mm/Makefile
-+++ b/arch/riscv/mm/Makefile
-@@ -9,3 +9,4 @@ obj-y += fault.o
- obj-y += extable.o
- obj-y += ioremap.o
- obj-y += cacheflush.o
-+obj-y += dma-mapping.o
-diff --git a/arch/riscv/mm/dma-mapping.c b/arch/riscv/mm/dma-mapping.c
-new file mode 100644
-index 0000000..5e1d179
---- /dev/null
-+++ b/arch/riscv/mm/dma-mapping.c
-@@ -0,0 +1,44 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/dma-mapping.h>
-+
-+static int __init atomic_pool_init(void)
-+{
-+	return dma_atomic_pool_init(GFP_KERNEL, pgprot_noncached(PAGE_KERNEL));
-+}
-+postcore_initcall(atomic_pool_init);
-+
-+void arch_dma_prep_coherent(struct page *page, size_t size)
-+{
-+	memset(page_address(page), 0, size);
-+
-+	sbi_fence_dma(page_to_phys(page), size, DMA_BIDIRECTIONAL);
-+}
-+
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+			      size_t size, enum dma_data_direction dir)
-+{
-+	switch (dir) {
-+	case DMA_TO_DEVICE:
-+	case DMA_FROM_DEVICE:
-+	case DMA_BIDIRECTIONAL:
-+		sbi_fence_dma(paddr, size, dir);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+			   size_t size, enum dma_data_direction dir)
-+{
-+	switch (dir) {
-+	case DMA_TO_DEVICE:
-+	case DMA_FROM_DEVICE:
-+	case DMA_BIDIRECTIONAL:
-+		sbi_fence_dma(paddr, size, dir);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-diff --git a/arch/riscv/mm/ioremap.c b/arch/riscv/mm/ioremap.c
-index bd2f2db..f6aaf1e 100644
---- a/arch/riscv/mm/ioremap.c
-+++ b/arch/riscv/mm/ioremap.c
-@@ -73,7 +73,7 @@ static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
-  */
- void __iomem *ioremap(phys_addr_t offset, unsigned long size)
- {
--	return __ioremap_caller(offset, size, PAGE_KERNEL,
-+	return __ioremap_caller(offset, size, PAGE_KERNEL_COHERENCY,
- 		__builtin_return_address(0));
- }
- EXPORT_SYMBOL(ioremap);
--- 
-2.7.4
+syzbot will keep track of this bug report. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+syzbot can test patches for this bug, for details see:
+https://goo.gl/tpsmEJ#testing-patches
