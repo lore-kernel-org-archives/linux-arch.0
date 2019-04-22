@@ -1,110 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f71.google.com ([209.85.166.71]:40733 "EHLO
-        mail-io1-f71.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726421AbfDVQGF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 12:06:05 -0400
-Received: by mail-io1-f71.google.com with SMTP id y10so2305181ioj.7
-        for <linux-arch@vger.kernel.org>; Mon, 22 Apr 2019 09:06:05 -0700 (PDT)
+Received: from verein.lst.de ([213.95.11.211]:40436 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726098AbfDVQSd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Apr 2019 12:18:33 -0400
+Date: Mon, 22 Apr 2019 18:18:14 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Message-ID: <20190422161814.GA30694@lst.de>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
 MIME-Version: 1.0
-Date: Mon, 22 Apr 2019 09:06:04 -0700
-Message-ID: <00000000000043fe9c058720a5d3@google.com>
-Subject: WARNING in percpu_ref_kill_and_confirm
-From: syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed; delsp=yes
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1555947870-23014-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, axboe@kernel.dk, bp@alien8.de, darrick.wong@oracle.com, gregkh@linuxfoundation.org, hpa@zytor.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, luto@kernel.org, mathieu.desnoyers@efficios.com, mingo@redhat.com, mpe@ellerman.id.au, syzkaller-bugs@googlegroups.com, tglx@linutronix.de, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, x86@kernel.org
-Message-ID: <20190422160604.1Nj8VCYn1bTfp4MxvpZYEw5ut2cDRs6BAQy6J-kfRE4@z>
+To: guoren@kernel.org
+Cc: ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
+Message-ID: <20190422161814.w9H07rCrObh2Jj6NeBVQe4LSjGP38mbo6HupTZGck-4@z>
 
-Hello,
+On Mon, Apr 22, 2019 at 11:44:30PM +0800, guoren@kernel.org wrote:
+>  - Add _PAGE_COHERENCY bit in current page table entry attributes. The bit
+>    designates a coherence for this page mapping. Software set the bit to
+>    tell the hardware that the region of the page's memory area must be
+>    coherent with IOs devices in SOC system by PMA settings.
+>    If IOs and CPU are already coherent in SOC system, CPU just ignore
+>    this bit.
+> 
+>    PTE format:
+>    | XLEN-1  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
+>          PFN      C  RSW  D   A   G   U   X   W   R   V
+>                   ^
+>    BIT(9): Coherence attribute bit
+>           0: hardware needn't keep the page coherenct and software will
+>              maintain the coherence with cache clear/invalid operations.
+>           1: hardware must keep the page coherenct and software needn't
+>              maintain the coherence.
+>    BIT(8): Reserved for software and now it's _PAGE_SPECIAL in linux
+> 
+>    Add a new hardware bit in PTE also need to modify Privileged
+>    Architecture Supervisor-Level ISA:
+>    https://github.com/riscv/riscv-isa-manual/pull/374
+> 
+>  - Add SBI_FENCE_DMA 9 in riscv-sbi.
+>    sbi_fence_dma(start, size, dir) could synchronize CPU cache data with
+>    DMA device in non-coherency memory model. The third param's definition
+>    is the same with linux's in include/linux/dma-direction.h:
 
-syzbot found the following crash on:
+Please don't make this an SBI call.  We need a proper instruction
+for cache flushing and invalidation.  We'll also need that for pmem
+support for example.  I heard at least one other vendor already
+had an instruction, and we really need to get this into the privileged
+spec ASAP (yesterday in fact).
 
-HEAD commit:    9e5de623 Merge tag 'nfs-for-5.1-5' of git://git.linux-nfs...
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=15624257200000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=856fc6d0fbbeede9
-dashboard link: https://syzkaller.appspot.com/bug?extid=10d25e23199614b7721f
-compiler:       gcc (GCC) 9.0.0 20181231 (experimental)
-userspace arch: i386
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=17ff39f3200000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15758647200000
+If you have your own instructions already we can probably binary
+patch those in using the Linux alternatives mechanism once we have
+a standardized way in the privileged spec.
 
-The bug was bisected to:
+We should probably start a working group for this ASAP unless we can
+get another working group to help taking care of it.
 
-commit 38e7571c07be01f9f19b355a9306a4e3d5cb0f5b
-Author: Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri Mar 8 22:48:40 2019 +0000
+> +#define pgprot_noncached pgprot_noncached
+> +static inline pgprot_t pgprot_noncached(pgprot_t _prot)
+> +{
+> +	unsigned long prot = pgprot_val(_prot);
+> +
+> +	prot |= _PAGE_COHERENCY;
+> +
+> +	return __pgprot(prot);
 
-     Merge tag 'io_uring-2019-03-06' of git://git.kernel.dk/linux-block
+Nitpick: this can be shortened to
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=1736bc57200000
-final crash:    https://syzkaller.appspot.com/x/report.txt?x=14b6bc57200000
-console output: https://syzkaller.appspot.com/x/log.txt?x=10b6bc57200000
+	return __pgprot(pgprot_val(prot) | _PAGE_COHERENCY));
 
-IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com
-Fixes: 38e7571c07be ("Merge tag 'io_uring-2019-03-06' of  
-git://git.kernel.dk/linux-block")
+Also is this really a coherent flag, or an 'uncached' flag like in
+many other architectures?
 
-------------[ cut here ]------------
-percpu_ref_kill_and_confirm called more than once on io_ring_ctx_ref_free!
-WARNING: CPU: 1 PID: 7815 at lib/percpu-refcount.c:335  
-percpu_ref_kill_and_confirm+0x341/0x3b0 lib/percpu-refcount.c:335
-Kernel panic - not syncing: panic_on_warn set ...
-CPU: 1 PID: 7815 Comm: syz-executor269 Not tainted 5.1.0-rc5+ #77
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS  
-Google 01/01/2011
-Call Trace:
-  __dump_stack lib/dump_stack.c:77 [inline]
-  dump_stack+0x172/0x1f0 lib/dump_stack.c:113
-  panic+0x2cb/0x65c kernel/panic.c:214
-  __warn.cold+0x20/0x45 kernel/panic.c:571
-  report_bug+0x263/0x2b0 lib/bug.c:186
-  fixup_bug arch/x86/kernel/traps.c:179 [inline]
-  fixup_bug arch/x86/kernel/traps.c:174 [inline]
-  do_error_trap+0x11b/0x200 arch/x86/kernel/traps.c:272
-  do_invalid_op+0x37/0x50 arch/x86/kernel/traps.c:291
-  invalid_op+0x14/0x20 arch/x86/entry/entry_64.S:973
-RIP: 0010:percpu_ref_kill_and_confirm+0x341/0x3b0 lib/percpu-refcount.c:335
-Code: 42 e0 2a 06 01 48 89 fa 48 c1 ea 03 80 3c 02 00 75 76 49 8b 54 24 10  
-48 c7 c6 a0 71 a1 87 48 c7 c7 40 71 a1 87 e8 ad 92 13 fe <0f> 0b 48 b8 00  
-00 00 00 00 fc ff df 4c 89 ea 48 c1 ea 03 80 3c 02
-RSP: 0018:ffff8880a96cfce0 EFLAGS: 00010086
-RAX: 0000000000000000 RBX: 0000607f5142e35b RCX: 0000000000000000
-RDX: 0000000000000000 RSI: ffffffff815afcf6 RDI: ffffed10152d9f8e
-RBP: ffff8880a96cfd10 R08: ffff8880a85c40c0 R09: fffffbfff1133639
-R10: fffffbfff1133638 R11: ffffffff8899b1c3 R12: ffff88809ee571c0
-R13: ffff88809ee571c8 R14: 0000000000000286 R15: 0000000000000000
-  percpu_ref_kill include/linux/percpu-refcount.h:128 [inline]
-  __io_uring_register+0xa7/0x1fe0 fs/io_uring.c:2937
-  __do_sys_io_uring_register fs/io_uring.c:2998 [inline]
-  __se_sys_io_uring_register fs/io_uring.c:2980 [inline]
-  __ia32_sys_io_uring_register+0x193/0x1f0 fs/io_uring.c:2980
-  do_syscall_32_irqs_on arch/x86/entry/common.c:326 [inline]
-  do_fast_syscall_32+0x281/0xc98 arch/x86/entry/common.c:397
-  entry_SYSENTER_compat+0x70/0x7f arch/x86/entry/entry_64_compat.S:139
-RIP: 0023:0xf7f16869
-Code: 85 d2 74 02 89 0a 5b 5d c3 8b 04 24 c3 8b 14 24 c3 8b 3c 24 c3 90 90  
-90 90 90 90 90 90 90 90 90 90 51 52 55 89 e5 0f 34 cd 80 <5d> 5a 59 c3 90  
-90 90 90 eb 0d 90 90 90 90 90 90 90 90 90 90 90 90
-RSP: 002b:00000000f7ef11ec EFLAGS: 00000296 ORIG_RAX: 00000000000001ab
-RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000000000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
-RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
-R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
-Kernel Offset: disabled
-Rebooting in 86400 seconds..
+> +++ b/arch/riscv/mm/dma-mapping.c
 
+This should probably be called dma-noncoherent.c
 
----
-This bug is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+It should also have a user visible config option so that we don't
+have to build it for fully coherent systems.
 
-syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
-syzbot can test patches for this bug, for details see:
-https://goo.gl/tpsmEJ#testing-patches
+> +void arch_dma_prep_coherent(struct page *page, size_t size)
+> +{
+> +	memset(page_address(page), 0, size);
+
+No need for this memset, the caller takes care of it.
+
+> diff --git a/arch/riscv/mm/ioremap.c b/arch/riscv/mm/ioremap.c
+> index bd2f2db..f6aaf1e 100644
+> --- a/arch/riscv/mm/ioremap.c
+> +++ b/arch/riscv/mm/ioremap.c
+> @@ -73,7 +73,7 @@ static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
+>   */
+>  void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>  {
+> -	return __ioremap_caller(offset, size, PAGE_KERNEL,
+> +	return __ioremap_caller(offset, size, PAGE_KERNEL_COHERENCY,
+>  		__builtin_return_address(0));
+>  }
+>  EXPORT_SYMBOL(ioremap);
+
+I think ioremap is a different story, and should be a separate patch.
