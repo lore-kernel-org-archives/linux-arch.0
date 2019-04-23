@@ -1,66 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-07.nifty.com ([210.131.2.74]:38719 "EHLO
+Received: from conuserg-07.nifty.com ([210.131.2.74]:38995 "EHLO
         conuserg-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730463AbfDWDvj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:39 -0400
+        with ESMTP id S1730606AbfDWDvu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:50 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [RESEND PATCH v3 06/11] MIPS: mark __fls() and __ffs() as __always_inline
-Date: Tue, 23 Apr 2019 12:49:54 +0900
-Message-ID: <20190423034959.13525-7-yamada.masahiro@socionext.com>
+Subject: [RESEND PATCH v3 05/11] mtd: rawnand: vf610_nfc: add initializer to avoid -Wmaybe-uninitialized
+Date: Tue, 23 Apr 2019 12:49:53 +0900
+Message-ID: <20190423034959.13525-6-yamada.masahiro@socionext.com>
 In-Reply-To: <20190423034959.13525-1-yamada.masahiro@socionext.com>
 References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190423034954.Fap8KiquJ4EkxhVg4JnTb_FlPIQOAn3dNdT1gRaPk_U@z>
+Message-ID: <20190423034953.WTJW321pxDUbUia4_lj0wr0XfZcIQa_XyKHEL9cf2UM@z>
 
 This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
 place. We need to eliminate potential issues beforehand.
 
-If it is enabled for mips, the following errors are reported:
+Kbuild test robot has never reported -Wmaybe-uninitialized warning
+for this probably because vf610_nfc_run() is inlined by the x86
+compiler's inlining heuristic.
 
-arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
-sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
-arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
+If CONFIG_OPTIMIZE_INLINING is enabled for a different architecture
+and vf610_nfc_run() is not inlined, the following warning is reported:
+
+drivers/mtd/nand/raw/vf610_nfc.c: In function ‘vf610_nfc_cmd’:
+drivers/mtd/nand/raw/vf610_nfc.c:455:3: warning: ‘offset’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+   vf610_nfc_rd_from_sram(instr->ctx.data.buf.in + offset,
+   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            nfc->regs + NFC_MAIN_AREA(0) + offset,
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            trfr_sz, !nfc->data_access);
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
-Changes in v3:
-  - forcibly inline __ffs() too
-
+Changes in v3: None
 Changes in v2:
-  - new patch
+  - split into a separate patch
 
- arch/mips/include/asm/bitops.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/mtd/nand/raw/vf610_nfc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
-index 830c93a010c3..9a466dde9b96 100644
---- a/arch/mips/include/asm/bitops.h
-+++ b/arch/mips/include/asm/bitops.h
-@@ -482,7 +482,7 @@ static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *
-  * Return the bit position (0..63) of the most significant 1 bit in a word
-  * Returns -1 if no 1 bit exists
-  */
--static inline unsigned long __fls(unsigned long word)
-+static __always_inline unsigned long __fls(unsigned long word)
+diff --git a/drivers/mtd/nand/raw/vf610_nfc.c b/drivers/mtd/nand/raw/vf610_nfc.c
+index a662ca1970e5..19792d725ec2 100644
+--- a/drivers/mtd/nand/raw/vf610_nfc.c
++++ b/drivers/mtd/nand/raw/vf610_nfc.c
+@@ -364,7 +364,7 @@ static int vf610_nfc_cmd(struct nand_chip *chip,
  {
- 	int num;
+ 	const struct nand_op_instr *instr;
+ 	struct vf610_nfc *nfc = chip_to_nfc(chip);
+-	int op_id = -1, trfr_sz = 0, offset;
++	int op_id = -1, trfr_sz = 0, offset = 0;
+ 	u32 col = 0, row = 0, cmd1 = 0, cmd2 = 0, code = 0;
+ 	bool force8bit = false;
  
-@@ -548,7 +548,7 @@ static inline unsigned long __fls(unsigned long word)
-  * Returns 0..SZLONG-1
-  * Undefined if no bit exists, so code should check against 0 first.
-  */
--static inline unsigned long __ffs(unsigned long word)
-+static __always_inline unsigned long __ffs(unsigned long word)
- {
- 	return __fls(word & -word);
- }
 -- 
 2.17.1
