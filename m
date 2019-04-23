@@ -1,143 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:39488 "EHLO mail.kernel.org"
+Received: from mga05.intel.com ([192.55.52.43]:22943 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729885AbfDWAN5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Apr 2019 20:13:57 -0400
-Date: Tue, 23 Apr 2019 08:13:48 +0800
-From: Guo Ren <guoren@kernel.org>
+        id S1729258AbfDWAcN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Apr 2019 20:32:13 -0400
+Date: Tue, 23 Apr 2019 08:31:15 +0800
+From: kbuild test robot <lkp@intel.com>
 Subject: Re: [PATCH] riscv: Support non-coherency memory model
-Message-ID: <20190423001348.GA31639@guoren-Inspiron-7460>
+Message-ID: <201904230815.Qe1Manfd%lkp@intel.com>
 References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
- <20190422161814.GA30694@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/mixed; boundary="ZGiS0Q5IWpPtfppv"
 Content-Disposition: inline
-In-Reply-To: <20190422161814.GA30694@lst.de>
+In-Reply-To: <1555947870-23014-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
-Message-ID: <20190423001348.u8W-FrcCiOqUlcOUfj8t1bFrVD2Z_sNg3hQVSzNU2w0@z>
+To: guoren@kernel.org
+Cc: kbuild-all@01.org, ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
+Message-ID: <20190423003115.dxxylPChDTyDIsBT3gtJABRrB5g0iG9lcjRKmlJt37Q@z>
 
-Thx Christoph,
 
-On Mon, Apr 22, 2019 at 06:18:14PM +0200, Christoph Hellwig wrote:
-> On Mon, Apr 22, 2019 at 11:44:30PM +0800, guoren@kernel.org wrote:
-> >  - Add _PAGE_COHERENCY bit in current page table entry attributes. The bit
-> >    designates a coherence for this page mapping. Software set the bit to
-> >    tell the hardware that the region of the page's memory area must be
-> >    coherent with IOs devices in SOC system by PMA settings.
-> >    If IOs and CPU are already coherent in SOC system, CPU just ignore
-> >    this bit.
-> > 
-> >    PTE format:
-> >    | XLEN-1  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
-> >          PFN      C  RSW  D   A   G   U   X   W   R   V
-> >                   ^
-> >    BIT(9): Coherence attribute bit
-> >           0: hardware needn't keep the page coherenct and software will
-> >              maintain the coherence with cache clear/invalid operations.
-> >           1: hardware must keep the page coherenct and software needn't
-> >              maintain the coherence.
-> >    BIT(8): Reserved for software and now it's _PAGE_SPECIAL in linux
-> > 
-> >    Add a new hardware bit in PTE also need to modify Privileged
-> >    Architecture Supervisor-Level ISA:
-> >    https://github.com/riscv/riscv-isa-manual/pull/374
-> > 
-> >  - Add SBI_FENCE_DMA 9 in riscv-sbi.
-> >    sbi_fence_dma(start, size, dir) could synchronize CPU cache data with
-> >    DMA device in non-coherency memory model. The third param's definition
-> >    is the same with linux's in include/linux/dma-direction.h:
-> 
-> Please don't make this an SBI call.  We need a proper instruction
-> for cache flushing and invalidation.  We'll also need that for pmem
-> support for example.  I heard at least one other vendor already
-> had an instruction, and we really need to get this into the privileged
-> spec ASAP (yesterday in fact).
-> 
-> If you have your own instructions already we can probably binary
-> patch those in using the Linux alternatives mechanism once we have
-> a standardized way in the privileged spec.
-> 
-> We should probably start a working group for this ASAP unless we can
-> get another working group to help taking care of it.
-Good news, I prefer to use instructions directly instead of SBI_CALL.
+--ZGiS0Q5IWpPtfppv
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Our instruction is "dcache.c/iva %0" (one cache line) and the parameter is
-virtual address in S-state. When get into M-state by SBI_CALL, we could
-let dcache.c/iva use physical addres directly and it needn't kmap page
-for RV32 with highmem (Of cause highmem is not ready in RV32 now).
+Hi,
 
-> 
-> > +#define pgprot_noncached pgprot_noncached
-> > +static inline pgprot_t pgprot_noncached(pgprot_t _prot)
-> > +{
-> > +	unsigned long prot = pgprot_val(_prot);
-> > +
-> > +	prot |= _PAGE_COHERENCY;
-> > +
-> > +	return __pgprot(prot);
-> 
-> Nitpick: this can be shortened to
-> 
-> 	return __pgprot(pgprot_val(prot) | _PAGE_COHERENCY));
-Good.
+I love your patch! Yet something to improve:
 
-> 
-> Also is this really a coherent flag, or an 'uncached' flag like in
-> many other architectures?
-There are a lot of features about coherency attributes, eg: cacheable,
-bufferable, strong order ..., and coherency is a more abstract name to
-contain all of these. In our hardware, coherence = uncached +
-unbufferable + (stong order).
+[auto build test ERROR on linus/master]
+[also build test ERROR on v5.1-rc6 next-20190418]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 
-But I'm not very care about the name is, uncached is also ok. My key
-point is the bits of page attributes is very precious and this patch
-will use the last unused attribute bit in PTE.
+url:    https://github.com/0day-ci/linux/commits/guoren-kernel-org/riscv-Support-non-coherency-memory-model/20190423-075013
+config: riscv-tinyconfig (attached as .config)
+compiler: riscv64-linux-gcc (GCC) 8.1.0
+reproduce:
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        GCC_VERSION=8.1.0 make.cross ARCH=riscv 
 
-Another point is we could get more attribute bits by modify the riscv
-spec:
- - Remove Global bit, I think it's duplicate with the User bit in linux.
- - Change _PAGE_PFN_SHIFT from 10 to 12, because the huge pfn in RV32 is
-   very useless and current RV32 linux doesn't even implement highmem.
+If you fix the issue, kindly add following tag
+Reported-by: kbuild test robot <lkp@intel.com>
 
-And then we could get another three page attribute bits in PTE.
 
-> 
-> > +++ b/arch/riscv/mm/dma-mapping.c
-> 
-> This should probably be called dma-noncoherent.c
-> 
-> It should also have a user visible config option so that we don't
-> have to build it for fully coherent systems.
-Ok, dma-noncoherent.c is more clear.
+All errors (new ones prefixed by >>):
 
-> 
-> > +void arch_dma_prep_coherent(struct page *page, size_t size)
-> > +{
-> > +	memset(page_address(page), 0, size);
-> 
-> No need for this memset, the caller takes care of it.
-Ok
+   arch/riscv/mm/dma-mapping.c: In function 'arch_dma_prep_coherent':
+>> arch/riscv/mm/dma-mapping.c:15:2: error: implicit declaration of function 'sbi_fence_dma' [-Werror=implicit-function-declaration]
+     sbi_fence_dma(page_to_phys(page), size, DMA_BIDIRECTIONAL);
+     ^~~~~~~~~~~~~
+   cc1: some warnings being treated as errors
 
-> 
-> > diff --git a/arch/riscv/mm/ioremap.c b/arch/riscv/mm/ioremap.c
-> > index bd2f2db..f6aaf1e 100644
-> > --- a/arch/riscv/mm/ioremap.c
-> > +++ b/arch/riscv/mm/ioremap.c
-> > @@ -73,7 +73,7 @@ static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
-> >   */
-> >  void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-> >  {
-> > -	return __ioremap_caller(offset, size, PAGE_KERNEL,
-> > +	return __ioremap_caller(offset, size, PAGE_KERNEL_COHERENCY,
-> >  		__builtin_return_address(0));
-> >  }
-> >  EXPORT_SYMBOL(ioremap);
-> 
-> I think ioremap is a different story, and should be a separate patch.
-Ok
+vim +/sbi_fence_dma +15 arch/riscv/mm/dma-mapping.c
 
-Best Regards
- Guo Ren
+    10	
+    11	void arch_dma_prep_coherent(struct page *page, size_t size)
+    12	{
+    13		memset(page_address(page), 0, size);
+    14	
+  > 15		sbi_fence_dma(page_to_phys(page), size, DMA_BIDIRECTIONAL);
+    16	}
+    17	
+
+---
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+
+--ZGiS0Q5IWpPtfppv
+Content-Type: application/gzip
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+wIM4mGTHq75zUUXx/w/k6e36XjwAAA==
+
+--ZGiS0Q5IWpPtfppv--
