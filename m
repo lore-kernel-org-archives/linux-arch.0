@@ -1,99 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-07.nifty.com ([210.131.2.74]:38290 "EHLO
-        conuserg-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730175AbfDWDv0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:26 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [RESEND PATCH v3 01/11] ARM: prevent tracing IPI_CPU_BACKTRACE
-Date: Tue, 23 Apr 2019 12:49:49 +0900
-Message-ID: <20190423034959.13525-2-yamada.masahiro@socionext.com>
-In-Reply-To: <20190423034959.13525-1-yamada.masahiro@socionext.com>
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+Received: from verein.lst.de ([213.95.11.211]:44208 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725882AbfDWF4H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 01:56:07 -0400
+Date: Tue, 23 Apr 2019 07:55:48 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Message-ID: <20190423055548.GA12365@lst.de>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org> <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190423001348.GA31639@guoren-Inspiron-7460>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190423034949.xqlzSpCdRIFvw6yjpc34U6Lj3SddRyictb4f43sJ6d4@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
+Message-ID: <20190423055548.QUy4gUYoR8rqOjuuN2F3xL2BLRegxIJu-peFKx4gK2s@z>
 
-From: Arnd Bergmann <arnd@arndb.de>
+On Tue, Apr 23, 2019 at 08:13:48AM +0800, Guo Ren wrote:
+> > We should probably start a working group for this ASAP unless we can
+> > get another working group to help taking care of it.
+> Good news, I prefer to use instructions directly instead of SBI_CALL.
+> 
+> Our instruction is "dcache.c/iva %0" (one cache line) and the parameter is
+> virtual address in S-state. When get into M-state by SBI_CALL, we could
+> let dcache.c/iva use physical addres directly and it needn't kmap page
+> for RV32 with highmem (Of cause highmem is not ready in RV32 now).
 
-When function tracing for IPIs is enabled, we get a warning for an
-overflow of the ipi_types array with the IPI_CPU_BACKTRACE type
-as triggered by raise_nmi():
+So you only have one instruction variant?  Normally we'd have two or
+three to implement the non-coherent DMA (or pmem) semantics:
 
-arch/arm/kernel/smp.c: In function 'raise_nmi':
-arch/arm/kernel/smp.c:489:2: error: array subscript is above array bounds [-Werror=array-bounds]
-  trace_ipi_raise(target, ipi_types[ipinr]);
+cache writeback, cache invalidate and potentially cache writeback +
+invalidate to optimize that case.  Here is the table how Linux
+uses them for DMA:
 
-This is a correct warning as we actually overflow the array here.
+          |   map          ==  for_device     |   unmap     ==  for_cpu
+          |----------------------------------------------------------------
+ TO_DEV   |   writeback        writeback      |   none          none
+ FROM_DEV |   invalidate       invalidate     |   invalidate*   invalidate*
+ BIDI     |   writeback+inv    writeback+inv  |   invalidate    invalidate
 
-This patch raise_nmi() to call __smp_cross_call() instead of
-smp_cross_call(), to avoid calling into ftrace. For clarification,
-I'm also adding a two new code comments describing how this one
-is special.
-
-The warning appears to have shown up after patch e7273ff49acf
-("ARM: 8488/1: Make IPI_CPU_BACKTRACE a "non-secure" SGI"), which
-changed the number assignment from '15' to '8', but as far as I can
-tell has existed since the IPI tracepoints were first introduced.
-If we decide to backport this patch to stable kernels, we probably
-need to backport e7273ff49acf as well.
-
-Fixes: e7273ff49acf ("ARM: 8488/1: Make IPI_CPU_BACKTRACE a "non-secure" SGI")
-Fixes: 365ec7b17327 ("ARM: add IPI tracepoints") # v3.17
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-[yamada.masahiro@socionext.com: rebase on v5.1-rc1]
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-This is a long-standing issue, and
-Arnd posted this patch two years ago:
-http://lists.infradead.org/pipermail/linux-arm-kernel/2016-February/409393.html
-
-It is no longer applied, so I rebased it on top of the latest kernel.
+     [*] needed for CPU speculative prefetches
 
 
-Changes in v3: None
-Changes in v2: None
+We already have a discussion on isa-dev on something like these
+instructions:
 
- arch/arm/include/asm/hardirq.h | 1 +
- arch/arm/kernel/smp.c          | 6 +++++-
- 2 files changed, 6 insertions(+), 1 deletion(-)
+https://groups.google.com/a/groups.riscv.org/forum/#!msg/isa-dev/qXbzqaQbDXU/4ThcEAeCCAAJ
 
-diff --git a/arch/arm/include/asm/hardirq.h b/arch/arm/include/asm/hardirq.h
-index cba23eaa6072..7a88f160b1fb 100644
---- a/arch/arm/include/asm/hardirq.h
-+++ b/arch/arm/include/asm/hardirq.h
-@@ -6,6 +6,7 @@
- #include <linux/threads.h>
- #include <asm/irq.h>
- 
-+/* number of IPIS _not_ including IPI_CPU_BACKTRACE */
- #define NR_IPI	7
- 
- typedef struct {
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index facd4240ca02..c93fe0f256de 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -70,6 +70,10 @@ enum ipi_msg_type {
- 	IPI_CPU_STOP,
- 	IPI_IRQ_WORK,
- 	IPI_COMPLETION,
-+	/*
-+	 * CPU_BACKTRACE is special and not included in NR_IPI
-+	 * or tracable with trace_ipi_*
-+	 */
- 	IPI_CPU_BACKTRACE,
- 	/*
- 	 * SGI8-15 can be reserved by secure firmware, and thus may
-@@ -797,7 +801,7 @@ core_initcall(register_cpufreq_notifier);
- 
- static void raise_nmi(cpumask_t *mask)
- {
--	smp_cross_call(mask, IPI_CPU_BACKTRACE);
-+	__smp_cross_call(mask, IPI_CPU_BACKTRACE);
- }
- 
- void arch_trigger_cpumask_backtrace(const cpumask_t *mask, bool exclude_self)
--- 
-2.17.1
+It got a little side tracked, both due to the usual noise on isa-dev
+and due to the proposal including a lot more instructions that might be
+a little more contentious, but it might be a good start to bring this
+into a working group.
+
+> > Also is this really a coherent flag, or an 'uncached' flag like in
+> > many other architectures?
+> There are a lot of features about coherency attributes, eg: cacheable,
+> bufferable, strong order ..., and coherency is a more abstract name to
+> contain all of these. In our hardware, coherence = uncached +
+> unbufferable + (stong order).
+> 
+> But I'm not very care about the name is, uncached is also ok. My key
+> point is the bits of page attributes is very precious and this patch
+> will use the last unused attribute bit in PTE.
+
+I don't care about the name actually, more about having defined semantics.
+Totally uncached should include unbuffered.  I don't think we need the
+strong ordering for DMA memory either.
+
+> Another point is we could get more attribute bits by modify the riscv
+> spec:
+>  - Remove Global bit, I think it's duplicate with the User bit in linux.
+
+It is in Linux, but it is conceptually very different.
+
+>  - Change _PAGE_PFN_SHIFT from 10 to 12, because the huge pfn in RV32 is
+>    very useless and current RV32 linux doesn't even implement highmem.
+
+This would seem sensible to me, but I'm not sure everyone agrees.  Even
+then we are very late in the game for changes like that.
