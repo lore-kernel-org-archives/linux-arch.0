@@ -1,83 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:52904 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727306AbfDWDYX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:24:23 -0400
-MIME-Version: 1.0
-References: <20190419094754.24667-1-yamada.masahiro@socionext.com>
- <20190419094754.24667-7-yamada.masahiro@socionext.com> <CA+7wUsygTo=AN_giku_X6_a4mQWdJL48RoVbVB4hBqkZSKkP0Q@mail.gmail.com>
-In-Reply-To: <CA+7wUsygTo=AN_giku_X6_a4mQWdJL48RoVbVB4hBqkZSKkP0Q@mail.gmail.com>
+Received: from conuserg-09.nifty.com ([210.131.2.76]:57830 "EHLO
+        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731386AbfDWDWu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:22:50 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Tue, 23 Apr 2019 12:23:35 +0900
-Message-ID: <CAK7LNAQjQKu9GFyCyDJsQcyQjbeSGoJJPJV8YEtSXuV9JDqhqQ@mail.gmail.com>
-Subject: Re: [PATCH v2 06/11] MIPS: mark __fls() as __always_inline
-Content-Type: text/plain; charset="UTF-8"
+Subject: [PATCH v3 03/10] s390/cpacf: mark scpacf_query() as __always_inline
+Date: Tue, 23 Apr 2019 12:20:59 +0900
+Message-ID: <20190423032106.11960-4-yamada.masahiro@socionext.com>
+In-Reply-To: <20190423032106.11960-1-yamada.masahiro@socionext.com>
+References: <20190423032106.11960-1-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Malaterre <malat@debian.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20190423032335.PkzD-CnWNj-k467AXgfgxt3rZwGAgUc22CTM7hPM-zk@z>
+To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
+Message-ID: <20190423032059.yUTjWzkM-3FFTUCfPfVAIU3wxQbGma_P9irrvNUqnl0@z>
 
-On Sat, Apr 20, 2019 at 12:45 AM Mathieu Malaterre <malat@debian.org> wrote:
->
-> Hi,
->
-> On Fri, Apr 19, 2019 at 12:06 PM Masahiro Yamada
-> <yamada.masahiro@socionext.com> wrote:
-> >
-> > This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-> > place. We need to eliminate potential issues beforehand.
-> >
-> > If it is enabled for mips, the following errors are reported:
-> >
-> > arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
-> > sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
-> > sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
-> > sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
-> > sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
-> > sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
-> > arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
->
-> Tested with success on ppc32/G4. But on CI20 (ci20_defconfig from
-> master), I get:
+This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+place. We need to eliminate potential issues beforehand.
 
+If it is enabled for s390, the following error is reported:
 
-Thanks for the test!
+In file included from arch/s390/crypto/des_s390.c:19:
+./arch/s390/include/asm/cpacf.h: In function 'cpacf_query':
+./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably doesn't match constraints
+  asm volatile(
+  ^~~
+./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'asm'
 
-OK, I saw this error for ci20_defconfig.
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
-I inline'd __ffs() to fix it
-and sumitted v3.
+Changes in v3: None
+Changes in v2:
+  - split into a separate patch
 
-Thank you.
+ arch/s390/include/asm/cpacf.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-
-
->   MODPOST vmlinux.o
-> mipsel-linux-gnu-ld: arch/mips/kernel/traps.o: in function
-> `addr_gcr_err_control':
-> /home/mathieu/tmp/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
-> undefined reference to `mips_gcr_base'
-> mipsel-linux-gnu-ld:
-> /home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:169:
-> undefined reference to `mips_gcr_base'
-> mipsel-linux-gnu-ld: arch/mips/mm/sc-mips.o: in function
-> `addr_gcr_l2_pft_control':
-> /home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-> undefined reference to `mips_gcr_base'
-> mipsel-linux-gnu-ld:
-> /home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-> undefined reference to `mips_gcr_base'
-> mipsel-linux-gnu-ld:
-> /home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-> undefined reference to `mips_gcr_base'
-> mipsel-linux-gnu-ld:
-> arch/mips/mm/sc-mips.o:/home/mathieu/linux/linux/ci20/../arch/mips/include/asm/mips-cm.h:246:
-> more undefined references to `mips_gcr_base' follow
-
-
-
-
+diff --git a/arch/s390/include/asm/cpacf.h b/arch/s390/include/asm/cpacf.h
+index 3cc52e37b4b2..f316de40e51b 100644
+--- a/arch/s390/include/asm/cpacf.h
++++ b/arch/s390/include/asm/cpacf.h
+@@ -202,7 +202,7 @@ static inline int __cpacf_check_opcode(unsigned int opcode)
+ 	}
+ }
+ 
+-static inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
++static __always_inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
+ {
+ 	if (__cpacf_check_opcode(opcode)) {
+ 		__cpacf_query(opcode, mask);
 -- 
-Best Regards
-Masahiro Yamada
+2.17.1
