@@ -1,90 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-07.nifty.com ([210.131.2.74]:38797 "EHLO
+Received: from conuserg-07.nifty.com ([210.131.2.74]:38285 "EHLO
         conuserg-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730482AbfDWDvp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:45 -0400
+        with ESMTP id S1730163AbfDWDvZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:25 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [RESEND PATCH v3 10/11] powerpc/mm/radix: mark as __tlbie_pid() and friends as__always_inline
-Date: Tue, 23 Apr 2019 12:49:58 +0900
-Message-ID: <20190423034959.13525-11-yamada.masahiro@socionext.com>
-In-Reply-To: <20190423034959.13525-1-yamada.masahiro@socionext.com>
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+Subject: [RESEND PATCH v3 00/11] compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+Date: Tue, 23 Apr 2019 12:49:48 +0900
+Message-ID: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190423034958.GUsIAf0IxYkEvZ5-UDGbhV2agx2uL8l8vS1FDfEQzb0@z>
+Message-ID: <20190423034948.Qc9JcJV9Emk21FhCsczLWuqlOMlw9ah1ua2CAkmenxg@z>
 
-This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-place. We need to eliminate potential issues beforehand.
+Major changes in v3 RESEND:
+ - I accidentally dropped the first patch.
+   I am resending with the correct patch set.
 
-If it is enabled for powerpc, the following errors are reported:
+Major changes in v3:
+ - Fix link error for arch/mips/configs/ci20_defconfig
 
-arch/powerpc/mm/tlb-radix.c: In function '__tlbie_lpid':
-arch/powerpc/mm/tlb-radix.c:148:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIE_5(%0, %4, %3, %2, %1)
-  ^~~
-arch/powerpc/mm/tlb-radix.c:148:2: error: impossible constraint in 'asm'
-arch/powerpc/mm/tlb-radix.c: In function '__tlbie_pid':
-arch/powerpc/mm/tlb-radix.c:118:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIE_5(%0, %4, %3, %2, %1)
-  ^~~
-arch/powerpc/mm/tlb-radix.c: In function '__tlbiel_pid':
-arch/powerpc/mm/tlb-radix.c:104:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
-  ^~~
+Major changes in v2:
+ - Eliminate more errors and warnings
+ - Delete 'depends on !MIPS'
+ - Split into separate patches
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
 
-Changes in v3: None
-Changes in v2:
-  - new patch
 
- arch/powerpc/mm/tlb-radix.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+Arnd Bergmann (1):
+  ARM: prevent tracing IPI_CPU_BACKTRACE
 
-diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
-index a2b2848f0ae3..14ff414d1545 100644
---- a/arch/powerpc/mm/tlb-radix.c
-+++ b/arch/powerpc/mm/tlb-radix.c
-@@ -90,8 +90,8 @@ void radix__tlbiel_all(unsigned int action)
- 	asm volatile(PPC_INVALIDATE_ERAT "; isync" : : :"memory");
- }
- 
--static inline void __tlbiel_pid(unsigned long pid, int set,
--				unsigned long ric)
-+static __always_inline void __tlbiel_pid(unsigned long pid, int set,
-+					 unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -106,7 +106,7 @@ static inline void __tlbiel_pid(unsigned long pid, int set,
- 	trace_tlbie(0, 1, rb, rs, ric, prs, r);
- }
- 
--static inline void __tlbie_pid(unsigned long pid, unsigned long ric)
-+static __always_inline void __tlbie_pid(unsigned long pid, unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -136,7 +136,7 @@ static inline void __tlbiel_lpid(unsigned long lpid, int set,
- 	trace_tlbie(lpid, 1, rb, rs, ric, prs, r);
- }
- 
--static inline void __tlbie_lpid(unsigned long lpid, unsigned long ric)
-+static __always_inline void __tlbie_lpid(unsigned long lpid, unsigned long ric)
- {
- 	unsigned long rb,rs,prs,r;
- 
-@@ -239,7 +239,7 @@ static inline void fixup_tlbie_lpid(unsigned long lpid)
- /*
-  * We use 128 set in radix mode and 256 set in hpt mode.
-  */
--static inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
-+static __always_inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
- {
- 	int set;
- 
+Masahiro Yamada (10):
+  arm64: mark (__)cpus_have_const_cap as __always_inline
+  MIPS: mark mult_sh_align_mod() as __always_inline
+  s390/cpacf: mark scpacf_query() as __always_inline
+  mtd: rawnand: vf610_nfc: add initializer to avoid
+    -Wmaybe-uninitialized
+  MIPS: mark __fls() and __ffs() as __always_inline
+  ARM: mark setup_machine_tags() stub as __init __noreturn
+  powerpc/prom_init: mark prom_getprop() and prom_getproplen() as __init
+  powerpc/mm/radix: mark __radix__flush_tlb_range_psize() as
+    __always_inline
+  powerpc/mm/radix: mark as __tlbie_pid() and friends as__always_inline
+  compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING
+
+ arch/arm/include/asm/hardirq.h      |  1 +
+ arch/arm/kernel/atags.h             |  2 +-
+ arch/arm/kernel/smp.c               |  6 +++++-
+ arch/arm64/include/asm/cpufeature.h |  4 ++--
+ arch/mips/include/asm/bitops.h      |  4 ++--
+ arch/mips/kernel/cpu-bugs64.c       |  4 ++--
+ arch/powerpc/kernel/prom_init.c     |  6 +++---
+ arch/powerpc/mm/tlb-radix.c         | 12 ++++++------
+ arch/s390/include/asm/cpacf.h       |  2 +-
+ arch/x86/Kconfig                    |  3 ---
+ arch/x86/Kconfig.debug              | 14 --------------
+ drivers/mtd/nand/raw/vf610_nfc.c    |  2 +-
+ include/linux/compiler_types.h      |  3 +--
+ lib/Kconfig.debug                   | 14 ++++++++++++++
+ 14 files changed, 39 insertions(+), 38 deletions(-)
+
 -- 
 2.17.1
