@@ -1,37 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f44.google.com ([209.85.167.44]:41087 "EHLO
-        mail-lf1-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725945AbfDWSlV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 14:41:21 -0400
-Received: by mail-lf1-f44.google.com with SMTP id t30so12519764lfd.8
-        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 11:41:19 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:35866 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725956AbfDWSrs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 14:47:48 -0400
+Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 0257D218D3
+        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 18:47:47 +0000 (UTC)
+Received: by mail-wr1-f51.google.com with SMTP id o12so18250742wrn.2
+        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 11:47:46 -0700 (PDT)
 MIME-Version: 1.0
-References: <20190423163809.9962-1-hch@lst.de> <CAK8P3a3D7F07kJAXp9yOh7FqEzL8rZeO5Xo9tGxpXFsibpShgg@mail.gmail.com>
- <20190423183232.GA26846@lst.de>
-In-Reply-To: <20190423183232.GA26846@lst.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 23 Apr 2019 20:41:02 +0200
-Message-ID: <CAK8P3a35AD7p6aHS3B2ovZVVBnzEcc-Yt6c1xQHMdWkMY8fV7w@mail.gmail.com>
-Subject: Re: kill <asm/segment.h> and improve nommu generic uaccess helpers
+References: <CAK7LNAQwHRJL=3yD_7P2mMSVnwZbayww+dHC22+v4oTpMZv58w@mail.gmail.com>
+In-Reply-To: <CAK7LNAQwHRJL=3yD_7P2mMSVnwZbayww+dHC22+v4oTpMZv58w@mail.gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Tue, 23 Apr 2019 11:47:34 -0700
+Message-ID: <CALCETrVSM0vrMVr2y0ECAQ=tNGvBs=im2Kxongq-jvdzUBevbg@mail.gmail.com>
+Subject: Re: Does vdso_install attempt to re-compile objects under root privilege?
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190423184734.lFOXKUFYwCqKMwaJ8p3xgU2xgRGgH0KeIjwVFnEOC3U@z>
 
-On Tue, Apr 23, 2019 at 8:32 PM Christoph Hellwig <hch@lst.de> wrote:
+On Thu, Apr 18, 2019 at 1:08 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
 >
-> On Tue, Apr 23, 2019 at 08:27:29PM +0200, Arnd Bergmann wrote:
-> > Should I pick this up into my asm-generic tree, or do you have another tree
-> > that this fits into? I might be on vacation during the entire merge window
-> > this time and don't have anything else for asm-generic, so I'd prefer if someone
-> > else could merge them.
+> Hi.
 >
-> Not sure where else it would fit.  It is in support for the RISC-V
-> nommu port, but that isn't ready for the merge window.
+> I have a question about 'vdso_install'.
+>
+>
+> In my understanding, vdso is embedded in the kernel.
+> In addition, you can run 'make vdso_install'
+> to install an unstripped version of vdso.
+> (Mainly, debugging purpose?)
+>
+> By default, 'make vdso_install' will install it to
+> /lib/modules/$(uname -r)/vdso/.
+>
+>
+> Since that directly is owned by root,
+> 'make vdso_install' could potentially be
+> executed by root, isn't it?
+>
+>
+> Currently, 'vdso_install' depends on vdso,
+> so it may cause recompilation of objects
+> in the source tree.
 
-If RISC-V want it, I don't see a problem with merging those patches
-as preparation through the riscv git tree with my Ack for the asm-generic
-portion.
+Hmm.  I suppose an alternative would be for vdso_install to fail if
+the vdso isn't built?
 
-      Arnd
+What's the ideal outcome here?
