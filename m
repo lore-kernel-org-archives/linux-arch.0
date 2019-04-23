@@ -1,29 +1,78 @@
-From: Meelis Roos <mroos@linux.ee>
-Subject: Re: DISCONTIGMEM is deprecated
-Date: Tue, 23 Apr 2019 19:49:57 +0300
-Message-ID: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+ files to *.rst
+Date: Tue, 23 Apr 2019 10:54:15 -0600
+Message-ID: <20190423105415.3a69a0cb@lwn.net>
+References: <20190423132100.GB7132@redhat.com>
+        <cover.1555938375.git.mchehab+samsung@kernel.org>
+        <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+        <20190423083135.GA11158@hirez.programming.kicks-ass.net>
+        <20190423125519.GA7104@redhat.com>
+        <20190423130132.GT4038@hirez.programming.kicks-ass.net>
+        <20704.1556031146@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
-Content-Language: et-EE
+In-Reply-To: <20704.1556031146@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christopher Lameter <cl@linux.com>
-Cc: Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
->> ia64 (looks complicated ...)
+On Tue, 23 Apr 2019 15:52:26 +0100
+David Howells <dhowells@redhat.com> wrote:
+
+> There've been some changes that I've particularly objected to, such as
+> removing contents lists from files and replacing them with markup like:
 > 
-> Well as far as I can tell it was not even used 12 or so years ago on
-> Itanium when I worked on that stuff.
+> 	.. contents:: :local:
+> 
+> This actually impedes use of the file.  It should not be necessary to build
+> the docs to get that for ordinary use.
 
-My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
-SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
-NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
+Usability of the text files versus that of the built docs is occasionally
+something that has to be traded off.  As a general rule, I want the text
+files to remain useful on their own.  There is a lot of value in the
+built docs for a lot of people, but that should not be the only, or even
+the primary, form of access
 
--- 
-Meelis Roos
+Tables of contents are certainly a place where that tradeoff makes itself
+felt.  Doing them by hand ensures that they are always present, but
+requires that people editing the docs also maintain the TOCS - something
+that experience has shown tends not to happen.  That's more of a pain
+than a little bit of markup, and people don't do it.  An automatically
+generated TOC, instead, is always correct and is linkable.
+
+Few people complain about the biggest impediment to the readability of
+text files, though: the use of kerneldoc comments.  That splits the
+information between the text file and multiple random-seeming locations
+among tends of thousands of source files.  Sometimes the solution here is
+to move all of the documentation into the source, but that tends to
+fragment it and make it harder to find; it's certainly not the right
+place for many kinds of docs.  In general, it's hard to create a coherent
+story that way.
+
+Suggestions / patches on how to improve things for *all* users of the
+docs are certainly welcome!
+
+I am, incidentally, toying with the idea of trying to put together a
+documentation microconf at the Linux Plumbers Conference this year.  If
+anybody out there thinks that's a good idea and would like to
+participate, please let me know.
+
+> Anyway, the biggest doc issue in the kernel isn't addressed by the conversion
+> to ReST: and that is that most people don't seem interested in documenting
+> stuff - whether because writing documentation isn't as fun as writing code or
+> the fact that English isn't their native language, I don't know.  I can
+> sympathise more with the latter.
+
+I believe there's enough experience now to say that using RST increases
+contributions to the documentation.  Just having something that approaches
+a coherent approach to docs (though we are a *long* way from that still)
+makes the whole thing more accessible.  It doesn't solve our
+documentation issues by any stretch, but it helps.
+
+Thanks,
+
+jon
