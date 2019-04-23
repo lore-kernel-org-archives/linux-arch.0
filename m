@@ -1,75 +1,49 @@
-From: Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
-	files to *.rst
-Date: Tue, 23 Apr 2019 17:19:44 -0300
-Message-ID: <20190423171944.7ac6db54@coco.lan>
-References: <cover.1555938375.git.mchehab+samsung@kernel.org>
-	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
-	<20190423125519.GA7104@redhat.com>
-	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
-	<20190423103053.07cf2149@lwn.net>
-	<20190423171158.GG12232@hirez.programming.kicks-ass.net>
-	<20190423115349.589c3d50@lwn.net>
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
+ resolution
+Date: Tue, 23 Apr 2019 22:24:06 +0200
+Message-ID: <20190423202405.wzs7lkjqgrlzwyu5@brauner.io>
+References: <20190320143717.2523-1-cyphar@cyphar.com>
+ <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
+ <20190325130429.dbrgjxnvq3w5cpb3@yavin>
+ <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20190423115349.589c3d50-T1hC0tSOHrs@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
-Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless@v
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation>
 List-Id: linux-arch.vger.kernel.org
 
-Em Tue, 23 Apr 2019 11:53:49 -0600
-Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org> escreveu:
-
-> On Tue, 23 Apr 2019 19:11:58 +0200
-> Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+On Tue, Apr 23, 2019 at 01:13:52PM -0700, Kees Cook wrote:
+> On Mon, Mar 25, 2019 at 6:05 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> >
+> > On 2019-03-21, Andy Lutomirski <luto@kernel.org> wrote:
+> > > On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > > > Now that the holiday break is over, it's time to re-send this patch
+> > > > series (with a few additions, due to new information we got from
+> > > > CVE-2019-5736 -- which this patchset mostly protected against but had
+> > > > some holes with regards to #!-style scripts).
+> > >
+> > > I generally like this, but, as Linus pointed out, it will be
+> > > unfortunate if application authors see this as just another
+> > > non-portable weird Linux API and don't use it.  Would it be worthwhile
+> > > to put some thought into making it an API that other OSes might be
+> > > willing to implement?  As it stands, the openat(2) flags are getting
+> > > rather crazy in this patch set.
 > 
-
-> > Look at crap like this:
-> > 
-> > "The memory allocations via :c:func:`kmalloc`, :c:func:`vmalloc`,
-> > :c:func:`kmem_cache_alloc` and"
-> > 
-> > That should've been written like:
-> > 
-> > "The memory allocations via kmalloc(), vmalloc(), kmem_cache_alloc()
-> > and"  
+> I think many of the issues are specific to Linux (and Linux containers
+> especially), so I'm not sure this should get blocked because we want
+> something more portable.
 > 
-> Yeah, I get it.  That markup generates cross-references, which can be
-> seriously useful for readers - we want that.  But I do wonder if we
-> couldn't do it automatically with just a little bit of scripting work.
-> It's not to hard to recognize this_is_a_function(), after all.  I'll look
-> into that, it would definitely help to remove some gunk from the source
-> docs.
+> This series provides solutions to so many different race and confusion
+> issues, I'd really like to see it land. What's the next step here? Is
+> this planned to go directly to Linus for v5.2, or is it going to live
+> in -mm for a while? I'd really like to see this moving forward.
 
-While on it, one thing that I noticed on several documents is that
-they reference other documents by their names. On this conversion,
-I avoided replacing that by a :ref:`` tag or a :doc:`` tag. I only
-added cross references on two cases:
+Yeah, it would be good to move this forward. But since this is pretty
+much core-vfs we really need Al to take a look at this.
 
-	- a latex file that got converted to ReST and had such
-	  cross-references already;
-
-	- one of the document sets that seemed to be using some other
-	  markup language very close to ReST, but with a different
-	  cross-reference markup. So, I just converted it to use
-	  the syntax that Sphinx would recognize.
-
-Anyway, one of the things that occurred to me is that maybe
-some scripting work or a ReST extension could do something to parse
-"Documentation/foo" as :doc:`Documentation/foo` without needing to 
-explicitly use any ReST specific tags.
-
-Thanks,
-Mauro
+Christian
