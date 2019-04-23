@@ -1,31 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44306 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725888AbfDWISo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 04:18:44 -0400
-Date: Tue, 23 Apr 2019 10:18:39 +0200 (CEST)
-From: Miroslav Benes <mbenes@suse.cz>
-Subject: Re: [patch V2 25/29] livepatch: Simplify stack trace retrieval
-In-Reply-To: <20190418084255.364915116@linutronix.de>
-Message-ID: <alpine.LSU.2.21.1904231014200.19172@pobox.suse.cz>
-References: <20190418084119.056416939@linutronix.de> <20190418084255.364915116@linutronix.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54872 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726150AbfDWLbt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 07:31:49 -0400
+Date: Tue, 23 Apr 2019 12:31:42 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [RESEND PATCH v3 02/11] arm64: mark (__)cpus_have_const_cap as
+ __always_inline
+Message-ID: <20190423113142.GB56999@lakrids.cambridge.arm.com>
+References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+ <20190423034959.13525-3-yamada.masahiro@socionext.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190423034959.13525-3-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190423081839.lv6A3eRClmEuB03nC372gbGHZKVckaQ9JHvVb8Dofjc@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, will.deacon@arm.com, catalin.marinas@arm.com, marc.zyngier@arm.com
+Message-ID: <20190423113142.PnwgzyUexR1gJ3dfUMGRiZfwZ0sQBXp4ex4QipZJUKY@z>
 
-On Thu, 18 Apr 2019, Thomas Gleixner wrote:
+[adding relevant arm64 folk to Cc]
 
-> Replace the indirection through struct stack_trace by using the storage
-> array based interfaces.
+On Tue, Apr 23, 2019 at 12:49:50PM +0900, Masahiro Yamada wrote:
+> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+> place. We need to eliminate potential issues beforehand.
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> If it is enabled for arm64, the following errors are reported:
+> 
+> In file included from ././include/linux/compiler_types.h:68,
+>                  from <command-line>:
+> ./arch/arm64/include/asm/jump_label.h: In function 'cpus_have_const_cap':
+> ./include/linux/compiler-gcc.h:120:38: warning: asm operand 0 probably doesn't match constraints
+>  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
+>                                       ^~~
+> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro 'asm_volatile_goto'
+>   asm_volatile_goto(
+>   ^~~~~~~~~~~~~~~~~
+> ./include/linux/compiler-gcc.h:120:38: error: impossible constraint in 'asm'
+>  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
+>                                       ^~~
+> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro 'asm_volatile_goto'
+>   asm_volatile_goto(
+>   ^~~~~~~~~~~~~~~~~
+> 
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 
-Acked-by: Miroslav Benes <mbenes@suse.cz>
+This looks sound to me, and from a quick scan of v5.1-rc6 with:
 
-Feel free to take it through tip or let us know to pick it up.
+$ git grep -wW inline -- arch/arm64
 
-Miroslav
+... I didn't spot any other sites which obviously needed to be made
+__always_inline.
+
+I've built and booted this atop of defconfig and my usual suite of debug
+options for fuzzing, at EL1 under QEMU/KVM, and at EL2 under QEMU/TCG,
+with no issues in either case, so FWIW:
+
+Tested-by: Mark Rutland <mark.rutland@arm.com>
+
+Thanks,
+Mark.
+
+> ---
+> 
+> Changes in v3: None
+> Changes in v2:
+>   - split into a separate patch
+> 
+>  arch/arm64/include/asm/cpufeature.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+> index e505e1fbd2b9..77d1aa57323e 100644
+> --- a/arch/arm64/include/asm/cpufeature.h
+> +++ b/arch/arm64/include/asm/cpufeature.h
+> @@ -406,7 +406,7 @@ static inline bool cpu_have_feature(unsigned int num)
+>  }
+>  
+>  /* System capability check for constant caps */
+> -static inline bool __cpus_have_const_cap(int num)
+> +static __always_inline bool __cpus_have_const_cap(int num)
+>  {
+>  	if (num >= ARM64_NCAPS)
+>  		return false;
+> @@ -420,7 +420,7 @@ static inline bool cpus_have_cap(unsigned int num)
+>  	return test_bit(num, cpu_hwcaps);
+>  }
+>  
+> -static inline bool cpus_have_const_cap(int num)
+> +static __always_inline bool cpus_have_const_cap(int num)
+>  {
+>  	if (static_branch_likely(&arm64_const_caps_ready))
+>  		return __cpus_have_const_cap(num);
+> -- 
+> 2.17.1
+> 
