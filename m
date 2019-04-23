@@ -1,117 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr100130.outbound.protection.outlook.com ([40.107.10.130]:20864
-        "EHLO GBR01-LO2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727180AbfDWP5f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 11:57:35 -0400
-From: Gary Guo <gary@garyguo.net>
-Subject: Re: [PATCH] riscv: Support non-coherency memory model
-Date: Tue, 23 Apr 2019 15:57:30 +0000
-Message-ID: <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
-References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
- <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
- <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460>
-In-Reply-To: <20190423154642.GA16001@guoren-Inspiron-7460>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <17B373646E5003478C80CDE18E54E795@GBRP265.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+Received: from pegase1.c-s.fr ([93.17.236.30]:7553 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728565AbfDWQdR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 12:33:17 -0400
+Subject: Re: [PATCH v2 2/5] powerpc: Fix vDSO clock_getres()
+References: <20190416161434.32691-1-vincenzo.frascino@arm.com>
+ <20190416161434.32691-3-vincenzo.frascino@arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <5f59aad9-f6d2-5622-b183-4506f13eedbd@c-s.fr>
+Date: Tue, 23 Apr 2019 18:33:12 +0200
 MIME-Version: 1.0
+In-Reply-To: <20190416161434.32691-3-vincenzo.frascino@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <guoren@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
-Message-ID: <20190423155730._aOLLXbtB2lGplaUpqhdErZRaf78ijvL90KSR9ExR7Q@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Greentime Hu <green.hu@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincent Chen <deanbo422@gmail.com>, Shuah Khan <shuah@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20190423163312.iDfM7il1FKFSlrr_XFmJpz847UW7CAETBCBxivXUqgs@z>
 
-DQoNCk9uIDIzLzA0LzIwMTkgMTY6NDYsIEd1byBSZW4gd3JvdGU6DQo+IE9uIFR1ZSwgQXByIDIz
-LCAyMDE5IGF0IDA3OjU1OjQ4QU0gKzAyMDAsIENocmlzdG9waCBIZWxsd2lnIHdyb3RlOg0KPj4g
-T24gVHVlLCBBcHIgMjMsIDIwMTkgYXQgMDg6MTM6NDhBTSArMDgwMCwgR3VvIFJlbiB3cm90ZToN
-Cj4+Pj4gV2Ugc2hvdWxkIHByb2JhYmx5IHN0YXJ0IGEgd29ya2luZyBncm91cCBmb3IgdGhpcyBB
-U0FQIHVubGVzcyB3ZSBjYW4NCj4+Pj4gZ2V0IGFub3RoZXIgd29ya2luZyBncm91cCB0byBoZWxw
-IHRha2luZyBjYXJlIG9mIGl0Lg0KPj4+IEdvb2QgbmV3cywgSSBwcmVmZXIgdG8gdXNlIGluc3Ry
-dWN0aW9ucyBkaXJlY3RseSBpbnN0ZWFkIG9mIFNCSV9DQUxMLg0KPj4+DQo+Pj4gT3VyIGluc3Ry
-dWN0aW9uIGlzICJkY2FjaGUuYy9pdmEgJTAiIChvbmUgY2FjaGUgbGluZSkgYW5kIHRoZSBwYXJh
-bWV0ZXIgaXMNCj4+PiB2aXJ0dWFsIGFkZHJlc3MgaW4gUy1zdGF0ZS4gV2hlbiBnZXQgaW50byBN
-LXN0YXRlIGJ5IFNCSV9DQUxMLCB3ZSBjb3VsZA0KPj4+IGxldCBkY2FjaGUuYy9pdmEgdXNlIHBo
-eXNpY2FsIGFkZHJlcyBkaXJlY3RseSBhbmQgaXQgbmVlZG4ndCBrbWFwIHBhZ2UNCj4+PiBmb3Ig
-UlYzMiB3aXRoIGhpZ2htZW0gKE9mIGNhdXNlIGhpZ2htZW0gaXMgbm90IHJlYWR5IGluIFJWMzIg
-bm93KS4NCj4+DQo+PiBTbyB5b3Ugb25seSBoYXZlIG9uZSBpbnN0cnVjdGlvbiB2YXJpYW50PyAg
-Tm9ybWFsbHkgd2UnZCBoYXZlIHR3byBvcg0KPj4gdGhyZWUgdG8gaW1wbGVtZW50IHRoZSBub24t
-Y29oZXJlbnQgRE1BIChvciBwbWVtKSBzZW1hbnRpY3M6DQo+IGRjYWNoZS5jL2l2YSBtZWFucyB0
-aHJlZSBpbnN0cnVjdGlvbnM6DQo+ICAgLSBkY2FjaGUuY3ZhICUwICA6IHdyaXRlYmFjayAgICAg
-YnkgdmlydHVhbCBhZGRyZXNzIGNhY2hlbGluZQ0KPiAgIC0gZGNhY2hlLml2YSAlMCAgOiBpbnZh
-bGlkICAgICAgIGJ5IHZpcnR1YWwgYWRkcmVzcyBjYWNoZWxpbmUNCj4gICAtIGRjYWNoZS5jaXZh
-ICUwIDogd3JpdGViYWNrK2ludiBieSB2aXJ0dWFsIGFkZHJlc3MgY2FjaGVsaW5lDQo+IA0KPiBX
-ZSBhbHNvIGhhdmUgbWVtb3J5IGJhcnJpZXIgaW5zdHJ1Y3Rpb25zLCByZWY6DQo+IGh0dHBzOi8v
-Z2l0Lmtlcm5lbC5vcmcvcHViL3NjbS9saW51eC9rZXJuZWwvZ2l0L3RvcnZhbGRzL2xpbnV4Lmdp
-dC90cmVlL2FyY2gvY3NreS9pbmNsdWRlL2FzbS9iYXJyaWVyLmgNCj4gDQo+Pg0KPj4gY2FjaGUg
-d3JpdGViYWNrLCBjYWNoZSBpbnZhbGlkYXRlIGFuZCBwb3RlbnRpYWxseSBjYWNoZSB3cml0ZWJh
-Y2sgKw0KPj4gaW52YWxpZGF0ZSB0byBvcHRpbWl6ZSB0aGF0IGNhc2UuICBIZXJlIGlzIHRoZSB0
-YWJsZSBob3cgTGludXgNCj4+IHVzZXMgdGhlbSBmb3IgRE1BOg0KPj4NCj4+ICAgICAgICAgICAg
-fCAgIG1hcCAgICAgICAgICA9PSAgZm9yX2RldmljZSAgICAgfCAgIHVubWFwICAgICA9PSAgZm9y
-X2NwdQ0KPj4gICAgICAgICAgICB8LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPj4gICBUT19ERVYgICB8ICAgd3JpdGViYWNr
-ICAgICAgICB3cml0ZWJhY2sgICAgICB8ICAgbm9uZSAgICAgICAgICBub25lDQo+PiAgIEZST01f
-REVWIHwgICBpbnZhbGlkYXRlICAgICAgIGludmFsaWRhdGUgICAgIHwgICBpbnZhbGlkYXRlKiAg
-IGludmFsaWRhdGUqDQo+PiAgIEJJREkgICAgIHwgICB3cml0ZWJhY2sraW52ICAgIHdyaXRlYmFj
-aytpbnYgIHwgICBpbnZhbGlkYXRlICAgIGludmFsaWRhdGUNCj4+DQo+PiAgICAgICBbKl0gbmVl
-ZGVkIGZvciBDUFUgc3BlY3VsYXRpdmUgcHJlZmV0Y2hlcw0KPj4NCj4+DQo+PiBXZSBhbHJlYWR5
-IGhhdmUgYSBkaXNjdXNzaW9uIG9uIGlzYS1kZXYgb24gc29tZXRoaW5nIGxpa2UgdGhlc2UNCj4+
-IGluc3RydWN0aW9uczoNCj4+DQo+PiBodHRwczovL2dyb3Vwcy5nb29nbGUuY29tL2EvZ3JvdXBz
-LnJpc2N2Lm9yZy9mb3J1bS8jIW1zZy9pc2EtZGV2L3FYYnpxYVFiRFhVLzRUaGNFQWVDQ0FBSg0K
-Pj4NCj4+IEl0IGdvdCBhIGxpdHRsZSBzaWRlIHRyYWNrZWQsIGJvdGggZHVlIHRvIHRoZSB1c3Vh
-bCBub2lzZSBvbiBpc2EtZGV2DQo+PiBhbmQgZHVlIHRvIHRoZSBwcm9wb3NhbCBpbmNsdWRpbmcg
-YSBsb3QgbW9yZSBpbnN0cnVjdGlvbnMgdGhhdCBtaWdodCBiZQ0KPj4gYSBsaXR0bGUgbW9yZSBj
-b250ZW50aW91cywgYnV0IGl0IG1pZ2h0IGJlIGEgZ29vZCBzdGFydCB0byBicmluZyB0aGlzDQo+
-PiBpbnRvIGEgd29ya2luZyBncm91cC4NCj4gSSB0aGluayB1c2luZyBzYmlfY2FsbCBhcyBhIHRl
-bXBvcmFyeSBzb2x1dGlvbiBpcyBhIGdvb2QgY2hvaWNlIGJlZm9yZQ0KPiB0aGUgaW5zdHJ1Y3Rp
-b24gaXMgZGV0ZXJtaW5lZC4NCj4gDQo+Pg0KPj4+PiBBbHNvIGlzIHRoaXMgcmVhbGx5IGEgY29o
-ZXJlbnQgZmxhZywgb3IgYW4gJ3VuY2FjaGVkJyBmbGFnIGxpa2UgaW4NCj4+Pj4gbWFueSBvdGhl
-ciBhcmNoaXRlY3R1cmVzPw0KPj4+IFRoZXJlIGFyZSBhIGxvdCBvZiBmZWF0dXJlcyBhYm91dCBj
-b2hlcmVuY3kgYXR0cmlidXRlcywgZWc6IGNhY2hlYWJsZSwNCj4+PiBidWZmZXJhYmxlLCBzdHJv
-bmcgb3JkZXIgLi4uLCBhbmQgY29oZXJlbmN5IGlzIGEgbW9yZSBhYnN0cmFjdCBuYW1lIHRvDQo+
-Pj4gY29udGFpbiBhbGwgb2YgdGhlc2UuIEluIG91ciBoYXJkd2FyZSwgY29oZXJlbmNlID0gdW5j
-YWNoZWQgKw0KPj4+IHVuYnVmZmVyYWJsZSArIChzdG9uZyBvcmRlcikuDQo+Pj4NCj4+PiBCdXQg
-SSdtIG5vdCB2ZXJ5IGNhcmUgYWJvdXQgdGhlIG5hbWUgaXMsIHVuY2FjaGVkIGlzIGFsc28gb2su
-IE15IGtleQ0KPj4+IHBvaW50IGlzIHRoZSBiaXRzIG9mIHBhZ2UgYXR0cmlidXRlcyBpcyB2ZXJ5
-IHByZWNpb3VzIGFuZCB0aGlzIHBhdGNoDQo+Pj4gd2lsbCB1c2UgdGhlIGxhc3QgdW51c2VkIGF0
-dHJpYnV0ZSBiaXQgaW4gUFRFLg0KPj4NCj4+IEkgZG9uJ3QgY2FyZSBhYm91dCB0aGUgbmFtZSBh
-Y3R1YWxseSwgbW9yZSBhYm91dCBoYXZpbmcgZGVmaW5lZCBzZW1hbnRpY3MuDQo+PiBUb3RhbGx5
-IHVuY2FjaGVkIHNob3VsZCBpbmNsdWRlIHVuYnVmZmVyZWQuICBJIGRvbid0IHRoaW5rIHdlIG5l
-ZWQgdGhlDQo+PiBzdHJvbmcgb3JkZXJpbmcgZm9yIERNQSBtZW1vcnkgZWl0aGVyLg0KPiBZZXMs
-IG1lbW9yeSBkb24ndCBuZWVkIHN0cm9uZyBvcmRlciBhbmQgc3Ryb25nIG9yZGVyIGluIFBNQSBh
-bHNvIGltcGxpZXMNCj4gdW5jYWNoZWQsIHVuYnVmZmVyZWQgZm9yIElPIGFkZHJlc3MuIElmIHRo
-ZSBlbnRyeSBvZiBQTUEgaXMgc3Ryb25nDQo+IG9yZGVyLCB0aGUgcGFnZSBtYXBwaW5nIG11c3Qg
-YmUgdW5jYWNoZWQgKyB1bmJ1ZmZlcmVkICsgc3Ryb25nLW9yZGVyDQo+IHdpdGhvdXQgX1BBR0Vf
-Q09IRU5DWSBpbiBQVEUuDQo+IA0KPj4NCj4+PiBBbm90aGVyIHBvaW50IGlzIHdlIGNvdWxkIGdl
-dCBtb3JlIGF0dHJpYnV0ZSBiaXRzIGJ5IG1vZGlmeSB0aGUgcmlzY3YNCj4+PiBzcGVjOg0KPj4+
-ICAgLSBSZW1vdmUgR2xvYmFsIGJpdCwgSSB0aGluayBpdCdzIGR1cGxpY2F0ZSB3aXRoIHRoZSBV
-c2VyIGJpdCBpbiBsaW51eC4NCj4+DQo+PiBJdCBpcyBpbiBMaW51eCwgYnV0IGl0IGlzIGNvbmNl
-cHR1YWxseSB2ZXJ5IGRpZmZlcmVudC4NCj4gWWVzLCBidXQgaGFyZHdhcmUgY291bGQgaWdub3Jl
-IG9uZSBvZiB0aGVtIGFuZCBpbiByaXNjdiBsaW51eA0KPiBfUEFHRV9HTE9CQUwgaXMgbm8gdXNl
-IGF0IGFsbCwgc2VlOg0KPiBncmVwIF9QQUdFX0dMT0JBTCBhcmNoL3Jpc2N2IC1yDQo+IA0KPiBJ
-biBmYWN0LCB0aGUgX1BBR0VfS0VSTkVMIGZvciBwdGUgZG9lc24ndCBjb250YWluIF9QQUdFX0dM
-T0JBTCBhbmQgaXQNCj4gd29ya3Mgb24gRlU1NDAgYW5kIHFlbXUuIEFzIEkndmUgbWVudGlvbmVk
-IHBhZ2UgYXR0cmlidXRlIGJpdHMgaXMgdmVyeQ0KPiBwcmVjaW91cywgZGVmaW5lIGEgdXNlbGVz
-cyBiaXQgbWFrZSBwZW9wbGUgY29uZnVzZWQuDQogPg0KDQpUaGUgZmFjdCB0aGF0IGl0IGlzbid0
-IHVzZWQgeWV0IGRvZXNuJ3QgaW1wbHkgaXQgaXMgbm90IHVzZWZ1bC4gV2UgZG9uJ3QgDQp1c2Ug
-QVNJRHMgYXQgdGhlIG1vbWVudCwgYW5kIHdpdGhvdXQgdXNpbmcgQVNJRHMgdGhlICJnbG9iYWwi
-IGJpdCBpcyANCmluZGVlZCBub3QgdXNlZnVsLiBIb3dldmVyIHdpdGggQVNJRHMgdGhlIGJpdCB3
-aWxsIGJlIHZpdGFsIGZvciBzYXZpbmcgDQpUTEIgc3BhY2VzLiBXaXRob3V0IHRoZSBnbG9iYWwg
-Yml0LCB0aGUga2VybmVsIHBhZ2VzIGJlY29tZSBzeW5vbnltcyB0byANCnRoZW1zZWx2ZXMgKGku
-ZS4gdGhleSBoYXZlIGRpZmZlcmVudCB0YWdzIGluIFRMQiBidXQgcmVmZXIgdG8gdGhlIHNhbWUg
-DQpwaHlzaWNhbCBwYWdlKS4NCg0KVGhlIGdsb2JhbCBiaXQgYWxzbyBleGlzdHMgaW4gbWFueSBv
-dGhlciBJU0FzIGFzIHdlbGwuIEl0J3MgZGVmaW5pdGVseSANCm5vdCBhICJ1c2VsZXNzIiBiaXRz
-Lg0KDQpNb3Jlb3ZlciwgdGhpcyBiaXQgaXMgYWxyZWFkeSBpbXBsZW1lbnRlZCBpbiBib3RoIFJv
-Y2tldCBhbmQgQXJpYW5lLiBJdCANCmlzIGFsc28gaW4gdGhlIHNwZWMgZm9yIHF1aXRlIGEgd2hp
-bGUuIFRoZSBmYWN0IHRoYXQgTGludXggZG9lc24ndCB1c2UgDQppdCBhdCB0aGUgbW9tZW50IGlz
-IG5vdCBhIHJlYXNvbiBmb3IgcmVtb3ZpbmcgaXQuDQoNCj4gDQo+Pg0KPj4+ICAgLSBDaGFuZ2Ug
-X1BBR0VfUEZOX1NISUZUIGZyb20gMTAgdG8gMTIsIGJlY2F1c2UgdGhlIGh1Z2UgcGZuIGluIFJW
-MzIgaXMNCj4+PiAgICAgdmVyeSB1c2VsZXNzIGFuZCBjdXJyZW50IFJWMzIgbGludXggZG9lc24n
-dCBldmVuIGltcGxlbWVudCBoaWdobWVtLg0KPj4NCj4+IFRoaXMgd291bGQgc2VlbSBzZW5zaWJs
-ZSB0byBtZSwgYnV0IEknbSBub3Qgc3VyZSBldmVyeW9uZSBhZ3JlZXMuICBFdmVuDQo+PiB0aGVu
-IHdlIGFyZSB2ZXJ5IGxhdGUgaW4gdGhlIGdhbWUgZm9yIGNoYW5nZXMgbGlrZSB0aGF0Lg0KPiBB
-Z3JlZS4NCj4gDQo+IEJlc3QgUmVnYXJkcw0KPiAgIEd1byBSZW4NCj4gDQo+IF9fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fDQo+IGxpbnV4LXJpc2N2IG1haWxp
-bmcgbGlzdA0KPiBsaW51eC1yaXNjdkBsaXN0cy5pbmZyYWRlYWQub3JnDQo+IGh0dHA6Ly9saXN0
-cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtcmlzY3YNCj4gDQo=
+
+
+Le 16/04/2019 à 18:14, Vincenzo Frascino a écrit :
+> clock_getres in the vDSO library has to preserve the same behaviour
+> of posix_get_hrtimer_res().
+> 
+> In particular, posix_get_hrtimer_res() does:
+>      sec = 0;
+>      ns = hrtimer_resolution;
+> and hrtimer_resolution depends on the enablement of the high
+> resolution timers that can happen either at compile or at run time.
+> 
+> Fix the powerpc vdso implementation of clock_getres keeping a copy of
+> hrtimer_resolution in vdso data and using that directly.
+> 
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
+
+> ---
+>   arch/powerpc/include/asm/vdso_datapage.h  | 2 ++
+>   arch/powerpc/kernel/asm-offsets.c         | 2 +-
+>   arch/powerpc/kernel/time.c                | 1 +
+>   arch/powerpc/kernel/vdso32/gettimeofday.S | 7 +++++--
+>   arch/powerpc/kernel/vdso64/gettimeofday.S | 7 +++++--
+>   5 files changed, 14 insertions(+), 5 deletions(-)
+> 
+> diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
+> index bbc06bd72b1f..4333b9a473dc 100644
+> --- a/arch/powerpc/include/asm/vdso_datapage.h
+> +++ b/arch/powerpc/include/asm/vdso_datapage.h
+> @@ -86,6 +86,7 @@ struct vdso_data {
+>   	__s32 wtom_clock_nsec;			/* Wall to monotonic clock nsec */
+>   	__s64 wtom_clock_sec;			/* Wall to monotonic clock sec */
+>   	struct timespec stamp_xtime;		/* xtime as at tb_orig_stamp */
+> +	__u32 hrtimer_res;			/* hrtimer resolution */
+>      	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
+>      	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+>   };
+> @@ -107,6 +108,7 @@ struct vdso_data {
+>   	__s32 wtom_clock_nsec;
+>   	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
+>   	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
+> +	__u32 hrtimer_res;		/* hrtimer resolution */
+>      	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+>   	__u32 dcache_block_size;	/* L1 d-cache block size     */
+>   	__u32 icache_block_size;	/* L1 i-cache block size     */
+> diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+> index 86a61e5f8285..52e4b98a8492 100644
+> --- a/arch/powerpc/kernel/asm-offsets.c
+> +++ b/arch/powerpc/kernel/asm-offsets.c
+> @@ -383,6 +383,7 @@ int main(void)
+>   	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
+>   	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
+>   	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
+> +	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
+>   	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
+>   	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
+>   	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
+> @@ -413,7 +414,6 @@ int main(void)
+>   	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
+>   	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
+>   	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
+> -	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
+>   
+>   #ifdef CONFIG_BUG
+>   	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
+> diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
+> index bc0503ef9c9c..62c04a6746d8 100644
+> --- a/arch/powerpc/kernel/time.c
+> +++ b/arch/powerpc/kernel/time.c
+> @@ -955,6 +955,7 @@ void update_vsyscall(struct timekeeper *tk)
+>   	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
+>   	vdso_data->stamp_xtime = xt;
+>   	vdso_data->stamp_sec_fraction = frac_sec;
+> +	vdso_data->hrtimer_res = hrtimer_resolution;
+>   	smp_wmb();
+>   	++(vdso_data->tb_update_count);
+>   }
+> diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+> index afd516b572f8..2b5f9e83c610 100644
+> --- a/arch/powerpc/kernel/vdso32/gettimeofday.S
+> +++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+> @@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>   	bne	cr0,99f
+>   
+> +	mflr	r12
+> +  .cfi_register lr,r12
+> +	bl	__get_datapage@local
+> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+> +	mtlr	r12
+>   	li	r3,0
+>   	cmpli	cr0,r4,0
+>   	crclr	cr0*4+so
+>   	beqlr
+> -	lis	r5,CLOCK_REALTIME_RES@h
+> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+>   	stw	r3,TSPC32_TV_SEC(r4)
+>   	stw	r5,TSPC32_TV_NSEC(r4)
+>   	blr
+> diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
+> index 1f324c28705b..f07730f73d5e 100644
+> --- a/arch/powerpc/kernel/vdso64/gettimeofday.S
+> +++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
+> @@ -190,12 +190,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+>   	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+>   	bne	cr0,99f
+>   
+> +	mflr	r12
+> +  .cfi_register lr,r12
+> +	bl	V_LOCAL_FUNC(__get_datapage)
+> +	lwz	r5,CLOCK_REALTIME_RES(r3)
+> +	mtlr	r12
+>   	li	r3,0
+>   	cmpldi	cr0,r4,0
+>   	crclr	cr0*4+so
+>   	beqlr
+> -	lis	r5,CLOCK_REALTIME_RES@h
+> -	ori	r5,r5,CLOCK_REALTIME_RES@l
+>   	std	r3,TSPC64_TV_SEC(r4)
+>   	std	r5,TSPC64_TV_NSEC(r4)
+>   	blr
+> 
