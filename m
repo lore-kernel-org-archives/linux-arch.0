@@ -1,68 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:33183 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727877AbfDWOlw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 10:41:52 -0400
-Received: by mail-it1-f194.google.com with SMTP id v8so2810625itf.0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 07:41:52 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:40042 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727467AbfDWOwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 10:52:34 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20190423132100.GB7132@redhat.com>
+References: <20190423132100.GB7132@redhat.com> <cover.1555938375.git.mchehab+samsung@kernel.org> <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org> <20190423083135.GA11158@hirez.programming.kicks-ass.net> <20190423125519.GA7104@redhat.com> <20190423130132.GT4038@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST files to *.rst
 MIME-Version: 1.0
-References: <00000000000043fe9c058720a5d3@google.com> <ad884b18-0e03-d6be-02b0-4e5273f068ce@kernel.dk>
- <CAHk-=wgG=RqK8T5kWiZfH7da6rBuqp3kAesP=ETgceb6RzvZng@mail.gmail.com>
- <53a17444-9539-5810-82a0-ceeefa742508@kernel.dk> <cfa6be6d-4125-6d1e-8993-e9ec9dbaa7bb@kernel.dk>
- <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
-In-Reply-To: <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
-From: Dmitry Vyukov <dvyukov@google.com>
-Date: Tue, 23 Apr 2019 17:41:40 +0300
-Message-ID: <CACT4Y+b8dkFzQoJgaNLMiDjF4bM1AeSZaH5EWTvF_o5MQhu4Pg@mail.gmail.com>
-Subject: Re: WARNING in percpu_ref_kill_and_confirm
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <20703.1556031146.1@warthog.procyon.org.uk>
+Date: Tue, 23 Apr 2019 15:52:26 +0100
+Message-ID: <20704.1556031146@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jens Axboe <axboe@kernel.dk>, syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Anvin <hpa@zytor.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, syzkaller-bugs <syzkaller-bugs@googlegroups.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, the arch/x86 maintainers <x86@kernel.org>, syzkaller <syzkaller@googlegroups.com>
-Message-ID: <20190423144140.nSfdjMdXhTrZDso0V06UW4aiObgyr0ADGtswpWytFvQ@z>
+To: Mike Snitzer <snitzer@redhat.com>
+Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Jonathan Corbet <corbet@lwn.net>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190423145226.7r-RknqhH_8N056xH3J_gAg8D2CgGu24wDuCLOd_6jc@z>
 
-On Mon, Apr 22, 2019 at 7:48 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Mon, Apr 22, 2019 at 9:38 AM Jens Axboe <axboe@kernel.dk> wrote:
-> >
-> > With the mutex change in, I can trigger it in a second or so. Just ran
-> > the reproducer with that change reverted, and I'm not seeing any badness.
-> > So I do wonder if the bisect results are accurate?
->
-> Looking at the syzbot report, it's syzbot being confused.
->
-> The actual WARNING in percpu_ref_kill_and_confirm() only happens with
-> recent kernels.
->
-> But then syzbot mixes it up with a completely different bug:
->
->    crash: BUG: MAX_STACK_TRACE_ENTRIES too low!
->    BUG: MAX_STACK_TRACE_ENTRIES too low!
->
-> and for some reason decides that *that* bug is the same thing entirely.
->
-> So yeah, I think the simple percpu_ref_is_dying() check is sufficient,
-> and that the syzbot bisection is completely bogus.
+Mike Snitzer <snitzer@redhat.com> wrote:
 
-Using crashed/not-crashed predicate gives better results overall. More
-than half kernel bugs have different manifestations due to different
-reasons. And even if we can say for sure that we see a different bug,
-we still don't know if the original bug is also there or not. See the
-following threads for details:
-https://groups.google.com/d/msg/syzkaller-bugs/nFeC8-UG1gg/y6gUEsvAAgAJ
-https://groups.google.com/d/msg/syzkaller/sR8aAXaWEF4/tTWYRgvmAwAJ
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > But yes, I have 0 motivation to learn or abide by rst. It simply doesn't
+> > give me anything in return. There is no upside, only worse text files :/
+> 
+> Right, but these changes aren't meant for our benefit.  They are for
+> users who get cleaner web accessible Linux kernel docs.  Seems the
+> decision has been made that the users' benefit, and broader
+> modernization of Linux docs, outweighs the inconvenience for engineers
+> who maintain the content of said documentation.
 
-Unrelated crashes is the most common cause of incorrect bisection
-results (66%). To enable better bisection we would need to integrate
-some meaningful precommit testing into kernel development process
-(would be tremendously useful for other reasons too). E.g. this "BUG:
-MAX_STACK_TRACE_ENTRIES too low!" is this:
-https://syzkaller.appspot.com/bug?id=dbd70f0407487a061d2d46fdc6bccc94b95ce3c0
-and the reproducer is simply opening /dev/infiniband/rdma_cm or
-/dev/vhci or something equally simple with LOCKDEP enabled. None of
-this was done in a testing environment for several weeks. And then it
-took another month to propagate the fix through all distributed kernel
-trees. For all that time simple programs crash and bisection can't be
-done and we are spending time here...
+Whilst I can sympathise with Mauro and Jon - and appreciate the hard work
+they've put into this, I do think that the engineers dealing directly with the
+kernel code should be considered the primary audience.
+
+There've been some changes that I've particularly objected to, such as
+removing contents lists from files and replacing them with markup like:
+
+	.. contents:: :local:
+
+This actually impedes use of the file.  It should not be necessary to build
+the docs to get that for ordinary use.
+
+
+Anyway, the biggest doc issue in the kernel isn't addressed by the conversion
+to ReST: and that is that most people don't seem interested in documenting
+stuff - whether because writing documentation isn't as fun as writing code or
+the fact that English isn't their native language, I don't know.  I can
+sympathise more with the latter.
+
+Kerneldoc is a start - and probably means that a lot of API functions are at
+least slightly documented - but too many APIs are not mentioned in the
+Documentation directory at all.  Remember: if you can't describe it, it's
+probably wrong!
+
+I'm not sure what we could do about this, but it would probably have to be
+imposed from the top: no more undocumented APIs.  Any new API must come with
+documentation; changes to APIs must include changes to the documentation.
+
+If you really want to upset people, you could add: anyone who wants to alter
+an already existing undocumented API must supply documentation for the whole
+API (but that could be considered a bit cruel).
+
+And anyone who says "But the code is the documentation!" needs to consider
+carefully what happens to their code after it has been trampled, generalised,
+split, combined, renormalised, cthulhuised, janitorised and had parts of it
+migrate.
+
+</rant>
+
+And now, after that, I think a fresh cup of tea is called for!
+
+David
