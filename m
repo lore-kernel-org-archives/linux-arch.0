@@ -1,27 +1,34 @@
-Return-Path: <BATV+307e856acde472aa9de6+5721+infradead.org+hch@bombadil.srs.infradead.org>
-Date: Tue, 23 Apr 2019 00:13:54 -0700
-From: Christoph Hellwig <hch@infradead.org>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.cyber.ee ([193.40.6.72]:51355 "EHLO mx2.cyber.ee"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727831AbfDWQuF
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 12:50:05 -0400
 Subject: Re: DISCONTIGMEM is deprecated
-Message-ID: <20190423071354.GB12114@infradead.org>
 References: <20190419094335.GJ18914@techsingularity.net>
  <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
- <20190421211604.GN18914@techsingularity.net>
+ <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
+From: Meelis Roos <mroos@linux.ee>
+Message-ID: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
+Date: Tue, 23 Apr 2019 19:49:57 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190421211604.GN18914@techsingularity.net>
-To: Mel Gorman <mgorman@techsingularity.net>
-Cc: Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+In-Reply-To: 
+ <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: et-EE
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190423071354.3tqDYJzqY0DCt1Atg6mCpsULYOZXdTiHxMyMQ357q3o@z>
+To: Christopher Lameter <cl@linux.com>
+Cc: Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20190423164957.-vAeROUobu8fP3JNcm5V7ODRlN9cu1aU6KxuNCcOov4@z>
 
-On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
-> 32-bit NUMA systems should be non-existent in practice. The last NUMA
-> system I'm aware of that was both NUMA and 32-bit only died somewhere
-> between 2004 and 2007. If someone is running a 64-bit capable system in
-> 32-bit mode with NUMA, they really are just punishing themselves for fun.
+>> ia64 (looks complicated ...)
+> 
+> Well as far as I can tell it was not even used 12 or so years ago on
+> Itanium when I worked on that stuff.
 
-Can we mark it as BROKEN to see if someone shouts and then remove it
-a year or two down the road?  Or just kill it off now..
+My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
+SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
+NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
+
+-- 
+Meelis Roos
