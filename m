@@ -1,38 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:57703 "EHLO
+Received: from conuserg-09.nifty.com ([210.131.2.76]:57997 "EHLO
         conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728527AbfDWDWq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:22:46 -0400
+        with ESMTP id S1731386AbfDWDW5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:22:57 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v3 02/10] MIPS: mark mult_sh_align_mod() as __always_inline
-Date: Tue, 23 Apr 2019 12:20:58 +0900
-Message-ID: <20190423032106.11960-3-yamada.masahiro@socionext.com>
+Subject: [PATCH v3 07/10] powerpc/prom_init: mark prom_getprop() and prom_getproplen() as __init
+Date: Tue, 23 Apr 2019 12:21:03 +0900
+Message-ID: <20190423032106.11960-8-yamada.masahiro@socionext.com>
 In-Reply-To: <20190423032106.11960-1-yamada.masahiro@socionext.com>
 References: <20190423032106.11960-1-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190423032058.2ACeEkZ6QqsYrHEWAcWcykfUvdKbdvY_2fsoSaW2Nyw@z>
+Message-ID: <20190423032103.-7-jreh0ZuN4hgL5uimklx4fQS4ZIJ4uDAsy2A464o4@z>
 
 This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
 place. We need to eliminate potential issues beforehand.
 
-If it is enabled for mips, the following error is reported:
+If it is enabled for powerpc, the following modpost warnings are
+reported:
 
-arch/mips/kernel/cpu-bugs64.c: In function 'mult_sh_align_mod.constprop':
-arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't match constraints [-Werror]
-  asm volatile(
-  ^~~
-arch/mips/kernel/cpu-bugs64.c:33:2: error: asm operand 1 probably doesn't match constraints [-Werror]
-  asm volatile(
-  ^~~
-arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
-  asm volatile(
-  ^~~
-arch/mips/kernel/cpu-bugs64.c:33:2: error: impossible constraint in 'asm'
-  asm volatile(
-  ^~~
+WARNING: vmlinux.o(.text.unlikely+0x20): Section mismatch in reference from the function .prom_getprop() to the function .init.text:.call_prom()
+The function .prom_getprop() references
+the function __init .call_prom().
+This is often because .prom_getprop lacks a __init
+annotation or the annotation of .call_prom is wrong.
+
+WARNING: vmlinux.o(.text.unlikely+0x3c): Section mismatch in reference from the function .prom_getproplen() to the function .init.text:.call_prom()
+The function .prom_getproplen() references
+the function __init .call_prom().
+This is often because .prom_getproplen lacks a __init
+annotation or the annotation of .call_prom is wrong.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
@@ -41,23 +40,30 @@ Changes in v3: None
 Changes in v2:
   - split into a separate patch
 
- arch/mips/kernel/cpu-bugs64.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/powerpc/kernel/prom_init.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/mips/kernel/cpu-bugs64.c b/arch/mips/kernel/cpu-bugs64.c
-index bada74af7641..c04b97aace4a 100644
---- a/arch/mips/kernel/cpu-bugs64.c
-+++ b/arch/mips/kernel/cpu-bugs64.c
-@@ -42,8 +42,8 @@ static inline void align_mod(const int align, const int mod)
- 		: "n"(align), "n"(mod));
+diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
+index f33ff4163a51..241fe6b7a8cc 100644
+--- a/arch/powerpc/kernel/prom_init.c
++++ b/arch/powerpc/kernel/prom_init.c
+@@ -501,14 +501,14 @@ static int __init prom_next_node(phandle *nodep)
+ 	}
  }
  
--static inline void mult_sh_align_mod(long *v1, long *v2, long *w,
--				     const int align, const int mod)
-+static __always_inline void mult_sh_align_mod(long *v1, long *v2, long *w,
-+					      const int align, const int mod)
+-static inline int prom_getprop(phandle node, const char *pname,
+-			       void *value, size_t valuelen)
++static inline int __init prom_getprop(phandle node, const char *pname,
++				      void *value, size_t valuelen)
  {
- 	unsigned long flags;
- 	int m1, m2;
+ 	return call_prom("getprop", 4, 1, node, ADDR(pname),
+ 			 (u32)(unsigned long) value, (u32) valuelen);
+ }
+ 
+-static inline int prom_getproplen(phandle node, const char *pname)
++static inline int __init prom_getproplen(phandle node, const char *pname)
+ {
+ 	return call_prom("getproplen", 2, 1, node, ADDR(pname));
+ }
 -- 
 2.17.1
