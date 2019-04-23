@@ -1,75 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40042 "EHLO mx1.redhat.com"
+Received: from mail.kernel.org ([198.145.29.99]:41048 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727467AbfDWOwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 10:52:34 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20190423132100.GB7132@redhat.com>
-References: <20190423132100.GB7132@redhat.com> <cover.1555938375.git.mchehab+samsung@kernel.org> <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org> <20190423083135.GA11158@hirez.programming.kicks-ass.net> <20190423125519.GA7104@redhat.com> <20190423130132.GT4038@hirez.programming.kicks-ass.net>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST files to *.rst
+        id S1727467AbfDWPq4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 11:46:56 -0400
+Date: Tue, 23 Apr 2019 23:46:42 +0800
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Message-ID: <20190423154642.GA16001@guoren-Inspiron-7460>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
+ <20190422161814.GA30694@lst.de>
+ <20190423001348.GA31639@guoren-Inspiron-7460>
+ <20190423055548.GA12365@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <20703.1556031146.1@warthog.procyon.org.uk>
-Date: Tue, 23 Apr 2019 15:52:26 +0100
-Message-ID: <20704.1556031146@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190423055548.GA12365@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Snitzer <snitzer@redhat.com>
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Jonathan Corbet <corbet@lwn.net>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190423145226.7r-RknqhH_8N056xH3J_gAg8D2CgGu24wDuCLOd_6jc@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
+Message-ID: <20190423154642.dTruG8CxdqvumweweuqTEsxbNnWiFBAymuTbvcvfWX4@z>
 
-Mike Snitzer <snitzer@redhat.com> wrote:
-
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On Tue, Apr 23, 2019 at 07:55:48AM +0200, Christoph Hellwig wrote:
+> On Tue, Apr 23, 2019 at 08:13:48AM +0800, Guo Ren wrote:
+> > > We should probably start a working group for this ASAP unless we can
+> > > get another working group to help taking care of it.
+> > Good news, I prefer to use instructions directly instead of SBI_CALL.
+> > 
+> > Our instruction is "dcache.c/iva %0" (one cache line) and the parameter is
+> > virtual address in S-state. When get into M-state by SBI_CALL, we could
+> > let dcache.c/iva use physical addres directly and it needn't kmap page
+> > for RV32 with highmem (Of cause highmem is not ready in RV32 now).
 > 
-> > But yes, I have 0 motivation to learn or abide by rst. It simply doesn't
-> > give me anything in return. There is no upside, only worse text files :/
+> So you only have one instruction variant?  Normally we'd have two or
+> three to implement the non-coherent DMA (or pmem) semantics:
+dcache.c/iva means three instructions:
+ - dcache.cva %0  : writeback     by virtual address cacheline
+ - dcache.iva %0  : invalid       by virtual address cacheline
+ - dcache.civa %0 : writeback+inv by virtual address cacheline
+
+We also have memory barrier instructions, ref:
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/csky/include/asm/barrier.h
+
 > 
-> Right, but these changes aren't meant for our benefit.  They are for
-> users who get cleaner web accessible Linux kernel docs.  Seems the
-> decision has been made that the users' benefit, and broader
-> modernization of Linux docs, outweighs the inconvenience for engineers
-> who maintain the content of said documentation.
+> cache writeback, cache invalidate and potentially cache writeback +
+> invalidate to optimize that case.  Here is the table how Linux
+> uses them for DMA:
+> 
+>           |   map          ==  for_device     |   unmap     ==  for_cpu
+>           |----------------------------------------------------------------
+>  TO_DEV   |   writeback        writeback      |   none          none
+>  FROM_DEV |   invalidate       invalidate     |   invalidate*   invalidate*
+>  BIDI     |   writeback+inv    writeback+inv  |   invalidate    invalidate
+> 
+>      [*] needed for CPU speculative prefetches
+> 
+> 
+> We already have a discussion on isa-dev on something like these
+> instructions:
+> 
+> https://groups.google.com/a/groups.riscv.org/forum/#!msg/isa-dev/qXbzqaQbDXU/4ThcEAeCCAAJ
+> 
+> It got a little side tracked, both due to the usual noise on isa-dev
+> and due to the proposal including a lot more instructions that might be
+> a little more contentious, but it might be a good start to bring this
+> into a working group.
+I think using sbi_call as a temporary solution is a good choice before
+the instruction is determined.
 
-Whilst I can sympathise with Mauro and Jon - and appreciate the hard work
-they've put into this, I do think that the engineers dealing directly with the
-kernel code should be considered the primary audience.
+> 
+> > > Also is this really a coherent flag, or an 'uncached' flag like in
+> > > many other architectures?
+> > There are a lot of features about coherency attributes, eg: cacheable,
+> > bufferable, strong order ..., and coherency is a more abstract name to
+> > contain all of these. In our hardware, coherence = uncached +
+> > unbufferable + (stong order).
+> > 
+> > But I'm not very care about the name is, uncached is also ok. My key
+> > point is the bits of page attributes is very precious and this patch
+> > will use the last unused attribute bit in PTE.
+> 
+> I don't care about the name actually, more about having defined semantics.
+> Totally uncached should include unbuffered.  I don't think we need the
+> strong ordering for DMA memory either.
+Yes, memory don't need strong order and strong order in PMA also implies
+uncached, unbuffered for IO address. If the entry of PMA is strong
+order, the page mapping must be uncached + unbuffered + strong-order
+without _PAGE_COHENCY in PTE.
 
-There've been some changes that I've particularly objected to, such as
-removing contents lists from files and replacing them with markup like:
+> 
+> > Another point is we could get more attribute bits by modify the riscv
+> > spec:
+> >  - Remove Global bit, I think it's duplicate with the User bit in linux.
+> 
+> It is in Linux, but it is conceptually very different.
+Yes, but hardware could ignore one of them and in riscv linux
+_PAGE_GLOBAL is no use at all, see:
+grep _PAGE_GLOBAL arch/riscv -r
 
-	.. contents:: :local:
+In fact, the _PAGE_KERNEL for pte doesn't contain _PAGE_GLOBAL and it
+works on FU540 and qemu. As I've mentioned page attribute bits is very
+precious, define a useless bit make people confused.
 
-This actually impedes use of the file.  It should not be necessary to build
-the docs to get that for ordinary use.
+> 
+> >  - Change _PAGE_PFN_SHIFT from 10 to 12, because the huge pfn in RV32 is
+> >    very useless and current RV32 linux doesn't even implement highmem.
+> 
+> This would seem sensible to me, but I'm not sure everyone agrees.  Even
+> then we are very late in the game for changes like that.
+Agree.
 
-
-Anyway, the biggest doc issue in the kernel isn't addressed by the conversion
-to ReST: and that is that most people don't seem interested in documenting
-stuff - whether because writing documentation isn't as fun as writing code or
-the fact that English isn't their native language, I don't know.  I can
-sympathise more with the latter.
-
-Kerneldoc is a start - and probably means that a lot of API functions are at
-least slightly documented - but too many APIs are not mentioned in the
-Documentation directory at all.  Remember: if you can't describe it, it's
-probably wrong!
-
-I'm not sure what we could do about this, but it would probably have to be
-imposed from the top: no more undocumented APIs.  Any new API must come with
-documentation; changes to APIs must include changes to the documentation.
-
-If you really want to upset people, you could add: anyone who wants to alter
-an already existing undocumented API must supply documentation for the whole
-API (but that could be considered a bit cruel).
-
-And anyone who says "But the code is the documentation!" needs to consider
-carefully what happens to their code after it has been trampled, generalised,
-split, combined, renormalised, cthulhuised, janitorised and had parts of it
-migrate.
-
-</rant>
-
-And now, after that, I think a fresh cup of tea is called for!
-
-David
+Best Regards
+ Guo Ren
