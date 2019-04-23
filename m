@@ -1,56 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f67.google.com ([209.85.208.67]:33760 "EHLO
-        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727184AbfDWUYK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 16:24:10 -0400
-Received: by mail-ed1-f67.google.com with SMTP id d55so13889674ede.0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 13:24:08 -0700 (PDT)
-Date: Tue, 23 Apr 2019 22:24:06 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
- resolution
-Message-ID: <20190423202405.wzs7lkjqgrlzwyu5@brauner.io>
-References: <20190320143717.2523-1-cyphar@cyphar.com>
- <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
- <20190325130429.dbrgjxnvq3w5cpb3@yavin>
- <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:34238 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726088AbfDWU0r (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 16:26:47 -0400
+Date: Tue, 23 Apr 2019 17:26:41 -0300
+From: Mauro Carvalho Chehab <mchehab@infradead.org>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+ files to *.rst
+Message-ID: <20190423172641.612012c8@coco.lan>
+In-Reply-To: <20190423105415.3a69a0cb@lwn.net>
+References: <20190423132100.GB7132@redhat.com>
+        <cover.1555938375.git.mchehab+samsung@kernel.org>
+        <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+        <20190423083135.GA11158@hirez.programming.kicks-ass.net>
+        <20190423125519.GA7104@redhat.com>
+        <20190423130132.GT4038@hirez.programming.kicks-ass.net>
+        <20704.1556031146@warthog.procyon.org.uk>
+        <20190423105415.3a69a0cb@lwn.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190423202406.wDqQvatfBlQZOozRW977qMe9wTIHteZNWwdhz9UeLMw@z>
+To: Jonathan Corbet <corbet@lwn.net>
+Cc: David Howells <dhowells@redhat.com>, Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190423202641.Oxued7jp4GwOU-FCyUdLNDWQ2XVmzAQW30Vz11zOFyE@z>
 
-On Tue, Apr 23, 2019 at 01:13:52PM -0700, Kees Cook wrote:
-> On Mon, Mar 25, 2019 at 6:05 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> >
-> > On 2019-03-21, Andy Lutomirski <luto@kernel.org> wrote:
-> > > On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > > > Now that the holiday break is over, it's time to re-send this patch
-> > > > series (with a few additions, due to new information we got from
-> > > > CVE-2019-5736 -- which this patchset mostly protected against but had
-> > > > some holes with regards to #!-style scripts).
-> > >
-> > > I generally like this, but, as Linus pointed out, it will be
-> > > unfortunate if application authors see this as just another
-> > > non-portable weird Linux API and don't use it.  Would it be worthwhile
-> > > to put some thought into making it an API that other OSes might be
-> > > willing to implement?  As it stands, the openat(2) flags are getting
-> > > rather crazy in this patch set.
+Em Tue, 23 Apr 2019 10:54:15 -0600
+Jonathan Corbet <corbet@lwn.net> escreveu:
+
+> On Tue, 23 Apr 2019 15:52:26 +0100
+> David Howells <dhowells@redhat.com> wrote:
 > 
-> I think many of the issues are specific to Linux (and Linux containers
-> especially), so I'm not sure this should get blocked because we want
-> something more portable.
+> > There've been some changes that I've particularly objected to, such as
+> > removing contents lists from files and replacing them with markup like:
+> > 
+> > 	.. contents:: :local:
+> > 
+> > This actually impedes use of the file.  It should not be necessary to build
+> > the docs to get that for ordinary use.  
 > 
-> This series provides solutions to so many different race and confusion
-> issues, I'd really like to see it land. What's the next step here? Is
-> this planned to go directly to Linus for v5.2, or is it going to live
-> in -mm for a while? I'd really like to see this moving forward.
+> Usability of the text files versus that of the built docs is occasionally
+> something that has to be traded off.  As a general rule, I want the text
+> files to remain useful on their own.  There is a lot of value in the
+> built docs for a lot of people, but that should not be the only, or even
+> the primary, form of access
+> 
+> Tables of contents are certainly a place where that tradeoff makes itself
+> felt.  Doing them by hand ensures that they are always present, but
+> requires that people editing the docs also maintain the TOCS - something
+> that experience has shown tends not to happen.  That's more of a pain
+> than a little bit of markup, and people don't do it.  An automatically
+> generated TOC, instead, is always correct and is linkable.
+> 
+> Few people complain about the biggest impediment to the readability of
+> text files, though: the use of kerneldoc comments.  That splits the
+> information between the text file and multiple random-seeming locations
+> among tends of thousands of source files.  Sometimes the solution here is
+> to move all of the documentation into the source, but that tends to
+> fragment it and make it harder to find; it's certainly not the right
+> place for many kinds of docs.  In general, it's hard to create a coherent
+> story that way.
+> 
+> Suggestions / patches on how to improve things for *all* users of the
+> docs are certainly welcome!
+> 
+> I am, incidentally, toying with the idea of trying to put together a
+> documentation microconf at the Linux Plumbers Conference this year.  If
+> anybody out there thinks that's a good idea and would like to
+> participate, please let me know.
 
-Yeah, it would be good to move this forward. But since this is pretty
-much core-vfs we really need Al to take a look at this.
+If you add a microconf to LPC, I'm in. 
 
-Christian
+IMO, we made big advances with documentation, but there's a lot more
+to be done. Having a microconf to discuss those things may help us
+to bring new ideas about how to keep improving it.
+
+Thanks,
+Mauro
