@@ -1,64 +1,61 @@
-From: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
-	files to *.rst
-Date: Tue, 23 Apr 2019 09:21:00 -0400
-Message-ID: <20190423132100.GB7132@redhat.com>
-References: <cover.1555938375.git.mchehab+samsung@kernel.org>
-	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
-	<20190423125519.GA7104@redhat.com>
-	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: WARNING in percpu_ref_kill_and_confirm
+Date: Tue, 23 Apr 2019 17:41:40 +0300
+Message-ID: <CACT4Y+b8dkFzQoJgaNLMiDjF4bM1AeSZaH5EWTvF_o5MQhu4Pg@mail.gmail.com>
+References: <00000000000043fe9c058720a5d3@google.com> <ad884b18-0e03-d6be-02b0-4e5273f068ce@kernel.dk>
+ <CAHk-=wgG=RqK8T5kWiZfH7da6rBuqp3kAesP=ETgceb6RzvZng@mail.gmail.com>
+ <53a17444-9539-5810-82a0-ceeefa742508@kernel.dk> <cfa6be6d-4125-6d1e-8993-e9ec9dbaa7bb@kernel.dk>
+ <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20190423130132.GT4038-Nxj+rRp3nVydTX5a5knrm8zTDFooKrT+cvkQGrU6aU0@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.orglin
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jens Axboe <axboe@kernel.dk>, syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Anvin <hpa@zytor.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, syzkaller-bugs <syzkaller-bugs@googlegroups.com>, Thomas Gleixner <tglx@linutronix.de>, Al
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 23 2019 at  9:01am -0400,
-Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+On Mon, Apr 22, 2019 at 7:48 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> On Mon, Apr 22, 2019 at 9:38 AM Jens Axboe <axboe@kernel.dk> wrote:
+> >
+> > With the mutex change in, I can trigger it in a second or so. Just ran
+> > the reproducer with that change reverted, and I'm not seeing any badness.
+> > So I do wonder if the bisect results are accurate?
+>
+> Looking at the syzbot report, it's syzbot being confused.
+>
+> The actual WARNING in percpu_ref_kill_and_confirm() only happens with
+> recent kernels.
+>
+> But then syzbot mixes it up with a completely different bug:
+>
+>    crash: BUG: MAX_STACK_TRACE_ENTRIES too low!
+>    BUG: MAX_STACK_TRACE_ENTRIES too low!
+>
+> and for some reason decides that *that* bug is the same thing entirely.
+>
+> So yeah, I think the simple percpu_ref_is_dying() check is sufficient,
+> and that the syzbot bisection is completely bogus.
 
-> On Tue, Apr 23, 2019 at 08:55:19AM -0400, Mike Snitzer wrote:
-> > On Tue, Apr 23 2019 at  4:31am -0400,
-> > Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
-> > 
-> > > On Mon, Apr 22, 2019 at 10:27:45AM -0300, Mauro Carvalho Chehab wrote:
-> > > 
-> > > >  .../{atomic_bitops.txt => atomic_bitops.rst}  |  2 +
-> > > 
-> > > What's happend to atomic_t.txt, also NAK, I still occationally touch
-> > > these files.
-> > 
-> > Seems Mauro's point is in the future we need to touch these .rst files
-> > in terms of ReST compatible changes.
-> > 
-> > I'm dreading DM documentation changes in the future.. despite Mauro and
-> > Jon Corbet informing me that ReST is simple, etc.
-> 
-> Well, it _can_ be simple, I've seen examples of rst that were not far
-> from generated HTML contents. And I must give Jon credit for not
-> accepting that atrocious crap.
-> 
-> But yes, I have 0 motivation to learn or abide by rst. It simply doesn't
-> give me anything in return. There is no upside, only worse text files :/
+Using crashed/not-crashed predicate gives better results overall. More
+than half kernel bugs have different manifestations due to different
+reasons. And even if we can say for sure that we see a different bug,
+we still don't know if the original bug is also there or not. See the
+following threads for details:
+https://groups.google.com/d/msg/syzkaller-bugs/nFeC8-UG1gg/y6gUEsvAAgAJ
+https://groups.google.com/d/msg/syzkaller/sR8aAXaWEF4/tTWYRgvmAwAJ
 
-Right, but these changes aren't meant for our benefit.  They are for
-users who get cleaner web accessible Linux kernel docs.  Seems the
-decision has been made that the users' benefit, and broader
-modernization of Linux docs, outweighs the inconvenience for engineers
-who maintain the content of said documentation.
-
-This kind of thing happens a lot these days: pile on engineers, they can
-take it :/
+Unrelated crashes is the most common cause of incorrect bisection
+results (66%). To enable better bisection we would need to integrate
+some meaningful precommit testing into kernel development process
+(would be tremendously useful for other reasons too). E.g. this "BUG:
+MAX_STACK_TRACE_ENTRIES too low!" is this:
+https://syzkaller.appspot.com/bug?id=dbd70f0407487a061d2d46fdc6bccc94b95ce3c0
+and the reproducer is simply opening /dev/infiniband/rdma_cm or
+/dev/vhci or something equally simple with LOCKDEP enabled. None of
+this was done in a testing environment for several weeks. And then it
+took another month to propagate the fix through all distributed kernel
+trees. For all that time simple programs crash and bisection can't be
+done and we are spending time here...
