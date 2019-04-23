@@ -1,61 +1,77 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [RESEND PATCH v3 06/11] MIPS: mark __fls() and __ffs() as __always_inline
-Date: Tue, 23 Apr 2019 12:49:54 +0900
-Message-ID: <20190423034959.13525-7-yamada.masahiro@socionext.com>
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Date: Tue, 23 Apr 2019 07:55:48 +0200
+Message-ID: <20190423055548.GA12365@lst.de>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org> <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+Content-Disposition: inline
+In-Reply-To: <20190423001348.GA31639@guoren-Inspiron-7460>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Guo Ren <guoren@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-place. We need to eliminate potential issues beforehand.
+On Tue, Apr 23, 2019 at 08:13:48AM +0800, Guo Ren wrote:
+> > We should probably start a working group for this ASAP unless we can
+> > get another working group to help taking care of it.
+> Good news, I prefer to use instructions directly instead of SBI_CALL.
+> 
+> Our instruction is "dcache.c/iva %0" (one cache line) and the parameter is
+> virtual address in S-state. When get into M-state by SBI_CALL, we could
+> let dcache.c/iva use physical addres directly and it needn't kmap page
+> for RV32 with highmem (Of cause highmem is not ready in RV32 now).
 
-If it is enabled for mips, the following errors are reported:
+So you only have one instruction variant?  Normally we'd have two or
+three to implement the non-coherent DMA (or pmem) semantics:
 
-arch/mips/mm/sc-mips.o: In function `mips_sc_prefetch_enable.part.2':
-sc-mips.c:(.text+0x98): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0x9c): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xbc): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xc8): undefined reference to `mips_gcr_base'
-sc-mips.c:(.text+0xdc): undefined reference to `mips_gcr_base'
-arch/mips/mm/sc-mips.o:sc-mips.c:(.text.unlikely+0x44): more undefined references to `mips_gcr_base'
+cache writeback, cache invalidate and potentially cache writeback +
+invalidate to optimize that case.  Here is the table how Linux
+uses them for DMA:
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+          |   map          ==  for_device     |   unmap     ==  for_cpu
+          |----------------------------------------------------------------
+ TO_DEV   |   writeback        writeback      |   none          none
+ FROM_DEV |   invalidate       invalidate     |   invalidate*   invalidate*
+ BIDI     |   writeback+inv    writeback+inv  |   invalidate    invalidate
 
-Changes in v3:
-  - forcibly inline __ffs() too
+     [*] needed for CPU speculative prefetches
 
-Changes in v2:
-  - new patch
 
- arch/mips/include/asm/bitops.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+We already have a discussion on isa-dev on something like these
+instructions:
 
-diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
-index 830c93a010c3..9a466dde9b96 100644
---- a/arch/mips/include/asm/bitops.h
-+++ b/arch/mips/include/asm/bitops.h
-@@ -482,7 +482,7 @@ static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *
-  * Return the bit position (0..63) of the most significant 1 bit in a word
-  * Returns -1 if no 1 bit exists
-  */
--static inline unsigned long __fls(unsigned long word)
-+static __always_inline unsigned long __fls(unsigned long word)
- {
- 	int num;
- 
-@@ -548,7 +548,7 @@ static inline unsigned long __fls(unsigned long word)
-  * Returns 0..SZLONG-1
-  * Undefined if no bit exists, so code should check against 0 first.
-  */
--static inline unsigned long __ffs(unsigned long word)
-+static __always_inline unsigned long __ffs(unsigned long word)
- {
- 	return __fls(word & -word);
- }
--- 
-2.17.1
+https://groups.google.com/a/groups.riscv.org/forum/#!msg/isa-dev/qXbzqaQbDXU/4ThcEAeCCAAJ
+
+It got a little side tracked, both due to the usual noise on isa-dev
+and due to the proposal including a lot more instructions that might be
+a little more contentious, but it might be a good start to bring this
+into a working group.
+
+> > Also is this really a coherent flag, or an 'uncached' flag like in
+> > many other architectures?
+> There are a lot of features about coherency attributes, eg: cacheable,
+> bufferable, strong order ..., and coherency is a more abstract name to
+> contain all of these. In our hardware, coherence = uncached +
+> unbufferable + (stong order).
+> 
+> But I'm not very care about the name is, uncached is also ok. My key
+> point is the bits of page attributes is very precious and this patch
+> will use the last unused attribute bit in PTE.
+
+I don't care about the name actually, more about having defined semantics.
+Totally uncached should include unbuffered.  I don't think we need the
+strong ordering for DMA memory either.
+
+> Another point is we could get more attribute bits by modify the riscv
+> spec:
+>  - Remove Global bit, I think it's duplicate with the User bit in linux.
+
+It is in Linux, but it is conceptually very different.
+
+>  - Change _PAGE_PFN_SHIFT from 10 to 12, because the huge pfn in RV32 is
+>    very useless and current RV32 linux doesn't even implement highmem.
+
+This would seem sensible to me, but I'm not sure everyone agrees.  Even
+then we are very late in the game for changes like that.
