@@ -1,138 +1,79 @@
-From: Mauro Carvalho Chehab <mchehab@infradead.org>
+From: Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
 Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
- files to *.rst
-Date: Tue, 23 Apr 2019 16:37:40 -0300
-Message-ID: <20190423163740.76b0a9f1@coco.lan>
-References: <20190423132100.GB7132@redhat.com>
-        <cover.1555938375.git.mchehab+samsung@kernel.org>
-        <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-        <20190423083135.GA11158@hirez.programming.kicks-ass.net>
-        <20190423125519.GA7104@redhat.com>
-        <20190423130132.GT4038@hirez.programming.kicks-ass.net>
-        <20704.1556031146@warthog.procyon.org.uk>
+	files to *.rst
+Date: Tue, 23 Apr 2019 17:05:02 -0300
+Message-ID: <20190423170409.7b1370ac@coco.lan>
+References: <cover.1555938375.git.mchehab+samsung@kernel.org>
+	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
+	<20190423125519.GA7104@redhat.com>
+	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
+	<20190423103053.07cf2149@lwn.net>
+	<20190423171158.GG12232@hirez.programming.kicks-ass.net>
+	<20190423172006.GD16353@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20704.1556031146@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Jonathan Corbet <corbet@lwn.net>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20190423172006.GD16353-Jj63ApZU6fQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless@v
 List-Id: linux-arch.vger.kernel.org
 
-Em Tue, 23 Apr 2019 15:52:26 +0100
-David Howells <dhowells@redhat.com> escreveu:
+Em Tue, 23 Apr 2019 19:20:06 +0200
+Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org> escreveu:
 
-> Mike Snitzer <snitzer@redhat.com> wrote:
+> On Tue, Apr 23, 2019 at 07:11:58PM +0200, Peter Zijlstra wrote:
+> > I know I'm an odd duck; but no. They're _less_ accessible for me, as
+> > both a reader and author. They look 'funny' when read as a text file
+> > (the only way it makes sense to read them; I spend 99% of my time on a
+> > computer looking at monospace text interfaces; mutt, vim and console, in
+> > that approximate order).  
 > 
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> >   
-> > > But yes, I have 0 motivation to learn or abide by rst. It simply doesn't
-> > > give me anything in return. There is no upside, only worse text files :/  
-> > 
-> > Right, but these changes aren't meant for our benefit.  They are for
-> > users who get cleaner web accessible Linux kernel docs.  Seems the
-> > decision has been made that the users' benefit, and broader
-> > modernization of Linux docs, outweighs the inconvenience for engineers
-> > who maintain the content of said documentation.  
+> +1
 > 
-> Whilst I can sympathise with Mauro and Jon - and appreciate the hard work
-> they've put into this, I do think that the engineers dealing directly with the
-> kernel code should be considered the primary audience.
-> 
-> There've been some changes that I've particularly objected to, such as
-> removing contents lists from files and replacing them with markup like:
-> 
-> 	.. contents:: :local:
+> It is probably fine to stare at them here
+> https://www.kernel.org/doc/html/latest/ and the end result is good
+> for showing them in browsers but after this conversion, it is
+> getting more and more painful to work with those files. For example,
+> Documentation/x86/x86_64/mm.txt we use a lot. I'd hate it if I had to go
+> sort out rest muck first just so that I can read it.
 
-Actually, just:
+That's my view about how that specific file would be after
+converted to ReST:
 
-	.. contents
+	https://git.linuxtv.org/mchehab/experimental.git/tree/Documentation/x86/x86_64/mm.rst?h=convert_rst_renames
 
-Is enough. The goal here is just to avoid having two indexes when
-generating an html output - and sometimes the internal contents index
-is broken - I got one of these during this patch series: a very
-confusing internal "contents" that doesn't really match the contents
-of the file - probably because some patch changed the contents but
-didn't update the internal index.
+I don't have any troubles reading/understanding it as a plain text
+file, and its html output is also nice (although Sphinx 1.7.8 seems to
+have some issues when parsing some cells - probably due to some bug):
+
+	https://www.infradead.org/~mchehab/rst_conversion/x86/x86_64/mm.html
 
 > 
-> This actually impedes use of the file.  It should not be necessary to build
-> the docs to get that for ordinary use.
+> I think we can simply leave some text files be text files and be done
+> with it.
 
-IMHO, replacing:
+Changbin's approach was somewhat close to what you want. He simply
+prepended the tables with ::, in order to show them as plain old
+ascii:
 
-	Contents
+	https://lore.kernel.org/lkml/20190423162932.21428-60-changbin.du-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org/
 
-		1. Introduction
-		...
+Both equally works, from ReST conversion PoV. I'm fine ether way.
 
-By:
-
-
-	.. Contents
-
-		1. Introduction
-		...
-
-won't make the document harder to read as plain text file. With html 
-output, the contents will be at both the index.html and at the lateral
-bar, so the text "Contents" can be hidden (and that's what the two points
-make: it transforms the block into a comment).
-
-> 
-> 
-> Anyway, the biggest doc issue in the kernel isn't addressed by the conversion
-> to ReST: and that is that most people don't seem interested in documenting
-> stuff - whether because writing documentation isn't as fun as writing code or
-> the fact that English isn't their native language, I don't know.  I can
-> sympathise more with the latter.
-
-Yeah, foreign people gets afraid on writing English documents. Yet, my
-personal perception is that we end by getting more contributions once
-the documents get converted, as more people end reading them and ends
-by sending us more contributions.
-
-> Kerneldoc is a start - and probably means that a lot of API functions are at
-> least slightly documented - but too many APIs are not mentioned in the
-> Documentation directory at all.  Remember: if you can't describe it, it's
-> probably wrong!
-
-Fully agreed.
-
-> I'm not sure what we could do about this, but it would probably have to be
-> imposed from the top: no more undocumented APIs.  Any new API must come with
-> documentation; changes to APIs must include changes to the documentation.
-
-This is a requirement on media: we don't accept for quite a while uAPI
-changes without documentation, and we're doing the same for new kAPI
-changes (although it is a little more complex to track kAPI changes).
- 
-> If you really want to upset people, you could add: anyone who wants to alter
-> an already existing undocumented API must supply documentation for the whole
-> API (but that could be considered a bit cruel).
-
-Well, we may politely request that ;-) If it doesn't work, we can accept
-documentation for just the new stuff.
-
-> 
-> And anyone who says "But the code is the documentation!" needs to consider
-> carefully what happens to their code after it has been trampled, generalised,
-> split, combined, renormalised, cthulhuised, janitorised and had parts of it
-> migrate.
-
-Yes, on a complex system like the Kernel, having just access to the code
-is not enough, as developers don't usually have the time to read the code
-for every single function call his code needs to use.
-
-> 
-> </rant>
-> 
-> And now, after that, I think a fresh cup of tea is called for!
-> 
-> David
-
-
+I prefer my approach, as, IMHO, it is visually nicer on both text and
+html versions, but his approach is likely easier to maintain, as doing
+ascii artwork by hand is sometimes painful.
 
 Thanks,
 Mauro
