@@ -1,114 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41048 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727467AbfDWPq4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 11:46:56 -0400
-Date: Tue, 23 Apr 2019 23:46:42 +0800
-From: Guo Ren <guoren@kernel.org>
+Received: from mail-eopbgr100130.outbound.protection.outlook.com ([40.107.10.130]:20864
+        "EHLO GBR01-LO2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727180AbfDWP5f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 11:57:35 -0400
+From: Gary Guo <gary@garyguo.net>
 Subject: Re: [PATCH] riscv: Support non-coherency memory model
-Message-ID: <20190423154642.GA16001@guoren-Inspiron-7460>
+Date: Tue, 23 Apr 2019 15:57:30 +0000
+Message-ID: <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
 References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
- <20190422161814.GA30694@lst.de>
- <20190423001348.GA31639@guoren-Inspiron-7460>
- <20190423055548.GA12365@lst.de>
+ <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
+ <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460>
+In-Reply-To: <20190423154642.GA16001@guoren-Inspiron-7460>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <17B373646E5003478C80CDE18E54E795@GBRP265.PROD.OUTLOOK.COM>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190423055548.GA12365@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: ren_guo@c-sky.com, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tech-privileged@lists.riscv.org, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Palmer Dabbelt <palmer@sifive.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, Vincent Chen <vincentc@andestech.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>
-Message-ID: <20190423154642.dTruG8CxdqvumweweuqTEsxbNnWiFBAymuTbvcvfWX4@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+Message-ID: <20190423155730._aOLLXbtB2lGplaUpqhdErZRaf78ijvL90KSR9ExR7Q@z>
 
-On Tue, Apr 23, 2019 at 07:55:48AM +0200, Christoph Hellwig wrote:
-> On Tue, Apr 23, 2019 at 08:13:48AM +0800, Guo Ren wrote:
-> > > We should probably start a working group for this ASAP unless we can
-> > > get another working group to help taking care of it.
-> > Good news, I prefer to use instructions directly instead of SBI_CALL.
-> > 
-> > Our instruction is "dcache.c/iva %0" (one cache line) and the parameter is
-> > virtual address in S-state. When get into M-state by SBI_CALL, we could
-> > let dcache.c/iva use physical addres directly and it needn't kmap page
-> > for RV32 with highmem (Of cause highmem is not ready in RV32 now).
-> 
-> So you only have one instruction variant?  Normally we'd have two or
-> three to implement the non-coherent DMA (or pmem) semantics:
-dcache.c/iva means three instructions:
- - dcache.cva %0  : writeback     by virtual address cacheline
- - dcache.iva %0  : invalid       by virtual address cacheline
- - dcache.civa %0 : writeback+inv by virtual address cacheline
-
-We also have memory barrier instructions, ref:
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/csky/include/asm/barrier.h
-
-> 
-> cache writeback, cache invalidate and potentially cache writeback +
-> invalidate to optimize that case.  Here is the table how Linux
-> uses them for DMA:
-> 
->           |   map          ==  for_device     |   unmap     ==  for_cpu
->           |----------------------------------------------------------------
->  TO_DEV   |   writeback        writeback      |   none          none
->  FROM_DEV |   invalidate       invalidate     |   invalidate*   invalidate*
->  BIDI     |   writeback+inv    writeback+inv  |   invalidate    invalidate
-> 
->      [*] needed for CPU speculative prefetches
-> 
-> 
-> We already have a discussion on isa-dev on something like these
-> instructions:
-> 
-> https://groups.google.com/a/groups.riscv.org/forum/#!msg/isa-dev/qXbzqaQbDXU/4ThcEAeCCAAJ
-> 
-> It got a little side tracked, both due to the usual noise on isa-dev
-> and due to the proposal including a lot more instructions that might be
-> a little more contentious, but it might be a good start to bring this
-> into a working group.
-I think using sbi_call as a temporary solution is a good choice before
-the instruction is determined.
-
-> 
-> > > Also is this really a coherent flag, or an 'uncached' flag like in
-> > > many other architectures?
-> > There are a lot of features about coherency attributes, eg: cacheable,
-> > bufferable, strong order ..., and coherency is a more abstract name to
-> > contain all of these. In our hardware, coherence = uncached +
-> > unbufferable + (stong order).
-> > 
-> > But I'm not very care about the name is, uncached is also ok. My key
-> > point is the bits of page attributes is very precious and this patch
-> > will use the last unused attribute bit in PTE.
-> 
-> I don't care about the name actually, more about having defined semantics.
-> Totally uncached should include unbuffered.  I don't think we need the
-> strong ordering for DMA memory either.
-Yes, memory don't need strong order and strong order in PMA also implies
-uncached, unbuffered for IO address. If the entry of PMA is strong
-order, the page mapping must be uncached + unbuffered + strong-order
-without _PAGE_COHENCY in PTE.
-
-> 
-> > Another point is we could get more attribute bits by modify the riscv
-> > spec:
-> >  - Remove Global bit, I think it's duplicate with the User bit in linux.
-> 
-> It is in Linux, but it is conceptually very different.
-Yes, but hardware could ignore one of them and in riscv linux
-_PAGE_GLOBAL is no use at all, see:
-grep _PAGE_GLOBAL arch/riscv -r
-
-In fact, the _PAGE_KERNEL for pte doesn't contain _PAGE_GLOBAL and it
-works on FU540 and qemu. As I've mentioned page attribute bits is very
-precious, define a useless bit make people confused.
-
-> 
-> >  - Change _PAGE_PFN_SHIFT from 10 to 12, because the huge pfn in RV32 is
-> >    very useless and current RV32 linux doesn't even implement highmem.
-> 
-> This would seem sensible to me, but I'm not sure everyone agrees.  Even
-> then we are very late in the game for changes like that.
-Agree.
-
-Best Regards
- Guo Ren
+DQoNCk9uIDIzLzA0LzIwMTkgMTY6NDYsIEd1byBSZW4gd3JvdGU6DQo+IE9uIFR1ZSwgQXByIDIz
+LCAyMDE5IGF0IDA3OjU1OjQ4QU0gKzAyMDAsIENocmlzdG9waCBIZWxsd2lnIHdyb3RlOg0KPj4g
+T24gVHVlLCBBcHIgMjMsIDIwMTkgYXQgMDg6MTM6NDhBTSArMDgwMCwgR3VvIFJlbiB3cm90ZToN
+Cj4+Pj4gV2Ugc2hvdWxkIHByb2JhYmx5IHN0YXJ0IGEgd29ya2luZyBncm91cCBmb3IgdGhpcyBB
+U0FQIHVubGVzcyB3ZSBjYW4NCj4+Pj4gZ2V0IGFub3RoZXIgd29ya2luZyBncm91cCB0byBoZWxw
+IHRha2luZyBjYXJlIG9mIGl0Lg0KPj4+IEdvb2QgbmV3cywgSSBwcmVmZXIgdG8gdXNlIGluc3Ry
+dWN0aW9ucyBkaXJlY3RseSBpbnN0ZWFkIG9mIFNCSV9DQUxMLg0KPj4+DQo+Pj4gT3VyIGluc3Ry
+dWN0aW9uIGlzICJkY2FjaGUuYy9pdmEgJTAiIChvbmUgY2FjaGUgbGluZSkgYW5kIHRoZSBwYXJh
+bWV0ZXIgaXMNCj4+PiB2aXJ0dWFsIGFkZHJlc3MgaW4gUy1zdGF0ZS4gV2hlbiBnZXQgaW50byBN
+LXN0YXRlIGJ5IFNCSV9DQUxMLCB3ZSBjb3VsZA0KPj4+IGxldCBkY2FjaGUuYy9pdmEgdXNlIHBo
+eXNpY2FsIGFkZHJlcyBkaXJlY3RseSBhbmQgaXQgbmVlZG4ndCBrbWFwIHBhZ2UNCj4+PiBmb3Ig
+UlYzMiB3aXRoIGhpZ2htZW0gKE9mIGNhdXNlIGhpZ2htZW0gaXMgbm90IHJlYWR5IGluIFJWMzIg
+bm93KS4NCj4+DQo+PiBTbyB5b3Ugb25seSBoYXZlIG9uZSBpbnN0cnVjdGlvbiB2YXJpYW50PyAg
+Tm9ybWFsbHkgd2UnZCBoYXZlIHR3byBvcg0KPj4gdGhyZWUgdG8gaW1wbGVtZW50IHRoZSBub24t
+Y29oZXJlbnQgRE1BIChvciBwbWVtKSBzZW1hbnRpY3M6DQo+IGRjYWNoZS5jL2l2YSBtZWFucyB0
+aHJlZSBpbnN0cnVjdGlvbnM6DQo+ICAgLSBkY2FjaGUuY3ZhICUwICA6IHdyaXRlYmFjayAgICAg
+YnkgdmlydHVhbCBhZGRyZXNzIGNhY2hlbGluZQ0KPiAgIC0gZGNhY2hlLml2YSAlMCAgOiBpbnZh
+bGlkICAgICAgIGJ5IHZpcnR1YWwgYWRkcmVzcyBjYWNoZWxpbmUNCj4gICAtIGRjYWNoZS5jaXZh
+ICUwIDogd3JpdGViYWNrK2ludiBieSB2aXJ0dWFsIGFkZHJlc3MgY2FjaGVsaW5lDQo+IA0KPiBX
+ZSBhbHNvIGhhdmUgbWVtb3J5IGJhcnJpZXIgaW5zdHJ1Y3Rpb25zLCByZWY6DQo+IGh0dHBzOi8v
+Z2l0Lmtlcm5lbC5vcmcvcHViL3NjbS9saW51eC9rZXJuZWwvZ2l0L3RvcnZhbGRzL2xpbnV4Lmdp
+dC90cmVlL2FyY2gvY3NreS9pbmNsdWRlL2FzbS9iYXJyaWVyLmgNCj4gDQo+Pg0KPj4gY2FjaGUg
+d3JpdGViYWNrLCBjYWNoZSBpbnZhbGlkYXRlIGFuZCBwb3RlbnRpYWxseSBjYWNoZSB3cml0ZWJh
+Y2sgKw0KPj4gaW52YWxpZGF0ZSB0byBvcHRpbWl6ZSB0aGF0IGNhc2UuICBIZXJlIGlzIHRoZSB0
+YWJsZSBob3cgTGludXgNCj4+IHVzZXMgdGhlbSBmb3IgRE1BOg0KPj4NCj4+ICAgICAgICAgICAg
+fCAgIG1hcCAgICAgICAgICA9PSAgZm9yX2RldmljZSAgICAgfCAgIHVubWFwICAgICA9PSAgZm9y
+X2NwdQ0KPj4gICAgICAgICAgICB8LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPj4gICBUT19ERVYgICB8ICAgd3JpdGViYWNr
+ICAgICAgICB3cml0ZWJhY2sgICAgICB8ICAgbm9uZSAgICAgICAgICBub25lDQo+PiAgIEZST01f
+REVWIHwgICBpbnZhbGlkYXRlICAgICAgIGludmFsaWRhdGUgICAgIHwgICBpbnZhbGlkYXRlKiAg
+IGludmFsaWRhdGUqDQo+PiAgIEJJREkgICAgIHwgICB3cml0ZWJhY2sraW52ICAgIHdyaXRlYmFj
+aytpbnYgIHwgICBpbnZhbGlkYXRlICAgIGludmFsaWRhdGUNCj4+DQo+PiAgICAgICBbKl0gbmVl
+ZGVkIGZvciBDUFUgc3BlY3VsYXRpdmUgcHJlZmV0Y2hlcw0KPj4NCj4+DQo+PiBXZSBhbHJlYWR5
+IGhhdmUgYSBkaXNjdXNzaW9uIG9uIGlzYS1kZXYgb24gc29tZXRoaW5nIGxpa2UgdGhlc2UNCj4+
+IGluc3RydWN0aW9uczoNCj4+DQo+PiBodHRwczovL2dyb3Vwcy5nb29nbGUuY29tL2EvZ3JvdXBz
+LnJpc2N2Lm9yZy9mb3J1bS8jIW1zZy9pc2EtZGV2L3FYYnpxYVFiRFhVLzRUaGNFQWVDQ0FBSg0K
+Pj4NCj4+IEl0IGdvdCBhIGxpdHRsZSBzaWRlIHRyYWNrZWQsIGJvdGggZHVlIHRvIHRoZSB1c3Vh
+bCBub2lzZSBvbiBpc2EtZGV2DQo+PiBhbmQgZHVlIHRvIHRoZSBwcm9wb3NhbCBpbmNsdWRpbmcg
+YSBsb3QgbW9yZSBpbnN0cnVjdGlvbnMgdGhhdCBtaWdodCBiZQ0KPj4gYSBsaXR0bGUgbW9yZSBj
+b250ZW50aW91cywgYnV0IGl0IG1pZ2h0IGJlIGEgZ29vZCBzdGFydCB0byBicmluZyB0aGlzDQo+
+PiBpbnRvIGEgd29ya2luZyBncm91cC4NCj4gSSB0aGluayB1c2luZyBzYmlfY2FsbCBhcyBhIHRl
+bXBvcmFyeSBzb2x1dGlvbiBpcyBhIGdvb2QgY2hvaWNlIGJlZm9yZQ0KPiB0aGUgaW5zdHJ1Y3Rp
+b24gaXMgZGV0ZXJtaW5lZC4NCj4gDQo+Pg0KPj4+PiBBbHNvIGlzIHRoaXMgcmVhbGx5IGEgY29o
+ZXJlbnQgZmxhZywgb3IgYW4gJ3VuY2FjaGVkJyBmbGFnIGxpa2UgaW4NCj4+Pj4gbWFueSBvdGhl
+ciBhcmNoaXRlY3R1cmVzPw0KPj4+IFRoZXJlIGFyZSBhIGxvdCBvZiBmZWF0dXJlcyBhYm91dCBj
+b2hlcmVuY3kgYXR0cmlidXRlcywgZWc6IGNhY2hlYWJsZSwNCj4+PiBidWZmZXJhYmxlLCBzdHJv
+bmcgb3JkZXIgLi4uLCBhbmQgY29oZXJlbmN5IGlzIGEgbW9yZSBhYnN0cmFjdCBuYW1lIHRvDQo+
+Pj4gY29udGFpbiBhbGwgb2YgdGhlc2UuIEluIG91ciBoYXJkd2FyZSwgY29oZXJlbmNlID0gdW5j
+YWNoZWQgKw0KPj4+IHVuYnVmZmVyYWJsZSArIChzdG9uZyBvcmRlcikuDQo+Pj4NCj4+PiBCdXQg
+SSdtIG5vdCB2ZXJ5IGNhcmUgYWJvdXQgdGhlIG5hbWUgaXMsIHVuY2FjaGVkIGlzIGFsc28gb2su
+IE15IGtleQ0KPj4+IHBvaW50IGlzIHRoZSBiaXRzIG9mIHBhZ2UgYXR0cmlidXRlcyBpcyB2ZXJ5
+IHByZWNpb3VzIGFuZCB0aGlzIHBhdGNoDQo+Pj4gd2lsbCB1c2UgdGhlIGxhc3QgdW51c2VkIGF0
+dHJpYnV0ZSBiaXQgaW4gUFRFLg0KPj4NCj4+IEkgZG9uJ3QgY2FyZSBhYm91dCB0aGUgbmFtZSBh
+Y3R1YWxseSwgbW9yZSBhYm91dCBoYXZpbmcgZGVmaW5lZCBzZW1hbnRpY3MuDQo+PiBUb3RhbGx5
+IHVuY2FjaGVkIHNob3VsZCBpbmNsdWRlIHVuYnVmZmVyZWQuICBJIGRvbid0IHRoaW5rIHdlIG5l
+ZWQgdGhlDQo+PiBzdHJvbmcgb3JkZXJpbmcgZm9yIERNQSBtZW1vcnkgZWl0aGVyLg0KPiBZZXMs
+IG1lbW9yeSBkb24ndCBuZWVkIHN0cm9uZyBvcmRlciBhbmQgc3Ryb25nIG9yZGVyIGluIFBNQSBh
+bHNvIGltcGxpZXMNCj4gdW5jYWNoZWQsIHVuYnVmZmVyZWQgZm9yIElPIGFkZHJlc3MuIElmIHRo
+ZSBlbnRyeSBvZiBQTUEgaXMgc3Ryb25nDQo+IG9yZGVyLCB0aGUgcGFnZSBtYXBwaW5nIG11c3Qg
+YmUgdW5jYWNoZWQgKyB1bmJ1ZmZlcmVkICsgc3Ryb25nLW9yZGVyDQo+IHdpdGhvdXQgX1BBR0Vf
+Q09IRU5DWSBpbiBQVEUuDQo+IA0KPj4NCj4+PiBBbm90aGVyIHBvaW50IGlzIHdlIGNvdWxkIGdl
+dCBtb3JlIGF0dHJpYnV0ZSBiaXRzIGJ5IG1vZGlmeSB0aGUgcmlzY3YNCj4+PiBzcGVjOg0KPj4+
+ICAgLSBSZW1vdmUgR2xvYmFsIGJpdCwgSSB0aGluayBpdCdzIGR1cGxpY2F0ZSB3aXRoIHRoZSBV
+c2VyIGJpdCBpbiBsaW51eC4NCj4+DQo+PiBJdCBpcyBpbiBMaW51eCwgYnV0IGl0IGlzIGNvbmNl
+cHR1YWxseSB2ZXJ5IGRpZmZlcmVudC4NCj4gWWVzLCBidXQgaGFyZHdhcmUgY291bGQgaWdub3Jl
+IG9uZSBvZiB0aGVtIGFuZCBpbiByaXNjdiBsaW51eA0KPiBfUEFHRV9HTE9CQUwgaXMgbm8gdXNl
+IGF0IGFsbCwgc2VlOg0KPiBncmVwIF9QQUdFX0dMT0JBTCBhcmNoL3Jpc2N2IC1yDQo+IA0KPiBJ
+biBmYWN0LCB0aGUgX1BBR0VfS0VSTkVMIGZvciBwdGUgZG9lc24ndCBjb250YWluIF9QQUdFX0dM
+T0JBTCBhbmQgaXQNCj4gd29ya3Mgb24gRlU1NDAgYW5kIHFlbXUuIEFzIEkndmUgbWVudGlvbmVk
+IHBhZ2UgYXR0cmlidXRlIGJpdHMgaXMgdmVyeQ0KPiBwcmVjaW91cywgZGVmaW5lIGEgdXNlbGVz
+cyBiaXQgbWFrZSBwZW9wbGUgY29uZnVzZWQuDQogPg0KDQpUaGUgZmFjdCB0aGF0IGl0IGlzbid0
+IHVzZWQgeWV0IGRvZXNuJ3QgaW1wbHkgaXQgaXMgbm90IHVzZWZ1bC4gV2UgZG9uJ3QgDQp1c2Ug
+QVNJRHMgYXQgdGhlIG1vbWVudCwgYW5kIHdpdGhvdXQgdXNpbmcgQVNJRHMgdGhlICJnbG9iYWwi
+IGJpdCBpcyANCmluZGVlZCBub3QgdXNlZnVsLiBIb3dldmVyIHdpdGggQVNJRHMgdGhlIGJpdCB3
+aWxsIGJlIHZpdGFsIGZvciBzYXZpbmcgDQpUTEIgc3BhY2VzLiBXaXRob3V0IHRoZSBnbG9iYWwg
+Yml0LCB0aGUga2VybmVsIHBhZ2VzIGJlY29tZSBzeW5vbnltcyB0byANCnRoZW1zZWx2ZXMgKGku
+ZS4gdGhleSBoYXZlIGRpZmZlcmVudCB0YWdzIGluIFRMQiBidXQgcmVmZXIgdG8gdGhlIHNhbWUg
+DQpwaHlzaWNhbCBwYWdlKS4NCg0KVGhlIGdsb2JhbCBiaXQgYWxzbyBleGlzdHMgaW4gbWFueSBv
+dGhlciBJU0FzIGFzIHdlbGwuIEl0J3MgZGVmaW5pdGVseSANCm5vdCBhICJ1c2VsZXNzIiBiaXRz
+Lg0KDQpNb3Jlb3ZlciwgdGhpcyBiaXQgaXMgYWxyZWFkeSBpbXBsZW1lbnRlZCBpbiBib3RoIFJv
+Y2tldCBhbmQgQXJpYW5lLiBJdCANCmlzIGFsc28gaW4gdGhlIHNwZWMgZm9yIHF1aXRlIGEgd2hp
+bGUuIFRoZSBmYWN0IHRoYXQgTGludXggZG9lc24ndCB1c2UgDQppdCBhdCB0aGUgbW9tZW50IGlz
+IG5vdCBhIHJlYXNvbiBmb3IgcmVtb3ZpbmcgaXQuDQoNCj4gDQo+Pg0KPj4+ICAgLSBDaGFuZ2Ug
+X1BBR0VfUEZOX1NISUZUIGZyb20gMTAgdG8gMTIsIGJlY2F1c2UgdGhlIGh1Z2UgcGZuIGluIFJW
+MzIgaXMNCj4+PiAgICAgdmVyeSB1c2VsZXNzIGFuZCBjdXJyZW50IFJWMzIgbGludXggZG9lc24n
+dCBldmVuIGltcGxlbWVudCBoaWdobWVtLg0KPj4NCj4+IFRoaXMgd291bGQgc2VlbSBzZW5zaWJs
+ZSB0byBtZSwgYnV0IEknbSBub3Qgc3VyZSBldmVyeW9uZSBhZ3JlZXMuICBFdmVuDQo+PiB0aGVu
+IHdlIGFyZSB2ZXJ5IGxhdGUgaW4gdGhlIGdhbWUgZm9yIGNoYW5nZXMgbGlrZSB0aGF0Lg0KPiBB
+Z3JlZS4NCj4gDQo+IEJlc3QgUmVnYXJkcw0KPiAgIEd1byBSZW4NCj4gDQo+IF9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fDQo+IGxpbnV4LXJpc2N2IG1haWxp
+bmcgbGlzdA0KPiBsaW51eC1yaXNjdkBsaXN0cy5pbmZyYWRlYWQub3JnDQo+IGh0dHA6Ly9saXN0
+cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtcmlzY3YNCj4gDQo=
