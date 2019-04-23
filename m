@@ -1,98 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54872 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726150AbfDWLbt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 07:31:49 -0400
-Date: Tue, 23 Apr 2019 12:31:42 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [RESEND PATCH v3 02/11] arm64: mark (__)cpus_have_const_cap as
- __always_inline
-Message-ID: <20190423113142.GB56999@lakrids.cambridge.arm.com>
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
- <20190423034959.13525-3-yamada.masahiro@socionext.com>
+Received: from mail-it1-f194.google.com ([209.85.166.194]:33183 "EHLO
+        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727877AbfDWOlw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 10:41:52 -0400
+Received: by mail-it1-f194.google.com with SMTP id v8so2810625itf.0
+        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 07:41:52 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190423034959.13525-3-yamada.masahiro@socionext.com>
+References: <00000000000043fe9c058720a5d3@google.com> <ad884b18-0e03-d6be-02b0-4e5273f068ce@kernel.dk>
+ <CAHk-=wgG=RqK8T5kWiZfH7da6rBuqp3kAesP=ETgceb6RzvZng@mail.gmail.com>
+ <53a17444-9539-5810-82a0-ceeefa742508@kernel.dk> <cfa6be6d-4125-6d1e-8993-e9ec9dbaa7bb@kernel.dk>
+ <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
+In-Reply-To: <CAHk-=wh=kKEb6qbuhnSWh5S55SbQBOE33991ULSFUgVrEnzivA@mail.gmail.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Tue, 23 Apr 2019 17:41:40 +0300
+Message-ID: <CACT4Y+b8dkFzQoJgaNLMiDjF4bM1AeSZaH5EWTvF_o5MQhu4Pg@mail.gmail.com>
+Subject: Re: WARNING in percpu_ref_kill_and_confirm
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, will.deacon@arm.com, catalin.marinas@arm.com, marc.zyngier@arm.com
-Message-ID: <20190423113142.PnwgzyUexR1gJ3dfUMGRiZfwZ0sQBXp4ex4QipZJUKY@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jens Axboe <axboe@kernel.dk>, syzbot <syzbot+10d25e23199614b7721f@syzkaller.appspotmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Anvin <hpa@zytor.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, Andrew Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, syzkaller-bugs <syzkaller-bugs@googlegroups.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, the arch/x86 maintainers <x86@kernel.org>, syzkaller <syzkaller@googlegroups.com>
+Message-ID: <20190423144140.nSfdjMdXhTrZDso0V06UW4aiObgyr0ADGtswpWytFvQ@z>
 
-[adding relevant arm64 folk to Cc]
+On Mon, Apr 22, 2019 at 7:48 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> On Mon, Apr 22, 2019 at 9:38 AM Jens Axboe <axboe@kernel.dk> wrote:
+> >
+> > With the mutex change in, I can trigger it in a second or so. Just ran
+> > the reproducer with that change reverted, and I'm not seeing any badness.
+> > So I do wonder if the bisect results are accurate?
+>
+> Looking at the syzbot report, it's syzbot being confused.
+>
+> The actual WARNING in percpu_ref_kill_and_confirm() only happens with
+> recent kernels.
+>
+> But then syzbot mixes it up with a completely different bug:
+>
+>    crash: BUG: MAX_STACK_TRACE_ENTRIES too low!
+>    BUG: MAX_STACK_TRACE_ENTRIES too low!
+>
+> and for some reason decides that *that* bug is the same thing entirely.
+>
+> So yeah, I think the simple percpu_ref_is_dying() check is sufficient,
+> and that the syzbot bisection is completely bogus.
 
-On Tue, Apr 23, 2019 at 12:49:50PM +0900, Masahiro Yamada wrote:
-> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-> place. We need to eliminate potential issues beforehand.
-> 
-> If it is enabled for arm64, the following errors are reported:
-> 
-> In file included from ././include/linux/compiler_types.h:68,
->                  from <command-line>:
-> ./arch/arm64/include/asm/jump_label.h: In function 'cpus_have_const_cap':
-> ./include/linux/compiler-gcc.h:120:38: warning: asm operand 0 probably doesn't match constraints
->  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
->                                       ^~~
-> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro 'asm_volatile_goto'
->   asm_volatile_goto(
->   ^~~~~~~~~~~~~~~~~
-> ./include/linux/compiler-gcc.h:120:38: error: impossible constraint in 'asm'
->  #define asm_volatile_goto(x...) do { asm goto(x); asm (""); } while (0)
->                                       ^~~
-> ./arch/arm64/include/asm/jump_label.h:32:2: note: in expansion of macro 'asm_volatile_goto'
->   asm_volatile_goto(
->   ^~~~~~~~~~~~~~~~~
-> 
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Using crashed/not-crashed predicate gives better results overall. More
+than half kernel bugs have different manifestations due to different
+reasons. And even if we can say for sure that we see a different bug,
+we still don't know if the original bug is also there or not. See the
+following threads for details:
+https://groups.google.com/d/msg/syzkaller-bugs/nFeC8-UG1gg/y6gUEsvAAgAJ
+https://groups.google.com/d/msg/syzkaller/sR8aAXaWEF4/tTWYRgvmAwAJ
 
-This looks sound to me, and from a quick scan of v5.1-rc6 with:
-
-$ git grep -wW inline -- arch/arm64
-
-... I didn't spot any other sites which obviously needed to be made
-__always_inline.
-
-I've built and booted this atop of defconfig and my usual suite of debug
-options for fuzzing, at EL1 under QEMU/KVM, and at EL2 under QEMU/TCG,
-with no issues in either case, so FWIW:
-
-Tested-by: Mark Rutland <mark.rutland@arm.com>
-
-Thanks,
-Mark.
-
-> ---
-> 
-> Changes in v3: None
-> Changes in v2:
->   - split into a separate patch
-> 
->  arch/arm64/include/asm/cpufeature.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
-> index e505e1fbd2b9..77d1aa57323e 100644
-> --- a/arch/arm64/include/asm/cpufeature.h
-> +++ b/arch/arm64/include/asm/cpufeature.h
-> @@ -406,7 +406,7 @@ static inline bool cpu_have_feature(unsigned int num)
->  }
->  
->  /* System capability check for constant caps */
-> -static inline bool __cpus_have_const_cap(int num)
-> +static __always_inline bool __cpus_have_const_cap(int num)
->  {
->  	if (num >= ARM64_NCAPS)
->  		return false;
-> @@ -420,7 +420,7 @@ static inline bool cpus_have_cap(unsigned int num)
->  	return test_bit(num, cpu_hwcaps);
->  }
->  
-> -static inline bool cpus_have_const_cap(int num)
-> +static __always_inline bool cpus_have_const_cap(int num)
->  {
->  	if (static_branch_likely(&arm64_const_caps_ready))
->  		return __cpus_have_const_cap(num);
-> -- 
-> 2.17.1
-> 
+Unrelated crashes is the most common cause of incorrect bisection
+results (66%). To enable better bisection we would need to integrate
+some meaningful precommit testing into kernel development process
+(would be tremendously useful for other reasons too). E.g. this "BUG:
+MAX_STACK_TRACE_ENTRIES too low!" is this:
+https://syzkaller.appspot.com/bug?id=dbd70f0407487a061d2d46fdc6bccc94b95ce3c0
+and the reproducer is simply opening /dev/infiniband/rdma_cm or
+/dev/vhci or something equally simple with LOCKDEP enabled. None of
+this was done in a testing environment for several weeks. And then it
+took another month to propagate the fix through all distributed kernel
+trees. For all that time simple programs crash and bisection can't be
+done and we are spending time here...
