@@ -1,37 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-07.nifty.com ([210.131.2.74]:38927 "EHLO
+Received: from conuserg-07.nifty.com ([210.131.2.74]:38896 "EHLO
         conuserg-07.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730536AbfDWDvr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:47 -0400
+        with ESMTP id S1730524AbfDWDvq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2019 23:51:46 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [RESEND PATCH v3 08/11] powerpc/prom_init: mark prom_getprop() and prom_getproplen() as __init
-Date: Tue, 23 Apr 2019 12:49:56 +0900
-Message-ID: <20190423034959.13525-9-yamada.masahiro@socionext.com>
+Subject: [RESEND PATCH v3 09/11] powerpc/mm/radix: mark __radix__flush_tlb_range_psize() as __always_inline
+Date: Tue, 23 Apr 2019 12:49:57 +0900
+Message-ID: <20190423034959.13525-10-yamada.masahiro@socionext.com>
 In-Reply-To: <20190423034959.13525-1-yamada.masahiro@socionext.com>
 References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20190423034956.qdhpiOjODeEXE2L5QazrQjkGK9w0_bNMBdDAYkNM1Uo@z>
+Message-ID: <20190423034957.MgpVP0gmOXr9gvaxmo480j3eoovU1xsUoSKA3v7QH9U@z>
 
 This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
 place. We need to eliminate potential issues beforehand.
 
-If it is enabled for powerpc, the following modpost warnings are
-reported:
+If it is enabled for powerpc, the following error is reported:
 
-WARNING: vmlinux.o(.text.unlikely+0x20): Section mismatch in reference from the function .prom_getprop() to the function .init.text:.call_prom()
-The function .prom_getprop() references
-the function __init .call_prom().
-This is often because .prom_getprop lacks a __init
-annotation or the annotation of .call_prom is wrong.
-
-WARNING: vmlinux.o(.text.unlikely+0x3c): Section mismatch in reference from the function .prom_getproplen() to the function .init.text:.call_prom()
-The function .prom_getproplen() references
-the function __init .call_prom().
-This is often because .prom_getproplen lacks a __init
-annotation or the annotation of .call_prom is wrong.
+arch/powerpc/mm/tlb-radix.c: In function '__radix__flush_tlb_range_psize':
+arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't match constraints [-Werror]
+  asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
+  ^~~
+arch/powerpc/mm/tlb-radix.c:104:2: error: impossible constraint in 'asm'
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
@@ -40,30 +33,21 @@ Changes in v3: None
 Changes in v2:
   - split into a separate patch
 
- arch/powerpc/kernel/prom_init.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/powerpc/mm/tlb-radix.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
-index f33ff4163a51..241fe6b7a8cc 100644
---- a/arch/powerpc/kernel/prom_init.c
-+++ b/arch/powerpc/kernel/prom_init.c
-@@ -501,14 +501,14 @@ static int __init prom_next_node(phandle *nodep)
- 	}
+diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
+index 6a23b9ebd2a1..a2b2848f0ae3 100644
+--- a/arch/powerpc/mm/tlb-radix.c
++++ b/arch/powerpc/mm/tlb-radix.c
+@@ -928,7 +928,7 @@ void radix__tlb_flush(struct mmu_gather *tlb)
+ 	tlb->need_flush_all = 0;
  }
  
--static inline int prom_getprop(phandle node, const char *pname,
--			       void *value, size_t valuelen)
-+static inline int __init prom_getprop(phandle node, const char *pname,
-+				      void *value, size_t valuelen)
+-static inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
++static __always_inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
+ 				unsigned long start, unsigned long end,
+ 				int psize, bool also_pwc)
  {
- 	return call_prom("getprop", 4, 1, node, ADDR(pname),
- 			 (u32)(unsigned long) value, (u32) valuelen);
- }
- 
--static inline int prom_getproplen(phandle node, const char *pname)
-+static inline int __init prom_getproplen(phandle node, const char *pname)
- {
- 	return call_prom("getproplen", 2, 1, node, ADDR(pname));
- }
 -- 
 2.17.1
