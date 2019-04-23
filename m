@@ -1,111 +1,48 @@
-From: Gary Guo <gary@garyguo.net>
-Subject: Re: [PATCH] riscv: Support non-coherency memory model
-Date: Tue, 23 Apr 2019 15:57:30 +0000
-Message-ID: <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
-References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
- <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
- <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460>
+From: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+	files to *.rst
+Date: Tue, 23 Apr 2019 10:30:53 -0600
+Message-ID: <20190423103053.07cf2149@lwn.net>
+References: <cover.1555938375.git.mchehab+samsung@kernel.org>
+	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
+	<20190423125519.GA7104@redhat.com>
+	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190423154642.GA16001@guoren-Inspiron-7460>
-Content-Language: en-US
-Content-ID: <17B373646E5003478C80CDE18E54E795@GBRP265.PROD.OUTLOOK.COM>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <guoren@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20190423130132.GT4038-Nxj+rRp3nVydTX5a5knrm8zTDFooKrT+cvkQGrU6aU0@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-DQoNCk9uIDIzLzA0LzIwMTkgMTY6NDYsIEd1byBSZW4gd3JvdGU6DQo+IE9uIFR1ZSwgQXByIDIz
-LCAyMDE5IGF0IDA3OjU1OjQ4QU0gKzAyMDAsIENocmlzdG9waCBIZWxsd2lnIHdyb3RlOg0KPj4g
-T24gVHVlLCBBcHIgMjMsIDIwMTkgYXQgMDg6MTM6NDhBTSArMDgwMCwgR3VvIFJlbiB3cm90ZToN
-Cj4+Pj4gV2Ugc2hvdWxkIHByb2JhYmx5IHN0YXJ0IGEgd29ya2luZyBncm91cCBmb3IgdGhpcyBB
-U0FQIHVubGVzcyB3ZSBjYW4NCj4+Pj4gZ2V0IGFub3RoZXIgd29ya2luZyBncm91cCB0byBoZWxw
-IHRha2luZyBjYXJlIG9mIGl0Lg0KPj4+IEdvb2QgbmV3cywgSSBwcmVmZXIgdG8gdXNlIGluc3Ry
-dWN0aW9ucyBkaXJlY3RseSBpbnN0ZWFkIG9mIFNCSV9DQUxMLg0KPj4+DQo+Pj4gT3VyIGluc3Ry
-dWN0aW9uIGlzICJkY2FjaGUuYy9pdmEgJTAiIChvbmUgY2FjaGUgbGluZSkgYW5kIHRoZSBwYXJh
-bWV0ZXIgaXMNCj4+PiB2aXJ0dWFsIGFkZHJlc3MgaW4gUy1zdGF0ZS4gV2hlbiBnZXQgaW50byBN
-LXN0YXRlIGJ5IFNCSV9DQUxMLCB3ZSBjb3VsZA0KPj4+IGxldCBkY2FjaGUuYy9pdmEgdXNlIHBo
-eXNpY2FsIGFkZHJlcyBkaXJlY3RseSBhbmQgaXQgbmVlZG4ndCBrbWFwIHBhZ2UNCj4+PiBmb3Ig
-UlYzMiB3aXRoIGhpZ2htZW0gKE9mIGNhdXNlIGhpZ2htZW0gaXMgbm90IHJlYWR5IGluIFJWMzIg
-bm93KS4NCj4+DQo+PiBTbyB5b3Ugb25seSBoYXZlIG9uZSBpbnN0cnVjdGlvbiB2YXJpYW50PyAg
-Tm9ybWFsbHkgd2UnZCBoYXZlIHR3byBvcg0KPj4gdGhyZWUgdG8gaW1wbGVtZW50IHRoZSBub24t
-Y29oZXJlbnQgRE1BIChvciBwbWVtKSBzZW1hbnRpY3M6DQo+IGRjYWNoZS5jL2l2YSBtZWFucyB0
-aHJlZSBpbnN0cnVjdGlvbnM6DQo+ICAgLSBkY2FjaGUuY3ZhICUwICA6IHdyaXRlYmFjayAgICAg
-YnkgdmlydHVhbCBhZGRyZXNzIGNhY2hlbGluZQ0KPiAgIC0gZGNhY2hlLml2YSAlMCAgOiBpbnZh
-bGlkICAgICAgIGJ5IHZpcnR1YWwgYWRkcmVzcyBjYWNoZWxpbmUNCj4gICAtIGRjYWNoZS5jaXZh
-ICUwIDogd3JpdGViYWNrK2ludiBieSB2aXJ0dWFsIGFkZHJlc3MgY2FjaGVsaW5lDQo+IA0KPiBX
-ZSBhbHNvIGhhdmUgbWVtb3J5IGJhcnJpZXIgaW5zdHJ1Y3Rpb25zLCByZWY6DQo+IGh0dHBzOi8v
-Z2l0Lmtlcm5lbC5vcmcvcHViL3NjbS9saW51eC9rZXJuZWwvZ2l0L3RvcnZhbGRzL2xpbnV4Lmdp
-dC90cmVlL2FyY2gvY3NreS9pbmNsdWRlL2FzbS9iYXJyaWVyLmgNCj4gDQo+Pg0KPj4gY2FjaGUg
-d3JpdGViYWNrLCBjYWNoZSBpbnZhbGlkYXRlIGFuZCBwb3RlbnRpYWxseSBjYWNoZSB3cml0ZWJh
-Y2sgKw0KPj4gaW52YWxpZGF0ZSB0byBvcHRpbWl6ZSB0aGF0IGNhc2UuICBIZXJlIGlzIHRoZSB0
-YWJsZSBob3cgTGludXgNCj4+IHVzZXMgdGhlbSBmb3IgRE1BOg0KPj4NCj4+ICAgICAgICAgICAg
-fCAgIG1hcCAgICAgICAgICA9PSAgZm9yX2RldmljZSAgICAgfCAgIHVubWFwICAgICA9PSAgZm9y
-X2NwdQ0KPj4gICAgICAgICAgICB8LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPj4gICBUT19ERVYgICB8ICAgd3JpdGViYWNr
-ICAgICAgICB3cml0ZWJhY2sgICAgICB8ICAgbm9uZSAgICAgICAgICBub25lDQo+PiAgIEZST01f
-REVWIHwgICBpbnZhbGlkYXRlICAgICAgIGludmFsaWRhdGUgICAgIHwgICBpbnZhbGlkYXRlKiAg
-IGludmFsaWRhdGUqDQo+PiAgIEJJREkgICAgIHwgICB3cml0ZWJhY2sraW52ICAgIHdyaXRlYmFj
-aytpbnYgIHwgICBpbnZhbGlkYXRlICAgIGludmFsaWRhdGUNCj4+DQo+PiAgICAgICBbKl0gbmVl
-ZGVkIGZvciBDUFUgc3BlY3VsYXRpdmUgcHJlZmV0Y2hlcw0KPj4NCj4+DQo+PiBXZSBhbHJlYWR5
-IGhhdmUgYSBkaXNjdXNzaW9uIG9uIGlzYS1kZXYgb24gc29tZXRoaW5nIGxpa2UgdGhlc2UNCj4+
-IGluc3RydWN0aW9uczoNCj4+DQo+PiBodHRwczovL2dyb3Vwcy5nb29nbGUuY29tL2EvZ3JvdXBz
-LnJpc2N2Lm9yZy9mb3J1bS8jIW1zZy9pc2EtZGV2L3FYYnpxYVFiRFhVLzRUaGNFQWVDQ0FBSg0K
-Pj4NCj4+IEl0IGdvdCBhIGxpdHRsZSBzaWRlIHRyYWNrZWQsIGJvdGggZHVlIHRvIHRoZSB1c3Vh
-bCBub2lzZSBvbiBpc2EtZGV2DQo+PiBhbmQgZHVlIHRvIHRoZSBwcm9wb3NhbCBpbmNsdWRpbmcg
-YSBsb3QgbW9yZSBpbnN0cnVjdGlvbnMgdGhhdCBtaWdodCBiZQ0KPj4gYSBsaXR0bGUgbW9yZSBj
-b250ZW50aW91cywgYnV0IGl0IG1pZ2h0IGJlIGEgZ29vZCBzdGFydCB0byBicmluZyB0aGlzDQo+
-PiBpbnRvIGEgd29ya2luZyBncm91cC4NCj4gSSB0aGluayB1c2luZyBzYmlfY2FsbCBhcyBhIHRl
-bXBvcmFyeSBzb2x1dGlvbiBpcyBhIGdvb2QgY2hvaWNlIGJlZm9yZQ0KPiB0aGUgaW5zdHJ1Y3Rp
-b24gaXMgZGV0ZXJtaW5lZC4NCj4gDQo+Pg0KPj4+PiBBbHNvIGlzIHRoaXMgcmVhbGx5IGEgY29o
-ZXJlbnQgZmxhZywgb3IgYW4gJ3VuY2FjaGVkJyBmbGFnIGxpa2UgaW4NCj4+Pj4gbWFueSBvdGhl
-ciBhcmNoaXRlY3R1cmVzPw0KPj4+IFRoZXJlIGFyZSBhIGxvdCBvZiBmZWF0dXJlcyBhYm91dCBj
-b2hlcmVuY3kgYXR0cmlidXRlcywgZWc6IGNhY2hlYWJsZSwNCj4+PiBidWZmZXJhYmxlLCBzdHJv
-bmcgb3JkZXIgLi4uLCBhbmQgY29oZXJlbmN5IGlzIGEgbW9yZSBhYnN0cmFjdCBuYW1lIHRvDQo+
-Pj4gY29udGFpbiBhbGwgb2YgdGhlc2UuIEluIG91ciBoYXJkd2FyZSwgY29oZXJlbmNlID0gdW5j
-YWNoZWQgKw0KPj4+IHVuYnVmZmVyYWJsZSArIChzdG9uZyBvcmRlcikuDQo+Pj4NCj4+PiBCdXQg
-SSdtIG5vdCB2ZXJ5IGNhcmUgYWJvdXQgdGhlIG5hbWUgaXMsIHVuY2FjaGVkIGlzIGFsc28gb2su
-IE15IGtleQ0KPj4+IHBvaW50IGlzIHRoZSBiaXRzIG9mIHBhZ2UgYXR0cmlidXRlcyBpcyB2ZXJ5
-IHByZWNpb3VzIGFuZCB0aGlzIHBhdGNoDQo+Pj4gd2lsbCB1c2UgdGhlIGxhc3QgdW51c2VkIGF0
-dHJpYnV0ZSBiaXQgaW4gUFRFLg0KPj4NCj4+IEkgZG9uJ3QgY2FyZSBhYm91dCB0aGUgbmFtZSBh
-Y3R1YWxseSwgbW9yZSBhYm91dCBoYXZpbmcgZGVmaW5lZCBzZW1hbnRpY3MuDQo+PiBUb3RhbGx5
-IHVuY2FjaGVkIHNob3VsZCBpbmNsdWRlIHVuYnVmZmVyZWQuICBJIGRvbid0IHRoaW5rIHdlIG5l
-ZWQgdGhlDQo+PiBzdHJvbmcgb3JkZXJpbmcgZm9yIERNQSBtZW1vcnkgZWl0aGVyLg0KPiBZZXMs
-IG1lbW9yeSBkb24ndCBuZWVkIHN0cm9uZyBvcmRlciBhbmQgc3Ryb25nIG9yZGVyIGluIFBNQSBh
-bHNvIGltcGxpZXMNCj4gdW5jYWNoZWQsIHVuYnVmZmVyZWQgZm9yIElPIGFkZHJlc3MuIElmIHRo
-ZSBlbnRyeSBvZiBQTUEgaXMgc3Ryb25nDQo+IG9yZGVyLCB0aGUgcGFnZSBtYXBwaW5nIG11c3Qg
-YmUgdW5jYWNoZWQgKyB1bmJ1ZmZlcmVkICsgc3Ryb25nLW9yZGVyDQo+IHdpdGhvdXQgX1BBR0Vf
-Q09IRU5DWSBpbiBQVEUuDQo+IA0KPj4NCj4+PiBBbm90aGVyIHBvaW50IGlzIHdlIGNvdWxkIGdl
-dCBtb3JlIGF0dHJpYnV0ZSBiaXRzIGJ5IG1vZGlmeSB0aGUgcmlzY3YNCj4+PiBzcGVjOg0KPj4+
-ICAgLSBSZW1vdmUgR2xvYmFsIGJpdCwgSSB0aGluayBpdCdzIGR1cGxpY2F0ZSB3aXRoIHRoZSBV
-c2VyIGJpdCBpbiBsaW51eC4NCj4+DQo+PiBJdCBpcyBpbiBMaW51eCwgYnV0IGl0IGlzIGNvbmNl
-cHR1YWxseSB2ZXJ5IGRpZmZlcmVudC4NCj4gWWVzLCBidXQgaGFyZHdhcmUgY291bGQgaWdub3Jl
-IG9uZSBvZiB0aGVtIGFuZCBpbiByaXNjdiBsaW51eA0KPiBfUEFHRV9HTE9CQUwgaXMgbm8gdXNl
-IGF0IGFsbCwgc2VlOg0KPiBncmVwIF9QQUdFX0dMT0JBTCBhcmNoL3Jpc2N2IC1yDQo+IA0KPiBJ
-biBmYWN0LCB0aGUgX1BBR0VfS0VSTkVMIGZvciBwdGUgZG9lc24ndCBjb250YWluIF9QQUdFX0dM
-T0JBTCBhbmQgaXQNCj4gd29ya3Mgb24gRlU1NDAgYW5kIHFlbXUuIEFzIEkndmUgbWVudGlvbmVk
-IHBhZ2UgYXR0cmlidXRlIGJpdHMgaXMgdmVyeQ0KPiBwcmVjaW91cywgZGVmaW5lIGEgdXNlbGVz
-cyBiaXQgbWFrZSBwZW9wbGUgY29uZnVzZWQuDQogPg0KDQpUaGUgZmFjdCB0aGF0IGl0IGlzbid0
-IHVzZWQgeWV0IGRvZXNuJ3QgaW1wbHkgaXQgaXMgbm90IHVzZWZ1bC4gV2UgZG9uJ3QgDQp1c2Ug
-QVNJRHMgYXQgdGhlIG1vbWVudCwgYW5kIHdpdGhvdXQgdXNpbmcgQVNJRHMgdGhlICJnbG9iYWwi
-IGJpdCBpcyANCmluZGVlZCBub3QgdXNlZnVsLiBIb3dldmVyIHdpdGggQVNJRHMgdGhlIGJpdCB3
-aWxsIGJlIHZpdGFsIGZvciBzYXZpbmcgDQpUTEIgc3BhY2VzLiBXaXRob3V0IHRoZSBnbG9iYWwg
-Yml0LCB0aGUga2VybmVsIHBhZ2VzIGJlY29tZSBzeW5vbnltcyB0byANCnRoZW1zZWx2ZXMgKGku
-ZS4gdGhleSBoYXZlIGRpZmZlcmVudCB0YWdzIGluIFRMQiBidXQgcmVmZXIgdG8gdGhlIHNhbWUg
-DQpwaHlzaWNhbCBwYWdlKS4NCg0KVGhlIGdsb2JhbCBiaXQgYWxzbyBleGlzdHMgaW4gbWFueSBv
-dGhlciBJU0FzIGFzIHdlbGwuIEl0J3MgZGVmaW5pdGVseSANCm5vdCBhICJ1c2VsZXNzIiBiaXRz
-Lg0KDQpNb3Jlb3ZlciwgdGhpcyBiaXQgaXMgYWxyZWFkeSBpbXBsZW1lbnRlZCBpbiBib3RoIFJv
-Y2tldCBhbmQgQXJpYW5lLiBJdCANCmlzIGFsc28gaW4gdGhlIHNwZWMgZm9yIHF1aXRlIGEgd2hp
-bGUuIFRoZSBmYWN0IHRoYXQgTGludXggZG9lc24ndCB1c2UgDQppdCBhdCB0aGUgbW9tZW50IGlz
-IG5vdCBhIHJlYXNvbiBmb3IgcmVtb3ZpbmcgaXQuDQoNCj4gDQo+Pg0KPj4+ICAgLSBDaGFuZ2Ug
-X1BBR0VfUEZOX1NISUZUIGZyb20gMTAgdG8gMTIsIGJlY2F1c2UgdGhlIGh1Z2UgcGZuIGluIFJW
-MzIgaXMNCj4+PiAgICAgdmVyeSB1c2VsZXNzIGFuZCBjdXJyZW50IFJWMzIgbGludXggZG9lc24n
-dCBldmVuIGltcGxlbWVudCBoaWdobWVtLg0KPj4NCj4+IFRoaXMgd291bGQgc2VlbSBzZW5zaWJs
-ZSB0byBtZSwgYnV0IEknbSBub3Qgc3VyZSBldmVyeW9uZSBhZ3JlZXMuICBFdmVuDQo+PiB0aGVu
-IHdlIGFyZSB2ZXJ5IGxhdGUgaW4gdGhlIGdhbWUgZm9yIGNoYW5nZXMgbGlrZSB0aGF0Lg0KPiBB
-Z3JlZS4NCj4gDQo+IEJlc3QgUmVnYXJkcw0KPiAgIEd1byBSZW4NCj4gDQo+IF9fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fDQo+IGxpbnV4LXJpc2N2IG1haWxp
-bmcgbGlzdA0KPiBsaW51eC1yaXNjdkBsaXN0cy5pbmZyYWRlYWQub3JnDQo+IGh0dHA6Ly9saXN0
-cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtcmlzY3YNCj4gDQo=
+On Tue, 23 Apr 2019 15:01:32 +0200
+Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+
+> But yes, I have 0 motivation to learn or abide by rst. It simply doesn't
+> give me anything in return. There is no upside, only worse text files :/
+
+So I believe it gives even you one thing in return: documentation that is
+more accessible for both readers and authors.  More readable docs should
+lead to more educated developers who understand the code better.  More
+writable docs will bring more people in to help to improve them.  The
+former effect has been reported in the GPU community, where they say that
+the quality of submissions has improved along with the docs.  The latter
+can be observed in the increased number of people working on the docs
+overall, something that Linus noted in the 5.1-rc1 announcement.
+
+Hopefully that's worth something :)
+
+Thanks,
+
+jon
