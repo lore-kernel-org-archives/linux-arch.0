@@ -1,217 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:51115 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725916AbfDWF7a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Apr 2019 01:59:30 -0400
-Message-ID: <1555999165.26198.39.camel@intel.com>
-Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
- self-encapsulation
-From: Zhang Rui <rui.zhang@intel.com>
-Date: Tue, 23 Apr 2019 13:59:25 +0800
-In-Reply-To: <fb45157c-38c4-7940-3252-af459d446323@linaro.org>
-References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
-         <20190402161256.11044-3-daniel.lezcano@linaro.org>
-         <1555922585.26198.19.camel@intel.com>
-         <fb45157c-38c4-7940-3252-af459d446323@linaro.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-ed1-f68.google.com ([209.85.208.68]:46588 "EHLO
+        mail-ed1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725935AbfDWHgb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 03:36:31 -0400
+Received: by mail-ed1-f68.google.com with SMTP id d1so11655072edd.13
+        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 00:36:30 -0700 (PDT)
+Date: Tue, 23 Apr 2019 09:36:25 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [patch V2 16/29] drm: Simplify stacktrace handling
+Message-ID: <20190423073625.GZ13337@phenom.ffwll.local>
+References: <20190418084119.056416939@linutronix.de>
+ <20190418084254.549410214@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190418084254.549410214@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>, edubezval@gmail.com
-Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20190423055925.F2pKoY0VLHqEeCWBRjigDp1KyHoZuBxGaZeH6hvUoPE@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, linux-arch@vger.kernel.org
+Message-ID: <20190423073625.TfQe0JEmLLoLntMsBWrgwYewuOjrv7BVHEfJXTHUXQs@z>
 
-Hi, Daniel,
+On Thu, Apr 18, 2019 at 10:41:35AM +0200, Thomas Gleixner wrote:
+> Replace the indirection through struct stack_trace by using the storage
+> array based interfaces.
+> 
+> The original code in all printing functions is really wrong. It allocates a
+> storage array on stack which is unused because depot_fetch_stack() does not
+> store anything in it. It overwrites the entries pointer in the stack_trace
+> struct so it points to the depot storage.
 
-thanks for clarifying.
-It is true that we need to make thermal framework ready as early as
-possible. And a static table works for me as long as vmlinux.lds.h is
-the proper place.
+Thanks for cleaning this up for us!
 
-Arnd,
-are you okay with this patch? if yes, I suppose I can take it through
-my tree, right?
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: intel-gfx@lists.freedesktop.org
+> Cc: Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
+> Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+> Cc: dri-devel@lists.freedesktop.org
+> Cc: David Airlie <airlied@linux.ie>
+> Cc: Jani Nikula <jani.nikula@linux.intel.com>
+> Cc: Daniel Vetter <daniel@ffwll.ch>
+> Cc: Rodrigo Vivi <rodrigo.vivi@intel.com>
 
-thanks,
-rui
+Acked-by: Daniel Vetter <daniel.vetter@ffwll.ch>
 
-On 一, 2019-04-22 at 14:11 +0200, Daniel Lezcano wrote:
-> Hi Zhang,
+for merging through whatever tree is convenient for you (or tell me I
+should pick it up into drm-next when the prep work landed).
+
+Cheers, Daniel
+
+> ---
+>  drivers/gpu/drm/drm_mm.c                |   22 +++++++---------------
+>  drivers/gpu/drm/i915/i915_vma.c         |   11 ++++-------
+>  drivers/gpu/drm/i915/intel_runtime_pm.c |   21 +++++++--------------
+>  3 files changed, 18 insertions(+), 36 deletions(-)
+> 
+> --- a/drivers/gpu/drm/drm_mm.c
+> +++ b/drivers/gpu/drm/drm_mm.c
+> @@ -106,22 +106,19 @@
+>  static noinline void save_stack(struct drm_mm_node *node)
+>  {
+>  	unsigned long entries[STACKDEPTH];
+> -	struct stack_trace trace = {
+> -		.entries = entries,
+> -		.max_entries = STACKDEPTH,
+> -		.skip = 1
+> -	};
+> +	unsigned int n;
+>  
+> -	save_stack_trace(&trace);
+> +	n = stack_trace_save(entries, ARRAY_SIZE(entries), 1);
+>  
+>  	/* May be called under spinlock, so avoid sleeping */
+> -	node->stack = depot_save_stack(&trace, GFP_NOWAIT);
+> +	node->stack = stack_depot_save(entries, n, GFP_NOWAIT);
+>  }
+>  
+>  static void show_leaks(struct drm_mm *mm)
+>  {
+>  	struct drm_mm_node *node;
+> -	unsigned long entries[STACKDEPTH];
+> +	unsigned long *entries;
+> +	unsigned int nr_entries;
+>  	char *buf;
+>  
+>  	buf = kmalloc(BUFSZ, GFP_KERNEL);
+> @@ -129,19 +126,14 @@ static void show_leaks(struct drm_mm *mm
+>  		return;
+>  
+>  	list_for_each_entry(node, drm_mm_nodes(mm), node_list) {
+> -		struct stack_trace trace = {
+> -			.entries = entries,
+> -			.max_entries = STACKDEPTH
+> -		};
+> -
+>  		if (!node->stack) {
+>  			DRM_ERROR("node [%08llx + %08llx]: unknown owner\n",
+>  				  node->start, node->size);
+>  			continue;
+>  		}
+>  
+> -		depot_fetch_stack(node->stack, &trace);
+> -		snprint_stack_trace(buf, BUFSZ, &trace, 0);
+> +		nr_entries = stack_depot_fetch(node->stack, &entries);
+> +		stack_trace_snprint(buf, BUFSZ, entries, nr_entries, 0);
+>  		DRM_ERROR("node [%08llx + %08llx]: inserted at\n%s",
+>  			  node->start, node->size, buf);
+>  	}
+> --- a/drivers/gpu/drm/i915/i915_vma.c
+> +++ b/drivers/gpu/drm/i915/i915_vma.c
+> @@ -36,11 +36,8 @@
+>  
+>  static void vma_print_allocator(struct i915_vma *vma, const char *reason)
+>  {
+> -	unsigned long entries[12];
+> -	struct stack_trace trace = {
+> -		.entries = entries,
+> -		.max_entries = ARRAY_SIZE(entries),
+> -	};
+> +	unsigned long *entries;
+> +	unsigned int nr_entries;
+>  	char buf[512];
+>  
+>  	if (!vma->node.stack) {
+> @@ -49,8 +46,8 @@ static void vma_print_allocator(struct i
+>  		return;
+>  	}
+>  
+> -	depot_fetch_stack(vma->node.stack, &trace);
+> -	snprint_stack_trace(buf, sizeof(buf), &trace, 0);
+> +	nr_entries = stack_depot_fetch(vma->node.stack, &entries);
+> +	stack_trace_snprint(buf, sizeof(buf), entries, nr_entries, 0);
+>  	DRM_DEBUG_DRIVER("vma.node [%08llx + %08llx] %s: inserted at %s\n",
+>  			 vma->node.start, vma->node.size, reason, buf);
+>  }
+> --- a/drivers/gpu/drm/i915/intel_runtime_pm.c
+> +++ b/drivers/gpu/drm/i915/intel_runtime_pm.c
+> @@ -60,27 +60,20 @@
+>  static noinline depot_stack_handle_t __save_depot_stack(void)
+>  {
+>  	unsigned long entries[STACKDEPTH];
+> -	struct stack_trace trace = {
+> -		.entries = entries,
+> -		.max_entries = ARRAY_SIZE(entries),
+> -		.skip = 1,
+> -	};
+> +	unsigned int n;
+>  
+> -	save_stack_trace(&trace);
+> -	return depot_save_stack(&trace, GFP_NOWAIT | __GFP_NOWARN);
+> +	n = stack_trace_save(entries, ARRAY_SIZE(entries), 1);
+> +	return stack_depot_save(entries, n, GFP_NOWAIT | __GFP_NOWARN);
+>  }
+>  
+>  static void __print_depot_stack(depot_stack_handle_t stack,
+>  				char *buf, int sz, int indent)
+>  {
+> -	unsigned long entries[STACKDEPTH];
+> -	struct stack_trace trace = {
+> -		.entries = entries,
+> -		.max_entries = ARRAY_SIZE(entries),
+> -	};
+> +	unsigned long *entries;
+> +	unsigned int nr_entries;
+>  
+> -	depot_fetch_stack(stack, &trace);
+> -	snprint_stack_trace(buf, sz, &trace, indent);
+> +	nr_entries = stack_depot_fetch(stack, &entries);
+> +	stack_trace_snprint(buf, sz, entries, nr_entries, indent);
+>  }
+>  
+>  static void init_intel_runtime_pm_wakeref(struct drm_i915_private *i915)
 > 
 > 
-> On 22/04/2019 10:43, Zhang Rui wrote:
-> > 
-> > Hi, Daniel,
-> > 
-> > Thanks for the patches, it looks good to me except this one and
-> > patch
-> > 4/7.
-> > 
-> > First, I don't think this is a cyclic dependency issue as they are
-> > in
-> > the same module.
-> The governors have to export their [un]register functions in order to
-> have the core to use them.
-> 
-> The core has to export the [un]register function in order to have the
-> governors to use them.
-> 
-> From my point of view it is a cyclic dependency. In any other
-> subsystems, the plugins/governor/drivers/whatever don't have to
-> export
-> their functions to the core, they use the core's exported functions.
-> 
-> > 
-> > Second, I have not read include/asm-generic/vmlinux.lds.h before,
-> > it
-> > seems that it is used for architecture specific stuff. Fix a
-> > thermal
-> > issue in this way seems overkill to me.
-> It is not architecture specific, it belongs to asm-generic. All init
-> calls are defined in it and more. It is a common way to define static
-> tables from different files without adding dependency and unload it
-> after init.
-> 
-> All clk, timers, acpi tables, irq chip, cpuidle and cpu methods are
-> defined this way.
-> 
-> When the thermal_core.c uses at the end fs_initcall it uses the same
-> mechanism.
-> 
-> 
-> > 
-> > IMO, to make the code clean, we can build the governors as separate
-> > modules just like we do for cpu governors.
-> > This brings to the old commit 80a26a5c22b9("Thermal: build thermal
-> > governors into thermal_sys module"), and that was introduced to fix
-> > a
-> > problem when CONFIG_THERMAL is set to 'm'. So I think we can switch
-> > back to the old way as the problem is gone now.
-> > 
-> > what do you think?
-> IMO, having the governors built as module is not a good thing because
-> the SoC needs the governor to be ready as soon as possible at boot
-> time.
-> I've been told some boards reboot at boot time because the governor
-> comes too late with the userspace governor for example.
-> 
-> If you don't like the vmlinuz.lds.h approch (but again it is a common
-> way to initialize table and I wrote it to extend to more thermal
-> table
-> in the future) we can change the thermal core to replace
-> fs_initcall()
-> by core_initcall() and use postcore_initcall() in the governor.
-> 
-> 
-> 
-> > 
-> > Patch 1,2,5,6,7 applied first.
-> > 
-> > thanks,
-> > rui
-> > 
-> > On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
-> > > 
-> > > Currently the governors are declared in their respective files
-> > > but
-> > > they
-> > > export their [un]register functions which in turn call the
-> > > [un]register
-> > > the governors core's functions. That implies a cyclic dependency
-> > > which is
-> > > not desirable. There is a way to self-encapsulate the governors
-> > > by
-> > > letting
-> > > them to declare themselves in a __init section table.
-> > > 
-> > > Define the table in the asm generic linker description like the
-> > > other
-> > > tables and provide the specific macros to deal with.
-> > > 
-> > > Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
-> > > ---
-> > >  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
-> > >  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
-> > >  2 files changed, 27 insertions(+)
-> > > 
-> > > diff --git a/drivers/thermal/thermal_core.h
-> > > b/drivers/thermal/thermal_core.h
-> > > index 0df190ed82a7..28d18083e969 100644
-> > > --- a/drivers/thermal/thermal_core.h
-> > > +++ b/drivers/thermal/thermal_core.h
-> > > @@ -15,6 +15,22 @@
-> > >  /* Initial state of a cooling device during binding */
-> > >  #define THERMAL_NO_TARGET -1UL
-> > >  
-> > > +/* Init section thermal table */
-> > > +extern struct thermal_governor * __governor_thermal_table[];
-> > > +extern struct thermal_governor * __governor_thermal_table_end[];
-> > > +
-> > > +#define THERMAL_TABLE_ENTRY(table, name)			
-> > > \
-> > > +        static typeof(name) * __thermal_table_entry_##name	
-> > > \
-> > > +	__used __section(__##table##_thermal_table)		
-> > > \
-> > > +		= &name;
-> > > +
-> > > +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTR
-> > > Y(go
-> > > vernor, name)
-> > > +
-> > > +#define for_each_governor_table(__governor)		\
-> > > +	for (__governor = __governor_thermal_table;	\
-> > > +	     __governor < __governor_thermal_table_end;	\
-> > > +	     __governor++)
-> > > +
-> > >  /*
-> > >   * This structure is used to describe the behavior of
-> > >   * a certain cooling device on a certain trip point
-> > > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
-> > > generic/vmlinux.lds.h
-> > > index f8f6f04c4453..9893a3ed242a 100644
-> > > --- a/include/asm-generic/vmlinux.lds.h
-> > > +++ b/include/asm-generic/vmlinux.lds.h
-> > > @@ -239,6 +239,16 @@
-> > >  #define ACPI_PROBE_TABLE(name)
-> > >  #endif
-> > >  
-> > > +#ifdef CONFIG_THERMAL
-> > > +#define THERMAL_TABLE(name)					
-> > > 	
-> > > \
-> > > +        . = ALIGN(8);						
-> > > 	\
-> > > +        __##name##_thermal_table = .;				
-> > > 	\
-> > > +        KEEP(*(__##name##_thermal_table))			
-> > > 	
-> > > \
-> > > +        __##name##_thermal_table_end = .;
-> > > +#else
-> > > +#define THERMAL_TABLE(name)
-> > > +#endif
-> > > +
-> > >  #define KERNEL_DTB()						
-> > > 	
-> > > \
-> > >  	STRUCT_ALIGN();						
-> > > 	\
-> > >  	__dtb_start = .;						
-> > > \
-> > > @@ -609,6 +619,7 @@
-> > >  	IRQCHIP_OF_MATCH_TABLE()					
-> > > \
-> > >  	ACPI_PROBE_TABLE(irqchip)				
-> > > 	
-> > > \
-> > >  	ACPI_PROBE_TABLE(timer)					
-> > > 	\
-> > > +	THERMAL_TABLE(governor)					
-> > > 	\
-> > >  	EARLYCON_TABLE()						
-> > > \
-> > >  	LSM_TABLE()
-> > >  
-> 
+
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
+http://blog.ffwll.ch
