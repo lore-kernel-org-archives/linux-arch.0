@@ -1,26 +1,37 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v3 03/10] s390/cpacf: mark scpacf_query() as __always_inline
-Date: Tue, 23 Apr 2019 12:20:59 +0900
-Message-ID: <20190423032106.11960-4-yamada.masahiro@socionext.com>
+Subject: [PATCH v3 08/10] powerpc/mm/radix: mark
+ __radix__flush_tlb_range_psize() as __always_inline
+Date: Tue, 23 Apr 2019 12:21:04 +0900
+Message-ID: <20190423032106.11960-9-yamada.masahiro@socionext.com>
 References: <20190423032106.11960-1-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20190423032106.11960-1-yamada.masahiro@socionext.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Mathieu Malaterre <malat@debian.org>, Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, linux-s390@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Mathieu Malaterre <malat@debian.org>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
 place. We need to eliminate potential issues beforehand.
 
-If it is enabled for s390, the following error is reported:
+If it is enabled for powerpc, the following error is reported:
 
-In file included from arch/s390/crypto/des_s390.c:19:
-./arch/s390/include/asm/cpacf.h: In function 'cpacf_query':
-./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably doesn't match constraints
-  asm volatile(
+arch/powerpc/mm/tlb-radix.c: In function '__radix__flush_tlb_range_psize':
+arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't match constraints [-Werror]
+  asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
   ^~~
-./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'asm'
+arch/powerpc/mm/tlb-radix.c:104:2: error: impossible constraint in 'asm'
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
@@ -29,21 +40,21 @@ Changes in v3: None
 Changes in v2:
   - split into a separate patch
 
- arch/s390/include/asm/cpacf.h | 2 +-
+ arch/powerpc/mm/tlb-radix.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/s390/include/asm/cpacf.h b/arch/s390/include/asm/cpacf.h
-index 3cc52e37b4b2..f316de40e51b 100644
---- a/arch/s390/include/asm/cpacf.h
-+++ b/arch/s390/include/asm/cpacf.h
-@@ -202,7 +202,7 @@ static inline int __cpacf_check_opcode(unsigned int opcode)
- 	}
+diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
+index 6a23b9ebd2a1..a2b2848f0ae3 100644
+--- a/arch/powerpc/mm/tlb-radix.c
++++ b/arch/powerpc/mm/tlb-radix.c
+@@ -928,7 +928,7 @@ void radix__tlb_flush(struct mmu_gather *tlb)
+ 	tlb->need_flush_all = 0;
  }
  
--static inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
-+static __always_inline int cpacf_query(unsigned int opcode, cpacf_mask_t *mask)
+-static inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
++static __always_inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
+ 				unsigned long start, unsigned long end,
+ 				int psize, bool also_pwc)
  {
- 	if (__cpacf_check_opcode(opcode)) {
- 		__cpacf_query(opcode, mask);
 -- 
 2.17.1
