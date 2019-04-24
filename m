@@ -1,96 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:37297 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728604AbfDWX5j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 19:57:39 -0400
-Received: by mail-pf1-f195.google.com with SMTP id 8so8302590pfr.4
-        for <linux-arch@vger.kernel.org>; Tue, 23 Apr 2019 16:57:39 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: Does vdso_install attempt to re-compile objects under root privilege?
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <CAHk-=wiV2gLQkp6JFQYewL1uzgWnwEK9fKWP3AfZbcu2Lv_GrQ@mail.gmail.com>
-Date: Tue, 23 Apr 2019 16:57:36 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <A160B301-5F50-4E0C-B995-A626886A91E7@amacapital.net>
-References: <CAK7LNAQwHRJL=3yD_7P2mMSVnwZbayww+dHC22+v4oTpMZv58w@mail.gmail.com> <CALCETrVSM0vrMVr2y0ECAQ=tNGvBs=im2Kxongq-jvdzUBevbg@mail.gmail.com> <CAHk-=wiV2gLQkp6JFQYewL1uzgWnwEK9fKWP3AfZbcu2Lv_GrQ@mail.gmail.com>
+Received: from vmicros1.altlinux.org ([194.107.17.57]:60612 "EHLO
+        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728615AbfDXAle (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 20:41:34 -0400
+Date: Wed, 24 Apr 2019 03:41:31 +0300
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: Re: [GIT PULL] arch: add pidfd and io_uring syscalls everywhere
+Message-ID: <20190424004131.GA19764@altlinux.org>
+References: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="tKW2IUtsqtDRztdT"
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20190423235736.A2AQLggMx55MG3gbbDxiB4D3dyboTVu84vyteOGzwyM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20190424004131.Ksd6UiqNAOGLWT7xDHKL6B6xVGmvxTrbGiH9XJ-e_Tc@z>
 
 
+--tKW2IUtsqtDRztdT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> On Apr 23, 2019, at 4:38 PM, Linus Torvalds <torvalds@linux-foundation.org=
-> wrote:
->=20
->> On Tue, Apr 23, 2019 at 11:47 AM Andy Lutomirski <luto@kernel.org> wrote:=
+Hi,
 
->>=20
->> Hmm.  I suppose an alternative would be for vdso_install to fail if
->> the vdso isn't built?
+On Tue, Apr 23, 2019 at 09:28:48PM +0200, Arnd Bergmann wrote:
+> The following changes since commit 9e98c678c2d6ae3a17cb2de55d17f69dddaa23=
+1b:
 >=20
-> I absolutely abhor even the concept of building the kernel as root,
-> and I think it should be actively disallowed. Our build system is
-> good, but it's good as in "clever and complex" rather than necessarily
-> good as in "very secure".
+>   Linux 5.1-rc1 (2019-03-17 14:22:26 -0700)
 >=20
-> So anybody who builds the kernel as root is doing something seriously
-> wrong, in my opinion.
+> are available in the Git repository at:
 >=20
-> That's partly exactly _because_ we have a lot of magical and very
-> powerful build rules, and complicated implicit things going on.
+>   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+> syscalls-5.1
 >=20
-> For example, our dependencies aren't even about just the files in the
-> kernel repository itself, we have clever things like "if the compiler
-> has been updated and features or version changes, we'll automatically
-> rebuild, because it's part of our clever build system checks".
+> for you to fetch changes up to 39036cd2727395c3369b1051005da74059a85317:
 >=20
-> But that is also part of the reason why I absolutely do *not* want any
-> root-building to happen, because our build setup is simply way too
-> clever.
+>   arch: add pidfd and io_uring syscalls everywhere (2019-04-15 16:31:17 +=
+0200)
 >=20
-> If root builds stuff, you'll end up with root-owned generated
-> subdirectories or various config files etc, and even if you don't have
-> security issues, it can complicate the build later as a regular user.
+> ----------------------------------------------------------------
+> arch: add pidfd and io_uring syscalls everywhere
 >=20
-> I've had the build occasionally fail in odd ways, because some
-> root-owned file was now no longer removable (usually it's the
-> auto-generated header files in the directory, and the root-generated
-> and owned directory is now not writable by the developer any more).
-> And every time it happens, I shudder.
+> This comes a bit late, but should be in 5.1 anyway: we want the newly
+> added system calls to be synchronized across all architectures in
+> the release.
 >=20
-> So all of that simply boils down to "root should not be running those
-> complex rules for our config and dependency magic".
->=20
-> At the same time, "make install" obviously needs to be done as root.
->=20
-> All of which is why I opine that "make install" should never build
-> anything at all, it should purely be used as a "install previously
-> built files".
->=20
-> So yes, I'd much prefer just failing over trying to build as root (or
-> even trying to figure out dependencies as root).
->=20
->> What's the ideal outcome here?
->=20
-> I'd basically like the rule for "make install" to be that it never
-> ever generates a single file in the build tree, so that there are
-> never any root-owned (or root-overwritten) files there.
->=20
-> So "make install" should even avoid all dependency checking, for the
-> simple reason that if you happen to do a system update between "make"
-> and "make install", our smart dependencies should never say "oh, the
-> compiler version has changed, so now I'll rebuild everything as root
-> just because 'make install'".
->=20
-> So I think the ideal outcome is just "fail if you can't find the files
-> to install".
->=20
->=20
+> I hope that in the future, any newly added system calls can be added
+> to all architectures at the same time, and tested there while they
+> are in linux-next, avoiding dependencies between the architecture
+> maintainer trees and the tree that contains the new system call.
 
-To clarify, this is =E2=80=9Cfail if you can=E2=80=99t find the files to ins=
-tall, but don=E2=80=99t even try to check whether those files are up to date=
-=E2=80=9D, right?=
+Is "everywhere" really means everywhere?
+The reason I'm asking this question is that sh64 seems to be excluded:
+arch/sh/kernel/syscalls_64.S hasn't got any syscall entries since commit
+v4.8-rc1~15^2~3.  Is sh64 supported in any way at all?
+
+
+--=20
+ldv
+
+--tKW2IUtsqtDRztdT
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJcv7C6AAoJEAVFT+BVnCUI0JEQAJ2bzaxtiKTDlR49Nlq0dQhS
+fmtO5WLf3d6e11pAG0gyau7tYaLfjVLa1oaLpaH1aRVUrDbX6SyZSkLyaguzeayE
+iFvMz5QeDU8QLjMQZd/Gy6Nr5BwGKxUndKcMY2vEvGRXGUlg17rr/DXcmXm5+PIb
+hUvzEljiuldojTTTNju1NsTl5Rt6eW+GYG5Sfm/qjGaYaG1qFQUvh5wDx5Ct9qMr
+GkKZM+GDnj8fkreM9tQwBpVGKequhdfdMRyCQSAcuGsLxTvClYefRHUd1Wos8xYG
+za5Vqz4t2T1JpQTl5bBsnH4bxjjrYRXPO1/WIAIutYRcHZ7SNPTRi/Pxlxzi4XFI
+E6N2LuhUFZJmzH3EIguadWlLwalirS4zEY8Q0rnvq4UfnfHG75XuHtTUSpNus/Ar
++hlSaotcRHBmA2wAJjl72KmJSe7xouj2M6ZSBSWmMpE8FefqESXpKCR7vAe8sLOz
+RYWsV043x53EWH8rEfALDIqV1IslvWU+DkxeclgCCPMnaril8g72KBRIhW9IzZkf
+NkErJHy0ReEQ30ctg7l/Jy2H3ClevOFmsVQ6kiVmaabl4PPfwiAHmmi9BO3SdzIF
+P8NJRM/wPvxYV0KlgClGMF4j70hW+fEytmbDZs75THMcr3/VjYSHxgsMdQMS2lE9
+SxN5dBBxvaB4KarTpGVS
+=sopX
+-----END PGP SIGNATURE-----
+
+--tKW2IUtsqtDRztdT--
