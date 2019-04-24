@@ -1,43 +1,91 @@
-From: Mel Gorman <mgorman@techsingularity.net>
-Subject: Re: DISCONTIGMEM is deprecated
-Date: Wed, 24 Apr 2019 13:21:56 +0100
-Message-ID: <20190424122155.GT18914@techsingularity.net>
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
- <20190421211604.GN18914@techsingularity.net>
- <20190423071354.GB12114@infradead.org>
- <20190424113352.GA6278@rapoport-lnx>
+From: Gary Guo <gary@garyguo.net>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Date: Wed, 24 Apr 2019 12:45:56 +0000
+Message-ID: <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
+ <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
+ <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460>
+ <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
+ <20190424020803.GA27332@guoren-Inspiron-7460>
+ <LO2P265MB0847C9F08481E25DABC77335D63C0@LO2P265MB0847.GBRP265.PROD.OUTLOOK.COM>
+ <20190424055703.GA3417@guoren-Inspiron-7460>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190424113352.GA6278@rapoport-lnx>
+In-Reply-To: <20190424055703.GA3417@guoren-Inspiron-7460>
+Content-Language: en-US
+Content-ID: <3CB84A4D67FB29409C60DE8990A6CA97@GBRP265.PROD.OUTLOOK.COM>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Guo Ren <guoren@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 24, 2019 at 02:33:53PM +0300, Mike Rapoport wrote:
-> On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
-> > On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
-> > > 32-bit NUMA systems should be non-existent in practice. The last NUMA
-> > > system I'm aware of that was both NUMA and 32-bit only died somewhere
-> > > between 2004 and 2007. If someone is running a 64-bit capable system in
-> > > 32-bit mode with NUMA, they really are just punishing themselves for fun.
-> > 
-> > Can we mark it as BROKEN to see if someone shouts and then remove it
-> > a year or two down the road?  Or just kill it off now..
-> 
-> How about making SPARSEMEM default for x86-32?
-> 
-
-While an improvement, I tend to agree with Christoph that marking it
-BROKEN as a patch on top of this makes sense and wait to see who, if
-anyone, screams. If it's quiet for long enough then we can remove it
-entirely.
-
--- 
-Mel Gorman
-SUSE Labs
+DQoNCk9uIDI0LzA0LzIwMTkgMDY6NTcsIEd1byBSZW4gd3JvdGU6DQo+IEhpIEdhcnksDQo+IA0K
+PiBPbiBXZWQsIEFwciAyNCwgMjAxOSBhdCAwMzoyMToxNEFNICswMDAwLCBHYXJ5IEd1byB3cm90
+ZToNCj4+PiBMb29rOg0KPj4+IGxpbnV4LW5leHQgZ2l0OihyaXNjdl9hc2lkX2FsbG9jYXRvcl92
+MikkIGdyZXAgR0xPQkFMIGFyY2gvcmlzY3YgLXINCj4+PiBhcmNoL3Jpc2N2L2luY2x1ZGUvYXNt
+L3BndGFibGUtYml0cy5oOiNkZWZpbmUgX1BBR0VfR0xPQkFMICAgICgxIDw8IDUpICAgIC8qDQo+
+Pj4gR2xvYmFsICovDQo+Pj4gYXJjaC9yaXNjdi9pbmNsdWRlL2FzbS9wZ3RhYmxlLWJpdHMuaDog
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBfUEFHRV9VU0VSIHwNCj4+PiBfUEFH
+RV9HTE9CQUwpKQ0KPj4+DQo+Pj4gWW91ciBwYXRjaCB0ZWxsIHVzIF9QQUdFX1VTRVIgYW5kIF9Q
+QUdFX0dMT0JBTCBhcmUgZHVwbGljYXRlIGFuZCB3aHkgd2UNCj4+PiBjb3VsZG4ndCBtYWtlIF9Q
+QUdFX1VTRVIgaW1wbGllcyBfUEFHRV9HTE9CQUw/IENhbiB5b3UgZ2l2ZSBhbiBleGFtcGxlDQo+
+Pj4gb2YgYSByZWFsIHNjZW5lIGluIFBURSBhYm91dDoNCj4+PiAgICBfUEFHRV9VU0VSOjAgKyBf
+UEFHRV9HTE9CQUw6MQ0KPj4+IG9yDQo+Pj4gICAgX1BBR0VfVVNFUjoxICsgX1BBR0VfR0xPQkFM
+OjANCj4+Pg0KPj4+IE9mIGNhdXNlIEkga25vdyBVU0VSICYgR0xPQkFMIGFyZSBjb25jZXB0dWFs
+bHkgdmVyeSBkaWZmZXJlbnQsIGJ1dA0KPj4+IHRoZXJlIGFyZSBvbmx5IDEwIGF0dHJpYnV0ZS1i
+aXRzIGZvciByaXNjdiAoSW4gZmFjdCB3ZSd2ZSB3YXN0ZWQgdHdvIGJpdHMNCj4+PiB0byBzdXBw
+b3J0IGh1Z2UgUlYzMi1wZm4gOlApLiBTbyBJIHRoaW5rIGl0IGlzIHRpbWUgdG8gbWVyZ2UgdGhl
+c2UgdHdvIGJpdHMNCj4+PiBiZWZvcmUgaGFyZHdhcmUgc3VwcG9ydHMgR0xPQkFMLiBSZXNlcnZl
+IHRoZW0gZm9yIGZ1dHVyZSENCj4+DQo+PiBUd28gY2FzZXMgSSBjYW4gdGhpbmsgb2Y6DQo+PiAq
+IHZkc28gbGlrZSB0aGluZ3MuIFRoZXkncmUgdXNlciBwYWdlcyB0aGF0IGNhbiByZWFsbHkgYmUg
+c2hhcmVkIGFjcm9zcyBhZGRyZXNzIHNwYWNlcyAoaS5lLiBnbG9iYWwpLiBLZXJuZWxzIGxpa2Ug
+TDQgaW1wbGVtZW50IG1vc3Qgc3lzdGVtcyBjYWxscyBzaW1pbGFyIHRvIFZEU08sIHNvIFVTRVIg
+KyBHTE9CQUwgaXMgdXNlZnVsLg0KPiBWZHNvIGlzIGEgdXNlciBzcGFjZSBtYXBwaW5nIGluIGxp
+bnV4LCBTZWU6IGZzL2JpbmZtdF9lbGYuYw0KPiANCj4gc3RhdGljIGludCBsb2FkX2VsZl9iaW5h
+cnkoc3RydWN0IGxpbnV4X2JpbnBybSAqYnBybSkgew0KPiAuLi4NCj4gI2lmZGVmIEFSQ0hfSEFT
+X1NFVFVQX0FERElUSU9OQUxfUEFHRVMNCj4gCXJldHZhbCA9IGFyY2hfc2V0dXBfYWRkaXRpb25h
+bF9wYWdlcyhicHJtLCAhIWVsZl9pbnRlcnByZXRlcik7DQo+IAlpZiAocmV0dmFsIDwgMCkNCj4g
+CQlnb3RvIG91dDsNCj4gI2VuZGlmIC8qIEFSQ0hfSEFTX1NFVFVQX0FERElUSU9OQUxfUEFHRVMg
+Ki8NCj4gDQo+IEFsbCBsaW51eCBhcmNocyB1c2UgYXJjaF9zZXR1cF9hZGRpdGlvbmFsX3BhZ2Vz
+IGZvciB2ZHNvIG1hcHBpbmcgYW5kDQo+IGV2ZXJ5IHByb2Nlc3MgaGFzIGl0cyBvd24gdmRzbyBt
+YXBwaW5nIHRvIHRoZSBzYW1lIHBhZ2VzLg0KDQpCdXQgd2Ugc2hvdWxkbid0IHByZXZlbnQgYSBr
+ZXJuZWwgZnJvbSBtYXBwaW5nIGEgVVNFUiBwYWdlIGdsb2JhbGx5LiBBcyANCkkgc2FpZCwgdGhl
+IGZhY3QgdGhhdCBMaW51eCBkb2Vzbid0IGRvIGl0IGlzbid0IGEgdmFsaWQgcmVhc29uIGZvciAN
+Cm9taXR0aW5nIHRoZSBwb3NzaWJpbGl0eS4NCg0KPiANCj4gSSBkb24ndCB0aGluayB2ZHNvIGlz
+IGEgcmVhbCBzY2VuZSBmb3IgR0xPQkFMIGluIFBURS4NCj4gDQo+PiAqIGh5cGVydmlzb3Igd2l0
+aG91dCBILWV4dGVuc2lvbjogVGhpcyByZXF1aXJlcyBzaGFkb3cgcGFnZSB0YWJsZXMuIFN1cGVy
+dmlzb3INCj4+IHBhZ2VzIGFyZSBtYXBwZWQgdG8gc3VwZXJ2aXNvciBzaGFkb3cgcGFnZXMuIEhv
+d2V2ZXIgdGhlc2Ugc2hhZG93IHBhZ2VzIGNhbm5vdA0KPj4gYmUgR0xPQkFMIGJlY2F1c2UgdGhl
+eSBjYW4ndCBiZSBzaGFyZWQgYmV0d2VlbiBWTXMuIFNvICAhVVNFUiArICFHTE9CQUwgaXMgdXNl
+ZnVsLg0KPiBIeXBlcnZpc29yIHVzZSAyLXN0YWdlcyBUTEIgdHJhbnNsYXRpb24gaW4gaGFyZHdh
+cmUgYW5kIHNoYWRvdyBwYWdlDQo+IHRhYmxlcyBpcyBmb3Igc3RhZ2UgMiB0cmFuc2xhdGlvbi4g
+U2hhZG93IHBhZ2UgdGFibGVzIGNhcmUgdm1pZCBub3QNCj4gYXNpZC4NCg0KV2hlbiBILWV4dGVu
+c2lvbiBpcyBwcmVzZW50LCBzdGFnZSAyIHRyYW5zbGF0aW9uIHVzZXMgVk1JRCBhbmQgaXMgDQpw
+ZXJmb3JtZWQgYnkgaGFyZHdhcmUuIFdoZW4gSC1leHRlbnNpb24gaXMgbm90IHByZXNlbnQsIHRo
+ZXJlJ3Mgbm8gc3VjaCANCnRoaW5nIGNhbGxlZCBWTUlELiBXaGVuIEgtZXh0ZW5zaW9uIGlzIG5v
+dCBwcmVzZW50LCBib3RoIGh5cGVydmlzb3IgYW5kIA0KZ3Vlc3Qgc3VwZXJ2aXNvciB3aWxsIHJ1
+biBpbiBzdXBlcnZpc29yIG1vZGUsIGFuZCBoeXBlcnZpc29yIHVzZXMgDQpNU1RBVFVTLlRWTSB0
+byB0cmFwIGd1ZXN0IHN1cGVydmlzb3IgdmlydHVhbCBtZW1vcnkgb3BlcmF0aW9ucy4gVGhlIA0K
+c2hhZG93IHBhZ2UgdGFibGUgaXMgcG9wdWxhdGVkIGJ5IGRvaW5nIDItc3RhZ2UgcGFnZSB3YWxr
+IGluIHNvZnR3YXJlLiANCkluIHRoaXMgY2FzZSwgdGhlIGh5cGVydmlzb3IgbGlrZWx5IG5lZWRz
+IHRvIHVzZSBzb21lIGJpdHMgb2YgQVNJRCB0byANCmVtdWxhdGUgdGhlIFZNSUQgZmVhdHVyZS4g
+SW4gdGhpcyBjYXNlIEdMT0JBTCBwYWdlIGNhbm5vdCBiZSB1c2VkIGFzIGl0IA0KbWVhbnMgdGhh
+dCB0aGUgcGFnZSBleGlzdHMgaW4gYWxsIHBoeXNpY2FsIEFTSURzICh3aGljaCBjb250YWlucyBi
+b3RoIA0KZW11bGF0ZWQgVk1JRCBhbmQgQVNJRCkuIEhhdmluZyBzdXBlcnZpc29yIHBhZ2VzIGJl
+aW5nIEdMT0JBTCBtYWtlcyB0aGUgDQpzZW1hbnRpY3MgaW5jb3JyZWN0IQ0KDQo+IElmIGhhcmR3
+YXJlIGRvbid0IHN1cHBvcnQgSC1leHRlbnNpb24gKE1NVSAyLXN0YWdlcyB0cmFuc2xhdGlvbiks
+IGl0J3MNCj4gaGFyZCB0byBhY2NlcHQgZm9yIHZpcnR1YWxpemF0aW9uIHBlcmZvcm1hbmNlLg0K
+DQpUaGUgUklTQy1WIHByaXZpbGVnZWQgc3BlYyBpcyBleHBsaWNpdGx5IGRlc2lnbmVkIHRvIGFs
+bG93IHRoZSANCnRlY2huaXF1ZXMgZGVzY3JpYmVkIGFib3ZlICh0aGlzIGlzIHRoZSBzb2xlIHB1
+cnBvc2Ugb2YgTVNUQVRVUy5UVk0pLiBJdCANCm1pZ2h0IGJlIGFzIGhpZ2ggcGVyZm9ybWFuY2Ug
+YXMgYSBoYXJkd2FyZSB3aXRoIEgtZXh0ZW5zaW9uLCBidXQgaXMgDQpkZWZpbml0ZWx5IGEgbGVn
+aXQgdXNlIGNhc2UuIEluIGZhY3QsIGl0IGlzIHZpdGFsIGZvciB1c2UgY2FzZXMgbGlrZSANCnJl
+Y3Vyc2l2ZSB2aXJ0dWFsaXphdGlvbi4NCg0KQWxzbywgSSBiZWxpZXZlIHRoZSBQVEUgZm9ybWF0
+IG9mIFJJU0MtViBpcyBhbHJlYWR5IGZyb3plbiAtLSB0aGVyZWZvcmUgDQppdCBpcyBpbXBvc3Np
+YmxlIG5vdyB0byBtZXJnZSBHTE9CQUwgYW5kIFVTRVIgYml0LCBub3IgdG8gcmVwbGFjZSBSU1cg
+DQpiaXQgd2l0aCBhbm90aGVyIGJpdC4NCg0KPiANCj4gSSBkb24ndCB0aGluayBoeXBlcnZpc29y
+IGlzIGEgcmVhbCBzY2VuZSBmb3IgR0xPQkFMIGluIFBURS4NCj4gDQo+IEFyZSB0aGVyZSBvdGhl
+ciBzY2VuZSBmb3IgR0xPQkFMIGluIFBURT8NCj4gDQo+IEJlc3QgUmVnYXJkcw0KPiAgIEd1byBS
+ZW4NCj4gDQo=
