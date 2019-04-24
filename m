@@ -1,60 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:42165 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729244AbfDXHQo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Apr 2019 03:16:44 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:56402 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729463AbfDXIbd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Apr 2019 04:31:33 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20190423170445.GB21047@fuggles.cambridge.arm.com>
+References: <20190423170445.GB21047@fuggles.cambridge.arm.com> <1555504525-17962-1-git-send-email-zhouby_cn@126.com> <20190418112818.GA31923@lakrids.cambridge.arm.com>
+Subject: Re: [PATCH] The patch solves the type error  of the parameter
+ =?utf-8?B?4oCcb2Zm4oCd?= in syscall mmap on the ARM64 platform.
 MIME-Version: 1.0
-References: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
- <20190424004131.GA19764@altlinux.org>
-In-Reply-To: <20190424004131.GA19764@altlinux.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 24 Apr 2019 09:16:26 +0200
-Message-ID: <CAK8P3a2vmEkqN2FLu6C5TPGyDZ4F=tUENJXz_E_oeqdN1RDqQA@mail.gmail.com>
-Subject: Re: [GIT PULL] arch: add pidfd and io_uring syscalls everywhere
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+Date: Wed, 24 Apr 2019 09:31:28 +0100
+Message-ID: <28023.1556094688@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20190424071626.peQHc83S-g9r1o5CHaVtMtgzvHHYvi_lG_l7qiFAlhg@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: dhowells@redhat.com, Mark Rutland <mark.rutland@arm.com>, Boyang Zhou <zhouby_cn@126.com>, catalin.marinas@arm.com, haozhu@nudt.edu.cn, linux@dominikbrodowski.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, viro@zeniv.linux.org.uk, akpm@linux-foundation.org
+Message-ID: <20190424083128.daypN4kZ4rQZpXOJzwPa9zBeHbGzIB5QIjJB5YLh2hw@z>
 
-On Wed, Apr 24, 2019 at 2:41 AM Dmitry V. Levin <ldv@altlinux.org> wrote:
-> On Tue, Apr 23, 2019 at 09:28:48PM +0200, Arnd Bergmann wrote:
-> > The following changes since commit 9e98c678c2d6ae3a17cb2de55d17f69dddaa231b:
-> >
-> >   Linux 5.1-rc1 (2019-03-17 14:22:26 -0700)
-> >
-> > are available in the Git repository at:
-> >
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-> > syscalls-5.1
-> >
-> > for you to fetch changes up to 39036cd2727395c3369b1051005da74059a85317:
-> >
-> >   arch: add pidfd and io_uring syscalls everywhere (2019-04-15 16:31:17 +0200)
-> >
-> > ----------------------------------------------------------------
-> > arch: add pidfd and io_uring syscalls everywhere
-> >
-> > This comes a bit late, but should be in 5.1 anyway: we want the newly
-> > added system calls to be synchronized across all architectures in
-> > the release.
-> >
-> > I hope that in the future, any newly added system calls can be added
-> > to all architectures at the same time, and tested there while they
-> > are in linux-next, avoiding dependencies between the architecture
-> > maintainer trees and the tree that contains the new system call.
->
-> Is "everywhere" really means everywhere?
-> The reason I'm asking this question is that sh64 seems to be excluded:
-> arch/sh/kernel/syscalls_64.S hasn't got any syscall entries since commit
-> v4.8-rc1~15^2~3.  Is sh64 supported in any way at all?
+Will Deacon <will.deacon@arm.com> wrote:
 
-sh64 is dead, the only reason those files are still there is because nobody
-has bothered to create the patch to remove them.
+> -		unsigned long, fd, off_t, off)
+> +		unsigned long, fd, off_t, pgoff)
+>  {
+> +	unsigned long off = pgoff;
+> +
 
-It has not been possible to even build an sh64 kernel for many years,
-and I'm sure none of the prototypes have been turned on for even longer
-if they are still in someone's board pile.
+Would loff_t be better?
 
-     Arnd
+David
