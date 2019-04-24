@@ -1,54 +1,74 @@
 Return-Path: <owner-linux-mm@kvack.org>
+Date: Wed, 24 Apr 2019 14:33:53 +0300
+From: Mike Rapoport <rppt@linux.ibm.com>
 Subject: Re: DISCONTIGMEM is deprecated
 References: <20190419094335.GJ18914@techsingularity.net>
  <20190419140521.GI7751@bombadil.infradead.org>
- <20190419142835.GM18914@techsingularity.net>
-From: Helge Deller <deller@gmx.de>
-Message-ID: <9e7b80a9-b90e-ac04-8b30-b2f285cd4432@gmx.de>
-Date: Fri, 19 Apr 2019 22:08:31 +0200
+ <20190421063859.GA19926@rapoport-lnx>
+ <20190421132606.GJ7751@bombadil.infradead.org>
+ <20190421211604.GN18914@techsingularity.net>
+ <20190423071354.GB12114@infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <20190419142835.GM18914@techsingularity.net>
-Content-Type: text/plain; charset=iso-8859-15
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190423071354.GB12114@infradead.org>
+Message-ID: <20190424113352.GA6278@rapoport-lnx>
 Sender: owner-linux-mm@kvack.org
-To: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190419200831.FpBxgkdzTzoT8geDCdta0bHqkolCiedlB_nyM-cOSF4@z>
+Message-ID: <20190424113353.nUEUV7SFb9vgm_7fnTLeiOR_kBECYjAChEskm3pb8XY@z>
 
-On 19.04.19 16:28, Mel Gorman wrote:
-> On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
->> On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
->>> DISCONTIG is essentially deprecated and even parisc plans to move to
->>> SPARSEMEM so there is no need to be fancy, this patch simply disables
->>> watermark boosting by default on DISCONTIGMEM.
->>
->> I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
->> scenarios.  Grepping the arch/ directories shows:
->>
->> alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
->> arc (for supporting more than 1GB of memory)
->> ia64 (looks complicated ...)
->> m68k (for multiple chunks of memory)
->> mips (does support NUMA but also non-NUMA)
->> parisc (both NUMA and non-NUMA)
->>
->> I'm not sure that these architecture maintainers even know that DISCONT=
-IGMEM
->> is deprecated.  Adding linux-arch to the cc.
->
-> Poor wording then -- yes, DISCONTIGMEM is still used but look where it's
-> used. I find it impossible to believe that any new arch would support
-> DISCONTIGMEM or that DISCONTIGMEM would be selected when SPARSEMEM is
-> available.`It's even more insane when you consider that SPARSEMEM can be
-> extended to support VMEMMAP so that it has similar overhead to FLATMEM
-> when mapping pfns to struct pages and vice-versa.
+On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
+> On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
+> > 32-bit NUMA systems should be non-existent in practice. The last NUMA
+> > system I'm aware of that was both NUMA and 32-bit only died somewhere
+> > between 2004 and 2007. If someone is running a 64-bit capable system in
+> > 32-bit mode with NUMA, they really are just punishing themselves for fun.
+> 
+> Can we mark it as BROKEN to see if someone shouts and then remove it
+> a year or two down the road?  Or just kill it off now..
 
-FYI, on parisc we will switch from DISCONTIGMEM to SPARSEMEM with kernel 5=
-.2.
-The patch was quite simple and it's currently in the for-next tree:
-https://git.kernel.org/pub/scm/linux/kernel/git/deller/parisc-linux.git/co=
-mmit/?h=3Dfor-next&id=3D281b718721a5e78288271d632731cea9697749f7
+How about making SPARSEMEM default for x86-32?
 
-Helge
+From ac2dc27414e26f799ea063fd1d01e19d70056f43 Mon Sep 17 00:00:00 2001
+From: Mike Rapoport <rppt@linux.ibm.com>
+Date: Wed, 24 Apr 2019 14:32:12 +0300
+Subject: [PATCH] x86/Kconfig: make SPARSEMEM default for X86_32
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/x86/Kconfig | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 62fc3fd..77b17af 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1609,10 +1609,6 @@ config ARCH_DISCONTIGMEM_ENABLE
+ 	def_bool y
+ 	depends on NUMA && X86_32
+
+-config ARCH_DISCONTIGMEM_DEFAULT
+-	def_bool y
+-	depends on NUMA && X86_32
+-
+ config ARCH_SPARSEMEM_ENABLE
+ 	def_bool y
+ 	depends on X86_64 || NUMA || X86_32 || X86_32_NON_STANDARD
+@@ -1621,7 +1617,7 @@ config ARCH_SPARSEMEM_ENABLE
+
+ config ARCH_SPARSEMEM_DEFAULT
+ 	def_bool y
+-	depends on X86_64
++	depends on X86_64 || (NUMA && X86_32)
+
+ config ARCH_SELECT_MEMORY_MODEL
+ 	def_bool y
+-- 
+2.7.4
+
+
+-- 
+Sincerely yours,
+Mike.
