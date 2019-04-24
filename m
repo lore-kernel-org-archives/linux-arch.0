@@ -1,27 +1,55 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Does vdso_install attempt to re-compile objects under root
- privilege?
-Date: Wed, 24 Apr 2019 08:57:38 +0200
-Message-ID: <20190424065738.GD4038@hirez.programming.kicks-ass.net>
-References: <CAK7LNAQwHRJL=3yD_7P2mMSVnwZbayww+dHC22+v4oTpMZv58w@mail.gmail.com>
- <CALCETrVSM0vrMVr2y0ECAQ=tNGvBs=im2Kxongq-jvdzUBevbg@mail.gmail.com>
- <CAHk-=wiV2gLQkp6JFQYewL1uzgWnwEK9fKWP3AfZbcu2Lv_GrQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] arch: add pidfd and io_uring syscalls everywhere
+Date: Wed, 24 Apr 2019 09:16:26 +0200
+Message-ID: <CAK8P3a2vmEkqN2FLu6C5TPGyDZ4F=tUENJXz_E_oeqdN1RDqQA@mail.gmail.com>
+References: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
+ <20190424004131.GA19764@altlinux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wiV2gLQkp6JFQYewL1uzgWnwEK9fKWP3AfZbcu2Lv_GrQ@mail.gmail.com>
+In-Reply-To: <20190424004131.GA19764@altlinux.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 23, 2019 at 04:38:35PM -0700, Linus Torvalds wrote:
+On Wed, Apr 24, 2019 at 2:41 AM Dmitry V. Levin <ldv@altlinux.org> wrote:
+> On Tue, Apr 23, 2019 at 09:28:48PM +0200, Arnd Bergmann wrote:
+> > The following changes since commit 9e98c678c2d6ae3a17cb2de55d17f69dddaa231b:
+> >
+> >   Linux 5.1-rc1 (2019-03-17 14:22:26 -0700)
+> >
+> > are available in the Git repository at:
+> >
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+> > syscalls-5.1
+> >
+> > for you to fetch changes up to 39036cd2727395c3369b1051005da74059a85317:
+> >
+> >   arch: add pidfd and io_uring syscalls everywhere (2019-04-15 16:31:17 +0200)
+> >
+> > ----------------------------------------------------------------
+> > arch: add pidfd and io_uring syscalls everywhere
+> >
+> > This comes a bit late, but should be in 5.1 anyway: we want the newly
+> > added system calls to be synchronized across all architectures in
+> > the release.
+> >
+> > I hope that in the future, any newly added system calls can be added
+> > to all architectures at the same time, and tested there while they
+> > are in linux-next, avoiding dependencies between the architecture
+> > maintainer trees and the tree that contains the new system call.
+>
+> Is "everywhere" really means everywhere?
+> The reason I'm asking this question is that sh64 seems to be excluded:
+> arch/sh/kernel/syscalls_64.S hasn't got any syscall entries since commit
+> v4.8-rc1~15^2~3.  Is sh64 supported in any way at all?
 
-> So anybody who builds the kernel as root is doing something seriously
-> wrong, in my opinion.
+sh64 is dead, the only reason those files are still there is because nobody
+has bothered to create the patch to remove them.
 
-Some of my test boxes don't have a user account... if they fall over,
-I'll just re-image them.
+It has not been possible to even build an sh64 kernel for many years,
+and I'm sure none of the prototypes have been turned on for even longer
+if they are still in someone's board pile.
 
-So I've been doing it wrong?
+     Arnd
