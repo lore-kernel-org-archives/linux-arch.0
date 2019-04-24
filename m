@@ -1,41 +1,53 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH] riscv: Support non-coherency memory model
-Date: Wed, 24 Apr 2019 16:23:06 +0200
-Message-ID: <20190424142306.GB20974@lst.de>
-References: <1555947870-23014-1-git-send-email-guoren@kernel.org> <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460> <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460> <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net> <20190424020803.GA27332@guoren-Inspiron-7460> <LO2P265MB0847C9F08481E25DABC77335D63C0@LO2P265MB0847.GBRP265.PROD.OUTLOOK.COM> <20190424055703.GA3417@guoren-Inspiron-7460> <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
+From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+	files to *.rst
+Date: Wed, 24 Apr 2019 16:54:10 +0200
+Message-ID: <20190424145410.GE30142@zn.tnic>
+References: <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
+	<20190423125519.GA7104@redhat.com>
+	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
+	<20190423103053.07cf2149@lwn.net>
+	<20190423171158.GG12232@hirez.programming.kicks-ass.net>
+	<20190423172006.GD16353@zn.tnic> <20190423170409.7b1370ac@coco.lan>
+	<20190423213816.GE16353@zn.tnic> <20190423232325.679c100b@coco.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Gary Guo <gary@garyguo.net>
-Cc: Guo Ren <guoren@kernel.org>, Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+In-Reply-To: <20190423232325.679c100b-qA1ZUp+OV9c@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless@v
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 24, 2019 at 12:45:56PM +0000, Gary Guo wrote:
-> The RISC-V privileged spec is explicitly designed to allow the 
-> techniques described above (this is the sole purpose of MSTATUS.TVM). It 
-> might be as high performance as a hardware with H-extension, but is 
-> definitely a legit use case. In fact, it is vital for use cases like 
-> recursive virtualization.
-> 
-> Also, I believe the PTE format of RISC-V is already frozen -- therefore 
-> it is impossible now to merge GLOBAL and USER bit, nor to replace RSW 
-> bit with another bit.
+On Wed, Apr 24, 2019 at 07:40:07AM -0300, Mauro Carvalho Chehab wrote:
+> Personally, I don't care much with monospaced fonts on this table. After
+> all, if I want to see it monospaced, I can simply click at the
+> "View page source" at the browser, and it will display the file as a
+> plain old monospaced text file.
 
-Yes, I do not think we can just repurpose a bit.  Even using a currently
-unused one would require some gymnastics.
+Goes to show why kernel people wouldn't want to look at that in
+the browser. Long hex numbers are hard to read as it is - that's
+why there's even the 4-digit separator in some docs, for example:
+0xffff_ffff_8100_0000.
 
-That being said IFF we want to support non-coherent DMA (and I think we
-do as people glue together their SOCs using shoestring and paper clips,
-as already demonstrated by Andes and C-SKY in RISC-V space, and most
-arm, mips and ppc SOCs) we need something like this flag.  The current
-RISC-V method that only allows M-mode to set up such attributes on
-a small number or PMP regions just doesn't work well with the way how
-Linux and most non-trivial OSes implement DMA memory allocations.
+Not having it monospaced makes the whole thing even less readable.
 
-Note that I said well - in theory we can have a firmware provided
-uncached pool - that is what Linux does on most nommu (that is without
-pagetables) ports, but the fixed sized pool really does suck and will
-make users very unhappy.
+That's why it is important for the markup not to get in the way of
+people looking at those files in an editor.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
