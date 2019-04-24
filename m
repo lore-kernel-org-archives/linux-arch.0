@@ -1,74 +1,35 @@
-From: Mauro Carvalho Chehab <mchehab@infradead.org>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
- files to *.rst
-Date: Wed, 24 Apr 2019 09:57:56 -0300
-Message-ID: <20190424095756.73b8981f@coco.lan>
-References: <20190423132100.GB7132@redhat.com>
-        <cover.1555938375.git.mchehab+samsung@kernel.org>
-        <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-        <20190423083135.GA11158@hirez.programming.kicks-ass.net>
-        <20190423125519.GA7104@redhat.com>
-        <20190423130132.GT4038@hirez.programming.kicks-ass.net>
-        <20704.1556031146@warthog.procyon.org.uk>
-        <20190423105415.3a69a0cb@lwn.net>
-        <20190423172641.612012c8@coco.lan>
-        <20190424115126.GC6278@rapoport-lnx>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] The patch solves =?utf-8?Q?the?=
+ =?utf-8?Q?_type_error__of_the_parameter_=E2=80=9Coff?= =?utf-8?B?4oCd?= in
+ syscall mmap on the ARM64 platform.
+Date: Wed, 24 Apr 2019 14:50:15 +0100
+Message-ID: <20190424135015.GE14829@fuggles.cambridge.arm.com>
+References: <20190423170445.GB21047@fuggles.cambridge.arm.com>
+ <1555504525-17962-1-git-send-email-zhouby_cn@126.com>
+ <20190418112818.GA31923@lakrids.cambridge.arm.com>
+ <28023.1556094688@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190424115126.GC6278@rapoport-lnx>
+Content-Disposition: inline
+In-Reply-To: <28023.1556094688@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, David Howells <dhowells@redhat.com>, Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Boyang Zhou <zhouby_cn@126.com>, catalin.marinas@arm.com, haozhu@nudt.edu.cn, linux@dominikbrodowski.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, viro@zeniv.linux.org.uk, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-Em Wed, 24 Apr 2019 14:51:26 +0300
-Mike Rapoport <rppt@linux.ibm.com> escreveu:
-
-> On Tue, Apr 23, 2019 at 05:26:41PM -0300, Mauro Carvalho Chehab wrote:
-> > Em Tue, 23 Apr 2019 10:54:15 -0600
-> > Jonathan Corbet <corbet@lwn.net> escreveu:
-> > 
-> > > On Tue, 23 Apr 2019 15:52:26 +0100
-> > > David Howells <dhowells@redhat.com> wrote:
-> > > 
-> > > Suggestions / patches on how to improve things for *all* users of the
-> > > docs are certainly welcome!
-> > > 
-> > > I am, incidentally, toying with the idea of trying to put together a
-> > > documentation microconf at the Linux Plumbers Conference this year.  If
-> > > anybody out there thinks that's a good idea and would like to
-> > > participate, please let me know.
-> > 
-> > If you add a microconf to LPC, I'm in. 
+On Wed, Apr 24, 2019 at 09:31:28AM +0100, David Howells wrote:
+> Will Deacon <will.deacon@arm.com> wrote:
 > 
-> +1
->  
-> > IMO, we made big advances with documentation, but there's a lot more
-> > to be done. Having a microconf to discuss those things may help us
-> > to bring new ideas about how to keep improving it.
+> > -		unsigned long, fd, off_t, off)
+> > +		unsigned long, fd, off_t, pgoff)
+> >  {
+> > +	unsigned long off = pgoff;
+> > +
 > 
-> The most difficult part, IMHO, is to convince people to document things ;-)
+> Would loff_t be better?
 
-As David mentioned, maintainers could enforce merging new APIs
-only with documentation, with the risk of being unpopular. 
+I don't think so, isn't that still signed? I also think it's the same
+size as off_t on arm64 (long long vs long).
 
-Well, maintainers are not among the most loved ones anyway ;-)
-<sarcasm/>
-
-My experience enforcing it at media subsystem is that it is not
-that hard to have developers writing documentation, once it
-becomes a rule, and the maintainers give the example.
-
-The big problem is how to deal with legacy stuff. I had to do that
-myself for the DVB subsystem, where the documentation were frozen back 
-on 2002 days, while lots of new stuff got added (and, worse than that,
-with some very obscure ioctls that is used only by a single driver and
-some that were used only by OOT drivers). 
-
-It take a few years to put it in sync with the code, but, once the 
-ReST conversion was done, it became easier to do the work.
-
-Thanks,
-Mauro
+Will
