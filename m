@@ -1,74 +1,74 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Date: Wed, 24 Apr 2019 14:33:53 +0300
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: DISCONTIGMEM is deprecated
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
- <20190421211604.GN18914@techsingularity.net>
- <20190423071354.GB12114@infradead.org>
+Return-Path: <BATV+2af8ccde70ad7c28a1d8+5722+infradead.org+mchehab@bombadil.srs.infradead.org>
+Date: Wed, 24 Apr 2019 09:57:56 -0300
+From: Mauro Carvalho Chehab <mchehab@infradead.org>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+ files to *.rst
+Message-ID: <20190424095756.73b8981f@coco.lan>
+In-Reply-To: <20190424115126.GC6278@rapoport-lnx>
+References: <20190423132100.GB7132@redhat.com>
+	<cover.1555938375.git.mchehab+samsung@kernel.org>
+	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
+	<20190423125519.GA7104@redhat.com>
+	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
+	<20704.1556031146@warthog.procyon.org.uk>
+	<20190423105415.3a69a0cb@lwn.net>
+	<20190423172641.612012c8@coco.lan>
+	<20190424115126.GC6278@rapoport-lnx>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190423071354.GB12114@infradead.org>
-Message-ID: <20190424113352.GA6278@rapoport-lnx>
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, David Howells <dhowells@redhat.com>, Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190424113353.nUEUV7SFb9vgm_7fnTLeiOR_kBECYjAChEskm3pb8XY@z>
+Message-ID: <20190424125756.dhftyLk2hsjoBMBYaYVhFFcM9yVhF_ZjfGegdTWpiBg@z>
 
-On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
-> On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
-> > 32-bit NUMA systems should be non-existent in practice. The last NUMA
-> > system I'm aware of that was both NUMA and 32-bit only died somewhere
-> > between 2004 and 2007. If someone is running a 64-bit capable system in
-> > 32-bit mode with NUMA, they really are just punishing themselves for fun.
+Em Wed, 24 Apr 2019 14:51:26 +0300
+Mike Rapoport <rppt@linux.ibm.com> escreveu:
+
+> On Tue, Apr 23, 2019 at 05:26:41PM -0300, Mauro Carvalho Chehab wrote:
+> > Em Tue, 23 Apr 2019 10:54:15 -0600
+> > Jonathan Corbet <corbet@lwn.net> escreveu:
+> > 
+> > > On Tue, 23 Apr 2019 15:52:26 +0100
+> > > David Howells <dhowells@redhat.com> wrote:
+> > > 
+> > > Suggestions / patches on how to improve things for *all* users of the
+> > > docs are certainly welcome!
+> > > 
+> > > I am, incidentally, toying with the idea of trying to put together a
+> > > documentation microconf at the Linux Plumbers Conference this year.  If
+> > > anybody out there thinks that's a good idea and would like to
+> > > participate, please let me know.
+> > 
+> > If you add a microconf to LPC, I'm in. 
 > 
-> Can we mark it as BROKEN to see if someone shouts and then remove it
-> a year or two down the road?  Or just kill it off now..
+> +1
+>  
+> > IMO, we made big advances with documentation, but there's a lot more
+> > to be done. Having a microconf to discuss those things may help us
+> > to bring new ideas about how to keep improving it.
+> 
+> The most difficult part, IMHO, is to convince people to document things ;-)
 
-How about making SPARSEMEM default for x86-32?
+As David mentioned, maintainers could enforce merging new APIs
+only with documentation, with the risk of being unpopular. 
 
-From ac2dc27414e26f799ea063fd1d01e19d70056f43 Mon Sep 17 00:00:00 2001
-From: Mike Rapoport <rppt@linux.ibm.com>
-Date: Wed, 24 Apr 2019 14:32:12 +0300
-Subject: [PATCH] x86/Kconfig: make SPARSEMEM default for X86_32
+Well, maintainers are not among the most loved ones anyway ;-)
+<sarcasm/>
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/x86/Kconfig | 6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+My experience enforcing it at media subsystem is that it is not
+that hard to have developers writing documentation, once it
+becomes a rule, and the maintainers give the example.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 62fc3fd..77b17af 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1609,10 +1609,6 @@ config ARCH_DISCONTIGMEM_ENABLE
- 	def_bool y
- 	depends on NUMA && X86_32
+The big problem is how to deal with legacy stuff. I had to do that
+myself for the DVB subsystem, where the documentation were frozen back 
+on 2002 days, while lots of new stuff got added (and, worse than that,
+with some very obscure ioctls that is used only by a single driver and
+some that were used only by OOT drivers). 
 
--config ARCH_DISCONTIGMEM_DEFAULT
--	def_bool y
--	depends on NUMA && X86_32
--
- config ARCH_SPARSEMEM_ENABLE
- 	def_bool y
- 	depends on X86_64 || NUMA || X86_32 || X86_32_NON_STANDARD
-@@ -1621,7 +1617,7 @@ config ARCH_SPARSEMEM_ENABLE
+It take a few years to put it in sync with the code, but, once the 
+ReST conversion was done, it became easier to do the work.
 
- config ARCH_SPARSEMEM_DEFAULT
- 	def_bool y
--	depends on X86_64
-+	depends on X86_64 || (NUMA && X86_32)
-
- config ARCH_SELECT_MEMORY_MODEL
- 	def_bool y
--- 
-2.7.4
-
-
--- 
-Sincerely yours,
-Mike.
+Thanks,
+Mauro
