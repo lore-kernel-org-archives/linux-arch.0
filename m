@@ -1,53 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44512 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725921AbfDXOQj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Apr 2019 10:16:39 -0400
-Date: Wed, 24 Apr 2019 15:16:31 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 5/5] arm64/speculation: Support 'mitigations=' cmdline
- option
-Message-ID: <20190424141631.GH14829@fuggles.cambridge.arm.com>
-References: <cover.1555085500.git.jpoimboe@redhat.com>
- <24039e1370ed57e8075730c0b88c505afd9e0ab7.1555085500.git.jpoimboe@redhat.com>
- <alpine.DEB.2.21.1904162124020.1780@nanos.tec.linutronix.de>
+Received: from verein.lst.de ([213.95.11.211]:54144 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725921AbfDXOXY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Apr 2019 10:23:24 -0400
+Date: Wed, 24 Apr 2019 16:23:06 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Message-ID: <20190424142306.GB20974@lst.de>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org> <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460> <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460> <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net> <20190424020803.GA27332@guoren-Inspiron-7460> <LO2P265MB0847C9F08481E25DABC77335D63C0@LO2P265MB0847.GBRP265.PROD.OUTLOOK.COM> <20190424055703.GA3417@guoren-Inspiron-7460> <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1904162124020.1780@nanos.tec.linutronix.de>
+In-Reply-To: <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>, Randy Dunlap <rdunlap@infradead.org>, Steven Price <steven.price@arm.com>, Phil Auld <pauld@redhat.com>
-Message-ID: <20190424141631.T1yOBeS0xfDb1_9gzpIl40502kgirehCmlbpojTYTw8@z>
+To: Gary Guo <gary@garyguo.net>
+Cc: Guo Ren <guoren@kernel.org>, Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+Message-ID: <20190424142306.KnhJ2grbWPnRYvCMi8Vx-BAbb9hCHeowvobuhcYqWoE@z>
 
-Hi Thomas,
-
-On Tue, Apr 16, 2019 at 09:26:13PM +0200, Thomas Gleixner wrote:
-> On Fri, 12 Apr 2019, Josh Poimboeuf wrote:
+On Wed, Apr 24, 2019 at 12:45:56PM +0000, Gary Guo wrote:
+> The RISC-V privileged spec is explicitly designed to allow the 
+> techniques described above (this is the sole purpose of MSTATUS.TVM). It 
+> might be as high performance as a hardware with H-extension, but is 
+> definitely a legit use case. In fact, it is vital for use cases like 
+> recursive virtualization.
 > 
-> > Configure arm64 runtime CPU speculation bug mitigations in accordance
-> > with the 'mitigations=' cmdline option.  This affects Meltdown, Spectre
-> > v2, and Speculative Store Bypass.
-> > 
-> > The default behavior is unchanged.
-> > 
-> > Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
-> > ---
-> > NOTE: This is based on top of Jeremy Linton's patches:
-> >       https://lkml.kernel.org/r/20190410231237.52506-1-jeremy.linton@arm.com
-> 
-> So I keep that out and we have to revisit that once the ARM64 stuff hits a
-> tree, right? I can have a branch with just the 4 first patches applied
-> which ARM64 folks can pull in when they apply Jeremy's patches before te
-> merge window.
+> Also, I believe the PTE format of RISC-V is already frozen -- therefore 
+> it is impossible now to merge GLOBAL and USER bit, nor to replace RSW 
+> bit with another bit.
 
-I'm assuming that this refers to the core/speculation branch in tip:
+Yes, I do not think we can just repurpose a bit.  Even using a currently
+unused one would require some gymnastics.
 
-https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?h=core/speculation
+That being said IFF we want to support non-coherent DMA (and I think we
+do as people glue together their SOCs using shoestring and paper clips,
+as already demonstrated by Andes and C-SKY in RISC-V space, and most
+arm, mips and ppc SOCs) we need something like this flag.  The current
+RISC-V method that only allows M-mode to set up such attributes on
+a small number or PMP regions just doesn't work well with the way how
+Linux and most non-trivial OSes implement DMA memory allocations.
 
-but please can you confirm that I'm good to pull that into arm64?
-
-Cheers,
-
-Will
+Note that I said well - in theory we can have a firmware provided
+uncached pool - that is what Linux does on most nommu (that is without
+pagetables) ports, but the fixed sized pool really does suck and will
+make users very unhappy.
