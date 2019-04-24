@@ -1,87 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vmicros1.altlinux.org ([194.107.17.57]:60612 "EHLO
-        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728615AbfDXAle (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Apr 2019 20:41:34 -0400
-Date: Wed, 24 Apr 2019 03:41:31 +0300
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: Re: [GIT PULL] arch: add pidfd and io_uring syscalls everywhere
-Message-ID: <20190424004131.GA19764@altlinux.org>
-References: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:53190 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726840AbfDXCIQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Apr 2019 22:08:16 -0400
+Date: Wed, 24 Apr 2019 10:08:04 +0800
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Message-ID: <20190424020803.GA27332@guoren-Inspiron-7460>
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
+ <20190422161814.GA30694@lst.de>
+ <20190423001348.GA31639@guoren-Inspiron-7460>
+ <20190423055548.GA12365@lst.de>
+ <20190423154642.GA16001@guoren-Inspiron-7460>
+ <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="tKW2IUtsqtDRztdT"
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3bT=HO=YQ7PY7wOEsJTzf0jS4PkqNHSqYX4JjwmbhY+g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20190424004131.Ksd6UiqNAOGLWT7xDHKL6B6xVGmvxTrbGiH9XJ-e_Tc@z>
-
-
---tKW2IUtsqtDRztdT
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Gary Guo <gary@garyguo.net>
+Cc: Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Arnd Bergmann <arnd@arndb.de>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+Message-ID: <20190424020804.8UXwmEq4WXc0HmBXojpDHa0yjp6d5tCIDqZZmbTyrTY@z>
 
-Hi,
+Hi Gary,
 
-On Tue, Apr 23, 2019 at 09:28:48PM +0200, Arnd Bergmann wrote:
-> The following changes since commit 9e98c678c2d6ae3a17cb2de55d17f69dddaa23=
-1b:
->=20
->   Linux 5.1-rc1 (2019-03-17 14:22:26 -0700)
->=20
-> are available in the Git repository at:
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-> syscalls-5.1
->=20
-> for you to fetch changes up to 39036cd2727395c3369b1051005da74059a85317:
->=20
->   arch: add pidfd and io_uring syscalls everywhere (2019-04-15 16:31:17 +=
-0200)
->=20
-> ----------------------------------------------------------------
-> arch: add pidfd and io_uring syscalls everywhere
->=20
-> This comes a bit late, but should be in 5.1 anyway: we want the newly
-> added system calls to be synchronized across all architectures in
-> the release.
->=20
-> I hope that in the future, any newly added system calls can be added
-> to all architectures at the same time, and tested there while they
-> are in linux-next, avoiding dependencies between the architecture
-> maintainer trees and the tree that contains the new system call.
+On Tue, Apr 23, 2019 at 03:57:30PM +0000, Gary Guo wrote:
+> >>> Another point is we could get more attribute bits by modify the riscv
+> >>> spec:
+> >>>   - Remove Global bit, I think it's duplicate with the User bit in linux.
+> >>
+> >> It is in Linux, but it is conceptually very different.
+> > Yes, but hardware could ignore one of them and in riscv linux
+> > _PAGE_GLOBAL is no use at all, see:
+> > grep _PAGE_GLOBAL arch/riscv -r
+> > 
+> > In fact, the _PAGE_KERNEL for pte doesn't contain _PAGE_GLOBAL and it
+> > works on FU540 and qemu. As I've mentioned page attribute bits is very
+> > precious, define a useless bit make people confused.
+>  >
+> 
+> The fact that it isn't used yet doesn't imply it is not useful. We don't 
+> use ASIDs at the moment, and without using ASIDs the "global" bit is 
+> indeed not useful. However with ASIDs the bit will be vital for saving 
+> TLB spaces. Without the global bit, the kernel pages become synonyms to 
+> themselves (i.e. they have different tags in TLB but refer to the same 
+> physical page).
+> 
+> The global bit also exists in many other ISAs as well. It's definitely 
+> not a "useless" bits.
+> 
+> Moreover, this bit is already implemented in both Rocket and Ariane. It 
+> is also in the spec for quite a while. The fact that Linux doesn't use 
+> it at the moment is not a reason for removing it.
+> 
 
-Is "everywhere" really means everywhere?
-The reason I'm asking this question is that sh64 seems to be excluded:
-arch/sh/kernel/syscalls_64.S hasn't got any syscall entries since commit
-v4.8-rc1~15^2~3.  Is sh64 supported in any way at all?
+Look:
+linux-next git:(riscv_asid_allocator_v2)$ grep GLOBAL arch/riscv -r
+arch/riscv/include/asm/pgtable-bits.h:#define _PAGE_GLOBAL    (1 << 5)    /* Global */
+arch/riscv/include/asm/pgtable-bits.h:                                    _PAGE_USER | _PAGE_GLOBAL))
 
+Your patch tell us _PAGE_USER and _PAGE_GLOBAL are duplicate and why we
+couldn't make _PAGE_USER implies _PAGE_GLOBAL? Can you give an example
+of a real scene in PTE about:
+  _PAGE_USER:0 + _PAGE_GLOBAL:1
+or
+  _PAGE_USER:1 + _PAGE_GLOBAL:0
 
---=20
-ldv
+Of cause I know USER & GLOBAL are conceptually very different, but
+there are only 10 attribute-bits for riscv (In fact we've wasted two bits
+to support huge RV32-pfn :P). So I think it is time to merge these two bits
+before hardware supports GLOBAL. Reserve them for future!
 
---tKW2IUtsqtDRztdT
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIcBAEBCAAGBQJcv7C6AAoJEAVFT+BVnCUI0JEQAJ2bzaxtiKTDlR49Nlq0dQhS
-fmtO5WLf3d6e11pAG0gyau7tYaLfjVLa1oaLpaH1aRVUrDbX6SyZSkLyaguzeayE
-iFvMz5QeDU8QLjMQZd/Gy6Nr5BwGKxUndKcMY2vEvGRXGUlg17rr/DXcmXm5+PIb
-hUvzEljiuldojTTTNju1NsTl5Rt6eW+GYG5Sfm/qjGaYaG1qFQUvh5wDx5Ct9qMr
-GkKZM+GDnj8fkreM9tQwBpVGKequhdfdMRyCQSAcuGsLxTvClYefRHUd1Wos8xYG
-za5Vqz4t2T1JpQTl5bBsnH4bxjjrYRXPO1/WIAIutYRcHZ7SNPTRi/Pxlxzi4XFI
-E6N2LuhUFZJmzH3EIguadWlLwalirS4zEY8Q0rnvq4UfnfHG75XuHtTUSpNus/Ar
-+hlSaotcRHBmA2wAJjl72KmJSe7xouj2M6ZSBSWmMpE8FefqESXpKCR7vAe8sLOz
-RYWsV043x53EWH8rEfALDIqV1IslvWU+DkxeclgCCPMnaril8g72KBRIhW9IzZkf
-NkErJHy0ReEQ30ctg7l/Jy2H3ClevOFmsVQ6kiVmaabl4PPfwiAHmmi9BO3SdzIF
-P8NJRM/wPvxYV0KlgClGMF4j70hW+fEytmbDZs75THMcr3/VjYSHxgsMdQMS2lE9
-SxN5dBBxvaB4KarTpGVS
-=sopX
------END PGP SIGNATURE-----
-
---tKW2IUtsqtDRztdT--
+Best Regards
+ Guo Ren
