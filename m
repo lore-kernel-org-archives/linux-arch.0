@@ -1,54 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:55146 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730476AbfDXSTy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Apr 2019 14:19:54 -0400
-Date: Wed, 24 Apr 2019 20:19:22 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 5/5] arm64/speculation: Support 'mitigations=' cmdline
- option
-In-Reply-To: <20190424141631.GH14829@fuggles.cambridge.arm.com>
-Message-ID: <alpine.DEB.2.21.1904242019001.1762@nanos.tec.linutronix.de>
-References: <cover.1555085500.git.jpoimboe@redhat.com> <24039e1370ed57e8075730c0b88c505afd9e0ab7.1555085500.git.jpoimboe@redhat.com> <alpine.DEB.2.21.1904162124020.1780@nanos.tec.linutronix.de> <20190424141631.GH14829@fuggles.cambridge.arm.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:60860 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726157AbfDXTph (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Apr 2019 15:45:37 -0400
+Date: Wed, 24 Apr 2019 21:45:05 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch V2 18/29] lockdep: Move stack trace logic into
+ check_prev_add()
+Message-ID: <20190424194505.GR11158@hirez.programming.kicks-ass.net>
+References: <20190418084119.056416939@linutronix.de>
+ <20190418084254.729689921@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190418084254.729689921@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jikos@kernel.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tyler Hicks <tyhicks@canonical.com>, Linus Torvalds <torvalds@linux-foundation.org>, Randy Dunlap <rdunlap@infradead.org>, Steven Price <steven.price@arm.com>, Phil Auld <pauld@redhat.com>
-Message-ID: <20190424181922.uYQvRSzoVUQFXbT2AAUU2nZyNAy5mNZ0ZW1nk45wkWE@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190424194505._4rY7n8LnKeND5iZgXWoPXvnQRM86F7sIVI4Bn1RrCk@z>
 
-On Wed, 24 Apr 2019, Will Deacon wrote:
+On Thu, Apr 18, 2019 at 10:41:37AM +0200, Thomas Gleixner wrote:
+> There is only one caller of check_prev_add() which hands in a zeroed struct
+> stack trace and a function pointer to save_stack(). Inside check_prev_add()
+> the stack_trace struct is checked for being empty, which is always
+> true. Based on that one code path stores a stack trace which is unused. The
+> comment there does not make sense either. It's all leftovers from
+> historical lockdep code (cross release).
 
-> Hi Thomas,
-> 
-> On Tue, Apr 16, 2019 at 09:26:13PM +0200, Thomas Gleixner wrote:
-> > On Fri, 12 Apr 2019, Josh Poimboeuf wrote:
-> > 
-> > > Configure arm64 runtime CPU speculation bug mitigations in accordance
-> > > with the 'mitigations=' cmdline option.  This affects Meltdown, Spectre
-> > > v2, and Speculative Store Bypass.
-> > > 
-> > > The default behavior is unchanged.
-> > > 
-> > > Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
-> > > ---
-> > > NOTE: This is based on top of Jeremy Linton's patches:
-> > >       https://lkml.kernel.org/r/20190410231237.52506-1-jeremy.linton@arm.com
-> > 
-> > So I keep that out and we have to revisit that once the ARM64 stuff hits a
-> > tree, right? I can have a branch with just the 4 first patches applied
-> > which ARM64 folks can pull in when they apply Jeremy's patches before te
-> > merge window.
-> 
-> I'm assuming that this refers to the core/speculation branch in tip:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?h=core/speculation
-> 
-> but please can you confirm that I'm good to pull that into arm64?
+I was more or less expecting a revert of:
 
-Yes. It's all yours :)
+ce07a9415f26 ("locking/lockdep: Make check_prev_add() able to handle external stack_trace")
 
-Thanks,
+And then I read the comment that went with the "static struct
+stack_trace trace" that got removed (in the above commit) and realized
+that your patch will consume more stack entries.
 
-	tglx
+The problem is when the held lock stack in check_prevs_add() has multple
+trylock entries on top, in that case we call check_prev_add() multiple
+times, and this patch will then save the exact same stack-trace multiple
+times, consuming static resources.
+
+Possibly we should copy what stackdepot does (but we cannot use it
+directly because stackdepot uses locks; but possible we can share bits),
+but that is a patch for another day I think.
+
+So while convoluted, perhaps we should retain this code for now.
