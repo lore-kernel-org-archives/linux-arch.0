@@ -1,53 +1,124 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
-	files to *.rst
-Date: Wed, 24 Apr 2019 16:54:10 +0200
-Message-ID: <20190424145410.GE30142@zn.tnic>
-References: <cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
-	<20190423125519.GA7104@redhat.com>
-	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
-	<20190423103053.07cf2149@lwn.net>
-	<20190423171158.GG12232@hirez.programming.kicks-ass.net>
-	<20190423172006.GD16353@zn.tnic> <20190423170409.7b1370ac@coco.lan>
-	<20190423213816.GE16353@zn.tnic> <20190423232325.679c100b@coco.lan>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
+ resolution
+Date: Thu, 25 Apr 2019 01:38:06 +1000
+Message-ID: <20190424153806.64qkkmkudzodxnz2@yavin>
+References: <20190320143717.2523-1-cyphar@cyphar.com>
+ <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
+ <20190325130429.dbrgjxnvq3w5cpb3@yavin>
+ <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="gwuxm2y5lqyvv4zh"
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190423232325.679c100b-qA1ZUp+OV9c@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless@v
+In-Reply-To: <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-fo>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 24, 2019 at 07:40:07AM -0300, Mauro Carvalho Chehab wrote:
-> Personally, I don't care much with monospaced fonts on this table. After
-> all, if I want to see it monospaced, I can simply click at the
-> "View page source" at the browser, and it will display the file as a
-> plain old monospaced text file.
 
-Goes to show why kernel people wouldn't want to look at that in
-the browser. Long hex numbers are hard to read as it is - that's
-why there's even the 4-digit separator in some docs, for example:
-0xffff_ffff_8100_0000.
+--gwuxm2y5lqyvv4zh
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Not having it monospaced makes the whole thing even less readable.
+On 2019-04-23, Kees Cook <keescook@chromium.org> wrote:
+> On Mon, Mar 25, 2019 at 6:05 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > On 2019-03-21, Andy Lutomirski <luto@kernel.org> wrote:
+> > > On Wed, Mar 20, 2019 at 7:38 AM Aleksa Sarai <cyphar@cyphar.com> wrot=
+e:
+> > > > Now that the holiday break is over, it's time to re-send this patch
+> > > > series (with a few additions, due to new information we got from
+> > > > CVE-2019-5736 -- which this patchset mostly protected against but h=
+ad
+> > > > some holes with regards to #!-style scripts).
+> > >
+> > > I generally like this, but, as Linus pointed out, it will be
+> > > unfortunate if application authors see this as just another
+> > > non-portable weird Linux API and don't use it.  Would it be worthwhile
+> > > to put some thought into making it an API that other OSes might be
+> > > willing to implement?  As it stands, the openat(2) flags are getting
+> > > rather crazy in this patch set.
+>=20
+> I think many of the issues are specific to Linux (and Linux containers
+> especially), so I'm not sure this should get blocked because we want
+> something more portable.
 
-That's why it is important for the markup not to get in the way of
-people looking at those files in an editor.
+I agree these issues are quite Linux-specific (*especially* the ability
+to re-open fds through /proc and the existence of "magic links").
 
--- 
-Regards/Gruss,
-    Boris.
+However, I feel there are a few more good reasons for resolveat(2):
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+ * openat(2) ignores unknown flags, meaning that old kernels will ignore
+   new programs trying to use O_THISROOT and might end up causing
+   security issues. Yes, it'd be trivial to check whether the new O_*
+   flags are supported at start-up, but I think a security feature
+   shouldn't have a foot-gun associated with it. In fact, I didn't know
+   openat(2) ignored unknown flags until I wrote this patchset -- I
+   doubt many other userspace developers do either.
+
+ * resolveat(2) allows for improvement to the O_PATH interface, which I
+   think might be necessary (completely separately to this patchset).
+   I've been working on a patchset which would make nd_jump_link()
+   transitions in trailing_symlink() depend on the mode of the magic
+   link being traversed through (this would allow us to block a
+   read-only fd being re-opened as a read-write fd or similar such
+   nonsense). One aspect of this could be to allow userspace to enable
+   certain re-opening operations by passing a "link mode" to
+   resolveat(2).
+
+ * I would argue that O_PATH should've been a separate syscall from the
+   beginning, given how different its semantics are to other openat(2)
+   flags (not to mention how O_PATH is incompatible with and thus
+   ignores so many other openat(2) flags).
+
+ * If we end up needing a resolveat(2) for any of the above reasons,
+   then we will have wasted quite a few openat(2) flag slots for naught.
+   (Then again, there are plenty of flag slots still left.)
+
+All of that aside, what I'd really like to know is what I should do to
+get this patchset reviewed and merged. It's been largely radio-silence
+for the last few revisions.
+
+A simple resolveat(2) is fairly trivial (I have a version of it lying
+around somewhere), but it doesn't make sense to polish it if there's no
+chance Al is interested in it.
+
+> This series provides solutions to so many different race and confusion
+> issues, I'd really like to see it land. What's the next step here? Is
+> this planned to go directly to Linus for v5.2, or is it going to live
+> in -mm for a while? I'd really like to see this moving forward.
+
+Given some of the security requirements of this interface, I think
+getting it to live in -mm wouldn't be a bad idea so folks can shake the
+bugs out before it's depended on by container runtimes.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--gwuxm2y5lqyvv4zh
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzAgtoACgkQSnvnv3De
+m5+Qng//UgytI5RxPSbDQDbFvQ7hXxQeK7Hj2F//aO1N7wMcdXddaLGl4k2psrcy
+8XV3uLPZGMGIk5O73Ll1vlvikJo6epmauB2Uft0ZmlsseL8lz3cOxnUmrr2DBlAZ
+2amB5VzXSLHjwrr351CKUXnOisEIy9aWlhWqb+hjS5MObaVb2GLqrv1sf8pIcd9k
+fmUwbDYEAhjLLan+WZnaI1OzE5xf/kvCvb2J4XL0nXK5jbcCravxrvTdt/jGh+Bk
+erdQ8n5XdhpQ8bGFKaxQavKkIqmwWf70d7HV4K/pTyWqmE4zdc+F29ZvM4a2XAHa
+cRovUeJY26ZD9yuhWLqaswBCM+AkAYQ4E5k6CbRMpYQyJM9i4B5j/s8ZMeyqHknJ
+IvFN2hWLesU96bQYM8aUxdx8yM5v71fAKwk1O5pAc1QIiDOja3ua8wfSOiyBvKP1
+QXm6wfyqbzj7qBpQ11Gh2cvFKrbq2OLGN59sbM/DHAs8PfhaDvtJstzL7xJ8zaWE
+B+GJorQxpHXP8HIKu+XbE5yezapmBKhcRTJcjaQDBjuzMxk7hUS+4J0+mOBL9cAz
+b885AoiI2QkdaO2bNEmRHj/jHj9Tdbmin91UPFXOMCUqcbDegpYYKb0to9hRX+g3
+IFC9pwuXt7hxEqNbVr8XT73fzA+/eJx7ngaoZU107fUNR0sr8xU=
+=23Y4
+-----END PGP SIGNATURE-----
+
+--gwuxm2y5lqyvv4zh--
