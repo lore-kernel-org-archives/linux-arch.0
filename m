@@ -1,50 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f53.google.com ([209.85.128.53]:39793 "EHLO
-        mail-wm1-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726247AbfDYKJj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:09:39 -0400
-Date: Thu, 25 Apr 2019 12:09:33 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [patch V3 00/29] stacktrace: Consolidate stack trace usage
-Message-ID: <20190425100933.GB8387@gmail.com>
-References: <20190425094453.875139013@linutronix.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:41036 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726626AbfDYLCT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Apr 2019 07:02:19 -0400
+Date: Thu, 25 Apr 2019 12:02:11 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v6 22/26] x86/cet/shstk: ELF header parsing of Shadow
+ Stack
+Message-ID: <20190425110211.GZ3567@e103592.cambridge.arm.com>
+References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+ <20181119214809.6086-23-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190425094453.875139013@linutronix.de>
+In-Reply-To: <20181119214809.6086-23-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425100933.UjqFqKzkSIWg4xdRFye2nWZWLPH4oDnA2NybsU1yseg@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20190425110211.T7O19Qn8WFwY4tsbSNZwzfR4-INGZ_ZZiTq8G4yYCeE@z>
 
+On Mon, Nov 19, 2018 at 01:48:05PM -0800, Yu-cheng Yu wrote:
+> Look in .note.gnu.property of an ELF file and check if Shadow Stack needs
+> to be enabled for the task.
 
-* Thomas Gleixner <tglx@linutronix.de> wrote:
+What's the status of this series?  I don't see anything in linux-next
+yet.
 
-> -	if (unlikely(!ret))
-> +	if (unlikely(!ret)) {
-> +		if (!trace->nr_entries) {
-> +			/*
-> +			 * If save_trace fails here, the printing might
-> +			 * trigger a WARN but because of the !nr_entries it
-> +			 * should not do bad things.
-> +			 */
-> +			save_trace(trace);
-> +		}
->  		return print_circular_bug(&this, target_entry, next, prev);
+For describing ELF features, Arm has recently adopted
+NT_GNU_PROPERTY_TYPE_0, with properties closely modelled on
+GNU_PROPERTY_X86_FEATURE_1_AND etc. [1]
+
+So, arm64 will be need something like this patch for supporting new
+features (such as the Branch Target Identification feature of ARMv8.5-A
+[2]).
+
+If this series isn't likely to merge soon, can we split this patch into
+generic and x86-specific parts and handle them separately?
+
+It would be good to see the generic ELF note parsing move to common
+code -- I'll take a look and comment in more detail.
+
+[...]
+
+> diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+> index 69c0f892e310..557ed0ba71c7 100644
+> --- a/arch/x86/include/asm/elf.h
+> +++ b/arch/x86/include/asm/elf.h
+> @@ -381,4 +381,9 @@ struct va_alignment {
+>  
+>  extern struct va_alignment va_align;
+>  extern unsigned long align_vdso_addr(unsigned long);
+> +
+> +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> +extern int arch_setup_features(void *ehdr, void *phdr, struct file *file,
+> +			       bool interp);
+> +#endif
+>  #endif /* _ASM_X86_ELF_H */
+> diff --git a/arch/x86/include/uapi/asm/elf_property.h b/arch/x86/include/uapi/asm/elf_property.h
+> new file mode 100644
+> index 000000000000..af361207718c
+> --- /dev/null
+> +++ b/arch/x86/include/uapi/asm/elf_property.h
+> @@ -0,0 +1,15 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
+> +#define _UAPI_ASM_X86_ELF_PROPERTY_H
+> +
+> +/*
+> + * pr_type
+> + */
+> +#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
+> +
+> +/*
+> + * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
+> + */
+> +#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
+> +
+
+Generally we seem to collect all ELF definitions in <linux/uapi/elf.h>,
+including arch-specific ones.
+
+Is a new header really needed here?
+
+[...]
+
+> diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+> index 54207327f98f..007ff0fbae84 100644
+> --- a/fs/binfmt_elf.c
+> +++ b/fs/binfmt_elf.c
+> @@ -1081,6 +1081,21 @@ static int load_elf_binary(struct linux_binprm *bprm)
+>  		goto out_free_dentry;
+>  	}
+>  
+> +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> +	if (interpreter) {
+> +		retval = arch_setup_features(&loc->interp_elf_ex,
+> +					     interp_elf_phdata,
+> +					     interpreter, true);
+
+Can we dummy no-op functions in the common headers to avoid this
+ifdeffery?  Logically all arches will always do this step, even if it's
+a no-op today.
+
+> +	} else {
+> +		retval = arch_setup_features(&loc->elf_ex,
+> +					     elf_phdata,
+> +					     bprm->file, false);
 > +	}
->  	else if (unlikely(ret < 0))
->  		return print_bfs_bug(ret);
+> +
+> +	if (retval < 0)
+> +		goto out_free_dentry;
+> +#endif
+> +
+>  	if (elf_interpreter) {
+>  		unsigned long interp_map_addr = 0;
+>  
+> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+> index c5358e0ae7c5..5ef25a565e88 100644
+> --- a/include/uapi/linux/elf.h
+> +++ b/include/uapi/linux/elf.h
+> @@ -372,6 +372,7 @@ typedef struct elf64_shdr {
+>  #define NT_PRFPREG	2
+>  #define NT_PRPSINFO	3
+>  #define NT_TASKSTRUCT	4
+> +#define NT_GNU_PROPERTY_TYPE_0 5
 
-Just a minor style nit: the 'else' should probably on the same line as 
-the '}' it belongs to, to make it really obvious that the 'if' has an 
-'else' branch?
+IIUC, note type codes are namespaced by the note name.  This section
+currently only seems to have codes for name == "LINUX".
 
-At that point the condition should probably also use balanced curly 
-braces.
+There are conflicts: for example NT_GNU_ABI_TAG == NT_PRSTATUS.
 
-Interdiff looks good otherwise.
+We should probably split out the codes for name == "GNU" into a separate
+list, otherwise people are likely to get confused.
 
-Thanks,
+As noted above, can the GNU_PRPOERTY_<arch>_* definitions just go in
+here instead of a separate header?
 
-	Ingo
+[...]
+
+Cheers
+---Dave
+
+[1] https://developer.arm.com/docs/ihi0056/latest/elf-for-the-arm-64-bit-architecture-aarch64-abi-2019q1-documentation
+
+[2] https://community.arm.com/developer/ip-products/processors/b/processors-ip-blog/posts/arm-a-profile-architecture-2018-developments-armv85a
