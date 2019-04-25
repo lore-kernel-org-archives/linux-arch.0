@@ -1,55 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58019 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58147 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727973AbfDYKAg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:36 -0400
-Message-ID: <20190425094802.158306076@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:04 +0200
+        with ESMTP id S1728108AbfDYKBo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:01:44 -0400
+Message-ID: <20190425094803.437950229@linutronix.de>
+Date: Thu, 25 Apr 2019 11:45:18 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 11/29] fault-inject: Simplify stacktrace retrieval
+Subject: [patch V3 25/29] livepatch: Simplify stack trace retrieval
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Akinobu Mita <akinobu.mita@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094504.Vm1ONPEWh5eVnA_kftHGglZEfkIwxS2RH6Ns7GVjqe8@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Miroslav Benes <mbenes@suse.cz>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20190425094518.YRTnhzOM0Ou7rMAk1oa8t252NIdSGGZZqzd9xdTu_AU@z>
 
-Replace the indirection through struct stack_trace with an invocation of
-the storage array based interface.
+Replace the indirection through struct stack_trace by using the storage
+array based interfaces.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Acked-by: Miroslav Benes <mbenes@suse.cz>
 ---
- lib/fault-inject.c |   12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ kernel/livepatch/transition.c |   22 +++++++++-------------
+ 1 file changed, 9 insertions(+), 13 deletions(-)
 
---- a/lib/fault-inject.c
-+++ b/lib/fault-inject.c
-@@ -65,22 +65,16 @@ static bool fail_task(struct fault_attr
- 
- static bool fail_stacktrace(struct fault_attr *attr)
+--- a/kernel/livepatch/transition.c
++++ b/kernel/livepatch/transition.c
+@@ -202,15 +202,15 @@ void klp_update_patch_state(struct task_
+  * Determine whether the given stack trace includes any references to a
+  * to-be-patched or to-be-unpatched function.
+  */
+-static int klp_check_stack_func(struct klp_func *func,
+-				struct stack_trace *trace)
++static int klp_check_stack_func(struct klp_func *func, unsigned long *entries,
++				unsigned int nr_entries)
  {
+ 	unsigned long func_addr, func_size, address;
+ 	struct klp_ops *ops;
+ 	int i;
+ 
+-	for (i = 0; i < trace->nr_entries; i++) {
+-		address = trace->entries[i];
++	for (i = 0; i < nr_entries; i++) {
++		address = entries[i];
+ 
+ 		if (klp_target_state == KLP_UNPATCHED) {
+ 			 /*
+@@ -254,29 +254,25 @@ static int klp_check_stack_func(struct k
+ static int klp_check_stack(struct task_struct *task, char *err_buf)
+ {
+ 	static unsigned long entries[MAX_STACK_ENTRIES];
 -	struct stack_trace trace;
- 	int depth = attr->stacktrace_depth;
- 	unsigned long entries[MAX_STACK_TRACE_DEPTH];
--	int n;
-+	int n, nr_entries;
- 	bool found = (attr->require_start == 0 && attr->require_end == ULONG_MAX);
+ 	struct klp_object *obj;
+ 	struct klp_func *func;
+-	int ret;
++	int ret, nr_entries;
  
- 	if (depth == 0)
- 		return found;
- 
+-	trace.skip = 0;
 -	trace.nr_entries = 0;
+-	trace.max_entries = MAX_STACK_ENTRIES;
 -	trace.entries = entries;
--	trace.max_entries = depth;
--	trace.skip = 1;
--
--	save_stack_trace(&trace);
--	for (n = 0; n < trace.nr_entries; n++) {
-+	nr_entries = stack_trace_save(entries, depth, 1);
-+	for (n = 0; n < nr_entries; n++) {
- 		if (attr->reject_start <= entries[n] &&
- 			       entries[n] < attr->reject_end)
- 			return false;
+-	ret = save_stack_trace_tsk_reliable(task, &trace);
++	ret = stack_trace_save_tsk_reliable(task, entries, ARRAY_SIZE(entries));
+ 	WARN_ON_ONCE(ret == -ENOSYS);
+-	if (ret) {
++	if (ret < 0) {
+ 		snprintf(err_buf, STACK_ERR_BUF_SIZE,
+ 			 "%s: %s:%d has an unreliable stack\n",
+ 			 __func__, task->comm, task->pid);
+ 		return ret;
+ 	}
++	nr_entries = ret;
+ 
+ 	klp_for_each_object(klp_transition_patch, obj) {
+ 		if (!obj->patched)
+ 			continue;
+ 		klp_for_each_func(obj, func) {
+-			ret = klp_check_stack_func(func, &trace);
++			ret = klp_check_stack_func(func, entries, nr_entries);
+ 			if (ret) {
+ 				snprintf(err_buf, STACK_ERR_BUF_SIZE,
+ 					 "%s: %s:%d is sleeping on function %s\n",
