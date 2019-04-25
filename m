@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:57955 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:57978 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387610AbfDYKAP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:15 -0400
-Message-ID: <20190425094802.803362058@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:11 +0200
+        with ESMTP id S1728935AbfDYKAU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:20 -0400
+Message-ID: <20190425094803.524796783@linutronix.de>
+Date: Thu, 25 Apr 2019 11:45:19 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 18/29] lockdep: Remove save argument from check_prev_add()
+Subject: [patch V3 26/29] stacktrace: Remove obsolete functions
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,59 +14,74 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094511.jL2rLglrsIuSCxtzPczbhiJByOS4_Y_C-LxR2GCuV5k@z>
+Message-ID: <20190425094519.eX5c-cwSwCnBqChagDcap2zxehuIJOPBZUvt_CIOBM4@z>
 
-There is only one caller which hands in save_trace as function pointer.
+No more users of the struct stack_trace based interfaces. Remove them.
+
+Remove the macro stubs for !CONFIG_STACKTRACE as well as they are pointless
+because the storage on the call sites is conditional on CONFIG_STACKTRACE
+already. No point to be 'smart'.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/locking/lockdep.c |   16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ include/linux/stacktrace.h |   17 -----------------
+ kernel/stacktrace.c        |   14 --------------
+ 2 files changed, 31 deletions(-)
 
---- a/kernel/locking/lockdep.c
-+++ b/kernel/locking/lockdep.c
-@@ -2158,8 +2158,7 @@ check_deadlock(struct task_struct *curr,
-  */
- static int
- check_prev_add(struct task_struct *curr, struct held_lock *prev,
--	       struct held_lock *next, int distance, struct stack_trace *trace,
--	       int (*save)(struct stack_trace *trace))
-+	       struct held_lock *next, int distance, struct stack_trace *trace)
- {
- 	struct lock_list *uninitialized_var(target_entry);
- 	struct lock_list *entry;
-@@ -2199,11 +2198,11 @@ check_prev_add(struct task_struct *curr,
- 	if (unlikely(!ret)) {
- 		if (!trace->entries) {
- 			/*
--			 * If @save fails here, the printing might trigger
--			 * a WARN but because of the !nr_entries it should
--			 * not do bad things.
-+			 * If save_trace fails here, the printing might
-+			 * trigger a WARN but because of the !nr_entries it
-+			 * should not do bad things.
- 			 */
--			save(trace);
-+			save_trace(trace);
- 		}
- 		return print_circular_bug(&this, target_entry, next, prev);
- 	}
-@@ -2253,7 +2252,7 @@ check_prev_add(struct task_struct *curr,
- 		return print_bfs_bug(ret);
+--- a/include/linux/stacktrace.h
++++ b/include/linux/stacktrace.h
+@@ -36,24 +36,7 @@ extern void save_stack_trace_tsk(struct
+ 				struct stack_trace *trace);
+ extern int save_stack_trace_tsk_reliable(struct task_struct *tsk,
+ 					 struct stack_trace *trace);
+-
+-extern void print_stack_trace(struct stack_trace *trace, int spaces);
+-extern int snprint_stack_trace(char *buf, size_t size,
+-			struct stack_trace *trace, int spaces);
+-
+-#ifdef CONFIG_USER_STACKTRACE_SUPPORT
+ extern void save_stack_trace_user(struct stack_trace *trace);
+-#else
+-# define save_stack_trace_user(trace)              do { } while (0)
+-#endif
+-
+-#else /* !CONFIG_STACKTRACE */
+-# define save_stack_trace(trace)			do { } while (0)
+-# define save_stack_trace_tsk(tsk, trace)		do { } while (0)
+-# define save_stack_trace_user(trace)			do { } while (0)
+-# define print_stack_trace(trace, spaces)		do { } while (0)
+-# define snprint_stack_trace(buf, size, trace, spaces)	do { } while (0)
+-# define save_stack_trace_tsk_reliable(tsk, trace)	({ -ENOSYS; })
+ #endif /* CONFIG_STACKTRACE */
  
+ #if defined(CONFIG_STACKTRACE) && defined(CONFIG_HAVE_RELIABLE_STACKTRACE)
+--- a/kernel/stacktrace.c
++++ b/kernel/stacktrace.c
+@@ -30,12 +30,6 @@ void stack_trace_print(unsigned long *en
+ }
+ EXPORT_SYMBOL_GPL(stack_trace_print);
  
--	if (!trace->entries && !save(trace))
-+	if (!trace->entries && !save_trace(trace))
- 		return 0;
+-void print_stack_trace(struct stack_trace *trace, int spaces)
+-{
+-	stack_trace_print(trace->entries, trace->nr_entries, spaces);
+-}
+-EXPORT_SYMBOL_GPL(print_stack_trace);
+-
+ /**
+  * stack_trace_snprint - Print the entries in the stack trace into a buffer
+  * @buf:	Pointer to the print buffer
+@@ -72,14 +66,6 @@ int stack_trace_snprint(char *buf, size_
+ }
+ EXPORT_SYMBOL_GPL(stack_trace_snprint);
  
- 	/*
-@@ -2318,7 +2317,8 @@ check_prevs_add(struct task_struct *curr
- 		 * added:
- 		 */
- 		if (hlock->read != 2 && hlock->check) {
--			int ret = check_prev_add(curr, hlock, next, distance, &trace, save_trace);
-+			int ret = check_prev_add(curr, hlock, next, distance,
-+						 &trace);
- 			if (!ret)
- 				return 0;
- 
+-int snprint_stack_trace(char *buf, size_t size,
+-			struct stack_trace *trace, int spaces)
+-{
+-	return stack_trace_snprint(buf, size, trace->entries,
+-				   trace->nr_entries, spaces);
+-}
+-EXPORT_SYMBOL_GPL(snprint_stack_trace);
+-
+ /*
+  * Architectures that do not implement save_stack_trace_*()
+  * get these weak aliases and once-per-bootup warnings
