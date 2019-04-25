@@ -1,52 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tartarus.angband.pl ([54.37.238.230]:36176 "EHLO
-        tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726120AbfDYNZf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 09:25:35 -0400
-Date: Thu, 25 Apr 2019 15:22:49 +0200
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
- resolution
-Message-ID: <20190425132249.GA26669@angband.pl>
-References: <20190320143717.2523-1-cyphar@cyphar.com>
- <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
- <20190325130429.dbrgjxnvq3w5cpb3@yavin>
- <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
- <20190424153806.64qkkmkudzodxnz2@yavin>
+Received: from mx1.redhat.com ([209.132.183.28]:49513 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726120AbfDYN3v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Apr 2019 09:29:51 -0400
+Date: Thu, 25 Apr 2019 08:29:35 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [patch V3 21/29] tracing: Use percpu stack trace buffer more
+ intelligently
+Message-ID: <20190425132935.ae35l5oybby5ddgl@treble>
+References: <20190425094453.875139013@linutronix.de>
+ <20190425094803.066064076@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20190424153806.64qkkmkudzodxnz2@yavin>
+In-Reply-To: <20190425094803.066064076@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190425132249.jZfhXCeI5ZvTdLt1WcoGvPxApusSnL2DvNwSVHmg8rw@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
+Message-ID: <20190425132935.Kks3aqg4l1-EhO7JA7WvzurWJTo5iBOIVCwX7w15jRY@z>
 
-On Thu, Apr 25, 2019 at 01:38:06AM +1000, Aleksa Sarai wrote:
->  * openat(2) ignores unknown flags, meaning that old kernels will ignore
->    new programs trying to use O_THISROOT and might end up causing
->    security issues. Yes, it'd be trivial to check whether the new O_*
->    flags are supported at start-up, but I think a security feature
->    shouldn't have a foot-gun associated with it. In fact, I didn't know
->    openat(2) ignored unknown flags until I wrote this patchset -- I
->    doubt many other userspace developers do either.
+On Thu, Apr 25, 2019 at 11:45:14AM +0200, Thomas Gleixner wrote:
+> @@ -2788,29 +2798,32 @@ static void __ftrace_trace_stack(struct
+>  	 */
+>  	preempt_disable_notrace();
+>  
+> -	use_stack = __this_cpu_inc_return(ftrace_stack_reserve);
+> +	stackidx = __this_cpu_inc_return(ftrace_stack_reserve);
+> +
+> +	/* This should never happen. If it does, yell once and skip */
+> +	if (WARN_ON_ONCE(stackidx >= FTRACE_KSTACK_NESTING))
+> +		goto out;
+> +
+>  	/*
+> -	 * We don't need any atomic variables, just a barrier.
+> -	 * If an interrupt comes in, we don't care, because it would
+> -	 * have exited and put the counter back to what we want.
+> -	 * We just need a barrier to keep gcc from moving things
+> -	 * around.
+> +	 * The above __this_cpu_inc_return() is 'atomic' cpu local. An
+> +	 * interrupt will either see the value pre increment or post
+> +	 * increment. If the interrupt happens pre increment it will have
+> +	 * restored the counter when it returns.  We just need a barrier to
+> +	 * keep gcc from moving things around.
+>  	 */
+>  	barrier();
+> -	if (use_stack == 1) {
+> -		trace.entries		= this_cpu_ptr(ftrace_stack.calls);
+> -		trace.max_entries	= FTRACE_STACK_MAX_ENTRIES;
+> -
+> -		if (regs)
+> -			save_stack_trace_regs(regs, &trace);
+> -		else
+> -			save_stack_trace(&trace);
+> -
+> -		if (trace.nr_entries > size)
+> -			size = trace.nr_entries;
+> -	} else
+> -		/* From now on, use_stack is a boolean */
+> -		use_stack = 0;
+> +
+> +	fstack = this_cpu_ptr(ftrace_stacks.stacks) + (stackidx - 1);
 
-For this reason, I propose every new syscall that has flags to follow a
-bitmask scheme, where any flag assigned a bit in the upper half returns
-EOPNOTSUPP when called on an old kernel.  That would allow defining which
-flags can be safely ignored and which can't.
+nit: it would be slightly less surprising if stackidx were 0-based:
 
-It otherwise takes major hacks to implement a fail-if-not-supported flag
-while keeping compat with old kernels.  For example, for mmap(), MAP_SHARED
-has been duplicated as MAP_SHARED_VALIDATE just to allow an unrelated flag
-(MAP_SYNC) to fail on old kernels.
-
-
-Meow!
--- 
-⢀⣴⠾⠻⢶⣦⠀ 
-⣾⠁⢰⠒⠀⣿⡁ Imagine there are bandits in your house, your kid is bleeding out,
-⢿⡄⠘⠷⠚⠋⠀ the house is on fire, and seven giant trumpets are playing in the
-⠈⠳⣄⠀⠀⠀⠀ sky.  Your cat demands food.  The priority should be obvious...
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index d3f6ec7eb729..4fc93004feab 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -2798,10 +2798,10 @@ static void __ftrace_trace_stack(struct ring_buffer *buffer,
+ 	 */
+ 	preempt_disable_notrace();
+ 
+-	stackidx = __this_cpu_inc_return(ftrace_stack_reserve);
++	stackidx = __this_cpu_inc_return(ftrace_stack_reserve) - 1;
+ 
+ 	/* This should never happen. If it does, yell once and skip */
+-	if (WARN_ON_ONCE(stackidx >= FTRACE_KSTACK_NESTING))
++	if (WARN_ON_ONCE(stackidx > FTRACE_KSTACK_NESTING))
+ 		goto out;
+ 
+ 	/*
+@@ -2813,7 +2813,7 @@ static void __ftrace_trace_stack(struct ring_buffer *buffer,
+ 	 */
+ 	barrier();
+ 
+-	fstack = this_cpu_ptr(ftrace_stacks.stacks) + (stackidx - 1);
++	fstack = this_cpu_ptr(ftrace_stacks.stacks) + stackidx;
+ 	trace.entries		= fstack->calls;
+ 	trace.max_entries	= FTRACE_KSTACK_ENTRIES;
+ 
