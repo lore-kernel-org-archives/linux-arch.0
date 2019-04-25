@@ -1,139 +1,166 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58065 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58115 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729877AbfDYKAs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:48 -0400
-Message-ID: <20190425094803.340000461@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:17 +0200
+        with ESMTP id S1729883AbfDYKBC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:01:02 -0400
+Message-ID: <20190425094801.414574828@linutronix.de>
+Date: Thu, 25 Apr 2019 11:44:56 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 24/29] tracing: Remove the last struct stack_trace usage
+Subject: [patch V3 03/29] lib/stackdepot: Provide functions which operate on
+ plain storage arrays
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094517.DsBR9Ab0OM6dGVEgqqAgNNG2hLSXFn3Apmrl8y6ymPc@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Alexander Potapenko <glider@google.com>, Steven Rostedt <rostedt@goodmis.org>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
+Message-ID: <20190425094456.euBWb2tCrjj_znCxpSphmLqDT9yzeoiS7AfNB1BEMYo@z>
 
-Simplify the stack retrieval code by using the storage array based
-interface.
+The struct stack_trace indirection in the stack depot functions is a truly
+pointless excercise which requires horrible code at the callsites.
+
+Provide interfaces based on plain storage arrays.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Acked-by: Alexander Potapenko <glider@google.com>
 ---
- kernel/trace/trace_stack.c |   37 ++++++++++++++++---------------------
- 1 file changed, 16 insertions(+), 21 deletions(-)
+V3: Fix kernel-doc
+---
+ include/linux/stackdepot.h |    4 ++
+ lib/stackdepot.c           |   70 ++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 55 insertions(+), 19 deletions(-)
 
---- a/kernel/trace/trace_stack.c
-+++ b/kernel/trace/trace_stack.c
-@@ -23,11 +23,7 @@
- static unsigned long stack_dump_trace[STACK_TRACE_ENTRIES];
- static unsigned stack_trace_index[STACK_TRACE_ENTRIES];
+--- a/include/linux/stackdepot.h
++++ b/include/linux/stackdepot.h
+@@ -26,7 +26,11 @@ typedef u32 depot_stack_handle_t;
+ struct stack_trace;
  
--struct stack_trace stack_trace_max = {
--	.max_entries		= STACK_TRACE_ENTRIES,
--	.entries		= &stack_dump_trace[0],
--};
--
-+static unsigned int stack_trace_entries;
- static unsigned long stack_trace_max_size;
- static arch_spinlock_t stack_trace_max_lock =
- 	(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
-@@ -44,10 +40,10 @@ static void print_max_stack(void)
+ depot_stack_handle_t depot_save_stack(struct stack_trace *trace, gfp_t flags);
++depot_stack_handle_t stack_depot_save(unsigned long *entries,
++				      unsigned int nr_entries, gfp_t gfp_flags);
  
- 	pr_emerg("        Depth    Size   Location    (%d entries)\n"
- 			   "        -----    ----   --------\n",
--			   stack_trace_max.nr_entries);
-+			   stack_trace_entries);
+ void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace);
++unsigned int stack_depot_fetch(depot_stack_handle_t handle,
++			       unsigned long **entries);
  
--	for (i = 0; i < stack_trace_max.nr_entries; i++) {
--		if (i + 1 == stack_trace_max.nr_entries)
-+	for (i = 0; i < stack_trace_entries; i++) {
-+		if (i + 1 == stack_trace_entries)
- 			size = stack_trace_index[i];
- 		else
- 			size = stack_trace_index[i] - stack_trace_index[i+1];
-@@ -93,13 +89,12 @@ static void check_stack(unsigned long ip
+ #endif
+--- a/lib/stackdepot.c
++++ b/lib/stackdepot.c
+@@ -194,40 +194,60 @@ static inline struct stack_record *find_
+ 	return NULL;
+ }
  
- 	stack_trace_max_size = this_size;
+-void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
++/**
++ * stack_depot_fetch - Fetch stack entries from a depot
++ *
++ * @handle:		Stack depot handle which was returned from
++ *			stack_depot_save().
++ * @entries:		Pointer to store the entries address
++ *
++ * Return: The number of trace entries for this depot.
++ */
++unsigned int stack_depot_fetch(depot_stack_handle_t handle,
++			       unsigned long **entries)
+ {
+ 	union handle_parts parts = { .handle = handle };
+ 	void *slab = stack_slabs[parts.slabindex];
+ 	size_t offset = parts.offset << STACK_ALLOC_ALIGN;
+ 	struct stack_record *stack = slab + offset;
  
--	stack_trace_max.nr_entries = 0;
--	stack_trace_max.skip = 0;
--
--	save_stack_trace(&stack_trace_max);
-+	stack_trace_entries = stack_trace_save(stack_dump_trace,
-+					       ARRAY_SIZE(stack_dump_trace) - 1,
-+					       0);
+-	trace->nr_entries = trace->max_entries = stack->size;
+-	trace->entries = stack->entries;
+-	trace->skip = 0;
++	*entries = stack->entries;
++	return stack->size;
++}
++EXPORT_SYMBOL_GPL(stack_depot_fetch);
++
++void depot_fetch_stack(depot_stack_handle_t handle, struct stack_trace *trace)
++{
++	unsigned int nent = stack_depot_fetch(handle, &trace->entries);
++
++	trace->max_entries = trace->nr_entries = nent;
+ }
+ EXPORT_SYMBOL_GPL(depot_fetch_stack);
  
- 	/* Skip over the overhead of the stack tracer itself */
--	for (i = 0; i < stack_trace_max.nr_entries; i++) {
-+	for (i = 0; i < stack_trace_entries; i++) {
- 		if (stack_dump_trace[i] == ip)
- 			break;
- 	}
-@@ -108,7 +103,7 @@ static void check_stack(unsigned long ip
- 	 * Some archs may not have the passed in ip in the dump.
- 	 * If that happens, we need to show everything.
- 	 */
--	if (i == stack_trace_max.nr_entries)
-+	if (i == stack_trace_entries)
- 		i = 0;
+ /**
+- * depot_save_stack - save stack in a stack depot.
+- * @trace - the stacktrace to save.
+- * @alloc_flags - flags for allocating additional memory if required.
++ * stack_depot_save - Save a stack trace from an array
++ *
++ * @entries:		Pointer to storage array
++ * @nr_entries:		Size of the storage array
++ * @alloc_flags:	Allocation gfp flags
+  *
+- * Returns the handle of the stack struct stored in depot.
++ * Return: The handle of the stack struct stored in depot
+  */
+-depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
+-				    gfp_t alloc_flags)
++depot_stack_handle_t stack_depot_save(unsigned long *entries,
++				      unsigned int nr_entries,
++				      gfp_t alloc_flags)
+ {
+-	u32 hash;
+-	depot_stack_handle_t retval = 0;
+ 	struct stack_record *found = NULL, **bucket;
+-	unsigned long flags;
++	depot_stack_handle_t retval = 0;
+ 	struct page *page = NULL;
+ 	void *prealloc = NULL;
++	unsigned long flags;
++	u32 hash;
+ 
+-	if (unlikely(trace->nr_entries == 0))
++	if (unlikely(nr_entries == 0))
+ 		goto fast_exit;
+ 
+-	hash = hash_stack(trace->entries, trace->nr_entries);
++	hash = hash_stack(entries, nr_entries);
+ 	bucket = &stack_table[hash & STACK_HASH_MASK];
  
  	/*
-@@ -126,13 +121,13 @@ static void check_stack(unsigned long ip
- 	 * loop will only happen once. This code only takes place
- 	 * on a new max, so it is far from a fast path.
+@@ -235,8 +255,8 @@ depot_stack_handle_t depot_save_stack(st
+ 	 * The smp_load_acquire() here pairs with smp_store_release() to
+ 	 * |bucket| below.
  	 */
--	while (i < stack_trace_max.nr_entries) {
-+	while (i < stack_trace_entries) {
- 		int found = 0;
+-	found = find_stack(smp_load_acquire(bucket), trace->entries,
+-			   trace->nr_entries, hash);
++	found = find_stack(smp_load_acquire(bucket), entries,
++			   nr_entries, hash);
+ 	if (found)
+ 		goto exit;
  
- 		stack_trace_index[x] = this_size;
- 		p = start;
+@@ -264,10 +284,10 @@ depot_stack_handle_t depot_save_stack(st
  
--		for (; p < top && i < stack_trace_max.nr_entries; p++) {
-+		for (; p < top && i < stack_trace_entries; p++) {
- 			/*
- 			 * The READ_ONCE_NOCHECK is used to let KASAN know that
- 			 * this is not a stack-out-of-bounds error.
-@@ -163,7 +158,7 @@ static void check_stack(unsigned long ip
- 			i++;
- 	}
+ 	spin_lock_irqsave(&depot_lock, flags);
  
--	stack_trace_max.nr_entries = x;
-+	stack_trace_entries = x;
- 
- 	if (task_stack_end_corrupted(current)) {
- 		print_max_stack();
-@@ -265,7 +260,7 @@ static void *
- {
- 	long n = *pos - 1;
- 
--	if (n >= stack_trace_max.nr_entries)
-+	if (n >= stack_trace_entries)
- 		return NULL;
- 
- 	m->private = (void *)n;
-@@ -329,7 +324,7 @@ static int t_show(struct seq_file *m, vo
- 		seq_printf(m, "        Depth    Size   Location"
- 			   "    (%d entries)\n"
- 			   "        -----    ----   --------\n",
--			   stack_trace_max.nr_entries);
-+			   stack_trace_entries);
- 
- 		if (!stack_tracer_enabled && !stack_trace_max_size)
- 			print_disabled(m);
-@@ -339,10 +334,10 @@ static int t_show(struct seq_file *m, vo
- 
- 	i = *(long *)v;
- 
--	if (i >= stack_trace_max.nr_entries)
-+	if (i >= stack_trace_entries)
- 		return 0;
- 
--	if (i + 1 == stack_trace_max.nr_entries)
-+	if (i + 1 == stack_trace_entries)
- 		size = stack_trace_index[i];
- 	else
- 		size = stack_trace_index[i] - stack_trace_index[i+1];
+-	found = find_stack(*bucket, trace->entries, trace->nr_entries, hash);
++	found = find_stack(*bucket, entries, nr_entries, hash);
+ 	if (!found) {
+ 		struct stack_record *new =
+-			depot_alloc_stack(trace->entries, trace->nr_entries,
++			depot_alloc_stack(entries, nr_entries,
+ 					  hash, &prealloc, alloc_flags);
+ 		if (new) {
+ 			new->next = *bucket;
+@@ -297,4 +317,16 @@ depot_stack_handle_t depot_save_stack(st
+ fast_exit:
+ 	return retval;
+ }
++EXPORT_SYMBOL_GPL(stack_depot_save);
++
++/**
++ * depot_save_stack - save stack in a stack depot.
++ * @trace - the stacktrace to save.
++ * @alloc_flags - flags for allocating additional memory if required.
++ */
++depot_stack_handle_t depot_save_stack(struct stack_trace *trace,
++				      gfp_t alloc_flags)
++{
++	return stack_depot_save(trace->entries, trace->nr_entries, alloc_flags);
++}
+ EXPORT_SYMBOL_GPL(depot_save_stack);
