@@ -1,180 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:57722 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58006 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727579AbfDYJ7t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 05:59:49 -0400
-Message-ID: <20190425094802.067210525@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:03 +0200
+        with ESMTP id S1727586AbfDYKAd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:33 -0400
+Message-ID: <20190425094803.248604594@linutronix.de>
+Date: Thu, 25 Apr 2019 11:45:16 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 10/29] mm/page_owner: Simplify stack trace handling
+Subject: [patch V3 23/29] tracing: Simplify stack trace retrieval
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, Mike Rapoport <rppt@linux.vnet.ibm.com>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094503.E0TgNxKndplNH4DHJhCxJlyPR-VDlcnlAlniy4DYcRE@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
+Message-ID: <20190425094516.qbXoGByrZ16wfLnih_iBfAOIgIQAUm6Vg4tL5K-yIjM@z>
 
 Replace the indirection through struct stack_trace by using the storage
 array based interfaces.
 
-The original code in all printing functions is really wrong. It allocates a
-storage array on stack which is unused because depot_fetch_stack() does not
-store anything in it. It overwrites the entries pointer in the stack_trace
-struct so it points to the depot storage.
-
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-mm@kvack.org
-Cc: Mike Rapoport <rppt@linux.vnet.ibm.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- mm/page_owner.c |   79 +++++++++++++++++++-------------------------------------
- 1 file changed, 28 insertions(+), 51 deletions(-)
+ kernel/trace/trace.c |   40 +++++++++++++---------------------------
+ 1 file changed, 13 insertions(+), 27 deletions(-)
 
---- a/mm/page_owner.c
-+++ b/mm/page_owner.c
-@@ -58,15 +58,10 @@ static bool need_page_owner(void)
- static __always_inline depot_stack_handle_t create_dummy_stack(void)
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -2774,22 +2774,18 @@ static void __ftrace_trace_stack(struct
  {
- 	unsigned long entries[4];
--	struct stack_trace dummy;
-+	unsigned int nr_entries;
+ 	struct trace_event_call *call = &event_kernel_stack;
+ 	struct ring_buffer_event *event;
++	unsigned int size, nr_entries;
+ 	struct ftrace_stack *fstack;
+ 	struct stack_entry *entry;
+-	struct stack_trace trace;
+-	int size = FTRACE_KSTACK_ENTRIES;
+ 	int stackidx;
  
--	dummy.nr_entries = 0;
--	dummy.max_entries = ARRAY_SIZE(entries);
--	dummy.entries = &entries[0];
--	dummy.skip = 0;
+-	trace.nr_entries	= 0;
+-	trace.skip		= skip;
 -
--	save_stack_trace(&dummy);
--	return depot_save_stack(&dummy, GFP_KERNEL);
-+	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 0);
-+	return stack_depot_save(entries, nr_entries, GFP_KERNEL);
- }
- 
- static noinline void register_dummy_stack(void)
-@@ -120,46 +115,39 @@ void __reset_page_owner(struct page *pag
- 	}
- }
- 
--static inline bool check_recursive_alloc(struct stack_trace *trace,
--					unsigned long ip)
-+static inline bool check_recursive_alloc(unsigned long *entries,
-+					 unsigned int nr_entries,
-+					 unsigned long ip)
- {
--	int i;
-+	unsigned int i;
- 
--	if (!trace->nr_entries)
--		return false;
--
--	for (i = 0; i < trace->nr_entries; i++) {
--		if (trace->entries[i] == ip)
-+	for (i = 0; i < nr_entries; i++) {
-+		if (entries[i] == ip)
- 			return true;
- 	}
--
- 	return false;
- }
- 
- static noinline depot_stack_handle_t save_stack(gfp_t flags)
- {
- 	unsigned long entries[PAGE_OWNER_STACK_DEPTH];
--	struct stack_trace trace = {
--		.nr_entries = 0,
--		.entries = entries,
--		.max_entries = PAGE_OWNER_STACK_DEPTH,
--		.skip = 2
--	};
- 	depot_stack_handle_t handle;
-+	unsigned int nr_entries;
- 
--	save_stack_trace(&trace);
-+	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 2);
+ 	/*
+ 	 * Add one, for this function and the call to save_stack_trace()
+ 	 * If regs is set, then these functions will not be in the way.
+ 	 */
+ #ifndef CONFIG_UNWINDER_ORC
+ 	if (!regs)
+-		trace.skip++;
++		skip++;
+ #endif
  
  	/*
--	 * We need to check recursion here because our request to stackdepot
--	 * could trigger memory allocation to save new entry. New memory
--	 * allocation would reach here and call depot_save_stack() again
--	 * if we don't catch it. There is still not enough memory in stackdepot
--	 * so it would try to allocate memory again and loop forever.
-+	 * We need to check recursion here because our request to
-+	 * stackdepot could trigger memory allocation to save new
-+	 * entry. New memory allocation would reach here and call
-+	 * stack_depot_save_entries() again if we don't catch it. There is
-+	 * still not enough memory in stackdepot so it would try to
-+	 * allocate memory again and loop forever.
- 	 */
--	if (check_recursive_alloc(&trace, _RET_IP_))
-+	if (check_recursive_alloc(entries, nr_entries, _RET_IP_))
- 		return dummy_handle;
+@@ -2816,28 +2812,24 @@ static void __ftrace_trace_stack(struct
+ 	barrier();
  
--	handle = depot_save_stack(&trace, flags);
-+	handle = stack_depot_save(entries, nr_entries, flags);
- 	if (!handle)
- 		handle = failure_handle;
+ 	fstack = this_cpu_ptr(ftrace_stacks.stacks) + (stackidx - 1);
+-	trace.entries		= fstack->calls;
+-	trace.max_entries	= FTRACE_KSTACK_ENTRIES;
+-
+-	if (regs)
+-		save_stack_trace_regs(regs, &trace);
+-	else
+-		save_stack_trace(&trace);
+-
+-	if (trace.nr_entries > size)
+-		size = trace.nr_entries;
++	size = ARRAY_SIZE(fstack->calls);
  
-@@ -337,16 +325,10 @@ print_page_owner(char __user *buf, size_
- 		struct page *page, struct page_owner *page_owner,
- 		depot_stack_handle_t handle)
- {
--	int ret;
--	int pageblock_mt, page_mt;
-+	int ret, pageblock_mt, page_mt;
-+	unsigned long *entries;
-+	unsigned int nr_entries;
- 	char *kbuf;
--	unsigned long entries[PAGE_OWNER_STACK_DEPTH];
--	struct stack_trace trace = {
--		.nr_entries = 0,
--		.entries = entries,
--		.max_entries = PAGE_OWNER_STACK_DEPTH,
--		.skip = 0
--	};
+-	size *= sizeof(unsigned long);
++	if (regs) {
++		nr_entries = stack_trace_save_regs(regs, fstack->calls,
++						   size, skip);
++	} else {
++		nr_entries = stack_trace_save(fstack->calls, size, skip);
++	}
  
- 	count = min_t(size_t, count, PAGE_SIZE);
- 	kbuf = kmalloc(count, GFP_KERNEL);
-@@ -375,8 +357,8 @@ print_page_owner(char __user *buf, size_
- 	if (ret >= count)
- 		goto err;
++	size = nr_entries * sizeof(unsigned long);
+ 	event = __trace_buffer_lock_reserve(buffer, TRACE_STACK,
+ 					    sizeof(*entry) + size, flags, pc);
+ 	if (!event)
+ 		goto out;
+ 	entry = ring_buffer_event_data(event);
  
--	depot_fetch_stack(handle, &trace);
--	ret += snprint_stack_trace(kbuf + ret, count - ret, &trace, 0);
-+	nr_entries = stack_depot_fetch(handle, &entries);
-+	ret += stack_trace_snprint(kbuf + ret, count - ret, entries, nr_entries, 0);
- 	if (ret >= count)
- 		goto err;
+-	memcpy(&entry->caller, trace.entries, size);
+-
+-	entry->size = trace.nr_entries;
++	memcpy(&entry->caller, fstack->calls, size);
++	entry->size = nr_entries;
  
-@@ -407,14 +389,9 @@ void __dump_page_owner(struct page *page
- {
- 	struct page_ext *page_ext = lookup_page_ext(page);
- 	struct page_owner *page_owner;
--	unsigned long entries[PAGE_OWNER_STACK_DEPTH];
--	struct stack_trace trace = {
--		.nr_entries = 0,
--		.entries = entries,
--		.max_entries = PAGE_OWNER_STACK_DEPTH,
--		.skip = 0
--	};
- 	depot_stack_handle_t handle;
-+	unsigned long *entries;
-+	unsigned int nr_entries;
- 	gfp_t gfp_mask;
- 	int mt;
+ 	if (!call_filter_check_discard(call, entry, buffer, event))
+ 		__buffer_unlock_commit(buffer, event);
+@@ -2916,7 +2908,6 @@ ftrace_trace_userstack(struct ring_buffe
+ 	struct trace_event_call *call = &event_user_stack;
+ 	struct ring_buffer_event *event;
+ 	struct userstack_entry *entry;
+-	struct stack_trace trace;
  
-@@ -438,10 +415,10 @@ void __dump_page_owner(struct page *page
+ 	if (!(global_trace.trace_flags & TRACE_ITER_USERSTACKTRACE))
  		return;
- 	}
+@@ -2947,12 +2938,7 @@ ftrace_trace_userstack(struct ring_buffe
+ 	entry->tgid		= current->tgid;
+ 	memset(&entry->caller, 0, sizeof(entry->caller));
  
--	depot_fetch_stack(handle, &trace);
-+	nr_entries = stack_depot_fetch(handle, &entries);
- 	pr_alert("page allocated via order %u, migratetype %s, gfp_mask %#x(%pGg)\n",
- 		 page_owner->order, migratetype_names[mt], gfp_mask, &gfp_mask);
--	print_stack_trace(&trace, 0);
-+	stack_trace_print(entries, nr_entries, 0);
+-	trace.nr_entries	= 0;
+-	trace.max_entries	= FTRACE_STACK_ENTRIES;
+-	trace.skip		= 0;
+-	trace.entries		= entry->caller;
+-
+-	save_stack_trace_user(&trace);
++	stack_trace_save_user(entry->caller, FTRACE_STACK_ENTRIES);
+ 	if (!call_filter_check_discard(call, entry, buffer, event))
+ 		__buffer_unlock_commit(buffer, event);
  
- 	if (page_owner->last_migrate_reason != -1)
- 		pr_alert("page has been migrated, last migrate reason: %s\n",
