@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:57857 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:57973 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387410AbfDYKAB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:01 -0400
-Message-ID: <20190425094801.230654524@linutronix.de>
-Date: Thu, 25 Apr 2019 11:44:54 +0200
+        with ESMTP id S1728739AbfDYKAU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:20 -0400
+Message-ID: <20190425094802.891724020@linutronix.de>
+Date: Thu, 25 Apr 2019 11:45:12 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 01/29] tracing: Cleanup stack trace code
+Subject: [patch V3 19/29] lockdep: Simplify stack trace handling
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,159 +14,206 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094454.pphEF9xeCgVXyfRWTKN8Q0vbE1It_LJuVoJ3FW-2bbg@z>
+Message-ID: <20190425094512.AAwRt0AoPKz8HmQVeVOLtsKUhj_Mq_RyZ3IvK46TuC8@z>
 
-- Remove the extra array member of stack_dump_trace[] along with the
-  ARRAY_SIZE - 1 initialization for struct stack_trace :: max_entries.
-
-  Both are historical leftovers of no value. The stack tracer never exceeds
-  the array and there is no extra storage requirement either.
-
-- Make variables which are only used in trace_stack.c static.
-
-- Simplify the enable/disable logic.
-
-- Rename stack_trace_print() as it's using the stack_trace_ namespace. Free
-  the name up for stack trace related functions.
+Replace the indirection through struct stack_trace by using the storage
+array based interfaces and storing the information is a small lockdep
+specific data structure.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Steven Rostedt <rostedt@goodmis.org>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
-V3: Remove the -1 init and split the variable declaration as requested by Steven.
-V2: Add more cleanups and use print_max_stack() as requested by Steven.
----
- include/linux/ftrace.h     |   18 ++++--------------
- kernel/trace/trace_stack.c |   42 +++++++++++++-----------------------------
- 2 files changed, 17 insertions(+), 43 deletions(-)
+ include/linux/lockdep.h  |    9 +++++--
+ kernel/locking/lockdep.c |   55 +++++++++++++++++++++++------------------------
+ 2 files changed, 35 insertions(+), 29 deletions(-)
 
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -241,21 +241,11 @@ static inline void ftrace_free_mem(struc
+--- a/include/linux/lockdep.h
++++ b/include/linux/lockdep.h
+@@ -66,6 +66,11 @@ struct lock_class_key {
  
- #ifdef CONFIG_STACK_TRACER
+ extern struct lock_class_key __lockdep_no_validate__;
  
--#define STACK_TRACE_ENTRIES 500
--
--struct stack_trace;
--
--extern unsigned stack_trace_index[];
--extern struct stack_trace stack_trace_max;
--extern unsigned long stack_trace_max_size;
--extern arch_spinlock_t stack_trace_max_lock;
--
- extern int stack_tracer_enabled;
--void stack_trace_print(void);
--int
--stack_trace_sysctl(struct ctl_table *table, int write,
--		   void __user *buffer, size_t *lenp,
--		   loff_t *ppos);
++struct lock_trace {
++	unsigned int		nr_entries;
++	unsigned int		offset;
++};
 +
-+int stack_trace_sysctl(struct ctl_table *table, int write,
-+		       void __user *buffer, size_t *lenp,
-+		       loff_t *ppos);
+ #define LOCKSTAT_POINTS		4
  
- /* DO NOT MODIFY THIS VARIABLE DIRECTLY! */
- DECLARE_PER_CPU(int, disable_stack_tracer);
---- a/kernel/trace/trace_stack.c
-+++ b/kernel/trace/trace_stack.c
-@@ -18,30 +18,26 @@
+ /*
+@@ -100,7 +105,7 @@ struct lock_class {
+ 	 * IRQ/softirq usage tracking bits:
+ 	 */
+ 	unsigned long			usage_mask;
+-	struct stack_trace		usage_traces[XXX_LOCK_USAGE_STATES];
++	struct lock_trace		usage_traces[XXX_LOCK_USAGE_STATES];
  
- #include "trace.h"
+ 	/*
+ 	 * Generation counter, when doing certain classes of graph walking,
+@@ -188,7 +193,7 @@ struct lock_list {
+ 	struct list_head		entry;
+ 	struct lock_class		*class;
+ 	struct lock_class		*links_to;
+-	struct stack_trace		trace;
++	struct lock_trace		trace;
+ 	int				distance;
  
--static unsigned long stack_dump_trace[STACK_TRACE_ENTRIES + 1];
--unsigned stack_trace_index[STACK_TRACE_ENTRIES];
-+#define STACK_TRACE_ENTRIES 500
-+
-+static unsigned long stack_dump_trace[STACK_TRACE_ENTRIES];
-+static unsigned stack_trace_index[STACK_TRACE_ENTRIES];
- 
--/*
-- * Reserve one entry for the passed in ip. This will allow
-- * us to remove most or all of the stack size overhead
-- * added by the stack tracer itself.
-- */
- struct stack_trace stack_trace_max = {
--	.max_entries		= STACK_TRACE_ENTRIES - 1,
-+	.max_entries		= STACK_TRACE_ENTRIES,
- 	.entries		= &stack_dump_trace[0],
- };
- 
--unsigned long stack_trace_max_size;
--arch_spinlock_t stack_trace_max_lock =
-+static unsigned long stack_trace_max_size;
-+static arch_spinlock_t stack_trace_max_lock =
- 	(arch_spinlock_t)__ARCH_SPIN_LOCK_UNLOCKED;
- 
- DEFINE_PER_CPU(int, disable_stack_tracer);
- static DEFINE_MUTEX(stack_sysctl_mutex);
- 
- int stack_tracer_enabled;
--static int last_stack_tracer_enabled;
- 
--void stack_trace_print(void)
-+static void print_max_stack(void)
- {
- 	long i;
- 	int size;
-@@ -61,16 +57,7 @@ void stack_trace_print(void)
- 	}
+ 	/*
+--- a/kernel/locking/lockdep.c
++++ b/kernel/locking/lockdep.c
+@@ -434,18 +434,14 @@ static void print_lockdep_off(const char
+ #endif
  }
  
--/*
-- * When arch-specific code overrides this function, the following
-- * data should be filled up, assuming stack_trace_max_lock is held to
-- * prevent concurrent updates.
-- *     stack_trace_index[]
-- *     stack_trace_max
-- *     stack_trace_max_size
-- */
--void __weak
--check_stack(unsigned long ip, unsigned long *stack)
-+static void check_stack(unsigned long ip, unsigned long *stack)
+-static int save_trace(struct stack_trace *trace)
++static int save_trace(struct lock_trace *trace)
  {
- 	unsigned long this_size, flags; unsigned long *p, *top, *start;
- 	static int tracer_frame;
-@@ -179,7 +166,7 @@ check_stack(unsigned long ip, unsigned l
- 	stack_trace_max.nr_entries = x;
+-	trace->nr_entries = 0;
+-	trace->max_entries = MAX_STACK_TRACE_ENTRIES - nr_stack_trace_entries;
+-	trace->entries = stack_trace + nr_stack_trace_entries;
+-
+-	trace->skip = 3;
+-
+-	save_stack_trace(trace);
+-
+-	trace->max_entries = trace->nr_entries;
++	unsigned long *entries = stack_trace + nr_stack_trace_entries;
++	unsigned int max_entries;
  
- 	if (task_stack_end_corrupted(current)) {
--		stack_trace_print();
-+		print_max_stack();
- 		BUG();
++	trace->offset = nr_stack_trace_entries;
++	max_entries = MAX_STACK_TRACE_ENTRIES - nr_stack_trace_entries;
++	trace->nr_entries = stack_trace_save(entries, max_entries, 3);
+ 	nr_stack_trace_entries += trace->nr_entries;
+ 
+ 	if (nr_stack_trace_entries >= MAX_STACK_TRACE_ENTRIES-1) {
+@@ -1196,7 +1192,7 @@ static struct lock_list *alloc_list_entr
+ static int add_lock_to_list(struct lock_class *this,
+ 			    struct lock_class *links_to, struct list_head *head,
+ 			    unsigned long ip, int distance,
+-			    struct stack_trace *trace)
++			    struct lock_trace *trace)
+ {
+ 	struct lock_list *entry;
+ 	/*
+@@ -1415,6 +1411,13 @@ static inline int __bfs_backwards(struct
+  * checking.
+  */
+ 
++static void print_lock_trace(struct lock_trace *trace, unsigned int spaces)
++{
++	unsigned long *entries = stack_trace + trace->offset;
++
++	stack_trace_print(entries, trace->nr_entries, spaces);
++}
++
+ /*
+  * Print a dependency chain entry (this is only done when a deadlock
+  * has been detected):
+@@ -1427,8 +1430,7 @@ print_circular_bug_entry(struct lock_lis
+ 	printk("\n-> #%u", depth);
+ 	print_lock_name(target->class);
+ 	printk(KERN_CONT ":\n");
+-	print_stack_trace(&target->trace, 6);
+-
++	print_lock_trace(&target->trace, 6);
+ 	return 0;
+ }
+ 
+@@ -1740,7 +1742,7 @@ static void print_lock_class_header(stru
+ 
+ 			len += printk("%*s   %s", depth, "", usage_str[bit]);
+ 			len += printk(KERN_CONT " at:\n");
+-			print_stack_trace(class->usage_traces + bit, len);
++			print_lock_trace(class->usage_traces + bit, len);
+ 		}
  	}
+ 	printk("%*s }\n", depth, "");
+@@ -1765,7 +1767,7 @@ print_shortest_lock_dependencies(struct
+ 	do {
+ 		print_lock_class_header(entry->class, depth);
+ 		printk("%*s ... acquired at:\n", depth, "");
+-		print_stack_trace(&entry->trace, 2);
++		print_lock_trace(&entry->trace, 2);
+ 		printk("\n");
  
-@@ -412,23 +399,21 @@ stack_trace_sysctl(struct ctl_table *tab
- 		   void __user *buffer, size_t *lenp,
- 		   loff_t *ppos)
+ 		if (depth == 0 && (entry != root)) {
+@@ -1878,14 +1880,14 @@ print_bad_irq_dependency(struct task_str
+ 	print_lock_name(backwards_entry->class);
+ 	pr_warn("\n... which became %s-irq-safe at:\n", irqclass);
+ 
+-	print_stack_trace(backwards_entry->class->usage_traces + bit1, 1);
++	print_lock_trace(backwards_entry->class->usage_traces + bit1, 1);
+ 
+ 	pr_warn("\nto a %s-irq-unsafe lock:\n", irqclass);
+ 	print_lock_name(forwards_entry->class);
+ 	pr_warn("\n... which became %s-irq-unsafe at:\n", irqclass);
+ 	pr_warn("...");
+ 
+-	print_stack_trace(forwards_entry->class->usage_traces + bit2, 1);
++	print_lock_trace(forwards_entry->class->usage_traces + bit2, 1);
+ 
+ 	pr_warn("\nother info that might help us debug this:\n\n");
+ 	print_irq_lock_scenario(backwards_entry, forwards_entry,
+@@ -2158,7 +2160,7 @@ check_deadlock(struct task_struct *curr,
+  */
+ static int
+ check_prev_add(struct task_struct *curr, struct held_lock *prev,
+-	       struct held_lock *next, int distance, struct stack_trace *trace)
++	       struct held_lock *next, int distance, struct lock_trace *trace)
  {
-+	int was_enabled;
- 	int ret;
+ 	struct lock_list *uninitialized_var(target_entry);
+ 	struct lock_list *entry;
+@@ -2196,7 +2198,7 @@ check_prev_add(struct task_struct *curr,
+ 	this.parent = NULL;
+ 	ret = check_noncircular(&this, hlock_class(prev), &target_entry);
+ 	if (unlikely(!ret)) {
+-		if (!trace->entries) {
++		if (!trace->nr_entries) {
+ 			/*
+ 			 * If save_trace fails here, the printing might
+ 			 * trigger a WARN but because of the !nr_entries it
+@@ -2252,7 +2254,7 @@ check_prev_add(struct task_struct *curr,
+ 		return print_bfs_bug(ret);
  
- 	mutex_lock(&stack_sysctl_mutex);
-+	was_enabled = !!stack_tracer_enabled;
  
- 	ret = proc_dointvec(table, write, buffer, lenp, ppos);
+-	if (!trace->entries && !save_trace(trace))
++	if (!trace->nr_entries && !save_trace(trace))
+ 		return 0;
  
--	if (ret || !write ||
--	    (last_stack_tracer_enabled == !!stack_tracer_enabled))
-+	if (ret || !write || (was_enabled == !!stack_tracer_enabled))
- 		goto out;
+ 	/*
+@@ -2284,14 +2286,9 @@ check_prev_add(struct task_struct *curr,
+ static int
+ check_prevs_add(struct task_struct *curr, struct held_lock *next)
+ {
++	struct lock_trace trace = { .nr_entries = 0 };
+ 	int depth = curr->lockdep_depth;
+ 	struct held_lock *hlock;
+-	struct stack_trace trace = {
+-		.nr_entries = 0,
+-		.max_entries = 0,
+-		.entries = NULL,
+-		.skip = 0,
+-	};
  
--	last_stack_tracer_enabled = !!stack_tracer_enabled;
--
- 	if (stack_tracer_enabled)
- 		register_ftrace_function(&trace_ops);
- 	else
- 		unregister_ftrace_function(&trace_ops);
--
-  out:
- 	mutex_unlock(&stack_sysctl_mutex);
- 	return ret;
-@@ -444,7 +429,6 @@ static __init int enable_stacktrace(char
- 		strncpy(stack_trace_filter_buf, str + len, COMMAND_LINE_SIZE);
- 
- 	stack_tracer_enabled = 1;
--	last_stack_tracer_enabled = 1;
+ 	/*
+ 	 * Debugging checks.
+@@ -2719,6 +2716,10 @@ static inline int validate_chain(struct
+ {
  	return 1;
  }
- __setup("stacktrace", enable_stacktrace);
++
++static void print_lock_trace(struct lock_trace *trace, unsigned int spaces)
++{
++}
+ #endif
+ 
+ /*
+@@ -2815,7 +2816,7 @@ print_usage_bug(struct task_struct *curr
+ 	print_lock(this);
+ 
+ 	pr_warn("{%s} state was registered at:\n", usage_str[prev_bit]);
+-	print_stack_trace(hlock_class(this)->usage_traces + prev_bit, 1);
++	print_lock_trace(hlock_class(this)->usage_traces + prev_bit, 1);
+ 
+ 	print_irqtrace_events(curr);
+ 	pr_warn("\nother info that might help us debug this:\n");
