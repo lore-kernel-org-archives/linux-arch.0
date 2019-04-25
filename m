@@ -1,28 +1,24 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] csky fixes for v5.1-rc7
-Date: Thu, 25 Apr 2019 09:21:01 -0700
-Message-ID: <CAHk-=wh8NTGSOerqZNhefEn=AX5kgx27tD+kv=UpOB8u-FeYTA@mail.gmail.com>
-References: <1556181403-3881-1-git-send-email-guoren@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: Re: [PATCH 3/3] riscv/signal: Fixup additional syscall restarting
+Date: Thu, 25 Apr 2019 11:11:19 -0700 (PDT)
+Message-ID: <mhng-e56eb5bc-3336-4e0e-897f-be508b1c5f4a@palmer-si-x1e>
+References: <20190410065304.GA2942@infradead.org>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1556181403-3881-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <20190410065304.GA2942@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <guoren@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guo Ren <ren_guo@c-sky.com>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: guoren@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 25, 2019 at 1:36 AM <guoren@kernel.org> wrote:
+On Tue, 09 Apr 2019 23:53:04 PDT (-0700), Christoph Hellwig wrote:
+> Looks good,
 >
-> Here are the patches which made on 5.1-rc6 and all are tested in our
-> buildroot gitlab CI:
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
 
-This really looks like it should come in the next merge window, not during rc7.
-
-You had absolutely zero csky updates during the merge window, you
-can't then magically come up with "look, here's 1300 lines of fixes"
-during the late rc series.
-
-Re-send when the merge window opens.
-
-                   Linus
+Thanks!  I've pulled just this patch into my for-next, as I'm assuming the
+c-sky patches will go in seperately.  Given that it's been on the list for a
+while I think it's a good candidate for rc7, so unless anyone says something or
+testing causes a problem I'll send it up tomorrow.
