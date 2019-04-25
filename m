@@ -1,49 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:55610 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725970AbfDXTvs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Apr 2019 15:51:48 -0400
-Date: Wed, 24 Apr 2019 21:51:05 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V2 18/29] lockdep: Move stack trace logic into
- check_prev_add()
-In-Reply-To: <20190424194505.GR11158@hirez.programming.kicks-ass.net>
-Message-ID: <alpine.DEB.2.21.1904242148480.1762@nanos.tec.linutronix.de>
-References: <20190418084119.056416939@linutronix.de> <20190418084254.729689921@linutronix.de> <20190424194505.GR11158@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mail.kernel.org ([198.145.29.99]:57882 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726272AbfDYIgs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Apr 2019 04:36:48 -0400
+From: guoren@kernel.org
+Subject: [GIT PULL] csky fixes for v5.1-rc7
+Date: Thu, 25 Apr 2019 16:36:43 +0800
+Message-ID: <1556181403-3881-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Daniel Vetter <daniel@ffwll.ch>, Rodrigo Vivi <rodrigo.vivi@intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20190424195105.rhUOHzOK7003CuojA9GquO62yJ00d8vh6yP5lhsm6LQ@z>
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
+Message-ID: <20190425083643.OHbjGVTsUCFzNCQ3bUugBgD1_oYcoZaCrdP9k1_2abU@z>
 
-On Wed, 24 Apr 2019, Peter Zijlstra wrote:
-> On Thu, Apr 18, 2019 at 10:41:37AM +0200, Thomas Gleixner wrote:
-> > There is only one caller of check_prev_add() which hands in a zeroed struct
-> > stack trace and a function pointer to save_stack(). Inside check_prev_add()
-> > the stack_trace struct is checked for being empty, which is always
-> > true. Based on that one code path stores a stack trace which is unused. The
-> > comment there does not make sense either. It's all leftovers from
-> > historical lockdep code (cross release).
-> 
-> I was more or less expecting a revert of:
-> 
-> ce07a9415f26 ("locking/lockdep: Make check_prev_add() able to handle external stack_trace")
-> 
-> And then I read the comment that went with the "static struct
-> stack_trace trace" that got removed (in the above commit) and realized
-> that your patch will consume more stack entries.
-> 
-> The problem is when the held lock stack in check_prevs_add() has multple
-> trylock entries on top, in that case we call check_prev_add() multiple
-> times, and this patch will then save the exact same stack-trace multiple
-> times, consuming static resources.
-> 
-> Possibly we should copy what stackdepot does (but we cannot use it
-> directly because stackdepot uses locks; but possible we can share bits),
-> but that is a patch for another day I think.
-> 
-> So while convoluted, perhaps we should retain this code for now.
+The following changes since commit 085b7755808aa11f78ab9377257e1dad2e6fa4bb:
 
-Uurg, what a mess.
+  Linux 5.1-rc6 (2019-04-21 10:45:57 -0700)
+
+are available in the git repository at:
+
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.1-rc7
+
+for you to fetch changes up to a691f3334d58b833e41d56de1b9820e687edcd78:
+
+  csky/syscall_trace: Fixup return processing flow (2019-04-22 15:55:28 +0800)
+
+----------------------------------------------------------------
+arch/csky patches for 5.1-rc7
+
+Here are the patches which made on 5.1-rc6 and all are tested in our
+buildroot gitlab CI:
+https://gitlab.com/c-sky/buildroot/pipelines/57892579
+
+ - Fixup vdsp&fpu issues in kernel
+ - Add dynamic function tracer
+ - Use in_syscall & forget_syscall instead of r11_sig
+ - Reconstruct signal processing
+ - Support dynamic start physical address
+ - Fixup wrong update_mmu_cache implementation
+ - Support vmlinux bootup with MMU off
+ - Use va_pa_offset instead of phys_offset
+ - Fixup syscall_trace return processing flow
+ - Add perf callchain support
+ - Add perf_arch_fetch_caller_regs support
+ - Add page fault perf event support
+ - Add support for perf registers sampling
+
+----------------------------------------------------------------
+Guo Ren (12):
+      csky: Fixup vdsp&fpu issues in kernel
+      csky/ftrace: Add dynamic function tracer (include graph tracer)
+      csky: Update syscall_trace_enter/exit implementation
+      csky: Add non-uapi asm/ptrace.h namespace
+      csky: Use in_syscall & forget_syscall instead of r11_sig
+      csky: Reconstruct signal processing
+      csky: Support dynamic start physical address
+      csky: Fixup wrong update_mmu_cache implementation
+      csky: Support vmlinux bootup with MMU off
+      csky: Use va_pa_offset instead of phys_offset
+      csky: Fixup compile warning
+      csky/syscall_trace: Fixup return processing flow
+
+Jagadeesh Pagadala (1):
+      csky: mm/fault.c: Remove duplicate header
+
+Mao Han (4):
+      csky: Add perf callchain support
+      csky: Add perf_arch_fetch_caller_regs support
+      csky: add page fault perf event support
+      csky: Add support for perf registers sampling
+
+Masahiro Yamada (1):
+      csky: remove redundant generic-y
+
+ arch/csky/Kconfig                      |   7 +-
+ arch/csky/Makefile                     |   2 +-
+ arch/csky/abiv1/inc/abi/ckmmu.h        |  24 ++-
+ arch/csky/abiv1/inc/abi/entry.h        |  41 ++--
+ arch/csky/abiv1/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/cacheflush.c           |  13 +-
+ arch/csky/abiv2/inc/abi/ckmmu.h        |  34 +++-
+ arch/csky/abiv2/inc/abi/entry.h        |  87 +++++++--
+ arch/csky/abiv2/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/mcount.S               |  39 +++-
+ arch/csky/abiv2/memmove.S              |   6 +-
+ arch/csky/include/asm/Kbuild           |   1 -
+ arch/csky/include/asm/ftrace.h         |  18 +-
+ arch/csky/include/asm/mmu_context.h    |  17 +-
+ arch/csky/include/asm/page.h           |  39 ++--
+ arch/csky/include/asm/perf_event.h     |   8 +
+ arch/csky/include/asm/ptrace.h         |  41 ++++
+ arch/csky/include/asm/syscall.h        |   9 +
+ arch/csky/include/asm/thread_info.h    |  27 ++-
+ arch/csky/include/asm/unistd.h         |   2 +
+ arch/csky/include/uapi/asm/perf_regs.h |  51 +++++
+ arch/csky/include/uapi/asm/ptrace.h    |  15 --
+ arch/csky/kernel/Makefile              |   2 +
+ arch/csky/kernel/atomic.S              |  26 +--
+ arch/csky/kernel/entry.S               |  77 +++-----
+ arch/csky/kernel/ftrace.c              | 148 +++++++++++++-
+ arch/csky/kernel/head.S                |  60 +-----
+ arch/csky/kernel/perf_callchain.c      | 119 +++++++++++
+ arch/csky/kernel/perf_regs.c           |  40 ++++
+ arch/csky/kernel/ptrace.c              |  51 +++--
+ arch/csky/kernel/setup.c               |  12 +-
+ arch/csky/kernel/signal.c              | 348 +++++++++++++--------------------
+ arch/csky/mm/fault.c                   |  15 +-
+ scripts/recordmcount.pl                |   3 +
+ 34 files changed, 890 insertions(+), 502 deletions(-)
+ create mode 100644 arch/csky/include/asm/ptrace.h
+ create mode 100644 arch/csky/include/uapi/asm/perf_regs.h
+ create mode 100644 arch/csky/kernel/perf_callchain.c
+ create mode 100644 arch/csky/kernel/perf_regs.c
