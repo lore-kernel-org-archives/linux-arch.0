@@ -1,114 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57882 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726272AbfDYIgs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Apr 2019 04:36:48 -0400
-From: guoren@kernel.org
-Subject: [GIT PULL] csky fixes for v5.1-rc7
-Date: Thu, 25 Apr 2019 16:36:43 +0800
-Message-ID: <1556181403-3881-1-git-send-email-guoren@kernel.org>
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:37224 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728102AbfDYJua (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 05:50:30 -0400
+MIME-Version: 1.0
+References: <1555947870-23014-1-git-send-email-guoren@kernel.org>
+ <20190422161814.GA30694@lst.de> <20190423001348.GA31639@guoren-Inspiron-7460>
+ <20190423055548.GA12365@lst.de> <20190423154642.GA16001@guoren-Inspiron-7460>
+ <d1988350-7da9-37bb-3d8b-93bedea0b732@garyguo.net> <20190424020803.GA27332@guoren-Inspiron-7460>
+ <LO2P265MB0847C9F08481E25DABC77335D63C0@LO2P265MB0847.GBRP265.PROD.OUTLOOK.COM>
+ <20190424055703.GA3417@guoren-Inspiron-7460> <4e6b0816-3fe9-8c0b-a749-f7f6ef7e5742@garyguo.net>
+ <20190424142306.GB20974@lst.de>
+In-Reply-To: <20190424142306.GB20974@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 25 Apr 2019 11:50:11 +0200
+Message-ID: <CAK8P3a36V93mKLuR-6hZzNX+j0HVpR_9bM41653PQuD+1xMTVw@mail.gmail.com>
+Subject: Re: [PATCH] riscv: Support non-coherency memory model
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190425083643.OHbjGVTsUCFzNCQ3bUugBgD1_oYcoZaCrdP9k1_2abU@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Gary Guo <gary@garyguo.net>, Guo Ren <guoren@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Andrew Waterman <andrew@sifive.com>, Anup Patel <anup.patel@wdc.com>, Xiang Xiaoyan <xiaoyan_xiang@c-sky.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <green.hu@gmail.com>, "ren_guo@c-sky.com" <ren_guo@c-sky.com>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Scott Wood <swood@redhat.com>, "tech-privileged@lists.riscv.org" <tech-privileged@lists.riscv.org>
+Message-ID: <20190425095011.AfPfSgB4rZEi7Iu1i2fnArTkx5ug-rH4oruGCADoI6U@z>
 
-The following changes since commit 085b7755808aa11f78ab9377257e1dad2e6fa4bb:
+On Wed, Apr 24, 2019 at 4:23 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> On Wed, Apr 24, 2019 at 12:45:56PM +0000, Gary Guo wrote:
+> > The RISC-V privileged spec is explicitly designed to allow the
+> > techniques described above (this is the sole purpose of MSTATUS.TVM). It
+> > might be as high performance as a hardware with H-extension, but is
+> > definitely a legit use case. In fact, it is vital for use cases like
+> > recursive virtualization.
+> >
+> > Also, I believe the PTE format of RISC-V is already frozen -- therefore
+> > it is impossible now to merge GLOBAL and USER bit, nor to replace RSW
+> > bit with another bit.
+>
+> Yes, I do not think we can just repurpose a bit.  Even using a currently
+> unused one would require some gymnastics.
+>
+> That being said IFF we want to support non-coherent DMA (and I think we
+> do as people glue together their SOCs using shoestring and paper clips,
+> as already demonstrated by Andes and C-SKY in RISC-V space, and most
+> arm, mips and ppc SOCs) we need something like this flag.  The current
+> RISC-V method that only allows M-mode to set up such attributes on
+> a small number or PMP regions just doesn't work well with the way how
+> Linux and most non-trivial OSes implement DMA memory allocations.
+>
+> Note that I said well - in theory we can have a firmware provided
+> uncached pool - that is what Linux does on most nommu (that is without
+> pagetables) ports, but the fixed sized pool really does suck and will
+> make users very unhappy.
 
-  Linux 5.1-rc6 (2019-04-21 10:45:57 -0700)
+You could probably get away with allowing uncached mappings only
+for huge pages, and using one or two of the bits the PMD for it.
+This should cover most use cases, since in practice coherent allocations
+tend to be either small and rare (device descriptors) or very big
+(frame buffer etc), and both cases can be handled with hugepages
+and gen_pool_alloc, possibly CMA added in since there will likely
+not be an IOMMU either on the systems that lack cache coherent DMA.
 
-are available in the git repository at:
+One downside is that you need a little more care for drivers that
+use dma_mmap_coherent() to expose coherent buffers to user space.
 
-  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.1-rc7
+Two other points about the proposal:
+- Aside from completely uncached/unbuffered mappings, you typically
+  want uncached/buffered mappings to cover dma_alloc_wc() that is
+  typically used for frame buffers etc that need write-combining to get
+  acceptable performance
+- you need to decide what is supposed to happen when there are
+  multiple conflicting mappings for the same physical address.
 
-for you to fetch changes up to a691f3334d58b833e41d56de1b9820e687edcd78:
-
-  csky/syscall_trace: Fixup return processing flow (2019-04-22 15:55:28 +0800)
-
-----------------------------------------------------------------
-arch/csky patches for 5.1-rc7
-
-Here are the patches which made on 5.1-rc6 and all are tested in our
-buildroot gitlab CI:
-https://gitlab.com/c-sky/buildroot/pipelines/57892579
-
- - Fixup vdsp&fpu issues in kernel
- - Add dynamic function tracer
- - Use in_syscall & forget_syscall instead of r11_sig
- - Reconstruct signal processing
- - Support dynamic start physical address
- - Fixup wrong update_mmu_cache implementation
- - Support vmlinux bootup with MMU off
- - Use va_pa_offset instead of phys_offset
- - Fixup syscall_trace return processing flow
- - Add perf callchain support
- - Add perf_arch_fetch_caller_regs support
- - Add page fault perf event support
- - Add support for perf registers sampling
-
-----------------------------------------------------------------
-Guo Ren (12):
-      csky: Fixup vdsp&fpu issues in kernel
-      csky/ftrace: Add dynamic function tracer (include graph tracer)
-      csky: Update syscall_trace_enter/exit implementation
-      csky: Add non-uapi asm/ptrace.h namespace
-      csky: Use in_syscall & forget_syscall instead of r11_sig
-      csky: Reconstruct signal processing
-      csky: Support dynamic start physical address
-      csky: Fixup wrong update_mmu_cache implementation
-      csky: Support vmlinux bootup with MMU off
-      csky: Use va_pa_offset instead of phys_offset
-      csky: Fixup compile warning
-      csky/syscall_trace: Fixup return processing flow
-
-Jagadeesh Pagadala (1):
-      csky: mm/fault.c: Remove duplicate header
-
-Mao Han (4):
-      csky: Add perf callchain support
-      csky: Add perf_arch_fetch_caller_regs support
-      csky: add page fault perf event support
-      csky: Add support for perf registers sampling
-
-Masahiro Yamada (1):
-      csky: remove redundant generic-y
-
- arch/csky/Kconfig                      |   7 +-
- arch/csky/Makefile                     |   2 +-
- arch/csky/abiv1/inc/abi/ckmmu.h        |  24 ++-
- arch/csky/abiv1/inc/abi/entry.h        |  41 ++--
- arch/csky/abiv1/inc/abi/regdef.h       |   5 +-
- arch/csky/abiv2/cacheflush.c           |  13 +-
- arch/csky/abiv2/inc/abi/ckmmu.h        |  34 +++-
- arch/csky/abiv2/inc/abi/entry.h        |  87 +++++++--
- arch/csky/abiv2/inc/abi/regdef.h       |   5 +-
- arch/csky/abiv2/mcount.S               |  39 +++-
- arch/csky/abiv2/memmove.S              |   6 +-
- arch/csky/include/asm/Kbuild           |   1 -
- arch/csky/include/asm/ftrace.h         |  18 +-
- arch/csky/include/asm/mmu_context.h    |  17 +-
- arch/csky/include/asm/page.h           |  39 ++--
- arch/csky/include/asm/perf_event.h     |   8 +
- arch/csky/include/asm/ptrace.h         |  41 ++++
- arch/csky/include/asm/syscall.h        |   9 +
- arch/csky/include/asm/thread_info.h    |  27 ++-
- arch/csky/include/asm/unistd.h         |   2 +
- arch/csky/include/uapi/asm/perf_regs.h |  51 +++++
- arch/csky/include/uapi/asm/ptrace.h    |  15 --
- arch/csky/kernel/Makefile              |   2 +
- arch/csky/kernel/atomic.S              |  26 +--
- arch/csky/kernel/entry.S               |  77 +++-----
- arch/csky/kernel/ftrace.c              | 148 +++++++++++++-
- arch/csky/kernel/head.S                |  60 +-----
- arch/csky/kernel/perf_callchain.c      | 119 +++++++++++
- arch/csky/kernel/perf_regs.c           |  40 ++++
- arch/csky/kernel/ptrace.c              |  51 +++--
- arch/csky/kernel/setup.c               |  12 +-
- arch/csky/kernel/signal.c              | 348 +++++++++++++--------------------
- arch/csky/mm/fault.c                   |  15 +-
- scripts/recordmcount.pl                |   3 +
- 34 files changed, 890 insertions(+), 502 deletions(-)
- create mode 100644 arch/csky/include/asm/ptrace.h
- create mode 100644 arch/csky/include/uapi/asm/perf_regs.h
- create mode 100644 arch/csky/kernel/perf_callchain.c
- create mode 100644 arch/csky/kernel/perf_regs.c
+        Arnd
