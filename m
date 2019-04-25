@@ -1,115 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58006 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727586AbfDYKAd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:33 -0400
-Message-ID: <20190425094803.248604594@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:16 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 23/29] tracing: Simplify stack trace retrieval
+Received: from mail-wm1-f53.google.com ([209.85.128.53]:39793 "EHLO
+        mail-wm1-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726247AbfDYKJj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:09:39 -0400
+Date: Thu, 25 Apr 2019 12:09:33 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [patch V3 00/29] stacktrace: Consolidate stack trace usage
+Message-ID: <20190425100933.GB8387@gmail.com>
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190425094453.875139013@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094516.qbXoGByrZ16wfLnih_iBfAOIgIQAUm6Vg4tL5K-yIjM@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
+Message-ID: <20190425100933.UjqFqKzkSIWg4xdRFye2nWZWLPH4oDnA2NybsU1yseg@z>
 
-Replace the indirection through struct stack_trace by using the storage
-array based interfaces.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
----
- kernel/trace/trace.c |   40 +++++++++++++---------------------------
- 1 file changed, 13 insertions(+), 27 deletions(-)
+* Thomas Gleixner <tglx@linutronix.de> wrote:
 
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -2774,22 +2774,18 @@ static void __ftrace_trace_stack(struct
- {
- 	struct trace_event_call *call = &event_kernel_stack;
- 	struct ring_buffer_event *event;
-+	unsigned int size, nr_entries;
- 	struct ftrace_stack *fstack;
- 	struct stack_entry *entry;
--	struct stack_trace trace;
--	int size = FTRACE_KSTACK_ENTRIES;
- 	int stackidx;
- 
--	trace.nr_entries	= 0;
--	trace.skip		= skip;
--
- 	/*
- 	 * Add one, for this function and the call to save_stack_trace()
- 	 * If regs is set, then these functions will not be in the way.
- 	 */
- #ifndef CONFIG_UNWINDER_ORC
- 	if (!regs)
--		trace.skip++;
-+		skip++;
- #endif
- 
- 	/*
-@@ -2816,28 +2812,24 @@ static void __ftrace_trace_stack(struct
- 	barrier();
- 
- 	fstack = this_cpu_ptr(ftrace_stacks.stacks) + (stackidx - 1);
--	trace.entries		= fstack->calls;
--	trace.max_entries	= FTRACE_KSTACK_ENTRIES;
--
--	if (regs)
--		save_stack_trace_regs(regs, &trace);
--	else
--		save_stack_trace(&trace);
--
--	if (trace.nr_entries > size)
--		size = trace.nr_entries;
-+	size = ARRAY_SIZE(fstack->calls);
- 
--	size *= sizeof(unsigned long);
-+	if (regs) {
-+		nr_entries = stack_trace_save_regs(regs, fstack->calls,
-+						   size, skip);
-+	} else {
-+		nr_entries = stack_trace_save(fstack->calls, size, skip);
-+	}
- 
-+	size = nr_entries * sizeof(unsigned long);
- 	event = __trace_buffer_lock_reserve(buffer, TRACE_STACK,
- 					    sizeof(*entry) + size, flags, pc);
- 	if (!event)
- 		goto out;
- 	entry = ring_buffer_event_data(event);
- 
--	memcpy(&entry->caller, trace.entries, size);
--
--	entry->size = trace.nr_entries;
-+	memcpy(&entry->caller, fstack->calls, size);
-+	entry->size = nr_entries;
- 
- 	if (!call_filter_check_discard(call, entry, buffer, event))
- 		__buffer_unlock_commit(buffer, event);
-@@ -2916,7 +2908,6 @@ ftrace_trace_userstack(struct ring_buffe
- 	struct trace_event_call *call = &event_user_stack;
- 	struct ring_buffer_event *event;
- 	struct userstack_entry *entry;
--	struct stack_trace trace;
- 
- 	if (!(global_trace.trace_flags & TRACE_ITER_USERSTACKTRACE))
- 		return;
-@@ -2947,12 +2938,7 @@ ftrace_trace_userstack(struct ring_buffe
- 	entry->tgid		= current->tgid;
- 	memset(&entry->caller, 0, sizeof(entry->caller));
- 
--	trace.nr_entries	= 0;
--	trace.max_entries	= FTRACE_STACK_ENTRIES;
--	trace.skip		= 0;
--	trace.entries		= entry->caller;
--
--	save_stack_trace_user(&trace);
-+	stack_trace_save_user(entry->caller, FTRACE_STACK_ENTRIES);
- 	if (!call_filter_check_discard(call, entry, buffer, event))
- 		__buffer_unlock_commit(buffer, event);
- 
+> -	if (unlikely(!ret))
+> +	if (unlikely(!ret)) {
+> +		if (!trace->nr_entries) {
+> +			/*
+> +			 * If save_trace fails here, the printing might
+> +			 * trigger a WARN but because of the !nr_entries it
+> +			 * should not do bad things.
+> +			 */
+> +			save_trace(trace);
+> +		}
+>  		return print_circular_bug(&this, target_entry, next, prev);
+> +	}
+>  	else if (unlikely(ret < 0))
+>  		return print_bfs_bug(ret);
+
+Just a minor style nit: the 'else' should probably on the same line as 
+the '}' it belongs to, to make it really obvious that the 'if' has an 
+'else' branch?
+
+At that point the condition should probably also use balanced curly 
+braces.
+
+Interdiff looks good otherwise.
+
+Thanks,
+
+	Ingo
