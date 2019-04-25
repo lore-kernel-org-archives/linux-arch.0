@@ -1,28 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:51296 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725935AbfDYNg7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 09:36:59 -0400
-Date: Thu, 25 Apr 2019 15:35:49 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch V3 18/29] lockdep: Remove save argument from
- check_prev_add()
-Message-ID: <20190425133549.GW4038@hirez.programming.kicks-ass.net>
-References: <20190425094453.875139013@linutronix.de>
- <20190425094802.803362058@linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190425094802.803362058@linutronix.de>
+Received: from mga09.intel.com ([134.134.136.24]:58434 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726555AbfDYPPF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Apr 2019 11:15:05 -0400
+Message-ID: <e7bbb51291434a9c8526d7b617929465d5784121.camel@intel.com>
+Subject: Re: [RFC PATCH v6 22/26] x86/cet/shstk: ELF header parsing of
+ Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 25 Apr 2019 08:14:52 -0700
+In-Reply-To: <20190425110211.GZ3567@e103592.cambridge.arm.com>
+References: <20181119214809.6086-1-yu-cheng.yu@intel.com>
+         <20181119214809.6086-23-yu-cheng.yu@intel.com>
+         <20190425110211.GZ3567@e103592.cambridge.arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425133549.MgmrPMt3DmFX62NPiqB0oH-mRvsnK2FPRBionfl-j_A@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20190425151452.5kB1kd8D51cz76X6trAmA_5opl8esC5Q-bZMtZbEGj4@z>
 
-On Thu, Apr 25, 2019 at 11:45:11AM +0200, Thomas Gleixner wrote:
-> There is only one caller which hands in save_trace as function pointer.
+On Thu, 2019-04-25 at 12:02 +0100, Dave Martin wrote:
+> On Mon, Nov 19, 2018 at 01:48:05PM -0800, Yu-cheng Yu wrote:
+> > Look in .note.gnu.property of an ELF file and check if Shadow Stack needs
+> > to be enabled for the task.
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> What's the status of this series?  I don't see anything in linux-next
+> yet.
+> 
+> For describing ELF features, Arm has recently adopted
+> NT_GNU_PROPERTY_TYPE_0, with properties closely modelled on
+> GNU_PROPERTY_X86_FEATURE_1_AND etc. [1]
+> 
+> So, arm64 will be need something like this patch for supporting new
+> features (such as the Branch Target Identification feature of ARMv8.5-A
+> [2]).
+> 
+> If this series isn't likely to merge soon, can we split this patch into
+> generic and x86-specific parts and handle them separately?
+> 
+> It would be good to see the generic ELF note parsing move to common
+> code -- I'll take a look and comment in more detail.
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Yes, I will work on that.
+
+> 
+> [...]
+> 
+> > diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+> > index 69c0f892e310..557ed0ba71c7 100644
+> > --- a/arch/x86/include/asm/elf.h
+> > +++ b/arch/x86/include/asm/elf.h
+> > @@ -381,4 +381,9 @@ struct va_alignment {
+> >  
+> >  extern struct va_alignment va_align;
+> >  extern unsigned long align_vdso_addr(unsigned long);
+> > +
+> > +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> > +extern int arch_setup_features(void *ehdr, void *phdr, struct file *file,
+> > +			       bool interp);
+> > +#endif
+> >  #endif /* _ASM_X86_ELF_H */
+> > diff --git a/arch/x86/include/uapi/asm/elf_property.h
+> > b/arch/x86/include/uapi/asm/elf_property.h
+> > new file mode 100644
+> > index 000000000000..af361207718c
+> > --- /dev/null
+> > +++ b/arch/x86/include/uapi/asm/elf_property.h
+> > @@ -0,0 +1,15 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
+> > +#define _UAPI_ASM_X86_ELF_PROPERTY_H
+> > +
+> > +/*
+> > + * pr_type
+> > + */
+> > +#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
+> > +
+> > +/*
+> > + * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
+> > + */
+> > +#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
+> > +
+> 
+> Generally we seem to collect all ELF definitions in <linux/uapi/elf.h>,
+> including arch-specific ones.
+
+Agree.
+
+> 
+> Is a new header really needed here?
+> 
+> [...]
+> 
+> > diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+> > index 54207327f98f..007ff0fbae84 100644
+> > --- a/fs/binfmt_elf.c
+> > +++ b/fs/binfmt_elf.c
+> > @@ -1081,6 +1081,21 @@ static int load_elf_binary(struct linux_binprm *bprm)
+> >  		goto out_free_dentry;
+> >  	}
+> >  
+> > +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> > +	if (interpreter) {
+> > +		retval = arch_setup_features(&loc->interp_elf_ex,
+> > +					     interp_elf_phdata,
+> > +					     interpreter, true);
+> 
+> Can we dummy no-op functions in the common headers to avoid this
+> ifdeffery?  Logically all arches will always do this step, even if it's
+> a no-op today.
+
+Sure.
+
+Thanks,
+
+Yu-cheng
