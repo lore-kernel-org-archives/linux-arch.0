@@ -1,49 +1,213 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58054 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58158 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729813AbfDYKAn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:00:43 -0400
-Message-ID: <20190425094802.716274532@linutronix.de>
-Date: Thu, 25 Apr 2019 11:45:10 +0200
+        with ESMTP id S1726168AbfDYKCL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2019 06:02:11 -0400
+Message-ID: <20190425094803.816485461@linutronix.de>
+Date: Thu, 25 Apr 2019 11:45:22 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 17/29] lockdep: Remove unused trace argument from
- print_circular_bug()
+Subject: [patch V3 29/29] x86/stacktrace: Use common infrastructure
 References: <20190425094453.875139013@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>, linux-arch@vger.kernel.org
-Message-ID: <20190425094510._hfogvfSUkQdjITSByGkyWC8IN6EQ1vbhd8ypmYgAm8@z>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Alexander Potapenko <glider@google.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, David Rientjes <rientjes@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev@googlegroups.com, Mike Rapoport <rppt@linux.vnet.ibm.com>, Akinobu Mita <akinobu.mita@gmail.com>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Robin Murphy <robin.murphy@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Johannes Thumshirn <jthumshirn@suse.de>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Josef Bacik <josef@toxicpanda.com>, linux-btrfs@vger.kernel.org, dm-devel@redhat.com, Mike Snitzer <snitzer@redhat.com>, Alasdair Kergon <agk@redhat.com>, Daniel Vetter <daniel@ffwll.ch>, intel-gfx@lists.freedesktop.org, Joonas Lahtinen <joonas.lahtinen@linux.intel.com>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, dri-devel@lists.freedesktop.org, David Airlie <airlied@linux.ie>, Jani Nikula <jani.nikula@linux.intel.com>, Rodrigo Vivi <rodrigo.vivi@intel.com>, Tom Zanussi <tom.zanussi@linux.intel.com>, Miroslav Benes <mbenes@suse.cz>
+Message-ID: <20190425094522.VncKAwImjaSP8zehfzHPku8erkZ_6z_YBx7_DNRrhdI@z>
+
+Replace the stack_trace_save*() functions with the new arch_stack_walk()
+interfaces.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
 ---
- kernel/locking/lockdep.c |    9 ++++-----
- 1 file changed, 4 insertions(+), 5 deletions(-)
+ arch/x86/Kconfig             |    1 
+ arch/x86/kernel/stacktrace.c |  116 +++++++------------------------------------
+ 2 files changed, 20 insertions(+), 97 deletions(-)
 
---- a/kernel/locking/lockdep.c
-+++ b/kernel/locking/lockdep.c
-@@ -1522,10 +1522,9 @@ static inline int class_equal(struct loc
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -74,6 +74,7 @@ config X86
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
++	select ARCH_STACKWALK
+ 	select ARCH_SUPPORTS_ACPI
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
+--- a/arch/x86/kernel/stacktrace.c
++++ b/arch/x86/kernel/stacktrace.c
+@@ -12,75 +12,31 @@
+ #include <asm/stacktrace.h>
+ #include <asm/unwind.h>
+ 
+-static int save_stack_address(struct stack_trace *trace, unsigned long addr,
+-			      bool nosched)
+-{
+-	if (nosched && in_sched_functions(addr))
+-		return 0;
+-
+-	if (trace->skip > 0) {
+-		trace->skip--;
+-		return 0;
+-	}
+-
+-	if (trace->nr_entries >= trace->max_entries)
+-		return -1;
+-
+-	trace->entries[trace->nr_entries++] = addr;
+-	return 0;
+-}
+-
+-static void noinline __save_stack_trace(struct stack_trace *trace,
+-			       struct task_struct *task, struct pt_regs *regs,
+-			       bool nosched)
++void arch_stack_walk(stack_trace_consume_fn consume_entry, void *cookie,
++		     struct task_struct *task, struct pt_regs *regs)
+ {
+ 	struct unwind_state state;
+ 	unsigned long addr;
+ 
+-	if (regs)
+-		save_stack_address(trace, regs->ip, nosched);
++	if (regs && !consume_entry(cookie, regs->ip, false))
++		return;
+ 
+ 	for (unwind_start(&state, task, regs, NULL); !unwind_done(&state);
+ 	     unwind_next_frame(&state)) {
+ 		addr = unwind_get_return_address(&state);
+-		if (!addr || save_stack_address(trace, addr, nosched))
++		if (!addr || !consume_entry(cookie, addr, false))
+ 			break;
+ 	}
  }
  
- static noinline int print_circular_bug(struct lock_list *this,
--				struct lock_list *target,
--				struct held_lock *check_src,
--				struct held_lock *check_tgt,
--				struct stack_trace *trace)
-+				       struct lock_list *target,
-+				       struct held_lock *check_src,
-+				       struct held_lock *check_tgt)
+ /*
+- * Save stack-backtrace addresses into a stack_trace buffer.
++ * This function returns an error if it detects any unreliable features of the
++ * stack.  Otherwise it guarantees that the stack trace is reliable.
++ *
++ * If the task is not 'current', the caller *must* ensure the task is inactive.
+  */
+-void save_stack_trace(struct stack_trace *trace)
+-{
+-	trace->skip++;
+-	__save_stack_trace(trace, current, NULL, false);
+-}
+-EXPORT_SYMBOL_GPL(save_stack_trace);
+-
+-void save_stack_trace_regs(struct pt_regs *regs, struct stack_trace *trace)
+-{
+-	__save_stack_trace(trace, current, regs, false);
+-}
+-
+-void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
+-{
+-	if (!try_get_task_stack(tsk))
+-		return;
+-
+-	if (tsk == current)
+-		trace->skip++;
+-	__save_stack_trace(trace, tsk, NULL, true);
+-
+-	put_task_stack(tsk);
+-}
+-EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
+-
+-#ifdef CONFIG_HAVE_RELIABLE_STACKTRACE
+-
+-static int __always_inline
+-__save_stack_trace_reliable(struct stack_trace *trace,
+-			    struct task_struct *task)
++int arch_stack_walk_reliable(stack_trace_consume_fn consume_entry,
++			     void *cookie, struct task_struct *task)
  {
- 	struct task_struct *curr = current;
- 	struct lock_list *parent;
-@@ -2206,7 +2205,7 @@ check_prev_add(struct task_struct *curr,
- 			 */
- 			save(trace);
- 		}
--		return print_circular_bug(&this, target_entry, next, prev, trace);
-+		return print_circular_bug(&this, target_entry, next, prev);
+ 	struct unwind_state state;
+ 	struct pt_regs *regs;
+@@ -117,7 +73,7 @@ static int __always_inline
+ 		if (!addr)
+ 			return -EINVAL;
+ 
+-		if (save_stack_address(trace, addr, false))
++		if (!consume_entry(cookie, addr, false))
+ 			return -EINVAL;
  	}
- 	else if (unlikely(ret < 0))
- 		return print_bfs_bug(ret);
+ 
+@@ -132,32 +88,6 @@ static int __always_inline
+ 	return 0;
+ }
+ 
+-/*
+- * This function returns an error if it detects any unreliable features of the
+- * stack.  Otherwise it guarantees that the stack trace is reliable.
+- *
+- * If the task is not 'current', the caller *must* ensure the task is inactive.
+- */
+-int save_stack_trace_tsk_reliable(struct task_struct *tsk,
+-				  struct stack_trace *trace)
+-{
+-	int ret;
+-
+-	/*
+-	 * If the task doesn't have a stack (e.g., a zombie), the stack is
+-	 * "reliably" empty.
+-	 */
+-	if (!try_get_task_stack(tsk))
+-		return 0;
+-
+-	ret = __save_stack_trace_reliable(trace, tsk);
+-
+-	put_task_stack(tsk);
+-
+-	return ret;
+-}
+-#endif /* CONFIG_HAVE_RELIABLE_STACKTRACE */
+-
+ /* Userspace stacktrace - based on kernel/trace/trace_sysprof.c */
+ 
+ struct stack_frame_user {
+@@ -182,15 +112,15 @@ copy_stack_frame(const void __user *fp,
+ 	return ret;
+ }
+ 
+-static inline void __save_stack_trace_user(struct stack_trace *trace)
++void arch_stack_walk_user(stack_trace_consume_fn consume_entry, void *cookie,
++			  const struct pt_regs *regs)
+ {
+-	const struct pt_regs *regs = task_pt_regs(current);
+ 	const void __user *fp = (const void __user *)regs->bp;
+ 
+-	if (trace->nr_entries < trace->max_entries)
+-		trace->entries[trace->nr_entries++] = regs->ip;
++	if (!consume_entry(cookie, regs->ip, false))
++		return;
+ 
+-	while (trace->nr_entries < trace->max_entries) {
++	while (1) {
+ 		struct stack_frame_user frame;
+ 
+ 		frame.next_fp = NULL;
+@@ -200,8 +130,8 @@ static inline void __save_stack_trace_us
+ 		if ((unsigned long)fp < regs->sp)
+ 			break;
+ 		if (frame.ret_addr) {
+-			trace->entries[trace->nr_entries++] =
+-				frame.ret_addr;
++			if (!consume_entry(cookie, frame.ret_addr, false))
++				return;
+ 		}
+ 		if (fp == frame.next_fp)
+ 			break;
+@@ -209,11 +139,3 @@ static inline void __save_stack_trace_us
+ 	}
+ }
+ 
+-void save_stack_trace_user(struct stack_trace *trace)
+-{
+-	/*
+-	 * Trace user stack if we are not a kernel thread
+-	 */
+-	if (current->mm)
+-		__save_stack_trace_user(trace);
+-}
