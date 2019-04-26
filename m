@@ -1,72 +1,58 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH RESEND v5 0/5] namei: vfs flags to restrict path
- resolution
-Date: Fri, 26 Apr 2019 05:45:25 +1000
-Message-ID: <20190425194525.5d66uzfqfxmorx2n@yavin>
-References: <20190320143717.2523-1-cyphar@cyphar.com>
- <CALCETrV-Q4qZXGeavBPQbF6-VVz7hqvjRkbhFeYmbGiQgu5Omg@mail.gmail.com>
- <20190325130429.dbrgjxnvq3w5cpb3@yavin>
- <CAGXu5jKPrarixQkWWXOBCu6kRRpQd0aaJsPJbvsAyh0Wvc620A@mail.gmail.com>
- <20190424153806.64qkkmkudzodxnz2@yavin>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 3/5] kernel/cpu: Allow non-zero CPU to be primary for
+ suspend / kexec freeze
+Date: Fri, 26 Apr 2019 14:32:56 +1000
+Message-ID: <1556252469.19vbob4hqp.astroid@bobo.none>
+References: <20190411033448.20842-1-npiggin@gmail.com>
+        <20190411033448.20842-4-npiggin@gmail.com>
+        <20190425120221.GR4038@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="mgp24gaplbeperzh"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190424153806.64qkkmkudzodxnz2@yavin>
+In-Reply-To: <20190425120221.GR4038@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-fo>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-
---mgp24gaplbeperzh
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On 2019-04-25, Aleksa Sarai <cyphar@cyphar.com> wrote:
-> On 2019-04-23, Kees Cook <keescook@chromium.org> wrote:
-> > This series provides solutions to so many different race and confusion
-> > issues, I'd really like to see it land. What's the next step here? Is
-> > this planned to go directly to Linus for v5.2, or is it going to live
-> > in -mm for a while? I'd really like to see this moving forward.
+Peter Zijlstra's on April 25, 2019 10:02 pm:
+> On Thu, Apr 11, 2019 at 01:34:46PM +1000, Nicholas Piggin wrote:
+>> This patch provides an arch option, ARCH_SUSPEND_NONZERO_CPU, to
+>> opt-in to allowing suspend to occur on one of the housekeeping CPUs
+>> rather than hardcoded CPU0.
+>>=20
+>> This will allow CPU0 to be a nohz_full CPU with a later change.
+>>=20
+>> It may be possible for platforms with hardware/firmware restrictions
+>> on suspend/wake effectively support this by handing off the final
+>> stage to CPU0 when kernel housekeeping is no longer required. Another
+>> option is to make housekeeping / nohz_full mask dynamic at runtime,
+>> but the complexity could not be justified at this time.
 >=20
-> Given some of the security requirements of this interface, I think
-> getting it to live in -mm wouldn't be a bad idea so folks can shake the
-> bugs out before it's depended on by container runtimes.
+> Should we not tie this into whatever already allows an achitecture to
+> hotplug CPU-0? For instance, x86 default disallows this but has
+> cpu0_hotpluggable to allow this.
+=20
+I didn't know about that option, but I see it still has the suspend
+/ hibernate restriction though, which is what this patch is breaking
+from.
 
-Scratch my mention of -mm, it should be in Al's tree since it touches
-quite a few of the namei seqlocks. My point was that it should live in
-someone's tree for a little bit before it goes into a release.
+If we are to prevent suspend completely at boot time, then it's no
+problem to run cpu0 with nohz_full, but TPTB decided that's a bad
+thing.
 
-I will put together a PoC of a resolveat(2) variation of this series and
-re-send it out with both versions.
+But I have no problem with an arch adding another boot time option
+or hook into cpu0_hotpluggable that allows you to force nohz_full.
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+> Presumably POWER already allows hotplugging CPU-0 ?
 
---mgp24gaplbeperzh
-Content-Type: application/pgp-signature; name="signature.asc"
+Yeah it does. Suspend in pseries is actually really just used for
+some proprietary hypervisor partition migration scheme where you
+suspend, image gets saved, then resume it somewhere else. So that's
+easy, it's just a hypercall that appears to return exactly as it was
+called. No restriction on CPU number.
 
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzCDlUACgkQSnvnv3De
-m5+dTBAAkJaalB1ZAlNLaIBqNJeW7q7mu/h9lSLPEiXvdvYaaX7vsxdRP+qw733+
-70e5zLtSp63rWZ+C1qC+X29jPP6sqxoYIbSrufbpBGXFl0DqWh2bdibbyJ0OfMgl
-uWQRnlzgKF9OsdXWHUOe6vyaL5OrBYM27mgCZ0DRzOrULUbTcYn2C3iYFI6sIwwq
-9i58pEVwTosNB48fvvmP97ANjZrdpIfovNCELQJL//uQTGTRIYc31lRn5bxJw31R
-kZAO9hv2khQZnBQmiB/AntAnYzAjOeaT1I2EgbO4eDXmb1VOzBlO7VzlkPDy34Wj
-EiyVktScI1Fr/ckbyQ2f0HJVXwYIE6Qh7kodot8ZY3BcYQUpptW6BTffvU7qqra8
-LUScCOdgyOf4A3iTJM3/HdnWkTCOnbbwMHQf97sQlJN3+SnBelrz++bQ8d4Pnlci
-IXDQkTvaJPzmehd8iBEfqdoSb5H0ipxmIr1OZgdvBskQ1X3zRMhemSKfGU2umC7p
-Dt5qTpiuwmMdqN/mzb6rd/OQCiww3vHaPWn0cY9ppPQyaqn5M7vVd38B0sJ2RfRm
-n7ojrJ6Hrl3Tl30N0LXlS8EXTEF2gOFznn/beWig+SIoF1WRBX+YdD+N03h940C2
-/D7ioE/0fOukT/9ZM4Aco28Y4b2GLI36jlmEFGSDRzzwuEtb4UU=
-=niPy
------END PGP SIGNATURE-----
-
---mgp24gaplbeperzh--
+Thanks,
+Nick
+=
