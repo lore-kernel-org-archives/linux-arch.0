@@ -1,74 +1,43 @@
-Return-Path: <BATV+2af8ccde70ad7c28a1d8+5722+infradead.org+mchehab@bombadil.srs.infradead.org>
-Date: Wed, 24 Apr 2019 09:57:56 -0300
-From: Mauro Carvalho Chehab <mchehab@infradead.org>
-Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
- files to *.rst
-Message-ID: <20190424095756.73b8981f@coco.lan>
-In-Reply-To: <20190424115126.GC6278@rapoport-lnx>
-References: <20190423132100.GB7132@redhat.com>
-	<cover.1555938375.git.mchehab+samsung@kernel.org>
-	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
-	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
-	<20190423125519.GA7104@redhat.com>
-	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
-	<20704.1556031146@warthog.procyon.org.uk>
-	<20190423105415.3a69a0cb@lwn.net>
-	<20190423172641.612012c8@coco.lan>
-	<20190424115126.GC6278@rapoport-lnx>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:54526 "EHLO
+ bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726466AbfD1IOA (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sun,
+ 28 Apr 2019 04:14:00 -0400
+Date: Sun, 28 Apr 2019 01:13:53 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: DISCONTIGMEM is deprecated
+Message-ID: <20190428081353.GB30901@infradead.org>
+References: <20190419094335.GJ18914@techsingularity.net>
+ <20190419140521.GI7751@bombadil.infradead.org>
+ <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
+ <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, David Howells <dhowells@redhat.com>, Mike Snitzer <snitzer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190424125756.dhftyLk2hsjoBMBYaYVhFFcM9yVhF_ZjfGegdTWpiBg@z>
+To: Meelis Roos <mroos@linux.ee>
+Cc: Christopher Lameter <cl@linux.com>, Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20190428081353.22PzyAPOEg_iF8y3pvAHES_7oomCDGyC4oxJXSMXC78@z>
 
-Em Wed, 24 Apr 2019 14:51:26 +0300
-Mike Rapoport <rppt@linux.ibm.com> escreveu:
-
-> On Tue, Apr 23, 2019 at 05:26:41PM -0300, Mauro Carvalho Chehab wrote:
-> > Em Tue, 23 Apr 2019 10:54:15 -0600
-> > Jonathan Corbet <corbet@lwn.net> escreveu:
+On Tue, Apr 23, 2019 at 07:49:57PM +0300, Meelis Roos wrote:
+> > > ia64 (looks complicated ...)
 > > 
-> > > On Tue, 23 Apr 2019 15:52:26 +0100
-> > > David Howells <dhowells@redhat.com> wrote:
-> > > 
-> > > Suggestions / patches on how to improve things for *all* users of the
-> > > docs are certainly welcome!
-> > > 
-> > > I am, incidentally, toying with the idea of trying to put together a
-> > > documentation microconf at the Linux Plumbers Conference this year.  If
-> > > anybody out there thinks that's a good idea and would like to
-> > > participate, please let me know.
-> > 
-> > If you add a microconf to LPC, I'm in. 
+> > Well as far as I can tell it was not even used 12 or so years ago on
+> > Itanium when I worked on that stuff.
 > 
-> +1
->  
-> > IMO, we made big advances with documentation, but there's a lot more
-> > to be done. Having a microconf to discuss those things may help us
-> > to bring new ideas about how to keep improving it.
-> 
-> The most difficult part, IMHO, is to convince people to document things ;-)
+> My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
+> SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
+> NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
 
-As David mentioned, maintainers could enforce merging new APIs
-only with documentation, with the risk of being unpopular. 
+ia64 has a such a huge number of memory model choices.  Maybe we
+need to cut it down to a small set that actually work.
 
-Well, maintainers are not among the most loved ones anyway ;-)
-<sarcasm/>
+That includes fund bits like the 'VIRTUAL_MEM_MAP' option where the
+comment claims:
 
-My experience enforcing it at media subsystem is that it is not
-that hard to have developers writing documentation, once it
-becomes a rule, and the maintainers give the example.
+# VIRTUAL_MEM_MAP and FLAT_NODE_MEM_MAP are functionally equivalent.
+# VIRTUAL_MEM_MAP has been retained for historical reasons.
 
-The big problem is how to deal with legacy stuff. I had to do that
-myself for the DVB subsystem, where the documentation were frozen back 
-on 2002 days, while lots of new stuff got added (and, worse than that,
-with some very obscure ioctls that is used only by a single driver and
-some that were used only by OOT drivers). 
-
-It take a few years to put it in sync with the code, but, once the 
-ReST conversion was done, it became easier to do the work.
-
-Thanks,
-Mauro
+but it still is selected as the default if sparsemem is not enabled..
