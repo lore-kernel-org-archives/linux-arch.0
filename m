@@ -1,41 +1,38 @@
 From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: DISCONTIGMEM is deprecated
-Date: Sun, 28 Apr 2019 01:11:07 -0700
-Message-ID: <20190428081107.GA30901@infradead.org>
+Date: Sun, 28 Apr 2019 01:13:53 -0700
+Message-ID: <20190428081353.GB30901@infradead.org>
 References: <20190419094335.GJ18914@techsingularity.net>
  <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
- <20190421211604.GN18914@techsingularity.net>
- <20190423071354.GB12114@infradead.org>
- <20190424113352.GA6278@rapoport-lnx>
+ <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
+ <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190424113352.GA6278@rapoport-lnx>
+In-Reply-To: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Meelis Roos <mroos@linux.ee>
+Cc: Christopher Lameter <cl@linux.com>, Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 24, 2019 at 02:33:53PM +0300, Mike Rapoport wrote:
-> On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
-> > On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
-> > > 32-bit NUMA systems should be non-existent in practice. The last NUMA
-> > > system I'm aware of that was both NUMA and 32-bit only died somewhere
-> > > between 2004 and 2007. If someone is running a 64-bit capable system in
-> > > 32-bit mode with NUMA, they really are just punishing themselves for fun.
+On Tue, Apr 23, 2019 at 07:49:57PM +0300, Meelis Roos wrote:
+> > > ia64 (looks complicated ...)
 > > 
-> > Can we mark it as BROKEN to see if someone shouts and then remove it
-> > a year or two down the road?  Or just kill it off now..
+> > Well as far as I can tell it was not even used 12 or so years ago on
+> > Itanium when I worked on that stuff.
 > 
-> How about making SPARSEMEM default for x86-32?
+> My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
+> SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
+> NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
 
-Sounds good.
+ia64 has a such a huge number of memory model choices.  Maybe we
+need to cut it down to a small set that actually work.
 
-Another question:  I always found the option to even select the memory
-models like a bad tradeoff.  Can we really expect a user to make a sane
-choice?  I'd rather stick to a relativelty optimal choice based on arch
-and maybe a few other parameters (NUMA or not for example) and stick to
-it, reducing the testing matrix.
+That includes fund bits like the 'VIRTUAL_MEM_MAP' option where the
+comment claims:
+
+# VIRTUAL_MEM_MAP and FLAT_NODE_MEM_MAP are functionally equivalent.
+# VIRTUAL_MEM_MAP has been retained for historical reasons.
+
+but it still is selected as the default if sparsemem is not enabled..
