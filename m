@@ -1,44 +1,41 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v14 01/11] bitops: Introduce the for_each_set_clump8 macro
-Date: Sat, 27 Apr 2019 09:41:34 +0900
-Message-ID: <20190427004134.GB26000@icarus>
-References: <cover.1553828158.git.vilhelm.gray@gmail.com>
- <1cc8b30bb3954ca2a0961ffb0a2eed8a005ed670.1553828158.git.vilhelm.gray@gmail.com>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: DISCONTIGMEM is deprecated
+Date: Sun, 28 Apr 2019 01:11:07 -0700
+Message-ID: <20190428081107.GA30901@infradead.org>
+References: <20190419094335.GJ18914@techsingularity.net>
+ <20190419140521.GI7751@bombadil.infradead.org>
+ <20190421063859.GA19926@rapoport-lnx>
+ <20190421132606.GJ7751@bombadil.infradead.org>
+ <20190421211604.GN18914@techsingularity.net>
+ <20190423071354.GB12114@infradead.org>
+ <20190424113352.GA6278@rapoport-lnx>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1cc8b30bb3954ca2a0961ffb0a2eed8a005ed670.1553828158.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20190424113352.GA6278@rapoport-lnx>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 29, 2019 at 12:04:08PM +0900, William Breathitt Gray wrote:
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
+On Wed, Apr 24, 2019 at 02:33:53PM +0300, Mike Rapoport wrote:
+> On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
+> > On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
+> > > 32-bit NUMA systems should be non-existent in practice. The last NUMA
+> > > system I'm aware of that was both NUMA and 32-bit only died somewhere
+> > > between 2004 and 2007. If someone is running a 64-bit capable system in
+> > > 32-bit mode with NUMA, they really are just punishing themselves for fun.
+> > 
+> > Can we mark it as BROKEN to see if someone shouts and then remove it
+> > a year or two down the road?  Or just kill it off now..
 > 
-> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Suggested-by: Lukas Wunner <lukas@wunner.de>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Linus Walleij <linus.walleij@linaro.org>
-> Acked-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
-> ---
->  include/asm-generic/bitops/find.h | 61 +++++++++++++++++++++++++++++++
->  include/linux/bitops.h            |  5 +++
->  2 files changed, 66 insertions(+)
+> How about making SPARSEMEM default for x86-32?
 
-Andrew, Linus,
+Sounds good.
 
-I reverted your Acked-by/Reviewed-by lines to Cc in this release because
-the code has significantly changed from the simplification effort. If
-you are satisfied with these changes, please ack to confirm.
-
-William Breathitt Gray
+Another question:  I always found the option to even select the memory
+models like a bad tradeoff.  Can we really expect a user to make a sane
+choice?  I'd rather stick to a relativelty optimal choice based on arch
+and maybe a few other parameters (NUMA or not for example) and stick to
+it, reducing the testing matrix.
