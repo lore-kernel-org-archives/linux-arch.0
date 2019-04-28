@@ -1,38 +1,90 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: DISCONTIGMEM is deprecated
-Date: Sun, 28 Apr 2019 01:13:53 -0700
-Message-ID: <20190428081353.GB30901@infradead.org>
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <0100016a461809ed-be5bd8fc-9925-424d-9624-4a325a7a8860-000000@email.amazonses.com>
- <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: endianness swapped
+Date: Sun, 28 Apr 2019 10:46:03 +0200
+Message-ID: <CAMuHMdXNCxHP=BWPOy70LjNJoMH+zy7yYOHj29gYt79_5=4ffg@mail.gmail.com>
+References: <20190427153222.GA9613@jerusalem> <20190427202150.GB9613@jerusalem>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <25cabb7c-9602-2e09-2fe0-cad3e54595fa@linux.ee>
+In-Reply-To: <20190427202150.GB9613@jerusalem>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Meelis Roos <mroos@linux.ee>
-Cc: Christopher Lameter <cl@linux.com>, Mel Gorman <mgorman@techsingularity.net>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+To: Angelo Dureghello <angelo@sysam.it>
+Cc: Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Greg KH <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 23, 2019 at 07:49:57PM +0300, Meelis Roos wrote:
-> > > ia64 (looks complicated ...)
-> > 
-> > Well as far as I can tell it was not even used 12 or so years ago on
-> > Itanium when I worked on that stuff.
-> 
-> My notes tell that on UP ia64 (RX2620), !NUMA was broken with both
-> SPARSEMEM and DISCONTIGMEM. NUMA+SPARSEMEM or !NUMA worked. Even
-> NUMA+DISCONTIGMEM worked, that was my config on 2-CPU RX2660.
+Hi Angelo,
 
-ia64 has a such a huge number of memory model choices.  Maybe we
-need to cut it down to a small set that actually work.
+CC commit relations
 
-That includes fund bits like the 'VIRTUAL_MEM_MAP' option where the
-comment claims:
+On Sat, Apr 27, 2019 at 10:22 PM Angelo Dureghello <angelo@sysam.it> wrote:
+> On Sat, Apr 27, 2019 at 05:32:22PM +0200, Angelo Dureghello wrote:
+> > as you may know, i am working on mcf5441x.
+> > Sorry for not following carefully all the threads, but from a certain
+> > kernel version (likely 4.19 or near there), seems ioread32be
+> > reads the bytes swapped in endianness (mcf-edma dma driver not working
+> > anymore).
+> >
+> > Has there been a change about this in the architecture I/O access ?
+> > How should i proceed now ? Fixing the DMA driver read/write, or what ?
 
-# VIRTUAL_MEM_MAP and FLAT_NODE_MEM_MAP are functionally equivalent.
-# VIRTUAL_MEM_MAP has been retained for historical reasons.
+> looks like the reason of my ioread32be now swapped is:
+>
+> https://patchwork.kernel.org/patch/10766673/
+>
+> Trying to figure out what to do now.
 
-but it still is selected as the default if sparsemem is not enabled..
+This is commit aecc787c06f4300f ("iomap: Use non-raw io functions for
+io{read|write}XXbe"):
+
+--- a/lib/iomap.c
++++ b/lib/iomap.c
+@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const
+char *access)
+ #endif
+
+ #ifndef mmio_read16be
+-#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
+-#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
++#define mmio_read16be(addr) swab16(readw(addr))
++#define mmio_read32be(addr) swab32(readl(addr))
+ #endif
+
+ unsigned int ioread8(void __iomem *addr)
+@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
+ #endif
+
+ #ifndef mmio_write16be
+-#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
+-#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
++#define mmio_write16be(val,port) writew(swab16(val),port)
++#define mmio_write32be(val,port) writel(swab32(val),port)
+
+On big endian, the raw accessors are assumed to be non-swapping,
+while non-raw accessors are assumed to be swapping.
+The latter is not true for Coldfire internal registers, cfr.
+arch/m68k/include/asm/io_no.h:
+
+static inline u16 readw(const volatile void __iomem *addr)
+{
+        if (cf_internalio(addr))
+                return __raw_readw(addr);
+        return __le16_to_cpu(__raw_readw(addr));
+}
+
+Orthogonal to how Coldfire's read[wl]() should be fixed, I find it a bit
+questionable to swap data twice on big endian architectures.
+
+Fortunately we can avoid that by defining our own
+mmio_{read,write}{16,32}be()...
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
