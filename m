@@ -1,233 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f68.google.com ([209.85.128.68]:54327 "EHLO
-        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726539AbfD1XX1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Apr 2019 19:23:27 -0400
-Received: by mail-wm1-f68.google.com with SMTP id c1so11395882wml.4
-        for <linux-arch@vger.kernel.org>; Sun, 28 Apr 2019 16:23:25 -0700 (PDT)
-Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
- self-encapsulation
-References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
- <20190402161256.11044-3-daniel.lezcano@linaro.org>
- <1555922585.26198.19.camel@intel.com>
- <fb45157c-38c4-7940-3252-af459d446323@linaro.org>
- <1555999165.26198.39.camel@intel.com>
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <2c0bc40d-328a-fc96-73da-9d65fee253fb@linaro.org>
-Date: Mon, 29 Apr 2019 01:23:21 +0200
+Received: from mail.kernel.org ([198.145.29.99]:48992 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726589AbfD2HEE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Apr 2019 03:04:04 -0400
+Subject: Re: endianness swapped
+References: <20190427153222.GA9613@jerusalem>
+ <20190427202150.GB9613@jerusalem>
+ <CAMuHMdXNCxHP=BWPOy70LjNJoMH+zy7yYOHj29gYt79_5=4ffg@mail.gmail.com>
+ <CAK8P3a2F6KW3M7ZaK=WL8429j_z=y_wXrx6rthxni8vBmsMPyg@mail.gmail.com>
+ <c75092d5-0bbf-cd8e-d0a2-ff1384ac5a48@linux-m68k.org>
+ <CAK8P3a16O57dvUYUPVZJpvZ7Hm6WA-jc_svQHTAEdDpbyLRv7w@mail.gmail.com>
+From: Greg Ungerer <gerg@linux-m68k.org>
+Message-ID: <50f49e95-95f3-4fdb-bcf6-6165382a5168@linux-m68k.org>
+Date: Mon, 29 Apr 2019 17:03:59 +1000
 MIME-Version: 1.0
-In-Reply-To: <1555999165.26198.39.camel@intel.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <CAK8P3a16O57dvUYUPVZJpvZ7Hm6WA-jc_svQHTAEdDpbyLRv7w@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Zhang Rui <rui.zhang@intel.com>, edubezval@gmail.com, linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20190428232321.7vIXYaYtPPvR9hd_vv98mE5riDUl5lii0dOEAYeXGDs@z>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Angelo Dureghello <angelo@sysam.it>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Greg KH <gregkh@linuxfoundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190429070359.a0GrtRSbPBjYxEgCQHTpxgOBJEFjA1d3rp5-XXoWwaY@z>
 
-On 23/04/2019 07:59, Zhang Rui wrote:
-> Hi, Daniel,
+Hi Arnd,
+
+On 29/4/19 4:44 am, Arnd Bergmann wrote:
+> On Sun, Apr 28, 2019 at 3:59 PM Greg Ungerer <gerg@linux-m68k.org> wrote:
+>> On 28/4/19 7:21 pm, Arnd Bergmann wrote:
+>>> On Sun, Apr 28, 2019 at 10:46 AM Geert Uytterhoeven
+>>> <geert@linux-m68k.org> wrote:
+>>>> On Sat, Apr 27, 2019 at 10:22 PM Angelo Dureghello <angelo@sysam.it> wrote:
+>>>>> On Sat, Apr 27, 2019 at 05:32:22PM +0200, Angelo Dureghello wrote:
+>>>
+>>> Coldfire makes the behavior of readw()/readl() depend on the
+>>> MMIO address, presumably since that was the easiest way to
+>>> get drivers working originally, but it breaks the assumption
+>>> in the asm-generic code.
+>>
+>> Yes, that is right.
+>>
+>> There is a number of common hardware modules that Freescale have
+>> used in the ColdFire SoC parts and in their ARM based parts (iMX
+>> families). The ARM parts are pretty much always little endian, and
+>> the ColdFire is always big endian. The hardware registers in those
+>> hardware blocks are always accessed in native endian of the processor.
 > 
-> thanks for clarifying.
-> It is true that we need to make thermal framework ready as early as
-> possible. And a static table works for me as long as vmlinux.lds.h is
-> the proper place.
+> In later Freescale/NXP ARM SoCs (i.MX and Layerscape), we
+> also get a lot of devices pulled over from PowerPC, with random
+> endianess. In some cases, the same device that had big-endian
+> registers originally ends up in two different ARM products and one of
+> them uses big-endian while the other one uses little-endian registers.
 > 
-> Arnd,
-> are you okay with this patch? if yes, I suppose I can take it through
-> my tree, right?
-
-Arnd?
-
-
-> thanks,
-> rui
+>> So the address range checks are to deal with those internal
+>> hardware blocks (i2c, spi, dma, etc), since we know those are
+>> at fixed addresses. That leaves the usual endian swapping in place for
+>> other general (ie external) devices (PCI devices, network chips, etc).
 > 
-> On 一, 2019-04-22 at 14:11 +0200, Daniel Lezcano wrote:
->> Hi Zhang,
->>
->>
->> On 22/04/2019 10:43, Zhang Rui wrote:
->>>
->>> Hi, Daniel,
->>>
->>> Thanks for the patches, it looks good to me except this one and
->>> patch
->>> 4/7.
->>>
->>> First, I don't think this is a cyclic dependency issue as they are
->>> in
->>> the same module.
->> The governors have to export their [un]register functions in order to
->> have the core to use them.
->>
->> The core has to export the [un]register function in order to have the
->> governors to use them.
->>
->> From my point of view it is a cyclic dependency. In any other
->> subsystems, the plugins/governor/drivers/whatever don't have to
->> export
->> their functions to the core, they use the core's exported functions.
->>
->>>
->>> Second, I have not read include/asm-generic/vmlinux.lds.h before,
->>> it
->>> seems that it is used for architecture specific stuff. Fix a
->>> thermal
->>> issue in this way seems overkill to me.
->> It is not architecture specific, it belongs to asm-generic. All init
->> calls are defined in it and more. It is a common way to define static
->> tables from different files without adding dependency and unload it
->> after init.
->>
->> All clk, timers, acpi tables, irq chip, cpuidle and cpu methods are
->> defined this way.
->>
->> When the thermal_core.c uses at the end fs_initcall it uses the same
->> mechanism.
->>
->>
->>>
->>> IMO, to make the code clean, we can build the governors as separate
->>> modules just like we do for cpu governors.
->>> This brings to the old commit 80a26a5c22b9("Thermal: build thermal
->>> governors into thermal_sys module"), and that was introduced to fix
->>> a
->>> problem when CONFIG_THERMAL is set to 'm'. So I think we can switch
->>> back to the old way as the problem is gone now.
->>>
->>> what do you think?
->> IMO, having the governors built as module is not a good thing because
->> the SoC needs the governor to be ready as soon as possible at boot
->> time.
->> I've been told some boards reboot at boot time because the governor
->> comes too late with the userspace governor for example.
->>
->> If you don't like the vmlinuz.lds.h approch (but again it is a common
->> way to initialize table and I wrote it to extend to more thermal
->> table
->> in the future) we can change the thermal core to replace
->> fs_initcall()
->> by core_initcall() and use postcore_initcall() in the governor.
->>
->>
->>
->>>
->>> Patch 1,2,5,6,7 applied first.
->>>
->>> thanks,
->>> rui
->>>
->>> On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
->>>>
->>>> Currently the governors are declared in their respective files
->>>> but
->>>> they
->>>> export their [un]register functions which in turn call the
->>>> [un]register
->>>> the governors core's functions. That implies a cyclic dependency
->>>> which is
->>>> not desirable. There is a way to self-encapsulate the governors
->>>> by
->>>> letting
->>>> them to declare themselves in a __init section table.
->>>>
->>>> Define the table in the asm generic linker description like the
->>>> other
->>>> tables and provide the specific macros to deal with.
->>>>
->>>> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
->>>> ---
->>>>  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
->>>>  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
->>>>  2 files changed, 27 insertions(+)
->>>>
->>>> diff --git a/drivers/thermal/thermal_core.h
->>>> b/drivers/thermal/thermal_core.h
->>>> index 0df190ed82a7..28d18083e969 100644
->>>> --- a/drivers/thermal/thermal_core.h
->>>> +++ b/drivers/thermal/thermal_core.h
->>>> @@ -15,6 +15,22 @@
->>>>  /* Initial state of a cooling device during binding */
->>>>  #define THERMAL_NO_TARGET -1UL
->>>>  
->>>> +/* Init section thermal table */
->>>> +extern struct thermal_governor * __governor_thermal_table[];
->>>> +extern struct thermal_governor * __governor_thermal_table_end[];
->>>> +
->>>> +#define THERMAL_TABLE_ENTRY(table, name)			
->>>> \
->>>> +        static typeof(name) * __thermal_table_entry_##name	
->>>> \
->>>> +	__used __section(__##table##_thermal_table)		
->>>> \
->>>> +		= &name;
->>>> +
->>>> +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_ENTR
->>>> Y(go
->>>> vernor, name)
->>>> +
->>>> +#define for_each_governor_table(__governor)		\
->>>> +	for (__governor = __governor_thermal_table;	\
->>>> +	     __governor < __governor_thermal_table_end;	\
->>>> +	     __governor++)
->>>> +
->>>>  /*
->>>>   * This structure is used to describe the behavior of
->>>>   * a certain cooling device on a certain trip point
->>>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
->>>> generic/vmlinux.lds.h
->>>> index f8f6f04c4453..9893a3ed242a 100644
->>>> --- a/include/asm-generic/vmlinux.lds.h
->>>> +++ b/include/asm-generic/vmlinux.lds.h
->>>> @@ -239,6 +239,16 @@
->>>>  #define ACPI_PROBE_TABLE(name)
->>>>  #endif
->>>>  
->>>> +#ifdef CONFIG_THERMAL
->>>> +#define THERMAL_TABLE(name)					
->>>> 	
->>>> \
->>>> +        . = ALIGN(8);						
->>>> 	\
->>>> +        __##name##_thermal_table = .;				
->>>> 	\
->>>> +        KEEP(*(__##name##_thermal_table))			
->>>> 	
->>>> \
->>>> +        __##name##_thermal_table_end = .;
->>>> +#else
->>>> +#define THERMAL_TABLE(name)
->>>> +#endif
->>>> +
->>>>  #define KERNEL_DTB()						
->>>> 	
->>>> \
->>>>  	STRUCT_ALIGN();						
->>>> 	\
->>>>  	__dtb_start = .;						
->>>> \
->>>> @@ -609,6 +619,7 @@
->>>>  	IRQCHIP_OF_MATCH_TABLE()					
->>>> \
->>>>  	ACPI_PROBE_TABLE(irqchip)				
->>>> 	
->>>> \
->>>>  	ACPI_PROBE_TABLE(timer)					
->>>> 	\
->>>> +	THERMAL_TABLE(governor)					
->>>> 	\
->>>>  	EARLYCON_TABLE()						
->>>> \
->>>>  	LSM_TABLE()
->>>>  
->>
+> Is there a complete list of coldfire on-chip device drivers?
+> 
+> Looking at some of the drivers:
+> 
+> - drivers/i2c/busses/i2c-imx.c uses only 8-bit accesses and works either way,
+>    same for drivers/tty/serial/mcf.c
+> - drivers/spi/spi-coldfire-qspi.c is apparently coldfire-only and could use
+>    ioread32be for a portable to do big-endian register access.
+> - edma-common has a wrapper to support both big-endian and little-endian
+>    configurations in the same kernel image, but the mcf interrupt handler
+>    is hardcoded to the (normally) little-endian ioread32 function.
+> - drivers/net/ethernet/freescale/fec_main.c is shared between coldfire
+>    and i.MX (but not mpc52xx), and is hardcoded to readl/writel, and
+>    would need the same trick as edma to make it portable.
 
+That matches up with what we list out in arch/m68k/coldfire/devices.c.
+I can't think of any other drivers.
 
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+There is a lot of use readl/writel and friends in the architecture
+specific code too, in arch/m68k/coldfire. At first I used __raw_readl/
+__raw_writel to always get native endianess. But quote a few uses of
+readl/writel have crept in over the years.
 
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Regards
+Greg
