@@ -1,51 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:38514 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727819AbfD2LNu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Apr 2019 07:13:50 -0400
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:33941 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725838AbfD2OUx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Apr 2019 10:20:53 -0400
+Date: Mon, 29 Apr 2019 19:50:36 +0530
+From: Nishad Kamdar <nishadkamdar@gmail.com>
+Subject: Re: [PATCH v3 2/5] nds32: Use the correct style for SPDX License
+ Identifier
+Message-ID: <20190429142013.GA12127@nishad>
+References: <cover.1555427418.git.nishadkamdar@gmail.com>
+ <f6a7c31f4e8b743a2877875ac3fc49ecb8b9eb0c.1555427419.git.nishadkamdar@gmail.com>
+ <alpine.DEB.2.21.1904162034260.1780@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-References: <20190427153222.GA9613@jerusalem> <20190427202150.GB9613@jerusalem>
- <CAMuHMdXNCxHP=BWPOy70LjNJoMH+zy7yYOHj29gYt79_5=4ffg@mail.gmail.com>
- <CAK8P3a2F6KW3M7ZaK=WL8429j_z=y_wXrx6rthxni8vBmsMPyg@mail.gmail.com>
- <c75092d5-0bbf-cd8e-d0a2-ff1384ac5a48@linux-m68k.org> <CAMuHMdUC6zXH5SUEChDNHHJL2=Aq6XfRebFWK0JtH5zDWMSVgQ@mail.gmail.com>
-In-Reply-To: <CAMuHMdUC6zXH5SUEChDNHHJL2=Aq6XfRebFWK0JtH5zDWMSVgQ@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 29 Apr 2019 13:13:32 +0200
-Message-ID: <CAK8P3a0gex0ffvX9zQDV=N7g6q7UAxxYRn2PeAbbAgrd1wTvQg@mail.gmail.com>
-Subject: Re: endianness swapped
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.21.1904162034260.1780@nanos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Ungerer <gerg@linux-m68k.org>, Angelo Dureghello <angelo@sysam.it>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Greg KH <gregkh@linuxfoundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20190429111332.aLHthkx90vBb7ExbrIlD-RfZjKvKBPHDA55i8fbTJ7c@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, Uwe =?utf-8?Q?Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20190429142036.B2Kw_M3GZoO-lwIXNOF0ZbtkfajRVFYOYGOd74QRTtk@z>
 
-On Mon, Apr 29, 2019 at 10:44 AM Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Sun, Apr 28, 2019 at 3:59 PM Greg Ungerer <gerg@linux-m68k.org> wrote:
-> > On 28/4/19 7:21 pm, Arnd Bergmann wrote:
-> > > On Sun, Apr 28, 2019 at 10:46 AM Geert Uytterhoeven
-> > > <geert@linux-m68k.org> wrote:
-> > >>
-> > >> Orthogonal to how Coldfire's read[wl]() should be fixed, I find it a bit
-> > >> questionable to swap data twice on big endian architectures.
-> > >
-> > > I would expect that the compiler is capable of detecting a double
-> > > swap and optimize it out. Even if it can't, there are not that many
-> > > instances of io{read,write}{16,32}be in the kernel, so the increase
-> > > in kernel image size from a double swap should be limited to a
-> > > few extra instructions, and the runtime overhead should be
-> > > negligible compared to the bus access.
->
-> Probably the overhead is not negligible on old m68k...
+On Tue, Apr 16, 2019 at 08:35:38PM +0200, Thomas Gleixner wrote:
+> On Tue, 16 Apr 2019, Nishad Kamdar wrote:
+> 
+> > This patch corrects the SPDX License Identifier style
+> > in the nds32 Hardware Architecture related files.
+> > 
+> > Suggested-by: Joe Perches <joe@perches.com>
+> > Signed-off-by: Nishad Kamdar <nishadkamdar@gmail.com>
+> 
+> Actually instead of doing that we should fix the documentation. The
+> requirement came from older binutils because they barfed on // style
+> comments in ASM files. That's history as we upped the minimal binutil
+> requirement.
+> 
+> Thanks,
+> 
+> 	tglx
 
-Maybe the I/O devices are faster than I expected then. I was guessing
-that there is still a factor of 100x or more between going to an on-chip
-bus and single byterev register-to-register instruction.
+Ok.
 
-I did notice that __arch_swab32() is an inline assembly, so the
-compiler has no way of eliminating the double swap, but
-setting CONFIG_ARCH_USE_BUILTIN_BSWAP makes it
-do the right thing.
+So according to license-rules.rst,
+which says
 
-      Arnd
+"This has been fixed by now, but there are still older assembler
+tools which cannot handle C++ style comments."
+
+Now there are no assembler tools which cannot handle C++ comments ?
+and the document should be changed accordingly ?
+
+Thanks for the review.
+
+Regards,
+Nishad
