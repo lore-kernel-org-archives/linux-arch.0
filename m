@@ -1,75 +1,69 @@
-From: Andrey Konovalov <andreyknvl-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v13 10/20] kernel,
- arm64: untag user pointers in prctl_set_mm*
-Date: Mon, 29 Apr 2019 16:23:32 +0200
-Message-ID: <CAAeHK+ww=6-fTnHN_33EEiKdMqXq5bNU4oW9oOMcfz1N_+Kisw@mail.gmail.com>
-References: <cover.1553093420.git.andreyknvl@google.com>
- <76f96eb9162b3a7fa5949d71af38bf8fdf6924c4.1553093421.git.andreyknvl@google.com>
- <20190322154136.GP13384@arrakis.emea.arm.com>
- <CAAeHK+yHp27eT+wTE3Uy4DkN8XN3ZjHATE+=HgjgRjrHjiXs3Q@mail.gmail.com>
- <20190426145024.GC54863@arrakis.emea.arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: Re: [RESEND PATCH v3 09/11] powerpc/mm/radix: mark
+ __radix__flush_tlb_range_psize() as __always_inline
+Date: Mon, 29 Apr 2019 17:35:53 +0200
+Message-ID: <40b48947-b80e-7971-376d-52b594e26d17@c-s.fr>
+References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+ <20190423034959.13525-10-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-In-Reply-To: <20190426145024.GC54863-pQd4kjVL+RGcEQQL7YIRtlaTQe2KTcn/@public.gmane.org>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/amd-gfx>
-List-Post: <mailto:amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-List-Help: <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/amd-gfx>,
- <mailto:amd-gfx-request-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org?subject=subscribe>
-Errors-To: amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org
-Sender: "amd-gfx" <amd-gfx-bounces-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>
-To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>
-Cc: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Kate Stewart <kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Eric Dumazet <edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Chintan Pandya <cpandya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "David (ChunMing) Zhou" <David1.Zhou-5C7GfCeVMHo@public.gmane.org>, Jacob Bramley <Jacob.Bramley-5wv7dgnIgG8@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, amd-gfx-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ramana Radhakrishnan <Ramana.Radhakr>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190423034959.13525-10-yamada.masahiro@socionext.com>
+Content-Language: fr
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-s390@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-mtd@lists.infradead.org, linux-arm-kernel@lists.infradead.org, Mathieu Malaterre <malat@debian.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBBcHIgMjYsIDIwMTkgYXQgNDo1MCBQTSBDYXRhbGluIE1hcmluYXMgPGNhdGFsaW4u
-bWFyaW5hc0Bhcm0uY29tPiB3cm90ZToKPgo+IE9uIE1vbiwgQXByIDAxLCAyMDE5IGF0IDA2OjQ0
-OjM0UE0gKzAyMDAsIEFuZHJleSBLb25vdmFsb3Ygd3JvdGU6Cj4gPiBPbiBGcmksIE1hciAyMiwg
-MjAxOSBhdCA0OjQxIFBNIENhdGFsaW4gTWFyaW5hcyA8Y2F0YWxpbi5tYXJpbmFzQGFybS5jb20+
-IHdyb3RlOgo+ID4gPiBPbiBXZWQsIE1hciAyMCwgMjAxOSBhdCAwMzo1MToyNFBNICswMTAwLCBB
-bmRyZXkgS29ub3ZhbG92IHdyb3RlOgo+ID4gPiA+IEBAIC0yMTIwLDEzICsyMTM1LDE0IEBAIHN0
-YXRpYyBpbnQgcHJjdGxfc2V0X21tKGludCBvcHQsIHVuc2lnbmVkIGxvbmcgYWRkciwKPiA+ID4g
-PiAgICAgICBpZiAob3B0ID09IFBSX1NFVF9NTV9BVVhWKQo+ID4gPiA+ICAgICAgICAgICAgICAg
-cmV0dXJuIHByY3RsX3NldF9hdXh2KG1tLCBhZGRyLCBhcmc0KTsKPiA+ID4gPgo+ID4gPiA+IC0g
-ICAgIGlmIChhZGRyID49IFRBU0tfU0laRSB8fCBhZGRyIDwgbW1hcF9taW5fYWRkcikKPiA+ID4g
-PiArICAgICBpZiAodW50YWdnZWRfYWRkcihhZGRyKSA+PSBUQVNLX1NJWkUgfHwKPiA+ID4gPiAr
-ICAgICAgICAgICAgICAgICAgICAgdW50YWdnZWRfYWRkcihhZGRyKSA8IG1tYXBfbWluX2FkZHIp
-Cj4gPiA+ID4gICAgICAgICAgICAgICByZXR1cm4gLUVJTlZBTDsKPiA+ID4gPgo+ID4gPiA+ICAg
-ICAgIGVycm9yID0gLUVJTlZBTDsKPiA+ID4gPgo+ID4gPiA+ICAgICAgIGRvd25fd3JpdGUoJm1t
-LT5tbWFwX3NlbSk7Cj4gPiA+ID4gLSAgICAgdm1hID0gZmluZF92bWEobW0sIGFkZHIpOwo+ID4g
-PiA+ICsgICAgIHZtYSA9IGZpbmRfdm1hKG1tLCB1bnRhZ2dlZF9hZGRyKGFkZHIpKTsKPiA+ID4g
-Pgo+ID4gPiA+ICAgICAgIHByY3RsX21hcC5zdGFydF9jb2RlICAgID0gbW0tPnN0YXJ0X2NvZGU7
-Cj4gPiA+ID4gICAgICAgcHJjdGxfbWFwLmVuZF9jb2RlICAgICAgPSBtbS0+ZW5kX2NvZGU7Cj4g
-PiA+Cj4gPiA+IERvZXMgdGhpcyBtZWFuIHRoYXQgd2UgYXJlIGxlZnQgd2l0aCB0YWdnZWQgYWRk
-cmVzc2VzIGZvciB0aGUKPiA+ID4gbW0tPnN0YXJ0X2NvZGUgZXRjLiB2YWx1ZXM/IEkgcmVhbGx5
-IGRvbid0IHRoaW5rIHdlIHNob3VsZCBhbGxvdyB0aGlzLAo+ID4gPiBJJ20gbm90IHN1cmUgd2hh
-dCB0aGUgaW1wbGljYXRpb25zIGFyZSBpbiBvdGhlciBwYXJ0cyBvZiB0aGUga2VybmVsLgo+ID4g
-Pgo+ID4gPiBBcmd1YWJseSwgdGhlc2UgYXJlIG5vdCBldmVuIHBvaW50ZXIgdmFsdWVzIGJ1dCBz
-b21lIGFkZHJlc3MgcmFuZ2VzLiBJCj4gPiA+IGtub3cgd2UgZGVjaWRlZCB0byByZWxheCB0aGlz
-IG5vdGlvbiBmb3IgbW1hcC9tcHJvdGVjdC9tYWR2aXNlKCkgc2luY2UKPiA+ID4gdGhlIHVzZXIg
-ZnVuY3Rpb24gcHJvdG90eXBlcyB0YWtlIHBvaW50ZXIgYXMgYXJndW1lbnRzIGJ1dCBpdCBmZWVs
-cyBsaWtlCj4gPiA+IHdlIGFyZSBvdmVyZG9pbmcgaXQgaGVyZSAoc3RydWN0IHByY3RsX21tX21h
-cCBkb2Vzbid0IGV2ZW4gaGF2ZQo+ID4gPiBwb2ludGVycykuCj4gPiA+Cj4gPiA+IFdoYXQgaXMg
-dGhlIHVzZS1jYXNlIGZvciBhbGxvd2luZyB0YWdnZWQgYWRkcmVzc2VzIGhlcmU/IENhbiB1c2Vy
-IHNwYWNlCj4gPiA+IGhhbmRsZSB1bnRhZ2dpbmc/Cj4gPgo+ID4gSSBkb24ndCBrbm93IGFueSB1
-c2UgY2FzZXMgZm9yIHRoaXMuIEkgZGlkIGl0IGJlY2F1c2UgaXQgc2VlbXMgdG8gYmUKPiA+IGNv
-dmVyZWQgYnkgdGhlIHJlbGF4ZWQgQUJJLiBJJ20gbm90IGVudGlyZWx5IHN1cmUgd2hhdCB0byBk
-byBoZXJlLAo+ID4gc2hvdWxkIEkganVzdCBkcm9wIHRoaXMgcGF0Y2g/Cj4KPiBJZiB3ZSBhbGxv
-dyB0YWdnZWQgYWRkcmVzc2VzIHRvIGJlIHBhc3NlZCBoZXJlLCB3ZSdkIGhhdmUgdG8gdW50YWcg
-dGhlbQo+IGJlZm9yZSB0aGV5IGVuZCB1cCBpbiB0aGUgbW0tPnN0YXJ0X2NvZGUgZXRjLiBtZW1i
-ZXJzLgo+Cj4gSSBrbm93IHdlIGFyZSB0cnlpbmcgdG8gcmVsYXggdGhlIEFCSSBoZXJlIHcuci50
-LiBhZGRyZXNzIHJhbmdlcyBidXQKPiBtb3N0bHkgYmVjYXVzZSB3ZSBjb3VsZG4ndCBmaWd1cmUg
-b3V0IGEgd2F5IHRvIGRvY3VtZW50IHVuYW1iaWd1b3VzbHkKPiB0aGUgZGlmZmVyZW5jZSBiZXR3
-ZWVuIGEgdXNlciBwb2ludGVyIHRoYXQgbWF5IGJlIGRlcmVmZXJlbmNlZCBieSB0aGUKPiBrZXJu
-ZWwgKHRhZ3MgYWxsb3dlZCkgYW5kIGFuIGFkZHJlc3MgdHlwaWNhbGx5IHVzZWQgZm9yIG1hbmFn
-aW5nIHRoZQo+IGFkZHJlc3Mgc3BhY2UgbGF5b3V0LiBTdWdnZXN0aW9ucyB3ZWxjb21lZC4KPgo+
-IEknZCBzYXkganVzdCBkcm9wIHRoaXMgcGF0Y2ggYW5kIGNhcHR1cmUgaXQgaW4gdGhlIEFCSSBk
-b2N1bWVudC4KCk9LLCB3aWxsIGRvIGluIHYxNC4KClZpbmNlbnpvLCBjb3VsZCB5b3UgYWRkIGEg
-bm90ZSBhYm91dCB0aGlzIGludG8gdG91ciBwYXRjaHNldD8KCj4KPiAtLQo+IENhdGFsaW4KX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KYW1kLWdmeCBtYWls
-aW5nIGxpc3QKYW1kLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVl
-ZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9hbWQtZ2Z4
+
+
+Le 23/04/2019 à 05:49, Masahiro Yamada a écrit :
+> This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+> place. We need to eliminate potential issues beforehand.
+
+How did you identify the functions requiring __always_inline as this one 
+? Just by 'test and see if it fails', or did you have some script or so ?
+
+Here the problem is that one of the parameters of the function are used 
+as "immediate" constraint for the inline assembly, therefore requiring 
+the function to always be inline.
+
+I guess this should be explained in the commit log and I'm wondering how 
+you ensure that you did identify all functions like this.
+
+Christophe
+
+> 
+> If it is enabled for powerpc, the following error is reported:
+> 
+> arch/powerpc/mm/tlb-radix.c: In function '__radix__flush_tlb_range_psize':
+> arch/powerpc/mm/tlb-radix.c:104:2: error: asm operand 3 probably doesn't match constraints [-Werror]
+>    asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
+>    ^~~
+> arch/powerpc/mm/tlb-radix.c:104:2: error: impossible constraint in 'asm'
+> 
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
+> 
+> Changes in v3: None
+> Changes in v2:
+>    - split into a separate patch
+> 
+>   arch/powerpc/mm/tlb-radix.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
+> index 6a23b9ebd2a1..a2b2848f0ae3 100644
+> --- a/arch/powerpc/mm/tlb-radix.c
+> +++ b/arch/powerpc/mm/tlb-radix.c
+> @@ -928,7 +928,7 @@ void radix__tlb_flush(struct mmu_gather *tlb)
+>   	tlb->need_flush_all = 0;
+>   }
+>   
+> -static inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
+> +static __always_inline void __radix__flush_tlb_range_psize(struct mm_struct *mm,
+>   				unsigned long start, unsigned long end,
+>   				int psize, bool also_pwc)
+>   {
+> 
