@@ -1,76 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:35202 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726019AbfEARk1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 May 2019 13:40:27 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
-Date: Wed,  1 May 2019 13:39:40 -0400
-Message-ID: <20190501173943.5688-3-hch@lst.de>
-In-Reply-To: <20190501173943.5688-1-hch@lst.de>
-References: <20190501173943.5688-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:36610 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726207AbfEAT4b (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 May 2019 15:56:31 -0400
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x41JrFGm046029
+        for <linux-arch@vger.kernel.org>; Wed, 1 May 2019 15:56:30 -0400
+Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2s7gpf3hkg-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 01 May 2019 15:56:30 -0400
+Received: from localhost
+        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
+        Wed, 1 May 2019 20:56:27 +0100
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH 0/3] remove ARCH_SELECT_MEMORY_MODEL where it has no effect
+Date: Wed,  1 May 2019 22:56:14 +0300
+Message-ID: <1556740577-4140-1-git-send-email-rppt@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190501173940.3nml4XEq7mEsYS-HALw0XRGonjoDLGRGmLBsyQ8fcCU@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Message-ID: <20190501195614.-Cn9031Ya8_MJeZHobFgpkPc2ai4R-sapQyNJ9EuiEA@z>
 
-Doing the indirection through macros for the regs accessors just
-makes them harder to read, so implement the helpers directly.
+Hi,
 
-Note that only the helpers actually used are implemented now.
+For several architectures the ARCH_SELECT_MEMORY_MODEL has no real effect
+because the dependencies for the memory model are always evaluated to a
+single value.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+Remove the ARCH_SELECT_MEMORY_MODEL from the Kconfigs for these
+architectures.
 
-diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
-index 64271e562fed..5d30944f1f6b 100644
---- a/arch/powerpc/include/asm/ptrace.h
-+++ b/arch/powerpc/include/asm/ptrace.h
-@@ -108,18 +108,33 @@ struct pt_regs
- 
- #ifndef __ASSEMBLY__
- 
--#define GET_IP(regs)		((regs)->nip)
--#define GET_USP(regs)		((regs)->gpr[1])
--#define GET_FP(regs)		(0)
--#define SET_FP(regs, val)
-+static inline unsigned long instruction_pointer(struct pt_regs *regs)
-+{
-+	return regs->nip;
-+}
-+
-+static inline void instruction_pointer_set(struct pt_regs *regs,
-+		unsigned long val)
-+{
-+	regs->nip = val;
-+}
-+
-+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-+{
-+	return regs->gpr[1];
-+}
-+
-+static inline unsigned long frame_pointer(struct pt_regs *regs)
-+{
-+	return 0;
-+}
- 
- #ifdef CONFIG_SMP
- extern unsigned long profile_pc(struct pt_regs *regs);
--#define profile_pc profile_pc
-+#else
-+#define profile_pc(regs) instruction_pointer(regs)
- #endif
- 
--#include <asm-generic/ptrace.h>
--
- #define kernel_stack_pointer(regs) ((regs)->gpr[1])
- static inline int is_syscall_success(struct pt_regs *regs)
- {
+Mike Rapoport (3):
+  arm: remove ARCH_SELECT_MEMORY_MODEL
+  s390: remove ARCH_SELECT_MEMORY_MODEL
+  sparc: remove ARCH_SELECT_MEMORY_MODEL
+
+ arch/arm/Kconfig   | 3 ---
+ arch/s390/Kconfig  | 3 ---
+ arch/sparc/Kconfig | 3 ---
+ 3 files changed, 9 deletions(-)
+
 -- 
-2.20.1
+2.7.4
