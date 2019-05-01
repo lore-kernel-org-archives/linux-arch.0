@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 2/3] s390: remove ARCH_SELECT_MEMORY_MODEL
-Date: Wed,  1 May 2019 22:56:16 +0300
-Message-ID: <1556740577-4140-3-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH 1/3] arm: remove ARCH_SELECT_MEMORY_MODEL
+Date: Wed,  1 May 2019 22:56:15 +0300
+Message-ID: <1556740577-4140-2-git-send-email-rppt@linux.ibm.com>
 References: <1556740577-4140-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1556740577-4140-1-git-send-email-rppt@linux.ibm.com>
@@ -10,32 +10,36 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The only reason s390 has ARCH_SELECT_MEMORY_MODEL option in
-arch/s390/Kconfig is an ancient compile error with allnoconfig which was
-fixed by commit 97195d6b411f ("[S390] fix sparsemem related compile error
-with allnoconfig on s390") by adding the ARCH_SELECT_MEMORY_MODEL option.
+The ARCH_SELECT_MEMORY_MODEL in arch/arm/Kconfig is enabled only when
+ARCH_SPARSEMEM_ENABLE=y. But in this case, ARCH_SPARSEMEM_DEFAULT is also
+enabled and this in turn enables SPARSEMEM_MANUAL.
 
-Since then a lot have changed and now allnoconfig builds just fine without
-ARCH_SELECT_MEMORY_MODEL, so it can be removed.
+Since there is no definition of ARCH_FLATMEM_ENABLE in arch/arm/Kconfig,
+SPARSEMEM_MANUAL is the only enabled memory model, hence the final
+selection will evaluate to SPARSEMEM=y.
+
+Since ARCH_SPARSEMEM_ENABLE is set to 'y' only by several sub-arch
+configurations, the default for must sub-arches would be the falback to
+FLATMEM regardless of ARCH_SELECT_MEMORY_MODEL.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/s390/Kconfig | 3 ---
+ arch/arm/Kconfig | 3 ---
  1 file changed, 3 deletions(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index b6e3d06..69d3956 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -621,9 +621,6 @@ config ARCH_SPARSEMEM_ENABLE
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 9aed25a..25a69a3 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1592,9 +1592,6 @@ config ARCH_SPARSEMEM_ENABLE
  config ARCH_SPARSEMEM_DEFAULT
- 	def_bool y
+ 	def_bool ARCH_SPARSEMEM_ENABLE
  
 -config ARCH_SELECT_MEMORY_MODEL
--	def_bool y
+-	def_bool ARCH_SPARSEMEM_ENABLE
 -
- config ARCH_ENABLE_MEMORY_HOTPLUG
- 	def_bool y if SPARSEMEM
+ config HAVE_ARCH_PFN_VALID
+ 	def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
  
 -- 
 2.7.4
