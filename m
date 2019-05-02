@@ -1,107 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48160 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728514AbfEBP3m (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2019 11:29:42 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x42FTJK9053824
-        for <linux-arch@vger.kernel.org>; Thu, 2 May 2019 11:29:42 -0400
-Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2s81jgvwe0-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 02 May 2019 11:29:41 -0400
-Received: from localhost
-        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
-        Thu, 2 May 2019 16:29:38 +0100
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 07/15] m68k: sun3: switch to generic version of pte allocation
-Date: Thu,  2 May 2019 18:28:34 +0300
-In-Reply-To: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
-Message-ID: <1556810922-20248-8-git-send-email-rppt@linux.ibm.com>
+Received: from mga05.intel.com ([192.55.52.43]:43578 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726321AbfEBPyf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 May 2019 11:54:35 -0400
+Message-ID: <5b2c6cee345e00182e97842ae90c02cdcd830135.camel@intel.com>
+Subject: Re: [PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 02 May 2019 08:47:06 -0700
+In-Reply-To: <20190502111003.GO3567@e103592.cambridge.arm.com>
+References: <20190501211217.5039-1-yu-cheng.yu@intel.com>
+         <20190502111003.GO3567@e103592.cambridge.arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-um@lists.infradead.org, nios2-dev@lists.rocketboards.org, Mike Rapoport <rppt@linux.ibm.com>
-Message-ID: <20190502152834.t_14PxpJ5mP_aaglAB2Mqdy5f6SPoGAXMRpqRDwbRc0@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, libc-alpha@sourceware.org
+Message-ID: <20190502154706.K9vp60_SReEEkFqb33mxNM6QuFl2yZ8to8IHr1OO2Lg@z>
 
-The sun3 MMU variant of m68k uses GFP_KERNEL to allocate a PTE page and
-then memset(0) or clear_highpage() to clear it.
+On Thu, 2019-05-02 at 12:10 +0100, Dave Martin wrote:
+> On Wed, May 01, 2019 at 02:12:17PM -0700, Yu-cheng Yu wrote:
+> > An ELF file's .note.gnu.property indicates features the executable file
+> > can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
+> > indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
+> > GNU_PROPERTY_X86_FEATURE_1_SHSTK.
 
-This is equivalent to allocating the page with GFP_KERNEL | __GFP_ZERO,
-which allows replacing sun3 implementation of pte_alloc_one() and
-pte_alloc_one_kernel() with the generic ones.
+[...]
+> A couple of questions before I look in more detail:
+> 
+> 1) Can we rely on PT_GNU_PROPERTY being present in the phdrs to describe
+> the NT_GNU_PROPERTY_TYPE_0 note?  If so, we can avoid trying to parse
+> irrelevant PT_NOTE segments.
 
-The pte_free() and pte_free_kernel() versions are identical to the generic
-ones and can be simply dropped.
+Some older linkers can create multiples of NT_GNU_PROPERTY_TYPE_0.  The code
+scans all PT_NOTE segments to ensure there is only one NT_GNU_PROPERTY_TYPE_0. 
+If there are multiples, then all are considered invalid.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/m68k/include/asm/sun3_pgalloc.h | 41 ++----------------------------------
- 1 file changed, 2 insertions(+), 39 deletions(-)
+> 
+> 
+> 2) Are there standard types for things like the program property header?
+> If not, can we add something in elf.h?  We should try to coordinate with
+> libc on that.  Something like
+> 
+> typedef __u32 Elf_Word;
+> 
+> typedef struct {
+> 	Elf_Word pr_type;
+> 	Elf_Word pr_datasz;
+> } Elf_Gnu_Prophdr;
+> 
+> (i.e., just the header part from [1], with a more specific name -- which
+> I just made up).
 
-diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
-index 1456c5e..1a8ddbd 100644
---- a/arch/m68k/include/asm/sun3_pgalloc.h
-+++ b/arch/m68k/include/asm/sun3_pgalloc.h
-@@ -13,55 +13,18 @@
- 
- #include <asm/tlb.h>
- 
-+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-+
- extern const char bad_pmd_string[];
- 
- #define pmd_alloc_one(mm,address)       ({ BUG(); ((pmd_t *)2); })
- 
--
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
--{
--        free_page((unsigned long) pte);
--}
--
--static inline void pte_free(struct mm_struct *mm, pgtable_t page)
--{
--	pgtable_page_dtor(page);
--        __free_page(page);
--}
--
- #define __pte_free_tlb(tlb,pte,addr)			\
- do {							\
- 	pgtable_page_dtor(pte);				\
- 	tlb_remove_page((tlb), pte);			\
- } while (0)
- 
--static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	unsigned long page = __get_free_page(GFP_KERNEL);
--
--	if (!page)
--		return NULL;
--
--	memset((void *)page, 0, PAGE_SIZE);
--	return (pte_t *) (page);
--}
--
--static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
--{
--        struct page *page = alloc_pages(GFP_KERNEL, 0);
--
--	if (page == NULL)
--		return NULL;
--
--	clear_highpage(page);
--	if (!pgtable_page_ctor(page)) {
--		__free_page(page);
--		return NULL;
--	}
--	return page;
--
--}
--
- static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
- {
- 	pmd_val(*pmd) = __pa((unsigned long)pte);
--- 
-2.7.4
+Yes, I will fix that.
+
+[...]
+> 3) It looks like we have to go and re-parse all the notes for every
+> property requested by the arch code.
+
+As explained above, it is necessary to scan all PT_NOTE segments.  But there
+should be only one NT_GNU_PROPERTY_TYPE_0 in an ELF file.  Once that is found,
+perhaps we can store it somewhere, or call into the arch code as you mentioned
+below.  I will look into that.
+
+> 
+> For now there is only one property requested anyway, so this is probably
+> not too bad.  But could we flip things around so that we have some
+> CONFIG_ARCH_WANTS_ELF_GNU_PROPERTY (say), and have the ELF core code
+> call into the arch backend for each property found?
+> 
+> The arch could provide some hook
+> 
+> 	int arch_elf_has_gnu_property(const Elf_Gnu_Prophdr *prop,
+> 					const void *data);
+> 
+> to consume the properties as they are found.
+> 
+> This would effectively replace the arch_setup_property() hook you
+> currently have.
+> 
+> Cheers
+> ---Dave
+> 
+> [1] https://github.com/hjl-tools/linux-abi/wiki/Linux-Extensions-to-gABI
