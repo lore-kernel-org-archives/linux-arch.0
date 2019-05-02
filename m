@@ -1,64 +1,105 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 14/15] um: switch to generic version of pte allocation
-Date: Thu,  2 May 2019 18:28:41 +0300
-Message-ID: <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH 15/15] unicore32: switch to generic version of pte allocation
+Date: Thu,  2 May 2019 18:28:42 +0300
+Message-ID: <1556810922-20248-16-git-send-email-rppt@linux.ibm.com>
 References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-um allocates PTE pages with __get_free_page() and uses
-GFP_KERNEL | __GFP_ZERO for the allocations.
+Replace __get_free_page() and alloc_pages() calls with the generic
+__pte_alloc_one_kernel() and __pte_alloc_one().
 
-Switch it to the generic version that does exactly the same thing for the
-kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
+There is no functional change for the kernel PTE allocation.
+
+The difference for the user PTEs, is that the clear_pte_table() is now
+called after pgtable_page_ctor() and the addition of __GFP_ACCOUNT to the
+GFP flags.
 
 The pte_free() and pte_free_kernel() versions are identical to the generic
 ones and can be simply dropped.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/um/include/asm/pgalloc.h | 16 ++--------------
- arch/um/kernel/mem.c          | 22 ----------------------
- 2 files changed, 2 insertions(+), 36 deletions(-)
+ arch/unicore32/include/asm/pgalloc.h | 36 ++++++++----------------------------
+ 1 file changed, 8 insertions(+), 28 deletions(-)
 
-diff --git a/arch/um/include/asm/pgalloc.h b/arch/um/include/asm/pgalloc.h
-index 99eb568..d7b282e 100644
---- a/arch/um/include/asm/pgalloc.h
-+++ b/arch/um/include/asm/pgalloc.h
-@@ -10,6 +10,8 @@
+diff --git a/arch/unicore32/include/asm/pgalloc.h b/arch/unicore32/include/asm/pgalloc.h
+index 7cceabe..dd09af6 100644
+--- a/arch/unicore32/include/asm/pgalloc.h
++++ b/arch/unicore32/include/asm/pgalloc.h
+@@ -17,6 +17,10 @@
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
  
- #include <linux/mm.h>
- 
-+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
++#define __HAVE_ARCH_PTE_ALLOC_ONE_KERNEL
++#define __HAVE_ARCH_PTE_ALLOC_ONE
++#include <asm-generic/pgalloc.h>
 +
- #define pmd_populate_kernel(mm, pmd, pte) \
- 	set_pmd(pmd, __pmd(_PAGE_TABLE + (unsigned long) __pa(pte)))
+ #define check_pgt_cache()		do { } while (0)
  
-@@ -25,20 +27,6 @@
- extern pgd_t *pgd_alloc(struct mm_struct *);
- extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ #define _PAGE_USER_TABLE	(PMD_TYPE_TABLE | PMD_PRESENT)
+@@ -28,17 +32,14 @@ extern void free_pgd_slow(struct mm_struct *mm, pgd_t *pgd);
+ #define pgd_alloc(mm)			get_pgd_slow(mm)
+ #define pgd_free(mm, pgd)		free_pgd_slow(mm, pgd)
  
--extern pte_t *pte_alloc_one_kernel(struct mm_struct *);
--extern pgtable_t pte_alloc_one(struct mm_struct *);
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_ZERO)
 -
+ /*
+  * Allocate one PTE table.
+  */
+ static inline pte_t *
+ pte_alloc_one_kernel(struct mm_struct *mm)
+ {
+-	pte_t *pte;
++	pte_t *pte = __pte_alloc_one_kernel(mm);
+ 
+-	pte = (pte_t *)__get_free_page(PGALLOC_GFP);
+ 	if (pte)
+ 		clean_dcache_area(pte, PTRS_PER_PTE * sizeof(pte_t));
+ 
+@@ -50,35 +51,14 @@ pte_alloc_one(struct mm_struct *mm)
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(PGALLOC_GFP, 0);
++	pte = __pte_alloc_one(mm, GFP_PGTABLE_USER);
+ 	if (!pte)
+ 		return NULL;
+-	if (!PageHighMem(pte)) {
+-		void *page = page_address(pte);
+-		clean_dcache_area(page, PTRS_PER_PTE * sizeof(pte_t));
+-	}
+-	if (!pgtable_page_ctor(pte)) {
+-		__free_page(pte);
+-	}
+-
++	if (!PageHighMem(pte))
++		clean_pte_table(page_address(pte));
+ 	return pte;
+ }
+ 
+-/*
+- * Free one PTE table.
+- */
 -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 -{
--	free_page((unsigned long) pte);
+-	if (pte)
+-		free_page((unsigned long)pte);
 -}
 -
 -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
@@ -67,41 +108,8 @@ index 99eb568..d7b282e 100644
 -	__free_page(pte);
 -}
 -
- #define __pte_free_tlb(tlb,pte, address)		\
- do {							\
- 	pgtable_page_dtor(pte);				\
-diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index 99aa11b..2280374 100644
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -215,28 +215,6 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- 	free_page((unsigned long) pgd);
- }
- 
--pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	pte_t *pte;
--
--	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
--	return pte;
--}
--
--pgtable_t pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *pte;
--
--	pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
--	if (!pte)
--		return NULL;
--	if (!pgtable_page_ctor(pte)) {
--		__free_page(pte);
--		return NULL;
--	}
--	return pte;
--}
--
- #ifdef CONFIG_3_LEVEL_PGTABLES
- pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ static inline void __pmd_populate(pmd_t *pmdp, unsigned long pmdval)
  {
+ 	set_pmd(pmdp, __pmd(pmdval));
 -- 
 2.7.4
