@@ -1,38 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:31714 "EHLO mga05.intel.com"
+Received: from ozlabs.org ([203.11.71.1]:56759 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726137AbfEAWBy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 May 2019 18:01:54 -0400
-Message-ID: <1c69263279be0b2f6582e58a0bf28bc213d94693.camel@intel.com>
-Subject: Re: [PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Wed, 01 May 2019 14:54:23 -0700
-In-Reply-To: <20190501213709.GD28500@bombadil.infradead.org>
-References: <20190501211217.5039-1-yu-cheng.yu@intel.com>
-         <20190501213709.GD28500@bombadil.infradead.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1726194AbfEBDab (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 May 2019 23:30:31 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
+In-Reply-To: <20190501173943.5688-3-hch@lst.de>
+References: <20190501173943.5688-1-hch@lst.de> <20190501173943.5688-3-hch@lst.de>
+Date: Thu, 02 May 2019 13:30:26 +1000
+Message-ID: <87ftpxa5yl.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190501215423.GYzjQCtTvYFGr0QUQVGHxXBShX3BhaBq6Ctv7woYOEA@z>
+To: Christoph Hellwig <hch@lst.de>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190502033026.-kLatLSg9XS9q4VKUm8NIWLpkSWD2AbEzWaU33ZsCiA@z>
 
-On Wed, 2019-05-01 at 14:37 -0700, Matthew Wilcox wrote:
-> On Wed, May 01, 2019 at 02:12:17PM -0700, Yu-cheng Yu wrote:
-> > +++ b/fs/Kconfig.binfmt
-> > @@ -35,6 +35,10 @@ config COMPAT_BINFMT_ELF
-> >  config ARCH_BINFMT_ELF_STATE
-> >  	bool
-> >  
-> > +config ARCH_USE_GNU_PROPERTY
-> > +	bool
-> > +	depends on 64BIT
-> 
-> I don't think this is right.  I think you should get rid of the depends line
-> and instead select the symbol from each of argh64 and x86 Kconfig files.
+Christoph Hellwig <hch@lst.de> writes:
 
-That makes sense.  Thanks!
+> Doing the indirection through macros for the regs accessors just
+> makes them harder to read, so implement the helpers directly.
+>
+> Note that only the helpers actually used are implemented now.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
+>  1 file changed, 22 insertions(+), 7 deletions(-)
 
-Yu-cheng
+Looks fine, thanks.
+
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+
+cheers
+
+> diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
+> index 64271e562fed..5d30944f1f6b 100644
+> --- a/arch/powerpc/include/asm/ptrace.h
+> +++ b/arch/powerpc/include/asm/ptrace.h
+> @@ -108,18 +108,33 @@ struct pt_regs
+>  
+>  #ifndef __ASSEMBLY__
+>  
+> -#define GET_IP(regs)		((regs)->nip)
+> -#define GET_USP(regs)		((regs)->gpr[1])
+> -#define GET_FP(regs)		(0)
+> -#define SET_FP(regs, val)
+> +static inline unsigned long instruction_pointer(struct pt_regs *regs)
+> +{
+> +	return regs->nip;
+> +}
+> +
+> +static inline void instruction_pointer_set(struct pt_regs *regs,
+> +		unsigned long val)
+> +{
+> +	regs->nip = val;
+> +}
+> +
+> +static inline unsigned long user_stack_pointer(struct pt_regs *regs)
+> +{
+> +	return regs->gpr[1];
+> +}
+> +
+> +static inline unsigned long frame_pointer(struct pt_regs *regs)
+> +{
+> +	return 0;
+> +}
+>  
+>  #ifdef CONFIG_SMP
+>  extern unsigned long profile_pc(struct pt_regs *regs);
+> -#define profile_pc profile_pc
+> +#else
+> +#define profile_pc(regs) instruction_pointer(regs)
+>  #endif
+>  
+> -#include <asm-generic/ptrace.h>
+> -
+>  #define kernel_stack_pointer(regs) ((regs)->gpr[1])
+>  static inline int is_syscall_success(struct pt_regs *regs)
+>  {
+> -- 
+> 2.20.1
