@@ -1,30 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46160 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726197AbfEBNyf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 May 2019 09:54:35 -0400
-Date: Thu, 2 May 2019 14:54:30 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 1/5] arm64: don't use asm-generic/ptrace.h
-Message-ID: <20190502135430.GB25142@arrakis.emea.arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:44032 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726197AbfEBOBf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 May 2019 10:01:35 -0400
+Date: Thu, 2 May 2019 16:01:22 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: remove asm-generic/ptrace.h
+Message-ID: <20190502140122.GC7323@redhat.com>
 References: <20190501173943.5688-1-hch@lst.de>
- <20190501173943.5688-2-hch@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190501173943.5688-2-hch@lst.de>
+In-Reply-To: <20190501173943.5688-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190502135430.MJe9HvfWmUF54bAeVPS8hr-2YqbjULLlrABotXdRmmI@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190502140122.C3pQZAG-nc1SSedgjodQwb_g8sMVAC9ri0KtT4eIoXA@z>
 
-On Wed, May 01, 2019 at 01:39:39PM -0400, Christoph Hellwig wrote:
-> Doing the indirection through macros for the regs accessors just
-> makes them harder to read, so implement the helpers directly.
-> 
-> Note that only the helpers actually used are implemented now.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+On 05/01, Christoph Hellwig wrote:
+>
+> Hi all,
+>
+> asm-generic/ptrace.h is a little weird in that it doesn't actually
+> implement any functionality, but it provided multiple layers of macros
+> that just implement trivial inline functions.  We implement those
+> directly in the few architectures and be off with a much simpler
+> design.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Oh, thanks, I was always confused by these macros ;)
+
+Oleg.
