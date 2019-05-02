@@ -1,122 +1,100 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
-Date: Thu, 2 May 2019 15:29:52 +0100
-Message-ID: <20190502142951.GP3567@e103592.cambridge.arm.com>
-References: <20190501211217.5039-1-yu-cheng.yu@intel.com>
- <20190502111003.GO3567@e103592.cambridge.arm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH 00/15] introduce generic pte_{alloc,free}_one[_kernel]
+Date: Thu,  2 May 2019 18:28:27 +0300
+Message-ID: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190502111003.GO3567@e103592.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 02, 2019 at 12:10:04PM +0100, Dave Martin wrote:
-> On Wed, May 01, 2019 at 02:12:17PM -0700, Yu-cheng Yu wrote:
-> > An ELF file's .note.gnu.property indicates features the executable file
-> > can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
-> > indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
-> > GNU_PROPERTY_X86_FEATURE_1_SHSTK.
-> > 
-> > This patch was part of the Control-flow Enforcement series; the original
-> > patch is here: https://lkml.org/lkml/2018/11/20/205.  Dave Martin responded
-> > that ARM recently introduced new features to NT_GNU_PROPERTY_TYPE_0 with
-> > properties closely modelled on GNU_PROPERTY_X86_FEATURE_1_AND, and it is
-> > logical to split out the generic part.  Here it is.
-> > 
-> > With this patch, if an arch needs to setup features from ELF properties,
-> > it needs CONFIG_ARCH_USE_GNU_PROPERTY to be set, and a specific
-> > arch_setup_property().
-> > 
-> > For example, for X86_64:
-> > 
-> > int arch_setup_property(void *ehdr, void *phdr, struct file *f, bool inter)
-> > {
-> > 	int r;
-> > 	uint32_t property;
-> > 
-> > 	r = get_gnu_property(ehdr, phdr, f, GNU_PROPERTY_X86_FEATURE_1_AND,
-> > 			     &property);
-> > 	...
-> > }
+Hi,
 
-[...]
+I've tried to trim down the recipients list, but it's still quite long, so
+sorry for the spam.
 
-> > diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c > > index 7d09d125f148..40aa4a4fd64d 100644
-> > --- a/fs/binfmt_elf.c
-> > +++ b/fs/binfmt_elf.c
-> > @@ -1076,6 +1076,19 @@ static int load_elf_binary(struct linux_binprm *bprm)
-> >  		goto out_free_dentry;
-> >  	}
-> >  
-> > +	if (interpreter) {
-> > +		retval = arch_setup_property(&loc->interp_elf_ex,
-> > +					     interp_elf_phdata,
-> > +					     interpreter, true);
-> > +	} else {
-> > +		retval = arch_setup_property(&loc->elf_ex,
-> > +					     elf_phdata,
-> > +					     bprm->file, false);
-> > +	}
+Many architectures have similar, if not identical implementation of
+pte_alloc_one_kernel(), pte_alloc_one(), pte_free_kernel() and pte_free().
 
-This will be too late for arm64, since we need to twiddle the mmap prot
-flags for the executable's pages based on the detected properties.
+A while ago Anshuman suggested to introduce a common definition of
+GFP_PGTABLE and during the discussion it was suggested to rather
+consolidate the allocators.
 
-Can we instead move this much earlier, letting the arch code stash
-something in arch_state that can be consumed later on?
+These patches introduce generic version of PTE allocation and free and
+enable their use on several architectures.
 
-This also has the advantage that we can report errors to the execve()
-caller before passing the point of no return (i.e., flush_old_exec()).
+The conversion introduces some changes for some of the architectures.
+Here's the executive summary and the details are described at each patch.
 
-[...]
+* Most architectures do not set __GFP_ACCOUNT for the user page tables.
+Switch to the generic functions is "spreading that goodness to all other
+architectures"
+* arm, arm64 and unicore32 used to check if the pte is not NULL before
+freeing its memory in pte_free_kernel(). It's dropped during the
+conversion as it seems superfluous.
+* x86 used to BUG_ON() is pte was not page aligned duirng
+pte_free_kernel(), the generic version simply frees the memory without any
+checks.
 
-> > diff --git a/fs/gnu_property.c b/fs/gnu_property.c
+This set only performs the straightforward conversion, the architectures
+with different logic in pte_alloc_one() and pte_alloc_one_kernel() are not
+touched, as well as architectures that have custom page table allocators.
 
-[...]
+[1] https://lore.kernel.org/lkml/1547619692-7946-1-git-send-email-anshuman.khandual@arm.com
 
-> > +int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
-> > +		     u32 pr_type, u32 *property)
-> > +{
-> > +	struct elf64_hdr *ehdr64 = ehdr_p;
-> > +	int err = 0;
-> > +
-> > +	*property = 0;
-> > +
-> > +	if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
-> > +		struct elf64_phdr *phdr64 = phdr_p;
-> > +
-> > +		err = scan_segments_64(f, phdr64, ehdr64->e_phnum,
-> > +				       pr_type, property);
-> > +		if (err < 0)
-> > +			goto out;
-> > +	} else {
-> > +#ifdef CONFIG_COMPAT
-> > +		struct elf32_hdr *ehdr32 = ehdr_p;
-> > +
-> > +		if (ehdr32->e_ident[EI_CLASS] == ELFCLASS32) {
-> > +			struct elf32_phdr *phdr32 = phdr_p;
-> > +
-> > +			err = scan_segments_32(f, phdr32, ehdr32->e_phnum,
-> > +					       pr_type, property);
-> > +			if (err < 0)
-> > +				goto out;
-> > +		}
-> > +#else
-> > +	WARN_ONCE(1, "Exec of 32-bit app, but CONFIG_COMPAT is not enabled.\n");
-> > +	return -ENOTSUPP;
-> > +#endif
-> > +	}
+ asm-generic, x86: introduce generic pte_{alloc,free}_one[_kernel]
 
-We have already made a ton of assumptions about the ELF class by this
-point, and we don't seem to check it explicitly elsewhere, so it is a
-bit weird to police it specifically here.
+Mike Rapoport (15):
+  asm-generic, x86: introduce generic pte_{alloc,free}_one[_kernel]
+  alpha: switch to generic version of pte allocation
+  arm: switch to generic version of pte allocation
+  arm64: switch to generic version of pte allocation
+  csky: switch to generic version of pte allocation
+  hexagon: switch to generic version of pte allocation
+  m68k: sun3: switch to generic version of pte allocation
+  mips: switch to generic version of pte allocation
+  nds32: switch to generic version of pte allocation
+  nios2: switch to generic version of pte allocation
+  parisc: switch to generic version of pte allocation
+  powerpc/nohash/64: switch to generic version of pte allocation
+  riscv: switch to generic version of pte allocation
+  um: switch to generic version of pte allocation
+  unicore32: switch to generic version of pte allocation
 
-Can we simply pass the assumed ELF class as a parameter instead?
+ arch/alpha/include/asm/pgalloc.h             |  40 +---------
+ arch/arm/include/asm/pgalloc.h               |  41 ++++------
+ arch/arm/mm/mmu.c                            |   2 +-
+ arch/arm64/include/asm/pgalloc.h             |  43 +----------
+ arch/arm64/mm/mmu.c                          |   2 +-
+ arch/arm64/mm/pgd.c                          |   4 +-
+ arch/csky/include/asm/pgalloc.h              |  30 +-------
+ arch/hexagon/include/asm/pgalloc.h           |  34 +--------
+ arch/m68k/include/asm/sun3_pgalloc.h         |  41 +---------
+ arch/mips/include/asm/pgalloc.h              |  33 +--------
+ arch/nds32/include/asm/pgalloc.h             |  31 +-------
+ arch/nios2/include/asm/pgalloc.h             |  37 +--------
+ arch/parisc/include/asm/pgalloc.h            |  33 +--------
+ arch/powerpc/include/asm/nohash/64/pgalloc.h |  35 +--------
+ arch/riscv/include/asm/pgalloc.h             |  29 +-------
+ arch/um/include/asm/pgalloc.h                |  16 +---
+ arch/um/kernel/mem.c                         |  22 ------
+ arch/unicore32/include/asm/pgalloc.h         |  36 ++-------
+ arch/x86/include/asm/pgalloc.h               |  19 +----
+ arch/x86/mm/pgtable.c                        |  33 +++------
+ include/asm-generic/pgalloc.h                | 107 ++++++++++++++++++++++++++-
+ virt/kvm/arm/mmu.c                           |   2 +-
+ 22 files changed, 171 insertions(+), 499 deletions(-)
 
-[...]
-
-Cheers
----DavE
+-- 
+2.7.4
