@@ -1,97 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:38953 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726472AbfEBQ4M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 May 2019 12:56:12 -0400
-Subject: Re: [PATCH 12/15] powerpc/nohash/64: switch to generic version of pte
- allocation
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-13-git-send-email-rppt@linux.ibm.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <adcb6ae6-48d9-5ba9-2732-a0ab1d96667c@c-s.fr>
-Date: Thu, 2 May 2019 18:56:07 +0200
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:34351 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726201AbfEBSoo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2019 14:44:44 -0400
+Received: by mail-yw1-f65.google.com with SMTP id u14so2373037ywe.1
+        for <linux-arch@vger.kernel.org>; Thu, 02 May 2019 11:44:44 -0700 (PDT)
+Date: Thu, 2 May 2019 15:44:42 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+Subject: Re: [PATCH v13 16/20] IB/mlx4, arm64: untag user pointers in
+ mlx4_get_umem_mr
+Message-ID: <20190502184442.GA31165@ziepe.ca>
+References: <cover.1553093420.git.andreyknvl@google.com>
+ <1e2824fd77e8eeb351c6c6246f384d0d89fd2d58.1553093421.git.andreyknvl@google.com>
+ <20190429180915.GZ6705@mtr-leonro.mtl.com>
+ <20190430111625.GD29799@arrakis.emea.arm.com>
 MIME-Version: 1.0
-In-Reply-To: <1556810922-20248-13-git-send-email-rppt@linux.ibm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190430111625.GD29799@arrakis.emea.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Rapoport <rppt@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, Paul Burton <paul.burton@mips.com>, linux-alpha@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190502165607.bC0VVi04KsYM4g5kWatFgvGYXK7GYOXdTBXRwcPVkWU@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Leon Romanovsky <leon@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Yishai Hadas <yishaih@mellanox.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-rdma@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Message-ID: <20190502184442.nsUpdyDrIrIj_59jLvxuF0gwI-lc27Gci8Sie8yMqlQ@z>
 
-
-
-Le 02/05/2019 à 17:28, Mike Rapoport a écrit :
-> The 64-bit book-E powerpc implements pte_alloc_one(),
-> pte_alloc_one_kernel(), pte_free_kernel() and pte_free() the same way as
-> the generic version.
-
-Will soon be converted to the same as the 3 other PPC subarches, see
-https://patchwork.ozlabs.org/patch/1091590/
-
-Christophe
-
+On Tue, Apr 30, 2019 at 12:16:25PM +0100, Catalin Marinas wrote:
+> > Interesting, the followup question is why mlx4 is only one driver in IB which
+> > needs such code in umem_mr. I'll take a look on it.
 > 
-> Switch it to the generic version that does exactly the same thing.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->   arch/powerpc/include/asm/nohash/64/pgalloc.h | 35 ++--------------------------
->   1 file changed, 2 insertions(+), 33 deletions(-)
-> 
-> diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> index 66d086f..bfb53a0 100644
-> --- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> +++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> @@ -11,6 +11,8 @@
->   #include <linux/cpumask.h>
->   #include <linux/percpu.h>
->   
-> +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> +
->   struct vmemmap_backing {
->   	struct vmemmap_backing *list;
->   	unsigned long phys;
-> @@ -92,39 +94,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
->   	kmem_cache_free(PGT_CACHE(PMD_CACHE_INDEX), pmd);
->   }
->   
-> -
-> -static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> -{
-> -	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
-> -}
-> -
-> -static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
-> -{
-> -	struct page *page;
-> -	pte_t *pte;
-> -
-> -	pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO | __GFP_ACCOUNT);
-> -	if (!pte)
-> -		return NULL;
-> -	page = virt_to_page(pte);
-> -	if (!pgtable_page_ctor(page)) {
-> -		__free_page(page);
-> -		return NULL;
-> -	}
-> -	return page;
-> -}
-> -
-> -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> -{
-> -	free_page((unsigned long)pte);
-> -}
-> -
-> -static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
-> -{
-> -	pgtable_page_dtor(ptepage);
-> -	__free_page(ptepage);
-> -}
-> -
->   static inline void pgtable_free(void *table, int shift)
->   {
->   	if (!shift) {
-> 
+> I don't know. Just using the light heuristics of find_vma() shows some
+> other places. For example, ib_umem_odp_get() gets the umem->address via
+> ib_umem_start(). This was previously set in ib_umem_get() as called from
+> mlx4_get_umem_mr(). Should the above patch have just untagged "start" on
+> entry?
+
+I have a feeling that there needs to be something for this in the odp
+code..
+
+Presumably mmu notifiers and what not also use untagged pointers? Most
+likely then the umem should also be storing untagged pointers.
+
+This probably becomes problematic because we do want the tag in cases
+talking about the base VA of the MR..
+
+Jason
