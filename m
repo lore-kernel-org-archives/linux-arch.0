@@ -1,80 +1,81 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 05/15] csky: switch to generic version of pte allocation
-Date: Thu,  2 May 2019 18:28:32 +0300
-Message-ID: <1556810922-20248-6-git-send-email-rppt@linux.ibm.com>
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
+Date: Thu, 02 May 2019 08:47:06 -0700
+Message-ID: <5b2c6cee345e00182e97842ae90c02cdcd830135.camel@intel.com>
+References: <20190501211217.5039-1-yu-cheng.yu@intel.com>
+         <20190502111003.GO3567@e103592.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
+In-Reply-To: <20190502111003.GO3567@e103592.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexag
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-The csky implementation pte_alloc_one(), pte_free_kernel() and pte_free()
-is identical to the generic except of lack of __GFP_ACCOUNT for the user
-PTEs allocation.
+On Thu, 2019-05-02 at 12:10 +0100, Dave Martin wrote:
+> On Wed, May 01, 2019 at 02:12:17PM -0700, Yu-cheng Yu wrote:
+> > An ELF file's .note.gnu.property indicates features the executable file
+> > can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
+> > indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
+> > GNU_PROPERTY_X86_FEATURE_1_SHSTK.
 
-Switch csky to use generic version of these functions.
+[...]
+> A couple of questions before I look in more detail:
+> 
+> 1) Can we rely on PT_GNU_PROPERTY being present in the phdrs to describe
+> the NT_GNU_PROPERTY_TYPE_0 note?  If so, we can avoid trying to parse
+> irrelevant PT_NOTE segments.
 
-The csky implementation of pte_alloc_one_kernel() is not replaced because
-it does not clear the allocated page but rather sets each PTE in it to a
-non-zero value.
+Some older linkers can create multiples of NT_GNU_PROPERTY_TYPE_0.  The code
+scans all PT_NOTE segments to ensure there is only one NT_GNU_PROPERTY_TYPE_0. 
+If there are multiples, then all are considered invalid.
 
-The pte_free_kernel() and pte_free() versions on csky are identical to the
-generic ones and can be simply dropped.
+> 
+> 
+> 2) Are there standard types for things like the program property header?
+> If not, can we add something in elf.h?  We should try to coordinate with
+> libc on that.  Something like
+> 
+> typedef __u32 Elf_Word;
+> 
+> typedef struct {
+> 	Elf_Word pr_type;
+> 	Elf_Word pr_datasz;
+> } Elf_Gnu_Prophdr;
+> 
+> (i.e., just the header part from [1], with a more specific name -- which
+> I just made up).
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/csky/include/asm/pgalloc.h | 30 +++---------------------------
- 1 file changed, 3 insertions(+), 27 deletions(-)
+Yes, I will fix that.
 
-diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
-index d213bb4..98c571670 100644
---- a/arch/csky/include/asm/pgalloc.h
-+++ b/arch/csky/include/asm/pgalloc.h
-@@ -8,6 +8,9 @@
- #include <linux/mm.h>
- #include <linux/sched.h>
- 
-+#define __HAVE_ARCH_PTE_ALLOC_ONE_KERNEL
-+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-+
- static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
- 					pte_t *pte)
- {
-@@ -39,33 +42,6 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
- 	return pte;
- }
- 
--static inline struct page *pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *pte;
--
--	pte = alloc_pages(GFP_KERNEL | __GFP_ZERO, 0);
--	if (!pte)
--		return NULL;
--
--	if (!pgtable_page_ctor(pte)) {
--		__free_page(pte);
--		return NULL;
--	}
--
--	return pte;
--}
--
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
--{
--	free_pages((unsigned long)pte, PTE_ORDER);
--}
--
--static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
--{
--	pgtable_page_dtor(pte);
--	__free_pages(pte, PTE_ORDER);
--}
--
- static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- {
- 	free_pages((unsigned long)pgd, PGD_ORDER);
--- 
-2.7.4
+[...]
+> 3) It looks like we have to go and re-parse all the notes for every
+> property requested by the arch code.
+
+As explained above, it is necessary to scan all PT_NOTE segments.  But there
+should be only one NT_GNU_PROPERTY_TYPE_0 in an ELF file.  Once that is found,
+perhaps we can store it somewhere, or call into the arch code as you mentioned
+below.  I will look into that.
+
+> 
+> For now there is only one property requested anyway, so this is probably
+> not too bad.  But could we flip things around so that we have some
+> CONFIG_ARCH_WANTS_ELF_GNU_PROPERTY (say), and have the ELF core code
+> call into the arch backend for each property found?
+> 
+> The arch could provide some hook
+> 
+> 	int arch_elf_has_gnu_property(const Elf_Gnu_Prophdr *prop,
+> 					const void *data);
+> 
+> to consume the properties as they are found.
+> 
+> This would effectively replace the arch_setup_property() hook you
+> currently have.
+> 
+> Cheers
+> ---Dave
+> 
+> [1] https://github.com/hjl-tools/linux-abi/wiki/Linux-Extensions-to-gABI
