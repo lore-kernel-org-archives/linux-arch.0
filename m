@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 06/15] hexagon: switch to generic version of pte allocation
-Date: Thu,  2 May 2019 18:28:33 +0300
-Message-ID: <1556810922-20248-7-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH 14/15] um: switch to generic version of pte allocation
+Date: Thu,  2 May 2019 18:28:41 +0300
+Message-ID: <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
 References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,39 +21,76 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-The hexagon implementation pte_alloc_one(), pte_alloc_one_kernel(),
-pte_free_kernel() and pte_free() is identical to the generic except of
-lack of __GFP_ACCOUNT for the user PTEs allocation.
+um allocates PTE pages with __get_free_page() and uses
+GFP_KERNEL | __GFP_ZERO for the allocations.
 
-Switch hexagon to use generic version of these functions.
+Switch it to the generic version that does exactly the same thing for the
+kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
+
+The pte_free() and pte_free_kernel() versions are identical to the generic
+ones and can be simply dropped.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/hexagon/include/asm/pgalloc.h | 34 ++--------------------------------
- 1 file changed, 2 insertions(+), 32 deletions(-)
+ arch/um/include/asm/pgalloc.h | 16 ++--------------
+ arch/um/kernel/mem.c          | 22 ----------------------
+ 2 files changed, 2 insertions(+), 36 deletions(-)
 
-diff --git a/arch/hexagon/include/asm/pgalloc.h b/arch/hexagon/include/asm/pgalloc.h
-index d361838..7661a26 100644
---- a/arch/hexagon/include/asm/pgalloc.h
-+++ b/arch/hexagon/include/asm/pgalloc.h
-@@ -24,6 +24,8 @@
- #include <asm/mem-layout.h>
- #include <asm/atomic.h>
+diff --git a/arch/um/include/asm/pgalloc.h b/arch/um/include/asm/pgalloc.h
+index 99eb568..d7b282e 100644
+--- a/arch/um/include/asm/pgalloc.h
++++ b/arch/um/include/asm/pgalloc.h
+@@ -10,6 +10,8 @@
+ 
+ #include <linux/mm.h>
  
 +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
 +
- #define check_pgt_cache() do {} while (0)
+ #define pmd_populate_kernel(mm, pmd, pte) \
+ 	set_pmd(pmd, __pmd(_PAGE_TABLE + (unsigned long) __pa(pte)))
  
- extern unsigned long long kmap_generation;
-@@ -59,38 +61,6 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+@@ -25,20 +27,6 @@
+ extern pgd_t *pgd_alloc(struct mm_struct *);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ 
+-extern pte_t *pte_alloc_one_kernel(struct mm_struct *);
+-extern pgtable_t pte_alloc_one(struct mm_struct *);
+-
+-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+-{
+-	free_page((unsigned long) pte);
+-}
+-
+-static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+-{
+-	pgtable_page_dtor(pte);
+-	__free_page(pte);
+-}
+-
+ #define __pte_free_tlb(tlb,pte, address)		\
+ do {							\
+ 	pgtable_page_dtor(pte);				\
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index 99aa11b..2280374 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -215,28 +215,6 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
  	free_page((unsigned long) pgd);
  }
  
--static inline struct page *pte_alloc_one(struct mm_struct *mm)
+-pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
+-{
+-	pte_t *pte;
+-
+-	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
+-}
+-
+-pgtable_t pte_alloc_one(struct mm_struct *mm)
 -{
 -	struct page *pte;
 -
--	pte = alloc_page(GFP_KERNEL | __GFP_ZERO);
+-	pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
 -	if (!pte)
 -		return NULL;
 -	if (!pgtable_page_ctor(pte)) {
@@ -63,26 +100,8 @@ index d361838..7661a26 100644
 -	return pte;
 -}
 -
--/* _kernel variant gets to use a different allocator */
--static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	gfp_t flags =  GFP_KERNEL | __GFP_ZERO;
--	return (pte_t *) __get_free_page(flags);
--}
--
--static inline void pte_free(struct mm_struct *mm, struct page *pte)
--{
--	pgtable_page_dtor(pte);
--	__free_page(pte);
--}
--
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
--{
--	free_page((unsigned long)pte);
--}
--
- static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
- 				pgtable_t pte)
+ #ifdef CONFIG_3_LEVEL_PGTABLES
+ pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
  {
 -- 
 2.7.4
