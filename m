@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 10/15] nios2: switch to generic version of pte allocation
-Date: Thu,  2 May 2019 18:28:37 +0300
-Message-ID: <1556810922-20248-11-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH 12/15] powerpc/nohash/64: switch to generic version of pte allocation
+Date: Thu,  2 May 2019 18:28:39 +0300
+Message-ID: <1556810922-20248-13-git-send-email-rppt@linux.ibm.com>
 References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
@@ -10,84 +10,69 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexag
 List-Id: linux-arch.vger.kernel.org
 
-nios2 allocates kernel PTE pages with
+The 64-bit book-E powerpc implements pte_alloc_one(),
+pte_alloc_one_kernel(), pte_free_kernel() and pte_free() the same way as
+the generic version.
 
-        __get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER);
-
-and user page tables with
-
-        pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
-	if (pte)
-		clear_highpage();
-
-The PTE_ORDER is hardwired to zero, which makes nios2 implementation almost
-identical to the generic one.
-
-Switch nios2 to the generic version that does exactly the same thing for
-the kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
-
-The pte_free_kernel() and pte_free() versions on nios2 are identical to the
-generic ones and can be simply dropped.
+Switch it to the generic version that does exactly the same thing.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/nios2/include/asm/pgalloc.h | 37 ++-----------------------------------
- 1 file changed, 2 insertions(+), 35 deletions(-)
+ arch/powerpc/include/asm/nohash/64/pgalloc.h | 35 ++--------------------------
+ 1 file changed, 2 insertions(+), 33 deletions(-)
 
-diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
-index 3a149ea..4bc8cf7 100644
---- a/arch/nios2/include/asm/pgalloc.h
-+++ b/arch/nios2/include/asm/pgalloc.h
-@@ -12,6 +12,8 @@
- 
- #include <linux/mm.h>
+diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+index 66d086f..bfb53a0 100644
+--- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+@@ -11,6 +11,8 @@
+ #include <linux/cpumask.h>
+ #include <linux/percpu.h>
  
 +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
 +
- static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
- 	pte_t *pte)
- {
-@@ -37,41 +39,6 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- 	free_pages((unsigned long)pgd, PGD_ORDER);
+ struct vmemmap_backing {
+ 	struct vmemmap_backing *list;
+ 	unsigned long phys;
+@@ -92,39 +94,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ 	kmem_cache_free(PGT_CACHE(PMD_CACHE_INDEX), pmd);
  }
  
+-
 -static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
 -{
--	pte_t *pte;
--
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
--
--	return pte;
+-	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
 -}
 -
 -static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
 -{
--	struct page *pte;
+-	struct page *page;
+-	pte_t *pte;
 -
--	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
--	if (pte) {
--		if (!pgtable_page_ctor(pte)) {
--			__free_page(pte);
--			return NULL;
--		}
--		clear_highpage(pte);
+-	pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO | __GFP_ACCOUNT);
+-	if (!pte)
+-		return NULL;
+-	page = virt_to_page(pte);
+-	if (!pgtable_page_ctor(page)) {
+-		__free_page(page);
+-		return NULL;
 -	}
--	return pte;
+-	return page;
 -}
 -
 -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 -{
--	free_pages((unsigned long)pte, PTE_ORDER);
+-	free_page((unsigned long)pte);
 -}
 -
--static inline void pte_free(struct mm_struct *mm, struct page *pte)
+-static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
 -{
--	pgtable_page_dtor(pte);
--	__free_pages(pte, PTE_ORDER);
+-	pgtable_page_dtor(ptepage);
+-	__free_page(ptepage);
 -}
 -
- #define __pte_free_tlb(tlb, pte, addr)				\
- 	do {							\
- 		pgtable_page_dtor(pte);				\
+ static inline void pgtable_free(void *table, int shift)
+ {
+ 	if (!shift) {
 -- 
 2.7.4
