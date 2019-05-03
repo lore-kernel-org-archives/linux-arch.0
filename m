@@ -1,88 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay11.mail.gandi.net ([217.70.178.231]:50555 "EHLO
-        relay11.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726396AbfECLL6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 May 2019 07:11:58 -0400
-Date: Fri, 3 May 2019 13:11:52 +0200
-From: Miquel Raynal <miquel.raynal@bootlin.com>
-Subject: Re: [RESEND PATCH v3 05/11] mtd: rawnand: vf610_nfc: add
- initializer to avoid -Wmaybe-uninitialized
-Message-ID: <20190503131152.57b4ce25@xps13>
-In-Reply-To: <CAK7LNAQH8v8_HG6-cytT4qe05W9iiYwEP1mud4zG2NxxYcFptQ@mail.gmail.com>
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
-        <20190423034959.13525-6-yamada.masahiro@socionext.com>
-        <20190502161346.07c15187@xps13>
-        <CAK7LNAQH8v8_HG6-cytT4qe05W9iiYwEP1mud4zG2NxxYcFptQ@mail.gmail.com>
+Received: from mail-vs1-f67.google.com ([209.85.217.67]:34798 "EHLO
+        mail-vs1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727231AbfECMQR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 May 2019 08:16:17 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+References: <874l6c89nd.fsf@tarshish> <CAMuHMdUT3ug+SCzrnA2eD=QyOLaHUGAe-ZrbWfDUWxTJ4CWEtQ@mail.gmail.com>
+ <8736lv92ls.fsf@tarshish>
+In-Reply-To: <8736lv92ls.fsf@tarshish>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Fri, 3 May 2019 14:16:04 +0200
+Message-ID: <CAMuHMdXooXuk8q1zC+KM==BiWPn9usWR6oM7xQ5VzwT6bjzcqg@mail.gmail.com>
+Subject: Re: strace for m68k bpf_prog_info mismatch
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, linux-s390 <linux-s390@vger.kernel.org>, Mathieu Malaterre <malat@debian.org>, X86 ML <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20190503111152.5YVWmqi47IhBhRkAQ1ZYiTyYQ9BDBhtlVnHqRxyqoH0@z>
+To: Baruch Siach <baruch@tkos.co.il>
+Cc: "Dmitry V . Levin" <ldv@altlinux.org>, strace-devel@lists.strace.io, linux-m68k <linux-m68k@lists.linux-m68k.org>, Daniel Borkmann <daniel@iogearbox.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20190503121604.WDFfrQHWoJ-k4Km8XYF8dduQBZKc5KXSTd2T-n40wdo@z>
 
-Hi Masahiro,
+Hi Baruch,
 
-Masahiro Yamada <yamada.masahiro@socionext.com> wrote on Fri, 3 May
-2019 19:36:35 +0900:
-
-> Hi Miquel,
-> 
-> On Thu, May 2, 2019 at 11:14 PM Miquel Raynal <miquel.raynal@bootlin.com> wrote:
+On Fri, May 3, 2019 at 1:52 PM Baruch Siach <baruch@tkos.co.il> wrote:
+> On Fri, May 03 2019, Geert Uytterhoeven wrote:
+> > On Fri, May 3, 2019 at 6:06 AM Baruch Siach <baruch@tkos.co.il> wrote:
+> >> strace 5.0 fails to build for m86k/5208 with the Buildroot generated
+> >> toolchain:
+> >>
+> >> In file included from bpf_attr_check.c:6:0:
+> >> static_assert.h:20:25: error: static assertion failed: "bpf_prog_info_struct.nr_jited_ksyms offset mismatch"
+> >>  #  define static_assert _Static_assert
+> >>                          ^
+> >> bpf_attr_check.c:913:2: note: in expansion of macro ‘static_assert’
+> >>   static_assert(offsetof(struct bpf_prog_info_struct, nr_jited_ksyms) == offsetof(struct bpf_prog_info, nr_jited_ksyms),
+> >>   ^~~~~~~~~~~~~
+> >>
+> >> The direct cause is a difference in the hole after the gpl_compatible
+> >> field. Here is pahole output for the kernel struct (from v4.19):
+> >>
+> >> struct bpf_prog_info {
+> >>         ...
+> >>         __u32                      ifindex;              /*    80     4 */
+> >>         __u32                      gpl_compatible:1;     /*    84: 0  4 */
+> >>
+> >>         /* XXX 15 bits hole, try to pack */
+> >>         /* Bitfield combined with next fields */
+> >>
+> >>         __u64                      netns_dev;            /*    86     8 */
 > >
-> > Hi Masahiro,
+> > I guess that should be "__aligned_u64 netns_dev;", to not rely on
+> > implicit alignment.
+>
+> Thanks. I can confirm that this minimal change fixes strace build:
+>
+> diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+> index 929c8e537a14..709d4dddc229 100644
+> --- a/include/uapi/linux/bpf.h
+> +++ b/include/uapi/linux/bpf.h
+> @@ -2869,7 +2869,7 @@ struct bpf_prog_info {
+>         char name[BPF_OBJ_NAME_LEN];
+>         __u32 ifindex;
+>         __u32 gpl_compatible:1;
+> -       __u64 netns_dev;
+> +       __aligned_u64 netns_dev;
+>         __u64 netns_ino;
+>         __u32 nr_jited_ksyms;
+>         __u32 nr_jited_func_lens;
+>
+> Won't that break ABI compatibility for affected architectures?
+
+Yes it will. Or it may have been unusable without the fix. I don't know
+for sure.
+
+> >> And this is for the strace struct:
+> >>
+> >> struct bpf_prog_info_struct {
+> >>         ...
+> >>         uint32_t                   ifindex;              /*    80     4 */
+> >>         uint32_t                   gpl_compatible:1;     /*    84: 0  4 */
+> >>
+> >>         /* XXX 31 bits hole, try to pack */
 > >
-> > Masahiro Yamada <yamada.masahiro@socionext.com> wrote on Tue, 23 Apr
-> > 2019 12:49:53 +0900:
-> >  
-> > > This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-> > > place. We need to eliminate potential issues beforehand.
-> > >
-> > > Kbuild test robot has never reported -Wmaybe-uninitialized warning
-> > > for this probably because vf610_nfc_run() is inlined by the x86
-> > > compiler's inlining heuristic.
-> > >
-> > > If CONFIG_OPTIMIZE_INLINING is enabled for a different architecture
-> > > and vf610_nfc_run() is not inlined, the following warning is reported:
-> > >
-> > > drivers/mtd/nand/raw/vf610_nfc.c: In function ‘vf610_nfc_cmd’:
-> > > drivers/mtd/nand/raw/vf610_nfc.c:455:3: warning: ‘offset’ may be used uninitialized in this function [-Wmaybe-uninitialized]
-> > >    vf610_nfc_rd_from_sram(instr->ctx.data.buf.in + offset,
-> > >    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> > >             nfc->regs + NFC_MAIN_AREA(0) + offset,
-> > >             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> > >             trfr_sz, !nfc->data_access);
-> > >             ~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-> >
-> > IMHO this patch has no dependencies with this series.  
-> 
-> 
-> This patch is the prerequisite for 11/11.
-> https://lore.kernel.org/patchwork/patch/1064959/
-> 
-> 
-> Without the correct patch order,
-> the kbuild test robot reports the warning.
-> 
-> 
-> > Would you mind sending it alone with the proper Fixes tag?  
-> 
-> 
-> I do not think Fixes is necessary.
+> > How come the uint64_t below is 8-byte aligned, not 2-byte aligned?
+> > Does strace use a special definition of uint64_t?
+>
+> I guess this is because of the netns_dev field definition in struct
+> bpf_prog_info_struct at bpf_attr.h:
+>
+> struct bpf_prog_info_struct {
+>        ...
+>         uint32_t gpl_compatible:1;
+>         /*
+>          * The kernel UAPI is broken by Linux commit
+>          * v4.16-rc1~123^2~227^2~5^2~2 .
+>          */
+>         uint64_t ATTRIBUTE_ALIGNED(8) netns_dev; /* skip check */
 
-IMHO it is. Even if today the warning does not spawn, there is a
-real C error which might already be an issue.
+Oh, the bug was even documented, with its cause ;-)
+That's commit 675fc275a3a2d905 ("bpf: offload: report device information
+for offloaded programs").
 
-> 
-> Nobody has noticed this potential issue before.
-> Without 11/11, probably we cannot reproduce this warning.
-> 
-> 
-> BTW, this series has been for a while in linux-next.
+Partially fixed by commit 36f9814a494a874d ("bpf: fix uapi hole for 32 bit
+compat applications"), which left architectures with 16-bit alignment
+broken...
 
-Missed that. Ok, nevermind.
+Gr{oetje,eeting}s,
 
+                        Geert
 
-Thanks,
-Miquèl
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
