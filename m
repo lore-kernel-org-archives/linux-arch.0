@@ -1,41 +1,31 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH 08/15] mips: switch to generic version of pte allocation
-Date: Thu, 2 May 2019 19:09:47 +0000
-Message-ID: <20190502190945.rrrxfxo3rbhgc3cx@pburton-laptop>
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-9-git-send-email-rppt@linux.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 5/5] asm-generic: remove ptrace.h
+Date: Fri, 3 May 2019 09:29:20 -0400
+Message-ID: <CAK8P3a2-bFU=2Pmva9qj06JQ44MAW_D-Jaf_0fSExYm1yM8dtQ@mail.gmail.com>
+References: <20190501173943.5688-1-hch@lst.de>
+ <20190501173943.5688-6-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1556810922-20248-9-git-send-email-rppt@linux.ibm.com>
-Content-Language: en-US
-Content-ID: <5F06A475B76E7846961ABC0FB62B828B@namprd22.prod.outlook.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, "x86@kernel.org" <x86@kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, linux-arch@vger.ke
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20190501173943.5688-6-hch@lst.de>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Oleg Nesterov <oleg@redhat.com>, linux-mips@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike,
+On Wed, May 1, 2019 at 1:40 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> No one is using this helper anymore.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-On Thu, May 02, 2019 at 06:28:35PM +0300, Mike Rapoport wrote:
-> MIPS allocates kernel PTE pages with
->=20
-> 	__get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER)
->=20
-> and user PTE pages with
->=20
-> 	alloc_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER)
-
-That bit isn't quite true - we don't use __GFP_ZERO in pte_alloc_one() &
-instead call clear_highpage() on the allocated page. Not that I have a
-problem with using __GFP_ZERO - it seems like the more optimal choice.
-It just might be worth mentioning the change & expected equivalent
-behavior.
-
-Otherwise:
-
-    Acked-by: Paul Burton <paul.burton@mips.com>
-
-Thanks,
-    Paul
+Acked-by: Arnd Bergmann <arnd@arndb.de>
