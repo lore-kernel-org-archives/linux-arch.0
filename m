@@ -1,112 +1,111 @@
-From: Anton Ivanov <anton.ivanov@cambridgegreys.com>
-Subject: Re: [PATCH 14/15] um: switch to generic version of pte allocation
-Date: Fri, 3 May 2019 14:28:56 +0100
-Message-ID: <3fddc076-1843-ee84-febb-44c8d317489f@cambridgegreys.com>
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [RESEND PATCH v3 05/11] mtd: rawnand: vf610_nfc: add initializer
+ to avoid -Wmaybe-uninitialized
+Date: Fri, 3 May 2019 19:36:35 +0900
+Message-ID: <CAK7LNAQH8v8_HG6-cytT4qe05W9iiYwEP1mud4zG2NxxYcFptQ@mail.gmail.com>
+References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+ <20190423034959.13525-6-yamada.masahiro@socionext.com> <20190502161346.07c15187@xps13>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
-Content-Language: en-US
+In-Reply-To: <20190502161346.07c15187@xps13>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@
+To: Miquel Raynal <miquel.raynal@bootlin.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, linux-s390 <linux-s390@vger.kernel.org>, Mathieu Malaterre <malat@debian.org>, X86 ML <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
+Hi Miquel,
+
+On Thu, May 2, 2019 at 11:14 PM Miquel Raynal <miquel.raynal@bootlin.com> w=
+rote:
+>
+> Hi Masahiro,
+>
+> Masahiro Yamada <yamada.masahiro@socionext.com> wrote on Tue, 23 Apr
+> 2019 12:49:53 +0900:
+>
+> > This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
+> > place. We need to eliminate potential issues beforehand.
+> >
+> > Kbuild test robot has never reported -Wmaybe-uninitialized warning
+> > for this probably because vf610_nfc_run() is inlined by the x86
+> > compiler's inlining heuristic.
+> >
+> > If CONFIG_OPTIMIZE_INLINING is enabled for a different architecture
+> > and vf610_nfc_run() is not inlined, the following warning is reported:
+> >
+> > drivers/mtd/nand/raw/vf610_nfc.c: In function =E2=80=98vf610_nfc_cmd=E2=
+=80=99:
+> > drivers/mtd/nand/raw/vf610_nfc.c:455:3: warning: =E2=80=98offset=E2=80=
+=99 may be used uninitialized in this function [-Wmaybe-uninitialized]
+> >    vf610_nfc_rd_from_sram(instr->ctx.data.buf.in + offset,
+> >    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> >             nfc->regs + NFC_MAIN_AREA(0) + offset,
+> >             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> >             trfr_sz, !nfc->data_access);
+> >             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>
+> IMHO this patch has no dependencies with this series.
 
 
-On 02/05/2019 16:28, Mike Rapoport wrote:
-> um allocates PTE pages with __get_free_page() and uses
-> GFP_KERNEL | __GFP_ZERO for the allocations.
-> 
-> Switch it to the generic version that does exactly the same thing for the
-> kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
-> 
-> The pte_free() and pte_free_kernel() versions are identical to the generic
-> ones and can be simply dropped.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->   arch/um/include/asm/pgalloc.h | 16 ++--------------
->   arch/um/kernel/mem.c          | 22 ----------------------
->   2 files changed, 2 insertions(+), 36 deletions(-)
-> 
-> diff --git a/arch/um/include/asm/pgalloc.h b/arch/um/include/asm/pgalloc.h
-> index 99eb568..d7b282e 100644
-> --- a/arch/um/include/asm/pgalloc.h
-> +++ b/arch/um/include/asm/pgalloc.h
-> @@ -10,6 +10,8 @@
->   
->   #include <linux/mm.h>
->   
-> +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> +
->   #define pmd_populate_kernel(mm, pmd, pte) \
->   	set_pmd(pmd, __pmd(_PAGE_TABLE + (unsigned long) __pa(pte)))
->   
-> @@ -25,20 +27,6 @@
->   extern pgd_t *pgd_alloc(struct mm_struct *);
->   extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
->   
-> -extern pte_t *pte_alloc_one_kernel(struct mm_struct *);
-> -extern pgtable_t pte_alloc_one(struct mm_struct *);
-> -
-> -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> -{
-> -	free_page((unsigned long) pte);
-> -}
-> -
-> -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-> -{
-> -	pgtable_page_dtor(pte);
-> -	__free_page(pte);
-> -}
-> -
->   #define __pte_free_tlb(tlb,pte, address)		\
->   do {							\
->   	pgtable_page_dtor(pte);				\
-> diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-> index 99aa11b..2280374 100644
-> --- a/arch/um/kernel/mem.c
-> +++ b/arch/um/kernel/mem.c
-> @@ -215,28 +215,6 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
->   	free_page((unsigned long) pgd);
->   }
->   
-> -pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> -{
-> -	pte_t *pte;
-> -
-> -	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
-> -	return pte;
-> -}
-> -
-> -pgtable_t pte_alloc_one(struct mm_struct *mm)
-> -{
-> -	struct page *pte;
-> -
-> -	pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
-> -	if (!pte)
-> -		return NULL;
-> -	if (!pgtable_page_ctor(pte)) {
-> -		__free_page(pte);
-> -		return NULL;
-> -	}
-> -	return pte;
-> -}
-> -
->   #ifdef CONFIG_3_LEVEL_PGTABLES
->   pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->   {
-> 
+This patch is the prerequisite for 11/11.
+https://lore.kernel.org/patchwork/patch/1064959/
 
 
-Reviewed-by: Anton Ivanov <anton.ivanov@cambridgegreys.com>
-Acked-by: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Without the correct patch order,
+the kbuild test robot reports the warning.
 
--- 
-Anton R. Ivanov
-Cambridgegreys Limited. Registered in England. Company Number 10273661
-https://www.cambridgegreys.com/
+
+> Would you mind sending it alone with the proper Fixes tag?
+
+
+I do not think Fixes is necessary.
+
+Nobody has noticed this potential issue before.
+Without 11/11, probably we cannot reproduce this warning.
+
+
+BTW, this series has been for a while in linux-next.
+
+
+>
+> >
+> > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> > ---
+> >
+> > Changes in v3: None
+> > Changes in v2:
+> >   - split into a separate patch
+> >
+> >  drivers/mtd/nand/raw/vf610_nfc.c | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> >
+> > diff --git a/drivers/mtd/nand/raw/vf610_nfc.c b/drivers/mtd/nand/raw/vf=
+610_nfc.c
+> > index a662ca1970e5..19792d725ec2 100644
+> > --- a/drivers/mtd/nand/raw/vf610_nfc.c
+> > +++ b/drivers/mtd/nand/raw/vf610_nfc.c
+> > @@ -364,7 +364,7 @@ static int vf610_nfc_cmd(struct nand_chip *chip,
+> >  {
+> >       const struct nand_op_instr *instr;
+> >       struct vf610_nfc *nfc =3D chip_to_nfc(chip);
+> > -     int op_id =3D -1, trfr_sz =3D 0, offset;
+> > +     int op_id =3D -1, trfr_sz =3D 0, offset =3D 0;
+> >       u32 col =3D 0, row =3D 0, cmd1 =3D 0, cmd2 =3D 0, code =3D 0;
+> >       bool force8bit =3D false;
+> >
+>
+> Thanks,
+> Miqu=C3=A8l
+>
+> ______________________________________________________
+> Linux MTD discussion mailing list
+> http://lists.infradead.org/mailman/listinfo/linux-mtd/
+
+
+
+--
+Best Regards
+
+Masahiro Yamada
