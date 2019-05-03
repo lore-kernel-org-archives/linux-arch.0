@@ -1,111 +1,112 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH 05/15] csky: switch to generic version of pte allocation
-Date: Sat, 4 May 2019 00:18:08 +0800
-Message-ID: <20190503161808.GA11596@guoren-Inspiron-7460>
+From: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Subject: Re: [PATCH 14/15] um: switch to generic version of pte allocation
+Date: Fri, 3 May 2019 14:28:56 +0100
+Message-ID: <3fddc076-1843-ee84-febb-44c8d317489f@cambridgegreys.com>
 References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-6-git-send-email-rppt@linux.ibm.com>
- <20190503160348.GA9526@guoren-Inspiron-7460>
+ <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190503160348.GA9526@guoren-Inspiron-7460>
+In-Reply-To: <1556810922-20248-15-git-send-email-rppt@linux.ibm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-pa
+To: Mike Rapoport <rppt@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 04, 2019 at 12:03:48AM +0800, Guo Ren wrote:
-> Hi Mike,
+
+
+On 02/05/2019 16:28, Mike Rapoport wrote:
+> um allocates PTE pages with __get_free_page() and uses
+> GFP_KERNEL | __GFP_ZERO for the allocations.
 > 
-> Acked-by: Guo Ren <ren_guo@c-sky.com>
+> Switch it to the generic version that does exactly the same thing for the
+> kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
 > 
-> On Thu, May 02, 2019 at 06:28:32PM +0300, Mike Rapoport wrote:
-> > The csky implementation pte_alloc_one(), pte_free_kernel() and pte_free()
-> > is identical to the generic except of lack of __GFP_ACCOUNT for the user
-> > PTEs allocation.
-> > 
-> > Switch csky to use generic version of these functions.
-> Ok.
+> The pte_free() and pte_free_kernel() versions are identical to the generic
+> ones and can be simply dropped.
 > 
-> > 
-> > The csky implementation of pte_alloc_one_kernel() is not replaced because
-> > it does not clear the allocated page but rather sets each PTE in it to a
-> > non-zero value.
-> Yes, we must set each PTE to _PAGE_GLOBAL because hardware refill the
-> MMU TLB entry with two PTEs and it use the result of pte0.global | pte1.global.
-                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
-                                              correct: pte0.global & pte1.global
-> If pte0 is valid and pte1 is invalid, we must set _PAGE_GLOBAL in
-> invalid pte entry. Fortunately, there is no performance issue.
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>   arch/um/include/asm/pgalloc.h | 16 ++--------------
+>   arch/um/kernel/mem.c          | 22 ----------------------
+>   2 files changed, 2 insertions(+), 36 deletions(-)
 > 
-> > 
-> > The pte_free_kernel() and pte_free() versions on csky are identical to the
-> > generic ones and can be simply dropped.
-> Ok.
+> diff --git a/arch/um/include/asm/pgalloc.h b/arch/um/include/asm/pgalloc.h
+> index 99eb568..d7b282e 100644
+> --- a/arch/um/include/asm/pgalloc.h
+> +++ b/arch/um/include/asm/pgalloc.h
+> @@ -10,6 +10,8 @@
+>   
+>   #include <linux/mm.h>
+>   
+> +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
+> +
+>   #define pmd_populate_kernel(mm, pmd, pte) \
+>   	set_pmd(pmd, __pmd(_PAGE_TABLE + (unsigned long) __pa(pte)))
+>   
+> @@ -25,20 +27,6 @@
+>   extern pgd_t *pgd_alloc(struct mm_struct *);
+>   extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+>   
+> -extern pte_t *pte_alloc_one_kernel(struct mm_struct *);
+> -extern pgtable_t pte_alloc_one(struct mm_struct *);
+> -
+> -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+> -{
+> -	free_page((unsigned long) pte);
+> -}
+> -
+> -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+> -{
+> -	pgtable_page_dtor(pte);
+> -	__free_page(pte);
+> -}
+> -
+>   #define __pte_free_tlb(tlb,pte, address)		\
+>   do {							\
+>   	pgtable_page_dtor(pte);				\
+> diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+> index 99aa11b..2280374 100644
+> --- a/arch/um/kernel/mem.c
+> +++ b/arch/um/kernel/mem.c
+> @@ -215,28 +215,6 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+>   	free_page((unsigned long) pgd);
+>   }
+>   
+> -pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
+> -{
+> -	pte_t *pte;
+> -
+> -	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+> -	return pte;
+> -}
+> -
+> -pgtable_t pte_alloc_one(struct mm_struct *mm)
+> -{
+> -	struct page *pte;
+> -
+> -	pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
+> -	if (!pte)
+> -		return NULL;
+> -	if (!pgtable_page_ctor(pte)) {
+> -		__free_page(pte);
+> -		return NULL;
+> -	}
+> -	return pte;
+> -}
+> -
+>   #ifdef CONFIG_3_LEVEL_PGTABLES
+>   pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+>   {
 > 
-> Best Regards
->  Guo Ren
-> 
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  arch/csky/include/asm/pgalloc.h | 30 +++---------------------------
-> >  1 file changed, 3 insertions(+), 27 deletions(-)
-> > 
-> > diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
-> > index d213bb4..98c571670 100644
-> > --- a/arch/csky/include/asm/pgalloc.h
-> > +++ b/arch/csky/include/asm/pgalloc.h
-> > @@ -8,6 +8,9 @@
-> >  #include <linux/mm.h>
-> >  #include <linux/sched.h>
-> >  
-> > +#define __HAVE_ARCH_PTE_ALLOC_ONE_KERNEL
-> > +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> > +
-> >  static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
-> >  					pte_t *pte)
-> >  {
-> > @@ -39,33 +42,6 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> >  	return pte;
-> >  }
-> >  
-> > -static inline struct page *pte_alloc_one(struct mm_struct *mm)
-> > -{
-> > -	struct page *pte;
-> > -
-> > -	pte = alloc_pages(GFP_KERNEL | __GFP_ZERO, 0);
-> > -	if (!pte)
-> > -		return NULL;
-> > -
-> > -	if (!pgtable_page_ctor(pte)) {
-> > -		__free_page(pte);
-> > -		return NULL;
-> > -	}
-> > -
-> > -	return pte;
-> > -}
-> > -
-> > -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> > -{
-> > -	free_pages((unsigned long)pte, PTE_ORDER);
-> > -}
-> > -
-> > -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-> > -{
-> > -	pgtable_page_dtor(pte);
-> > -	__free_pages(pte, PTE_ORDER);
-> > -}
-> > -
-> >  static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-> >  {
-> >  	free_pages((unsigned long)pgd, PGD_ORDER);
-> > -- 
-> > 2.7.4
-> > 
-> 
-> _______________________________________________
-> linux-riscv mailing list
-> linux-riscv@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-riscv
+
+
+Reviewed-by: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Acked-by: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+
+-- 
+Anton R. Ivanov
+Cambridgegreys Limited. Registered in England. Company Number 10273661
+https://www.cambridgegreys.com/
