@@ -1,29 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:53228 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726480AbfECPTT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 May 2019 11:19:19 -0400
-Date: Fri, 3 May 2019 17:19:15 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: f68f031d ("Documentation: atomic_t.txt: Explain ordering
- provided by smp_mb__{before,after}_atomic()")
-Message-ID: <20190503151915.GD2606@hirez.programming.kicks-ass.net>
-References: <20190503145326.GA21541@linux.ibm.com>
+Received: from mail.kernel.org ([198.145.29.99]:39464 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726495AbfECQEK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 May 2019 12:04:10 -0400
+Date: Sat, 4 May 2019 00:03:48 +0800
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH 05/15] csky: switch to generic version of pte allocation
+Message-ID: <20190503160348.GA9526@guoren-Inspiron-7460>
+References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
+ <1556810922-20248-6-git-send-email-rppt@linux.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190503145326.GA21541@linux.ibm.com>
+In-Reply-To: <1556810922-20248-6-git-send-email-rppt@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: stern@rowland.harvard.edu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190503151915.SYB_Fr_7J4EUKGHCA8r7defK1OGEvN-xLe62DGTH7Hs@z>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-um@lists.infradead.org, nios2-dev@lists.rocketboards.org
+Message-ID: <20190503160348.ZIMqp-sc3mAcYC4AD6NuxbGk2SHcPEUMhB4nvv7JskI@z>
 
-On Fri, May 03, 2019 at 07:53:26AM -0700, Paul E. McKenney wrote:
-> Hello, Alan,
+Hi Mike,
+
+Acked-by: Guo Ren <ren_guo@c-sky.com>
+
+On Thu, May 02, 2019 at 06:28:32PM +0300, Mike Rapoport wrote:
+> The csky implementation pte_alloc_one(), pte_free_kernel() and pte_free()
+> is identical to the generic except of lack of __GFP_ACCOUNT for the user
+> PTEs allocation.
 > 
-> Just following up on the -rcu commit below.  I believe that it needs
-> some adjustment given Peter Zijlstra's addition of "memory" to the x86
-> non-value-returning atomics, but thought I should double-check.
+> Switch csky to use generic version of these functions.
+Ok.
 
-Right; I should get back to that thread...
+> 
+> The csky implementation of pte_alloc_one_kernel() is not replaced because
+> it does not clear the allocated page but rather sets each PTE in it to a
+> non-zero value.
+Yes, we must set each PTE to _PAGE_GLOBAL because hardware refill the
+MMU TLB entry with two PTEs and it use the result of pte0.global | pte1.global.
+If pte0 is valid and pte1 is invalid, we must set _PAGE_GLOBAL in
+invalid pte entry. Fortunately, there is no performance issue.
+
+> 
+> The pte_free_kernel() and pte_free() versions on csky are identical to the
+> generic ones and can be simply dropped.
+Ok.
+
+Best Regards
+ Guo Ren
+
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/csky/include/asm/pgalloc.h | 30 +++---------------------------
+>  1 file changed, 3 insertions(+), 27 deletions(-)
+> 
+> diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
+> index d213bb4..98c571670 100644
+> --- a/arch/csky/include/asm/pgalloc.h
+> +++ b/arch/csky/include/asm/pgalloc.h
+> @@ -8,6 +8,9 @@
+>  #include <linux/mm.h>
+>  #include <linux/sched.h>
+>  
+> +#define __HAVE_ARCH_PTE_ALLOC_ONE_KERNEL
+> +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
+> +
+>  static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+>  					pte_t *pte)
+>  {
+> @@ -39,33 +42,6 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
+>  	return pte;
+>  }
+>  
+> -static inline struct page *pte_alloc_one(struct mm_struct *mm)
+> -{
+> -	struct page *pte;
+> -
+> -	pte = alloc_pages(GFP_KERNEL | __GFP_ZERO, 0);
+> -	if (!pte)
+> -		return NULL;
+> -
+> -	if (!pgtable_page_ctor(pte)) {
+> -		__free_page(pte);
+> -		return NULL;
+> -	}
+> -
+> -	return pte;
+> -}
+> -
+> -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+> -{
+> -	free_pages((unsigned long)pte, PTE_ORDER);
+> -}
+> -
+> -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+> -{
+> -	pgtable_page_dtor(pte);
+> -	__free_pages(pte, PTE_ORDER);
+> -}
+> -
+>  static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+>  {
+>  	free_pages((unsigned long)pgd, PGD_ORDER);
+> -- 
+> 2.7.4
+> 
