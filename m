@@ -1,97 +1,75 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH 12/15] powerpc/nohash/64: switch to generic version of
- pte allocation
-Date: Sun, 5 May 2019 09:23:39 +0300
-Message-ID: <20190505062339.GF15755@rapoport-lnx>
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-13-git-send-email-rppt@linux.ibm.com>
- <adcb6ae6-48d9-5ba9-2732-a0ab1d96667c@c-s.fr>
+Subject: Re: DISCONTIGMEM is deprecated
+Date: Sun, 5 May 2019 11:53:23 +0300
+Message-ID: <20190505085322.GH15755@rapoport-lnx>
+References: <20190419094335.GJ18914@techsingularity.net>
+ <20190419140521.GI7751@bombadil.infradead.org>
+ <20190419142835.GM18914@techsingularity.net>
+ <9e7b80a9-b90e-ac04-8b30-b2f285cd4432@gmx.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <adcb6ae6-48d9-5ba9-2732-a0ab1d96667c@c-s.fr>
+In-Reply-To: <9e7b80a9-b90e-ac04-8b30-b2f285cd4432@gmx.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-ker
+To: Helge Deller <deller@gmx.de>
+Cc: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 02, 2019 at 06:56:07PM +0200, Christophe Leroy wrote:
-> 
-> 
-> Le 02/05/2019 à 17:28, Mike Rapoport a écrit :
-> >The 64-bit book-E powerpc implements pte_alloc_one(),
-> >pte_alloc_one_kernel(), pte_free_kernel() and pte_free() the same way as
-> >the generic version.
-> 
-> Will soon be converted to the same as the 3 other PPC subarches, see
-> https://patchwork.ozlabs.org/patch/1091590/
- 
-Thanks for the heads up. I'll drop this from the next re-spin.
+Hi,
 
-> Christophe
+On Fri, Apr 19, 2019 at 10:08:31PM +0200, Helge Deller wrote:
+> On 19.04.19 16:28, Mel Gorman wrote:
+> > On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
+> >> On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
+> >>> DISCONTIG is essentially deprecated and even parisc plans to move to
+> >>> SPARSEMEM so there is no need to be fancy, this patch simply disables
+> >>> watermark boosting by default on DISCONTIGMEM.
+> >>
+> >> I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
+> >> scenarios.  Grepping the arch/ directories shows:
+> >>
+> >> alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
+> >> arc (for supporting more than 1GB of memory)
+> >> ia64 (looks complicated ...)
+> >> m68k (for multiple chunks of memory)
+> >> mips (does support NUMA but also non-NUMA)
+> >> parisc (both NUMA and non-NUMA)
+> >>
+> >> I'm not sure that these architecture maintainers even know that DISCONTIGMEM
+> >> is deprecated.  Adding linux-arch to the cc.
+> >
+> > Poor wording then -- yes, DISCONTIGMEM is still used but look where it's
+> > used. I find it impossible to believe that any new arch would support
+> > DISCONTIGMEM or that DISCONTIGMEM would be selected when SPARSEMEM is
+> > available.`It's even more insane when you consider that SPARSEMEM can be
+> > extended to support VMEMMAP so that it has similar overhead to FLATMEM
+> > when mapping pfns to struct pages and vice-versa.
 > 
-> >
-> >Switch it to the generic version that does exactly the same thing.
-> >
-> >Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> >---
-> >  arch/powerpc/include/asm/nohash/64/pgalloc.h | 35 ++--------------------------
-> >  1 file changed, 2 insertions(+), 33 deletions(-)
-> >
-> >diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >index 66d086f..bfb53a0 100644
-> >--- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >+++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >@@ -11,6 +11,8 @@
-> >  #include <linux/cpumask.h>
-> >  #include <linux/percpu.h>
-> >+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> >+
-> >  struct vmemmap_backing {
-> >  	struct vmemmap_backing *list;
-> >  	unsigned long phys;
-> >@@ -92,39 +94,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-> >  	kmem_cache_free(PGT_CACHE(PMD_CACHE_INDEX), pmd);
-> >  }
-> >-
-> >-static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> >-{
-> >-	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
-> >-}
-> >-
-> >-static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
-> >-{
-> >-	struct page *page;
-> >-	pte_t *pte;
-> >-
-> >-	pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO | __GFP_ACCOUNT);
-> >-	if (!pte)
-> >-		return NULL;
-> >-	page = virt_to_page(pte);
-> >-	if (!pgtable_page_ctor(page)) {
-> >-		__free_page(page);
-> >-		return NULL;
-> >-	}
-> >-	return page;
-> >-}
-> >-
-> >-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> >-{
-> >-	free_page((unsigned long)pte);
-> >-}
-> >-
-> >-static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
-> >-{
-> >-	pgtable_page_dtor(ptepage);
-> >-	__free_page(ptepage);
-> >-}
-> >-
-> >  static inline void pgtable_free(void *table, int shift)
-> >  {
-> >  	if (!shift) {
-> >
+> FYI, on parisc we will switch from DISCONTIGMEM to SPARSEMEM with kernel 5.2.
+> The patch was quite simple and it's currently in the for-next tree:
+> https://git.kernel.org/pub/scm/linux/kernel/git/deller/parisc-linux.git/commit/?h=for-next&id=281b718721a5e78288271d632731cea9697749f7
+
+A while ago I've sent a patch that removes ARCH_DISCARD_MEMBLOCK option [1]
+so the hunk below is not needed:
+
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index c8038165b81f..26c215570adf 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -36,6 +36,7 @@ config PARISC
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select SYSCTL_ARCH_UNALIGN_ALLOW
+ 	select SYSCTL_EXCEPTION_TRACE
++	select ARCH_DISCARD_MEMBLOCK
+ 	select HAVE_MOD_ARCH_SPECIFIC
+ 	select VIRT_TO_BUS
+ 	select MODULES_USE_ELF_RELA
+
+
+[1] https://lore.kernel.org/lkml/1556102150-32517-1-git-send-email-rppt@linux.ibm.com/
+ 
+> Helge
 > 
 
 -- 
