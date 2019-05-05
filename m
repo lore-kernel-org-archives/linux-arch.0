@@ -1,64 +1,45 @@
-From: Jason Gunthorpe <jgg@ziepe.ca>
-Subject: Re: [PATCH v13 16/20] IB/mlx4, arm64: untag user pointers in
- mlx4_get_umem_mr
-Date: Fri, 3 May 2019 20:52:56 -0300
-Message-ID: <20190503235256.GB6660@ziepe.ca>
-References: <cover.1553093420.git.andreyknvl@google.com>
- <1e2824fd77e8eeb351c6c6246f384d0d89fd2d58.1553093421.git.andreyknvl@google.com>
- <20190429180915.GZ6705@mtr-leonro.mtl.com>
- <20190430111625.GD29799@arrakis.emea.arm.com>
- <20190502184442.GA31165@ziepe.ca>
- <20190503162846.GI55449@arrakis.emea.arm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH 01/15] asm-generic, x86: introduce generic
+ pte_{alloc,free}_one[_kernel]
+Date: Sun, 5 May 2019 09:15:26 +0300
+Message-ID: <20190505061525.GC15755@rapoport-lnx>
+References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
+ <1556810922-20248-2-git-send-email-rppt@linux.ibm.com>
+ <20190502190310.voenw3pwgpelmdgw@pburton-laptop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190503162846.GI55449@arrakis.emea.arm.com>
+In-Reply-To: <20190502190310.voenw3pwgpelmdgw@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Leon Romanovsky <leon@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eric Dumazet <edumazet@google.com>, "David S. Miller" <davem@davemloft.net>, Yishai Hadas <yishaih@mellanox.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-rdma@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@a>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, "x86@kernel.org" <x86@kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, linux-arch@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 03, 2019 at 05:28:46PM +0100, Catalin Marinas wrote:
-> Thanks Jason and Leon for the information.
+On Thu, May 02, 2019 at 07:03:11PM +0000, Paul Burton wrote:
+> Hi Mike,
 > 
-> On Thu, May 02, 2019 at 03:44:42PM -0300, Jason Gunthorpe wrote:
-> > On Tue, Apr 30, 2019 at 12:16:25PM +0100, Catalin Marinas wrote:
-> > > > Interesting, the followup question is why mlx4 is only one driver in IB which
-> > > > needs such code in umem_mr. I'll take a look on it.
-> > > 
-> > > I don't know. Just using the light heuristics of find_vma() shows some
-> > > other places. For example, ib_umem_odp_get() gets the umem->address via
-> > > ib_umem_start(). This was previously set in ib_umem_get() as called from
-> > > mlx4_get_umem_mr(). Should the above patch have just untagged "start" on
-> > > entry?
-> > 
-> > I have a feeling that there needs to be something for this in the odp
-> > code..
-> > 
-> > Presumably mmu notifiers and what not also use untagged pointers? Most
-> > likely then the umem should also be storing untagged pointers.
+> On Thu, May 02, 2019 at 06:28:28PM +0300, Mike Rapoport wrote:
+> > +/**
+> > + * pte_free_kernel - free PTE-level user page table page
+> > + * @mm: the mm_struct of the current context
+> > + * @pte_page: the `struct page` representing the page table
+> > + */
+> > +static inline void pte_free(struct mm_struct *mm, struct page *pte_page)
+> > +{
+> > +	pgtable_page_dtor(pte_page);
+> > +	__free_page(pte_page);
+> > +}
 > 
-> Yes.
-> 
-> > This probably becomes problematic because we do want the tag in cases
-> > talking about the base VA of the MR..
-> 
-> It depends on whether the tag is relevant to the kernel or not. The only
-> useful case so far is for the kernel performing copy_form_user() etc.
-> accesses so they'd get checked in the presence of hardware memory
-> tagging (MTE; but it's not mandatory, a 0 tag would do as well).
-> 
-> If we talk about a memory range where the content is relatively opaque
-> (or irrelevant) to the kernel code, we don't really need the tag. I'm
-> not familiar to RDMA but I presume it would be a device accessing such
-> MR but not through the user VA directly. 
+> Nit: the comment names the wrong function (s/pte_free_kernel/pte_free/).
 
-RDMA exposes the user VA directly (the IOVA) as part of the wire
-protocol, we must preserve the tag in these cases as that is what the
-userspace is using for the pointer.
+Argh, evil copy-paste :)
+Thanks!
+ 
+> Thanks,
+>     Paul
+> 
 
-So the ODP stuff will definately need some adjusting when it interacts
-with the mmu notifiers and get user pages.
-
-Jason
+-- 
+Sincerely yours,
+Mike.
