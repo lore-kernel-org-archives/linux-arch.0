@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:58662 "EHLO mx2.mailbox.org"
+Received: from mx2.mailbox.org ([80.241.60.215]:60732 "EHLO mx2.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726413AbfEFQzu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 May 2019 12:55:50 -0400
+        id S1726426AbfEFQ4Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 May 2019 12:56:25 -0400
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH v6 2/6] namei: O_BENEATH-style path resolution flags
-Date: Tue,  7 May 2019 02:54:35 +1000
-Message-ID: <20190506165439.9155-3-cyphar@cyphar.com>
+Subject: [PATCH v6 6/6] namei: resolveat(2) syscall
+Date: Tue,  7 May 2019 02:54:39 +1000
+Message-ID: <20190506165439.9155-7-cyphar@cyphar.com>
 In-Reply-To: <20190506165439.9155-1-cyphar@cyphar.com>
 References: <20190506165439.9155-1-cyphar@cyphar.com>
 MIME-Version: 1.0
@@ -14,292 +14,302 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Kees Cook <keescook@chromium.org>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190506165435.o6aKytS23NgMoDt73IOmebpue8_dlqy26x9gnLrJeTA@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190506165439.0CN5uxJzCbvpSrbgy0IMGXz5O06R8C-WusWS-oueVX0@z>
 
-Add the following flags to allow various restrictions on path
-resolution (these affect the *entire* resolution, rather than just the
-final path component -- as is the case with most other AT_* flags).
+The most obvious syscall to add support for the new LOOKUP_* scoping
+flags would be openat(2) (along with the required execveat(2) change
+included in this series). However, there are a few reasons to not do
+this:
 
-The primary justification for these flags is to allow for programs to be
-far more strict about how they want path resolution to handle symlinks,
-mountpoint crossings, and paths that escape the dirfd (through an
-absolute path or ".." shenanigans).
+ * The new LOOKUP_* flags are intended to be security features, and
+   openat(2) will silently ignore all unknown flags. This means that
+   users would need to avoid foot-gunning themselves constantly when
+   using this interface if it were part of openat(2).
 
-This is of particular concern to container runtimes that want to be very
-careful about malicious root filesystems that a container's init might
-have screwed around with (and there is no real way to protect against
-this in userspace if you consider potential races against a malicious
-container's init). More classical applications (which have their own
-potentially buggy userspace path sanitisation code) include web
-servers, archive extraction tools, network file servers, and so on.
+ * Resolution scoping feels like a different operation to the existing
+   O_* flags. And since openat(2) has limited flag space, it seems to be
+   quite wasteful to clutter it with 5 flags that are all
+   resolution-related. Arguably O_NOFOLLOw is also a resolution flag but
+   its entire purpose is to error out if you encounter a trailing
+   symlink not to scope resolution.
 
-These flags are exposed to userspace in a later patchset.
+ * Other systems would be able to reimplement this syscall allowing for
+   cross-OS standardisation rather than being hidden amongst O_* flags
+   which may result in it not being used by all the parties that might
+   want to use it (file servers, web servers, container runtimes, etc).
 
-* LOOKUP_XDEV: Disallow mount-point crossing (both *down* into one, or
-  *up* from one). The primary "scoping" use is to blocking resolution
-  that crosses a bind-mount, which has a similar property to a symlink
-  (in the way that it allows for escape from the starting-point). Since
-  it is not possible to differentiate bind-mounts However since
-  bind-mounting requires privileges (in ways symlinks don't) this has
-  been split from LOOKUP_BENEATH. The naming is based on "find -xdev" as
-  well as -EXDEV (though find(1) doesn't walk upwards, the semantics
-  seem obvious).
+ * It gives us the opportunity to iterate on the O_PATH interface in the
+   future. There are some potential security improvements that can be
+   made to O_PATH (handling /proc/self/fd re-opening of file descriptors
+   much more sanely) which could be made even better with some other
+   bits (such as ACC_MODE bits which work for O_PATH).
 
-* LOOKUP_NO_MAGICLINKS: Disallows ->get_link "symlink" jumping. This is
-  a very specific restriction, and it exists because /proc/$pid/fd/...
-  "symlinks" allow for access outside nd->root and pose risk to
-  container runtimes that don't want to be tricked into accessing a host
-  path (but do want to allow no-funny-business symlink resolution).
+To this end, we introduce the resolveat(2) syscall. At the moment it's
+effectively another way of getting a bog-standard O_PATH descriptor but
+with the ability to use the new LOOKUP_* flags.
 
-* LOOKUP_NO_SYMLINKS: Disallows symlink jumping *of any kind*. Implies
-  LOOKUP_NO_MAGICLINKS (obviously).
+Because resolveat(2) only provides the ability to get O_PATH
+descriptors, users will need to get creative with /proc/self/fd in order
+to get a usable file descriptor for other uses. However, in future we
+can add O_EMPTYPATH support to openat(2) which would allow for
+re-opening without procfs (though as mentioned above there are some
+security improvements that should be made to the interfaces).
 
-* LOOKUP_BENEATH: Disallow "escapes" from the starting point of the
-  filesystem tree during resolution (you must stay "beneath" the
-  starting point at all times). Currently this is done by disallowing
-  ".." and absolute paths (either in the given path or found during
-  symlink resolution) entirely, as well as all "magic link" jumping.
+NOTE: This patch adds the syscall to all architectures using the new
+      unified syscall numbering, but several architectures are missing
+      newer (nr > 423) syscalls -- hence the uneven gaps in the syscall
+      tables.
 
-  The wholesale banning of ".." is because it is currently not safe to
-  allow ".." resolution (races can cause the path to be moved outside of
-  the root -- this is conceptually similar to historical chroot(2)
-  escape attacks). Future patches in this series will address this, and
-  will re-enable ".." resolution once it is safe. With those patches,
-  ".." resolution will only be allowed if it remains in the root
-  throughout resolution (such as "a/../b" not "a/../../outside/b").
-
-  The banning of "magic link" jumping is done because it is not clear
-  whether semantically they should be allowed -- while some "magic
-  links" are safe there are many that can cause escapes (and once a
-  resolution is outside of the root, O_BENEATH will no longer detect
-  it). Future patches may re-enable "magic link" jumping when such jumps
-  would remain inside the root.
-
-The LOOKUP_NO_*LINK flags return -ELOOP if path resolution would
-violates their requirement, while the others all return -EXDEV.
-
-This is a refresh of Al's AT_NO_JUMPS patchset[1] (which was a variation
-on David Drysdale's O_BENEATH patchset[2], which in turn was based on
-the Capsicum project[3]). Input from Linus and Andy in the AT_NO_JUMPS
-thread[4] determined most of the API changes made in this refresh.
-
-[1]: https://lwn.net/Articles/721443/
-[2]: https://lwn.net/Articles/619151/
-[3]: https://lwn.net/Articles/603929/
-[4]: https://lwn.net/Articles/723057/
-
-Cc: Eric Biederman <ebiederm@xmission.com>
 Cc: Christian Brauner <christian@brauner.io>
-Cc: Kees Cook <keescook@chromium.org>
-Suggested-by: David Drysdale <drysdale@google.com>
-Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
 ---
- fs/namei.c            | 76 ++++++++++++++++++++++++++++++++++++-------
- include/linux/namei.h |  7 ++++
- 2 files changed, 72 insertions(+), 11 deletions(-)
+ arch/alpha/kernel/syscalls/syscall.tbl      |  1 +
+ arch/arm/tools/syscall.tbl                  |  1 +
+ arch/ia64/kernel/syscalls/syscall.tbl       |  1 +
+ arch/m68k/kernel/syscalls/syscall.tbl       |  1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl |  1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl   |  1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl   |  1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl   |  1 +
+ arch/parisc/kernel/syscalls/syscall.tbl     |  1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl    |  1 +
+ arch/s390/kernel/syscalls/syscall.tbl       |  1 +
+ arch/sh/kernel/syscalls/syscall.tbl         |  1 +
+ arch/sparc/kernel/syscalls/syscall.tbl      |  1 +
+ arch/x86/entry/syscalls/syscall_32.tbl      |  1 +
+ arch/x86/entry/syscalls/syscall_64.tbl      |  1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl     |  1 +
+ fs/namei.c                                  | 46 +++++++++++++++++++++
+ include/uapi/linux/fcntl.h                  | 12 ++++++
+ 18 files changed, 74 insertions(+)
 
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index 63ed39cbd3bd..72f431b1dc9c 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -461,5 +461,6 @@
+ 530	common	getegid				sys_getegid
+ 531	common	geteuid				sys_geteuid
+ 532	common	getppid				sys_getppid
++533	common	resolveat			sys_resolveat
+ # all other architectures have common numbers for new syscall, alpha
+ # is the exception.
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 9016f4081bb9..1bc0282a67f7 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -437,3 +437,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat
+diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
+index ab9cda5f6136..d3ae73ffaf48 100644
+--- a/arch/ia64/kernel/syscalls/syscall.tbl
++++ b/arch/ia64/kernel/syscalls/syscall.tbl
+@@ -344,3 +344,4 @@
+ 332	common	pkey_free			sys_pkey_free
+ 333	common	rseq				sys_rseq
+ # 334 through 423 are reserved to sync up with other architectures
++428	common	resolveat			sys_resolveat
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index 125c14178979..81b7389e9e58 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -423,3 +423,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index 8ee3a8c18498..626aed10e2b5 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -429,3 +429,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index 15f4117900ee..8cbd6032d6bf 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -362,3 +362,4 @@
+ 421	n32	rt_sigtimedwait_time64		compat_sys_rt_sigtimedwait_time64
+ 422	n32	futex_time64			sys_futex
+ 423	n32	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	n32	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index c85502e67b44..234923a1fc88 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -338,3 +338,4 @@
+ 327	n64	rseq				sys_rseq
+ 328	n64	io_pgetevents			sys_io_pgetevents
+ # 329 through 423 are reserved to sync up with other architectures
++428	n64	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 2e063d0f837e..7b4586acf35d 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -411,3 +411,4 @@
+ 421	o32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	o32	futex_time64			sys_futex			sys_futex
+ 423	o32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++428	o32	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+index b26766c6647d..19a9a92dc5f8 100644
+--- a/arch/parisc/kernel/syscalls/syscall.tbl
++++ b/arch/parisc/kernel/syscalls/syscall.tbl
+@@ -420,3 +420,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index b18abb0c3dae..bfcd75b928de 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -505,3 +505,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index 02579f95f391..084e51f02e65 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -426,3 +426,4 @@
+ 421	32	rt_sigtimedwait_time64	-				compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64		-				sys_futex
+ 423	32	sched_rr_get_interval_time64	-			sys_sched_rr_get_interval
++428	common	resolveat		sys_resolveat			-
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index bfda678576e4..e9115c5cec72 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -426,3 +426,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index b9a5a04b2d2c..2d3fdd913d89 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -469,3 +469,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 4cd5f982b1e5..101feef22473 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -438,3 +438,4 @@
+ 425	i386	io_uring_setup		sys_io_uring_setup		__ia32_sys_io_uring_setup
+ 426	i386	io_uring_enter		sys_io_uring_enter		__ia32_sys_io_uring_enter
+ 427	i386	io_uring_register	sys_io_uring_register		__ia32_sys_io_uring_register
++428	i386	resolveat		sys_resolveat			__ia32_sys_resolveat
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 64ca0d06259a..c7c197bf07bc 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -355,6 +355,7 @@
+ 425	common	io_uring_setup		__x64_sys_io_uring_setup
+ 426	common	io_uring_enter		__x64_sys_io_uring_enter
+ 427	common	io_uring_register	__x64_sys_io_uring_register
++428	common	resolveat		__x64_sys_resolveat
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index 6af49929de85..86c44f15dfa4 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -394,3 +394,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++428	common	resolveat			sys_resolveat
 diff --git a/fs/namei.c b/fs/namei.c
-index 2a91b72aa5e9..e13a02720a9d 100644
+index 2b6a1bf4e745..30db5833aac3 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -843,6 +843,12 @@ static inline void path_to_nameidata(const struct path *path,
- 
- static int nd_jump_root(struct nameidata *nd)
- {
-+	if (unlikely(nd->flags & LOOKUP_BENEATH))
-+		return -EXDEV;
-+	if (unlikely(nd->flags & LOOKUP_XDEV)) {
-+		if (nd->path.mnt != nd->root.mnt)
-+			return -EXDEV;
-+	}
- 	if (nd->flags & LOOKUP_RCU) {
- 		struct dentry *d;
- 		nd->path = nd->root;
-@@ -1051,6 +1057,9 @@ const char *get_link(struct nameidata *nd)
- 	int error;
- 	const char *res;
- 
-+	if (unlikely(nd->flags & LOOKUP_NO_SYMLINKS))
-+		return ERR_PTR(-ELOOP);
-+
- 	if (!(nd->flags & LOOKUP_RCU)) {
- 		touch_atime(&last->link);
- 		cond_resched();
-@@ -1081,14 +1090,23 @@ const char *get_link(struct nameidata *nd)
- 		} else {
- 			res = get(dentry, inode, &last->done);
- 		}
-+		/* If we just jumped it was because of a procfs-style link. */
-+		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
-+			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
-+				return ERR_PTR(-ELOOP);
-+			/* Not currently safe. */
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return ERR_PTR(-EXDEV);
-+		}
- 		if (IS_ERR_OR_NULL(res))
- 			return res;
- 	}
- 	if (*res == '/') {
- 		if (!nd->root.mnt)
- 			set_root(nd);
--		if (unlikely(nd_jump_root(nd)))
--			return ERR_PTR(-ECHILD);
-+		error = nd_jump_root(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
- 		while (unlikely(*++res == '/'))
- 			;
- 	}
-@@ -1269,12 +1287,16 @@ static int follow_managed(struct path *path, struct nameidata *nd)
- 		break;
- 	}
- 
--	if (need_mntput && path->mnt == mnt)
--		mntput(path->mnt);
-+	if (need_mntput) {
-+		if (path->mnt == mnt)
-+			mntput(path->mnt);
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			ret = -EXDEV;
-+		else
-+			nd->flags |= LOOKUP_JUMPED;
-+	}
- 	if (ret == -EISDIR || !ret)
- 		ret = 1;
--	if (need_mntput)
--		nd->flags |= LOOKUP_JUMPED;
- 	if (unlikely(ret < 0))
- 		path_put_conditional(path, nd);
- 	return ret;
-@@ -1331,6 +1353,8 @@ static bool __follow_mount_rcu(struct nameidata *nd, struct path *path,
- 		mounted = __lookup_mnt(path->mnt, path->dentry);
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return false;
- 		path->mnt = &mounted->mnt;
- 		path->dentry = mounted->mnt.mnt_root;
- 		nd->flags |= LOOKUP_JUMPED;
-@@ -1351,8 +1375,11 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 	struct inode *inode = nd->inode;
- 
- 	while (1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			struct dentry *old = nd->path.dentry;
- 			struct dentry *parent = old->d_parent;
-@@ -1377,6 +1404,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 				return -ECHILD;
- 			if (&mparent->mnt == nd->path.mnt)
- 				break;
-+			if (unlikely(nd->flags & LOOKUP_XDEV))
-+				return -EXDEV;
- 			/* we know that mountpoint was pinned */
- 			nd->path.dentry = mountpoint;
- 			nd->path.mnt = &mparent->mnt;
-@@ -1391,6 +1420,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 			return -ECHILD;
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 		nd->path.mnt = &mounted->mnt;
- 		nd->path.dentry = mounted->mnt.mnt_root;
- 		inode = nd->path.dentry->d_inode;
-@@ -1479,8 +1510,11 @@ static int path_parent_directory(struct path *path)
- static int follow_dotdot(struct nameidata *nd)
- {
- 	while(1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			int ret = path_parent_directory(&nd->path);
- 			if (ret)
-@@ -1489,6 +1523,8 @@ static int follow_dotdot(struct nameidata *nd)
- 		}
- 		if (!follow_up(&nd->path))
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 	}
- 	follow_mount(&nd->path);
- 	nd->inode = nd->path.dentry->d_inode;
-@@ -1703,6 +1739,13 @@ static inline int may_lookup(struct nameidata *nd)
- static inline int handle_dots(struct nameidata *nd, int type)
- {
- 	if (type == LAST_DOTDOT) {
-+		/*
-+		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
-+		 * cause our parent to have moved outside of the root and us to skip
-+		 * over it.
-+		 */
-+		if (unlikely(nd->flags & LOOKUP_BENEATH))
-+			return -EXDEV;
- 		if (!nd->root.mnt)
- 			set_root(nd);
- 		if (nd->flags & LOOKUP_RCU) {
-@@ -2251,6 +2294,15 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.dentry = NULL;
- 
- 	nd->m_seq = read_seqbegin(&mount_lock);
-+
-+	if (unlikely(nd->flags & LOOKUP_BENEATH)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+		nd->root = nd->path;
-+		if (!(nd->flags & LOOKUP_RCU))
-+			path_get(&nd->root);
-+	}
- 	if (*s == '/') {
- 		if (likely(!nd->root.mnt))
- 			set_root(nd);
-@@ -2259,9 +2311,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 			s = ERR_PTR(error);
- 		return s;
- 	}
--	error = dirfd_path_init(nd);
--	if (unlikely(error))
--		return ERR_PTR(error);
-+	if (likely(!nd->path.mnt)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+	}
- 	return s;
+@@ -3656,6 +3656,52 @@ struct file *do_filp_open(int dfd, struct filename *pathname,
+ 	return filp;
  }
  
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index 9138b4471dbf..7bc819ad0cd3 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -50,6 +50,13 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
- #define LOOKUP_EMPTY		0x4000
- #define LOOKUP_DOWN		0x8000
- 
-+/* Scoping flags for lookup. */
-+#define LOOKUP_BENEATH		0x010000 /* No escaping from starting point. */
-+#define LOOKUP_XDEV		0x020000 /* No mountpoint crossing. */
-+#define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
-+#define LOOKUP_NO_SYMLINKS	0x080000 /* No symlink crossing *at all*.
-+					    Implies LOOKUP_NO_MAGICLINKS. */
++SYSCALL_DEFINE3(resolveat, int, dfd, const char __user *, path,
++		unsigned long, flags)
++{
++	int fd;
++	struct filename *tmp;
++	struct open_flags op = {
++		.open_flag = O_PATH,
++	};
 +
- extern int path_pts(struct path *path);
++	if (flags & ~VALID_RESOLVE_FLAGS)
++		return -EINVAL;
++
++	if (flags & RESOLVE_CLOEXEC)
++		op.open_flag |= O_CLOEXEC;
++	if (!(flags & RESOLVE_NOFOLLOW))
++		op.lookup_flags |= LOOKUP_FOLLOW;
++	if (flags & RESOLVE_BENEATH)
++		op.lookup_flags |= LOOKUP_BENEATH;
++	if (flags & RESOLVE_XDEV)
++		op.lookup_flags |= LOOKUP_XDEV;
++	if (flags & RESOLVE_NO_MAGICLINKS)
++		op.lookup_flags |= LOOKUP_NO_MAGICLINKS;
++	if (flags & RESOLVE_NO_SYMLINKS)
++		op.lookup_flags |= LOOKUP_NO_SYMLINKS;
++	if (flags & RESOLVE_THIS_ROOT)
++		op.lookup_flags |= LOOKUP_IN_ROOT;
++
++	tmp = getname(path);
++	if (IS_ERR(tmp))
++		return PTR_ERR(tmp);
++
++	fd = get_unused_fd_flags(op.open_flag);
++	if (fd >= 0) {
++		struct file *f = do_filp_open(dfd, tmp, &op);
++		if (IS_ERR(f)) {
++			put_unused_fd(fd);
++			fd = PTR_ERR(f);
++		} else {
++			fsnotify_open(f);
++			fd_install(fd, f);
++		}
++	}
++	putname(tmp);
++	return fd;
++}
++
+ struct file *do_file_open_root(struct dentry *dentry, struct vfsmount *mnt,
+ 		const char *name, const struct open_flags *op)
+ {
+diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
+index bfca7f87cd2a..d5a2a97929c6 100644
+--- a/include/uapi/linux/fcntl.h
++++ b/include/uapi/linux/fcntl.h
+@@ -100,4 +100,16 @@
+ #define AT_NO_SYMLINKS		0x080000 /* - Block all symlinks (implies AT_NO_MAGICLINKS). */
+ #define AT_THIS_ROOT		0x100000 /* - Scope ".." resolution to dirfd (like chroot(2)). */
  
- extern int user_path_at_empty(int, const char __user *, unsigned, struct path *, int *empty);
++/* First two bits of RESOLVE_* are reserved for future ACC_MODE extensions. */
++#define RESOLVE_CLOEXEC		0x004 /* Set O_CLOEXEC on the returned fd. */
++#define RESOLVE_NOFOLLOW	0x008 /* Don't follow trailing symlinks. */
++#define RESOLVE_RESOLUTION_TYPE	0x1F0 /* Type of path-resolution scoping we are applying. */
++#define RESOLVE_BENEATH		0x010 /* - Block "lexical" trickery like "..", symlinks, absolute paths, etc. */
++#define RESOLVE_XDEV		0x020 /* - Block mount-point crossings (includes bind-mounts). */
++#define RESOLVE_NO_MAGICLINKS	0x040 /* - Block procfs-style "magic" symlinks. */
++#define RESOLVE_NO_SYMLINKS	0x080 /* - Block all symlinks (implies AT_NO_MAGICLINKS). */
++#define RESOLVE_THIS_ROOT	0x100 /* - Scope ".." resolution to dirfd (like chroot(2)). */
++
++#define VALID_RESOLVE_FLAGS	(RESOLVE_CLOEXEC | RESOLVE_NOFOLLOW | RESOLVE_RESOLUTION_TYPE)
++
+ #endif /* _UAPI_LINUX_FCNTL_H */
 -- 
 2.21.0
