@@ -1,137 +1,115 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
-Date: Tue, 7 May 2019 05:17:35 +1000
-Message-ID: <20190506191735.nmzf7kwfh7b6e2tf@yavin>
-References: <20190506165439.9155-1-cyphar@cyphar.com>
- <20190506165439.9155-6-cyphar@cyphar.com>
- <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
+From: Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v2 56/79] docs: Documentation/*.txt: rename all ReST
+	files to *.rst
+Date: Mon, 6 May 2019 16:50:59 -0300
+Message-ID: <20190506165059.51eb2959@coco.lan>
+References: <cover.1555938375.git.mchehab+samsung@kernel.org>
+	<cda57849a6462ccc72dcd360b30068ab6a1021c4.1555938376.git.mchehab+samsung@kernel.org>
+	<20190423083135.GA11158@hirez.programming.kicks-ass.net>
+	<20190423125519.GA7104@redhat.com>
+	<20190423130132.GT4038@hirez.programming.kicks-ass.net>
+	<20190423103053.07cf2149@lwn.net>
+	<20190423171158.GG12232@hirez.programming.kicks-ass.net>
+	<20190423172006.GD16353@zn.tnic> <20190423170409.7b1370ac@coco.lan>
+	<20190423213816.GE16353@zn.tnic>
+	<20190424065209.GC4038@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="yezcske27bisu2pl"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20190424065209.GC4038-Nxj+rRp3nVydTX5a5knrm8zTDFooKrT+cvkQGrU6aU0@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Linux Doc Mailing List <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Cc: Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Farhan Ali <alifm-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Jaroslav Kysela <perex-/Fr2/VpizcU@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Halil Pasic <pasic-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, tboot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, openipmi-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alex Williamson <alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Sean Paul <sean-p7yTbzM4H96eqtR555YLDQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-wireless@v
 List-Id: linux-arch.vger.kernel.org
 
+Em Wed, 24 Apr 2019 08:52:09 +0200
+Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> escreveu:
 
---yezcske27bisu2pl
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+> On Tue, Apr 23, 2019 at 11:38:16PM +0200, Borislav Petkov wrote:
+> > If that is all the changes it would need, then I guess that's ok. Btw,
+> > those rst-conversion patches don't really show what got changed. Dunno
+> > if git can even show that properly. I diffed the two files by hand to
+> > see what got changed, see end of mail.  
+> 
+> That is not a happy diff; that table has gotten waay worse to read due
+> to all that extra table crap.
 
-On 2019-05-06, Jann Horn <jannh@google.com> wrote:
-> On Mon, May 6, 2019 at 6:56 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > The need to be able to scope path resolution of interpreters became
-> > clear with one of the possible vectors used in CVE-2019-5736 (which
-> > most major container runtimes were vulnerable to).
-> >
-> > Naively, it might seem that openat(2) -- which supports path scoping --
-> > can be combined with execveat(AT_EMPTY_PATH) to trivially scope the
-> > binary being executed. Unfortunately, a "bad binary" (usually a symlink)
-> > could be written as a #!-style script with the symlink target as the
-> > interpreter -- which would be completely missed by just scoping the
-> > openat(2). An example of this being exploitable is CVE-2019-5736.
-> >
-> > In order to get around this, we need to pass down to each binfmt_*
-> > implementation the scoping flags requested in execveat(2). In order to
-> > maintain backwards-compatibility we only pass the scoping AT_* flags.
-> >
-> > To avoid breaking userspace (in the exceptionally rare cases where you
-> > have #!-scripts with a relative path being execveat(2)-ed with dfd !=3D
-> > AT_FDCWD), we only pass dfd down to binfmt_* if any of our new flags are
-> > set in execveat(2).
->=20
-> This seems extremely dangerous. I like the overall series, but not this p=
-atch.
->=20
-> > @@ -1762,6 +1774,12 @@ static int __do_execve_file(int fd, struct filen=
-ame *filename,
-> >
-> >         sched_exec();
-> >
-> > +       bprm->flags =3D flags & (AT_XDEV | AT_NO_MAGICLINKS | AT_NO_SYM=
-LINKS |
-> > +                              AT_THIS_ROOT);
-> [...]
-> > +#define AT_THIS_ROOT           0x100000 /* - Scope ".." resolution to =
-dirfd (like chroot(2)). */
->=20
-> So now what happens if there is a setuid root ELF binary with program
-> interpreter "/lib64/ld-linux-x86-64.so.2" (like /bin/su), and an
-> unprivileged user runs it with execveat(..., AT_THIS_ROOT)? Is that
-> going to let the unprivileged user decide which interpreter the
-> setuid-root process should use? From a high-level perspective, opening
-> the interpreter should be controlled by the program that is being
-> loaded, not by the program that invoked it.
+Not that I'm proposing such change, but, as a reference, I just discovered 
+today that there's a way to make it even lighter than it is while still
+showing it as a table:
 
-I went a bit nuts with openat_exec(), and I did end up adding it to the
-ELF interpreter lookup (and you're completely right that this is a bad
-idea -- I will drop it from this patch if it's included in the next
-series).
+=================  ======== ==   ================  ===== ==  ===========================================================
+    Start addr        Offset        End addr         Size    VM area description
+-----------------  -----------   ----------------  --------  -----------------------------------------------------------
+ 0000000000000000      0         00007fffffffffff    128 TB   user-space virtual memory, different per mm
 
-The proposed solutions you give below are much nicer than this patch so
-I can drop it and work on fixing those issues separately.
+ 0000800000000000   +128    TB   ffff7fffffffffff   ~16M TB   ... huge, almost 64 bits wide hole of non-canonical
+                                                                  virtual memory addresses up to the -128 TB
+                                                                  starting offset of kernel mappings.
 
-> In my opinion, CVE-2019-5736 points out two different problems:
->
-> The big problem: The __ptrace_may_access() logic has a special-case
-> short-circuit for "introspection" that you can't opt out of; this
-> makes it possible to open things in procfs that are related to the
-> current process even if the credentials of the process wouldn't permit
-> accessing another process like it. I think the proper fix to deal with
-> this would be to add a prctl() flag for "set whether introspection is
-> allowed for this process", and if userspace has manually un-set that
-> flag, any introspection special-case logic would be skipped.
+-----------------  -------- --   ----------------  ----- --  -----------------------------------------------------------
+-                                                            Kernel-space virtual memory, shared between all processes:
+-----------------  -----------   ----------------  --------  -----------------------------------------------------------
 
-We could do PR_SET_DUMPABLE=3D3 for this, I guess?
+ ffff800000000000   -128    TB   ffff87ffffffffff      8 TB   ... guard hole, also reserved for hypervisor
+ ffff880000000000   -120    TB   ffff887fffffffff    0.5 TB   LDT remap for PTI
+ ffff888000000000   -119.5  TB   ffffc87fffffffff     64 TB   direct mapping of all physical memory (page_offset_base)
+ ffffc88000000000    -55.5  TB   ffffc8ffffffffff    0.5 TB   ... unused hole
+ ffffc90000000000    -55    TB   ffffe8ffffffffff     32 TB   vmalloc/ioremap space (vmalloc_base)
+ ffffe90000000000    -23    TB   ffffe9ffffffffff      1 TB   ... unused hole
+ ffffea0000000000    -22    TB   ffffeaffffffffff      1 TB   virtual memory map (vmemmap_base)
+ ffffeb0000000000    -21    TB   ffffebffffffffff      1 TB   ... unused hole
+ ffffec0000000000    -20    TB   fffffbffffffffff     16 TB   KASAN shadow memory
+-----------------  -------- --   ----------------  ----- --  -----------------------------------------------------------
+-                                                            Identical layout to the 56-bit one from here on:
+-----------------  -----------   ----------------  --------  -----------------------------------------------------------
 
-> An additional problem: /proc/*/exe can be used to open a file for
-> writing; I think it may have been Andy Lutomirski who pointed out some
-> time ago that it would be nice if you couldn't use /proc/*/fd/* to
-> re-open files with more privileges, which is sort of the same thing.
+ fffffc0000000000     -4    TB   fffffdffffffffff      2 TB   ... unused hole
+                                                              vaddr_end for KASLR
+ fffffe0000000000     -2    TB   fffffe7fffffffff    0.5 TB   cpu_entry_area mapping
+ fffffe8000000000     -1.5  TB   fffffeffffffffff    0.5 TB   ... unused hole
+ ffffff0000000000     -1    TB   ffffff7fffffffff    0.5 TB   %esp fixup stacks
+ ffffff8000000000   -512    GB   ffffffeeffffffff    444 GB   ... unused hole
+ ffffffef00000000    -68    GB   fffffffeffffffff     64 GB   EFI region mapping space
+ ffffffff00000000     -4    GB   ffffffff7fffffff      2 GB   ... unused hole
+ ffffffff80000000     -2    GB   ffffffff9fffffff    512 MB   kernel text mapping, mapped to physical address 0
+ ffffffff80000000  -2048    MB
+ ffffffffa0000000  -1536    MB   fffffffffeffffff   1520 MB   module mapping space
+ ffffffffff000000    -16    MB
+    FIXADDR_START   ~-11    MB   ffffffffff5fffff   ~0.5 MB   kernel-internal fixmap range, variable size and offset
+ ffffffffff600000    -10    MB   ffffffffff600fff      4 kB   legacy vsyscall ABI
+ ffffffffffe00000     -2    MB   ffffffffffffffff      2 MB   ... unused hole
+=================  ======== ==   ================  ===== ==  ===========================================================
 
-This is something I'm currently working on a series for, which would
-boil down to some restrictions on how re-opening of file descriptors
-works through procfs.
+If one wants the table headers as such, an extra line is required:
 
-However, execveat() of a procfs magiclink is a bit hard to block --
-there is no way for userspace to to represent a file being "open for
-execute" so they are all "open for execute" by default and blocking it
-outright seems a bit extreme (though I actually hope to eventually add
-the ability to mark an O_PATH as "open for X" to resolveat(2) -- hence
-why I've reserved some bits).
 
-(Thinking more about it, there is an argument that I should include the
-above patch into this series so that we can block re-opening of fds
-opened through resolveat(2) without explicit flags from the outset.)
+=================  ======== ==   ================  ===== ==  ===========================================================
+    Start addr        Offset        End addr         Size    VM area description
+-----------------  -----------   ----------------  --------  -----------------------------------------------------------
+=================  ======== ==   ================  ===== ==  ===========================================================
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+<snip/>
 
---yezcske27bisu2pl
-Content-Type: application/pgp-signature; name="signature.asc"
+=================  ======== ==   ================  ===== ==  ===========================================================
 
------BEGIN PGP SIGNATURE-----
 
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzQiEwACgkQSnvnv3De
-m59OaBAAz2IFmbji63Cay/WhNNJQnxuHC886Ekc041hMJQn7ciW0w6zqI4hbIEHr
-/bI4P+8riONORm5RBnyRyLHLS8iaC1VZJmWbFnZM5h8j8++jA5f8qVaBpcGrXWrn
-d1d7ypyVWtxAQJmttIfxGy2d5xzqDpS99ZPnsthF1LQAW1HpKR8maW+Q/cqoTGK5
-X33vxwVJaFAatwFDRwsuztAt23m3sJouDvJMuAUOC7/SmQJX2ZI5NRJVUNQOX2Ch
-bvKadGzJ8wm31laLSTCDmH3mzKDGshuGCzsqoBgbjRG4s0jPQwAQcbGnj2gcf3gK
-1l1jTibk7oOecrUs/GV0++QEkt+mcSJjPsD2oqo9GczTWyPXxQowXJHyPnwhSB1R
-MRPZKsSDdTo6gX5hdTzSD/vqyFGtBZArR0h+KhtLs88ypfyd7Bn8cgRQ99bPK3Nb
-afiAPQoCyS+4LMLGvRhxuGwjzWvBNKaR463yygtqSfZDzqWLr7eTorj+0KuJhmvo
-zDJcj8wnUlWkRXS7Unpj6xy0vKX2mJrkxlOCi39DYYWNTQkj52qLZ+efH44ex0i9
-wqAXHmt07+ys/LvIDXHnFzyZSafLhKp7OTWXUiEhVDHCwxFbfQQmsP12pRuoJT9H
-OeQgWaVC58G2O4hlrjZBfowV1g9fLjVm/oj+CMVGdhrYyVYSuP4=
-=LRko
------END PGP SIGNATURE-----
+The output using this approach and a markup to use mono-spaced cells
+e. g. either using ..raw or using .. cssclass as commented before in
+this thread is at:
 
---yezcske27bisu2pl--
+	https://www.infradead.org/~mchehab/rst_conversion/x86/x86_64/mm_alternative.html
+
+Just converted the first table, keeping the other as a literal block.
+
+Thanks,
+Mauro
