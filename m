@@ -1,89 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:42902 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726426AbfEFSZy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 May 2019 14:25:54 -0400
-Received: by mail-pg1-f195.google.com with SMTP id p6so6856066pgh.9
-        for <linux-arch@vger.kernel.org>; Mon, 06 May 2019 11:25:54 -0700 (PDT)
-Date: Mon, 06 May 2019 11:25:52 -0700 (PDT)
-Subject: Re: [PATCH 13/15] riscv: switch to generic version of pte allocation
-In-Reply-To: <1556810922-20248-14-git-send-email-rppt@linux.ibm.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-c23d2e8b-1dc0-48db-a4cf-d6964ca650c0@palmer-si-x1e>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Received: from mail-oi1-f194.google.com ([209.85.167.194]:39338 "EHLO
+        mail-oi1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726426AbfEFSiE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 May 2019 14:38:04 -0400
+Received: by mail-oi1-f194.google.com with SMTP id x16so4487401oic.6
+        for <linux-arch@vger.kernel.org>; Mon, 06 May 2019 11:38:04 -0700 (PDT)
+MIME-Version: 1.0
+References: <20190506165439.9155-1-cyphar@cyphar.com> <20190506165439.9155-6-cyphar@cyphar.com>
+In-Reply-To: <20190506165439.9155-6-cyphar@cyphar.com>
+From: Jann Horn <jannh@google.com>
+Date: Mon, 6 May 2019 20:37:37 +0200
+Message-ID: <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
+Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: akpm@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, catalin.marinas@arm.com, geert@linux-m68k.org, green.hu@gmail.com, gxt@pku.edu.cn, guoren@kernel.org, deller@gmx.de, lftan@altera.com, willy@infradead.org, mattst88@gmail.com, mpe@ellerman.id.au, mhocko@suse.com, paul.burton@mips.com, rkuo@codeaurora.org, richard@nod.at, linux@armlinux.org.uk, sammy@sammy.net, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-um@lists.infradead.org, nios2-dev@lists.rocketboards.org, rppt@linux.ibm.com
-Message-ID: <20190506182552.NmKkUvA1viZImLhgcuVPqBOSxy4OOgAgKVZM2HDV3so@z>
+To: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190506183737.-b8Xv0rvXzaS3Mua7uvxeNicE0JspltWRJ6nnF3Pkjs@z>
 
-On Thu, 02 May 2019 08:28:40 PDT (-0700), rppt@linux.ibm.com wrote:
-> The only difference between the generic and RISC-V implementation of PTE
-> allocation is the usage of __GFP_RETRY_MAYFAIL for both kernel and user
-> PTEs and the absence of __GFP_ACCOUNT for the user PTEs.
+On Mon, May 6, 2019 at 6:56 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> The need to be able to scope path resolution of interpreters became
+> clear with one of the possible vectors used in CVE-2019-5736 (which
+> most major container runtimes were vulnerable to).
 >
-> The conversion to the generic version removes the __GFP_RETRY_MAYFAIL and
-> ensures that GFP_ACCOUNT is used for the user PTE allocations.
+> Naively, it might seem that openat(2) -- which supports path scoping --
+> can be combined with execveat(AT_EMPTY_PATH) to trivially scope the
+> binary being executed. Unfortunately, a "bad binary" (usually a symlink)
+> could be written as a #!-style script with the symlink target as the
+> interpreter -- which would be completely missed by just scoping the
+> openat(2). An example of this being exploitable is CVE-2019-5736.
+>
+> In order to get around this, we need to pass down to each binfmt_*
+> implementation the scoping flags requested in execveat(2). In order to
+> maintain backwards-compatibility we only pass the scoping AT_* flags.
+>
+> To avoid breaking userspace (in the exceptionally rare cases where you
+> have #!-scripts with a relative path being execveat(2)-ed with dfd !=
+> AT_FDCWD), we only pass dfd down to binfmt_* if any of our new flags are
+> set in execveat(2).
 
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+This seems extremely dangerous. I like the overall series, but not this patch.
 
-I'm assuming this is going in along with the rest of the patches, so I'm not
-going to add it to my tree.
+> @@ -1762,6 +1774,12 @@ static int __do_execve_file(int fd, struct filename *filename,
+>
+>         sched_exec();
+>
+> +       bprm->flags = flags & (AT_XDEV | AT_NO_MAGICLINKS | AT_NO_SYMLINKS |
+> +                              AT_THIS_ROOT);
+[...]
+> +#define AT_THIS_ROOT           0x100000 /* - Scope ".." resolution to dirfd (like chroot(2)). */
 
->
-> The pte_free() and pte_free_kernel() versions are identical to the generic
-> ones and can be simply dropped.
->
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/riscv/include/asm/pgalloc.h | 29 ++---------------------------
->  1 file changed, 2 insertions(+), 27 deletions(-)
->
-> diff --git a/arch/riscv/include/asm/pgalloc.h b/arch/riscv/include/asm/pgalloc.h
-> index 94043cf..48f28bb 100644
-> --- a/arch/riscv/include/asm/pgalloc.h
-> +++ b/arch/riscv/include/asm/pgalloc.h
-> @@ -18,6 +18,8 @@
->  #include <linux/mm.h>
->  #include <asm/tlb.h>
->
-> +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> +
->  static inline void pmd_populate_kernel(struct mm_struct *mm,
->  	pmd_t *pmd, pte_t *pte)
->  {
-> @@ -82,33 +84,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
->
->  #endif /* __PAGETABLE_PMD_FOLDED */
->
-> -static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> -{
-> -	return (pte_t *)__get_free_page(
-> -		GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
-> -}
-> -
-> -static inline struct page *pte_alloc_one(struct mm_struct *mm)
-> -{
-> -	struct page *pte;
-> -
-> -	pte = alloc_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
-> -	if (likely(pte != NULL))
-> -		pgtable_page_ctor(pte);
-> -	return pte;
-> -}
-> -
-> -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> -{
-> -	free_page((unsigned long)pte);
-> -}
-> -
-> -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-> -{
-> -	pgtable_page_dtor(pte);
-> -	__free_page(pte);
-> -}
-> -
->  #define __pte_free_tlb(tlb, pte, buf)   \
->  do {                                    \
->  	pgtable_page_dtor(pte);         \
+So now what happens if there is a setuid root ELF binary with program
+interpreter "/lib64/ld-linux-x86-64.so.2" (like /bin/su), and an
+unprivileged user runs it with execveat(..., AT_THIS_ROOT)? Is that
+going to let the unprivileged user decide which interpreter the
+setuid-root process should use? From a high-level perspective, opening
+the interpreter should be controlled by the program that is being
+loaded, not by the program that invoked it.
+
+
+In my opinion, CVE-2019-5736 points out two different problems:
+
+The big problem: The __ptrace_may_access() logic has a special-case
+short-circuit for "introspection" that you can't opt out of; this
+makes it possible to open things in procfs that are related to the
+current process even if the credentials of the process wouldn't permit
+accessing another process like it. I think the proper fix to deal with
+this would be to add a prctl() flag for "set whether introspection is
+allowed for this process", and if userspace has manually un-set that
+flag, any introspection special-case logic would be skipped.
+
+An additional problem: /proc/*/exe can be used to open a file for
+writing; I think it may have been Andy Lutomirski who pointed out some
+time ago that it would be nice if you couldn't use /proc/*/fd/* to
+re-open files with more privileges, which is sort of the same thing.
