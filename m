@@ -1,115 +1,277 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:42606 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727353AbfEEGXz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 May 2019 02:23:55 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x456LQ4E106890
-        for <linux-arch@vger.kernel.org>; Sun, 5 May 2019 02:23:54 -0400
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2s9pe36vdv-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sun, 05 May 2019 02:23:54 -0400
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>;
-        Sun, 5 May 2019 07:23:51 +0100
-Date: Sun, 5 May 2019 09:23:39 +0300
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH 12/15] powerpc/nohash/64: switch to generic version of
- pte allocation
-References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com>
- <1556810922-20248-13-git-send-email-rppt@linux.ibm.com>
- <adcb6ae6-48d9-5ba9-2732-a0ab1d96667c@c-s.fr>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+Received: from mga14.intel.com ([192.55.52.115]:9185 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725852AbfEFMrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 May 2019 08:47:06 -0400
+Message-ID: <1557146640.2456.2.camel@intel.com>
+Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for
+ self-encapsulation
+From: Zhang Rui <rui.zhang@intel.com>
+Date: Mon, 06 May 2019 20:44:00 +0800
+In-Reply-To: <d6bc1efc-e944-09a4-e010-bfea985c66cb@linaro.org>
+References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
+         <20190402161256.11044-3-daniel.lezcano@linaro.org>
+         <1555922585.26198.19.camel@intel.com>
+         <fb45157c-38c4-7940-3252-af459d446323@linaro.org>
+         <1555999165.26198.39.camel@intel.com>
+         <d6bc1efc-e944-09a4-e010-bfea985c66cb@linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <adcb6ae6-48d9-5ba9-2732-a0ab1d96667c@c-s.fr>
-Message-ID: <20190505062339.GF15755@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, Paul Burton <paul.burton@mips.com>, linux-alpha@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20190505062339.NHd7GC4vBle-DEhcp__R2liSl1yt50i04qcoyMilTaA@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>, edubezval@gmail.com
+Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20190506124400.2E3I5MpXHskVEt3v426djijSLPlgC_lq0sRXRMWQRu0@z>
 
-On Thu, May 02, 2019 at 06:56:07PM +0200, Christophe Leroy wrote:
+On 五, 2019-05-03 at 22:28 +0200, Daniel Lezcano wrote:
+> On 23/04/2019 07:59, Zhang Rui wrote:
+> > 
+> > Hi, Daniel,
+> > 
+> > thanks for clarifying.
+> > It is true that we need to make thermal framework ready as early as
+> > possible. And a static table works for me as long as vmlinux.lds.h
+> > is
+> > the proper place.
+> > 
+> > Arnd,
+> > are you okay with this patch? if yes, I suppose I can take it
+> > through
+> > my tree, right?
+> Hi Zhang,
 > 
+> given the Acked-by from Arnd, will you add the missing patches in the
+> tree for 5.2?
 > 
-> Le 02/05/2019 � 17:28, Mike Rapoport a �crit�:
-> >The 64-bit book-E powerpc implements pte_alloc_one(),
-> >pte_alloc_one_kernel(), pte_free_kernel() and pte_free() the same way as
-> >the generic version.
-> 
-> Will soon be converted to the same as the 3 other PPC subarches, see
-> https://patchwork.ozlabs.org/patch/1091590/
- 
-Thanks for the heads up. I'll drop this from the next re-spin.
+I got a lot of checkpatch warnings when applying this patch.
+"total: 9 errors, 6 warnings, 45 lines checked"
+please resend with those errors/warnings addressed.
 
-> Christophe
-> 
-> >
-> >Switch it to the generic version that does exactly the same thing.
-> >
-> >Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> >---
-> >  arch/powerpc/include/asm/nohash/64/pgalloc.h | 35 ++--------------------------
-> >  1 file changed, 2 insertions(+), 33 deletions(-)
-> >
-> >diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >index 66d086f..bfb53a0 100644
-> >--- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >+++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
-> >@@ -11,6 +11,8 @@
-> >  #include <linux/cpumask.h>
-> >  #include <linux/percpu.h>
-> >+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-> >+
-> >  struct vmemmap_backing {
-> >  	struct vmemmap_backing *list;
-> >  	unsigned long phys;
-> >@@ -92,39 +94,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-> >  	kmem_cache_free(PGT_CACHE(PMD_CACHE_INDEX), pmd);
-> >  }
-> >-
-> >-static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
-> >-{
-> >-	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
-> >-}
-> >-
-> >-static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
-> >-{
-> >-	struct page *page;
-> >-	pte_t *pte;
-> >-
-> >-	pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO | __GFP_ACCOUNT);
-> >-	if (!pte)
-> >-		return NULL;
-> >-	page = virt_to_page(pte);
-> >-	if (!pgtable_page_ctor(page)) {
-> >-		__free_page(page);
-> >-		return NULL;
-> >-	}
-> >-	return page;
-> >-}
-> >-
-> >-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> >-{
-> >-	free_page((unsigned long)pte);
-> >-}
-> >-
-> >-static inline void pte_free(struct mm_struct *mm, pgtable_t ptepage)
-> >-{
-> >-	pgtable_page_dtor(ptepage);
-> >-	__free_page(ptepage);
-> >-}
-> >-
-> >  static inline void pgtable_free(void *table, int shift)
-> >  {
-> >  	if (!shift) {
-> >
-> 
+I don't think I will include it in the pull request for this merge
+window. But I will try to queue them for -rc2 as cleanups.
 
--- 
-Sincerely yours,
-Mike.
+thanks,
+rui
+
+> 
+> 
+> > 
+> > On 一, 2019-04-22 at 14:11 +0200, Daniel Lezcano wrote:
+> > > 
+> > > Hi Zhang,
+> > > 
+> > > 
+> > > On 22/04/2019 10:43, Zhang Rui wrote:
+> > > > 
+> > > > 
+> > > > Hi, Daniel,
+> > > > 
+> > > > Thanks for the patches, it looks good to me except this one and
+> > > > patch
+> > > > 4/7.
+> > > > 
+> > > > First, I don't think this is a cyclic dependency issue as they
+> > > > are
+> > > > in
+> > > > the same module.
+> > > The governors have to export their [un]register functions in
+> > > order to
+> > > have the core to use them.
+> > > 
+> > > The core has to export the [un]register function in order to have
+> > > the
+> > > governors to use them.
+> > > 
+> > > From my point of view it is a cyclic dependency. In any other
+> > > subsystems, the plugins/governor/drivers/whatever don't have to
+> > > export
+> > > their functions to the core, they use the core's exported
+> > > functions.
+> > > 
+> > > > 
+> > > > 
+> > > > Second, I have not read include/asm-generic/vmlinux.lds.h
+> > > > before,
+> > > > it
+> > > > seems that it is used for architecture specific stuff. Fix a
+> > > > thermal
+> > > > issue in this way seems overkill to me.
+> > > It is not architecture specific, it belongs to asm-generic. All
+> > > init
+> > > calls are defined in it and more. It is a common way to define
+> > > static
+> > > tables from different files without adding dependency and unload
+> > > it
+> > > after init.
+> > > 
+> > > All clk, timers, acpi tables, irq chip, cpuidle and cpu methods
+> > > are
+> > > defined this way.
+> > > 
+> > > When the thermal_core.c uses at the end fs_initcall it uses the
+> > > same
+> > > mechanism.
+> > > 
+> > > 
+> > > > 
+> > > > 
+> > > > IMO, to make the code clean, we can build the governors as
+> > > > separate
+> > > > modules just like we do for cpu governors.
+> > > > This brings to the old commit 80a26a5c22b9("Thermal: build
+> > > > thermal
+> > > > governors into thermal_sys module"), and that was introduced to
+> > > > fix
+> > > > a
+> > > > problem when CONFIG_THERMAL is set to 'm'. So I think we can
+> > > > switch
+> > > > back to the old way as the problem is gone now.
+> > > > 
+> > > > what do you think?
+> > > IMO, having the governors built as module is not a good thing
+> > > because
+> > > the SoC needs the governor to be ready as soon as possible at
+> > > boot
+> > > time.
+> > > I've been told some boards reboot at boot time because the
+> > > governor
+> > > comes too late with the userspace governor for example.
+> > > 
+> > > If you don't like the vmlinuz.lds.h approch (but again it is a
+> > > common
+> > > way to initialize table and I wrote it to extend to more thermal
+> > > table
+> > > in the future) we can change the thermal core to replace
+> > > fs_initcall()
+> > > by core_initcall() and use postcore_initcall() in the governor.
+> > > 
+> > > 
+> > > 
+> > > > 
+> > > > 
+> > > > Patch 1,2,5,6,7 applied first.
+> > > > 
+> > > > thanks,
+> > > > rui
+> > > > 
+> > > > On 二, 2019-04-02 at 18:12 +0200, Daniel Lezcano wrote:
+> > > > > 
+> > > > > 
+> > > > > Currently the governors are declared in their respective
+> > > > > files
+> > > > > but
+> > > > > they
+> > > > > export their [un]register functions which in turn call the
+> > > > > [un]register
+> > > > > the governors core's functions. That implies a cyclic
+> > > > > dependency
+> > > > > which is
+> > > > > not desirable. There is a way to self-encapsulate the
+> > > > > governors
+> > > > > by
+> > > > > letting
+> > > > > them to declare themselves in a __init section table.
+> > > > > 
+> > > > > Define the table in the asm generic linker description like
+> > > > > the
+> > > > > other
+> > > > > tables and provide the specific macros to deal with.
+> > > > > 
+> > > > > Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> > > > > ---
+> > > > >  drivers/thermal/thermal_core.h    | 16 ++++++++++++++++
+> > > > >  include/asm-generic/vmlinux.lds.h | 11 +++++++++++
+> > > > >  2 files changed, 27 insertions(+)
+> > > > > 
+> > > > > diff --git a/drivers/thermal/thermal_core.h
+> > > > > b/drivers/thermal/thermal_core.h
+> > > > > index 0df190ed82a7..28d18083e969 100644
+> > > > > --- a/drivers/thermal/thermal_core.h
+> > > > > +++ b/drivers/thermal/thermal_core.h
+> > > > > @@ -15,6 +15,22 @@
+> > > > >  /* Initial state of a cooling device during binding */
+> > > > >  #define THERMAL_NO_TARGET -1UL
+> > > > >  
+> > > > > +/* Init section thermal table */
+> > > > > +extern struct thermal_governor * __governor_thermal_table[];
+> > > > > +extern struct thermal_governor *
+> > > > > __governor_thermal_table_end[];
+> > > > > +
+> > > > > +#define THERMAL_TABLE_ENTRY(table, name)			
+> > > > > \
+> > > > > +        static typeof(name) * __thermal_table_entry_##name	
+> > > > > \
+> > > > > +	__used __section(__##table##_thermal_table)		
+> > > > > \
+> > > > > +		= &name;
+> > > > > +
+> > > > > +#define THERMAL_GOVERNOR_DECLARE(name)	THERMAL_TABLE_
+> > > > > ENTR
+> > > > > Y(go
+> > > > > vernor, name)
+> > > > > +
+> > > > > +#define for_each_governor_table(__governor)		\
+> > > > > +	for (__governor = __governor_thermal_table;	\
+> > > > > +	     __governor < __governor_thermal_table_end;	
+> > > > > \
+> > > > > +	     __governor++)
+> > > > > +
+> > > > >  /*
+> > > > >   * This structure is used to describe the behavior of
+> > > > >   * a certain cooling device on a certain trip point
+> > > > > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-
+> > > > > generic/vmlinux.lds.h
+> > > > > index f8f6f04c4453..9893a3ed242a 100644
+> > > > > --- a/include/asm-generic/vmlinux.lds.h
+> > > > > +++ b/include/asm-generic/vmlinux.lds.h
+> > > > > @@ -239,6 +239,16 @@
+> > > > >  #define ACPI_PROBE_TABLE(name)
+> > > > >  #endif
+> > > > >  
+> > > > > +#ifdef CONFIG_THERMAL
+> > > > > +#define THERMAL_TABLE(name)					
+> > > > > 	
+> > > > > \
+> > > > > +        . = ALIGN(8);					
+> > > > > 	
+> > > > > 	\
+> > > > > +        __##name##_thermal_table = .;			
+> > > > > 	
+> > > > > 	\
+> > > > > +        KEEP(*(__##name##_thermal_table))			
+> > > > > 	
+> > > > > \
+> > > > > +        __##name##_thermal_table_end = .;
+> > > > > +#else
+> > > > > +#define THERMAL_TABLE(name)
+> > > > > +#endif
+> > > > > +
+> > > > >  #define KERNEL_DTB()						
+> > > > > 	
+> > > > > \
+> > > > >  	STRUCT_ALIGN();					
+> > > > > 	
+> > > > > 	\
+> > > > >  	__dtb_start = .;					
+> > > > > 	
+> > > > > \
+> > > > > @@ -609,6 +619,7 @@
+> > > > >  	IRQCHIP_OF_MATCH_TABLE()				
+> > > > > 	
+> > > > > \
+> > > > >  	ACPI_PROBE_TABLE(irqchip)				
+> > > > > 	
+> > > > > \
+> > > > >  	ACPI_PROBE_TABLE(timer)				
+> > > > > 	
+> > > > > 	\
+> > > > > +	THERMAL_TABLE(governor)				
+> > > > > 	
+> > > > > 	\
+> > > > >  	EARLYCON_TABLE()					
+> > > > > 	
+> > > > > \
+> > > > >  	LSM_TABLE()
+> > > > >  
+> 
