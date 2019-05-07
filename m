@@ -1,55 +1,51 @@
-From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.14 61/95] mm: introduce mm_[p4d|pud|pmd]_folded
-Date: Tue,  7 May 2019 01:37:50 -0400
-Message-ID: <20190507053826.31622-61-sashal@kernel.org>
-References: <20190507053826.31622-1-sashal@kernel.org>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH 09/15] nds32: switch to generic version of pte allocation
+Date: Tue, 7 May 2019 14:49:08 +0800
+Message-ID: <CAEbi=3d=HN0NagdZRu7qYE1KCWGnnGGwyhWKPp31XbzT7JunBQ@mail.gmail.com>
+References: <1556810922-20248-1-git-send-email-rppt@linux.ibm.com> <1556810922-20248-10-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190507053826.31622-1-sashal@kernel.org>
+In-Reply-To: <1556810922-20248-10-git-send-email-rppt@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Sasha Levin <alexander.levin@microsoft.com>, linux-arch@vger.kernel.org
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infra
 List-Id: linux-arch.vger.kernel.org
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Hi Mike,
 
-[ Upstream commit 1071fc5779d9846fec56a4ff6089ab08cac1ab72 ]
+Mike Rapoport <rppt@linux.ibm.com> =E6=96=BC 2019=E5=B9=B45=E6=9C=882=E6=97=
+=A5 =E9=80=B1=E5=9B=9B =E4=B8=8B=E5=8D=8811:30=E5=AF=AB=E9=81=93=EF=BC=9A
+>
+> The nds32 implementation of pte_alloc_one_kernel() differs from the gener=
+ic
+> in the use of __GFP_RETRY_MAYFAIL flag, which is removed after the
+> conversion.
+>
+> The nds32 version of pte_alloc_one() missed the call to pgtable_page_ctor=
+()
+> and also used __GFP_RETRY_MAYFAIL. Switching it to use generic
+> __pte_alloc_one() for the PTE page allocation ensures that page table
+> constructor is run and the user page tables are allocated with
+> __GFP_ACCOUNT.
+>
+> The conversion to the generic version of pte_free_kernel() removes the NU=
+LL
+> check for pte.
+>
+> The pte_free() version on nds32 is identical to the generic one and can b=
+e
+> simply dropped.
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/nds32/include/asm/pgalloc.h | 31 ++++---------------------------
+>  1 file changed, 4 insertions(+), 27 deletions(-)
 
-Add three architecture overrideable functions to test if the
-p4d, pud, or pmd layer of a page table is folded or not.
+Thanks for your patch.
+I'm assuming this is going in along with the rest of the patches, so I'm no=
+t
+going to add it to my tree.
 
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
----
- include/asm-generic/pgtable.h | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
-
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index f00421dfacbd..0c21014a38f2 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1081,4 +1081,20 @@ static inline bool arch_has_pfn_modify_check(void)
- #endif
- #endif
- 
-+/*
-+ * On some architectures it depends on the mm if the p4d/pud or pmd
-+ * layer of the page table hierarchy is folded or not.
-+ */
-+#ifndef mm_p4d_folded
-+#define mm_p4d_folded(mm)	__is_defined(__PAGETABLE_P4D_FOLDED)
-+#endif
-+
-+#ifndef mm_pud_folded
-+#define mm_pud_folded(mm)	__is_defined(__PAGETABLE_PUD_FOLDED)
-+#endif
-+
-+#ifndef mm_pmd_folded
-+#define mm_pmd_folded(mm)	__is_defined(__PAGETABLE_PMD_FOLDED)
-+#endif
-+
- #endif /* _ASM_GENERIC_PGTABLE_H */
--- 
-2.20.1
+Acked-by: Greentime Hu <greentime@andestech.com>
