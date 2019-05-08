@@ -1,29 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53476 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727189AbfEHUAK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 May 2019 16:00:10 -0400
-Subject: Re: [GIT PULL] csky fixes for v5.1-rc7
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <1556181403-3881-1-git-send-email-guoren@kernel.org>
-References: <1556181403-3881-1-git-send-email-guoren@kernel.org>
-Message-ID: <155734560963.27473.1371616025731122852.pr-tracker-bot@kernel.org>
-Date: Wed, 08 May 2019 20:00:09 +0000
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:40898 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726830AbfEHW7D (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2019 18:59:03 -0400
+Date: Wed, 8 May 2019 15:59:00 -0700
+From: Yury Norov <yury.norov@gmail.com>
+Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
+Message-ID: <20190508225900.GA14091@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
-Message-ID: <20190508200009.w42Pn6x_IfwDq3Q8xgLYr3QtslUsW8kWA84JVGK8Lpk@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
+Message-ID: <20190508225900.6--7Vwh13YwtbdB6NxlcWi4CLKLVvuLHhonVwPKnJg8@z>
 
-The pull request you sent on Thu, 25 Apr 2019 16:36:43 +0800:
+Hi all,
 
-> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.1-rc7
+On Wed, May 16, 2018 at 11:18:45AM +0300, Yury Norov wrote:
+> This series enables AARCH64 with ILP32 mode.
+> 
+> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
+> option that is enabled for existing 32-bit architectures but disabled
+> for new arches (so 64-bit off_t userspace type is used by new userspace).
+> Also it deprecates getrlimit and setrlimit syscalls prior to prlimit64.
+> 
+> Based on kernel v4.16. Tested with LTP, glibc testsuite, trinity, lmbench,
+> CPUSpec.
+> 
+> This series on github: 
+> https://github.com/norov/linux/tree/ilp32-4.16
+> Linaro toolchain:
+> http://snapshots.linaro.org/components/toolchain/binaries/7.3-2018.04-rc1/aarch64-linux-gnu_ilp32/
+> Debian repo:
+> http://people.linaro.org/~wookey/ilp32/
+> OpenSUSE repo:
+> https://build.opensuse.org/project/show/devel:ARM:Factory:Contrib:ILP32
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/ce45327ca044415a5832dacfb76cdcfb747e3240
+This is the 5.1-based version.
+Changes comparing to 5.0:
+ - drop arch patches that has been taken upstream:
+   80d7da1cac62 asm-generic: Drop getrlimit and setrlimit syscalls from default list
+   942fa985e9f1 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
+   0d0216c03a7a compat ABI: use non-compat openat and open_by_handle_at variants
+ - in include/linux/thread_bits.h define current_thread_info() prior to
+   inclusion of asm/thread_info.h, to avoid circullar dependencies (thread: move
+   thread bits accessors to separated file);
+ - enable old IPC interfaces for ilp32, according to mainline changes
+   (arm64: ilp32: introduce syscall table for ILP32).
 
-Thank you!
-
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+Thanks,
+Yury
