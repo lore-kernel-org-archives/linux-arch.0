@@ -1,93 +1,97 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:41260 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1725873AbfEEIxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Sun, 5 May 2019 04:53:33 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1]) by
- mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x458qBC3033838
- for <linux-arch@vger.kernel.org>; Sun, 5 May 2019 04:53:31 -0400
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99]) by
- mx0a-001b2d01.pphosted.com with ESMTP id 2s9r5hfgh1-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Sun, 05 May 2019 04:53:31 -0400
-Received: from localhost by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>; Sun, 5 May 2019
- 09:53:29 +0100
-Date: Sun, 5 May 2019 11:53:23 +0300
+Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: DISCONTIGMEM is deprecated
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <20190419142835.GM18914@techsingularity.net>
- <9e7b80a9-b90e-ac04-8b30-b2f285cd4432@gmx.de>
+Subject: [PATCH v2 11/14] parisc: switch to generic version of pte allocation
+Date: Wed,  8 May 2019 09:17:08 +0300
+In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
+References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
+Message-ID: <1557296232-15361-12-git-send-email-rppt@linux.ibm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9e7b80a9-b90e-ac04-8b30-b2f285cd4432@gmx.de>
-Message-ID: <20190505085322.GH15755@rapoport-lnx>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, linux-mm@kvack.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, Paul Burton <paul.burton@mips.com>, linux-alpha@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Helge Deller <deller@gmx.de>
-Cc: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20190505085323.fpW5gqD9qFZYtJtUDit2yyBT3aBe9DtCbQOfLaZOehc@z>
+Message-ID: <20190508061708.Y2-r7SqcC0O3oBw2IKANIieKBIL-BIA5Aj1wdYvvsI4@z>
 
-Hi,
+parisc allocates PTE pages with __get_free_page() and uses
+GFP_KERNEL | __GFP_ZERO for the allocations.
 
-On Fri, Apr 19, 2019 at 10:08:31PM +0200, Helge Deller wrote:
-> On 19.04.19 16:28, Mel Gorman wrote:
-> > On Fri, Apr 19, 2019 at 07:05:21AM -0700, Matthew Wilcox wrote:
-> >> On Fri, Apr 19, 2019 at 10:43:35AM +0100, Mel Gorman wrote:
-> >>> DISCONTIG is essentially deprecated and even parisc plans to move to
-> >>> SPARSEMEM so there is no need to be fancy, this patch simply disables
-> >>> watermark boosting by default on DISCONTIGMEM.
-> >>
-> >> I don't think parisc is the only arch which uses DISCONTIGMEM for !NUMA
-> >> scenarios.  Grepping the arch/ directories shows:
-> >>
-> >> alpha (does support NUMA, but also non-NUMA DISCONTIGMEM)
-> >> arc (for supporting more than 1GB of memory)
-> >> ia64 (looks complicated ...)
-> >> m68k (for multiple chunks of memory)
-> >> mips (does support NUMA but also non-NUMA)
-> >> parisc (both NUMA and non-NUMA)
-> >>
-> >> I'm not sure that these architecture maintainers even know that DISCONTIGMEM
-> >> is deprecated.  Adding linux-arch to the cc.
-> >
-> > Poor wording then -- yes, DISCONTIGMEM is still used but look where it's
-> > used. I find it impossible to believe that any new arch would support
-> > DISCONTIGMEM or that DISCONTIGMEM would be selected when SPARSEMEM is
-> > available.`It's even more insane when you consider that SPARSEMEM can be
-> > extended to support VMEMMAP so that it has similar overhead to FLATMEM
-> > when mapping pfns to struct pages and vice-versa.
-> 
-> FYI, on parisc we will switch from DISCONTIGMEM to SPARSEMEM with kernel 5.2.
-> The patch was quite simple and it's currently in the for-next tree:
-> https://git.kernel.org/pub/scm/linux/kernel/git/deller/parisc-linux.git/commit/?h=for-next&id=281b718721a5e78288271d632731cea9697749f7
+Switch it to the generic version that does exactly the same thing for the
+kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
 
-A while ago I've sent a patch that removes ARCH_DISCARD_MEMBLOCK option [1]
-so the hunk below is not needed:
+The pte_free_kernel() and pte_free() versions on are identical to the
+generic ones and can be simply dropped.
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index c8038165b81f..26c215570adf 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -36,6 +36,7 @@ config PARISC
- 	select GENERIC_STRNCPY_FROM_USER
- 	select SYSCTL_ARCH_UNALIGN_ALLOW
- 	select SYSCTL_EXCEPTION_TRACE
-+	select ARCH_DISCARD_MEMBLOCK
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_RELA
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/parisc/include/asm/pgalloc.h | 33 ++-------------------------------
+ 1 file changed, 2 insertions(+), 31 deletions(-)
 
-
-[1] https://lore.kernel.org/lkml/1556102150-32517-1-git-send-email-rppt@linux.ibm.com/
-
-> Helge
-> 
-
+diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
+index ea75cc9..4f2059a 100644
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -10,6 +10,8 @@
+ 
+ #include <asm/cache.h>
+ 
++#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
++
+ /* Allocate the top level pgd (page directory)
+  *
+  * Here (for 64 bit kernels) we implement a Hybrid L2/L3 scheme: we
+@@ -122,37 +124,6 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
+ 	pmd_populate_kernel(mm, pmd, page_address(pte_page))
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+-static inline pgtable_t
+-pte_alloc_one(struct mm_struct *mm)
+-{
+-	struct page *page = alloc_page(GFP_KERNEL|__GFP_ZERO);
+-	if (!page)
+-		return NULL;
+-	if (!pgtable_page_ctor(page)) {
+-		__free_page(page);
+-		return NULL;
+-	}
+-	return page;
+-}
+-
+-static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm)
+-{
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
+-}
+-
+-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+-{
+-	free_page((unsigned long)pte);
+-}
+-
+-static inline void pte_free(struct mm_struct *mm, struct page *pte)
+-{
+-	pgtable_page_dtor(pte);
+-	pte_free_kernel(mm, page_address(pte));
+-}
+-
+ #define check_pgt_cache()	do { } while (0)
+ 
+ #endif
 -- 
-Sincerely yours,
-Mike.
+2.7.4
+
+
+_______________________________________________
+linux-riscv mailing list
+linux-riscv@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-riscv
