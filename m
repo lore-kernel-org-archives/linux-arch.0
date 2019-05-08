@@ -1,77 +1,109 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH v2 12/14] riscv: switch to generic version of pte allocation
-Date: Wed,  8 May 2019 09:17:09 +0300
-Message-ID: <1557296232-15361-13-git-send-email-rppt@linux.ibm.com>
-References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
+From: guoren@kernel.org
+Subject: [GIT PULL] csky changes for v5.2-rc1
+Date: Wed,  8 May 2019 17:09:01 +0800
+Message-ID: <1557306541-12814-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.orgli
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-The only difference between the generic and RISC-V implementation of PTE
-allocation is the usage of __GFP_RETRY_MAYFAIL for both kernel and user
-PTEs and the absence of __GFP_ACCOUNT for the user PTEs.
+The following changes since commit 085b7755808aa11f78ab9377257e1dad2e6fa4bb:
 
-The conversion to the generic version removes the __GFP_RETRY_MAYFAIL and
-ensures that GFP_ACCOUNT is used for the user PTE allocations.
+  Linux 5.1-rc6 (2019-04-21 10:45:57 -0700)
 
-The pte_free() and pte_free_kernel() versions are identical to the generic
-ones and can be simply dropped.
+are available in the git repository at:
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
----
- arch/riscv/include/asm/pgalloc.h | 29 ++---------------------------
- 1 file changed, 2 insertions(+), 27 deletions(-)
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.2-rc1
 
-diff --git a/arch/riscv/include/asm/pgalloc.h b/arch/riscv/include/asm/pgalloc.h
-index 94043cf..48f28bb 100644
---- a/arch/riscv/include/asm/pgalloc.h
-+++ b/arch/riscv/include/asm/pgalloc.h
-@@ -18,6 +18,8 @@
- #include <linux/mm.h>
- #include <asm/tlb.h>
- 
-+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
-+
- static inline void pmd_populate_kernel(struct mm_struct *mm,
- 	pmd_t *pmd, pte_t *pte)
- {
-@@ -82,33 +84,6 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
- 
- #endif /* __PAGETABLE_PMD_FOLDED */
- 
--static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	return (pte_t *)__get_free_page(
--		GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
--}
--
--static inline struct page *pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *pte;
--
--	pte = alloc_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO);
--	if (likely(pte != NULL))
--		pgtable_page_ctor(pte);
--	return pte;
--}
--
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
--{
--	free_page((unsigned long)pte);
--}
--
--static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
--{
--	pgtable_page_dtor(pte);
--	__free_page(pte);
--}
--
- #define __pte_free_tlb(tlb, pte, buf)   \
- do {                                    \
- 	pgtable_page_dtor(pte);         \
--- 
-2.7.4
+for you to fetch changes up to a691f3334d58b833e41d56de1b9820e687edcd78:
+
+  csky/syscall_trace: Fixup return processing flow (2019-04-22 15:55:28 +0800)
+
+----------------------------------------------------------------
+arch/csky patches for 5.2-rc1
+
+Here are the patches which made on 5.1-rc6 and all are tested in our
+buildroot gitlab CI:
+https://gitlab.com/c-sky/buildroot/pipelines/57892579
+
+ - Fixup vdsp&fpu issues in kernel
+ - Add dynamic function tracer
+ - Use in_syscall & forget_syscall instead of r11_sig
+ - Reconstruct signal processing
+ - Support dynamic start physical address
+ - Fixup wrong update_mmu_cache implementation
+ - Support vmlinux bootup with MMU off
+ - Use va_pa_offset instead of phys_offset
+ - Fixup syscall_trace return processing flow
+ - Add perf callchain support
+ - Add perf_arch_fetch_caller_regs support
+ - Add page fault perf event support
+ - Add support for perf registers sampling
+
+----------------------------------------------------------------
+Guo Ren (12):
+      csky: Fixup vdsp&fpu issues in kernel
+      csky/ftrace: Add dynamic function tracer (include graph tracer)
+      csky: Update syscall_trace_enter/exit implementation
+      csky: Add non-uapi asm/ptrace.h namespace
+      csky: Use in_syscall & forget_syscall instead of r11_sig
+      csky: Reconstruct signal processing
+      csky: Support dynamic start physical address
+      csky: Fixup wrong update_mmu_cache implementation
+      csky: Support vmlinux bootup with MMU off
+      csky: Use va_pa_offset instead of phys_offset
+      csky: Fixup compile warning
+      csky/syscall_trace: Fixup return processing flow
+
+Jagadeesh Pagadala (1):
+      csky: mm/fault.c: Remove duplicate header
+
+Mao Han (4):
+      csky: Add perf callchain support
+      csky: Add perf_arch_fetch_caller_regs support
+      csky: add page fault perf event support
+      csky: Add support for perf registers sampling
+
+Masahiro Yamada (1):
+      csky: remove redundant generic-y
+
+ arch/csky/Kconfig                      |   7 +-
+ arch/csky/Makefile                     |   2 +-
+ arch/csky/abiv1/inc/abi/ckmmu.h        |  24 ++-
+ arch/csky/abiv1/inc/abi/entry.h        |  41 ++--
+ arch/csky/abiv1/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/cacheflush.c           |  13 +-
+ arch/csky/abiv2/inc/abi/ckmmu.h        |  34 +++-
+ arch/csky/abiv2/inc/abi/entry.h        |  87 +++++++--
+ arch/csky/abiv2/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/mcount.S               |  39 +++-
+ arch/csky/abiv2/memmove.S              |   6 +-
+ arch/csky/include/asm/Kbuild           |   1 -
+ arch/csky/include/asm/ftrace.h         |  18 +-
+ arch/csky/include/asm/mmu_context.h    |  17 +-
+ arch/csky/include/asm/page.h           |  39 ++--
+ arch/csky/include/asm/perf_event.h     |   8 +
+ arch/csky/include/asm/ptrace.h         |  41 ++++
+ arch/csky/include/asm/syscall.h        |   9 +
+ arch/csky/include/asm/thread_info.h    |  27 ++-
+ arch/csky/include/asm/unistd.h         |   2 +
+ arch/csky/include/uapi/asm/perf_regs.h |  51 +++++
+ arch/csky/include/uapi/asm/ptrace.h    |  15 --
+ arch/csky/kernel/Makefile              |   2 +
+ arch/csky/kernel/atomic.S              |  26 +--
+ arch/csky/kernel/entry.S               |  77 +++-----
+ arch/csky/kernel/ftrace.c              | 148 +++++++++++++-
+ arch/csky/kernel/head.S                |  60 +-----
+ arch/csky/kernel/perf_callchain.c      | 119 +++++++++++
+ arch/csky/kernel/perf_regs.c           |  40 ++++
+ arch/csky/kernel/ptrace.c              |  51 +++--
+ arch/csky/kernel/setup.c               |  12 +-
+ arch/csky/kernel/signal.c              | 348 +++++++++++++--------------------
+ arch/csky/mm/fault.c                   |  15 +-
+ scripts/recordmcount.pl                |   3 +
+ 34 files changed, 890 insertions(+), 502 deletions(-)
+ create mode 100644 arch/csky/include/asm/ptrace.h
+ create mode 100644 arch/csky/include/uapi/asm/perf_regs.h
+ create mode 100644 arch/csky/kernel/perf_callchain.c
+ create mode 100644 arch/csky/kernel/perf_regs.c
