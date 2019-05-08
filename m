@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH v2 09/14] nds32: switch to generic version of pte allocation
-Date: Wed,  8 May 2019 09:17:06 +0300
-Message-ID: <1557296232-15361-10-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH v2 10/14] nios2: switch to generic version of pte allocation
+Date: Wed,  8 May 2019 09:17:07 +0300
+Message-ID: <1557296232-15361-11-git-send-email-rppt@linux.ibm.com>
 References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
@@ -10,86 +10,84 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.orgli
 List-Id: linux-arch.vger.kernel.org
 
-The nds32 implementation of pte_alloc_one_kernel() differs from the generic
-in the use of __GFP_RETRY_MAYFAIL flag, which is removed after the
-conversion.
+nios2 allocates kernel PTE pages with
 
-The nds32 version of pte_alloc_one() missed the call to pgtable_page_ctor()
-and also used __GFP_RETRY_MAYFAIL. Switching it to use generic
-__pte_alloc_one() for the PTE page allocation ensures that page table
-constructor is run and the user page tables are allocated with
-__GFP_ACCOUNT.
+        __get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER);
 
-The conversion to the generic version of pte_free_kernel() removes the NULL
-check for pte.
+and user page tables with
 
-The pte_free() version on nds32 is identical to the generic one and can be
-simply dropped.
+        pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
+        if (pte)
+                clear_highpage();
+
+The PTE_ORDER is hardwired to zero, which makes nios2 implementation almost
+identical to the generic one.
+
+Switch nios2 to the generic version that does exactly the same thing for
+the kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
+
+The pte_free_kernel() and pte_free() versions on nios2 are identical to the
+generic ones and can be simply dropped.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/nds32/include/asm/pgalloc.h | 31 ++++---------------------------
- 1 file changed, 4 insertions(+), 27 deletions(-)
+ arch/nios2/include/asm/pgalloc.h | 37 ++-----------------------------------
+ 1 file changed, 2 insertions(+), 35 deletions(-)
 
-diff --git a/arch/nds32/include/asm/pgalloc.h b/arch/nds32/include/asm/pgalloc.h
-index 3c5fee5..954696c 100644
---- a/arch/nds32/include/asm/pgalloc.h
-+++ b/arch/nds32/include/asm/pgalloc.h
-@@ -9,6 +9,9 @@
- #include <asm/tlbflush.h>
- #include <asm/proc-fns.h>
+diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
+index 3a149ea..4bc8cf7 100644
+--- a/arch/nios2/include/asm/pgalloc.h
++++ b/arch/nios2/include/asm/pgalloc.h
+@@ -12,6 +12,8 @@
  
-+#define __HAVE_ARCH_PTE_ALLOC_ONE
+ #include <linux/mm.h>
+ 
 +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
 +
- /*
-  * Since we have only two-level page tables, these are trivial
-  */
-@@ -22,22 +25,11 @@ extern void pgd_free(struct mm_struct *mm, pgd_t * pgd);
- 
- #define check_pgt_cache()		do { } while (0)
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+ 	pte_t *pte)
+ {
+@@ -37,41 +39,6 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 	free_pages((unsigned long)pgd, PGD_ORDER);
+ }
  
 -static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
 -{
 -	pte_t *pte;
 -
--	pte =
--	    (pte_t *) __get_free_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL |
--				      __GFP_ZERO);
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
 -
 -	return pte;
 -}
 -
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
- {
- 	pgtable_t pte;
- 
--	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO, 0);
-+	pte = __pte_alloc_one(mm, GFP_PGTABLE_USER);
- 	if (pte)
- 		cpu_dcache_wb_page((unsigned long)page_address(pte));
- 
-@@ -45,21 +37,6 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
- }
- 
- /*
-- * Free one PTE table.
-- */
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t * pte)
+-static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
 -{
+-	struct page *pte;
+-
+-	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
 -	if (pte) {
--		free_page((unsigned long)pte);
+-		if (!pgtable_page_ctor(pte)) {
+-			__free_page(pte);
+-			return NULL;
+-		}
+-		clear_highpage(pte);
 -	}
+-	return pte;
 -}
 -
--static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 -{
--	__free_page(pte);
+-	free_pages((unsigned long)pte, PTE_ORDER);
 -}
 -
--/*
-  * Populate the pmdp entry with a pointer to the pte.  This pmd is part
-  * of the mm address space.
-  *
+-static inline void pte_free(struct mm_struct *mm, struct page *pte)
+-{
+-	pgtable_page_dtor(pte);
+-	__free_pages(pte, PTE_ORDER);
+-}
+-
+ #define __pte_free_tlb(tlb, pte, addr)				\
+ 	do {							\
+ 		pgtable_page_dtor(pte);				\
 -- 
 2.7.4
