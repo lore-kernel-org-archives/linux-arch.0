@@ -1,78 +1,111 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38988 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1726121AbfEAUq1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Wed, 1 May 2019 16:46:27 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1]) by
- mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x41Kgnnt075034
- for <linux-arch@vger.kernel.org>; Wed, 1 May 2019 16:46:26 -0400
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98]) by
- mx0a-001b2d01.pphosted.com with ESMTP id 2s7f5g92xt-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Wed, 01 May 2019 16:46:26 -0400
-Received: from localhost by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>; Wed, 1 May 2019
- 21:46:24 +0100
-Date: Wed, 1 May 2019 23:46:17 +0300
+Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: DISCONTIGMEM is deprecated
-References: <20190419094335.GJ18914@techsingularity.net>
- <20190419140521.GI7751@bombadil.infradead.org>
- <20190421063859.GA19926@rapoport-lnx>
- <20190421132606.GJ7751@bombadil.infradead.org>
- <20190421211604.GN18914@techsingularity.net>
- <20190423071354.GB12114@infradead.org> <20190424113352.GA6278@rapoport-lnx>
- <20190428081107.GA30901@infradead.org>
+Subject: [PATCH v2 02/14] alpha: switch to generic version of pte allocation
+Date: Wed,  8 May 2019 09:16:59 +0300
+In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
+References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
+Message-ID: <1557296232-15361-3-git-send-email-rppt@linux.ibm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190428081107.GA30901@infradead.org>
-Message-ID: <20190501204616.GB6135@rapoport-lnx>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, linux-mm@kvack.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, Paul Burton <paul.burton@mips.com>, linux-alpha@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Mel Gorman <mgorman@techsingularity.net>, Matthew Wilcox <willy@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mikulas Patocka <mpatocka@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org, linux-mm@kvack.org, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20190501204617.lVowtUD6sHxnfuKbFxT2gSc9DSaSYuxjH1OF0E-KRC4@z>
+Message-ID: <20190508061659.TsdXddJJ8ZPi0acVeDwG5b3VpHz_YFI3bKtfGeNpUmQ@z>
 
-On Sun, Apr 28, 2019 at 01:11:07AM -0700, Christoph Hellwig wrote:
-> On Wed, Apr 24, 2019 at 02:33:53PM +0300, Mike Rapoport wrote:
-> > On Tue, Apr 23, 2019 at 12:13:54AM -0700, Christoph Hellwig wrote:
-> > > On Sun, Apr 21, 2019 at 10:16:04PM +0100, Mel Gorman wrote:
-> > > > 32-bit NUMA systems should be non-existent in practice. The last NUMA
-> > > > system I'm aware of that was both NUMA and 32-bit only died somewhere
-> > > > between 2004 and 2007. If someone is running a 64-bit capable system in
-> > > > 32-bit mode with NUMA, they really are just punishing themselves for fun.
-> > > 
-> > > Can we mark it as BROKEN to see if someone shouts and then remove it
-> > > a year or two down the road?  Or just kill it off now..
-> > 
-> > How about making SPARSEMEM default for x86-32?
-> 
-> Sounds good.
-> 
-> Another question:  I always found the option to even select the memory
-> models like a bad tradeoff.  Can we really expect a user to make a sane
-> choice?  I'd rather stick to a relativelty optimal choice based on arch
-> and maybe a few other parameters (NUMA or not for example) and stick to
-> it, reducing the testing matrix.
+alpha allocates PTE pages with __get_free_page() and uses
+GFP_KERNEL | __GFP_ZERO for the allocations.
 
-I've sent patches that remove ARCH_SELECT_MEMORY_MODEL from arm, s390 and
-sparc where it anyway has no effect [1].
+Switch it to the generic version that does exactly the same thing for the
+kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
 
-That leaves arm64, ia64, parisc, powerpc, sh and i386.
+The alpha pte_free() and pte_free_kernel() versions are identical to the
+generic ones and can be simply dropped.
 
-I'd say that for i386 selecting between FLAT and SPARSE based on NUMA
-sounds reasonable.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/alpha/include/asm/pgalloc.h | 40 +++-------------------------------------
+ 1 file changed, 3 insertions(+), 37 deletions(-)
 
-I'm not familiar enough with others to say if such enforcement makes any
-sense.
-
-Probably powerpc and sh can enable the preferred memory model in
-platform/board part of their Kconfig, just like arm.
-
-[1] https://lore.kernel.org/lkml/1556740577-4140-1-git-send-email-rppt@linux.ibm.com
-
+diff --git a/arch/alpha/include/asm/pgalloc.h b/arch/alpha/include/asm/pgalloc.h
+index 02f9f91..71ded3b 100644
+--- a/arch/alpha/include/asm/pgalloc.h
++++ b/arch/alpha/include/asm/pgalloc.h
+@@ -5,6 +5,8 @@
+ #include <linux/mm.h>
+ #include <linux/mmzone.h>
+ 
++#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
++
+ /*      
+  * Allocate and free page tables. The xxx_kernel() versions are
+  * used to allocate a kernel page table - this turns on ASN bits
+@@ -41,7 +43,7 @@ pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ static inline pmd_t *
+ pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+-	pmd_t *ret = (pmd_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
++	pmd_t *ret = (pmd_t *)__get_free_page(GFP_PGTABLE_USER);
+ 	return ret;
+ }
+ 
+@@ -51,42 +53,6 @@ pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ 	free_page((unsigned long)pmd);
+ }
+ 
+-static inline pte_t *
+-pte_alloc_one_kernel(struct mm_struct *mm)
+-{
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
+-	return pte;
+-}
+-
+-static inline void
+-pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+-{
+-	free_page((unsigned long)pte);
+-}
+-
+-static inline pgtable_t
+-pte_alloc_one(struct mm_struct *mm)
+-{
+-	pte_t *pte = pte_alloc_one_kernel(mm);
+-	struct page *page;
+-
+-	if (!pte)
+-		return NULL;
+-	page = virt_to_page(pte);
+-	if (!pgtable_page_ctor(page)) {
+-		__free_page(page);
+-		return NULL;
+-	}
+-	return page;
+-}
+-
+-static inline void
+-pte_free(struct mm_struct *mm, pgtable_t page)
+-{
+-	pgtable_page_dtor(page);
+-	__free_page(page);
+-}
+-
+ #define check_pgt_cache()	do { } while (0)
+ 
+ #endif /* _ALPHA_PGALLOC_H */
 -- 
-Sincerely yours,
-Mike.
+2.7.4
+
+
+_______________________________________________
+linux-riscv mailing list
+linux-riscv@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-riscv
