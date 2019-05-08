@@ -1,124 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:15292 "EHLO mx1.mailbox.org"
+Received: from mail.kernel.org ([198.145.29.99]:34144 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726276AbfEHAza (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 May 2019 20:55:30 -0400
-Date: Wed, 8 May 2019 10:54:56 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
-Message-ID: <20190508005456.th5pkxljz536cq6w@yavin>
-References: <20190506165439.9155-1-cyphar@cyphar.com>
- <20190506165439.9155-6-cyphar@cyphar.com>
- <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
- <20190506191735.nmzf7kwfh7b6e2tf@yavin>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="m3sipayj4evvlhxl"
-Content-Disposition: inline
-In-Reply-To: <20190506191735.nmzf7kwfh7b6e2tf@yavin>
+        id S1725815AbfEHJJI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 May 2019 05:09:08 -0400
+From: guoren@kernel.org
+Subject: [GIT PULL] csky changes for v5.2-rc1
+Date: Wed,  8 May 2019 17:09:01 +0800
+Message-ID: <1557306541-12814-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190508005456.gKwg1ZU-fEw4A2P70ayVOTDwqAmBSjcQ5lXtXGtCvJE@z>
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
+Message-ID: <20190508090901.lMxtgqEJC4vX8h11W_c9i6hm-0SnDeidUXAPrysd6G8@z>
 
+The following changes since commit 085b7755808aa11f78ab9377257e1dad2e6fa4bb:
 
---m3sipayj4evvlhxl
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+  Linux 5.1-rc6 (2019-04-21 10:45:57 -0700)
 
-On 2019-05-07, Aleksa Sarai <cyphar@cyphar.com> wrote:
-> On 2019-05-06, Jann Horn <jannh@google.com> wrote:
-> > On Mon, May 6, 2019 at 6:56 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > > The need to be able to scope path resolution of interpreters became
-> > > clear with one of the possible vectors used in CVE-2019-5736 (which
-> > > most major container runtimes were vulnerable to).
-> > >
-> > > Naively, it might seem that openat(2) -- which supports path scoping =
---
-> > > can be combined with execveat(AT_EMPTY_PATH) to trivially scope the
-> > > binary being executed. Unfortunately, a "bad binary" (usually a symli=
-nk)
-> > > could be written as a #!-style script with the symlink target as the
-> > > interpreter -- which would be completely missed by just scoping the
-> > > openat(2). An example of this being exploitable is CVE-2019-5736.
-> > >
-> > > In order to get around this, we need to pass down to each binfmt_*
-> > > implementation the scoping flags requested in execveat(2). In order to
-> > > maintain backwards-compatibility we only pass the scoping AT_* flags.
-> > >
-> > > To avoid breaking userspace (in the exceptionally rare cases where you
-> > > have #!-scripts with a relative path being execveat(2)-ed with dfd !=
-=3D
-> > > AT_FDCWD), we only pass dfd down to binfmt_* if any of our new flags =
-are
-> > > set in execveat(2).
-> >=20
-> > This seems extremely dangerous. I like the overall series, but not this=
- patch.
-> >=20
-> > > @@ -1762,6 +1774,12 @@ static int __do_execve_file(int fd, struct fil=
-ename *filename,
-> > >
-> > >         sched_exec();
-> > >
-> > > +       bprm->flags =3D flags & (AT_XDEV | AT_NO_MAGICLINKS | AT_NO_S=
-YMLINKS |
-> > > +                              AT_THIS_ROOT);
-> > [...]
-> > > +#define AT_THIS_ROOT           0x100000 /* - Scope ".." resolution t=
-o dirfd (like chroot(2)). */
-> >=20
-> > So now what happens if there is a setuid root ELF binary with program
-> > interpreter "/lib64/ld-linux-x86-64.so.2" (like /bin/su), and an
-> > unprivileged user runs it with execveat(..., AT_THIS_ROOT)? Is that
-> > going to let the unprivileged user decide which interpreter the
-> > setuid-root process should use? From a high-level perspective, opening
-> > the interpreter should be controlled by the program that is being
-> > loaded, not by the program that invoked it.
->=20
-> I went a bit nuts with openat_exec(), and I did end up adding it to the
-> ELF interpreter lookup (and you're completely right that this is a bad
-> idea -- I will drop it from this patch if it's included in the next
-> series).
->=20
-> The proposed solutions you give below are much nicer than this patch so
-> I can drop it and work on fixing those issues separately.
+are available in the git repository at:
 
-Another possible solution would be to only allow (for instance)
-AT_NO_MAGICLINKS for execveat(2). That way you cannot scope the
-resolution but you can block the most concerning cases -- those
-involving /proc-related access.
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.2-rc1
 
-I've posted a v7 with this patch dropped (because we can always add AT_*
-flags later in time), but I think having at least NO_MAGICLINKS would be
-useful.
+for you to fetch changes up to a691f3334d58b833e41d56de1b9820e687edcd78:
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+  csky/syscall_trace: Fixup return processing flow (2019-04-22 15:55:28 +0800)
 
---m3sipayj4evvlhxl
-Content-Type: application/pgp-signature; name="signature.asc"
+----------------------------------------------------------------
+arch/csky patches for 5.2-rc1
 
------BEGIN PGP SIGNATURE-----
+Here are the patches which made on 5.1-rc6 and all are tested in our
+buildroot gitlab CI:
+https://gitlab.com/c-sky/buildroot/pipelines/57892579
 
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzSKOAACgkQSnvnv3De
-m5+sVw//bA9Tf90p30BmnpG1nXFGi3o1Bvcw4bBtju6je0jL0EhCa6/D3MOOfYS3
-6Hy2pArRB/bP7Q2EWPS9xcoB65JMLigAMxa2kMiNjbHW12fShWBidjFqMEVBM6cS
-mitc+utlJWYL0HYPOvyGz6POpDofulAvfiYBVgFeqlJA+/C3EvdEOAGTBCv705aM
-7cNPTRJj+bcJ0Yvu6oXERxC+txG0AaM7CHeONhkZMxlkziZvwGyZYpui8pQgGm9D
-6aMp++KpubhSiRZVq3XHEJtg1323ujlQBDW8Y2i5LtjizwXWCf1x+gj5yKbM7Yzt
-gVDcVDOrTfunC3DP9eiJtjVm4y722CBR+XSyGi/iGY9cs5GOWwkhtI7LV98/d6B+
-N6P9V2HhAeRFWId1exLYlD03qwesXUSiMymObj0zsKhRotJ8dcUx66wJtOvrumZf
-lUf9FKXZF5b8cbUOAnSCcVZ/YdZcwwItWAD0ZT2sGD5ZttnC0sKnrFtEkbeMGGpN
-NG9v1lNYhqpmVE9jsSBXFSKVaDB1ipqqtxB0mSaK0/6aTOg8YMwKqxonuBra9sz3
-SqXwP25Qk5++syB2vZVdJNFAl9gjlapYrtTAqdYdrTQCSkIHeyiEIl9IT4lMupWR
-JgdYo6OEjpob11GKYnNjixo0REwy2cDXSqWvauZEBbriQ2b0jbI=
-=YctX
------END PGP SIGNATURE-----
+ - Fixup vdsp&fpu issues in kernel
+ - Add dynamic function tracer
+ - Use in_syscall & forget_syscall instead of r11_sig
+ - Reconstruct signal processing
+ - Support dynamic start physical address
+ - Fixup wrong update_mmu_cache implementation
+ - Support vmlinux bootup with MMU off
+ - Use va_pa_offset instead of phys_offset
+ - Fixup syscall_trace return processing flow
+ - Add perf callchain support
+ - Add perf_arch_fetch_caller_regs support
+ - Add page fault perf event support
+ - Add support for perf registers sampling
 
---m3sipayj4evvlhxl--
+----------------------------------------------------------------
+Guo Ren (12):
+      csky: Fixup vdsp&fpu issues in kernel
+      csky/ftrace: Add dynamic function tracer (include graph tracer)
+      csky: Update syscall_trace_enter/exit implementation
+      csky: Add non-uapi asm/ptrace.h namespace
+      csky: Use in_syscall & forget_syscall instead of r11_sig
+      csky: Reconstruct signal processing
+      csky: Support dynamic start physical address
+      csky: Fixup wrong update_mmu_cache implementation
+      csky: Support vmlinux bootup with MMU off
+      csky: Use va_pa_offset instead of phys_offset
+      csky: Fixup compile warning
+      csky/syscall_trace: Fixup return processing flow
+
+Jagadeesh Pagadala (1):
+      csky: mm/fault.c: Remove duplicate header
+
+Mao Han (4):
+      csky: Add perf callchain support
+      csky: Add perf_arch_fetch_caller_regs support
+      csky: add page fault perf event support
+      csky: Add support for perf registers sampling
+
+Masahiro Yamada (1):
+      csky: remove redundant generic-y
+
+ arch/csky/Kconfig                      |   7 +-
+ arch/csky/Makefile                     |   2 +-
+ arch/csky/abiv1/inc/abi/ckmmu.h        |  24 ++-
+ arch/csky/abiv1/inc/abi/entry.h        |  41 ++--
+ arch/csky/abiv1/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/cacheflush.c           |  13 +-
+ arch/csky/abiv2/inc/abi/ckmmu.h        |  34 +++-
+ arch/csky/abiv2/inc/abi/entry.h        |  87 +++++++--
+ arch/csky/abiv2/inc/abi/regdef.h       |   5 +-
+ arch/csky/abiv2/mcount.S               |  39 +++-
+ arch/csky/abiv2/memmove.S              |   6 +-
+ arch/csky/include/asm/Kbuild           |   1 -
+ arch/csky/include/asm/ftrace.h         |  18 +-
+ arch/csky/include/asm/mmu_context.h    |  17 +-
+ arch/csky/include/asm/page.h           |  39 ++--
+ arch/csky/include/asm/perf_event.h     |   8 +
+ arch/csky/include/asm/ptrace.h         |  41 ++++
+ arch/csky/include/asm/syscall.h        |   9 +
+ arch/csky/include/asm/thread_info.h    |  27 ++-
+ arch/csky/include/asm/unistd.h         |   2 +
+ arch/csky/include/uapi/asm/perf_regs.h |  51 +++++
+ arch/csky/include/uapi/asm/ptrace.h    |  15 --
+ arch/csky/kernel/Makefile              |   2 +
+ arch/csky/kernel/atomic.S              |  26 +--
+ arch/csky/kernel/entry.S               |  77 +++-----
+ arch/csky/kernel/ftrace.c              | 148 +++++++++++++-
+ arch/csky/kernel/head.S                |  60 +-----
+ arch/csky/kernel/perf_callchain.c      | 119 +++++++++++
+ arch/csky/kernel/perf_regs.c           |  40 ++++
+ arch/csky/kernel/ptrace.c              |  51 +++--
+ arch/csky/kernel/setup.c               |  12 +-
+ arch/csky/kernel/signal.c              | 348 +++++++++++++--------------------
+ arch/csky/mm/fault.c                   |  15 +-
+ scripts/recordmcount.pl                |   3 +
+ 34 files changed, 890 insertions(+), 502 deletions(-)
+ create mode 100644 arch/csky/include/asm/ptrace.h
+ create mode 100644 arch/csky/include/uapi/asm/perf_regs.h
+ create mode 100644 arch/csky/kernel/perf_callchain.c
+ create mode 100644 arch/csky/kernel/perf_regs.c
