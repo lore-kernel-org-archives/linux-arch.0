@@ -1,119 +1,100 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
-Date: Wed, 8 May 2019 10:54:56 +1000
-Message-ID: <20190508005456.th5pkxljz536cq6w@yavin>
-References: <20190506165439.9155-1-cyphar@cyphar.com>
- <20190506165439.9155-6-cyphar@cyphar.com>
- <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
- <20190506191735.nmzf7kwfh7b6e2tf@yavin>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH v2 00/14] introduce generic pte_{alloc,free}_one[_kernel]
+Date: Wed,  8 May 2019 09:16:57 +0300
+Message-ID: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="m3sipayj4evvlhxl"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190506191735.nmzf7kwfh7b6e2tf@yavin>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, linux-mm@kvack.org, Guo Ren <guoren@kernel.org>, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Matt Turner <mattst88@gmail.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-um@lists.infradead.org, Richard Weinberger <richard@nod.at>, linux-m68k@lists.linux-m68k.org, Greentime Hu <green.hu@gmail.com>, nios2-dev@lists.rocketboards.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists
 List-Id: linux-arch.vger.kernel.org
 
+Hi,
 
---m3sipayj4evvlhxl
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Many architectures have similar, if not identical implementation of
+pte_alloc_one_kernel(), pte_alloc_one(), pte_free_kernel() and pte_free().
 
-On 2019-05-07, Aleksa Sarai <cyphar@cyphar.com> wrote:
-> On 2019-05-06, Jann Horn <jannh@google.com> wrote:
-> > On Mon, May 6, 2019 at 6:56 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > > The need to be able to scope path resolution of interpreters became
-> > > clear with one of the possible vectors used in CVE-2019-5736 (which
-> > > most major container runtimes were vulnerable to).
-> > >
-> > > Naively, it might seem that openat(2) -- which supports path scoping =
---
-> > > can be combined with execveat(AT_EMPTY_PATH) to trivially scope the
-> > > binary being executed. Unfortunately, a "bad binary" (usually a symli=
-nk)
-> > > could be written as a #!-style script with the symlink target as the
-> > > interpreter -- which would be completely missed by just scoping the
-> > > openat(2). An example of this being exploitable is CVE-2019-5736.
-> > >
-> > > In order to get around this, we need to pass down to each binfmt_*
-> > > implementation the scoping flags requested in execveat(2). In order to
-> > > maintain backwards-compatibility we only pass the scoping AT_* flags.
-> > >
-> > > To avoid breaking userspace (in the exceptionally rare cases where you
-> > > have #!-scripts with a relative path being execveat(2)-ed with dfd !=
-=3D
-> > > AT_FDCWD), we only pass dfd down to binfmt_* if any of our new flags =
-are
-> > > set in execveat(2).
-> >=20
-> > This seems extremely dangerous. I like the overall series, but not this=
- patch.
-> >=20
-> > > @@ -1762,6 +1774,12 @@ static int __do_execve_file(int fd, struct fil=
-ename *filename,
-> > >
-> > >         sched_exec();
-> > >
-> > > +       bprm->flags =3D flags & (AT_XDEV | AT_NO_MAGICLINKS | AT_NO_S=
-YMLINKS |
-> > > +                              AT_THIS_ROOT);
-> > [...]
-> > > +#define AT_THIS_ROOT           0x100000 /* - Scope ".." resolution t=
-o dirfd (like chroot(2)). */
-> >=20
-> > So now what happens if there is a setuid root ELF binary with program
-> > interpreter "/lib64/ld-linux-x86-64.so.2" (like /bin/su), and an
-> > unprivileged user runs it with execveat(..., AT_THIS_ROOT)? Is that
-> > going to let the unprivileged user decide which interpreter the
-> > setuid-root process should use? From a high-level perspective, opening
-> > the interpreter should be controlled by the program that is being
-> > loaded, not by the program that invoked it.
->=20
-> I went a bit nuts with openat_exec(), and I did end up adding it to the
-> ELF interpreter lookup (and you're completely right that this is a bad
-> idea -- I will drop it from this patch if it's included in the next
-> series).
->=20
-> The proposed solutions you give below are much nicer than this patch so
-> I can drop it and work on fixing those issues separately.
+A while ago Anshuman suggested to introduce a common definition of
+GFP_PGTABLE and during the discussion it was suggested to rather
+consolidate the allocators.
 
-Another possible solution would be to only allow (for instance)
-AT_NO_MAGICLINKS for execveat(2). That way you cannot scope the
-resolution but you can block the most concerning cases -- those
-involving /proc-related access.
+These patches introduce generic version of PTE allocation and free and
+enable their use on several architectures.
 
-I've posted a v7 with this patch dropped (because we can always add AT_*
-flags later in time), but I think having at least NO_MAGICLINKS would be
-useful.
+The conversion introduces some changes for some of the architectures.
+Here's the executive summary and the details are described at each patch.
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+* Most architectures do not set __GFP_ACCOUNT for the user page tables.
+Switch to the generic functions is "spreading that goodness to all other
+architectures"
+* arm, arm64 and unicore32 used to check if the pte is not NULL before
+freeing its memory in pte_free_kernel(). It's dropped during the
+conversion as it seems superfluous.
+* x86 used to BUG_ON() is pte was not page aligned duirng
+pte_free_kernel(), the generic version simply frees the memory without any
+checks.
 
---m3sipayj4evvlhxl
-Content-Type: application/pgp-signature; name="signature.asc"
+This set only performs the straightforward conversion, the architectures
+with different logic in pte_alloc_one() and pte_alloc_one_kernel() are not
+touched, as well as architectures that have custom page table allocators.
 
------BEGIN PGP SIGNATURE-----
+v2 changes:
+* rebase on the current upstream
+* fix copy-paste error in the description of pte_free()
+* fix changelog for MIPS to match actual changes
+* drop powerpc changes
+* add Acked/Reviewed tags
 
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzSKOAACgkQSnvnv3De
-m5+sVw//bA9Tf90p30BmnpG1nXFGi3o1Bvcw4bBtju6je0jL0EhCa6/D3MOOfYS3
-6Hy2pArRB/bP7Q2EWPS9xcoB65JMLigAMxa2kMiNjbHW12fShWBidjFqMEVBM6cS
-mitc+utlJWYL0HYPOvyGz6POpDofulAvfiYBVgFeqlJA+/C3EvdEOAGTBCv705aM
-7cNPTRJj+bcJ0Yvu6oXERxC+txG0AaM7CHeONhkZMxlkziZvwGyZYpui8pQgGm9D
-6aMp++KpubhSiRZVq3XHEJtg1323ujlQBDW8Y2i5LtjizwXWCf1x+gj5yKbM7Yzt
-gVDcVDOrTfunC3DP9eiJtjVm4y722CBR+XSyGi/iGY9cs5GOWwkhtI7LV98/d6B+
-N6P9V2HhAeRFWId1exLYlD03qwesXUSiMymObj0zsKhRotJ8dcUx66wJtOvrumZf
-lUf9FKXZF5b8cbUOAnSCcVZ/YdZcwwItWAD0ZT2sGD5ZttnC0sKnrFtEkbeMGGpN
-NG9v1lNYhqpmVE9jsSBXFSKVaDB1ipqqtxB0mSaK0/6aTOg8YMwKqxonuBra9sz3
-SqXwP25Qk5++syB2vZVdJNFAl9gjlapYrtTAqdYdrTQCSkIHeyiEIl9IT4lMupWR
-JgdYo6OEjpob11GKYnNjixo0REwy2cDXSqWvauZEBbriQ2b0jbI=
-=YctX
------END PGP SIGNATURE-----
+[1] https://lore.kernel.org/lkml/1547619692-7946-1-git-send-email-anshuman.khandual@arm.com
 
---m3sipayj4evvlhxl--
+Mike Rapoport (14):
+  asm-generic, x86: introduce generic pte_{alloc,free}_one[_kernel]
+  alpha: switch to generic version of pte allocation
+  arm: switch to generic version of pte allocation
+  arm64: switch to generic version of pte allocation
+  csky: switch to generic version of pte allocation
+  hexagon: switch to generic version of pte allocation
+  m68k: sun3: switch to generic version of pte allocation
+  mips: switch to generic version of pte allocation
+  nds32: switch to generic version of pte allocation
+  nios2: switch to generic version of pte allocation
+  parisc: switch to generic version of pte allocation
+  riscv: switch to generic version of pte allocation
+  um: switch to generic version of pte allocation
+  unicore32: switch to generic version of pte allocation
+
+ arch/alpha/include/asm/pgalloc.h     |  40 +------------
+ arch/arm/include/asm/pgalloc.h       |  41 +++++---------
+ arch/arm/mm/mmu.c                    |   2 +-
+ arch/arm64/include/asm/pgalloc.h     |  47 +++------------
+ arch/arm64/mm/mmu.c                  |   2 +-
+ arch/arm64/mm/pgd.c                  |   9 ++-
+ arch/csky/include/asm/pgalloc.h      |  30 +---------
+ arch/hexagon/include/asm/pgalloc.h   |  34 +----------
+ arch/m68k/include/asm/sun3_pgalloc.h |  41 +-------------
+ arch/mips/include/asm/pgalloc.h      |  33 +----------
+ arch/nds32/include/asm/pgalloc.h     |  31 ++--------
+ arch/nios2/include/asm/pgalloc.h     |  37 +-----------
+ arch/parisc/include/asm/pgalloc.h    |  33 +----------
+ arch/riscv/include/asm/pgalloc.h     |  29 +---------
+ arch/um/include/asm/pgalloc.h        |  16 +-----
+ arch/um/kernel/mem.c                 |  22 -------
+ arch/unicore32/include/asm/pgalloc.h |  36 +++---------
+ arch/x86/include/asm/pgalloc.h       |  19 +------
+ arch/x86/mm/pgtable.c                |  33 +++--------
+ include/asm-generic/pgalloc.h        | 107 +++++++++++++++++++++++++++++++++--
+ virt/kvm/arm/mmu.c                   |   2 +-
+ 21 files changed, 178 insertions(+), 466 deletions(-)
+
+-- 
+2.7.4
