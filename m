@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH v2 11/14] parisc: switch to generic version of pte allocation
-Date: Wed,  8 May 2019 09:17:08 +0300
-Message-ID: <1557296232-15361-12-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH v2 03/14] arm: switch to generic version of pte allocation
+Date: Wed,  8 May 2019 09:17:00 +0300
+Message-ID: <1557296232-15361-4-git-send-email-rppt@linux.ibm.com>
 References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
@@ -10,70 +10,120 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.orgli
 List-Id: linux-arch.vger.kernel.org
 
-parisc allocates PTE pages with __get_free_page() and uses
-GFP_KERNEL | __GFP_ZERO for the allocations.
+Replace __get_free_page() and alloc_pages() calls with the generic
+__pte_alloc_one_kernel() and __pte_alloc_one().
 
-Switch it to the generic version that does exactly the same thing for the
-kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
+There is no functional change for the kernel PTE allocation.
 
-The pte_free_kernel() and pte_free() versions on are identical to the
-generic ones and can be simply dropped.
+The difference for the user PTEs, is that the clear_pte_table() is now
+called after pgtable_page_ctor() and the addition of __GFP_ACCOUNT to the
+GFP flags.
+
+The conversion to the generic version of pte_free_kernel() removes the NULL
+check for pte.
+
+The pte_free() version on arm is identical to the generic one and can be
+simply dropped.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/parisc/include/asm/pgalloc.h | 33 ++-------------------------------
- 1 file changed, 2 insertions(+), 31 deletions(-)
+ arch/arm/include/asm/pgalloc.h | 41 +++++++++++++----------------------------
+ arch/arm/mm/mmu.c              |  2 +-
+ 2 files changed, 14 insertions(+), 29 deletions(-)
 
-diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
-index ea75cc9..4f2059a 100644
---- a/arch/parisc/include/asm/pgalloc.h
-+++ b/arch/parisc/include/asm/pgalloc.h
-@@ -10,6 +10,8 @@
+diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
+index 17ab72f..13c5a9d 100644
+--- a/arch/arm/include/asm/pgalloc.h
++++ b/arch/arm/include/asm/pgalloc.h
+@@ -57,8 +57,6 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+ extern pgd_t *pgd_alloc(struct mm_struct *mm);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
  
- #include <asm/cache.h>
- 
-+#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_ZERO)
+-
+ static inline void clean_pte_table(pte_t *pte)
+ {
+ 	clean_dcache_area(pte + PTE_HWTABLE_PTRS, PTE_HWTABLE_SIZE);
+@@ -80,54 +78,41 @@ static inline void clean_pte_table(pte_t *pte)
+  *  |  h/w pt 1  |
+  *  +------------+
+  */
 +
- /* Allocate the top level pgd (page directory)
-  *
-  * Here (for 64 bit kernels) we implement a Hybrid L2/L3 scheme: we
-@@ -122,37 +124,6 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
- 	pmd_populate_kernel(mm, pmd, page_address(pte_page))
- #define pmd_pgtable(pmd) pmd_page(pmd)
++#define __HAVE_ARCH_PTE_ALLOC_ONE_KERNEL
++#define __HAVE_ARCH_PTE_ALLOC_ONE
++#include <asm-generic/pgalloc.h>
++
+ static inline pte_t *
+ pte_alloc_one_kernel(struct mm_struct *mm)
+ {
+-	pte_t *pte;
++	pte_t *pte = __pte_alloc_one_kernel(mm);
  
--static inline pgtable_t
--pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *page = alloc_page(GFP_KERNEL|__GFP_ZERO);
--	if (!page)
--		return NULL;
--	if (!pgtable_page_ctor(page)) {
--		__free_page(page);
+-	pte = (pte_t *)__get_free_page(PGALLOC_GFP);
+ 	if (pte)
+ 		clean_pte_table(pte);
+ 
+ 	return pte;
+ }
+ 
++#ifdef CONFIG_HIGHPTE
++#define PGTABLE_HIGHMEM __GFP_HIGHMEM
++#else
++#define PGTABLE_HIGHMEM 0
++#endif
++
+ static inline pgtable_t
+ pte_alloc_one(struct mm_struct *mm)
+ {
+ 	struct page *pte;
+ 
+-#ifdef CONFIG_HIGHPTE
+-	pte = alloc_pages(PGALLOC_GFP | __GFP_HIGHMEM, 0);
+-#else
+-	pte = alloc_pages(PGALLOC_GFP, 0);
+-#endif
++	pte = __pte_alloc_one(mm, GFP_PGTABLE_USER | PGTABLE_HIGHMEM);
+ 	if (!pte)
+ 		return NULL;
+ 	if (!PageHighMem(pte))
+ 		clean_pte_table(page_address(pte));
+-	if (!pgtable_page_ctor(pte)) {
+-		__free_page(pte);
 -		return NULL;
 -	}
--	return page;
--}
--
--static inline pte_t *
--pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
--	return pte;
--}
--
+ 	return pte;
+ }
+ 
+-/*
+- * Free one PTE table.
+- */
 -static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 -{
--	free_page((unsigned long)pte);
+-	if (pte)
+-		free_page((unsigned long)pte);
 -}
 -
--static inline void pte_free(struct mm_struct *mm, struct page *pte)
+-static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
 -{
 -	pgtable_page_dtor(pte);
--	pte_free_kernel(mm, page_address(pte));
+-	__free_page(pte);
 -}
 -
- #define check_pgt_cache()	do { } while (0)
+ static inline void __pmd_populate(pmd_t *pmdp, phys_addr_t pte,
+ 				  pmdval_t prot)
+ {
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index f3ce341..e8e0382 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -732,7 +732,7 @@ static void __init *early_alloc(unsigned long sz)
  
- #endif
+ static void *__init late_alloc(unsigned long sz)
+ {
+-	void *ptr = (void *)__get_free_pages(PGALLOC_GFP, get_order(sz));
++	void *ptr = (void *)__get_free_pages(GFP_PGTABLE_KERNEL, get_order(sz));
+ 
+ 	if (!ptr || !pgtable_page_ctor(virt_to_page(ptr)))
+ 		BUG();
 -- 
 2.7.4
