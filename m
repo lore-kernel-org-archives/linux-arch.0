@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH v2 08/14] mips: switch to generic version of pte allocation
-Date: Wed,  8 May 2019 09:17:05 +0300
-Message-ID: <1557296232-15361-9-git-send-email-rppt@linux.ibm.com>
+Subject: [PATCH v2 09/14] nds32: switch to generic version of pte allocation
+Date: Wed,  8 May 2019 09:17:06 +0300
+Message-ID: <1557296232-15361-10-git-send-email-rppt@linux.ibm.com>
 References: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1557296232-15361-1-git-send-email-rppt@linux.ibm.com>
@@ -10,82 +10,86 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Anshuman Khandual <anshuman.khandual@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>, Ley Foon Tan <lftan@altera.com>, Matthew Wilcox <willy@infradead.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@suse.com>, Palmer Dabbelt <palmer@sifive.com>, Paul Burton <paul.burton@mips.com>, Richard Kuo <rkuo@codeaurora.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.orgli
 List-Id: linux-arch.vger.kernel.org
 
-MIPS allocates kernel PTE pages with
+The nds32 implementation of pte_alloc_one_kernel() differs from the generic
+in the use of __GFP_RETRY_MAYFAIL flag, which is removed after the
+conversion.
 
-	__get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER)
+The nds32 version of pte_alloc_one() missed the call to pgtable_page_ctor()
+and also used __GFP_RETRY_MAYFAIL. Switching it to use generic
+__pte_alloc_one() for the PTE page allocation ensures that page table
+constructor is run and the user page tables are allocated with
+__GFP_ACCOUNT.
 
-and user PTE pages with
+The conversion to the generic version of pte_free_kernel() removes the NULL
+check for pte.
 
-	pte = alloc_pages(GFP_KERNEL, PTE_ORDER)
-
-and then uses clear_highpage(pte) to zero out the allocated page for the
-user page tables.
-
-The PTE_ORDER is hardwired to zero, which makes MIPS implementation almost
-identical to the generic one.
-
-Switch MIPS to the generic version that does exactly the same thing for the
-kernel page tables and adds __GFP_ACCOUNT for the user PTEs.
-
-The pte_free_kernel() and pte_free() versions on mips are identical to the
-generic ones and can be simply dropped.
+The pte_free() version on nds32 is identical to the generic one and can be
+simply dropped.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Paul Burton <paul.burton@mips.com>
 ---
- arch/mips/include/asm/pgalloc.h | 33 ++-------------------------------
- 1 file changed, 2 insertions(+), 31 deletions(-)
+ arch/nds32/include/asm/pgalloc.h | 31 ++++---------------------------
+ 1 file changed, 4 insertions(+), 27 deletions(-)
 
-diff --git a/arch/mips/include/asm/pgalloc.h b/arch/mips/include/asm/pgalloc.h
-index 27808d9..aa16b85 100644
---- a/arch/mips/include/asm/pgalloc.h
-+++ b/arch/mips/include/asm/pgalloc.h
-@@ -13,6 +13,8 @@
- #include <linux/mm.h>
- #include <linux/sched.h>
+diff --git a/arch/nds32/include/asm/pgalloc.h b/arch/nds32/include/asm/pgalloc.h
+index 3c5fee5..954696c 100644
+--- a/arch/nds32/include/asm/pgalloc.h
++++ b/arch/nds32/include/asm/pgalloc.h
+@@ -9,6 +9,9 @@
+ #include <asm/tlbflush.h>
+ #include <asm/proc-fns.h>
  
++#define __HAVE_ARCH_PTE_ALLOC_ONE
 +#include <asm-generic/pgalloc.h>	/* for pte_{alloc,free}_one */
 +
- static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
- 	pte_t *pte)
- {
-@@ -50,37 +52,6 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- 	free_pages((unsigned long)pgd, PGD_ORDER);
- }
+ /*
+  * Since we have only two-level page tables, these are trivial
+  */
+@@ -22,22 +25,11 @@ extern void pgd_free(struct mm_struct *mm, pgd_t * pgd);
+ 
+ #define check_pgt_cache()		do { } while (0)
  
 -static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
 -{
--	return (pte_t *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, PTE_ORDER);
--}
+-	pte_t *pte;
 -
--static inline struct page *pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *pte;
+-	pte =
+-	    (pte_t *) __get_free_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL |
+-				      __GFP_ZERO);
 -
--	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
--	if (!pte)
--		return NULL;
--	clear_highpage(pte);
--	if (!pgtable_page_ctor(pte)) {
--		__free_page(pte);
--		return NULL;
--	}
 -	return pte;
 -}
 -
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
+ {
+ 	pgtable_t pte;
+ 
+-	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO, 0);
++	pte = __pte_alloc_one(mm, GFP_PGTABLE_USER);
+ 	if (pte)
+ 		cpu_dcache_wb_page((unsigned long)page_address(pte));
+ 
+@@ -45,21 +37,6 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
+ }
+ 
+ /*
+- * Free one PTE table.
+- */
+-static inline void pte_free_kernel(struct mm_struct *mm, pte_t * pte)
 -{
--	free_pages((unsigned long)pte, PTE_ORDER);
+-	if (pte) {
+-		free_page((unsigned long)pte);
+-	}
 -}
 -
 -static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
 -{
--	pgtable_page_dtor(pte);
--	__free_pages(pte, PTE_ORDER);
+-	__free_page(pte);
 -}
 -
- #define __pte_free_tlb(tlb,pte,address)			\
- do {							\
- 	pgtable_page_dtor(pte);				\
+-/*
+  * Populate the pmdp entry with a pointer to the pte.  This pmd is part
+  * of the mm address space.
+  *
 -- 
 2.7.4
