@@ -1,50 +1,45 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] [v2] x86/mpx: fix recursive munmap() corruption
-Date: Thu, 9 May 2019 10:31:11 +0200
-Message-ID: <20190509083111.GA75918@gmail.com>
-References: <20190419194747.5E1AD6DC@viggo.jf.intel.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Early printk breakage due to 3e5903eb9cff ("vsprintf: Prevent crash
+ when dereferencing invalid pointers")
+Date: Thu, 9 May 2019 12:46:58 +0200
+Message-ID: <20190509104658.GB5758@osiris>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190419194747.5E1AD6DC@viggo.jf.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-kernel@vger.kernel.org, rguenther@suse.de, hjl.tools@gmail.com, yang.shi@linux.alibaba.com, mhocko@suse.com, vbabka@suse.cz, luto@amacapital.net, x86@kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, stable@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-um@lists.infradead.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, linux-arch@vger.kernel.org, gxt@pku.edu.cn, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com
+To: Petr Mladek <pmladek@suse.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
+Hello Petr,
 
-* Dave Hansen <dave.hansen@linux.intel.com> wrote:
+I just realized that early printks, or more specific vsnprintf invocations,
+are broken on s390 due to
 
-> Reported-by: Richard Biener <rguenther@suse.de>
-> Reported-by: H.J. Lu <hjl.tools@gmail.com>
-> Fixes: dd2283f2605e ("mm: mmap: zap pages with read mmap_sem in munmap")
-> Cc: Yang Shi <yang.shi@linux.alibaba.com>
-> Cc: Michal Hocko <mhocko@suse.com>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
-> Cc: Andy Lutomirski <luto@amacapital.net>
-> Cc: x86@kernel.org
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: linux-kernel@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: stable@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-um@lists.infradead.org
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Guan Xuetao <gxt@pku.edu.cn>
-> Cc: Jeff Dike <jdike@addtoit.com>
-> Cc: Richard Weinberger <richard@nod.at>
-> Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+3e5903eb9cff ("vsprintf: Prevent crash when dereferencing invalid pointers").
 
-I've also added your:
+E.g. the early boot output now looks like this where the first
+(efault) should be the linux_banner:
 
-  Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+[    0.099985] (efault)
+[    0.099985] setup: Linux is running as a z/VM guest operating system in 64-bit mode
+[    0.100066] setup: The maximum memory size is 8192MB
+[    0.100070] cma: Reserved 4 MiB at (efault)
+[    0.100100] numa: NUMA mode: (efault)
 
-Because I suppose you intended to sign off on it?
+The reason for this, is that your code assumes that
+probe_kernel_address() works very early. This however is not true on
+at least s390. Uaccess on KERNEL_DS works only after page tables have
+been setup on s390, which happens with setup_arch()->paging_init().
 
-Thanks,
+Any probe_kernel_address() invocation before that will return -EFAULT.
 
-	Ingo
+So how should we fix this? We could e.g. again add an arch specific
+version of probe_kernel_read() for s390, which would be more or less a
+copy of the generic variant, just that it would do something different
+if page tables aren't setup yet.
+
+Or... any other idea?
+
+Cc'ing linux-arch, just in case other architectures are also affected.
