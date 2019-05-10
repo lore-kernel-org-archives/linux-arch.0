@@ -1,84 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53100 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727496AbfEJQqA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 May 2019 12:46:00 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4AGb041048360
-        for <linux-arch@vger.kernel.org>; Fri, 10 May 2019 12:45:59 -0400
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2sdbtgu6su-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 10 May 2019 12:45:58 -0400
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Fri, 10 May 2019 17:45:57 +0100
-Date: Fri, 10 May 2019 18:45:48 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH] vsprintf: Do not break early boot with probing
- addresses
-In-Reply-To: <20190510124058.0d44b441@gandalf.local.home>
+Received: from pegase1.c-s.fr ([93.17.236.30]:52813 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727670AbfEJRfk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 May 2019 13:35:40 -0400
+Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
 References: <20190510081635.GA4533@jagdpanzerIV>
-        <20190510084213.22149-1-pmladek@suse.com>
-        <20190510122401.21a598f6@gandalf.local.home>
-        <20190510183258.1f6c4153@mschwideX1>
-        <20190510124058.0d44b441@gandalf.local.home>
+ <20190510084213.22149-1-pmladek@suse.com>
+ <20190510122401.21a598f6@gandalf.local.home>
+From: christophe leroy <christophe.leroy@c-s.fr>
+Message-ID: <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
+Date: Fri, 10 May 2019 19:35:29 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Message-ID: <20190510184548.1eda01a9@mschwideX1>
+In-Reply-To: <20190510122401.21a598f6@gandalf.local.home>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Petr Mladek <pmladek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Christophe Leroy <christophe.leroy@c-s.fr>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
-Message-ID: <20190510164548.hSfrXK8q_ZGsqqE57NiR7n0OFDEvIcwdE7j7PZU7lac@z>
+To: Steven Rostedt <rostedt@goodmis.org>, Petr Mladek <pmladek@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20190510173529.XATeuZJ4qvPsIGIrHM2kfdN6CdMiyb6gddK2hUaBa-I@z>
 
-On Fri, 10 May 2019 12:40:58 -0400
-Steven Rostedt <rostedt@goodmis.org> wrote:
 
-> On Fri, 10 May 2019 18:32:58 +0200
-> Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+
+Le 10/05/2019 à 18:24, Steven Rostedt a écrit :
+> On Fri, 10 May 2019 10:42:13 +0200
+> Petr Mladek <pmladek@suse.com> wrote:
 > 
-> > On Fri, 10 May 2019 12:24:01 -0400
-> > Steven Rostedt <rostedt@goodmis.org> wrote:
-> >   
-> > > On Fri, 10 May 2019 10:42:13 +0200
-> > > Petr Mladek <pmladek@suse.com> wrote:
-> > >     
-> > > >  static const char *check_pointer_msg(const void *ptr)
-> > > >  {
-> > > > -	char byte;
-> > > > -
-> > > >  	if (!ptr)
-> > > >  		return "(null)";
-> > > >  
-> > > > -	if (probe_kernel_address(ptr, byte))
-> > > > +	if ((unsigned long)ptr < PAGE_SIZE || IS_ERR_VALUE(ptr))
-> > > >  		return "(efault)";
-> > > >        
-> > > 
-> > > 
-> > > 	< PAGE_SIZE ?
-> > > 
-> > > do you mean: < TASK_SIZE ?    
-> > 
-> > The check with < TASK_SIZE would break on s390. The 'ptr' is
-> > in the kernel address space, *not* in the user address space.
-> > Remember s390 has two separate address spaces for kernel/user
-> > the check < TASK_SIZE only makes sense with a __user pointer.
-> >   
+>>   static const char *check_pointer_msg(const void *ptr)
+>>   {
+>> -	char byte;
+>> -
+>>   	if (!ptr)
+>>   		return "(null)";
+>>   
+>> -	if (probe_kernel_address(ptr, byte))
+>> +	if ((unsigned long)ptr < PAGE_SIZE || IS_ERR_VALUE(ptr))
+>>   		return "(efault)";
+>>   
 > 
-> So we allow this to read user addresses? Can't that cause a fault?
 > 
-> If the condition is true, we return "(efault)".
+> 	< PAGE_SIZE ?
+> 
+> do you mean: < TASK_SIZE ?
 
-On x86 this would allow a user space access as kernel and user live
-in the same address space, on s390 it would not.
-h
--- 
-blue skies,
-   Martin.
+I guess not.
 
-"Reality continues to ruin my life." - Calvin.
+Usually, < PAGE_SIZE means NULL pointer dereference (via the member of a 
+struct)
+
+Christophe
+
+---
+L'absence de virus dans ce courrier électronique a été vérifiée par le logiciel antivirus Avast.
+https://www.avast.com/antivirus
