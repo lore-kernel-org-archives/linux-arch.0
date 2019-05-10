@@ -1,32 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:45334 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726587AbfEJFHO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 May 2019 01:07:14 -0400
-Date: Fri, 10 May 2019 14:07:09 +0900
-From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
-Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
-Message-ID: <20190510050709.GA1831@jagdpanzerIV>
-References: <20190509121923.8339-1-pmladek@suse.com>
- <20190510043200.GC15652@jagdpanzerIV>
- <CAHk-=wiP+hwSqEW0dM6AYNWUR7jXDkeueq69et6ahfUgV7hC3w@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wiP+hwSqEW0dM6AYNWUR7jXDkeueq69et6ahfUgV7hC3w@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:52636 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726305AbfEJGKz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 May 2019 02:10:55 -0400
+From: guoren@kernel.org
+Subject: [PATCH] csky: Select intc & timer drivers
+Date: Fri, 10 May 2019 14:10:39 +0800
+Message-ID: <1557468639-21021-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Christophe Leroy <christophe.leroy@c-s.fr>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20190510050709.ugUsmdWEg2-_zeuhzXY9dG3VOFvC7DcdjoUsQ1gSOxk@z>
+To: arnd@arnd.de, guoren@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
+Message-ID: <20190510061039.LhSi9YdPof5FOwD3W90XVC6-5P-ivfPQTvZ7pYBqxAw@z>
 
-On (05/09/19 21:47), Linus Torvalds wrote:
->    [ Sorry about html and mobile crud, I'm not at the computer right now ]
->    How about we just undo the whole misguided probe_kernel_address() thing?
+From: Guo Ren <ren_guo@c-sky.com>
 
-But the problem will remain - %pS/%pF on PPC (and some other arch-s)
-do dereference_function_descriptor(), which calls probe_kernel_address().
-So if probe_kernel_address() starts to dump_stack(), then we are heading
-towards stack overflow. Unless I'm totally missing something.
+Let arch help to select interrupt controller's and timer's drivers
+instead of people using menuconfig to select. This help the mini system
+boot up.
 
-	-ss
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Arnd Bergmann <arnd@arnd.de>
+---
+ arch/csky/Kconfig | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index ce07990..5e2cfc2 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -9,6 +9,9 @@ config CSKY
+ 	select COMMON_CLK
+ 	select CLKSRC_MMIO
+ 	select CLKSRC_OF
++	select CSKY_MPINTC if CPU_CK860
++	select CSKY_MP_TIMER if CPU_CK860
++	select CSKY_APB_INTC
+ 	select DMA_DIRECT_REMAP
+ 	select IRQ_DOMAIN
+ 	select HANDLE_DOMAIN_IRQ
+@@ -29,6 +32,7 @@ config CSKY
+ 	select GENERIC_IRQ_MULTI_HANDLER
+ 	select GENERIC_SCHED_CLOCK
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GX6605S_TIMER if CPU_CK610
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_DYNAMIC_FTRACE
+-- 
+2.7.4
