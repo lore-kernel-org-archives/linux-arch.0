@@ -1,56 +1,44 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] vsprintf: Do not break early boot with probing
- addresses
-Date: Fri, 10 May 2019 12:40:58 -0400
-Message-ID: <20190510124058.0d44b441@gandalf.local.home>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
+Date: Fri, 10 May 2019 19:41:34 +0300
+Message-ID: <20190510164134.GH9224@smile.fi.intel.com>
 References: <20190510081635.GA4533@jagdpanzerIV>
-        <20190510084213.22149-1-pmladek@suse.com>
-        <20190510122401.21a598f6@gandalf.local.home>
-        <20190510183258.1f6c4153@mschwideX1>
+ <20190510084213.22149-1-pmladek@suse.com>
+ <20190510122401.21a598f6@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190510183258.1f6c4153@mschwideX1>
+Content-Disposition: inline
+In-Reply-To: <20190510122401.21a598f6@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Petr Mladek <pmladek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Christophe Leroy <christophe.leroy@c-s.fr>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Petr Mladek <pmladek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Christophe Leroy <christophe.leroy@c-s.fr>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 10 May 2019 18:32:58 +0200
-Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
-
-> On Fri, 10 May 2019 12:24:01 -0400
-> Steven Rostedt <rostedt@goodmis.org> wrote:
+On Fri, May 10, 2019 at 12:24:01PM -0400, Steven Rostedt wrote:
+> On Fri, 10 May 2019 10:42:13 +0200
+> Petr Mladek <pmladek@suse.com> wrote:
 > 
-> > On Fri, 10 May 2019 10:42:13 +0200
-> > Petr Mladek <pmladek@suse.com> wrote:
-> >   
-> > >  static const char *check_pointer_msg(const void *ptr)
-> > >  {
-> > > -	char byte;
-> > > -
-> > >  	if (!ptr)
-> > >  		return "(null)";
-> > >  
-> > > -	if (probe_kernel_address(ptr, byte))
-> > > +	if ((unsigned long)ptr < PAGE_SIZE || IS_ERR_VALUE(ptr))
-> > >  		return "(efault)";
-> > >      
-> > 
-> > 
-> > 	< PAGE_SIZE ?
-> > 
-> > do you mean: < TASK_SIZE ?  
+> >  static const char *check_pointer_msg(const void *ptr)
+> >  {
+> > -	char byte;
+> > -
+> >  	if (!ptr)
+> >  		return "(null)";
+> >  
+> > -	if (probe_kernel_address(ptr, byte))
+> > +	if ((unsigned long)ptr < PAGE_SIZE || IS_ERR_VALUE(ptr))
+> >  		return "(efault)";
+> >  
 > 
-> The check with < TASK_SIZE would break on s390. The 'ptr' is
-> in the kernel address space, *not* in the user address space.
-> Remember s390 has two separate address spaces for kernel/user
-> the check < TASK_SIZE only makes sense with a __user pointer.
 > 
+> 	< PAGE_SIZE ?
+> 
+> do you mean: < TASK_SIZE ?
 
-So we allow this to read user addresses? Can't that cause a fault?
+Original code used PAGE_SIZE. If it needs to be changed, that it might be a
+separate explanation / patch.
 
-If the condition is true, we return "(efault)".
-
--- Steve
+-- 
+With Best Regards,
+Andy Shevchenko
