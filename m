@@ -1,24 +1,51 @@
-From: pr-tracker-bot@kernel.org
-Subject: Re: [GIT PULL] csky perf unwind libdw patch for v5.2-rc1
-Date: Thu, 09 May 2019 20:50:13 +0000
-Message-ID: <155743501323.12157.12846102624780100793.pr-tracker-bot@kernel.org>
-References: <1557406433-28868-1-git-send-email-guoren@kernel.org>
+From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
+Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
+Date: Fri, 10 May 2019 13:32:00 +0900
+Message-ID: <20190510043200.GC15652@jagdpanzerIV>
+References: <20190509121923.8339-1-pmladek@suse.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1557406433-28868-1-git-send-email-guoren@kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190509121923.8339-1-pmladek@suse.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ren_guo@c-sky.com
+To: Petr Mladek <pmladek@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, linux-kernel@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Russell Currey <ruscur@russell.cc>, Christophe Leroy <christophe.leroy@c-s.fr>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The pull request you sent on Thu,  9 May 2019 20:53:53 +0800:
+On (05/09/19 14:19), Petr Mladek wrote:
+> 1. Report on Power:
+> 
+> Kernel crashes very early during boot with with CONFIG_PPC_KUAP and
+> CONFIG_JUMP_LABEL_FEATURE_CHECK_DEBUG
+> 
+> The problem is the combination of some new code called via printk(),
+> check_pointer() which calls probe_kernel_read(). That then calls
+> allow_user_access() (PPC_KUAP) and that uses mmu_has_feature() too early
+> (before we've patched features). With the JUMP_LABEL debug enabled that
+> causes us to call printk() & dump_stack() and we end up recursing and
+> overflowing the stack.
 
-> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.2-perf-unwind-libdw
+Hmm... hmm... PPC does an .opd-based symbol dereference, which
+eventually probe_kernel_read()-s. So early printk(%pS) will do
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/b1e76c3d3a774298475622bde63010972c9515a1
+	printk(%pS)
+	 dereference_function_descriptor()
+	  probe_kernel_address()
+	   dump_stack()
+	    printk(%pS)
+	     dereference_function_descriptor()
+	      probe_kernel_address()
+	       dump_stack()
+	        printk(%pS)
+	         ...
 
-Thank you!
+I'd say... that it's not vsprintf that we want to fix, it's
+the idea that probe_kernel_address() can dump_stack() on any
+platform. On some archs probe_kernel_address()->dump_stack()
+is going nowhere:
+ dump_stack() does probe_kernel_address(), which calls dump_stack(),
+ which calls printk(%pS)->probe_kernel_address() again and again,
+ and again.
 
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+	-ss
