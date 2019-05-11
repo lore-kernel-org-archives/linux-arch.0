@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:50972 "EHLO mx2.mailbox.org"
+Received: from mx2.mailbox.org ([80.241.60.215]:62220 "EHLO mx2.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726272AbfEKR0k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 11 May 2019 13:26:40 -0400
-Date: Sun, 12 May 2019 03:26:04 +1000
+        id S1726272AbfEKRbz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 May 2019 13:31:55 -0400
+Date: Sun, 12 May 2019 03:31:13 +1000
 From: Aleksa Sarai <cyphar@cyphar.com>
 Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
-Message-ID: <20190511172604.znr7wa3iarlgzor4@yavin>
+Message-ID: <20190511173113.qhqmv5q5f74povix@yavin>
 References: <20190506165439.9155-1-cyphar@cyphar.com>
  <20190506165439.9155-6-cyphar@cyphar.com>
  <CAG48ez0-CiODf6UBHWTaog97prx=VAd3HgHvEjdGNz344m1xKw@mail.gmail.com>
@@ -15,84 +15,49 @@ References: <20190506165439.9155-1-cyphar@cyphar.com>
  <CALCETrW2nn=omqJb4p+m-BDsCOhg+YZQ3ELd4BdhODV3G44gfA@mail.gmail.com>
  <20190510225527.GA59914@google.com>
  <C60DC580-854D-478D-AF23-5F29FB7C3E50@amacapital.net>
+ <CAHk-=wh1JJD_RabMaFfinsAQp1vHGJOQ1rKqihafY=r7yHc8sQ@mail.gmail.com>
+ <CAHk-=whOL-NBso8X5S8s597yZEOMBoU8chkMFVTi8b-ff2qARg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="n7szhd3upx5nplbw"
+        protocol="application/pgp-signature"; boundary="i44ldloocwzu2rot"
 Content-Disposition: inline
-In-Reply-To: <C60DC580-854D-478D-AF23-5F29FB7C3E50@amacapital.net>
+In-Reply-To: <CAHk-=whOL-NBso8X5S8s597yZEOMBoU8chkMFVTi8b-ff2qARg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Containers <containers@lists.linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190511172604.3mOnysIv3_IA7dvGq09SKNdrC1_CaFP3whm20f4IX4I@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190511173113._Wnn0EfgH5L82yTYTT1Qp_CKsdbw5BQi1m8Db04Vgqk@z>
 
 
---n7szhd3upx5nplbw
-Content-Type: text/plain; charset=utf-8
+--i44ldloocwzu2rot
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On 2019-05-11, Andy Lutomirski <luto@amacapital.net> wrote:
-> >> I've lost track of the context here, but it seems to me that
-> >> mitigating attacks involving accidental following of /proc links
-> >> shouldn't depend on dumpability.  What's the actual problem this is
-> >> trying to solve again?
-> >=20
-> > The one actual security problem that I've seen related to this is
-> > CVE-2019-5736. There is a write-up of it at
-> > <https://blog.dragonsector.pl/2019/02/cve-2019-5736-escape-from-docker-=
-and.html>
-> > under "Successful approach", but it goes more or less as follows:
-> >=20
-> > A container is running that doesn't use user namespaces (because for
-> > some reason I don't understand, apparently some people still do that).
-> > An evil process is running inside the container with UID 0 (as in,
-> > GLOBAL_ROOT_UID); so if the evil process inside the container was able
-> > to reach root-owned files on the host filesystem, it could write into
-> > them.
-> >=20
-> > The container engine wants to spawn a new process inside the container.
-> > It forks off a child that joins the container's namespaces (including
-> > PID and mount namespaces), and then the child calls execve() on some
-> > path in the container.
+On 2019-05-11, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> On Sat, May 11, 2019 at 1:21 PM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > Notice? None of the real problems are about execve or would be solved
+> > by any spawn API. You just think that because you've apparently been
+> > talking to too many MS people that think fork (and thus indirectly
+> > execve()) is bad process management.
 >=20
-> I think that, at this point, the task should be considered owned by
-> the container.  Maybe we should have a better API than execve() to
-> execute a program in a safer way, but fiddling with dumpability seems
-> like a band-aid.  In fact, the process is arguably pwned even *before*
-> execve.
-
-Yeah, execve is just the vector (though in this case it's done in order
-to clear mm->dumpable). An earlier CVE (CVE-2016-9962) was very similar
-but was attacking a dirfd that runc had open into the container (LXC had
-a very similar bug too) -- setting !mm->dumpable was one of the
-workarounds we had for this.
-
-> A better =E2=80=9Cspawn=E2=80=9D API should fix this.  In the mean time, =
-I think it
-> should be assumed that, if you join a container=E2=80=99s namespaces, you=
- are
-> at its mercy.
-
-This is generally how we treat containers as runtime authors, but it's
-not a trivial thing to get right. In many cases the kernel APIs are
-working against you -- Christian and myself have written a fair few
-patches to fix holes in the kernel APIs so we can avoid these kinds of
-assumptions.
-
-But yes, one of the most risky parts of a container runtime is when
-you're attaching to a running container because all of the helpful
-introspection APIs in /proc/ suddenly become a security nightmare. A
-better "spawn a process in these namespaces" API might help improve the
-situation (or at least, I hope it would).
-
-> > - You can use /proc/*/exe to get a writable fd.
+> Side note: a good policy has been (and remains) to make suid binaries
+> not be dynamically linked. And in the absence of that, the dynamic
+> linker at least resets the library path when it notices itself being
+> dynamic, and it certainly doesn't inherit any open flags from the
+> non-trusted environment.
 >=20
-> This is IMO the real bug.
+> And by the same logic, a suid interpreter must *definitely* should not
+> inherit any execve() flags from the non-trusted environment. So I
+> think Aleksa's patch to use the passed-in open flags is *exactly* the
+> wrong thing to do for security reasons. It doesn't close holes, it
+> opens them.
 
-I will try to send an RFC of the patchset I have for this next week or
-so. Funnily enough, currently /proc/*/exe has the write bit set in its
-"mode" (my series fixes this).
+Yup, I've dropped the patch for the next version. (To be honest, I'm not
+sure why I included any of the other flags -- the only one that would've
+been necessary to deal with CVE-2019-5736 was AT_NO_MAGICLINKS.)
 
 --=20
 Aleksa Sarai
@@ -100,24 +65,24 @@ Senior Software Engineer (Containers)
 SUSE Linux GmbH
 <https://www.cyphar.com/>
 
---n7szhd3upx5nplbw
+--i44ldloocwzu2rot
 Content-Type: application/pgp-signature; name="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzXBawACgkQSnvnv3De
-m5+9uhAAxlNj8wFvyGxd9lOFHlJk3BsEWF8O35j0dfu/SXGgCNJZ97fZ8lUWTVG+
-Znkw+uL8P+d3IItZeF5IlpWaeE+rISaTqwF6Q55riVaKXY+oarEuDdvWSgPkO9S8
-QHlnu5MyIQcccSI9Mxk+BZCXrlKbqZJJnFeHP/zI95hnsbOanK2dO6rYfEaAMYIZ
-XwkL4HvI0mqdFUcrmO4hpkQEJjj/b6xSpo6oJBsm/PvOaUeChJROam4lgES3oAV8
-ngomtPJWzbTz4ZYzYBXUiNwWvNCCl2E9XfnH9jVgD9z1NFQ0V1LLu3SXxdSqcdpW
-OOzGdmdRNuRvFeRKGISZYs3kr/vVgD8hm0g79KVsbCl24FU9eHSK7EQLUZ+/fc7K
-GGIok1MHPjDfVRJ6ZoFil47MWrLdvqJlgovEdYmjZC5Tt7NOfP+JkXkvh+jZ49pi
-7YTk6h/2ZAW+l5Hq0UxPv9bKUSLtErZmsueCT/U0AAqhQaBAU3HWQVyhGoLNNMfu
-cJXnRHZcw4QaAZEzSb6FENQq4Qv+Or+Fv+cOis759T1Cgx02jybyo0ZIKHzfelxP
-Mgqd0qkTv9+mG3w1p6ox9gDQvGoZJRZT+d6E7VSVqZRc4DAFCcTAF/EzJArg0OhU
-DA0oCKIiZwgpEHyyzIcaD/6fSSFnz2hQJ3EXIp46nX2IZjldnjo=
-=Ut88
+iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzXBuEACgkQSnvnv3De
+m597fQ//WXBoDgwSchtS2eCgORVEt/GpkQAgePJYwEpQBr0+c1V9sqX1MgF8PyV+
+RfEKv1o0pv1ObTZHVoGJtIayxPKpDF+fC7O5c5uEqMA+9q0rVd+wlZGCS981L19J
+g2/7Wr7k/keX1kuSxcSUtuiDqwfNtQNlX0wHsV7LBoAsnCRzZAOfooyN9kylZ5wl
+LrWn6dVN9xB9ZLskG9Ygsu0ea8scE/IPhrj4C0qjVtNrHcblANdXUfXtcMWd4N3v
+6NbA8FQoK0+mqnVg/fe390z80RHMtjcGQNWjrPTDRiozevLmwLVY5N2GL6VdQqUn
+pXxdZNnw8YgRBDk1jZzMtfQE1cIMiLrvLHHgw5HHIoHXWS0O3Io471A/lciG5oOw
+j7XI7PHZ5AOScO0OokJwjdTLWJDM4RbNMa7pbccJfcpZVAbkkei/Ok5wc4Fmaz/V
+3t7BPXmG3hH5QJRWijBWk/UVhbEw9wr/ZrKfs92RJyMV1ssVm05ie3QUI2J7PeE+
+nMAzIhmjsnB6hE1hMdh9KYiF4jNE5+pEHAqwftby57wAZFLfGp4DoLqZ6NlNAHz2
+FlBp+5f+bj/hyRqi3ZnhWnTgrMzOhwPWW44hoYYp81sQXC6JachI1Hg1uMlRlDVw
+HaUI9KXoYI8KKUxYhX/AA9kDkkaJlJ7I6V73lh5SlDU6SFLPACk=
+=wYoq
 -----END PGP SIGNATURE-----
 
---n7szhd3upx5nplbw--
+--i44ldloocwzu2rot--
