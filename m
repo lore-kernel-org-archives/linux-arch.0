@@ -1,52 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:41098 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726775AbfELOe2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 May 2019 10:34:28 -0400
-Received: by mail-pg1-f193.google.com with SMTP id z3so5389344pgp.8
-        for <linux-arch@vger.kernel.org>; Sun, 12 May 2019 07:34:28 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v6 5/6] binfmt_*: scope path resolution of interpreters
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <20190512133549.ymx5yg5rdqvavzyq@yavin>
-Date: Sun, 12 May 2019 07:34:26 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <0ED963D0-4C31-45B1-B361-E4A75DFBF7C1@amacapital.net>
-References: <20190506191735.nmzf7kwfh7b6e2tf@yavin> <20190510204141.GB253532@google.com> <CALCETrW2nn=omqJb4p+m-BDsCOhg+YZQ3ELd4BdhODV3G44gfA@mail.gmail.com> <20190510225527.GA59914@google.com> <C60DC580-854D-478D-AF23-5F29FB7C3E50@amacapital.net> <CAHk-=wh1JJD_RabMaFfinsAQp1vHGJOQ1rKqihafY=r7yHc8sQ@mail.gmail.com> <CALCETrUOj=4VWp=B=QT0BQ8X_Ds_b+pt68oDwfjGb+K0StXmWA@mail.gmail.com> <CAHk-=wg3+3GfHsHdB4o78jNiPh_5ShrzxBuTN-Y8EZfiFMhCvw@mail.gmail.com> <9CD2B97D-A6BD-43BE-9040-B410D996A195@amacapital.net> <CAHk-=wh3dT7=SMjvSZreXSu36Cg7gsfSipLhfTz5ioDKXV5uHg@mail.gmail.com> <20190512133549.ymx5yg5rdqvavzyq@yavin>
+Received: from mail-it1-f194.google.com ([209.85.166.194]:40653 "EHLO
+        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727202AbfEMHj5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 May 2019 03:39:57 -0400
+Received: by mail-it1-f194.google.com with SMTP id g71so18760229ita.5
+        for <linux-arch@vger.kernel.org>; Mon, 13 May 2019 00:39:57 -0700 (PDT)
+MIME-Version: 1.0
+References: <20190412143538.11780-1-hch@lst.de> <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
+ <fd59e6e22594f740eaf86abad76ee04d@mailhost.ics.forth.gr> <CACT4Y+aKGKm9Wbc1owBr51adkbesHP_Z81pBAoZ5HmJ+uZdsaw@mail.gmail.com>
+ <CAK8P3a3xRBZrgv16sSigJhY0vGmb=qF9o=6dC_5DqAJtW3qPGQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a3xRBZrgv16sSigJhY0vGmb=qF9o=6dC_5DqAJtW3qPGQ@mail.gmail.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Mon, 13 May 2019 09:39:45 +0200
+Message-ID: <CACT4Y+ad5z6z0Dweh5hGwYcUUebPEtqsznmX9enPvYB20J16aA@mail.gmail.com>
+Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel endianess
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190512143426.lKR6IWN1aSU5yRRh4xcyuN8dkj_-DEMT8anmDkaiJCw@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nick Kossifidis <mick@ics.forth.gr>, Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20190513073945.FM9-5MnE23oaKaCgnbVx4p5U-JziJIo7GF2mu-ezwfI@z>
+
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Sat, May 11, 2019 at 2:51 AM
+To: Dmitry Vyukov
+Cc: Nick Kossifidis, Christoph Hellwig, Linus Torvalds, Andrew Morton,
+linux-arch, Linux Kernel Mailing List, linuxppc-dev
+
+> On Fri, May 10, 2019 at 6:53 AM Dmitry Vyukov <dvyukov@google.com> wrote:
+> > >
+> > > I think it's good to have a sanity check in-place for consistency.
+> >
+> >
+> > Hi,
+> >
+> > This broke our cross-builds from x86. I am using:
+> >
+> > $ powerpc64le-linux-gnu-gcc --version
+> > powerpc64le-linux-gnu-gcc (Debian 7.2.0-7) 7.2.0
+> >
+> > and it says that it's little-endian somehow:
+> >
+> > $ powerpc64le-linux-gnu-gcc -dM -E - < /dev/null | grep BYTE_ORDER
+> > #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__
+> >
+> > Is it broke compiler? Or I always hold it wrong? Is there some
+> > additional flag I need to add?
+>
+> It looks like a bug in the kernel Makefiles to me. powerpc32 is always
+> big-endian,
+> powerpc64 used to be big-endian but is now usually little-endian. There are
+> often three separate toolchains that default to the respective user
+> space targets
+> (ppc32be, ppc64be, ppc64le), but generally you should be able to build
+> any of the
+> three kernel configurations with any of those compilers, and have the Makefile
+> pass the correct -m32/-m64/-mbig-endian/-mlittle-endian command line options
+> depending on the kernel configuration. It seems that this is not happening
+> here. I have not checked why, but if this is the problem, it should be
+> easy enough
+> to figure out.
 
 
-> On May 12, 2019, at 6:35 AM, Aleksa Sarai <cyphar@cyphar.com> wrote:
->=20
->> On 2019-05-12, Linus Torvalds <torvalds@linux-foundation.org> wrote:
->>> On Sat, May 11, 2019 at 7:37 PM Andy Lutomirski <luto@amacapital.net> wr=
-ote:
->>> I bet this will break something that already exists. An execveat()
->>> flag to turn off /proc/self/exe would do the trick, though.
->>=20
->> Thinking more about it, I suspect it is (once again) wrong to let the
->> thing that does the execve() control that bit.
->>=20
->> Generally, the less we allow people to affect the lifetime and
->> environment of a suid executable, the better off we are.
->>=20
->> But maybe we could limit /proc/*/exe to at least not honor suid'ness
->> of the target? Or does chrome/runc depend on that too?
->=20
-> Speaking on the runc side, we don't depend on this. It's possible
-> someone depends on this for fexecve(3) -- but as mentioned before in
-> newer kernels glibc uses execve(AT_EMPTY_PATH).
-
-Why are we concerned about suid?  Don=E2=80=99t we already block suid if the=
- path being execed doesn=E2=80=99t come from the current mountns?  That shou=
-ld mostly cover the things we care about, no?
-
-I suppose we could also block suid for deleted files, so that deleting a kno=
-wn-buggy suid binary becomes more reliable. But every sensible package tool s=
-hould already be chmoding the suid away before unlinking.=
+Thanks! This clears a lot.
+This may be a bug in our magic as we try to build kernel files outside
+of make with own flags (required to extract parts of kernel
+interfaces).
+So don't spend time looking for the Makefile bugs yet.
