@@ -1,69 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:40653 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727202AbfEMHj5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 May 2019 03:39:57 -0400
-Received: by mail-it1-f194.google.com with SMTP id g71so18760229ita.5
-        for <linux-arch@vger.kernel.org>; Mon, 13 May 2019 00:39:57 -0700 (PDT)
+Received: from mx2.suse.de ([195.135.220.15]:52088 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726103AbfEMIsy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 May 2019 04:48:54 -0400
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+        <20190508225900.GA14091@yury-thinkpad>
+Date: Mon, 13 May 2019 10:48:48 +0200
+In-Reply-To: <20190508225900.GA14091@yury-thinkpad> (Yury Norov's message of
+        "Wed, 8 May 2019 15:59:00 -0700")
+Message-ID: <mvmtvdyoi33.fsf@suse.de>
 MIME-Version: 1.0
-References: <20190412143538.11780-1-hch@lst.de> <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
- <fd59e6e22594f740eaf86abad76ee04d@mailhost.ics.forth.gr> <CACT4Y+aKGKm9Wbc1owBr51adkbesHP_Z81pBAoZ5HmJ+uZdsaw@mail.gmail.com>
- <CAK8P3a3xRBZrgv16sSigJhY0vGmb=qF9o=6dC_5DqAJtW3qPGQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a3xRBZrgv16sSigJhY0vGmb=qF9o=6dC_5DqAJtW3qPGQ@mail.gmail.com>
-From: Dmitry Vyukov <dvyukov@google.com>
-Date: Mon, 13 May 2019 09:39:45 +0200
-Message-ID: <CACT4Y+ad5z6z0Dweh5hGwYcUUebPEtqsznmX9enPvYB20J16aA@mail.gmail.com>
-Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel endianess
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nick Kossifidis <mick@ics.forth.gr>, Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20190513073945.FM9-5MnE23oaKaCgnbVx4p5U-JziJIo7GF2mu-ezwfI@z>
+To: Yury Norov <yury.norov@gmail.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
+Message-ID: <20190513084848.SMTQSpbOakFO5y_sldMqCzEMcvT-Haenw_a34CPBlsw@z>
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Sat, May 11, 2019 at 2:51 AM
-To: Dmitry Vyukov
-Cc: Nick Kossifidis, Christoph Hellwig, Linus Torvalds, Andrew Morton,
-linux-arch, Linux Kernel Mailing List, linuxppc-dev
+There is a problem with the stack size accounting during execve when
+there is no stack limit:
 
-> On Fri, May 10, 2019 at 6:53 AM Dmitry Vyukov <dvyukov@google.com> wrote:
-> > >
-> > > I think it's good to have a sanity check in-place for consistency.
-> >
-> >
-> > Hi,
-> >
-> > This broke our cross-builds from x86. I am using:
-> >
-> > $ powerpc64le-linux-gnu-gcc --version
-> > powerpc64le-linux-gnu-gcc (Debian 7.2.0-7) 7.2.0
-> >
-> > and it says that it's little-endian somehow:
-> >
-> > $ powerpc64le-linux-gnu-gcc -dM -E - < /dev/null | grep BYTE_ORDER
-> > #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__
-> >
-> > Is it broke compiler? Or I always hold it wrong? Is there some
-> > additional flag I need to add?
->
-> It looks like a bug in the kernel Makefiles to me. powerpc32 is always
-> big-endian,
-> powerpc64 used to be big-endian but is now usually little-endian. There are
-> often three separate toolchains that default to the respective user
-> space targets
-> (ppc32be, ppc64be, ppc64le), but generally you should be able to build
-> any of the
-> three kernel configurations with any of those compilers, and have the Makefile
-> pass the correct -m32/-m64/-mbig-endian/-mlittle-endian command line options
-> depending on the kernel configuration. It seems that this is not happening
-> here. I have not checked why, but if this is the problem, it should be
-> easy enough
-> to figure out.
+$ ulimit -s
+8192
+$ ./hello.ilp32 
+Hello World!
+$ ulimit -s unlimited
+$ ./hello.ilp32 
+Segmentation fault
+$ strace ./hello.ilp32 
+execve("./hello.ilp32", ["./hello.ilp32"], 0xfffff10548f0 /* 77 vars */) = -1 ENOMEM (Cannot allocate memory)
++++ killed by SIGSEGV +++
+Segmentation fault (core dumped)
 
+Andreas.
 
-Thanks! This clears a lot.
-This may be a bug in our magic as we try to build kernel files outside
-of make with own flags (required to extract parts of kernel
-interfaces).
-So don't spend time looking for the Makefile bugs yet.
+-- 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
