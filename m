@@ -1,42 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:52088 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726103AbfEMIsy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 May 2019 04:48:54 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
-        <20190508225900.GA14091@yury-thinkpad>
-Date: Mon, 13 May 2019 10:48:48 +0200
-In-Reply-To: <20190508225900.GA14091@yury-thinkpad> (Yury Norov's message of
-        "Wed, 8 May 2019 15:59:00 -0700")
-Message-ID: <mvmtvdyoi33.fsf@suse.de>
+Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:58028 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728336AbfEMIwp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 May 2019 04:52:45 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH] vsprintf: Do not break early boot with probing addresses
+Date: Mon, 13 May 2019 08:52:41 +0000
+Message-ID: <096d6c9c17b3484484d9d9d3f3aa3a7c@AcuMS.aculab.com>
+References: <20190510081635.GA4533@jagdpanzerIV>
+ <20190510084213.22149-1-pmladek@suse.com>
+ <20190510122401.21a598f6@gandalf.local.home>
+ <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
+In-Reply-To: <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
+Content-Language: en-US
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <yury.norov@gmail.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20190513084848.SMTQSpbOakFO5y_sldMqCzEMcvT-Haenw_a34CPBlsw@z>
+To: 'christophe leroy' <christophe.leroy@c-s.fr>, Steven Rostedt <rostedt@goodmis.org>, Petr Mladek <pmladek@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20190513085241.CwbAqRfT4AD-BNv6ycJNL377JFUjP7hKf_PblscZCMA@z>
 
-There is a problem with the stack size accounting during execve when
-there is no stack limit:
-
-$ ulimit -s
-8192
-$ ./hello.ilp32 
-Hello World!
-$ ulimit -s unlimited
-$ ./hello.ilp32 
-Segmentation fault
-$ strace ./hello.ilp32 
-execve("./hello.ilp32", ["./hello.ilp32"], 0xfffff10548f0 /* 77 vars */) = -1 ENOMEM (Cannot allocate memory)
-+++ killed by SIGSEGV +++
-Segmentation fault (core dumped)
-
-Andreas.
-
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+RnJvbTogY2hyaXN0b3BoZSBsZXJveQ0KPiBTZW50OiAxMCBNYXkgMjAxOSAxODozNQ0KPiBMZSAx
+MC8wNS8yMDE5IMOgIDE4OjI0LCBTdGV2ZW4gUm9zdGVkdCBhIMOpY3JpdMKgOg0KPiA+IE9uIEZy
+aSwgMTAgTWF5IDIwMTkgMTA6NDI6MTMgKzAyMDANCj4gPiBQZXRyIE1sYWRlayA8cG1sYWRla0Bz
+dXNlLmNvbT4gd3JvdGU6DQo+ID4NCj4gPj4gICBzdGF0aWMgY29uc3QgY2hhciAqY2hlY2tfcG9p
+bnRlcl9tc2coY29uc3Qgdm9pZCAqcHRyKQ0KPiA+PiAgIHsNCj4gPj4gLQljaGFyIGJ5dGU7DQo+
+ID4+IC0NCj4gPj4gICAJaWYgKCFwdHIpDQo+ID4+ICAgCQlyZXR1cm4gIihudWxsKSI7DQo+ID4+
+DQo+ID4+IC0JaWYgKHByb2JlX2tlcm5lbF9hZGRyZXNzKHB0ciwgYnl0ZSkpDQo+ID4+ICsJaWYg
+KCh1bnNpZ25lZCBsb25nKXB0ciA8IFBBR0VfU0laRSB8fCBJU19FUlJfVkFMVUUocHRyKSkNCj4g
+Pj4gICAJCXJldHVybiAiKGVmYXVsdCkiOw0KDQoiZWZhdWx0IiBsb29rcyBhIGJpdCBsaWtlIGEg
+c3BlbGxsaW5nIG1pc3Rha2UgZm9yICJkZWZhdWx0Ii4NCg0KPiA+IAk8IFBBR0VfU0laRSA/DQo+
+ID4NCj4gPiBkbyB5b3UgbWVhbjogPCBUQVNLX1NJWkUgPw0KPiANCj4gSSBndWVzcyBub3QuDQo+
+IA0KPiBVc3VhbGx5LCA8IFBBR0VfU0laRSBtZWFucyBOVUxMIHBvaW50ZXIgZGVyZWZlcmVuY2Ug
+KHZpYSB0aGUgbWVtYmVyIG9mIGENCj4gc3RydWN0KQ0KDQpNYXliZSB0aGUgY2FsbGVyIHNob3Vs
+ZCBwYXNzIGluIGEgc2hvcnQgYnVmZmVyIHNvIHRoYXQgeW91IGNhbiByZXR1cm4NCiIoZXJyLSVk
+KSIgb3IgIihudWxsKyUjeCkiID8NCg0KCURhdmlkDQoNCi0NClJlZ2lzdGVyZWQgQWRkcmVzcyBM
+YWtlc2lkZSwgQnJhbWxleSBSb2FkLCBNb3VudCBGYXJtLCBNaWx0b24gS2V5bmVzLCBNSzEgMVBU
+LCBVSw0KUmVnaXN0cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxlcykNCg==
