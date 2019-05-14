@@ -1,7 +1,7 @@
 From: Yury Norov <yury.norov@gmail.com>
 Subject: Re: [LTP] [EXT] Re: [PATCH v9 00/24] ILP32 for ARM64
-Date: Tue, 14 May 2019 16:01:58 -0700
-Message-ID: <20190514230158.GA6780@yury-thinkpad>
+Date: Tue, 14 May 2019 16:41:49 -0700
+Message-ID: <20190514234149.GA12077@yury-thinkpad>
 References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
  <20190508225900.GA14091@yury-thinkpad>
  <mvmtvdyoi33.fsf@suse.de>
@@ -37,26 +37,7 @@ On Tue, May 14, 2019 at 12:43:11PM +0200, Cyril Hrubis wrote:
 > > > Andreas.
 > > 
 > > Thanks Andreas, I will take a look. Do we have such test in LTP?
-
-So the problem was in not converting new compat-sensitive code:
-
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 5bdf357169d8..c509f83fa506 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -63,7 +63,7 @@
- 				TASK_SIZE_32 : TASK_SIZE_64)
- #define TASK_SIZE_OF(tsk)	(is_compat_thread(tsk) ? \
- 				TASK_SIZE_32 : TASK_SIZE_64)
--#define DEFAULT_MAP_WINDOW	(test_thread_flag(TIF_32BIT) ? \
-+#define DEFAULT_MAP_WINDOW	(is_compat_task() ? \
- 				TASK_SIZE_32 : DEFAULT_MAP_WINDOW_64)
- #else
- #define TASK_SIZE		TASK_SIZE_64
-
-The fix is incorporated in ilp32-5.1.1:
-https://github.com/norov/linux/tree/ilp32-5.1.1
-
+> 
 > We do have a test that we can run a binary with very small stack size
 > i.e. 512kB but there does not seem to be anything that would catch this
 > specific problem.
@@ -67,11 +48,8 @@ https://github.com/norov/linux/tree/ilp32-5.1.1
 > https://github.com/linux-test-project/ltp/issues
 > 
 > Then we can create testcase based on that reproducer later on.
-> 
-> -- 
-> Cyril Hrubis
-> chrubis@suse.cz
 
-OK, I'll do.
+This is it:
+https://github.com/linux-test-project/ltp/issues/530
 
 Yury
