@@ -1,45 +1,52 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
-Date: Tue, 14 May 2019 11:02:17 +0200
-Message-ID: <CAMuHMdXaMObq9h2Sb49PW1-HUysPeaWXB7wJmKFz=xLmSoUDZg@mail.gmail.com>
-References: <20190510081635.GA4533@jagdpanzerIV> <20190510084213.22149-1-pmladek@suse.com>
- <20190510122401.21a598f6@gandalf.local.home> <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
- <096d6c9c17b3484484d9d9d3f3aa3a7c@AcuMS.aculab.com> <20190513091320.GK9224@smile.fi.intel.com>
- <20190513124220.wty2qbnz4wo52h3x@pathway.suse.cz> <20190514020730.GA651@jagdpanzerIV>
- <45348cf615fe40d383c1a25688d4a88f@AcuMS.aculab.com>
+From: Cyril Hrubis <chrubis@suse.cz>
+Subject: Re: [LTP] [EXT] Re: [PATCH v9 00/24] ILP32 for ARM64
+Date: Tue, 14 May 2019 12:43:11 +0200
+Message-ID: <20190514104311.GA24708@rei>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20190508225900.GA14091@yury-thinkpad>
+ <mvmtvdyoi33.fsf@suse.de>
+ <MN2PR18MB30865B950D85C6463EB0E1D4CB0F0@MN2PR18MB3086.namprd18.prod.outlook.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <45348cf615fe40d383c1a25688d4a88f@AcuMS.aculab.com>
+Content-Disposition: inline
+In-Reply-To: <MN2PR18MB30865B950D85C6463EB0E1D4CB0F0@MN2PR18MB3086.namprd18.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Laight <David.Laight@aculab.com>
-Cc: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, christophe leroy <christophe.leroy@c-s.fr>, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Yuri Norov <ynorov@marvell.com>
+Cc: Andreas Schwab <schwab@suse.de>, Yury Norov <yury.norov@gmail.com>, "ltp@lists.linux.it" <ltp@lists.linux.it>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, Bamvor Zhangjian <bamv2005@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmai>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 14, 2019 at 10:29 AM David Laight <David.Laight@aculab.com> wrote:
-> > And I like Steven's "(fault)" idea.
-> > How about this:
+Hi!
+> > There is a problem with the stack size accounting during execve when
+> > there is no stack limit:
 > >
-> >       if ptr < PAGE_SIZE              -> "(null)"
-> >       if IS_ERR_VALUE(ptr)            -> "(fault)"
+> > $ ulimit -s
+> > 8192
+> > $ ./hello.ilp32 
+> > Hello World!
+> > $ ulimit -s unlimited
+> > $ ./hello.ilp32 
+> > Segmentation fault
+> > $ strace ./hello.ilp32 
+> > execve("./hello.ilp32", ["./hello.ilp32"], 0xfffff10548f0 /* 77 vars */) = -1 ENOMEM (Cannot allocate memory)
+> > +++ killed by SIGSEGV +++
+> > Segmentation fault (core dumped)
 > >
-> >       -ss
->
-> Or:
->         if (ptr < PAGE_SIZE)
->                 return ptr ? "(null+)" : "(null)";
->         if IS_ERR_VALUE(ptr)
->                 return "(errno)"
+> > Andreas.
+> 
+> Thanks Andreas, I will take a look. Do we have such test in LTP?
 
-Do we care about the value? "(-E%u)"?
+We do have a test that we can run a binary with very small stack size
+i.e. 512kB but there does not seem to be anything that would catch this
+specific problem.
 
-Gr{oetje,eeting}s,
+Can you please open an issue and describe how to reproduce the problem
+at our github tracker:
 
-                        Geert
+https://github.com/linux-test-project/ltp/issues
+
+Then we can create testcase based on that reproducer later on.
 
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Cyril Hrubis
+chrubis@suse.cz
