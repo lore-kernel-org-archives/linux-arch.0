@@ -1,47 +1,50 @@
-From: Yuri Norov <ynorov@marvell.com>
-Subject: Re: [EXT] Re: [PATCH v9 00/24] ILP32 for ARM64
-Date: Mon, 13 May 2019 20:16:17 +0000
-Message-ID: <MN2PR18MB30865B950D85C6463EB0E1D4CB0F0@MN2PR18MB3086.namprd18.prod.outlook.com>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20190508225900.GA14091@yury-thinkpad>,<mvmtvdyoi33.fsf@suse.de>
+From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
+Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
+Date: Tue, 14 May 2019 11:07:30 +0900
+Message-ID: <20190514020730.GA651@jagdpanzerIV>
+References: <20190510081635.GA4533@jagdpanzerIV>
+ <20190510084213.22149-1-pmladek@suse.com>
+ <20190510122401.21a598f6@gandalf.local.home>
+ <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
+ <096d6c9c17b3484484d9d9d3f3aa3a7c@AcuMS.aculab.com>
+ <20190513091320.GK9224@smile.fi.intel.com>
+ <20190513124220.wty2qbnz4wo52h3x@pathway.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <mvmtvdyoi33.fsf@suse.de>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andreas Schwab <schwab@suse.de>, Yury Norov <yury.norov@gmail.com>, "ltp@lists.linux.it" <ltp@lists.linux.it>
-Cc: "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yury Norov <ynorov@caviumnetworks.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, Bamvor Zhangjian <bamv2005@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmail.com>, James Hogan <james.hogan@imgtec.com>, Chris Metcalf <cmetcalf@mellanox.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, Lin Yongting <linyongting@huawei.>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190513124220.wty2qbnz4wo52h3x@pathway.suse.cz>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Petr Mladek <pmladek@suse.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, David Laight <David.Laight@aculab.com>, 'christophe leroy' <christophe.leroy@c-s.fr>, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kerne>
 List-Id: linux-arch.vger.kernel.org
 
-+ ltp@lists.linux.it
+On (05/13/19 14:42), Petr Mladek wrote:
+> > The "(null)" is good enough by itself and already an established
+> > practice..
+> 
+> (efault) made more sense with the probe_kernel_read() that
+> checked wide range of addresses. Well, I still think that
+> it makes sense to distinguish a pure NULL. And it still
+> used also for IS_ERR_VALUE().
 
-> There is a problem with the stack size accounting during execve when
-> there is no stack limit:
->
-> $ ulimit -s
-> 8192
-> $ ./hello.ilp32 
-> Hello World!
-> $ ulimit -s unlimited
-> $ ./hello.ilp32 
-> Segmentation fault
-> $ strace ./hello.ilp32 
-> execve("./hello.ilp32", ["./hello.ilp32"], 0xfffff10548f0 /* 77 vars */) = -1 ENOMEM (Cannot allocate memory)
-> +++ killed by SIGSEGV +++
-> Segmentation fault (core dumped)
->
-> Andreas.
+Wouldn't anything within first PAGE_SIZE bytes be reported as
+a NULL deref?
 
-Thanks Andreas, I will take a look. Do we have such test in LTP?
-    
-Yury
+       char *p = (char *)(PAGE_SIZE - 2);
+       *p = 'a';
+
+gives
+
+ kernel: BUG: kernel NULL pointer dereference, address = 0000000000000ffe
+ kernel: #PF: supervisor-privileged write access from kernel code
+ kernel: #PF: error_code(0x0002) - not-present page
+
+
+And I like Steven's "(fault)" idea.
+How about this:
+
+	if ptr < PAGE_SIZE		-> "(null)"
+	if IS_ERR_VALUE(ptr)		-> "(fault)"
+
+	-ss
