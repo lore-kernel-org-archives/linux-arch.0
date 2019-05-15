@@ -1,55 +1,34 @@
-From: Yury Norov <yury.norov@gmail.com>
-Subject: Re: [LTP] [EXT] Re: [PATCH v9 00/24] ILP32 for ARM64
-Date: Tue, 14 May 2019 16:41:49 -0700
-Message-ID: <20190514234149.GA12077@yury-thinkpad>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20190508225900.GA14091@yury-thinkpad>
- <mvmtvdyoi33.fsf@suse.de>
- <MN2PR18MB30865B950D85C6463EB0E1D4CB0F0@MN2PR18MB3086.namprd18.prod.outlook.com>
- <20190514104311.GA24708@rei>
+From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
+Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
+Date: Wed, 15 May 2019 15:21:11 +0900
+Message-ID: <20190515062111.GA30030@jagdpanzerIV>
+References: <20190510122401.21a598f6@gandalf.local.home>
+ <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
+ <096d6c9c17b3484484d9d9d3f3aa3a7c@AcuMS.aculab.com>
+ <20190513091320.GK9224@smile.fi.intel.com>
+ <20190513124220.wty2qbnz4wo52h3x@pathway.suse.cz>
+ <20190514020730.GA651@jagdpanzerIV>
+ <45348cf615fe40d383c1a25688d4a88f@AcuMS.aculab.com>
+ <CAMuHMdXaMObq9h2Sb49PW1-HUysPeaWXB7wJmKFz=xLmSoUDZg@mail.gmail.com>
+ <20190514143751.48e81e05@oasis.local.home>
+ <CAMuHMdUhy3uB+G23uXh__F2Y_Jsam5uS1Q5jJC95kWAOEM8WRA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190514104311.GA24708@rei>
+In-Reply-To: <CAMuHMdUhy3uB+G23uXh__F2Y_Jsam5uS1Q5jJC95kWAOEM8WRA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Cyril Hrubis <chrubis@suse.cz>
-Cc: Yuri Norov <ynorov@marvell.com>, Andreas Schwab <schwab@suse.de>, "ltp@lists.linux.it" <ltp@lists.linux.it>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, Bamvor Zhangjian <bamv2005@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmail.>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, David Laight <David.Laight@aculab.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, christophe leroy <christophe.leroy@c-s.fr>, Linus Torvalds <torvalds@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@v
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 14, 2019 at 12:43:11PM +0200, Cyril Hrubis wrote:
-> Hi!
-> > > There is a problem with the stack size accounting during execve when
-> > > there is no stack limit:
-> > >
-> > > $ ulimit -s
-> > > 8192
-> > > $ ./hello.ilp32 
-> > > Hello World!
-> > > $ ulimit -s unlimited
-> > > $ ./hello.ilp32 
-> > > Segmentation fault
-> > > $ strace ./hello.ilp32 
-> > > execve("./hello.ilp32", ["./hello.ilp32"], 0xfffff10548f0 /* 77 vars */) = -1 ENOMEM (Cannot allocate memory)
-> > > +++ killed by SIGSEGV +++
-> > > Segmentation fault (core dumped)
-> > >
-> > > Andreas.
-> > 
-> > Thanks Andreas, I will take a look. Do we have such test in LTP?
-> 
-> We do have a test that we can run a binary with very small stack size
-> i.e. 512kB but there does not seem to be anything that would catch this
-> specific problem.
-> 
-> Can you please open an issue and describe how to reproduce the problem
-> at our github tracker:
-> 
-> https://github.com/linux-test-project/ltp/issues
-> 
-> Then we can create testcase based on that reproducer later on.
+On (05/14/19 21:13), Geert Uytterhoeven wrote:
+> I would immediately understand there's a missing IS_ERR() check in a
+> function that can return  -EINVAL, without having to add a new printk()
+> to find out what kind of bogus value has been received, and without
+> having to reboot, and trying to reproduce...
 
-This is it:
-https://github.com/linux-test-project/ltp/issues/530
+But chances are that missing IS_ERR() will crash the kernel sooner
+or later (in general case), if not in sprintf() then somewhere else.
 
-Yury
+	-ss
