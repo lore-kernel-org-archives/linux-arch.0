@@ -1,39 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:34063 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725857AbfEOGVQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 May 2019 02:21:16 -0400
-Date: Wed, 15 May 2019 15:21:11 +0900
-From: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
-Subject: Re: [PATCH] vsprintf: Do not break early boot with probing addresses
-Message-ID: <20190515062111.GA30030@jagdpanzerIV>
-References: <20190510122401.21a598f6@gandalf.local.home>
- <daf4dfd1-7f4f-8b92-6866-437c3a2be28b@c-s.fr>
- <096d6c9c17b3484484d9d9d3f3aa3a7c@AcuMS.aculab.com>
- <20190513091320.GK9224@smile.fi.intel.com>
- <20190513124220.wty2qbnz4wo52h3x@pathway.suse.cz>
- <20190514020730.GA651@jagdpanzerIV>
- <45348cf615fe40d383c1a25688d4a88f@AcuMS.aculab.com>
- <CAMuHMdXaMObq9h2Sb49PW1-HUysPeaWXB7wJmKFz=xLmSoUDZg@mail.gmail.com>
- <20190514143751.48e81e05@oasis.local.home>
- <CAMuHMdUhy3uB+G23uXh__F2Y_Jsam5uS1Q5jJC95kWAOEM8WRA@mail.gmail.com>
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:46310 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725902AbfEOGxT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 May 2019 02:53:19 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUhy3uB+G23uXh__F2Y_Jsam5uS1Q5jJC95kWAOEM8WRA@mail.gmail.com>
+References: <20190412143538.11780-1-hch@lst.de> <CAK8P3a2bg9YkbNpAb9uZkXLFZ3juCmmbF7cRw+Dm9ZiLFno2OQ@mail.gmail.com>
+ <fd59e6e22594f740eaf86abad76ee04d@mailhost.ics.forth.gr> <CACT4Y+aKGKm9Wbc1owBr51adkbesHP_Z81pBAoZ5HmJ+uZdsaw@mail.gmail.com>
+ <CAK8P3a3xRBZrgv16sSigJhY0vGmb=qF9o=6dC_5DqAJtW3qPGQ@mail.gmail.com>
+ <CACT4Y+ad5z6z0Dweh5hGwYcUUebPEtqsznmX9enPvYB20J16aA@mail.gmail.com>
+ <87woiutwq4.fsf@concordia.ellerman.id.au> <CACT4Y+YT52wGuARxe9RqUsMYGNZTwaBowWWUUawyqTBq4G1NDg@mail.gmail.com>
+ <20190513120435.GB22993@lst.de>
+In-Reply-To: <20190513120435.GB22993@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 15 May 2019 08:53:02 +0200
+Message-ID: <CAK8P3a2EF5ujv8S-PzYYBtNLEda+a_Wc6xhMign32QFnW4q1Ew@mail.gmail.com>
+Subject: Re: [PATCH, RFC] byteorder: sanity check toolchain vs kernel endianess
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, David Laight <David.Laight@aculab.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, christophe leroy <christophe.leroy@c-s.fr>, Linus Torvalds <torvalds@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, "Tobin C . Harding" <me@tobin.cc>, Michal Hocko <mhocko@suse.cz>, Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell Currey <ruscur@russell.cc>, Stephen Rothwell <sfr@ozlabs.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20190515062111.T5hZGjKZK2a2swDTBpkbB4UbIVTKWVNPATVUxxRnwVM@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Dmitry Vyukov <dvyukov@google.com>, Michael Ellerman <mpe@ellerman.id.au>, Nick Kossifidis <mick@ics.forth.gr>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andrew Donnellan <andrew.donnellan@au1.ibm.com>
+Message-ID: <20190515065302.yZRAUVmN1BCX2eahIcH8FO9XtNhZY-zmBakyMYcZD0U@z>
 
-On (05/14/19 21:13), Geert Uytterhoeven wrote:
-> I would immediately understand there's a missing IS_ERR() check in a
-> function that can return  -EINVAL, without having to add a new printk()
-> to find out what kind of bogus value has been received, and without
-> having to reboot, and trying to reproduce...
+On Mon, May 13, 2019 at 2:04 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> On Mon, May 13, 2019 at 01:50:19PM +0200, Dmitry Vyukov wrote:
+> > > We did have some bugs in the past (~1-2 y/ago) but AFAIK they are all
+> > > fixed now. These days I build most of my kernels with a bi-endian 64-bit
+> > > toolchain, and switching endian without running `make clean` also works.
+> >
+> > For the record, yes, it turn out to be a problem in our code (a latent
+> > bug). We actually used host (x86) gcc to build as-if ppc code that can
+> > run on the host, so it defined neither LE no BE macros. It just
+> > happened to work in the past :)
+>
+> So Nick was right and these checks actually are useful..
 
-But chances are that missing IS_ERR() will crash the kernel sooner
-or later (in general case), if not in sprintf() then somewhere else.
+Yes, definitely. I wonder if we should also bring back the word size check
+from include/asm-generic/bitsperlong.h, which was disabled right
+after I originally added that.
 
-	-ss
+      Arnd
