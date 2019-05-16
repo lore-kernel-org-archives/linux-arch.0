@@ -1,58 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:34167 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726449AbfEPUeQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2019 16:34:16 -0400
+Received: from mail-lj1-f195.google.com ([209.85.208.195]:45209 "EHLO
+        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726785AbfEPU7k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2019 16:59:40 -0400
+Received: by mail-lj1-f195.google.com with SMTP id r76so4318948lja.12
+        for <linux-arch@vger.kernel.org>; Thu, 16 May 2019 13:59:39 -0700 (PDT)
+Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com. [209.85.167.49])
+        by smtp.gmail.com with ESMTPSA id h25sm1087986lja.41.2019.05.16.13.59.37
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 16 May 2019 13:59:37 -0700 (PDT)
+Received: by mail-lf1-f49.google.com with SMTP id h13so3708859lfc.7
+        for <linux-arch@vger.kernel.org>; Thu, 16 May 2019 13:59:37 -0700 (PDT)
 MIME-Version: 1.0
 References: <CAK8P3a2+RHAReOZdo8nEvqDeC1EPj83L2Ug4JuVRiUh943AuNw@mail.gmail.com>
- <CAHk-=wgiv5ftb+dq7N8cN4n2YX3VkyzeQccywn07Xu9xhOLTSw@mail.gmail.com>
-In-Reply-To: <CAHk-=wgiv5ftb+dq7N8cN4n2YX3VkyzeQccywn07Xu9xhOLTSw@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 16 May 2019 22:33:59 +0200
-Message-ID: <CAK8P3a2EEuxh3uhsqauEC_vROZ7tQHhFwxgiLUnrgtpMdb3kuA@mail.gmail.com>
+ <CAHk-=wgiv5ftb+dq7N8cN4n2YX3VkyzeQccywn07Xu9xhOLTSw@mail.gmail.com> <CAK8P3a2EEuxh3uhsqauEC_vROZ7tQHhFwxgiLUnrgtpMdb3kuA@mail.gmail.com>
+In-Reply-To: <CAK8P3a2EEuxh3uhsqauEC_vROZ7tQHhFwxgiLUnrgtpMdb3kuA@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 16 May 2019 13:59:21 -0700
+Message-ID: <CAHk-=wiH=vGjsW9MdWFGsgto2W+71sA4XJ7CSubpXkbpC_bGKA@mail.gmail.com>
 Subject: Re: [GIT PULL] asm-generic: kill <asm/segment.h> and improve nommu
  generic uaccess helpers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Christoph Hellwig <hch@lst.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-riscv@lists.infradead.org
-Message-ID: <20190516203359.HYX1oIsFBknrAgD8wFWwg8PiiQVjnFyuqynnjs-Lc7I@z>
+Message-ID: <20190516205921.6Zx1peTkRzvXsuWlXOVzI1f-pWzdWlrYbvFExAOQ-fA@z>
 
-On Thu, May 16, 2019 at 8:41 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Thu, May 16, 2019 at 1:34 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> On Thu, May 16, 2019 at 5:09 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-> > tags/asm-generic-nommu
 >
-> Interesting. I haven't seen this error before:
->
->   # gpg: Signature made Tue 23 Apr 2019 12:54:49 PM PDT
->   # gpg:                using RSA key 60AB47FFC9095227
->   # gpg: bad data signature from key 60AB47FFC9095227: Wrong key usage
-> (0x00, 0x4)
->   # gpg: Can't check signature: Wrong key usage
->
-> I think it means that you signed it with a key that was marked for
-> encryption only or something like that.
->
-> But gpg being the wonderful self-explanatory great UX that it is, I
-> have no effin clue what it really means.
+> I have reconfigured it locally now and pushed an identical tag with a
+> new signature. Can you see if that gives you the same warning if you
+> try to pull that?
 
-Same here.
+No, same issue:
 
-> Looking at the git history, it turns out this has happened a before
-> from you, and in fact goes back to pull requests from 2012.
->
-> Either I just didn't notice - which sounds unlikely for something that
-> has been going on for 7+ years - or the actual check and error is new
-> to gpg, and I only notice it this merge window because I've upgraded
-> to F30.
+   [torvalds@i7 linux]$ git fetch
+git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic
+tags/asm-generic-nommu
+   From ssh://gitolite.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic
+    * tag                         asm-generic-nommu -> FETCH_HEAD
+   [torvalds@i7 linux]$ git verify-tag FETCH_HEAD
+   gpg: Signature made Thu 16 May 2019 01:28:54 PM PDT
+   gpg:                using RSA key 60AB47FFC9095227
+   gpg: bad data signature from key 60AB47FFC9095227: Wrong key usage
+(0x00, 0x4)
+   gpg: Can't check signature: Wrong key usage
 
-I have reconfigured it locally now and pushed an identical tag with a
-new signature. Can you see if that gives you the same warning if you
-try to pull that?
+That's the same key you used previously.
 
-      Arnd
+I think you have to do some gpg edit-key magic or something, and then
+the key need to be refreshed.
+
+But I really despise the usability of gpg, so what do I know?
+
+              Linus
