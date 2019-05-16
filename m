@@ -1,67 +1,168 @@
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v1 1/2] pid: add pidfd_open()
-Date: Thu, 16 May 2019 17:29:16 +0200
-Message-ID: <20190516152915.3t2wofeu3xsyhfbd@brauner.io>
-References: <20190516135944.7205-1-christian@brauner.io>
- <20190516142659.GB22564@redhat.com>
- <20190516145607.j43xyj26k6l5vmbd@yavin>
- <20190516150611.GC22564@redhat.com>
- <20190516151202.hrawrx7hxllmz2di@yavin>
- <20190516152252.GD22564@redhat.com>
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: [PATCH 3.16 79/86] cpu/speculation: Add 'mitigations=' cmdline option
+Date: Thu, 16 May 2019 16:55:33 +0100
+Message-ID: <lsq.1558022133.486480847@decadent.org.uk>
+References: <lsq.1558022132.52852998@decadent.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20190516152252.GD22564@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, jannh@google.com, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, dhowells@redhat.com, ebiederm@xmission.com, elena.reshetova@intel.com, keescook@chromium.org, luto@amacapital.net, luto@kernel.org, tglx@linutronix.de, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, joel@joelfernandes.org, dancol@goo
+In-Reply-To: <lsq.1558022132.52852998@decadent.org.uk>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Denis Kirjanov <kda@linux-powerpc.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Steven Price <steven.price@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Waiman Long <longman@redhat.com>, Andrea Arcangeli <aarcange@redhat.com>, Jon Masters <jcm@redhat.com>, Will Deacon <will.deacon@arm.com>, Jiri Kosina <jikos@kernel.org>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Phil Auld <pauld@redhat.com>, Greg Kroah-Hartman <gregkh@linuxf>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 16, 2019 at 05:22:53PM +0200, Oleg Nesterov wrote:
-> On 05/17, Aleksa Sarai wrote:
-> >
-> > On 2019-05-16, Oleg Nesterov <oleg@redhat.com> wrote:
-> > > On 05/17, Aleksa Sarai wrote:
-> > > > On 2019-05-16, Oleg Nesterov <oleg@redhat.com> wrote:
-> > > > > On 05/16, Christian Brauner wrote:
-> > > > > > With the introduction of pidfds through CLONE_PIDFD it is possible to
-> > > > > > created pidfds at process creation time.
-> > > > >
-> > > > > Now I am wondering why do we need CLONE_PIDFD, you can just do
-> > > > >
-> > > > > 	pid = fork();
-> > > > > 	pidfd_open(pid);
-> > > >
-> > > > While the race window would be exceptionally short, there is the
-> > > > possibility that the child will die
-> > >
-> > > Yes,
-> > >
-> > > > and their pid will be recycled
-> > > > before you do pidfd_open().
-> > >
-> > > No.
-> > >
-> > > Unless the caller's sub-thread does wait() before pidfd_open(), of course.
-> > > Or unless you do signal(SIGCHILD, SIG_IGN).
-> >
-> > What about CLONE_PARENT?
-> 
-> I should have mentioned CLONE_PARENT ;)
-> 
-> Of course in this case the child can be reaped before pidfd_open(). But how often
-> do you or other people use clone(CLONE_PARENT) ? not to mention you can trivially
-> eliminate/detect this race if you really need this.
-> 
-> Don't get me wrong, I am not trying to say that CLONE_PIDFD is a bad idea.
-> 
-> But to me pidfd_open() is much more useful. Say, as a perl programmer I can easily
-> use pidfd_open(), but not CLONE_PIDFD.
+3.16.68-rc1 review patch.  If anyone has any objections, please let me know.
 
-Right, but for a libc, service- or container manager CLONE_PIDFD is much
-nicer when spawning processes quickly. :) I think both are very good to
-have.
+------------------
 
-Thanks, Oleg. As always super helpful reviews. :)
-Christian
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+
+commit 98af8452945c55652de68536afdde3b520fec429 upstream.
+
+Keeping track of the number of mitigations for all the CPU speculation
+bugs has become overwhelming for many users.  It's getting more and more
+complicated to decide which mitigations are needed for a given
+architecture.  Complicating matters is the fact that each arch tends to
+have its own custom way to mitigate the same vulnerability.
+
+Most users fall into a few basic categories:
+
+a) they want all mitigations off;
+
+b) they want all reasonable mitigations on, with SMT enabled even if
+   it's vulnerable; or
+
+c) they want all reasonable mitigations on, with SMT disabled if
+   vulnerable.
+
+Define a set of curated, arch-independent options, each of which is an
+aggregation of existing options:
+
+- mitigations=off: Disable all mitigations.
+
+- mitigations=auto: [default] Enable all the default mitigations, but
+  leave SMT enabled, even if it's vulnerable.
+
+- mitigations=auto,nosmt: Enable all the default mitigations, disabling
+  SMT if needed by a mitigation.
+
+Currently, these options are placeholders which don't actually do
+anything.  They will be fleshed out in upcoming patches.
+
+Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Tested-by: Jiri Kosina <jkosina@suse.cz> (on x86)
+Reviewed-by: Jiri Kosina <jkosina@suse.cz>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H . Peter Anvin" <hpa@zytor.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Jiri Kosina <jikos@kernel.org>
+Cc: Waiman Long <longman@redhat.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Jon Masters <jcm@redhat.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-s390@vger.kernel.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Tyler Hicks <tyhicks@canonical.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>
+Cc: Steven Price <steven.price@arm.com>
+Cc: Phil Auld <pauld@redhat.com>
+Link: https://lkml.kernel.org/r/b07a8ef9b7c5055c3a4637c87d07c296d5016fe0.1555085500.git.jpoimboe@redhat.com
+[bwh: Backported to 3.16:
+ - Drop the auto,nosmt option which we can't support
+ - Adjust filename]
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -1906,6 +1906,25 @@ bytes respectively. Such letter suffixes
+ 			in the "bleeding edge" mini2440 support kernel at
+ 			http://repo.or.cz/w/linux-2.6/mini2440.git
+ 
++	mitigations=
++			Control optional mitigations for CPU vulnerabilities.
++			This is a set of curated, arch-independent options, each
++			of which is an aggregation of existing arch-specific
++			options.
++
++			off
++				Disable all optional CPU mitigations.  This
++				improves system performance, but it may also
++				expose users to several CPU vulnerabilities.
++
++			auto (default)
++				Mitigate all CPU vulnerabilities, but leave SMT
++				enabled, even if it's vulnerable.  This is for
++				users who don't want to be surprised by SMT
++				getting disabled across kernel upgrades, or who
++				have other ways of avoiding SMT-based attacks.
++				This is the default behavior.
++
+ 	mminit_loglevel=
+ 			[KNL] When CONFIG_DEBUG_MEMORY_INIT is set, this
+ 			parameter allows control of the logging verbosity for
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -277,4 +277,21 @@ void arch_cpu_idle_enter(void);
+ void arch_cpu_idle_exit(void);
+ void arch_cpu_idle_dead(void);
+ 
++/*
++ * These are used for a global "mitigations=" cmdline option for toggling
++ * optional CPU mitigations.
++ */
++enum cpu_mitigations {
++	CPU_MITIGATIONS_OFF,
++	CPU_MITIGATIONS_AUTO,
++};
++
++extern enum cpu_mitigations cpu_mitigations;
++
++/* mitigations=off */
++static inline bool cpu_mitigations_off(void)
++{
++	return cpu_mitigations == CPU_MITIGATIONS_OFF;
++}
++
+ #endif /* _LINUX_CPU_H_ */
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -795,3 +795,16 @@ void init_cpu_online(const struct cpumas
+ {
+ 	cpumask_copy(to_cpumask(cpu_online_bits), src);
+ }
++
++enum cpu_mitigations cpu_mitigations = CPU_MITIGATIONS_AUTO;
++
++static int __init mitigations_parse_cmdline(char *arg)
++{
++	if (!strcmp(arg, "off"))
++		cpu_mitigations = CPU_MITIGATIONS_OFF;
++	else if (!strcmp(arg, "auto"))
++		cpu_mitigations = CPU_MITIGATIONS_AUTO;
++
++	return 0;
++}
++early_param("mitigations", mitigations_parse_cmdline);
