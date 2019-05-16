@@ -1,44 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f193.google.com ([209.85.208.193]:42099 "EHLO
-        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726723AbfEPLuk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2019 07:50:40 -0400
-Received: by mail-lj1-f193.google.com with SMTP id 188so2796600ljf.9
-        for <linux-arch@vger.kernel.org>; Thu, 16 May 2019 04:50:39 -0700 (PDT)
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:33554 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726878AbfEPMJ0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2019 08:09:26 -0400
 MIME-Version: 1.0
-References: <cover.1553828158.git.vilhelm.gray@gmail.com> <1cc8b30bb3954ca2a0961ffb0a2eed8a005ed670.1553828158.git.vilhelm.gray@gmail.com>
-In-Reply-To: <1cc8b30bb3954ca2a0961ffb0a2eed8a005ed670.1553828158.git.vilhelm.gray@gmail.com>
-From: Linus Walleij <linus.walleij@linaro.org>
-Date: Thu, 16 May 2019 13:50:26 +0200
-Message-ID: <CACRpkdbCt1PAJ1rBvKvZ2ydLgJmKXuLN4mRtSU8CaW=U7EcFbQ@mail.gmail.com>
-Subject: Re: [PATCH v14 01/11] bitops: Introduce the for_each_set_clump8 macro
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 16 May 2019 14:09:08 +0200
+Message-ID: <CAK8P3a2+RHAReOZdo8nEvqDeC1EPj83L2Ug4JuVRiUh943AuNw@mail.gmail.com>
+Subject: [GIT PULL] asm-generic: kill <asm/segment.h> and improve nommu
+ generic uaccess helpers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Bartosz Golaszewski <bgolaszewski@baylibre.com>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux PM list <linux-pm@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Phil Reid <preid@electromag.com.au>, Lukas Wunner <lukas@wunner.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190516115026.PzPtCJmIzRf2tx6a-AgAVzpYrzTJwZKiSbVZ35ZRXDk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-riscv@lists.infradead.org
+Message-ID: <20190516120908.DV87UmgQvdVtXw2jzGBZKHiicssJd9ESHUlO6vYwzIo@z>
 
-On Fri, Mar 29, 2019 at 4:03 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
+[back from vacation now, sorry for the late pull request for this merge window]
 
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
->
-> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Suggested-by: Lukas Wunner <lukas@wunner.de>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Linus Walleij <linus.walleij@linaro.org>
-> Acked-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+The following changes since commit 9e98c678c2d6ae3a17cb2de55d17f69dddaa231b:
 
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+  Linux 5.1-rc1 (2019-03-17 14:22:26 -0700)
 
-Yours,
-Linus Walleij
+are available in the Git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic-nommu
+
+for you to fetch changes up to 6edd1dbace0e8529ed167e8a5f9da63c0cc763cc:
+
+  asm-generic: optimize generic uaccess for 8-byte loads and stores
+(2019-04-23 21:51:41 +0200)
+
+----------------------------------------------------------------
+asm-generic: kill <asm/segment.h> and improve nommu generic uaccess helpers
+
+Christoph Hellwig writes:
+
+  This is a series doing two somewhat interwinded things.  It improves
+  the asm-generic nommu uaccess helper to optionally be entirely generic
+  and not require any arch helpers for the actual uaccess.  For the
+  generic uaccess.h to actually be generically useful I also had to kill
+  off the mess we made of <asm/segment.h>, which really shouldn't exist
+  on most architectures.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+----------------------------------------------------------------
+Christoph Hellwig (4):
+      asm-generic: don't include <asm/segment.h> from <asm/uaccess.h>
+      arch: mostly remove <asm/segment.h>
+      asm-generic: provide entirely generic nommu uaccess
+      asm-generic: optimize generic uaccess for 8-byte loads and stores
+
+ arch/alpha/include/asm/segment.h   |  6 ----
+ arch/alpha/kernel/smc37c669.c      |  1 -
+ arch/alpha/kernel/smc37c93x.c      |  1 -
+ arch/arc/include/asm/uaccess.h     |  1 +
+ arch/arm/include/asm/Kbuild        |  1 -
+ arch/arm64/include/asm/Kbuild      |  1 -
+ arch/c6x/include/asm/Kbuild        |  1 -
+ arch/h8300/Kconfig                 |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/h8300/include/asm/uaccess.h   | 55 ------------------------------------
+ arch/hexagon/include/asm/Kbuild    |  1 -
+ arch/hexagon/include/asm/uaccess.h |  1 -
+ arch/ia64/include/asm/segment.h    |  6 ----
+ arch/mips/include/asm/Kbuild       |  1 -
+ arch/nds32/include/asm/Kbuild      |  1 -
+ arch/nios2/include/asm/Kbuild      |  1 -
+ arch/openrisc/include/asm/Kbuild   |  1 -
+ arch/openrisc/kernel/ptrace.c      |  1 -
+ arch/openrisc/kernel/setup.c       |  1 -
+ arch/openrisc/kernel/traps.c       |  1 -
+ arch/openrisc/mm/init.c            |  1 -
+ arch/openrisc/mm/tlb.c             |  1 -
+ arch/parisc/include/asm/Kbuild     |  1 -
+ arch/s390/include/asm/segment.h    |  5 ----
+ arch/s390/kernel/ptrace.c          |  1 -
+ arch/unicore32/include/asm/Kbuild  |  1 -
+ arch/xtensa/include/asm/segment.h  | 16 -----------
+ include/asm-generic/segment.h      |  9 ------
+ include/asm-generic/uaccess.h      | 58 +++++++++++++++++++++++++++++++++++++-
+ lib/Kconfig                        |  4 +++
+ 30 files changed, 64 insertions(+), 117 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/segment.h
+ delete mode 100644 arch/h8300/include/asm/uaccess.h
+ delete mode 100644 arch/ia64/include/asm/segment.h
+ delete mode 100644 arch/s390/include/asm/segment.h
+ delete mode 100644 arch/xtensa/include/asm/segment.h
+ delete mode 100644 include/asm-generic/segment.h
