@@ -1,68 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:49060 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726755AbfEQEY4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2019 00:24:56 -0400
+Received: from mail-vs1-f68.google.com ([209.85.217.68]:42770 "EHLO
+        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726685AbfEQIyz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2019 04:54:55 -0400
 MIME-Version: 1.0
-References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
- <20190423034959.13525-5-yamada.masahiro@socionext.com> <aa73f81d-5d5a-a1d2-5239-3e8eb1278ec4@redhat.com>
-In-Reply-To: <aa73f81d-5d5a-a1d2-5239-3e8eb1278ec4@redhat.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Fri, 17 May 2019 13:23:55 +0900
-Message-ID: <CAK7LNAST5y9Khg0BBz6W0mekPpuLPwWa9nPvvVENidWhHZ-avw@mail.gmail.com>
-Subject: Re: [RESEND PATCH v3 04/11] s390/cpacf: mark scpacf_query() as __always_inline
+References: <CAK8P3a2+RHAReOZdo8nEvqDeC1EPj83L2Ug4JuVRiUh943AuNw@mail.gmail.com>
+ <CAHk-=wgiv5ftb+dq7N8cN4n2YX3VkyzeQccywn07Xu9xhOLTSw@mail.gmail.com>
+ <CAK8P3a2EEuxh3uhsqauEC_vROZ7tQHhFwxgiLUnrgtpMdb3kuA@mail.gmail.com> <CAHk-=wiH=vGjsW9MdWFGsgto2W+71sA4XJ7CSubpXkbpC_bGKA@mail.gmail.com>
+In-Reply-To: <CAHk-=wiH=vGjsW9MdWFGsgto2W+71sA4XJ7CSubpXkbpC_bGKA@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Fri, 17 May 2019 10:54:42 +0200
+Message-ID: <CAMuHMdU0N9j2TRtJwJx5uxE2ScFnB-MRrd9hzaXJmwTuY4Ldzw@mail.gmail.com>
+Subject: Re: [GIT PULL] asm-generic: kill <asm/segment.h> and improve nommu
+ generic uaccess helpers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-s390 <linux-s390@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mathieu Malaterre <malat@debian.org>, X86 ML <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20190517042355.gxhktIsiOthMsgwYkzl0YXC6rehAIy2xCQEBhpdd7Po@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-riscv@lists.infradead.org
+Message-ID: <20190517085442.Lp20O5TRuabFgWVLVWe61vwW2cMSP1uA3XQZSZZ66CQ@z>
 
-On Fri, May 17, 2019 at 8:01 AM Laura Abbott <labbott@redhat.com> wrote:
+Hi Linus,
+
+On Fri, May 17, 2019 at 12:06 AM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Thu, May 16, 2019 at 1:34 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > I have reconfigured it locally now and pushed an identical tag with a
+> > new signature. Can you see if that gives you the same warning if you
+> > try to pull that?
 >
-> On 4/22/19 8:49 PM, Masahiro Yamada wrote:
-> > This prepares to move CONFIG_OPTIMIZE_INLINING from x86 to a common
-> > place. We need to eliminate potential issues beforehand.
-> >
-> > If it is enabled for s390, the following error is reported:
-> >
-> > In file included from arch/s390/crypto/des_s390.c:19:
-> > ./arch/s390/include/asm/cpacf.h: In function 'cpacf_query':
-> > ./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably doesn't match constraints
-> >    asm volatile(
-> >    ^~~
-> > ./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'asm'
-> >
+> No, same issue:
 >
-> This also seems to still be broken, again with gcc 9.1.1
->
-> BUILDSTDERR: In file included from arch/s390/crypto/prng.c:29:
-> BUILDSTDERR: ./arch/s390/include/asm/cpacf.h: In function 'cpacf_query_func':
-> BUILDSTDERR: ./arch/s390/include/asm/cpacf.h:170:2: warning: asm operand 3 probably doesn't match constraints
-> BUILDSTDERR:   170 |  asm volatile(
-> BUILDSTDERR:       |  ^~~
-> BUILDSTDERR: ./arch/s390/include/asm/cpacf.h:170:2: error: impossible constraint in 'asm'
->
-> I realized we're still carrying a patch to add -fno-section-anchors
-> but it's a similar failure to powerpc.
+>    [torvalds@i7 linux]$ git fetch
+> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic
+> tags/asm-generic-nommu
+>    From ssh://gitolite.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic
+>     * tag                         asm-generic-nommu -> FETCH_HEAD
+>    [torvalds@i7 linux]$ git verify-tag FETCH_HEAD
+>    gpg: Signature made Thu 16 May 2019 01:28:54 PM PDT
+>    gpg:                using RSA key 60AB47FFC9095227
+>    gpg: bad data signature from key 60AB47FFC9095227: Wrong key usage
+> (0x00, 0x4)
+>    gpg: Can't check signature: Wrong key usage
 
+Works fine here.
 
-Christophe had already pointed out potential issues for "i" constraint,
-and I have fixups in hand:
+Oh, I do have the recommended cronjob:
+https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html#set-up-a-refresh-cronjob
 
-See
-https://lkml.org/lkml/2019/5/3/459
+Gr{oetje,eeting}s,
 
-
-My plan was to send it after all of my base patches
-were merged.
-
-This s390 cparf.h is included in the TODO list.
-
-Will fix soon.
-
-Thanks.
+                        Geert
 
 -- 
-Best Regards
-Masahiro Yamada
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
