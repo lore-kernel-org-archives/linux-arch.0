@@ -1,42 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f181.google.com ([209.85.208.181]:38382 "EHLO
-        mail-lj1-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726317AbfEPWvN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2019 18:51:13 -0400
-Received: by mail-lj1-f181.google.com with SMTP id 14so4574376ljj.5
-        for <linux-arch@vger.kernel.org>; Thu, 16 May 2019 15:51:12 -0700 (PDT)
-Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com. [209.85.167.41])
-        by smtp.gmail.com with ESMTPSA id u3sm1186611lfc.73.2019.05.16.15.51.10
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 16 May 2019 15:51:11 -0700 (PDT)
-Received: by mail-lf1-f41.google.com with SMTP id c17so3908449lfi.2
-        for <linux-arch@vger.kernel.org>; Thu, 16 May 2019 15:51:10 -0700 (PDT)
+Received: from conssluserg-05.nifty.com ([210.131.2.90]:47280 "EHLO
+        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725929AbfEQETY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2019 00:19:24 -0400
 MIME-Version: 1.0
-References: <CAK8P3a2+RHAReOZdo8nEvqDeC1EPj83L2Ug4JuVRiUh943AuNw@mail.gmail.com>
- <CAHk-=wgiv5ftb+dq7N8cN4n2YX3VkyzeQccywn07Xu9xhOLTSw@mail.gmail.com>
- <CAK8P3a2EEuxh3uhsqauEC_vROZ7tQHhFwxgiLUnrgtpMdb3kuA@mail.gmail.com>
- <CAHk-=wiH=vGjsW9MdWFGsgto2W+71sA4XJ7CSubpXkbpC_bGKA@mail.gmail.com>
- <1558043623.29359.44.camel@HansenPartnership.com> <CAK8P3a0QsURY+QrkvBh5zS12cCLYD=ssVtus_6Q_DSnB1=1y3A@mail.gmail.com>
-In-Reply-To: <CAK8P3a0QsURY+QrkvBh5zS12cCLYD=ssVtus_6Q_DSnB1=1y3A@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 16 May 2019 15:50:54 -0700
-Message-ID: <CAHk-=wi+CyMkQJahExx0FNtJf+cd9VqjWNx3z6Em_xW11ScViw@mail.gmail.com>
-Subject: Re: [GIT PULL] asm-generic: kill <asm/segment.h> and improve nommu
- generic uaccess helpers
+References: <20190423034959.13525-1-yamada.masahiro@socionext.com>
+ <20190423034959.13525-11-yamada.masahiro@socionext.com> <ca74c830-fe1b-7bff-8dfd-353fca57b647@redhat.com>
+In-Reply-To: <ca74c830-fe1b-7bff-8dfd-353fca57b647@redhat.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Fri, 17 May 2019 13:18:31 +0900
+Message-ID: <CAK7LNASjc8rmJvv5kgk6Mxo3mcB4EgB4XJG_8JY47ZQbrsSSXg@mail.gmail.com>
+Subject: Re: [RESEND PATCH v3 10/11] powerpc/mm/radix: mark as __tlbie_pid()
+ and friends as__always_inline
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Christoph Hellwig <hch@lst.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-riscv@lists.infradead.org
-Message-ID: <20190516225054.6HwfJeLev9cX1KlqkJfSvJUpSjyC9uRjTWBIT2tGv6Q@z>
+To: Laura Abbott <labbott@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-s390 <linux-s390@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mathieu Malaterre <malat@debian.org>, X86 ML <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, linux-mtd <linux-mtd@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190517041831.cToh2lO8hadr2VrN2dN-BAkQk7Atg6-Yb5Zy5vdPW1c@z>
 
-On Thu, May 16, 2019 at 3:49 PM Arnd Bergmann <arnd@arndb.de> wrote:
+Hi Laura,
+
+
+On Fri, May 17, 2019 at 7:55 AM Laura Abbott <labbott@redhat.com> wrote:
+
+> What gcc version was this tested with?
+
+I use kernel.org toolchains
+https://mirrors.edge.kernel.org/pub/tools/crosstool/
+
+It is GCC 8.1
+
+
+> We're still seeing errors on
+> Fedora rawhide with gcc 9.1.1 on a version (8c05f3b965da14e7790711026b32cc10a4c06213)
+> that should have this fix in it:
 >
-> Strangely, the copy I have on my local machine does have the 'S'
-> flag. I sent it back to the server now.
+> BUILDSTDERR: arch/powerpc/mm/book3s64/radix_tlb.c: In function '_tlbiel_pid':
+> BUILDSTDERR: arch/powerpc/mm/book3s64/radix_tlb.c:104:2: warning: asm operand 3 probably doesn't match constraints
+> BUILDSTDERR:   104 |  asm volatile(PPC_TLBIEL(%0, %4, %3, %2, %1)
+> BUILDSTDERR:       |  ^~~
+> BUILDSTDERR: arch/powerpc/mm/book3s64/radix_tlb.c:104:2: error: impossible constraint in 'asm'
+> BUILDSTDERR: make[3]: *** [scripts/Makefile.build:279: arch/powerpc/mm/book3s64/radix_tlb.o] Error 1
+> BUILDSTDERR: make[2]: *** [scripts/Makefile.build:489: arch/powerpc/mm/book3s64] Error 2
+> BUILDSTDERR: make[1]: *** [scripts/Makefile.build:489: arch/powerpc/mm] Error 2
 
-Yup, now when I refreshed your key, I got an update, and your
-signature looks all good.
+Thanks for the report.
 
-              Linus
+Does this work for you?
+
+
+diff --git a/arch/powerpc/mm/book3s64/radix_tlb.c
+b/arch/powerpc/mm/book3s64/radix_tlb.c
+index 4d841369399f..9a6befdd5e74 100644
+--- a/arch/powerpc/mm/book3s64/radix_tlb.c
++++ b/arch/powerpc/mm/book3s64/radix_tlb.c
+
+@@ -239,7 +239,7 @@ static inline void fixup_tlbie_lpid(unsigned long lpid)
+ /*
+  * We use 128 set in radix mode and 256 set in hpt mode.
+  */
+-static inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
++static __always_inline void _tlbiel_pid(unsigned long pid, unsigned long ric)
+ {
+        int set;
+
+
+
+
+--
+Best Regards
+Masahiro Yamada
