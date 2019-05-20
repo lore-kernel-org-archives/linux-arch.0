@@ -1,15 +1,24 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
-Date: Mon, 20 May 2019 08:00:15 +0200
-Message-ID: <20190520060018.25569-3-hch@lst.de>
+Subject: [PATCH 1/5] arm64: don't use asm-generic/ptrace.h
+Date: Mon, 20 May 2019 08:00:14 +0200
+Message-ID: <20190520060018.25569-2-hch@lst.de>
 References: <20190520060018.25569-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20190520060018.25569-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 Doing the indirection through macros for the regs accessors just
@@ -18,54 +27,67 @@ makes them harder to read, so implement the helpers directly.
 Note that only the helpers actually used are implemented now.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ arch/arm64/include/asm/ptrace.h | 31 +++++++++++++++++++------------
+ 1 file changed, 19 insertions(+), 12 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
-index 6f047730e642..fc007d186a82 100644
---- a/arch/powerpc/include/asm/ptrace.h
-+++ b/arch/powerpc/include/asm/ptrace.h
-@@ -115,18 +115,33 @@ struct pt_regs
+diff --git a/arch/arm64/include/asm/ptrace.h b/arch/arm64/include/asm/ptrace.h
+index b2de32939ada..584261e00619 100644
+--- a/arch/arm64/include/asm/ptrace.h
++++ b/arch/arm64/include/asm/ptrace.h
+@@ -228,11 +228,12 @@ static inline void forget_syscall(struct pt_regs *regs)
+ #define fast_interrupts_enabled(regs) \
+ 	(!((regs)->pstate & PSR_F_BIT))
  
- #ifndef __ASSEMBLY__
+-#define GET_USP(regs) \
+-	(!compat_user_mode(regs) ? (regs)->sp : (regs)->compat_sp)
+-
+-#define SET_USP(ptregs, value) \
+-	(!compat_user_mode(regs) ? ((regs)->sp = value) : ((regs)->compat_sp = value))
++static inline unsigned long user_stack_pointer(struct pt_regs *regs)
++{
++	if (compat_user_mode(regs))
++		return regs->compat_sp;
++	return regs->sp;
++}
  
--#define GET_IP(regs)		((regs)->nip)
--#define GET_USP(regs)		((regs)->gpr[1])
--#define GET_FP(regs)		(0)
--#define SET_FP(regs, val)
+ extern int regs_query_register_offset(const char *name);
+ extern unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
+@@ -331,13 +332,20 @@ static inline unsigned long regs_get_kernel_argument(struct pt_regs *regs,
+ struct task_struct;
+ int valid_user_regs(struct user_pt_regs *regs, struct task_struct *task);
+ 
+-#define GET_IP(regs)		((unsigned long)(regs)->pc)
+-#define SET_IP(regs, value)	((regs)->pc = ((u64) (value)))
+-
+-#define GET_FP(ptregs)		((unsigned long)(ptregs)->regs[29])
+-#define SET_FP(ptregs, value)	((ptregs)->regs[29] = ((u64) (value)))
 +static inline unsigned long instruction_pointer(struct pt_regs *regs)
 +{
-+	return regs->nip;
++	return regs->pc;
 +}
-+
 +static inline void instruction_pointer_set(struct pt_regs *regs,
 +		unsigned long val)
 +{
-+	regs->nip = val;
++	regs->pc = val;
 +}
-+
-+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-+{
-+	return regs->gpr[1];
-+}
-+
-+static inline unsigned long frame_pointer(struct pt_regs *regs)
-+{
-+	return 0;
-+}
- 
- #ifdef CONFIG_SMP
- extern unsigned long profile_pc(struct pt_regs *regs);
--#define profile_pc profile_pc
-+#else
-+#define profile_pc(regs) instruction_pointer(regs)
- #endif
  
 -#include <asm-generic/ptrace.h>
--
- #define kernel_stack_pointer(regs) ((regs)->gpr[1])
- static inline int is_syscall_success(struct pt_regs *regs)
- {
++static inline unsigned long frame_pointer(struct pt_regs *regs)
++{
++	return regs->regs[29];
++}
+ 
+ #define procedure_link_pointer(regs)	((regs)->regs[30])
+ 
+@@ -347,7 +355,6 @@ static inline void procedure_link_pointer_set(struct pt_regs *regs,
+ 	procedure_link_pointer(regs) = val;
+ }
+ 
+-#undef profile_pc
+ extern unsigned long profile_pc(struct pt_regs *regs);
+ 
+ #endif /* __ASSEMBLY__ */
 -- 
 2.20.1
