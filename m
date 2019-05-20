@@ -1,31 +1,71 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: remove asm-generic/ptrace.h v2
-Date: Mon, 20 May 2019 08:00:13 +0200
-Message-ID: <20190520060018.25569-1-hch@lst.de>
+Subject: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
+Date: Mon, 20 May 2019 08:00:15 +0200
+Message-ID: <20190520060018.25569-3-hch@lst.de>
+References: <20190520060018.25569-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190520060018.25569-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+Doing the indirection through macros for the regs accessors just
+makes them harder to read, so implement the helpers directly.
 
-asm-generic/ptrace.h is a little weird in that it doesn't actually
-implement any functionality, but it provided multiple layers of macros
-that just implement trivial inline functions.  We implement those
-directly in the few architectures and be off with a much simpler
-design.
+Note that only the helpers actually used are implemented now.
 
-Changes since v1:
- - add a missing empty line between functions
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
+ 1 file changed, 22 insertions(+), 7 deletions(-)
+
+diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
+index 6f047730e642..fc007d186a82 100644
+--- a/arch/powerpc/include/asm/ptrace.h
++++ b/arch/powerpc/include/asm/ptrace.h
+@@ -115,18 +115,33 @@ struct pt_regs
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#define GET_IP(regs)		((regs)->nip)
+-#define GET_USP(regs)		((regs)->gpr[1])
+-#define GET_FP(regs)		(0)
+-#define SET_FP(regs, val)
++static inline unsigned long instruction_pointer(struct pt_regs *regs)
++{
++	return regs->nip;
++}
++
++static inline void instruction_pointer_set(struct pt_regs *regs,
++		unsigned long val)
++{
++	regs->nip = val;
++}
++
++static inline unsigned long user_stack_pointer(struct pt_regs *regs)
++{
++	return regs->gpr[1];
++}
++
++static inline unsigned long frame_pointer(struct pt_regs *regs)
++{
++	return 0;
++}
+ 
+ #ifdef CONFIG_SMP
+ extern unsigned long profile_pc(struct pt_regs *regs);
+-#define profile_pc profile_pc
++#else
++#define profile_pc(regs) instruction_pointer(regs)
+ #endif
+ 
+-#include <asm-generic/ptrace.h>
+-
+ #define kernel_stack_pointer(regs) ((regs)->gpr[1])
+ static inline int is_syscall_success(struct pt_regs *regs)
+ {
+-- 
+2.20.1
