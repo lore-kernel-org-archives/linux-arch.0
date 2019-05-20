@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:61390 "EHLO mx2.mailbox.org"
+Received: from mx1.mailbox.org ([80.241.60.212]:62706 "EHLO mx1.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730481AbfETNeD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 May 2019 09:34:03 -0400
+        id S1730269AbfETNf2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 May 2019 09:35:28 -0400
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC permissions
-Date: Mon, 20 May 2019 23:32:56 +1000
-Message-ID: <20190520133305.11925-2-cyphar@cyphar.com>
+Subject: [PATCH RFC v8 08/10] namei: resolveat(2) syscall
+Date: Mon, 20 May 2019 23:33:03 +1000
+Message-ID: <20190520133305.11925-9-cyphar@cyphar.com>
 In-Reply-To: <20190520133305.11925-1-cyphar@cyphar.com>
 References: <20190520133305.11925-1-cyphar@cyphar.com>
 MIME-Version: 1.0
@@ -14,344 +14,379 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-kselftest@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190520133256.y6yoXIkM9cI8hedzwNnUgIQjGil9vIdXP1TVO_pmVCU@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-kselftest@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190520133303.yKZqvHXotVyy7Qq03ljcKaI1ULYBBKSHaWv-K5oKv2I@z>
 
-The ability for userspace to "re-open" file descriptors through
-/proc/self/fd has been a very useful tool for all sorts of usecases
-(container runtimes are one common example). However, the current
-interface for doing this has resulted in some pretty subtle security
-holes. Userspace can re-open a file descriptor with more permissions
-than the original, which can result in cases such as /proc/$pid/exe
-being re-opened O_RDWR at a later date even though (by definition)
-/proc/$pid/exe cannot be opened for writing. When combined with O_PATH
-the results can get even more confusing.
+The most obvious syscall to add support for the new LOOKUP_* scoping
+flags would be openat(2) (along with the required execveat(2) change
+included in this series). However, there are a few reasons to not do
+this:
 
-We cannot block this outright. Aside from userspace already depending on
-it, it's a useful feature which can actually increase the security of
-userspace. For instance, LXC keeps an O_PATH of the container's
-/dev/pts/ptmx that gets re-opened to create new ptys and then uses
-TIOCGPTPEER to get the slave end. This allows for pty allocation without
-resolving paths inside an (untrusted) container's rootfs. There isn't a
-trivial way of doing this that is as straight-forward and safe as O_PATH
-re-opening.
+ * The new LOOKUP_* flags are intended to be security features, and
+   openat(2) will silently ignore all unknown flags. This means that
+   users would need to avoid foot-gunning themselves constantly when
+   using this interface if it were part of openat(2).
 
-Instead we have to restrict it in such a way that it doesn't break
-(good) users but does block potential attackers. The solution applied in
-this patch is to restrict *re-opening* (not resolution through)
-magic-links by requiring that mode of the link be obeyed. Normal
-symlinks have modes of a+rwx but magic-links have other modes. These
-magic-link modes were historically ignored during path resolution, but
-they've now been re-purposed for more useful ends.
+ * Resolution scoping feels like a different operation to the existing
+   O_* flags. And since openat(2) has limited flag space, it seems to be
+   quite wasteful to clutter it with 5 flags that are all
+   resolution-related. Arguably O_NOFOLLOw is also a resolution flag but
+   its entire purpose is to error out if you encounter a trailing
+   symlink not to scope resolution.
 
-It is also necessary to define semantics for the mode of an O_PATH
-descriptor, since re-opening a magic-link through an O_PATH needs to be
-just as restricted as the corresponding magic-link otherwise the above
-protection can be bypassed. There are two distinct cases:
+ * Other systems would be able to reimplement this syscall allowing for
+   cross-OS standardisation rather than being hidden amongst O_* flags
+   which may result in it not being used by all the parties that might
+   want to use it (file servers, web servers, container runtimes, etc).
 
- 1. The target is a regular file (not a magic-link). Userspace depends
-    on being able to re-open the O_PATH of a regular file, so we must
-    define the mode to be a+rwx.
+ * It gives us the opportunity to iterate on the O_PATH interface. In
+   particular, the RESOLVE_UPGRADE_* flags are only possible because we
+   have a clean slate without needing to re-use the ACC_MODE flag
+   design.
 
- 2. The target is a magic-link. In this case, we simply copy the mode of
-    the magic-link. This results in an O_PATH of a magic-link
-    effectively acting as a no-op in terms of how much re-opening
-    privileges a process has.
+To this end, we introduce the resolveat(2) syscall. At the moment it's
+effectively another way of getting a bog-standard O_PATH descriptor but
+with the ability to use the new LOOKUP_* flags. Following the example of
+other new file-handle-creation syscalls (pidfds, seccomp notify fds) we
+default to O_CLOEXEC and users can unset O_CLOEXEC using fcntl(2) if
+they really want to.
 
-CAP_DAC_OVERRIDE can be used to override all of these restrictions, but
-we only permit &init_userns's capabilities to affect these semantics.
-The reason for this is that there isn't a clear way to track what
-user_ns is the original owner of a given O_PATH chain -- thus an
-unprivileged user could create a new userns and O_PATH the file
-descriptor, owning it. All signs would indicate that the user really
-does have CAP_DAC_OVERRIDE over the new descriptor and the protection
-would be bypassed. We thus opt for the more conservative approach.
+Because resolveat(2) only provides the ability to get O_PATH
+descriptors, users will need to get creative with /proc/self/fd in order
+to get a usable file descriptor for other uses. However, the new
+addition of O_EMPTYPATH shortcuts this problem and allows for easy usage
+of the new LOOKUP_* flags with openat(2) without cluttering the open(2)
+flag bits.
 
-One final exception is given, which is that non-O_PATH file descriptors
-are given re-open rights equivalent to the permissions available at
-open-time. This allows for O_RDONLY file descriptors to be re-opened
-O_RDWR as long as the user had MAY_WRITE access at the time of opening
-the O_RDONLY descriptor. This is necessary to avoid breaking userspace
-(some of the kernel's own selftests depended on this "feature").
+In order to allow for userspace to lock down their usage of file
+descriptor re-opening, resolveat(2) has flags (RESOLVE_UPGRADE_*) which
+allow users to disallow certain re-opening modes.
 
-Co-developed-by: Andy Lutomirski <luto@kernel.org>
 Co-developed-by: Christian Brauner <christian@brauner.io>
 Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
 ---
- fs/internal.h         |   1 +
- fs/namei.c            | 117 ++++++++++++++++++++++++++++++++++++++++--
- fs/open.c             |   3 +-
- fs/proc/fd.c          |  16 ++++--
- include/linux/fs.h    |   4 ++
- include/linux/types.h |   2 +-
- 6 files changed, 132 insertions(+), 11 deletions(-)
+ arch/alpha/kernel/syscalls/syscall.tbl      |  1 +
+ arch/arm/tools/syscall.tbl                  |  1 +
+ arch/arm64/include/asm/unistd.h             |  2 +-
+ arch/arm64/include/asm/unistd32.h           |  3 ++
+ arch/ia64/kernel/syscalls/syscall.tbl       |  1 +
+ arch/m68k/kernel/syscalls/syscall.tbl       |  1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl |  1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl   |  1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl   |  1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl   |  1 +
+ arch/parisc/kernel/syscalls/syscall.tbl     |  1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl    |  1 +
+ arch/s390/kernel/syscalls/syscall.tbl       |  1 +
+ arch/sh/kernel/syscalls/syscall.tbl         |  1 +
+ arch/sparc/kernel/syscalls/syscall.tbl      |  1 +
+ arch/x86/entry/syscalls/syscall_32.tbl      |  1 +
+ arch/x86/entry/syscalls/syscall_64.tbl      |  1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl     |  1 +
+ fs/namei.c                                  | 50 +++++++++++++++++++++
+ include/linux/fcntl.h                       |  8 +++-
+ include/uapi/asm-generic/unistd.h           |  5 ++-
+ include/uapi/linux/fcntl.h                  | 10 +++++
+ 22 files changed, 91 insertions(+), 3 deletions(-)
 
-diff --git a/fs/internal.h b/fs/internal.h
-index bfd9bbbe369b..60d8a079a331 100644
---- a/fs/internal.h
-+++ b/fs/internal.h
-@@ -123,6 +123,7 @@ struct open_flags {
- 	int acc_mode;
- 	int intent;
- 	int lookup_flags;
-+	fmode_t opath_mask;
- };
- extern struct file *do_filp_open(int dfd, struct filename *pathname,
- 		const struct open_flags *op);
-diff --git a/fs/namei.c b/fs/namei.c
-index 5ebd64b21970..5ff61624b8f0 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -506,6 +506,8 @@ struct nameidata {
- 	struct inode	*link_inode;
- 	unsigned	root_seq;
- 	int		dfd;
-+	fmode_t 	opath_mask;
-+	int		acc_mode; /* op.acc_mode */
- } __randomize_layout;
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index 63ed39cbd3bd..72f431b1dc9c 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -461,5 +461,6 @@
+ 530	common	getegid				sys_getegid
+ 531	common	geteuid				sys_geteuid
+ 532	common	getppid				sys_getppid
++533	common	resolveat			sys_resolveat
+ # all other architectures have common numbers for new syscall, alpha
+ # is the exception.
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 9016f4081bb9..11f19c78185e 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -437,3 +437,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index d1dd93436e1e..d04eb26cfaeb 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -44,7 +44,7 @@
+ #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
+ #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
  
- static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
-@@ -514,7 +516,14 @@ static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
- 	p->stack = p->internal;
- 	p->dfd = dfd;
- 	p->name = name;
--	p->total_link_count = old ? old->total_link_count : 0;
-+	p->total_link_count = 0;
-+	p->acc_mode = 0;
-+	p->opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE;
-+	if (old) {
-+		p->total_link_count = old->total_link_count;
-+		p->acc_mode = old->acc_mode;
-+		p->opath_mask = old->opath_mask;
-+	}
- 	p->saved = old;
- 	current->nameidata = p;
- }
-@@ -1042,8 +1051,40 @@ static int may_create_in_sticky(struct dentry * const dir,
- 	return 0;
- }
+-#define __NR_compat_syscalls		424
++#define __NR_compat_syscalls		436
+ #endif
  
-+/**
-+ * may_reopen_magiclink - Check permissions for opening a trailing magic-link
-+ * @opath_mask: the O_PATH mask of the magiclink
-+ * @acc_mode: ACC_MODE which the user is attempting
-+ *
-+ * We block magic-link re-opening if the @opath_mask is more strict than the
-+ * @acc_mode being requested, unless the user is capable(CAP_DAC_OVERRIDE).
-+ *
-+ * Returns 0 if successful, -ve on error.
-+ */
-+static int may_open_magiclink(fmode_t opath_mask, int acc_mode)
-+{
-+	/*
-+	 * We only allow for init_userns to be able to override magic-links.
-+	 * This is done to avoid cases where an unprivileger userns could take
-+	 * an O_PATH of the fd, resulting in it being very unclear whether
-+	 * CAP_DAC_OVERRIDE should work on the new O_PATH fd (given that it
-+	 * pipes through to the underlying file).
-+	 */
-+	if (capable(CAP_DAC_OVERRIDE))
-+		return 0;
-+
-+	if ((acc_mode & MAY_READ) &&
-+	    !(opath_mask & (FMODE_READ | FMODE_PATH_READ)))
-+		return -EACCES;
-+	if ((acc_mode & MAY_WRITE) &&
-+	    !(opath_mask & (FMODE_WRITE | FMODE_PATH_WRITE)))
-+		return -EACCES;
-+
-+	return 0;
-+}
-+
- static __always_inline
--const char *get_link(struct nameidata *nd)
-+const char *get_link(struct nameidata *nd, bool trailing)
- {
- 	struct saved *last = nd->stack + nd->depth - 1;
- 	struct dentry *dentry = last->link.dentry;
-@@ -1081,6 +1122,50 @@ const char *get_link(struct nameidata *nd)
- 		} else {
- 			res = get(dentry, inode, &last->done);
- 		}
-+		/* If we just jumped it was because of a magic-link. */
-+		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
-+			/*
-+			 * For trailing_symlink we check whether the symlink's
-+			 * mode allows us to do what we want through acc_mode.
-+			 * In addition, we need to stash away what the link
-+			 * mode is in case we are about to O_PATH this
-+			 * magic-link.
-+			 *
-+			 * This is only done for magic-links, as a security
-+			 * measure to prevent users from being able to re-open
-+			 * files with additional permissions or similar tricks
-+			 * through procfs. This is not strictly POSIX-friendly,
-+			 * but technically neither are magic-links.
-+			 */
-+			if (trailing) {
-+				fmode_t opath_mask = 0;
-+				int mode = inode->i_mode;
-+
-+				/*
-+				 * Bare-bones acl_permission_check shift so
-+				 * that opath_mask can be adjusted using creds.
-+				 */
-+				if (uid_eq(current_fsuid(), inode->i_uid))
-+					mode >>= 6;
-+				else if (in_group_p(inode->i_gid))
-+					mode >>= 3;
-+
-+				/* Figure out the O_PATH mask. */
-+				if (mode & MAY_READ)
-+					opath_mask |= FMODE_PATH_READ;
-+				if (mode & MAY_WRITE)
-+					opath_mask |= FMODE_PATH_WRITE;
-+
-+				/*
-+				 * Is the new opath_mask more restrictive than
-+				 * the acc_mode being requested?
-+				 */
-+				error = may_open_magiclink(opath_mask, nd->acc_mode);
-+				if (error)
-+					return ERR_PTR(error);
-+				nd->opath_mask &= opath_mask;
-+			}
-+		}
- 		if (IS_ERR_OR_NULL(res))
- 			return res;
- 	}
-@@ -2142,7 +2227,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
- 			return err;
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index 5590f2623690..9978234748a9 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -867,6 +867,9 @@ __SYSCALL(__NR_futex_time64, sys_futex)
+ #define __NR_sched_rr_get_interval_time64 423
+ __SYSCALL(__NR_sched_rr_get_interval_time64, sys_sched_rr_get_interval)
  
- 		if (err) {
--			const char *s = get_link(nd);
-+			const char *s = get_link(nd, false);
- 
- 			if (IS_ERR(s))
- 				return PTR_ERR(s);
-@@ -2258,7 +2343,7 @@ static const char *trailing_symlink(struct nameidata *nd)
- 		return ERR_PTR(error);
- 	nd->flags |= LOOKUP_PARENT;
- 	nd->stack[0].name = NULL;
--	s = get_link(nd);
-+	s = get_link(nd, true);
- 	return s ? s : "";
- }
- 
-@@ -3508,6 +3593,7 @@ static int do_o_path(struct nameidata *nd, unsigned flags, struct file *file)
- 	if (!error) {
- 		audit_inode(nd->name, path.dentry, 0);
- 		error = vfs_open(&path, file);
-+		file->f_mode |= nd->opath_mask;
- 		path_put(&path);
- 	}
- 	return error;
-@@ -3519,6 +3605,9 @@ static struct file *path_openat(struct nameidata *nd,
- 	struct file *file;
- 	int error;
- 
-+	nd->acc_mode = op->acc_mode;
-+	nd->opath_mask = op->opath_mask;
-+
- 	file = alloc_empty_file(op->open_flag, current_cred());
- 	if (IS_ERR(file))
- 		return file;
-@@ -3537,6 +3626,26 @@ static struct file *path_openat(struct nameidata *nd,
- 		terminate_walk(nd);
- 	}
- 	if (likely(!error)) {
-+		/*
-+		 * In order to allow for re-opening of a read-only fds as
-+		 * read-write (something that some userspace tools depend on,
-+		 * including some kernel selftests), we give additional
-+		 * permissions based on what permissions are available at
-+		 * open-time. This must be scoped to opath_mask to avoid
-+		 * obvious O_PATH attacks.
-+		 */
-+		if (likely(!(file->f_mode & FMODE_PATH))) {
-+			fmode_t add_perms = 0;
-+
-+			if (!(nd->acc_mode & MAY_READ) &&
-+			    !inode_permission(file->f_inode, MAY_READ))
-+				add_perms |= FMODE_PATH_READ;
-+			if (!(nd->acc_mode & MAY_WRITE) &&
-+			    !inode_permission(file->f_inode, MAY_WRITE))
-+				add_perms |= FMODE_PATH_WRITE;
-+
-+			file->f_mode |= add_perms & nd->opath_mask;
-+		}
- 		if (likely(file->f_mode & FMODE_OPENED))
- 			return file;
- 		WARN_ON(1);
-diff --git a/fs/open.c b/fs/open.c
-index a00350018a47..c1d4f343e85f 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -981,8 +981,9 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
- 		acc_mode |= MAY_APPEND;
- 
- 	op->acc_mode = acc_mode;
--
- 	op->intent = flags & O_PATH ? 0 : LOOKUP_OPEN;
-+	/* For O_PATH backwards-compatibility we default to an all-set mask. */
-+	op->opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE;
- 
- 	if (flags & O_CREAT) {
- 		op->intent |= LOOKUP_CREATE;
-diff --git a/fs/proc/fd.c b/fs/proc/fd.c
-index 81882a13212d..8c0ccf2b703b 100644
---- a/fs/proc/fd.c
-+++ b/fs/proc/fd.c
-@@ -104,11 +104,17 @@ static void tid_fd_update_inode(struct task_struct *task, struct inode *inode,
- 	task_dump_owner(task, 0, &inode->i_uid, &inode->i_gid);
- 
- 	if (S_ISLNK(inode->i_mode)) {
--		unsigned i_mode = S_IFLNK;
--		if (f_mode & FMODE_READ)
--			i_mode |= S_IRUSR | S_IXUSR;
--		if (f_mode & FMODE_WRITE)
--			i_mode |= S_IWUSR | S_IXUSR;
-+		unsigned i_mode = S_IFLNK | S_IXUGO;
-+		/*
-+		 * Construct the mode bits based on the open-mode. Note that
-+		 * giving o+rwx permissions here is not a problem since all
-+		 * /proc/self/fd magic-link resolution is gated with
-+		 * ptrace_may_access().
-+		 */
-+		if (f_mode & (FMODE_READ | FMODE_PATH_READ))
-+			i_mode |= S_IRUGO;
-+		if (f_mode & (FMODE_WRITE | FMODE_PATH_WRITE))
-+			i_mode |= S_IWUGO;
- 		inode->i_mode = i_mode;
- 	}
- 	security_task_to_inode(task, inode);
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index fe94c48481a6..0b2af61411cb 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -173,6 +173,10 @@ typedef int (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
- /* File does not contribute to nr_files count */
- #define FMODE_NOACCOUNT		((__force fmode_t)0x20000000)
- 
-+/* File is an O_PATH descriptor which can be upgraded to (read, write). */
-+#define FMODE_PATH_READ		((__force fmode_t)0x40000000)
-+#define FMODE_PATH_WRITE	((__force fmode_t)0x80000000)
++#define __NR_resolveat 435
++__SYSCALL(__NR_resolveat, sys_sched_rr_get_interval)
 +
  /*
-  * Flag for rw_copy_check_uvector and compat_rw_copy_check_uvector
-  * that indicates that they should check the contents of the iovec are
-diff --git a/include/linux/types.h b/include/linux/types.h
-index cc0dbbe551d5..45aaf711885c 100644
---- a/include/linux/types.h
-+++ b/include/linux/types.h
-@@ -157,7 +157,7 @@ typedef u32 dma_addr_t;
+  * Please add new compat syscalls above this comment and update
+  * __NR_compat_syscalls in asm/unistd.h.
+diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
+index ab9cda5f6136..26a3daab202e 100644
+--- a/arch/ia64/kernel/syscalls/syscall.tbl
++++ b/arch/ia64/kernel/syscalls/syscall.tbl
+@@ -344,3 +344,4 @@
+ 332	common	pkey_free			sys_pkey_free
+ 333	common	rseq				sys_rseq
+ # 334 through 423 are reserved to sync up with other architectures
++435	common	resolveat			sys_resolveat
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index 125c14178979..3fdbd42077f1 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -423,3 +423,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index 8ee3a8c18498..6948436a939b 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -429,3 +429,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index 15f4117900ee..36795694e495 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -362,3 +362,4 @@
+ 421	n32	rt_sigtimedwait_time64		compat_sys_rt_sigtimedwait_time64
+ 422	n32	futex_time64			sys_futex
+ 423	n32	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	n32	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index c85502e67b44..5fcde2d31fe7 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -338,3 +338,4 @@
+ 327	n64	rseq				sys_rseq
+ 328	n64	io_pgetevents			sys_io_pgetevents
+ # 329 through 423 are reserved to sync up with other architectures
++435	n64	resolveat			sys_resolveat
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 2e063d0f837e..71152b788e37 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -411,3 +411,4 @@
+ 421	o32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	o32	futex_time64			sys_futex			sys_futex
+ 423	o32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++435	o32	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+index b26766c6647d..68e415658235 100644
+--- a/arch/parisc/kernel/syscalls/syscall.tbl
++++ b/arch/parisc/kernel/syscalls/syscall.tbl
+@@ -420,3 +420,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index b18abb0c3dae..69b0bf1df8b1 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -505,3 +505,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index 02579f95f391..9610f18eb2ea 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -426,3 +426,4 @@
+ 421	32	rt_sigtimedwait_time64	-				compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64		-				sys_futex
+ 423	32	sched_rr_get_interval_time64	-			sys_sched_rr_get_interval
++435	common	resolveat		sys_resolveat			-
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index bfda678576e4..ed53ca7717cf 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -426,3 +426,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index b9a5a04b2d2c..41778972430b 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -469,3 +469,4 @@
+ 421	32	rt_sigtimedwait_time64		sys_rt_sigtimedwait		compat_sys_rt_sigtimedwait_time64
+ 422	32	futex_time64			sys_futex			sys_futex
+ 423	32	sched_rr_get_interval_time64	sys_sched_rr_get_interval	sys_sched_rr_get_interval
++435 common	resolveat			sys_resolveat			sys_resolveat
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 4cd5f982b1e5..f3cb515e52fb 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -438,3 +438,4 @@
+ 425	i386	io_uring_setup		sys_io_uring_setup		__ia32_sys_io_uring_setup
+ 426	i386	io_uring_enter		sys_io_uring_enter		__ia32_sys_io_uring_enter
+ 427	i386	io_uring_register	sys_io_uring_register		__ia32_sys_io_uring_register
++435	i386	resolveat		sys_resolveat			__ia32_sys_resolveat
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 64ca0d06259a..5f4a988f3bc9 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -355,6 +355,7 @@
+ 425	common	io_uring_setup		__x64_sys_io_uring_setup
+ 426	common	io_uring_enter		__x64_sys_io_uring_enter
+ 427	common	io_uring_register	__x64_sys_io_uring_register
++435	common	resolveat		__x64_sys_resolveat
  
- typedef unsigned int __bitwise gfp_t;
- typedef unsigned int __bitwise slab_flags_t;
--typedef unsigned int __bitwise fmode_t;
-+typedef unsigned long __bitwise fmode_t;
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index 6af49929de85..2d5b57ebd6c1 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -394,3 +394,4 @@
+ 421	common	rt_sigtimedwait_time64		sys_rt_sigtimedwait
+ 422	common	futex_time64			sys_futex
+ 423	common	sched_rr_get_interval_time64	sys_sched_rr_get_interval
++435	common	resolveat			sys_resolveat
+diff --git a/fs/namei.c b/fs/namei.c
+index 6c3bbe627965..4b4eb6c624cb 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -3790,6 +3790,56 @@ struct file *do_filp_open(int dfd, struct filename *pathname,
+ 	return filp;
+ }
  
- #ifdef CONFIG_PHYS_ADDR_T_64BIT
- typedef u64 phys_addr_t;
++SYSCALL_DEFINE3(resolveat, int, dfd, const char __user *, path,
++		unsigned long, flags)
++{
++	int fd;
++	struct filename *tmp;
++	struct open_flags op = {
++		.open_flag = O_PATH | O_CLOEXEC,
++		.opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE,
++	};
++
++	if (flags & ~VALID_RESOLVE_FLAGS)
++		return -EINVAL;
++
++	if (flags & RESOLVE_UPGRADE_NOREAD)
++		op.opath_mask &= ~FMODE_PATH_READ;
++	if (flags & RESOLVE_UPGRADE_NOWRITE)
++		op.opath_mask &= ~FMODE_PATH_WRITE;
++
++	if (!(flags & RESOLVE_NO_FOLLOW))
++		op.lookup_flags |= LOOKUP_FOLLOW;
++	if (flags & RESOLVE_BENEATH)
++		op.lookup_flags |= LOOKUP_BENEATH;
++	if (flags & RESOLVE_XDEV)
++		op.lookup_flags |= LOOKUP_XDEV;
++	if (flags & RESOLVE_NO_MAGICLINKS)
++		op.lookup_flags |= LOOKUP_NO_MAGICLINKS;
++	if (flags & RESOLVE_NO_SYMLINKS)
++		op.lookup_flags |= LOOKUP_NO_SYMLINKS;
++	if (flags & RESOLVE_IN_ROOT)
++		op.lookup_flags |= LOOKUP_IN_ROOT;
++
++	tmp = getname(path);
++	if (IS_ERR(tmp))
++		return PTR_ERR(tmp);
++
++	fd = get_unused_fd_flags(op.open_flag);
++	if (fd >= 0) {
++		struct file *f = do_filp_open(dfd, tmp, &op);
++		if (IS_ERR(f)) {
++			put_unused_fd(fd);
++			fd = PTR_ERR(f);
++		} else {
++			fsnotify_open(f);
++			fd_install(fd, f);
++		}
++	}
++	putname(tmp);
++	return fd;
++}
++
+ struct file *do_file_open_root(struct dentry *dentry, struct vfsmount *mnt,
+ 		const char *name, const struct open_flags *op)
+ {
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index 2868ae6c8fc1..6356eb479765 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -4,13 +4,19 @@
+ 
+ #include <uapi/linux/fcntl.h>
+ 
+-/* list of all valid flags for the open/openat flags argument: */
++/* List of all valid flags for the open/openat flags argument: */
+ #define VALID_OPEN_FLAGS \
+ 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+ 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
+ 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+ 	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_EMPTYPATH)
+ 
++/* List of all valid flags for resolveat(2). */
++#define VALID_RESOLVE_FLAGS \
++	(RESOLVE_UPGRADE_NOWRITE | RESOLVE_UPGRADE_NOREAD | \
++	 RESOLVE_NO_FOLLOW | RESOLVE_BENEATH | RESOLVE_XDEV | \
++	 RESOLVE_NO_MAGICLINKS | RESOLVE_NO_SYMLINKS | RESOLVE_IN_ROOT)
++
+ #ifndef force_o_largefile
+ #define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index dee7292e1df6..f788c9f7d374 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -833,8 +833,11 @@ __SYSCALL(__NR_io_uring_enter, sys_io_uring_enter)
+ #define __NR_io_uring_register 427
+ __SYSCALL(__NR_io_uring_register, sys_io_uring_register)
+ 
++#define __NR_resolveat 435
++__SYSCALL(__NR_resolveat, sys_resolveat)
++
+ #undef __NR_syscalls
+-#define __NR_syscalls 428
++#define __NR_syscalls 436
+ 
+ /*
+  * 32 bit systems traditionally used different
+diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
+index 1d338357df8a..185712fa9cc0 100644
+--- a/include/uapi/linux/fcntl.h
++++ b/include/uapi/linux/fcntl.h
+@@ -93,5 +93,15 @@
+ 
+ #define AT_RECURSIVE		0x8000	/* Apply to the entire subtree */
+ 
++/* Bottom bit is reserved for RESOLVE_UPGRADE_NOEXEC. */
++#define RESOLVE_UPGRADE_NOWRITE	0x002 /* Disallow re-opening for write. */
++#define RESOLVE_UPGRADE_NOREAD	0x004 /* Disallow re-opening for read. */
++#define RESOLVE_NO_FOLLOW	0x008 /* Don't follow trailing symlinks. */
++
++#define RESOLVE_BENEATH		0x010 /* Block "lexical" trickery like "..", symlinks, absolute paths, etc. */
++#define RESOLVE_XDEV		0x020 /* Block mount-point crossings (includes bind-mounts). */
++#define RESOLVE_NO_MAGICLINKS	0x040 /* Block procfs-style "magic" symlinks. */
++#define RESOLVE_NO_SYMLINKS	0x080 /* Block all symlinks (implies AT_NO_MAGICLINKS). */
++#define RESOLVE_IN_ROOT		0x100 /* Scope ".." and "/" resolution to dirfd (like chroot(2)). */
+ 
+ #endif /* _UAPI_LINUX_FCNTL_H */
 -- 
 2.21.0
