@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:60968 "EHLO mx1.mailbox.org"
+Received: from mx2.mailbox.org ([80.241.60.215]:61390 "EHLO mx2.mailbox.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388042AbfETNfF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 May 2019 09:35:05 -0400
+        id S1730481AbfETNeD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 May 2019 09:34:03 -0400
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RFC v8 05/10] namei: O_BENEATH-style path resolution flags
-Date: Mon, 20 May 2019 23:33:00 +1000
-Message-ID: <20190520133305.11925-6-cyphar@cyphar.com>
+Subject: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC permissions
+Date: Mon, 20 May 2019 23:32:56 +1000
+Message-ID: <20190520133305.11925-2-cyphar@cyphar.com>
 In-Reply-To: <20190520133305.11925-1-cyphar@cyphar.com>
 References: <20190520133305.11925-1-cyphar@cyphar.com>
 MIME-Version: 1.0
@@ -14,289 +14,344 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-kselftest@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190520133300.xuHY2hFslvkaVu2EZtHSETb_qOjFiFZ_Bk4tCREzg9A@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-kselftest@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190520133256.y6yoXIkM9cI8hedzwNnUgIQjGil9vIdXP1TVO_pmVCU@z>
 
-Add the following flags to allow various restrictions on path
-resolution (these affect the *entire* resolution, rather than just the
-final path component -- as is the case with most other AT_* flags).
+The ability for userspace to "re-open" file descriptors through
+/proc/self/fd has been a very useful tool for all sorts of usecases
+(container runtimes are one common example). However, the current
+interface for doing this has resulted in some pretty subtle security
+holes. Userspace can re-open a file descriptor with more permissions
+than the original, which can result in cases such as /proc/$pid/exe
+being re-opened O_RDWR at a later date even though (by definition)
+/proc/$pid/exe cannot be opened for writing. When combined with O_PATH
+the results can get even more confusing.
 
-The primary justification for these flags is to allow for programs to be
-far more strict about how they want path resolution to handle symlinks,
-mountpoint crossings, and paths that escape the dirfd (through an
-absolute path or ".." shenanigans).
+We cannot block this outright. Aside from userspace already depending on
+it, it's a useful feature which can actually increase the security of
+userspace. For instance, LXC keeps an O_PATH of the container's
+/dev/pts/ptmx that gets re-opened to create new ptys and then uses
+TIOCGPTPEER to get the slave end. This allows for pty allocation without
+resolving paths inside an (untrusted) container's rootfs. There isn't a
+trivial way of doing this that is as straight-forward and safe as O_PATH
+re-opening.
 
-This is of particular concern to container runtimes that want to be very
-careful about malicious root filesystems that a container's init might
-have screwed around with (and there is no real way to protect against
-this in userspace if you consider potential races against a malicious
-container's init). More classical applications (which have their own
-potentially buggy userspace path sanitisation code) include web
-servers, archive extraction tools, network file servers, and so on.
+Instead we have to restrict it in such a way that it doesn't break
+(good) users but does block potential attackers. The solution applied in
+this patch is to restrict *re-opening* (not resolution through)
+magic-links by requiring that mode of the link be obeyed. Normal
+symlinks have modes of a+rwx but magic-links have other modes. These
+magic-link modes were historically ignored during path resolution, but
+they've now been re-purposed for more useful ends.
 
-These flags are exposed to userspace in a later patchset.
+It is also necessary to define semantics for the mode of an O_PATH
+descriptor, since re-opening a magic-link through an O_PATH needs to be
+just as restricted as the corresponding magic-link otherwise the above
+protection can be bypassed. There are two distinct cases:
 
-* LOOKUP_XDEV: Disallow mount-point crossing (both *down* into one, or
-  *up* from one). The primary "scoping" use is to blocking resolution
-  that crosses a bind-mount, which has a similar property to a symlink
-  (in the way that it allows for escape from the starting-point). Since
-  it is not possible to differentiate bind-mounts However since
-  bind-mounting requires privileges (in ways symlinks don't) this has
-  been split from LOOKUP_BENEATH. The naming is based on "find -xdev" as
-  well as -EXDEV (though find(1) doesn't walk upwards, the semantics
-  seem obvious).
+ 1. The target is a regular file (not a magic-link). Userspace depends
+    on being able to re-open the O_PATH of a regular file, so we must
+    define the mode to be a+rwx.
 
-* LOOKUP_NO_MAGICLINKS: Disallows ->get_link "symlink" jumping. This is
-  a very specific restriction, and it exists because /proc/$pid/fd/...
-  "symlinks" allow for access outside nd->root and pose risk to
-  container runtimes that don't want to be tricked into accessing a host
-  path (but do want to allow no-funny-business symlink resolution).
+ 2. The target is a magic-link. In this case, we simply copy the mode of
+    the magic-link. This results in an O_PATH of a magic-link
+    effectively acting as a no-op in terms of how much re-opening
+    privileges a process has.
 
-* LOOKUP_NO_SYMLINKS: Disallows symlink jumping *of any kind*. Implies
-  LOOKUP_NO_MAGICLINKS (obviously).
+CAP_DAC_OVERRIDE can be used to override all of these restrictions, but
+we only permit &init_userns's capabilities to affect these semantics.
+The reason for this is that there isn't a clear way to track what
+user_ns is the original owner of a given O_PATH chain -- thus an
+unprivileged user could create a new userns and O_PATH the file
+descriptor, owning it. All signs would indicate that the user really
+does have CAP_DAC_OVERRIDE over the new descriptor and the protection
+would be bypassed. We thus opt for the more conservative approach.
 
-* LOOKUP_BENEATH: Disallow "escapes" from the starting point of the
-  filesystem tree during resolution (you must stay "beneath" the
-  starting point at all times). Currently this is done by disallowing
-  ".." and absolute paths (either in the given path or found during
-  symlink resolution) entirely, as well as all magic-link jumping.
+One final exception is given, which is that non-O_PATH file descriptors
+are given re-open rights equivalent to the permissions available at
+open-time. This allows for O_RDONLY file descriptors to be re-opened
+O_RDWR as long as the user had MAY_WRITE access at the time of opening
+the O_RDONLY descriptor. This is necessary to avoid breaking userspace
+(some of the kernel's own selftests depended on this "feature").
 
-  The wholesale banning of ".." is because it is currently not safe to
-  allow ".." resolution (races can cause the path to be moved outside of
-  the root -- this is conceptually similar to historical chroot(2)
-  escape attacks). Future patches in this series will address this, and
-  will re-enable ".." resolution once it is safe. With those patches,
-  ".." resolution will only be allowed if it remains in the root
-  throughout resolution (such as "a/../b" not "a/../../outside/b").
-
-  The banning of magic-link jumping is done because it is not clear
-  whether semantically they should be allowed -- while some magic-links
-  are safe there are many that can cause escapes (and once a
-  resolution is outside of the root, O_BENEATH will no longer detect
-  it). Future patches may re-enable magic-link jumping when such jumps
-  would remain inside the root.
-
-The LOOKUP_NO_*LINK flags return -ELOOP if path resolution would
-violates their requirement, while the others all return -EXDEV.
-
-This is a refresh of Al's AT_NO_JUMPS patchset[1] (which was a variation
-on David Drysdale's O_BENEATH patchset[2], which in turn was based on
-the Capsicum project[3]). Input from Linus and Andy in the AT_NO_JUMPS
-thread[4] determined most of the API changes made in this refresh.
-
-[1]: https://lwn.net/Articles/721443/
-[2]: https://lwn.net/Articles/619151/
-[3]: https://lwn.net/Articles/603929/
-[4]: https://lwn.net/Articles/723057/
-
-Cc: Christian Brauner <christian@brauner.io>
-Suggested-by: David Drysdale <drysdale@google.com>
-Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Andy Lutomirski <luto@kernel.org>
+Co-developed-by: Christian Brauner <christian@brauner.io>
 Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
 ---
- fs/namei.c            | 74 ++++++++++++++++++++++++++++++++++++-------
- include/linux/namei.h |  7 ++++
- 2 files changed, 70 insertions(+), 11 deletions(-)
+ fs/internal.h         |   1 +
+ fs/namei.c            | 117 ++++++++++++++++++++++++++++++++++++++++--
+ fs/open.c             |   3 +-
+ fs/proc/fd.c          |  16 ++++--
+ include/linux/fs.h    |   4 ++
+ include/linux/types.h |   2 +-
+ 6 files changed, 132 insertions(+), 11 deletions(-)
 
+diff --git a/fs/internal.h b/fs/internal.h
+index bfd9bbbe369b..60d8a079a331 100644
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -123,6 +123,7 @@ struct open_flags {
+ 	int acc_mode;
+ 	int intent;
+ 	int lookup_flags;
++	fmode_t opath_mask;
+ };
+ extern struct file *do_filp_open(int dfd, struct filename *pathname,
+ 		const struct open_flags *op);
 diff --git a/fs/namei.c b/fs/namei.c
-index dc323e25d4d2..f997c82eb9c2 100644
+index 5ebd64b21970..5ff61624b8f0 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -852,6 +852,13 @@ static inline void path_to_nameidata(const struct path *path,
+@@ -506,6 +506,8 @@ struct nameidata {
+ 	struct inode	*link_inode;
+ 	unsigned	root_seq;
+ 	int		dfd;
++	fmode_t 	opath_mask;
++	int		acc_mode; /* op.acc_mode */
+ } __randomize_layout;
  
- static int nd_jump_root(struct nameidata *nd)
- {
-+	if (unlikely(nd->flags & LOOKUP_BENEATH))
-+		return -EXDEV;
-+	if (unlikely(nd->flags & LOOKUP_XDEV)) {
-+		/* Absolute path arguments to path_init() are allowed. */
-+		if (nd->path.mnt != NULL && nd->path.mnt != nd->root.mnt)
-+			return -EXDEV;
+ static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
+@@ -514,7 +516,14 @@ static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
+ 	p->stack = p->internal;
+ 	p->dfd = dfd;
+ 	p->name = name;
+-	p->total_link_count = old ? old->total_link_count : 0;
++	p->total_link_count = 0;
++	p->acc_mode = 0;
++	p->opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE;
++	if (old) {
++		p->total_link_count = old->total_link_count;
++		p->acc_mode = old->acc_mode;
++		p->opath_mask = old->opath_mask;
 +	}
- 	if (nd->flags & LOOKUP_RCU) {
- 		struct dentry *d;
- 		nd->path = nd->root;
-@@ -1092,6 +1099,9 @@ const char *get_link(struct nameidata *nd, bool trailing)
- 	int error;
- 	const char *res;
- 
-+	if (unlikely(nd->flags & LOOKUP_NO_SYMLINKS))
-+		return ERR_PTR(-ELOOP);
-+
- 	if (!(nd->flags & LOOKUP_RCU)) {
- 		touch_atime(&last->link);
- 		cond_resched();
-@@ -1124,6 +1134,11 @@ const char *get_link(struct nameidata *nd, bool trailing)
- 		}
- 		/* If we just jumped it was because of a magic-link. */
- 		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
-+			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
-+				return ERR_PTR(-ELOOP);
-+			/* Not currently safe. */
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return ERR_PTR(-EXDEV);
- 			/*
- 			 * For trailing_symlink we check whether the symlink's
- 			 * mode allows us to do what we want through acc_mode.
-@@ -1172,8 +1187,9 @@ const char *get_link(struct nameidata *nd, bool trailing)
- 	if (*res == '/') {
- 		if (!nd->root.mnt)
- 			set_root(nd);
--		if (unlikely(nd_jump_root(nd)))
--			return ERR_PTR(-ECHILD);
-+		error = nd_jump_root(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
- 		while (unlikely(*++res == '/'))
- 			;
- 	}
-@@ -1354,12 +1370,16 @@ static int follow_managed(struct path *path, struct nameidata *nd)
- 		break;
- 	}
- 
--	if (need_mntput && path->mnt == mnt)
--		mntput(path->mnt);
-+	if (need_mntput) {
-+		if (path->mnt == mnt)
-+			mntput(path->mnt);
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			ret = -EXDEV;
-+		else
-+			nd->flags |= LOOKUP_JUMPED;
-+	}
- 	if (ret == -EISDIR || !ret)
- 		ret = 1;
--	if (need_mntput)
--		nd->flags |= LOOKUP_JUMPED;
- 	if (unlikely(ret < 0))
- 		path_put_conditional(path, nd);
- 	return ret;
-@@ -1416,6 +1436,8 @@ static bool __follow_mount_rcu(struct nameidata *nd, struct path *path,
- 		mounted = __lookup_mnt(path->mnt, path->dentry);
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return false;
- 		path->mnt = &mounted->mnt;
- 		path->dentry = mounted->mnt.mnt_root;
- 		nd->flags |= LOOKUP_JUMPED;
-@@ -1436,8 +1458,11 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 	struct inode *inode = nd->inode;
- 
- 	while (1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			struct dentry *old = nd->path.dentry;
- 			struct dentry *parent = old->d_parent;
-@@ -1462,6 +1487,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 				return -ECHILD;
- 			if (&mparent->mnt == nd->path.mnt)
- 				break;
-+			if (unlikely(nd->flags & LOOKUP_XDEV))
-+				return -EXDEV;
- 			/* we know that mountpoint was pinned */
- 			nd->path.dentry = mountpoint;
- 			nd->path.mnt = &mparent->mnt;
-@@ -1476,6 +1503,8 @@ static int follow_dotdot_rcu(struct nameidata *nd)
- 			return -ECHILD;
- 		if (!mounted)
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 		nd->path.mnt = &mounted->mnt;
- 		nd->path.dentry = mounted->mnt.mnt_root;
- 		inode = nd->path.dentry->d_inode;
-@@ -1564,8 +1593,11 @@ static int path_parent_directory(struct path *path)
- static int follow_dotdot(struct nameidata *nd)
- {
- 	while(1) {
--		if (path_equal(&nd->path, &nd->root))
-+		if (path_equal(&nd->path, &nd->root)) {
-+			if (unlikely(nd->flags & LOOKUP_BENEATH))
-+				return -EXDEV;
- 			break;
-+		}
- 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
- 			int ret = path_parent_directory(&nd->path);
- 			if (ret)
-@@ -1574,6 +1606,8 @@ static int follow_dotdot(struct nameidata *nd)
- 		}
- 		if (!follow_up(&nd->path))
- 			break;
-+		if (unlikely(nd->flags & LOOKUP_XDEV))
-+			return -EXDEV;
- 	}
- 	follow_mount(&nd->path);
- 	nd->inode = nd->path.dentry->d_inode;
-@@ -1788,6 +1822,13 @@ static inline int may_lookup(struct nameidata *nd)
- static inline int handle_dots(struct nameidata *nd, int type)
- {
- 	if (type == LAST_DOTDOT) {
-+		/*
-+		 * LOOKUP_BENEATH resolving ".." is not currently safe -- races can
-+		 * cause our parent to have moved outside of the root and us to skip
-+		 * over it.
-+		 */
-+		if (unlikely(nd->flags & LOOKUP_BENEATH))
-+			return -EXDEV;
- 		if (!nd->root.mnt)
- 			set_root(nd);
- 		if (nd->flags & LOOKUP_RCU) {
-@@ -2336,6 +2377,15 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.dentry = NULL;
- 
- 	nd->m_seq = read_seqbegin(&mount_lock);
-+
-+	if (unlikely(nd->flags & LOOKUP_BENEATH)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+		nd->root = nd->path;
-+		if (!(nd->flags & LOOKUP_RCU))
-+			path_get(&nd->root);
-+	}
- 	if (*s == '/') {
- 		if (likely(!nd->root.mnt))
- 			set_root(nd);
-@@ -2344,9 +2394,11 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 			s = ERR_PTR(error);
- 		return s;
- 	}
--	error = dirfd_path_init(nd);
--	if (unlikely(error))
--		return ERR_PTR(error);
-+	if (likely(!nd->path.mnt)) {
-+		error = dirfd_path_init(nd);
-+		if (unlikely(error))
-+			return ERR_PTR(error);
-+	}
- 	return s;
+ 	p->saved = old;
+ 	current->nameidata = p;
+ }
+@@ -1042,8 +1051,40 @@ static int may_create_in_sticky(struct dentry * const dir,
+ 	return 0;
  }
  
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index 9138b4471dbf..7bc819ad0cd3 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -50,6 +50,13 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
- #define LOOKUP_EMPTY		0x4000
- #define LOOKUP_DOWN		0x8000
- 
-+/* Scoping flags for lookup. */
-+#define LOOKUP_BENEATH		0x010000 /* No escaping from starting point. */
-+#define LOOKUP_XDEV		0x020000 /* No mountpoint crossing. */
-+#define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
-+#define LOOKUP_NO_SYMLINKS	0x080000 /* No symlink crossing *at all*.
-+					    Implies LOOKUP_NO_MAGICLINKS. */
++/**
++ * may_reopen_magiclink - Check permissions for opening a trailing magic-link
++ * @opath_mask: the O_PATH mask of the magiclink
++ * @acc_mode: ACC_MODE which the user is attempting
++ *
++ * We block magic-link re-opening if the @opath_mask is more strict than the
++ * @acc_mode being requested, unless the user is capable(CAP_DAC_OVERRIDE).
++ *
++ * Returns 0 if successful, -ve on error.
++ */
++static int may_open_magiclink(fmode_t opath_mask, int acc_mode)
++{
++	/*
++	 * We only allow for init_userns to be able to override magic-links.
++	 * This is done to avoid cases where an unprivileger userns could take
++	 * an O_PATH of the fd, resulting in it being very unclear whether
++	 * CAP_DAC_OVERRIDE should work on the new O_PATH fd (given that it
++	 * pipes through to the underlying file).
++	 */
++	if (capable(CAP_DAC_OVERRIDE))
++		return 0;
 +
- extern int path_pts(struct path *path);
++	if ((acc_mode & MAY_READ) &&
++	    !(opath_mask & (FMODE_READ | FMODE_PATH_READ)))
++		return -EACCES;
++	if ((acc_mode & MAY_WRITE) &&
++	    !(opath_mask & (FMODE_WRITE | FMODE_PATH_WRITE)))
++		return -EACCES;
++
++	return 0;
++}
++
+ static __always_inline
+-const char *get_link(struct nameidata *nd)
++const char *get_link(struct nameidata *nd, bool trailing)
+ {
+ 	struct saved *last = nd->stack + nd->depth - 1;
+ 	struct dentry *dentry = last->link.dentry;
+@@ -1081,6 +1122,50 @@ const char *get_link(struct nameidata *nd)
+ 		} else {
+ 			res = get(dentry, inode, &last->done);
+ 		}
++		/* If we just jumped it was because of a magic-link. */
++		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
++			/*
++			 * For trailing_symlink we check whether the symlink's
++			 * mode allows us to do what we want through acc_mode.
++			 * In addition, we need to stash away what the link
++			 * mode is in case we are about to O_PATH this
++			 * magic-link.
++			 *
++			 * This is only done for magic-links, as a security
++			 * measure to prevent users from being able to re-open
++			 * files with additional permissions or similar tricks
++			 * through procfs. This is not strictly POSIX-friendly,
++			 * but technically neither are magic-links.
++			 */
++			if (trailing) {
++				fmode_t opath_mask = 0;
++				int mode = inode->i_mode;
++
++				/*
++				 * Bare-bones acl_permission_check shift so
++				 * that opath_mask can be adjusted using creds.
++				 */
++				if (uid_eq(current_fsuid(), inode->i_uid))
++					mode >>= 6;
++				else if (in_group_p(inode->i_gid))
++					mode >>= 3;
++
++				/* Figure out the O_PATH mask. */
++				if (mode & MAY_READ)
++					opath_mask |= FMODE_PATH_READ;
++				if (mode & MAY_WRITE)
++					opath_mask |= FMODE_PATH_WRITE;
++
++				/*
++				 * Is the new opath_mask more restrictive than
++				 * the acc_mode being requested?
++				 */
++				error = may_open_magiclink(opath_mask, nd->acc_mode);
++				if (error)
++					return ERR_PTR(error);
++				nd->opath_mask &= opath_mask;
++			}
++		}
+ 		if (IS_ERR_OR_NULL(res))
+ 			return res;
+ 	}
+@@ -2142,7 +2227,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
+ 			return err;
  
- extern int user_path_at_empty(int, const char __user *, unsigned, struct path *, int *empty);
+ 		if (err) {
+-			const char *s = get_link(nd);
++			const char *s = get_link(nd, false);
+ 
+ 			if (IS_ERR(s))
+ 				return PTR_ERR(s);
+@@ -2258,7 +2343,7 @@ static const char *trailing_symlink(struct nameidata *nd)
+ 		return ERR_PTR(error);
+ 	nd->flags |= LOOKUP_PARENT;
+ 	nd->stack[0].name = NULL;
+-	s = get_link(nd);
++	s = get_link(nd, true);
+ 	return s ? s : "";
+ }
+ 
+@@ -3508,6 +3593,7 @@ static int do_o_path(struct nameidata *nd, unsigned flags, struct file *file)
+ 	if (!error) {
+ 		audit_inode(nd->name, path.dentry, 0);
+ 		error = vfs_open(&path, file);
++		file->f_mode |= nd->opath_mask;
+ 		path_put(&path);
+ 	}
+ 	return error;
+@@ -3519,6 +3605,9 @@ static struct file *path_openat(struct nameidata *nd,
+ 	struct file *file;
+ 	int error;
+ 
++	nd->acc_mode = op->acc_mode;
++	nd->opath_mask = op->opath_mask;
++
+ 	file = alloc_empty_file(op->open_flag, current_cred());
+ 	if (IS_ERR(file))
+ 		return file;
+@@ -3537,6 +3626,26 @@ static struct file *path_openat(struct nameidata *nd,
+ 		terminate_walk(nd);
+ 	}
+ 	if (likely(!error)) {
++		/*
++		 * In order to allow for re-opening of a read-only fds as
++		 * read-write (something that some userspace tools depend on,
++		 * including some kernel selftests), we give additional
++		 * permissions based on what permissions are available at
++		 * open-time. This must be scoped to opath_mask to avoid
++		 * obvious O_PATH attacks.
++		 */
++		if (likely(!(file->f_mode & FMODE_PATH))) {
++			fmode_t add_perms = 0;
++
++			if (!(nd->acc_mode & MAY_READ) &&
++			    !inode_permission(file->f_inode, MAY_READ))
++				add_perms |= FMODE_PATH_READ;
++			if (!(nd->acc_mode & MAY_WRITE) &&
++			    !inode_permission(file->f_inode, MAY_WRITE))
++				add_perms |= FMODE_PATH_WRITE;
++
++			file->f_mode |= add_perms & nd->opath_mask;
++		}
+ 		if (likely(file->f_mode & FMODE_OPENED))
+ 			return file;
+ 		WARN_ON(1);
+diff --git a/fs/open.c b/fs/open.c
+index a00350018a47..c1d4f343e85f 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -981,8 +981,9 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
+ 		acc_mode |= MAY_APPEND;
+ 
+ 	op->acc_mode = acc_mode;
+-
+ 	op->intent = flags & O_PATH ? 0 : LOOKUP_OPEN;
++	/* For O_PATH backwards-compatibility we default to an all-set mask. */
++	op->opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE;
+ 
+ 	if (flags & O_CREAT) {
+ 		op->intent |= LOOKUP_CREATE;
+diff --git a/fs/proc/fd.c b/fs/proc/fd.c
+index 81882a13212d..8c0ccf2b703b 100644
+--- a/fs/proc/fd.c
++++ b/fs/proc/fd.c
+@@ -104,11 +104,17 @@ static void tid_fd_update_inode(struct task_struct *task, struct inode *inode,
+ 	task_dump_owner(task, 0, &inode->i_uid, &inode->i_gid);
+ 
+ 	if (S_ISLNK(inode->i_mode)) {
+-		unsigned i_mode = S_IFLNK;
+-		if (f_mode & FMODE_READ)
+-			i_mode |= S_IRUSR | S_IXUSR;
+-		if (f_mode & FMODE_WRITE)
+-			i_mode |= S_IWUSR | S_IXUSR;
++		unsigned i_mode = S_IFLNK | S_IXUGO;
++		/*
++		 * Construct the mode bits based on the open-mode. Note that
++		 * giving o+rwx permissions here is not a problem since all
++		 * /proc/self/fd magic-link resolution is gated with
++		 * ptrace_may_access().
++		 */
++		if (f_mode & (FMODE_READ | FMODE_PATH_READ))
++			i_mode |= S_IRUGO;
++		if (f_mode & (FMODE_WRITE | FMODE_PATH_WRITE))
++			i_mode |= S_IWUGO;
+ 		inode->i_mode = i_mode;
+ 	}
+ 	security_task_to_inode(task, inode);
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index fe94c48481a6..0b2af61411cb 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -173,6 +173,10 @@ typedef int (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
+ /* File does not contribute to nr_files count */
+ #define FMODE_NOACCOUNT		((__force fmode_t)0x20000000)
+ 
++/* File is an O_PATH descriptor which can be upgraded to (read, write). */
++#define FMODE_PATH_READ		((__force fmode_t)0x40000000)
++#define FMODE_PATH_WRITE	((__force fmode_t)0x80000000)
++
+ /*
+  * Flag for rw_copy_check_uvector and compat_rw_copy_check_uvector
+  * that indicates that they should check the contents of the iovec are
+diff --git a/include/linux/types.h b/include/linux/types.h
+index cc0dbbe551d5..45aaf711885c 100644
+--- a/include/linux/types.h
++++ b/include/linux/types.h
+@@ -157,7 +157,7 @@ typedef u32 dma_addr_t;
+ 
+ typedef unsigned int __bitwise gfp_t;
+ typedef unsigned int __bitwise slab_flags_t;
+-typedef unsigned int __bitwise fmode_t;
++typedef unsigned long __bitwise fmode_t;
+ 
+ #ifdef CONFIG_PHYS_ADDR_T_64BIT
+ typedef u64 phys_addr_t;
 -- 
 2.21.0
