@@ -1,27 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:46266 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:46832 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725772AbfETGBO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 May 2019 02:01:14 -0400
+        with ESMTP id S1725772AbfETGBT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 May 2019 02:01:19 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: remove asm-generic/ptrace.h v2
-Date: Mon, 20 May 2019 08:00:13 +0200
-Message-ID: <20190520060018.25569-1-hch@lst.de>
+Subject: [PATCH 1/5] arm64: don't use asm-generic/ptrace.h
+Date: Mon, 20 May 2019 08:00:14 +0200
+Message-ID: <20190520060018.25569-2-hch@lst.de>
+In-Reply-To: <20190520060018.25569-1-hch@lst.de>
+References: <20190520060018.25569-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190520060013.epMrVghJB7N9dg3ovwBCte7__eitzsaAu1n2OB4tD0o@z>
+Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20190520060014.9t0vhq-g6FXDwzy5wQWeLHL1GX9UQeVwkuvHrP1JoYs@z>
 
-Hi all,
+Doing the indirection through macros for the regs accessors just
+makes them harder to read, so implement the helpers directly.
 
-asm-generic/ptrace.h is a little weird in that it doesn't actually
-implement any functionality, but it provided multiple layers of macros
-that just implement trivial inline functions.  We implement those
-directly in the few architectures and be off with a much simpler
-design.
+Note that only the helpers actually used are implemented now.
 
-Changes since v1:
- - add a missing empty line between functions
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/ptrace.h | 31 +++++++++++++++++++------------
+ 1 file changed, 19 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm64/include/asm/ptrace.h b/arch/arm64/include/asm/ptrace.h
+index b2de32939ada..584261e00619 100644
+--- a/arch/arm64/include/asm/ptrace.h
++++ b/arch/arm64/include/asm/ptrace.h
+@@ -228,11 +228,12 @@ static inline void forget_syscall(struct pt_regs *regs)
+ #define fast_interrupts_enabled(regs) \
+ 	(!((regs)->pstate & PSR_F_BIT))
+ 
+-#define GET_USP(regs) \
+-	(!compat_user_mode(regs) ? (regs)->sp : (regs)->compat_sp)
+-
+-#define SET_USP(ptregs, value) \
+-	(!compat_user_mode(regs) ? ((regs)->sp = value) : ((regs)->compat_sp = value))
++static inline unsigned long user_stack_pointer(struct pt_regs *regs)
++{
++	if (compat_user_mode(regs))
++		return regs->compat_sp;
++	return regs->sp;
++}
+ 
+ extern int regs_query_register_offset(const char *name);
+ extern unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
+@@ -331,13 +332,20 @@ static inline unsigned long regs_get_kernel_argument(struct pt_regs *regs,
+ struct task_struct;
+ int valid_user_regs(struct user_pt_regs *regs, struct task_struct *task);
+ 
+-#define GET_IP(regs)		((unsigned long)(regs)->pc)
+-#define SET_IP(regs, value)	((regs)->pc = ((u64) (value)))
+-
+-#define GET_FP(ptregs)		((unsigned long)(ptregs)->regs[29])
+-#define SET_FP(ptregs, value)	((ptregs)->regs[29] = ((u64) (value)))
++static inline unsigned long instruction_pointer(struct pt_regs *regs)
++{
++	return regs->pc;
++}
++static inline void instruction_pointer_set(struct pt_regs *regs,
++		unsigned long val)
++{
++	regs->pc = val;
++}
+ 
+-#include <asm-generic/ptrace.h>
++static inline unsigned long frame_pointer(struct pt_regs *regs)
++{
++	return regs->regs[29];
++}
+ 
+ #define procedure_link_pointer(regs)	((regs)->regs[30])
+ 
+@@ -347,7 +355,6 @@ static inline void procedure_link_pointer_set(struct pt_regs *regs,
+ 	procedure_link_pointer(regs) = val;
+ }
+ 
+-#undef profile_pc
+ extern unsigned long profile_pc(struct pt_regs *regs);
+ 
+ #endif /* __ASSEMBLY__ */
+-- 
+2.20.1
