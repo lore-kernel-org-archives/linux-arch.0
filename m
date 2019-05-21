@@ -1,71 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:42749 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728141AbfEUNX2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 May 2019 09:23:28 -0400
-Received: by mail-wr1-f66.google.com with SMTP id l2so18597671wrb.9
-        for <linux-arch@vger.kernel.org>; Tue, 21 May 2019 06:23:26 -0700 (PDT)
-Date: Tue, 21 May 2019 15:23:23 +0200
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:33864 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728605AbfEUOck (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 May 2019 10:32:40 -0400
+Received: by mail-pl1-f195.google.com with SMTP id w7so8560302plz.1
+        for <linux-arch@vger.kernel.org>; Tue, 21 May 2019 07:32:39 -0700 (PDT)
+Date: Tue, 21 May 2019 16:32:22 +0200
 From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH 1/2] open: add close_range()
-Message-ID: <20190521132252.y5wt7d7o4bdjns4e@brauner.io>
-References: <20190521113448.20654-1-christian@brauner.io>
- <87tvdoau12.fsf@oldenburg2.str.redhat.com>
- <20190521130438.q3u4wvve7p6md6cm@brauner.io>
- <87h89o9cng.fsf@oldenburg2.str.redhat.com>
+Subject: Re: [PATCH v3 1/2] pid: add pidfd_open()
+Message-ID: <20190521143220.crb2zyvdov3fl4g7@brauner.io>
+References: <20190520155630.21684-1-christian@brauner.io>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <87h89o9cng.fsf@oldenburg2.str.redhat.com>
+In-Reply-To: <20190520155630.21684-1-christian@brauner.io>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, jannh@google.com, oleg@redhat.com, tglx@linutronix.de, torvalds@linux-foundation.org, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
-Message-ID: <20190521132323.9IQGStQX2Pz4J6WZtAC-kow01pxUJJnI5KI_-W7w4WY@z>
+To: jannh@google.com, oleg@redhat.com, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+Cc: akpm@linux-foundation.org, cyphar@cyphar.com, dhowells@redhat.com, ebiederm@xmission.com, elena.reshetova@intel.com, keescook@chromium.org, luto@amacapital.net, luto@kernel.org, tglx@linutronix.de, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, joel@joelfernandes.org, dancol@google.com, serge@hallyn.com, surenb@google.com, kernel-team@android.com
+Message-ID: <20190521143222.E3BJwMi2priyfJ0SbkxFAmZQFlOSZshCs8vwSSSv1o4@z>
 
-On Tue, May 21, 2019 at 03:10:11PM +0200, Florian Weimer wrote:
-> * Christian Brauner:
+On Mon, May 20, 2019 at 05:56:29PM +0200, Christian Brauner wrote:
+> This adds the pidfd_open() syscall. It allows a caller to retrieve pollable
+> pidfds for a process which did not get created via CLONE_PIDFD, i.e. for a
+> process that is created via traditional fork()/clone() calls that is only
+> referenced by a PID:
 > 
-> >> Solaris has an fdwalk function:
-> >> 
-> >>   <https://docs.oracle.com/cd/E88353_01/html/E37843/closefrom-3c.html>
-> >> 
-> >> So a different way to implement this would expose a nextfd system call
-> >
-> > Meh. If nextfd() then I would like it to be able to:
-> > - get the nextfd(fd) >= fd
-> > - get highest open fd e.g. nextfd(-1)
+> int pidfd = pidfd_open(1234, 0);
+> ret = pidfd_send_signal(pidfd, SIGSTOP, NULL, 0);
 > 
-> The highest open descriptor isn't istering for fdwalk because nextfd
-> would just fail.
+> With the introduction of pidfds through CLONE_PIDFD it is possible to
+> created pidfds at process creation time.
+> However, a lot of processes get created with traditional PID-based calls
+> such as fork() or clone() (without CLONE_PIDFD). For these processes a
+> caller can currently not create a pollable pidfd. This is a problem for
+> Android's low memory killer (LMK) and service managers such as systemd.
+> Both are examples of tools that want to make use of pidfds to get reliable
+> notification of process exit for non-parents (pidfd polling) and race-free
+> signal sending (pidfd_send_signal()). They intend to switch to this API for
+> process supervision/management as soon as possible. Having no way to get
+> pollable pidfds from PID-only processes is one of the biggest blockers for
+> them in adopting this api. With pidfd_open() making it possible to retrieve
+> pidfds for PID-based processes we enable them to adopt this api.
+> 
+> In line with Arnd's recent changes to consolidate syscall numbers across
+> architectures, I have added the pidfd_open() syscall to all architectures
+> at the same time.
+> 
+> Signed-off-by: Christian Brauner <christian@brauner.io>
+> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
 
-Sure. I was thinking about other usecases. For example, sometimes in
-userspace you want to do the following:
-save_fd = dup(fd, <well-known-number-at-the-end-of-the-range);
-close_range(3, (save_fd - 1));
+This now also carries a Reviewed-by from David.
 
-Which brings me to another point. So even if we don't do close_range() I
-would like libc to maybe give us something like close_range() for such
-scenarios.
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Joel Fernandes (Google) <joel@joelfernandes.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Jann Horn <jannh@google.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Andy Lutomirsky <luto@kernel.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Aleksa Sarai <cyphar@cyphar.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Al Viro <viro@zeniv.linux.org.uk>
+> Cc: linux-api@vger.kernel.org
 
-> 
-> > But then I wonder if nextfd() needs to be a syscall and isn't just
-> > either:
-> > fcntl(fd, F_GET_NEXT)?
-> > or
-> > prctl(PR_GET_NEXT)?
-> 
-> I think the fcntl route is a bit iffy because you might need it to get
-> the *first* valid descriptor.
-> 
-> >> to userspace, so that we can use that to implement both fdwalk and
-> >> closefrom.  But maybe fdwalk is just too obscure, given the existence of
-> >> /proc.
-> >
-> > Yeah we probably don't need fdwalk.
-> 
-> Agreed.  Just wanted to bring it up for completeness.  I certainly don't
-> want to derail the implementation of close_range.
-> 
-> Thanks,
-> Florian
+I've moved pidfd_open() into my for-next branch together with Joel's
+pidfd polling changes. Everything is based on v5.2-rc1.
+
+The chosen syscall number for now is 434. David is going to send out
+another pile of mount api related syscalls. I'll coordinate with him
+accordingly prior to the 5.3 merge window.
+
+Thanks!
+Christian
