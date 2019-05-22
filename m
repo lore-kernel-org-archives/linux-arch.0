@@ -1,72 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:51474 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728827AbfEVN2H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 May 2019 09:28:07 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH] checkpatch: Fix spdxcheck.py
-Date: Wed, 22 May 2019 14:27:54 +0100
-Message-Id: <20190522132754.46640-1-vincenzo.frascino@arm.com>
+Received: from mail-ua1-f68.google.com ([209.85.222.68]:32908 "EHLO
+        mail-ua1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728370AbfEVNsh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 09:48:37 -0400
+Received: by mail-ua1-f68.google.com with SMTP id 49so886976uas.0
+        for <linux-arch@vger.kernel.org>; Wed, 22 May 2019 06:48:36 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20190522132754.46640-1-vincenzo.frascino@arm.com>
+In-Reply-To: <20190522132754.46640-1-vincenzo.frascino@arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 22 May 2019 15:48:22 +0200
+Message-ID: <CAMuHMdXoUWHk-RvgwbDc0YZ+KnBSaL+1XE2n134oAVR7Y5jazg@mail.gmail.com>
+Subject: Re: [PATCH] checkpatch: Fix spdxcheck.py
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, tglx@linutronix.de, jcline@redhat.com, vincenzo.frascino@arm.com
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, jcline@redhat.com
 
-The LICENSE directory has recently changed structure and this makes
-spdxcheck fails as per below:
+Hi Vincenzo,
 
-FAIL: "Blob or Tree named 'other' not found"
-Traceback (most recent call last):
-  File "scripts/spdxcheck.py", line 240, in <module>
-spdx = read_spdxdata(repo)
-  File "scripts/spdxcheck.py", line 41, in read_spdxdata
-for el in lictree[d].traverse():
-[...]
-KeyError: "Blob or Tree named 'other' not found"
+On Wed, May 22, 2019 at 3:28 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
+> The LICENSE directory has recently changed structure and this makes
+> spdxcheck fails as per below:
+>
+> FAIL: "Blob or Tree named 'other' not found"
+> Traceback (most recent call last):
+>   File "scripts/spdxcheck.py", line 240, in <module>
+> spdx = read_spdxdata(repo)
+>   File "scripts/spdxcheck.py", line 41, in read_spdxdata
+> for el in lictree[d].traverse():
+> [...]
+> KeyError: "Blob or Tree named 'other' not found"
+>
+> Fix the script to restore the correctness on checkpatch License
+> checking.
+>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Jeremy Cline <jcline@redhat.com>
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Fix the script to restore the correctness on checkpatch License
-checking.
+Thanks for your patch!
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Jeremy Cline <jcline@redhat.com>
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- scripts/spdxcheck.py | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+Looks the issue is already fixed in linux-next:
+https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/scripts/spdxcheck.py
 
-diff --git a/scripts/spdxcheck.py b/scripts/spdxcheck.py
-index 4fe392e507fb..6374e078a5f2 100755
---- a/scripts/spdxcheck.py
-+++ b/scripts/spdxcheck.py
-@@ -32,7 +32,8 @@ class SPDXdata(object):
- def read_spdxdata(repo):
- 
-     # The subdirectories of LICENSES in the kernel source
--    license_dirs = [ "preferred", "other", "exceptions" ]
-+    # Note: exceptions needs to be parsed as last directory.
-+    license_dirs = [ "preferred", "dual", "deprecated", "exceptions" ]
-     lictree = repo.head.commit.tree['LICENSES']
- 
-     spdx = SPDXdata()
-@@ -58,13 +59,13 @@ def read_spdxdata(repo):
-                 elif l.startswith('SPDX-Licenses:'):
-                     for lic in l.split(':')[1].upper().strip().replace(' ', '').replace('\t', '').split(','):
-                         if not lic in spdx.licenses:
--                            raise SPDXException(None, 'Exception %s missing license %s' %(ex, lic))
-+                            raise SPDXException(None, 'Exception %s missing license %s' %(exception, lic))
-                         spdx.exceptions[exception].append(lic)
- 
-                 elif l.startswith("License-Text:"):
-                     if exception:
-                         if not len(spdx.exceptions[exception]):
--                            raise SPDXException(el, 'Exception %s is missing SPDX-Licenses' %excid)
-+                            raise SPDXException(el, 'Exception %s is missing SPDX-Licenses' %exception)
-                         spdx.exception_files += 1
-                     else:
-                         spdx.license_files += 1
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.21.0
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
