@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48130 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727464AbfEVLHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 May 2019 07:07:43 -0400
+Received: from foss.arm.com ([217.140.101.70]:48178 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727464AbfEVLHs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 May 2019 07:07:48 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 1/3] powerpc: Fix vDSO clock_getres()
-Date: Wed, 22 May 2019 12:07:20 +0100
-Message-ID: <20190522110722.28094-2-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 3/3] kselftest: Extend vDSO selftest to clock_getres
+Date: Wed, 22 May 2019 12:07:22 +0100
+Message-ID: <20190522110722.28094-4-vincenzo.frascino@arm.com>
 In-Reply-To: <20190522110722.28094-1-vincenzo.frascino@arm.com>
 References: <20190522110722.28094-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -14,136 +14,191 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>, stable@vger.kernel.org
-Message-ID: <20190522110720.4hQAmiMYqoE_iy95Z5RLMoHeoHVa4B91c7v1wxAXRSI@z>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190522110722.624coq6uHZaSJQMSFB1DEX8cSVspCYnHnw4rg8EmVIk@z>
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+The current version of the multiarch vDSO selftest verifies only
+gettimeofday.
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+Extend the vDSO selftest to clock_getres, to verify that the
+syscall and the vDSO library function return the same information.
 
-Fix the powerpc vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
+The extension has been used to verify the hrtimer_resoltion fix.
 
-Fixes: a7f290dad32e ("[PATCH] powerpc: Merge vdso's and add vdso support
-to 32 bits kernel")
-Cc: stable@vger.kernel.org
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Shuah Khan <shuah@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
 
 Note: This patch is independent from the others in this series, hence it
-can be merged singularly by the powerpc maintainers.
+can be merged singularly by the kselftest maintainers.
 
- arch/powerpc/include/asm/vdso_datapage.h  | 2 ++
- arch/powerpc/kernel/asm-offsets.c         | 2 +-
- arch/powerpc/kernel/time.c                | 1 +
- arch/powerpc/kernel/vdso32/gettimeofday.S | 7 +++++--
- arch/powerpc/kernel/vdso64/gettimeofday.S | 7 +++++--
- 5 files changed, 14 insertions(+), 5 deletions(-)
+ tools/testing/selftests/vDSO/Makefile         |   2 +
+ .../selftests/vDSO/vdso_clock_getres.c        | 137 ++++++++++++++++++
+ 2 files changed, 139 insertions(+)
+ create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
 
-diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
-index bbc06bd72b1f..4333b9a473dc 100644
---- a/arch/powerpc/include/asm/vdso_datapage.h
-+++ b/arch/powerpc/include/asm/vdso_datapage.h
-@@ -86,6 +86,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;			/* Wall to monotonic clock nsec */
- 	__s64 wtom_clock_sec;			/* Wall to monotonic clock sec */
- 	struct timespec stamp_xtime;		/* xtime as at tb_orig_stamp */
-+	__u32 hrtimer_res;			/* hrtimer resolution */
-    	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- };
-@@ -107,6 +108,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;
- 	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
- 	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
-+	__u32 hrtimer_res;		/* hrtimer resolution */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- 	__u32 dcache_block_size;	/* L1 d-cache block size     */
- 	__u32 icache_block_size;	/* L1 i-cache block size     */
-diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
-index 8e02444e9d3d..dfc40f29f2b9 100644
---- a/arch/powerpc/kernel/asm-offsets.c
-+++ b/arch/powerpc/kernel/asm-offsets.c
-@@ -389,6 +389,7 @@ int main(void)
- 	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
- 	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
- 	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
-+	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
- 	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
- 	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
- 	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
-@@ -419,7 +420,6 @@ int main(void)
- 	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
- 	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
- 	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
--	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
+diff --git a/tools/testing/selftests/vDSO/Makefile b/tools/testing/selftests/vDSO/Makefile
+index 9e03d61f52fd..d5c5bfdf1ac1 100644
+--- a/tools/testing/selftests/vDSO/Makefile
++++ b/tools/testing/selftests/vDSO/Makefile
+@@ -5,6 +5,7 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
+ ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
  
- #ifdef CONFIG_BUG
- 	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
-diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
-index 325d60633dfa..4ea4e9d7a58e 100644
---- a/arch/powerpc/kernel/time.c
-+++ b/arch/powerpc/kernel/time.c
-@@ -963,6 +963,7 @@ void update_vsyscall(struct timekeeper *tk)
- 	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
- 	vdso_data->stamp_xtime = xt;
- 	vdso_data->stamp_sec_fraction = frac_sec;
-+	vdso_data->hrtimer_res = hrtimer_resolution;
- 	smp_wmb();
- 	++(vdso_data->tb_update_count);
- }
-diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
-index afd516b572f8..2b5f9e83c610 100644
---- a/arch/powerpc/kernel/vdso32/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
-@@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
+ TEST_GEN_PROGS := $(OUTPUT)/vdso_test
++TEST_GEN_PROGS += $(OUTPUT)/vdso_clock_getres
+ ifeq ($(ARCH),x86)
+ TEST_GEN_PROGS += $(OUTPUT)/vdso_standalone_test_x86
+ endif
+@@ -18,6 +19,7 @@ endif
  
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	__get_datapage@local
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpli	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	stw	r3,TSPC32_TV_SEC(r4)
- 	stw	r5,TSPC32_TV_NSEC(r4)
- 	blr
-diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
-index 1f324c28705b..f07730f73d5e 100644
---- a/arch/powerpc/kernel/vdso64/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
-@@ -190,12 +190,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
- 
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	V_LOCAL_FUNC(__get_datapage)
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpldi	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	std	r3,TSPC64_TV_SEC(r4)
- 	std	r5,TSPC64_TV_NSEC(r4)
- 	blr
+ all: $(TEST_GEN_PROGS)
+ $(OUTPUT)/vdso_test: parse_vdso.c vdso_test.c
++$(OUTPUT)/vdso_clock_getres: vdso_clock_getres.c
+ $(OUTPUT)/vdso_standalone_test_x86: vdso_standalone_test_x86.c parse_vdso.c
+ 	$(CC) $(CFLAGS) $(CFLAGS_vdso_standalone_test_x86) \
+ 		vdso_standalone_test_x86.c parse_vdso.c \
+diff --git a/tools/testing/selftests/vDSO/vdso_clock_getres.c b/tools/testing/selftests/vDSO/vdso_clock_getres.c
+new file mode 100644
+index 000000000000..341a9bc34ffc
+--- /dev/null
++++ b/tools/testing/selftests/vDSO/vdso_clock_getres.c
+@@ -0,0 +1,137 @@
++// SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
++/*
++ * vdso_clock_getres.c: Sample code to test clock_getres.
++ * Copyright (c) 2019 Arm Ltd.
++ *
++ * Compile with:
++ * gcc -std=gnu99 vdso_clock_getres.c
++ *
++ * Tested on ARM, ARM64, MIPS32, x86 (32-bit and 64-bit),
++ * Power (32-bit and 64-bit), S390x (32-bit and 64-bit).
++ * Might work on other architectures.
++ */
++
++#define _GNU_SOURCE
++#include <elf.h>
++#include <err.h>
++#include <fcntl.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <time.h>
++#include <sys/auxv.h>
++#include <sys/mman.h>
++#include <sys/time.h>
++#include <unistd.h>
++#include <sys/syscall.h>
++
++#include "../kselftest.h"
++
++static long syscall_clock_getres(clockid_t _clkid, struct timespec *_ts)
++{
++	long ret;
++
++	ret = syscall(SYS_clock_getres, _clkid, _ts);
++
++	return ret;
++}
++
++const char *vdso_clock_name[12] = {
++	"CLOCK_REALTIME",
++	"CLOCK_MONOTONIC",
++	"CLOCK_PROCESS_CPUTIME_ID",
++	"CLOCK_THREAD_CPUTIME_ID",
++	"CLOCK_MONOTONIC_RAW",
++	"CLOCK_REALTIME_COARSE",
++	"CLOCK_MONOTONIC_COARSE",
++	"CLOCK_BOOTTIME",
++	"CLOCK_REALTIME_ALARM",
++	"CLOCK_BOOTTIME_ALARM",
++	"CLOCK_SGI_CYCLE",
++	"CLOCK_TAI",
++};
++
++/*
++ * This function calls clock_getres in vdso and by system call
++ * with different values for clock_id.
++ *
++ * Example of output:
++ *
++ * clock_id: CLOCK_REALTIME [PASS]
++ * clock_id: CLOCK_BOOTTIME [PASS]
++ * clock_id: CLOCK_TAI [PASS]
++ * clock_id: CLOCK_REALTIME_COARSE [PASS]
++ * clock_id: CLOCK_MONOTONIC [PASS]
++ * clock_id: CLOCK_MONOTONIC_RAW [PASS]
++ * clock_id: CLOCK_MONOTONIC_COARSE [PASS]
++ */
++static inline int vdso_test_clock(unsigned int clock_id)
++{
++	struct timespec x, y;
++
++	printf("clock_id: %s", vdso_clock_name[clock_id]);
++	clock_getres(clock_id, &x);
++	syscall_clock_getres(clock_id, &y);
++
++	if ((x.tv_sec != y.tv_sec) || (x.tv_sec != y.tv_sec)) {
++		printf(" [FAIL]\n");
++		return KSFT_FAIL;
++	}
++
++	printf(" [PASS]\n");
++	return 0;
++}
++
++int main(int argc, char **argv)
++{
++	int ret;
++
++#if _POSIX_TIMERS > 0
++
++#ifdef CLOCK_REALTIME
++	ret = vdso_test_clock(CLOCK_REALTIME);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_BOOTTIME
++	ret = vdso_test_clock(CLOCK_BOOTTIME);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_TAI
++	ret = vdso_test_clock(CLOCK_TAI);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_REALTIME_COARSE
++	ret = vdso_test_clock(CLOCK_REALTIME_COARSE);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_MONOTONIC
++	ret = vdso_test_clock(CLOCK_MONOTONIC);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_MONOTONIC_RAW
++	ret = vdso_test_clock(CLOCK_MONOTONIC_RAW);
++	if (ret)
++		goto out;
++#endif
++
++#ifdef CLOCK_MONOTONIC_COARSE
++	ret = vdso_test_clock(CLOCK_MONOTONIC_COARSE);
++	if (ret)
++		goto out;
++#endif
++
++#endif
++
++out:
++	return ret;
++}
 -- 
 2.21.0
