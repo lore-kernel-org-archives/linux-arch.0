@@ -1,54 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f65.google.com ([209.85.167.65]:36883 "EHLO
-        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726358AbfEVIMY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 04:12:24 -0400
-Received: by mail-lf1-f65.google.com with SMTP id m15so360424lfh.4
-        for <linux-arch@vger.kernel.org>; Wed, 22 May 2019 01:12:23 -0700 (PDT)
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48104 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727464AbfEVLHl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 May 2019 07:07:41 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 0/3] Fix vDSO clock_getres()
+Date: Wed, 22 May 2019 12:07:19 +0100
+Message-ID: <20190522110722.28094-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-References: <20190521150006.GJ17978@ZenIV.linux.org.uk> <20190521113448.20654-1-christian@brauner.io>
- <28114.1558456227@warthog.procyon.org.uk> <20190521164141.rbehqnghiej3gfua@brauner.io>
- <CAHk-=wgtHm4t71oKbykE=awiVv2H2wCy8yH0L_FsyhHQ5OSO+Q@mail.gmail.com>
-In-Reply-To: <CAHk-=wgtHm4t71oKbykE=awiVv2H2wCy8yH0L_FsyhHQ5OSO+Q@mail.gmail.com>
-From: Christian Brauner <christian@brauner.io>
-Date: Wed, 22 May 2019 10:12:11 +0200
-Message-ID: <CAHrFyr4NV_5Z7TRSXTaurd4KCTLiHqKb47dN=bdY46HiL9ZY3Q@mail.gmail.com>
-Subject: Re: [PATCH 1/2] open: add close_range()
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, Todd Kjos <tkjos@android.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Miklos Szeredi <miklos@szeredi.hu>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20190522081211.gSmTHxw7I147Yx_blqVP0849x9x6HJjy46t9j7DTjgc@z>
+To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190522110719.eZNE_DhhnRwDzS4QX4xvmALW-gYGaGximQ4bmyAleW0@z>
 
-On Tue, May 21, 2019 at 10:23 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Tue, May 21, 2019 at 9:41 AM Christian Brauner <christian@brauner.io> wrote:
-> >
-> > Yeah, you mentioned this before. I do like being able to specify an
-> > upper bound to have the ability to place fds strategically after said
-> > upper bound.
->
-> I suspect that's the case.
->
-> And if somebody really wants to just close everything and uses a large
-> upper bound, we can - if we really want to - just compare the upper
-> bound to the file table size, and do an optimized case for that. We do
-> that upper bound comparison anyway to limit the size of the walk, so
-> *if* it's a big deal, that case could then do the whole "shrink
-> fdtable" case too.
+clock_getres in the vDSO library has to preserve the same behaviour
+of posix_get_hrtimer_res().
 
-Makes sense.
+In particular, posix_get_hrtimer_res() does:
+    sec = 0;
+    ns = hrtimer_resolution;
+and hrtimer_resolution depends on the enablement of the high
+resolution timers that can happen either at compile or at run time.
 
->
-> But I don't believe it's worth optimizing for unless somebody really
-> has a load where that is shown to be a big deal.   Just do the silly
-> and simple loop, and add a cond_resched() in the loop, like
-> close_files() does for the "we have a _lot_ of files open" case.
+A possible fix is to change the vdso implementation of clock_getres,
+keeping a copy of hrtimer_resolution in vdso data and using that
+directly [1].
 
-Ok. I will resend a v1 later with the cond_resched() logic you and Al
-suggested added.
+This patchset implements the proposed fix for arm64, powerpc, s390,
+nds32 and adds a test to verify that the syscall and the vdso library
+implementation of clock_getres return the same values.
 
-Thanks!
-Christian
+Even if these patches are unified by the same topic, there is no
+dependency between them, hence they can be merged singularly by each
+arch maintainer.
+
+Note: arm64 and nds32 respective fixes have been merged in 5.2-rc1,
+hence they have been removed from this series.
+
+[1] https://marc.info/?l=linux-arm-kernel&m=155110381930196&w=2
+
+Changes:
+--------
+v3:
+  - Rebased on 5.2-rc1.
+  - Addressed review comments.
+v2:
+  - Rebased on 5.1-rc5.
+  - Addressed review comments.
+
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Shuah Khan <shuah@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Vincenzo Frascino (3):
+  powerpc: Fix vDSO clock_getres()
+  s390: Fix vDSO clock_getres()
+  kselftest: Extend vDSO selftest to clock_getres
+
+ arch/powerpc/include/asm/vdso_datapage.h      |   2 +
+ arch/powerpc/kernel/asm-offsets.c             |   2 +-
+ arch/powerpc/kernel/time.c                    |   1 +
+ arch/powerpc/kernel/vdso32/gettimeofday.S     |   7 +-
+ arch/powerpc/kernel/vdso64/gettimeofday.S     |   7 +-
+ arch/s390/include/asm/vdso.h                  |   1 +
+ arch/s390/kernel/asm-offsets.c                |   2 +-
+ arch/s390/kernel/time.c                       |   1 +
+ arch/s390/kernel/vdso32/clock_getres.S        |  12 +-
+ arch/s390/kernel/vdso64/clock_getres.S        |  10 +-
+ tools/testing/selftests/vDSO/Makefile         |   2 +
+ .../selftests/vDSO/vdso_clock_getres.c        | 137 ++++++++++++++++++
+ 12 files changed, 168 insertions(+), 16 deletions(-)
+ create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
+
+-- 
+2.21.0
