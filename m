@@ -1,45 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49696 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729649AbfEVRBd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 May 2019 13:01:33 -0400
-Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 016822184E
-        for <linux-arch@vger.kernel.org>; Wed, 22 May 2019 17:01:33 +0000 (UTC)
-Received: by mail-wm1-f48.google.com with SMTP id t5so2987468wmh.3
-        for <linux-arch@vger.kernel.org>; Wed, 22 May 2019 10:01:32 -0700 (PDT)
-MIME-Version: 1.0
-References: <20190520133305.11925-1-cyphar@cyphar.com> <20190520133305.11925-2-cyphar@cyphar.com>
-In-Reply-To: <20190520133305.11925-2-cyphar@cyphar.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Wed, 22 May 2019 10:01:17 -0700
-Message-ID: <CALCETrVCwe49q5mu=f6jTYNSgosQSjjY5chukMPo6eZtQGqo5g@mail.gmail.com>
-Subject: Re: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC permissions
-Content-Type: text/plain; charset="UTF-8"
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:55906 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729172AbfEVRlD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 May 2019 13:41:03 -0400
+From: Ard Biesheuvel <ard.biesheuvel@arm.com>
+Subject: [PATCH] x86/tools: deal with 64-bit relative relocations for per-CPU symbols
+Date: Wed, 22 May 2019 18:40:57 +0100
+Message-ID: <20190522174057.21770-1-ard.biesheuvel@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Containers <containers@lists.linux-foundation.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190522170117.zTRFq4vsbYLfD_gTaytJGbV_emp8VGcD-drv4EsToLg@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: marc.zyngier@arm.com, james.morse@arm.com, will.deacon@arm.com, guillaume.gardet@arm.com, mark.rutland@arm.com, mingo@kernel.org, jeyu@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, x86@kernel.org, Ard Biesheuvel <ard.biesheuvel@arm.com>
+Message-ID: <20190522174057.2HlW1XhPr0vE-3X3jgkI631pWZE2M_7vD4KjAyWZ_TY@z>
 
-On Mon, May 20, 2019 at 6:34 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> One final exception is given, which is that non-O_PATH file descriptors
-> are given re-open rights equivalent to the permissions available at
-> open-time. This allows for O_RDONLY file descriptors to be re-opened
-> O_RDWR as long as the user had MAY_WRITE access at the time of opening
-> the O_RDONLY descriptor. This is necessary to avoid breaking userspace
-> (some of the kernel's own selftests depended on this "feature").
+In order to fix an issue in the place relative ksymtab code, we
+need to switch to 64-bit place relative references, which
+require special handling in the x86 'relocs' tool. The reason
+is that per-CPU symbols on x86_64 live in a separate link time
+section, whose load time address is not reflected in the ELF
+metadata, and so relative references emitted by the toolchain
+are guaranteed to be wrong.
 
-Can you clarify this exception a bit?  I'd like to make sure it's not
-such a huge exception that it invalidates the whole point of the
-patch.  If you open a file for execute, by actually exec()ing it or by
-using something like the proposed O_MAYEXEC, and you have
-inode_permission to write, do you still end up with FMODE_PATH_WRITE?
-The code looks like it does, and this seems like it might be a
-mistake.  Is there any way for user code to read out these new file
-mode bits?
+So fix this by extending the handling of 32-bit relative references
+to per-CPU variables to support 64-bit relative references as
+well.
 
-What are actual examples of uses for this exception?  Breaking
-selftests is not, in and of itself, a huge problem.
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@arm.com>
+---
+This is a follow-up to [0] and a prerequisite to the change it
+implements: using 64-bit relative references on x86_64 requires
+this handling in the 'relocs' tool and in the decompressor.
+
+[0] https://lore.kernel.org/linux-arm-kernel/20190522150239.19314-1-ard.biesheuvel@arm.com
+
+This patch plus [0] build and boot tested with x86_64_defconfig on QEMU/kvm + OVMF.
+
+ arch/x86/boot/compressed/misc.c | 12 ++++++++++++
+ arch/x86/tools/relocs.c         | 15 ++++++++++-----
+ 2 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/boot/compressed/misc.c b/arch/x86/boot/compressed/misc.c
+index 5a237e8dbf8d..e089d78bd86a 100644
+--- a/arch/x86/boot/compressed/misc.c
++++ b/arch/x86/boot/compressed/misc.c
+@@ -218,6 +218,8 @@ static void handle_relocations(void *output, unsigned long output_len,
+ 	 * Format is:
+ 	 *
+ 	 * kernel bits...
++	 * 0 - zero terminator for inverse 64 bit relocations
++	 * 64 bit inverse relocation repeated
+ 	 * 0 - zero terminator for 64 bit relocations
+ 	 * 64 bit relocation repeated
+ 	 * 0 - zero terminator for inverse 32 bit relocations
+@@ -258,6 +260,16 @@ static void handle_relocations(void *output, unsigned long output_len,
+ 
+ 		*(uint64_t *)ptr += delta;
+ 	}
++	while (*--reloc) {
++		long extended = *reloc;
++		extended += map;
++
++		ptr = (unsigned long)extended;
++		if (ptr < min_addr || ptr > max_addr)
++			error("inverse 64-bit relocation outside of kernel!\n");
++
++		*(uint64_t *)ptr -= delta;
++	}
+ #endif
+ }
+ #else
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index ce7188cbdae5..d6a2bb90dfa6 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -26,6 +26,7 @@ static struct relocs relocs32;
+ #if ELF_BITS == 64
+ static struct relocs relocs32neg;
+ static struct relocs relocs64;
++static struct relocs relocs64neg;
+ #endif
+ 
+ struct section {
+@@ -800,12 +801,8 @@ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 		break;
+ 
+ 	case R_X86_64_PC64:
+-		/*
+-		 * Only used by jump labels
+-		 */
+ 		if (is_percpu_sym(sym, symname))
+-			die("Invalid R_X86_64_PC64 relocation against per-CPU symbol %s\n",
+-			    symname);
++			add_reloc(&relocs64neg, offset);
+ 		break;
+ 
+ 	case R_X86_64_32:
+@@ -1027,6 +1024,7 @@ static void emit_relocs(int as_text, int use_real_mode)
+ #if ELF_BITS == 64
+ 	sort_relocs(&relocs32neg);
+ 	sort_relocs(&relocs64);
++	sort_relocs(&relocs64neg);
+ #else
+ 	sort_relocs(&relocs16);
+ #endif
+@@ -1054,6 +1052,13 @@ static void emit_relocs(int as_text, int use_real_mode)
+ 		/* Print a stop */
+ 		write_reloc(0, stdout);
+ 
++		/* Now print each inverse 64-bit relocation */
++		for (i = 0; i < relocs64neg.count; i++)
++			write_reloc(relocs64neg.offset[i], stdout);
++
++		/* Print a stop */
++		write_reloc(0, stdout);
++
+ 		/* Now print each relocation */
+ 		for (i = 0; i < relocs64.count; i++)
+ 			write_reloc(relocs64.offset[i], stdout);
+-- 
+2.17.1
