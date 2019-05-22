@@ -1,92 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:53530 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729583AbfEVPTV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 May 2019 11:19:21 -0400
-Subject: Re: [PATCH] checkpatch: Fix spdxcheck.py
-References: <20190522132754.46640-1-vincenzo.frascino@arm.com>
- <CAMuHMdXoUWHk-RvgwbDc0YZ+KnBSaL+1XE2n134oAVR7Y5jazg@mail.gmail.com>
- <c4592dfd-6b56-2837-8c32-495b113e80ee@arm.com>
- <CAMuHMdWaVDe9S1hfhwrZ5D2d74yswvKXeQ9pL7i6Oe7UVJj0MQ@mail.gmail.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <3a0524cd-5c83-aad9-bbfc-69b811f63898@arm.com>
-Date: Wed, 22 May 2019 16:19:18 +0100
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:33124 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729636AbfEVPxg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 11:53:36 -0400
+Received: by mail-wr1-f66.google.com with SMTP id d9so2911235wrx.0
+        for <linux-arch@vger.kernel.org>; Wed, 22 May 2019 08:53:34 -0700 (PDT)
+From: Christian Brauner <christian@brauner.io>
+Subject: [PATCH v1 1/2] open: add close_range()
+Date: Wed, 22 May 2019 17:52:58 +0200
+Message-ID: <20190522155259.11174-1-christian@brauner.io>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdWaVDe9S1hfhwrZ5D2d74yswvKXeQ9pL7i6Oe7UVJj0MQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, jcline@redhat.com
+To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com
+Cc: jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org, Christian Brauner <christian@brauner.io>
+Message-ID: <20190522155258.SYWktW1JFzl3geN85-gjnwJC1aRlsldQRssxVhKaV14@z>
 
-Hi Geert,
+This adds the close_range() syscall. It allows to efficiently close a range
+of file descriptors up to all file descriptors of a calling task.
 
-On 22/05/2019 16:07, Geert Uytterhoeven wrote:
-> Hi Vincenzo,
-> 
-> On Wed, May 22, 2019 at 4:32 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->> On 22/05/2019 14:48, Geert Uytterhoeven wrote:
->>> On Wed, May 22, 2019 at 3:28 PM Vincenzo Frascino
->>> <vincenzo.frascino@arm.com> wrote:
->>>> The LICENSE directory has recently changed structure and this makes
->>>> spdxcheck fails as per below:
->>>>
->>>> FAIL: "Blob or Tree named 'other' not found"
->>>> Traceback (most recent call last):
->>>>   File "scripts/spdxcheck.py", line 240, in <module>
->>>> spdx = read_spdxdata(repo)
->>>>   File "scripts/spdxcheck.py", line 41, in read_spdxdata
->>>> for el in lictree[d].traverse():
->>>> [...]
->>>> KeyError: "Blob or Tree named 'other' not found"
->>>>
->>>> Fix the script to restore the correctness on checkpatch License
->>>> checking.
->>>>
->>>> Cc: Andrew Morton <akpm@linux-foundation.org>
->>>> Cc: Thomas Gleixner <tglx@linutronix.de>
->>>> Cc: Jeremy Cline <jcline@redhat.com>
->>>> Cc: linux-kernel@vger.kernel.org
->>>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->>>
->>> Thanks for your patch!
->>>
->>> Looks the issue is already fixed in linux-next:
->>> https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/scripts/spdxcheck.py
->>>
->>
->> Thank you for pointing this out, I missed it.
->>
->> I had a look at the patch in linux-next and seems that the problem is not
->> completely solved by the patch you are referring to, in fact:
->>  - For how the code it is written, exceptions directory needs to be parsed as
->>    last. The only reason why it seems ok at the moment in linux-next it is
->>    because there is no "dual" license appears in SPDX-Licenses field of any
->>    "exception". A simple test that consists in adding Apache-2.0 to the SPDX-
->>    Licenses of Linux-syscall-note generates still an exception.
->>  - The SPDXException calls in the case of "SPDX-Licenses" and "License-Text" use
->>    undefined parameters.
->>
->> My patch addresses both the issues, if it helps, I can rebase it on linux-next.
->>
->> Please let me know.
-> 
-> Rebasing against linux-next is the right thing to do.
-> Thanks!
-> 
+The syscall came up in a recent discussion around the new mount API and
+making new file descriptor types cloexec by default. During this
+discussion, Al suggested the close_range() syscall (cf. [1]). Note, a
+syscall in this manner has been requested by various people over time.
 
-Done! I put you in Cc of the v2 of this patch.
+First, it helps to close all file descriptors of an exec()ing task. This
+can be done safely via (quoting Al's example from [1] verbatim):
 
-Please let me know if I can do anything else.
+        /* that exec is sensitive */
+        unshare(CLONE_FILES);
+        /* we don't want anything past stderr here */
+        close_range(3, ~0U);
+        execve(....);
 
-> Gr{oetje,eeting}s,
-> 
->                         Geert
-> 
+The code snippet above is one way of working around the problem that file
+descriptors are not cloexec by default. This is aggravated by the fact that
+we can't just switch them over without massively regressing userspace. For
+a whole class of programs having an in-kernel method of closing all file
+descriptors is very helpful (e.g. demons, service managers, programming
+language standard libraries, container managers etc.).
+(Please note, unshare(CLONE_FILES) should only be needed if the calling
+ task is multi-threaded and shares the file descriptor table with another
+ thread in which case two threads could race with one thread allocating
+ file descriptors and the other one closing them via close_range(). For the
+ general case close_range() before the execve() is sufficient.)
 
--- 
-Regards,
-Vincenzo
+Second, it allows userspace to avoid implementing closing all file
+descriptors by parsing through /proc/<pid>/fd/* and calling close() on each
+file descriptor. From looking at various large(ish) userspace code bases
+this or similar patterns are very common in:
+- service managers (cf. [4])
+- libcs (cf. [6])
+- container runtimes (cf. [5])
+- programming language runtimes/standard libraries
+  - Python (cf. [2])
+  - Rust (cf. [7], [8])
+As Dmitry pointed out there's even a long-standing glibc bug about missing
+kernel support for this task (cf. [3]).
+In addition, the syscall will also work for tasks that do not have procfs
+mounted and on kernels that do not have procfs support compiled in. In such
+situations the only way to make sure that all file descriptors are closed
+is to call close() on each file descriptor up to UINT_MAX or RLIMIT_NOFILE,
+OPEN_MAX trickery (cf. comment [8] on Rust).
+
+The performance is striking. For good measure, comparing the following
+simple close_all_fds() userspace implementation that is essentially just
+glibc's version in [6]:
+
+static int close_all_fds(void)
+{
+        int dir_fd;
+        DIR *dir;
+        struct dirent *direntp;
+
+        dir = opendir("/proc/self/fd");
+        if (!dir)
+                return -1;
+        dir_fd = dirfd(dir);
+        while ((direntp = readdir(dir))) {
+                int fd;
+                if (strcmp(direntp->d_name, ".") == 0)
+                        continue;
+                if (strcmp(direntp->d_name, "..") == 0)
+                        continue;
+                fd = atoi(direntp->d_name);
+                if (fd == dir_fd || fd == 0 || fd == 1 || fd == 2)
+                        continue;
+                close(fd);
+        }
+        closedir(dir);
+        return 0;
+}
+
+to close_range() yields:
+1. closing 4 open files:
+   - close_all_fds(): ~280 us
+   - close_range():    ~24 us
+
+2. closing 1000 open files:
+   - close_all_fds(): ~5000 us
+   - close_range():   ~800 us
+
+close_range() is designed to allow for some flexibility. Specifically, it
+does not simply always close all open file descriptors of a task. Instead,
+callers can specify an upper bound.
+This is e.g. useful for scenarios where specific file descriptors are
+created with well-known numbers that are supposed to be excluded from
+getting closed.
+For extra paranoia close_range() comes with a flags argument. This can e.g.
+be used to implement extension. Once can imagine userspace wanting to stop
+at the first error instead of ignoring errors under certain circumstances.
+There might be other valid ideas in the future. In any case, a flag
+argument doesn't hurt and keeps us on the safe side.
