@@ -1,138 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:60467 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:32814 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727802AbfEWBdn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:33:43 -0400
+        with ESMTP id S1727305AbfEWBqg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:46:36 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Wed, 22 May 2019 19:39:16 -0500
-Message-ID: <20190523003916.20726-27-ebiederm@xmission.com>
+Date: Wed, 22 May 2019 19:38:54 -0500
+Message-ID: <20190523003916.20726-5-ebiederm@xmission.com>
 In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: [REVIEW][PATCH 26/26] signal: Remove the signal number and task parameters from force_sig_info
+Subject: [REVIEW][PATCH 04/26] signal/drbd: Use send_sig not force_sig
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20190523003916.xOcKIIASHW-3BiAGWrfj6KwYI3u51nHTvKdEt7V8pKY@z>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Philipp Reisner <philipp.reisner@linbit.com>, Lars Ellenberg <lars.ellenberg@linbit.com>, drbd-dev@lists.linbit.com
+Message-ID: <20190523003854.kmiMTOfr8QvzLnbbVWsykCJW3bouR3gjiCumm2DFBQU@z>
 
-force_sig_info always delivers to the current task and the signal
-parameter always matches info.si_signo.  So remove those parameters to
-make it a simpler less error prone interface, and to make it clear
-that none of the callers are doing anything clever.
+The drbd module exclusively sends signals to kernel threads it creates with
+kthread_create.  These kernel threads do not block or ignore signals (only
+flush signals after they have been delivered), nor can drbd threads
+possibly be pid namespace init processes so the extra work that force_sig
+performs that send_sig does not is unnecessary.
 
-This guarantees that force_sig_info will not grow any new buggy
-callers that attempt to call force_sig on a non-current task, or that
-pass an signal number that does not match info.si_signo.
+Further force_sig is for delivering synchronous signals (aka exceptions).
+The locking in force_sig is not prepared to deal with running processes, as
+tsk->sighand may change during exec for a running process.
 
+In short it is not only unnecessary for drbd to use force_sig it is
+semantically wrong.
+
+With drbd using send_sig it becomes easier to maintain force_sig as only
+synchronous signals need to be considered.
+
+Cc: Philipp Reisner <philipp.reisner@linbit.com>
+Cc: Lars Ellenberg <lars.ellenberg@linbit.com>
+Cc: drbd-dev@lists.linbit.com
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/linux/ptrace.h       |  2 +-
- include/linux/sched/signal.h |  2 +-
- kernel/seccomp.c             |  2 +-
- kernel/signal.c              | 14 +++++++-------
- 4 files changed, 10 insertions(+), 10 deletions(-)
+ drivers/block/drbd/drbd_int.h  | 2 +-
+ drivers/block/drbd/drbd_main.c | 2 +-
+ drivers/block/drbd/drbd_nl.c   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index d5084ebd9f03..2a9df80ea887 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -355,7 +355,7 @@ static inline void user_single_step_report(struct pt_regs *regs)
- 	info.si_code = SI_USER;
- 	info.si_pid = 0;
- 	info.si_uid = 0;
--	force_sig_info(info.si_signo, &info, current);
-+	force_sig_info(&info);
- }
- #endif
- 
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 7f872506e1de..532458698bde 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -329,7 +329,7 @@ int force_sig_ptrace_errno_trap(int errno, void __user *addr);
- 
- extern int send_sig_info(int, struct kernel_siginfo *, struct task_struct *);
- extern void force_sigsegv(int sig);
--extern int force_sig_info(int, struct kernel_siginfo *, struct task_struct *);
-+extern int force_sig_info(struct kernel_siginfo *);
- extern int __kill_pgrp_info(int sig, struct kernel_siginfo *info, struct pid *pgrp);
- extern int kill_pid_info(int sig, struct kernel_siginfo *info, struct pid *pid);
- extern int kill_pid_usb_asyncio(int sig, int errno, sigval_t addr, struct pid *,
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 811b4a86cdf6..dba52a7db5e8 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -609,7 +609,7 @@ static void seccomp_send_sigsys(int syscall, int reason)
+diff --git a/drivers/block/drbd/drbd_int.h b/drivers/block/drbd/drbd_int.h
+index 549c64df9708..035829435710 100644
+--- a/drivers/block/drbd/drbd_int.h
++++ b/drivers/block/drbd/drbd_int.h
+@@ -1972,7 +1972,7 @@ static inline void wake_ack_receiver(struct drbd_connection *connection)
  {
- 	struct kernel_siginfo info;
- 	seccomp_init_siginfo(&info, syscall, reason);
--	force_sig_info(SIGSYS, &info, current);
-+	force_sig_info(&info);
- }
- #endif	/* CONFIG_SECCOMP_FILTER */
- 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index 0984158cd41a..ff6944e4964e 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1325,9 +1325,9 @@ force_sig_info_to_task(struct kernel_siginfo *info, struct task_struct *t)
- 	return ret;
+ 	struct task_struct *task = connection->ack_receiver.task;
+ 	if (task && get_t_state(&connection->ack_receiver) == RUNNING)
+-		force_sig(SIGXCPU, task);
++		send_sig(SIGXCPU, task, 1);
  }
  
--int force_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *t)
-+int force_sig_info(struct kernel_siginfo *info)
- {
--	return force_sig_info_to_task(info, t);
-+	return force_sig_info_to_task(info, current);
- }
+ static inline void request_ping(struct drbd_connection *connection)
+diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
+index 714eb64fabfd..8597aefe027b 100644
+--- a/drivers/block/drbd/drbd_main.c
++++ b/drivers/block/drbd/drbd_main.c
+@@ -477,7 +477,7 @@ void _drbd_thread_stop(struct drbd_thread *thi, int restart, int wait)
+ 		smp_mb();
+ 		init_completion(&thi->stop);
+ 		if (thi->task != current)
+-			force_sig(DRBD_SIGKILL, thi->task);
++			send_sig(DRBD_SIGKILL, thi->task, 1);
+ 	}
  
- /*
-@@ -1619,7 +1619,7 @@ void force_sig(int sig)
- 	info.si_code = SI_KERNEL;
- 	info.si_pid = 0;
- 	info.si_uid = 0;
--	force_sig_info(info.si_signo, &info, current);
-+	force_sig_info(&info);
- }
- EXPORT_SYMBOL(force_sig);
+ 	spin_unlock_irqrestore(&thi->t_lock, flags);
+diff --git a/drivers/block/drbd/drbd_nl.c b/drivers/block/drbd/drbd_nl.c
+index 1cb5a0b85fd9..638b3ba9b976 100644
+--- a/drivers/block/drbd/drbd_nl.c
++++ b/drivers/block/drbd/drbd_nl.c
+@@ -611,7 +611,7 @@ void conn_try_outdate_peer_async(struct drbd_connection *connection)
+ 	struct task_struct *opa;
  
-@@ -1708,7 +1708,7 @@ int force_sig_mceerr(int code, void __user *addr, short lsb)
- 	info.si_code = code;
- 	info.si_addr = addr;
- 	info.si_addr_lsb = lsb;
--	return force_sig_info(info.si_signo, &info, current);
-+	return force_sig_info(&info);
- }
- 
- int send_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct *t)
-@@ -1737,7 +1737,7 @@ int force_sig_bnderr(void __user *addr, void __user *lower, void __user *upper)
- 	info.si_addr  = addr;
- 	info.si_lower = lower;
- 	info.si_upper = upper;
--	return force_sig_info(info.si_signo, &info, current);
-+	return force_sig_info(&info);
- }
- 
- #ifdef SEGV_PKUERR
-@@ -1751,7 +1751,7 @@ int force_sig_pkuerr(void __user *addr, u32 pkey)
- 	info.si_code  = SEGV_PKUERR;
- 	info.si_addr  = addr;
- 	info.si_pkey  = pkey;
--	return force_sig_info(info.si_signo, &info, current);
-+	return force_sig_info(&info);
- }
- #endif
- 
-@@ -1767,7 +1767,7 @@ int force_sig_ptrace_errno_trap(int errno, void __user *addr)
- 	info.si_errno = errno;
- 	info.si_code  = TRAP_HWBKPT;
- 	info.si_addr  = addr;
--	return force_sig_info(info.si_signo, &info, current);
-+	return force_sig_info(&info);
- }
- 
- int kill_pgrp(struct pid *pid, int sig, int priv)
+ 	kref_get(&connection->kref);
+-	/* We may just have force_sig()'ed this thread
++	/* We may have just sent a signal to this thread
+ 	 * to get it out of some blocking network function.
+ 	 * Clear signals; otherwise kthread_run(), which internally uses
+ 	 * wait_on_completion_killable(), will mistake our pending signal
 -- 
 2.21.0
