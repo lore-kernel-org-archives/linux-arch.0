@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 22/26] signal: Properly set TRACE_SIGNAL_LOSE_INFO in __send_signal
-Date: Wed, 22 May 2019 19:39:12 -0500
-Message-ID: <20190523003916.20726-23-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 25/26] signal: Factor force_sig_info_to_task out of force_sig_info
+Date: Wed, 22 May 2019 19:39:15 -0500
+Message-ID: <20190523003916.20726-26-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,60 +12,63 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Any time siginfo is not stored in the signal queue information is
-lost.  Therefore set TRACE_SIGNAL_LOSE_INFO every time the code does
-not allocate a signal queue entry, and a queue overflow abort is not
-triggered.
+All callers of force_sig_info pass info.si_signo in for the signal
+by definition as well as in practice.
 
-Fixes: ba005e1f4172 ("tracepoint: Add signal loss events")
+Further all callers of force_sig_info except force_sig_fault_to_task
+pass current as the target task to force_sig_info.
+
+Factor out a static force_sig_info_to_task that
+force_sig_fault_to_task can call.
+
+This prepares the way for force_sig_info to have it's task and signal
+parameters removed.
+
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- kernel/signal.c | 33 ++++++++++++++++-----------------
- 1 file changed, 16 insertions(+), 17 deletions(-)
+ kernel/signal.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/kernel/signal.c b/kernel/signal.c
-index d92b636b4e9d..b2f0cf3a68aa 100644
+index d5f9ed5da9c5..0984158cd41a 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -1131,23 +1131,22 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
- 			copy_siginfo(&q->info, info);
- 			break;
- 		}
--	} else if (!is_si_special(info)) {
--		if (sig >= SIGRTMIN && info->si_code != SI_USER) {
--			/*
--			 * Queue overflow, abort.  We may abort if the
--			 * signal was rt and sent by user using something
--			 * other than kill().
--			 */
--			result = TRACE_SIGNAL_OVERFLOW_FAIL;
--			ret = -EAGAIN;
--			goto ret;
--		} else {
--			/*
--			 * This is a silent loss of information.  We still
--			 * send the signal, but the *info bits are lost.
--			 */
--			result = TRACE_SIGNAL_LOSE_INFO;
--		}
-+	} else if (!is_si_special(info) &&
-+		   sig >= SIGRTMIN && info->si_code != SI_USER) {
-+		/*
-+		 * Queue overflow, abort.  We may abort if the
-+		 * signal was rt and sent by user using something
-+		 * other than kill().
-+		 */
-+		result = TRACE_SIGNAL_OVERFLOW_FAIL;
-+		ret = -EAGAIN;
-+		goto ret;
-+	} else {
-+		/*
-+		 * This is a silent loss of information.  We still
-+		 * send the signal, but the *info bits are lost.
-+		 */
-+		result = TRACE_SIGNAL_LOSE_INFO;
- 	}
+@@ -1294,12 +1294,13 @@ int do_send_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *p
+  * We don't want to have recursive SIGSEGV's etc, for example,
+  * that is why we also clear SIGNAL_UNKILLABLE.
+  */
+-int
+-force_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *t)
++static int
++force_sig_info_to_task(struct kernel_siginfo *info, struct task_struct *t)
+ {
+ 	unsigned long int flags;
+ 	int ret, blocked, ignored;
+ 	struct k_sigaction *action;
++	int sig = info->si_signo;
  
- out_set:
+ 	spin_lock_irqsave(&t->sighand->siglock, flags);
+ 	action = &t->sighand->action[sig-1];
+@@ -1324,6 +1325,11 @@ force_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *t)
+ 	return ret;
+ }
+ 
++int force_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *t)
++{
++	return force_sig_info_to_task(info, t);
++}
++
+ /*
+  * Nuke all other threads in the group.
+  */
+@@ -1656,7 +1662,7 @@ int force_sig_fault_to_task(int sig, int code, void __user *addr
+ 	info.si_flags = flags;
+ 	info.si_isr = isr;
+ #endif
+-	return force_sig_info(info.si_signo, &info, t);
++	return force_sig_info_to_task(&info, t);
+ }
+ 
+ int force_sig_fault(int sig, int code, void __user *addr
 -- 
 2.21.0
