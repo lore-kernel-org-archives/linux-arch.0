@@ -1,8 +1,8 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
 Subject: Re: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not
  force_sig_fault for SIGKILL
-Date: Thu, 23 May 2019 11:17:02 +0100
-Message-ID: <20190523101702.GG26646@fuggles.cambridge.arm.com>
+Date: Thu, 23 May 2019 11:21:04 +0100
+Message-ID: <20190523102101.GW28398@e103592.cambridge.arm.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
  <20190523003916.20726-4-ebiederm@xmission.com>
 Mime-Version: 1.0
@@ -12,15 +12,39 @@ Content-Disposition: inline
 In-Reply-To: <20190523003916.20726-4-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, James Morse <James.Morse@arm.com>, Will Deacon <Will.Deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 22, 2019 at 07:38:53PM -0500, Eric W. Biederman wrote:
+On Thu, May 23, 2019 at 01:38:53AM +0100, Eric W. Biederman wrote:
 > It really only matters to debuggers but the SIGKILL does not have any
 > si_codes that use the fault member of the siginfo union.  Correct this
 > the simple way and call force_sig instead of force_sig_fault when the
 > signal is SIGKILL.
-> 
+
+I haven't fully understood the context for this, but why does it matter
+what's in siginfo for SIGKILL?  My understanding is that userspace
+(including ptrace) never gets to see it anyway for the SIGKILL case.
+
+Here it feels like SIGKILL is logically a synchronous, thread-targeted
+fault: we must ensure that no subsequent insn in current executes (just
+like other fault signal).  In this case, I thought we fall back to
+SIGKILL not because there is no fault, but because we failed to
+properly diagnose or report the type of fault that occurred.
+
+So maybe handling it consistently with other faults signals makes
+sense.  The fact that delivery of this signal destroys the process
+before anyone can look at the resulting siginfo feels like a
+side-effect rather than something obviously wrong.
+
+The siginfo is potentially useful diagnostic information, that we could
+subsequently provide a means to access post-mortem.
+
+I just dived in on this single patch, so I may be missing something more
+fundamental, or just being pedantic...
+
+Cheers
+---Dave
+
 > Cc: stable@vger.kernel.org
 > Cc: Dave Martin <Dave.Martin@arm.com>
 > Cc: James Morse <james.morse@arm.com>
@@ -44,11 +68,9 @@ On Wed, May 22, 2019 at 07:38:53PM -0500, Eric W. Biederman wrote:
 > +			force_sig(signo, current);
 > +			return;
 > +		}
-
-I know it's a bit of a misnomer, but I'd rather do this check inside
-arm64_force_sig_fault, since I think we have other callers (e.g.
-do_bad_area()) which also blindly pass in SIGKILL here.
-
-We could rename the thing if necessary.
-
-Will
+>  		arm64_force_sig_fault(signo, sicode, addr, str);
+>  	} else {
+>  		die(str, regs, err);
+> -- 
+> 2.21.0
+> 
