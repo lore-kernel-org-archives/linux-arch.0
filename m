@@ -1,41 +1,36 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not
- force_sig_fault for SIGKILL
-Date: Thu, 23 May 2019 17:15:09 +0100
-Message-ID: <20190523161509.GE31896@fuggles.cambridge.arm.com>
-References: <20190523003916.20726-1-ebiederm@xmission.com>
- <20190523003916.20726-4-ebiederm@xmission.com>
- <20190523101702.GG26646@fuggles.cambridge.arm.com>
- <875zq1gnh4.fsf_-_@xmission.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v2 1/2] open: add close_range()
+Date: Thu, 23 May 2019 18:20:05 +0200
+Message-ID: <20190523162004.GC23070@redhat.com>
+References: <20190523154747.15162-1-christian@brauner.io>
+ <20190523154747.15162-2-christian@brauner.io>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <875zq1gnh4.fsf_-_@xmission.com>
+In-Reply-To: <20190523154747.15162-2-christian@brauner.io>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+To: Christian Brauner <christian@brauner.io>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
-> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-> index ade32046f3fe..e45d5b440fb1 100644
-> --- a/arch/arm64/kernel/traps.c
-> +++ b/arch/arm64/kernel/traps.c
-> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
->  			   const char *str)
->  {
->  	arm64_show_signal(signo, str);
-> -	force_sig_fault(signo, code, addr, current);
-> +	if (signo == SIGKILL)
-> +		force_sig(SIGKILL, current);
-> +	else
-> +		force_sig_fault(signo, code, addr, current);
->  }
+On 05/23, Christian Brauner wrote:
+>
+> +int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
+> +{
+> +	unsigned int cur_max;
+> +
+> +	if (fd > max_fd)
+> +		return -EINVAL;
+> +
+> +	rcu_read_lock();
+> +	cur_max = files_fdtable(files)->max_fds;
+> +	rcu_read_unlock();
+> +
+> +	/* cap to last valid index into fdtable */
+> +	max_fd = max(max_fd, (cur_max - 1));
+                 ^^^
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+Hmm. min() ?
 
-Are you planning to send this series on, or would you like me to pick this
-into the arm64 tree?
-
-Will
+Oleg.
