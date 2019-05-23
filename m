@@ -1,73 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:52242 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730719AbfEWO7a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 10:59:30 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20190523003916.20726-1-ebiederm@xmission.com>
-        <20190523003916.20726-4-ebiederm@xmission.com>
-        <20190523101702.GG26646@fuggles.cambridge.arm.com>
-Date: Thu, 23 May 2019 09:59:20 -0500
-In-Reply-To: <20190523101702.GG26646@fuggles.cambridge.arm.com> (Will Deacon's
-        message of "Thu, 23 May 2019 11:17:02 +0100")
-Message-ID: <87d0k9gqt3.fsf@xmission.com>
+Received: from mail-it1-f193.google.com ([209.85.166.193]:51585 "EHLO
+        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730752AbfEWPtG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 11:49:06 -0400
+Received: by mail-it1-f193.google.com with SMTP id m3so10549185itl.1
+        for <linux-arch@vger.kernel.org>; Thu, 23 May 2019 08:49:05 -0700 (PDT)
+From: Christian Brauner <christian@brauner.io>
+Subject: [PATCH v2 1/2] open: add close_range()
+Date: Thu, 23 May 2019 17:47:46 +0200
+Message-ID: <20190523154747.15162-2-christian@brauner.io>
+In-Reply-To: <20190523154747.15162-1-christian@brauner.io>
+References: <20190523154747.15162-1-christian@brauner.io>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20190523145920.q3rGPJEu6xMpPJNw46o2rezU9lEjs8jHJ-E6LiyRePc@z>
+To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com
+Cc: jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org, Christian Brauner <christian@brauner.io>
+Message-ID: <20190523154746.tzuwc2nL2bEMoZ-G8wZnlv8-E7YyxwvAZgBkjPrscwg@z>
 
-Will Deacon <will.deacon@arm.com> writes:
+This adds the close_range() syscall. It allows to efficiently close a range
+of file descriptors up to all file descriptors of a calling task.
 
-> On Wed, May 22, 2019 at 07:38:53PM -0500, Eric W. Biederman wrote:
->> It really only matters to debuggers but the SIGKILL does not have any
->> si_codes that use the fault member of the siginfo union.  Correct this
->> the simple way and call force_sig instead of force_sig_fault when the
->> signal is SIGKILL.
->> 
->> Cc: stable@vger.kernel.org
->> Cc: Dave Martin <Dave.Martin@arm.com>
->> Cc: James Morse <james.morse@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->> ---
->>  arch/arm64/kernel/traps.c | 5 +++++
->>  1 file changed, 5 insertions(+)
->> 
->> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
->> index ade32046f3fe..0feb17bdcaa0 100644
->> --- a/arch/arm64/kernel/traps.c
->> +++ b/arch/arm64/kernel/traps.c
->> @@ -282,6 +282,11 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
->>  		current->thread.fault_address = 0;
->>  		current->thread.fault_code = err;
->>  
->> +		if (signo == SIGKILL) {
->> +			arm64_show_signal(signo, str);
->> +			force_sig(signo, current);
->> +			return;
->> +		}
->
-> I know it's a bit of a misnomer, but I'd rather do this check inside
-> arm64_force_sig_fault, since I think we have other callers (e.g.
-> do_bad_area()) which also blindly pass in SIGKILL here.
+The syscall came up in a recent discussion around the new mount API and
+making new file descriptor types cloexec by default. During this
+discussion, Al suggested the close_range() syscall (cf. [1]). Note, a
+syscall in this manner has been requested by various people over time.
 
-Sigh.  You are right.
+First, it helps to close all file descriptors of an exec()ing task. This
+can be done safely via (quoting Al's example from [1] verbatim):
 
-I thought I had checked for that when I made my change there.  But
-do_bad_area will definitely do that, and that was one of the cases that
-jumped out at me as needing to be fixed, when I skimmed the arm code.
+        /* that exec is sensitive */
+        unshare(CLONE_FILES);
+        /* we don't want anything past stderr here */
+        close_range(3, ~0U);
+        execve(....);
 
-I will respin this patch to move that lower.
+The code snippet above is one way of working around the problem that file
+descriptors are not cloexec by default. This is aggravated by the fact that
+we can't just switch them over without massively regressing userspace. For
+a whole class of programs having an in-kernel method of closing all file
+descriptors is very helpful (e.g. demons, service managers, programming
+language standard libraries, container managers etc.).
+(Please note, unshare(CLONE_FILES) should only be needed if the calling
+ task is multi-threaded and shares the file descriptor table with another
+ thread in which case two threads could race with one thread allocating
+ file descriptors and the other one closing them via close_range(). For the
+ general case close_range() before the execve() is sufficient.)
 
-> We could rename the thing if necessary.
+Second, it allows userspace to avoid implementing closing all file
+descriptors by parsing through /proc/<pid>/fd/* and calling close() on each
+file descriptor. From looking at various large(ish) userspace code bases
+this or similar patterns are very common in:
+- service managers (cf. [4])
+- libcs (cf. [6])
+- container runtimes (cf. [5])
+- programming language runtimes/standard libraries
+  - Python (cf. [2])
+  - Rust (cf. [7], [8])
+As Dmitry pointed out there's even a long-standing glibc bug about missing
+kernel support for this task (cf. [3]).
+In addition, the syscall will also work for tasks that do not have procfs
+mounted and on kernels that do not have procfs support compiled in. In such
+situations the only way to make sure that all file descriptors are closed
+is to call close() on each file descriptor up to UINT_MAX or RLIMIT_NOFILE,
+OPEN_MAX trickery (cf. comment [8] on Rust).
 
-I would not mind but as long as we aren't misusing the generic bits
-I won't have alarm bells going of in my head when I look at their
-users.
+The performance is striking. For good measure, comparing the following
+simple close_all_fds() userspace implementation that is essentially just
+glibc's version in [6]:
 
-Eric
+static int close_all_fds(void)
+{
+        int dir_fd;
+        DIR *dir;
+        struct dirent *direntp;
+
+        dir = opendir("/proc/self/fd");
+        if (!dir)
+                return -1;
+        dir_fd = dirfd(dir);
+        while ((direntp = readdir(dir))) {
+                int fd;
+                if (strcmp(direntp->d_name, ".") == 0)
+                        continue;
+                if (strcmp(direntp->d_name, "..") == 0)
+                        continue;
+                fd = atoi(direntp->d_name);
+                if (fd == dir_fd || fd == 0 || fd == 1 || fd == 2)
+                        continue;
+                close(fd);
+        }
+        closedir(dir);
+        return 0;
+}
+
+to close_range() yields:
+1. closing 4 open files:
+   - close_all_fds(): ~280 us
+   - close_range():    ~24 us
+
+2. closing 1000 open files:
+   - close_all_fds(): ~5000 us
+   - close_range():   ~800 us
+
+close_range() is designed to allow for some flexibility. Specifically, it
+does not simply always close all open file descriptors of a task. Instead,
+callers can specify an upper bound.
+This is e.g. useful for scenarios where specific file descriptors are
+created with well-known numbers that are supposed to be excluded from
+getting closed.
+For extra paranoia close_range() comes with a flags argument. This can e.g.
+be used to implement extension. Once can imagine userspace wanting to stop
+at the first error instead of ignoring errors under certain circumstances.
+There might be other valid ideas in the future. In any case, a flag
+argument doesn't hurt and keeps us on the safe side.
