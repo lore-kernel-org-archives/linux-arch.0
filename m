@@ -1,76 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40328 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:41126 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726070AbfEWIsO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 May 2019 04:48:14 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3] spdxcheck.py: Fix directory structures
-Date: Thu, 23 May 2019 09:47:55 +0100
-Message-Id: <20190523084755.56739-1-vincenzo.frascino@arm.com>
+        id S1726429AbfEWJSS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 May 2019 05:18:18 -0400
+Date: Thu, 23 May 2019 10:18:11 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] module/ksymtab: use 64-bit relative reference for target
+ symbol
+Message-ID: <20190523091811.GA26646@fuggles.cambridge.arm.com>
+References: <20190522150239.19314-1-ard.biesheuvel@arm.com>
+ <293c9d0f-dc14-1413-e4b4-4299f0acfb9e@arm.com>
+ <f2141ee5-d07a-6dd9-47c6-97e8fbdccf34@arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <f2141ee5-d07a-6dd9-47c6-97e8fbdccf34@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: akpm@linux-foundation.org, tglx@linutronix.de, jcline@redhat.com, geert@linux-m68k.org, joe@perches.com, hch@lst.de, vincenzo.frascino@arm.com
+To: Ard Biesheuvel <ard.biesheuvel@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, marc.zyngier@arm.com, james.morse@arm.com, guillaume.gardet@arm.com, mark.rutland@arm.com, mingo@kernel.org, jeyu@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, x86@kernel.org
+Message-ID: <20190523091811.xab-PnJQPv2oAyvIqf-Hw-xROyukLm6HMgDtvu-FKzs@z>
 
-The LICENSE directory has recently changed structure and this makes
-spdxcheck fails as per below:
+On Thu, May 23, 2019 at 09:41:40AM +0100, Ard Biesheuvel wrote:
+> 
+> 
+> On 5/22/19 5:28 PM, Ard Biesheuvel wrote:
+> > 
+> > 
+> > On 5/22/19 4:02 PM, Ard Biesheuvel wrote:
+> > > The following commit
+> > > 
+> > >    7290d5809571 ("module: use relative references for __ksymtab entries")
+> > > 
+> > > updated the ksymtab handling of some KASLR capable architectures
+> > > so that ksymtab entries are emitted as pairs of 32-bit relative
+> > > references. This reduces the size of the entries, but more
+> > > importantly, it gets rid of statically assigned absolute
+> > > addresses, which require fixing up at boot time if the kernel
+> > > is self relocating (which takes a 24 byte RELA entry for each
+> > > member of the ksymtab struct).
+> > > 
+> > > Since ksymtab entries are always part of the same module as the
+> > > symbol they export (or of the core kernel), it was assumed at the
+> > > time that a 32-bit relative reference is always sufficient to
+> > > capture the offset between a ksymtab entry and its target symbol.
+> > > 
+> > > Unfortunately, this is not always true: in the case of per-CPU
+> > > variables, a per-CPU variable's base address (which usually differs
+> > > from the actual address of any of its per-CPU copies) could be at
+> > > an arbitrary offset from the ksymtab entry, and so it may be out
+> > > of range for a 32-bit relative reference.
+> > > 
+> 
+> (Apologies for the 3-act monologue)
 
-FAIL: "Blob or Tree named 'other' not found"
-Traceback (most recent call last):
-  File "scripts/spdxcheck.py", line 240, in <module>
-spdx = read_spdxdata(repo)
-  File "scripts/spdxcheck.py", line 41, in read_spdxdata
-for el in lictree[d].traverse():
-[...]
-KeyError: "Blob or Tree named 'other' not found"
+Exposition, development and recapitulation ;)
 
-Fix the script to restore the correctness on checkpatch License
-checking.
+> This turns out to be incorrect. The symbol address of per-CPU variables
+> exported by modules is always in the vicinity of __per_cpu_start, and so it
+> is simply a matter of making sure that the core kernel is in range for
+> module ksymtab entries containing 32-bit relative references.
+> 
+> When running the arm64 with kaslr enabled, we currently randomize the module
+> space based on the range of ADRP/ADD instruction pairs, which have a -/+ 4
+> GB range rather than the -/+ 2 GB range of 32-bit place relative data
+> relocations. So we can fix this by simply reducing the randomization window
+> to 2 GB.
 
-References: 62be257e986d ("LICENSES: Rename other to deprecated")
-References: 8ea8814fcdcb ("LICENSES: Clearly mark dual license only licenses")
-Cc: Joe Perches <joe@perches.com>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Jeremy Cline <jcline@redhat.com>
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- scripts/spdxcheck.py | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+Makes sense. Do you see the need for an option to disable PREL relocs
+altogether in case somebody wants the additional randomization range?
 
-diff --git a/scripts/spdxcheck.py b/scripts/spdxcheck.py
-index 33df646618e2..6374e078a5f2 100755
---- a/scripts/spdxcheck.py
-+++ b/scripts/spdxcheck.py
-@@ -32,7 +32,8 @@ class SPDXdata(object):
- def read_spdxdata(repo):
- 
-     # The subdirectories of LICENSES in the kernel source
--    license_dirs = [ "preferred", "deprecated", "exceptions", "dual" ]
-+    # Note: exceptions needs to be parsed as last directory.
-+    license_dirs = [ "preferred", "dual", "deprecated", "exceptions" ]
-     lictree = repo.head.commit.tree['LICENSES']
- 
-     spdx = SPDXdata()
-@@ -58,13 +59,13 @@ def read_spdxdata(repo):
-                 elif l.startswith('SPDX-Licenses:'):
-                     for lic in l.split(':')[1].upper().strip().replace(' ', '').replace('\t', '').split(','):
-                         if not lic in spdx.licenses:
--                            raise SPDXException(None, 'Exception %s missing license %s' %(ex, lic))
-+                            raise SPDXException(None, 'Exception %s missing license %s' %(exception, lic))
-                         spdx.exceptions[exception].append(lic)
- 
-                 elif l.startswith("License-Text:"):
-                     if exception:
-                         if not len(spdx.exceptions[exception]):
--                            raise SPDXException(el, 'Exception %s is missing SPDX-Licenses' %excid)
-+                            raise SPDXException(el, 'Exception %s is missing SPDX-Licenses' %exception)
-                         spdx.exception_files += 1
-                     else:
-                         spdx.license_files += 1
--- 
-2.21.0
+Will
