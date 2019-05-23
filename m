@@ -1,47 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f68.google.com ([209.85.166.68]:37263 "EHLO
-        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731042AbfEWQey (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 12:34:54 -0400
-Received: by mail-io1-f68.google.com with SMTP id u2so5382098ioc.4
-        for <linux-arch@vger.kernel.org>; Thu, 23 May 2019 09:34:53 -0700 (PDT)
-Date: Thu, 23 May 2019 18:34:41 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v2 1/2] open: add close_range()
-Message-ID: <20190523163439.56ucetlt6duvnhdj@brauner.io>
-References: <20190523154747.15162-1-christian@brauner.io>
- <20190523154747.15162-2-christian@brauner.io>
- <20190523162004.GC23070@redhat.com>
+Received: from out02.mta.xmission.com ([166.70.13.232]:41507 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726222AbfEWU7a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 16:59:30 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+        <20190523003916.20726-4-ebiederm@xmission.com>
+        <20190523101702.GG26646@fuggles.cambridge.arm.com>
+        <875zq1gnh4.fsf_-_@xmission.com>
+        <20190523161509.GE31896@fuggles.cambridge.arm.com>
+Date: Thu, 23 May 2019 15:59:20 -0500
+In-Reply-To: <20190523161509.GE31896@fuggles.cambridge.arm.com> (Will Deacon's
+        message of "Thu, 23 May 2019 17:15:09 +0100")
+Message-ID: <8736l4evkn.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190523162004.GC23070@redhat.com>
+Content-Type: text/plain
+Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
-Message-ID: <20190523163441.yzvkMDMWM6Nlz9pV4wFvc4TcFA60wWRecPKBIDr4Evs@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20190523205920.A8JAAVyqAphX7vtws2VARxqZPISZjjCJ8Al0Nn_UkAY@z>
 
-On Thu, May 23, 2019 at 06:20:05PM +0200, Oleg Nesterov wrote:
-> On 05/23, Christian Brauner wrote:
-> >
-> > +int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
-> > +{
-> > +	unsigned int cur_max;
-> > +
-> > +	if (fd > max_fd)
-> > +		return -EINVAL;
-> > +
-> > +	rcu_read_lock();
-> > +	cur_max = files_fdtable(files)->max_fds;
-> > +	rcu_read_unlock();
-> > +
-> > +	/* cap to last valid index into fdtable */
-> > +	max_fd = max(max_fd, (cur_max - 1));
->                  ^^^
-> 
-> Hmm. min() ?
+Will Deacon <will.deacon@arm.com> writes:
 
-Yes, thanks! Massive brainf*rt on my end, sorry.
+> On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
+>> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+>> index ade32046f3fe..e45d5b440fb1 100644
+>> --- a/arch/arm64/kernel/traps.c
+>> +++ b/arch/arm64/kernel/traps.c
+>> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+>>  			   const char *str)
+>>  {
+>>  	arm64_show_signal(signo, str);
+>> -	force_sig_fault(signo, code, addr, current);
+>> +	if (signo == SIGKILL)
+>> +		force_sig(SIGKILL, current);
+>> +	else
+>> +		force_sig_fault(signo, code, addr, current);
+>>  }
+>
+> Acked-by: Will Deacon <will.deacon@arm.com>
+>
+> Are you planning to send this series on, or would you like me to pick this
+> into the arm64 tree?
 
-Christian
+I am planning on taking this through siginfo tree, unless it causes
+problems.
+
+The rest of my patchset this is a part of is a clean up to remove
+the task pointer which is always current from all of the force_sig
+calls.
+
+Eric
