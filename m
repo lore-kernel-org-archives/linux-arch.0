@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 13/26] signal/sh: Remove tsk parameter from force_sig_info_fault
-Date: Wed, 22 May 2019 19:39:03 -0500
-Message-ID: <20190523003916.20726-14-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 24/26] signal: Generate the siginfo in force_sig
+Date: Wed, 22 May 2019 19:39:14 -0500
+Message-ID: <20190523003916.20726-25-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,60 +12,36 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The force_sig_info_fault function is always called with tsk == current.
-Make that explicit by removing the tsk parameter.
-
-This also makes it clear that the sh force_sig_info_fault passes
-current into force_sig_fault.
+In preparation for removing the special case in force_sig_info for
+only having a signal number generate an appropriate siginfo in
+force_sig the last caller of force_sig_info that does not
+pass a filled out siginfo.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sh/mm/fault.c | 11 ++++-------
- 1 file changed, 4 insertions(+), 7 deletions(-)
+ kernel/signal.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
-index 6defd2c6d9b1..851a3cbb2b9c 100644
---- a/arch/sh/mm/fault.c
-+++ b/arch/sh/mm/fault.c
-@@ -39,10 +39,9 @@ static inline int notify_page_fault(struct pt_regs *regs, int trap)
- }
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 0da35880261e..d5f9ed5da9c5 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -1605,7 +1605,15 @@ EXPORT_SYMBOL(send_sig);
  
- static void
--force_sig_info_fault(int si_signo, int si_code, unsigned long address,
--		     struct task_struct *tsk)
-+force_sig_info_fault(int si_signo, int si_code, unsigned long address)
+ void force_sig(int sig)
  {
--	force_sig_fault(si_signo, si_code, (void __user *)address, tsk);
-+	force_sig_fault(si_signo, si_code, (void __user *)address, current);
+-	force_sig_info(sig, SEND_SIG_PRIV, current);
++	struct kernel_siginfo info;
++
++	clear_siginfo(&info);
++	info.si_signo = sig;
++	info.si_errno = 0;
++	info.si_code = SI_KERNEL;
++	info.si_pid = 0;
++	info.si_uid = 0;
++	force_sig_info(info.si_signo, &info, current);
  }
+ EXPORT_SYMBOL(force_sig);
  
- /*
-@@ -244,8 +243,6 @@ static void
- __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		       unsigned long address, int si_code)
- {
--	struct task_struct *tsk = current;
--
- 	/* User mode accesses just cause a SIGSEGV */
- 	if (user_mode(regs)) {
- 		/*
-@@ -253,7 +250,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		 */
- 		local_irq_enable();
- 
--		force_sig_info_fault(SIGSEGV, si_code, address, tsk);
-+		force_sig_info_fault(SIGSEGV, si_code, address);
- 
- 		return;
- 	}
-@@ -308,7 +305,7 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address)
- 	if (!user_mode(regs))
- 		no_context(regs, error_code, address);
- 
--	force_sig_info_fault(SIGBUS, BUS_ADRERR, address, tsk);
-+	force_sig_info_fault(SIGBUS, BUS_ADRERR, address);
- }
- 
- static noinline int
 -- 
 2.21.0
