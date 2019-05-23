@@ -1,46 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:50014 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730790AbfEWQPN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 May 2019 12:15:13 -0400
-Date: Thu, 23 May 2019 17:15:09 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not
- force_sig_fault for SIGKILL
-Message-ID: <20190523161509.GE31896@fuggles.cambridge.arm.com>
-References: <20190523003916.20726-1-ebiederm@xmission.com>
- <20190523003916.20726-4-ebiederm@xmission.com>
- <20190523101702.GG26646@fuggles.cambridge.arm.com>
- <875zq1gnh4.fsf_-_@xmission.com>
+Received: from mx1.redhat.com ([209.132.183.28]:36526 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730913AbfEWQVa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 May 2019 12:21:30 -0400
+Date: Thu, 23 May 2019 18:21:04 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v1 1/2] open: add close_range()
+Message-ID: <20190523162104.GD23070@redhat.com>
+References: <20190522155259.11174-1-christian@brauner.io>
+ <20190522165737.GC4915@redhat.com>
+ <20190523115118.pmscbd6kaqy37dym@brauner.io>
+ <20190523141447.34s3kc3fuwmoeq7n@brauner.io>
+ <20190523142826.omb7vgygudifmveq@brauner.io>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <875zq1gnh4.fsf_-_@xmission.com>
+In-Reply-To: <20190523142826.omb7vgygudifmveq@brauner.io>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20190523161509.dBPUZPuxPCUiriG8v7xN4GjMkgsg4jJTURW5XwKzpO0@z>
+To: Christian Brauner <christian@brauner.io>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
+Message-ID: <20190523162104.Nci_fjTzdC6KZHNvBQClA9wtxtEfLLjdaK95TOoCpJU@z>
 
-On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
-> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-> index ade32046f3fe..e45d5b440fb1 100644
-> --- a/arch/arm64/kernel/traps.c
-> +++ b/arch/arm64/kernel/traps.c
-> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
->  			   const char *str)
->  {
->  	arm64_show_signal(signo, str);
-> -	force_sig_fault(signo, code, addr, current);
-> +	if (signo == SIGKILL)
-> +		force_sig(SIGKILL, current);
-> +	else
-> +		force_sig_fault(signo, code, addr, current);
->  }
+On 05/23, Christian Brauner wrote:
+>
+> So given that we would really need another find_next_open_fd() I think
+> sticking to the simple cond_resched() version I sent before is better
+> for now until we see real-world performance issues.
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+OK, agreed.
 
-Are you planning to send this series on, or would you like me to pick this
-into the arm64 tree?
-
-Will
+Oleg.
