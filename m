@@ -1,225 +1,149 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 00/26] signal: Remove task argument from force_sig_info
-Date: Wed, 22 May 2019 19:38:50 -0500
-Message-ID: <20190523003916.20726-1-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 01/26] signal: Correct namespace fixups of si_pid and si_uid
+Date: Wed, 22 May 2019 19:38:51 -0500
+Message-ID: <20190523003916.20726-2-ebiederm@xmission.com>
+References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Folks,
+The function send_signal was split from __send_signal so that it would
+be possible to bypass the namespace logic based upon current[1].  As it
+turns out the si_pid and the si_uid fixup are both inappropriate in
+the case of kill_pid_usb_asyncio so move that logic into send_signal.
 
-If folks can look this over and see if I have missed something I would
-appreciate it.
+It is difficult to arrange but possible for a signal with an si_code
+of SI_TIMER or SI_SIGIO to be sent across namespace boundaries.  In
+which case tests for when it is ok to change si_pid and si_uid based
+on SI_FROMUSER are incorrect.  Replace the use of SI_FROMUSER with a
+new test has_si_pid_and_used based on siginfo_layout.
 
-The force_sig_info interface is designed to handle synchronous exceptions
-like page faults.  The locking in force_sig_info does not handle being
-called on a remote task that is already running.  It has been a long
-standing problem over the years that it is not obvious to people that
-restriction exists or that force_sig is for exceptions and they call it
-somewhere inappropriate.  A recently fixed example is
-6376360ecbe5 ("mm: hwpoison: use do_send_sig_info() instead of force_sig()").
+Now that the uid fixup is no longer present after expanding
+SEND_SIG_NOINFO properly calculate the si_uid that the target
+task needs to read.
 
-I was looking over the force_sig family of functions not long ago and
-realized that there really are not that many cases where they are called
-with on a process other than current and it is possible to remove the
-current parameter, which should make it hard to make this mistake naively.
+[1] 7978b567d315 ("signals: add from_ancestor_ns parameter to send_signal()")
+Cc: stable@vger.kernel.org
+Fixes: 6588c1e3ff01 ("signals: SI_USER: Masquerade si_pid when crossing pid ns boundary")
+Fixes: 6b550f949594 ("user namespace: make signal.c respect user namespaces")
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ kernel/signal.c | 67 +++++++++++++++++++++++++++++--------------------
+ 1 file changed, 40 insertions(+), 27 deletions(-)
 
-I found exactly two legitimate places where force_sig was being called on a
-non-current task.  On mips force_fcr31_sig is called in switch_to on next
-the task that we are in the middle of making current.  On parisc in
-user_enable_single_step on a task that is stopped in a SIGKILL safe way in
-ptrace.  Both to my eyes appear to meet all of the criterion for being
-safe to call from force_sig.  
-
-While reviewing that last ptrace case I found a funny corner case bug
-of PTRACE_KILL, and so that fix is included in this patset as well.
-
-Through "signal/cifs: Fix cifs_put_tcp_session to call send_sig instead of
-force_sig" the patches in this patchset are bug fixes.  I don't think any
-of them are urgent as they have existed for a long time, but definitely worth
-fixes.
-
-The rest of the changes are cleanups that carefully remove the task parameters
-from the entire force_sig family of functions.  Until at last force_sig_info
-only takes a struct siginfo.
-
-Eric W. Biederman (26):
-  signal: Correct namespace fixups of si_pid and si_uid
-  signal/ptrace: Simplify and fix PTRACE_KILL
-  signal/arm64: Use force_sig not force_sig_fault for SIGKILL
-  signal/drbd: Use send_sig not force_sig
-  signal/bpfilter: Fix bpfilter_kernl to use send_sig not force_sig
-  signal/pid_namespace: Fix reboot_pid_ns to use send_sig not force_sig
-  signal/cifs: Fix cifs_put_tcp_session to call send_sig instead of force_sig
-
-  signal: Remove task parameter from force_sigsegv
-  signal: Remove task parameter from force_sig
-  signal: Remove task parameter from force_sig_mceerr
-  signal/x86: Remove task parameter from send_sigtrap
-  signal/um: Remove task parameter from send_sigtrap
-  signal/sh: Remove tsk parameter from force_sig_info_fault
-  signal/riscv: Remove tsk parameter from do_trap
-  signal/nds32: Remove tsk parameter from send_sigtrap
-  signal/arm: Remove tsk parameter from ptrace_break
-  signal/arm: Remove tsk parameter from __do_user_fault
-  signal/unicore32: Remove tsk parameter from __do_user_fault
-  signal: Explicitly call force_sig_fault on current
-  signal: Use force_sig_fault_to_task for the two calls that don't deliver to current
-  signal: Remove the task parameter from force_sig_fault
-  signal: Properly set TRACE_SIGNAL_LOSE_INFO in __send_signal
-  signal: Move the computation of force into send_signal and correct it.
-  signal: Generate the siginfo in force_sig
-  signal: Factor force_sig_info_to_task out of force_sig_info
-  signal: Remove the signal number and task parameters from force_sig_info
-
- arch/alpha/kernel/signal.c                |   4 +-
- arch/alpha/kernel/traps.c                 |   2 +-
- arch/alpha/mm/fault.c                     |   4 +-
- arch/arc/kernel/process.c                 |   4 +-
- arch/arc/kernel/signal.c                  |   2 +-
- arch/arc/kernel/traps.c                   |   2 +-
- arch/arc/mm/fault.c                       |   4 +-
- arch/arm/include/asm/traps.h              |   2 +-
- arch/arm/kernel/ptrace.c                  |   6 +-
- arch/arm/kernel/signal.c                  |   4 +-
- arch/arm/kernel/traps.c                   |   4 +-
- arch/arm/mm/alignment.c                   |   2 +-
- arch/arm/mm/fault.c                       |  13 +-
- arch/arm64/kernel/traps.c                 |   9 +-
- arch/c6x/kernel/signal.c                  |   2 +-
- arch/c6x/kernel/traps.c                   |   2 +-
- arch/csky/abiv1/alignment.c               |   2 +-
- arch/csky/abiv2/fpu.c                     |   2 +-
- arch/csky/kernel/signal.c                 |   4 +-
- arch/csky/kernel/traps.c                  |   2 +-
- arch/csky/mm/fault.c                      |   4 +-
- arch/h8300/kernel/ptrace_h.c              |   4 +-
- arch/h8300/kernel/ptrace_s.c              |   2 +-
- arch/h8300/kernel/signal.c                |   2 +-
- arch/hexagon/kernel/signal.c              |   2 +-
- arch/hexagon/kernel/traps.c               |  12 +-
- arch/hexagon/mm/vm_fault.c                |   4 +-
- arch/ia64/kernel/brl_emu.c                |   6 +-
- arch/ia64/kernel/signal.c                 |   8 +-
- arch/ia64/kernel/traps.c                  |  24 +--
- arch/ia64/kernel/unaligned.c              |   2 +-
- arch/ia64/mm/fault.c                      |   2 +-
- arch/m68k/kernel/signal.c                 |   4 +-
- arch/m68k/kernel/traps.c                  |  20 +--
- arch/m68k/mm/fault.c                      |   4 +-
- arch/microblaze/kernel/exceptions.c       |   2 +-
- arch/microblaze/kernel/signal.c           |   2 +-
- arch/microblaze/mm/fault.c                |   2 +-
- arch/mips/kernel/branch.c                 |  18 +--
- arch/mips/kernel/kprobes.c                |   2 +-
- arch/mips/kernel/signal.c                 |   8 +-
- arch/mips/kernel/signal_n32.c             |   4 +-
- arch/mips/kernel/signal_o32.c             |   8 +-
- arch/mips/kernel/traps.c                  |  50 +++---
- arch/mips/kernel/unaligned.c              |  20 +--
- arch/mips/mm/fault.c                      |   4 +-
- arch/mips/sgi-ip22/ip22-berr.c            |   2 +-
- arch/mips/sgi-ip22/ip28-berr.c            |   2 +-
- arch/mips/sgi-ip27/ip27-berr.c            |   2 +-
- arch/mips/sgi-ip32/ip32-berr.c            |   2 +-
- arch/nds32/kernel/fpu.c                   |   2 +-
- arch/nds32/kernel/signal.c                |   2 +-
- arch/nds32/kernel/traps.c                 |  17 +-
- arch/nds32/mm/fault.c                     |   4 +-
- arch/nios2/kernel/signal.c                |   4 +-
- arch/nios2/kernel/traps.c                 |   2 +-
- arch/openrisc/kernel/signal.c             |   2 +-
- arch/openrisc/kernel/traps.c              |  12 +-
- arch/openrisc/mm/fault.c                  |   4 +-
- arch/parisc/kernel/ptrace.c               |   6 +-
- arch/parisc/kernel/signal.c               |   2 +-
- arch/parisc/kernel/traps.c                |  14 +-
- arch/parisc/kernel/unaligned.c            |   4 +-
- arch/parisc/math-emu/driver.c             |   2 +-
- arch/parisc/mm/fault.c                    |   4 +-
- arch/powerpc/kernel/process.c             |   2 +-
- arch/powerpc/kernel/signal_32.c           |   6 +-
- arch/powerpc/kernel/signal_64.c           |   2 +-
- arch/powerpc/kernel/traps.c               |   4 +-
- arch/powerpc/mm/fault.c                   |   5 +-
- arch/powerpc/platforms/cell/spufs/fault.c |   9 +-
- arch/powerpc/platforms/cell/spufs/run.c   |   2 +-
- arch/riscv/include/asm/bug.h              |   2 +-
- arch/riscv/kernel/signal.c                |   2 +-
- arch/riscv/kernel/traps.c                 |  11 +-
- arch/riscv/mm/fault.c                     |   6 +-
- arch/s390/kernel/compat_signal.c          |   4 +-
- arch/s390/kernel/signal.c                 |   4 +-
- arch/s390/kernel/traps.c                  |   6 +-
- arch/s390/mm/fault.c                      |   6 +-
- arch/sh/kernel/cpu/sh2a/fpu.c             |   2 +-
- arch/sh/kernel/cpu/sh4/fpu.c              |   2 +-
- arch/sh/kernel/cpu/sh5/fpu.c              |   4 +-
- arch/sh/kernel/hw_breakpoint.c            |   2 +-
- arch/sh/kernel/ptrace_64.c                |   4 +-
- arch/sh/kernel/signal_32.c                |   4 +-
- arch/sh/kernel/signal_64.c                |   4 +-
- arch/sh/kernel/traps.c                    |   4 +-
- arch/sh/kernel/traps_32.c                 |  10 +-
- arch/sh/kernel/traps_64.c                 |   2 +-
- arch/sh/math-emu/math.c                   |   2 +-
- arch/sh/mm/fault.c                        |  11 +-
- arch/sparc/kernel/process_64.c            |   4 +-
- arch/sparc/kernel/signal32.c              |   8 +-
- arch/sparc/kernel/signal_32.c             |   4 +-
- arch/sparc/kernel/signal_64.c             |   8 +-
- arch/sparc/kernel/sys_sparc_32.c          |   2 +-
- arch/sparc/kernel/sys_sparc_64.c          |   2 +-
- arch/sparc/kernel/traps_32.c              |   4 +-
- arch/sparc/kernel/traps_64.c              |  41 +++--
- arch/sparc/mm/fault_32.c                  |   4 +-
- arch/sparc/mm/fault_64.c                  |   2 +-
- arch/um/kernel/exec.c                     |   2 +-
- arch/um/kernel/ptrace.c                   |   7 +-
- arch/um/kernel/skas/mmu.c                 |   2 +-
- arch/um/kernel/tlb.c                      |   4 +-
- arch/um/kernel/trap.c                     |  16 +-
- arch/unicore32/kernel/signal.c            |   4 +-
- arch/unicore32/kernel/traps.c             |   2 +-
- arch/unicore32/mm/fault.c                 |  13 +-
- arch/x86/entry/vsyscall/vsyscall_64.c     |   4 +-
- arch/x86/include/asm/ptrace.h             |   3 +-
- arch/x86/kernel/cpu/mce/core.c            |   2 +-
- arch/x86/kernel/ptrace.c                  |   9 +-
- arch/x86/kernel/signal.c                  |   2 +-
- arch/x86/kernel/traps.c                   |  10 +-
- arch/x86/kernel/umip.c                    |   2 +-
- arch/x86/kernel/uprobes.c                 |   2 +-
- arch/x86/kernel/vm86_32.c                 |   2 +-
- arch/x86/mm/fault.c                       |   9 +-
- arch/x86/mm/mpx.c                         |   2 +-
- arch/x86/um/signal.c                      |   4 +-
- arch/xtensa/kernel/signal.c               |   2 +-
- arch/xtensa/kernel/traps.c                |   8 +-
- arch/xtensa/mm/fault.c                    |   4 +-
- drivers/block/drbd/drbd_int.h             |   2 +-
- drivers/block/drbd/drbd_main.c            |   2 +-
- drivers/block/drbd/drbd_nl.c              |   2 +-
- drivers/misc/lkdtm/bugs.c                 |   2 +-
- fs/cifs/connect.c                         |   2 +-
- fs/exec.c                                 |   2 +-
- include/linux/ptrace.h                    |   2 +-
- include/linux/sched/signal.h              |  13 +-
- include/linux/syscalls.h                  |   2 +-
- kernel/events/uprobes.c                   |   4 +-
- kernel/pid_namespace.c                    |   2 +-
- kernel/ptrace.c                           |  43 +++--
- kernel/rseq.c                             |   4 +-
- kernel/seccomp.c                          |   2 +-
- kernel/signal.c                           | 182 ++++++++++++++--------
- mm/memory-failure.c                       |   2 +-
- net/bpfilter/bpfilter_kern.c              |   2 +-
- security/safesetid/lsm.c                  |   4 +-
- 143 files changed, 510 insertions(+), 465 deletions(-)
-
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 18040d6bd63a..39a3eca5ce22 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -1056,27 +1056,6 @@ static inline bool legacy_queue(struct sigpending *signals, int sig)
+ 	return (sig < SIGRTMIN) && sigismember(&signals->signal, sig);
+ }
+ 
+-#ifdef CONFIG_USER_NS
+-static inline void userns_fixup_signal_uid(struct kernel_siginfo *info, struct task_struct *t)
+-{
+-	if (current_user_ns() == task_cred_xxx(t, user_ns))
+-		return;
+-
+-	if (SI_FROMKERNEL(info))
+-		return;
+-
+-	rcu_read_lock();
+-	info->si_uid = from_kuid_munged(task_cred_xxx(t, user_ns),
+-					make_kuid(current_user_ns(), info->si_uid));
+-	rcu_read_unlock();
+-}
+-#else
+-static inline void userns_fixup_signal_uid(struct kernel_siginfo *info, struct task_struct *t)
+-{
+-	return;
+-}
+-#endif
+-
+ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struct *t,
+ 			enum pid_type type, int from_ancestor_ns)
+ {
+@@ -1134,7 +1113,11 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
+ 			q->info.si_code = SI_USER;
+ 			q->info.si_pid = task_tgid_nr_ns(current,
+ 							task_active_pid_ns(t));
+-			q->info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
++			rcu_read_lock();
++			q->info.si_uid =
++				from_kuid_munged(task_cred_xxx(t, user_ns),
++						 current_uid());
++			rcu_read_unlock();
+ 			break;
+ 		case (unsigned long) SEND_SIG_PRIV:
+ 			clear_siginfo(&q->info);
+@@ -1146,13 +1129,8 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
+ 			break;
+ 		default:
+ 			copy_siginfo(&q->info, info);
+-			if (from_ancestor_ns)
+-				q->info.si_pid = 0;
+ 			break;
+ 		}
+-
+-		userns_fixup_signal_uid(&q->info, t);
+-
+ 	} else if (!is_si_special(info)) {
+ 		if (sig >= SIGRTMIN && info->si_code != SI_USER) {
+ 			/*
+@@ -1196,6 +1174,28 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
+ 	return ret;
+ }
+ 
++static inline bool has_si_pid_and_uid(struct kernel_siginfo *info)
++{
++	bool ret = false;
++	switch (siginfo_layout(info->si_signo, info->si_code)) {
++	case SIL_KILL:
++	case SIL_CHLD:
++	case SIL_RT:
++		ret = true;
++		break;
++	case SIL_TIMER:
++	case SIL_POLL:
++	case SIL_FAULT:
++	case SIL_FAULT_MCEERR:
++	case SIL_FAULT_BNDERR:
++	case SIL_FAULT_PKUERR:
++	case SIL_SYS:
++		ret = false;
++		break;
++	}
++	return ret;
++}
++
+ static int send_signal(int sig, struct kernel_siginfo *info, struct task_struct *t,
+ 			enum pid_type type)
+ {
+@@ -1205,7 +1205,20 @@ static int send_signal(int sig, struct kernel_siginfo *info, struct task_struct
+ 	from_ancestor_ns = si_fromuser(info) &&
+ 			   !task_pid_nr_ns(current, task_active_pid_ns(t));
+ #endif
++	if (!is_si_special(info) && has_si_pid_and_uid(info)) {
++		struct user_namespace *t_user_ns;
+ 
++		rcu_read_lock();
++		t_user_ns = task_cred_xxx(t, user_ns);
++		if (current_user_ns() != t_user_ns) {
++			kuid_t uid = make_kuid(current_user_ns(), info->si_uid);
++			info->si_uid = from_kuid_munged(t_user_ns, uid);
++		}
++		rcu_read_unlock();
++
++		if (!task_pid_nr_ns(current, task_active_pid_ns(t)))
++			info->si_pid = 0;
++	}
+ 	return __send_signal(sig, info, t, type, from_ancestor_ns);
+ }
+ 
 -- 
 2.21.0
