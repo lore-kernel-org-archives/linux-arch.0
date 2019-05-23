@@ -1,86 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:32814 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727305AbfEWBqg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:46:36 -0400
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Wed, 22 May 2019 19:38:54 -0500
-Message-ID: <20190523003916.20726-5-ebiederm@xmission.com>
-In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
-References: <20190523003916.20726-1-ebiederm@xmission.com>
+Received: from mx1.mailbox.org ([80.241.60.212]:47140 "EHLO mx1.mailbox.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727691AbfEWCA5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 May 2019 22:00:57 -0400
+Date: Thu, 23 May 2019 12:00:09 +1000
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC
+ permissions
+Message-ID: <20190523020009.mi25uziu2b3whf4l@yavin>
+References: <20190520133305.11925-1-cyphar@cyphar.com>
+ <20190520133305.11925-2-cyphar@cyphar.com>
+ <CALCETrVCwe49q5mu=f6jTYNSgosQSjjY5chukMPo6eZtQGqo5g@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Subject: [REVIEW][PATCH 04/26] signal/drbd: Use send_sig not force_sig
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="mqlbmyoyuxzxnuxp"
+Content-Disposition: inline
+In-Reply-To: <CALCETrVCwe49q5mu=f6jTYNSgosQSjjY5chukMPo6eZtQGqo5g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Philipp Reisner <philipp.reisner@linbit.com>, Lars Ellenberg <lars.ellenberg@linbit.com>, drbd-dev@lists.linbit.com
-Message-ID: <20190523003854.kmiMTOfr8QvzLnbbVWsykCJW3bouR3gjiCumm2DFBQU@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Containers <containers@lists.linux-foundation.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190523020009.IUYHYAp39fAkHEHQz-G21aUH66OfnZvhMLo1HZulnN8@z>
 
-The drbd module exclusively sends signals to kernel threads it creates with
-kthread_create.  These kernel threads do not block or ignore signals (only
-flush signals after they have been delivered), nor can drbd threads
-possibly be pid namespace init processes so the extra work that force_sig
-performs that send_sig does not is unnecessary.
 
-Further force_sig is for delivering synchronous signals (aka exceptions).
-The locking in force_sig is not prepared to deal with running processes, as
-tsk->sighand may change during exec for a running process.
+--mqlbmyoyuxzxnuxp
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-In short it is not only unnecessary for drbd to use force_sig it is
-semantically wrong.
+On 2019-05-22, Andy Lutomirski <luto@kernel.org> wrote:
+> On Mon, May 20, 2019 at 6:34 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > One final exception is given, which is that non-O_PATH file descriptors
+> > are given re-open rights equivalent to the permissions available at
+> > open-time. This allows for O_RDONLY file descriptors to be re-opened
+> > O_RDWR as long as the user had MAY_WRITE access at the time of opening
+> > the O_RDONLY descriptor. This is necessary to avoid breaking userspace
+> > (some of the kernel's own selftests depended on this "feature").
+>=20
+> Can you clarify this exception a bit?  I'd like to make sure it's not
+> such a huge exception that it invalidates the whole point of the
+> patch.
 
-With drbd using send_sig it becomes easier to maintain force_sig as only
-synchronous signals need to be considered.
+Sure. This exception applies to regular file opens, and the idea is that
+the user had permissions to open the file O_RDWR originally (even if
+they opened it O_RDONLY) so re-opening it O_RDWR later should not be an
+issue (they could've just opened it O_RDWR in the first place). These
+permissions still get masked by nd->opath_mask, so opening a magic-link
+or including an O_PATH doesn't increase the permission set.
 
-Cc: Philipp Reisner <philipp.reisner@linbit.com>
-Cc: Lars Ellenberg <lars.ellenberg@linbit.com>
-Cc: drbd-dev@lists.linbit.com
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- drivers/block/drbd/drbd_int.h  | 2 +-
- drivers/block/drbd/drbd_main.c | 2 +-
- drivers/block/drbd/drbd_nl.c   | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+This does mean that an O_RDONLY open (if the user could've done an
+O_RDWR and still done the open) results in an FMODE_PATH_WRITE. To be
+honest, I'm still on the fence whether this is a great idea or not (and
+I'd prefer to not include it). Though, I don't think it invalidates the
+patch though, since the attack scenario of a read-only file being
+re-opened later as read-write is still blocked.
 
-diff --git a/drivers/block/drbd/drbd_int.h b/drivers/block/drbd/drbd_int.h
-index 549c64df9708..035829435710 100644
---- a/drivers/block/drbd/drbd_int.h
-+++ b/drivers/block/drbd/drbd_int.h
-@@ -1972,7 +1972,7 @@ static inline void wake_ack_receiver(struct drbd_connection *connection)
- {
- 	struct task_struct *task = connection->ack_receiver.task;
- 	if (task && get_t_state(&connection->ack_receiver) == RUNNING)
--		force_sig(SIGXCPU, task);
-+		send_sig(SIGXCPU, task, 1);
- }
- 
- static inline void request_ping(struct drbd_connection *connection)
-diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
-index 714eb64fabfd..8597aefe027b 100644
---- a/drivers/block/drbd/drbd_main.c
-+++ b/drivers/block/drbd/drbd_main.c
-@@ -477,7 +477,7 @@ void _drbd_thread_stop(struct drbd_thread *thi, int restart, int wait)
- 		smp_mb();
- 		init_completion(&thi->stop);
- 		if (thi->task != current)
--			force_sig(DRBD_SIGKILL, thi->task);
-+			send_sig(DRBD_SIGKILL, thi->task, 1);
- 	}
- 
- 	spin_unlock_irqrestore(&thi->t_lock, flags);
-diff --git a/drivers/block/drbd/drbd_nl.c b/drivers/block/drbd/drbd_nl.c
-index 1cb5a0b85fd9..638b3ba9b976 100644
---- a/drivers/block/drbd/drbd_nl.c
-+++ b/drivers/block/drbd/drbd_nl.c
-@@ -611,7 +611,7 @@ void conn_try_outdate_peer_async(struct drbd_connection *connection)
- 	struct task_struct *opa;
- 
- 	kref_get(&connection->kref);
--	/* We may just have force_sig()'ed this thread
-+	/* We may have just sent a signal to this thread
- 	 * to get it out of some blocking network function.
- 	 * Clear signals; otherwise kthread_run(), which internally uses
- 	 * wait_on_completion_killable(), will mistake our pending signal
--- 
-2.21.0
+The main reason for including it is the concern that there is some
+program from 1993 running in a basement somewhere that depends on this
+that we don't know about. Though, as a counter-example, I have run this
+patchset (without this exception) on my laptop for a few days without
+any visible issues.
+
+> If you open a file for execute, by actually exec()ing it or by using
+> something like the proposed O_MAYEXEC, and you have inode_permission
+> to write, do you still end up with FMODE_PATH_WRITE? The code looks
+> like it does, and this seems like it might be a mistake.
+
+I'm not sure about the execve(2) example -- after all, you don't get an
+fd from execve(2) and /proc/self/exe still has a mode a+rx.
+
+I'm also not sure what the semantics of a hypothetical O_MAYEXEC would
+be -- but we'd probably want to discuss re-opening semantics when it
+gets included. I would argue that since O_MAYEXEC would likely be merged
+after this, no userspace code would depend on this mis-feature and we
+could decide to not include FMODE_EXECv2 in the handling of additional
+permissions.
+
+As an aside, I did originally implement RESOLVE_UPGRADE_NOEXEC (and the
+corresponding FMODE_PATH_EXEC handling). It worked for the most part,
+though execveat(AT_EMPTY_PATH) would need some additional changes to do
+the may_open_magiclink() checks and I decided against including it here
+until we had an O_MAYEXEC.
+
+> Is there any way for user code to read out these new file mode bits?
+
+There is, but it's not exactly trivial. You could check the mode of
+/proc/self/fd and then compare it to the acc_mode of the "flags"
+/proc/self/fdinfo. The bits present in /proc/self/fd but not in acc_mode
+are the FMODE_PATH_* bits.
+
+However, this is quite an ugly way of doing it. I see two options to
+make it easier:
+
+ 1. We can add additional information to fdinfo so it includes that
+    FMODE_PATH_* bits to indicate how the fd can be upgraded.
+
+ 2. Previously, only the u bits of the fd mode were used to represent the
+    open flags. We could add the FMODE_PATH_* permissions to the g bits
+    and change how the permission check in trailing_symlink() operates.
+
+    The really neat thing here is that we could then know for sure which
+    fmode bits are set during name lookup of a magic-link rather than
+    assuming they're all FMODE_PATH_* bits.
+
+    In addition, userspace that depends on checking the u bits of an fd
+    mode would continue to work (though I'm not aware of any userspace
+    code that does depend on this).
+
+Option 2 seems nicer to me in some respects, but it has the additional
+cost of making the permission check less obvious (it's no longer an
+"inode_permission" and is instead something different with a weird new
+set of semantics). Then again, the modes of magic-links weren't obeyed
+in the first place so I'd argue these semantics are entirely up for us
+to decide.
+
+> What are actual examples of uses for this exception?  Breaking
+> selftests is not, in and of itself, a huge problem.
+
+Not as far as I know. All of the re-opening users I know of do re-opens
+of O_PATH or are re-opening with the same (or fewer) privileges. I also
+ran this for a few days on my laptop without this exception, and didn't
+have any visible issues.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--mqlbmyoyuxzxnuxp
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEb6Gz4/mhjNy+aiz1Snvnv3Dem58FAlzl/qUACgkQSnvnv3De
+m5/O+RAA3pdApPb48XJD4ExYCVJOdzKgy9Tfayj+cr3F5V3uVAGmdpXpXSsQHlT7
+wi+V5W6qsycYQPdn+JzKbVHwNaAlmsKNIowUDQ7NMykj+JjfPFPBWmbt1PVe9qej
+z9Q5WSFI3wefQGmQrP8VCKvnAo9WrYpe4ns/76SDEf2wHZD29QrK6ODPK83XJ/E4
+3BOets8Bp+pfM5jko9rRGS5jhvnNNd1zu5NMu4folvCC8AjmwvGBpJomrjSJKeGo
+zevcwNtMtp6ZPQiuCJQDDG7op4o21Fm+daifODOorh/wrrgp39AVTcNnHZrVVUnR
+ac03BeIzK7Y6TjQSRMn5cBfgeB8RrDxtzAtRSyEWGCkmvM9es9+eOEjn6f1dYF96
+sN75Kp1MAsPpLV5cmKSHCrPzRepKYm2vZJWrFE0igwj476z9y+Nx4DJR3iVbjaNS
+oFk4LtujWazXWzUKB7/a/s7IBwjsV6XZqKmbGthlOaEQniBEYyq+KboyHmODZj0n
+7TZnqJW1eXxYbRIEoagCjYwOF+F8m/ViGL4rSIkIgTqZ40+PTXL4372ikSo5TTCj
+6RMH7+NGZMMllmuy6p3/2jZgwZJexnky+G4TsRYH5O0AhcwvLjn0efg7w/zncl+6
+gQkl4hnn30STItTrQD5EfjRoowVNTp4BiPlKu8nmIwZEPB9Rjq0=
+=zmQ7
+-----END PGP SIGNATURE-----
+
+--mqlbmyoyuxzxnuxp--
