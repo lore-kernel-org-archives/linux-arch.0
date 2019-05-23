@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 20/26] signal: Use force_sig_fault_to_task for the two calls that don't deliver to current
-Date: Wed, 22 May 2019 19:39:10 -0500
-Message-ID: <20190523003916.20726-21-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 10/26] signal: Remove task parameter from force_sig_mceerr
+Date: Wed, 22 May 2019 19:39:00 -0500
+Message-ID: <20190523003916.20726-11-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,104 +12,123 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for removing the task parameter from force_sig_fault
-introduce force_sig_fault_to_task and use it for the two cases where
-it matters.
+All of the callers pass current into force_sig_mceer so remove the
+task parameter to make this obvious.
 
-On mips force_fcr31_sig calls force_sig_fault and is called on either
-the current task, or a task that is suspended and is being switched to
-by the scheduler.  This is safe because the task being switched to by
-the scheduler is guaranteed to be suspended.  This ensures that
-task->sighand is stable while the signal is delivered to it.
-
-On parisc user_enable_single_step calls force_sig_fault and is in turn
-called by ptrace_request.  The function ptrace_request always calls
-user_enable_single_step on a child that is stopped for tracing.  The
-child being traced and not reaped ensures that child->sighand is not
-NULL, and that the child will not change child->sighand.
+This also makes it clear that force_sig_mceerr passes current
+into force_sig_info.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/mips/kernel/traps.c     |  2 +-
- arch/parisc/kernel/ptrace.c  |  6 +++---
- include/linux/sched/signal.h |  4 ++++
- kernel/signal.c              | 12 +++++++++++-
- 4 files changed, 19 insertions(+), 5 deletions(-)
+ arch/arm64/kernel/traps.c    | 2 +-
+ arch/parisc/mm/fault.c       | 2 +-
+ arch/powerpc/mm/fault.c      | 3 +--
+ arch/x86/mm/fault.c          | 2 +-
+ include/linux/sched/signal.h | 2 +-
+ kernel/signal.c              | 4 ++--
+ mm/memory-failure.c          | 2 +-
+ 7 files changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-index a6031b045b95..62df48b6fb46 100644
---- a/arch/mips/kernel/traps.c
-+++ b/arch/mips/kernel/traps.c
-@@ -733,7 +733,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
- 	else if (fcr31 & FPU_CSR_INE_X)
- 		si_code = FPE_FLTRES;
- 
--	force_sig_fault(SIGFPE, si_code, fault_addr, tsk);
-+	force_sig_fault_to_task(SIGFPE, si_code, fault_addr, tsk);
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 39a391adf222..65ca953abc53 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -263,7 +263,7 @@ void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
+ 			    const char *str)
+ {
+ 	arm64_show_signal(SIGBUS, str);
+-	force_sig_mceerr(code, addr, lsb, current);
++	force_sig_mceerr(code, addr, lsb);
  }
  
- int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
-diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
-index a3d2fb4e6dd2..f642ba378ffa 100644
---- a/arch/parisc/kernel/ptrace.c
-+++ b/arch/parisc/kernel/ptrace.c
-@@ -88,9 +88,9 @@ void user_enable_single_step(struct task_struct *task)
- 		ptrace_disable(task);
- 		/* Don't wake up the task, but let the
- 		   parent know something happened. */
--		force_sig_fault(SIGTRAP, TRAP_TRACE,
--				(void __user *) (task_regs(task)->iaoq[0] & ~3),
--				task);
-+		force_sig_fault_to_task(SIGTRAP, TRAP_TRACE,
-+					(void __user *) (task_regs(task)->iaoq[0] & ~3),
-+					task);
- 		/* notify_parent(task, SIGCHLD); */
+ void arm64_force_sig_ptrace_errno_trap(int errno, void __user *addr,
+diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+index c8e8b7c05558..56ceacb3401d 100644
+--- a/arch/parisc/mm/fault.c
++++ b/arch/parisc/mm/fault.c
+@@ -403,7 +403,7 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 				lsb = PAGE_SHIFT;
+ 
+ 			force_sig_mceerr(BUS_MCEERR_AR, (void __user *) address,
+-					 lsb, current);
++					 lsb);
+ 			return;
+ 		}
+ #endif
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index b5d3578d9f65..6ed6c341c670 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -182,8 +182,7 @@ static int do_sigbus(struct pt_regs *regs, unsigned long address,
+ 		if (fault & VM_FAULT_HWPOISON)
+ 			lsb = PAGE_SHIFT;
+ 
+-		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb,
+-				 current);
++		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb);
+ 		return 0;
+ 	}
+ 
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 46df4c6aae46..c431326ee3fa 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1040,7 +1040,7 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
+ 			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
+ 		if (fault & VM_FAULT_HWPOISON)
+ 			lsb = PAGE_SHIFT;
+-		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb, tsk);
++		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb);
  		return;
  	}
+ #endif
 diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 4178bb1f7709..507af66a1fc8 100644
+index e9df3f0cce48..4178bb1f7709 100644
 --- a/include/linux/sched/signal.h
 +++ b/include/linux/sched/signal.h
-@@ -307,6 +307,10 @@ static inline void kernel_signal_stop(void)
- # define ___ARCH_SI_IA64(_a1, _a2, _a3)
- #endif
- 
-+int force_sig_fault_to_task(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t);
- int force_sig_fault(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
+@@ -316,7 +316,7 @@ int send_sig_fault(int sig, int code, void __user *addr
  	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+ 	, struct task_struct *t);
+ 
+-int force_sig_mceerr(int code, void __user *, short, struct task_struct *);
++int force_sig_mceerr(int code, void __user *, short);
+ int send_sig_mceerr(int code, void __user *, short, struct task_struct *);
+ 
+ int force_sig_bnderr(void __user *addr, void __user *lower, void __user *upper);
 diff --git a/kernel/signal.c b/kernel/signal.c
-index 398489facf9f..e420489ac4c9 100644
+index 20878c4c28c2..398489facf9f 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -1620,7 +1620,7 @@ void force_sigsegv(int sig)
- 	force_sig(SIGSEGV);
+@@ -1666,7 +1666,7 @@ int send_sig_fault(int sig, int code, void __user *addr
+ 	return send_sig_info(info.si_signo, &info, t);
  }
  
--int force_sig_fault(int sig, int code, void __user *addr
-+int force_sig_fault_to_task(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
- 	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
- 	, struct task_struct *t)
-@@ -1643,6 +1643,16 @@ int force_sig_fault(int sig, int code, void __user *addr
- 	return force_sig_info(info.si_signo, &info, t);
+-int force_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct *t)
++int force_sig_mceerr(int code, void __user *addr, short lsb)
+ {
+ 	struct kernel_siginfo info;
+ 
+@@ -1677,7 +1677,7 @@ int force_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct
+ 	info.si_code = code;
+ 	info.si_addr = addr;
+ 	info.si_addr_lsb = lsb;
+-	return force_sig_info(info.si_signo, &info, t);
++	return force_sig_info(info.si_signo, &info, current);
  }
  
-+int force_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t)
-+{
-+	return force_sig_fault_to_task(sig, code, addr
-+				       ___ARCH_SI_TRAPNO(trapno)
-+				       ___ARCH_SI_IA64(imm, flags, isr), t);
-+}
-+
- int send_sig_fault(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
- 	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+ int send_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct *t)
+diff --git a/mm/memory-failure.c b/mm/memory-failure.c
+index fc8b51744579..bc749265a8f3 100644
+--- a/mm/memory-failure.c
++++ b/mm/memory-failure.c
+@@ -221,7 +221,7 @@ static int kill_proc(struct to_kill *tk, unsigned long pfn, int flags)
+ 
+ 	if ((flags & MF_ACTION_REQUIRED) && t->mm == current->mm) {
+ 		ret = force_sig_mceerr(BUS_MCEERR_AR, (void __user *)tk->addr,
+-				       addr_lsb, current);
++				       addr_lsb);
+ 	} else {
+ 		/*
+ 		 * Don't use force here, it's convenient if the signal
 -- 
 2.21.0
