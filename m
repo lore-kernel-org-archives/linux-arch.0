@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 16/26] signal/arm: Remove tsk parameter from ptrace_break
-Date: Wed, 22 May 2019 19:39:06 -0500
-Message-ID: <20190523003916.20726-17-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 12/26] signal/um: Remove task parameter from send_sigtrap
+Date: Wed, 22 May 2019 19:39:02 -0500
+Message-ID: <20190523003916.20726-13-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,67 +12,46 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The ptrace_break function is always called with tsk == current.
-Make that obvious by removing the tsk parameter.
+The send_sigtrap function is always called with task == current.  Make
+that explicit by removing the task parameter.
 
-This also makes it clear that ptrace_break calls force_sig_fault
-on the current task.
+This also makes it clear that the uml send_sigtrap passes current
+into force_sig_fault.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm/include/asm/traps.h | 2 +-
- arch/arm/kernel/ptrace.c     | 6 +++---
- arch/arm/kernel/traps.c      | 2 +-
- 3 files changed, 5 insertions(+), 5 deletions(-)
+ arch/um/kernel/ptrace.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm/include/asm/traps.h b/arch/arm/include/asm/traps.h
-index a00288d75ee6..172b08ff3760 100644
---- a/arch/arm/include/asm/traps.h
-+++ b/arch/arm/include/asm/traps.h
-@@ -30,7 +30,7 @@ static inline int __in_irqentry_text(unsigned long ptr)
+diff --git a/arch/um/kernel/ptrace.c b/arch/um/kernel/ptrace.c
+index 5f47422401e1..1797dfe9ce6d 100644
+--- a/arch/um/kernel/ptrace.c
++++ b/arch/um/kernel/ptrace.c
+@@ -112,13 +112,13 @@ long arch_ptrace(struct task_struct *child, long request,
+ 	return ret;
+ }
  
- extern void __init early_trap_init(void *);
- extern void dump_backtrace_entry(unsigned long where, unsigned long from, unsigned long frame);
--extern void ptrace_break(struct task_struct *tsk, struct pt_regs *regs);
-+extern void ptrace_break(struct pt_regs *regs);
- 
- extern void *vectors_page;
- 
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 6fa5b6387556..f9cbd08a9075 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -201,15 +201,15 @@ void ptrace_disable(struct task_struct *child)
- /*
-  * Handle hitting a breakpoint.
-  */
--void ptrace_break(struct task_struct *tsk, struct pt_regs *regs)
-+void ptrace_break(struct pt_regs *regs)
+-static void send_sigtrap(struct task_struct *tsk, struct uml_pt_regs *regs,
+-		  int error_code)
++static void send_sigtrap(struct uml_pt_regs *regs, int error_code)
  {
+ 	/* Send us the fake SIGTRAP */
  	force_sig_fault(SIGTRAP, TRAP_BRKPT,
--			(void __user *)instruction_pointer(regs), tsk);
-+			(void __user *)instruction_pointer(regs), current);
+ 			/* User-mode eip? */
+-			UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL, tsk);
++			UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL,
++			current);
  }
  
- static int break_trap(struct pt_regs *regs, unsigned int instr)
- {
--	ptrace_break(current, regs);
-+	ptrace_break(regs);
- 	return 0;
- }
+ /*
+@@ -147,7 +147,7 @@ void syscall_trace_leave(struct pt_regs *regs)
  
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 33af097c454b..288989c7355d 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -606,7 +606,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
+ 	/* Fake a debug trap */
+ 	if (ptraced & PT_DTRACE)
+-		send_sigtrap(current, &regs->regs, 0);
++		send_sigtrap(&regs->regs, 0);
  
- 	case NR(breakpoint): /* SWI BREAK_POINT */
- 		regs->ARM_pc -= thumb_mode(regs) ? 2 : 4;
--		ptrace_break(current, regs);
-+		ptrace_break(regs);
- 		return regs->ARM_r0;
- 
- 	/*
+ 	if (!test_thread_flag(TIF_SYSCALL_TRACE))
+ 		return;
 -- 
 2.21.0
