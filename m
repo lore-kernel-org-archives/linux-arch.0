@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 01/26] signal: Correct namespace fixups of si_pid and si_uid
-Date: Wed, 22 May 2019 19:38:51 -0500
-Message-ID: <20190523003916.20726-2-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 02/26] signal/ptrace: Simplify and fix PTRACE_KILL
+Date: Wed, 22 May 2019 19:38:52 -0500
+Message-ID: <20190523003916.20726-3-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,138 +12,130 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The function send_signal was split from __send_signal so that it would
-be possible to bypass the namespace logic based upon current[1].  As it
-turns out the si_pid and the si_uid fixup are both inappropriate in
-the case of kill_pid_usb_asyncio so move that logic into send_signal.
+Since PTRACE_KILL was introduced in 1.1.78 it has only worked if the
+process is stopped in do_signal.  On a ptraced but non-stopped process
+PTRACE_KILL has always returned success and done nothing.
 
-It is difficult to arrange but possible for a signal with an si_code
-of SI_TIMER or SI_SIGIO to be sent across namespace boundaries.  In
-which case tests for when it is ok to change si_pid and si_uid based
-on SI_FROMUSER are incorrect.  Replace the use of SI_FROMUSER with a
-new test has_si_pid_and_used based on siginfo_layout.
+Separate the noop case of PTRACE_KILL from the case where it does
+nothing.  This fixes the fact that taking sighand lock in
+ptrace_resume is not safe if the process could be in the middle of
+exec or do_exit.  The current test for child->state is insufficient to
+prevent that race.
 
-Now that the uid fixup is no longer present after expanding
-SEND_SIG_NOINFO properly calculate the si_uid that the target
-task needs to read.
+With the code explicitly implementing the noop people maintaining
+ptrace no longer need to worry what happens in PTRACE_KILL if the
+process is not stopped.
 
-[1] 7978b567d315 ("signals: add from_ancestor_ns parameter to send_signal()")
+The alternative fix is to change the implementation of PTRACE_KILL
+to just be send_sig(SIGKILL, child, 1);  But I don't know if anything
+depends on the current documented behavior.
+
+Cc: Oleg Nesterov <oleg@redhat.com>
 Cc: stable@vger.kernel.org
-Fixes: 6588c1e3ff01 ("signals: SI_USER: Masquerade si_pid when crossing pid ns boundary")
-Fixes: 6b550f949594 ("user namespace: make signal.c respect user namespaces")
+Fixes: b72c186999e6 ("ptrace: fix race between ptrace_resume() and wait_task_stopped()")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- kernel/signal.c | 67 +++++++++++++++++++++++++++++--------------------
- 1 file changed, 40 insertions(+), 27 deletions(-)
+ kernel/ptrace.c | 43 ++++++++++++++++++++++++++-----------------
+ 1 file changed, 26 insertions(+), 17 deletions(-)
 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index 18040d6bd63a..39a3eca5ce22 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1056,27 +1056,6 @@ static inline bool legacy_queue(struct sigpending *signals, int sig)
- 	return (sig < SIGRTMIN) && sigismember(&signals->signal, sig);
- }
- 
--#ifdef CONFIG_USER_NS
--static inline void userns_fixup_signal_uid(struct kernel_siginfo *info, struct task_struct *t)
--{
--	if (current_user_ns() == task_cred_xxx(t, user_ns))
--		return;
--
--	if (SI_FROMKERNEL(info))
--		return;
--
--	rcu_read_lock();
--	info->si_uid = from_kuid_munged(task_cred_xxx(t, user_ns),
--					make_kuid(current_user_ns(), info->si_uid));
--	rcu_read_unlock();
--}
--#else
--static inline void userns_fixup_signal_uid(struct kernel_siginfo *info, struct task_struct *t)
--{
--	return;
--}
--#endif
--
- static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struct *t,
- 			enum pid_type type, int from_ancestor_ns)
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 6f357f4fc859..5d6ff7040863 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -212,15 +212,18 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+  *
+  * Check whether @child is being ptraced by %current and ready for further
+  * ptrace operations.  If @ignore_state is %false, @child also should be in
+- * %TASK_TRACED state and on return the child is guaranteed to be traced
+- * and not executing.  If @ignore_state is %true, @child can be in any
+- * state.
++ * %TASK_TRACED state and on succesful return the child is guaranteed to be
++ * traced and not executing.  If @ignore_state is %true, @child can be in
++ * any state on succesful return.
+  *
+  * CONTEXT:
+  * Grabs and releases tasklist_lock and @child->sighand->siglock.
+  *
+  * RETURNS:
+- * 0 on success, -ESRCH if %child is not ready.
++ * 0 on success,
++ * -ESRCH if %child is not traced
++ * -EAGAIN if %child can not be frozen
++ * -EBUSY if the wait for %child fails
+  */
+ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
  {
-@@ -1134,7 +1113,11 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
- 			q->info.si_code = SI_USER;
- 			q->info.si_pid = task_tgid_nr_ns(current,
- 							task_active_pid_ns(t));
--			q->info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
-+			rcu_read_lock();
-+			q->info.si_uid =
-+				from_kuid_munged(task_cred_xxx(t, user_ns),
-+						 current_uid());
-+			rcu_read_unlock();
- 			break;
- 		case (unsigned long) SEND_SIG_PRIV:
- 			clear_siginfo(&q->info);
-@@ -1146,13 +1129,8 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
- 			break;
- 		default:
- 			copy_siginfo(&q->info, info);
--			if (from_ancestor_ns)
--				q->info.si_pid = 0;
- 			break;
+@@ -240,6 +243,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+ 		 * child->sighand can't be NULL, release_task()
+ 		 * does ptrace_unlink() before __exit_signal().
+ 		 */
++		ret = -EAGAIN;
+ 		if (ignore_state || ptrace_freeze_traced(child))
+ 			ret = 0;
+ 	}
+@@ -253,7 +257,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+ 			 * so we should not worry about leaking __TASK_TRACED.
+ 			 */
+ 			WARN_ON(child->state == __TASK_TRACED);
+-			ret = -ESRCH;
++			ret = -EBUSY;
  		}
+ 	}
+ 
+@@ -1074,8 +1078,6 @@ int ptrace_request(struct task_struct *child, long request,
+ 		return ptrace_resume(child, request, data);
+ 
+ 	case PTRACE_KILL:
+-		if (child->exit_state)	/* already dead */
+-			return 0;
+ 		return ptrace_resume(child, request, SIGKILL);
+ 
+ #ifdef CONFIG_HAVE_ARCH_TRACEHOOK
+@@ -1147,14 +1149,17 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
+ 		goto out_put_task_struct;
+ 	}
+ 
+-	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+-				  request == PTRACE_INTERRUPT);
+-	if (ret < 0)
+-		goto out_put_task_struct;
 -
--		userns_fixup_signal_uid(&q->info, t);
--
- 	} else if (!is_si_special(info)) {
- 		if (sig >= SIGRTMIN && info->si_code != SI_USER) {
- 			/*
-@@ -1196,6 +1174,28 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
- 	return ret;
- }
- 
-+static inline bool has_si_pid_and_uid(struct kernel_siginfo *info)
-+{
-+	bool ret = false;
-+	switch (siginfo_layout(info->si_signo, info->si_code)) {
-+	case SIL_KILL:
-+	case SIL_CHLD:
-+	case SIL_RT:
-+		ret = true;
-+		break;
-+	case SIL_TIMER:
-+	case SIL_POLL:
-+	case SIL_FAULT:
-+	case SIL_FAULT_MCEERR:
-+	case SIL_FAULT_BNDERR:
-+	case SIL_FAULT_PKUERR:
-+	case SIL_SYS:
-+		ret = false;
-+		break;
+-	ret = arch_ptrace(child, request, addr, data);
+-	if (ret || request != PTRACE_DETACH)
+-		ptrace_unfreeze_traced(child);
++	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
++	if (!ret) {
++		ret = arch_ptrace(child, request, addr, data);
++		if (ret || request != PTRACE_DETACH)
++			ptrace_unfreeze_traced(child);
 +	}
-+	return ret;
-+}
-+
- static int send_signal(int sig, struct kernel_siginfo *info, struct task_struct *t,
- 			enum pid_type type)
- {
-@@ -1205,7 +1205,20 @@ static int send_signal(int sig, struct kernel_siginfo *info, struct task_struct
- 	from_ancestor_ns = si_fromuser(info) &&
- 			   !task_pid_nr_ns(current, task_active_pid_ns(t));
- #endif
-+	if (!is_si_special(info) && has_si_pid_and_uid(info)) {
-+		struct user_namespace *t_user_ns;
++	/* PTRACE_KILL is a noop when not attached */
++	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
++		ret = 0;
++	else
++		ret = -ESRCH;
  
-+		rcu_read_lock();
-+		t_user_ns = task_cred_xxx(t, user_ns);
-+		if (current_user_ns() != t_user_ns) {
-+			kuid_t uid = make_kuid(current_user_ns(), info->si_uid);
-+			info->si_uid = from_kuid_munged(t_user_ns, uid);
-+		}
-+		rcu_read_unlock();
-+
-+		if (!task_pid_nr_ns(current, task_active_pid_ns(t)))
-+			info->si_pid = 0;
-+	}
- 	return __send_signal(sig, info, t, type, from_ancestor_ns);
- }
+  out_put_task_struct:
+ 	put_task_struct(child);
+@@ -1292,13 +1297,17 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
+ 		goto out_put_task_struct;
+ 	}
  
+-	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+-				  request == PTRACE_INTERRUPT);
++	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
+ 	if (!ret) {
+ 		ret = compat_arch_ptrace(child, request, addr, data);
+ 		if (ret || request != PTRACE_DETACH)
+ 			ptrace_unfreeze_traced(child);
+ 	}
++	/* PTRACE_KILL is a noop when not attached */
++	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
++		ret = 0;
++	else
++		ret = -ESRCH;
+ 
+  out_put_task_struct:
+ 	put_task_struct(child);
 -- 
 2.21.0
