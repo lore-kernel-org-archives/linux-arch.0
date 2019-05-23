@@ -1,62 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:59223 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:59429 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727365AbfEWBLF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:11:05 -0400
+        with ESMTP id S1727305AbfEWBPf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:15:35 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Wed, 22 May 2019 19:39:02 -0500
-Message-ID: <20190523003916.20726-13-ebiederm@xmission.com>
+Date: Wed, 22 May 2019 19:39:08 -0500
+Message-ID: <20190523003916.20726-19-ebiederm@xmission.com>
 In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: [REVIEW][PATCH 12/26] signal/um: Remove task parameter from send_sigtrap
+Subject: [REVIEW][PATCH 18/26] signal/unicore32: Remove tsk parameter from __do_user_fault
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20190523003902.WFbxAbs3CeRwDpfkTDftMLLfoD6AVWVcebXYlwcGDcU@z>
+Message-ID: <20190523003908.rb7deVYIH0w7I7YEABepuI_KzMBidkqVSM0QXtsUKBA@z>
 
-The send_sigtrap function is always called with task == current.  Make
-that explicit by removing the task parameter.
+The __do_user_fault function is always called with tsk == current.
+Make that obvious by removing the tsk parameter.
 
-This also makes it clear that the uml send_sigtrap passes current
-into force_sig_fault.
+This makes it clear that __do_user_fault calls force_sig_fault
+on the current task.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/um/kernel/ptrace.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/unicore32/mm/fault.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/arch/um/kernel/ptrace.c b/arch/um/kernel/ptrace.c
-index 5f47422401e1..1797dfe9ce6d 100644
---- a/arch/um/kernel/ptrace.c
-+++ b/arch/um/kernel/ptrace.c
-@@ -112,13 +112,13 @@ long arch_ptrace(struct task_struct *child, long request,
- 	return ret;
- }
- 
--static void send_sigtrap(struct task_struct *tsk, struct uml_pt_regs *regs,
--		  int error_code)
-+static void send_sigtrap(struct uml_pt_regs *regs, int error_code)
+diff --git a/arch/unicore32/mm/fault.c b/arch/unicore32/mm/fault.c
+index b9a3a50644c1..cadee0b3b4e0 100644
+--- a/arch/unicore32/mm/fault.c
++++ b/arch/unicore32/mm/fault.c
+@@ -116,10 +116,11 @@ static void __do_kernel_fault(struct mm_struct *mm, unsigned long addr,
+  * Something tried to access memory that isn't in our memory map..
+  * User mode accesses just cause a SIGSEGV
+  */
+-static void __do_user_fault(struct task_struct *tsk, unsigned long addr,
+-		unsigned int fsr, unsigned int sig, int code,
+-		struct pt_regs *regs)
++static void __do_user_fault(unsigned long addr, unsigned int fsr,
++			    unsigned int sig, int code,	struct pt_regs *regs)
  {
- 	/* Send us the fake SIGTRAP */
- 	force_sig_fault(SIGTRAP, TRAP_BRKPT,
- 			/* User-mode eip? */
--			UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL, tsk);
-+			UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL,
-+			current);
++	struct task_struct *tsk = current;
++
+ 	tsk->thread.address = addr;
+ 	tsk->thread.error_code = fsr;
+ 	tsk->thread.trap_no = 14;
+@@ -136,7 +137,7 @@ void do_bad_area(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	 * have no context to handle this fault with.
+ 	 */
+ 	if (user_mode(regs))
+-		__do_user_fault(tsk, addr, fsr, SIGSEGV, SEGV_MAPERR, regs);
++		__do_user_fault(addr, fsr, SIGSEGV, SEGV_MAPERR, regs);
+ 	else
+ 		__do_kernel_fault(mm, addr, fsr, regs);
  }
+@@ -310,7 +311,7 @@ static int do_pf(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 		code = fault == VM_FAULT_BADACCESS ? SEGV_ACCERR : SEGV_MAPERR;
+ 	}
  
- /*
-@@ -147,7 +147,7 @@ void syscall_trace_leave(struct pt_regs *regs)
+-	__do_user_fault(tsk, addr, fsr, sig, code, regs);
++	__do_user_fault(addr, fsr, sig, code, regs);
+ 	return 0;
  
- 	/* Fake a debug trap */
- 	if (ptraced & PT_DTRACE)
--		send_sigtrap(current, &regs->regs, 0);
-+		send_sigtrap(&regs->regs, 0);
- 
- 	if (!test_thread_flag(TIF_SYSCALL_TRACE))
- 		return;
+ no_context:
 -- 
 2.21.0
