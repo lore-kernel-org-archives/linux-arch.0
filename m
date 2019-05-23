@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 02/26] signal/ptrace: Simplify and fix PTRACE_KILL
-Date: Wed, 22 May 2019 19:38:52 -0500
-Message-ID: <20190523003916.20726-3-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
+Date: Wed, 22 May 2019 19:38:53 -0500
+Message-ID: <20190523003916.20726-4-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,133 +9,39 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Since PTRACE_KILL was introduced in 1.1.78 it has only worked if the
-process is stopped in do_signal.  On a ptraced but non-stopped process
-PTRACE_KILL has always returned success and done nothing.
+It really only matters to debuggers but the SIGKILL does not have any
+si_codes that use the fault member of the siginfo union.  Correct this
+the simple way and call force_sig instead of force_sig_fault when the
+signal is SIGKILL.
 
-Separate the noop case of PTRACE_KILL from the case where it does
-nothing.  This fixes the fact that taking sighand lock in
-ptrace_resume is not safe if the process could be in the middle of
-exec or do_exit.  The current test for child->state is insufficient to
-prevent that race.
-
-With the code explicitly implementing the noop people maintaining
-ptrace no longer need to worry what happens in PTRACE_KILL if the
-process is not stopped.
-
-The alternative fix is to change the implementation of PTRACE_KILL
-to just be send_sig(SIGKILL, child, 1);  But I don't know if anything
-depends on the current documented behavior.
-
-Cc: Oleg Nesterov <oleg@redhat.com>
 Cc: stable@vger.kernel.org
-Fixes: b72c186999e6 ("ptrace: fix race between ptrace_resume() and wait_task_stopped()")
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- kernel/ptrace.c | 43 ++++++++++++++++++++++++++-----------------
- 1 file changed, 26 insertions(+), 17 deletions(-)
+ arch/arm64/kernel/traps.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 6f357f4fc859..5d6ff7040863 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -212,15 +212,18 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
-  *
-  * Check whether @child is being ptraced by %current and ready for further
-  * ptrace operations.  If @ignore_state is %false, @child also should be in
-- * %TASK_TRACED state and on return the child is guaranteed to be traced
-- * and not executing.  If @ignore_state is %true, @child can be in any
-- * state.
-+ * %TASK_TRACED state and on succesful return the child is guaranteed to be
-+ * traced and not executing.  If @ignore_state is %true, @child can be in
-+ * any state on succesful return.
-  *
-  * CONTEXT:
-  * Grabs and releases tasklist_lock and @child->sighand->siglock.
-  *
-  * RETURNS:
-- * 0 on success, -ESRCH if %child is not ready.
-+ * 0 on success,
-+ * -ESRCH if %child is not traced
-+ * -EAGAIN if %child can not be frozen
-+ * -EBUSY if the wait for %child fails
-  */
- static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- {
-@@ -240,6 +243,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- 		 * child->sighand can't be NULL, release_task()
- 		 * does ptrace_unlink() before __exit_signal().
- 		 */
-+		ret = -EAGAIN;
- 		if (ignore_state || ptrace_freeze_traced(child))
- 			ret = 0;
- 	}
-@@ -253,7 +257,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- 			 * so we should not worry about leaking __TASK_TRACED.
- 			 */
- 			WARN_ON(child->state == __TASK_TRACED);
--			ret = -ESRCH;
-+			ret = -EBUSY;
- 		}
- 	}
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index ade32046f3fe..0feb17bdcaa0 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -282,6 +282,11 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 		current->thread.fault_address = 0;
+ 		current->thread.fault_code = err;
  
-@@ -1074,8 +1078,6 @@ int ptrace_request(struct task_struct *child, long request,
- 		return ptrace_resume(child, request, data);
- 
- 	case PTRACE_KILL:
--		if (child->exit_state)	/* already dead */
--			return 0;
- 		return ptrace_resume(child, request, SIGKILL);
- 
- #ifdef CONFIG_HAVE_ARCH_TRACEHOOK
-@@ -1147,14 +1149,17 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
- 		goto out_put_task_struct;
- 	}
- 
--	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
--				  request == PTRACE_INTERRUPT);
--	if (ret < 0)
--		goto out_put_task_struct;
--
--	ret = arch_ptrace(child, request, addr, data);
--	if (ret || request != PTRACE_DETACH)
--		ptrace_unfreeze_traced(child);
-+	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
-+	if (!ret) {
-+		ret = arch_ptrace(child, request, addr, data);
-+		if (ret || request != PTRACE_DETACH)
-+			ptrace_unfreeze_traced(child);
-+	}
-+	/* PTRACE_KILL is a noop when not attached */
-+	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
-+		ret = 0;
-+	else
-+		ret = -ESRCH;
- 
-  out_put_task_struct:
- 	put_task_struct(child);
-@@ -1292,13 +1297,17 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
- 		goto out_put_task_struct;
- 	}
- 
--	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
--				  request == PTRACE_INTERRUPT);
-+	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
- 	if (!ret) {
- 		ret = compat_arch_ptrace(child, request, addr, data);
- 		if (ret || request != PTRACE_DETACH)
- 			ptrace_unfreeze_traced(child);
- 	}
-+	/* PTRACE_KILL is a noop when not attached */
-+	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
-+		ret = 0;
-+	else
-+		ret = -ESRCH;
- 
-  out_put_task_struct:
- 	put_task_struct(child);
++		if (signo == SIGKILL) {
++			arm64_show_signal(signo, str);
++			force_sig(signo, current);
++			return;
++		}
+ 		arm64_force_sig_fault(signo, sicode, addr, str);
+ 	} else {
+ 		die(str, regs, err);
 -- 
 2.21.0
