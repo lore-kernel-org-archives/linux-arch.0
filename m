@@ -1,120 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:53233 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727802AbfEWBdV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:33:21 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:60467 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727802AbfEWBdn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2019 21:33:43 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Wed, 22 May 2019 19:39:10 -0500
-Message-ID: <20190523003916.20726-21-ebiederm@xmission.com>
+Date: Wed, 22 May 2019 19:39:16 -0500
+Message-ID: <20190523003916.20726-27-ebiederm@xmission.com>
 In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: [REVIEW][PATCH 20/26] signal: Use force_sig_fault_to_task for the two calls that don't deliver to current
+Subject: [REVIEW][PATCH 26/26] signal: Remove the signal number and task parameters from force_sig_info
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20190523003910._9rwSMIxowoyiGjgPrDLoqEteGh-5X-E5X3ypK1FiYI@z>
+Message-ID: <20190523003916.xOcKIIASHW-3BiAGWrfj6KwYI3u51nHTvKdEt7V8pKY@z>
 
-In preparation for removing the task parameter from force_sig_fault
-introduce force_sig_fault_to_task and use it for the two cases where
-it matters.
+force_sig_info always delivers to the current task and the signal
+parameter always matches info.si_signo.  So remove those parameters to
+make it a simpler less error prone interface, and to make it clear
+that none of the callers are doing anything clever.
 
-On mips force_fcr31_sig calls force_sig_fault and is called on either
-the current task, or a task that is suspended and is being switched to
-by the scheduler.  This is safe because the task being switched to by
-the scheduler is guaranteed to be suspended.  This ensures that
-task->sighand is stable while the signal is delivered to it.
-
-On parisc user_enable_single_step calls force_sig_fault and is in turn
-called by ptrace_request.  The function ptrace_request always calls
-user_enable_single_step on a child that is stopped for tracing.  The
-child being traced and not reaped ensures that child->sighand is not
-NULL, and that the child will not change child->sighand.
+This guarantees that force_sig_info will not grow any new buggy
+callers that attempt to call force_sig on a non-current task, or that
+pass an signal number that does not match info.si_signo.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/mips/kernel/traps.c     |  2 +-
- arch/parisc/kernel/ptrace.c  |  6 +++---
- include/linux/sched/signal.h |  4 ++++
- kernel/signal.c              | 12 +++++++++++-
- 4 files changed, 19 insertions(+), 5 deletions(-)
+ include/linux/ptrace.h       |  2 +-
+ include/linux/sched/signal.h |  2 +-
+ kernel/seccomp.c             |  2 +-
+ kernel/signal.c              | 14 +++++++-------
+ 4 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-index a6031b045b95..62df48b6fb46 100644
---- a/arch/mips/kernel/traps.c
-+++ b/arch/mips/kernel/traps.c
-@@ -733,7 +733,7 @@ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
- 	else if (fcr31 & FPU_CSR_INE_X)
- 		si_code = FPE_FLTRES;
- 
--	force_sig_fault(SIGFPE, si_code, fault_addr, tsk);
-+	force_sig_fault_to_task(SIGFPE, si_code, fault_addr, tsk);
+diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+index d5084ebd9f03..2a9df80ea887 100644
+--- a/include/linux/ptrace.h
++++ b/include/linux/ptrace.h
+@@ -355,7 +355,7 @@ static inline void user_single_step_report(struct pt_regs *regs)
+ 	info.si_code = SI_USER;
+ 	info.si_pid = 0;
+ 	info.si_uid = 0;
+-	force_sig_info(info.si_signo, &info, current);
++	force_sig_info(&info);
  }
- 
- int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
-diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
-index a3d2fb4e6dd2..f642ba378ffa 100644
---- a/arch/parisc/kernel/ptrace.c
-+++ b/arch/parisc/kernel/ptrace.c
-@@ -88,9 +88,9 @@ void user_enable_single_step(struct task_struct *task)
- 		ptrace_disable(task);
- 		/* Don't wake up the task, but let the
- 		   parent know something happened. */
--		force_sig_fault(SIGTRAP, TRAP_TRACE,
--				(void __user *) (task_regs(task)->iaoq[0] & ~3),
--				task);
-+		force_sig_fault_to_task(SIGTRAP, TRAP_TRACE,
-+					(void __user *) (task_regs(task)->iaoq[0] & ~3),
-+					task);
- 		/* notify_parent(task, SIGCHLD); */
- 		return;
- 	}
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 4178bb1f7709..507af66a1fc8 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -307,6 +307,10 @@ static inline void kernel_signal_stop(void)
- # define ___ARCH_SI_IA64(_a1, _a2, _a3)
  #endif
  
-+int force_sig_fault_to_task(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t);
- int force_sig_fault(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
- 	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
+index 7f872506e1de..532458698bde 100644
+--- a/include/linux/sched/signal.h
++++ b/include/linux/sched/signal.h
+@@ -329,7 +329,7 @@ int force_sig_ptrace_errno_trap(int errno, void __user *addr);
+ 
+ extern int send_sig_info(int, struct kernel_siginfo *, struct task_struct *);
+ extern void force_sigsegv(int sig);
+-extern int force_sig_info(int, struct kernel_siginfo *, struct task_struct *);
++extern int force_sig_info(struct kernel_siginfo *);
+ extern int __kill_pgrp_info(int sig, struct kernel_siginfo *info, struct pid *pgrp);
+ extern int kill_pid_info(int sig, struct kernel_siginfo *info, struct pid *pid);
+ extern int kill_pid_usb_asyncio(int sig, int errno, sigval_t addr, struct pid *,
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 811b4a86cdf6..dba52a7db5e8 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -609,7 +609,7 @@ static void seccomp_send_sigsys(int syscall, int reason)
+ {
+ 	struct kernel_siginfo info;
+ 	seccomp_init_siginfo(&info, syscall, reason);
+-	force_sig_info(SIGSYS, &info, current);
++	force_sig_info(&info);
+ }
+ #endif	/* CONFIG_SECCOMP_FILTER */
+ 
 diff --git a/kernel/signal.c b/kernel/signal.c
-index 398489facf9f..e420489ac4c9 100644
+index 0984158cd41a..ff6944e4964e 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -1620,7 +1620,7 @@ void force_sigsegv(int sig)
- 	force_sig(SIGSEGV);
+@@ -1325,9 +1325,9 @@ force_sig_info_to_task(struct kernel_siginfo *info, struct task_struct *t)
+ 	return ret;
  }
  
--int force_sig_fault(int sig, int code, void __user *addr
-+int force_sig_fault_to_task(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
- 	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
- 	, struct task_struct *t)
-@@ -1643,6 +1643,16 @@ int force_sig_fault(int sig, int code, void __user *addr
- 	return force_sig_info(info.si_signo, &info, t);
+-int force_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *t)
++int force_sig_info(struct kernel_siginfo *info)
+ {
+-	return force_sig_info_to_task(info, t);
++	return force_sig_info_to_task(info, current);
  }
  
-+int force_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t)
-+{
-+	return force_sig_fault_to_task(sig, code, addr
-+				       ___ARCH_SI_TRAPNO(trapno)
-+				       ___ARCH_SI_IA64(imm, flags, isr), t);
-+}
-+
- int send_sig_fault(int sig, int code, void __user *addr
- 	___ARCH_SI_TRAPNO(int trapno)
- 	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+ /*
+@@ -1619,7 +1619,7 @@ void force_sig(int sig)
+ 	info.si_code = SI_KERNEL;
+ 	info.si_pid = 0;
+ 	info.si_uid = 0;
+-	force_sig_info(info.si_signo, &info, current);
++	force_sig_info(&info);
+ }
+ EXPORT_SYMBOL(force_sig);
+ 
+@@ -1708,7 +1708,7 @@ int force_sig_mceerr(int code, void __user *addr, short lsb)
+ 	info.si_code = code;
+ 	info.si_addr = addr;
+ 	info.si_addr_lsb = lsb;
+-	return force_sig_info(info.si_signo, &info, current);
++	return force_sig_info(&info);
+ }
+ 
+ int send_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct *t)
+@@ -1737,7 +1737,7 @@ int force_sig_bnderr(void __user *addr, void __user *lower, void __user *upper)
+ 	info.si_addr  = addr;
+ 	info.si_lower = lower;
+ 	info.si_upper = upper;
+-	return force_sig_info(info.si_signo, &info, current);
++	return force_sig_info(&info);
+ }
+ 
+ #ifdef SEGV_PKUERR
+@@ -1751,7 +1751,7 @@ int force_sig_pkuerr(void __user *addr, u32 pkey)
+ 	info.si_code  = SEGV_PKUERR;
+ 	info.si_addr  = addr;
+ 	info.si_pkey  = pkey;
+-	return force_sig_info(info.si_signo, &info, current);
++	return force_sig_info(&info);
+ }
+ #endif
+ 
+@@ -1767,7 +1767,7 @@ int force_sig_ptrace_errno_trap(int errno, void __user *addr)
+ 	info.si_errno = errno;
+ 	info.si_code  = TRAP_HWBKPT;
+ 	info.si_addr  = addr;
+-	return force_sig_info(info.si_signo, &info, current);
++	return force_sig_info(&info);
+ }
+ 
+ int kill_pgrp(struct pid *pid, int sig, int priv)
 -- 
 2.21.0
