@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
-Date: Wed, 22 May 2019 19:38:53 -0500
-Message-ID: <20190523003916.20726-4-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 04/26] signal/drbd: Use send_sig not force_sig
+Date: Wed, 22 May 2019 19:38:54 -0500
+Message-ID: <20190523003916.20726-5-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,39 +9,73 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190523003916.20726-1-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>, Will Deacon <will.deacon@arm.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Philipp Reisner <philipp.reisner@linbit.com>, Lars Ellenberg <lars.ellenberg@linbit.com>, drbd-dev@lists.linbit.com
 List-Id: linux-arch.vger.kernel.org
 
-It really only matters to debuggers but the SIGKILL does not have any
-si_codes that use the fault member of the siginfo union.  Correct this
-the simple way and call force_sig instead of force_sig_fault when the
-signal is SIGKILL.
+The drbd module exclusively sends signals to kernel threads it creates with
+kthread_create.  These kernel threads do not block or ignore signals (only
+flush signals after they have been delivered), nor can drbd threads
+possibly be pid namespace init processes so the extra work that force_sig
+performs that send_sig does not is unnecessary.
 
-Cc: stable@vger.kernel.org
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: James Morse <james.morse@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
+Further force_sig is for delivering synchronous signals (aka exceptions).
+The locking in force_sig is not prepared to deal with running processes, as
+tsk->sighand may change during exec for a running process.
+
+In short it is not only unnecessary for drbd to use force_sig it is
+semantically wrong.
+
+With drbd using send_sig it becomes easier to maintain force_sig as only
+synchronous signals need to be considered.
+
+Cc: Philipp Reisner <philipp.reisner@linbit.com>
+Cc: Lars Ellenberg <lars.ellenberg@linbit.com>
+Cc: drbd-dev@lists.linbit.com
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/kernel/traps.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ drivers/block/drbd/drbd_int.h  | 2 +-
+ drivers/block/drbd/drbd_main.c | 2 +-
+ drivers/block/drbd/drbd_nl.c   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index ade32046f3fe..0feb17bdcaa0 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -282,6 +282,11 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 		current->thread.fault_address = 0;
- 		current->thread.fault_code = err;
+diff --git a/drivers/block/drbd/drbd_int.h b/drivers/block/drbd/drbd_int.h
+index 549c64df9708..035829435710 100644
+--- a/drivers/block/drbd/drbd_int.h
++++ b/drivers/block/drbd/drbd_int.h
+@@ -1972,7 +1972,7 @@ static inline void wake_ack_receiver(struct drbd_connection *connection)
+ {
+ 	struct task_struct *task = connection->ack_receiver.task;
+ 	if (task && get_t_state(&connection->ack_receiver) == RUNNING)
+-		force_sig(SIGXCPU, task);
++		send_sig(SIGXCPU, task, 1);
+ }
  
-+		if (signo == SIGKILL) {
-+			arm64_show_signal(signo, str);
-+			force_sig(signo, current);
-+			return;
-+		}
- 		arm64_force_sig_fault(signo, sicode, addr, str);
- 	} else {
- 		die(str, regs, err);
+ static inline void request_ping(struct drbd_connection *connection)
+diff --git a/drivers/block/drbd/drbd_main.c b/drivers/block/drbd/drbd_main.c
+index 714eb64fabfd..8597aefe027b 100644
+--- a/drivers/block/drbd/drbd_main.c
++++ b/drivers/block/drbd/drbd_main.c
+@@ -477,7 +477,7 @@ void _drbd_thread_stop(struct drbd_thread *thi, int restart, int wait)
+ 		smp_mb();
+ 		init_completion(&thi->stop);
+ 		if (thi->task != current)
+-			force_sig(DRBD_SIGKILL, thi->task);
++			send_sig(DRBD_SIGKILL, thi->task, 1);
+ 	}
+ 
+ 	spin_unlock_irqrestore(&thi->t_lock, flags);
+diff --git a/drivers/block/drbd/drbd_nl.c b/drivers/block/drbd/drbd_nl.c
+index 1cb5a0b85fd9..638b3ba9b976 100644
+--- a/drivers/block/drbd/drbd_nl.c
++++ b/drivers/block/drbd/drbd_nl.c
+@@ -611,7 +611,7 @@ void conn_try_outdate_peer_async(struct drbd_connection *connection)
+ 	struct task_struct *opa;
+ 
+ 	kref_get(&connection->kref);
+-	/* We may just have force_sig()'ed this thread
++	/* We may have just sent a signal to this thread
+ 	 * to get it out of some blocking network function.
+ 	 * Clear signals; otherwise kthread_run(), which internally uses
+ 	 * wait_on_completion_killable(), will mistake our pending signal
 -- 
 2.21.0
