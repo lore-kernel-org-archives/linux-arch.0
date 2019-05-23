@@ -1,233 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:35624 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731182AbfEWPtO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 11:49:14 -0400
-Received: by mail-it1-f194.google.com with SMTP id u186so9264002ith.0
-        for <linux-arch@vger.kernel.org>; Thu, 23 May 2019 08:49:13 -0700 (PDT)
-From: Christian Brauner <christian@brauner.io>
-Subject: [PATCH v2 2/2] tests: add close_range() tests
-Date: Thu, 23 May 2019 17:47:47 +0200
-Message-ID: <20190523154747.15162-3-christian@brauner.io>
-In-Reply-To: <20190523154747.15162-1-christian@brauner.io>
-References: <20190523154747.15162-1-christian@brauner.io>
+Received: from out03.mta.xmission.com ([166.70.13.233]:40765 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730782AbfEWQL3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 12:11:29 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+        <20190523003916.20726-4-ebiederm@xmission.com>
+        <20190523101702.GG26646@fuggles.cambridge.arm.com>
+Date: Thu, 23 May 2019 11:11:19 -0500
+In-Reply-To: <20190523101702.GG26646@fuggles.cambridge.arm.com> (Will Deacon's
+        message of "Thu, 23 May 2019 11:17:02 +0100")
+Message-ID: <875zq1gnh4.fsf_-_@xmission.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+Subject: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com
-Cc: jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org, Christian Brauner <christian@brauner.io>
-Message-ID: <20190523154747.rup2wtI3WvdERDS-fpmPQrs3spTv726DzR0pAywb9EA@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20190523161119.ZXUqrx5vw2HJsWbXpxA-UkMdrpMX9MUDjPK_GnuIAoI@z>
 
-This adds basic tests for the new close_range() syscall.
-- test that no invalid flags can be passed
-- test that a range of file descriptors is correctly closed
-- test that a range of file descriptors is correctly closed if there there
-  are already closed file descriptors in the range
-- test that max_fd is correctly capped to the current fdtable maximum
 
-Signed-off-by: Christian Brauner <christian@brauner.io>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Jann Horn <jannh@google.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Dmitry V. Levin <ldv@altlinux.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Florian Weimer <fweimer@redhat.com>
-Cc: linux-api@vger.kernel.org
+I don't think this is userspace visible but SIGKILL does not have
+any si_codes that use the fault member of the siginfo union.  Correct
+this the simple way and call force_sig instead of force_sig_fault when
+the signal is SIGKILL.
+
+The two know places where synchronous SIGKILL are generated are
+do_bad_area and fpsimd_save.  The call paths to force_sig_fault are:
+do_bad_area
+  arm64_force_sig_fault
+    force_sig_fault
+force_signal_inject
+  arm64_notify_die
+    arm64_force_sig_fault
+       force_sig_fault
+
+Which means correcting this in arm64_force_sig_fault is enough
+to ensure the arm64 code is not misusing the generic code, which
+could lead to maintenance problems later.
+
+Cc: stable@vger.kernel.org
+Cc: Dave Martin <Dave.Martin@arm.com>
+Cc: James Morse <james.morse@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
-v1: unchanged
-v2:
-- Christian Brauner <christian@brauner.io>:
-  - verify that close_range() correctly closes a single file descriptor
----
- tools/testing/selftests/Makefile              |   1 +
- tools/testing/selftests/core/.gitignore       |   1 +
- tools/testing/selftests/core/Makefile         |   6 +
- .../testing/selftests/core/close_range_test.c | 142 ++++++++++++++++++
- 4 files changed, 150 insertions(+)
- create mode 100644 tools/testing/selftests/core/.gitignore
- create mode 100644 tools/testing/selftests/core/Makefile
- create mode 100644 tools/testing/selftests/core/close_range_test.c
 
-diff --git a/tools/testing/selftests/Makefile b/tools/testing/selftests/Makefile
-index 9781ca79794a..06e57fabbff9 100644
---- a/tools/testing/selftests/Makefile
-+++ b/tools/testing/selftests/Makefile
-@@ -4,6 +4,7 @@ TARGETS += bpf
- TARGETS += breakpoints
- TARGETS += capabilities
- TARGETS += cgroup
-+TARGETS += core
- TARGETS += cpufreq
- TARGETS += cpu-hotplug
- TARGETS += drivers/dma-buf
-diff --git a/tools/testing/selftests/core/.gitignore b/tools/testing/selftests/core/.gitignore
-new file mode 100644
-index 000000000000..6e6712ce5817
---- /dev/null
-+++ b/tools/testing/selftests/core/.gitignore
-@@ -0,0 +1 @@
-+close_range_test
-diff --git a/tools/testing/selftests/core/Makefile b/tools/testing/selftests/core/Makefile
-new file mode 100644
-index 000000000000..de3ae68aa345
---- /dev/null
-+++ b/tools/testing/selftests/core/Makefile
-@@ -0,0 +1,6 @@
-+CFLAGS += -g -I../../../../usr/include/ -I../../../../include
-+
-+TEST_GEN_PROGS := close_range_test
-+
-+include ../lib.mk
-+
-diff --git a/tools/testing/selftests/core/close_range_test.c b/tools/testing/selftests/core/close_range_test.c
-new file mode 100644
-index 000000000000..d6e6079d3d53
---- /dev/null
-+++ b/tools/testing/selftests/core/close_range_test.c
-@@ -0,0 +1,142 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#define _GNU_SOURCE
-+#include <errno.h>
-+#include <fcntl.h>
-+#include <linux/kernel.h>
-+#include <limits.h>
-+#include <stdbool.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <syscall.h>
-+#include <unistd.h>
-+
-+#include "../kselftest.h"
-+
-+static inline int sys_close_range(unsigned int fd, unsigned int max_fd,
-+				  unsigned int flags)
-+{
-+	return syscall(__NR_close_range, fd, max_fd, flags);
-+}
-+
-+#ifndef ARRAY_SIZE
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-+#endif
-+
-+int main(int argc, char **argv)
-+{
-+	const char *test_name = "close_range";
-+	int i, ret;
-+	int open_fds[101];
-+	int fd_max, fd_mid, fd_min;
-+
-+	ksft_set_plan(9);
-+
-+	for (i = 0; i < ARRAY_SIZE(open_fds); i++) {
-+		int fd;
-+
-+		fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
-+		if (fd < 0) {
-+			if (errno == ENOENT)
-+				ksft_exit_skip(
-+					"%s test: skipping test since /dev/null does not exist\n",
-+					test_name);
-+
-+			ksft_exit_fail_msg(
-+				"%s test: %s - failed to open /dev/null\n",
-+				strerror(errno), test_name);
-+		}
-+
-+		open_fds[i] = fd;
-+	}
-+
-+	fd_min = open_fds[0];
-+	fd_max = open_fds[99];
-+
-+	ret = sys_close_range(fd_min, fd_max, 1);
-+	if (!ret)
-+		ksft_exit_fail_msg(
-+			"%s test: managed to pass invalid flag value\n",
-+			test_name);
-+	ksft_test_result_pass("do not allow invalid flag values for close_range()\n");
-+
-+	fd_mid = open_fds[50];
-+	ret = sys_close_range(fd_min, fd_mid, 0);
-+	if (ret < 0)
-+		ksft_exit_fail_msg(
-+			"%s test: Failed to close range of file descriptors from %d to %d\n",
-+			test_name, fd_min, fd_mid);
-+	ksft_test_result_pass("close_range() from %d to %d\n", fd_min, fd_mid);
-+
-+	for (i = 0; i <= 50; i++) {
-+		ret = fcntl(open_fds[i], F_GETFL);
-+		if (ret >= 0)
-+			ksft_exit_fail_msg(
-+				"%s test: Failed to close range of file descriptors from %d to %d\n",
-+				test_name, fd_min, fd_mid);
-+	}
-+	ksft_test_result_pass("fcntl() verify closed range from %d to %d\n", fd_min, fd_mid);
-+
-+	/* create a couple of gaps */
-+	close(57);
-+	close(78);
-+	close(81);
-+	close(82);
-+	close(84);
-+	close(90);
-+
-+	fd_mid = open_fds[51];
-+	/* Choose slightly lower limit and leave some fds for a later test */
-+	fd_max = open_fds[92];
-+	ret = sys_close_range(fd_mid, fd_max, 0);
-+	if (ret < 0)
-+		ksft_exit_fail_msg(
-+			"%s test: Failed to close range of file descriptors from 51 to 100\n",
-+			test_name);
-+	ksft_test_result_pass("close_range() from %d to %d\n", fd_mid, fd_max);
-+
-+	for (i = 51; i <= 92; i++) {
-+		ret = fcntl(open_fds[i], F_GETFL);
-+		if (ret >= 0)
-+			ksft_exit_fail_msg(
-+				"%s test: Failed to close range of file descriptors from 51 to 100\n",
-+				test_name);
-+	}
-+	ksft_test_result_pass("fcntl() verify closed range from %d to %d\n", fd_mid, fd_max);
-+
-+	fd_mid = open_fds[93];
-+	fd_max = open_fds[99];
-+	/* test that the kernel caps and still closes all fds */
-+	ret = sys_close_range(fd_mid, UINT_MAX, 0);
-+	if (ret < 0)
-+		ksft_exit_fail_msg(
-+			"%s test: Failed to close range of file descriptors from 51 to 100\n",
-+			test_name);
-+	ksft_test_result_pass("close_range() from %d to %d\n", fd_mid, fd_max);
-+
-+	for (i = 93; i < 100; i++) {
-+		ret = fcntl(open_fds[i], F_GETFL);
-+		if (ret >= 0)
-+			ksft_exit_fail_msg(
-+				"%s test: Failed to close range of file descriptors from 51 to 100\n",
-+				test_name);
-+	}
-+	ksft_test_result_pass("fcntl() verify closed range from %d to %d\n", fd_mid, fd_max);
-+
-+	ret = sys_close_range(open_fds[100], open_fds[100], 0);
-+	if (ret < 0)
-+		ksft_exit_fail_msg(
-+			"%s test: Failed to close single file descriptor\n",
-+			test_name);
-+	ksft_test_result_pass("close_range() closed single file descriptor\n");
-+
-+	ret = fcntl(open_fds[100], F_GETFL);
-+	if (ret >= 0)
-+		ksft_exit_fail_msg(
-+			"%s test: Failed to close single file descriptor\n",
-+			test_name);
-+	ksft_test_result_pass("fcntl() verify closed single file descriptor\n");
-+
-+	return ksft_exit_pass();
-+}
+I have also made the corresponding changes to:
+09/26 signal: Remove task parameter from force_sig
+21/26 signal: Remove the task parameter from force_sig_fault
+But I will leave off reposting those as for now as the changes
+are obvious.
+
+arch/arm64/kernel/traps.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index ade32046f3fe..e45d5b440fb1 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+ 			   const char *str)
+ {
+ 	arm64_show_signal(signo, str);
+-	force_sig_fault(signo, code, addr, current);
++	if (signo == SIGKILL)
++		force_sig(SIGKILL, current);
++	else
++		force_sig_fault(signo, code, addr, current);
+ }
+ 
+ void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
 -- 
-2.21.0
+2.21.0.dirty
