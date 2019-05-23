@@ -1,77 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:40765 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730782AbfEWQL3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 12:11:29 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from mail-eopbgr60076.outbound.protection.outlook.com ([40.107.6.76]:39480
+        "EHLO EUR04-DB3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1730782AbfEWQND (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 May 2019 12:13:03 -0400
+From: Dave P Martin <Dave.Martin@arm.com>
+Subject: Re: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not
+ force_sig_fault for SIGKILL
+Date: Thu, 23 May 2019 16:12:59 +0000
+Message-ID: <20190523161256.GF2019@e103592.cambridge.arm.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
-        <20190523003916.20726-4-ebiederm@xmission.com>
-        <20190523101702.GG26646@fuggles.cambridge.arm.com>
-Date: Thu, 23 May 2019 11:11:19 -0500
-In-Reply-To: <20190523101702.GG26646@fuggles.cambridge.arm.com> (Will Deacon's
-        message of "Thu, 23 May 2019 11:17:02 +0100")
-Message-ID: <875zq1gnh4.fsf_-_@xmission.com>
+ <20190523003916.20726-4-ebiederm@xmission.com>
+ <20190523102101.GW28398@e103592.cambridge.arm.com>
+ <87r28pgr3h.fsf@xmission.com>
+In-Reply-To: <87r28pgr3h.fsf@xmission.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <B48C8992B857004B8A071824B809E7D6@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20190523161119.ZXUqrx5vw2HJsWbXpxA-UkMdrpMX9MUDjPK_GnuIAoI@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, James Morse <James.Morse@arm.com>, Will Deacon <Will.Deacon@arm.com>
+Message-ID: <20190523161259.Iw7q51dUEB0VlXXv9sDXar_IwUkMMCSCHKoZeQwshsk@z>
 
+On Thu, May 23, 2019 at 03:53:06PM +0100, Eric W. Biederman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
+>
+> > On Thu, May 23, 2019 at 01:38:53AM +0100, Eric W. Biederman wrote:
+> >> It really only matters to debuggers but the SIGKILL does not have any
+> >> si_codes that use the fault member of the siginfo union.  Correct this
+> >> the simple way and call force_sig instead of force_sig_fault when the
+> >> signal is SIGKILL.
+> >
+> > I haven't fully understood the context for this, but why does it matter
+> > what's in siginfo for SIGKILL?  My understanding is that userspace
+> > (including ptrace) never gets to see it anyway for the SIGKILL case.
+>
+> Yes.  In practice I think it would take tracing or something very
+> exotic to notice anything going wrong because the task will be killed.
+>
+> > Here it feels like SIGKILL is logically a synchronous, thread-targeted
+> > fault: we must ensure that no subsequent insn in current executes (just
+> > like other fault signal).  In this case, I thought we fall back to
+> > SIGKILL not because there is no fault, but because we failed to
+> > properly diagnose or report the type of fault that occurred.
+> >
+> > So maybe handling it consistently with other faults signals makes
+> > sense.  The fact that delivery of this signal destroys the process
+> > before anyone can look at the resulting siginfo feels like a
+> > side-effect rather than something obviously wrong.
+> >
+> > The siginfo is potentially useful diagnostic information, that we could
+> > subsequently provide a means to access post-mortem.
+> >
+> > I just dived in on this single patch, so I may be missing something mor=
+e
+> > fundamental, or just being pedantic...
+>
+> Not really.  I was working on another cleanup and this usage of SIGKILL
+> came up.
+>
+> A synchronous thread synchronous fault gets us as far as the forc_sig
+> family of functions.  That only leaves the question of which union
+> member in struct siginfo we are using.  The union members are _kill,
+> _fault, _timer, _rt, _sigchld, _sigfault, _sigpoll, and _sigsys.
+>
+> As it has prove quite error prone for people to fill out struct siginfo
+> in the past by hand, I have provided a couple of helper functions for
+> the common cases that come up such as: force_sig_fault,
+> force_sig_mceerr, force_sig_bnderr, force_sig_pkuerr.  Each of those
+> helper functions takes the information needed to fill out the union
+> member of struct siginfo that kind of fault corresponds to.
+>
+> For the SIGKILL case the only si_code I see being passed SI_KERNEL.
+> The SI_KERNEL si_code corresponds to the _kill union member while
+> force_sig_fault fills in fields for the _fault union member.
+>
+> Because of the mismatch of which union member SIGKILL should be using
+> and the union member force_sig_fault applies alarm bells ring in my head
+> when I read the current arm64 kernel code.  Somewhat doubly so because
+> the other fields in passed to force_sig_fault appear to be somewhat
+> random when SIGKILL is the signal.
+>
+> So I figured let's preserve the usage of SIGKILL as a synchronous
+> exception.  That seems legitimate and other folks do that as well but
+> let's use force_sig instead of force_sig_fault instead.  I don't know if
+> userspace will notice but at the very least we won't be providing a bad
+> example for other kernel code to follow and we won't wind up be making
+> assumptions that are true today and false tomorrow when some
+> implementation detail changes.
+>
+> For imformation on what signals and si_codes correspond to which
+> union members you can look at siginfo_layout.  That function
+> is the keeper of the magic decoder key.  Currently the only two
+> si_codes defined for SIGKILL are SI_KERNEL and SI_USER both of which
+> correspond to a _kill union member.
 
-I don't think this is userspace visible but SIGKILL does not have
-any si_codes that use the fault member of the siginfo union.  Correct
-this the simple way and call force_sig instead of force_sig_fault when
-the signal is SIGKILL.
+I see.  Assuming we cannot have a dummy internal si_code for this
+special case (probably a bad idea), I think Will's suggestion of at
+least pushing the special case handling down into
+arm64_force_sig_fault() is probably a bit cleaner here, expecially
+if other callers of that function may pass in SIGKILL (I haven't
+looked though).
 
-The two know places where synchronous SIGKILL are generated are
-do_bad_area and fpsimd_save.  The call paths to force_sig_fault are:
-do_bad_area
-  arm64_force_sig_fault
-    force_sig_fault
-force_signal_inject
-  arm64_notify_die
-    arm64_force_sig_fault
-       force_sig_fault
-
-Which means correcting this in arm64_force_sig_fault is enough
-to ensure the arm64 code is not misusing the generic code, which
-could lead to maintenance problems later.
-
-Cc: stable@vger.kernel.org
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: James Morse <james.morse@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
-
-I have also made the corresponding changes to:
-09/26 signal: Remove task parameter from force_sig
-21/26 signal: Remove the task parameter from force_sig_fault
-But I will leave off reposting those as for now as the changes
-are obvious.
-
-arch/arm64/kernel/traps.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index ade32046f3fe..e45d5b440fb1 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
- 			   const char *str)
- {
- 	arm64_show_signal(signo, str);
--	force_sig_fault(signo, code, addr, current);
-+	if (signo == SIGKILL)
-+		force_sig(SIGKILL, current);
-+	else
-+		force_sig_fault(signo, code, addr, current);
- }
- 
- void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
--- 
-2.21.0.dirty
+Cheers
+---Dave
+IMPORTANT NOTICE: The contents of this email and any attachments are confid=
+ential and may also be privileged. If you are not the intended recipient, p=
+lease notify the sender immediately and do not disclose the contents to any=
+ other person, use it for any purpose, or store or copy the information in =
+any medium. Thank you.
