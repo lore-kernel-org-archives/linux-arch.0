@@ -1,149 +1,185 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:44282 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728309AbfEWLVc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 May 2019 07:21:32 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 1/3] powerpc: Fix vDSO clock_getres()
-Date: Thu, 23 May 2019 12:21:14 +0100
-Message-ID: <20190523112116.19233-2-vincenzo.frascino@arm.com>
-In-Reply-To: <20190523112116.19233-1-vincenzo.frascino@arm.com>
-References: <20190523112116.19233-1-vincenzo.frascino@arm.com>
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:45544 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729966AbfEWLvY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2019 07:51:24 -0400
+Received: by mail-ed1-f67.google.com with SMTP id g57so8787036edc.12
+        for <linux-arch@vger.kernel.org>; Thu, 23 May 2019 04:51:23 -0700 (PDT)
+Date: Thu, 23 May 2019 13:51:20 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH v1 1/2] open: add close_range()
+Message-ID: <20190523115118.pmscbd6kaqy37dym@brauner.io>
+References: <20190522155259.11174-1-christian@brauner.io>
+ <20190522165737.GC4915@redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20190522165737.GC4915@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: vincenzo.frascino@arm.com, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>, stable@vger.kernel.org
-Message-ID: <20190523112114.ZKz4RxXtufF4pbSEw2s505Gj9gwjQTXT5wbdRxZpMNE@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
+Message-ID: <20190523115120.jCvJwG5DtL0j_khReyPapwIN6lp7Qp8Y9taNUwcMTsc@z>
 
-clock_getres in the vDSO library has to preserve the same behaviour
-of posix_get_hrtimer_res().
+On Wed, May 22, 2019 at 06:57:37PM +0200, Oleg Nesterov wrote:
+> On 05/22, Christian Brauner wrote:
+> >
+> > +static struct file *pick_file(struct files_struct *files, unsigned fd)
+> >  {
+> > -	struct file *file;
+> > +	struct file *file = NULL;
+> >  	struct fdtable *fdt;
+> >  
+> >  	spin_lock(&files->file_lock);
+> > @@ -632,15 +629,65 @@ int __close_fd(struct files_struct *files, unsigned fd)
+> >  		goto out_unlock;
+> >  	rcu_assign_pointer(fdt->fd[fd], NULL);
+> >  	__put_unused_fd(files, fd);
+> > -	spin_unlock(&files->file_lock);
+> > -	return filp_close(file, files);
+> >  
+> >  out_unlock:
+> >  	spin_unlock(&files->file_lock);
+> > -	return -EBADF;
+> > +	return file;
+> 
+> ...
+> 
+> > +int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
+> > +{
+> > +	unsigned int cur_max;
+> > +
+> > +	if (fd > max_fd)
+> > +		return -EINVAL;
+> > +
+> > +	rcu_read_lock();
+> > +	cur_max = files_fdtable(files)->max_fds;
+> > +	rcu_read_unlock();
+> > +
+> > +	/* cap to last valid index into fdtable */
+> > +	if (max_fd >= cur_max)
+> > +		max_fd = cur_max - 1;
+> > +
+> > +	while (fd <= max_fd) {
+> > +		struct file *file;
+> > +
+> > +		file = pick_file(files, fd++);
+> 
+> Well, how about something like
+> 
+> 	static unsigned int find_next_opened_fd(struct fdtable *fdt, unsigned start)
+> 	{
+> 		unsigned int maxfd = fdt->max_fds;
+> 		unsigned int maxbit = maxfd / BITS_PER_LONG;
+> 		unsigned int bitbit = start / BITS_PER_LONG;
+> 
+> 		bitbit = find_next_bit(fdt->full_fds_bits, maxbit, bitbit) * BITS_PER_LONG;
+> 		if (bitbit > maxfd)
+> 			return maxfd;
+> 		if (bitbit > start)
+> 			start = bitbit;
+> 		return find_next_bit(fdt->open_fds, maxfd, start);
+> 	}
 
-In particular, posix_get_hrtimer_res() does:
-    sec = 0;
-    ns = hrtimer_resolution;
-and hrtimer_resolution depends on the enablement of the high
-resolution timers that can happen either at compile or at run time.
+> 
+> 	unsigned close_next_fd(struct files_struct *files, unsigned start, unsigned maxfd)
+> 	{
+> 		unsigned fd;
+> 		struct file *file;
+> 		struct fdtable *fdt;
+> 	
+> 		spin_lock(&files->file_lock);
+> 		fdt = files_fdtable(files);
+> 		fd = find_next_opened_fd(fdt, start);
+> 		if (fd >= fdt->max_fds || fd > maxfd) {
+> 			fd = -1;
+> 			goto out;
+> 		}
+> 
+> 		file = fdt->fd[fd];
+> 		rcu_assign_pointer(fdt->fd[fd], NULL);
+> 		__put_unused_fd(files, fd);
+> 	out:
+> 		spin_unlock(&files->file_lock);
+> 
+> 		if (fd == -1u)
+> 			return fd;
+> 
+> 		filp_close(file, files);
+> 		return fd + 1;
+> 	}
 
-Fix the powerpc vdso implementation of clock_getres keeping a copy of
-hrtimer_resolution in vdso data and using that directly.
+Thanks, Oleg!
 
-Fixes: a7f290dad32e ("[PATCH] powerpc: Merge vdso's and add vdso support
-to 32 bits kernel")
-Cc: stable@vger.kernel.org
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
+I kept it dumb and was about to reply that your solution introduces more
+code when it seemed we wanted to keep this very simple for now.
+But then I saw that find_next_opened_fd() already exists as
+find_next_fd(). So it's actually not bad compared to what I sent in v1.
+So - with some small tweaks (need to test it and all now) - how do we
+feel about?:
 
-Note: This patch is independent from the others in this series, hence it
-can be merged singularly by the powerpc maintainers.
+/**
+ * __close_next_open_fd() - Close the nearest open fd.
+ *
+ * @curfd: lowest file descriptor to consider
+ * @maxfd: highest file descriptor to consider
+ *
+ * This function will close the nearest open fd, i.e. it will either
+ * close @curfd if it is open or the closest open file descriptor
+ * c greater than @curfd that
+ * is smaller or equal to maxfd.
+ * If the function found a file descriptor to close it will return 0 and
+ * place the file descriptor it closed in @curfd. If it did not find a
+ * file descriptor to close it will return -EBADF.
+ */
+static int __close_next_open_fd(struct files_struct *files, unsigned *curfd, unsigned maxfd)
+{
+        struct file *file = NULL;
+	unsigned fd;
+	struct fdtable *fdt;
 
- arch/powerpc/include/asm/vdso_datapage.h  | 2 ++
- arch/powerpc/kernel/asm-offsets.c         | 2 +-
- arch/powerpc/kernel/time.c                | 1 +
- arch/powerpc/kernel/vdso32/gettimeofday.S | 7 +++++--
- arch/powerpc/kernel/vdso64/gettimeofday.S | 7 +++++--
- 5 files changed, 14 insertions(+), 5 deletions(-)
+	spin_lock(&files->file_lock);
+	fdt = files_fdtable(files);
+	fd = find_next_fd(fdt, *curfd);
+	if (fd >= fdt->max_fds || fd > maxfd)
+		goto out_unlock;
 
-diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
-index bbc06bd72b1f..4333b9a473dc 100644
---- a/arch/powerpc/include/asm/vdso_datapage.h
-+++ b/arch/powerpc/include/asm/vdso_datapage.h
-@@ -86,6 +86,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;			/* Wall to monotonic clock nsec */
- 	__s64 wtom_clock_sec;			/* Wall to monotonic clock sec */
- 	struct timespec stamp_xtime;		/* xtime as at tb_orig_stamp */
-+	__u32 hrtimer_res;			/* hrtimer resolution */
-    	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- };
-@@ -107,6 +108,7 @@ struct vdso_data {
- 	__s32 wtom_clock_nsec;
- 	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
- 	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
-+	__u32 hrtimer_res;		/* hrtimer resolution */
-    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
- 	__u32 dcache_block_size;	/* L1 d-cache block size     */
- 	__u32 icache_block_size;	/* L1 i-cache block size     */
-diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
-index 8e02444e9d3d..dfc40f29f2b9 100644
---- a/arch/powerpc/kernel/asm-offsets.c
-+++ b/arch/powerpc/kernel/asm-offsets.c
-@@ -389,6 +389,7 @@ int main(void)
- 	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
- 	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
- 	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
-+	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
- 	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
- 	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
- 	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
-@@ -419,7 +420,6 @@ int main(void)
- 	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
- 	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
- 	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
--	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
- 
- #ifdef CONFIG_BUG
- 	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
-diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
-index 325d60633dfa..4ea4e9d7a58e 100644
---- a/arch/powerpc/kernel/time.c
-+++ b/arch/powerpc/kernel/time.c
-@@ -963,6 +963,7 @@ void update_vsyscall(struct timekeeper *tk)
- 	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
- 	vdso_data->stamp_xtime = xt;
- 	vdso_data->stamp_sec_fraction = frac_sec;
-+	vdso_data->hrtimer_res = hrtimer_resolution;
- 	smp_wmb();
- 	++(vdso_data->tb_update_count);
- }
-diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
-index afd516b572f8..2b5f9e83c610 100644
---- a/arch/powerpc/kernel/vdso32/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
-@@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
- 
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	__get_datapage@local
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpli	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	stw	r3,TSPC32_TV_SEC(r4)
- 	stw	r5,TSPC32_TV_NSEC(r4)
- 	blr
-diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
-index 1f324c28705b..f07730f73d5e 100644
---- a/arch/powerpc/kernel/vdso64/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
-@@ -190,12 +190,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
- 	bne	cr0,99f
- 
-+	mflr	r12
-+  .cfi_register lr,r12
-+	bl	V_LOCAL_FUNC(__get_datapage)
-+	lwz	r5,CLOCK_REALTIME_RES(r3)
-+	mtlr	r12
- 	li	r3,0
- 	cmpldi	cr0,r4,0
- 	crclr	cr0*4+so
- 	beqlr
--	lis	r5,CLOCK_REALTIME_RES@h
--	ori	r5,r5,CLOCK_REALTIME_RES@l
- 	std	r3,TSPC64_TV_SEC(r4)
- 	std	r5,TSPC64_TV_NSEC(r4)
- 	blr
--- 
-2.21.0
+	file = fdt->fd[fd];
+	rcu_assign_pointer(fdt->fd[fd], NULL);
+	__put_unused_fd(files, fd);
+
+out_unlock:
+	spin_unlock(&files->file_lock);
+
+	if (!file)
+		return -EBADF;
+
+	*curfd = fd;
+	filp_close(file, files);
+	return 0;
+}
+
+int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
+{
+	if (fd > max_fd)
+		return -EINVAL;
+
+	while (fd <= max_fd) {
+		if (__close_next_fd(files, &fd, maxfd))
+			break;
+
+		cond_resched();
+		fd++;
+	}
+
+	return 0;
+}
+
+SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
+		unsigned int, flags)
+{
+	if (flags)
+		return -EINVAL;
+
+	return __close_range(current->files, fd, max_fd);
+}
