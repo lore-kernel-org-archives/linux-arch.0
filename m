@@ -1,13 +1,13 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 5.0 075/139] x86/mpx, mm/core: Fix recursive munmap() corruption
-Date: Thu, 23 May 2019 21:06:03 +0200
-Message-ID: <20190523181730.571246299@linuxfoundation.org>
-References: <20190523181720.120897565@linuxfoundation.org>
+Subject: [PATCH 5.1 084/122] x86/mpx, mm/core: Fix recursive munmap() corruption
+Date: Thu, 23 May 2019 21:06:46 +0200
+Message-ID: <20190523181716.017288615@linuxfoundation.org>
+References: <20190523181705.091418060@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190523181720.120897565@linuxfoundation.org>
+In-Reply-To: <20190523181705.091418060@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Richard Biener <rguenther@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Yang Shi <yang.shi@linux.alibaba.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Borislav Petkov <bp@alien8.de>, Guan Xuetao <gxt@pku.edu.cn>, "H. Peter Anvin" <hpa@zytor.com>, Jeff Dike <jdike@addtoit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Richard Weinberger <richard@nod.at>Ri
@@ -324,7 +324,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  }
 --- a/mm/mmap.c
 +++ b/mm/mmap.c
-@@ -2736,9 +2736,17 @@ int __do_munmap(struct mm_struct *mm, un
+@@ -2735,9 +2735,17 @@ int __do_munmap(struct mm_struct *mm, un
  		return -EINVAL;
  
  	len = PAGE_ALIGN(len);
@@ -342,7 +342,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	/* Find the first overlapping VMA */
  	vma = find_vma(mm, start);
  	if (!vma)
-@@ -2747,7 +2755,6 @@ int __do_munmap(struct mm_struct *mm, un
+@@ -2746,7 +2754,6 @@ int __do_munmap(struct mm_struct *mm, un
  	/* we have  start < vma->vm_end  */
  
  	/* if it doesn't overlap, we have nothing.. */
@@ -350,7 +350,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	if (vma->vm_start >= end)
  		return 0;
  
-@@ -2817,12 +2824,6 @@ int __do_munmap(struct mm_struct *mm, un
+@@ -2816,12 +2823,6 @@ int __do_munmap(struct mm_struct *mm, un
  	/* Detach vmas from rbtree */
  	detach_vmas_to_be_unmapped(mm, vma, prev, end);
  
