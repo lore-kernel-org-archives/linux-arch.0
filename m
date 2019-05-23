@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 14/26] signal/riscv: Remove tsk parameter from do_trap
-Date: Wed, 22 May 2019 19:39:04 -0500
-Message-ID: <20190523003916.20726-15-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 22/26] signal: Properly set TRACE_SIGNAL_LOSE_INFO in __send_signal
+Date: Wed, 22 May 2019 19:39:12 -0500
+Message-ID: <20190523003916.20726-23-ebiederm@xmission.com>
 References: <20190523003916.20726-1-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,88 +12,60 @@ To: linux-kernel@vger.kernel.org
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The do_trap function is always called with tsk == current.
-Make that obvious by removing the tsk parameter.
+Any time siginfo is not stored in the signal queue information is
+lost.  Therefore set TRACE_SIGNAL_LOSE_INFO every time the code does
+not allocate a signal queue entry, and a queue overflow abort is not
+triggered.
 
-This also makes it clear that do_trap calls force_sig_fault
-on the current task.
-
+Fixes: ba005e1f4172 ("tracepoint: Add signal loss events")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/riscv/include/asm/bug.h | 2 +-
- arch/riscv/kernel/traps.c    | 7 ++++---
- arch/riscv/mm/fault.c        | 6 +++---
- 3 files changed, 8 insertions(+), 7 deletions(-)
+ kernel/signal.c | 33 ++++++++++++++++-----------------
+ 1 file changed, 16 insertions(+), 17 deletions(-)
 
-diff --git a/arch/riscv/include/asm/bug.h b/arch/riscv/include/asm/bug.h
-index 52a1fbdeab3b..f1390914ba7a 100644
---- a/arch/riscv/include/asm/bug.h
-+++ b/arch/riscv/include/asm/bug.h
-@@ -94,7 +94,7 @@ struct task_struct;
- 
- extern void die(struct pt_regs *regs, const char *str);
- extern void do_trap(struct pt_regs *regs, int signo, int code,
--	unsigned long addr, struct task_struct *tsk);
-+	unsigned long addr);
- 
- #endif /* !__ASSEMBLY__ */
- 
-diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
-index 3d1a651dc54c..71445a928c1b 100644
---- a/arch/riscv/kernel/traps.c
-+++ b/arch/riscv/kernel/traps.c
-@@ -63,9 +63,10 @@ void die(struct pt_regs *regs, const char *str)
- 		do_exit(SIGSEGV);
- }
- 
--void do_trap(struct pt_regs *regs, int signo, int code,
--	unsigned long addr, struct task_struct *tsk)
-+void do_trap(struct pt_regs *regs, int signo, int code, unsigned long addr)
- {
-+	struct task_struct *tsk = current;
-+
- 	if (show_unhandled_signals && unhandled_signal(tsk, signo)
- 	    && printk_ratelimit()) {
- 		pr_info("%s[%d]: unhandled signal %d code 0x%x at 0x" REG_FMT,
-@@ -82,7 +83,7 @@ static void do_trap_error(struct pt_regs *regs, int signo, int code,
- 	unsigned long addr, const char *str)
- {
- 	if (user_mode(regs)) {
--		do_trap(regs, signo, code, addr, current);
-+		do_trap(regs, signo, code, addr);
- 	} else {
- 		if (!fixup_exception(regs))
- 			die(regs, str);
-diff --git a/arch/riscv/mm/fault.c b/arch/riscv/mm/fault.c
-index cec8be9e2d6a..0a0081d9b766 100644
---- a/arch/riscv/mm/fault.c
-+++ b/arch/riscv/mm/fault.c
-@@ -181,7 +181,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
- 	up_read(&mm->mmap_sem);
- 	/* User mode accesses just cause a SIGSEGV */
- 	if (user_mode(regs)) {
--		do_trap(regs, SIGSEGV, code, addr, tsk);
-+		do_trap(regs, SIGSEGV, code, addr);
- 		return;
+diff --git a/kernel/signal.c b/kernel/signal.c
+index d92b636b4e9d..b2f0cf3a68aa 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -1131,23 +1131,22 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
+ 			copy_siginfo(&q->info, info);
+ 			break;
+ 		}
+-	} else if (!is_si_special(info)) {
+-		if (sig >= SIGRTMIN && info->si_code != SI_USER) {
+-			/*
+-			 * Queue overflow, abort.  We may abort if the
+-			 * signal was rt and sent by user using something
+-			 * other than kill().
+-			 */
+-			result = TRACE_SIGNAL_OVERFLOW_FAIL;
+-			ret = -EAGAIN;
+-			goto ret;
+-		} else {
+-			/*
+-			 * This is a silent loss of information.  We still
+-			 * send the signal, but the *info bits are lost.
+-			 */
+-			result = TRACE_SIGNAL_LOSE_INFO;
+-		}
++	} else if (!is_si_special(info) &&
++		   sig >= SIGRTMIN && info->si_code != SI_USER) {
++		/*
++		 * Queue overflow, abort.  We may abort if the
++		 * signal was rt and sent by user using something
++		 * other than kill().
++		 */
++		result = TRACE_SIGNAL_OVERFLOW_FAIL;
++		ret = -EAGAIN;
++		goto ret;
++	} else {
++		/*
++		 * This is a silent loss of information.  We still
++		 * send the signal, but the *info bits are lost.
++		 */
++		result = TRACE_SIGNAL_LOSE_INFO;
  	}
  
-@@ -217,7 +217,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
- 	/* Kernel mode? Handle exceptions or die */
- 	if (!user_mode(regs))
- 		goto no_context;
--	do_trap(regs, SIGBUS, BUS_ADRERR, addr, tsk);
-+	do_trap(regs, SIGBUS, BUS_ADRERR, addr);
- 	return;
- 
- vmalloc_fault:
-@@ -231,7 +231,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
- 
- 		/* User mode accesses just cause a SIGSEGV */
- 		if (user_mode(regs))
--			return do_trap(regs, SIGSEGV, code, addr, tsk);
-+			return do_trap(regs, SIGSEGV, code, addr);
- 
- 		/*
- 		 * Synchronize this task's top level page-table
+ out_set:
 -- 
 2.21.0
