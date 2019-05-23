@@ -1,68 +1,72 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [REVIEW][PATCH 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
-Date: Thu, 23 May 2019 09:59:20 -0500
-Message-ID: <87d0k9gqt3.fsf@xmission.com>
-References: <20190523003916.20726-1-ebiederm@xmission.com>
-        <20190523003916.20726-4-ebiederm@xmission.com>
-        <20190523101702.GG26646@fuggles.cambridge.arm.com>
+From: Christian Brauner <christian@brauner.io>
+Subject: [PATCH v2 0/2] close_range()
+Date: Thu, 23 May 2019 17:47:45 +0200
+Message-ID: <20190523154747.15162-1-christian@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190523101702.GG26646@fuggles.cambridge.arm.com> (Will Deacon's
-        message of "Thu, 23 May 2019 11:17:02 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com
+Cc: jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org, Christian Brauner <christian@brauner.io>
 List-Id: linux-arch.vger.kernel.org
 
-Will Deacon <will.deacon@arm.com> writes:
+Hey,
 
-> On Wed, May 22, 2019 at 07:38:53PM -0500, Eric W. Biederman wrote:
->> It really only matters to debuggers but the SIGKILL does not have any
->> si_codes that use the fault member of the siginfo union.  Correct this
->> the simple way and call force_sig instead of force_sig_fault when the
->> signal is SIGKILL.
->> 
->> Cc: stable@vger.kernel.org
->> Cc: Dave Martin <Dave.Martin@arm.com>
->> Cc: James Morse <james.morse@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Fixes: af40ff687bc9 ("arm64: signal: Ensure si_code is valid for all fault signals")
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->> ---
->>  arch/arm64/kernel/traps.c | 5 +++++
->>  1 file changed, 5 insertions(+)
->> 
->> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
->> index ade32046f3fe..0feb17bdcaa0 100644
->> --- a/arch/arm64/kernel/traps.c
->> +++ b/arch/arm64/kernel/traps.c
->> @@ -282,6 +282,11 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
->>  		current->thread.fault_address = 0;
->>  		current->thread.fault_code = err;
->>  
->> +		if (signo == SIGKILL) {
->> +			arm64_show_signal(signo, str);
->> +			force_sig(signo, current);
->> +			return;
->> +		}
->
-> I know it's a bit of a misnomer, but I'd rather do this check inside
-> arm64_force_sig_fault, since I think we have other callers (e.g.
-> do_bad_area()) which also blindly pass in SIGKILL here.
+This is v2 of this patchset.
 
-Sigh.  You are right.
+In accordance with some comments There's a cond_resched() added to the
+close loop similar to what is done for close_files().
+A common helper pick_file() for __close_fd() and __close_range() has
+been split out. This allows to only make a cond_resched() call when
+filp_close() has been called similar to what is done in close_files().
+Maybe that's not worth it. Jann mentioned that cond_resched() looks
+rather cheap.
+So it maybe that we could simply do:
 
-I thought I had checked for that when I made my change there.  But
-do_bad_area will definitely do that, and that was one of the cases that
-jumped out at me as needing to be fixed, when I skimmed the arm code.
+while (fd <= max_fd) {
+       __close(files, fd++);
+       cond_resched();
+}
 
-I will respin this patch to move that lower.
+I also added a missing test for close_range(fd, fd, 0).
 
-> We could rename the thing if necessary.
+Thanks!
+Christian
 
-I would not mind but as long as we aren't misusing the generic bits
-I won't have alarm bells going of in my head when I look at their
-users.
+Christian Brauner (2):
+  open: add close_range()
+  tests: add close_range() tests
 
-Eric
+ arch/alpha/kernel/syscalls/syscall.tbl        |   1 +
+ arch/arm/tools/syscall.tbl                    |   1 +
+ arch/arm64/include/asm/unistd32.h             |   2 +
+ arch/ia64/kernel/syscalls/syscall.tbl         |   1 +
+ arch/m68k/kernel/syscalls/syscall.tbl         |   1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl   |   1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl     |   1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl     |   1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl     |   1 +
+ arch/parisc/kernel/syscalls/syscall.tbl       |   1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl      |   1 +
+ arch/s390/kernel/syscalls/syscall.tbl         |   1 +
+ arch/sh/kernel/syscalls/syscall.tbl           |   1 +
+ arch/sparc/kernel/syscalls/syscall.tbl        |   1 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |   1 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl       |   1 +
+ fs/file.c                                     |  62 +++++++-
+ fs/open.c                                     |  20 +++
+ include/linux/fdtable.h                       |   2 +
+ include/linux/syscalls.h                      |   2 +
+ include/uapi/asm-generic/unistd.h             |   4 +-
+ tools/testing/selftests/Makefile              |   1 +
+ tools/testing/selftests/core/.gitignore       |   1 +
+ tools/testing/selftests/core/Makefile         |   6 +
+ .../testing/selftests/core/close_range_test.c | 142 ++++++++++++++++++
+ 26 files changed, 249 insertions(+), 9 deletions(-)
+ create mode 100644 tools/testing/selftests/core/.gitignore
+ create mode 100644 tools/testing/selftests/core/Makefile
+ create mode 100644 tools/testing/selftests/core/close_range_test.c
+
+-- 
+2.21.0
