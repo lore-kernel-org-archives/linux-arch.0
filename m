@@ -1,488 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39230 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389942AbfEXK0c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 May 2019 06:26:32 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 4/8] arm64: Basic Branch Target Identification support
-Date: Fri, 24 May 2019 11:25:29 +0100
-Message-ID: <1558693533-13465-5-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
-References: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
+Received: from mail-it1-f195.google.com ([209.85.166.195]:34268 "EHLO
+        mail-it1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390391AbfEXKbt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 May 2019 06:31:49 -0400
+Received: by mail-it1-f195.google.com with SMTP id g23so10648190iti.1
+        for <linux-arch@vger.kernel.org>; Fri, 24 May 2019 03:31:48 -0700 (PDT)
+Date: Fri, 24 May 2019 12:31:39 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH v1 1/2] open: add close_range()
+Message-ID: <20190524103137.otw7tbmagiqnf6u6@brauner.io>
+References: <20190522155259.11174-1-christian@brauner.io>
+ <67e4458a-9cc4-d1aa-608c-73ebe9e2f7a3@yandex-team.ru>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <67e4458a-9cc4-d1aa-608c-73ebe9e2f7a3@yandex-team.ru>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>, "H.J. Lu" <hjl.tools@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <richard.henderson@linaro.org>, Andrew Jones <drjones@redhat.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Sudakshina Das <sudi.das@arm.com>, Paul Elliott <paul.elliott@arm.com>
-Message-ID: <20190524102529.S-r5WLf94QwM8PXh-qGz8BRYy2SJja2NNCudAgAxpZE@z>
+To: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
+Message-ID: <20190524103139.4WpRh_aF_t1AzlAqTqQJx8P8A-csmPildzBoXjkkTrQ@z>
 
-This patch adds the bare minimum required to expose the ARMv8.5
-Branch Target Identification feature to userspace.
+On Thu, May 23, 2019 at 07:22:17PM +0300, Konstantin Khlebnikov wrote:
+> On 22.05.2019 18:52, Christian Brauner wrote:> This adds the close_range() syscall. It allows to efficiently close a range
+> > of file descriptors up to all file descriptors of a calling task.
+> >
+> > The syscall came up in a recent discussion around the new mount API and
+> > making new file descriptor types cloexec by default. During this
+> > discussion, Al suggested the close_range() syscall (cf. [1]). Note, a
+> > syscall in this manner has been requested by various people over time.
+> >
+> > First, it helps to close all file descriptors of an exec()ing task. This
+> > can be done safely via (quoting Al's example from [1] verbatim):
+> >
+> >          /* that exec is sensitive */
+> >          unshare(CLONE_FILES);
+> >          /* we don't want anything past stderr here */
+> >          close_range(3, ~0U);
+> >          execve(....);
+> >
+> > The code snippet above is one way of working around the problem that file
+> > descriptors are not cloexec by default. This is aggravated by the fact that
+> > we can't just switch them over without massively regressing userspace. For
+> > a whole class of programs having an in-kernel method of closing all file
+> > descriptors is very helpful (e.g. demons, service managers, programming
+> > language standard libraries, container managers etc.).
+> > (Please note, unshare(CLONE_FILES) should only be needed if the calling
+> >   task is multi-threaded and shares the file descriptor table with another
+> >   thread in which case two threads could race with one thread allocating
+> >   file descriptors and the other one closing them via close_range(). For the
+> >   general case close_range() before the execve() is sufficient.)
+> >
+> > Second, it allows userspace to avoid implementing closing all file
+> > descriptors by parsing through /proc/<pid>/fd/* and calling close() on each
+> > file descriptor. From looking at various large(ish) userspace code bases
+> > this or similar patterns are very common in:
+> > - service managers (cf. [4])
+> > - libcs (cf. [6])
+> > - container runtimes (cf. [5])
+> > - programming language runtimes/standard libraries
+> >    - Python (cf. [2])
+> >    - Rust (cf. [7], [8])
+> > As Dmitry pointed out there's even a long-standing glibc bug about missing
+> > kernel support for this task (cf. [3]).
+> > In addition, the syscall will also work for tasks that do not have procfs
+> > mounted and on kernels that do not have procfs support compiled in. In such
+> > situations the only way to make sure that all file descriptors are closed
+> > is to call close() on each file descriptor up to UINT_MAX or RLIMIT_NOFILE,
+> > OPEN_MAX trickery (cf. comment [8] on Rust).
+> >
+> > The performance is striking. For good measure, comparing the following
+> > simple close_all_fds() userspace implementation that is essentially just
+> > glibc's version in [6]:
+> >
+> > static int close_all_fds(void)
+> > {
+> >          int dir_fd;
+> >          DIR *dir;
+> >          struct dirent *direntp;
+> >
+> >          dir = opendir("/proc/self/fd");
+> >          if (!dir)
+> >                  return -1;
+> >          dir_fd = dirfd(dir);
+> >          while ((direntp = readdir(dir))) {
+> >                  int fd;
+> >                  if (strcmp(direntp->d_name, ".") == 0)
+> >                          continue;
+> >                  if (strcmp(direntp->d_name, "..") == 0)
+> >                          continue;
+> >                  fd = atoi(direntp->d_name);
+> >                  if (fd == dir_fd || fd == 0 || fd == 1 || fd == 2)
+> >                          continue;
+> >                  close(fd);
+> >          }
+> >          closedir(dir);
+> >          return 0;
+> > }
+> >
+> > to close_range() yields:
+> > 1. closing 4 open files:
+> >     - close_all_fds(): ~280 us
+> >     - close_range():    ~24 us
+> >
+> > 2. closing 1000 open files:
+> >     - close_all_fds(): ~5000 us
+> >     - close_range():   ~800 us
+> >
+> > close_range() is designed to allow for some flexibility. Specifically, it
+> > does not simply always close all open file descriptors of a task. Instead,
+> > callers can specify an upper bound.
+> > This is e.g. useful for scenarios where specific file descriptors are
+> > created with well-known numbers that are supposed to be excluded from
+> > getting closed.
+> > For extra paranoia close_range() comes with a flags argument. This can e.g.
+> > be used to implement extension. Once can imagine userspace wanting to stop
+> > at the first error instead of ignoring errors under certain circumstances.
+> 
+> > There might be other valid ideas in the future. In any case, a flag
+> > argument doesn't hurt and keeps us on the safe side.
+> 
+> Here is another strange but real-live scenario: crash handler for dumping core.
+> 
+> If applications has network connections it would be better to close them all,
+> otherwise clients will wait until end of dumping process or timeout.
+> Also closing normal files might be a good idea for releasing locks.
+> 
+> But simple closing might race with other threads - closed fd will be reused
+> while some code still thinks it refers to original file.
+> 
+> Our solution closes files without freeing fd: it opens /dev/null and
+> replaces all opened descriptors using dup2.
+> 
+> So, special flag for close_range() could close files without clearing bitmap.
+> Effect should be the same - fd wouldn't be reused.
+> 
+> Actually two flags for two phases: closing files and releasing fd.
 
-By itself, this does _not_ automatically enable BTI for any initial
-executable pages mapped by execve().  This will come later, but for
-now it should be possible to enable BTI manually on those pages by
-using mprotect() from within the target process.
+Konstantin, I'm sorry, I totally missed that part of your mail
+yesterday.
+Without speaking to the feasibility of this it's at least a good
+illustration that people really do have the possible need for a flag
+argument.
 
-Other arches already using the generic mman.h are already using
-0x10 for arch-specific prot flags, so we use that for
-PROT_BTI_GUARDED here.
-
-For consistency, signal handler entry points in BTI guarded pages
-are required to be annotated as such, just like any other function.
-This blocks a relatively minor attack vector, but comforming
-userspace will have the annotations anyway, so we may as well
-enforce them.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-
----
-
-Notes:
-
- * An #ifdef CONFIG_ARM64_BTI controls the cpufeature field visibility
-   for userspace.  It's probably best not to report BTI as present if
-   the required kernel support is unavailable.
-
- * It's not clear whether anything extra needs to be done for hugepages.
----
- Documentation/arm64/cpu-feature-registers.txt |  2 ++
- Documentation/arm64/elf_hwcaps.txt            |  4 ++++
- arch/arm64/Kconfig                            | 23 +++++++++++++++++++
- arch/arm64/include/asm/cpucaps.h              |  3 ++-
- arch/arm64/include/asm/cpufeature.h           |  6 +++++
- arch/arm64/include/asm/esr.h                  |  2 +-
- arch/arm64/include/asm/hwcap.h                |  1 +
- arch/arm64/include/asm/mman.h                 | 33 +++++++++++++++++++++++++++
- arch/arm64/include/asm/pgtable-hwdef.h        |  1 +
- arch/arm64/include/asm/pgtable.h              |  2 +-
- arch/arm64/include/asm/ptrace.h               |  1 +
- arch/arm64/include/asm/sysreg.h               |  2 ++
- arch/arm64/include/uapi/asm/hwcap.h           |  1 +
- arch/arm64/include/uapi/asm/mman.h            |  9 ++++++++
- arch/arm64/include/uapi/asm/ptrace.h          |  1 +
- arch/arm64/kernel/cpufeature.c                | 17 ++++++++++++++
- arch/arm64/kernel/cpuinfo.c                   |  1 +
- arch/arm64/kernel/entry.S                     | 11 +++++++++
- arch/arm64/kernel/ptrace.c                    |  2 +-
- arch/arm64/kernel/signal.c                    |  5 ++++
- arch/arm64/kernel/syscall.c                   |  1 +
- arch/arm64/kernel/traps.c                     |  7 ++++++
- include/linux/mm.h                            |  3 +++
- 23 files changed, 134 insertions(+), 4 deletions(-)
- create mode 100644 arch/arm64/include/asm/mman.h
- create mode 100644 arch/arm64/include/uapi/asm/mman.h
-
-diff --git a/Documentation/arm64/cpu-feature-registers.txt b/Documentation/arm64/cpu-feature-registers.txt
-index 54d2bfa..602eb6e 100644
---- a/Documentation/arm64/cpu-feature-registers.txt
-+++ b/Documentation/arm64/cpu-feature-registers.txt
-@@ -165,6 +165,8 @@ infrastructure:
-      | Name                         |  bits   | visible |
-      |--------------------------------------------------|
-      | SSBS                         | [7-4]   |    y    |
-+     |--------------------------------------------------|
-+     | BT                           | [3-0]   |    y    |
-      x--------------------------------------------------x
- 
- 
-diff --git a/Documentation/arm64/elf_hwcaps.txt b/Documentation/arm64/elf_hwcaps.txt
-index b73a251..7a872d3 100644
---- a/Documentation/arm64/elf_hwcaps.txt
-+++ b/Documentation/arm64/elf_hwcaps.txt
-@@ -223,6 +223,10 @@ HWCAP_PACG
-     ID_AA64ISAR1_EL1.GPI == 0b0001, as described by
-     Documentation/arm64/pointer-authentication.txt.
- 
-+HWCAP2_BTI
-+
-+    Functionality implied by ID_AA64PFR0_EL1.BT == 0b0001.
-+
- 
- 4. Unused AT_HWCAP bits
- -----------------------
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 4780eb7..0f6765e 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -1361,6 +1361,29 @@ config ARM64_PTR_AUTH
- 
- endmenu
- 
-+menu "ARMv8.5 architectural features"
-+
-+config ARM64_BTI
-+	bool "Branch Target Identification support"
-+	default y
-+	help
-+	  Branch Target Identification (part of the ARMv8.5 Extensions)
-+	  provides a mechanism to limit the set of locations to which computed
-+	  branch instructions such as BR or BLR can jump.
-+
-+	  This is intended to provide complementary protection to other control
-+	  flow integrity protection mechanisms, such as the Pointer
-+	  authentication mechanism provided as part of the ARMv8.2 Extensions.
-+
-+	  To make use of BTI on CPUs that support it, say Y.
-+
-+	  Userspace binaries must also be specifically compiled to make use of
-+	  this mechanism.  If you say N here or the hardware does not support
-+	  BTI, such binaries can still run, but you get no additional
-+	  enforcement of branch destinations.
-+
-+endmenu
-+
- config ARM64_SVE
- 	bool "ARM Scalable Vector Extension support"
- 	default y
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-index defdc67..ccb44ae 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -62,7 +62,8 @@
- #define ARM64_HAS_GENERIC_AUTH_IMP_DEF		41
- #define ARM64_HAS_IRQ_PRIO_MASKING		42
- #define ARM64_HAS_DCPODP			43
-+#define ARM64_BTI				44
- 
--#define ARM64_NCAPS				44
-+#define ARM64_NCAPS				45
- 
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
-index bc895c8..308cc54 100644
---- a/arch/arm64/include/asm/cpufeature.h
-+++ b/arch/arm64/include/asm/cpufeature.h
-@@ -617,6 +617,12 @@ static inline bool system_uses_irq_prio_masking(void)
- 	       cpus_have_const_cap(ARM64_HAS_IRQ_PRIO_MASKING);
- }
- 
-+static inline bool system_supports_bti(void)
-+{
-+	return IS_ENABLED(CONFIG_ARM64_BTI) &&
-+		cpus_have_const_cap(ARM64_BTI);
-+}
-+
- #define ARM64_SSBD_UNKNOWN		-1
- #define ARM64_SSBD_FORCE_DISABLE	0
- #define ARM64_SSBD_KERNEL		1
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index 0e27fe9..0dd43a5 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -33,7 +33,7 @@
- #define ESR_ELx_EC_PAC		(0x09)	/* EL2 and above */
- /* Unallocated EC: 0x0A - 0x0B */
- #define ESR_ELx_EC_CP14_64	(0x0C)
--/* Unallocated EC: 0x0d */
-+#define ESR_ELx_EC_BTI		(0x0D)
- #define ESR_ELx_EC_ILL		(0x0E)
- /* Unallocated EC: 0x0F - 0x10 */
- #define ESR_ELx_EC_SVC32	(0x11)
-diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
-index b4bfb66..c6b918f 100644
---- a/arch/arm64/include/asm/hwcap.h
-+++ b/arch/arm64/include/asm/hwcap.h
-@@ -95,6 +95,7 @@
- #define KERNEL_HWCAP_SVEBITPERM		__khwcap2_feature(SVEBITPERM)
- #define KERNEL_HWCAP_SVESHA3		__khwcap2_feature(SVESHA3)
- #define KERNEL_HWCAP_SVESM4		__khwcap2_feature(SVESM4)
-+#define KERNEL_HWCAP_BTI		__khwcap2_feature(BTI)
- 
- /*
-  * This yields a mask that user programs can use to figure out what
-diff --git a/arch/arm64/include/asm/mman.h b/arch/arm64/include/asm/mman.h
-new file mode 100644
-index 0000000..a1f67aa
---- /dev/null
-+++ b/arch/arm64/include/asm/mman.h
-@@ -0,0 +1,33 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_MMAN_H__
-+#define __ASM_MMAN_H__
-+
-+#include <uapi/asm/mman.h>
-+
-+#define arch_calc_vm_prot_bits(prot, pkey) arm64_calc_vm_prot_bits(prot)
-+static inline unsigned long arm64_calc_vm_prot_bits(unsigned long prot)
-+{
-+	if (system_supports_bti() && (prot & PROT_BTI_GUARDED))
-+		return VM_ARM64_GP;
-+
-+	return 0;
-+}
-+
-+#define arch_vm_get_page_prot(vm_flags) arm64_vm_get_page_prot(vm_flags)
-+static inline pgprot_t arm64_vm_get_page_prot(unsigned long vm_flags)
-+{
-+	return (vm_flags & VM_ARM64_GP) ? __pgprot(PTE_GP) : __pgprot(0);
-+}
-+
-+#define arch_validate_prot(prot, addr) arm64_validate_prot(prot, addr)
-+static inline int arm64_validate_prot(unsigned long prot, unsigned long addr)
-+{
-+	unsigned long supported = PROT_READ | PROT_WRITE | PROT_EXEC | PROT_SEM;
-+
-+	if (system_supports_bti())
-+		supported |= PROT_BTI_GUARDED;
-+
-+	return (prot & ~supported) == 0;
-+}
-+
-+#endif /* ! __ASM_MMAN_H__ */
-diff --git a/arch/arm64/include/asm/pgtable-hwdef.h b/arch/arm64/include/asm/pgtable-hwdef.h
-index a69259c..6e8af3a 100644
---- a/arch/arm64/include/asm/pgtable-hwdef.h
-+++ b/arch/arm64/include/asm/pgtable-hwdef.h
-@@ -162,6 +162,7 @@
- #define PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
- #define PTE_AF			(_AT(pteval_t, 1) << 10)	/* Access Flag */
- #define PTE_NG			(_AT(pteval_t, 1) << 11)	/* nG */
-+#define PTE_GP			(_AT(pteval_t, 1) << 50)	/* BTI guarded */
- #define PTE_DBM			(_AT(pteval_t, 1) << 51)	/* Dirty Bit Management */
- #define PTE_CONT		(_AT(pteval_t, 1) << 52)	/* Contiguous range */
- #define PTE_PXN			(_AT(pteval_t, 1) << 53)	/* Privileged XN */
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 2c41b04..eefd9a44 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -640,7 +640,7 @@ static inline phys_addr_t pgd_page_paddr(pgd_t pgd)
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- {
- 	const pteval_t mask = PTE_USER | PTE_PXN | PTE_UXN | PTE_RDONLY |
--			      PTE_PROT_NONE | PTE_VALID | PTE_WRITE;
-+			      PTE_PROT_NONE | PTE_VALID | PTE_WRITE | PTE_GP;
- 	/* preserve the hardware dirty information */
- 	if (pte_hw_dirty(pte))
- 		pte = pte_mkdirty(pte);
-diff --git a/arch/arm64/include/asm/ptrace.h b/arch/arm64/include/asm/ptrace.h
-index b2de329..b868ef11 100644
---- a/arch/arm64/include/asm/ptrace.h
-+++ b/arch/arm64/include/asm/ptrace.h
-@@ -41,6 +41,7 @@
- 
- /* Additional SPSR bits not exposed in the UABI */
- #define PSR_IL_BIT		(1 << 20)
-+#define PSR_BTYPE_CALL		(2 << 10)
- 
- /* AArch32-specific ptrace requests */
- #define COMPAT_PTRACE_GETREGS		12
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index 902d75b..2b8d364 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -604,10 +604,12 @@
- 
- /* id_aa64pfr1 */
- #define ID_AA64PFR1_SSBS_SHIFT		4
-+#define ID_AA64PFR1_BT_SHIFT		0
- 
- #define ID_AA64PFR1_SSBS_PSTATE_NI	0
- #define ID_AA64PFR1_SSBS_PSTATE_ONLY	1
- #define ID_AA64PFR1_SSBS_PSTATE_INSNS	2
-+#define ID_AA64PFR1_BT_BTI		0x1
- 
- /* id_aa64zfr0 */
- #define ID_AA64ZFR0_SM4_SHIFT		40
-diff --git a/arch/arm64/include/uapi/asm/hwcap.h b/arch/arm64/include/uapi/asm/hwcap.h
-index 1a772b1..ea5bdda 100644
---- a/arch/arm64/include/uapi/asm/hwcap.h
-+++ b/arch/arm64/include/uapi/asm/hwcap.h
-@@ -63,5 +63,6 @@
- #define HWCAP2_SVEBITPERM	(1 << 4)
- #define HWCAP2_SVESHA3		(1 << 5)
- #define HWCAP2_SVESM4		(1 << 6)
-+#define HWCAP2_BTI		(1 << 7)
- 
- #endif /* _UAPI__ASM_HWCAP_H */
-diff --git a/arch/arm64/include/uapi/asm/mman.h b/arch/arm64/include/uapi/asm/mman.h
-new file mode 100644
-index 0000000..4776b43
---- /dev/null
-+++ b/arch/arm64/include/uapi/asm/mman.h
-@@ -0,0 +1,9 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#ifndef _UAPI__ASM_MMAN_H
-+#define _UAPI__ASM_MMAN_H
-+
-+#include <asm-generic/mman.h>
-+
-+#define PROT_BTI_GUARDED	0x10		/* BTI guarded page */
-+
-+#endif /* ! _UAPI__ASM_MMAN_H */
-diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-index d78623a..e2361a1 100644
---- a/arch/arm64/include/uapi/asm/ptrace.h
-+++ b/arch/arm64/include/uapi/asm/ptrace.h
-@@ -46,6 +46,7 @@
- #define PSR_I_BIT	0x00000080
- #define PSR_A_BIT	0x00000100
- #define PSR_D_BIT	0x00000200
-+#define PSR_BTYPE_MASK	0x00000c00
- #define PSR_SSBS_BIT	0x00001000
- #define PSR_PAN_BIT	0x00400000
- #define PSR_UAO_BIT	0x00800000
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index ca27e08..0a6dbb3 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -182,6 +182,8 @@ static const struct arm64_ftr_bits ftr_id_aa64pfr0[] = {
- 
- static const struct arm64_ftr_bits ftr_id_aa64pfr1[] = {
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_SSBS_SHIFT, 4, ID_AA64PFR1_SSBS_PSTATE_NI),
-+	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_BTI),
-+				    FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_BT_SHIFT, 4, 0),
- 	ARM64_FTR_END,
- };
- 
-@@ -1558,6 +1560,18 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.min_field_value = 1,
- 	},
- #endif
-+#ifdef CONFIG_ARM64_BTI
-+	{
-+		.desc = "Branch Target Identification",
-+		.capability = ARM64_BTI,
-+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches = has_cpuid_feature,
-+		.sys_reg = SYS_ID_AA64PFR1_EL1,
-+		.field_pos = ID_AA64PFR1_BT_SHIFT,
-+		.min_field_value = ID_AA64PFR1_BT_BTI,
-+		.sign = FTR_UNSIGNED,
-+	},
-+#endif
- 	{},
- };
- 
-@@ -1651,6 +1665,9 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
- 	HWCAP_CAP(SYS_ID_AA64ZFR0_EL1, ID_AA64ZFR0_SM4_SHIFT, FTR_UNSIGNED, ID_AA64ZFR0_SM4, CAP_HWCAP, KERNEL_HWCAP_SVESM4),
- #endif
- 	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_SSBS_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_SSBS_PSTATE_INSNS, CAP_HWCAP, KERNEL_HWCAP_SSBS),
-+#ifdef CONFIG_ARM64_BTI
-+	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_BT_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_BT_BTI, CAP_HWCAP, KERNEL_HWCAP_BTI),
-+#endif
- #ifdef CONFIG_ARM64_PTR_AUTH
- 	HWCAP_MULTI_CAP(ptr_auth_hwcap_addr_matches, CAP_HWCAP, KERNEL_HWCAP_PACA),
- 	HWCAP_MULTI_CAP(ptr_auth_hwcap_gen_matches, CAP_HWCAP, KERNEL_HWCAP_PACG),
-diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-index f6f7936..0fd3899 100644
---- a/arch/arm64/kernel/cpuinfo.c
-+++ b/arch/arm64/kernel/cpuinfo.c
-@@ -92,6 +92,7 @@ static const char *const hwcap_str[] = {
- 	"svebitperm",
- 	"svesha3",
- 	"svesm4",
-+	"bti",
- 	NULL
- };
- 
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 1a7811b..da3694e 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -707,6 +707,8 @@ el0_sync:
- 	b.eq	el0_sp_pc
- 	cmp	x24, #ESR_ELx_EC_UNKNOWN	// unknown exception in EL0
- 	b.eq	el0_undef
-+	cmp	x24, #ESR_ELx_EC_BTI		// branch target exception
-+	b.eq	el0_bti
- 	cmp	x24, #ESR_ELx_EC_BREAKPT_LOW	// debug exception in EL0
- 	b.ge	el0_dbg
- 	b	el0_inv
-@@ -851,6 +853,15 @@ el0_undef:
- 	mov	x0, sp
- 	bl	do_undefinstr
- 	b	ret_to_user
-+el0_bti:
-+	/*
-+	 * Branch target exception
-+	 */
-+	enable_daif
-+	ct_user_exit
-+	mov	x0, sp
-+	bl	do_bti
-+	b	ret_to_user
- el0_sys:
- 	/*
- 	 * System instructions, for trapped cache maintenance instructions
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index b82e0a9..3717b06 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -1860,7 +1860,7 @@ void syscall_trace_exit(struct pt_regs *regs)
-  */
- #define SPSR_EL1_AARCH64_RES0_BITS \
- 	(GENMASK_ULL(63, 32) | GENMASK_ULL(27, 25) | GENMASK_ULL(23, 22) | \
--	 GENMASK_ULL(20, 13) | GENMASK_ULL(11, 10) | GENMASK_ULL(5, 5))
-+	 GENMASK_ULL(20, 13) | GENMASK_ULL(5, 5))
- #define SPSR_EL1_AARCH32_RES0_BITS \
- 	(GENMASK_ULL(63, 32) | GENMASK_ULL(22, 22) | GENMASK_ULL(20, 20))
- 
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index a9b0485..2e540f5 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -741,6 +741,11 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
- 	regs->pc = (unsigned long)ka->sa.sa_handler;
- 
-+	if (system_supports_bti()) {
-+		regs->pstate &= ~(regs->pstate & PSR_BTYPE_MASK);
-+		regs->pstate |= PSR_BTYPE_CALL;
-+	}
-+
- 	if (ka->sa.sa_flags & SA_RESTORER)
- 		sigtramp = ka->sa.sa_restorer;
- 	else
-diff --git a/arch/arm64/kernel/syscall.c b/arch/arm64/kernel/syscall.c
-index 5610ac0..85b456b 100644
---- a/arch/arm64/kernel/syscall.c
-+++ b/arch/arm64/kernel/syscall.c
-@@ -66,6 +66,7 @@ static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
- 	unsigned long flags = current_thread_info()->flags;
- 
- 	regs->orig_x0 = regs->regs[0];
-+	regs->pstate &= ~(regs->pstate & PSR_BTYPE_MASK);
- 	regs->syscallno = scno;
- 
- 	local_daif_restore(DAIF_PROCCTX);
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index ade3204..079ce1a 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -426,6 +426,12 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
- 	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
- }
- 
-+asmlinkage void __exception do_bti(struct pt_regs *regs)
-+{
-+	BUG_ON(!user_mode(regs));
-+	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
-+}
-+
- #define __user_cache_maint(insn, address, res)			\
- 	if (address >= user_addr_max()) {			\
- 		res = -EFAULT;					\
-@@ -756,6 +762,7 @@ static const char *esr_class_str[] = {
- 	[ESR_ELx_EC_FP_ASIMD]		= "ASIMD",
- 	[ESR_ELx_EC_CP10_ID]		= "CP10 MRC/VMRS",
- 	[ESR_ELx_EC_CP14_64]		= "CP14 MCRR/MRRC",
-+	[ESR_ELx_EC_BTI]		= "BTI",
- 	[ESR_ELx_EC_ILL]		= "PSTATE.IL",
- 	[ESR_ELx_EC_SVC32]		= "SVC (AArch32)",
- 	[ESR_ELx_EC_HVC32]		= "HVC (AArch32)",
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 0e8834a..639dc54 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -318,6 +318,9 @@ extern unsigned int kobjsize(const void *objp);
- #elif defined(CONFIG_SPARC64)
- # define VM_SPARC_ADI	VM_ARCH_1	/* Uses ADI tag for access control */
- # define VM_ARCH_CLEAR	VM_SPARC_ADI
-+#elif defined(CONFIG_ARM64)
-+# define VM_ARM64_GP	VM_ARCH_1	/* BTI guarded page */
-+# define VM_ARCH_CLEAR	VM_ARM64_GP
- #elif !defined(CONFIG_MMU)
- # define VM_MAPPED_COPY	VM_ARCH_1	/* T if mapped copy of data (nommu mmap) */
- #endif
--- 
-2.1.4
+Thanks!
+Christian
