@@ -1,63 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:33143 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404233AbfEXWhC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 May 2019 18:37:02 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20190523003916.20726-1-ebiederm@xmission.com>
-        <20190523003916.20726-4-ebiederm@xmission.com>
-        <20190523101702.GG26646@fuggles.cambridge.arm.com>
-        <875zq1gnh4.fsf_-_@xmission.com>
-        <20190523161509.GE31896@fuggles.cambridge.arm.com>
-        <8736l4evkn.fsf@xmission.com>
-        <20190524100008.GE3432@fuggles.cambridge.arm.com>
-Date: Fri, 24 May 2019 17:36:41 -0500
-In-Reply-To: <20190524100008.GE3432@fuggles.cambridge.arm.com> (Will Deacon's
-        message of "Fri, 24 May 2019 11:00:08 +0100")
-Message-ID: <87o93rcwee.fsf@xmission.com>
+Received: from mail-lj1-f196.google.com ([209.85.208.196]:38810 "EHLO
+        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727091AbfEXXHx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 May 2019 19:07:53 -0400
+Received: by mail-lj1-f196.google.com with SMTP id 14so10017837ljj.5
+        for <linux-arch@vger.kernel.org>; Fri, 24 May 2019 16:07:52 -0700 (PDT)
+Received: from mail-lj1-f181.google.com (mail-lj1-f181.google.com. [209.85.208.181])
+        by smtp.gmail.com with ESMTPSA id a16sm794884lfg.93.2019.05.24.16.07.50
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 24 May 2019 16:07:50 -0700 (PDT)
+Received: by mail-lj1-f181.google.com with SMTP id h11so10035161ljb.2
+        for <linux-arch@vger.kernel.org>; Fri, 24 May 2019 16:07:50 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
+References: <20190507164317.13562-1-cyphar@cyphar.com> <20190507164317.13562-6-cyphar@cyphar.com>
+In-Reply-To: <20190507164317.13562-6-cyphar@cyphar.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 24 May 2019 15:59:19 -0700
+Message-ID: <CAHk-=whbFMg4+HuWOBuHpvDNiAyowX2HUowv3+pt8vPWk5W-YQ@mail.gmail.com>
+Subject: Re: [PATCH v7 5/5] namei: resolveat(2) syscall
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20190524223641.npfC40irewJBHdGnXvXLBv7RG8KhNCOrxkj3sJ3BQm8@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190524225919.daS6532pwX1wF6R9QBSSZKLyq3ZwbfwJ7NKiSZMARyU@z>
 
-Will Deacon <will.deacon@arm.com> writes:
-
-> On Thu, May 23, 2019 at 03:59:20PM -0500, Eric W. Biederman wrote:
->> Will Deacon <will.deacon@arm.com> writes:
->> 
->> > On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
->> >> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
->> >> index ade32046f3fe..e45d5b440fb1 100644
->> >> --- a/arch/arm64/kernel/traps.c
->> >> +++ b/arch/arm64/kernel/traps.c
->> >> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
->> >>  			   const char *str)
->> >>  {
->> >>  	arm64_show_signal(signo, str);
->> >> -	force_sig_fault(signo, code, addr, current);
->> >> +	if (signo == SIGKILL)
->> >> +		force_sig(SIGKILL, current);
->> >> +	else
->> >> +		force_sig_fault(signo, code, addr, current);
->> >>  }
->> >
->> > Acked-by: Will Deacon <will.deacon@arm.com>
->> >
->> > Are you planning to send this series on, or would you like me to pick this
->> > into the arm64 tree?
->> 
->> I am planning on taking this through siginfo tree, unless it causes
->> problems.
+On Tue, May 7, 2019 at 9:44 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
 >
-> Okey doke, it would just be nice to see this patch land in 5.2, that's
-> all.
+> The most obvious syscall to add support for the new LOOKUP_* scoping
+> flags would be openat(2) (along with the required execveat(2) change
+> included in this series). However, there are a few reasons to not do
+> this:
 
-As this does not appear to have any real world consequences I am aiming
-at 5.3.  If someone else would like to take it and feed it to Linus
-sooner I won't object.
+So honestly, this last patch is what turns me off the whole thing.
 
-Eric
+It goes from a nice new feature ("you can use O_NOSYMLINKS to disallow
+symlink traversal") to a special-case joke that isn't worth it any
+more. You get a useless path descrptor back from s special hacky
+system call, you don't actually get the useful data that you probably
+*want* the open to get you.
+
+Sure, you could eventually then use a *second* system call (openat
+with O_EMPTYPATH) to actually get something you can *use*, but at this
+point you've just wasted everybodys time and effort with a pointless
+second system call.
+
+So I really don't see the point of this whole thing. Why even bother.
+Nobody sane will ever use that odd two-systemcall model, and even if
+they did, it would be slower and inconvenient.
+
+The whole and only point of this seems to be the two lines that say
+
+       if (flags & ~VALID_RESOLVE_FLAGS)
+              return -EINVAL;
+
+but that adds absolutely zero value to anything.  The argument is that
+"we can't add it to existing flags, because old kernels won't honor
+it", but that's a completely BS argument, since the user has to have a
+fallback anyway for the old kernel case - so we literally could much
+more conveniently just expose it as a prctl() or something to _ask_
+the kernel what flags it honors.
+
+So to me, this whole argument means that "Oh, we'll make it really
+inconvenient to actually use this".
+
+If we want to introduce a new system call that allows cool new
+features, it should have *more* powerful semantics than the existing
+ones, not be clearly weaker and less useful.
+
+So how about making the new system call be something that is a
+*superset* of "openat()" so that people can use that, and then if it
+fails, just fall back to openat(). But if it succeeds, it just
+succeeds, and you don't need to then do other system calls to actually
+make it useful.
+
+Make the new system call something people *want* to use because it's
+useful, not a crippled useless thing that has some special case use
+for some limited thing and just wastes system call space.
+
+Example *useful* system call attributes:
+
+ - make it like openat(), but have another argument with the "limit flags"
+
+ - maybe return more status of the resulting file. People very
+commonly do "open->fstat" just to get the size for mmap or to check
+some other detail of the file before use.
+
+In other words, make the new system call *useful*. Not some castrated
+"not useful on its own" thing.
+
+So I still support the whole "let's make it easy to limit path lookup
+in sane ways", but this model of then limiting using the result sanely
+just makes me a sad panda.
+
+                     Linus
