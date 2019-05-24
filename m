@@ -1,113 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39254 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390631AbfEXK0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 May 2019 06:26:34 -0400
+Received: from foss.arm.com ([217.140.101.70]:39210 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389942AbfEXK03 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 May 2019 06:26:29 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 5/8] elf: Parse program properties before destroying the old process
-Date: Fri, 24 May 2019 11:25:30 +0100
-Message-ID: <1558693533-13465-6-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH 3/8] arm64: docs: cpu-feature-registers: Document ID_AA64PFR1_EL1
+Date: Fri, 24 May 2019 11:25:28 +0100
+Message-ID: <1558693533-13465-4-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
 References: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>, "H.J. Lu" <hjl.tools@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <richard.henderson@linaro.org>, Andrew Jones <drjones@redhat.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Sudakshina Das <sudi.das@arm.com>, Paul Elliott <paul.elliott@arm.com>
-Message-ID: <20190524102530.QDS98BgmgI2eAESZ5y-T-iEFZnDI0QXtlL11QYQ0rSI@z>
+Message-ID: <20190524102528.TpMCpoRV9FMbOmMcFXGeQV-YFSnsl9iirwe2LxE-dDE@z>
 
-Currently we try to read program properties from
-NT_GNU_PROPERTY_TYPE_0 ELF notes.  However, we do this too late to
-either report failures cleanly or influence certain aspects of
-process setup such as the default mmap permissions for the new
-executable's pages (which will matter for arm64 for example).
+Commit d71be2b6c0e1 ("arm64: cpufeature: Detect SSBS and advertise
+to userspace") exposes ID_AA64PFR1_EL1 to userspace, but didn't
+update the documentation to match.
 
-So, split parsing of the notes from use: rename
-arch_setup_property() to arch_parse_property() to make the intent
-clear, and hoist it before flush_old_exec() so that we can still
-bail out gracefully if needed.
-
-Also propagate arch_state into the call so that the arch backend
-has somewhere to stash information for later use.
+Add it.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- fs/binfmt_elf.c     | 26 +++++++++++++-------------
- include/linux/elf.h | 15 +++++++++++----
- 2 files changed, 24 insertions(+), 17 deletions(-)
+ Documentation/arm64/cpu-feature-registers.txt | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 18015fc..32c9c13 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -851,6 +851,19 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			}
- 	}
+diff --git a/Documentation/arm64/cpu-feature-registers.txt b/Documentation/arm64/cpu-feature-registers.txt
+index 684a0da..54d2bfa 100644
+--- a/Documentation/arm64/cpu-feature-registers.txt
++++ b/Documentation/arm64/cpu-feature-registers.txt
+@@ -160,7 +160,15 @@ infrastructure:
+      x--------------------------------------------------x
  
-+	if (interpreter) {
-+		retval = arch_parse_property(&loc->interp_elf_ex,
-+					     interp_elf_phdata,
-+					     interpreter, true, &arch_state);
-+	} else {
-+		retval = arch_parse_property(&loc->elf_ex,
-+					     elf_phdata,
-+					     bprm->file, false, &arch_state);
-+	}
-+
-+	if (retval < 0)
-+		goto out_free_dentry;
-+
- 	/*
- 	 * Allow arch code to reject the ELF at this point, whilst it's
- 	 * still possible to return an error to the code that invoked
-@@ -1080,19 +1093,6 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	}
  
- 	if (interpreter) {
--		retval = arch_setup_property(&loc->interp_elf_ex,
--					     interp_elf_phdata,
--					     interpreter, true);
--	} else {
--		retval = arch_setup_property(&loc->elf_ex,
--					     elf_phdata,
--					     bprm->file, false);
--	}
--
--	if (retval < 0)
--		goto out_free_dentry;
--
--	if (interpreter) {
- 		unsigned long interp_map_addr = 0;
- 
- 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index c15febe..cfcf154 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -57,14 +57,21 @@ extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
- 
-+struct arch_elf_state;
+-  3) MIDR_EL1 - Main ID Register
++  3) ID_AA64PFR1_EL1 - Processor Feature Register 1
++     x--------------------------------------------------x
++     | Name                         |  bits   | visible |
++     |--------------------------------------------------|
++     | SSBS                         | [7-4]   |    y    |
++     x--------------------------------------------------x
 +
- #ifdef CONFIG_ARCH_USE_GNU_PROPERTY
--extern int arch_setup_property(void *ehdr, void *phdr, struct file *f,
--			       bool interp);
-+extern int arch_parse_property(void *ehdr, void *phdr, struct file *f,
-+			       bool interp, struct arch_elf_state *arch_state);
- extern int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
- 			    u32 pr_type, u32 *feature);
- #else
--static inline int arch_setup_property(void *ehdr, void *phdr, struct file *f,
--				      bool interp) { return 0; }
-+static inline int arch_parse_property(void *ehdr, void *phdr, struct file *f,
-+				      bool interp,
-+				      struct arch_elf_state *arch_state)
-+{
-+	return 0;
-+}
 +
- static inline int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
- 				   u32 pr_type, u32 *feature) { return 0; }
- #endif
++  4) MIDR_EL1 - Main ID Register
+      x--------------------------------------------------x
+      | Name                         |  bits   | visible |
+      |--------------------------------------------------|
+@@ -179,7 +187,7 @@ infrastructure:
+    as available on the CPU where it is fetched and is not a system
+    wide safe value.
+ 
+-  4) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
++  5) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
+ 
+      x--------------------------------------------------x
+      | Name                         |  bits   | visible |
+@@ -201,7 +209,7 @@ infrastructure:
+      | DPB                          | [3-0]   |    y    |
+      x--------------------------------------------------x
+ 
+-  5) ID_AA64MMFR2_EL1 - Memory model feature register 2
++  6) ID_AA64MMFR2_EL1 - Memory model feature register 2
+ 
+      x--------------------------------------------------x
+      | Name                         |  bits   | visible |
+@@ -209,7 +217,7 @@ infrastructure:
+      | AT                           | [35-32] |    y    |
+      x--------------------------------------------------x
+ 
+-  6) ID_AA64ZFR0_EL1 - SVE feature ID register 0
++  7) ID_AA64ZFR0_EL1 - SVE feature ID register 0
+ 
+      x--------------------------------------------------x
+      | Name                         |  bits   | visible |
 -- 
 2.1.4
