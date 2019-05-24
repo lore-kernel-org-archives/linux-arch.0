@@ -1,83 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39318 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390672AbfEXK0m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 May 2019 06:26:42 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39254 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2390631AbfEXK0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 May 2019 06:26:34 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 8/8] arm64: BTI: Decode BYTPE bits when printing PSTATE
-Date: Fri, 24 May 2019 11:25:33 +0100
-Message-ID: <1558693533-13465-9-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH 5/8] elf: Parse program properties before destroying the old process
+Date: Fri, 24 May 2019 11:25:30 +0100
+Message-ID: <1558693533-13465-6-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
 References: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>, "H.J. Lu" <hjl.tools@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <richard.henderson@linaro.org>, Andrew Jones <drjones@redhat.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Sudakshina Das <sudi.das@arm.com>, Paul Elliott <paul.elliott@arm.com>
-Message-ID: <20190524102533.BPCGw-Jv7ixEDCCbhVGP85FRHrBzeUPQhQ-cVJOtldM@z>
+Message-ID: <20190524102530.QDS98BgmgI2eAESZ5y-T-iEFZnDI0QXtlL11QYQ0rSI@z>
 
-The current code to print PSTATE symbolically when generating
-backtraces etc., does not include the BYTPE field used by Branch
-Target Identification.
+Currently we try to read program properties from
+NT_GNU_PROPERTY_TYPE_0 ELF notes.  However, we do this too late to
+either report failures cleanly or influence certain aspects of
+process setup such as the default mmap permissions for the new
+executable's pages (which will matter for arm64 for example).
 
-So, decode BYTPE and print it too.
+So, split parsing of the notes from use: rename
+arch_setup_property() to arch_parse_property() to make the intent
+clear, and hoist it before flush_old_exec() so that we can still
+bail out gracefully if needed.
 
-In the interests of human-readability, print the classes of BTI
-matched.  The symbolic motation, BYTPE (PSTATE[11:10]) and
-permitted classes of subsequent instruction are:
-
-    -- (BTYPE=0b00): any insn
-    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
-    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
-    j- (BTYPE=0b11): BTI jc, BTI j
+Also propagate arch_state into the call so that the arch backend
+has somewhere to stash information for later use.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm64/include/asm/ptrace.h | 4 +++-
- arch/arm64/kernel/process.c     | 9 +++++++--
- 2 files changed, 10 insertions(+), 3 deletions(-)
+ fs/binfmt_elf.c     | 26 +++++++++++++-------------
+ include/linux/elf.h | 15 +++++++++++----
+ 2 files changed, 24 insertions(+), 17 deletions(-)
 
-diff --git a/arch/arm64/include/asm/ptrace.h b/arch/arm64/include/asm/ptrace.h
-index b868ef11..f91e51c 100644
---- a/arch/arm64/include/asm/ptrace.h
-+++ b/arch/arm64/include/asm/ptrace.h
-@@ -40,8 +40,10 @@
- #define GIC_PRIO_IRQOFF		(GIC_PRIO_IRQON & ~0x80)
- 
- /* Additional SPSR bits not exposed in the UABI */
-+#define PSR_BTYPE_SHIFT		10
-+
- #define PSR_IL_BIT		(1 << 20)
--#define PSR_BTYPE_CALL		(2 << 10)
-+#define PSR_BTYPE_CALL		(2 << PSR_BTYPE_SHIFT)
- 
- /* AArch32-specific ptrace requests */
- #define COMPAT_PTRACE_GETREGS		12
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 104b0d8..dde5c40 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -236,7 +236,11 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
- 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
- 	} else {
--		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
-+		static const char *const btypes[] = { "--", "jc", "-c", "j-" };
-+		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
-+					       PSR_BTYPE_SHIFT];
-+
-+		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
- 			pstate,
- 			pstate & PSR_N_BIT ? 'N' : 'n',
- 			pstate & PSR_Z_BIT ? 'Z' : 'z',
-@@ -247,7 +251,8 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_I_BIT ? 'I' : 'i',
- 			pstate & PSR_F_BIT ? 'F' : 'f',
- 			pstate & PSR_PAN_BIT ? '+' : '-',
--			pstate & PSR_UAO_BIT ? '+' : '-');
-+			pstate & PSR_UAO_BIT ? '+' : '-',
-+			btype_str);
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 18015fc..32c9c13 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -851,6 +851,19 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			}
  	}
- }
  
++	if (interpreter) {
++		retval = arch_parse_property(&loc->interp_elf_ex,
++					     interp_elf_phdata,
++					     interpreter, true, &arch_state);
++	} else {
++		retval = arch_parse_property(&loc->elf_ex,
++					     elf_phdata,
++					     bprm->file, false, &arch_state);
++	}
++
++	if (retval < 0)
++		goto out_free_dentry;
++
+ 	/*
+ 	 * Allow arch code to reject the ELF at this point, whilst it's
+ 	 * still possible to return an error to the code that invoked
+@@ -1080,19 +1093,6 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	}
+ 
+ 	if (interpreter) {
+-		retval = arch_setup_property(&loc->interp_elf_ex,
+-					     interp_elf_phdata,
+-					     interpreter, true);
+-	} else {
+-		retval = arch_setup_property(&loc->elf_ex,
+-					     elf_phdata,
+-					     bprm->file, false);
+-	}
+-
+-	if (retval < 0)
+-		goto out_free_dentry;
+-
+-	if (interpreter) {
+ 		unsigned long interp_map_addr = 0;
+ 
+ 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index c15febe..cfcf154 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -57,14 +57,21 @@ extern int elf_coredump_extra_notes_size(void);
+ extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+ #endif
+ 
++struct arch_elf_state;
++
+ #ifdef CONFIG_ARCH_USE_GNU_PROPERTY
+-extern int arch_setup_property(void *ehdr, void *phdr, struct file *f,
+-			       bool interp);
++extern int arch_parse_property(void *ehdr, void *phdr, struct file *f,
++			       bool interp, struct arch_elf_state *arch_state);
+ extern int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
+ 			    u32 pr_type, u32 *feature);
+ #else
+-static inline int arch_setup_property(void *ehdr, void *phdr, struct file *f,
+-				      bool interp) { return 0; }
++static inline int arch_parse_property(void *ehdr, void *phdr, struct file *f,
++				      bool interp,
++				      struct arch_elf_state *arch_state)
++{
++	return 0;
++}
++
+ static inline int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
+ 				   u32 pr_type, u32 *feature) { return 0; }
+ #endif
 -- 
 2.1.4
