@@ -1,50 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56204 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726139AbfEXRm2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 May 2019 13:42:28 -0400
-Date: Fri, 24 May 2019 12:42:24 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH] x86/tools: deal with 64-bit relative relocations for
- per-CPU symbols
-Message-ID: <20190524174224.pdj2hgyni675xaoi@treble>
-References: <20190522174057.21770-1-ard.biesheuvel@arm.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:33143 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404233AbfEXWhC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 May 2019 18:37:02 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+        <20190523003916.20726-4-ebiederm@xmission.com>
+        <20190523101702.GG26646@fuggles.cambridge.arm.com>
+        <875zq1gnh4.fsf_-_@xmission.com>
+        <20190523161509.GE31896@fuggles.cambridge.arm.com>
+        <8736l4evkn.fsf@xmission.com>
+        <20190524100008.GE3432@fuggles.cambridge.arm.com>
+Date: Fri, 24 May 2019 17:36:41 -0500
+In-Reply-To: <20190524100008.GE3432@fuggles.cambridge.arm.com> (Will Deacon's
+        message of "Fri, 24 May 2019 11:00:08 +0100")
+Message-ID: <87o93rcwee.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190522174057.21770-1-ard.biesheuvel@arm.com>
+Content-Type: text/plain
+Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, marc.zyngier@arm.com, james.morse@arm.com, will.deacon@arm.com, guillaume.gardet@arm.com, mark.rutland@arm.com, mingo@kernel.org, jeyu@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, x86@kernel.org
-Message-ID: <20190524174224.bUwa8uye1-w4whvfjsJeSHVPmysr2Skf8Y5RxJLGb6g@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20190524223641.npfC40irewJBHdGnXvXLBv7RG8KhNCOrxkj3sJ3BQm8@z>
 
-On Wed, May 22, 2019 at 06:40:57PM +0100, Ard Biesheuvel wrote:
-> In order to fix an issue in the place relative ksymtab code, we
-> need to switch to 64-bit place relative references, which
-> require special handling in the x86 'relocs' tool. The reason
-> is that per-CPU symbols on x86_64 live in a separate link time
-> section, whose load time address is not reflected in the ELF
-> metadata, and so relative references emitted by the toolchain
-> are guaranteed to be wrong.
-> 
-> So fix this by extending the handling of 32-bit relative references
-> to per-CPU variables to support 64-bit relative references as
-> well.
-> 
-> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@arm.com>
-> ---
-> This is a follow-up to [0] and a prerequisite to the change it
-> implements: using 64-bit relative references on x86_64 requires
-> this handling in the 'relocs' tool and in the decompressor.
-> 
-> [0] https://lore.kernel.org/linux-arm-kernel/20190522150239.19314-1-ard.biesheuvel@arm.com
-> 
-> This patch plus [0] build and boot tested with x86_64_defconfig on QEMU/kvm + OVMF.
+Will Deacon <will.deacon@arm.com> writes:
 
-NACK based on
+> On Thu, May 23, 2019 at 03:59:20PM -0500, Eric W. Biederman wrote:
+>> Will Deacon <will.deacon@arm.com> writes:
+>> 
+>> > On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
+>> >> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+>> >> index ade32046f3fe..e45d5b440fb1 100644
+>> >> --- a/arch/arm64/kernel/traps.c
+>> >> +++ b/arch/arm64/kernel/traps.c
+>> >> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+>> >>  			   const char *str)
+>> >>  {
+>> >>  	arm64_show_signal(signo, str);
+>> >> -	force_sig_fault(signo, code, addr, current);
+>> >> +	if (signo == SIGKILL)
+>> >> +		force_sig(SIGKILL, current);
+>> >> +	else
+>> >> +		force_sig_fault(signo, code, addr, current);
+>> >>  }
+>> >
+>> > Acked-by: Will Deacon <will.deacon@arm.com>
+>> >
+>> > Are you planning to send this series on, or would you like me to pick this
+>> > into the arm64 tree?
+>> 
+>> I am planning on taking this through siginfo tree, unless it causes
+>> problems.
+>
+> Okey doke, it would just be nice to see this patch land in 5.2, that's
+> all.
 
-https://lkml.kernel.org/r/f2141ee5-d07a-6dd9-47c6-97e8fbdccf34@arm.com
+As this does not appear to have any real world consequences I am aiming
+at 5.3.  If someone else would like to take it and feed it to Linus
+sooner I won't object.
 
--- 
-Josh
+Eric
