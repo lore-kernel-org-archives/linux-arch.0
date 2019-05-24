@@ -1,39 +1,52 @@
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v1 1/2] open: add close_range()
-Date: Fri, 24 May 2019 11:57:04 +0200
-Message-ID: <20190524095701.b7ioi5gg573vmajh@brauner.io>
-References: <20190522155259.11174-1-christian@brauner.io>
- <67e4458a-9cc4-d1aa-608c-73ebe9e2f7a3@yandex-team.ru>
- <20190523163345.q5ynd2ytk7nxcvqf@brauner.io>
- <CAK8P3a26uvqmExJZsezhB+cp2ADM0Ai9jVUKWOFM6kg848bCKg@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not
+ force_sig_fault for SIGKILL
+Date: Fri, 24 May 2019 11:00:08 +0100
+Message-ID: <20190524100008.GE3432@fuggles.cambridge.arm.com>
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+ <20190523003916.20726-4-ebiederm@xmission.com>
+ <20190523101702.GG26646@fuggles.cambridge.arm.com>
+ <875zq1gnh4.fsf_-_@xmission.com>
+ <20190523161509.GE31896@fuggles.cambridge.arm.com>
+ <8736l4evkn.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a26uvqmExJZsezhB+cp2ADM0Ai9jVUKWOFM6kg848bCKg@mail.gmail.com>
+In-Reply-To: <8736l4evkn.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Shuah Khan <shuah@kernel.org>, David Howells <dhowells@redhat.com>, Todd Kjos <tkjos@android.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Miklos Szeredi <miklos@szeredi.hu>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.or>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 24, 2019 at 09:43:53AM +0200, Arnd Bergmann wrote:
-> On Thu, May 23, 2019 at 6:33 PM Christian Brauner <christian@brauner.io> wrote:
-> > On Thu, May 23, 2019 at 07:22:17PM +0300, Konstantin Khlebnikov wrote:
-> > > On 22.05.2019 18:52, Christian Brauner wrote:> This adds the close_range() syscall. It allows to efficiently close a range
-> > > >   22 files changed, 100 insertions(+), 9 deletions(-)
-> > > >
-> > >
-> > > It would be better to split arch/ wiring into separate patch for better readability.
-> >
-> > Ok. You mean only do x86 - seems to be the standard - and then move the
-> > others into a separate patch? Doesn't seem worth to have a patch
-> > per-arch, I'd think.
+On Thu, May 23, 2019 at 03:59:20PM -0500, Eric W. Biederman wrote:
+> Will Deacon <will.deacon@arm.com> writes:
 > 
-> I think I would prefer the first patch to just add the call without wiring it up
-> anywhere, and a second patch do add it on all architectures including x86.
+> > On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
+> >> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+> >> index ade32046f3fe..e45d5b440fb1 100644
+> >> --- a/arch/arm64/kernel/traps.c
+> >> +++ b/arch/arm64/kernel/traps.c
+> >> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+> >>  			   const char *str)
+> >>  {
+> >>  	arm64_show_signal(signo, str);
+> >> -	force_sig_fault(signo, code, addr, current);
+> >> +	if (signo == SIGKILL)
+> >> +		force_sig(SIGKILL, current);
+> >> +	else
+> >> +		force_sig_fault(signo, code, addr, current);
+> >>  }
+> >
+> > Acked-by: Will Deacon <will.deacon@arm.com>
+> >
+> > Are you planning to send this series on, or would you like me to pick this
+> > into the arm64 tree?
+> 
+> I am planning on taking this through siginfo tree, unless it causes
+> problems.
 
-I've split this into two patches and also bumped arm64
-__NR_compat_syscalls that I've missed before as you mentioned!
+Okey doke, it would just be nice to see this patch land in 5.2, that's
+all.
 
-Thanks!
-Christian
+Will
