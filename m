@@ -1,85 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f67.google.com ([209.85.208.67]:42480 "EHLO
-        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727710AbfEZK11 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2019 06:27:27 -0400
-Received: by mail-ed1-f67.google.com with SMTP id l25so21808561eda.9
-        for <linux-arch@vger.kernel.org>; Sun, 26 May 2019 03:27:26 -0700 (PDT)
-From: Christian Brauner <christian@brauner.io>
-Subject: [PATCH 2/2] arch: wire-up clone6() syscall on x86
-Date: Sun, 26 May 2019 12:26:12 +0200
-Message-ID: <20190526102612.6970-2-christian@brauner.io>
-In-Reply-To: <20190526102612.6970-1-christian@brauner.io>
-References: <20190526102612.6970-1-christian@brauner.io>
+Received: from port70.net ([81.7.13.123]:59088 "EHLO port70.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725616AbfEZU1q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 26 May 2019 16:27:46 -0400
+Date: Sun, 26 May 2019 22:20:42 +0200
+From: Szabolcs Nagy <nsz@port70.net>
+Subject: Re: [PATCH v2 1/2] open: add close_range()
+Message-ID: <20190526202041.GO16415@port70.net>
+References: <20190523154747.15162-1-christian@brauner.io>
+ <20190523154747.15162-2-christian@brauner.io>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190523154747.15162-2-christian@brauner.io>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, jannh@google.com
-Cc: fweimer@redhat.com, oleg@redhat.com, arnd@arndb.de, dhowells@redhat.com, Christian Brauner <christian@brauner.io>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20190526102612.qiVu7WHxAKGJJMGdKheTxKZHkhgQ4YLlqBYvu2NVzVc@z>
+To: Christian Brauner <christian@brauner.io>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
+Message-ID: <20190526202042.dlCX_dfNekjSoqNJPyyqlcG3zgMzS-YfEBxVFKcCzQM@z>
 
-Wire up the clone6() call on x86.
+* Christian Brauner <christian@brauner.io> [2019-05-23 17:47:46 +0200]:
+> This adds the close_range() syscall. It allows to efficiently close a range
+> of file descriptors up to all file descriptors of a calling task.
+> 
+> The syscall came up in a recent discussion around the new mount API and
+> making new file descriptor types cloexec by default. During this
+> discussion, Al suggested the close_range() syscall (cf. [1]). Note, a
+> syscall in this manner has been requested by various people over time.
+> 
+> First, it helps to close all file descriptors of an exec()ing task. This
+> can be done safely via (quoting Al's example from [1] verbatim):
+> 
+>         /* that exec is sensitive */
+>         unshare(CLONE_FILES);
+>         /* we don't want anything past stderr here */
+>         close_range(3, ~0U);
+>         execve(....);
 
-This patch only wires up clone6() on x86. Some of the arches look like they
-need special assembly massaging and it is probably smarter if the
-appropriate arch maintainers would do the actual wiring.
+this does not work in a hosted c implementation unless the libc
+guarantees not to use libc internal fds (e.g. in execve).
+(the libc cannot easily abstract fds, so the syscall abi layer
+fd semantics is necessarily visible to user code.)
 
-Signed-off-by: Christian Brauner <christian@brauner.io>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Adrian Reber <adrian@lisas.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Florian Weimer <fweimer@redhat.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
----
- arch/x86/entry/syscalls/syscall_32.tbl | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- include/uapi/asm-generic/unistd.h      | 4 +++-
- 3 files changed, 5 insertions(+), 1 deletion(-)
+i think this is a new constraint for userspace runtimes.
+(not entirely unreasonable though)
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index ad968b7bac72..dffcd57990b3 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -438,3 +438,4 @@
- 431	i386	fsconfig		sys_fsconfig			__ia32_sys_fsconfig
- 432	i386	fsmount			sys_fsmount			__ia32_sys_fsmount
- 433	i386	fspick			sys_fspick			__ia32_sys_fspick
-+436	i386	clone6			sys_clone6			__ia32_sys_clone6
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index b4e6f9e6204a..73bf4cc099a2 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -355,6 +355,7 @@
- 431	common	fsconfig		__x64_sys_fsconfig
- 432	common	fsmount			__x64_sys_fsmount
- 433	common	fspick			__x64_sys_fspick
-+436	common	clone6			__x64_sys_clone6/ptregs
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index a87904daf103..500bdb4c5e36 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -844,9 +844,11 @@ __SYSCALL(__NR_fsconfig, sys_fsconfig)
- __SYSCALL(__NR_fsmount, sys_fsmount)
- #define __NR_fspick 433
- __SYSCALL(__NR_fspick, sys_fspick)
-+#define __NR_clone6 436
-+__SYSCALL(__NR_clone6, sys_clone6)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 434
-+#define __NR_syscalls 437
- 
- /*
-  * 32 bit systems traditionally used different
--- 
-2.21.0
+> The code snippet above is one way of working around the problem that file
+> descriptors are not cloexec by default. This is aggravated by the fact that
+> we can't just switch them over without massively regressing userspace. For
+> a whole class of programs having an in-kernel method of closing all file
+> descriptors is very helpful (e.g. demons, service managers, programming
+> language standard libraries, container managers etc.).
+
+was cloexec_range(a,b) considered?
+
+> (Please note, unshare(CLONE_FILES) should only be needed if the calling
+>  task is multi-threaded and shares the file descriptor table with another
+>  thread in which case two threads could race with one thread allocating
+>  file descriptors and the other one closing them via close_range(). For the
+>  general case close_range() before the execve() is sufficient.)
+
+assuming there is no unblocked signal handler that may open fds.
+
+a syscall that tramples on fds not owned by the caller is ugly
+(not generally safe to use and may break things if it gets used),
+i don't have a better solution for fd leaks or missing cloexec,
+but i think it needs more analysis how it can be used.
