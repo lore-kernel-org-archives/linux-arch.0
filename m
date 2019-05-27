@@ -1,81 +1,34 @@
-From: Vincent Chen <vincentc@andestech.com>
-Subject: [PATCH v2 3/3] math-emu: Use statement expressions to fix Wshift-count-overflow warning
-Date: Mon, 27 May 2019 14:17:21 +0800
-Message-ID: <1558937841-4222-4-git-send-email-vincentc@andestech.com>
-References: <1558937841-4222-1-git-send-email-vincentc@andestech.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arch: wire-up clone6() syscall on x86
+Date: Mon, 27 May 2019 12:02:37 +0200
+Message-ID: <CAK8P3a1Ltsna_rtKxhMU7X0t=UOXDA75tKpph6s=OZ4itJe7VQ@mail.gmail.com>
+References: <20190526102612.6970-1-christian@brauner.io> <20190526102612.6970-2-christian@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1558937841-4222-1-git-send-email-vincentc@andestech.com>
+In-Reply-To: <20190526102612.6970-2-christian@brauner.io>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, greentime@andestech.com, green.hu@gmail.com, deanbo422@gmail.com
-Cc: vincentc@andestech.com
+To: Christian Brauner <christian@brauner.io>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-To avoid "shift count >= width of type" warning, using statement
-expressions to implement the conditional controlling before constant shift
+On Sun, May 26, 2019 at 12:27 PM Christian Brauner <christian@brauner.io> wrote:
+>
+> Wire up the clone6() call on x86.
+>
+> This patch only wires up clone6() on x86. Some of the arches look like they
+> need special assembly massaging and it is probably smarter if the
+> appropriate arch maintainers would do the actual wiring.
 
-The modification in op-2.h is taken from the glibc
-commit 'sysdeps/unix/sysv/lin ("fe0b1e854ad32")'.
+Why do some architectures need special cases here? I'd prefer to have
+new system calls always get defined in a way that avoids this, and
+have a common entry point for everyone.
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
----
- Changes in v2
- - This is an new patch to fix Wshift-count-overflow warning
+Looking at the m68k sys_clone comment in
+arch/m68k/kernel/process.c, it seems that this was done as an
+optimization to deal with an inferior ABI. Similar code is present
+in h8300, ia64, nios2, and sparc. If all of them just do this to
+shave off a few cycles from the system call entry, I really
+couldn't care less.
 
- include/math-emu/op-2.h      |   17 +++++++----------
- include/math-emu/op-common.h |   11 ++++++-----
- 2 files changed, 13 insertions(+), 15 deletions(-)
-
-diff --git a/include/math-emu/op-2.h b/include/math-emu/op-2.h
-index 13a374f..244522b 100644
---- a/include/math-emu/op-2.h
-+++ b/include/math-emu/op-2.h
-@@ -567,16 +567,13 @@
-  */
- 
- #define _FP_FRAC_ASSEMBLE_2(r, X, rsize)	\
--  do {						\
--    if (rsize <= _FP_W_TYPE_SIZE)		\
--      r = X##_f0;				\
--    else					\
--      {						\
--	r = X##_f1;				\
--	r <<= _FP_W_TYPE_SIZE;			\
--	r += X##_f0;				\
--      }						\
--  } while (0)
-+	(void) (((rsize) <= _FP_W_TYPE_SIZE)	\
-+		? ({ (r) = X##_f0; })		\
-+		: ({				\
-+		     (r) = X##_f1;		\
-+		     (r) <<= _FP_W_TYPE_SIZE;	\
-+		     (r) += X##_f0;		\
-+		    }))
- 
- #define _FP_FRAC_DISASSEMBLE_2(X, r, rsize)				\
-   do {									\
-diff --git a/include/math-emu/op-common.h b/include/math-emu/op-common.h
-index 6bdf8c6..f37d128 100644
---- a/include/math-emu/op-common.h
-+++ b/include/math-emu/op-common.h
-@@ -795,11 +795,12 @@
- 	  ur_ = (unsigned rtype) -r;					\
- 	else								\
- 	  ur_ = (unsigned rtype) r;					\
--	if (rsize <= _FP_W_TYPE_SIZE)					\
--	  __FP_CLZ(X##_e, ur_);						\
--	else								\
--	  __FP_CLZ_2(X##_e, (_FP_W_TYPE)(ur_ >> _FP_W_TYPE_SIZE), 	\
--		     (_FP_W_TYPE)ur_);					\
-+	(void) (((rsize) <= _FP_W_TYPE_SIZE)				\
-+		? ({ __FP_CLZ(X##_e, ur_); })				\
-+		: ({							\
-+		     __FP_CLZ_2(X##_e, (_FP_W_TYPE)(ur_ >> _FP_W_TYPE_SIZE),  \
-+							    (_FP_W_TYPE)ur_); \
-+		  }));							\
- 	if (rsize < _FP_W_TYPE_SIZE)					\
- 		X##_e -= (_FP_W_TYPE_SIZE - rsize);			\
- 	X##_e = rsize - X##_e - 1;					\
--- 
-1.7.1
+       Arnd
