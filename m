@@ -1,106 +1,144 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v4 3/3] kselftest: Extend vDSO selftest to clock_getres
-Date: Tue, 28 May 2019 12:57:24 +0100
-Message-ID: <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
-References: <20190523112116.19233-1-vincenzo.frascino@arm.com>
- <20190523112116.19233-4-vincenzo.frascino@arm.com>
- <87lfyrp0d2.fsf@concordia.ellerman.id.au>
+Subject: [PATCH v5 1/3] powerpc: Fix vDSO clock_getres()
+Date: Tue, 28 May 2019 13:04:44 +0100
+Message-ID: <20190528120446.48911-2-vincenzo.frascino@arm.com>
+References: <20190528120446.48911-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <87lfyrp0d2.fsf@concordia.ellerman.id.au>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Shuah Khan <shuah@kernel.org>
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20190528120446.48911-1-vincenzo.frascino@arm.com>
+Sender: stable-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: vincenzo.frascino@arm.com, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michael,
+clock_getres in the vDSO library has to preserve the same behaviour
+of posix_get_hrtimer_res().
 
-thank you for your reply.
+In particular, posix_get_hrtimer_res() does:
+    sec = 0;
+    ns = hrtimer_resolution;
+and hrtimer_resolution depends on the enablement of the high
+resolution timers that can happen either at compile or at run time.
 
-On 28/05/2019 07:19, Michael Ellerman wrote:
-> Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
-> 
->> The current version of the multiarch vDSO selftest verifies only
->> gettimeofday.
->>
->> Extend the vDSO selftest to clock_getres, to verify that the
->> syscall and the vDSO library function return the same information.
->>
->> The extension has been used to verify the hrtimer_resoltion fix.
-> 
-> This is passing for me even without patch 1 applied, shouldn't it fail
-> without the fix? What am I missing?
-> 
+Fix the powerpc vdso implementation of clock_getres keeping a copy of
+hrtimer_resolution in vdso data and using that directly.
 
-This is correct, because during the refactoring process I missed an "n" :)
+Fixes: a7f290dad32e ("[PATCH] powerpc: Merge vdso's and add vdso support
+to 32 bits kernel")
+Cc: stable@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
+---
 
-if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_sec·!=·y.tv_sec))
+Note: This patch is independent from the others in this series, hence it
+can be merged singularly by the powerpc maintainers.
 
-Should be:
+ arch/powerpc/include/asm/vdso_datapage.h  | 2 ++
+ arch/powerpc/kernel/asm-offsets.c         | 2 +-
+ arch/powerpc/kernel/time.c                | 1 +
+ arch/powerpc/kernel/vdso32/gettimeofday.S | 7 +++++--
+ arch/powerpc/kernel/vdso64/gettimeofday.S | 7 +++++--
+ 5 files changed, 14 insertions(+), 5 deletions(-)
 
-if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_nsec·!=·y.tv_nsec))
-
-My mistake, I am going to fix the test and re-post v5 of this set.
-
-Without my patch if you pass "highres=off" to the kernel (as a command line
-parameter) it leads to a broken implementation of clock_getres since the value
-of CLOCK_REALTIME_RES does not change at runtime.
-
-Expected result (with highres=off):
-
-# uname -r
-5.2.0-rc2
-# ./vdso_clock_getres
-clock_id: CLOCK_REALTIME [FAIL]
-clock_id: CLOCK_BOOTTIME [PASS]
-clock_id: CLOCK_TAI [PASS]
-clock_id: CLOCK_REALTIME_COARSE [PASS]
-clock_id: CLOCK_MONOTONIC [FAIL]
-clock_id: CLOCK_MONOTONIC_RAW [PASS]
-clock_id: CLOCK_MONOTONIC_COARSE [PASS]
-
-The reason of this behavior is that the only clocks supported by getres on
-powerpc are CLOCK_REALTIME and CLOCK_MONOTONIC, the rest on the clocks use
-always syscalls.
-
-> # uname -r
-> 5.2.0-rc2-gcc-8.2.0
-> 
-> # ./vdso_clock_getres
-> clock_id: CLOCK_REALTIME [PASS]
-> clock_id: CLOCK_BOOTTIME [PASS]
-> clock_id: CLOCK_TAI [PASS]
-> clock_id: CLOCK_REALTIME_COARSE [PASS]
-> clock_id: CLOCK_MONOTONIC [PASS]
-> clock_id: CLOCK_MONOTONIC_RAW [PASS]
-> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
-> 
-> cheers
-> 
->> Cc: Shuah Khan <shuah@kernel.org>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->> ---
->>
->> Note: This patch is independent from the others in this series, hence it
->> can be merged singularly by the kselftest maintainers.
->>
->>  tools/testing/selftests/vDSO/Makefile         |   2 +
->>  .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
->>  2 files changed, 126 insertions(+)
->>  create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
-
+diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
+index bbc06bd72b1f..4333b9a473dc 100644
+--- a/arch/powerpc/include/asm/vdso_datapage.h
++++ b/arch/powerpc/include/asm/vdso_datapage.h
+@@ -86,6 +86,7 @@ struct vdso_data {
+ 	__s32 wtom_clock_nsec;			/* Wall to monotonic clock nsec */
+ 	__s64 wtom_clock_sec;			/* Wall to monotonic clock sec */
+ 	struct timespec stamp_xtime;		/* xtime as at tb_orig_stamp */
++	__u32 hrtimer_res;			/* hrtimer resolution */
+    	__u32 syscall_map_64[SYSCALL_MAP_SIZE]; /* map of syscalls  */
+    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+ };
+@@ -107,6 +108,7 @@ struct vdso_data {
+ 	__s32 wtom_clock_nsec;
+ 	struct timespec stamp_xtime;	/* xtime as at tb_orig_stamp */
+ 	__u32 stamp_sec_fraction;	/* fractional seconds of stamp_xtime */
++	__u32 hrtimer_res;		/* hrtimer resolution */
+    	__u32 syscall_map_32[SYSCALL_MAP_SIZE]; /* map of syscalls */
+ 	__u32 dcache_block_size;	/* L1 d-cache block size     */
+ 	__u32 icache_block_size;	/* L1 i-cache block size     */
+diff --git a/arch/powerpc/kernel/asm-offsets.c b/arch/powerpc/kernel/asm-offsets.c
+index 8e02444e9d3d..dfc40f29f2b9 100644
+--- a/arch/powerpc/kernel/asm-offsets.c
++++ b/arch/powerpc/kernel/asm-offsets.c
+@@ -389,6 +389,7 @@ int main(void)
+ 	OFFSET(WTOM_CLOCK_NSEC, vdso_data, wtom_clock_nsec);
+ 	OFFSET(STAMP_XTIME, vdso_data, stamp_xtime);
+ 	OFFSET(STAMP_SEC_FRAC, vdso_data, stamp_sec_fraction);
++	OFFSET(CLOCK_REALTIME_RES, vdso_data, hrtimer_res);
+ 	OFFSET(CFG_ICACHE_BLOCKSZ, vdso_data, icache_block_size);
+ 	OFFSET(CFG_DCACHE_BLOCKSZ, vdso_data, dcache_block_size);
+ 	OFFSET(CFG_ICACHE_LOGBLOCKSZ, vdso_data, icache_log_block_size);
+@@ -419,7 +420,6 @@ int main(void)
+ 	DEFINE(CLOCK_REALTIME_COARSE, CLOCK_REALTIME_COARSE);
+ 	DEFINE(CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_COARSE);
+ 	DEFINE(NSEC_PER_SEC, NSEC_PER_SEC);
+-	DEFINE(CLOCK_REALTIME_RES, MONOTONIC_RES_NSEC);
+ 
+ #ifdef CONFIG_BUG
+ 	DEFINE(BUG_ENTRY_SIZE, sizeof(struct bug_entry));
+diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
+index 325d60633dfa..4ea4e9d7a58e 100644
+--- a/arch/powerpc/kernel/time.c
++++ b/arch/powerpc/kernel/time.c
+@@ -963,6 +963,7 @@ void update_vsyscall(struct timekeeper *tk)
+ 	vdso_data->wtom_clock_nsec = tk->wall_to_monotonic.tv_nsec;
+ 	vdso_data->stamp_xtime = xt;
+ 	vdso_data->stamp_sec_fraction = frac_sec;
++	vdso_data->hrtimer_res = hrtimer_resolution;
+ 	smp_wmb();
+ 	++(vdso_data->tb_update_count);
+ }
+diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+index afd516b572f8..2b5f9e83c610 100644
+--- a/arch/powerpc/kernel/vdso32/gettimeofday.S
++++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+@@ -160,12 +160,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+ 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+ 	bne	cr0,99f
+ 
++	mflr	r12
++  .cfi_register lr,r12
++	bl	__get_datapage@local
++	lwz	r5,CLOCK_REALTIME_RES(r3)
++	mtlr	r12
+ 	li	r3,0
+ 	cmpli	cr0,r4,0
+ 	crclr	cr0*4+so
+ 	beqlr
+-	lis	r5,CLOCK_REALTIME_RES@h
+-	ori	r5,r5,CLOCK_REALTIME_RES@l
+ 	stw	r3,TSPC32_TV_SEC(r4)
+ 	stw	r5,TSPC32_TV_NSEC(r4)
+ 	blr
+diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
+index 1f324c28705b..f07730f73d5e 100644
+--- a/arch/powerpc/kernel/vdso64/gettimeofday.S
++++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
+@@ -190,12 +190,15 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
+ 	cror	cr0*4+eq,cr0*4+eq,cr1*4+eq
+ 	bne	cr0,99f
+ 
++	mflr	r12
++  .cfi_register lr,r12
++	bl	V_LOCAL_FUNC(__get_datapage)
++	lwz	r5,CLOCK_REALTIME_RES(r3)
++	mtlr	r12
+ 	li	r3,0
+ 	cmpldi	cr0,r4,0
+ 	crclr	cr0*4+so
+ 	beqlr
+-	lis	r5,CLOCK_REALTIME_RES@h
+-	ori	r5,r5,CLOCK_REALTIME_RES@l
+ 	std	r3,TSPC64_TV_SEC(r4)
+ 	std	r5,TSPC64_TV_NSEC(r4)
+ 	blr
 -- 
-Regards,
-Vincenzo
+2.21.0
