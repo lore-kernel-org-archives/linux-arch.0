@@ -1,95 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:43817 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726706AbfE1J6K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2019 05:58:10 -0400
-Received: by mail-ot1-f66.google.com with SMTP id i8so17153609oth.10
-        for <linux-arch@vger.kernel.org>; Tue, 28 May 2019 02:58:09 -0700 (PDT)
-Date: Tue, 28 May 2019 11:57:56 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v2 2/2] tests: add close_range() tests
-Message-ID: <20190528095754.peumcgjysw2nq24y@brauner.io>
-References: <20190523154747.15162-1-christian@brauner.io>
- <20190523154747.15162-3-christian@brauner.io>
- <8736kzqpdm.fsf@concordia.ellerman.id.au>
+Received: from mail-eopbgr70084.outbound.protection.outlook.com ([40.107.7.84]:37758
+        "EHLO EUR04-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726282AbfE1KwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 May 2019 06:52:10 -0400
+From: Dave P Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 4/8] arm64: Basic Branch Target Identification support
+Date: Tue, 28 May 2019 10:52:03 +0000
+Message-ID: <20190528105200.GU2019@e103592.cambridge.arm.com>
+References: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
+ <1558693533-13465-5-git-send-email-Dave.Martin@arm.com>
+ <20190524130217.GA15566@lakrids.cambridge.arm.com>
+ <20190524145306.GZ28398@e103592.cambridge.arm.com>
+ <20190524153847.GE15566@lakrids.cambridge.arm.com>
+ <20190524161239.GA28398@e103592.cambridge.arm.com>
+ <20190524171908.GA18057@lakrids.cambridge.arm.com>
+In-Reply-To: <20190524171908.GA18057@lakrids.cambridge.arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <314CAC5F10663F40B9736AA1E0A855E3@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <8736kzqpdm.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
-Message-ID: <20190528095756.7E2a3XtYGEOFFPFG13X2cbNSAdB2evOjUbdnfZt7UHc@z>
+To: Mark Rutland <Mark.Rutland@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "H.J. Lu" <hjl.tools@gmail.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Paul Elliott <Paul.Elliott@arm.com>, Arnd Bergmann <arnd@arndb.de>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Richard Henderson <richard.henderson@linaro.org>, Will Deacon <Will.Deacon@arm.com>, Andrew Jones <drjones@redhat.com>, Kristina Martsenko <Kristina.Martsenko@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Sudakshina Das <Sudi.Das@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20190528105203.AUmYpulPWRRERWZ4g5mvP2n4TEta7zGYZwEkRTKP0oc@z>
 
-On Tue, May 28, 2019 at 12:33:41PM +1000, Michael Ellerman wrote:
-> Christian Brauner <christian@brauner.io> writes:
-> > This adds basic tests for the new close_range() syscall.
-> > - test that no invalid flags can be passed
-> > - test that a range of file descriptors is correctly closed
-> > - test that a range of file descriptors is correctly closed if there there
-> >   are already closed file descriptors in the range
-> > - test that max_fd is correctly capped to the current fdtable maximum
+On Fri, May 24, 2019 at 06:19:10PM +0100, Mark Rutland wrote:
+> On Fri, May 24, 2019 at 05:12:40PM +0100, Dave Martin wrote:
+> > On Fri, May 24, 2019 at 04:38:48PM +0100, Mark Rutland wrote:
+> > > On Fri, May 24, 2019 at 03:53:06PM +0100, Dave Martin wrote:
+> > > > On Fri, May 24, 2019 at 02:02:17PM +0100, Mark Rutland wrote:
+> > > > > On Fri, May 24, 2019 at 11:25:29AM +0100, Dave Martin wrote:
+
+[...]
+
+> > > > > > diff --git a/arch/arm64/kernel/syscall.c b/arch/arm64/kernel/sy=
+scall.c
+> > > > > > index 5610ac0..85b456b 100644
+> > > > > > --- a/arch/arm64/kernel/syscall.c
+> > > > > > +++ b/arch/arm64/kernel/syscall.c
+> > > > > > @@ -66,6 +66,7 @@ static void el0_svc_common(struct pt_regs *re=
+gs, int scno, int sc_nr,
+> > > > > >  unsigned long flags =3D current_thread_info()->flags;
+> > > > > >
+> > > > > >  regs->orig_x0 =3D regs->regs[0];
+> > > > > > +regs->pstate &=3D ~(regs->pstate & PSR_BTYPE_MASK);
+> > > > >
+> > > > > Likewise:
+> > > > >
+> > > > > regs->pstate &=3D ~PSR_BTYPE_MASK;
+> > > > >
+> > > > > ... though I don't understand why that would matter to syscalls, =
+nor how
+> > > > > those bits could ever be set given we had to execute an SVC to ge=
+t here.
+> > > > >
+> > > > > What am I missing?
+> > > >
+> > > > The behaviour is counterintuivite here.  The architecture guarantee=
+s to
+> > > > preserve BTYPE for traps, faults and asynchronous exceptions, but f=
+or a
+> > > > synchronous execption from normal architectural execution of an
+> > > > exception-generating instruction (SVC/HVC/SMC) the architecture lea=
+ves
+> > > > it IMP DEF whether BTYPE is preserved or zeroed in SPSR.
+> > >
+> > > I'm still missing something here. IIUC were BTYPE was non-zero, we
+> > > should take the BTI trap before executing the SVC/HVC/SMC, right?
+> > >
+> > > Otherwise, it would be possible to erroneously branch to an SVC/HVC/S=
+MC,
+> > > which would logically violate the BTI protection.
 > >
-> > Signed-off-by: Christian Brauner <christian@brauner.io>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Jann Horn <jannh@google.com>
-> > Cc: David Howells <dhowells@redhat.com>
-> > Cc: Dmitry V. Levin <ldv@altlinux.org>
-> > Cc: Oleg Nesterov <oleg@redhat.com>
-> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > Cc: Florian Weimer <fweimer@redhat.com>
-> > Cc: linux-api@vger.kernel.org
-> > ---
-> > v1: unchanged
-> > v2:
-> > - Christian Brauner <christian@brauner.io>:
-> >   - verify that close_range() correctly closes a single file descriptor
-> > ---
-> >  tools/testing/selftests/Makefile              |   1 +
-> >  tools/testing/selftests/core/.gitignore       |   1 +
-> >  tools/testing/selftests/core/Makefile         |   6 +
-> >  .../testing/selftests/core/close_range_test.c | 142 ++++++++++++++++++
-> >  4 files changed, 150 insertions(+)
-> >  create mode 100644 tools/testing/selftests/core/.gitignore
-> >  create mode 100644 tools/testing/selftests/core/Makefile
-> >  create mode 100644 tools/testing/selftests/core/close_range_test.c
-> >
-> > diff --git a/tools/testing/selftests/core/.gitignore b/tools/testing/selftests/core/.gitignore
-> > new file mode 100644
-> > index 000000000000..6e6712ce5817
-> > --- /dev/null
-> > +++ b/tools/testing/selftests/core/.gitignore
-> > @@ -0,0 +1 @@
-> > +close_range_test
-> > diff --git a/tools/testing/selftests/core/Makefile b/tools/testing/selftests/core/Makefile
-> > new file mode 100644
-> > index 000000000000..de3ae68aa345
-> > --- /dev/null
-> > +++ b/tools/testing/selftests/core/Makefile
-> > @@ -0,0 +1,6 @@
-> > +CFLAGS += -g -I../../../../usr/include/ -I../../../../include
-> 
-> Your second -I pulls the unexported kernel headers in, userspace
-> programs shouldn't include unexported kernel headers.
-> 
-> It breaks the build on powerpc with eg:
-> 
->   powerpc64le-linux-gnu-gcc -g -I../../../../usr/include/ -I../../../../include    close_range_test.c  -o /output/kselftest/core/close_range_test
->   In file included from /usr/powerpc64le-linux-gnu/include/bits/fcntl-linux.h:346,
->                    from /usr/powerpc64le-linux-gnu/include/bits/fcntl.h:62,
->                    from /usr/powerpc64le-linux-gnu/include/fcntl.h:35,
->                    from close_range_test.c:5:
->   ../../../../include/linux/falloc.h:13:2: error: unknown type name '__s16'
->     __s16  l_type;
->     ^~~~~
-> 
-> 
-> Did you do that on purpose or just copy it from one of the other
-> Makefiles? :)
+> > Only if the SVC (etc.) is in a BTI guarded page.  Otherwise, we could
+> > have legitimately branched to the SVC insn directly and BTYPE would
+> > be nonzero, but no trap would occur.
+>
+> I agree that would be the case immediately before we execute the SVC,
+> but I think there's a subtlety here w.r.t. what exactly happens as an
+> SVC is executed.
+>
+> My understanding was that even for unguarded pages, the execution of any
+> (non branch/eret) instruction would zero PSTATE.BTYPE.
+>
+> For SVC it's not clear to me whether generating the SVC exception is
+> considered to be an effect of completing the execution of an SVC,
+> whether it's considered as preempting the execution of the SVC, or
+> whether that's IMPLEMENTATION DEFINED.
+>
+> Consequently it's not clear to me whether or not executing an SVC clears
+> PSTATE.BTYPE before the act of taking the exception samples PSTATE. I
+> would hope that it does, as this would be in keeping with the way the
+> ELR is updated.
 
-I originally did that on purpose because checkpatch was yammering on
-about me not having used ARRAY_SIZE(). But that include can go, you are
-right.
+OTOH, the wording calls this case out quite explicitly.  It seems odd to
+do that if the more general wording applies.
 
-Christian
+I'll take another look and request clarficiation.
+
+> I think that we should try to clarify that before we commit ourselves to
+> the most painful interpretation here. Especially as similar would apply
+> to HVC and SMC, and I strongly suspect firmware in general is unlikely
+> to fix up the PSTATE.BTYPE of a caller.
+>
+> > We should still logically zero BTYPE across SVC in that case, because
+> > the SVC may itself branch:  a signal could be delivered on return and
+> > we want the prevailing BTYPE then to be 0 for capture in the signal
+> > frame.  Doing this zeroing in signal delivery because if the signal
+> > is not delivered in SVE then a nonzero BTYPE might be live, and we
+> > must then restore it properly on sigreturn.
+>
+> I'm not sure I follow this.
+>
+> If we deliver a signal, the kernel generates a pristine PSTATE for the
+> signal handler, and the interrupted context doesn't matter.
+>
+> Saving/restoring the state of the interrupted context is identical to
+> returning without delivering the signal, and we'd have a problem
+> regardless.
+
+My test looks garbled... since the point I was making was tangential, I
+don't elaborate it for now.
+
+> > As you observe, this scenario should be impossible if the SVC insn
+> > is in a guarded page, unless userspace does something foolhardy like
+> > catching the SIGILL and fudging BTYPE or the return address.
+>
+> I think userspace gets to pick up the pieces in this case. Much like
+> signal delivery, it would need to generate a sensible PSTATE itself.
+
+Agreed, there is no way to hide this kind of thing from userspace code
+that messes with the signal frame -- so we shouldn't try.
+
+> [...]
+>
+> > (Now I come to think of it I also need to look at rseq etc., which is
+> > another magic kernel-mediated branch mechanism.)
+
+Meh.
+
+Cheers
+---Dave
+IMPORTANT NOTICE: The contents of this email and any attachments are confid=
+ential and may also be privileged. If you are not the intended recipient, p=
+lease notify the sender immediately and do not disclose the contents to any=
+ other person, use it for any purpose, or store or copy the information in =
+any medium. Thank you.
