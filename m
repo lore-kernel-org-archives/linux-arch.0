@@ -1,195 +1,127 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 3/3] kselftest: Extend vDSO selftest to clock_getres
-Date: Tue, 28 May 2019 13:04:46 +0100
-Message-ID: <20190528120446.48911-4-vincenzo.frascino@arm.com>
-References: <20190528120446.48911-1-vincenzo.frascino@arm.com>
+From: Marco Elver <elver@google.com>
+Subject: [PATCH 1/3] lib/test_kasan: Add bitops tests
+Date: Tue, 28 May 2019 18:32:56 +0200
+Message-ID: <20190528163258.260144-1-elver@google.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20190528120446.48911-1-vincenzo.frascino@arm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, vincenzo.frascino@arm.com, Shuah Khan <shuah@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-The current version of the multiarch vDSO selftest verifies only
-gettimeofday.
+This adds bitops tests to the test_kasan module. In a follow-up patch,
+support for bitops instrumentation will be added.
 
-Extend the vDSO selftest to clock_getres, to verify that the
-syscall and the vDSO library function return the same information.
-
-The extension has been used to verify the hrtimer_resoltion fix.
-
-Cc: Shuah Khan <shuah@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Marco Elver <elver@google.com>
 ---
+ lib/test_kasan.c | 73 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 70 insertions(+), 3 deletions(-)
 
-Note: This patch is independent from the others in this series, hence it
-can be merged singularly by the kselftest maintainers.
-
- tools/testing/selftests/vDSO/Makefile         |   2 +
- .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
- 2 files changed, 126 insertions(+)
- create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
-
-diff --git a/tools/testing/selftests/vDSO/Makefile b/tools/testing/selftests/vDSO/Makefile
-index 9e03d61f52fd..d5c5bfdf1ac1 100644
---- a/tools/testing/selftests/vDSO/Makefile
-+++ b/tools/testing/selftests/vDSO/Makefile
-@@ -5,6 +5,7 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
- ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
+diff --git a/lib/test_kasan.c b/lib/test_kasan.c
+index 7de2702621dc..f67f3b52251d 100644
+--- a/lib/test_kasan.c
++++ b/lib/test_kasan.c
+@@ -11,16 +11,17 @@
  
- TEST_GEN_PROGS := $(OUTPUT)/vdso_test
-+TEST_GEN_PROGS += $(OUTPUT)/vdso_clock_getres
- ifeq ($(ARCH),x86)
- TEST_GEN_PROGS += $(OUTPUT)/vdso_standalone_test_x86
- endif
-@@ -18,6 +19,7 @@ endif
+ #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
  
- all: $(TEST_GEN_PROGS)
- $(OUTPUT)/vdso_test: parse_vdso.c vdso_test.c
-+$(OUTPUT)/vdso_clock_getres: vdso_clock_getres.c
- $(OUTPUT)/vdso_standalone_test_x86: vdso_standalone_test_x86.c parse_vdso.c
- 	$(CC) $(CFLAGS) $(CFLAGS_vdso_standalone_test_x86) \
- 		vdso_standalone_test_x86.c parse_vdso.c \
-diff --git a/tools/testing/selftests/vDSO/vdso_clock_getres.c b/tools/testing/selftests/vDSO/vdso_clock_getres.c
-new file mode 100644
-index 000000000000..15dcee16ff72
---- /dev/null
-+++ b/tools/testing/selftests/vDSO/vdso_clock_getres.c
-@@ -0,0 +1,124 @@
-+// SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
-+/*
-+ * vdso_clock_getres.c: Sample code to test clock_getres.
-+ * Copyright (c) 2019 Arm Ltd.
-+ *
-+ * Compile with:
-+ * gcc -std=gnu99 vdso_clock_getres.c
-+ *
-+ * Tested on ARM, ARM64, MIPS32, x86 (32-bit and 64-bit),
-+ * Power (32-bit and 64-bit), S390x (32-bit and 64-bit).
-+ * Might work on other architectures.
-+ */
-+
-+#define _GNU_SOURCE
-+#include <elf.h>
-+#include <err.h>
-+#include <fcntl.h>
-+#include <stdint.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <time.h>
-+#include <sys/auxv.h>
-+#include <sys/mman.h>
-+#include <sys/time.h>
-+#include <unistd.h>
-+#include <sys/syscall.h>
-+
-+#include "../kselftest.h"
-+
-+static long syscall_clock_getres(clockid_t _clkid, struct timespec *_ts)
++#include <linux/bitops.h>
+ #include <linux/delay.h>
++#include <linux/kasan.h>
+ #include <linux/kernel.h>
+-#include <linux/mman.h>
+ #include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/module.h>
+ #include <linux/printk.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/uaccess.h>
+-#include <linux/module.h>
+-#include <linux/kasan.h>
+ 
+ /*
+  * Note: test functions are marked noinline so that their names appear in
+@@ -623,6 +624,71 @@ static noinline void __init kasan_strings(void)
+ 	strnlen(ptr, 1);
+ }
+ 
++static noinline void __init kasan_bitops(void)
 +{
-+	long ret;
++	long bits = 0;
++	const long bit = sizeof(bits) * 8;
 +
-+	ret = syscall(SYS_clock_getres, _clkid, _ts);
++	pr_info("within-bounds in set_bit");
++	set_bit(0, &bits);
 +
-+	return ret;
++	pr_info("within-bounds in set_bit");
++	set_bit(bit - 1, &bits);
++
++	pr_info("out-of-bounds in set_bit\n");
++	set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __set_bit\n");
++	__set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in clear_bit\n");
++	clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __clear_bit\n");
++	__clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in clear_bit_unlock\n");
++	clear_bit_unlock(bit, &bits);
++
++	pr_info("out-of-bounds in __clear_bit_unlock\n");
++	__clear_bit_unlock(bit, &bits);
++
++	pr_info("out-of-bounds in change_bit\n");
++	change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __change_bit\n");
++	__change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_set_bit\n");
++	test_and_set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_set_bit\n");
++	__test_and_set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_set_bit_lock\n");
++	test_and_set_bit_lock(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_clear_bit\n");
++	test_and_clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_clear_bit\n");
++	__test_and_clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_change_bit\n");
++	test_and_change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_change_bit\n");
++	__test_and_change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_bit\n");
++	(void)test_bit(bit, &bits);
++
++#if defined(clear_bit_unlock_is_negative_byte)
++	pr_info("out-of-bounds in clear_bit_unlock_is_negative_byte\n");
++	clear_bit_unlock_is_negative_byte(bit, &bits);
++#endif
 +}
 +
-+const char *vdso_clock_name[12] = {
-+	"CLOCK_REALTIME",
-+	"CLOCK_MONOTONIC",
-+	"CLOCK_PROCESS_CPUTIME_ID",
-+	"CLOCK_THREAD_CPUTIME_ID",
-+	"CLOCK_MONOTONIC_RAW",
-+	"CLOCK_REALTIME_COARSE",
-+	"CLOCK_MONOTONIC_COARSE",
-+	"CLOCK_BOOTTIME",
-+	"CLOCK_REALTIME_ALARM",
-+	"CLOCK_BOOTTIME_ALARM",
-+	"CLOCK_SGI_CYCLE",
-+	"CLOCK_TAI",
-+};
-+
-+/*
-+ * This function calls clock_getres in vdso and by system call
-+ * with different values for clock_id.
-+ *
-+ * Example of output:
-+ *
-+ * clock_id: CLOCK_REALTIME [PASS]
-+ * clock_id: CLOCK_BOOTTIME [PASS]
-+ * clock_id: CLOCK_TAI [PASS]
-+ * clock_id: CLOCK_REALTIME_COARSE [PASS]
-+ * clock_id: CLOCK_MONOTONIC [PASS]
-+ * clock_id: CLOCK_MONOTONIC_RAW [PASS]
-+ * clock_id: CLOCK_MONOTONIC_COARSE [PASS]
-+ */
-+static inline int vdso_test_clock(unsigned int clock_id)
-+{
-+	struct timespec x, y;
-+
-+	printf("clock_id: %s", vdso_clock_name[clock_id]);
-+	clock_getres(clock_id, &x);
-+	syscall_clock_getres(clock_id, &y);
-+
-+	if ((x.tv_sec != y.tv_sec) || (x.tv_nsec != y.tv_nsec)) {
-+		printf(" [FAIL]\n");
-+		return KSFT_FAIL;
-+	}
-+
-+	printf(" [PASS]\n");
-+	return KSFT_PASS;
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	int ret;
-+
-+#if _POSIX_TIMERS > 0
-+
-+#ifdef CLOCK_REALTIME
-+	ret = vdso_test_clock(CLOCK_REALTIME);
-+#endif
-+
-+#ifdef CLOCK_BOOTTIME
-+	ret += vdso_test_clock(CLOCK_BOOTTIME);
-+#endif
-+
-+#ifdef CLOCK_TAI
-+	ret += vdso_test_clock(CLOCK_TAI);
-+#endif
-+
-+#ifdef CLOCK_REALTIME_COARSE
-+	ret += vdso_test_clock(CLOCK_REALTIME_COARSE);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC
-+	ret += vdso_test_clock(CLOCK_MONOTONIC);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_RAW
-+	ret += vdso_test_clock(CLOCK_MONOTONIC_RAW);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_COARSE
-+	ret += vdso_test_clock(CLOCK_MONOTONIC_COARSE);
-+#endif
-+
-+#endif
-+	if (ret > 0)
-+		return KSFT_FAIL;
-+
-+	return KSFT_PASS;
-+}
+ static int __init kmalloc_tests_init(void)
+ {
+ 	/*
+@@ -664,6 +730,7 @@ static int __init kmalloc_tests_init(void)
+ 	kasan_memchr();
+ 	kasan_memcmp();
+ 	kasan_strings();
++	kasan_bitops();
+ 
+ 	kasan_restore_multi_shot(multishot);
+ 
 -- 
-2.21.0
+2.22.0.rc1.257.g3120a18244-goog
