@@ -1,298 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:33497 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726580AbfE1MJJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2019 08:09:09 -0400
-Received: by mail-pf1-f194.google.com with SMTP id z28so11368520pfk.0
-        for <linux-arch@vger.kernel.org>; Tue, 28 May 2019 05:09:08 -0700 (PDT)
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Date: Tue, 28 May 2019 22:04:53 +1000
-Message-Id: <20190528120453.27374-4-npiggin@gmail.com>
-In-Reply-To: <20190528120453.27374-1-npiggin@gmail.com>
-References: <20190528120453.27374-1-npiggin@gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-qk1-f202.google.com ([209.85.222.202]:40338 "EHLO
+        mail-qk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726604AbfE1QdT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2019 12:33:19 -0400
+Received: by mail-qk1-f202.google.com with SMTP id n5so28617283qkf.7
+        for <linux-arch@vger.kernel.org>; Tue, 28 May 2019 09:33:19 -0700 (PDT)
+Date: Tue, 28 May 2019 18:32:56 +0200
+Message-ID: <20190528163258.260144-1-elver@google.com>
+Mime-Version: 1.0
+Subject: [PATCH 1/3] lib/test_kasan: Add bitops tests
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Toshi Kani <toshi.kani@hp.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Uladzislau Rezki <urezki@gmail.com>
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
+Message-ID: <20190528163256.IifUwLJix-XiX4V8iVWB0d6QtFL_nsAlNPbCU5wqnF8@z>
 
-For platforms that define HAVE_ARCH_HUGE_VMAP, have vmalloc try to
-allocate and map PMD-level huge pages when size is appropriate, and
-fallback if unsuccessful.
+This adds bitops tests to the test_kasan module. In a follow-up patch,
+support for bitops instrumentation will be added.
 
-Using 2MB page mappings in an 8MB dentry cache hash brings dTLB misses
-for linux kernel tree `git diff` from 45,000 to 8,000 on a Kaby Lake CPU
-wth mitigations=off (performance is in the noise, under 1% difference,
-page tables are likely to be well cached for this workload).
-
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+Signed-off-by: Marco Elver <elver@google.com>
 ---
- include/linux/vmalloc.h |   1 +
- mm/vmalloc.c            | 132 +++++++++++++++++++++++++++++++---------
- 2 files changed, 105 insertions(+), 28 deletions(-)
+ lib/test_kasan.c | 73 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 70 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 812bea5866d6..4c92dc608928 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -42,6 +42,7 @@ struct vm_struct {
- 	unsigned long		size;
- 	unsigned long		flags;
- 	struct page		**pages;
-+	unsigned int		page_shift;
- 	unsigned int		nr_pages;
- 	phys_addr_t		phys_addr;
- 	const void		*caller;
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 6a0c97f89091..34de925ed4f4 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -36,6 +36,7 @@
- #include <linux/rbtree_augmented.h>
+diff --git a/lib/test_kasan.c b/lib/test_kasan.c
+index 7de2702621dc..f67f3b52251d 100644
+--- a/lib/test_kasan.c
++++ b/lib/test_kasan.c
+@@ -11,16 +11,17 @@
  
+ #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
+ 
++#include <linux/bitops.h>
+ #include <linux/delay.h>
++#include <linux/kasan.h>
+ #include <linux/kernel.h>
+-#include <linux/mman.h>
+ #include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/module.h>
+ #include <linux/printk.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
  #include <linux/uaccess.h>
-+#include <asm/pgtable.h>
- #include <asm/tlbflush.h>
- #include <asm/shmparam.h>
+-#include <linux/module.h>
+-#include <linux/kasan.h>
  
-@@ -439,6 +440,41 @@ static int vmap_pages_range(unsigned long start, unsigned long end,
- 	return ret;
+ /*
+  * Note: test functions are marked noinline so that their names appear in
+@@ -623,6 +624,71 @@ static noinline void __init kasan_strings(void)
+ 	strnlen(ptr, 1);
  }
  
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+static int vmap_hpages_range(unsigned long start, unsigned long end,
-+				   pgprot_t prot, struct page **pages,
-+				   unsigned int page_shift)
++static noinline void __init kasan_bitops(void)
 +{
-+	unsigned long addr = start;
-+	unsigned int i, nr = (end - start) >> (PAGE_SHIFT + page_shift);
++	long bits = 0;
++	const long bit = sizeof(bits) * 8;
 +
-+	for (i = 0; i < nr; i++) {
-+		int err;
++	pr_info("within-bounds in set_bit");
++	set_bit(0, &bits);
 +
-+		err = vmap_range_noflush(addr,
-+					addr + (PAGE_SIZE << page_shift),
-+					__pa(page_address(pages[i])), prot,
-+					page_shift);
-+		if (err)
-+			return err;
++	pr_info("within-bounds in set_bit");
++	set_bit(bit - 1, &bits);
 +
-+		addr += PAGE_SIZE << page_shift;
-+	}
-+	flush_cache_vmap(start, end);
++	pr_info("out-of-bounds in set_bit\n");
++	set_bit(bit, &bits);
 +
-+	return nr;
-+}
-+#else
-+static int vmap_hpages_range(unsigned long start, unsigned long end,
-+			   pgprot_t prot, struct page **pages,
-+			   unsigned int page_shift)
-+{
-+	BUG_ON(page_shift != PAGE_SIZE);
-+	return vmap_pages_range(start, end, prot, pages);
-+}
++	pr_info("out-of-bounds in __set_bit\n");
++	__set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in clear_bit\n");
++	clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __clear_bit\n");
++	__clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in clear_bit_unlock\n");
++	clear_bit_unlock(bit, &bits);
++
++	pr_info("out-of-bounds in __clear_bit_unlock\n");
++	__clear_bit_unlock(bit, &bits);
++
++	pr_info("out-of-bounds in change_bit\n");
++	change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __change_bit\n");
++	__change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_set_bit\n");
++	test_and_set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_set_bit\n");
++	__test_and_set_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_set_bit_lock\n");
++	test_and_set_bit_lock(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_clear_bit\n");
++	test_and_clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_clear_bit\n");
++	__test_and_clear_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_and_change_bit\n");
++	test_and_change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in __test_and_change_bit\n");
++	__test_and_change_bit(bit, &bits);
++
++	pr_info("out-of-bounds in test_bit\n");
++	(void)test_bit(bit, &bits);
++
++#if defined(clear_bit_unlock_is_negative_byte)
++	pr_info("out-of-bounds in clear_bit_unlock_is_negative_byte\n");
++	clear_bit_unlock_is_negative_byte(bit, &bits);
 +#endif
++}
 +
-+
- int is_vmalloc_or_module_addr(const void *x)
+ static int __init kmalloc_tests_init(void)
  {
  	/*
-@@ -461,7 +497,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
- {
- 	unsigned long addr = (unsigned long) vmalloc_addr;
- 	struct page *page = NULL;
--	pgd_t *pgd = pgd_offset_k(addr);
-+	pgd_t *pgd;
- 	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
-@@ -473,27 +509,38 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
- 	 */
- 	VIRTUAL_BUG_ON(!is_vmalloc_or_module_addr(vmalloc_addr));
+@@ -664,6 +730,7 @@ static int __init kmalloc_tests_init(void)
+ 	kasan_memchr();
+ 	kasan_memcmp();
+ 	kasan_strings();
++	kasan_bitops();
  
-+	pgd = pgd_offset_k(addr);
- 	if (pgd_none(*pgd))
- 		return NULL;
-+
- 	p4d = p4d_offset(pgd, addr);
- 	if (p4d_none(*p4d))
- 		return NULL;
--	pud = pud_offset(p4d, addr);
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+	if (p4d_large(*p4d))
-+		return p4d_page(*p4d) + ((addr & ~P4D_MASK) >> PAGE_SHIFT);
-+#endif
-+	if (WARN_ON_ONCE(p4d_bad(*p4d)))
-+		return NULL;
- 
--	/*
--	 * Don't dereference bad PUD or PMD (below) entries. This will also
--	 * identify huge mappings, which we may encounter on architectures
--	 * that define CONFIG_HAVE_ARCH_HUGE_VMAP=y. Such regions will be
--	 * identified as vmalloc addresses by is_vmalloc_addr(), but are
--	 * not [unambiguously] associated with a struct page, so there is
--	 * no correct value to return for them.
--	 */
--	WARN_ON_ONCE(pud_bad(*pud));
--	if (pud_none(*pud) || pud_bad(*pud))
-+	pud = pud_offset(p4d, addr);
-+	if (pud_none(*pud))
-+		return NULL;
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+	if (pud_large(*pud))
-+		return pud_page(*pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
-+#endif
-+	if (WARN_ON_ONCE(pud_bad(*pud)))
- 		return NULL;
-+
- 	pmd = pmd_offset(pud, addr);
--	WARN_ON_ONCE(pmd_bad(*pmd));
--	if (pmd_none(*pmd) || pmd_bad(*pmd))
-+	if (pmd_none(*pmd))
-+		return NULL;
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+	if (pmd_large(*pmd))
-+		return pmd_page(*pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
-+#endif
-+	if (WARN_ON_ONCE(pmd_bad(*pmd)))
- 		return NULL;
- 
- 	ptep = pte_offset_map(pmd, addr);
-@@ -501,6 +548,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
- 	if (pte_present(pte))
- 		page = pte_page(pte);
- 	pte_unmap(ptep);
-+
- 	return page;
- }
- EXPORT_SYMBOL(vmalloc_to_page);
-@@ -2184,8 +2232,9 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
- 		return NULL;
- 
- 	if (flags & VM_IOREMAP)
--		align = 1ul << clamp_t(int, get_count_order_long(size),
--				       PAGE_SHIFT, IOREMAP_MAX_ORDER);
-+		align = max(align,
-+				1ul << clamp_t(int, get_count_order_long(size),
-+				       PAGE_SHIFT, IOREMAP_MAX_ORDER));
- 
- 	area = kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
- 	if (unlikely(!area))
-@@ -2397,7 +2446,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
- 			struct page *page = area->pages[i];
- 
- 			BUG_ON(!page);
--			__free_pages(page, 0);
-+			__free_pages(page, area->page_shift);
- 		}
- 
- 		kvfree(area->pages);
-@@ -2540,14 +2589,17 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 				 pgprot_t prot, int node)
- {
- 	struct page **pages;
-+	unsigned long addr = (unsigned long)area->addr;
-+	unsigned long size = get_vm_area_size(area);
-+	unsigned int page_shift = area->page_shift;
-+	unsigned int shift = page_shift + PAGE_SHIFT;
- 	unsigned int nr_pages, array_size, i;
- 	const gfp_t nested_gfp = (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
- 	const gfp_t alloc_mask = gfp_mask | __GFP_NOWARN;
- 	const gfp_t highmem_mask = (gfp_mask & (GFP_DMA | GFP_DMA32)) ?
--					0 :
--					__GFP_HIGHMEM;
-+					0 : __GFP_HIGHMEM;
- 
--	nr_pages = get_vm_area_size(area) >> PAGE_SHIFT;
-+	nr_pages = size >> shift;
- 	array_size = (nr_pages * sizeof(struct page *));
- 
- 	area->nr_pages = nr_pages;
-@@ -2568,10 +2620,8 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 	for (i = 0; i < area->nr_pages; i++) {
- 		struct page *page;
- 
--		if (node == NUMA_NO_NODE)
--			page = alloc_page(alloc_mask|highmem_mask);
--		else
--			page = alloc_pages_node(node, alloc_mask|highmem_mask, 0);
-+		page = alloc_pages_node(node,
-+				alloc_mask|highmem_mask, page_shift);
- 
- 		if (unlikely(!page)) {
- 			/* Successfully allocated i pages, free them in __vunmap() */
-@@ -2583,8 +2633,9 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 			cond_resched();
- 	}
- 
--	if (map_vm_area(area, prot, pages))
-+	if (vmap_hpages_range(addr, addr + size, prot, pages, page_shift) < 0)
- 		goto fail;
-+
- 	return area->addr;
- 
- fail:
-@@ -2618,22 +2669,39 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 			pgprot_t prot, unsigned long vm_flags, int node,
- 			const void *caller)
- {
--	struct vm_struct *area;
-+	struct vm_struct *area = NULL;
- 	void *addr;
- 	unsigned long real_size = size;
-+	unsigned long real_align = align;
-+	unsigned int shift = PAGE_SHIFT;
- 
- 	size = PAGE_ALIGN(size);
- 	if (!size || (size >> PAGE_SHIFT) > totalram_pages())
- 		goto fail;
- 
-+	if (IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP)) {
-+		unsigned long size_per_node;
-+
-+		size_per_node = size;
-+		if (node == NUMA_NO_NODE)
-+			size_per_node /= num_online_nodes();
-+		if (size_per_node >= PMD_SIZE)
-+			shift = PMD_SHIFT;
-+	}
-+again:
-+	align = max(real_align, 1UL << shift);
-+	size = ALIGN(real_size, align);
-+
- 	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNINITIALIZED |
- 				vm_flags, start, end, node, gfp_mask, caller);
- 	if (!area)
- 		goto fail;
- 
-+	area->page_shift = shift - PAGE_SHIFT;
-+
- 	addr = __vmalloc_area_node(area, gfp_mask, prot, node);
- 	if (!addr)
--		return NULL;
-+		goto fail;
- 
- 	/*
- 	 * In this function, newly allocated vm_struct has VM_UNINITIALIZED
-@@ -2647,8 +2715,16 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 	return addr;
- 
- fail:
--	warn_alloc(gfp_mask, NULL,
-+	if (shift == PMD_SHIFT) {
-+		shift = PAGE_SHIFT;
-+		goto again;
-+	}
-+
-+	if (!area) {
-+		/* Warn for area allocation, page allocations already warn */
-+		warn_alloc(gfp_mask, NULL,
- 			  "vmalloc: allocation failure: %lu bytes", real_size);
-+	}
- 	return NULL;
- }
+ 	kasan_restore_multi_shot(multishot);
  
 -- 
-2.20.1
+2.22.0.rc1.257.g3120a18244-goog
