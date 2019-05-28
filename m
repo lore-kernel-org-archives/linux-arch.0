@@ -1,57 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:57471 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726657AbfE1GT0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 May 2019 02:19:26 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v4 3/3] kselftest: Extend vDSO selftest to clock_getres
-In-Reply-To: <20190523112116.19233-4-vincenzo.frascino@arm.com>
-References: <20190523112116.19233-1-vincenzo.frascino@arm.com> <20190523112116.19233-4-vincenzo.frascino@arm.com>
-Date: Tue, 28 May 2019 16:19:21 +1000
-Message-ID: <87lfyrp0d2.fsf@concordia.ellerman.id.au>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:43817 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726706AbfE1J6K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2019 05:58:10 -0400
+Received: by mail-ot1-f66.google.com with SMTP id i8so17153609oth.10
+        for <linux-arch@vger.kernel.org>; Tue, 28 May 2019 02:58:09 -0700 (PDT)
+Date: Tue, 28 May 2019 11:57:56 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH v2 2/2] tests: add close_range() tests
+Message-ID: <20190528095754.peumcgjysw2nq24y@brauner.io>
+References: <20190523154747.15162-1-christian@brauner.io>
+ <20190523154747.15162-3-christian@brauner.io>
+ <8736kzqpdm.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <8736kzqpdm.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190528061921.8OJNe9qw8iPEUOsrN72YDmnhO-3kAsjWlo97RveeiMM@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org, fweimer@redhat.com, jannh@google.com, oleg@redhat.com, tglx@linutronix.de, arnd@arndb.de, shuah@kernel.org, dhowells@redhat.com, tkjos@android.com, ldv@altlinux.org, miklos@szeredi.hu, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, x86@kernel.org
+Message-ID: <20190528095756.7E2a3XtYGEOFFPFG13X2cbNSAdB2evOjUbdnfZt7UHc@z>
 
-Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
+On Tue, May 28, 2019 at 12:33:41PM +1000, Michael Ellerman wrote:
+> Christian Brauner <christian@brauner.io> writes:
+> > This adds basic tests for the new close_range() syscall.
+> > - test that no invalid flags can be passed
+> > - test that a range of file descriptors is correctly closed
+> > - test that a range of file descriptors is correctly closed if there there
+> >   are already closed file descriptors in the range
+> > - test that max_fd is correctly capped to the current fdtable maximum
+> >
+> > Signed-off-by: Christian Brauner <christian@brauner.io>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Jann Horn <jannh@google.com>
+> > Cc: David Howells <dhowells@redhat.com>
+> > Cc: Dmitry V. Levin <ldv@altlinux.org>
+> > Cc: Oleg Nesterov <oleg@redhat.com>
+> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> > Cc: Florian Weimer <fweimer@redhat.com>
+> > Cc: linux-api@vger.kernel.org
+> > ---
+> > v1: unchanged
+> > v2:
+> > - Christian Brauner <christian@brauner.io>:
+> >   - verify that close_range() correctly closes a single file descriptor
+> > ---
+> >  tools/testing/selftests/Makefile              |   1 +
+> >  tools/testing/selftests/core/.gitignore       |   1 +
+> >  tools/testing/selftests/core/Makefile         |   6 +
+> >  .../testing/selftests/core/close_range_test.c | 142 ++++++++++++++++++
+> >  4 files changed, 150 insertions(+)
+> >  create mode 100644 tools/testing/selftests/core/.gitignore
+> >  create mode 100644 tools/testing/selftests/core/Makefile
+> >  create mode 100644 tools/testing/selftests/core/close_range_test.c
+> >
+> > diff --git a/tools/testing/selftests/core/.gitignore b/tools/testing/selftests/core/.gitignore
+> > new file mode 100644
+> > index 000000000000..6e6712ce5817
+> > --- /dev/null
+> > +++ b/tools/testing/selftests/core/.gitignore
+> > @@ -0,0 +1 @@
+> > +close_range_test
+> > diff --git a/tools/testing/selftests/core/Makefile b/tools/testing/selftests/core/Makefile
+> > new file mode 100644
+> > index 000000000000..de3ae68aa345
+> > --- /dev/null
+> > +++ b/tools/testing/selftests/core/Makefile
+> > @@ -0,0 +1,6 @@
+> > +CFLAGS += -g -I../../../../usr/include/ -I../../../../include
+> 
+> Your second -I pulls the unexported kernel headers in, userspace
+> programs shouldn't include unexported kernel headers.
+> 
+> It breaks the build on powerpc with eg:
+> 
+>   powerpc64le-linux-gnu-gcc -g -I../../../../usr/include/ -I../../../../include    close_range_test.c  -o /output/kselftest/core/close_range_test
+>   In file included from /usr/powerpc64le-linux-gnu/include/bits/fcntl-linux.h:346,
+>                    from /usr/powerpc64le-linux-gnu/include/bits/fcntl.h:62,
+>                    from /usr/powerpc64le-linux-gnu/include/fcntl.h:35,
+>                    from close_range_test.c:5:
+>   ../../../../include/linux/falloc.h:13:2: error: unknown type name '__s16'
+>     __s16  l_type;
+>     ^~~~~
+> 
+> 
+> Did you do that on purpose or just copy it from one of the other
+> Makefiles? :)
 
-> The current version of the multiarch vDSO selftest verifies only
-> gettimeofday.
->
-> Extend the vDSO selftest to clock_getres, to verify that the
-> syscall and the vDSO library function return the same information.
->
-> The extension has been used to verify the hrtimer_resoltion fix.
+I originally did that on purpose because checkpatch was yammering on
+about me not having used ARRAY_SIZE(). But that include can go, you are
+right.
 
-This is passing for me even without patch 1 applied, shouldn't it fail
-without the fix? What am I missing?
-
-# uname -r
-5.2.0-rc2-gcc-8.2.0
-
-# ./vdso_clock_getres
-clock_id: CLOCK_REALTIME [PASS]
-clock_id: CLOCK_BOOTTIME [PASS]
-clock_id: CLOCK_TAI [PASS]
-clock_id: CLOCK_REALTIME_COARSE [PASS]
-clock_id: CLOCK_MONOTONIC [PASS]
-clock_id: CLOCK_MONOTONIC_RAW [PASS]
-clock_id: CLOCK_MONOTONIC_COARSE [PASS]
-
-cheers
-
-> Cc: Shuah Khan <shuah@kernel.org>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->
-> Note: This patch is independent from the others in this series, hence it
-> can be merged singularly by the kselftest maintainers.
->
->  tools/testing/selftests/vDSO/Makefile         |   2 +
->  .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
->  2 files changed, 126 insertions(+)
->  create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
+Christian
