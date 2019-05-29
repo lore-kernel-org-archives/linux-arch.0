@@ -1,143 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f201.google.com ([209.85.222.201]:45021 "EHLO
-        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726837AbfE2OXf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 10:23:35 -0400
-Received: by mail-qk1-f201.google.com with SMTP id v2so1997283qkd.11
-        for <linux-arch@vger.kernel.org>; Wed, 29 May 2019 07:23:34 -0700 (PDT)
-Date: Wed, 29 May 2019 16:14:59 +0200
+Received: from mail-yb1-f202.google.com ([209.85.219.202]:46539 "EHLO
+        mail-yb1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726012AbfE2OXm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 10:23:42 -0400
+Received: by mail-yb1-f202.google.com with SMTP id v15so2027926ybe.13
+        for <linux-arch@vger.kernel.org>; Wed, 29 May 2019 07:23:41 -0700 (PDT)
+Date: Wed, 29 May 2019 16:15:00 +0200
 In-Reply-To: <20190529141500.193390-1-elver@google.com>
-Message-ID: <20190529141500.193390-2-elver@google.com>
+Message-ID: <20190529141500.193390-3-elver@google.com>
 Mime-Version: 1.0
 References: <20190529141500.193390-1-elver@google.com>
-Subject: [PATCH v2 1/3] lib/test_kasan: Add bitops tests
+Subject: [PATCH 2/3] x86: Move CPU feature test out of uaccess region
 From: Marco Elver <elver@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com
 Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
-Message-ID: <20190529141459.4H48JcP-pfGiGXPznuUp4jWYMP3qrseqznweHzdY5e0@z>
+Message-ID: <20190529141500.06fwWrJB1sHFqwtpZasutdyxjK9Ibhz3dxuLLvin6_I@z>
 
-This adds bitops tests to the test_kasan module. In a follow-up patch,
-support for bitops instrumentation will be added.
+This patch is a pre-requisite for enabling KASAN bitops instrumentation:
+moves boot_cpu_has feature test out of the uaccess region, as
+boot_cpu_has uses test_bit. With instrumentation, the KASAN check would
+otherwise be flagged by objtool.
+
+This approach is preferred over adding the explicit kasan_check_*
+functions to the uaccess whitelist of objtool, as the case here appears
+to be the only one.
 
 Signed-off-by: Marco Elver <elver@google.com>
 ---
-Changes in v2:
-* Use BITS_PER_LONG.
-* Use heap allocated memory for test, as newer compilers (correctly)
-  warn on OOB stack access.
+v1:
+* This patch replaces patch: 'tools/objtool: add kasan_check_* to
+  uaccess whitelist'
 ---
- lib/test_kasan.c | 75 ++++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 72 insertions(+), 3 deletions(-)
+ arch/x86/ia32/ia32_signal.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/lib/test_kasan.c b/lib/test_kasan.c
-index 7de2702621dc..6562df0ca30d 100644
---- a/lib/test_kasan.c
-+++ b/lib/test_kasan.c
-@@ -11,16 +11,17 @@
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 629d1ee05599..12264e3c9c43 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -333,6 +333,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 	void __user *restorer;
+ 	int err = 0;
+ 	void __user *fpstate = NULL;
++	bool has_xsave;
  
- #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
+ 	/* __copy_to_user optimizes that into a single 8 byte store */
+ 	static const struct {
+@@ -352,13 +353,19 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 	if (!access_ok(frame, sizeof(*frame)))
+ 		return -EFAULT;
  
-+#include <linux/bitops.h>
- #include <linux/delay.h>
-+#include <linux/kasan.h>
- #include <linux/kernel.h>
--#include <linux/mman.h>
- #include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/module.h>
- #include <linux/printk.h>
- #include <linux/slab.h>
- #include <linux/string.h>
- #include <linux/uaccess.h>
--#include <linux/module.h>
--#include <linux/kasan.h>
++	/*
++	 * Move non-uaccess accesses out of uaccess region if not strictly
++	 * required; this also helps avoid objtool flagging these accesses with
++	 * instrumentation enabled.
++	 */
++	has_xsave = boot_cpu_has(X86_FEATURE_XSAVE);
+ 	put_user_try {
+ 		put_user_ex(sig, &frame->sig);
+ 		put_user_ex(ptr_to_compat(&frame->info), &frame->pinfo);
+ 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
  
- /*
-  * Note: test functions are marked noinline so that their names appear in
-@@ -623,6 +624,73 @@ static noinline void __init kasan_strings(void)
- 	strnlen(ptr, 1);
- }
- 
-+static noinline void __init kasan_bitops(void)
-+{
-+	long *bits = kmalloc(sizeof(long), GFP_KERNEL | __GFP_ZERO);
-+	if (!bits)
-+		return;
-+
-+	pr_info("within-bounds in set_bit");
-+	set_bit(0, bits);
-+
-+	pr_info("within-bounds in set_bit");
-+	set_bit(BITS_PER_LONG - 1, bits);
-+
-+	pr_info("out-of-bounds in set_bit\n");
-+	set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __set_bit\n");
-+	__set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in clear_bit\n");
-+	clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __clear_bit\n");
-+	__clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in clear_bit_unlock\n");
-+	clear_bit_unlock(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __clear_bit_unlock\n");
-+	__clear_bit_unlock(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in change_bit\n");
-+	change_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __change_bit\n");
-+	__change_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in test_and_set_bit\n");
-+	test_and_set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __test_and_set_bit\n");
-+	__test_and_set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in test_and_set_bit_lock\n");
-+	test_and_set_bit_lock(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in test_and_clear_bit\n");
-+	test_and_clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __test_and_clear_bit\n");
-+	__test_and_clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in test_and_change_bit\n");
-+	test_and_change_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __test_and_change_bit\n");
-+	__test_and_change_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in test_bit\n");
-+	(void)test_bit(BITS_PER_LONG, bits);
-+
-+#if defined(clear_bit_unlock_is_negative_byte)
-+	pr_info("out-of-bounds in clear_bit_unlock_is_negative_byte\n");
-+	clear_bit_unlock_is_negative_byte(BITS_PER_LONG, bits);
-+#endif
-+	kfree(bits);
-+}
-+
- static int __init kmalloc_tests_init(void)
- {
- 	/*
-@@ -664,6 +732,7 @@ static int __init kmalloc_tests_init(void)
- 	kasan_memchr();
- 	kasan_memcmp();
- 	kasan_strings();
-+	kasan_bitops();
- 
- 	kasan_restore_multi_shot(multishot);
- 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (has_xsave)
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
 -- 
 2.22.0.rc1.257.g3120a18244-goog
