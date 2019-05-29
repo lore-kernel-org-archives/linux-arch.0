@@ -1,155 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:57053 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726068AbfE2Of2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 10:35:28 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20190523003916.20726-1-ebiederm@xmission.com>
-        <20190523003916.20726-3-ebiederm@xmission.com>
-Date: Wed, 29 May 2019 09:35:13 -0500
-In-Reply-To: <20190523003916.20726-3-ebiederm@xmission.com> (Eric
-        W. Biederman's message of "Wed, 22 May 2019 19:38:52 -0500")
-Message-ID: <87muj52use.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 02/26] signal/ptrace: Simplify and fix PTRACE_KILL
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:40011 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726522AbfE2PKF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 11:10:05 -0400
+Received: by mail-pg1-f195.google.com with SMTP id d30so74882pgm.7
+        for <linux-arch@vger.kernel.org>; Wed, 29 May 2019 08:10:04 -0700 (PDT)
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC permissions
+From: Andy Lutomirski <luto@amacapital.net>
+In-Reply-To: <20190524031109.v24r6typyug2rlto@yavin>
+Date: Wed, 29 May 2019 08:10:00 -0700
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <9712F80E-1016-4DB7-996D-B423E07A1C1F@amacapital.net>
+References: <20190520133305.11925-1-cyphar@cyphar.com> <20190520133305.11925-2-cyphar@cyphar.com> <CALCETrVCwe49q5mu=f6jTYNSgosQSjjY5chukMPo6eZtQGqo5g@mail.gmail.com> <20190523020009.mi25uziu2b3whf4l@yavin> <20190524031109.v24r6typyug2rlto@yavin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20190529143513.bi2Y39NWE8jnVO7gA_HVU6WmGz9t4pBlRqCmQhkxpng@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Containers <containers@lists.linux-foundation.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190529151000.Q2wdPXONgkLlY1RNzjYuzGXPlJLpeKjKidh3gA8enL0@z>
 
 
-I am dropping this one for now, as there are no dependencies with
-the other patches, and this probably deserves some discussion on it's
-own.
 
-Eric
+> On May 23, 2019, at 8:11 PM, Aleksa Sarai <cyphar@cyphar.com> wrote:
+>=20
+>> On 2019-05-23, Aleksa Sarai <cyphar@cyphar.com> wrote:
+>>> On 2019-05-22, Andy Lutomirski <luto@kernel.org> wrote:
+>>> What are actual examples of uses for this exception?  Breaking
+>>> selftests is not, in and of itself, a huge problem.
+>>=20
+>> Not as far as I know. All of the re-opening users I know of do re-opens
+>> of O_PATH or are re-opening with the same (or fewer) privileges. I also
+>> ran this for a few days on my laptop without this exception, and didn't
+>> have any visible issues.
+>=20
+> I have modified the patch to WARN_ON(may_open_magiclink() =3D=3D -EACCES).=
 
-"Eric W. Biederman" <ebiederm@xmission.com> writes:
-
-> Since PTRACE_KILL was introduced in 1.1.78 it has only worked if the
-> process is stopped in do_signal.  On a ptraced but non-stopped process
-> PTRACE_KILL has always returned success and done nothing.
->
-> Separate the noop case of PTRACE_KILL from the case where it does
-> nothing.  This fixes the fact that taking sighand lock in
-> ptrace_resume is not safe if the process could be in the middle of
-> exec or do_exit.  The current test for child->state is insufficient to
-> prevent that race.
->
-> With the code explicitly implementing the noop people maintaining
-> ptrace no longer need to worry what happens in PTRACE_KILL if the
-> process is not stopped.
->
-> The alternative fix is to change the implementation of PTRACE_KILL
-> to just be send_sig(SIGKILL, child, 1);  But I don't know if anything
-> depends on the current documented behavior.
->
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: stable@vger.kernel.org
-> Fixes: b72c186999e6 ("ptrace: fix race between ptrace_resume() and wait_task_stopped()")
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> ---
->  kernel/ptrace.c | 43 ++++++++++++++++++++++++++-----------------
->  1 file changed, 26 insertions(+), 17 deletions(-)
->
-> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-> index 6f357f4fc859..5d6ff7040863 100644
-> --- a/kernel/ptrace.c
-> +++ b/kernel/ptrace.c
-> @@ -212,15 +212,18 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
->   *
->   * Check whether @child is being ptraced by %current and ready for further
->   * ptrace operations.  If @ignore_state is %false, @child also should be in
-> - * %TASK_TRACED state and on return the child is guaranteed to be traced
-> - * and not executing.  If @ignore_state is %true, @child can be in any
-> - * state.
-> + * %TASK_TRACED state and on succesful return the child is guaranteed to be
-> + * traced and not executing.  If @ignore_state is %true, @child can be in
-> + * any state on succesful return.
->   *
->   * CONTEXT:
->   * Grabs and releases tasklist_lock and @child->sighand->siglock.
->   *
->   * RETURNS:
-> - * 0 on success, -ESRCH if %child is not ready.
-> + * 0 on success,
-> + * -ESRCH if %child is not traced
-> + * -EAGAIN if %child can not be frozen
-> + * -EBUSY if the wait for %child fails
->   */
->  static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+>=20
+> So far (in the past day on my openSUSE machines) I have only seen two
+> programs which have hit this case: kbd[1]'s "loadkeys" and "kbd_mode"
+> binaries. In addition to there not being any user-visible errors -- they
+> actually handle permission errors gracefully!
+>=20
+>  static int
+>  open_a_console(const char *fnam)
 >  {
-> @@ -240,6 +243,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
->  		 * child->sighand can't be NULL, release_task()
->  		 * does ptrace_unlink() before __exit_signal().
->  		 */
-> +		ret = -EAGAIN;
->  		if (ignore_state || ptrace_freeze_traced(child))
->  			ret = 0;
->  	}
-> @@ -253,7 +257,7 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
->  			 * so we should not worry about leaking __TASK_TRACED.
->  			 */
->  			WARN_ON(child->state == __TASK_TRACED);
-> -			ret = -ESRCH;
-> +			ret = -EBUSY;
->  		}
->  	}
->  
-> @@ -1074,8 +1078,6 @@ int ptrace_request(struct task_struct *child, long request,
->  		return ptrace_resume(child, request, data);
->  
->  	case PTRACE_KILL:
-> -		if (child->exit_state)	/* already dead */
-> -			return 0;
->  		return ptrace_resume(child, request, SIGKILL);
->  
->  #ifdef CONFIG_HAVE_ARCH_TRACEHOOK
-> @@ -1147,14 +1149,17 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
->  		goto out_put_task_struct;
->  	}
->  
-> -	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
-> -				  request == PTRACE_INTERRUPT);
-> -	if (ret < 0)
-> -		goto out_put_task_struct;
-> -
-> -	ret = arch_ptrace(child, request, addr, data);
-> -	if (ret || request != PTRACE_DETACH)
-> -		ptrace_unfreeze_traced(child);
-> +	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
-> +	if (!ret) {
-> +		ret = arch_ptrace(child, request, addr, data);
-> +		if (ret || request != PTRACE_DETACH)
-> +			ptrace_unfreeze_traced(child);
-> +	}
-> +	/* PTRACE_KILL is a noop when not attached */
-> +	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
-> +		ret = 0;
-> +	else
-> +		ret = -ESRCH;
->  
->   out_put_task_struct:
->  	put_task_struct(child);
-> @@ -1292,13 +1297,17 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
->  		goto out_put_task_struct;
->  	}
->  
-> -	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
-> -				  request == PTRACE_INTERRUPT);
-> +	ret = ptrace_check_attach(child, request == PTRACE_INTERRUPT);
->  	if (!ret) {
->  		ret = compat_arch_ptrace(child, request, addr, data);
->  		if (ret || request != PTRACE_DETACH)
->  			ptrace_unfreeze_traced(child);
->  	}
-> +	/* PTRACE_KILL is a noop when not attached */
-> +	else if ((request == PTRACE_KILL) && (ret != -ESRCH))
-> +		ret = 0;
-> +	else
-> +		ret = -ESRCH;
->  
->   out_put_task_struct:
->  	put_task_struct(child);
+>      int fd;
+>=20
+>      /*
+>       * For ioctl purposes we only need some fd and permissions
+>       * do not matter. But setfont:activatemap() does a write.
+>       */
+>      fd =3D open(fnam, O_RDWR);
+>      if (fd < 0)
+>          fd =3D open(fnam, O_WRONLY);
+>      if (fd < 0)
+>          fd =3D open(fnam, O_RDONLY);
+>      if (fd < 0)
+>          return -1;
+>      return fd;
+>  }
+>=20
+> The above gets called with "/proc/self/fd/0" as an argument (as well as
+> other console candidates like "/dev/console"). And setfont:activatemap()
+> actually does handle read-only fds:
+>=20
+>  static void
+>  send_escseq(int fd, const char *seq, int n)
+>  {
+>      if (write(fd, seq, n) !=3D n) /* maybe fd is read-only */
+>          printf("%s", seq);
+>  }
+>=20
+>  void activatemap(int fd)
+>  {
+>      send_escseq(fd, "\033(K", 3);
+>  }
+>=20
+> So, thus far, not only have I not seen anything go wrong -- the only
+> program which actually hits this case handles the error gracefully.
+> Obviously we got lucky here, but the lack of any users of this
+> mis-feature leads me to have some hope that we can block it without
+> anyone noticing.
+>=20
+> But I emphatically do not want to break userspace here (except for
+> attackers, obviously).
+
+Hmm. This will break any script that does echo foo >/dev/stdin too.
+
+Just to throw an idea out there, what if the open were allowed if the file m=
+ode is sufficient or if the magic link target is openable with the correct m=
+ode without magic?  In other words, first check as in your code but without t=
+he exception and, if that check fails, then walk the same path that d_path w=
+ould return and see if it would work as a normal open?  Of course, that seco=
+nd attempt would need to disable magic links to avoid recursing.  I=E2=80=99=
+m not sure I love this idea...
+
+Otherwise, I imagine we can live with the exception, especially if the new o=
+pen API turns it off by default.
