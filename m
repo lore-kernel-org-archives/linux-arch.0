@@ -1,101 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:40011 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726522AbfE2PKF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 11:10:05 -0400
-Received: by mail-pg1-f195.google.com with SMTP id d30so74882pgm.7
-        for <linux-arch@vger.kernel.org>; Wed, 29 May 2019 08:10:04 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH RFC v8 01/10] namei: obey trailing magic-link DAC permissions
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <20190524031109.v24r6typyug2rlto@yavin>
-Date: Wed, 29 May 2019 08:10:00 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <9712F80E-1016-4DB7-996D-B423E07A1C1F@amacapital.net>
-References: <20190520133305.11925-1-cyphar@cyphar.com> <20190520133305.11925-2-cyphar@cyphar.com> <CALCETrVCwe49q5mu=f6jTYNSgosQSjjY5chukMPo6eZtQGqo5g@mail.gmail.com> <20190523020009.mi25uziu2b3whf4l@yavin> <20190524031109.v24r6typyug2rlto@yavin>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47880 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726068AbfE2PMc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 May 2019 11:12:32 -0400
+Date: Wed, 29 May 2019 16:12:27 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not
+ force_sig_fault for SIGKILL
+Message-ID: <20190529151227.GF11154@fuggles.cambridge.arm.com>
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+ <20190523003916.20726-4-ebiederm@xmission.com>
+ <20190523101702.GG26646@fuggles.cambridge.arm.com>
+ <875zq1gnh4.fsf_-_@xmission.com>
+ <20190523161509.GE31896@fuggles.cambridge.arm.com>
+ <8736l4evkn.fsf@xmission.com>
+ <20190524100008.GE3432@fuggles.cambridge.arm.com>
+ <87o93rcwee.fsf@xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87o93rcwee.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Containers <containers@lists.linux-foundation.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190529151000.Q2wdPXONgkLlY1RNzjYuzGXPlJLpeKjKidh3gA8enL0@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20190529151227.bm8CKUmGvAQz7gAJrOf1QHSWIxZoEIu6OZupFEovxcw@z>
 
+On Fri, May 24, 2019 at 05:36:41PM -0500, Eric W. Biederman wrote:
+> Will Deacon <will.deacon@arm.com> writes:
+> 
+> > On Thu, May 23, 2019 at 03:59:20PM -0500, Eric W. Biederman wrote:
+> >> Will Deacon <will.deacon@arm.com> writes:
+> >> 
+> >> > On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
+> >> >> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+> >> >> index ade32046f3fe..e45d5b440fb1 100644
+> >> >> --- a/arch/arm64/kernel/traps.c
+> >> >> +++ b/arch/arm64/kernel/traps.c
+> >> >> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+> >> >>  			   const char *str)
+> >> >>  {
+> >> >>  	arm64_show_signal(signo, str);
+> >> >> -	force_sig_fault(signo, code, addr, current);
+> >> >> +	if (signo == SIGKILL)
+> >> >> +		force_sig(SIGKILL, current);
+> >> >> +	else
+> >> >> +		force_sig_fault(signo, code, addr, current);
+> >> >>  }
+> >> >
+> >> > Acked-by: Will Deacon <will.deacon@arm.com>
+> >> >
+> >> > Are you planning to send this series on, or would you like me to pick this
+> >> > into the arm64 tree?
+> >> 
+> >> I am planning on taking this through siginfo tree, unless it causes
+> >> problems.
+> >
+> > Okey doke, it would just be nice to see this patch land in 5.2, that's
+> > all.
+> 
+> As this does not appear to have any real world consequences I am aiming
+> at 5.3.  If someone else would like to take it and feed it to Linus
+> sooner I won't object.
 
+Thanks. I've picked this patch up as part of the arm64 fixes I plan to send
+for -rc3.
 
-> On May 23, 2019, at 8:11 PM, Aleksa Sarai <cyphar@cyphar.com> wrote:
->=20
->> On 2019-05-23, Aleksa Sarai <cyphar@cyphar.com> wrote:
->>> On 2019-05-22, Andy Lutomirski <luto@kernel.org> wrote:
->>> What are actual examples of uses for this exception?  Breaking
->>> selftests is not, in and of itself, a huge problem.
->>=20
->> Not as far as I know. All of the re-opening users I know of do re-opens
->> of O_PATH or are re-opening with the same (or fewer) privileges. I also
->> ran this for a few days on my laptop without this exception, and didn't
->> have any visible issues.
->=20
-> I have modified the patch to WARN_ON(may_open_magiclink() =3D=3D -EACCES).=
-
->=20
-> So far (in the past day on my openSUSE machines) I have only seen two
-> programs which have hit this case: kbd[1]'s "loadkeys" and "kbd_mode"
-> binaries. In addition to there not being any user-visible errors -- they
-> actually handle permission errors gracefully!
->=20
->  static int
->  open_a_console(const char *fnam)
->  {
->      int fd;
->=20
->      /*
->       * For ioctl purposes we only need some fd and permissions
->       * do not matter. But setfont:activatemap() does a write.
->       */
->      fd =3D open(fnam, O_RDWR);
->      if (fd < 0)
->          fd =3D open(fnam, O_WRONLY);
->      if (fd < 0)
->          fd =3D open(fnam, O_RDONLY);
->      if (fd < 0)
->          return -1;
->      return fd;
->  }
->=20
-> The above gets called with "/proc/self/fd/0" as an argument (as well as
-> other console candidates like "/dev/console"). And setfont:activatemap()
-> actually does handle read-only fds:
->=20
->  static void
->  send_escseq(int fd, const char *seq, int n)
->  {
->      if (write(fd, seq, n) !=3D n) /* maybe fd is read-only */
->          printf("%s", seq);
->  }
->=20
->  void activatemap(int fd)
->  {
->      send_escseq(fd, "\033(K", 3);
->  }
->=20
-> So, thus far, not only have I not seen anything go wrong -- the only
-> program which actually hits this case handles the error gracefully.
-> Obviously we got lucky here, but the lack of any users of this
-> mis-feature leads me to have some hope that we can block it without
-> anyone noticing.
->=20
-> But I emphatically do not want to break userspace here (except for
-> attackers, obviously).
-
-Hmm. This will break any script that does echo foo >/dev/stdin too.
-
-Just to throw an idea out there, what if the open were allowed if the file m=
-ode is sufficient or if the magic link target is openable with the correct m=
-ode without magic?  In other words, first check as in your code but without t=
-he exception and, if that check fails, then walk the same path that d_path w=
-ould return and see if it would work as a normal open?  Of course, that seco=
-nd attempt would need to disable magic links to avoid recursing.  I=E2=80=99=
-m not sure I love this idea...
-
-Otherwise, I imagine we can live with the exception, especially if the new o=
-pen API turns it off by default.
+Will
