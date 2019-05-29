@@ -1,147 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48232 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725914AbfE2PdE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 May 2019 11:33:04 -0400
-Date: Wed, 29 May 2019 16:32:58 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 3/3] asm-generic, x86: Add bitops instrumentation for
- KASAN
-Message-ID: <20190529153258.GJ31777@lakrids.cambridge.arm.com>
-References: <20190529141500.193390-1-elver@google.com>
- <20190529141500.193390-4-elver@google.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:50759 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725914AbfE2Pec (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 11:34:32 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190523003916.20726-1-ebiederm@xmission.com>
+        <20190523003916.20726-4-ebiederm@xmission.com>
+        <20190523101702.GG26646@fuggles.cambridge.arm.com>
+        <875zq1gnh4.fsf_-_@xmission.com>
+        <20190523161509.GE31896@fuggles.cambridge.arm.com>
+        <8736l4evkn.fsf@xmission.com>
+        <20190524100008.GE3432@fuggles.cambridge.arm.com>
+        <87o93rcwee.fsf@xmission.com>
+        <20190529151227.GF11154@fuggles.cambridge.arm.com>
+Date: Wed, 29 May 2019 10:34:25 -0500
+In-Reply-To: <20190529151227.GF11154@fuggles.cambridge.arm.com> (Will Deacon's
+        message of "Wed, 29 May 2019 16:12:27 +0100")
+Message-ID: <87muj51dha.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190529141500.193390-4-elver@google.com>
+Content-Type: text/plain
+Subject: Re: [REVIEW][PATCHv2 03/26] signal/arm64: Use force_sig not force_sig_fault for SIGKILL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>, peterz@infradead.org
-Cc: aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
-Message-ID: <20190529153258.zXZ8tdN7PL1-lm5LO8vcqIPFOt5GR_o7iMFEF5KpqJc@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linux Containers <containers@lists.linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20190529153425.8I6vo7aRHyhWBvuKL3IA2zv2vpJVyjqdUffm08WwKQA@z>
 
-On Wed, May 29, 2019 at 04:15:01PM +0200, Marco Elver wrote:
-> This adds a new header to asm-generic to allow optionally instrumenting
-> architecture-specific asm implementations of bitops.
-> 
-> This change includes the required change for x86 as reference and
-> changes the kernel API doc to point to bitops-instrumented.h instead.
-> Rationale: the functions in x86's bitops.h are no longer the kernel API
-> functions, but instead the arch_ prefixed functions, which are then
-> instrumented via bitops-instrumented.h.
-> 
-> Other architectures can similarly add support for asm implementations of
-> bitops.
-> 
-> The documentation text has been copied/moved, and *no* changes to it
-> have been made in this patch.
-> 
-> Tested: using lib/test_kasan with bitops tests (pre-requisite patch).
-> 
-> Bugzilla: https://bugzilla.kernel.org/show_bug.cgi?id=198439
-> Signed-off-by: Marco Elver <elver@google.com>
-> ---
-> Changes in v2:
-> * Instrument word-sized accesses, as specified by the interface.
-> ---
->  Documentation/core-api/kernel-api.rst     |   2 +-
->  arch/x86/include/asm/bitops.h             | 210 ++++----------
->  include/asm-generic/bitops-instrumented.h | 317 ++++++++++++++++++++++
->  3 files changed, 370 insertions(+), 159 deletions(-)
->  create mode 100644 include/asm-generic/bitops-instrumented.h
+Will Deacon <will.deacon@arm.com> writes:
 
-[...]
+> On Fri, May 24, 2019 at 05:36:41PM -0500, Eric W. Biederman wrote:
+>> Will Deacon <will.deacon@arm.com> writes:
+>> 
+>> > On Thu, May 23, 2019 at 03:59:20PM -0500, Eric W. Biederman wrote:
+>> >> Will Deacon <will.deacon@arm.com> writes:
+>> >> 
+>> >> > On Thu, May 23, 2019 at 11:11:19AM -0500, Eric W. Biederman wrote:
+>> >> >> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+>> >> >> index ade32046f3fe..e45d5b440fb1 100644
+>> >> >> --- a/arch/arm64/kernel/traps.c
+>> >> >> +++ b/arch/arm64/kernel/traps.c
+>> >> >> @@ -256,7 +256,10 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
+>> >> >>  			   const char *str)
+>> >> >>  {
+>> >> >>  	arm64_show_signal(signo, str);
+>> >> >> -	force_sig_fault(signo, code, addr, current);
+>> >> >> +	if (signo == SIGKILL)
+>> >> >> +		force_sig(SIGKILL, current);
+>> >> >> +	else
+>> >> >> +		force_sig_fault(signo, code, addr, current);
+>> >> >>  }
+>> >> >
+>> >> > Acked-by: Will Deacon <will.deacon@arm.com>
+>> >> >
+>> >> > Are you planning to send this series on, or would you like me to pick this
+>> >> > into the arm64 tree?
+>> >> 
+>> >> I am planning on taking this through siginfo tree, unless it causes
+>> >> problems.
+>> >
+>> > Okey doke, it would just be nice to see this patch land in 5.2, that's
+>> > all.
+>> 
+>> As this does not appear to have any real world consequences I am aiming
+>> at 5.3.  If someone else would like to take it and feed it to Linus
+>> sooner I won't object.
+>
+> Thanks. I've picked this patch up as part of the arm64 fixes I plan to send
+> for -rc3.
 
-> diff --git a/include/asm-generic/bitops-instrumented.h b/include/asm-generic/bitops-instrumented.h
-> new file mode 100644
-> index 000000000000..b01b0dd93964
-> --- /dev/null
-> +++ b/include/asm-generic/bitops-instrumented.h
-> @@ -0,0 +1,317 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +
-> +/*
-> + * This file provides wrappers with sanitizer instrumentation for bit
-> + * operations.
-> + *
-> + * To use this functionality, an arch's bitops.h file needs to define each of
-> + * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> + * arch___set_bit(), etc.), #define each provided arch_ function, and include
-> + * this file after their definitions. For undefined arch_ functions, it is
-> + * assumed that they are provided via asm-generic/bitops, which are implicitly
-> + * instrumented.
-> + */
+Sounds good.
 
-If using the asm-generic/bitops.h, all of the below will be defined
-unconditionally, so I don't believe we need the ifdeffery for each
-function.
+We might have a trivial conflict between our branches as I am also
+including this in my for-next branch, as I have further patches that go
+on to remove the task argument from force_sig and force_sig_fault.
 
-> +#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> +#define _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> +
-> +#include <linux/kasan-checks.h>
-> +
-> +#if defined(arch_set_bit)
-> +/**
-> + * set_bit - Atomically set a bit in memory
-> + * @nr: the bit to set
-> + * @addr: the address to start counting from
-> + *
-> + * This function is atomic and may not be reordered.  See __set_bit()
-> + * if you do not require the atomic guarantees.
-> + *
-> + * Note: there are no guarantees that this function will not be reordered
-> + * on non x86 architectures, so if you are writing portable code,
-> + * make sure not to rely on its reordering guarantees.
+But I don't think it is anything to worry about.
 
-These two paragraphs are contradictory.
-
-Since this is not under arch/x86, please fix this to describe the
-generic semantics; any x86-specific behaviour should be commented under
-arch/x86.
-
-AFAICT per include/asm-generic/bitops/atomic.h, generically this
-provides no ordering guarantees. So I think this can be:
-
-/**
- * set_bit - Atomically set a bit in memory
- * @nr: the bit to set
- * @addr: the address to start counting from
- *
- * This function is atomic and may be reordered.
- *
- * Note that @nr may be almost arbitrarily large; this function is not
- * restricted to acting on a single-word quantity.
- */
-
-... with the x86 ordering beahviour commented in x86's arch_set_bit.
-
-Peter, do you have a better wording for the above?
-
-[...]
-
-> +#if defined(arch___test_and_clear_bit)
-> +/**
-> + * __test_and_clear_bit - Clear a bit and return its old value
-> + * @nr: Bit to clear
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic and can be reordered.
-> + * If two examples of this operation race, one can appear to succeed
-> + * but actually fail.  You must protect multiple accesses with a lock.
-> + *
-> + * Note: the operation is performed atomically with respect to
-> + * the local CPU, but not other CPUs. Portable code should not
-> + * rely on this behaviour.
-> + * KVM relies on this behaviour on x86 for modifying memory that is also
-> + * accessed from a hypervisor on the same CPU if running in a VM: don't change
-> + * this without also updating arch/x86/kernel/kvm.c
-> + */
-
-Likewise, please only specify the generic semantics in this header, and
-leave the x86-specific behaviour commented under arch/x86.
-
-Otherwise this looks sound to me.
-
-Thanks,
-Mark.
+Eric
