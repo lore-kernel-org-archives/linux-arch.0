@@ -1,90 +1,106 @@
-From: Sasha Levin <sashal@kernel.org>
-Subject: Re: [PATCH v3 1/3] powerpc: Fix vDSO clock_getres()
-Date: Wed, 29 May 2019 13:14:58 +0000
-Message-ID: <20190529131459.50626217D4__32770.9206541599$1559136050$gmane$org@mail.kernel.org>
-References: <20190522110722.28094-2-vincenzo.frascino@arm.com>
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20190522110722.28094-2-vincenzo.frascino@arm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: Sasha Levin <sashal@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Cc: stable@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 3/3] asm-generic, x86: Add bitops instrumentation for
+ KASAN
+Date: Wed, 29 May 2019 14:26:00 +0100
+Message-ID: <20190529132559.GF31777@lakrids.cambridge.arm.com>
+References: <20190528163258.260144-1-elver@google.com>
+ <20190528163258.260144-3-elver@google.com>
+ <20190528165036.GC28492@lakrids.cambridge.arm.com>
+ <CACT4Y+bV0CczjRWgHQq3kvioLaaKgN+hnYEKCe5wkbdngrm+8g@mail.gmail.com>
+ <CANpmjNNtjS3fUoQ_9FQqANYS2wuJZeFRNLZUq-ku=v62GEGTig@mail.gmail.com>
+ <20190529100116.GM2623@hirez.programming.kicks-ass.net>
+ <CANpmjNMvwAny54udYCHfBw1+aphrQmiiTJxqDq7q=h+6fvpO4w@mail.gmail.com>
+ <20190529103010.GP2623@hirez.programming.kicks-ass.net>
+ <CACT4Y+aVB3jK_M0-2D_QTq=nncVXTsNp77kjSwBwjqn-3hAJmA@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CACT4Y+aVB3jK_M0-2D_QTq=nncVXTsNp77kjSwBwjqn-3hAJmA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dmitry Vyukov <dvyukov@google.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Marco Elver <elver@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On Wed, May 29, 2019 at 12:57:15PM +0200, Dmitry Vyukov wrote:
+> On Wed, May 29, 2019 at 12:30 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> >
+> > On Wed, May 29, 2019 at 12:16:31PM +0200, Marco Elver wrote:
+> > > On Wed, 29 May 2019 at 12:01, Peter Zijlstra <peterz@infradead.org> wrote:
+> > > >
+> > > > On Wed, May 29, 2019 at 11:20:17AM +0200, Marco Elver wrote:
+> > > > > For the default, we decided to err on the conservative side for now,
+> > > > > since it seems that e.g. x86 operates only on the byte the bit is on.
+> > > >
+> > > > This is not correct, see for instance set_bit():
+> > > >
+> > > > static __always_inline void
+> > > > set_bit(long nr, volatile unsigned long *addr)
+> > > > {
+> > > >         if (IS_IMMEDIATE(nr)) {
+> > > >                 asm volatile(LOCK_PREFIX "orb %1,%0"
+> > > >                         : CONST_MASK_ADDR(nr, addr)
+> > > >                         : "iq" ((u8)CONST_MASK(nr))
+> > > >                         : "memory");
+> > > >         } else {
+> > > >                 asm volatile(LOCK_PREFIX __ASM_SIZE(bts) " %1,%0"
+> > > >                         : : RLONG_ADDR(addr), "Ir" (nr) : "memory");
+> > > >         }
+> > > > }
+> > > >
+> > > > That results in:
+> > > >
+> > > >         LOCK BTSQ nr, (addr)
+> > > >
+> > > > when @nr is not an immediate.
+> > >
+> > > Thanks for the clarification. Given that arm64 already instruments
+> > > bitops access to whole words, and x86 may also do so for some bitops,
+> > > it seems fine to instrument word-sized accesses by default. Is that
+> > > reasonable?
+> >
+> > Eminently -- the API is defined such; for bonus points KASAN should also
+> > do alignment checks on atomic ops. Future hardware will #AC on unaligned
+> > [*] LOCK prefix instructions.
+> >
+> > (*) not entirely accurate, it will only trap when crossing a line.
+> >     https://lkml.kernel.org/r/1556134382-58814-1-git-send-email-fenghua.yu@intel.com
+> 
+> Interesting. Does an address passed to bitops also should be aligned,
+> or alignment is supposed to be handled by bitops themselves?
+> 
+> This probably should be done as a separate config as not related to
+> KASAN per se. But obviously via the same
+> {atomicops,bitops}-instrumented.h hooks which will make it
+> significantly easier.
 
-[This is an automated email]
+Makes sense to me -- that should be easy to hack into gen_param_check()
+in gen-atomic-instrumented.sh, something like:
 
-This commit has been processed because it contains a "Fixes:" tag,
-fixing commit: a7f290dad32ee [PATCH] powerpc: Merge vdso's and add vdso support to 32 bits kernel.
+----
+diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
+index e09812372b17..2f6b8f521e57 100755
+--- a/scripts/atomic/gen-atomic-instrumented.sh
++++ b/scripts/atomic/gen-atomic-instrumented.sh
+@@ -21,6 +21,13 @@ gen_param_check()
+        [ ${type#c} != ${type} ] && rw="read"
+ 
+        printf "\tkasan_check_${rw}(${name}, sizeof(*${name}));\n"
++
++       [ "${type#c}" = "v" ] || return
++
++cat <<EOF
++       if (IS_ENABLED(CONFIG_PETERZ))
++               WARN_ON(!IS_ALIGNED(${name}, sizeof(*${name})));
++EOF
+ }
+ 
+ #gen_param_check(arg...)
+----
 
-The bot has tested the following trees: v5.1.4, v5.0.18, v4.19.45, v4.14.121, v4.9.178, v4.4.180, v3.18.140.
+On arm64 our atomic instructions always perform an alignment check, so
+we'd only miss if an atomic op bailed out after a plain READ_ONCE() of
+an unaligned atomic variable.
 
-v5.1.4: Build OK!
-v5.0.18: Build OK!
-v4.19.45: Build OK!
-v4.14.121: Failed to apply! Possible dependencies:
-    5c929885f1bb4 ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    b5b4453e7912f ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-
-v4.9.178: Failed to apply! Possible dependencies:
-    4546561551106 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
-    5c929885f1bb4 ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    5d451a87e5ebb ("powerpc/64: Retrieve number of L1 cache sets from device-tree")
-    7c5b06cadf274 ("KVM: PPC: Book3S HV: Adapt TLB invalidations to work on POWER9")
-    83677f551e0a6 ("KVM: PPC: Book3S HV: Adjust host/guest context switch for POWER9")
-    902e06eb86cd6 ("powerpc/32: Change the stack protector canary value per task")
-    b5b4453e7912f ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-    bd067f83b0840 ("powerpc/64: Fix naming of cache block vs. cache line")
-    e2827fe5c1566 ("powerpc/64: Clean up ppc64_caches using a struct per cache")
-    e9cf1e085647b ("KVM: PPC: Book3S HV: Add new POWER9 guest-accessible SPRs")
-    f4c51f841d2ac ("KVM: PPC: Book3S HV: Modify guest entry/exit paths to handle radix guests")
-
-v4.4.180: Failed to apply! Possible dependencies:
-    153086644fd1f ("powerpc/ftrace: Add support for -mprofile-kernel ftrace ABI")
-    3eb5d5888dc68 ("powerpc: Add ppc_strict_facility_enable boot option")
-    4546561551106 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
-    579e633e764e6 ("powerpc: create flush_all_to_thread()")
-    5c929885f1bb4 ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    70fe3d980f5f1 ("powerpc: Restore FPU/VEC/VSX if previously used")
-    85baa095497f3 ("powerpc/livepatch: Add live patching support on ppc64le")
-    902e06eb86cd6 ("powerpc/32: Change the stack protector canary value per task")
-    b5b4453e7912f ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-    bf76f73c5f655 ("powerpc: enable UBSAN support")
-    c208505900b23 ("powerpc: create giveup_all()")
-    d1e1cf2e38def ("powerpc: clean up asm/switch_to.h")
-    dc4fbba11e466 ("powerpc: Create disable_kernel_{fp,altivec,vsx,spe}()")
-    f17c4e01e906c ("powerpc/module: Mark module stubs with a magic value")
-
-v3.18.140: Failed to apply! Possible dependencies:
-    10239733ee861 ("powerpc: Remove bootmem allocator")
-    2449acc5348b9 ("powerpc/kernel: Enable seccomp filter")
-    4546561551106 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
-    49e4e15619cd7 ("tile: support CONTEXT_TRACKING and thus NOHZ_FULL")
-    5c929885f1bb4 ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    73569d87e2cc5 ("MIPS: OCTEON: Enable little endian kernel.")
-    817820b0226a1 ("powerpc/iommu: Support "hybrid" iommu/direct DMA ops for coherent_mask < dma_mask")
-    83fe27ea53116 ("rcu: Make SRCU optional by using CONFIG_SRCU")
-    85baa095497f3 ("powerpc/livepatch: Add live patching support on ppc64le")
-    b01aec9b2c7d3 ("EDAC: Cleanup atomic_scrub mess")
-    b30e759072c18 ("powerpc/mm: Switch to generic RCU get_user_pages_fast")
-    b5b4453e7912f ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-    bf76f73c5f655 ("powerpc: enable UBSAN support")
-    c54b2bf1b5e99 ("powerpc: Add ppc64 hard lockup detector support")
-    f30c59e921f12 ("mm: Update generic gup implementation to handle hugepage directory")
-    f47436734dc89 ("tile: Use the more common pr_warn instead of pr_warning")
-
-
-How should we proceed with this patch?
-
---
 Thanks,
-Sasha
+Mark.
