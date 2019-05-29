@@ -1,111 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:46006 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726029AbfE2N0G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 May 2019 09:26:06 -0400
-Date: Wed, 29 May 2019 14:26:00 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 3/3] asm-generic, x86: Add bitops instrumentation for
- KASAN
-Message-ID: <20190529132559.GF31777@lakrids.cambridge.arm.com>
-References: <20190528163258.260144-1-elver@google.com>
- <20190528163258.260144-3-elver@google.com>
- <20190528165036.GC28492@lakrids.cambridge.arm.com>
- <CACT4Y+bV0CczjRWgHQq3kvioLaaKgN+hnYEKCe5wkbdngrm+8g@mail.gmail.com>
- <CANpmjNNtjS3fUoQ_9FQqANYS2wuJZeFRNLZUq-ku=v62GEGTig@mail.gmail.com>
- <20190529100116.GM2623@hirez.programming.kicks-ass.net>
- <CANpmjNMvwAny54udYCHfBw1+aphrQmiiTJxqDq7q=h+6fvpO4w@mail.gmail.com>
- <20190529103010.GP2623@hirez.programming.kicks-ass.net>
- <CACT4Y+aVB3jK_M0-2D_QTq=nncVXTsNp77kjSwBwjqn-3hAJmA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CACT4Y+aVB3jK_M0-2D_QTq=nncVXTsNp77kjSwBwjqn-3hAJmA@mail.gmail.com>
+Received: from mail-yw1-f74.google.com ([209.85.161.74]:43384 "EHLO
+        mail-yw1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726512AbfE2OX0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2019 10:23:26 -0400
+Received: by mail-yw1-f74.google.com with SMTP id t2so2240456ywc.10
+        for <linux-arch@vger.kernel.org>; Wed, 29 May 2019 07:23:25 -0700 (PDT)
+Date: Wed, 29 May 2019 16:14:58 +0200
+Message-ID: <20190529141500.193390-1-elver@google.com>
+Mime-Version: 1.0
+Subject: [PATCH v2 0/3] Bitops instrumentation for KASAN
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Marco Elver <elver@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-Message-ID: <20190529132600.UXpHP1-Aw0LomzNOG-gSH7WhV4ArwqX8e4nAsRD_aQA@z>
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
+Message-ID: <20190529141458.eb1hH9RXXyU3Dyc_-w8cy3lvmNfF2Bp-OujtFJZlJmQ@z>
 
-On Wed, May 29, 2019 at 12:57:15PM +0200, Dmitry Vyukov wrote:
-> On Wed, May 29, 2019 at 12:30 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > On Wed, May 29, 2019 at 12:16:31PM +0200, Marco Elver wrote:
-> > > On Wed, 29 May 2019 at 12:01, Peter Zijlstra <peterz@infradead.org> wrote:
-> > > >
-> > > > On Wed, May 29, 2019 at 11:20:17AM +0200, Marco Elver wrote:
-> > > > > For the default, we decided to err on the conservative side for now,
-> > > > > since it seems that e.g. x86 operates only on the byte the bit is on.
-> > > >
-> > > > This is not correct, see for instance set_bit():
-> > > >
-> > > > static __always_inline void
-> > > > set_bit(long nr, volatile unsigned long *addr)
-> > > > {
-> > > >         if (IS_IMMEDIATE(nr)) {
-> > > >                 asm volatile(LOCK_PREFIX "orb %1,%0"
-> > > >                         : CONST_MASK_ADDR(nr, addr)
-> > > >                         : "iq" ((u8)CONST_MASK(nr))
-> > > >                         : "memory");
-> > > >         } else {
-> > > >                 asm volatile(LOCK_PREFIX __ASM_SIZE(bts) " %1,%0"
-> > > >                         : : RLONG_ADDR(addr), "Ir" (nr) : "memory");
-> > > >         }
-> > > > }
-> > > >
-> > > > That results in:
-> > > >
-> > > >         LOCK BTSQ nr, (addr)
-> > > >
-> > > > when @nr is not an immediate.
-> > >
-> > > Thanks for the clarification. Given that arm64 already instruments
-> > > bitops access to whole words, and x86 may also do so for some bitops,
-> > > it seems fine to instrument word-sized accesses by default. Is that
-> > > reasonable?
-> >
-> > Eminently -- the API is defined such; for bonus points KASAN should also
-> > do alignment checks on atomic ops. Future hardware will #AC on unaligned
-> > [*] LOCK prefix instructions.
-> >
-> > (*) not entirely accurate, it will only trap when crossing a line.
-> >     https://lkml.kernel.org/r/1556134382-58814-1-git-send-email-fenghua.yu@intel.com
-> 
-> Interesting. Does an address passed to bitops also should be aligned,
-> or alignment is supposed to be handled by bitops themselves?
-> 
-> This probably should be done as a separate config as not related to
-> KASAN per se. But obviously via the same
-> {atomicops,bitops}-instrumented.h hooks which will make it
-> significantly easier.
+The previous version of this patch series and discussion can be found
+here:  https://lkml.org/lkml/2019/5/28/769
 
-Makes sense to me -- that should be easy to hack into gen_param_check()
-in gen-atomic-instrumented.sh, something like:
+The most significant change is the change of the instrumented access
+size to cover the entire word of a bit.
 
-----
-diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-index e09812372b17..2f6b8f521e57 100755
---- a/scripts/atomic/gen-atomic-instrumented.sh
-+++ b/scripts/atomic/gen-atomic-instrumented.sh
-@@ -21,6 +21,13 @@ gen_param_check()
-        [ ${type#c} != ${type} ] && rw="read"
- 
-        printf "\tkasan_check_${rw}(${name}, sizeof(*${name}));\n"
-+
-+       [ "${type#c}" = "v" ] || return
-+
-+cat <<EOF
-+       if (IS_ENABLED(CONFIG_PETERZ))
-+               WARN_ON(!IS_ALIGNED(${name}, sizeof(*${name})));
-+EOF
- }
- 
- #gen_param_check(arg...)
-----
+Marco Elver (3):
+  lib/test_kasan: Add bitops tests
+  x86: Move CPU feature test out of uaccess region
+  asm-generic, x86: Add bitops instrumentation for KASAN
 
-On arm64 our atomic instructions always perform an alignment check, so
-we'd only miss if an atomic op bailed out after a plain READ_ONCE() of
-an unaligned atomic variable.
+ Documentation/core-api/kernel-api.rst     |   2 +-
+ arch/x86/ia32/ia32_signal.c               |   9 +-
+ arch/x86/include/asm/bitops.h             | 210 ++++----------
+ include/asm-generic/bitops-instrumented.h | 317 ++++++++++++++++++++++
+ lib/test_kasan.c                          |  75 ++++-
+ 5 files changed, 450 insertions(+), 163 deletions(-)
+ create mode 100644 include/asm-generic/bitops-instrumented.h
 
-Thanks,
-Mark.
+-- 
+2.22.0.rc1.257.g3120a18244-goog
