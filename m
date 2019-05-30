@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 17/33] tools/memory-model: Hardware checking for check{,all}litmus.sh
-Date: Thu, 30 May 2019 07:42:09 -0700
-Message-ID: <20190530144225.27624-17-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 13/33] tools/memory-model: Update parseargs.sh for hardware verification
+Date: Thu, 30 May 2019 07:42:05 -0700
+Message-ID: <20190530144225.27624-13-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,134 +10,54 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit makes checklitmus.sh and checkalllitmus.sh check to see
-if a hardware verification was specified (via the --hw command-line
-argument, which sets the LKMM_HW_MAP_FILE environment variable).
-If so, the C-language litmus test is converted to the specified type
-of assembly-language litmus test and herd is run on it.  Hardware is
-permitted to be stronger than LKMM requires, so "Always" and "Never"
-verifications of "Sometimes" C-language litmus tests are forgiven.
+This commit adds a --hw argument to parseargs.sh to specify the CPU
+family for a hardware verification.  For example, "--hw AArch64" will
+specify that a C-language litmus test is to be translated to ARMv8 and
+the result verified.  This will set the LKMM_HW_MAP_FILE environment
+variable accordingly.  If there is no --hw argument, this environment
+variable will be set to the empty string.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkalllitmus.sh | 23 +++++------
- tools/memory-model/scripts/checklitmus.sh    | 42 ++++++++++++++++++--
- 2 files changed, 49 insertions(+), 16 deletions(-)
+ tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 54d8da8c338e..2d3ee850a839 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -1,4 +1,4 @@
--#!/bin/sh
-+#!/bin/bash
- # SPDX-License-Identifier: GPL-2.0+
- #
- # Run herd7 tests on all .litmus files in the litmus-tests directory
-@@ -8,6 +8,11 @@
- # "^^^".  It also outputs verification results to a file whose name is
- # that of the specified litmus test, but with ".out" appended.
- #
-+# If the --hw argument is specified, this script translates the .litmus
-+# C-language file to the specified type of assembly and verifies that.
-+# But in this case, litmus tests using complex synchronization (such as
-+# locking, RCU, and SRCU) are cheerfully ignored.
-+#
- # Usage:
- #	checkalllitmus.sh
- #
-@@ -38,21 +43,15 @@ then
- 	( cd "$LKMM_DESTDIR"; sed -e 's/^/mkdir -p /' | sh )
- fi
+diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
+index afe7bd23de6b..5f016fc3f3af 100755
+--- a/tools/memory-model/scripts/parseargs.sh
++++ b/tools/memory-model/scripts/parseargs.sh
+@@ -27,6 +27,7 @@ initparam () {
  
--# Find the checklitmus script.  If it is not where we expect it, then
--# assume that the caller has the PATH environment variable set
--# appropriately.
--if test -x scripts/checklitmus.sh
--then
--	clscript=scripts/checklitmus.sh
--else
--	clscript=checklitmus.sh
--fi
--
- # Run the script on all the litmus tests in the specified directory
- ret=0
- for i in $litmusdir/*.litmus
- do
--	if ! $clscript $i
-+	if test -n "$LKMM_HW_MAP_FILE" && ! scripts/simpletest.sh $i
-+	then
-+		continue
-+	fi
-+	if ! scripts/checklitmus.sh $i
- 	then
- 		ret=1
- 	fi
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index 638b8c610894..42ff11869cd6 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -6,6 +6,11 @@
- # results to a file whose name is that of the specified litmus test, but
- # with ".out" appended.
- #
-+# If the --hw argument is specified, this script translates the .litmus
-+# C-language file to the specified type of assembly and verifies that.
-+# But in this case, litmus tests using complex synchronization (such as
-+# locking, RCU, and SRCU) are cheerfully ignored.
-+#
- # Usage:
- #	checklitmus.sh file.litmus
- #
-@@ -18,8 +23,6 @@
- # Author: Paul E. McKenney <paulmck@linux.ibm.com>
+ initparam LKMM_DESTDIR "."
+ initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
++initparam LKMM_HW_MAP_FILE ""
+ initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
+ initparam LKMM_PROCS "3"
+ initparam LKMM_TIMEOUT "1m"
+@@ -37,10 +38,11 @@ usagehelp () {
+ 	echo "Usage $scriptname [ arguments ]"
+ 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
+ 	echo "      --herdopts -conf linux-kernel.cfg ..."
++	echo "      --hw AArch64"
+ 	echo "      --jobs N (number of jobs, default one per CPU)"
+ 	echo "      --procs N (litmus tests with at most this many processes)"
+ 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
+-	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
++	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
+ 	exit 1
+ }
  
- litmus=$1
--herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
--
- if test -f "$litmus" -a -r "$litmus"
- then
- 	:
-@@ -28,7 +31,38 @@ else
- 	exit 255
- fi
- 
--echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
-+if test -z "$LKMM_HW_MAP_FILE"
-+then
-+	# LKMM run
-+	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
-+	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
-+	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
-+else
-+	# Hardware run
-+
-+	T=/tmp/checklitmushw.sh.$$
-+	trap 'rm -rf $T' 0 2
-+	mkdir $T
-+
-+	# Generate filenames
-+	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
-+	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
-+	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
-+	herdoptions="-model $LKMM_HW_CAT_FILE"
-+	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
-+	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
-+
-+	# Don't run on litmus tests with complex synchronization
-+	if ! scripts/simpletest.sh $litmus
-+	then
-+		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
-+		exit 254
-+	fi
-+
-+	# Generate the assembly code and run herd7 on it.
-+	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
-+	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
-+	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+fi
- 
- scripts/judgelitmus.sh $litmus
+@@ -95,6 +97,11 @@ do
+ 		LKMM_HERD_OPTIONS="$2"
+ 		shift
+ 		;;
++	--hw)
++		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
++		LKMM_HW_MAP_FILE="$2"
++		shift
++		;;
+ 	-j[1-9]*)
+ 		njobs="`echo $1 | sed -e 's/^-j//'`"
+ 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
 -- 
 2.17.1
