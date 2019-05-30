@@ -1,147 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:37740 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48952 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726106AbfE3OnS (ORCPT
+        by vger.kernel.org with ESMTP id S1727402AbfE3Omk (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 May 2019 10:43:18 -0400
+        Thu, 30 May 2019 10:42:40 -0400
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEfNqr059007
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:39 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2stfacdv22-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:38 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 30 May 2019 15:42:32 +0100
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 07/33] tools/memory-model: Do not use "herd" to refer to "herd7"
-Date: Thu, 30 May 2019 07:41:59 -0700
-Message-ID: <20190530144225.27624-7-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 21/33] tools/memory-model: Move from .AArch64.litmus.out to .litmus.AArch.out
+Date: Thu, 30 May 2019 07:42:13 -0700
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
+Message-ID: <20190530144225.27624-21-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>
-Message-ID: <20190530144159.gTGVhEkJhVNKaeZNKOpn0EG7BRbn7kxN35s_ncXQubo@z>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190530144213.M2xJvF3sJKRL9jCqn_ETCltfHTQdjD6dNWpsvIGX3Hw@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+When the github scripts see ".litmus.out", they assume that there must be
+a corresponding C-language ".litmus" file.  Won't they be disappointed
+when they instead see nothing, or, worse yet, the corresponding
+assembly-language litmus test?  This commit therefore swaps the hardware
+tag with the "litmus" to avoid this sort of disappointment.
 
-Use "herd7" in each such reference.
+This commit also adjusts the .gitignore file so as to avoid adding these
+new ".out" files to git.
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/litmus-tests/README       | 2 +-
- tools/memory-model/lock.cat                  | 2 +-
- tools/memory-model/scripts/README            | 4 ++--
- tools/memory-model/scripts/checkalllitmus.sh | 2 +-
- tools/memory-model/scripts/checklitmus.sh    | 2 +-
- tools/memory-model/scripts/parseargs.sh      | 2 +-
- tools/memory-model/scripts/runlitmushist.sh  | 2 +-
- 7 files changed, 8 insertions(+), 8 deletions(-)
+ tools/memory-model/litmus-tests/.gitignore | 2 +-
+ tools/memory-model/scripts/judgelitmus.sh  | 2 +-
+ tools/memory-model/scripts/runlitmus.sh    | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 5ee08f129094..681f9067fa9e 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -244,7 +244,7 @@ produce the name:
- Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
- 
- The descriptors that describe connections between consecutive accesses
--within the cycle through a given litmus test can be provided by the herd
-+within the cycle through a given litmus test can be provided by the herd7
- tool (Rfi, Po, Fre, and so on) or by the linux-kernel.bell file (Once,
- Release, Acquire, and so on).
- 
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index a059d1a6d8a2..6b52f365d73a 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -11,7 +11,7 @@
- include "cross.cat"
- 
- (*
-- * The lock-related events generated by herd are as follows:
-+ * The lock-related events generated by herd7 are as follows:
-  *
-  * LKR		Lock-Read: the read part of a spin_lock() or successful
-  *			spin_trylock() read-modify-write event pair
-diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
-index 29375a1fbbfa..095c7eb36f9f 100644
---- a/tools/memory-model/scripts/README
-+++ b/tools/memory-model/scripts/README
-@@ -22,7 +22,7 @@ checklitmushist.sh
- 
- 	Run all litmus tests having .litmus.out files from previous
- 	initlitmushist.sh or newlitmushist.sh runs, comparing the
--	herd output to that of the original runs.
-+	herd7 output to that of the original runs.
- 
- checklitmus.sh
- 
-@@ -43,7 +43,7 @@ initlitmushist.sh
- 
- judgelitmus.sh
- 
--	Given a .litmus file and its .litmus.out herd output, check the
-+	Given a .litmus file and its .litmus.out herd7 output, check the
- 	.litmus.out file against the .litmus file's "Result:" comment to
- 	judge whether the test ran correctly.  Not normally run manually,
- 	provided instead for use by other scripts.
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index b35fcd61ecf6..3c0c7fbbd223 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# Run herd tests on all .litmus files in the litmus-tests directory
-+# Run herd7 tests on all .litmus files in the litmus-tests directory
- # and check each file's result against a "Result:" comment within that
- # litmus test.  If the verification result does not match that specified
- # in the litmus test, this script prints an error message prefixed with
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index dd08801a30b0..11461ed40b5e 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# Run a herd test and invokes judgelitmus.sh to check the result against
-+# Run a herd7 test and invokes judgelitmus.sh to check the result against
- # a "Result:" comment within the litmus test.  It also outputs verification
- # results to a file whose name is that of the specified litmus test, but
- # with ".out" appended.
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 859e1d581e05..40f52080fdbd 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -91,7 +91,7 @@ do
- 		shift
- 		;;
- 	--herdopts|--herdopt)
--		checkarg --destdir "(herd options)" "$#" "$2" '.*' '^--'
-+		checkarg --destdir "(herd7 options)" "$#" "$2" '.*' '^--'
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-index e507f5f933d5..6ed376f495bb 100755
---- a/tools/memory-model/scripts/runlitmushist.sh
-+++ b/tools/memory-model/scripts/runlitmushist.sh
-@@ -79,7 +79,7 @@ then
- 	echo ' ---' Summary: 1>&2
- 	grep '!!!' $T/*.sh.out 1>&2
- 	nfail="`grep '!!!' $T/*.sh.out | wc -l`"
--	echo 'Number of failed herd runs (e.g., timeout): ' $nfail 1>&2
-+	echo 'Number of failed herd7 runs (e.g., timeout): ' $nfail 1>&2
- 	exit 1
+diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
+index 6e2ddc54152f..f47cb2045f13 100644
+--- a/tools/memory-model/litmus-tests/.gitignore
++++ b/tools/memory-model/litmus-tests/.gitignore
+@@ -1 +1 @@
+-*.litmus.out
++*.out
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index fe9131f8eb96..ca9a19829d79 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -37,7 +37,7 @@ then
+ 	lkmmout=
  else
- 	echo All runs completed successfully. 1>&2
+ 	litmusout="`echo $litmus |
+-		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
++		sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`.out"
+ 	lkmmout=$litmus.out
+ fi
+ if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index 2865a9661b07..c84124b32bee 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -57,7 +57,7 @@ catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+ mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+ themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+ herdoptions="-model $LKMM_HW_CAT_FILE"
+-hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
++hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`
+ hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
+ 
+ # Don't run on litmus tests with complex synchronization
 -- 
 2.17.1
