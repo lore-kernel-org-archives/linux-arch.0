@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 29/33] tools/memory-model: Make history-check scripts use mselect7
-Date: Thu, 30 May 2019 07:42:21 -0700
-Message-ID: <20190530144225.27624-29-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 25/33] tools/memory-model: Add -v flag to jingle7 runs
+Date: Thu, 30 May 2019 07:42:17 -0700
+Message-ID: <20190530144225.27624-25-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,44 +10,33 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The history-check scripts currently use grep to ignore non-C-language
-litmus tests, which is a bit fragile.  This commit therefore enlists the
-aid of "mselect7 -arch C", given Luc Maraget's recent modifications that
-allow mselect7 to operate in filter mode.
+Adding the -v flag to jingle7 invocations gives much useful information
+on why jingle7 didn't like a given litmus test.  This commit therefore
+adds this flag and saves off any such information into a .err file.
 
-This change requires herdtools 7.52-32-g1da3e0e50977 or later.
-
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/initlitmushist.sh | 2 +-
- tools/memory-model/scripts/newlitmushist.sh  | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ tools/memory-model/scripts/runlitmus.sh | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/tools/memory-model/scripts/initlitmushist.sh b/tools/memory-model/scripts/initlitmushist.sh
-index 956b6957484d..31ea782955d3 100755
---- a/tools/memory-model/scripts/initlitmushist.sh
-+++ b/tools/memory-model/scripts/initlitmushist.sh
-@@ -60,7 +60,7 @@ fi
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index 5f2d29b460ff..dfdb1f00fcc0 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -68,10 +68,11 @@ fi
  
- # Create a list of the C-language litmus tests with no more than the
- # specified number of processes (per the --procs argument).
--find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
-+find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C
- xargs < $T/list-C -r grep -L "^P${LKMM_PROCS}" > $T/list-C-short
- 
- scripts/runlitmushist.sh < $T/list-C-short
-diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
-index 3f4b06e29988..25235e2049cf 100755
---- a/tools/memory-model/scripts/newlitmushist.sh
-+++ b/tools/memory-model/scripts/newlitmushist.sh
-@@ -43,7 +43,7 @@ fi
- 
- # Form full list of litmus tests with no more than the specified
- # number of processes (per the --procs argument).
--find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C-all
-+find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C-all
- xargs < $T/list-C-all -r grep -L "^P${LKMM_PROCS}" > $T/list-C-short
- 
- # Form list of new tests.  Note: This does not handle litmus-test deletion!
+ # Generate the assembly code and run herd7 on it.
+ gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+-jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
++jingle7 -v -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
+ if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
+ then
+-	echo ' !!! ' jingle7 failed, no $hwlitmus generated
++	echo ' !!! ' jingle7 failed, errors in $hwlitmus.err
++	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
+ 	exit 253
+ fi
+ /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
 -- 
 2.17.1
