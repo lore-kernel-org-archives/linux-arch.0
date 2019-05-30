@@ -1,66 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33932 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:53174 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727684AbfE3Ont (ORCPT
+        by vger.kernel.org with ESMTP id S1727048AbfE3Omf (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 May 2019 10:43:49 -0400
+        Thu, 30 May 2019 10:42:35 -0400
 Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEe0An091401
-        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:43:48 -0400
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2stgm11tu0-1
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEe1Tr091608
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:34 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2stgm11rw1-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:43:48 -0400
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:33 -0400
 Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 30 May 2019 15:43:47 +0100
+        Thu, 30 May 2019 15:42:32 +0100
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 23/33] tools/memory-model: Allow herd to deduce CPU type
-Date: Thu, 30 May 2019 07:42:15 -0700
+Subject: [PATCH RFC memory-model 32/33] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
+Date: Thu, 30 May 2019 07:42:24 -0700
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
-Message-ID: <20190530144225.27624-23-paulmck@linux.ibm.com>
+Message-ID: <20190530144225.27624-32-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190530144215.JVjP8z4FE_6dVV_wQ2Xll_fXtyqNr2BudqpSO-saduA@z>
+Message-ID: <20190530144224.QDS4LzNONnB5KiEMeE2BcxsGuBp7W_T6L_n0vTWhkRg@z>
 
-Currently, the scripts specify the CPU's .cat file to herd.  But this is
-pointless because herd will select a good and sufficient .cat file from
-the assembly-language litmus test itself.  This commit therefore removes
-the -model argument to herd, allowing herd to figure the CPU family out
-itself.
+This commit adds a checktheselitmus.sh script that runs the litmus tests
+specified on the command line.  This is useful for verifying fixes to
+specific litmus tests.
 
-Note that the user can override herd's choice using the "--herdopts"
-argument to the scripts.
-
-Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ tools/memory-model/scripts/README             |  8 ++++
+ .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+ create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 62b47c7e1ba9..afb196d7ef10 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -53,7 +53,6 @@ trap 'rm -rf $T' 0 2
- mkdir $T
+diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
+index 0e29a52044c1..cc2c4e5be9ec 100644
+--- a/tools/memory-model/scripts/README
++++ b/tools/memory-model/scripts/README
+@@ -27,6 +27,14 @@ checklitmushist.sh
+ checklitmus.sh
  
- # Generate filenames
--catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
- mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
- themefile="$T/${LKMM_HW_MAP_FILE}.theme"
- herdoptions="-model $LKMM_HW_CAT_FILE"
-@@ -70,6 +69,6 @@ fi
- # Generate the assembly code and run herd7 on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
- jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+ 	Check a single litmus test against its "Result:" expected result.
++	Not intended to for manual use.
++
++checktheselitmus.sh
++
++	Check the specified list of litmus tests against their "Result:"
++	expected results.  This takes optional parseargs.sh arguments,
++	followed by "--" followed by pathnames starting from the current
++	directory.
  
- exit $?
+ cmplitmushist.sh
+ 
+diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
+new file mode 100755
+index 000000000000..10eeb5ecea6d
+--- /dev/null
++++ b/tools/memory-model/scripts/checktheselitmus.sh
+@@ -0,0 +1,43 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Invokes checklitmus.sh on its arguments to run the specified litmus
++# test and pass judgment on the results.
++#
++# Usage:
++#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
++#
++# Run this in the directory containing the memory model, specifying the
++# pathname of the litmus test to check.  The usual parseargs.sh arguments
++# can be specified prior to the "--".
++#
++# This script is intended for use with pathnames that start from the
++# tools/memory-model directory.  If some of the pathnames instead start at
++# the root directory, they all must do so and the "--destdir /" parseargs.sh
++# argument must be specified prior to the "--".  Alternatively, some other
++# "--destdir" argument can be supplied as long as the needed subdirectories
++# are populated.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.ibm.com>
++
++. scripts/parseargs.sh
++
++ret=0
++for i in "$@"
++do
++	if scripts/checklitmus.sh $i
++	then
++		:
++	else
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
++else
++	echo All litmus tests verified as was expected. 1>&2
++fi
++exit $ret
 -- 
 2.17.1
