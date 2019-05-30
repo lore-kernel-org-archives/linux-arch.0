@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 24/33] tools/memory-model: Make runlitmus.sh check for jingle errors
-Date: Thu, 30 May 2019 07:42:16 -0700
-Message-ID: <20190530144225.27624-24-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 28/33] tools/memory-model: Make checkghlitmus.sh use mselect7
+Date: Thu, 30 May 2019 07:42:20 -0700
+Message-ID: <20190530144225.27624-28-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,30 +10,30 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-It turns out that the jingle7 tool is currently a bit picky about
-the litmus tests it is willing to process.  This commit therefore
-ensures that jingle7 failures are reported.
+The checkghlitmus.sh script currently uses grep to ignore non-C-language
+litmus tests, which is a bit fragile.  This commit therefore enlists the
+aid of "mselect7 -arch C", given Luc Maraget's recent modifications that
+allow mselect7 to operate in filter mode.
+
+This change requires herdtools 7.52-32-g1da3e0e50977 or later.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 5 +++++
- 1 file changed, 5 insertions(+)
+ tools/memory-model/scripts/checkghlitmus.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index afb196d7ef10..5f2d29b460ff 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -69,6 +69,11 @@ fi
- # Generate the assembly code and run herd7 on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
- jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
-+if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
-+then
-+	echo ' !!! ' jingle7 failed, no $hwlitmus generated
-+	exit 253
-+fi
- /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
+index 2ea220d2564b..cedd0290b73f 100755
+--- a/tools/memory-model/scripts/checkghlitmus.sh
++++ b/tools/memory-model/scripts/checkghlitmus.sh
+@@ -41,7 +41,7 @@ fi
  
- exit $?
+ # Create a list of C-language litmus tests with "Result:" commands and
+ # no more than the specified number of processes.
+-find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
++find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C
+ xargs < $T/list-C -r egrep -l '^ \* Result: (Never|Sometimes|Always|DEADLOCK)' > $T/list-C-result
+ xargs < $T/list-C-result -r grep -L "^P${LKMM_PROCS}" > $T/list-C-result-short
+ 
 -- 
 2.17.1
