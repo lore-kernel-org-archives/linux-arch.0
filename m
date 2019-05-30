@@ -1,156 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:59682 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:52834 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727094AbfE3Omd (ORCPT
+        by vger.kernel.org with ESMTP id S1726973AbfE3Omd (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Thu, 30 May 2019 10:42:33 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEdNPt144641
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEe0UJ091383
         for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:32 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2stgu3s3yn-1
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2stgm11rta-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:32 -0400
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:31 -0400
 Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 30 May 2019 15:42:31 +0100
+        Thu, 30 May 2019 15:42:30 +0100
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 03/33] tools/memory-model: Add data-race detection
-Date: Thu, 30 May 2019 07:41:55 -0700
+Subject: [PATCH RFC memory-model 05/33] Documentation: atomic_t.txt: Explain ordering provided by smp_mb__{before,after}_atomic()
+Date: Thu, 30 May 2019 07:41:57 -0700
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
-Message-ID: <20190530144225.27624-3-paulmck@linux.ibm.com>
+Message-ID: <20190530144225.27624-5-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190530144155.nFZtR9yJZQgrciwtOKZp7WEPijYGT2fsB7aYaYYoufw@z>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Jonathan Corbet <corbet@lwn.net>, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190530144157.tnSikg3UWoihg25Y_vCVmz6FLr5nVyT-QdpKZHUrNLM@z>
 
 From: Alan Stern <stern@rowland.harvard.edu>
 
-This patch adds data-race detection to the Linux-Kernel Memory Model.
-As part of this effort, support is added for:
+The description of smp_mb__before_atomic() and smp_mb__after_atomic()
+in Documentation/atomic_t.txt is slightly terse and misleading.  It
+does not clearly state which other instructions are ordered by these
+barriers.
 
-	compiler barriers (the barrier() function), and
-
-	a new Preserved Program Order term: (addr ; [Plain] ; wmb)
-
-Data races are marked with a special Flag warning in herd.  It is
-not guaranteed that the model will provide accurate predictions when a
-data race is present.
-
-The patch does not include documentation for the data-race detection
-facility.  The basic design has been explained in various emails, and
-a separate documentation patch will be submitted later.
-
-This work is based on an earlier formulation of data races for the
-LKMM by Andrea Parri.
+This improves the text to make the actual ordering implications clear,
+and also to explain how these barriers differ from a RELEASE or
+ACQUIRE ordering.
 
 Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/linux-kernel.bell |  1 +
- tools/memory-model/linux-kernel.cat  | 50 +++++++++++++++++++++++++++-
- tools/memory-model/linux-kernel.def  |  1 +
- 3 files changed, 51 insertions(+), 1 deletion(-)
+ Documentation/atomic_t.txt | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index b60eb5a01053..5be86b1025e8 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -24,6 +24,7 @@ instructions RMW[{'once,'acquire,'release}]
- enum Barriers = 'wmb (*smp_wmb*) ||
- 		'rmb (*smp_rmb*) ||
- 		'mb (*smp_mb*) ||
-+		'barrier (*barrier*) ||
- 		'rcu-lock (*rcu_read_lock*)  ||
- 		'rcu-unlock (*rcu_read_unlock*) ||
- 		'sync-rcu (*synchronize_rcu*) ||
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index ff354e5ffd4b..36d367054811 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -44,6 +44,9 @@ let strong-fence = mb | gp
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index dca3fb0554db..b3afe69d03a1 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -187,8 +187,14 @@ The barriers:
  
- let nonrw-fence = strong-fence | po-rel | acq-po
- let fence = nonrw-fence | wmb | rmb
-+let barrier = fencerel(Barrier | Rmb | Wmb | Mb | Sync-rcu | Sync-srcu |
-+		Before-atomic | After-atomic | Acquire | Release) |
-+	(po ; [Release]) | ([Acquire] ; po)
+   smp_mb__{before,after}_atomic()
  
- (**********************************)
- (* Fundamental coherence ordering *)
-@@ -64,7 +67,7 @@ empty rmw & (fre ; coe) as atomic
- let dep = addr | data
- let rwdep = (dep | ctrl) ; [W]
- let overwrite = co | fr
--let to-w = rwdep | (overwrite & int)
-+let to-w = rwdep | (overwrite & int) | (addr ; [Plain] ; wmb)
- let to-r = addr | (dep ; [Marked] ; rfi)
- let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
+-only apply to the RMW ops and can be used to augment/upgrade the ordering
+-inherent to the used atomic op. These barriers provide a full smp_mb().
++only apply to the RMW atomic ops and can be used to augment/upgrade the
++ordering inherent to the op. These barriers act almost like a full smp_mb():
++smp_mb__before_atomic() orders all earlier accesses against the RMW op
++itself and all accesses following it, and smp_mb__after_atomic() orders all
++later accesses against the RMW op and all accesses preceding it. However,
++accesses between the smp_mb__{before,after}_atomic() and the RMW op are not
++ordered, so it is advisable to place the barrier right next to the RMW atomic
++op whenever possible.
  
-@@ -147,3 +150,48 @@ irreflexive rb as rcu
-  * let xb = hb | pb | rb
-  * acyclic xb as executes-before
-  *)
-+
-+(*********************************)
-+(* Plain accesses and data races *)
-+(*********************************)
-+
-+(* Warn about plain writes and marked accesses in the same region *)
-+let mixed-accesses = ([Plain & W] ; (po-loc \ barrier) ; [Marked]) |
-+	([Marked] ; (po-loc \ barrier) ; [Plain & W])
-+flag ~empty mixed-accesses as mixed-accesses
-+
-+(* Executes-before and visibility *)
-+let xbstar = (hb | pb | rb)*
-+let full-fence = strong-fence | (po ; rcu-fence ; po?)
-+let vis = cumul-fence* ; rfe? ; [Marked] ;
-+	((full-fence ; [Marked] ; xbstar) | (xbstar & int))
-+
-+(* Boundaries for lifetimes of plain accesses *)
-+let w-pre-bounded = [Marked] ; (addr | fence)?
-+let r-pre-bounded = [Marked] ; (addr | nonrw-fence |
-+	([R4rmb] ; fencerel(Rmb) ; [~Noreturn]))?
-+let w-post-bounded = fence? ; [Marked]
-+let r-post-bounded = (nonrw-fence | ([~Noreturn] ; fencerel(Rmb) ; [R4rmb]))? ;
-+	[Marked]
-+
-+(* Visibility and executes-before for plain accesses *)
-+let ww-vis = w-post-bounded ; vis ; w-pre-bounded
-+let wr-vis = w-post-bounded ; vis ; r-pre-bounded
-+let rw-xbstar = r-post-bounded ; xbstar ; w-pre-bounded
-+
-+(* Potential races *)
-+let pre-race = ext & ((Plain * M) | ((M \ IW) * Plain))
-+
-+(* Coherence requirements for plain accesses *)
-+let wr-incoh = pre-race & rf & rw-xbstar^-1
-+let rw-incoh = pre-race & fr & wr-vis^-1
-+let ww-incoh = pre-race & co & ww-vis^-1
-+empty (wr-incoh | rw-incoh | ww-incoh) as plain-coherence
-+
-+(* Actual races *)
-+let ww-nonrace = ww-vis & ((Marked * W) | rw-xbstar) & ((W * Marked) | wr-vis)
-+let ww-race = (pre-race & co) \ ww-nonrace
-+let wr-race = (pre-race & (co? ; rf)) \ wr-vis
-+let rw-race = (pre-race & fr) \ rw-xbstar
-+
-+flag ~empty (ww-race | wr-race | rw-race) as data-race
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 551eeaa389d4..ef0f3c1850de 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -24,6 +24,7 @@ smp_mb__before_atomic() { __fence{before-atomic}; }
- smp_mb__after_atomic() { __fence{after-atomic}; }
- smp_mb__after_spinlock() { __fence{after-spinlock}; }
- smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
-+barrier() { __fence{barrier}; }
+ These helper barriers exist because architectures have varying implicit
+ ordering on their SMP atomic primitives. For example our TSO architectures
+@@ -212,7 +218,9 @@ Further, while something like:
+   atomic_dec(&X);
  
- // Exchange
- xchg(X,V)  __xchg{mb}(X,V)
+ is a 'typical' RELEASE pattern, the barrier is strictly stronger than
+-a RELEASE. Similarly for something like:
++a RELEASE because it orders preceding instructions against both the read
++and write parts of the atomic_dec(), and against all following instructions
++as well. Similarly, something like:
+ 
+   atomic_inc(&X);
+   smp_mb__after_atomic();
+@@ -244,7 +252,8 @@ strictly stronger than ACQUIRE. As illustrated:
+ 
+ This should not happen; but a hypothetical atomic_inc_acquire() --
+ (void)atomic_fetch_inc_acquire() for instance -- would allow the outcome,
+-since then:
++because it would not order the W part of the RMW against the following
++WRITE_ONCE.  Thus:
+ 
+   P1			P2
+ 
 -- 
 2.17.1
