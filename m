@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 25/33] tools/memory-model: Add -v flag to jingle7 runs
-Date: Thu, 30 May 2019 07:42:17 -0700
-Message-ID: <20190530144225.27624-25-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 21/33] tools/memory-model: Move from .AArch64.litmus.out to .litmus.AArch.out
+Date: Thu, 30 May 2019 07:42:13 -0700
+Message-ID: <20190530144225.27624-21-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,33 +10,54 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Adding the -v flag to jingle7 invocations gives much useful information
-on why jingle7 didn't like a given litmus test.  This commit therefore
-adds this flag and saves off any such information into a .err file.
+When the github scripts see ".litmus.out", they assume that there must be
+a corresponding C-language ".litmus" file.  Won't they be disappointed
+when they instead see nothing, or, worse yet, the corresponding
+assembly-language litmus test?  This commit therefore swaps the hardware
+tag with the "litmus" to avoid this sort of disappointment.
 
-Suggested-by: Luc Maranget <luc.maranget@inria.fr>
+This commit also adjusts the .gitignore file so as to avoid adding these
+new ".out" files to git.
+
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ tools/memory-model/litmus-tests/.gitignore | 2 +-
+ tools/memory-model/scripts/judgelitmus.sh  | 2 +-
+ tools/memory-model/scripts/runlitmus.sh    | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
 
+diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
+index 6e2ddc54152f..f47cb2045f13 100644
+--- a/tools/memory-model/litmus-tests/.gitignore
++++ b/tools/memory-model/litmus-tests/.gitignore
+@@ -1 +1 @@
+-*.litmus.out
++*.out
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index fe9131f8eb96..ca9a19829d79 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -37,7 +37,7 @@ then
+ 	lkmmout=
+ else
+ 	litmusout="`echo $litmus |
+-		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
++		sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`.out"
+ 	lkmmout=$litmus.out
+ fi
+ if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
 diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 5f2d29b460ff..dfdb1f00fcc0 100755
+index 2865a9661b07..c84124b32bee 100755
 --- a/tools/memory-model/scripts/runlitmus.sh
 +++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -68,10 +68,11 @@ fi
+@@ -57,7 +57,7 @@ catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+ mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+ themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+ herdoptions="-model $LKMM_HW_CAT_FILE"
+-hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
++hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`
+ hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
  
- # Generate the assembly code and run herd7 on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
--jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
-+jingle7 -v -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
- if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
- then
--	echo ' !!! ' jingle7 failed, no $hwlitmus generated
-+	echo ' !!! ' jingle7 failed, errors in $hwlitmus.err
-+	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
- 	exit 253
- fi
- /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+ # Don't run on litmus tests with complex synchronization
 -- 
 2.17.1
