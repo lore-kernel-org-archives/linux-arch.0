@@ -1,93 +1,76 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 32/33] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
-Date: Thu, 30 May 2019 07:42:24 -0700
-Message-ID: <20190530144225.27624-32-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 05/33] Documentation: atomic_t.txt: Explain ordering provided by smp_mb__{before,after}_atomic()
+Date: Thu, 30 May 2019 07:41:57 -0700
+Message-ID: <20190530144225.27624-5-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Jonathan Corbet <corbet@lwn.net>, "Paul E . McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds a checktheselitmus.sh script that runs the litmus tests
-specified on the command line.  This is useful for verifying fixes to
-specific litmus tests.
+From: Alan Stern <stern@rowland.harvard.edu>
 
+The description of smp_mb__before_atomic() and smp_mb__after_atomic()
+in Documentation/atomic_t.txt is slightly terse and misleading.  It
+does not clearly state which other instructions are ordered by these
+barriers.
+
+This improves the text to make the actual ordering implications clear,
+and also to explain how these barriers differ from a RELEASE or
+ACQUIRE ordering.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/README             |  8 ++++
- .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
- 2 files changed, 51 insertions(+)
- create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
+ Documentation/atomic_t.txt | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
-index 0e29a52044c1..cc2c4e5be9ec 100644
---- a/tools/memory-model/scripts/README
-+++ b/tools/memory-model/scripts/README
-@@ -27,6 +27,14 @@ checklitmushist.sh
- checklitmus.sh
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index dca3fb0554db..b3afe69d03a1 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -187,8 +187,14 @@ The barriers:
  
- 	Check a single litmus test against its "Result:" expected result.
-+	Not intended to for manual use.
-+
-+checktheselitmus.sh
-+
-+	Check the specified list of litmus tests against their "Result:"
-+	expected results.  This takes optional parseargs.sh arguments,
-+	followed by "--" followed by pathnames starting from the current
-+	directory.
+   smp_mb__{before,after}_atomic()
  
- cmplitmushist.sh
+-only apply to the RMW ops and can be used to augment/upgrade the ordering
+-inherent to the used atomic op. These barriers provide a full smp_mb().
++only apply to the RMW atomic ops and can be used to augment/upgrade the
++ordering inherent to the op. These barriers act almost like a full smp_mb():
++smp_mb__before_atomic() orders all earlier accesses against the RMW op
++itself and all accesses following it, and smp_mb__after_atomic() orders all
++later accesses against the RMW op and all accesses preceding it. However,
++accesses between the smp_mb__{before,after}_atomic() and the RMW op are not
++ordered, so it is advisable to place the barrier right next to the RMW atomic
++op whenever possible.
  
-diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
-new file mode 100755
-index 000000000000..10eeb5ecea6d
---- /dev/null
-+++ b/tools/memory-model/scripts/checktheselitmus.sh
-@@ -0,0 +1,43 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Invokes checklitmus.sh on its arguments to run the specified litmus
-+# test and pass judgment on the results.
-+#
-+# Usage:
-+#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
-+#
-+# Run this in the directory containing the memory model, specifying the
-+# pathname of the litmus test to check.  The usual parseargs.sh arguments
-+# can be specified prior to the "--".
-+#
-+# This script is intended for use with pathnames that start from the
-+# tools/memory-model directory.  If some of the pathnames instead start at
-+# the root directory, they all must do so and the "--destdir /" parseargs.sh
-+# argument must be specified prior to the "--".  Alternatively, some other
-+# "--destdir" argument can be supplied as long as the needed subdirectories
-+# are populated.
-+#
-+# Copyright IBM Corporation, 2018
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
-+
-+. scripts/parseargs.sh
-+
-+ret=0
-+for i in "$@"
-+do
-+	if scripts/checklitmus.sh $i
-+	then
-+		:
-+	else
-+		ret=1
-+	fi
-+done
-+if test "$ret" -ne 0
-+then
-+	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
-+else
-+	echo All litmus tests verified as was expected. 1>&2
-+fi
-+exit $ret
+ These helper barriers exist because architectures have varying implicit
+ ordering on their SMP atomic primitives. For example our TSO architectures
+@@ -212,7 +218,9 @@ Further, while something like:
+   atomic_dec(&X);
+ 
+ is a 'typical' RELEASE pattern, the barrier is strictly stronger than
+-a RELEASE. Similarly for something like:
++a RELEASE because it orders preceding instructions against both the read
++and write parts of the atomic_dec(), and against all following instructions
++as well. Similarly, something like:
+ 
+   atomic_inc(&X);
+   smp_mb__after_atomic();
+@@ -244,7 +252,8 @@ strictly stronger than ACQUIRE. As illustrated:
+ 
+ This should not happen; but a hypothetical atomic_inc_acquire() --
+ (void)atomic_fetch_inc_acquire() for instance -- would allow the outcome,
+-since then:
++because it would not order the W part of the RMW against the following
++WRITE_ONCE.  Thus:
+ 
+   P1			P2
+ 
 -- 
 2.17.1
