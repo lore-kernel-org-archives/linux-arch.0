@@ -1,55 +1,156 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40144 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726963AbfE3Omd (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:59682 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727094AbfE3Omd (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Thu, 30 May 2019 10:42:33 -0400
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEdhBB029504
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4UEdNPt144641
         for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:32 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2stgm21p2m-1
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2stgu3s3yn-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:31 -0400
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 10:42:32 -0400
 Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Thu, 30 May 2019 15:42:31 +0100
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 16/33] tools/memory-model: Fix checkalllitmus.sh comment
-Date: Thu, 30 May 2019 07:42:08 -0700
+Subject: [PATCH RFC memory-model 03/33] tools/memory-model: Add data-race detection
+Date: Thu, 30 May 2019 07:41:55 -0700
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
-Message-ID: <20190530144225.27624-16-paulmck@linux.ibm.com>
+Message-ID: <20190530144225.27624-3-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190530144208.qsKpOMlGHfm6A2RWTXISq5dxc64HSyTp-PwYzV7BhH8@z>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20190530144155.nFZtR9yJZQgrciwtOKZp7WEPijYGT2fsB7aYaYYoufw@z>
 
-The checkalllitmus.sh runs litmus tests in the litmus-tests directory,
-not those in the github archive, so this commit updates the comment to
-reflect this reality.
+From: Alan Stern <stern@rowland.harvard.edu>
 
+This patch adds data-race detection to the Linux-Kernel Memory Model.
+As part of this effort, support is added for:
+
+	compiler barriers (the barrier() function), and
+
+	a new Preserved Program Order term: (addr ; [Plain] ; wmb)
+
+Data races are marked with a special Flag warning in herd.  It is
+not guaranteed that the model will provide accurate predictions when a
+data race is present.
+
+The patch does not include documentation for the data-race detection
+facility.  The basic design has been explained in various emails, and
+a separate documentation patch will be submitted later.
+
+This work is based on an earlier formulation of data races for the
+LKMM by Andrea Parri.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkalllitmus.sh | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ tools/memory-model/linux-kernel.bell |  1 +
+ tools/memory-model/linux-kernel.cat  | 50 +++++++++++++++++++++++++++-
+ tools/memory-model/linux-kernel.def  |  1 +
+ 3 files changed, 51 insertions(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 10e14d94acee..54d8da8c338e 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -30,8 +30,8 @@ else
- 	exit 255
- fi
+diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
+index b60eb5a01053..5be86b1025e8 100644
+--- a/tools/memory-model/linux-kernel.bell
++++ b/tools/memory-model/linux-kernel.bell
+@@ -24,6 +24,7 @@ instructions RMW[{'once,'acquire,'release}]
+ enum Barriers = 'wmb (*smp_wmb*) ||
+ 		'rmb (*smp_rmb*) ||
+ 		'mb (*smp_mb*) ||
++		'barrier (*barrier*) ||
+ 		'rcu-lock (*rcu_read_lock*)  ||
+ 		'rcu-unlock (*rcu_read_unlock*) ||
+ 		'sync-rcu (*synchronize_rcu*) ||
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index ff354e5ffd4b..36d367054811 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -44,6 +44,9 @@ let strong-fence = mb | gp
  
--# Create any new directories that have appeared in the github litmus
--# repo since the last run.
-+# Create any new directories that have appeared in the litmus-tests
-+# directory since the last run.
- if test "$LKMM_DESTDIR" != "."
- then
- 	find $litmusdir -type d -print |
+ let nonrw-fence = strong-fence | po-rel | acq-po
+ let fence = nonrw-fence | wmb | rmb
++let barrier = fencerel(Barrier | Rmb | Wmb | Mb | Sync-rcu | Sync-srcu |
++		Before-atomic | After-atomic | Acquire | Release) |
++	(po ; [Release]) | ([Acquire] ; po)
+ 
+ (**********************************)
+ (* Fundamental coherence ordering *)
+@@ -64,7 +67,7 @@ empty rmw & (fre ; coe) as atomic
+ let dep = addr | data
+ let rwdep = (dep | ctrl) ; [W]
+ let overwrite = co | fr
+-let to-w = rwdep | (overwrite & int)
++let to-w = rwdep | (overwrite & int) | (addr ; [Plain] ; wmb)
+ let to-r = addr | (dep ; [Marked] ; rfi)
+ let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
+ 
+@@ -147,3 +150,48 @@ irreflexive rb as rcu
+  * let xb = hb | pb | rb
+  * acyclic xb as executes-before
+  *)
++
++(*********************************)
++(* Plain accesses and data races *)
++(*********************************)
++
++(* Warn about plain writes and marked accesses in the same region *)
++let mixed-accesses = ([Plain & W] ; (po-loc \ barrier) ; [Marked]) |
++	([Marked] ; (po-loc \ barrier) ; [Plain & W])
++flag ~empty mixed-accesses as mixed-accesses
++
++(* Executes-before and visibility *)
++let xbstar = (hb | pb | rb)*
++let full-fence = strong-fence | (po ; rcu-fence ; po?)
++let vis = cumul-fence* ; rfe? ; [Marked] ;
++	((full-fence ; [Marked] ; xbstar) | (xbstar & int))
++
++(* Boundaries for lifetimes of plain accesses *)
++let w-pre-bounded = [Marked] ; (addr | fence)?
++let r-pre-bounded = [Marked] ; (addr | nonrw-fence |
++	([R4rmb] ; fencerel(Rmb) ; [~Noreturn]))?
++let w-post-bounded = fence? ; [Marked]
++let r-post-bounded = (nonrw-fence | ([~Noreturn] ; fencerel(Rmb) ; [R4rmb]))? ;
++	[Marked]
++
++(* Visibility and executes-before for plain accesses *)
++let ww-vis = w-post-bounded ; vis ; w-pre-bounded
++let wr-vis = w-post-bounded ; vis ; r-pre-bounded
++let rw-xbstar = r-post-bounded ; xbstar ; w-pre-bounded
++
++(* Potential races *)
++let pre-race = ext & ((Plain * M) | ((M \ IW) * Plain))
++
++(* Coherence requirements for plain accesses *)
++let wr-incoh = pre-race & rf & rw-xbstar^-1
++let rw-incoh = pre-race & fr & wr-vis^-1
++let ww-incoh = pre-race & co & ww-vis^-1
++empty (wr-incoh | rw-incoh | ww-incoh) as plain-coherence
++
++(* Actual races *)
++let ww-nonrace = ww-vis & ((Marked * W) | rw-xbstar) & ((W * Marked) | wr-vis)
++let ww-race = (pre-race & co) \ ww-nonrace
++let wr-race = (pre-race & (co? ; rf)) \ wr-vis
++let rw-race = (pre-race & fr) \ rw-xbstar
++
++flag ~empty (ww-race | wr-race | rw-race) as data-race
+diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+index 551eeaa389d4..ef0f3c1850de 100644
+--- a/tools/memory-model/linux-kernel.def
++++ b/tools/memory-model/linux-kernel.def
+@@ -24,6 +24,7 @@ smp_mb__before_atomic() { __fence{before-atomic}; }
+ smp_mb__after_atomic() { __fence{after-atomic}; }
+ smp_mb__after_spinlock() { __fence{after-spinlock}; }
+ smp_mb__after_unlock_lock() { __fence{after-unlock-lock}; }
++barrier() { __fence{barrier}; }
+ 
+ // Exchange
+ xchg(X,V)  __xchg{mb}(X,V)
 -- 
 2.17.1
