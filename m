@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 04/33] tools/memory-model: Make scripts be executable
-Date: Thu, 30 May 2019 07:41:56 -0700
-Message-ID: <20190530144225.27624-4-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 23/33] tools/memory-model: Allow herd to deduce CPU type
+Date: Thu, 30 May 2019 07:42:15 -0700
+Message-ID: <20190530144225.27624-23-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,52 +10,40 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit simplifies life a bit by making all of the scripts in
-tools/memory-model/scripts be executable.
+Currently, the scripts specify the CPU's .cat file to herd.  But this is
+pointless because herd will select a good and sufficient .cat file from
+the assembly-language litmus test itself.  This commit therefore removes
+the -model argument to herd, allowing herd to figure the CPU family out
+itself.
 
+Note that the user can override herd's choice using the "--herdopts"
+argument to the scripts.
+
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkghlitmus.sh   | 0
- tools/memory-model/scripts/checklitmushist.sh | 0
- tools/memory-model/scripts/cmplitmushist.sh   | 0
- tools/memory-model/scripts/initlitmushist.sh  | 0
- tools/memory-model/scripts/judgelitmus.sh     | 0
- tools/memory-model/scripts/newlitmushist.sh   | 0
- tools/memory-model/scripts/parseargs.sh       | 0
- tools/memory-model/scripts/runlitmushist.sh   | 0
- 8 files changed, 0 insertions(+), 0 deletions(-)
- mode change 100644 => 100755 tools/memory-model/scripts/checkghlitmus.sh
- mode change 100644 => 100755 tools/memory-model/scripts/checklitmushist.sh
- mode change 100644 => 100755 tools/memory-model/scripts/cmplitmushist.sh
- mode change 100644 => 100755 tools/memory-model/scripts/initlitmushist.sh
- mode change 100644 => 100755 tools/memory-model/scripts/judgelitmus.sh
- mode change 100644 => 100755 tools/memory-model/scripts/newlitmushist.sh
- mode change 100644 => 100755 tools/memory-model/scripts/parseargs.sh
- mode change 100644 => 100755 tools/memory-model/scripts/runlitmushist.sh
+ tools/memory-model/scripts/runlitmus.sh | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/checklitmushist.sh b/tools/memory-model/scripts/checklitmushist.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/initlitmushist.sh b/tools/memory-model/scripts/initlitmushist.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-old mode 100644
-new mode 100755
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-old mode 100644
-new mode 100755
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index 62b47c7e1ba9..afb196d7ef10 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -53,7 +53,6 @@ trap 'rm -rf $T' 0 2
+ mkdir $T
+ 
+ # Generate filenames
+-catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+ mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+ themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+ herdoptions="-model $LKMM_HW_CAT_FILE"
+@@ -70,6 +69,6 @@ fi
+ # Generate the assembly code and run herd7 on it.
+ gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+ jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
+-/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+ 
+ exit $?
 -- 
 2.17.1
