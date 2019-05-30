@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 13/33] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Thu, 30 May 2019 07:42:05 -0700
-Message-ID: <20190530144225.27624-13-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 32/33] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
+Date: Thu, 30 May 2019 07:42:24 -0700
+Message-ID: <20190530144225.27624-32-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,54 +10,84 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+This commit adds a checktheselitmus.sh script that runs the litmus tests
+specified on the command line.  This is useful for verifying fixes to
+specific litmus tests.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/README             |  8 ++++
+ .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+ create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index afe7bd23de6b..5f016fc3f3af 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
+diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
+index 0e29a52044c1..cc2c4e5be9ec 100644
+--- a/tools/memory-model/scripts/README
++++ b/tools/memory-model/scripts/README
+@@ -27,6 +27,14 @@ checklitmushist.sh
+ checklitmus.sh
  
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
+ 	Check a single litmus test against its "Result:" expected result.
++	Not intended to for manual use.
++
++checktheselitmus.sh
++
++	Check the specified list of litmus tests against their "Result:"
++	expected results.  This takes optional parseargs.sh arguments,
++	followed by "--" followed by pathnames starting from the current
++	directory.
  
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+ cmplitmushist.sh
+ 
+diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
+new file mode 100755
+index 000000000000..10eeb5ecea6d
+--- /dev/null
++++ b/tools/memory-model/scripts/checktheselitmus.sh
+@@ -0,0 +1,43 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Invokes checklitmus.sh on its arguments to run the specified litmus
++# test and pass judgment on the results.
++#
++# Usage:
++#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
++#
++# Run this in the directory containing the memory model, specifying the
++# pathname of the litmus test to check.  The usual parseargs.sh arguments
++# can be specified prior to the "--".
++#
++# This script is intended for use with pathnames that start from the
++# tools/memory-model directory.  If some of the pathnames instead start at
++# the root directory, they all must do so and the "--destdir /" parseargs.sh
++# argument must be specified prior to the "--".  Alternatively, some other
++# "--destdir" argument can be supplied as long as the needed subdirectories
++# are populated.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.ibm.com>
++
++. scripts/parseargs.sh
++
++ret=0
++for i in "$@"
++do
++	if scripts/checklitmus.sh $i
++	then
++		:
++	else
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
++else
++	echo All litmus tests verified as was expected. 1>&2
++fi
++exit $ret
 -- 
 2.17.1
