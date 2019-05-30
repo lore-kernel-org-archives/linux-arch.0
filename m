@@ -1,327 +1,392 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36988 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727614AbfE3OQt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 May 2019 10:16:49 -0400
+Received: from foss.arm.com ([217.140.101.70]:36336 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725870AbfE3OPq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 May 2019 10:15:46 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v6 19/19] kselftest: Extend vDSO selftest
-Date: Thu, 30 May 2019 15:15:31 +0100
-Message-ID: <20190530141531.43462-20-vincenzo.frascino@arm.com>
-In-Reply-To: <20190530141531.43462-1-vincenzo.frascino@arm.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v6 00/19] Unify vDSOs across more architectures
+Date: Thu, 30 May 2019 15:15:12 +0100
+Message-ID: <20190530141531.43462-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190530141531.c-nqOif8glGqa8_SpE_s5SWGuFUMwlCU_yETXm6d6ws@z>
+Message-ID: <20190530141512.nbWj8ghYCFN20xfuzgOh3Ior4cLjGGDTPTbqMI05A48@z>
 
-The current version of the multiarch vDSO selftest verifies only
-gettimeofday.
+vDSO (virtual dynamic shared object) is a mechanism that the Linux
+kernel provides as an alternative to system calls to reduce where
+possible the costs in terms of cycles.
+This is possible because certain syscalls like gettimeofday() do
+not write any data and return one or more values that are stored
+in the kernel, which makes relatively safe calling them directly
+as a library function.
 
-Extend the vDSO selftest to the other library functions:
- - time
- - clock_getres
- - clock_gettime
+Even if the mechanism is pretty much standard, every architecture
+in the last few years ended up implementing their own vDSO library
+in the architectural code.
 
-The extension has been used to verify the unified vdso library on the
-supported architectures.
+The purpose of this patch-set is to identify the commonalities in
+between the architectures and try to consolidate the common code
+paths, starting with gettimeofday().
 
+This implementation contains the following design choices:
+ * Every architecture defines the arch specific code in an header in
+   "asm/vdso/".
+ * The generic implementation includes the arch specific one and lives
+   in "lib/vdso".
+ * The arch specific code for gettimeofday lives in
+   "<arch path>/vdso/gettimeofday.c" and includes the generic code only.
+ * The generic implementation of update_vsyscall and update_vsyscall_tz
+   lives in kernel/vdso and provide the bindings that can be implemented
+   by each architecture.
+ * Each architecture provides its implementation of the bindings in
+   "asm/vdso/vsyscall.h".
+ * This approach allows to consolidate the common code in a single place
+   with the benefit of avoiding code duplication.
+
+This implementation contains the portings to the common library for: arm64,
+compat mode for arm64, arm, mips, x86_64, x32, compat mode for x86_64 and
+i386.
+
+The mips porting has been tested on qemu for mips32el. A configuration to
+repeat the tests can be found at [4].
+
+The x86_64 porting has been tested on an Intel Xeon 5120T based machine
+running Ubuntu 18.04 and using the Ubuntu provided defconfig.
+
+The i386 porting has been tested on qemu using the i386_defconfig
+configuration.
+
+Last but not least from this porting arm64, compat arm64, arm and mips gain
+the support for:
+ * CLOCK_BOOTTIME that can be useful in certain scenarios since it keeps
+   track of the time during sleep as well.
+ * CLOCK_TAI that is like CLOCK_REALTIME, but uses the International
+   Atomic Time (TAI) reference instead of UTC to avoid jumping on leap
+   second updates.
+for both clock_gettime and clock_getres.
+
+The porting has been validated using the vdsotest test-suite [1] extended
+to cover all the clock ids [2].
+
+A new test has been added to the linux kselftest in order to validate the
+newly added library.
+
+The porting has been benchmarked and the performance results are
+provided as part of this cover letter.
+
+To simplify the testing, a copy of the patchset on top of a recent linux
+tree can be found at [3] and [4].
+
+[1] https://github.com/nathanlynch/vdsotest
+[2] https://github.com/fvincenzo/vdsotest
+[3] git://linux-arm.org/linux-vf.git vdso/v6
+[4] git://linux-arm.org/linux-vf.git vdso-mips/v6
+
+Changes:
+--------
+v6:
+  - Rebased on 5.2-rc2.
+  - Added performance numbers.
+  - Removed vdso_types.h.
+  - Unified update_vsyscall and update_vsyscall_tz.
+  - Reworked the kselftest included in this patchset.
+  - Addressed review comments.
+v5:
+  - Rebased on 5.0-rc7.
+  - Added x86_64, compat mode for x86_64 and i386 portings.
+  - Extended vDSO kselftest.
+  - Addressed review comments.
+v4:
+  - Rebased on 5.0-rc2.
+  - Addressed review comments.
+  - Disabled compat vdso on arm64 when the kernel is compiled with
+    clang.
+v3:
+  - Ported the latest fixes and optimizations done on the x86
+    architecture to the generic library.
+  - Addressed review comments.
+  - Improved the documentation of the interfaces.
+  - Changed the HAVE_ARCH_TIMER config option to a more generic
+    HAVE_HW_COUNTER.
+v2:
+  - Added -ffixed-x18 to arm64
+  - Repleced occurrences of timeval and timespec
+  - Modified datapage.h to be compliant with y2038 on all the architectures
+  - Removed __u_vdso type
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Mark Salyzyn <salyzyn@android.com>
+Cc: Peter Collingbourne <pcc@google.com>
 Cc: Shuah Khan <shuah@kernel.org>
+Cc: Dmitry Safonov <0x7f454c46@gmail.com>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Huw Davies <huw@codeweavers.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
+
+Performance Numbers: Linux 5.2.0-rc2 - Xeon Gold 5120T
+======================================================
+
+Unified vDSO:
+-------------
+
+clock-gettime-monotonic: syscall: 342 nsec/call
+clock-gettime-monotonic:    libc: 25 nsec/call
+clock-gettime-monotonic:    vdso: 24 nsec/call
+clock-getres-monotonic: syscall: 296 nsec/call
+clock-getres-monotonic:    libc: 296 nsec/call
+clock-getres-monotonic:    vdso: 3 nsec/call
+clock-gettime-monotonic-coarse: syscall: 294 nsec/call
+clock-gettime-monotonic-coarse:    libc: 5 nsec/call
+clock-gettime-monotonic-coarse:    vdso: 5 nsec/call
+clock-getres-monotonic-coarse: syscall: 295 nsec/call
+clock-getres-monotonic-coarse:    libc: 292 nsec/call
+clock-getres-monotonic-coarse:    vdso: 5 nsec/call
+clock-gettime-monotonic-raw: syscall: 343 nsec/call
+clock-gettime-monotonic-raw:    libc: 25 nsec/call
+clock-gettime-monotonic-raw:    vdso: 23 nsec/call
+clock-getres-monotonic-raw: syscall: 290 nsec/call
+clock-getres-monotonic-raw:    libc: 290 nsec/call
+clock-getres-monotonic-raw:    vdso: 4 nsec/call
+clock-gettime-tai: syscall: 332 nsec/call
+clock-gettime-tai:    libc: 24 nsec/call
+clock-gettime-tai:    vdso: 23 nsec/call
+clock-getres-tai: syscall: 288 nsec/call
+clock-getres-tai:    libc: 288 nsec/call
+clock-getres-tai:    vdso: 3 nsec/call
+clock-gettime-boottime: syscall: 342 nsec/call
+clock-gettime-boottime:    libc: 24 nsec/call
+clock-gettime-boottime:    vdso: 23 nsec/call
+clock-getres-boottime: syscall: 284 nsec/call
+clock-getres-boottime:    libc: 291 nsec/call
+clock-getres-boottime:    vdso: 3 nsec/call
+clock-gettime-realtime: syscall: 337 nsec/call
+clock-gettime-realtime:    libc: 24 nsec/call
+clock-gettime-realtime:    vdso: 23 nsec/call
+clock-getres-realtime: syscall: 287 nsec/call
+clock-getres-realtime:    libc: 284 nsec/call
+clock-getres-realtime:    vdso: 3 nsec/call
+clock-gettime-realtime-coarse: syscall: 307 nsec/call
+clock-gettime-realtime-coarse:    libc: 4 nsec/call
+clock-gettime-realtime-coarse:    vdso: 4 nsec/call
+clock-getres-realtime-coarse: syscall: 294 nsec/call
+clock-getres-realtime-coarse:    libc: 291 nsec/call
+clock-getres-realtime-coarse:    vdso: 4 nsec/call
+getcpu: syscall: 246 nsec/call
+getcpu:    libc: 14 nsec/call
+getcpu:    vdso: 11 nsec/call
+gettimeofday: syscall: 293 nsec/call
+gettimeofday:    libc: 26 nsec/call
+gettimeofday:    vdso: 25 nsec/call
+
+Stock Kernel:
+-------------
+
+clock-gettime-monotonic: syscall: 338 nsec/call
+clock-gettime-monotonic:    libc: 24 nsec/call
+clock-gettime-monotonic:    vdso: 23 nsec/call
+clock-getres-monotonic: syscall: 291 nsec/call
+clock-getres-monotonic:    libc: 304 nsec/call
+clock-getres-monotonic:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-monotonic-coarse: syscall: 297 nsec/call
+clock-gettime-monotonic-coarse:    libc: 5 nsec/call
+clock-gettime-monotonic-coarse:    vdso: 4 nsec/call
+clock-getres-monotonic-coarse: syscall: 281 nsec/call
+clock-getres-monotonic-coarse:    libc: 286 nsec/call
+clock-getres-monotonic-coarse:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-monotonic-raw: syscall: 336 nsec/call
+clock-gettime-monotonic-raw:    libc: 340 nsec/call
+clock-gettime-monotonic-raw:    vdso: 346 nsec/call
+clock-getres-monotonic-raw: syscall: 297 nsec/call
+clock-getres-monotonic-raw:    libc: 301 nsec/call
+clock-getres-monotonic-raw:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-tai: syscall: 351 nsec/call
+clock-gettime-tai:    libc: 24 nsec/call
+clock-gettime-tai:    vdso: 23 nsec/call
+clock-getres-tai: syscall: 298 nsec/call
+clock-getres-tai:    libc: 290 nsec/call
+clock-getres-tai:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-boottime: syscall: 342 nsec/call
+clock-gettime-boottime:    libc: 347 nsec/call
+clock-gettime-boottime:    vdso: 355 nsec/call
+clock-getres-boottime: syscall: 296 nsec/call
+clock-getres-boottime:    libc: 295 nsec/call
+clock-getres-boottime:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-realtime: syscall: 346 nsec/call
+clock-gettime-realtime:    libc: 24 nsec/call
+clock-gettime-realtime:    vdso: 22 nsec/call
+clock-getres-realtime: syscall: 295 nsec/call
+clock-getres-realtime:    libc: 291 nsec/call
+clock-getres-realtime:    vdso: not tested
+Note: vDSO version of clock_getres not found
+clock-gettime-realtime-coarse: syscall: 292 nsec/call
+clock-gettime-realtime-coarse:    libc: 5 nsec/call
+clock-gettime-realtime-coarse:    vdso: 4 nsec/call
+clock-getres-realtime-coarse: syscall: 300 nsec/call
+clock-getres-realtime-coarse:    libc: 301 nsec/call
+clock-getres-realtime-coarse:    vdso: not tested
+Note: vDSO version of clock_getres not found
+getcpu: syscall: 252 nsec/call
+getcpu:    libc: 14 nsec/call
+getcpu:    vdso: 11 nsec/call
+gettimeofday: syscall: 293 nsec/call
+gettimeofday:    libc: 24 nsec/call
+gettimeofday:    vdso: 25 nsec/call
+
+
+Peter Collingbourne (1):
+  arm64: Build vDSO with -ffixed-x18
+
+Vincenzo Frascino (18):
+  kernel: Standardize vdso_datapage
+  kernel: Define gettimeofday vdso common code
+  kernel: Unify update_vsyscall implementation
+  arm64: Substitute gettimeofday with C implementation
+  arm64: compat: Add missing syscall numbers
+  arm64: compat: Expose signal related structures
+  arm64: compat: Generate asm offsets for signals
+  lib: vdso: Add compat support
+  arm64: compat: Add vDSO
+  arm64: Refactor vDSO code
+  arm64: compat: vDSO setup for compat layer
+  arm64: elf: vDSO code page discovery
+  arm64: compat: Get sigreturn trampolines from vDSO
+  arm64: Add vDSO compat support
+  arm: Add support for generic vDSO
+  mips: Add support for generic vDSO
+  x86: Add support for generic vDSO
+  kselftest: Extend vDSO selftest
+
+ arch/arm/Kconfig                              |   3 +
+ arch/arm/include/asm/vdso/gettimeofday.h      |  96 +++++
+ arch/arm/include/asm/vdso/vsyscall.h          |  71 ++++
+ arch/arm/include/asm/vdso_datapage.h          |  29 +-
+ arch/arm/kernel/vdso.c                        |  87 +----
+ arch/arm/vdso/Makefile                        |  13 +-
+ arch/arm/vdso/note.c                          |  15 +
+ arch/arm/vdso/vdso.lds.S                      |   2 +
+ arch/arm/vdso/vgettimeofday.c                 | 268 +------------
+ arch/arm64/Kconfig                            |   3 +
+ arch/arm64/Makefile                           |  23 +-
+ arch/arm64/include/asm/elf.h                  |  14 +
+ arch/arm64/include/asm/signal32.h             |  46 +++
+ arch/arm64/include/asm/unistd.h               |   5 +
+ arch/arm64/include/asm/vdso.h                 |   3 +
+ arch/arm64/include/asm/vdso/compat_barrier.h  |  51 +++
+ .../include/asm/vdso/compat_gettimeofday.h    | 108 ++++++
+ arch/arm64/include/asm/vdso/gettimeofday.h    |  84 +++++
+ arch/arm64/include/asm/vdso/vsyscall.h        |  53 +++
+ arch/arm64/include/asm/vdso_datapage.h        |  48 ---
+ arch/arm64/kernel/Makefile                    |   6 +-
+ arch/arm64/kernel/asm-offsets.c               |  39 +-
+ arch/arm64/kernel/signal32.c                  |  72 ++--
+ arch/arm64/kernel/vdso.c                      | 356 ++++++++++++------
+ arch/arm64/kernel/vdso/Makefile               |  34 +-
+ arch/arm64/kernel/vdso/gettimeofday.S         | 334 ----------------
+ arch/arm64/kernel/vdso/vgettimeofday.c        |  28 ++
+ arch/arm64/kernel/vdso32/.gitignore           |   2 +
+ arch/arm64/kernel/vdso32/Makefile             | 184 +++++++++
+ arch/arm64/kernel/vdso32/note.c               |  15 +
+ arch/arm64/kernel/vdso32/sigreturn.S          |  62 +++
+ arch/arm64/kernel/vdso32/vdso.S               |  19 +
+ arch/arm64/kernel/vdso32/vdso.lds.S           |  82 ++++
+ arch/arm64/kernel/vdso32/vgettimeofday.c      |  59 +++
+ arch/mips/Kconfig                             |   2 +
+ arch/mips/include/asm/vdso.h                  |  78 +---
+ arch/mips/include/asm/vdso/gettimeofday.h     | 175 +++++++++
+ arch/mips/{ => include/asm}/vdso/vdso.h       |   6 +-
+ arch/mips/include/asm/vdso/vsyscall.h         |  43 +++
+ arch/mips/kernel/vdso.c                       |  37 +-
+ arch/mips/vdso/Makefile                       |  25 +-
+ arch/mips/vdso/elf.S                          |   2 +-
+ arch/mips/vdso/gettimeofday.c                 | 273 --------------
+ arch/mips/vdso/sigreturn.S                    |   2 +-
+ arch/mips/vdso/vdso.lds.S                     |   4 +
+ arch/mips/vdso/vgettimeofday.c                |  57 +++
+ arch/x86/Kconfig                              |   3 +
+ arch/x86/entry/vdso/Makefile                  |   9 +
+ arch/x86/entry/vdso/vclock_gettime.c          | 251 +++---------
+ arch/x86/entry/vdso/vdso.lds.S                |   2 +
+ arch/x86/entry/vdso/vdso32/vdso32.lds.S       |   2 +
+ arch/x86/entry/vdso/vdsox32.lds.S             |   1 +
+ arch/x86/entry/vsyscall/Makefile              |   2 -
+ arch/x86/entry/vsyscall/vsyscall_gtod.c       |  83 ----
+ arch/x86/include/asm/mshyperv-tsc.h           |  76 ++++
+ arch/x86/include/asm/mshyperv.h               |  70 +---
+ arch/x86/include/asm/pvclock.h                |   2 +-
+ arch/x86/include/asm/vdso/gettimeofday.h      | 203 ++++++++++
+ arch/x86/include/asm/vdso/vsyscall.h          |  44 +++
+ arch/x86/include/asm/vgtod.h                  |  75 +---
+ arch/x86/include/asm/vvar.h                   |   7 +-
+ arch/x86/kernel/pvclock.c                     |   1 +
+ include/asm-generic/vdso/vsyscall.h           |  56 +++
+ include/linux/hrtimer.h                       |  15 +-
+ include/linux/hrtimer_defs.h                  |  25 ++
+ include/linux/timekeeper_internal.h           |   9 +
+ include/vdso/datapage.h                       |  91 +++++
+ include/vdso/helpers.h                        |  56 +++
+ include/vdso/vsyscall.h                       |  11 +
+ kernel/Makefile                               |   1 +
+ kernel/vdso/Makefile                          |   2 +
+ kernel/vdso/vsyscall.c                        | 139 +++++++
+ lib/Kconfig                                   |   5 +
+ lib/vdso/Kconfig                              |  36 ++
+ lib/vdso/Makefile                             |  22 ++
+ lib/vdso/gettimeofday.c                       | 229 +++++++++++
  tools/testing/selftests/vDSO/Makefile         |   2 +
- tools/testing/selftests/vDSO/vdso_full_test.c | 261 ++++++++++++++++++
- 2 files changed, 263 insertions(+)
+ tools/testing/selftests/vDSO/vdso_full_test.c | 261 +++++++++++++
+ 78 files changed, 3042 insertions(+), 1767 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/arm/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/arm/vdso/note.c
+ create mode 100644 arch/arm64/include/asm/vdso/compat_barrier.h
+ create mode 100644 arch/arm64/include/asm/vdso/compat_gettimeofday.h
+ create mode 100644 arch/arm64/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/arm64/include/asm/vdso/vsyscall.h
+ delete mode 100644 arch/arm64/include/asm/vdso_datapage.h
+ delete mode 100644 arch/arm64/kernel/vdso/gettimeofday.S
+ create mode 100644 arch/arm64/kernel/vdso/vgettimeofday.c
+ create mode 100644 arch/arm64/kernel/vdso32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso32/note.c
+ create mode 100644 arch/arm64/kernel/vdso32/sigreturn.S
+ create mode 100644 arch/arm64/kernel/vdso32/vdso.S
+ create mode 100644 arch/arm64/kernel/vdso32/vdso.lds.S
+ create mode 100644 arch/arm64/kernel/vdso32/vgettimeofday.c
+ create mode 100644 arch/mips/include/asm/vdso/gettimeofday.h
+ rename arch/mips/{ => include/asm}/vdso/vdso.h (90%)
+ create mode 100644 arch/mips/include/asm/vdso/vsyscall.h
+ delete mode 100644 arch/mips/vdso/gettimeofday.c
+ create mode 100644 arch/mips/vdso/vgettimeofday.c
+ delete mode 100644 arch/x86/entry/vsyscall/vsyscall_gtod.c
+ create mode 100644 arch/x86/include/asm/mshyperv-tsc.h
+ create mode 100644 arch/x86/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/x86/include/asm/vdso/vsyscall.h
+ create mode 100644 include/asm-generic/vdso/vsyscall.h
+ create mode 100644 include/linux/hrtimer_defs.h
+ create mode 100644 include/vdso/datapage.h
+ create mode 100644 include/vdso/helpers.h
+ create mode 100644 include/vdso/vsyscall.h
+ create mode 100644 kernel/vdso/Makefile
+ create mode 100644 kernel/vdso/vsyscall.c
+ create mode 100644 lib/vdso/Kconfig
+ create mode 100644 lib/vdso/Makefile
+ create mode 100644 lib/vdso/gettimeofday.c
  create mode 100644 tools/testing/selftests/vDSO/vdso_full_test.c
 
-diff --git a/tools/testing/selftests/vDSO/Makefile b/tools/testing/selftests/vDSO/Makefile
-index 9e03d61f52fd..68e9b4a1cdcf 100644
---- a/tools/testing/selftests/vDSO/Makefile
-+++ b/tools/testing/selftests/vDSO/Makefile
-@@ -5,6 +5,7 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
- ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/x86/ -e s/x86_64/x86/)
- 
- TEST_GEN_PROGS := $(OUTPUT)/vdso_test
-+TEST_GEN_PROGS += $(OUTPUT)/vdso_full_test
- ifeq ($(ARCH),x86)
- TEST_GEN_PROGS += $(OUTPUT)/vdso_standalone_test_x86
- endif
-@@ -18,6 +19,7 @@ endif
- 
- all: $(TEST_GEN_PROGS)
- $(OUTPUT)/vdso_test: parse_vdso.c vdso_test.c
-+$(OUTPUT)/vdso_full_test: parse_vdso.c vdso_full_test.c
- $(OUTPUT)/vdso_standalone_test_x86: vdso_standalone_test_x86.c parse_vdso.c
- 	$(CC) $(CFLAGS) $(CFLAGS_vdso_standalone_test_x86) \
- 		vdso_standalone_test_x86.c parse_vdso.c \
-diff --git a/tools/testing/selftests/vDSO/vdso_full_test.c b/tools/testing/selftests/vDSO/vdso_full_test.c
-new file mode 100644
-index 000000000000..62001d3d241b
---- /dev/null
-+++ b/tools/testing/selftests/vDSO/vdso_full_test.c
-@@ -0,0 +1,261 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * vdso_full_test.c: Sample code to test all the timers.
-+ * Copyright (c) 2019 Arm Ltd.
-+ *
-+ * Compile with:
-+ * gcc -std=gnu99 vdso_full_test.c parse_vdso.c
-+ *
-+ * Tested on ARM, ARM64, MIPS32 and x86 (32-bit and 64-bit).
-+ * Might work on other architectures.
-+ */
-+
-+#include <stdint.h>
-+#include <elf.h>
-+#include <stdio.h>
-+#include <time.h>
-+#include <sys/auxv.h>
-+#include <sys/time.h>
-+#define _GNU_SOURCE
-+#include <unistd.h>
-+#include <sys/syscall.h>
-+
-+#include "../kselftest.h"
-+
-+extern void *vdso_sym(const char *version, const char *name);
-+extern void vdso_init_from_sysinfo_ehdr(uintptr_t base);
-+extern void vdso_init_from_auxv(void *auxv);
-+
-+/*
-+ * ARM64's vDSO exports its vDSO implementation with different names and
-+ * a different version from other architectures, so we need to handle it
-+ * as a special case.
-+ */
-+#if defined(__aarch64__)
-+const char *version = "LINUX_2.6.39";
-+const char *name[4] = {
-+	"__kernel_gettimeofday",
-+	"__kernel_clock_gettime",
-+	"__kernel_time",
-+	"__kernel_clock_getres",
-+};
-+#else
-+/* Tested on x86, arm, mips */
-+const char *version = "LINUX_2.6";
-+const char *name[4] = {
-+	"__vdso_gettimeofday",
-+	"__vdso_clock_gettime",
-+	"__vdso_time",
-+	"__vdso_clock_getres",
-+};
-+#endif
-+
-+typedef long (*vdso_gettimeofday_t)(struct timeval *tv, struct timezone *tz);
-+typedef long (*vdso_clock_gettime_t)(clockid_t clk_id, struct timespec *ts);
-+typedef long (*vdso_clock_getres_t)(clockid_t clk_id, struct timespec *ts);
-+typedef time_t (*vdso_time_t)(time_t *t);
-+
-+static int vdso_test_gettimeofday(void)
-+{
-+	/* Find gettimeofday. */
-+	vdso_gettimeofday_t vdso_gettimeofday =
-+		(vdso_gettimeofday_t)vdso_sym(version, name[0]);
-+
-+	if (!vdso_gettimeofday) {
-+		printf("Could not find %s\n", name[0]);
-+		return KSFT_SKIP;
-+	}
-+
-+	struct timeval tv;
-+	long ret = vdso_gettimeofday(&tv, 0);
-+
-+	if (ret == 0) {
-+		printf("The time is %lld.%06lld\n",
-+		       (long long)tv.tv_sec, (long long)tv.tv_usec);
-+	} else {
-+		printf("%s failed\n", name[0]);
-+		return KSFT_FAIL;
-+	}
-+
-+	return KSFT_PASS;
-+}
-+
-+static int vdso_test_clock_gettime(clockid_t clk_id)
-+{
-+	/* Find clock_gettime. */
-+	vdso_clock_gettime_t vdso_clock_gettime =
-+		(vdso_clock_gettime_t)vdso_sym(version, name[1]);
-+
-+	if (!vdso_clock_gettime) {
-+		printf("Could not find %s\n", name[1]);
-+		return KSFT_SKIP;
-+	}
-+
-+	struct timespec ts;
-+	long ret = vdso_clock_gettime(clk_id, &ts);
-+
-+	if (ret == 0) {
-+		printf("The time is %lld.%06lld\n",
-+		       (long long)ts.tv_sec, (long long)ts.tv_nsec);
-+	} else {
-+		printf("%s failed\n", name[1]);
-+		return KSFT_FAIL;
-+	}
-+
-+	return KSFT_PASS;
-+}
-+
-+static int vdso_test_time(void)
-+{
-+	/* Find time. */
-+	vdso_time_t vdso_time =
-+		(vdso_time_t)vdso_sym(version, name[2]);
-+
-+	if (!vdso_time) {
-+		printf("Could not find %s\n", name[2]);
-+		return KSFT_SKIP;
-+	}
-+
-+	long ret = vdso_time(NULL);
-+
-+	if (ret > 0) {
-+		printf("The time in hours since January 1, 1970 is %lld\n",
-+				(long long)(ret / 3600));
-+	} else {
-+		printf("%s failed\n", name[2]);
-+		return KSFT_FAIL;
-+	}
-+
-+	return KSFT_PASS;
-+}
-+
-+static int vdso_test_clock_getres(clockid_t clk_id)
-+{
-+	/* Find clock_getres. */
-+	vdso_clock_getres_t vdso_clock_getres =
-+		(vdso_clock_getres_t)vdso_sym(version, name[3]);
-+
-+	if (!vdso_clock_getres) {
-+		printf("Could not find %s\n", name[3]);
-+		return KSFT_SKIP;
-+	}
-+
-+	struct timespec ts, sys_ts;
-+	long ret = vdso_clock_getres(clk_id, &ts);
-+
-+	if (ret == 0) {
-+		printf("The resolution is %lld %lld\n",
-+		       (long long)ts.tv_sec, (long long)ts.tv_nsec);
-+	} else {
-+		printf("%s failed\n", name[3]);
-+		return KSFT_FAIL;
-+	}
-+
-+	ret = syscall(SYS_clock_getres, clk_id, &sys_ts);
-+
-+	if ((sys_ts.tv_sec != ts.tv_sec) || (sys_ts.tv_nsec != ts.tv_nsec)) {
-+		printf("%s failed\n", name[3]);
-+		return KSFT_FAIL;
-+	}
-+
-+	return KSFT_PASS;
-+}
-+
-+const char *vdso_clock_name[12] = {
-+	"CLOCK_REALTIME",
-+	"CLOCK_MONOTONIC",
-+	"CLOCK_PROCESS_CPUTIME_ID",
-+	"CLOCK_THREAD_CPUTIME_ID",
-+	"CLOCK_MONOTONIC_RAW",
-+	"CLOCK_REALTIME_COARSE",
-+	"CLOCK_MONOTONIC_COARSE",
-+	"CLOCK_BOOTTIME",
-+	"CLOCK_REALTIME_ALARM",
-+	"CLOCK_BOOTTIME_ALARM",
-+	"CLOCK_SGI_CYCLE",
-+	"CLOCK_TAI",
-+};
-+
-+/*
-+ * This function calls vdso_test_clock_gettime and vdso_test_clock_getres
-+ * with different values for clock_id.
-+ */
-+static inline int vdso_test_clock(clockid_t clock_id)
-+{
-+	int ret0, ret1;
-+
-+	ret0 = vdso_test_clock_gettime(clock_id);
-+	/* A skipped test is considered passed */
-+	if (ret0 == KSFT_SKIP)
-+		ret0 = KSFT_PASS;
-+
-+	ret1 = vdso_test_clock_getres(clock_id);
-+	/* A skipped test is considered passed */
-+	if (ret1 == KSFT_SKIP)
-+		ret1 = KSFT_PASS;
-+
-+	ret0 += ret1;
-+
-+	printf("clock_id: %s", vdso_clock_name[clock_id]);
-+
-+	if (ret0 > 0)
-+		printf(" [FAIL]\n");
-+	else
-+		printf(" [PASS]\n");
-+
-+	return ret0;
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	unsigned long sysinfo_ehdr = getauxval(AT_SYSINFO_EHDR);
-+	int ret;
-+
-+	if (!sysinfo_ehdr) {
-+		printf("AT_SYSINFO_EHDR is not present!\n");
-+		return KSFT_SKIP;
-+	}
-+
-+	vdso_init_from_sysinfo_ehdr(getauxval(AT_SYSINFO_EHDR));
-+
-+	ret = vdso_test_gettimeofday();
-+
-+#if _POSIX_TIMERS > 0
-+
-+#ifdef CLOCK_REALTIME
-+	ret += vdso_test_clock(CLOCK_REALTIME);
-+#endif
-+
-+#ifdef CLOCK_BOOTTIME
-+	ret += vdso_test_clock(CLOCK_BOOTTIME);
-+#endif
-+
-+#ifdef CLOCK_TAI
-+	ret += vdso_test_clock(CLOCK_TAI);
-+#endif
-+
-+#ifdef CLOCK_REALTIME_COARSE
-+	ret += vdso_test_clock(CLOCK_REALTIME_COARSE);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC
-+	ret += vdso_test_clock(CLOCK_MONOTONIC);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_RAW
-+	ret += vdso_test_clock(CLOCK_MONOTONIC_RAW);
-+#endif
-+
-+#ifdef CLOCK_MONOTONIC_COARSE
-+	ret += vdso_test_clock(CLOCK_MONOTONIC_COARSE);
-+#endif
-+
-+#endif
-+
-+	ret += vdso_test_time();
-+
-+	if (ret > 0)
-+		return KSFT_FAIL;
-+
-+	return KSFT_PASS;
-+}
 -- 
 2.21.0
