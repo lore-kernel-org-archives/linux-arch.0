@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 15/33] tools/memory-model: Add simpletest.sh to check locking, RCU, and SRCU
-Date: Thu, 30 May 2019 07:42:07 -0700
-Message-ID: <20190530144225.27624-15-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 11/33] tools/memory-model: Make judgelitmus.sh detect hard deadlocks
+Date: Thu, 30 May 2019 07:42:03 -0700
+Message-ID: <20190530144225.27624-11-paulmck@linux.ibm.com>
 References: <20190530144202.GA26201@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190530144202.GA26201@linux.ibm.com>
@@ -10,55 +10,35 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit abstracts out common function to check a given litmus test
-for locking, RCU, and SRCU in order to avoid duplicating code.
+If a litmus test specifies "Result: Never" and if it contains an
+unconditional ("hard") deadlock, then running checklitmus.sh on it will
+not flag any errors, despite the fact that there are no executions.
+This commit therefore updates judgelitmus.sh to complain about tests
+with no executions that are marked, but not as "Result: DEADLOCK".
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/simpletest.sh | 35 ++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
- create mode 100755 tools/memory-model/scripts/simpletest.sh
+ tools/memory-model/scripts/judgelitmus.sh | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/tools/memory-model/scripts/simpletest.sh b/tools/memory-model/scripts/simpletest.sh
-new file mode 100755
-index 000000000000..7edc5d361665
---- /dev/null
-+++ b/tools/memory-model/scripts/simpletest.sh
-@@ -0,0 +1,35 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Give zero status if this is a simple test and non-zero otherwise.
-+# Simple tests do not contain locking, RCU, or SRCU.
-+#
-+# Usage:
-+#	simpletest.sh file.litmus
-+#
-+# Copyright IBM Corporation, 2019
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
-+
-+
-+litmus=$1
-+
-+if test -f "$litmus" -a -r "$litmus"
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index d40439c7b71e..84c62eee321b 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -83,6 +83,14 @@ then
+ 		fi
+ 		ret=1
+ 	fi
++elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q 'Never 0 0$'
 +then
-+	:
-+else
-+	echo ' --- ' error: \"$litmus\" is not a readable file
-+	exit 255
-+fi
-+exclude="^[[:space:]]*\("
-+exclude="${exclude}spin_lock(\|spin_unlock(\|spin_trylock(\|spin_is_locked("
-+exclude="${exclude}\|rcu_read_lock(\|rcu_read_unlock("
-+exclude="${exclude}\|synchronize_rcu(\|synchronize_rcu_expedited("
-+exclude="${exclude}\|srcu_read_lock(\|srcu_read_unlock("
-+exclude="${exclude}\|synchronize_srcu(\|synchronize_srcu_expedited("
-+exclude="${exclude}\)"
-+if grep -q $exclude $litmus
-+then
-+	exit 255
-+fi
-+exit 0
++	echo " !!! Unexpected non-$outcome deadlock" $litmus
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	then
++		echo " !!! Unexpected non-$outcome deadlock" $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
++	fi
++	ret=1
+ elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q $outcome || test "$outcome" = Maybe
+ then
+ 	ret=0
 -- 
 2.17.1
