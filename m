@@ -1,77 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:37964 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726002AbfEaIx4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:53:56 -0400
+Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:35486 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726998AbfEaJlV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 May 2019 05:41:21 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: single copy atomicity for double load/stores on 32-bit systems
+Date: Fri, 31 May 2019 09:41:17 +0000
+Message-ID: <895ec12746c246579aed5dd98ace6e38@AcuMS.aculab.com>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+In-Reply-To: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+Content-Language: en-US
 MIME-Version: 1.0
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-20-vincenzo.frascino@arm.com>
-In-Reply-To: <20190530141531.43462-20-vincenzo.frascino@arm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 31 May 2019 10:53:39 +0200
-Message-ID: <CAK8P3a3Z=wWQDu4aqV73J5PR2jNb3GzyWzYGT3dUp-F81H8mzQ@mail.gmail.com>
-Subject: Re: [PATCH v6 19/19] kselftest: Extend vDSO selftest
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190531085339.kUwi8H5bhCDyaSjiHfKROqAOt1x95gu_P3Y2x5WBjNM@z>
+To: 'Vineet Gupta' <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190531094117.FJcp9tGsSECbIhgBgLgpr2FW3kiTyzwR2BiyfCwLN14@z>
 
-On Thu, May 30, 2019 at 4:16 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
-
-> +/*
-> + * ARM64's vDSO exports its vDSO implementation with different names and
-> + * a different version from other architectures, so we need to handle it
-> + * as a special case.
-> + */
-> +#if defined(__aarch64__)
-> +const char *version = "LINUX_2.6.39";
-> +const char *name[4] = {
-> +       "__kernel_gettimeofday",
-> +       "__kernel_clock_gettime",
-> +       "__kernel_time",
-> +       "__kernel_clock_getres",
-> +};
-> +#else
-> +/* Tested on x86, arm, mips */
-> +const char *version = "LINUX_2.6";
-> +const char *name[4] = {
-> +       "__vdso_gettimeofday",
-> +       "__vdso_clock_gettime",
-> +       "__vdso_time",
-> +       "__vdso_clock_getres",
-> +};
-> +#endif
-
-I see the __kernel_* name used on arm64, powerpc and s390, whiel the __vdso_*
-name is used on arm, mips, nds32, riscv, sparc, and x86.
-
-Also the versions have more variants:
-
-$ git ls-files arch | grep vdso | xargs grep
-'\(LINUX_[2345]\|VDSO_VERSION_STRING\)'
-arch/arm/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/arm64/kernel/vdso/vdso.lds.S:    LINUX_2.6.39 {
-arch/mips/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/nds32/kernel/vdso/vdso.lds.S:    LINUX_4 {
-arch/powerpc/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.15
-arch/powerpc/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
-arch/powerpc/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
-arch/riscv/kernel/vdso/vdso.lds.S:    LINUX_4.15 {
-arch/s390/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.29
-arch/s390/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
-arch/s390/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
-arch/sparc/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/sparc/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.5 {
-arch/x86/entry/vdso/vdsox32.lds.S:    LINUX_2.6 {
-arch/x86/um/vdso/vdso.lds.S:    LINUX_2.6 {
-
-Maybe change the test case to just try all combinations of the
-above (and __vdso_clock_gettime64 as well) and stop checking
-the architecture?
-
-       Arnd
+RnJvbTogVmluZWV0IEd1cHRhDQo+IFNlbnQ6IDMwIE1heSAyMDE5IDE5OjIzDQouLi4NCj4gV2hp
+bGUgaXQgc2VlbXMgcmVhc29uYWJsZSBmb3JtIGhhcmR3YXJlIHBvdiB0byBub3QgaW1wbGVtZW50
+IHN1Y2ggYXRvbWljaXR5IGJ5DQo+IGRlZmF1bHQgaXQgc2VlbXMgdGhlcmUncyBhbiBhZGRpdGlv
+bmFsIGJ1cmRlbiBvbiBhcHBsaWNhdGlvbiB3cml0ZXJzLiBUaGV5IGNvdWxkDQo+IGJlIGhhcHBp
+bHkgdXNpbmcgYSBsb2NrbGVzcyBhbGdvcml0aG0gd2l0aCBqdXN0IGEgc2hhcmVkIGZsYWcgYmV0
+d2VlbiAyIHRocmVhZHMNCj4gdy9vIG5lZWQgZm9yIGFueSBleHBsaWNpdCBzeW5jaHJvbml6YXRp
+b24uIEJ1dCB1cGdyYWRlIHRvIGEgbmV3IGNvbXBpbGVyIHdoaWNoDQo+IGFnZ3Jlc3NpdmVseSAi
+cGFja3MiIHN0cnVjdCByZW5kZXJpbmcgbG9uZyBsb25nIDMyLWJpdCBhbGlnbmVkICh2cy4gNjQt
+Yml0IGJlZm9yZSkNCj4gY2F1c2luZyB0aGUgY29kZSB0byBzdWRkZW5seSBzdG9wIHdvcmtpbmcu
+IElzIHRoZSBvbnVzIG9uIHRoZW0gdG8gZGVjbGFyZSBzdWNoDQo+IG1lbW9yeSBhcyBjMTEgYXRv
+bWljIG9yIHNvbWUgc3VjaC4NCg0KQSAnbmV3JyBjb21waWxlciBjYW4ndCBzdWRkZW5seSBjaGFu
+Z2UgdGhlIGFsaWdubWVudCBydWxlcyBmb3Igc3RydWN0dXJlIGVsZW1lbnRzLg0KVGhlIGFsaWdu
+bWVudCBydWxlcyB3aWxsIGJlIHBhcnQgb2YgdGhlIEFCSS4NCg0KTW9yZSBsaWtlbHkgaXMgdGhh
+dCB0aGUgc3RydWN0dXJlIGl0c2VsZiBpcyB1bmV4cGVjdGVkbHkgYWxsb2NhdGVkIG9uDQphbiA4
+bis0IGJvdW5kYXJ5IGR1ZSB0byBjb2RlIGNoYW5nZXMgZWxzZXdoZXJlLg0KDQpJdCBpcyBhbHNv
+IHdvcnRoIG5vdGluZyB0aGF0IGZvciBjb21wbGV0ZSBwb3J0YWJpbGl0eSBvbmx5IHdyaXRlcyB0
+bw0KJ2Z1bGwgd29yZHMnIGNhbiBiZSBhc3N1bWVkIGF0b21pYy4NClNvbWUgb2xkIEFscGhhJ3Mg
+ZGlkIFJNVyBjeWNsZXMgZm9yIGJ5dGUgd3JpdGVzLg0KKEFsdGhvdWdoIEkgc3VzcGVjdCBMaW51
+eCBkb2Vzbid0IHN1cHBvcnQgdGhvc2UgYW55IG1vcmUuKQ0KDQpFdmVuIHg4NiBjYW4gY2F0Y2gg
+eW91IG91dC4NClRoZSBiaXQgb3BlcmF0aW9ucyB3aWxsIGRvIHdpZGVyIFJNVyBjeWNsZXMgdGhh
+biB5b3UgZXhwZWN0Lg0KDQoJRGF2aWQNCg0KLQ0KUmVnaXN0ZXJlZCBBZGRyZXNzIExha2VzaWRl
+LCBCcmFtbGV5IFJvYWQsIE1vdW50IEZhcm0sIE1pbHRvbiBLZXluZXMsIE1LMSAxUFQsIFVLDQpS
+ZWdpc3RyYXRpb24gTm86IDEzOTczODYgKFdhbGVzKQ0K
