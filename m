@@ -1,48 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:33434 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726610AbfEaX5z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 19:57:55 -0400
-Received: by mail-pl1-f196.google.com with SMTP id g21so4621811plq.0
-        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 16:57:54 -0700 (PDT)
-Date: Fri, 31 May 2019 16:57:53 -0700 (PDT)
-Subject: Re: [PATCH 3/5] asm-generic: Register fchmodat4 as syscall 428
-In-Reply-To: <CAK8P3a2=xko56LbwV4tyhyyyX+tw+EV-NGavYEYj0q61t=mnwg@mail.gmail.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-d362e451-72d2-4893-a749-8469359b65ea@palmer-si-x1e>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Received: from terminus.zytor.com ([198.137.202.136]:33931 "EHLO
+        mail.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726901AbfFABOS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 May 2019 21:14:18 -0400
+Date: Fri, 31 May 2019 16:41:46 -0700
+In-Reply-To: <CANpmjNOsPnVd50cTzUW8UYXPGqpSnRLcjj=JbZraTYVq1n18Fw@mail.gmail.com>
+References: <20190529141500.193390-1-elver@google.com> <20190529141500.193390-3-elver@google.com> <EE911EC6-344B-4EB2-90A4-B11E8D96BEDC@zytor.com> <CANpmjNOsPnVd50cTzUW8UYXPGqpSnRLcjj=JbZraTYVq1n18Fw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH 2/3] x86: Move CPU feature test out of uaccess region
+From: hpa@zytor.com
+Message-ID: <3B49EF08-147F-451C-AA5B-FC4E1B8568EE@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com
-Message-ID: <20190531235753.QqNI7Nzodw1e6zwvECsSpHaI1C2nZzyxnhdz-oCOr68@z>
+To: Marco Elver <elver@google.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20190531234146.XzoZcW7s1ErRWRePqszYP58kwFBfSfeITg34kvG4Ghk@z>
 
-On Fri, 31 May 2019 12:56:39 PDT (-0700), Arnd Bergmann wrote:
-> On Fri, May 31, 2019 at 9:23 PM Palmer Dabbelt <palmer@sifive.com> wrote:
+On May 31, 2019 2:57:36 AM PDT, Marco Elver <elver@google=2Ecom> wrote:
+>On Wed, 29 May 2019 at 16:29, <hpa@zytor=2Ecom> wrote:
 >>
->> Signed-off-by: Palmer Dabbelt <palmer@sifive.com>
+>> On May 29, 2019 7:15:00 AM PDT, Marco Elver <elver@google=2Ecom> wrote:
+>> >This patch is a pre-requisite for enabling KASAN bitops
+>> >instrumentation:
+>> >moves boot_cpu_has feature test out of the uaccess region, as
+>> >boot_cpu_has uses test_bit=2E With instrumentation, the KASAN check
+>would
+>> >otherwise be flagged by objtool=2E
+>> >
+>> >This approach is preferred over adding the explicit kasan_check_*
+>> >functions to the uaccess whitelist of objtool, as the case here
+>appears
+>> >to be the only one=2E
+>> >
+>> >Signed-off-by: Marco Elver <elver@google=2Ecom>
+>> >---
+>> >v1:
+>> >* This patch replaces patch: 'tools/objtool: add kasan_check_* to
+>> >  uaccess whitelist'
+>> >---
+>> > arch/x86/ia32/ia32_signal=2Ec | 9 ++++++++-
+>> > 1 file changed, 8 insertions(+), 1 deletion(-)
+>> >
+>> >diff --git a/arch/x86/ia32/ia32_signal=2Ec
+>b/arch/x86/ia32/ia32_signal=2Ec
+>> >index 629d1ee05599=2E=2E12264e3c9c43 100644
+>> >--- a/arch/x86/ia32/ia32_signal=2Ec
+>> >+++ b/arch/x86/ia32/ia32_signal=2Ec
+>> >@@ -333,6 +333,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal
+>> >*ksig,
+>> >       void __user *restorer;
+>> >       int err =3D 0;
+>> >       void __user *fpstate =3D NULL;
+>> >+      bool has_xsave;
+>> >
+>> >       /* __copy_to_user optimizes that into a single 8 byte store
+>*/
+>> >       static const struct {
+>> >@@ -352,13 +353,19 @@ int ia32_setup_rt_frame(int sig, struct
+>ksignal
+>> >*ksig,
+>> >       if (!access_ok(frame, sizeof(*frame)))
+>> >               return -EFAULT;
+>> >
+>> >+      /*
+>> >+       * Move non-uaccess accesses out of uaccess region if not
+>strictly
+>> >+       * required; this also helps avoid objtool flagging these
+>accesses
+>> >with
+>> >+       * instrumentation enabled=2E
+>> >+       */
+>> >+      has_xsave =3D boot_cpu_has(X86_FEATURE_XSAVE);
+>> >       put_user_try {
+>> >               put_user_ex(sig, &frame->sig);
+>> >               put_user_ex(ptr_to_compat(&frame->info),
+>&frame->pinfo);
+>> >               put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+>> >
+>> >               /* Create the ucontext=2E  */
+>> >-              if (boot_cpu_has(X86_FEATURE_XSAVE))
+>> >+              if (has_xsave)
+>> >                       put_user_ex(UC_FP_XSTATE,
+>&frame->uc=2Euc_flags);
+>> >               else
+>> >                       put_user_ex(0, &frame->uc=2Euc_flags);
+>>
+>> This was meant to use static_cpu_has()=2E Why did that get dropped?
 >
-> As usual, each patch needs a changelog text. I would prefer having a single
-> patch here that changes /all/ system call tables at once, rather than doing one
-> at a time like we used to.
-
-Works for me.  That also gives me something to write about it the text :)
-
-> In linux-next, we are at number 434 now, and there are a couple of other
-> new system calls being proposed right now (more than usual), so you may
-> have to change the number a few times.
-
-OK, no problem.  It'll be a bit easier to handle the number that way.
-
-> Note: most architectures use .tbl files now, the exceptions are
-> include/uapi/asm-generic/unistd.h and arch/arm64/include/asm/unistd32.h,
-> and the latter also requires changing __NR_compat_syscalls in asm/unistd.h.
+>I couldn't find any mailing list thread referring to why this doesn't
+>use static_cpu_has, do you have any background?
 >
-> Numbers should now be the same across architectures, except for alpha,
-> which has a +110 offset. We have discussed ways to have a single
-> file to modify for a new call on all architectures, but no patches yet.
+>static_cpu_has also solves the UACCESS warning=2E
+>
+>If you confirm it is safe to change to static_cpu_has(), I will change
+>this patch=2E Note that I should then also change
+>arch/x86/kernel/signal=2Ec to mirror the change for 32bit  (although
+>KASAN is not supported for 32bit x86)=2E
+>
+>Thanks,
+>-- Marco
 
-OK, thanks.  I'll wait a bit for feedback, but unless there's anything else
-I'll go ahead and finish this.
+I believe at some point the intent was that boot_cpu_has() was safer and c=
+ould be used everywhere=2E
+--=20
+Sent from my Android device with K-9 Mail=2E Please excuse my brevity=2E
