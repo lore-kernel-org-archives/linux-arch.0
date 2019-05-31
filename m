@@ -1,100 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48974 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726331AbfEaLpm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 May 2019 07:45:42 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x4VBS0sj141225
-        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 07:45:41 -0400
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2su17cdh94-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 07:45:41 -0400
-Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 31 May 2019 12:45:40 +0100
-Date: Fri, 31 May 2019 04:44:21 -0700
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: single copy atomicity for double load/stores on 32-bit systems
-Reply-To: paulmck@linux.ibm.com
-References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
- <895ec12746c246579aed5dd98ace6e38@AcuMS.aculab.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <895ec12746c246579aed5dd98ace6e38@AcuMS.aculab.com>
-Message-ID: <20190531114421.GJ28207@linux.ibm.com>
+Received: from mail-vs1-f74.google.com ([209.85.217.74]:55266 "EHLO
+        mail-vs1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726897AbfEaPLm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 11:11:42 -0400
+Received: by mail-vs1-f74.google.com with SMTP id 184so1300780vsm.21
+        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 08:11:42 -0700 (PDT)
+Date: Fri, 31 May 2019 17:08:30 +0200
+In-Reply-To: <20190531150828.157832-1-elver@google.com>
+Message-ID: <20190531150828.157832-3-elver@google.com>
+Mime-Version: 1.0
+References: <20190531150828.157832-1-elver@google.com>
+Subject: [PATCH v3 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: 'Vineet Gupta' <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190531114421.dJ0yfS-LxIvUmvmZY8iIWVdoooJboVoxzluOGEvsk7U@z>
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
+Message-ID: <20190531150830.QYyMsy9h3m1YjDTIj5NE9l-f8b_uj08Hcb36yvP-1kY@z>
 
-On Fri, May 31, 2019 at 09:41:17AM +0000, David Laight wrote:
-> From: Vineet Gupta
-> > Sent: 30 May 2019 19:23
-> ...
-> > While it seems reasonable form hardware pov to not implement such atomicity by
-> > default it seems there's an additional burden on application writers. They could
-> > be happily using a lockless algorithm with just a shared flag between 2 threads
-> > w/o need for any explicit synchronization. But upgrade to a new compiler which
-> > aggressively "packs" struct rendering long long 32-bit aligned (vs. 64-bit before)
-> > causing the code to suddenly stop working. Is the onus on them to declare such
-> > memory as c11 atomic or some such.
-> 
-> A 'new' compiler can't suddenly change the alignment rules for structure elements.
-> The alignment rules will be part of the ABI.
-> 
-> More likely is that the structure itself is unexpectedly allocated on
-> an 8n+4 boundary due to code changes elsewhere.
-> 
-> It is also worth noting that for complete portability only writes to
-> 'full words' can be assumed atomic.
-> Some old Alpha's did RMW cycles for byte writes.
-> (Although I suspect Linux doesn't support those any more.)
+This patch is a pre-requisite for enabling KASAN bitops instrumentation;
+using static_cpu_has instead of boot_cpu_has avoids instrumentation of
+test_bit inside the uaccess region. With instrumentation, the KASAN
+check would otherwise be flagged by objtool.
 
-Any C11 or later compiler needs to generate the atomic RMW cycles if
-needed in cases like this.  To see this, consider the following code:
+For consistency, kernel/signal.c was changed to mirror this change,
+however, is never instrumented with KASAN (currently unsupported under
+x86 32bit).
 
-	spinlock_t l1;
-	spinlock_t l2;
-	struct foo {
-		char c1; // Protected by l1
-		char c2; // Protected by l2
-	}
+Signed-off-by: Marco Elver <elver@google.com>
+Suggested-by: H. Peter Anvin <hpa@zytor.com>
+---
+Changes in v3:
+* Use static_cpu_has instead of moving boot_cpu_has outside uaccess
+  region.
 
-	...
+Changes in v2:
+* Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
+  whitelist'
+---
+ arch/x86/ia32/ia32_signal.c | 2 +-
+ arch/x86/kernel/signal.c    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-	spin_lock(&l1);
-	fp->c1 = 42;
-	do_somthing_protected_by_l1();
-	spin_unlock(&l1);
-
-	...
-
-	spin_lock(&l2);
-	fp->c2 = 206;
-	do_somthing_protected_by_l2();
-	spin_unlock(&l2);
-
-A compiler that failed to generate atomic RMW code sequences for those
-stores to ->c1 and ->c2 would be generating a data race in the object
-code when there was no such race in the source code.  Kudos to Hans Boehm
-for having browbeat compiler writers into accepting this restriction,
-which was not particularly popular -- they wanted to be able to use
-vector units and such.  ;-)
-
-> Even x86 can catch you out.
-> The bit operations will do wider RMW cycles than you expect.
-
-But does the compiler automatically generate these?
-
-							Thanx, Paul
-
-> 	David
-> 
-> -
-> Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-> Registration No: 1397386 (Wales)
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 629d1ee05599..1cee10091b9f 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 364813cea647..52eb1d551aed 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(&frame->uc, &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+-- 
+2.22.0.rc1.257.g3120a18244-goog
