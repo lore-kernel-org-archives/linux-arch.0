@@ -1,46 +1,50 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v6 17/19] mips: Add support for generic vDSO
-Date: Fri, 31 May 2019 10:34:59 +0200
-Message-ID: <CAK8P3a29QXCP8nw7po06GeYEGvJ_y2GxjAvswFk3=Y6YCjbdDg@mail.gmail.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-18-vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v6 00/19] Unify vDSOs across more architectures
+Date: Fri, 31 May 2019 10:46:43 +0200
+Message-ID: <CAK8P3a11DE0sXteZoaP_N=mDhx3tXitGKddn1ogtFqJBYO-SCA@mail.gmail.com>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190530141531.43462-18-vincenzo.frascino@arm.com>
+In-Reply-To: <20190530141531.43462-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 30, 2019 at 4:16 PM Vincenzo Frascino
+On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
 <vincenzo.frascino@arm.com> wrote:
+>
+> vDSO (virtual dynamic shared object) is a mechanism that the Linux
+> kernel provides as an alternative to system calls to reduce where
+> possible the costs in terms of cycles.
+> This is possible because certain syscalls like gettimeofday() do
+> not write any data and return one or more values that are stored
+> in the kernel, which makes relatively safe calling them directly
+> as a library function.
 
-> --- a/arch/mips/vdso/vdso.lds.S
-> +++ b/arch/mips/vdso/vdso.lds.S
-> @@ -99,6 +99,10 @@ VERSION
->         global:
->                 __vdso_clock_gettime;
->                 __vdso_gettimeofday;
-> +               __vdso_clock_getres;
-> +#if _MIPS_SIM != _MIPS_SIM_ABI64
-> +               __vdso_clock_gettime64;
-> +#endif
->  #endif
->         local: *;
->         };
+Hi Vincento,
 
-Same comment as for the corresponding arm change: I'd leave the ABI
-changes to a separate patch, and probably not add __vdso_clock_getres
-at all.
+I've very happy with how this turned out overall, and as far as I can
+tell you have addressed all my previous comments. I had another
+look through the series and only noticed a few very minor issues.
 
-Also, you seem to have a typo here:
+I hope Thomas can have another look soon, he probably also finds
+a few things, and then it should be ready for inclusion in linux-next
+and the coming merge window.
 
-> +notrace int __vdso_clock_gettime_time64(clockid_t clock,
-> +                                struct __kernel_timespec *ts)
-> +{
-> +       return __cvdso_clock_gettime(clock, ts);
-> +}
+One open question I touched in my review is whether we want to
+have a vdso version of clock_getres() in all architectures or not.
+I'd prefer to leave it out because there is very little advantage to
+it over the system call (the results don't change at runtime and
+can easily be cached by libc if performance ever matters), and
+it takes up a small amount of memory for the implementation.
 
-This should be __vdso_clock_gettime64, not __vdso_clock_gettime_time64 I think.
+We shouldn't just need it for consistency because all callers
+would require implementing a fallback to the system call
+anyway, to deal with old kernels.
 
-       Arnd
+If anyone comes up with a good reason why it should be added
+after all, let me know and I'll stop mentioning it.
+
+      Arnd
