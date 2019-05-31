@@ -1,55 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f196.google.com ([209.85.160.196]:35926 "EHLO
-        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726002AbfEaIrB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:47:01 -0400
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:37964 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726002AbfEaIx4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:53:56 -0400
 MIME-Version: 1.0
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
-In-Reply-To: <20190530141531.43462-1-vincenzo.frascino@arm.com>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-20-vincenzo.frascino@arm.com>
+In-Reply-To: <20190530141531.43462-20-vincenzo.frascino@arm.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 31 May 2019 10:46:43 +0200
-Message-ID: <CAK8P3a11DE0sXteZoaP_N=mDhx3tXitGKddn1ogtFqJBYO-SCA@mail.gmail.com>
-Subject: Re: [PATCH v6 00/19] Unify vDSOs across more architectures
+Date: Fri, 31 May 2019 10:53:39 +0200
+Message-ID: <CAK8P3a3Z=wWQDu4aqV73J5PR2jNb3GzyWzYGT3dUp-F81H8mzQ@mail.gmail.com>
+Subject: Re: [PATCH v6 19/19] kselftest: Extend vDSO selftest
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190531084643.ggxs_I4QVPAJ1zaYO6z9n_SySx6-Nr_8W7dKv6IWDsk@z>
+Message-ID: <20190531085339.kUwi8H5bhCDyaSjiHfKROqAOt1x95gu_P3Y2x5WBjNM@z>
 
-On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
+On Thu, May 30, 2019 at 4:16 PM Vincenzo Frascino
 <vincenzo.frascino@arm.com> wrote:
->
-> vDSO (virtual dynamic shared object) is a mechanism that the Linux
-> kernel provides as an alternative to system calls to reduce where
-> possible the costs in terms of cycles.
-> This is possible because certain syscalls like gettimeofday() do
-> not write any data and return one or more values that are stored
-> in the kernel, which makes relatively safe calling them directly
-> as a library function.
 
-Hi Vincento,
+> +/*
+> + * ARM64's vDSO exports its vDSO implementation with different names and
+> + * a different version from other architectures, so we need to handle it
+> + * as a special case.
+> + */
+> +#if defined(__aarch64__)
+> +const char *version = "LINUX_2.6.39";
+> +const char *name[4] = {
+> +       "__kernel_gettimeofday",
+> +       "__kernel_clock_gettime",
+> +       "__kernel_time",
+> +       "__kernel_clock_getres",
+> +};
+> +#else
+> +/* Tested on x86, arm, mips */
+> +const char *version = "LINUX_2.6";
+> +const char *name[4] = {
+> +       "__vdso_gettimeofday",
+> +       "__vdso_clock_gettime",
+> +       "__vdso_time",
+> +       "__vdso_clock_getres",
+> +};
+> +#endif
 
-I've very happy with how this turned out overall, and as far as I can
-tell you have addressed all my previous comments. I had another
-look through the series and only noticed a few very minor issues.
+I see the __kernel_* name used on arm64, powerpc and s390, whiel the __vdso_*
+name is used on arm, mips, nds32, riscv, sparc, and x86.
 
-I hope Thomas can have another look soon, he probably also finds
-a few things, and then it should be ready for inclusion in linux-next
-and the coming merge window.
+Also the versions have more variants:
 
-One open question I touched in my review is whether we want to
-have a vdso version of clock_getres() in all architectures or not.
-I'd prefer to leave it out because there is very little advantage to
-it over the system call (the results don't change at runtime and
-can easily be cached by libc if performance ever matters), and
-it takes up a small amount of memory for the implementation.
+$ git ls-files arch | grep vdso | xargs grep
+'\(LINUX_[2345]\|VDSO_VERSION_STRING\)'
+arch/arm/vdso/vdso.lds.S:    LINUX_2.6 {
+arch/arm64/kernel/vdso/vdso.lds.S:    LINUX_2.6.39 {
+arch/mips/vdso/vdso.lds.S:    LINUX_2.6 {
+arch/nds32/kernel/vdso/vdso.lds.S:    LINUX_4 {
+arch/powerpc/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.15
+arch/powerpc/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
+arch/powerpc/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
+arch/riscv/kernel/vdso/vdso.lds.S:    LINUX_4.15 {
+arch/s390/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.29
+arch/s390/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
+arch/s390/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
+arch/sparc/vdso/vdso.lds.S:    LINUX_2.6 {
+arch/sparc/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
+arch/x86/entry/vdso/vdso.lds.S:    LINUX_2.6 {
+arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
+arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.5 {
+arch/x86/entry/vdso/vdsox32.lds.S:    LINUX_2.6 {
+arch/x86/um/vdso/vdso.lds.S:    LINUX_2.6 {
 
-We shouldn't just need it for consistency because all callers
-would require implementing a fallback to the system call
-anyway, to deal with old kernels.
+Maybe change the test case to just try all combinations of the
+above (and __vdso_clock_gettime64 as well) and stop checking
+the architecture?
 
-If anyone comes up with a good reason why it should be added
-after all, let me know and I'll stop mentioning it.
-
-      Arnd
+       Arnd
