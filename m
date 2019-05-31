@@ -1,67 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:38750 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726418AbfEaCYs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2019 22:24:48 -0400
-Received: by mail-pf1-f194.google.com with SMTP id a186so4468317pfa.5
-        for <linux-arch@vger.kernel.org>; Thu, 30 May 2019 19:24:48 -0700 (PDT)
-Date: Fri, 31 May 2019 12:24:27 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [mmotm:master 124/234] mm/vmalloc.c:520:6: error: implicit
- declaration of function 'p4d_large'; did you mean 'p4d_page'?
-References: <201905310708.EAdSCJKR%lkp@intel.com>
-In-Reply-To: <201905310708.EAdSCJKR%lkp@intel.com>
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:40675 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726002AbfEaIQt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:16:49 -0400
 MIME-Version: 1.0
-Message-Id: <1559269231.3e5ttes2dd.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-2-vincenzo.frascino@arm.com>
+In-Reply-To: <20190530141531.43462-2-vincenzo.frascino@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 31 May 2019 10:16:32 +0200
+Message-ID: <CAK8P3a3EnvkLND2RJdZtEY64PhK5g0sbbuytQro=f0cPur2g9g@mail.gmail.com>
+Subject: Re: [PATCH v6 01/19] kernel: Standardize vdso_datapage
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, kbuild-all@01.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Message-ID: <20190531081632.dmzUZWr3OxYBK05N6P3T7bZ-Dcv7_lECVUL-1eXKHcI@z>
 
-kbuild test robot's on May 31, 2019 9:42 am:
-> tree:   git://git.cmpxchg.org/linux-mmotm.git master
-> head:   6f11685c34f638e200dd9e821491584ef5717d57
-> commit: 91c106f5d623b94305af3fd91113de1cba768d73 [124/234] mm/vmalloc: hu=
-gepage vmalloc mappings
-> config: arm64-allyesconfig (attached as .config)
-> compiler: aarch64-linux-gcc (GCC) 7.4.0
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbi=
-n/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         git checkout 91c106f5d623b94305af3fd91113de1cba768d73
->         # save the attached .config to linux build tree
->         GCC_VERSION=3D7.4.0 make.cross ARCH=3Darm64=20
->=20
-> If you fix the issue, kindly add following tag
-> Reported-by: kbuild test robot <lkp@intel.com>
->=20
-> All errors (new ones prefixed by >>):
->=20
->    mm/vmalloc.c: In function 'vmap_range':
->    mm/vmalloc.c:325:19: error: 'start' undeclared (first use in this func=
-tion); did you mean 'stat'?
->      flush_cache_vmap(start, end);
->                       ^~~~~
->                       stat
->    mm/vmalloc.c:325:19: note: each undeclared identifier is reported only=
- once for each function it appears in
->    mm/vmalloc.c: In function 'vmalloc_to_page':
->>> mm/vmalloc.c:520:6: error: implicit declaration of function 'p4d_large'=
-; did you mean 'p4d_page'? [-Werror=3Dimplicit-function-declaration]
->      if (p4d_large(*p4d))
->          ^~~~~~~~~
->          p4d_page
+On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
+<vincenzo.frascino@arm.com> wrote:
 
-Hmm, okay p?d_large I guess is not quite the right thing to use here. It
-almost is, but it's tied to userspace/thp options.
+> + * vdso_data will be accessed by 64 bit and compat code at the same time
+> + * so we should be careful before modifying this structure.
+> + */
+> +struct vdso_data {
+> +       u32                     seq;
+> +
+> +       s32                     clock_mode;
+> +       u64                     cycle_last;
+> +       u64                     mask;
+> +       u32                     mult;
+> +       u32                     shift;
+> +
+> +       struct vdso_timestamp   basetime[VDSO_BASES];
+> +
+> +       s32                     tz_minuteswest;
+> +       s32                     tz_dsttime;
+> +       u32                     hrtimer_res;
+> +};
 
-What would people prefer to do here? We could have architectures that
-define HAVE_ARCH_HUGE_VMAP to also provide p?d_huge_kernel() tests for
-their kernel page tables?
+The structure contains four padding bytes at the end, which is
+something we try to avoid, at least if this ends up being used as
+an ABI. Maybe add "u32 __unused" at the end?
 
-Thanks,
-Nick
-
-=
+     Arnd
