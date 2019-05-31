@@ -1,650 +1,200 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v3 3/3] asm-generic, x86: Add bitops instrumentation for
- KASAN
-Date: Fri, 31 May 2019 17:01:21 +0100
-Message-ID: <20190531160120.GB2646@lakrids.cambridge.arm.com>
-References: <20190531150828.157832-1-elver@google.com>
- <20190531150828.157832-4-elver@google.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: Add a new fchmodat4() syscall
+Date: Fri, 31 May 2019 12:11:59 -0700
+Message-ID: <20190531191204.4044-1-palmer@sifive.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190531150828.157832-4-elver@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Marco Elver <elver@google.com>
-Cc: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, hpa@zytor.com, corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
+To: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 31, 2019 at 05:08:31PM +0200, Marco Elver wrote:
-> This adds a new header to asm-generic to allow optionally instrumenting
-> architecture-specific asm implementations of bitops.
-> 
-> This change includes the required change for x86 as reference and
-> changes the kernel API doc to point to bitops-instrumented.h instead.
-> Rationale: the functions in x86's bitops.h are no longer the kernel API
-> functions, but instead the arch_ prefixed functions, which are then
-> instrumented via bitops-instrumented.h.
-> 
-> Other architectures can similarly add support for asm implementations of
-> bitops.
-> 
-> The documentation text was derived from x86 and existing bitops
-> asm-generic versions: 1) references to x86 have been removed; 2) as a
-> result, some of the text had to be reworded for clarity and consistency.
-> 
-> Tested: using lib/test_kasan with bitops tests (pre-requisite patch).
-> 
-> Bugzilla: https://bugzilla.kernel.org/show_bug.cgi?id=198439
-> Signed-off-by: Marco Elver <elver@google.com>
-> ---
-> Changes in v3:
-> * Remove references to 'x86' in API documentation; as a result, had to
->   reword doc text for clarify and consistency.
-> * Remove #ifdef, since it is assumed that if asm-generic bitops
->   implementations are used, bitops-instrumented.h is not needed.
+I spent half of dinner last night being complained to by one of our
+hardware engineers about Linux's lack of support for the flags argument
+to fchmodat().  This all came about because of a FUSE filesystem
+implementation, and while there are some application-specific
+workarounds for the issue it seemed to me like the cleanest bet was to
+just go add another fchmodat() that supports flags to the kernel.
 
-Thanks for sorting this out. FWIW:
+The actual implementation is super simple: essentially it's just
+the same as fchmodat(), but LOOKUP_FOLLOW is conditionally set based on
+the flags.  I've attempted to make this match "man 2 fchmodat" as
+closely as possible, which says EINVAL is returned for invalid flags (as
+opposed to ENOTSUPP, which is currently returned by glibc for
+AT_SYMLINK_NOFOLLOW).  I have a sketch of a glibc patch that I haven't
+even compiled yet, but seems fairly straight-forward:
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+    diff --git a/sysdeps/unix/sysv/linux/fchmodat.c b/sysdeps/unix/sysv/linux/fchmodat.c
+    index 6d9cbc1ce9e0..b1beab76d56c 100644
+    --- a/sysdeps/unix/sysv/linux/fchmodat.c
+    +++ b/sysdeps/unix/sysv/linux/fchmodat.c
+    @@ -29,12 +29,36 @@
+     int
+     fchmodat (int fd, const char *file, mode_t mode, int flag)
+     {
+    -  if (flag & ~AT_SYMLINK_NOFOLLOW)
+    -    return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
+    -#ifndef __NR_lchmod		/* Linux so far has no lchmod syscall.  */
+    +  /* There are four paths through this code:
+    +      - The flags are zero.  In this case it's fine to call fchmodat.
+    +      - The flags are non-zero and glibc doesn't have access to
+    +	__NR_fchmodat4.  In this case all we can do is emulate the error codes
+    +	defined by the glibc interface from userspace.
+    +      - The flags are non-zero, glibc has __NR_fchmodat4, and the kernel has
+    +	fchmodat4.  This is the simplest case, as the fchmodat4 syscall exactly
+    +	matches glibc's library interface so it can be called directly.
+    +      - The flags are non-zero, glibc has __NR_fchmodat4, but the kernel does
+    +	not.  In this case we must respect the error codes defined by the glibc
+    +	interface instead of returning ENOSYS.
+    +    The intent here is to ensure that the kernel is called at most once per
+    +    library call, and that the error types defined by glibc are always
+    +    respected.  */
+    +
+    +#ifdef __NR_fchmodat4
+    +  long result;
+    +#endif
+    +
+    +  if (flag == 0)
+    +    return INLINE_SYSCALL (fchmodat, 3, fd, file, mode);
+    +
+    +#ifdef __NR_fchmodat4
+    +  result = INLINE_SYSCALL (fchmodat4, 4, fd, file, mode, flag);
+    +  if (result == 0 || errno != ENOSYS)
+    +    return result;
+    +#endif
+    +
+       if (flag & AT_SYMLINK_NOFOLLOW)
+         return INLINE_SYSCALL_ERROR_RETURN_VALUE (ENOTSUP);
+    -#endif
+     
+    -  return INLINE_SYSCALL (fchmodat, 3, fd, file, mode);
+    +  return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
+     }
 
-Mark.
+I've never added a new syscall before so I'm not really sure what the
+proper procedure to follow is.  I'm assuming any new syscall will
+involve fairly significant discussion, so I've just done the minimum of
+an implementation for this patch set.  Specifically, I've:
 
-> 
-> Changes in v2:
-> * Instrument word-sized accesses, as specified by the interface.
-> ---
->  Documentation/core-api/kernel-api.rst     |   2 +-
->  arch/x86/include/asm/bitops.h             | 189 ++++------------
->  include/asm-generic/bitops-instrumented.h | 263 ++++++++++++++++++++++
->  3 files changed, 302 insertions(+), 152 deletions(-)
->  create mode 100644 include/asm-generic/bitops-instrumented.h
-> 
-> diff --git a/Documentation/core-api/kernel-api.rst b/Documentation/core-api/kernel-api.rst
-> index a29c99d13331..65266fa1b706 100644
-> --- a/Documentation/core-api/kernel-api.rst
-> +++ b/Documentation/core-api/kernel-api.rst
-> @@ -51,7 +51,7 @@ The Linux kernel provides more basic utility functions.
->  Bit Operations
->  --------------
->  
-> -.. kernel-doc:: arch/x86/include/asm/bitops.h
-> +.. kernel-doc:: include/asm-generic/bitops-instrumented.h
->     :internal:
->  
->  Bitmap Operations
-> diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-> index 8e790ec219a5..ba15d53c1ca7 100644
-> --- a/arch/x86/include/asm/bitops.h
-> +++ b/arch/x86/include/asm/bitops.h
-> @@ -49,23 +49,8 @@
->  #define CONST_MASK_ADDR(nr, addr)	WBYTE_ADDR((void *)(addr) + ((nr)>>3))
->  #define CONST_MASK(nr)			(1 << ((nr) & 7))
->  
-> -/**
-> - * set_bit - Atomically set a bit in memory
-> - * @nr: the bit to set
-> - * @addr: the address to start counting from
-> - *
-> - * This function is atomic and may not be reordered.  See __set_bit()
-> - * if you do not require the atomic guarantees.
-> - *
-> - * Note: there are no guarantees that this function will not be reordered
-> - * on non x86 architectures, so if you are writing portable code,
-> - * make sure not to rely on its reordering guarantees.
-> - *
-> - * Note that @nr may be almost arbitrarily large; this function is not
-> - * restricted to acting on a single-word quantity.
-> - */
->  static __always_inline void
-> -set_bit(long nr, volatile unsigned long *addr)
-> +arch_set_bit(long nr, volatile unsigned long *addr)
->  {
->  	if (IS_IMMEDIATE(nr)) {
->  		asm volatile(LOCK_PREFIX "orb %1,%0"
-> @@ -78,32 +63,14 @@ set_bit(long nr, volatile unsigned long *addr)
->  	}
->  }
->  
-> -/**
-> - * __set_bit - Set a bit in memory
-> - * @nr: the bit to set
-> - * @addr: the address to start counting from
-> - *
-> - * Unlike set_bit(), this function is non-atomic and may be reordered.
-> - * If it's called on the same region of memory simultaneously, the effect
-> - * may be that only one operation succeeds.
-> - */
-> -static __always_inline void __set_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch___set_bit(long nr, volatile unsigned long *addr)
->  {
->  	asm volatile(__ASM_SIZE(bts) " %1,%0" : : ADDR, "Ir" (nr) : "memory");
->  }
->  
-> -/**
-> - * clear_bit - Clears a bit in memory
-> - * @nr: Bit to clear
-> - * @addr: Address to start counting from
-> - *
-> - * clear_bit() is atomic and may not be reordered.  However, it does
-> - * not contain a memory barrier, so if it is used for locking purposes,
-> - * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-> - * in order to ensure changes are visible on other processors.
-> - */
->  static __always_inline void
-> -clear_bit(long nr, volatile unsigned long *addr)
-> +arch_clear_bit(long nr, volatile unsigned long *addr)
->  {
->  	if (IS_IMMEDIATE(nr)) {
->  		asm volatile(LOCK_PREFIX "andb %1,%0"
-> @@ -115,26 +82,21 @@ clear_bit(long nr, volatile unsigned long *addr)
->  	}
->  }
->  
-> -/*
-> - * clear_bit_unlock - Clears a bit in memory
-> - * @nr: Bit to clear
-> - * @addr: Address to start counting from
-> - *
-> - * clear_bit() is atomic and implies release semantics before the memory
-> - * operation. It can be used for an unlock.
-> - */
-> -static __always_inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch_clear_bit_unlock(long nr, volatile unsigned long *addr)
->  {
->  	barrier();
-> -	clear_bit(nr, addr);
-> +	arch_clear_bit(nr, addr);
->  }
->  
-> -static __always_inline void __clear_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch___clear_bit(long nr, volatile unsigned long *addr)
->  {
->  	asm volatile(__ASM_SIZE(btr) " %1,%0" : : ADDR, "Ir" (nr) : "memory");
->  }
->  
-> -static __always_inline bool clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch_clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
->  {
->  	bool negative;
->  	asm volatile(LOCK_PREFIX "andb %2,%1"
-> @@ -143,48 +105,23 @@ static __always_inline bool clear_bit_unlock_is_negative_byte(long nr, volatile
->  		: "ir" ((char) ~(1 << nr)) : "memory");
->  	return negative;
->  }
-> +#define arch_clear_bit_unlock_is_negative_byte                                 \
-> +	arch_clear_bit_unlock_is_negative_byte
->  
-> -// Let everybody know we have it
-> -#define clear_bit_unlock_is_negative_byte clear_bit_unlock_is_negative_byte
-> -
-> -/*
-> - * __clear_bit_unlock - Clears a bit in memory
-> - * @nr: Bit to clear
-> - * @addr: Address to start counting from
-> - *
-> - * __clear_bit() is non-atomic and implies release semantics before the memory
-> - * operation. It can be used for an unlock if no other CPUs can concurrently
-> - * modify other bits in the word.
-> - */
-> -static __always_inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch___clear_bit_unlock(long nr, volatile unsigned long *addr)
->  {
-> -	__clear_bit(nr, addr);
-> +	arch___clear_bit(nr, addr);
->  }
->  
-> -/**
-> - * __change_bit - Toggle a bit in memory
-> - * @nr: the bit to change
-> - * @addr: the address to start counting from
-> - *
-> - * Unlike change_bit(), this function is non-atomic and may be reordered.
-> - * If it's called on the same region of memory simultaneously, the effect
-> - * may be that only one operation succeeds.
-> - */
-> -static __always_inline void __change_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch___change_bit(long nr, volatile unsigned long *addr)
->  {
->  	asm volatile(__ASM_SIZE(btc) " %1,%0" : : ADDR, "Ir" (nr) : "memory");
->  }
->  
-> -/**
-> - * change_bit - Toggle a bit in memory
-> - * @nr: Bit to change
-> - * @addr: Address to start counting from
-> - *
-> - * change_bit() is atomic and may not be reordered.
-> - * Note that @nr may be almost arbitrarily large; this function is not
-> - * restricted to acting on a single-word quantity.
-> - */
-> -static __always_inline void change_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline void
-> +arch_change_bit(long nr, volatile unsigned long *addr)
->  {
->  	if (IS_IMMEDIATE(nr)) {
->  		asm volatile(LOCK_PREFIX "xorb %1,%0"
-> @@ -196,42 +133,20 @@ static __always_inline void change_bit(long nr, volatile unsigned long *addr)
->  	}
->  }
->  
-> -/**
-> - * test_and_set_bit - Set a bit and return its old value
-> - * @nr: Bit to set
-> - * @addr: Address to count from
-> - *
-> - * This operation is atomic and cannot be reordered.
-> - * It also implies a memory barrier.
-> - */
-> -static __always_inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch_test_and_set_bit(long nr, volatile unsigned long *addr)
->  {
->  	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(bts), *addr, c, "Ir", nr);
->  }
->  
-> -/**
-> - * test_and_set_bit_lock - Set a bit and return its old value for lock
-> - * @nr: Bit to set
-> - * @addr: Address to count from
-> - *
-> - * This is the same as test_and_set_bit on x86.
-> - */
->  static __always_inline bool
-> -test_and_set_bit_lock(long nr, volatile unsigned long *addr)
-> +arch_test_and_set_bit_lock(long nr, volatile unsigned long *addr)
->  {
-> -	return test_and_set_bit(nr, addr);
-> +	return arch_test_and_set_bit(nr, addr);
->  }
->  
-> -/**
-> - * __test_and_set_bit - Set a bit and return its old value
-> - * @nr: Bit to set
-> - * @addr: Address to count from
-> - *
-> - * This operation is non-atomic and can be reordered.
-> - * If two examples of this operation race, one can appear to succeed
-> - * but actually fail.  You must protect multiple accesses with a lock.
-> - */
-> -static __always_inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch___test_and_set_bit(long nr, volatile unsigned long *addr)
->  {
->  	bool oldbit;
->  
-> @@ -242,28 +157,13 @@ static __always_inline bool __test_and_set_bit(long nr, volatile unsigned long *
->  	return oldbit;
->  }
->  
-> -/**
-> - * test_and_clear_bit - Clear a bit and return its old value
-> - * @nr: Bit to clear
-> - * @addr: Address to count from
-> - *
-> - * This operation is atomic and cannot be reordered.
-> - * It also implies a memory barrier.
-> - */
-> -static __always_inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch_test_and_clear_bit(long nr, volatile unsigned long *addr)
->  {
->  	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(btr), *addr, c, "Ir", nr);
->  }
->  
-> -/**
-> - * __test_and_clear_bit - Clear a bit and return its old value
-> - * @nr: Bit to clear
-> - * @addr: Address to count from
-> - *
-> - * This operation is non-atomic and can be reordered.
-> - * If two examples of this operation race, one can appear to succeed
-> - * but actually fail.  You must protect multiple accesses with a lock.
-> - *
-> +/*
->   * Note: the operation is performed atomically with respect to
->   * the local CPU, but not other CPUs. Portable code should not
->   * rely on this behaviour.
-> @@ -271,7 +171,8 @@ static __always_inline bool test_and_clear_bit(long nr, volatile unsigned long *
->   * accessed from a hypervisor on the same CPU if running in a VM: don't change
->   * this without also updating arch/x86/kernel/kvm.c
->   */
-> -static __always_inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch___test_and_clear_bit(long nr, volatile unsigned long *addr)
->  {
->  	bool oldbit;
->  
-> @@ -282,8 +183,8 @@ static __always_inline bool __test_and_clear_bit(long nr, volatile unsigned long
->  	return oldbit;
->  }
->  
-> -/* WARNING: non atomic and it can be reordered! */
-> -static __always_inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch___test_and_change_bit(long nr, volatile unsigned long *addr)
->  {
->  	bool oldbit;
->  
-> @@ -295,15 +196,8 @@ static __always_inline bool __test_and_change_bit(long nr, volatile unsigned lon
->  	return oldbit;
->  }
->  
-> -/**
-> - * test_and_change_bit - Change a bit and return its old value
-> - * @nr: Bit to change
-> - * @addr: Address to count from
-> - *
-> - * This operation is atomic and cannot be reordered.
-> - * It also implies a memory barrier.
-> - */
-> -static __always_inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
-> +static __always_inline bool
-> +arch_test_and_change_bit(long nr, volatile unsigned long *addr)
->  {
->  	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(btc), *addr, c, "Ir", nr);
->  }
-> @@ -326,16 +220,7 @@ static __always_inline bool variable_test_bit(long nr, volatile const unsigned l
->  	return oldbit;
->  }
->  
-> -#if 0 /* Fool kernel-doc since it doesn't do macros yet */
-> -/**
-> - * test_bit - Determine whether a bit is set
-> - * @nr: bit number to test
-> - * @addr: Address to start counting from
-> - */
-> -static bool test_bit(int nr, const volatile unsigned long *addr);
-> -#endif
-> -
-> -#define test_bit(nr, addr)			\
-> +#define arch_test_bit(nr, addr)			\
->  	(__builtin_constant_p((nr))		\
->  	 ? constant_test_bit((nr), (addr))	\
->  	 : variable_test_bit((nr), (addr)))
-> @@ -504,6 +389,8 @@ static __always_inline int fls64(__u64 x)
->  
->  #include <asm-generic/bitops/const_hweight.h>
->  
-> +#include <asm-generic/bitops-instrumented.h>
-> +
->  #include <asm-generic/bitops/le.h>
->  
->  #include <asm-generic/bitops/ext2-atomic-setbit.h>
-> diff --git a/include/asm-generic/bitops-instrumented.h b/include/asm-generic/bitops-instrumented.h
-> new file mode 100644
-> index 000000000000..ddd1c6d9d8db
-> --- /dev/null
-> +++ b/include/asm-generic/bitops-instrumented.h
-> @@ -0,0 +1,263 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +
-> +/*
-> + * This file provides wrappers with sanitizer instrumentation for bit
-> + * operations.
-> + *
-> + * To use this functionality, an arch's bitops.h file needs to define each of
-> + * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> + * arch___set_bit(), etc.).
-> + */
-> +#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> +#define _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> +
-> +#include <linux/kasan-checks.h>
-> +
-> +/**
-> + * set_bit - Atomically set a bit in memory
-> + * @nr: the bit to set
-> + * @addr: the address to start counting from
-> + *
-> + * This is a relaxed atomic operation (no implied memory barriers).
-> + *
-> + * Note that @nr may be almost arbitrarily large; this function is not
-> + * restricted to acting on a single-word quantity.
-> + */
-> +static inline void set_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch_set_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __set_bit - Set a bit in memory
-> + * @nr: the bit to set
-> + * @addr: the address to start counting from
-> + *
-> + * Unlike set_bit(), this function is non-atomic. If it is called on the same
-> + * region of memory concurrently, the effect may be that only one operation
-> + * succeeds.
-> + */
-> +static inline void __set_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch___set_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * clear_bit - Clears a bit in memory
-> + * @nr: Bit to clear
-> + * @addr: Address to start counting from
-> + *
-> + * This is a relaxed atomic operation (no implied memory barriers).
-> + */
-> +static inline void clear_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch_clear_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __clear_bit - Clears a bit in memory
-> + * @nr: the bit to clear
-> + * @addr: the address to start counting from
-> + *
-> + * Unlike clear_bit(), this function is non-atomic. If it is called on the same
-> + * region of memory concurrently, the effect may be that only one operation
-> + * succeeds.
-> + */
-> +static inline void __clear_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch___clear_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * clear_bit_unlock - Clear a bit in memory, for unlock
-> + * @nr: the bit to set
-> + * @addr: the address to start counting from
-> + *
-> + * This operation is atomic and provides release barrier semantics.
-> + */
-> +static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch_clear_bit_unlock(nr, addr);
-> +}
-> +
-> +/**
-> + * __clear_bit_unlock - Clears a bit in memory
-> + * @nr: Bit to clear
-> + * @addr: Address to start counting from
-> + *
-> + * This is a non-atomic operation but implies a release barrier before the
-> + * memory operation. It can be used for an unlock if no other CPUs can
-> + * concurrently modify other bits in the word.
-> + */
-> +static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch___clear_bit_unlock(nr, addr);
-> +}
-> +
-> +/**
-> + * change_bit - Toggle a bit in memory
-> + * @nr: Bit to change
-> + * @addr: Address to start counting from
-> + *
-> + * This is a relaxed atomic operation (no implied memory barriers).
-> + *
-> + * Note that @nr may be almost arbitrarily large; this function is not
-> + * restricted to acting on a single-word quantity.
-> + */
-> +static inline void change_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch_change_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __change_bit - Toggle a bit in memory
-> + * @nr: the bit to change
-> + * @addr: the address to start counting from
-> + *
-> + * Unlike change_bit(), this function is non-atomic. If it is called on the same
-> + * region of memory concurrently, the effect may be that only one operation
-> + * succeeds.
-> + */
-> +static inline void __change_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	arch___change_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * test_and_set_bit - Set a bit and return its old value
-> + * @nr: Bit to set
-> + * @addr: Address to count from
-> + *
-> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> + */
-> +static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_test_and_set_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __test_and_set_bit - Set a bit and return its old value
-> + * @nr: Bit to set
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic. If two instances of this operation race, one
-> + * can appear to succeed but actually fail.
-> + */
-> +static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch___test_and_set_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * test_and_set_bit_lock - Set a bit and return its old value, for lock
-> + * @nr: Bit to set
-> + * @addr: Address to count from
-> + *
-> + * This operation is atomic and provides acquire barrier semantics if
-> + * the returned value is 0.
-> + * It can be used to implement bit locks.
-> + */
-> +static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_test_and_set_bit_lock(nr, addr);
-> +}
-> +
-> +/**
-> + * test_and_clear_bit - Clear a bit and return its old value
-> + * @nr: Bit to clear
-> + * @addr: Address to count from
-> + *
-> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> + */
-> +static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_test_and_clear_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __test_and_clear_bit - Clear a bit and return its old value
-> + * @nr: Bit to clear
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic. If two instances of this operation race, one
-> + * can appear to succeed but actually fail.
-> + */
-> +static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch___test_and_clear_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * test_and_change_bit - Change a bit and return its old value
-> + * @nr: Bit to change
-> + * @addr: Address to count from
-> + *
-> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> + */
-> +static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_test_and_change_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * __test_and_change_bit - Change a bit and return its old value
-> + * @nr: Bit to change
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic. If two instances of this operation race, one
-> + * can appear to succeed but actually fail.
-> + */
-> +static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch___test_and_change_bit(nr, addr);
-> +}
-> +
-> +/**
-> + * test_bit - Determine whether a bit is set
-> + * @nr: bit number to test
-> + * @addr: Address to start counting from
-> + */
-> +static inline bool test_bit(long nr, const volatile unsigned long *addr)
-> +{
-> +	kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_test_bit(nr, addr);
-> +}
-> +
-> +#if defined(arch_clear_bit_unlock_is_negative_byte)
-> +/**
-> + * clear_bit_unlock_is_negative_byte - Clear a bit in memory and test if bottom
-> + *                                     byte is negative, for unlock.
-> + * @nr: the bit to clear
-> + * @addr: the address to start counting from
-> + *
-> + * This operation is atomic and provides release barrier semantics.
-> + *
-> + * This is a bit of a one-trick-pony for the filemap code, which clears
-> + * PG_locked and tests PG_waiters,
-> + */
-> +static inline bool
-> +clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-> +{
-> +	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> +	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
-> +}
-> +/* Let everybody know we have it. */
-> +#define clear_bit_unlock_is_negative_byte clear_bit_unlock_is_negative_byte
-> +#endif
-> +
-> +#endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_H */
-> -- 
-> 2.22.0.rc1.257.g3120a18244-goog
-> 
+* Defined a new syscall that looks like fchmodat but includes a flag
+  argument, which I'm calling fchmodat4 because it has 4 arguments.  I
+  don't know if that's the correct naming convention, and don't really
+  have any skin in that game.
+* Implemented that syscall by extending the fchmod code to handle flags,
+  which is pretty straight-forward.  I think it's sane, but given that
+  it's so simple I'm not sure if I'm missing something -- specifically,
+  I didn't go check to make sure the semantics of AT_SYMLINK_NOFOLLOW
+  match !LOOKUP_FOLLOW.  I'm assuming the do, but sometimes when I look
+  at something and say "that's so simple, how is it broken" I'm actually
+  just missing something entirely.
+* Added an asm-generic syscall number for this, which I assume I'm
+  supposed to do this first as it looks like we're trying to keep the
+  numbers in sync everywhere.
+* Added x86 syscalls for this so I could test it.
+
+I also cleaned up a checkpatch issue in fchmodat().  I only found this
+because I copied the fchmodat() interface for fchmodat4() and it threw
+the warning, I don't personally care either way as to whether or not the
+space is in there.
+
+I've given this fairly minimal testing.  Essentially all I've done is
+booted up 5.1.6 with this patch set on my local development box and run
+
+    $ touch test-file
+    $ ln -s test-file test-link
+    $ cat > test.c
+    #include <fcntl.h>
+    #include <stdio.h>
+    #include <unistd.h>
+    
+    int main(int argc, char **argv)
+    {
+            long out;
+    
+            out = syscall(428, AT_FDCWD, "test-file", 0x888, AT_SYMLINK_NOFOLLOW);
+            printf("fchmodat4(AT_FDCWD, \"test-file\", 0x888, AT_SYMLINK_NOFOLLOW): %ld\n", out);
+    
+            out = syscall(428, AT_FDCWD, "test-file", 0x888, 0);
+            printf("fchmodat4(AT_FDCWD, \"test-file\", 0x888, 0): %ld\n", out);
+    
+            out = syscall(268, AT_FDCWD, "test-file", 0x888);
+            printf("fchmodat(AT_FDCWD, \"test-file\", 0x888): %ld\n", out);
+    
+            out = syscall(428, AT_FDCWD, "test-link", 0x888, AT_SYMLINK_NOFOLLOW);
+            printf("fchmodat4(AT_FDCWD, \"test-link\", 0x888, AT_SYMLINK_NOFOLLOW): %ld\n", out);
+    
+            out = syscall(428, AT_FDCWD, "test-link", 0x888, 0);
+            printf("fchmodat4(AT_FDCWD, \"test-link\", 0x888, 0): %ld\n", out);
+    
+            out = syscall(268, AT_FDCWD, "test-link", 0x888);
+            printf("fchmodat(AT_FDCWD, \"test-link\", 0x888): %ld\n", out);
+    
+            return 0;
+    }
+    $ gcc test.c -o test
+    $ ./test
+    fchmodat4(AT_FDCWD, "test-file", 0x888, AT_SYMLINK_NOFOLLOW): 0
+    fchmodat4(AT_FDCWD, "test-file", 0x888, 0): 0
+    fchmodat(AT_FDCWD, "test-file", 0x888): 0
+    fchmodat4(AT_FDCWD, "test-link", 0x888, AT_SYMLINK_NOFOLLOW): -1
+    fchmodat4(AT_FDCWD, "test-link", 0x888, 0): 0
+    fchmodat(AT_FDCWD, "test-link", 0x888): 0
+
+While I don't think there's any reason what's there is unacceptable, I
+don't really consider this finished.  I couldn't find a cookbook for
+"here's how you add a system call", but all I really did was "git grep
+add | grep syscall" so if there's something out there then please let me
+know and I'll follow it.  Specifically, I haven't:
+
+* Added any sort of documentation.  I don't find anything with a "git
+  grep fchmodat", so I'm assuming it's just the man pages that are
+  relevant here.
+* Fixed any of the other architectures.  I'm assuming this is just the
+  mechanical process of fixing all these in the same way I did for x86.
+
+      arch/alpha/kernel/syscalls/syscall.tbl:461      common  fchmodat                        sys_fchmodat
+      arch/arm/tools/syscall.tbl:333  common  fchmodat                sys_fchmodat
+      arch/arm64/include/asm/unistd32.h:#define __NR_fchmodat 333
+      arch/arm64/include/asm/unistd32.h:__SYSCALL(__NR_fchmodat, sys_fchmodat)
+      arch/ia64/kernel/fsys.S:        data8 0                         // fchmodat
+      arch/ia64/kernel/syscalls/syscall.tbl:268       common  fchmodat                        sys_fchmodat
+      arch/m68k/kernel/syscalls/syscall.tbl:299       common  fchmodat                        sys_fchmodat
+      arch/microblaze/kernel/syscalls/syscall.tbl:306 common  fchmodat                        sys_fchmodat
+      arch/mips/kernel/syscalls/syscall_n32.tbl:262   n32     fchmodat                        sys_fchmodat
+      arch/mips/kernel/syscalls/syscall_n64.tbl:258   n64     fchmodat                        sys_fchmodat
+      arch/mips/kernel/syscalls/syscall_o32.tbl:299   o32     fchmodat                        sys_fchmodat
+      arch/parisc/kernel/syscalls/syscall.tbl:286     common  fchmodat                sys_fchmodat
+      arch/powerpc/kernel/syscalls/syscall.tbl:297    common  fchmodat                        sys_fchmodat
+      arch/s390/kernel/syscalls/syscall.tbl:299  common       fchmodat                sys_fchmodat                    sys_fchmodat
+      arch/sh/include/uapi/asm/unistd_64.h:#define __NR_fchmodat              334
+      arch/sh/kernel/syscalls/syscall.tbl:306 common  fchmodat                        sys_fchmodat
+      arch/sh/kernel/syscalls_64.S:   .long sys_fchmodat
+      arch/sparc/kernel/syscalls/syscall.tbl:295      common  fchmodat                sys_fchmodat
+      arch/xtensa/kernel/syscalls/syscall.tbl:300     common  fchmodat                        sys_fchmodat
+* Looked at anything in tools.  Again, I'm assuming it's just a
+  mechanical process of looking at all of these and adding fchmodat4.
+
+      tools/include/nolibc/nolibc.h:#ifdef __NR_fchmodat
+      tools/include/nolibc/nolibc.h:  return my_syscall4(__NR_fchmodat, AT_FDCWD, path, mode, 0);
+      tools/include/uapi/asm-generic/unistd.h:#define __NR_fchmodat 53
+      tools/include/uapi/asm-generic/unistd.h:__SYSCALL(__NR_fchmodat, sys_fchmodat)
+      tools/perf/arch/powerpc/entry/syscalls/syscall.tbl:297  common  fchmodat                        sys_fchmodat
+      tools/perf/arch/s390/entry/syscalls/syscall.tbl:299  common     fchmodat                sys_fchmodat                    compat_sys_fchmodat
+      tools/perf/arch/x86/entry/syscalls/syscall_64.tbl:268   common  fchmodat                __x64_sys_fchmodat
+      tools/perf/builtin-trace.c:     { .name     = "fchmodat",
+
+* Done anything with userspace, aside from thinking about the glibc code
+  above.  I'd assume that I'm meant to bring in libc-alpha to the
+  discussion, but I didn't want to do so this early in case this was
+  just a non-starter.
+
+I'm happy dealing with all of that, but given that I'm assuming there's
+going to be some discussion I wanted to send out the proof-of-concept
+first to see if this has any legs.  Aside from the glibc side the
+remaining work smells pretty mechanical, so I figured I'd wait on that
+until I knew it wasn't going to be a waste of time -- partially because
+I'm lazy, but mostly because I just realized I blew my whole morning
+working on this when all I really wanted to do was avoid discussing
+fchmodat in the first place :)
+    
