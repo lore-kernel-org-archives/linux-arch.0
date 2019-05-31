@@ -1,73 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f74.google.com ([209.85.217.74]:55266 "EHLO
-        mail-vs1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726897AbfEaPLm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 11:11:42 -0400
-Received: by mail-vs1-f74.google.com with SMTP id 184so1300780vsm.21
-        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 08:11:42 -0700 (PDT)
-Date: Fri, 31 May 2019 17:08:30 +0200
+Received: from mail-yb1-f201.google.com ([209.85.219.201]:46453 "EHLO
+        mail-yb1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726817AbfEaPLj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 11:11:39 -0400
+Received: by mail-yb1-f201.google.com with SMTP id v15so7678397ybe.13
+        for <linux-arch@vger.kernel.org>; Fri, 31 May 2019 08:11:39 -0700 (PDT)
+Date: Fri, 31 May 2019 17:08:29 +0200
 In-Reply-To: <20190531150828.157832-1-elver@google.com>
-Message-ID: <20190531150828.157832-3-elver@google.com>
+Message-ID: <20190531150828.157832-2-elver@google.com>
 Mime-Version: 1.0
 References: <20190531150828.157832-1-elver@google.com>
-Subject: [PATCH v3 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
+Subject: [PATCH v3 1/3] lib/test_kasan: Add bitops tests
 From: Marco Elver <elver@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
 Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
-Message-ID: <20190531150830.QYyMsy9h3m1YjDTIj5NE9l-f8b_uj08Hcb36yvP-1kY@z>
+Message-ID: <20190531150829.FcjbMdJGQ-sE87kCa1a6RPqqGAl9wraOa7_5IghKGJk@z>
 
-This patch is a pre-requisite for enabling KASAN bitops instrumentation;
-using static_cpu_has instead of boot_cpu_has avoids instrumentation of
-test_bit inside the uaccess region. With instrumentation, the KASAN
-check would otherwise be flagged by objtool.
-
-For consistency, kernel/signal.c was changed to mirror this change,
-however, is never instrumented with KASAN (currently unsupported under
-x86 32bit).
+This adds bitops tests to the test_kasan module. In a follow-up patch,
+support for bitops instrumentation will be added.
 
 Signed-off-by: Marco Elver <elver@google.com>
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
 ---
 Changes in v3:
-* Use static_cpu_has instead of moving boot_cpu_has outside uaccess
-  region.
+* Use kzalloc instead of kmalloc.
+* Use sizeof(*bits).
 
 Changes in v2:
-* Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
-  whitelist'
+* Use BITS_PER_LONG.
+* Use heap allocated memory for test, as newer compilers (correctly)
+  warn on OOB stack access.
 ---
- arch/x86/ia32/ia32_signal.c | 2 +-
- arch/x86/kernel/signal.c    | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ lib/test_kasan.c | 75 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 72 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
-index 629d1ee05599..1cee10091b9f 100644
---- a/arch/x86/ia32/ia32_signal.c
-+++ b/arch/x86/ia32/ia32_signal.c
-@@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
- 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+diff --git a/lib/test_kasan.c b/lib/test_kasan.c
+index 7de2702621dc..1ef9702327d2 100644
+--- a/lib/test_kasan.c
++++ b/lib/test_kasan.c
+@@ -11,16 +11,17 @@
  
- 		/* Create the ucontext.  */
--		if (boot_cpu_has(X86_FEATURE_XSAVE))
-+		if (static_cpu_has(X86_FEATURE_XSAVE))
- 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
- 		else
- 			put_user_ex(0, &frame->uc.uc_flags);
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 364813cea647..52eb1d551aed 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
- 		put_user_ex(&frame->uc, &frame->puc);
+ #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
  
- 		/* Create the ucontext.  */
--		if (boot_cpu_has(X86_FEATURE_XSAVE))
-+		if (static_cpu_has(X86_FEATURE_XSAVE))
- 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
- 		else
- 			put_user_ex(0, &frame->uc.uc_flags);
++#include <linux/bitops.h>
+ #include <linux/delay.h>
++#include <linux/kasan.h>
+ #include <linux/kernel.h>
+-#include <linux/mman.h>
+ #include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/module.h>
+ #include <linux/printk.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/uaccess.h>
+-#include <linux/module.h>
+-#include <linux/kasan.h>
+ 
+ /*
+  * Note: test functions are marked noinline so that their names appear in
+@@ -623,6 +624,73 @@ static noinline void __init kasan_strings(void)
+ 	strnlen(ptr, 1);
+ }
+ 
++static noinline void __init kasan_bitops(void)
++{
++	long *bits = kzalloc(sizeof(*bits), GFP_KERNEL);
++	if (!bits)
++		return;
++
++	pr_info("within-bounds in set_bit");
++	set_bit(0, bits);
++
++	pr_info("within-bounds in set_bit");
++	set_bit(BITS_PER_LONG - 1, bits);
++
++	pr_info("out-of-bounds in set_bit\n");
++	set_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __set_bit\n");
++	__set_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in clear_bit\n");
++	clear_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __clear_bit\n");
++	__clear_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in clear_bit_unlock\n");
++	clear_bit_unlock(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __clear_bit_unlock\n");
++	__clear_bit_unlock(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in change_bit\n");
++	change_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __change_bit\n");
++	__change_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in test_and_set_bit\n");
++	test_and_set_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __test_and_set_bit\n");
++	__test_and_set_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in test_and_set_bit_lock\n");
++	test_and_set_bit_lock(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in test_and_clear_bit\n");
++	test_and_clear_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __test_and_clear_bit\n");
++	__test_and_clear_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in test_and_change_bit\n");
++	test_and_change_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in __test_and_change_bit\n");
++	__test_and_change_bit(BITS_PER_LONG, bits);
++
++	pr_info("out-of-bounds in test_bit\n");
++	(void)test_bit(BITS_PER_LONG, bits);
++
++#if defined(clear_bit_unlock_is_negative_byte)
++	pr_info("out-of-bounds in clear_bit_unlock_is_negative_byte\n");
++	clear_bit_unlock_is_negative_byte(BITS_PER_LONG, bits);
++#endif
++	kfree(bits);
++}
++
+ static int __init kmalloc_tests_init(void)
+ {
+ 	/*
+@@ -664,6 +732,7 @@ static int __init kmalloc_tests_init(void)
+ 	kasan_memchr();
+ 	kasan_memcmp();
+ 	kasan_strings();
++	kasan_bitops();
+ 
+ 	kasan_restore_multi_shot(multishot);
+ 
 -- 
 2.22.0.rc1.257.g3120a18244-goog
