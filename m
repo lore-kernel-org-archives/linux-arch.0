@@ -1,72 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v6 19/19] kselftest: Extend vDSO selftest
-Date: Fri, 31 May 2019 10:53:39 +0200
-Message-ID: <CAK8P3a3Z=wWQDu4aqV73J5PR2jNb3GzyWzYGT3dUp-F81H8mzQ@mail.gmail.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-20-vincenzo.frascino@arm.com>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: single copy atomicity for double load/stores on 32-bit systems
+Date: Fri, 31 May 2019 09:41:17 +0000
+Message-ID: <895ec12746c246579aed5dd98ace6e38@AcuMS.aculab.com>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190530141531.43462-20-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: 'Vineet Gupta' <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 30, 2019 at 4:16 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
+From: Vineet Gupta
+> Sent: 30 May 2019 19:23
+...
+> While it seems reasonable form hardware pov to not implement such atomicity by
+> default it seems there's an additional burden on application writers. They could
+> be happily using a lockless algorithm with just a shared flag between 2 threads
+> w/o need for any explicit synchronization. But upgrade to a new compiler which
+> aggressively "packs" struct rendering long long 32-bit aligned (vs. 64-bit before)
+> causing the code to suddenly stop working. Is the onus on them to declare such
+> memory as c11 atomic or some such.
 
-> +/*
-> + * ARM64's vDSO exports its vDSO implementation with different names and
-> + * a different version from other architectures, so we need to handle it
-> + * as a special case.
-> + */
-> +#if defined(__aarch64__)
-> +const char *version = "LINUX_2.6.39";
-> +const char *name[4] = {
-> +       "__kernel_gettimeofday",
-> +       "__kernel_clock_gettime",
-> +       "__kernel_time",
-> +       "__kernel_clock_getres",
-> +};
-> +#else
-> +/* Tested on x86, arm, mips */
-> +const char *version = "LINUX_2.6";
-> +const char *name[4] = {
-> +       "__vdso_gettimeofday",
-> +       "__vdso_clock_gettime",
-> +       "__vdso_time",
-> +       "__vdso_clock_getres",
-> +};
-> +#endif
+A 'new' compiler can't suddenly change the alignment rules for structure elements.
+The alignment rules will be part of the ABI.
 
-I see the __kernel_* name used on arm64, powerpc and s390, whiel the __vdso_*
-name is used on arm, mips, nds32, riscv, sparc, and x86.
+More likely is that the structure itself is unexpectedly allocated on
+an 8n+4 boundary due to code changes elsewhere.
 
-Also the versions have more variants:
+It is also worth noting that for complete portability only writes to
+'full words' can be assumed atomic.
+Some old Alpha's did RMW cycles for byte writes.
+(Although I suspect Linux doesn't support those any more.)
 
-$ git ls-files arch | grep vdso | xargs grep
-'\(LINUX_[2345]\|VDSO_VERSION_STRING\)'
-arch/arm/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/arm64/kernel/vdso/vdso.lds.S:    LINUX_2.6.39 {
-arch/mips/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/nds32/kernel/vdso/vdso.lds.S:    LINUX_4 {
-arch/powerpc/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.15
-arch/powerpc/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
-arch/powerpc/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
-arch/riscv/kernel/vdso/vdso.lds.S:    LINUX_4.15 {
-arch/s390/include/asm/vdso.h:#define VDSO_VERSION_STRING    LINUX_2.6.29
-arch/s390/kernel/vdso32/vdso32.lds.S:    VDSO_VERSION_STRING {
-arch/s390/kernel/vdso64/vdso64.lds.S:    VDSO_VERSION_STRING {
-arch/sparc/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/sparc/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.6 {
-arch/x86/entry/vdso/vdso32/vdso32.lds.S:    LINUX_2.5 {
-arch/x86/entry/vdso/vdsox32.lds.S:    LINUX_2.6 {
-arch/x86/um/vdso/vdso.lds.S:    LINUX_2.6 {
+Even x86 can catch you out.
+The bit operations will do wider RMW cycles than you expect.
 
-Maybe change the test case to just try all combinations of the
-above (and __vdso_clock_gettime64 as well) and stop checking
-the architecture?
+	David
 
-       Arnd
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
