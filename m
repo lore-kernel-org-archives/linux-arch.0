@@ -1,31 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:33915 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725963AbfEaIT6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:19:58 -0400
+Received: from bombadil.infradead.org ([198.137.202.133]:45044 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726158AbfEaIVR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2019 04:21:17 -0400
+Date: Fri, 31 May 2019 10:21:12 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: single copy atomicity for double load/stores on 32-bit systems
+Message-ID: <20190531082112.GH2623@hirez.programming.kicks-ass.net>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
 MIME-Version: 1.0
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20190530141531.43462-3-vincenzo.frascino@arm.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 31 May 2019 10:19:41 +0200
-Message-ID: <CAK8P3a3Sr+MNbGQiMYt3RrE6SaYFPO-rXNoNvtOC7=qKE1kuYQ@mail.gmail.com>
-Subject: Re: [PATCH v6 02/19] kernel: Define gettimeofday vdso common code
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190531081941.jAZ_TJalJc3OeSb2DpV1vgupIbcvs3oE6sJN-QEoyEg@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Will Deacon <Will.Deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190531082112.pT0nUnhm8quUX5Luq73Y_xybXyO8DxS3SYa2TbmZKKE@z>
 
-On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
-<vincenzo.frascino@arm.com> wrote:
+On Thu, May 30, 2019 at 11:22:42AM -0700, Vineet Gupta wrote:
+> Hi Peter,
+> 
+> Had an interesting lunch time discussion with our hardware architects pertinent to
+> "minimal guarantees expected of a CPU" section of memory-barriers.txt
+> 
+> 
+> |  (*) These guarantees apply only to properly aligned and sized scalar
+> |     variables.  "Properly sized" currently means variables that are
+> |     the same size as "char", "short", "int" and "long".  "Properly
+> |     aligned" means the natural alignment, thus no constraints for
+> |     "char", two-byte alignment for "short", four-byte alignment for
+> |     "int", and either four-byte or eight-byte alignment for "long",
+> |     on 32-bit and 64-bit systems, respectively.
+> 
+> 
+> I'm not sure how to interpret "natural alignment" for the case of double
+> load/stores on 32-bit systems where the hardware and ABI allow for 4 byte
+> alignment (ARCv2 LDD/STD, ARM LDRD/STRD ....)
 
-> +
-> +static __always_inline notrace void vdso_write_end(struct vdso_data *vd)
-> +{
+Natural alignment: !((uintptr_t)ptr % sizeof(*ptr))
 
-Rather than marking every single function in here as "notrace",I think it
-would be more robust to remove the '-pg' flag in the CFLAGS used for
-compiling the vdso files.
+For any u64 type, that would give 8 byte alignment. the problem
+otherwise being that your data spans two lines/pages etc..
 
-       Arnd
+> I presume (and the question) that lkmm doesn't expect such 8 byte load/stores to
+> be atomic unless 8-byte aligned
+> 
+> ARMv7 arch ref manual seems to confirm this. Quoting
+> 
+> | LDM, LDC, LDC2, LDRD, STM, STC, STC2, STRD, PUSH, POP, RFE, SRS, VLDM, VLDR,
+> | VSTM, and VSTR instructions are executed as a sequence of word-aligned word
+> | accesses. Each 32-bit word access is guaranteed to be single-copy atomic. A
+> | subsequence of two or more word accesses from the sequence might not exhibit
+> | single-copy atomicity
+> 
+> While it seems reasonable form hardware pov to not implement such atomicity by
+> default it seems there's an additional burden on application writers. They could
+> be happily using a lockless algorithm with just a shared flag between 2 threads
+> w/o need for any explicit synchronization.
+
+If you're that careless with lockless code, you deserve all the pain you
+get.
+
+> But upgrade to a new compiler which
+> aggressively "packs" struct rendering long long 32-bit aligned (vs. 64-bit before)
+> causing the code to suddenly stop working. Is the onus on them to declare such
+> memory as c11 atomic or some such.
+
+When a programmer wants guarantees they already need to know wth they're
+doing.
+
+And I'll stand by my earlier conviction that any architecture that has a
+native u64 (be it a 64bit arch or a 32bit with double-width
+instructions) but has an ABI that allows u32 alignment on them is daft.
