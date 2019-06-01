@@ -1,109 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.136]:33931 "EHLO
-        mail.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726901AbfFABOS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 May 2019 21:14:18 -0400
-Date: Fri, 31 May 2019 16:41:46 -0700
-In-Reply-To: <CANpmjNOsPnVd50cTzUW8UYXPGqpSnRLcjj=JbZraTYVq1n18Fw@mail.gmail.com>
-References: <20190529141500.193390-1-elver@google.com> <20190529141500.193390-3-elver@google.com> <EE911EC6-344B-4EB2-90A4-B11E8D96BEDC@zytor.com> <CANpmjNOsPnVd50cTzUW8UYXPGqpSnRLcjj=JbZraTYVq1n18Fw@mail.gmail.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:33072 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726109AbfFAJig (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 1 Jun 2019 05:38:36 -0400
+Date: Sat, 1 Jun 2019 10:38:30 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v6 15/19] arm64: Add vDSO compat support
+Message-ID: <20190601093830.GA13589@arrakis.emea.arm.com>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
+ <20190530141531.43462-16-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [PATCH 2/3] x86: Move CPU feature test out of uaccess region
-From: hpa@zytor.com
-Message-ID: <3B49EF08-147F-451C-AA5B-FC4E1B8568EE@zytor.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190530141531.43462-16-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-Message-ID: <20190531234146.XzoZcW7s1ErRWRePqszYP58kwFBfSfeITg34kvG4Ghk@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Message-ID: <20190601093830.VgCTCALeN961-FSLrPxzsAC3kUpHkUNTS1qXIokOOtU@z>
 
-On May 31, 2019 2:57:36 AM PDT, Marco Elver <elver@google=2Ecom> wrote:
->On Wed, 29 May 2019 at 16:29, <hpa@zytor=2Ecom> wrote:
->>
->> On May 29, 2019 7:15:00 AM PDT, Marco Elver <elver@google=2Ecom> wrote:
->> >This patch is a pre-requisite for enabling KASAN bitops
->> >instrumentation:
->> >moves boot_cpu_has feature test out of the uaccess region, as
->> >boot_cpu_has uses test_bit=2E With instrumentation, the KASAN check
->would
->> >otherwise be flagged by objtool=2E
->> >
->> >This approach is preferred over adding the explicit kasan_check_*
->> >functions to the uaccess whitelist of objtool, as the case here
->appears
->> >to be the only one=2E
->> >
->> >Signed-off-by: Marco Elver <elver@google=2Ecom>
->> >---
->> >v1:
->> >* This patch replaces patch: 'tools/objtool: add kasan_check_* to
->> >  uaccess whitelist'
->> >---
->> > arch/x86/ia32/ia32_signal=2Ec | 9 ++++++++-
->> > 1 file changed, 8 insertions(+), 1 deletion(-)
->> >
->> >diff --git a/arch/x86/ia32/ia32_signal=2Ec
->b/arch/x86/ia32/ia32_signal=2Ec
->> >index 629d1ee05599=2E=2E12264e3c9c43 100644
->> >--- a/arch/x86/ia32/ia32_signal=2Ec
->> >+++ b/arch/x86/ia32/ia32_signal=2Ec
->> >@@ -333,6 +333,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal
->> >*ksig,
->> >       void __user *restorer;
->> >       int err =3D 0;
->> >       void __user *fpstate =3D NULL;
->> >+      bool has_xsave;
->> >
->> >       /* __copy_to_user optimizes that into a single 8 byte store
->*/
->> >       static const struct {
->> >@@ -352,13 +353,19 @@ int ia32_setup_rt_frame(int sig, struct
->ksignal
->> >*ksig,
->> >       if (!access_ok(frame, sizeof(*frame)))
->> >               return -EFAULT;
->> >
->> >+      /*
->> >+       * Move non-uaccess accesses out of uaccess region if not
->strictly
->> >+       * required; this also helps avoid objtool flagging these
->accesses
->> >with
->> >+       * instrumentation enabled=2E
->> >+       */
->> >+      has_xsave =3D boot_cpu_has(X86_FEATURE_XSAVE);
->> >       put_user_try {
->> >               put_user_ex(sig, &frame->sig);
->> >               put_user_ex(ptr_to_compat(&frame->info),
->&frame->pinfo);
->> >               put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
->> >
->> >               /* Create the ucontext=2E  */
->> >-              if (boot_cpu_has(X86_FEATURE_XSAVE))
->> >+              if (has_xsave)
->> >                       put_user_ex(UC_FP_XSTATE,
->&frame->uc=2Euc_flags);
->> >               else
->> >                       put_user_ex(0, &frame->uc=2Euc_flags);
->>
->> This was meant to use static_cpu_has()=2E Why did that get dropped?
->
->I couldn't find any mailing list thread referring to why this doesn't
->use static_cpu_has, do you have any background?
->
->static_cpu_has also solves the UACCESS warning=2E
->
->If you confirm it is safe to change to static_cpu_has(), I will change
->this patch=2E Note that I should then also change
->arch/x86/kernel/signal=2Ec to mirror the change for 32bit  (although
->KASAN is not supported for 32bit x86)=2E
->
->Thanks,
->-- Marco
+On Thu, May 30, 2019 at 03:15:27PM +0100, Vincenzo Frascino wrote:
+> Add vDSO compat support to the arm64 building system.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
+>  arch/arm64/Kconfig         |  1 +
+>  arch/arm64/Makefile        | 23 +++++++++++++++++++++--
+>  arch/arm64/kernel/Makefile |  6 +++++-
+>  3 files changed, 27 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 952c9f8cf3b8..3e1d4f8347f4 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -108,6 +108,7 @@ config ARM64
+>  	select GENERIC_STRNLEN_USER
+>  	select GENERIC_TIME_VSYSCALL
+>  	select GENERIC_GETTIMEOFDAY
+> +	select GENERIC_COMPAT_VDSO if !CPU_BIG_ENDIAN
 
-I believe at some point the intent was that boot_cpu_has() was safer and c=
-ould be used everywhere=2E
---=20
-Sent from my Android device with K-9 Mail=2E Please excuse my brevity=2E
+This select needs to also depend on COMPAT (or rather be selected from
+the COMPAT menuconfig), otherwise, trying to build this series with 64K
+pages where COMPAT is disabled, I get:
+
+  VDSOC_GTD   arch/arm64/kernel/vdso32/vgettimeofday.o
+  VDSOA   arch/arm64/kernel/vdso32/sigreturn.o
+arch/arm64/kernel/vdso32/sigreturn.S: Assembler messages:
+arch/arm64/kernel/vdso32/sigreturn.S:25: Error: expected #constant
+arch/arm64/kernel/vdso32/sigreturn.S:35: Error: expected #constant
+arch/arm64/kernel/vdso32/sigreturn.S:46: Error: expected #constant
+arch/arm64/kernel/vdso32/sigreturn.S:56: Error: expected #constant
+arch/arm64/kernel/vdso32/sigreturn.S:28: Error: undefined symbol __NR_compat_sigreturn used as an immediate value
+arch/arm64/kernel/vdso32/sigreturn.S:38: Error: undefined symbol __NR_compat_rt_sigreturn used as an immediate value
+make[2]: *** [arch/arm64/kernel/vdso32/Makefile:154: arch/arm64/kernel/vdso32/sigreturn.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+In file included from lib/vdso/gettimeofday.c:25:0,
+                 from <command-line>:0:
+arch/arm64/include/asm/vdso/compat_gettimeofday.h: In function 'gettimeofday_fallback':
+arch/arm64/include/asm/vdso/compat_gettimeofday.h:22:31: error: '__NR_compat_gettimeofday' undeclared (first use in this function); did you mean '__NR_gettimeofday'?
+  register long nr asm("r7") = __NR_compat_gettimeofday;
+                               ^~~~~~~~~~~~~~~~~~~~~~~~
+                               __NR_gettimeofday
+arch/arm64/include/asm/vdso/compat_gettimeofday.h:22:31: note: each undeclared identifier is reported only once for each function it appears in
+arch/arm64/include/asm/vdso/compat_gettimeofday.h: In function 'clock_gettime_fallback':
+arch/arm64/include/asm/vdso/compat_gettimeofday.h:40:31: error: '__NR_compat_clock_gettime64' undeclared (first use in this function); did you mean '__NR_clock_gettime'?
+  register long nr asm("r7") = __NR_compat_clock_gettime64;
+                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+                               __NR_clock_gettime
+arch/arm64/include/asm/vdso/compat_gettimeofday.h: In function 'clock_getres_fallback':
+arch/arm64/include/asm/vdso/compat_gettimeofday.h:58:31: error: '__NR_compat_clock_getres_time64' undeclared (first use in this function); did you mean '__NR_clock_gettime'?
+  register long nr asm("r7") = __NR_compat_clock_getres_time64;
+                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                               __NR_clock_gettime
+arch/arm64/kernel/vdso32/vgettimeofday.c: In function '__vdso_clock_gettime':
+arch/arm64/kernel/vdso32/vgettimeofday.c:15:17: error: 'TASK_SIZE_32' undeclared (first use in this function); did you mean 'TASK_SIZE_64'?
+  if ((u32)ts >= TASK_SIZE_32)
+                 ^~~~~~~~~~~~
+                 TASK_SIZE_64
+arch/arm64/kernel/vdso32/vgettimeofday.c: In function '__vdso_clock_gettime64':
+arch/arm64/kernel/vdso32/vgettimeofday.c:25:17: error: 'TASK_SIZE_32' undeclared (first use in this function); did you mean 'TASK_SIZE_64'?
+  if ((u32)ts >= TASK_SIZE_32)
+                 ^~~~~~~~~~~~
+                 TASK_SIZE_64
+arch/arm64/kernel/vdso32/vgettimeofday.c: In function '__vdso_clock_getres':
+arch/arm64/kernel/vdso32/vgettimeofday.c:41:18: error: 'TASK_SIZE_32' undeclared (first use in this function); did you mean 'TASK_SIZE_64'?
+  if ((u32)res >= TASK_SIZE_32)
+                  ^~~~~~~~~~~~
+                  TASK_SIZE_64
+make[2]: *** [arch/arm64/kernel/vdso32/Makefile:152: arch/arm64/kernel/vdso32/vgettimeofday.o] Error 1
+make[1]: *** [arch/arm64/Makefile:182: vdso_prepare] Error 2
+make: *** [Makefile:179: sub-make] Error 2
+
+-- 
+Catalin
