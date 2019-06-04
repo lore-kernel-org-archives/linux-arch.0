@@ -1,227 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41718 "EHLO foss.arm.com"
+Received: from pegase1.c-s.fr ([93.17.236.30]:46577 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726847AbfFDMNY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Jun 2019 08:13:24 -0400
-Subject: Re: [PATCH v6 18/19] x86: Add support for generic vDSO
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <20190530141531.43462-19-vincenzo.frascino@arm.com>
- <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <97175325-1619-fd38-2a5c-c71b3b161808@arm.com>
-Date: Tue, 4 Jun 2019 13:13:19 +0100
+        id S1727074AbfFDNQU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Jun 2019 09:16:20 -0400
+Subject: Re: [PATCH v4 3/3] kselftest: Extend vDSO selftest to clock_getres
+References: <20190523112116.19233-1-vincenzo.frascino@arm.com>
+ <20190523112116.19233-4-vincenzo.frascino@arm.com>
+ <87lfyrp0d2.fsf@concordia.ellerman.id.au>
+ <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <5c99721a-ce6b-10a0-99f2-6c37c1da4542@c-s.fr>
+Date: Tue, 4 Jun 2019 15:16:16 +0200
 MIME-Version: 1.0
-In-Reply-To: <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190604121319.DkJ24llcQlxRuYoUd-GHwUqLt7TiXaX8jZ1VQE-RGBM@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20190604131616.A9Qr7covz3wKiMqfDsmF6cLZ0J_Og4LZ4MSPvHVA0RU@z>
 
-Hi Michael,
+Hi Vincenzo
 
-On 30/05/2019 16:41, Michael Kelley wrote:
-> From: Vincenzo Frascino <vincenzo.frascino@arm.com> On Thursday, May 30, 2019 7:16 AM
->>
->> The x86 vDSO library requires some adaptations to take advantage of the
->> newly introduced generic vDSO library.
->>
->> Introduce the following changes:
->>  - Modification of vdso.c to be compliant with the common vdso datapage
->>  - Use of lib/vdso for gettimeofday
->>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->>
->>
->> diff --git a/arch/x86/include/asm/mshyperv-tsc.h b/arch/x86/include/asm/mshyperv-tsc.h
->> new file mode 100644
->> index 000000000000..99c98ccea0bf
->> --- /dev/null
->> +++ b/arch/x86/include/asm/mshyperv-tsc.h
->> @@ -0,0 +1,76 @@
->> +/* SPDX-License-Identifier: GPL-2.0 */
->> +#ifndef _ASM_X86_MSHYPER_TSCPAGE_H
->> +#define _ASM_X86_MSHYPER_TSCPAGE_H
->> +
->> +#include <asm/hyperv-tlfs.h>
->> +
->> +#ifdef CONFIG_HYPERV_TSCPAGE
->> +struct ms_hyperv_tsc_page *hv_get_tsc_page(void);
->> +static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> +				       u64 *cur_tsc)
->> +{
->> +	u64 scale, offset;
->> +	u32 sequence;
->> +
->> +	/*
->> +	 * The protocol for reading Hyper-V TSC page is specified in Hypervisor
->> +	 * Top-Level Functional Specification ver. 3.0 and above. To get the
->> +	 * reference time we must do the following:
->> +	 * - READ ReferenceTscSequence
->> +	 *   A special '0' value indicates the time source is unreliable and we
->> +	 *   need to use something else. The currently published specification
->> +	 *   versions (up to 4.0b) contain a mistake and wrongly claim '-1'
->> +	 *   instead of '0' as the special value, see commit c35b82ef0294.
->> +	 * - ReferenceTime =
->> +	 *        ((RDTSC() * ReferenceTscScale) >> 64) + ReferenceTscOffset
->> +	 * - READ ReferenceTscSequence again. In case its value has changed
->> +	 *   since our first reading we need to discard ReferenceTime and repeat
->> +	 *   the whole sequence as the hypervisor was updating the page in
->> +	 *   between.
->> +	 */
->> +	do {
->> +		sequence = READ_ONCE(tsc_pg->tsc_sequence);
->> +		if (!sequence)
->> +			return U64_MAX;
->> +		/*
->> +		 * Make sure we read sequence before we read other values from
->> +		 * TSC page.
->> +		 */
->> +		smp_rmb();
->> +
->> +		scale = READ_ONCE(tsc_pg->tsc_scale);
->> +		offset = READ_ONCE(tsc_pg->tsc_offset);
->> +		*cur_tsc = rdtsc_ordered();
->> +
->> +		/*
->> +		 * Make sure we read sequence after we read all other values
->> +		 * from TSC page.
->> +		 */
->> +		smp_rmb();
->> +
->> +	} while (READ_ONCE(tsc_pg->tsc_sequence) != sequence);
->> +
->> +	return mul_u64_u64_shr(*cur_tsc, scale, 64) + offset;
->> +}
->> +
->> +static inline u64 hv_read_tsc_page(const struct ms_hyperv_tsc_page *tsc_pg)
->> +{
->> +	u64 cur_tsc;
->> +
->> +	return hv_read_tsc_page_tsc(tsc_pg, &cur_tsc);
->> +}
->> +
->> +#else
->> +static inline struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
->> +{
->> +	return NULL;
->> +}
->> +
->> +static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> +				       u64 *cur_tsc)
->> +{
->> +	BUG();
->> +	return U64_MAX;
->> +}
->> +#endif
->> +#endif
->> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
->> index cc60e617931c..db095a992f3e 100644
->> --- a/arch/x86/include/asm/mshyperv.h
->> +++ b/arch/x86/include/asm/mshyperv.h
->> @@ -7,6 +7,7 @@
->>  #include <linux/nmi.h>
->>  #include <asm/io.h>
->>  #include <asm/hyperv-tlfs.h>
->> +#include <asm/mshyperv-tsc.h>
->>  #include <asm/nospec-branch.h>
->>
->>  #define VP_INVAL	U32_MAX
->> @@ -387,73 +388,4 @@ static inline int hyperv_flush_guest_mapping_range(u64 as,
->>  }
->>  #endif /* CONFIG_HYPERV */
->>
->> -#ifdef CONFIG_HYPERV_TSCPAGE
->> -struct ms_hyperv_tsc_page *hv_get_tsc_page(void);
->> -static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> -				       u64 *cur_tsc)
->> -{
->> -	u64 scale, offset;
->> -	u32 sequence;
->> -
->> -	/*
->> -	 * The protocol for reading Hyper-V TSC page is specified in Hypervisor
->> -	 * Top-Level Functional Specification ver. 3.0 and above. To get the
->> -	 * reference time we must do the following:
->> -	 * - READ ReferenceTscSequence
->> -	 *   A special '0' value indicates the time source is unreliable and we
->> -	 *   need to use something else. The currently published specification
->> -	 *   versions (up to 4.0b) contain a mistake and wrongly claim '-1'
->> -	 *   instead of '0' as the special value, see commit c35b82ef0294.
->> -	 * - ReferenceTime =
->> -	 *        ((RDTSC() * ReferenceTscScale) >> 64) + ReferenceTscOffset
->> -	 * - READ ReferenceTscSequence again. In case its value has changed
->> -	 *   since our first reading we need to discard ReferenceTime and repeat
->> -	 *   the whole sequence as the hypervisor was updating the page in
->> -	 *   between.
->> -	 */
->> -	do {
->> -		sequence = READ_ONCE(tsc_pg->tsc_sequence);
->> -		if (!sequence)
->> -			return U64_MAX;
->> -		/*
->> -		 * Make sure we read sequence before we read other values from
->> -		 * TSC page.
->> -		 */
->> -		smp_rmb();
->> -
->> -		scale = READ_ONCE(tsc_pg->tsc_scale);
->> -		offset = READ_ONCE(tsc_pg->tsc_offset);
->> -		*cur_tsc = rdtsc_ordered();
->> -
->> -		/*
->> -		 * Make sure we read sequence after we read all other values
->> -		 * from TSC page.
->> -		 */
->> -		smp_rmb();
->> -
->> -	} while (READ_ONCE(tsc_pg->tsc_sequence) != sequence);
->> -
->> -	return mul_u64_u64_shr(*cur_tsc, scale, 64) + offset;
->> -}
->> -
->> -static inline u64 hv_read_tsc_page(const struct ms_hyperv_tsc_page *tsc_pg)
->> -{
->> -	u64 cur_tsc;
->> -
->> -	return hv_read_tsc_page_tsc(tsc_pg, &cur_tsc);
->> -}
->> -
->> -#else
->> -static inline struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
->> -{
->> -	return NULL;
->> -}
->> -
->> -static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> -				       u64 *cur_tsc)
->> -{
->> -	BUG();
->> -	return U64_MAX;
->> -}
->> -#endif
->>  #endif
+Le 28/05/2019 à 13:57, Vincenzo Frascino a écrit :
+> Hi Michael,
 > 
-> Vincenzo -- these changes for Hyper-V are a subset of a larger patch set
-> I have that moves all of the Hyper-V clock/timer code into a separate
-> clocksource driver in drivers/clocksource, with an include file in
-> includes/clocksource.  That new include file should be able to work
-> instead of your new mshyperv-tsc.h.  It also has the benefit of being
-> ISA neutral, so it will work with my in-progress patch set to support
-> Linux on Hyper-V on ARM64.  See https://lkml.org/lkml/2019/5/27/231
-> for the new clocksource driver patch set.
->
-
-Thank you for pointing this out, I will rebase my changes on your patches.
-
-
-> Michael
+> thank you for your reply.
 > 
+> On 28/05/2019 07:19, Michael Ellerman wrote:
+>> Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
+>>
+>>> The current version of the multiarch vDSO selftest verifies only
+>>> gettimeofday.
+>>>
+>>> Extend the vDSO selftest to clock_getres, to verify that the
+>>> syscall and the vDSO library function return the same information.
+>>>
+>>> The extension has been used to verify the hrtimer_resoltion fix.
+>>
+>> This is passing for me even without patch 1 applied, shouldn't it fail
+>> without the fix? What am I missing?
+>>
+> 
+> This is correct, because during the refactoring process I missed an "n" :)
+> 
+> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_sec·!=·y.tv_sec))
+> 
+> Should be:
+> 
+> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_nsec·!=·y.tv_nsec))
+> 
+> My mistake, I am going to fix the test and re-post v5 of this set.
+> 
+> Without my patch if you pass "highres=off" to the kernel (as a command line
+> parameter) it leads to a broken implementation of clock_getres since the value
+> of CLOCK_REALTIME_RES does not change at runtime.
+> 
+> Expected result (with highres=off):
+> 
+> # uname -r
+> 5.2.0-rc2
+> # ./vdso_clock_getres
+> clock_id: CLOCK_REALTIME [FAIL]
+> clock_id: CLOCK_BOOTTIME [PASS]
+> clock_id: CLOCK_TAI [PASS]
+> clock_id: CLOCK_REALTIME_COARSE [PASS]
+> clock_id: CLOCK_MONOTONIC [FAIL]
+> clock_id: CLOCK_MONOTONIC_RAW [PASS]
+> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
+> 
+> The reason of this behavior is that the only clocks supported by getres on
+> powerpc are CLOCK_REALTIME and CLOCK_MONOTONIC, the rest on the clocks use
+> always syscalls.
 
--- 
-Regards,
-Vincenzo
+vdso64 is supposed to implement CLOCK_{REALTIME/MONOTONIC}_COARSE, so I 
+guess it should fail for them too ?
+
+Or is your test done on vdso32 ?
+
+Christophe
+
+> 
+>> # uname -r
+>> 5.2.0-rc2-gcc-8.2.0
+>>
+>> # ./vdso_clock_getres
+>> clock_id: CLOCK_REALTIME [PASS]
+>> clock_id: CLOCK_BOOTTIME [PASS]
+>> clock_id: CLOCK_TAI [PASS]
+>> clock_id: CLOCK_REALTIME_COARSE [PASS]
+>> clock_id: CLOCK_MONOTONIC [PASS]
+>> clock_id: CLOCK_MONOTONIC_RAW [PASS]
+>> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
+>>
+>> cheers
+>>
+>>> Cc: Shuah Khan <shuah@kernel.org>
+>>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>>> ---
+>>>
+>>> Note: This patch is independent from the others in this series, hence it
+>>> can be merged singularly by the kselftest maintainers.
+>>>
+>>>   tools/testing/selftests/vDSO/Makefile         |   2 +
+>>>   .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
+>>>   2 files changed, 126 insertions(+)
+>>>   create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
+> 
