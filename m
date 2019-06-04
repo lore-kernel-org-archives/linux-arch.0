@@ -1,176 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:33957 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726648AbfFDV3f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jun 2019 17:29:35 -0400
-Received: by mail-wm1-f65.google.com with SMTP id w9so345486wmd.1
-        for <linux-arch@vger.kernel.org>; Tue, 04 Jun 2019 14:29:34 -0700 (PDT)
-Date: Tue, 4 Jun 2019 23:29:31 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
-Message-ID: <20190604212930.jaaztvkent32b7d3@brauner.io>
-References: <20190604160944.4058-1-christian@brauner.io>
- <20190604160944.4058-2-christian@brauner.io>
- <CAK8P3a0OfBpx6y4m5uWX-DUg16NoFby5ik-3xCcD+yMrw0tbEw@mail.gmail.com>
-MIME-Version: 1.0
+Received: from userp2120.oracle.com ([156.151.31.85]:57700 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726885AbfFDXWl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jun 2019 19:22:41 -0400
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0OfBpx6y4m5uWX-DUg16NoFby5ik-3xCcD+yMrw0tbEw@mail.gmail.com>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <20190403160112.GK4038@hirez.programming.kicks-ass.net>
+Date: Tue, 4 Jun 2019 19:21:13 -0400
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+ <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+ <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+ <20190403160112.GK4038@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20190604212931.x66f8VsOD5qBeIMA8EmUCB1N-opA59Zc0n0deq5fklQ@z>
+To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, bp@alien8.de, hpa@zytor.com, x86@kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>
+Message-ID: <20190604232113.a2i9EEjezkSg7dm_tfZNW7iVUSVsw8-m-edTvpL7Ito@z>
 
-On Tue, Jun 04, 2019 at 08:40:01PM +0200, Arnd Bergmann wrote:
-> On Tue, Jun 4, 2019 at 6:09 PM Christian Brauner <christian@brauner.io> wrote:
-> >
-> > Wire up the clone3() call on all arches that don't require hand-rolled
-> > assembly.
-> >
-> > Some of the arches look like they need special assembly massaging and it is
-> > probably smarter if the appropriate arch maintainers would do the actual
-> > wiring. Arches that are wired-up are:
-> > - x86{_32,64}
-> > - arm{64}
-> > - xtensa
-> 
-> The ones you did look good to me. I would hope that we can do all other
-> architectures the same way, even if they have special assembly wrappers
-> for the old clone(). The most interesting cases appear to be ia64, alpha,
-> m68k and sparc, so it would be good if their maintainers could take a
-> look.
+Hi, Peter, Longman,=20
 
-Yes, agreed. They can sort this out even after this lands.
+> On Apr 3, 2019, at 12:01 PM, Peter Zijlstra <peterz@infradead.org> =
+wrote:
+>=20
+> On Wed, Apr 03, 2019 at 11:39:09AM -0400, Alex Kogan wrote:
+>=20
+>>>> The patch that I am looking for is to have a separate
+>>>> numa_queued_spinlock_slowpath() that coexists with
+>>>> native_queued_spinlock_slowpath() and
+>>>> paravirt_queued_spinlock_slowpath(). At boot time, we select the =
+most
+>>>> appropriate one for the system at hand.
+>> Is this how this selection works today for paravirt?
+>> I see a PARAVIRT_SPINLOCKS config option, but IIUC you are talking =
+about a different mechanism here.
+>> Can you, please, elaborate or give me a link to a page that explains =
+that?
+>=20
+> Oh man, you ask us to explain how paravirt patching works... that's
+> magic :-)
+>=20
+> Basically, the compiler will emit a bunch of indirect calls to the
+> various pv_ops.*.* functions.
+>=20
+> Then, at alternative_instructions() <- apply_paravirt() it will =
+rewrite
+> all these indirect calls to direct calls to the function pointers that
+> are in the pv_ops structure at that time (+- more magic).
+Trying to resume this work, I am looking for concrete steps required to =
+integrate CNA with the paravirt patching.
 
-> 
-> What do you use for testing? Would it be possible to override the
-> internal clone() function in glibc with an LD_PRELOAD library
-> to quickly test one of the other architectures for regressions?
+Looking at alternative_instructions(), I wonder if I need to add another =
+call, something like apply_numa() similar to apply_paravirt(), and do =
+the patch work there.
+Or perhaps I should =E2=80=9Cjust" initialize the pv_ops structure with =
+the corresponding numa_queued_spinlock_slowpath() in paravirt.c?
 
-I have a test program that is rather horrendously ugly and I compiled
-kernels for x86 and the arms and tested in qemu. The program basically
-looks like [1].
+Also, the paravirt code is under arch/x86, while CNA is generic (not =
+x86-specific).
+Do you still want to see CNA-related patching residing under arch/x86?
 
-Christian
+We still need a config option (something like NUMA_AWARE_SPINLOCKS) to =
+enable CNA patching under this config only, correct?
 
-[1]:
-#define _GNU_SOURCE
-#include <err.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/sched.h>
-#include <linux/types.h>
-#include <sched.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mount.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
-#include <sys/sysmacros.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
-static pid_t raw_clone(struct clone_args *args)
-{
-	return syscall(__NR_clone3, args, sizeof(struct clone_args));
-}
-
-static pid_t raw_clone_legacy(int *pidfd, unsigned int flags)
-{
-	return syscall(__NR_clone, flags, 0, pidfd, 0, 0);
-}
-
-static int wait_for_pid(pid_t pid)
-{
-	int status, ret;
-
-again:
-	ret = waitpid(pid, &status, 0);
-	if (ret == -1) {
-		if (errno == EINTR)
-			goto again;
-
-		return -1;
-	}
-
-	if (ret != pid)
-		goto again;
-
-	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-		return -1;
-
-	return 0;
-}
-
-#define ptr_to_u64(ptr) ((__u64)((uintptr_t)(ptr)))
-#define u64_to_ptr(n) ((uintptr_t)((__u64)(n)))
-
-int main(int argc, char *argv[])
-{
-	int pidfd = -1;
-	pid_t parent_tid = -1, pid = -1;
-	struct clone_args args = {0};
-	args.parent_tid = ptr_to_u64(&parent_tid);
-	args.pidfd = ptr_to_u64(&pidfd);
-	args.flags = CLONE_PIDFD | CLONE_PARENT_SETTID;
-	args.exit_signal = SIGCHLD;
-
-	pid = raw_clone(&args);
-	if (pid < 0) {
-		fprintf(stderr, "%s - Failed to create new process\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	if (pid == 0) {
-		printf("I am the child with pid %d\n", getpid());
-		exit(EXIT_SUCCESS);
-	}
-
-	printf("raw_clone: I am the parent. My child's pid is   %d\n", pid);
-	printf("raw_clone: I am the parent. My child's pidfd is %d\n",
-	       *(int *)args.pidfd);
-	printf("raw_clone: I am the parent. My child's paren_tid value is %d\n",
-	       *(pid_t *)args.parent_tid);
-
-	if (wait_for_pid(pid))
-		exit(EXIT_FAILURE);
-
-	if (pid != *(pid_t *)args.parent_tid)
-		exit(EXIT_FAILURE);
-
-	close(pidfd);
-
-	printf("\n\n");
-	pidfd = -1;
-	pid = raw_clone_legacy(&pidfd, CLONE_PIDFD | SIGCHLD);
-	if (pid < 0) {
-		fprintf(stderr, "%s - Failed to create new process\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	if (pid == 0) {
-		printf("I am the child with pid %d\n", getpid());
-		exit(EXIT_SUCCESS);
-	}
-
-	printf("raw_clone_legacy: I am the parent. My child's pid is   %d\n",
-	       pid);
-	printf("raw_clone_legacy: I am the parent. My child's pidfd is %d\n",
-	       pidfd);
-
-	if (wait_for_pid(pid))
-		exit(EXIT_FAILURE);
-
-	if (pid != *(pid_t *)args.parent_tid)
-		exit(EXIT_FAILURE);
-
-	return 0;
-}
+Thanks in advance,
+=E2=80=94 Alex
