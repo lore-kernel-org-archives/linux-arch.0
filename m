@@ -1,45 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41574 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727358AbfFDMIk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Jun 2019 08:08:40 -0400
-Subject: Re: [PATCH v6 02/19] kernel: Define gettimeofday vdso common code
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:41634 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726847AbfFDMKg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Jun 2019 08:10:36 -0400
+Subject: Re: [PATCH v6 15/19] arm64: Add vDSO compat support
 References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <20190530141531.43462-3-vincenzo.frascino@arm.com>
- <CAK8P3a3Sr+MNbGQiMYt3RrE6SaYFPO-rXNoNvtOC7=qKE1kuYQ@mail.gmail.com>
+ <20190530141531.43462-16-vincenzo.frascino@arm.com>
+ <20190601093830.GA13589@arrakis.emea.arm.com>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <d0ffed27-01eb-c382-a381-975edd021a30@arm.com>
-Date: Tue, 4 Jun 2019 13:08:35 +0100
+Message-ID: <2027e092-2d76-9350-6c5b-7d3debc6a93f@arm.com>
+Date: Tue, 4 Jun 2019 13:10:31 +0100
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a3Sr+MNbGQiMYt3RrE6SaYFPO-rXNoNvtOC7=qKE1kuYQ@mail.gmail.com>
+In-Reply-To: <20190601093830.GA13589@arrakis.emea.arm.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190604120835.g2zYsw1PSOvhfljJ_da-VAANWhEb209iAr1l53o2_v8@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Message-ID: <20190604121031.hjsO3P-wfY34zmzr9WPi6ZN0_HCpyBrG5j-KN2b5uXQ@z>
 
-On 31/05/2019 09:19, Arnd Bergmann wrote:
-> On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
+Hi Catalin,
+
+thank you for testing my patches and providing the scripts you used to reproduce
+the issue.
+
+On 01/06/2019 10:38, Catalin Marinas wrote:
+> On Thu, May 30, 2019 at 03:15:27PM +0100, Vincenzo Frascino wrote:
+>> Add vDSO compat support to the arm64 building system.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>  arch/arm64/Kconfig         |  1 +
+>>  arch/arm64/Makefile        | 23 +++++++++++++++++++++--
+>>  arch/arm64/kernel/Makefile |  6 +++++-
+>>  3 files changed, 27 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+>> index 952c9f8cf3b8..3e1d4f8347f4 100644
+>> --- a/arch/arm64/Kconfig
+>> +++ b/arch/arm64/Kconfig
+>> @@ -108,6 +108,7 @@ config ARM64
+>>  	select GENERIC_STRNLEN_USER
+>>  	select GENERIC_TIME_VSYSCALL
+>>  	select GENERIC_GETTIMEOFDAY
+>> +	select GENERIC_COMPAT_VDSO if !CPU_BIG_ENDIAN
 > 
->> +
->> +static __always_inline notrace void vdso_write_end(struct vdso_data *vd)
->> +{
-> 
-> Rather than marking every single function in here as "notrace",I think it
-> would be more robust to remove the '-pg' flag in the CFLAGS used for
-> compiling the vdso files.
+> This select needs to also depend on COMPAT (or rather be selected from
+> the COMPAT menuconfig), otherwise, trying to build this series with 64K
+> pages where COMPAT is disabled, I get:
 > 
 
-All the architectures that I added to this patchset are already compiled with
-$(CC_FLAGS_FTRACE), hence I think I just forgot to remove the "notrace" around
-the code. Will fix in v7.
+This is a very good catch, my bad, will definitely fix in v7.
 
->        Arnd
-> 
+...
 
 -- 
 Regards,
