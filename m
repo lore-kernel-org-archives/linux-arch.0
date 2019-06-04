@@ -1,9 +1,9 @@
 From: Sasha Levin <sashal@kernel.org>
 Subject: Re: [PATCH v5 1/3] powerpc: Fix vDSO clock_getres()
 Date: Tue, 04 Jun 2019 12:50:47 +0000
-Message-ID: <20190604125048.78C02249CE@mail.kernel.org>
+Message-ID: <20190604125048.78C02249CE__48640.5413875886$1559652777$gmane$org@mail.kernel.org>
 References: <20190528120446.48911-2-vincenzo.frascino@arm.com>
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20190528120446.48911-2-vincenzo.frascino@arm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
@@ -12,9 +12,9 @@ List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
 List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
 List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 To: Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 Cc: stable@vger.kernel.org, Paul Mackerras <paulus@samba.org>, vincenzo.frascino@arm.com
 List-Id: linux-arch.vger.kernel.org
