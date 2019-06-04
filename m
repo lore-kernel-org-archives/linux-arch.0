@@ -1,10 +1,17 @@
-From: Sasha Levin <sashal@kernel.org>
-Subject: Re: [PATCH v5 1/3] powerpc: Fix vDSO clock_getres()
-Date: Tue, 04 Jun 2019 12:50:47 +0000
-Message-ID: <20190604125048.78C02249CE__48640.5413875886$1559652777$gmane$org@mail.kernel.org>
-References: <20190528120446.48911-2-vincenzo.frascino@arm.com>
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20190528120446.48911-2-vincenzo.frascino@arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v4 3/3] kselftest: Extend vDSO selftest to clock_getres
+Date: Tue, 4 Jun 2019 15:16:16 +0200
+Message-ID: <5c99721a-ce6b-10a0-99f2-6c37c1da4542@c-s.fr>
+References: <20190523112116.19233-1-vincenzo.frascino@arm.com>
+ <20190523112116.19233-4-vincenzo.frascino@arm.com>
+ <87lfyrp0d2.fsf@concordia.ellerman.id.au>
+ <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
+Content-Language: fr
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -12,61 +19,97 @@ List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
 List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
 List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Cc: stable@vger.kernel.org, Paul Mackerras <paulus@samba.org>, vincenzo.frascino@arm.com
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Shuah Khan <shuah@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Hi Vincenzo
 
-[This is an automated email]
+Le 28/05/2019 à 13:57, Vincenzo Frascino a écrit :
+> Hi Michael,
+> 
+> thank you for your reply.
+> 
+> On 28/05/2019 07:19, Michael Ellerman wrote:
+>> Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
+>>
+>>> The current version of the multiarch vDSO selftest verifies only
+>>> gettimeofday.
+>>>
+>>> Extend the vDSO selftest to clock_getres, to verify that the
+>>> syscall and the vDSO library function return the same information.
+>>>
+>>> The extension has been used to verify the hrtimer_resoltion fix.
+>>
+>> This is passing for me even without patch 1 applied, shouldn't it fail
+>> without the fix? What am I missing?
+>>
+> 
+> This is correct, because during the refactoring process I missed an "n" :)
+> 
+> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_sec·!=·y.tv_sec))
+> 
+> Should be:
+> 
+> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_nsec·!=·y.tv_nsec))
+> 
+> My mistake, I am going to fix the test and re-post v5 of this set.
+> 
+> Without my patch if you pass "highres=off" to the kernel (as a command line
+> parameter) it leads to a broken implementation of clock_getres since the value
+> of CLOCK_REALTIME_RES does not change at runtime.
+> 
+> Expected result (with highres=off):
+> 
+> # uname -r
+> 5.2.0-rc2
+> # ./vdso_clock_getres
+> clock_id: CLOCK_REALTIME [FAIL]
+> clock_id: CLOCK_BOOTTIME [PASS]
+> clock_id: CLOCK_TAI [PASS]
+> clock_id: CLOCK_REALTIME_COARSE [PASS]
+> clock_id: CLOCK_MONOTONIC [FAIL]
+> clock_id: CLOCK_MONOTONIC_RAW [PASS]
+> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
+> 
+> The reason of this behavior is that the only clocks supported by getres on
+> powerpc are CLOCK_REALTIME and CLOCK_MONOTONIC, the rest on the clocks use
+> always syscalls.
 
-This commit has been processed because it contains a "Fixes:" tag,
-fixing commit: a7f290dad32e [PATCH] powerpc: Merge vdso's and add vdso support to 32 bits kernel.
+vdso64 is supposed to implement CLOCK_{REALTIME/MONOTONIC}_COARSE, so I 
+guess it should fail for them too ?
 
-The bot has tested the following trees: v5.1.6, v5.0.20, v4.19.47, v4.14.123, v4.9.180, v4.4.180.
+Or is your test done on vdso32 ?
 
-v5.1.6: Build OK!
-v5.0.20: Build OK!
-v4.19.47: Build OK!
-v4.14.123: Failed to apply! Possible dependencies:
-    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
+Christophe
 
-v4.9.180: Failed to apply! Possible dependencies:
-    454656155110 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
-    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    5d451a87e5eb ("powerpc/64: Retrieve number of L1 cache sets from device-tree")
-    7c5b06cadf27 ("KVM: PPC: Book3S HV: Adapt TLB invalidations to work on POWER9")
-    83677f551e0a ("KVM: PPC: Book3S HV: Adjust host/guest context switch for POWER9")
-    902e06eb86cd ("powerpc/32: Change the stack protector canary value per task")
-    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-    bd067f83b084 ("powerpc/64: Fix naming of cache block vs. cache line")
-    e2827fe5c156 ("powerpc/64: Clean up ppc64_caches using a struct per cache")
-    e9cf1e085647 ("KVM: PPC: Book3S HV: Add new POWER9 guest-accessible SPRs")
-    f4c51f841d2a ("KVM: PPC: Book3S HV: Modify guest entry/exit paths to handle radix guests")
-
-v4.4.180: Failed to apply! Possible dependencies:
-    153086644fd1 ("powerpc/ftrace: Add support for -mprofile-kernel ftrace ABI")
-    3eb5d5888dc6 ("powerpc: Add ppc_strict_facility_enable boot option")
-    454656155110 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
-    579e633e764e ("powerpc: create flush_all_to_thread()")
-    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
-    70fe3d980f5f ("powerpc: Restore FPU/VEC/VSX if previously used")
-    85baa095497f ("powerpc/livepatch: Add live patching support on ppc64le")
-    902e06eb86cd ("powerpc/32: Change the stack protector canary value per task")
-    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
-    bf76f73c5f65 ("powerpc: enable UBSAN support")
-    c208505900b2 ("powerpc: create giveup_all()")
-    d1e1cf2e38de ("powerpc: clean up asm/switch_to.h")
-    dc4fbba11e46 ("powerpc: Create disable_kernel_{fp,altivec,vsx,spe}()")
-    f17c4e01e906 ("powerpc/module: Mark module stubs with a magic value")
-
-
-How should we proceed with this patch?
-
---
-Thanks,
-Sasha
+> 
+>> # uname -r
+>> 5.2.0-rc2-gcc-8.2.0
+>>
+>> # ./vdso_clock_getres
+>> clock_id: CLOCK_REALTIME [PASS]
+>> clock_id: CLOCK_BOOTTIME [PASS]
+>> clock_id: CLOCK_TAI [PASS]
+>> clock_id: CLOCK_REALTIME_COARSE [PASS]
+>> clock_id: CLOCK_MONOTONIC [PASS]
+>> clock_id: CLOCK_MONOTONIC_RAW [PASS]
+>> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
+>>
+>> cheers
+>>
+>>> Cc: Shuah Khan <shuah@kernel.org>
+>>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>>> ---
+>>>
+>>> Note: This patch is independent from the others in this series, hence it
+>>> can be merged singularly by the kselftest maintainers.
+>>>
+>>>   tools/testing/selftests/vDSO/Makefile         |   2 +
+>>>   .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
+>>>   2 files changed, 126 insertions(+)
+>>>   create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
+> 
