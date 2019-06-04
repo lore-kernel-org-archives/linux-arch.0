@@ -1,222 +1,72 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v6 18/19] x86: Add support for generic vDSO
-Date: Tue, 4 Jun 2019 13:13:19 +0100
-Message-ID: <97175325-1619-fd38-2a5c-c71b3b161808@arm.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <20190530141531.43462-19-vincenzo.frascino@arm.com>
- <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Kelley <mikelley@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+From: Sasha Levin <sashal@kernel.org>
+Subject: Re: [PATCH v5 1/3] powerpc: Fix vDSO clock_getres()
+Date: Tue, 04 Jun 2019 12:50:47 +0000
+Message-ID: <20190604125048.78C02249CE@mail.kernel.org>
+References: <20190528120446.48911-2-vincenzo.frascino@arm.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20190528120446.48911-2-vincenzo.frascino@arm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Cc: stable@vger.kernel.org, Paul Mackerras <paulus@samba.org>, vincenzo.frascino@arm.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michael,
+Hi,
 
-On 30/05/2019 16:41, Michael Kelley wrote:
-> From: Vincenzo Frascino <vincenzo.frascino@arm.com> On Thursday, May 30, 2019 7:16 AM
->>
->> The x86 vDSO library requires some adaptations to take advantage of the
->> newly introduced generic vDSO library.
->>
->> Introduce the following changes:
->>  - Modification of vdso.c to be compliant with the common vdso datapage
->>  - Use of lib/vdso for gettimeofday
->>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->>
->>
->> diff --git a/arch/x86/include/asm/mshyperv-tsc.h b/arch/x86/include/asm/mshyperv-tsc.h
->> new file mode 100644
->> index 000000000000..99c98ccea0bf
->> --- /dev/null
->> +++ b/arch/x86/include/asm/mshyperv-tsc.h
->> @@ -0,0 +1,76 @@
->> +/* SPDX-License-Identifier: GPL-2.0 */
->> +#ifndef _ASM_X86_MSHYPER_TSCPAGE_H
->> +#define _ASM_X86_MSHYPER_TSCPAGE_H
->> +
->> +#include <asm/hyperv-tlfs.h>
->> +
->> +#ifdef CONFIG_HYPERV_TSCPAGE
->> +struct ms_hyperv_tsc_page *hv_get_tsc_page(void);
->> +static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> +				       u64 *cur_tsc)
->> +{
->> +	u64 scale, offset;
->> +	u32 sequence;
->> +
->> +	/*
->> +	 * The protocol for reading Hyper-V TSC page is specified in Hypervisor
->> +	 * Top-Level Functional Specification ver. 3.0 and above. To get the
->> +	 * reference time we must do the following:
->> +	 * - READ ReferenceTscSequence
->> +	 *   A special '0' value indicates the time source is unreliable and we
->> +	 *   need to use something else. The currently published specification
->> +	 *   versions (up to 4.0b) contain a mistake and wrongly claim '-1'
->> +	 *   instead of '0' as the special value, see commit c35b82ef0294.
->> +	 * - ReferenceTime =
->> +	 *        ((RDTSC() * ReferenceTscScale) >> 64) + ReferenceTscOffset
->> +	 * - READ ReferenceTscSequence again. In case its value has changed
->> +	 *   since our first reading we need to discard ReferenceTime and repeat
->> +	 *   the whole sequence as the hypervisor was updating the page in
->> +	 *   between.
->> +	 */
->> +	do {
->> +		sequence = READ_ONCE(tsc_pg->tsc_sequence);
->> +		if (!sequence)
->> +			return U64_MAX;
->> +		/*
->> +		 * Make sure we read sequence before we read other values from
->> +		 * TSC page.
->> +		 */
->> +		smp_rmb();
->> +
->> +		scale = READ_ONCE(tsc_pg->tsc_scale);
->> +		offset = READ_ONCE(tsc_pg->tsc_offset);
->> +		*cur_tsc = rdtsc_ordered();
->> +
->> +		/*
->> +		 * Make sure we read sequence after we read all other values
->> +		 * from TSC page.
->> +		 */
->> +		smp_rmb();
->> +
->> +	} while (READ_ONCE(tsc_pg->tsc_sequence) != sequence);
->> +
->> +	return mul_u64_u64_shr(*cur_tsc, scale, 64) + offset;
->> +}
->> +
->> +static inline u64 hv_read_tsc_page(const struct ms_hyperv_tsc_page *tsc_pg)
->> +{
->> +	u64 cur_tsc;
->> +
->> +	return hv_read_tsc_page_tsc(tsc_pg, &cur_tsc);
->> +}
->> +
->> +#else
->> +static inline struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
->> +{
->> +	return NULL;
->> +}
->> +
->> +static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> +				       u64 *cur_tsc)
->> +{
->> +	BUG();
->> +	return U64_MAX;
->> +}
->> +#endif
->> +#endif
->> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
->> index cc60e617931c..db095a992f3e 100644
->> --- a/arch/x86/include/asm/mshyperv.h
->> +++ b/arch/x86/include/asm/mshyperv.h
->> @@ -7,6 +7,7 @@
->>  #include <linux/nmi.h>
->>  #include <asm/io.h>
->>  #include <asm/hyperv-tlfs.h>
->> +#include <asm/mshyperv-tsc.h>
->>  #include <asm/nospec-branch.h>
->>
->>  #define VP_INVAL	U32_MAX
->> @@ -387,73 +388,4 @@ static inline int hyperv_flush_guest_mapping_range(u64 as,
->>  }
->>  #endif /* CONFIG_HYPERV */
->>
->> -#ifdef CONFIG_HYPERV_TSCPAGE
->> -struct ms_hyperv_tsc_page *hv_get_tsc_page(void);
->> -static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> -				       u64 *cur_tsc)
->> -{
->> -	u64 scale, offset;
->> -	u32 sequence;
->> -
->> -	/*
->> -	 * The protocol for reading Hyper-V TSC page is specified in Hypervisor
->> -	 * Top-Level Functional Specification ver. 3.0 and above. To get the
->> -	 * reference time we must do the following:
->> -	 * - READ ReferenceTscSequence
->> -	 *   A special '0' value indicates the time source is unreliable and we
->> -	 *   need to use something else. The currently published specification
->> -	 *   versions (up to 4.0b) contain a mistake and wrongly claim '-1'
->> -	 *   instead of '0' as the special value, see commit c35b82ef0294.
->> -	 * - ReferenceTime =
->> -	 *        ((RDTSC() * ReferenceTscScale) >> 64) + ReferenceTscOffset
->> -	 * - READ ReferenceTscSequence again. In case its value has changed
->> -	 *   since our first reading we need to discard ReferenceTime and repeat
->> -	 *   the whole sequence as the hypervisor was updating the page in
->> -	 *   between.
->> -	 */
->> -	do {
->> -		sequence = READ_ONCE(tsc_pg->tsc_sequence);
->> -		if (!sequence)
->> -			return U64_MAX;
->> -		/*
->> -		 * Make sure we read sequence before we read other values from
->> -		 * TSC page.
->> -		 */
->> -		smp_rmb();
->> -
->> -		scale = READ_ONCE(tsc_pg->tsc_scale);
->> -		offset = READ_ONCE(tsc_pg->tsc_offset);
->> -		*cur_tsc = rdtsc_ordered();
->> -
->> -		/*
->> -		 * Make sure we read sequence after we read all other values
->> -		 * from TSC page.
->> -		 */
->> -		smp_rmb();
->> -
->> -	} while (READ_ONCE(tsc_pg->tsc_sequence) != sequence);
->> -
->> -	return mul_u64_u64_shr(*cur_tsc, scale, 64) + offset;
->> -}
->> -
->> -static inline u64 hv_read_tsc_page(const struct ms_hyperv_tsc_page *tsc_pg)
->> -{
->> -	u64 cur_tsc;
->> -
->> -	return hv_read_tsc_page_tsc(tsc_pg, &cur_tsc);
->> -}
->> -
->> -#else
->> -static inline struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
->> -{
->> -	return NULL;
->> -}
->> -
->> -static inline u64 hv_read_tsc_page_tsc(const struct ms_hyperv_tsc_page *tsc_pg,
->> -				       u64 *cur_tsc)
->> -{
->> -	BUG();
->> -	return U64_MAX;
->> -}
->> -#endif
->>  #endif
-> 
-> Vincenzo -- these changes for Hyper-V are a subset of a larger patch set
-> I have that moves all of the Hyper-V clock/timer code into a separate
-> clocksource driver in drivers/clocksource, with an include file in
-> includes/clocksource.  That new include file should be able to work
-> instead of your new mshyperv-tsc.h.  It also has the benefit of being
-> ISA neutral, so it will work with my in-progress patch set to support
-> Linux on Hyper-V on ARM64.  See https://lkml.org/lkml/2019/5/27/231
-> for the new clocksource driver patch set.
->
+[This is an automated email]
 
-Thank you for pointing this out, I will rebase my changes on your patches.
+This commit has been processed because it contains a "Fixes:" tag,
+fixing commit: a7f290dad32e [PATCH] powerpc: Merge vdso's and add vdso support to 32 bits kernel.
+
+The bot has tested the following trees: v5.1.6, v5.0.20, v4.19.47, v4.14.123, v4.9.180, v4.4.180.
+
+v5.1.6: Build OK!
+v5.0.20: Build OK!
+v4.19.47: Build OK!
+v4.14.123: Failed to apply! Possible dependencies:
+    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
+    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
+
+v4.9.180: Failed to apply! Possible dependencies:
+    454656155110 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
+    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
+    5d451a87e5eb ("powerpc/64: Retrieve number of L1 cache sets from device-tree")
+    7c5b06cadf27 ("KVM: PPC: Book3S HV: Adapt TLB invalidations to work on POWER9")
+    83677f551e0a ("KVM: PPC: Book3S HV: Adjust host/guest context switch for POWER9")
+    902e06eb86cd ("powerpc/32: Change the stack protector canary value per task")
+    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
+    bd067f83b084 ("powerpc/64: Fix naming of cache block vs. cache line")
+    e2827fe5c156 ("powerpc/64: Clean up ppc64_caches using a struct per cache")
+    e9cf1e085647 ("KVM: PPC: Book3S HV: Add new POWER9 guest-accessible SPRs")
+    f4c51f841d2a ("KVM: PPC: Book3S HV: Modify guest entry/exit paths to handle radix guests")
+
+v4.4.180: Failed to apply! Possible dependencies:
+    153086644fd1 ("powerpc/ftrace: Add support for -mprofile-kernel ftrace ABI")
+    3eb5d5888dc6 ("powerpc: Add ppc_strict_facility_enable boot option")
+    454656155110 ("powerpc/asm: Use OFFSET macro in asm-offsets.c")
+    579e633e764e ("powerpc: create flush_all_to_thread()")
+    5c929885f1bb ("powerpc/vdso64: Add support for CLOCK_{REALTIME/MONOTONIC}_COARSE")
+    70fe3d980f5f ("powerpc: Restore FPU/VEC/VSX if previously used")
+    85baa095497f ("powerpc/livepatch: Add live patching support on ppc64le")
+    902e06eb86cd ("powerpc/32: Change the stack protector canary value per task")
+    b5b4453e7912 ("powerpc/vdso64: Fix CLOCK_MONOTONIC inconsistencies across Y2038")
+    bf76f73c5f65 ("powerpc: enable UBSAN support")
+    c208505900b2 ("powerpc: create giveup_all()")
+    d1e1cf2e38de ("powerpc: clean up asm/switch_to.h")
+    dc4fbba11e46 ("powerpc: Create disable_kernel_{fp,altivec,vsx,spe}()")
+    f17c4e01e906 ("powerpc/module: Mark module stubs with a magic value")
 
 
-> Michael
-> 
+How should we proceed with this patch?
 
--- 
-Regards,
-Vincenzo
+--
+Thanks,
+Sasha
