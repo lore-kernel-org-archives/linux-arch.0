@@ -1,64 +1,113 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Tue, 4 Jun 2019 19:21:13 -0400
-Message-ID: <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
- <20190402094320.GM11158@hirez.programming.kicks-ass.net>
- <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
- <20190403160112.GK4038@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190403160112.GK4038@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
+From: Baruch Siach <baruch@tkos.co.il>
+Subject: Re: [PATCH] bpf: fix uapi bpf_prog_info fields alignment
+Date: Wed, 5 Jun 2019 07:06:11 +0300
+Message-ID: <20190605040611.dt5fiegte2ys7z7z@sapphire.tkos.co.il>
+References: <f42c7b44b3f694056c4216e9d9ba914b44e72ab9.1559648367.git.baruch@tkos.co.il>
+ <CAADnVQJ1vRvqNFsWjvwmzSc_-OY51HTsVa13XhgK1v9NbYY2_A@mail.gmail.com>
+ <CAMuHMdV-0s_ikRmCrEcMCfkAp57Fu8WTUnJsopGagbYa+GGpbA@mail.gmail.com>
+ <20190604153028.ysyzvmpxqaaln4v2@ast-mbp.dhcp.thefacebook.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <netdev-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190604153028.ysyzvmpxqaaln4v2@ast-mbp.dhcp.thefacebook.com>
+Sender: netdev-owner@vger.kernel.org
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Network Development <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "Dmitry V . Levin" <ldv@altlinux.org>, Jiri Olsa <jolsa@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-SGksIFBldGVyLCBMb25nbWFuLCAKCj4gT24gQXByIDMsIDIwMTksIGF0IDEyOjAxIFBNLCBQZXRl
-ciBaaWpsc3RyYSA8cGV0ZXJ6QGluZnJhZGVhZC5vcmc+IHdyb3RlOgo+IAo+IE9uIFdlZCwgQXBy
-IDAzLCAyMDE5IGF0IDExOjM5OjA5QU0gLTA0MDAsIEFsZXggS29nYW4gd3JvdGU6Cj4gCj4+Pj4g
-VGhlIHBhdGNoIHRoYXQgSSBhbSBsb29raW5nIGZvciBpcyB0byBoYXZlIGEgc2VwYXJhdGUKPj4+
-PiBudW1hX3F1ZXVlZF9zcGlubG9ja19zbG93cGF0aCgpIHRoYXQgY29leGlzdHMgd2l0aAo+Pj4+
-IG5hdGl2ZV9xdWV1ZWRfc3BpbmxvY2tfc2xvd3BhdGgoKSBhbmQKPj4+PiBwYXJhdmlydF9xdWV1
-ZWRfc3BpbmxvY2tfc2xvd3BhdGgoKS4gQXQgYm9vdCB0aW1lLCB3ZSBzZWxlY3QgdGhlIG1vc3QK
-Pj4+PiBhcHByb3ByaWF0ZSBvbmUgZm9yIHRoZSBzeXN0ZW0gYXQgaGFuZC4KPj4gSXMgdGhpcyBo
-b3cgdGhpcyBzZWxlY3Rpb24gd29ya3MgdG9kYXkgZm9yIHBhcmF2aXJ0Pwo+PiBJIHNlZSBhIFBB
-UkFWSVJUX1NQSU5MT0NLUyBjb25maWcgb3B0aW9uLCBidXQgSUlVQyB5b3UgYXJlIHRhbGtpbmcg
-YWJvdXQgYSBkaWZmZXJlbnQgbWVjaGFuaXNtIGhlcmUuCj4+IENhbiB5b3UsIHBsZWFzZSwgZWxh
-Ym9yYXRlIG9yIGdpdmUgbWUgYSBsaW5rIHRvIGEgcGFnZSB0aGF0IGV4cGxhaW5zIHRoYXQ/Cj4g
-Cj4gT2ggbWFuLCB5b3UgYXNrIHVzIHRvIGV4cGxhaW4gaG93IHBhcmF2aXJ0IHBhdGNoaW5nIHdv
-cmtzLi4uIHRoYXQncwo+IG1hZ2ljIDotKQo+IAo+IEJhc2ljYWxseSwgdGhlIGNvbXBpbGVyIHdp
-bGwgZW1pdCBhIGJ1bmNoIG9mIGluZGlyZWN0IGNhbGxzIHRvIHRoZQo+IHZhcmlvdXMgcHZfb3Bz
-LiouKiBmdW5jdGlvbnMuCj4gCj4gVGhlbiwgYXQgYWx0ZXJuYXRpdmVfaW5zdHJ1Y3Rpb25zKCkg
-PC0gYXBwbHlfcGFyYXZpcnQoKSBpdCB3aWxsIHJld3JpdGUKPiBhbGwgdGhlc2UgaW5kaXJlY3Qg
-Y2FsbHMgdG8gZGlyZWN0IGNhbGxzIHRvIHRoZSBmdW5jdGlvbiBwb2ludGVycyB0aGF0Cj4gYXJl
-IGluIHRoZSBwdl9vcHMgc3RydWN0dXJlIGF0IHRoYXQgdGltZSAoKy0gbW9yZSBtYWdpYykuClRy
-eWluZyB0byByZXN1bWUgdGhpcyB3b3JrLCBJIGFtIGxvb2tpbmcgZm9yIGNvbmNyZXRlIHN0ZXBz
-IHJlcXVpcmVkIHRvIGludGVncmF0ZSBDTkEgd2l0aCB0aGUgcGFyYXZpcnQgcGF0Y2hpbmcuCgpM
-b29raW5nIGF0IGFsdGVybmF0aXZlX2luc3RydWN0aW9ucygpLCBJIHdvbmRlciBpZiBJIG5lZWQg
-dG8gYWRkIGFub3RoZXIgY2FsbCwgc29tZXRoaW5nIGxpa2UgYXBwbHlfbnVtYSgpIHNpbWlsYXIg
-dG8gYXBwbHlfcGFyYXZpcnQoKSwgYW5kIGRvIHRoZSBwYXRjaCB3b3JrIHRoZXJlLgpPciBwZXJo
-YXBzIEkgc2hvdWxkIOKAnGp1c3QiIGluaXRpYWxpemUgdGhlIHB2X29wcyBzdHJ1Y3R1cmUgd2l0
-aCB0aGUgY29ycmVzcG9uZGluZyBudW1hX3F1ZXVlZF9zcGlubG9ja19zbG93cGF0aCgpIGluIHBh
-cmF2aXJ0LmM/CgpBbHNvLCB0aGUgcGFyYXZpcnQgY29kZSBpcyB1bmRlciBhcmNoL3g4Niwgd2hp
-bGUgQ05BIGlzIGdlbmVyaWMgKG5vdCB4ODYtc3BlY2lmaWMpLgpEbyB5b3Ugc3RpbGwgd2FudCB0
-byBzZWUgQ05BLXJlbGF0ZWQgcGF0Y2hpbmcgcmVzaWRpbmcgdW5kZXIgYXJjaC94ODY/CgpXZSBz
-dGlsbCBuZWVkIGEgY29uZmlnIG9wdGlvbiAoc29tZXRoaW5nIGxpa2UgTlVNQV9BV0FSRV9TUElO
-TE9DS1MpIHRvIGVuYWJsZSBDTkEgcGF0Y2hpbmcgdW5kZXIgdGhpcyBjb25maWcgb25seSwgY29y
-cmVjdD8KClRoYW5rcyBpbiBhZHZhbmNlLArigJQgQWxleAoKCl9fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0
-CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFk
-ZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+Hi Alexei,
+
+(Adding Arnd and linux-arch to Cc)
+
+On Tue, Jun 04, 2019 at 08:30:29AM -0700, Alexei Starovoitov wrote:
+> On Tue, Jun 04, 2019 at 05:23:46PM +0200, Geert Uytterhoeven wrote:
+> > On Tue, Jun 4, 2019 at 5:17 PM Alexei Starovoitov
+> > <alexei.starovoitov@gmail.com> wrote:
+> > > On Tue, Jun 4, 2019 at 4:40 AM Baruch Siach <baruch@tkos.co.il> wrote:
+> > > > Merge commit 1c8c5a9d38f60 ("Merge
+> > > > git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
+> > > > fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
+> > > > applications") by taking the gpl_compatible 1-bit field definition from
+> > > > commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
+> > > > bpf_prog_info") as is. That breaks architectures with 16-bit alignment
+> > > > like m68k. Widen gpl_compatible to 32-bit to restore alignment of the
+> > > > following fields.
+> > >
+> > > The commit log is misleading and incorrect.
+> > > Since compiler makes it into 16-bit field, it's a compiler bug.
+> > > u32 in C should stay as u32 regardless of architecture.
+> > 
+> > C99 says (Section 6.7.2.1, Structure and union specifiers, Semantics)
+> > 
+> >     10  An implementation may allocate any addressable storage unit
+> >         large enough to hold a bit-field.
+> > 
+> > $ cat hello.c
+> > #include <stdio.h>
+> > #include <stdint.h>
+> > #include <stdlib.h>
+> > 
+> > struct x {
+> >         unsigned int bit : 1;
+> >         unsigned char byte;
+> > };
+> > 
+> > int main(int argc, char *argv[])
+> > {
+> >         struct x x;
+> > 
+> >         printf("byte is at offset %zu\n", (uintptr_t)&x.byte - (uintptr_t)&x);
+> >         printf("sizeof(x) = %zu\n", sizeof(x));
+> >         exit(0);
+> > }
+> > $ gcc -Wall hello.c -o hello && ./hello
+> > byte is at offset 1
+> > sizeof(x) = 4
+> > $ uname -m
+> > x86_64
+> > 
+> > So the compiler allocates a single byte, even on a 64-bit platform!
+> > The gap is solely determined by the alignment rule for the
+> > successive field.
+> 
+> argh. then we need something like this:
+> diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+> index 7c6aef253173..a2ac0b961251 100644
+> --- a/include/uapi/linux/bpf.h
+> +++ b/include/uapi/linux/bpf.h
+> @@ -3174,6 +3174,7 @@ struct bpf_prog_info {
+>         char name[BPF_OBJ_NAME_LEN];
+>         __u32 ifindex;
+>         __u32 gpl_compatible:1;
+> +       __u32 :31;
+>         __u64 netns_dev;
+>         __u64 netns_ino;
+>         __u32 nr_jited_ksyms;
+
+Is that guaranteed to work across platforms/compilers? Maybe an anonymous 
+union would be safer? Something like:
+
+diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+index 63e0cf66f01a..06c9fb314ea5 100644
+--- a/include/uapi/linux/bpf.h
++++ b/include/uapi/linux/bpf.h
+@@ -3140,7 +3140,10 @@ struct bpf_prog_info {
+ 	__aligned_u64 map_ids;
+ 	char name[BPF_OBJ_NAME_LEN];
+ 	__u32 ifindex;
+-	__u32 gpl_compatible:1;
++	union {
++		__u32 gpl_compatible:1;
++		__u32 pad;
++	};
+ 	__u64 netns_dev;
+ 	__u64 netns_ino;
+ 	__u32 nr_jited_ksyms;
+
+baruch
+
+-- 
+     http://baruch.siach.name/blog/                  ~. .~   Tk Open Systems
+=}------------------------------------------------ooO--U--Ooo------------{=
+   - baruch@tkos.co.il - tel: +972.2.679.5364, http://www.tkos.co.il -
