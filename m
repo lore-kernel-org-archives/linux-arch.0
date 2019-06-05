@@ -1,121 +1,155 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v6 00/19] Unify vDSOs across more architectures
-Date: Wed, 5 Jun 2019 15:32:53 +0100
-Message-ID: <ea965b5e-9be8-02e9-5dc0-ebbb330bcc2c@arm.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <CAK8P3a11DE0sXteZoaP_N=mDhx3tXitGKddn1ogtFqJBYO-SCA@mail.gmail.com>
- <d96667d5-e43b-d33a-fbd0-5acfb4904316@arm.com>
- <CAK8P3a3nxd7F5zLyD1SVarKjjKC0qvMEN8wP6R7zHY9HKdoe0w@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Wed, 5 Jun 2019 22:40:03 +0200
+Message-ID: <20190605204003.GC3402@hirez.programming.kicks-ass.net>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+ <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+ <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+ <20190403160112.GK4038@hirez.programming.kicks-ass.net>
+ <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3nxd7F5zLyD1SVarKjjKC0qvMEN8wP6R7zHY9HKdoe0w@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 6/4/19 1:12 PM, Arnd Bergmann wrote:
-> On Tue, Jun 4, 2019 at 2:05 PM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->> On 31/05/2019 09:46, Arnd Bergmann wrote:
->>> On Thu, May 30, 2019 at 4:15 PM Vincenzo Frascino
->>> <vincenzo.frascino@arm.com> wrote:
->>> One open question I touched in my review is whether we want to
->>> have a vdso version of clock_getres() in all architectures or not.
->>> I'd prefer to leave it out because there is very little advantage to
->>> it over the system call (the results don't change at runtime and
->>> can easily be cached by libc if performance ever matters), and
->>> it takes up a small amount of memory for the implementation.
->>>
->>
->> I thought about it and I ended up with what proposed in this patchset mainly for
->> symmetry across all the architectures since in the end they use the same common
->> code.
->>
->> It seems also that there is some performance impact (i.e.):
->>
->> clock-getres-monotonic:    libc(system call): 296 nsec/call
->> clock-getres-monotonic:    libc(vdso): 5 nsec/call
->>
->>
->> I agree with you though when you say that caching it in the libc is a
->> possibility to overcome the performance impact.
-> 
-> It's clear that the vdso version is much faster, my point was that
-> I could not think of any use case that cared about it being fast.
-> 
-
-I do not know of any use case that cares, my point was that since we need to
-implement it in the generic library for some architectures, for symmetry we can
-extend it to all the architectures that support the generic vdso library.
-
-> If there is a good reason for it, I also don't mind adding a
-> clock_getres_time64() vdso version everywhere.
-
-Totally agree on this.
-
-> 
->>> We shouldn't just need it for consistency because all callers
->>> would require implementing a fallback to the system call
->>> anyway, to deal with old kernels.
->>>
->>
->> A way to address this issue would be to use versioning, which seems supported in
->> the vdso library (i.e. arch/x86/entry/vdso/vdso32/vdso32.lds.S).
->>
->> For example for x86 (vdso32) we would have something like:
->>
->> VERSION
->> {
->>         LINUX_5.3 (being optimistic here :) ) {
->>         global:
->>                 __vdso_clock_getres;
->>                 __vdso_clock_gettime64;
->>         };
->>         LINUX_2.6 {
->>         global:
->>                 __vdso_clock_gettime;
->>                 __vdso_gettimeofday;
->>                 __vdso_time;
->>         };
->>
->>         LINUX_2.5 {
->>         global:
->>                 __kernel_vsyscall;
->>                 __kernel_sigreturn;
->>                 __kernel_rt_sigreturn;
->>         local: *;
->>         };
->> }
->>
->> What do you think? Would this be a viable solution?
-> 
-> I actually never understood the point of symbol versioning
-> in the vdso. What does that gain us? Note that there are
-> no conflicting symbol names between the versions, and
-> that nothing enforces the kernel headers to match the
-> symbol version used when linking.
->
-
-My understanding, based on [1] and [2] is that the version defines the minimum
-kernel version from when a specific symbols is exposed and whenever this symbol
-is requested from the vDSO the correct version needs to be specified.
-Every "new" library, dealing with an "old" kernel, compliant with the exposed
-ABI should implement the vDSO calls in this way and provide a fallback if the
-vDSO function is not present (i.e. [3]).
-
-[1] Documentation/ABI/stable/vdso
-[2] tools/testing/selftests/vDSO/parse_vdso.c
-[3]
-https://github.com/lattera/glibc/blob/master/sysdeps/unix/sysv/linux/aarch64/gettimeofday.c
-
-
->       Arnd
-> 
-
--- 
-Regards,
-Vincenzo
+T24gVHVlLCBKdW4gMDQsIDIwMTkgYXQgMDc6MjE6MTNQTSAtMDQwMCwgQWxleCBLb2dhbiB3cm90
+ZToKCj4gVHJ5aW5nIHRvIHJlc3VtZSB0aGlzIHdvcmssIEkgYW0gbG9va2luZyBmb3IgY29uY3Jl
+dGUgc3RlcHMgcmVxdWlyZWQKPiB0byBpbnRlZ3JhdGUgQ05BIHdpdGggdGhlIHBhcmF2aXJ0IHBh
+dGNoaW5nLgo+IAo+IExvb2tpbmcgYXQgYWx0ZXJuYXRpdmVfaW5zdHJ1Y3Rpb25zKCksIEkgd29u
+ZGVyIGlmIEkgbmVlZCB0byBhZGQKPiBhbm90aGVyIGNhbGwsIHNvbWV0aGluZyBsaWtlIGFwcGx5
+X251bWEoKSBzaW1pbGFyIHRvIGFwcGx5X3BhcmF2aXJ0KCksCj4gYW5kIGRvIHRoZSBwYXRjaCB3
+b3JrIHRoZXJlLiAgT3IgcGVyaGFwcyBJIHNob3VsZCDigJxqdXN0IiBpbml0aWFsaXplCj4gdGhl
+IHB2X29wcyBzdHJ1Y3R1cmUgd2l0aCB0aGUgY29ycmVzcG9uZGluZwo+IG51bWFfcXVldWVkX3Nw
+aW5sb2NrX3Nsb3dwYXRoKCkgaW4gcGFyYXZpcnQuYz8KClllYWgsIGp1c3QgaW5pdGlhbGl6ZSB0
+aGUgcHZfb3BzLmxvY2suKiB0aGluZ2llcyB0byBjb250YWluIHRoZSBudW1hCnZhcmlhbnQgYmVm
+b3JlIGFwcGx5X3BhcmF2aXJ0KCkgaGFwcGVucy4KCj4gQWxzbywgdGhlIHBhcmF2aXJ0IGNvZGUg
+aXMgdW5kZXIgYXJjaC94ODYsIHdoaWxlIENOQSBpcyBnZW5lcmljIChub3QKPiB4ODYtc3BlY2lm
+aWMpLiAgRG8geW91IHN0aWxsIHdhbnQgdG8gc2VlIENOQS1yZWxhdGVkIHBhdGNoaW5nIHJlc2lk
+aW5nCj4gdW5kZXIgYXJjaC94ODY/Cj4gCj4gV2Ugc3RpbGwgbmVlZCBhIGNvbmZpZyBvcHRpb24g
+KHNvbWV0aGluZyBsaWtlIE5VTUFfQVdBUkVfU1BJTkxPQ0tTKSB0bwo+IGVuYWJsZSBDTkEgcGF0
+Y2hpbmcgdW5kZXIgdGhpcyBjb25maWcgb25seSwgY29ycmVjdD8KClRoZXJlIGlzIHRoZSBzdGF0
+aWNfY2FsbCgpIHN0dWZmIHRoYXQgY291bGQgYmUgZ2VuZXJpYzsgSSBwb3N0ZWQgYSBuZXcKdmVy
+c2lvbiBvZiB0aGF0IHRvZGF5ICh4ODYgb25seSBmb3Igbm93LCBidXQgSUlSQyB0aGVyZSdzIGFy
+bTY0IHBhdGNoZXMKZm9yIHRoYXQgYXJvdW5kIHNvbWV3aGVyZSB0b28pLgoKaHR0cHM6Ly9sa21s
+Lmtlcm5lbC5vcmcvci8yMDE5MDYwNTEzMDc1My4zMjcxOTUxMDhAaW5mcmFkZWFkLm9yZwoKV2hp
+Y2ggd291bGQgYWxsb3cgc29tZXRoaW5nIGEgbGl0dGxlIGxpa2UgdGhpczoKCgpkaWZmIC0tZ2l0
+IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcXNwaW5sb2NrLmggYi9hcmNoL3g4Ni9pbmNsdWRlL2Fz
+bS9xc3BpbmxvY2suaAppbmRleCBiZDVhYzZjYzM3ZGIuLjAxZmVhZjkxMmJkNyAxMDA2NDQKLS0t
+IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcXNwaW5sb2NrLmgKKysrIGIvYXJjaC94ODYvaW5jbHVk
+ZS9hc20vcXNwaW5sb2NrLmgKQEAgLTYzLDI5ICs2Myw3IEBAIHN0YXRpYyBpbmxpbmUgYm9vbCB2
+Y3B1X2lzX3ByZWVtcHRlZChsb25nIGNwdSkKICNlbmRpZgogCiAjaWZkZWYgQ09ORklHX1BBUkFW
+SVJUCi1ERUNMQVJFX1NUQVRJQ19LRVlfVFJVRSh2aXJ0X3NwaW5fbG9ja19rZXkpOwotCiB2b2lk
+IG5hdGl2ZV9wdl9sb2NrX2luaXQodm9pZCkgX19pbml0OwotCi0jZGVmaW5lIHZpcnRfc3Bpbl9s
+b2NrIHZpcnRfc3Bpbl9sb2NrCi1zdGF0aWMgaW5saW5lIGJvb2wgdmlydF9zcGluX2xvY2soc3Ry
+dWN0IHFzcGlubG9jayAqbG9jaykKLXsKLQlpZiAoIXN0YXRpY19icmFuY2hfbGlrZWx5KCZ2aXJ0
+X3NwaW5fbG9ja19rZXkpKQotCQlyZXR1cm4gZmFsc2U7Ci0KLQkvKgotCSAqIE9uIGh5cGVydmlz
+b3JzIHdpdGhvdXQgUEFSQVZJUlRfU1BJTkxPQ0tTIHN1cHBvcnQgd2UgZmFsbAotCSAqIGJhY2sg
+dG8gYSBUZXN0LWFuZC1TZXQgc3BpbmxvY2ssIGJlY2F1c2UgZmFpciBsb2NrcyBoYXZlCi0JICog
+aG9ycmlibGUgbG9jayAnaG9sZGVyJyBwcmVlbXB0aW9uIGlzc3Vlcy4KLQkgKi8KLQotCWRvIHsK
+LQkJd2hpbGUgKGF0b21pY19yZWFkKCZsb2NrLT52YWwpICE9IDApCi0JCQljcHVfcmVsYXgoKTsK
+LQl9IHdoaWxlIChhdG9taWNfY21weGNoZygmbG9jay0+dmFsLCAwLCBfUV9MT0NLRURfVkFMKSAh
+PSAwKTsKLQotCXJldHVybiB0cnVlOwotfQogI2Vsc2UKIHN0YXRpYyBpbmxpbmUgdm9pZCBuYXRp
+dmVfcHZfbG9ja19pbml0KHZvaWQpCiB7CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwva3Zt
+LmMgYi9hcmNoL3g4Ni9rZXJuZWwva3ZtLmMKaW5kZXggNTE2OWI4Y2MzNWJiLi43OGJlOWU0NzRl
+OTQgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2tlcm5lbC9rdm0uYworKysgYi9hcmNoL3g4Ni9rZXJu
+ZWwva3ZtLmMKQEAgLTUzMSw3ICs1MzEsNyBAQCBzdGF0aWMgdm9pZCBfX2luaXQga3ZtX3NtcF9w
+cmVwYXJlX2NwdXModW5zaWduZWQgaW50IG1heF9jcHVzKQogewogCW5hdGl2ZV9zbXBfcHJlcGFy
+ZV9jcHVzKG1heF9jcHVzKTsKIAlpZiAoa3ZtX3BhcmFfaGFzX2hpbnQoS1ZNX0hJTlRTX1JFQUxU
+SU1FKSkKLQkJc3RhdGljX2JyYW5jaF9kaXNhYmxlKCZ2aXJ0X3NwaW5fbG9ja19rZXkpOworCQlz
+dGF0aWNfY2FsbF91cGRhdGUocXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCwgX19xdWV1ZWRfc3Bp
+bl9sb2NrX3Nsb3dwYXRoKTsKIH0KIAogc3RhdGljIHZvaWQgX19pbml0IGt2bV9zbXBfcHJlcGFy
+ZV9ib290X2NwdSh2b2lkKQpkaWZmIC0tZ2l0IGEvYXJjaC94ODYva2VybmVsL3BhcmF2aXJ0LmMg
+Yi9hcmNoL3g4Ni9rZXJuZWwvcGFyYXZpcnQuYwppbmRleCA5ODAzOWQ3ZmI5OTguLmFlNmQxNWY4
+NDg2NyAxMDA2NDQKLS0tIGEvYXJjaC94ODYva2VybmVsL3BhcmF2aXJ0LmMKKysrIGIvYXJjaC94
+ODYva2VybmVsL3BhcmF2aXJ0LmMKQEAgLTEwNSwxMiArMTA1LDEwIEBAIHN0YXRpYyB1bnNpZ25l
+ZCBwYXJhdmlydF9wYXRjaF9qbXAodm9pZCAqaW5zbl9idWZmLCBjb25zdCB2b2lkICp0YXJnZXQs
+CiB9CiAjZW5kaWYKIAotREVGSU5FX1NUQVRJQ19LRVlfVFJVRSh2aXJ0X3NwaW5fbG9ja19rZXkp
+OwotCiB2b2lkIF9faW5pdCBuYXRpdmVfcHZfbG9ja19pbml0KHZvaWQpCiB7Ci0JaWYgKCFib290
+X2NwdV9oYXMoWDg2X0ZFQVRVUkVfSFlQRVJWSVNPUikpCi0JCXN0YXRpY19icmFuY2hfZGlzYWJs
+ZSgmdmlydF9zcGluX2xvY2tfa2V5KTsKKwlpZiAoYm9vdF9jcHVfaGFzKFg4Nl9GRUFUVVJFX0hZ
+UEVSVklTT1IpKQorCQlzdGF0aWNfY2FsbF91cGRhdGUocXVldWVkX3NwaW5fbG9ja19zbG93cGF0
+aCwgX190YXNfc3Bpbl9sb2NrX3Nsb3dwYXRoKTsKIH0KIAogdW5zaWduZWQgcGFyYXZpcnRfcGF0
+Y2hfZGVmYXVsdCh1OCB0eXBlLCB2b2lkICppbnNuX2J1ZmYsCmRpZmYgLS1naXQgYS9hcmNoL3g4
+Ni94ZW4vc3BpbmxvY2suYyBiL2FyY2gveDg2L3hlbi9zcGlubG9jay5jCmluZGV4IDM3NzYxMjJj
+ODdjYy4uODY4MDgxMjdiNmU2IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4vc3BpbmxvY2suYwor
+KysgYi9hcmNoL3g4Ni94ZW4vc3BpbmxvY2suYwpAQCAtNzAsNyArNzAsNyBAQCB2b2lkIHhlbl9p
+bml0X2xvY2tfY3B1KGludCBjcHUpCiAKIAlpZiAoIXhlbl9wdnNwaW4pIHsKIAkJaWYgKGNwdSA9
+PSAwKQotCQkJc3RhdGljX2JyYW5jaF9kaXNhYmxlKCZ2aXJ0X3NwaW5fbG9ja19rZXkpOworCQkJ
+c3RhdGljX2NhbGxfdXBkYXRlKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIF9fcXVldWVkX3Nw
+aW5fbG9ja19zbG93cGF0aCk7CiAJCXJldHVybjsKIAl9CiAKZGlmZiAtLWdpdCBhL2luY2x1ZGUv
+YXNtLWdlbmVyaWMvcXNwaW5sb2NrLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL3FzcGlubG9jay5o
+CmluZGV4IGZkZTk0M2QxODBlMC4uOGNhNGRkOWRiOTMxIDEwMDY0NAotLS0gYS9pbmNsdWRlL2Fz
+bS1nZW5lcmljL3FzcGlubG9jay5oCisrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2Nr
+LmgKQEAgLTY1LDcgKzY1LDkgQEAgc3RhdGljIF9fYWx3YXlzX2lubGluZSBpbnQgcXVldWVkX3Nw
+aW5fdHJ5bG9jayhzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrKQogCXJldHVybiBsaWtlbHkoYXRvbWlj
+X3RyeV9jbXB4Y2hnX2FjcXVpcmUoJmxvY2stPnZhbCwgJnZhbCwgX1FfTE9DS0VEX1ZBTCkpOwog
+fQogCi1leHRlcm4gdm9pZCBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3Bpbmxv
+Y2sgKmxvY2ssIHUzMiB2YWwpOworZXh0ZXJuIHZvaWQgX19xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dw
+YXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpOworCitERUNMQVJFX1NUQVRJQ19D
+QUxMKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIF9fcXVldWVkX3NwaW5fbG9ja19zbG93cGF0
+aCk7CiAKIC8qKgogICogcXVldWVkX3NwaW5fbG9jayAtIGFjcXVpcmUgYSBxdWV1ZWQgc3Bpbmxv
+Y2sKQEAgLTc4LDcgKzgwLDcgQEAgc3RhdGljIF9fYWx3YXlzX2lubGluZSB2b2lkIHF1ZXVlZF9z
+cGluX2xvY2soc3RydWN0IHFzcGlubG9jayAqbG9jaykKIAlpZiAobGlrZWx5KGF0b21pY190cnlf
+Y21weGNoZ19hY3F1aXJlKCZsb2NrLT52YWwsICZ2YWwsIF9RX0xPQ0tFRF9WQUwpKSkKIAkJcmV0
+dXJuOwogCi0JcXVldWVkX3NwaW5fbG9ja19zbG93cGF0aChsb2NrLCB2YWwpOworCXN0YXRpY19j
+YWxsKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIGxvY2ssIHZhbCk7CiB9CiAKICNpZm5kZWYg
+cXVldWVkX3NwaW5fdW5sb2NrCkBAIC05NSwxMyArOTcsNiBAQCBzdGF0aWMgX19hbHdheXNfaW5s
+aW5lIHZvaWQgcXVldWVkX3NwaW5fdW5sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2spCiB9CiAj
+ZW5kaWYKIAotI2lmbmRlZiB2aXJ0X3NwaW5fbG9jawotc3RhdGljIF9fYWx3YXlzX2lubGluZSBi
+b29sIHZpcnRfc3Bpbl9sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2spCi17Ci0JcmV0dXJuIGZh
+bHNlOwotfQotI2VuZGlmCi0KIC8qCiAgKiBSZW1hcHBpbmcgc3BpbmxvY2sgYXJjaGl0ZWN0dXJl
+IHNwZWNpZmljIGZ1bmN0aW9ucyB0byB0aGUgY29ycmVzcG9uZGluZwogICogcXVldWVkIHNwaW5s
+b2NrIGZ1bmN0aW9ucy4KZGlmZiAtLWdpdCBhL2tlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jIGIv
+a2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMKaW5kZXggMjQ3M2YxMGM2OTU2Li4wZTllNjE2Mzdk
+NTYgMTAwNjQ0Ci0tLSBhL2tlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jCisrKyBiL2tlcm5lbC9s
+b2NraW5nL3FzcGlubG9jay5jCkBAIC0yOTAsNiArMjkwLDIwIEBAIHN0YXRpYyBfX2Fsd2F5c19p
+bmxpbmUgdTMyICBfX3B2X3dhaXRfaGVhZF9vcl9sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ss
+CiAKICNlbmRpZiAvKiBfR0VOX1BWX0xPQ0tfU0xPV1BBVEggKi8KIAordm9pZCBfX3Rhc19zcGlu
+X2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkKK3sKKwkvKgor
+CSAqIE9uIGh5cGVydmlzb3JzIHdpdGhvdXQgUEFSQVZJUlRfU1BJTkxPQ0tTIHN1cHBvcnQgd2Ug
+ZmFsbAorCSAqIGJhY2sgdG8gYSBUZXN0LWFuZC1TZXQgc3BpbmxvY2ssIGJlY2F1c2UgZmFpciBs
+b2NrcyBoYXZlCisJICogaG9ycmlibGUgbG9jayAnaG9sZGVyJyBwcmVlbXB0aW9uIGlzc3Vlcy4K
+KwkgKi8KKworCWRvIHsKKwkJd2hpbGUgKGF0b21pY19yZWFkKCZsb2NrLT52YWwpICE9IDApCisJ
+CQljcHVfcmVsYXgoKTsKKwl9IHdoaWxlIChhdG9taWNfY21weGNoZygmbG9jay0+dmFsLCAwLCBf
+UV9MT0NLRURfVkFMKSAhPSAwKTsKK30KKwogLyoqCiAgKiBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dw
+YXRoIC0gYWNxdWlyZSB0aGUgcXVldWVkIHNwaW5sb2NrCiAgKiBAbG9jazogUG9pbnRlciB0byBx
+dWV1ZWQgc3BpbmxvY2sgc3RydWN0dXJlCkBAIC0zMTEsNyArMzI1LDcgQEAgc3RhdGljIF9fYWx3
+YXlzX2lubGluZSB1MzIgIF9fcHZfd2FpdF9oZWFkX29yX2xvY2soc3RydWN0IHFzcGlubG9jayAq
+bG9jaywKICAqIGNvbnRlbmRlZCAgICAgICAgICAgICA6ICAgICgqLHgseSkgKy0tPiAoKiwwLDAp
+IC0tLT4gKCosMCwxKSAtJyAgOgogICogICBxdWV1ZSAgICAgICAgICAgICAgIDogICAgICAgICBe
+LS0nICAgICAgICAgICAgICAgICAgICAgICAgICAgICA6CiAgKi8KLXZvaWQgcXVldWVkX3NwaW5f
+bG9ja19zbG93cGF0aChzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLCB1MzIgdmFsKQordm9pZCBfX3F1
+ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkK
+IHsKIAlzdHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmV2LCAqbmV4dCwgKm5vZGU7CiAJdTMyIG9sZCwg
+dGFpbDsKQEAgLTMyMiw5ICszMzYsNiBAQCB2b2lkIHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgo
+c3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkKIAlpZiAocHZfZW5hYmxlZCgpKQogCQln
+b3RvIHB2X3F1ZXVlOwogCi0JaWYgKHZpcnRfc3Bpbl9sb2NrKGxvY2spKQotCQlyZXR1cm47Ci0K
+IAkvKgogCSAqIFdhaXQgZm9yIGluLXByb2dyZXNzIHBlbmRpbmctPmxvY2tlZCBoYW5kLW92ZXJz
+IHdpdGggYSBib3VuZGVkCiAJICogbnVtYmVyIG9mIHNwaW5zIHNvIHRoYXQgd2UgZ3VhcmFudGVl
+IGZvcndhcmQgcHJvZ3Jlc3MuCkBAIC01NTgsNyArNTY5LDkgQEAgdm9pZCBxdWV1ZWRfc3Bpbl9s
+b2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpCiAJICovCiAJX190
+aGlzX2NwdV9kZWMocW5vZGVzWzBdLm1jcy5jb3VudCk7CiB9Ci1FWFBPUlRfU1lNQk9MKHF1ZXVl
+ZF9zcGluX2xvY2tfc2xvd3BhdGgpOworRVhQT1JUX1NZTUJPTChfX3F1ZXVlZF9zcGluX2xvY2tf
+c2xvd3BhdGgpOworCitERUZJTkVfU1RBVElDX0NBTEwocXVldWVkX3NwaW5fbG9ja19zbG93cGF0
+aCwgX19xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKTsKIAogLyoKICAqIEdlbmVyYXRlIHRoZSBw
+YXJhdmlydCBjb2RlIGZvciBxdWV1ZWRfc3Bpbl91bmxvY2tfc2xvd3BhdGgoKS4KCl9fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwg
+bWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8v
+bGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
