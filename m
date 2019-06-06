@@ -1,52 +1,47 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: single copy atomicity for double load/stores on 32-bit systems
-Date: Thu, 6 Jun 2019 14:17:36 -0700
-Message-ID: <20190606211736.GW28207@linux.ibm.com>
-References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
- <20190531082112.GH2623@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA2307501A2522B5B@us01wembx1.internal.synopsys.com>
- <20190603201324.GN28207@linux.ibm.com>
- <CAMuHMdW-8Jt80mSyHTYmj6354-3f1=Vp_8dY-Nite1ERpUCFew@mail.gmail.com>
- <20190606094340.GD28207@linux.ibm.com>
- <8d1666df180d4d01aaebb5d41370b338@AcuMS.aculab.com>
-Reply-To: paulmck@linux.ibm.com
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v7 04/27] x86/fpu/xstate: Introduce XSAVES system states
+Date: Thu, 6 Jun 2019 14:18:29 -0700
+Message-ID: <0a2f8b9b-b96b-06c8-bae0-b78b2ca3b727@intel.com>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+ <20190606200646.3951-5-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <8d1666df180d4d01aaebb5d41370b338@AcuMS.aculab.com>
+In-Reply-To: <20190606200646.3951-5-yu-cheng.yu@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 06, 2019 at 04:34:52PM +0000, David Laight wrote:
-> From: Paul E. McKenney
-> > Sent: 06 June 2019 10:44
-> ...
-> > But m68k is !SMP-only, correct?  If so, the only issues would be
-> > interactions with interrupt handlers and the like, and doesn't current
-> > m68k hardware use exact interrupts?  Or is it still possible to interrupt
-> > an m68k in the middle of an instruction like it was in the bad old days?
-> 
-> Hardware interrupts were always on instruction boundaries, the
-> mid-instruction interrupts would only happen for page faults (etc).
+> +/*
+> + * Helpers for changing XSAVES system states.
+> + */
+> +static inline void modify_fpu_regs_begin(void)
+> +{
+> +	fpregs_lock();
+> +	if (test_thread_flag(TIF_NEED_FPU_LOAD))
+> +		__fpregs_load_activate();
+> +}
+> +
+> +static inline void modify_fpu_regs_end(void)
+> +{
+> +	fpregs_unlock();
+> +}
 
-OK, !SMP should be fine, then.
+These are massively under-commented and under-changelogged.  This looks
+like it's intended to ensure that we have supervisor FPU state for this
+task loaded before we go and run the MSRs that might be modifying it.
 
-> There were SMP m68k systems (but I can't remember one).
-> It was important to continue from a mid-instruction trap on the
-> same cpu - unless you could guarantee that all the cpus had
-> exactly the same version of the microcode.
+But, that seems broken.  If we have supervisor state, we can't always
+defer the load until return to userspace, so we'll never?? have
+TIF_NEED_FPU_LOAD.  That would certainly be true for cet_kernel_state.
 
-Yuck!  ;-)
+It seems like we actually need three classes of XSAVE states:
+1. User state
+2. Supervisor state that affects user mode
+3. Supervisor state that affects kernel mode
 
-> In any case you could probably use the 'cmp2' instruction
-> for an atomic 64bit write.
-> OTOH setting that up was such a PITA it was always easier
-> to disable interrupts.
+We can delay the load of 1 and 2, but not 3.
 
-Unless I am forgetting something, given that m68k is a 32-bit system,
-we should be OK without an atomic 64-bit write.
-
-							Thanx, Paul
+But I don't see any infrastructure for this.
