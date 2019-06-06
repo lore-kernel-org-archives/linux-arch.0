@@ -1,64 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga17.intel.com ([192.55.52.151]:47825 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728824AbfFFUPL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jun 2019 16:15:11 -0400
+        id S1726674AbfFFUPJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jun 2019 16:15:09 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v7 02/27] x86/cpufeatures: Add CET CPU feature flags for Control-flow Enforcement Technology (CET)
-Date: Thu,  6 Jun 2019 13:06:21 -0700
-Message-ID: <20190606200646.3951-3-yu-cheng.yu@intel.com>
-In-Reply-To: <20190606200646.3951-1-yu-cheng.yu@intel.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v7 00/27] Control-flow Enforcement: Shadow Stack
+Date: Thu,  6 Jun 2019 13:06:19 -0700
+Message-ID: <20190606200646.3951-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20190606200621.umGMOqxrE0yGMYGBwsHLbTteTxZm2vdCi5f58ztWZsU@z>
+Message-ID: <20190606200619.SaUCW4Jg170SFqqxGAEaZ40pxTMyyvPioSbTa5C1unM@z>
 
-Add CPU feature flags for Control-flow Enforcement Technology (CET).
+Intel has published Control-flow Enforcement (CET) in the Architecture
+Instruction Set Extensions Programming Reference:
 
-CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
-CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect branch tracking
+  https://software.intel.com/en-us/download/intel-architecture-instruction-set-
+  extensions-programming-reference
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Borislav Petkov <bp@suse.de>
----
- arch/x86/include/asm/cpufeatures.h | 2 ++
- arch/x86/kernel/cpu/cpuid-deps.c   | 2 ++
- 2 files changed, 4 insertions(+)
+The previous version (v6) of CET Shadow Stack patches is here:
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 75f27ee2c263..21b2d9497c0f 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -323,6 +323,7 @@
- #define X86_FEATURE_PKU			(16*32+ 3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
-+#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
- #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
- #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
- #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
-@@ -347,6 +348,7 @@
- #define X86_FEATURE_MD_CLEAR		(18*32+10) /* VERW clears CPU buffers */
- #define X86_FEATURE_TSX_FORCE_ABORT	(18*32+13) /* "" TSX_FORCE_ABORT */
- #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
-+#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
- #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBRS + IBPB) */
- #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect Branch Predictors */
- #define X86_FEATURE_FLUSH_L1D		(18*32+28) /* Flush L1D cache */
-diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
-index 2c0bd38a44ab..68ef07175062 100644
---- a/arch/x86/kernel/cpu/cpuid-deps.c
-+++ b/arch/x86/kernel/cpu/cpuid-deps.c
-@@ -59,6 +59,8 @@ static const struct cpuid_dep cpuid_deps[] = {
- 	{ X86_FEATURE_AVX512_4VNNIW,	X86_FEATURE_AVX512F   },
- 	{ X86_FEATURE_AVX512_4FMAPS,	X86_FEATURE_AVX512F   },
- 	{ X86_FEATURE_AVX512_VPOPCNTDQ, X86_FEATURE_AVX512F   },
-+	{ X86_FEATURE_SHSTK,		X86_FEATURE_XSAVES    },
-+	{ X86_FEATURE_IBT,		X86_FEATURE_XSAVES    },
- 	{}
- };
- 
+  https://lkml.org/lkml/2018/11/20/225
+
+Summary of changes from v6:
+
+  Rebase to v5.2-rc3.
+
+  Adapt XSAVES system state changes to the recent FPU changes:
+    - Add modify_fpu_regs_begin(), modify_fpu_regs_end() to protect
+      CET MSR changes.
+    - Update signal handling.
+
+  Move ELF header-parsing out of x86.
+
+  Other small fixes in response to comments.
+
+This version passed GLIBC built-in tests.
+
+Hi Maintainers,
+
+What else is needed before this series can be merged?
+
+Thanks,
+Yu-cheng
+
+
+Yu-cheng Yu (27):
+  Documentation/x86: Add CET description
+  x86/cpufeatures: Add CET CPU feature flags for Control-flow
+    Enforcement Technology (CET)
+  x86/fpu/xstate: Change names to separate XSAVES system and user states
+  x86/fpu/xstate: Introduce XSAVES system states
+  x86/fpu/xstate: Add XSAVES system states for shadow stack
+  x86/cet: Add control protection exception handler
+  x86/cet/shstk: Add Kconfig option for user-mode shadow stack
+  mm: Introduce VM_SHSTK for shadow stack memory
+  mm/mmap: Prevent Shadow Stack VMA merges
+  x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
+  x86/mm: Introduce _PAGE_DIRTY_SW
+  drm/i915/gvt: Update _PAGE_DIRTY to _PAGE_DIRTY_BITS
+  x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for
+    _PAGE_DIRTY_SW
+  x86/mm: Shadow stack page fault error checking
+  mm: Handle shadow stack page fault
+  mm: Handle THP/HugeTLB shadow stack page fault
+  mm: Update can_follow_write_pte/pmd for shadow stack
+  mm: Introduce do_mmap_locked()
+  x86/cet/shstk: User-mode shadow stack support
+  x86/cet/shstk: Introduce WRUSS instruction
+  x86/cet/shstk: Handle signals for shadow stack
+  binfmt_elf: Extract .note.gnu.property from an ELF file
+  x86/cet/shstk: ELF header parsing of Shadow Stack
+  x86/cet/shstk: Handle thread shadow stack
+  mm/mmap: Add Shadow stack pages to memory accounting
+  x86/cet/shstk: Add arch_prctl functions for Shadow Stack
+  x86/cet/shstk: Add Shadow Stack instructions to opcode map
+
+ .../admin-guide/kernel-parameters.txt         |   6 +
+ Documentation/x86/index.rst                   |   1 +
+ Documentation/x86/intel_cet.rst               | 268 +++++++++++++
+ arch/x86/Kconfig                              |  26 ++
+ arch/x86/Makefile                             |   7 +
+ arch/x86/entry/entry_64.S                     |   2 +-
+ arch/x86/ia32/ia32_signal.c                   |   8 +
+ arch/x86/include/asm/cet.h                    |  48 +++
+ arch/x86/include/asm/cpufeatures.h            |   2 +
+ arch/x86/include/asm/disabled-features.h      |   8 +-
+ arch/x86/include/asm/fpu/internal.h           |  25 +-
+ arch/x86/include/asm/fpu/signal.h             |   2 +
+ arch/x86/include/asm/fpu/types.h              |  22 ++
+ arch/x86/include/asm/fpu/xstate.h             |  26 +-
+ arch/x86/include/asm/mmu_context.h            |   3 +
+ arch/x86/include/asm/msr-index.h              |  18 +
+ arch/x86/include/asm/pgtable.h                | 191 ++++++++--
+ arch/x86/include/asm/pgtable_types.h          |  38 +-
+ arch/x86/include/asm/processor.h              |   5 +
+ arch/x86/include/asm/special_insns.h          |  32 ++
+ arch/x86/include/asm/traps.h                  |   5 +
+ arch/x86/include/uapi/asm/prctl.h             |   5 +
+ arch/x86/include/uapi/asm/processor-flags.h   |   2 +
+ arch/x86/include/uapi/asm/sigcontext.h        |  15 +
+ arch/x86/kernel/Makefile                      |   2 +
+ arch/x86/kernel/cet.c                         | 327 ++++++++++++++++
+ arch/x86/kernel/cet_prctl.c                   |  85 +++++
+ arch/x86/kernel/cpu/common.c                  |  25 ++
+ arch/x86/kernel/cpu/cpuid-deps.c              |   2 +
+ arch/x86/kernel/fpu/core.c                    |  26 +-
+ arch/x86/kernel/fpu/init.c                    |  10 -
+ arch/x86/kernel/fpu/signal.c                  |  81 +++-
+ arch/x86/kernel/fpu/xstate.c                  | 156 +++++---
+ arch/x86/kernel/idt.c                         |   4 +
+ arch/x86/kernel/process.c                     |   8 +-
+ arch/x86/kernel/process_64.c                  |  31 ++
+ arch/x86/kernel/relocate_kernel_64.S          |   2 +-
+ arch/x86/kernel/signal.c                      |  10 +-
+ arch/x86/kernel/signal_compat.c               |   2 +-
+ arch/x86/kernel/traps.c                       |  57 +++
+ arch/x86/kvm/vmx/vmx.c                        |   2 +-
+ arch/x86/lib/x86-opcode-map.txt               |  26 +-
+ arch/x86/mm/fault.c                           |  18 +
+ arch/x86/mm/pgtable.c                         |  41 ++
+ drivers/gpu/drm/i915/gvt/gtt.c                |   2 +-
+ fs/Kconfig.binfmt                             |   3 +
+ fs/Makefile                                   |   1 +
+ fs/binfmt_elf.c                               |  13 +
+ fs/gnu_property.c                             | 351 ++++++++++++++++++
+ fs/proc/task_mmu.c                            |   3 +
+ include/asm-generic/pgtable.h                 |  14 +
+ include/linux/elf.h                           |  12 +
+ include/linux/mm.h                            |  26 ++
+ include/uapi/asm-generic/siginfo.h            |   3 +-
+ include/uapi/linux/elf.h                      |  14 +
+ mm/gup.c                                      |   8 +-
+ mm/huge_memory.c                              |  12 +-
+ mm/memory.c                                   |   7 +-
+ mm/mmap.c                                     |  11 +
+ .../arch/x86/include/asm/disabled-features.h  |   8 +-
+ tools/objtool/arch/x86/lib/x86-opcode-map.txt |  26 +-
+ 61 files changed, 2029 insertions(+), 165 deletions(-)
+ create mode 100644 Documentation/x86/intel_cet.rst
+ create mode 100644 arch/x86/include/asm/cet.h
+ create mode 100644 arch/x86/kernel/cet.c
+ create mode 100644 arch/x86/kernel/cet_prctl.c
+ create mode 100644 fs/gnu_property.c
+
 -- 
 2.17.1
