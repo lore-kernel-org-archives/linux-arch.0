@@ -1,99 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:47825 "EHLO mga17.intel.com"
+Received: from mga07.intel.com ([134.134.136.100]:42894 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729043AbfFFUPS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jun 2019 16:15:18 -0400
+        id S1729512AbfFFURj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jun 2019 16:17:39 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v7 07/27] x86/cet/shstk: Add Kconfig option for user-mode shadow stack
-Date: Thu,  6 Jun 2019 13:06:26 -0700
-Message-ID: <20190606200646.3951-8-yu-cheng.yu@intel.com>
-In-Reply-To: <20190606200646.3951-1-yu-cheng.yu@intel.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v7 00/14] Control-flow Enforcement: Branch Tracking, PTRACE
+Date: Thu,  6 Jun 2019 13:09:12 -0700
+Message-ID: <20190606200926.4029-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20190606200626.wRH9jANlyJRZ6sYgxPTcdvbOwGfc-KTVHrE1IiCmCpk@z>
+Message-ID: <20190606200912.OgBoPEyFUucm0Jccipws1a78Gjbb16Hpxas12ls93Lo@z>
 
-Introduce Kconfig option X86_INTEL_SHADOW_STACK_USER.
+The previous version of CET Branch Tracking/PTRACE patches is here:
 
-An application has shadow stack protection when all the following are
-true:
+  https://lkml.org/lkml/2018/11/20/203
 
-  (1) The kernel has X86_INTEL_SHADOW_STACK_USER enabled,
-  (2) The running processor supports the shadow stack,
-  (3) The application is built with shadow stack enabled tools & libs
-      and, and at runtime, all dependent shared libs can support
-      shadow stack.
+Summary of changes from v6:
 
-If this kernel config option is enabled, but (2) or (3) above is not
-true, the application runs without the shadow stack protection.
-Existing legacy applications will continue to work without the shadow
-stack protection.
+  Rebase to v5.2-rc3.
 
-The user-mode shadow stack protection is only implemented for the
-64-bit kernel.  Thirty-two bit applications are supported under the
-compatibility mode.
+  Add Branch Tracking in the signal handling routines.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/Kconfig  | 25 +++++++++++++++++++++++++
- arch/x86/Makefile |  7 +++++++
- 2 files changed, 32 insertions(+)
+  Fix Branch Tracking (and Shadow Stack) for vsyscall (patch #12):
+    This patch can be dropped if we expect CET blocking vsyscall.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 2bbbd4d1ba31..1664918c2c1c 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1915,6 +1915,31 @@ config X86_INTEL_MEMORY_PROTECTION_KEYS
- 
- 	  If unsure, say y.
- 
-+config X86_INTEL_CET
-+	def_bool n
-+
-+config ARCH_HAS_SHSTK
-+	def_bool n
-+
-+config X86_INTEL_SHADOW_STACK_USER
-+	prompt "Intel Shadow Stack for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select X86_INTEL_CET
-+	select ARCH_HAS_SHSTK
-+	---help---
-+	  Shadow stack provides hardware protection against program stack
-+	  corruption.  Only when all the following are true will an application
-+	  have the shadow stack protection: the kernel supports it (i.e. this
-+	  feature is enabled), the application is compiled and linked with
-+	  shadow stack enabled, and the processor supports this feature.
-+	  When the kernel has this configuration enabled, existing non shadow
-+	  stack applications will continue to work, but without shadow stack
-+	  protection.
-+
-+	  If unsure, say y.
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
-diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-index 56e748a7679f..0b2e9df48907 100644
---- a/arch/x86/Makefile
-+++ b/arch/x86/Makefile
-@@ -148,6 +148,13 @@ ifdef CONFIG_X86_X32
- endif
- export CONFIG_X86_X32_ABI
- 
-+# Check assembler shadow stack suppot
-+ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+  ifeq ($(call as-instr, saveprevssp, y),)
-+      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
-+  endif
-+endif
-+
- #
- # If the function graph tracer is used with mcount instead of fentry,
- # '-maccumulate-outgoing-args' is needed to prevent a GCC bug
+  Include H.J. Lu's patch to discard .note.gnu.property in the kernel.
+
+H.J. Lu (4):
+  x86/vdso: Insert endbr32/endbr64 to vDSO
+  x86/vdso/32: Add ENDBR32 to __kernel_vsyscall entry point
+  x86/vsyscall/64: Add ENDBR64 to vsyscall entry points
+  x86: Discard .note.gnu.property sections
+
+Yu-cheng Yu (10):
+  x86/cet/ibt: Add Kconfig option for user-mode Indirect Branch Tracking
+  x86/cet/ibt: User-mode indirect branch tracking support
+  x86/cet/ibt: Add IBT legacy code bitmap setup function
+  x86/cet/ibt: Handle signals for IBT
+  mm/mmap: Add IBT bitmap size to address space limit check
+  x86/cet/ibt: ELF header parsing for IBT
+  x86/cet/ibt: Add arch_prctl functions for IBT
+  x86/cet/ibt: Add ENDBR to op-code-map
+  x86/vsyscall/64: Fixup shadow stack and branch tracking for vsyscall
+  x86/cet: Add PTRACE interface for CET
+
+ arch/x86/Kconfig                              | 16 ++++
+ arch/x86/Makefile                             |  7 ++
+ arch/x86/entry/vdso/Makefile                  | 12 ++-
+ arch/x86/entry/vdso/vdso-layout.lds.S         |  1 +
+ arch/x86/entry/vdso/vdso32/system_call.S      |  3 +
+ arch/x86/entry/vsyscall/vsyscall_64.c         | 28 +++++++
+ arch/x86/entry/vsyscall/vsyscall_emu_64.S     |  9 +++
+ arch/x86/include/asm/cet.h                    |  8 ++
+ arch/x86/include/asm/disabled-features.h      |  8 +-
+ arch/x86/include/asm/fpu/regset.h             |  7 +-
+ arch/x86/include/asm/mmu_context.h            | 10 +++
+ arch/x86/include/uapi/asm/prctl.h             |  2 +
+ arch/x86/kernel/cet.c                         | 80 +++++++++++++++++++
+ arch/x86/kernel/cet_prctl.c                   | 21 +++++
+ arch/x86/kernel/cpu/common.c                  | 17 ++++
+ arch/x86/kernel/fpu/regset.c                  | 41 ++++++++++
+ arch/x86/kernel/process_64.c                  |  6 ++
+ arch/x86/kernel/ptrace.c                      | 16 ++++
+ arch/x86/kernel/vmlinux.lds.S                 | 11 ++-
+ arch/x86/lib/x86-opcode-map.txt               | 13 ++-
+ include/uapi/linux/elf.h                      |  1 +
+ mm/mmap.c                                     | 19 ++++-
+ .../arch/x86/include/asm/disabled-features.h  |  8 +-
+ tools/objtool/arch/x86/lib/x86-opcode-map.txt | 13 ++-
+ 24 files changed, 345 insertions(+), 12 deletions(-)
+
 -- 
 2.17.1
