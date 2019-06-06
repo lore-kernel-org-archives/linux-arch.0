@@ -1,155 +1,66 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 5 Jun 2019 22:40:03 +0200
-Message-ID: <20190605204003.GC3402@hirez.programming.kicks-ass.net>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
- <20190402094320.GM11158@hirez.programming.kicks-ass.net>
- <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
- <20190403160112.GK4038@hirez.programming.kicks-ass.net>
- <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: single copy atomicity for double load/stores on 32-bit systems
+Date: Thu, 6 Jun 2019 02:43:40 -0700
+Message-ID: <20190606094340.GD28207@linux.ibm.com>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+ <20190531082112.GH2623@hirez.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307501A2522B5B@us01wembx1.internal.synopsys.com>
+ <20190603201324.GN28207@linux.ibm.com>
+ <CAMuHMdW-8Jt80mSyHTYmj6354-3f1=Vp_8dY-Nite1ERpUCFew@mail.gmail.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <CAMuHMdW-8Jt80mSyHTYmj6354-3f1=Vp_8dY-Nite1ERpUCFew@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVHVlLCBKdW4gMDQsIDIwMTkgYXQgMDc6MjE6MTNQTSAtMDQwMCwgQWxleCBLb2dhbiB3cm90
-ZToKCj4gVHJ5aW5nIHRvIHJlc3VtZSB0aGlzIHdvcmssIEkgYW0gbG9va2luZyBmb3IgY29uY3Jl
-dGUgc3RlcHMgcmVxdWlyZWQKPiB0byBpbnRlZ3JhdGUgQ05BIHdpdGggdGhlIHBhcmF2aXJ0IHBh
-dGNoaW5nLgo+IAo+IExvb2tpbmcgYXQgYWx0ZXJuYXRpdmVfaW5zdHJ1Y3Rpb25zKCksIEkgd29u
-ZGVyIGlmIEkgbmVlZCB0byBhZGQKPiBhbm90aGVyIGNhbGwsIHNvbWV0aGluZyBsaWtlIGFwcGx5
-X251bWEoKSBzaW1pbGFyIHRvIGFwcGx5X3BhcmF2aXJ0KCksCj4gYW5kIGRvIHRoZSBwYXRjaCB3
-b3JrIHRoZXJlLiAgT3IgcGVyaGFwcyBJIHNob3VsZCDigJxqdXN0IiBpbml0aWFsaXplCj4gdGhl
-IHB2X29wcyBzdHJ1Y3R1cmUgd2l0aCB0aGUgY29ycmVzcG9uZGluZwo+IG51bWFfcXVldWVkX3Nw
-aW5sb2NrX3Nsb3dwYXRoKCkgaW4gcGFyYXZpcnQuYz8KClllYWgsIGp1c3QgaW5pdGlhbGl6ZSB0
-aGUgcHZfb3BzLmxvY2suKiB0aGluZ2llcyB0byBjb250YWluIHRoZSBudW1hCnZhcmlhbnQgYmVm
-b3JlIGFwcGx5X3BhcmF2aXJ0KCkgaGFwcGVucy4KCj4gQWxzbywgdGhlIHBhcmF2aXJ0IGNvZGUg
-aXMgdW5kZXIgYXJjaC94ODYsIHdoaWxlIENOQSBpcyBnZW5lcmljIChub3QKPiB4ODYtc3BlY2lm
-aWMpLiAgRG8geW91IHN0aWxsIHdhbnQgdG8gc2VlIENOQS1yZWxhdGVkIHBhdGNoaW5nIHJlc2lk
-aW5nCj4gdW5kZXIgYXJjaC94ODY/Cj4gCj4gV2Ugc3RpbGwgbmVlZCBhIGNvbmZpZyBvcHRpb24g
-KHNvbWV0aGluZyBsaWtlIE5VTUFfQVdBUkVfU1BJTkxPQ0tTKSB0bwo+IGVuYWJsZSBDTkEgcGF0
-Y2hpbmcgdW5kZXIgdGhpcyBjb25maWcgb25seSwgY29ycmVjdD8KClRoZXJlIGlzIHRoZSBzdGF0
-aWNfY2FsbCgpIHN0dWZmIHRoYXQgY291bGQgYmUgZ2VuZXJpYzsgSSBwb3N0ZWQgYSBuZXcKdmVy
-c2lvbiBvZiB0aGF0IHRvZGF5ICh4ODYgb25seSBmb3Igbm93LCBidXQgSUlSQyB0aGVyZSdzIGFy
-bTY0IHBhdGNoZXMKZm9yIHRoYXQgYXJvdW5kIHNvbWV3aGVyZSB0b28pLgoKaHR0cHM6Ly9sa21s
-Lmtlcm5lbC5vcmcvci8yMDE5MDYwNTEzMDc1My4zMjcxOTUxMDhAaW5mcmFkZWFkLm9yZwoKV2hp
-Y2ggd291bGQgYWxsb3cgc29tZXRoaW5nIGEgbGl0dGxlIGxpa2UgdGhpczoKCgpkaWZmIC0tZ2l0
-IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcXNwaW5sb2NrLmggYi9hcmNoL3g4Ni9pbmNsdWRlL2Fz
-bS9xc3BpbmxvY2suaAppbmRleCBiZDVhYzZjYzM3ZGIuLjAxZmVhZjkxMmJkNyAxMDA2NDQKLS0t
-IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcXNwaW5sb2NrLmgKKysrIGIvYXJjaC94ODYvaW5jbHVk
-ZS9hc20vcXNwaW5sb2NrLmgKQEAgLTYzLDI5ICs2Myw3IEBAIHN0YXRpYyBpbmxpbmUgYm9vbCB2
-Y3B1X2lzX3ByZWVtcHRlZChsb25nIGNwdSkKICNlbmRpZgogCiAjaWZkZWYgQ09ORklHX1BBUkFW
-SVJUCi1ERUNMQVJFX1NUQVRJQ19LRVlfVFJVRSh2aXJ0X3NwaW5fbG9ja19rZXkpOwotCiB2b2lk
-IG5hdGl2ZV9wdl9sb2NrX2luaXQodm9pZCkgX19pbml0OwotCi0jZGVmaW5lIHZpcnRfc3Bpbl9s
-b2NrIHZpcnRfc3Bpbl9sb2NrCi1zdGF0aWMgaW5saW5lIGJvb2wgdmlydF9zcGluX2xvY2soc3Ry
-dWN0IHFzcGlubG9jayAqbG9jaykKLXsKLQlpZiAoIXN0YXRpY19icmFuY2hfbGlrZWx5KCZ2aXJ0
-X3NwaW5fbG9ja19rZXkpKQotCQlyZXR1cm4gZmFsc2U7Ci0KLQkvKgotCSAqIE9uIGh5cGVydmlz
-b3JzIHdpdGhvdXQgUEFSQVZJUlRfU1BJTkxPQ0tTIHN1cHBvcnQgd2UgZmFsbAotCSAqIGJhY2sg
-dG8gYSBUZXN0LWFuZC1TZXQgc3BpbmxvY2ssIGJlY2F1c2UgZmFpciBsb2NrcyBoYXZlCi0JICog
-aG9ycmlibGUgbG9jayAnaG9sZGVyJyBwcmVlbXB0aW9uIGlzc3Vlcy4KLQkgKi8KLQotCWRvIHsK
-LQkJd2hpbGUgKGF0b21pY19yZWFkKCZsb2NrLT52YWwpICE9IDApCi0JCQljcHVfcmVsYXgoKTsK
-LQl9IHdoaWxlIChhdG9taWNfY21weGNoZygmbG9jay0+dmFsLCAwLCBfUV9MT0NLRURfVkFMKSAh
-PSAwKTsKLQotCXJldHVybiB0cnVlOwotfQogI2Vsc2UKIHN0YXRpYyBpbmxpbmUgdm9pZCBuYXRp
-dmVfcHZfbG9ja19pbml0KHZvaWQpCiB7CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwva3Zt
-LmMgYi9hcmNoL3g4Ni9rZXJuZWwva3ZtLmMKaW5kZXggNTE2OWI4Y2MzNWJiLi43OGJlOWU0NzRl
-OTQgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2tlcm5lbC9rdm0uYworKysgYi9hcmNoL3g4Ni9rZXJu
-ZWwva3ZtLmMKQEAgLTUzMSw3ICs1MzEsNyBAQCBzdGF0aWMgdm9pZCBfX2luaXQga3ZtX3NtcF9w
-cmVwYXJlX2NwdXModW5zaWduZWQgaW50IG1heF9jcHVzKQogewogCW5hdGl2ZV9zbXBfcHJlcGFy
-ZV9jcHVzKG1heF9jcHVzKTsKIAlpZiAoa3ZtX3BhcmFfaGFzX2hpbnQoS1ZNX0hJTlRTX1JFQUxU
-SU1FKSkKLQkJc3RhdGljX2JyYW5jaF9kaXNhYmxlKCZ2aXJ0X3NwaW5fbG9ja19rZXkpOworCQlz
-dGF0aWNfY2FsbF91cGRhdGUocXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCwgX19xdWV1ZWRfc3Bp
-bl9sb2NrX3Nsb3dwYXRoKTsKIH0KIAogc3RhdGljIHZvaWQgX19pbml0IGt2bV9zbXBfcHJlcGFy
-ZV9ib290X2NwdSh2b2lkKQpkaWZmIC0tZ2l0IGEvYXJjaC94ODYva2VybmVsL3BhcmF2aXJ0LmMg
-Yi9hcmNoL3g4Ni9rZXJuZWwvcGFyYXZpcnQuYwppbmRleCA5ODAzOWQ3ZmI5OTguLmFlNmQxNWY4
-NDg2NyAxMDA2NDQKLS0tIGEvYXJjaC94ODYva2VybmVsL3BhcmF2aXJ0LmMKKysrIGIvYXJjaC94
-ODYva2VybmVsL3BhcmF2aXJ0LmMKQEAgLTEwNSwxMiArMTA1LDEwIEBAIHN0YXRpYyB1bnNpZ25l
-ZCBwYXJhdmlydF9wYXRjaF9qbXAodm9pZCAqaW5zbl9idWZmLCBjb25zdCB2b2lkICp0YXJnZXQs
-CiB9CiAjZW5kaWYKIAotREVGSU5FX1NUQVRJQ19LRVlfVFJVRSh2aXJ0X3NwaW5fbG9ja19rZXkp
-OwotCiB2b2lkIF9faW5pdCBuYXRpdmVfcHZfbG9ja19pbml0KHZvaWQpCiB7Ci0JaWYgKCFib290
-X2NwdV9oYXMoWDg2X0ZFQVRVUkVfSFlQRVJWSVNPUikpCi0JCXN0YXRpY19icmFuY2hfZGlzYWJs
-ZSgmdmlydF9zcGluX2xvY2tfa2V5KTsKKwlpZiAoYm9vdF9jcHVfaGFzKFg4Nl9GRUFUVVJFX0hZ
-UEVSVklTT1IpKQorCQlzdGF0aWNfY2FsbF91cGRhdGUocXVldWVkX3NwaW5fbG9ja19zbG93cGF0
-aCwgX190YXNfc3Bpbl9sb2NrX3Nsb3dwYXRoKTsKIH0KIAogdW5zaWduZWQgcGFyYXZpcnRfcGF0
-Y2hfZGVmYXVsdCh1OCB0eXBlLCB2b2lkICppbnNuX2J1ZmYsCmRpZmYgLS1naXQgYS9hcmNoL3g4
-Ni94ZW4vc3BpbmxvY2suYyBiL2FyY2gveDg2L3hlbi9zcGlubG9jay5jCmluZGV4IDM3NzYxMjJj
-ODdjYy4uODY4MDgxMjdiNmU2IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4vc3BpbmxvY2suYwor
-KysgYi9hcmNoL3g4Ni94ZW4vc3BpbmxvY2suYwpAQCAtNzAsNyArNzAsNyBAQCB2b2lkIHhlbl9p
-bml0X2xvY2tfY3B1KGludCBjcHUpCiAKIAlpZiAoIXhlbl9wdnNwaW4pIHsKIAkJaWYgKGNwdSA9
-PSAwKQotCQkJc3RhdGljX2JyYW5jaF9kaXNhYmxlKCZ2aXJ0X3NwaW5fbG9ja19rZXkpOworCQkJ
-c3RhdGljX2NhbGxfdXBkYXRlKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIF9fcXVldWVkX3Nw
-aW5fbG9ja19zbG93cGF0aCk7CiAJCXJldHVybjsKIAl9CiAKZGlmZiAtLWdpdCBhL2luY2x1ZGUv
-YXNtLWdlbmVyaWMvcXNwaW5sb2NrLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL3FzcGlubG9jay5o
-CmluZGV4IGZkZTk0M2QxODBlMC4uOGNhNGRkOWRiOTMxIDEwMDY0NAotLS0gYS9pbmNsdWRlL2Fz
-bS1nZW5lcmljL3FzcGlubG9jay5oCisrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2Nr
-LmgKQEAgLTY1LDcgKzY1LDkgQEAgc3RhdGljIF9fYWx3YXlzX2lubGluZSBpbnQgcXVldWVkX3Nw
-aW5fdHJ5bG9jayhzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrKQogCXJldHVybiBsaWtlbHkoYXRvbWlj
-X3RyeV9jbXB4Y2hnX2FjcXVpcmUoJmxvY2stPnZhbCwgJnZhbCwgX1FfTE9DS0VEX1ZBTCkpOwog
-fQogCi1leHRlcm4gdm9pZCBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3Bpbmxv
-Y2sgKmxvY2ssIHUzMiB2YWwpOworZXh0ZXJuIHZvaWQgX19xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dw
-YXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpOworCitERUNMQVJFX1NUQVRJQ19D
-QUxMKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIF9fcXVldWVkX3NwaW5fbG9ja19zbG93cGF0
-aCk7CiAKIC8qKgogICogcXVldWVkX3NwaW5fbG9jayAtIGFjcXVpcmUgYSBxdWV1ZWQgc3Bpbmxv
-Y2sKQEAgLTc4LDcgKzgwLDcgQEAgc3RhdGljIF9fYWx3YXlzX2lubGluZSB2b2lkIHF1ZXVlZF9z
-cGluX2xvY2soc3RydWN0IHFzcGlubG9jayAqbG9jaykKIAlpZiAobGlrZWx5KGF0b21pY190cnlf
-Y21weGNoZ19hY3F1aXJlKCZsb2NrLT52YWwsICZ2YWwsIF9RX0xPQ0tFRF9WQUwpKSkKIAkJcmV0
-dXJuOwogCi0JcXVldWVkX3NwaW5fbG9ja19zbG93cGF0aChsb2NrLCB2YWwpOworCXN0YXRpY19j
-YWxsKHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgsIGxvY2ssIHZhbCk7CiB9CiAKICNpZm5kZWYg
-cXVldWVkX3NwaW5fdW5sb2NrCkBAIC05NSwxMyArOTcsNiBAQCBzdGF0aWMgX19hbHdheXNfaW5s
-aW5lIHZvaWQgcXVldWVkX3NwaW5fdW5sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2spCiB9CiAj
-ZW5kaWYKIAotI2lmbmRlZiB2aXJ0X3NwaW5fbG9jawotc3RhdGljIF9fYWx3YXlzX2lubGluZSBi
-b29sIHZpcnRfc3Bpbl9sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2spCi17Ci0JcmV0dXJuIGZh
-bHNlOwotfQotI2VuZGlmCi0KIC8qCiAgKiBSZW1hcHBpbmcgc3BpbmxvY2sgYXJjaGl0ZWN0dXJl
-IHNwZWNpZmljIGZ1bmN0aW9ucyB0byB0aGUgY29ycmVzcG9uZGluZwogICogcXVldWVkIHNwaW5s
-b2NrIGZ1bmN0aW9ucy4KZGlmZiAtLWdpdCBhL2tlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jIGIv
-a2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMKaW5kZXggMjQ3M2YxMGM2OTU2Li4wZTllNjE2Mzdk
-NTYgMTAwNjQ0Ci0tLSBhL2tlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jCisrKyBiL2tlcm5lbC9s
-b2NraW5nL3FzcGlubG9jay5jCkBAIC0yOTAsNiArMjkwLDIwIEBAIHN0YXRpYyBfX2Fsd2F5c19p
-bmxpbmUgdTMyICBfX3B2X3dhaXRfaGVhZF9vcl9sb2NrKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ss
-CiAKICNlbmRpZiAvKiBfR0VOX1BWX0xPQ0tfU0xPV1BBVEggKi8KIAordm9pZCBfX3Rhc19zcGlu
-X2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkKK3sKKwkvKgor
-CSAqIE9uIGh5cGVydmlzb3JzIHdpdGhvdXQgUEFSQVZJUlRfU1BJTkxPQ0tTIHN1cHBvcnQgd2Ug
-ZmFsbAorCSAqIGJhY2sgdG8gYSBUZXN0LWFuZC1TZXQgc3BpbmxvY2ssIGJlY2F1c2UgZmFpciBs
-b2NrcyBoYXZlCisJICogaG9ycmlibGUgbG9jayAnaG9sZGVyJyBwcmVlbXB0aW9uIGlzc3Vlcy4K
-KwkgKi8KKworCWRvIHsKKwkJd2hpbGUgKGF0b21pY19yZWFkKCZsb2NrLT52YWwpICE9IDApCisJ
-CQljcHVfcmVsYXgoKTsKKwl9IHdoaWxlIChhdG9taWNfY21weGNoZygmbG9jay0+dmFsLCAwLCBf
-UV9MT0NLRURfVkFMKSAhPSAwKTsKK30KKwogLyoqCiAgKiBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dw
-YXRoIC0gYWNxdWlyZSB0aGUgcXVldWVkIHNwaW5sb2NrCiAgKiBAbG9jazogUG9pbnRlciB0byBx
-dWV1ZWQgc3BpbmxvY2sgc3RydWN0dXJlCkBAIC0zMTEsNyArMzI1LDcgQEAgc3RhdGljIF9fYWx3
-YXlzX2lubGluZSB1MzIgIF9fcHZfd2FpdF9oZWFkX29yX2xvY2soc3RydWN0IHFzcGlubG9jayAq
-bG9jaywKICAqIGNvbnRlbmRlZCAgICAgICAgICAgICA6ICAgICgqLHgseSkgKy0tPiAoKiwwLDAp
-IC0tLT4gKCosMCwxKSAtJyAgOgogICogICBxdWV1ZSAgICAgICAgICAgICAgIDogICAgICAgICBe
-LS0nICAgICAgICAgICAgICAgICAgICAgICAgICAgICA6CiAgKi8KLXZvaWQgcXVldWVkX3NwaW5f
-bG9ja19zbG93cGF0aChzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLCB1MzIgdmFsKQordm9pZCBfX3F1
-ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkK
-IHsKIAlzdHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmV2LCAqbmV4dCwgKm5vZGU7CiAJdTMyIG9sZCwg
-dGFpbDsKQEAgLTMyMiw5ICszMzYsNiBAQCB2b2lkIHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgo
-c3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkKIAlpZiAocHZfZW5hYmxlZCgpKQogCQln
-b3RvIHB2X3F1ZXVlOwogCi0JaWYgKHZpcnRfc3Bpbl9sb2NrKGxvY2spKQotCQlyZXR1cm47Ci0K
-IAkvKgogCSAqIFdhaXQgZm9yIGluLXByb2dyZXNzIHBlbmRpbmctPmxvY2tlZCBoYW5kLW92ZXJz
-IHdpdGggYSBib3VuZGVkCiAJICogbnVtYmVyIG9mIHNwaW5zIHNvIHRoYXQgd2UgZ3VhcmFudGVl
-IGZvcndhcmQgcHJvZ3Jlc3MuCkBAIC01NTgsNyArNTY5LDkgQEAgdm9pZCBxdWV1ZWRfc3Bpbl9s
-b2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpCiAJICovCiAJX190
-aGlzX2NwdV9kZWMocW5vZGVzWzBdLm1jcy5jb3VudCk7CiB9Ci1FWFBPUlRfU1lNQk9MKHF1ZXVl
-ZF9zcGluX2xvY2tfc2xvd3BhdGgpOworRVhQT1JUX1NZTUJPTChfX3F1ZXVlZF9zcGluX2xvY2tf
-c2xvd3BhdGgpOworCitERUZJTkVfU1RBVElDX0NBTEwocXVldWVkX3NwaW5fbG9ja19zbG93cGF0
-aCwgX19xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKTsKIAogLyoKICAqIEdlbmVyYXRlIHRoZSBw
-YXJhdmlydCBjb2RlIGZvciBxdWV1ZWRfc3Bpbl91bmxvY2tfc2xvd3BhdGgoKS4KCl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwg
-bWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8v
-bGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+On Tue, Jun 04, 2019 at 09:41:04AM +0200, Geert Uytterhoeven wrote:
+> Hi Paul,
+> 
+> On Mon, Jun 3, 2019 at 10:14 PM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
+> > On Mon, Jun 03, 2019 at 06:08:35PM +0000, Vineet Gupta wrote:
+> > > On 5/31/19 1:21 AM, Peter Zijlstra wrote:
+> > > >> I'm not sure how to interpret "natural alignment" for the case of double
+> > > >> load/stores on 32-bit systems where the hardware and ABI allow for 4 byte
+> > > >> alignment (ARCv2 LDD/STD, ARM LDRD/STRD ....)
+> > > > Natural alignment: !((uintptr_t)ptr % sizeof(*ptr))
+> > > >
+> > > > For any u64 type, that would give 8 byte alignment. the problem
+> > > > otherwise being that your data spans two lines/pages etc..
+> > >
+> > > Sure, but as Paul said, if the software doesn't expect them to be atomic by
+> > > default, they could span 2 hardware lines to keep the implementation simpler/sane.
+> >
+> > I could imagine 8-byte types being only four-byte aligned on 32-bit systems,
+> > but it would be quite a surprise on 64-bit systems.
+> 
+> Or two-byte aligned?
+> 
+> M68k started with a 16-bit data bus, and alignment rules were retained
+> when gaining a wider data bus.
+> 
+> BTW, do any platforms have issues with atomicity of 4-byte types on
+> 16-bit data buses? I believe some embedded ARM or PowerPC do have
+> such buses.
+
+But m68k is !SMP-only, correct?  If so, the only issues would be
+interactions with interrupt handlers and the like, and doesn't current
+m68k hardware use exact interrupts?  Or is it still possible to interrupt
+an m68k in the middle of an instruction like it was in the bad old days?
+
+							Thanx, Paul
+
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> -- 
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
