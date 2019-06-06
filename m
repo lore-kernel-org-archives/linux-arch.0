@@ -1,24 +1,52 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v7 11/14] x86/vsyscall/64: Add ENDBR64 to vsyscall entry points
-Date: Thu, 6 Jun 2019 13:28:29 -0700
-Message-ID: <CALCETrXWehe=s4i+VkjxJBLh2AVWRioybpY0nbEWXZjvY_rFeQ@mail.gmail.com>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com> <20190606200926.4029-12-yu-cheng.yu@intel.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: single copy atomicity for double load/stores on 32-bit systems
+Date: Thu, 6 Jun 2019 14:17:36 -0700
+Message-ID: <20190606211736.GW28207@linux.ibm.com>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+ <20190531082112.GH2623@hirez.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307501A2522B5B@us01wembx1.internal.synopsys.com>
+ <20190603201324.GN28207@linux.ibm.com>
+ <CAMuHMdW-8Jt80mSyHTYmj6354-3f1=Vp_8dY-Nite1ERpUCFew@mail.gmail.com>
+ <20190606094340.GD28207@linux.ibm.com>
+ <8d1666df180d4d01aaebb5d41370b338@AcuMS.aculab.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190606200926.4029-12-yu-cheng.yu@intel.com>
+Content-Disposition: inline
+In-Reply-To: <8d1666df180d4d01aaebb5d41370b338@AcuMS.aculab.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@or>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 6, 2019 at 1:17 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
->
-> From: "H.J. Lu" <hjl.tools@gmail.com>
->
-> Add ENDBR64 to vsyscall entry points.
+On Thu, Jun 06, 2019 at 04:34:52PM +0000, David Laight wrote:
+> From: Paul E. McKenney
+> > Sent: 06 June 2019 10:44
+> ...
+> > But m68k is !SMP-only, correct?  If so, the only issues would be
+> > interactions with interrupt handlers and the like, and doesn't current
+> > m68k hardware use exact interrupts?  Or is it still possible to interrupt
+> > an m68k in the middle of an instruction like it was in the bad old days?
+> 
+> Hardware interrupts were always on instruction boundaries, the
+> mid-instruction interrupts would only happen for page faults (etc).
 
-I'm still okay with this patch, but this is rather silly.  If anyone
-actually executes this code, they're doing it wrong.
+OK, !SMP should be fine, then.
 
---Andy
+> There were SMP m68k systems (but I can't remember one).
+> It was important to continue from a mid-instruction trap on the
+> same cpu - unless you could guarantee that all the cpus had
+> exactly the same version of the microcode.
+
+Yuck!  ;-)
+
+> In any case you could probably use the 'cmp2' instruction
+> for an atomic 64bit write.
+> OTOH setting that up was such a PITA it was always easier
+> to disable interrupts.
+
+Unless I am forgetting something, given that m68k is a 32-bit system,
+we should be OK without an atomic 64-bit write.
+
+							Thanx, Paul
