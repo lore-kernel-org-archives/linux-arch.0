@@ -1,10 +1,11 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46566 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:55028 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729306AbfFFPdB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jun 2019 11:33:01 -0400
+        id S1729137AbfFFPmU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jun 2019 11:42:20 -0400
 Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
+From: Waiman Long <longman@redhat.com>
 References: <20190329152006.110370-1-alex.kogan@oracle.com>
  <20190329152006.110370-4-alex.kogan@oracle.com>
  <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
@@ -14,11 +15,11 @@ References: <20190329152006.110370-1-alex.kogan@oracle.com>
  <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
  <20190605204003.GC3402@hirez.programming.kicks-ass.net>
  <6426D627-77EE-471C-B02A-A85271B666E9@oracle.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <409b5d52-1f7d-7f60-04c7-e791e069239f@redhat.com>
-Date: Thu, 6 Jun 2019 11:32:46 -0400
+ <409b5d52-1f7d-7f60-04c7-e791e069239f@redhat.com>
+Message-ID: <dc79105d-3f4d-d940-0313-cec9b3cf0680@redhat.com>
+Date: Thu, 6 Jun 2019 11:42:09 -0400
 MIME-Version: 1.0
-In-Reply-To: <6426D627-77EE-471C-B02A-A85271B666E9@oracle.com>
+In-Reply-To: <409b5d52-1f7d-7f60-04c7-e791e069239f@redhat.com>
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Content-Language: en-US
@@ -26,24 +27,29 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alex Kogan <alex.kogan@oracle.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, bp@alien8.de, hpa@zytor.com, x86@kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>
-Message-ID: <20190606153246.gJy6EwHGSqRtTeqy239FrBVW8VBg4w-D7MGDfjbvhqQ@z>
+Message-ID: <20190606154209.ytrTey7WPc6EI7YASzs3YOxOXkXpFSpggJS05H7FkWA@z>
 
-On 6/6/19 11:21 AM, Alex Kogan wrote:
->>> Also, the paravirt code is under arch/x86, while CNA is generic (not
->>> x86-specific).  Do you still want to see CNA-related patching residing
->>> under arch/x86?
->>>
->>> We still need a config option (something like NUMA_AWARE_SPINLOCKS) to
->>> enable CNA patching under this config only, correct?
->> There is the static_call() stuff that could be generic; I posted a new
->> version of that today (x86 only for now, but IIRC there's arm64 patches
->> for that around somewhere too).
-> The static_call technique appears as the more desirable long-term approach, but I think it would be prudent to keep the patches decoupled for now so we can move forward with less entanglements.
-> So unless anyone objects, we will work on plugging into the existing patching for pv.
-> And we will keep that code under arch/x86, but will be open for any suggestion to move it elsewhere.
->
-If you mean making the CNV code depends on PARAVIRT_SPINLOCKS for now,
-that is fine. The code should be under kernel/locking. You shouldn't put
-it somewhere under arch/x86.
+On 6/6/19 11:32 AM, Waiman Long wrote:
+> On 6/6/19 11:21 AM, Alex Kogan wrote:
+>>>> Also, the paravirt code is under arch/x86, while CNA is generic (not
+>>>> x86-specific).  Do you still want to see CNA-related patching residing
+>>>> under arch/x86?
+>>>>
+>>>> We still need a config option (something like NUMA_AWARE_SPINLOCKS) to
+>>>> enable CNA patching under this config only, correct?
+>>> There is the static_call() stuff that could be generic; I posted a new
+>>> version of that today (x86 only for now, but IIRC there's arm64 patches
+>>> for that around somewhere too).
+>> The static_call technique appears as the more desirable long-term approach, but I think it would be prudent to keep the patches decoupled for now so we can move forward with less entanglements.
+>> So unless anyone objects, we will work on plugging into the existing patching for pv.
+>> And we will keep that code under arch/x86, but will be open for any suggestion to move it elsewhere.
+>>
+> If you mean making the CNV code depends on PARAVIRT_SPINLOCKS for now,
+> that is fine. The code should be under kernel/locking. You shouldn't put
+> it somewhere under arch/x86.
+
+I mean the core CNV code should be under kernel/locking. The paravirt
+specific code, however, should be close to the current paravirt code
+which is under arch/x86.
 
 -Longman
