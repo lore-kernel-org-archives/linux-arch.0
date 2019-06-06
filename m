@@ -1,89 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51846 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728812AbfFFR4Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Jun 2019 13:56:25 -0400
-Date: Thu, 6 Jun 2019 18:56:19 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 4/8] arm64: Basic Branch Target Identification support
-Message-ID: <20190606175619.GE28398@e103592.cambridge.arm.com>
-References: <1558693533-13465-1-git-send-email-Dave.Martin@arm.com>
- <1558693533-13465-5-git-send-email-Dave.Martin@arm.com>
- <20190524130217.GA15566@lakrids.cambridge.arm.com>
- <20190524145306.GZ28398@e103592.cambridge.arm.com>
- <20190606171155.GI56860@arrakis.emea.arm.com>
- <20190606172345.GD28398@e103592.cambridge.arm.com>
- <5f92e89a5823a3265fa0b389a19452ba995e9406.camel@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5f92e89a5823a3265fa0b389a19452ba995e9406.camel@intel.com>
+Received: from mga17.intel.com ([192.55.52.151]:47825 "EHLO mga17.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729389AbfFFUPc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Jun 2019 16:15:32 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v7 18/27] mm: Introduce do_mmap_locked()
+Date: Thu,  6 Jun 2019 13:06:37 -0700
+Message-ID: <20190606200646.3951-19-yu-cheng.yu@intel.com>
+In-Reply-To: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Paul Elliott <paul.elliott@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Henderson <richard.henderson@linaro.org>, linux-kernel@vger.kernel.org, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190606175619.4Xt-uS4WZ1zeW89EPhK1SFx2ZKqHKRD_yRd3BgafzxM@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20190606200637.4CvrHOuPCpj6FRn8kMKzP3YsB6gag075thiWO2mNYnU@z>
 
-On Thu, Jun 06, 2019 at 10:34:22AM -0700, Yu-cheng Yu wrote:
-> On Thu, 2019-06-06 at 18:23 +0100, Dave Martin wrote:
-> > On Thu, Jun 06, 2019 at 06:11:56PM +0100, Catalin Marinas wrote:
-> > > On Fri, May 24, 2019 at 03:53:06PM +0100, Dave P Martin wrote:
-> > > > On Fri, May 24, 2019 at 02:02:17PM +0100, Mark Rutland wrote:
-> > > > > On Fri, May 24, 2019 at 11:25:29AM +0100, Dave Martin wrote:
-> > > > > >  #endif /* _UAPI__ASM_HWCAP_H */
-> > > > > > diff --git a/arch/arm64/include/uapi/asm/mman.h
-> > > > > > b/arch/arm64/include/uapi/asm/mman.h
-> > > > > > new file mode 100644
-> > > > > > index 0000000..4776b43
-> > > > > > --- /dev/null
-> > > > > > +++ b/arch/arm64/include/uapi/asm/mman.h
-> > > > > > @@ -0,0 +1,9 @@
-> > > > > > +/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-> > > > > > +#ifndef _UAPI__ASM_MMAN_H
-> > > > > > +#define _UAPI__ASM_MMAN_H
-> > > > > > +
-> > > > > > +#include <asm-generic/mman.h>
-> > > > > > +
-> > > > > > +#define PROT_BTI_GUARDED	0x10		/* BTI guarded
-> > > > > > page */
-> > > > > 
-> > > > > From prior discussions, I thought this would be PROT_BTI, without the
-> > > > > _GUARDED suffix. Do we really need that?
-> > > > > 
-> > > > > AFAICT, all other PROT_* definitions only have a single underscore, and
-> > > > > the existing arch-specific flags are PROT_ADI on sparc, and PROT_SAO on
-> > > > > powerpc.
-> > > > 
-> > > > No strong opinon.  I was trying to make the name less obscure, but I'm
-> > > > equally happy with PROT_BTI if people prefer that.
-> > > 
-> > > I prefer PROT_BTI as well. We are going to add a PROT_MTE at some point
-> > > (and a VM_ARM64_MTE in the high VMA flag bits).
-> > 
-> > Ack.
-> > 
-> > Some things need attention, so I need to respin this series anyway.
-> > 
-> > skip_faulting_instruction() and kprobes/uprobes may need looking at,
-> > plus I want to simply the ELF parsing (at least to skip some cost for
-> > arm64).
-> 
-> Can we add a case in the 'consistency checks for the interpreter' (right above
-> where you add arch_parse_property()) for PT_NOTE?  That way you can still use
-> part of the same parser.
+There are a few places that need do_mmap() with mm->mmap_sem held.
+Create an in-line function for that.
 
-I think for arm64 that we can skip searching all the notes by checking
-for a PT_GNU_PROPERTY entry; once that's found, the actual
-NT_GNU_PROPERTY_TYPE_0 parsing should be common.  If there's no
-PT_GNU_PROPERTY entry, we can immediately give up.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ include/linux/mm.h | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
 
-For x86, would it makes sense to use PT_GNU_PROPERTY if it's there,
-and fall back to scanning all the notes otherwise?  Ideally we
-wouldn't need the fallback, but if there are binaries in the wild with
-NT_GNU_PROPERTY_TYPE_0 that lack a PT_GNU_PROPERTY entry, we may be
-stuck with that.
-
-Thoughts?
-
-Cheers
----Dave
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 398f1e1c35e5..7cf014604848 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2411,6 +2411,24 @@ static inline void mm_populate(unsigned long addr, unsigned long len)
+ static inline void mm_populate(unsigned long addr, unsigned long len) {}
+ #endif
+ 
++static inline unsigned long do_mmap_locked(unsigned long addr,
++	unsigned long len, unsigned long prot, unsigned long flags,
++	vm_flags_t vm_flags)
++{
++	struct mm_struct *mm = current->mm;
++	unsigned long populate;
++
++	down_write(&mm->mmap_sem);
++	addr = do_mmap(NULL, addr, len, prot, flags, vm_flags, 0,
++		       &populate, NULL);
++	up_write(&mm->mmap_sem);
++
++	if (populate)
++		mm_populate(addr, populate);
++
++	return addr;
++}
++
+ /* These take the mm semaphore themselves */
+ extern int __must_check vm_brk(unsigned long, unsigned long);
+ extern int __must_check vm_brk_flags(unsigned long, unsigned long, unsigned long);
+-- 
+2.17.1
