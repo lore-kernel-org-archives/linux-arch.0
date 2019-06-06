@@ -1,72 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:32894 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727971AbfFFJxc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jun 2019 05:53:32 -0400
-MIME-Version: 1.0
-References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
- <20190531082112.GH2623@hirez.programming.kicks-ass.net> <C2D7FE5348E1B147BCA15975FBA2307501A2522B5B@us01wembx1.internal.synopsys.com>
- <20190603201324.GN28207@linux.ibm.com> <CAMuHMdW-8Jt80mSyHTYmj6354-3f1=Vp_8dY-Nite1ERpUCFew@mail.gmail.com>
- <20190606094340.GD28207@linux.ibm.com>
-In-Reply-To: <20190606094340.GD28207@linux.ibm.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 6 Jun 2019 11:53:18 +0200
-Message-ID: <CAMuHMdXvpFZjNjN4GyHXSRJ4=8AXVZArc_T+09HPErzZvUxXYg@mail.gmail.com>
-Subject: Re: single copy atomicity for double load/stores on 32-bit systems
-Content-Type: text/plain; charset="UTF-8"
+Received: from userp2120.oracle.com ([156.151.31.85]:36368 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727309AbfFFPXe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jun 2019 11:23:34 -0400
+Content-Type: text/plain; charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <20190605204003.GC3402@hirez.programming.kicks-ass.net>
+Date: Thu, 6 Jun 2019 11:21:48 -0400
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <6426D627-77EE-471C-B02A-A85271B666E9@oracle.com>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <60a3a2d8-d222-73aa-2df1-64c9d3fa3241@redhat.com>
+ <20190402094320.GM11158@hirez.programming.kicks-ass.net>
+ <6AEDE4F2-306A-4DF9-9307-9E3517C68A2B@oracle.com>
+ <20190403160112.GK4038@hirez.programming.kicks-ass.net>
+ <C0BC44A5-875C-4BED-A616-D380F6CF25D5@oracle.com>
+ <20190605204003.GC3402@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190606095318.HR9v0b16IMfmp63b7isfU4aMNwukQk4SmR1NkF1gIf4@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, bp@alien8.de, hpa@zytor.com, x86@kernel.org, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>
+Message-ID: <20190606152148.naNDyC6wj8nPl5QzE-z0c21Wj8ddOTd2R2saB6Dcst4@z>
 
-Hi Paul,
+>> Also, the paravirt code is under arch/x86, while CNA is generic (not
+>> x86-specific).  Do you still want to see CNA-related patching =
+residing
+>> under arch/x86?
+>>=20
+>> We still need a config option (something like NUMA_AWARE_SPINLOCKS) =
+to
+>> enable CNA patching under this config only, correct?
+>=20
+> There is the static_call() stuff that could be generic; I posted a new
+> version of that today (x86 only for now, but IIRC there's arm64 =
+patches
+> for that around somewhere too).
 
-On Thu, Jun 6, 2019 at 11:43 AM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
-> On Tue, Jun 04, 2019 at 09:41:04AM +0200, Geert Uytterhoeven wrote:
-> > On Mon, Jun 3, 2019 at 10:14 PM Paul E. McKenney <paulmck@linux.ibm.com> wrote:
-> > > On Mon, Jun 03, 2019 at 06:08:35PM +0000, Vineet Gupta wrote:
-> > > > On 5/31/19 1:21 AM, Peter Zijlstra wrote:
-> > > > >> I'm not sure how to interpret "natural alignment" for the case of double
-> > > > >> load/stores on 32-bit systems where the hardware and ABI allow for 4 byte
-> > > > >> alignment (ARCv2 LDD/STD, ARM LDRD/STRD ....)
-> > > > > Natural alignment: !((uintptr_t)ptr % sizeof(*ptr))
-> > > > >
-> > > > > For any u64 type, that would give 8 byte alignment. the problem
-> > > > > otherwise being that your data spans two lines/pages etc..
-> > > >
-> > > > Sure, but as Paul said, if the software doesn't expect them to be atomic by
-> > > > default, they could span 2 hardware lines to keep the implementation simpler/sane.
-> > >
-> > > I could imagine 8-byte types being only four-byte aligned on 32-bit systems,
-> > > but it would be quite a surprise on 64-bit systems.
-> >
-> > Or two-byte aligned?
-> >
-> > M68k started with a 16-bit data bus, and alignment rules were retained
-> > when gaining a wider data bus.
-> >
-> > BTW, do any platforms have issues with atomicity of 4-byte types on
-> > 16-bit data buses? I believe some embedded ARM or PowerPC do have
-> > such buses.
->
-> But m68k is !SMP-only, correct?  If so, the only issues would be
+The static_call technique appears as the more desirable long-term =
+approach, but I think it would be prudent to keep the patches decoupled =
+for now so we can move forward with less entanglements.
+So unless anyone objects, we will work on plugging into the existing =
+patching for pv.
+And we will keep that code under arch/x86, but will be open for any =
+suggestion to move it elsewhere.
 
-M68k support in Linux is uniprocessor-only.
-
-> interactions with interrupt handlers and the like, and doesn't current
-> m68k hardware use exact interrupts?  Or is it still possible to interrupt
-> an m68k in the middle of an instruction like it was in the bad old days?
-
-TBH, I don't know.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks!
+=E2=80=94 Alex
