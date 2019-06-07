@@ -1,58 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47632 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725978AbfFGIJF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 04:09:05 -0400
-Date: Fri, 7 Jun 2019 10:08:32 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
- function
-Message-ID: <20190607080832.GT3419@hirez.programming.kicks-ass.net>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
- <20190606200926.4029-4-yu-cheng.yu@intel.com>
+Received: from mail-oi1-f196.google.com ([209.85.167.196]:43606 "EHLO
+        mail-oi1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727404AbfFGJoD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 05:44:03 -0400
+Received: by mail-oi1-f196.google.com with SMTP id w79so980164oif.10
+        for <linux-arch@vger.kernel.org>; Fri, 07 Jun 2019 02:44:02 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190606200926.4029-4-yu-cheng.yu@intel.com>
+References: <20190531150828.157832-1-elver@google.com> <20190531150828.157832-3-elver@google.com>
+In-Reply-To: <20190531150828.157832-3-elver@google.com>
+From: Marco Elver <elver@google.com>
+Date: Fri, 7 Jun 2019 11:43:50 +0200
+Message-ID: <CANpmjNP_-J5dZVtDeHUeDk2TBBkOgoPvGKq42Qd7rezbnFWNGg@mail.gmail.com>
+Subject: Re: [PATCH v3 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190607080832.CmjNEOOF514viRAdSiV2CQy-EXMgfAFOLk3fxqmVnPE@z>
+To: Peter Zijlstra <peterz@infradead.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20190607094350.PZ0umoVv5yA1ECmlAZ7gjBwlHpcyMe2jSopdQd3MjKs@z>
 
-On Thu, Jun 06, 2019 at 01:09:15PM -0700, Yu-cheng Yu wrote:
-> Indirect Branch Tracking (IBT) provides an optional legacy code bitmap
-> that allows execution of legacy, non-IBT compatible library by an
-> IBT-enabled application.  When set, each bit in the bitmap indicates
-> one page of legacy code.
-> 
-> The bitmap is allocated and setup from the application.
+Gentle ping.  I would appreciate quick feedback if this approach is reasonable.
 
-> +int cet_setup_ibt_bitmap(unsigned long bitmap, unsigned long size)
-> +{
-> +	u64 r;
-> +
-> +	if (!current->thread.cet.ibt_enabled)
-> +		return -EINVAL;
-> +
-> +	if (!PAGE_ALIGNED(bitmap) || (size > TASK_SIZE_MAX))
-> +		return -EINVAL;
-> +
-> +	current->thread.cet.ibt_bitmap_addr = bitmap;
-> +	current->thread.cet.ibt_bitmap_size = size;
-> +
-> +	/*
-> +	 * Turn on IBT legacy bitmap.
-> +	 */
-> +	modify_fpu_regs_begin();
-> +	rdmsrl(MSR_IA32_U_CET, r);
-> +	r |= (MSR_IA32_CET_LEG_IW_EN | bitmap);
-> +	wrmsrl(MSR_IA32_U_CET, r);
-> +	modify_fpu_regs_end();
-> +
-> +	return 0;
-> +}
+Peter: since you suggested that we should not change objtool, did you
+have a particular approach in mind that is maybe different from v2 and
+v3? Or is this what you were thinking of?
 
-So you just program a random user supplied address into the hardware.
-What happens if there's not actually anything at that address or the
-user munmap()s the data after doing this?
+Many thanks!
+
+On Fri, 31 May 2019 at 17:11, Marco Elver <elver@google.com> wrote:
+>
+> This patch is a pre-requisite for enabling KASAN bitops instrumentation;
+> using static_cpu_has instead of boot_cpu_has avoids instrumentation of
+> test_bit inside the uaccess region. With instrumentation, the KASAN
+> check would otherwise be flagged by objtool.
+>
+> For consistency, kernel/signal.c was changed to mirror this change,
+> however, is never instrumented with KASAN (currently unsupported under
+> x86 32bit).
+>
+> Signed-off-by: Marco Elver <elver@google.com>
+> Suggested-by: H. Peter Anvin <hpa@zytor.com>
+> ---
+> Changes in v3:
+> * Use static_cpu_has instead of moving boot_cpu_has outside uaccess
+>   region.
+>
+> Changes in v2:
+> * Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
+>   whitelist'
+> ---
+>  arch/x86/ia32/ia32_signal.c | 2 +-
+>  arch/x86/kernel/signal.c    | 2 +-
+>  2 files changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+> index 629d1ee05599..1cee10091b9f 100644
+> --- a/arch/x86/ia32/ia32_signal.c
+> +++ b/arch/x86/ia32/ia32_signal.c
+> @@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+>                 put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+>
+>                 /* Create the ucontext.  */
+> -               if (boot_cpu_has(X86_FEATURE_XSAVE))
+> +               if (static_cpu_has(X86_FEATURE_XSAVE))
+>                         put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+>                 else
+>                         put_user_ex(0, &frame->uc.uc_flags);
+> diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+> index 364813cea647..52eb1d551aed 100644
+> --- a/arch/x86/kernel/signal.c
+> +++ b/arch/x86/kernel/signal.c
+> @@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+>                 put_user_ex(&frame->uc, &frame->puc);
+>
+>                 /* Create the ucontext.  */
+> -               if (boot_cpu_has(X86_FEATURE_XSAVE))
+> +               if (static_cpu_has(X86_FEATURE_XSAVE))
+>                         put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+>                 else
+>                         put_user_ex(0, &frame->uc.uc_flags);
+> --
+> 2.22.0.rc1.257.g3120a18244-goog
+>
