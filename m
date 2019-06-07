@@ -1,49 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48226 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729449AbfFGSnP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jun 2019 14:43:15 -0400
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
-References: <20190319165123.3967889-1-arnd@arndb.de>
-        <alpine.DEB.2.21.1905072249570.19308@digraph.polyomino.org.uk>
-        <87tvd2j9ye.fsf@oldenburg2.str.redhat.com>
-        <CAHk-=wio1e4=WUUwmo-Ph55BEgH_X3oXzBpvPyLQg2TxzfGYuw@mail.gmail.com>
-Date: Fri, 07 Jun 2019 20:43:03 +0200
-In-Reply-To: <CAHk-=wio1e4=WUUwmo-Ph55BEgH_X3oXzBpvPyLQg2TxzfGYuw@mail.gmail.com>
-        (Linus Torvalds's message of "Fri, 7 Jun 2019 11:27:57 -0700")
-Message-ID: <871s05fd8o.fsf@oldenburg2.str.redhat.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:42418 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732138AbfFGSym (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 14:54:42 -0400
+From: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Subject: [PATCH v3 20/20] docs: pci: fix broken links due to conversion from pci.txt to pci.rst
+Date: Fri,  7 Jun 2019 15:54:36 -0300
+Message-ID: <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
+In-Reply-To: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
+References: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Joseph Myers <joseph@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
-Message-ID: <20190607184303.tnWnQBF74ufq_bF4-si4_Xi6IYe_1Z2XSbgbwwF-uNU@z>
+To: Linux Doc Mailing List <linux-doc@vger.kernel.org>
+Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-arch@vger.kernel.org, esc.storagedev@microsemi.com, linux-scsi@vger.kernel.org
+Message-ID: <20190607185436.yPQ5mpFwclkdqBmXTGCQutunfwAYYCU_bMpENhlAg34@z>
 
-* Linus Torvalds:
+Some documentation files were still pointing to the old place.
 
-> If we're changing kernel header files, it's easy enough to change the
-> kernel users. I'd be more worried about user space that *uses* that
-> thing, and currently accesses 'val[]' by name.
->
-> So the patch looks a bit odd to me. How are people supposed to use
-> fsid_t if they can't look at it?
+Fixes: 229b4e0728e0 ("Documentation: PCI: convert pci.txt to reST")
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+---
+ Documentation/memory-barriers.txt                    | 2 +-
+ Documentation/translations/ko_KR/memory-barriers.txt | 2 +-
+ drivers/scsi/hpsa.c                                  | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
-The problem is that the header was previously not used pervasively in
-userspace headers.  See commit a623a7a1a5670c25a16881f5078072d272d96b71
-("y2038: fix socket.h header inclusion").  Very little code needed it
-before.
-
-On the glibc side, we nowadays deal with this by splitting headers
-further.  (We used to suppress definitions with macros, but that tended
-to become convoluted.)  In this case, moving the definition of
-__kernel_long_t to its own header, so that
-include/uapi/asm-generic/socket.h can include that should fix it.
-
-> So now that I _do_ see the patch, there's no way I'll apply it.
-
-Fair enough.
-
-Thanks,
-Florian
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index f70ebcdfe592..f4170aae1d75 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -548,7 +548,7 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
+ 
+ 	[*] For information on bus mastering DMA and coherency please read:
+ 
+-	    Documentation/PCI/pci.txt
++	    Documentation/PCI/pci.rst
+ 	    Documentation/DMA-API-HOWTO.txt
+ 	    Documentation/DMA-API.txt
+ 
+diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+index db0b9d8619f1..07725b1df002 100644
+--- a/Documentation/translations/ko_KR/memory-barriers.txt
++++ b/Documentation/translations/ko_KR/memory-barriers.txt
+@@ -569,7 +569,7 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
+ 
+ 	[*] 버스 마스터링 DMA 와 일관성에 대해서는 다음을 참고하시기 바랍니다:
+ 
+-	    Documentation/PCI/pci.txt
++	    Documentation/PCI/pci.rst
+ 	    Documentation/DMA-API-HOWTO.txt
+ 	    Documentation/DMA-API.txt
+ 
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 1bef1da273c2..53df6f7dd3f9 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7760,7 +7760,7 @@ static void hpsa_free_pci_init(struct ctlr_info *h)
+ 	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
+ 	/*
+ 	 * call pci_disable_device before pci_release_regions per
+-	 * Documentation/PCI/pci.txt
++	 * Documentation/PCI/pci.rst
+ 	 */
+ 	pci_disable_device(h->pdev);		/* pci_init 1 */
+ 	pci_release_regions(h->pdev);		/* pci_init 2 */
+@@ -7843,7 +7843,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
+ clean1:
+ 	/*
+ 	 * call pci_disable_device before pci_release_regions per
+-	 * Documentation/PCI/pci.txt
++	 * Documentation/PCI/pci.rst
+ 	 */
+ 	pci_disable_device(h->pdev);
+ 	pci_release_regions(h->pdev);
+-- 
+2.21.0
