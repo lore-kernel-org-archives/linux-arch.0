@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:12484 "EHLO mga01.intel.com"
+Received: from mga12.intel.com ([192.55.52.136]:11185 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730342AbfFGVFq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jun 2019 17:05:46 -0400
+        id S1730251AbfFGVJn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Jun 2019 17:09:43 -0400
 Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
  function
 References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
@@ -12,50 +12,30 @@ References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
  <20190607174336.GM3436@hirez.programming.kicks-ass.net>
  <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
  <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net>
- <352e6172-938d-f8e4-c195-9fd1b881bdee@intel.com>
- <D10B5B59-1BE7-44DC-8E91-C8E4292DC6FB@amacapital.net>
+ <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
+ <4b448cde-ee4e-1c95-0f7f-4fe694be7db6@intel.com>
+ <0e505563f7dae3849b57fb327f578f41b760b6f7.camel@intel.com>
 From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <74620397-a839-cb8c-8c8b-fe72b921803c@intel.com>
-Date: Fri, 7 Jun 2019 14:05:29 -0700
+Message-ID: <f6de9073-9939-a20d-2196-25fa223cf3fc@intel.com>
+Date: Fri, 7 Jun 2019 14:09:36 -0700
 MIME-Version: 1.0
-In-Reply-To: <D10B5B59-1BE7-44DC-8E91-C8E4292DC6FB@amacapital.net>
+In-Reply-To: <0e505563f7dae3849b57fb327f578f41b760b6f7.camel@intel.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190607210529.lhHDAox_TtZD1VJJT0g9xXirLQlXzUFCaXVX92YQ2eI@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190607210936.Dw_--ldu1kJV_xOG4-xppzB7ROloeaX5tp2rHuE71NY@z>
 
-On 6/7/19 1:40 PM, Andy Lutomirski wrote:
->>> Hmm.  Can we be creative and skip populating it with zeros?  The
->>> CPU
->> should only ever touch a page if we miss an ENDBR on it, so, in
->> normal operation, we don’t need anything to be there.  We could try
->> to prevent anyone from *reading* it outside of ENDBR tracking if we
->> want to avoid people accidentally wasting lots of memory by forcing
->> it to be fully populated when the read it.
->> 
->> Won't reads on a big, contiguous private mapping get the huge zero
->> page anyway?
+On 6/7/19 1:06 PM, Yu-cheng Yu wrote:
+>> Huh, how does glibc know about all possible past and future legacy code
+>> in the application?
+> When dlopen() gets a legacy binary and the policy allows that, it will manage
+> the bitmap:
 > 
-> The zero pages may be free, but the page tables could be decently
-large.  Does the core mm code use huge, immense, etc huge zero pages?
-Or can it synthesize them by reusing page table pages that map zeros?
+>   If a bitmap has not been created, create one.
+>   Set bits for the legacy code being loaded.
 
-IIRC, we only ever fill single PMDs, even though we could gang a pmd
-page up and do it for 1GB areas too.
-
-I guess the page table consumption could really suck if we had code all
-over the 57-bit address space and that code moved around and the process
-ran for a long long time.  Pathologically, we need a ulong/pmd_t for
-each 2MB of address space which is 8*2^56-30=512GB per process.  Yikes.
- Right now, we'd at least detect the memory consumption and OOM-kill the
-process(es) eventually.  But, that's not really _this_ patch's problem.
- It's a general problem, and doesn't even require the zero page to be
-mapped all over.
-
-Longer-term, I'd much rather see us add some page table reclaim
-mechanism that new how to go after things like excessive page tables  in
-MAP_NORESERVE areas.
+I was thinking about code that doesn't go through GLIBC like JITs.
