@@ -1,44 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp4.iitb.ac.in ([103.21.127.18]:48814 "EHLO smtp1.iitb.ac.in"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725497AbfFGHof (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 7 Jun 2019 03:44:35 -0400
-Received: from ldns2.iitb.ac.in (ldns2.iitb.ac.in [10.200.12.2])
-        by smtp1.iitb.ac.in (Postfix) with SMTP id C58621050DD0
-        for <linux-arch@vger.kernel.org>; Fri,  7 Jun 2019 12:01:53 +0530 (IST)
-Date: Fri, 7 Jun 2019 12:01:09 +0530 (IST)
-From: Martins Henry <rws@aero.iitb.ac.in>
-Message-ID: <412557711.60336.1559889069980.JavaMail.zimbra@aero.iitb.ac.in>
-Subject: Thanks and I wait for your answer
+Received: from bombadil.infradead.org ([198.137.202.133]:54470 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725497AbfFGHr0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 03:47:26 -0400
+Date: Fri, 7 Jun 2019 09:47:07 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 18/27] mm: Introduce do_mmap_locked()
+Message-ID: <20190607074707.GD3463@hirez.programming.kicks-ass.net>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+ <20190606200646.3951-19-yu-cheng.yu@intel.com>
+ <20190607074322.GP3419@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190607074322.GP3419@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190607074707.M3ET4C0Px-6oK4uelWU6KILlu1vXLCcdCZAEn1RgzqY@z>
 
-Hello,
+On Fri, Jun 07, 2019 at 09:43:22AM +0200, Peter Zijlstra wrote:
+> On Thu, Jun 06, 2019 at 01:06:37PM -0700, Yu-cheng Yu wrote:
+> > There are a few places that need do_mmap() with mm->mmap_sem held.
+> > Create an in-line function for that.
+> > 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > ---
+> >  include/linux/mm.h | 18 ++++++++++++++++++
+> >  1 file changed, 18 insertions(+)
+> > 
+> > diff --git a/include/linux/mm.h b/include/linux/mm.h
+> > index 398f1e1c35e5..7cf014604848 100644
+> > --- a/include/linux/mm.h
+> > +++ b/include/linux/mm.h
+> > @@ -2411,6 +2411,24 @@ static inline void mm_populate(unsigned long addr, unsigned long len)
+> >  static inline void mm_populate(unsigned long addr, unsigned long len) {}
+> >  #endif
+> >  
+> > +static inline unsigned long do_mmap_locked(unsigned long addr,
+> > +	unsigned long len, unsigned long prot, unsigned long flags,
+> > +	vm_flags_t vm_flags)
+> > +{
+> > +	struct mm_struct *mm = current->mm;
+> > +	unsigned long populate;
+> > +
+> > +	down_write(&mm->mmap_sem);
+> > +	addr = do_mmap(NULL, addr, len, prot, flags, vm_flags, 0,
+> > +		       &populate, NULL);
+> 
+> Funny thing how do_mmap() takes a file pointer as first argument and
+> this thing explicitly NULLs that. That more or less invalidates the name
+> do_mmap_locked().
+> 
+> > +	up_write(&mm->mmap_sem);
+> > +
+> > +	if (populate)
+> > +		mm_populate(addr, populate);
+> > +
+> > +	return addr;
+> > +}
 
-I am Martin Henry, An American Citizen; I am the personal secretary to
-Mr. Donald Railton, the controller of a Lottery Company. Please I am
-having big problem now, I have a 6yrs old daughter who has leukemia, a
-disease of the blood, and she needs a bone marrow transplant or she
-will die.
+You also don't retain that last @uf argument.
 
-Please I am only asking for your help and you will benefit from it
-also. As an insider with Lottery Firm, working as the personal
-secretary to the controller, I want you to send me your name to play,
-I have some numbers that are going to win, stored in his secret data
-system in the office. The Lottery is an online entry with credit card
-anywhere with a name and address. All I want you to do is to send your
-name to play it and I will send confirmation to you.
-
-I will play with my card on your name and the Prize will be shared
-equally between us. Immediately the results are released they will
-contact you for payment as the oversea winner. The lotto can be played
-with 9.00 dollars, or 50 dollars but the prize will be Millions.
-Remember that I am playing on your name with my card; I just want to
-front you for this, because I need this money to save the life of my
-little daughter.
-
-Thanks and I wait for your answer
-Martin Henry.
+I'm thikning you're better off adding a helper to the cet.c file; call
+it cet_mmap() or whatever.
