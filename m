@@ -1,35 +1,38 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
-Date: Fri, 07 Jun 2019 06:28:09 +0200
-Message-ID: <87tvd2j9ye.fsf@oldenburg2.str.redhat.com>
-References: <20190319165123.3967889-1-arnd@arndb.de>
-        <alpine.DEB.2.21.1905072249570.19308@digraph.polyomino.org.uk>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 05/27] x86/fpu/xstate: Add XSAVES system states for
+ shadow stack
+Date: Fri, 7 Jun 2019 09:07:25 +0200
+Message-ID: <20190607070725.GN3419@hirez.programming.kicks-ass.net>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+ <20190606200646.3951-6-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1905072249570.19308@digraph.polyomino.org.uk>
-        (Joseph Myers's message of "Tue, 7 May 2019 22:50:49 +0000")
-Sender: netdev-owner@vger.kernel.org
-To: Joseph Myers <joseph@codesourcery.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, Laura Abbott <labbott@redhat.com>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190606200646.3951-6-yu-cheng.yu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-* Joseph Myers:
+On Thu, Jun 06, 2019 at 01:06:24PM -0700, Yu-cheng Yu wrote:
+> Intel Control-flow Enforcement Technology (CET) introduces the
+> following MSRs.
+> 
+>     MSR_IA32_U_CET (user-mode CET settings),
+>     MSR_IA32_PL3_SSP (user-mode shadow stack),
+>     MSR_IA32_PL0_SSP (kernel-mode shadow stack),
+>     MSR_IA32_PL1_SSP (Privilege Level 1 shadow stack),
+>     MSR_IA32_PL2_SSP (Privilege Level 2 shadow stack).
+> 
+> Introduce them into XSAVES system states.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/fpu/types.h            | 22 +++++++++++++++++++++
+>  arch/x86/include/asm/fpu/xstate.h           |  4 +++-
+>  arch/x86/include/uapi/asm/processor-flags.h |  2 ++
+>  arch/x86/kernel/fpu/xstate.c                | 10 ++++++++++
+>  4 files changed, 37 insertions(+), 1 deletion(-)
 
-> What happened with this patch (posted 19 March)?  I found today that we 
-> can't use Linux 5.1 headers in glibc testing because the namespace issues 
-> are still present in the headers as of the release.
-
-This regression fix still hasn't been merged into Linus' tree.  What is
-going on here?
-
-This might seem rather minor, but the namespace testing is actually
-relevant in practice.  It prevents accidental clashes with C/C++
-identifiers in user code.
-
-If this fairly central UAPI header is not made namespace-clean again,
-then we need to duplicate information from more UAPI headers in glibc,
-and I don't think that's something we'd want to do.
-
-Thanks,
-Florian
+And yet, no changes to msr-index.h !?
