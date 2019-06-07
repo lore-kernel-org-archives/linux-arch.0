@@ -1,80 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:42418 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732138AbfFGSym (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 14:54:42 -0400
-From: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-Subject: [PATCH v3 20/20] docs: pci: fix broken links due to conversion from pci.txt to pci.rst
-Date: Fri,  7 Jun 2019 15:54:36 -0300
-Message-ID: <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
-In-Reply-To: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
-References: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
+Received: from mail-lj1-f195.google.com ([209.85.208.195]:37488 "EHLO
+        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732071AbfFGS4g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 14:56:36 -0400
+Received: by mail-lj1-f195.google.com with SMTP id 131so2646432ljf.4
+        for <linux-arch@vger.kernel.org>; Fri, 07 Jun 2019 11:56:34 -0700 (PDT)
+Received: from mail-lj1-f180.google.com (mail-lj1-f180.google.com. [209.85.208.180])
+        by smtp.gmail.com with ESMTPSA id q2sm539861lfj.25.2019.06.07.11.56.32
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=AEAD-AES128-GCM-SHA256 bits=128/128);
+        Fri, 07 Jun 2019 11:56:33 -0700 (PDT)
+Received: by mail-lj1-f180.google.com with SMTP id o13so2633290lji.5
+        for <linux-arch@vger.kernel.org>; Fri, 07 Jun 2019 11:56:32 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+References: <20190319165123.3967889-1-arnd@arndb.de> <alpine.DEB.2.21.1905072249570.19308@digraph.polyomino.org.uk>
+ <87tvd2j9ye.fsf@oldenburg2.str.redhat.com> <CAHk-=wio1e4=WUUwmo-Ph55BEgH_X3oXzBpvPyLQg2TxzfGYuw@mail.gmail.com>
+ <871s05fd8o.fsf@oldenburg2.str.redhat.com>
+In-Reply-To: <871s05fd8o.fsf@oldenburg2.str.redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 7 Jun 2019 11:56:16 -0700
+Message-ID: <CAHk-=wg4ijSoPq-w7ct_VuZvgHx+tUv_QX-We-62dEwK+AOf2w@mail.gmail.com>
+Subject: Re: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux Doc Mailing List <linux-doc@vger.kernel.org>
-Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-arch@vger.kernel.org, esc.storagedev@microsemi.com, linux-scsi@vger.kernel.org
-Message-ID: <20190607185436.yPQ5mpFwclkdqBmXTGCQutunfwAYYCU_bMpENhlAg34@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Joseph Myers <joseph@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
+Message-ID: <20190607185616.s7dP067P0ej4C2lPCBc9ryS5nsSdrry0leqsU7cmahU@z>
 
-Some documentation files were still pointing to the old place.
+On Fri, Jun 7, 2019 at 11:43 AM Florian Weimer <fweimer@redhat.com> wrote:
+>
+> On the glibc side, we nowadays deal with this by splitting headers
+> further.  (We used to suppress definitions with macros, but that tended
+> to become convoluted.)  In this case, moving the definition of
+> __kernel_long_t to its own header, so that
+> include/uapi/asm-generic/socket.h can include that should fix it.
 
-Fixes: 229b4e0728e0 ("Documentation: PCI: convert pci.txt to reST")
-Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
----
- Documentation/memory-barriers.txt                    | 2 +-
- Documentation/translations/ko_KR/memory-barriers.txt | 2 +-
- drivers/scsi/hpsa.c                                  | 4 ++--
- 3 files changed, 4 insertions(+), 4 deletions(-)
+I think we should strive to do that on the kernel side too, since
+clearly we shouldn't expose that "val[]" thing in the core posix types
+due to namespace rules, but at the same time I think the patch to
+rename val[] is fundamentally broken too.
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index f70ebcdfe592..f4170aae1d75 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -548,7 +548,7 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
- 
- 	[*] For information on bus mastering DMA and coherency please read:
- 
--	    Documentation/PCI/pci.txt
-+	    Documentation/PCI/pci.rst
- 	    Documentation/DMA-API-HOWTO.txt
- 	    Documentation/DMA-API.txt
- 
-diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
-index db0b9d8619f1..07725b1df002 100644
---- a/Documentation/translations/ko_KR/memory-barriers.txt
-+++ b/Documentation/translations/ko_KR/memory-barriers.txt
-@@ -569,7 +569,7 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
- 
- 	[*] 버스 마스터링 DMA 와 일관성에 대해서는 다음을 참고하시기 바랍니다:
- 
--	    Documentation/PCI/pci.txt
-+	    Documentation/PCI/pci.rst
- 	    Documentation/DMA-API-HOWTO.txt
- 	    Documentation/DMA-API.txt
- 
-diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
-index 1bef1da273c2..53df6f7dd3f9 100644
---- a/drivers/scsi/hpsa.c
-+++ b/drivers/scsi/hpsa.c
-@@ -7760,7 +7760,7 @@ static void hpsa_free_pci_init(struct ctlr_info *h)
- 	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
- 	/*
- 	 * call pci_disable_device before pci_release_regions per
--	 * Documentation/PCI/pci.txt
-+	 * Documentation/PCI/pci.rst
- 	 */
- 	pci_disable_device(h->pdev);		/* pci_init 1 */
- 	pci_release_regions(h->pdev);		/* pci_init 2 */
-@@ -7843,7 +7843,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
- clean1:
- 	/*
- 	 * call pci_disable_device before pci_release_regions per
--	 * Documentation/PCI/pci.txt
-+	 * Documentation/PCI/pci.rst
- 	 */
- 	pci_disable_device(h->pdev);
- 	pci_release_regions(h->pdev);
--- 
-2.21.0
+Can you describe how you split things (perhaps even with a patch ;)?
+Is this literally the only issue you currently have? Because I'd
+expect similar issues to show up elsewhere too, but who knows.. You
+presumably do.
+
+                Linus
