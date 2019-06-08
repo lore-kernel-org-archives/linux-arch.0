@@ -1,84 +1,53 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH v3 20/20] docs: pci: fix broken links due to conversion
- from pci.txt to pci.rst
-Date: Sat, 8 Jun 2019 08:37:43 -0700
-Message-ID: <20190608153743.GG28207@linux.ibm.com>
-References: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
- <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
-Reply-To: paulmck@linux.ibm.com
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
+ function
+Date: Sat, 8 Jun 2019 22:52:18 +0200
+Message-ID: <20190608205218.GA2359@xo-6d-61-c0.localdomain>
+References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
+ <20190606200926.4029-4-yu-cheng.yu@intel.com>
+ <20190607080832.GT3419@hirez.programming.kicks-ass.net>
+ <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com>
+ <20190607174336.GM3436@hirez.programming.kicks-ass.net>
+ <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
+In-Reply-To: <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-arch@vger.kernel.org, esc.storagedev@mic
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 07, 2019 at 03:54:36PM -0300, Mauro Carvalho Chehab wrote:
-> Some documentation files were still pointing to the old place.
-> 
-> Fixes: 229b4e0728e0 ("Documentation: PCI: convert pci.txt to reST")
-> Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Hi!
 
-Acked-by: Paul E. McKenney <paulmck@linux.ibm.com>
+> > I've no idea what the kernel should do; since you failed to answer the
+> > question what happens when you point this to garbage.
+> > 
+> > Does it then fault or what?
+> 
+> Yeah, I think you'll fault with a rather mysterious CR2 value since
+> you'll go look at the instruction that faulted and not see any
+> references to the CR2 value.
+> 
+> I think this new MSR probably needs to get included in oops output when
+> CET is enabled.
+> 
+> Why don't we require that a VMA be in place for the entire bitmap?
+> Don't we need a "get" prctl function too in case something like a JIT is
+> running and needs to find the location of this bitmap to set bits itself?
+> 
+> Or, do we just go whole-hog and have the kernel manage the bitmap
+> itself. Our interface here could be:
+> 
+> 	prctl(PR_MARK_CODE_AS_LEGACY, start, size);
+> 
+> and then have the kernel allocate and set the bitmap for those code
+> locations.
 
-> ---
->  Documentation/memory-barriers.txt                    | 2 +-
->  Documentation/translations/ko_KR/memory-barriers.txt | 2 +-
->  drivers/scsi/hpsa.c                                  | 4 ++--
->  3 files changed, 4 insertions(+), 4 deletions(-)
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index f70ebcdfe592..f4170aae1d75 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -548,7 +548,7 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
->  
->  	[*] For information on bus mastering DMA and coherency please read:
->  
-> -	    Documentation/PCI/pci.txt
-> +	    Documentation/PCI/pci.rst
->  	    Documentation/DMA-API-HOWTO.txt
->  	    Documentation/DMA-API.txt
->  
-> diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
-> index db0b9d8619f1..07725b1df002 100644
-> --- a/Documentation/translations/ko_KR/memory-barriers.txt
-> +++ b/Documentation/translations/ko_KR/memory-barriers.txt
-> @@ -569,7 +569,7 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
->  
->  	[*] 버스 마스터링 DMA 와 일관성에 대해서는 다음을 참고하시기 바랍니다:
->  
-> -	    Documentation/PCI/pci.txt
-> +	    Documentation/PCI/pci.rst
->  	    Documentation/DMA-API-HOWTO.txt
->  	    Documentation/DMA-API.txt
->  
-> diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
-> index 1bef1da273c2..53df6f7dd3f9 100644
-> --- a/drivers/scsi/hpsa.c
-> +++ b/drivers/scsi/hpsa.c
-> @@ -7760,7 +7760,7 @@ static void hpsa_free_pci_init(struct ctlr_info *h)
->  	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
->  	/*
->  	 * call pci_disable_device before pci_release_regions per
-> -	 * Documentation/PCI/pci.txt
-> +	 * Documentation/PCI/pci.rst
->  	 */
->  	pci_disable_device(h->pdev);		/* pci_init 1 */
->  	pci_release_regions(h->pdev);		/* pci_init 2 */
-> @@ -7843,7 +7843,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
->  clean1:
->  	/*
->  	 * call pci_disable_device before pci_release_regions per
-> -	 * Documentation/PCI/pci.txt
-> +	 * Documentation/PCI/pci.rst
->  	 */
->  	pci_disable_device(h->pdev);
->  	pci_release_regions(h->pdev);
-> -- 
-> 2.21.0
-> 
+For the record, that sounds like a better interface than userspace knowing
+about the bitmap formats...
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
