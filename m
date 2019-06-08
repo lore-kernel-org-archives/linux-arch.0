@@ -1,40 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:36451 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729867AbfFGW1U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2019 18:27:20 -0400
-Received: by mail-pf1-f195.google.com with SMTP id u22so1941660pfm.3
-        for <linux-arch@vger.kernel.org>; Fri, 07 Jun 2019 15:27:19 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup function
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <f6de9073-9939-a20d-2196-25fa223cf3fc@intel.com>
-Date: Fri, 7 Jun 2019 15:27:16 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <4F7D0C3C-F239-4B67-BB05-31350F809293@amacapital.net>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com> <20190606200926.4029-4-yu-cheng.yu@intel.com> <20190607080832.GT3419@hirez.programming.kicks-ass.net> <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com> <20190607174336.GM3436@hirez.programming.kicks-ass.net> <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com> <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net> <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com> <4b448cde-ee4e-1c95-0f7f-4fe694be7db6@intel.com> <0e505563f7dae3849b57fb327f578f41b760b6f7.camel@intel.com> <f6de9073-9939-a20d-2196-25fa223cf3fc@intel.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50156 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727101AbfFHPhu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jun 2019 11:37:50 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x58FawI1062908
+        for <linux-arch@vger.kernel.org>; Sat, 8 Jun 2019 11:37:50 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2t09j5a3ax-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Sat, 08 Jun 2019 11:37:49 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Sat, 8 Jun 2019 16:37:48 +0100
+Date: Sat, 8 Jun 2019 08:37:43 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH v3 20/20] docs: pci: fix broken links due to conversion
+ from pci.txt to pci.rst
+Reply-To: paulmck@linux.ibm.com
+References: <ff457774d46d96e8fe56b45409aba39d87a8672a.1559933665.git.mchehab+samsung@kernel.org>
+ <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <780cb6c2dfe860873394675df6580765ea5a2680.1559933665.git.mchehab+samsung@kernel.org>
+Message-ID: <20190608153743.GG28207@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190607222716.aBSV0khSP0A3bERvwH6cEg9NKeZ08LoBKjqI0R9ZpXo@z>
+To: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-arch@vger.kernel.org, esc.storagedev@microsemi.com, linux-scsi@vger.kernel.org
+Message-ID: <20190608153743.TRJu49oKUvW139U7cMtXKKBD-QWuXHJU2JCnSgVIwCY@z>
 
+On Fri, Jun 07, 2019 at 03:54:36PM -0300, Mauro Carvalho Chehab wrote:
+> Some documentation files were still pointing to the old place.
+> 
+> Fixes: 229b4e0728e0 ("Documentation: PCI: convert pci.txt to reST")
+> Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 
-> On Jun 7, 2019, at 2:09 PM, Dave Hansen <dave.hansen@intel.com> wrote:
->=20
-> On 6/7/19 1:06 PM, Yu-cheng Yu wrote:
->>> Huh, how does glibc know about all possible past and future legacy code
->>> in the application?
->> When dlopen() gets a legacy binary and the policy allows that, it will ma=
-nage
->> the bitmap:
->>=20
->>  If a bitmap has not been created, create one.
->>  Set bits for the legacy code being loaded.
->=20
-> I was thinking about code that doesn't go through GLIBC like JITs.
+Acked-by: Paul E. McKenney <paulmck@linux.ibm.com>
 
-CRIU is another consideration: it would be rather annoying if CET programs c=
-an=E2=80=99t migrate between LA57 and normal machines.=
+> ---
+>  Documentation/memory-barriers.txt                    | 2 +-
+>  Documentation/translations/ko_KR/memory-barriers.txt | 2 +-
+>  drivers/scsi/hpsa.c                                  | 4 ++--
+>  3 files changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index f70ebcdfe592..f4170aae1d75 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -548,7 +548,7 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
+>  
+>  	[*] For information on bus mastering DMA and coherency please read:
+>  
+> -	    Documentation/PCI/pci.txt
+> +	    Documentation/PCI/pci.rst
+>  	    Documentation/DMA-API-HOWTO.txt
+>  	    Documentation/DMA-API.txt
+>  
+> diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+> index db0b9d8619f1..07725b1df002 100644
+> --- a/Documentation/translations/ko_KR/memory-barriers.txt
+> +++ b/Documentation/translations/ko_KR/memory-barriers.txt
+> @@ -569,7 +569,7 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
+>  
+>  	[*] 버스 마스터링 DMA 와 일관성에 대해서는 다음을 참고하시기 바랍니다:
+>  
+> -	    Documentation/PCI/pci.txt
+> +	    Documentation/PCI/pci.rst
+>  	    Documentation/DMA-API-HOWTO.txt
+>  	    Documentation/DMA-API.txt
+>  
+> diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+> index 1bef1da273c2..53df6f7dd3f9 100644
+> --- a/drivers/scsi/hpsa.c
+> +++ b/drivers/scsi/hpsa.c
+> @@ -7760,7 +7760,7 @@ static void hpsa_free_pci_init(struct ctlr_info *h)
+>  	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
+>  	/*
+>  	 * call pci_disable_device before pci_release_regions per
+> -	 * Documentation/PCI/pci.txt
+> +	 * Documentation/PCI/pci.rst
+>  	 */
+>  	pci_disable_device(h->pdev);		/* pci_init 1 */
+>  	pci_release_regions(h->pdev);		/* pci_init 2 */
+> @@ -7843,7 +7843,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
+>  clean1:
+>  	/*
+>  	 * call pci_disable_device before pci_release_regions per
+> -	 * Documentation/PCI/pci.txt
+> +	 * Documentation/PCI/pci.rst
+>  	 */
+>  	pci_disable_device(h->pdev);
+>  	pci_release_regions(h->pdev);
+> -- 
+> 2.21.0
+> 
