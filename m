@@ -1,53 +1,90 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
- function
-Date: Sat, 8 Jun 2019 22:52:18 +0200
-Message-ID: <20190608205218.GA2359@xo-6d-61-c0.localdomain>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
- <20190606200926.4029-4-yu-cheng.yu@intel.com>
- <20190607080832.GT3419@hirez.programming.kicks-ass.net>
- <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com>
- <20190607174336.GM3436@hirez.programming.kicks-ass.net>
- <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 1/2] linux/bits.h: make BIT(), GENMASK(),
+ and friends available in assembly
+Date: Mon, 10 Jun 2019 00:39:40 +0900
+Message-ID: <20190609153941.17249-1-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi!
+BIT(), GENMASK(), etc. are useful to define register bits of hardware.
+However, low-level code is often written in assembly, where they are
+not available due to the hard-coded 1UL, 0UL.
 
-> > I've no idea what the kernel should do; since you failed to answer the
-> > question what happens when you point this to garbage.
-> > 
-> > Does it then fault or what?
-> 
-> Yeah, I think you'll fault with a rather mysterious CR2 value since
-> you'll go look at the instruction that faulted and not see any
-> references to the CR2 value.
-> 
-> I think this new MSR probably needs to get included in oops output when
-> CET is enabled.
-> 
-> Why don't we require that a VMA be in place for the entire bitmap?
-> Don't we need a "get" prctl function too in case something like a JIT is
-> running and needs to find the location of this bitmap to set bits itself?
-> 
-> Or, do we just go whole-hog and have the kernel manage the bitmap
-> itself. Our interface here could be:
-> 
-> 	prctl(PR_MARK_CODE_AS_LEGACY, start, size);
-> 
-> and then have the kernel allocate and set the bitmap for those code
-> locations.
+In fact, in-kernel headers such as arch/arm64/include/asm/sysreg.h
+use _BITUL() instead of BIT() so that the register bit macros are
+available in assembly.
 
-For the record, that sounds like a better interface than userspace knowing
-about the bitmap formats...
-									Pavel
+Using macros in include/uapi/linux/const.h have two reasons:
+
+[1] For use in uapi headers
+  We should use underscore-prefixed variants for user-space.
+
+[2] For use in assembly code
+  Since _BITUL() uses UL(1) instead of 1UL, it can be used as an
+  alternative of BIT().
+
+For [2], it is pretty easy to change BIT() etc. for use in assembly.
+
+This allows to replace _BUTUL() in kernel-space headers with BIT().
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ include/linux/bits.h | 17 ++++++++++-------
+ 1 file changed, 10 insertions(+), 7 deletions(-)
+
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 2b7b532c1d51..669d69441a62 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -1,13 +1,15 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef __LINUX_BITS_H
+ #define __LINUX_BITS_H
++
++#include <linux/const.h>
+ #include <asm/bitsperlong.h>
+ 
+-#define BIT(nr)			(1UL << (nr))
+-#define BIT_ULL(nr)		(1ULL << (nr))
+-#define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
++#define BIT(nr)			(UL(1) << (nr))
++#define BIT_ULL(nr)		(ULL(1) << (nr))
++#define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
+ #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+-#define BIT_ULL_MASK(nr)	(1ULL << ((nr) % BITS_PER_LONG_LONG))
++#define BIT_ULL_MASK(nr)	(ULL(1) << ((nr) % BITS_PER_LONG_LONG))
+ #define BIT_ULL_WORD(nr)	((nr) / BITS_PER_LONG_LONG)
+ #define BITS_PER_BYTE		8
+ 
+@@ -17,10 +19,11 @@
+  * GENMASK_ULL(39, 21) gives us the 64bit vector 0x000000ffffe00000.
+  */
+ #define GENMASK(h, l) \
+-	(((~0UL) - (1UL << (l)) + 1) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
++	(((~UL(0)) - (UL(1) << (l)) + 1) & \
++	 (~UL(0) >> (BITS_PER_LONG - 1 - (h))))
+ 
+ #define GENMASK_ULL(h, l) \
+-	(((~0ULL) - (1ULL << (l)) + 1) & \
+-	 (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
++	(((~ULL(0)) - (ULL(1) << (l)) + 1) & \
++	 (~ULL(0) >> (BITS_PER_LONG_LONG - 1 - (h))))
+ 
+ #endif	/* __LINUX_BITS_H */
 -- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+2.17.1
