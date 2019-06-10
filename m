@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:39623 "EHLO mga06.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:64286 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388108AbfFJR7u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Jun 2019 13:59:50 -0400
+        id S2388491AbfFJSCq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Jun 2019 14:02:46 -0400
 Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
  function
 References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
@@ -13,15 +13,13 @@ References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
  <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
  <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net>
  <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
- <4b448cde-ee4e-1c95-0f7f-4fe694be7db6@intel.com>
- <0e505563f7dae3849b57fb327f578f41b760b6f7.camel@intel.com>
- <f6de9073-9939-a20d-2196-25fa223cf3fc@intel.com>
- <5dc357f5858f8036cad5847cfe214401bb9138bf.camel@intel.com>
+ <25281DB3-FCE4-40C2-BADB-B3B05C5F8DD3@amacapital.net>
+ <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
 From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <0e07f346-89c7-ccf1-9d38-854a8e7d25a1@intel.com>
-Date: Mon, 10 Jun 2019 10:59:48 -0700
+Message-ID: <3f19582d-78b1-5849-ffd0-53e8ca747c0d@intel.com>
+Date: Mon, 10 Jun 2019 11:02:45 -0700
 MIME-Version: 1.0
-In-Reply-To: <5dc357f5858f8036cad5847cfe214401bb9138bf.camel@intel.com>
+In-Reply-To: <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 8bit
@@ -29,36 +27,16 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@amacapital.net>
 Cc: Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190610175948.SQRLpxB-GtLvg0gGPu6CDFshHQ9l94UxR-t5G97Iuxc@z>
+Message-ID: <20190610180245.8j-fgPIEthqAitosGG7-P6KWcgTwHaJcf3_Bct9BVnA@z>
 
-On 6/10/19 9:05 AM, Yu-cheng Yu wrote:
-> On Fri, 2019-06-07 at 14:09 -0700, Dave Hansen wrote:
->> On 6/7/19 1:06 PM, Yu-cheng Yu wrote:
->>>> Huh, how does glibc know about all possible past and future legacy code
->>>> in the application?
->>> When dlopen() gets a legacy binary and the policy allows that, it will
->>> manage
->>> the bitmap:
->>>
->>>   If a bitmap has not been created, create one.
->>>   Set bits for the legacy code being loaded.
->> I was thinking about code that doesn't go through GLIBC like JITs.
-> If JIT manages the bitmap, it knows where it is.
-> It can always read the bitmap again, right?
+On 6/10/19 8:22 AM, Yu-cheng Yu wrote:
+>> How does glibc know the linear address space size?  We don’t want LA64 to
+>> break old binaries because the address calculation changed.
+> When an application starts, its highest stack address is determined.
+> It uses that as the maximum the bitmap needs to cover.
 
-Let's just be clear:
+Huh, I didn't think we ran code from the stack. ;)
 
-The design proposed here is that all code mappers (anybody wanting to
-get legacy non-CET code into the address space):
-
-1. Know about CET
-2. Know where the bitmap is, and identify the part that needs to be
-   changed
-3. Be able to mprotect() the bitmap to be writable (undoing glibc's
-   PROT_READ)
-4. Set the bits in the bitmap for the legacy code
-5. mprotect() the bitmap back to PROT_READ
-
-Do the non-glibc code mappers have glibc interfaces for this?
-Otherwise, how could a bunch of JITs in a big multi-threaded application
-possibly coordinate the mprotect()s?  Won't they race with each other?
+Especially given the way that we implemented the new 5-level-paging
+address space, I don't think that expecting code to be below the stack
+is a good universal expectation.
