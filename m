@@ -1,67 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:38294 "EHLO mga04.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388342AbfFJVGK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Jun 2019 17:06:10 -0400
-Message-ID: <328275c9b43c06809c9937c83d25126a6e3efcbd.camel@intel.com>
-Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
- function
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Mon, 10 Jun 2019 13:58:01 -0700
-In-Reply-To: <ac9a20a6-170a-694e-beeb-605a17195034@intel.com>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
-         <20190606200926.4029-4-yu-cheng.yu@intel.com>
-         <20190607080832.GT3419@hirez.programming.kicks-ass.net>
-         <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com>
-         <20190607174336.GM3436@hirez.programming.kicks-ass.net>
-         <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
-         <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net>
-         <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
-         <25281DB3-FCE4-40C2-BADB-B3B05C5F8DD3@amacapital.net>
-         <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
-         <3f19582d-78b1-5849-ffd0-53e8ca747c0d@intel.com>
-         <5aa98999b1343f34828414b74261201886ec4591.camel@intel.com>
-         <0665416d-9999-b394-df17-f2a5e1408130@intel.com>
-         <5c8727dde9653402eea97bfdd030c479d1e8dd99.camel@intel.com>
-         <ac9a20a6-170a-694e-beeb-605a17195034@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from out02.mta.xmission.com ([166.70.13.232]:38333 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390317AbfFJVVA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jun 2019 17:21:00 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+        <20190529161157.GA27659@redhat.com>
+        <20190604134117.GA29963@redhat.com>
+        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+Date: Mon, 10 Jun 2019 16:20:33 -0500
+In-Reply-To: <20190610162244.GB8127@redhat.com> (Oleg Nesterov's message of
+        "Mon, 10 Jun 2019 18:22:45 +0200")
+Message-ID: <87lfy96sta.fsf@xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190610205801.dwIlvnFLTK4E9d2_YCBFQibZ9Fxc2smVV_Nf7NYOFMw@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
+Message-ID: <20190610212033.JwGyBKo3IiofxZnQJVzg2cZrHroyy4G3MgVsWoQOW2w@z>
 
-On Mon, 2019-06-10 at 13:43 -0700, Dave Hansen wrote:
-> On 6/10/19 1:27 PM, Yu-cheng Yu wrote:
-> > > > If the loader cannot allocate a big bitmap to cover all 5-level
-> > > > address space (the bitmap will be large), it can put all legacy lib's
-> > > > at lower address.  We cannot do these easily in the kernel.
-> > > 
-> > > This is actually an argument to do it in the kernel.  The kernel can
-> > > always allocate the virtual space however it wants, no matter how large.
-> > >  If we hide the bitmap behind a kernel API then we can put it at high
-> > > 5-level user addresses because we also don't have to worry about the
-> > > high bits confusing userspace.
-> > 
-> > We actually tried this.  The kernel needs to reserve the bitmap space in the
-> > beginning for every CET-enabled app, regardless of actual needs. 
-> 
-> I don't think this is a problem.  In fact, I think reserving the space
-> is actually the only sane behavior.  If you don't reserve it, you
-> fundamentally limit where future legacy instructions can go.
-> 
-> One idea is that we always size the bitmap for the 48-bit addressing
-> systems.  Legacy code probably doesn't _need_ to go in the new address
-> space, and if we do this we don't have to worry about the gigantic
-> 57-bit address space bitmap.
-> 
-> > On each memory request, the kernel then must consider a percentage of
-> > allocated space in its calculation, and on systems with less memory
-> > this quickly becomes a problem.
-> 
-> I'm not sure what you're referring to here?  Are you referring to our
-> overcommit limits?
+Oleg Nesterov <oleg@redhat.com> writes:
 
-Yes.
+> On 06/07, Eric W. Biederman wrote:
+>>
+>> +static int set_sigmask(sigset_t *kmask)
+>> +{
+>> +	set_restore_sigmask();
+>> +	current->saved_sigmask = current->blocked;
+>> +	set_current_blocked(kmask);
+>> +
+>> +	return 0;
+>> +}
+>
+> I was going to do the same change except my version returns void ;)
+>
+> So ACK.
+>
+>
+> As for 2-5, sorry I can't read them today, will do tomorrow.
+>
+> But at first glance... yes, we can remove TIF_RESTORE_SIGMASK.
+>
+> As for "remove saved_sigmask" I have some concerns... At least this
+> means a user-visible change iiuc. Say, pselect unblocks a fatal signal.
+> Say, SIGINT without a handler. Suppose SIGINT comes after set_sigmask().
+>
+> Before this change the process will be killed.
+>
+> After this change it will be killed or not. It won't be killed if
+> do_select() finds an already ready fd without blocking, or it finds a
+> ready fd right after SIGINT interrupts poll_schedule_timeout().
+
+Yes.  Because having the signal set in real_blocked disables the
+immediate kill optimization, and the signal has to be delivered before
+we decide to kill the process.  Which matters because as you say if
+nothing checks signal_pending() when the signals are unblocked we might
+not attempt to deliver the signal.
+
+So it is a matter of timing.
+
+If we have both a signal and a file descriptor become ready
+at the same time I would call that a race.  Either could
+wake up the process and depending on the exact time we could
+return either one.
+
+So it is possible that today if the signal came just after the file
+descriptor ,the code might have made it to restore_saved_sigmask_unless,
+before __send_signal runs.
+
+I see the concern.  I think in a matter like this we try it.  Make
+the patches clean so people can bisect the problem.  Then if someone
+runs into this problem we revert the offending patches.
+
+If it looks like bisection won't cleanly reveal the potential problem
+please let me know.
+
+Personally I don't think anyone sane would intentionally depend on this
+and I don't think there is a sufficiently reliable way to depend on this
+by accident that people would actually be depending on it.
+
+> And _to me_ the new behaviour makes more sense. But when it comes to
+> user-visible changes you can never know if it breaks something or not.
+
+True.
+
+The set of applications is larger than any developer can reasonably test.
+
+Eric
