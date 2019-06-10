@@ -1,87 +1,43 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
-Date: Mon, 10 Jun 2019 16:20:33 -0500
-Message-ID: <87lfy96sta.fsf@xmission.com>
-References: <20190522032144.10995-1-deepa.kernel@gmail.com>
-        <20190529161157.GA27659@redhat.com>
-        <20190604134117.GA29963@redhat.com>
-        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
-        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup
+ function
+Date: Mon, 10 Jun 2019 15:02:45 -0700
+Message-ID: <92e56b28-0cd4-e3f4-867b-639d9b98b86c@intel.com>
+References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
+ <20190606200926.4029-4-yu-cheng.yu@intel.com>
+ <20190607080832.GT3419@hirez.programming.kicks-ass.net>
+ <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com>
+ <20190607174336.GM3436@hirez.programming.kicks-ass.net>
+ <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
+ <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net>
+ <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
+ <25281DB3-FCE4-40C2-BADB-B3B05C5F8DD3@amacapital.net>
+ <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
+ <3f19582d-78b1-5849-ffd0-53e8ca747c0d@intel.com>
+ <5aa98999b1343f34828414b74261201886ec4591.camel@intel.com>
+ <0665416d-9999-b394-df17-f2a5e1408130@intel.com>
+ <5c8727dde9653402eea97bfdd030c479d1e8dd99.camel@intel.com>
+ <ac9a20a6-170a-694e-beeb-605a17195034@intel.com>
+ <328275c9b43c06809c9937c83d25126a6e3efcbd.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190610162244.GB8127@redhat.com> (Oleg Nesterov's message of
-        "Mon, 10 Jun 2019 18:22:45 +0200")
+In-Reply-To: <328275c9b43c06809c9937c83d25126a6e3efcbd.camel@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Oleg Nesterov <oleg@redhat.com> writes:
+On 6/10/19 1:58 PM, Yu-cheng Yu wrote:
+>>> On each memory request, the kernel then must consider a percentage of
+>>> allocated space in its calculation, and on systems with less memory
+>>> this quickly becomes a problem.
+>> I'm not sure what you're referring to here?  Are you referring to our
+>> overcommit limits?
+> Yes.
 
-> On 06/07, Eric W. Biederman wrote:
->>
->> +static int set_sigmask(sigset_t *kmask)
->> +{
->> +	set_restore_sigmask();
->> +	current->saved_sigmask = current->blocked;
->> +	set_current_blocked(kmask);
->> +
->> +	return 0;
->> +}
->
-> I was going to do the same change except my version returns void ;)
->
-> So ACK.
->
->
-> As for 2-5, sorry I can't read them today, will do tomorrow.
->
-> But at first glance... yes, we can remove TIF_RESTORE_SIGMASK.
->
-> As for "remove saved_sigmask" I have some concerns... At least this
-> means a user-visible change iiuc. Say, pselect unblocks a fatal signal.
-> Say, SIGINT without a handler. Suppose SIGINT comes after set_sigmask().
->
-> Before this change the process will be killed.
->
-> After this change it will be killed or not. It won't be killed if
-> do_select() finds an already ready fd without blocking, or it finds a
-> ready fd right after SIGINT interrupts poll_schedule_timeout().
-
-Yes.  Because having the signal set in real_blocked disables the
-immediate kill optimization, and the signal has to be delivered before
-we decide to kill the process.  Which matters because as you say if
-nothing checks signal_pending() when the signals are unblocked we might
-not attempt to deliver the signal.
-
-So it is a matter of timing.
-
-If we have both a signal and a file descriptor become ready
-at the same time I would call that a race.  Either could
-wake up the process and depending on the exact time we could
-return either one.
-
-So it is possible that today if the signal came just after the file
-descriptor ,the code might have made it to restore_saved_sigmask_unless,
-before __send_signal runs.
-
-I see the concern.  I think in a matter like this we try it.  Make
-the patches clean so people can bisect the problem.  Then if someone
-runs into this problem we revert the offending patches.
-
-If it looks like bisection won't cleanly reveal the potential problem
-please let me know.
-
-Personally I don't think anyone sane would intentionally depend on this
-and I don't think there is a sufficiently reliable way to depend on this
-by accident that people would actually be depending on it.
-
-> And _to me_ the new behaviour makes more sense. But when it comes to
-> user-visible changes you can never know if it breaks something or not.
-
-True.
-
-The set of applications is larger than any developer can reasonably test.
-
-Eric
+My assumption has always been that these large, potentially sparse
+hardware tables *must* be mmap()'d with MAP_NORESERVE specified.  That
+should keep them from being problematic with respect to overcommit.
