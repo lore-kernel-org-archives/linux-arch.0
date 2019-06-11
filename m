@@ -1,45 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:28719 "EHLO mga18.intel.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49158 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2406649AbfFKRzj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jun 2019 13:55:39 -0400
-Subject: Re: [PATCH v7 25/27] mm/mmap: Add Shadow stack pages to memory
- accounting
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
- <20190606200646.3951-26-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <1cfc7396-ca90-1933-34ad-b3d43ae52e08@intel.com>
-Date: Tue, 11 Jun 2019 10:55:38 -0700
+        id S2404245AbfFKS4Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jun 2019 14:56:16 -0400
+Date: Tue, 11 Jun 2019 20:55:49 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
+Message-ID: <20190611185548.GA31214@redhat.com>
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+ <20190529161157.GA27659@redhat.com>
+ <20190604134117.GA29963@redhat.com>
+ <20190606140814.GA13440@redhat.com>
+ <87k1dxaxcl.fsf_-_@xmission.com>
+ <87ef45axa4.fsf_-_@xmission.com>
+ <20190610162244.GB8127@redhat.com>
+ <87lfy96sta.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <20190606200646.3951-26-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87lfy96sta.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190611175538.aLhY9_RFXoeQ7i-r8vqZDL2aqJEpMB4cZyZtVhygFNs@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
+Message-ID: <20190611185549.uhqc4GIjk18DPlzCdUDVop094R0g1skfKzpjHpC_2AE@z>
 
-On 6/6/19 1:06 PM, Yu-cheng Yu wrote:
-> --- a/mm/mmap.c
-> +++ b/mm/mmap.c
-> @@ -1703,6 +1703,9 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
->  	if (file && is_file_hugepages(file))
->  		return 0;
->  
-> +	if (arch_copy_pte_mapping(vm_flags))
-> +		return 1;
-> +
->  	return (vm_flags & (VM_NORESERVE | VM_SHARED | VM_WRITE)) == VM_WRITE;
->  }
->  
-> @@ -3319,6 +3322,8 @@ void vm_stat_account(struct mm_struct *mm, vm_flags_t flags, long npages)
->  		mm->stack_vm += npages;
->  	else if (is_data_mapping(flags))
->  		mm->data_vm += npages;
-> +	else if (arch_copy_pte_mapping(flags))
-> +		mm->data_vm += npages;
->  }
+On 06/10, Eric W. Biederman wrote:
+>
+> Personally I don't think anyone sane would intentionally depend on this
+> and I don't think there is a sufficiently reliable way to depend on this
+> by accident that people would actually be depending on it.
 
-This classifies shadow stack as data instead of stack.  That seems a wee
-bit counterintuitive.  Why did you make this choice?
+Agreed.
+
+As I said I like these changes and I see nothing wrong. To me they fix the
+current behaviour, or at least make it more consistent.
+
+But perhaps this should be documented in the changelog? To make it clear
+that this change was intentional.
+
+Oleg.
