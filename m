@@ -1,46 +1,48 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
-Date: Tue, 11 Jun 2019 14:02:41 -0500
-Message-ID: <87zhmo54j2.fsf@xmission.com>
-References: <20190522032144.10995-1-deepa.kernel@gmail.com>
-	<20190529161157.GA27659@redhat.com>
-	<20190604134117.GA29963@redhat.com>
-	<20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
-	<87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
-	<87lfy96sta.fsf@xmission.com> <20190611185548.GA31214@redhat.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v7 25/27] mm/mmap: Add Shadow stack pages to memory
+ accounting
+Date: Tue, 11 Jun 2019 12:22:48 -0700
+Message-ID: <d3d027a903524729454efa235155e5db75216e66.camel@intel.com>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+         <20190606200646.3951-26-yu-cheng.yu@intel.com>
+         <1cfc7396-ca90-1933-34ad-b3d43ae52e08@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20190611185548.GA31214@redhat.com> (Oleg Nesterov's message of
-	"Tue, 11 Jun 2019 20:55:49 +0200")
-Sender: owner-linux-aio@kvack.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1cfc7396-ca90-1933-34ad-b3d43ae52e08@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-Oleg Nesterov <oleg@redhat.com> writes:
+On Tue, 2019-06-11 at 10:55 -0700, Dave Hansen wrote:
+> On 6/6/19 1:06 PM, Yu-cheng Yu wrote:
+> > --- a/mm/mmap.c
+> > +++ b/mm/mmap.c
+> > @@ -1703,6 +1703,9 @@ static inline int accountable_mapping(struct file
+> > *file, vm_flags_t vm_flags)
+> >  	if (file && is_file_hugepages(file))
+> >  		return 0;
+> >  
+> > +	if (arch_copy_pte_mapping(vm_flags))
+> > +		return 1;
+> > +
+> >  	return (vm_flags & (VM_NORESERVE | VM_SHARED | VM_WRITE)) ==
+> > VM_WRITE;
+> >  }
+> >  
+> > @@ -3319,6 +3322,8 @@ void vm_stat_account(struct mm_struct *mm, vm_flags_t
+> > flags, long npages)
+> >  		mm->stack_vm += npages;
+> >  	else if (is_data_mapping(flags))
+> >  		mm->data_vm += npages;
+> > +	else if (arch_copy_pte_mapping(flags))
+> > +		mm->data_vm += npages;
+> >  }
+> 
+> This classifies shadow stack as data instead of stack.  That seems a wee
+> bit counterintuitive.  Why did you make this choice?
 
-> On 06/10, Eric W. Biederman wrote:
->>
->> Personally I don't think anyone sane would intentionally depend on this
->> and I don't think there is a sufficiently reliable way to depend on this
->> by accident that people would actually be depending on it.
->
-> Agreed.
->
-> As I said I like these changes and I see nothing wrong. To me they fix the
-> current behaviour, or at least make it more consistent.
->
-> But perhaps this should be documented in the changelog? To make it clear
-> that this change was intentional.
+I don't recall the reason; I will change it to stack and test it out.
 
-Good point.  I had not documented it because I thought I was only
-disabling an optimization.
-
-Eric
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Yu-cheng
