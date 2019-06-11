@@ -1,41 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53186 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388630AbfFKS7I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jun 2019 14:59:08 -0400
-Date: Tue, 11 Jun 2019 20:58:58 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [RFC PATCH 0/5]: Removing saved_sigmask
-Message-ID: <20190611185857.GB31214@redhat.com>
+Received: from out03.mta.xmission.com ([166.70.13.233]:56843 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2391474AbfFKTDB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jun 2019 15:03:01 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
 References: <20190522032144.10995-1-deepa.kernel@gmail.com>
- <20190529161157.GA27659@redhat.com>
- <20190604134117.GA29963@redhat.com>
- <20190606140814.GA13440@redhat.com>
- <87k1dxaxcl.fsf_-_@xmission.com>
+        <20190529161157.GA27659@redhat.com>
+        <20190604134117.GA29963@redhat.com>
+        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+        <87lfy96sta.fsf@xmission.com> <20190611185548.GA31214@redhat.com>
+Date: Tue, 11 Jun 2019 14:02:41 -0500
+In-Reply-To: <20190611185548.GA31214@redhat.com> (Oleg Nesterov's message of
+        "Tue, 11 Jun 2019 20:55:49 +0200")
+Message-ID: <87zhmo54j2.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87k1dxaxcl.fsf_-_@xmission.com>
+Content-Type: text/plain
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, stable@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
-Message-ID: <20190611185858.ay-79R1uySB64nk_QbwsXpIGCWU4-_bRl3D60WFLLNM@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, dbueso@suse.de, axboe@kernel.dk, dave@stgolabs.net, e@80x24.org, jbaron@akamai.com, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, omar.kilani@gmail.com, tglx@linutronix.de, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, David Laight <David.Laight@ACULAB.COM>, linux-arch@vger.kernel.org
+Message-ID: <20190611190241.Ny4SHKPWVvX1wN9y69fieQX4gqa0kJVJkbhifXtFzk4@z>
 
-On 06/07, Eric W. Biederman wrote:
+Oleg Nesterov <oleg@redhat.com> writes:
+
+> On 06/10, Eric W. Biederman wrote:
+>>
+>> Personally I don't think anyone sane would intentionally depend on this
+>> and I don't think there is a sufficiently reliable way to depend on this
+>> by accident that people would actually be depending on it.
 >
-> Eric W. Biederman (5):
->       signal: Teach sigsuspend to use set_user_sigmask
->       signal/kvm:  Stop using sigprocmask in kvm_sigset_(activate|deactivate)
->       signal: Always keep real_blocked in sync with blocked
->       signal: Remove saved_sigmask
->       signal: Remove the unnecessary restore_sigmask flag
+> Agreed.
+>
+> As I said I like these changes and I see nothing wrong. To me they fix the
+> current behaviour, or at least make it more consistent.
+>
+> But perhaps this should be documented in the changelog? To make it clear
+> that this change was intentional.
 
-Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+Good point.  I had not documented it because I thought I was only
+disabling an optimization.
 
-
-
-I guess this should be routed via -mm tree? This depends on
-signal-simplify-set_user_sigmask-restore_user_sigmask.patch
-
-Oleg.
+Eric
