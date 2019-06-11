@@ -1,91 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([45.249.212.187]:6934 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726022AbfFKEW3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jun 2019 00:22:29 -0400
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
-From: "liwei (GF)" <liwei391@huawei.com>
-Message-ID: <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
-Date: Tue, 11 Jun 2019 12:22:05 +0800
+Received: from mx1.redhat.com ([209.132.183.28]:39522 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2404260AbfFKHY0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jun 2019 03:24:26 -0400
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup function
+References: <20190606200926.4029-1-yu-cheng.yu@intel.com>
+        <20190606200926.4029-4-yu-cheng.yu@intel.com>
+        <20190607080832.GT3419@hirez.programming.kicks-ass.net>
+        <aa8a92ef231d512b5c9855ef416db050b5ab59a6.camel@intel.com>
+        <20190607174336.GM3436@hirez.programming.kicks-ass.net>
+        <b3de4110-5366-fdc7-a960-71dea543a42f@intel.com>
+        <34E0D316-552A-401C-ABAA-5584B5BC98C5@amacapital.net>
+        <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
+        <25281DB3-FCE4-40C2-BADB-B3B05C5F8DD3@amacapital.net>
+        <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
+        <3f19582d-78b1-5849-ffd0-53e8ca747c0d@intel.com>
+        <5aa98999b1343f34828414b74261201886ec4591.camel@intel.com>
+        <0665416d-9999-b394-df17-f2a5e1408130@intel.com>
+        <5c8727dde9653402eea97bfdd030c479d1e8dd99.camel@intel.com>
+        <ac9a20a6-170a-694e-beeb-605a17195034@intel.com>
+        <328275c9b43c06809c9937c83d25126a6e3efcbd.camel@intel.com>
+        <92e56b28-0cd4-e3f4-867b-639d9b98b86c@intel.com>
+Date: Tue, 11 Jun 2019 09:24:03 +0200
+In-Reply-To: <92e56b28-0cd4-e3f4-867b-639d9b98b86c@intel.com> (Dave Hansen's
+        message of "Mon, 10 Jun 2019 15:02:45 -0700")
+Message-ID: <8736kgd1po.fsf@oldenburg2.str.redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20190329152006.110370-4-alex.kogan@oracle.com>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org
-Cc: dave.dice@oracle.com, rahul.x.yadav@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
-Message-ID: <20190611042205.G8VOD93EWQ2VVRrOU6rUg1M3TxPganL49HQQ2T88fVk@z>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@amacapital.net>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190611072403.Yv9gNaAsn96N4Rq8MPlYx6KzMObWyP_Don4xcuU22Tw@z>
 
-Hi Alex,
+* Dave Hansen:
 
-On 2019/3/29 23:20, Alex Kogan wrote:
-> In CNA, spinning threads are organized in two queues, a main queue for
-> threads running on the same node as the current lock holder, and a
-> secondary queue for threads running on other nodes. At the unlock time,
-> the lock holder scans the main queue looking for a thread running on
-> the same node. If found (call it thread T), all threads in the main queue
-> between the current lock holder and T are moved to the end of the
-> secondary queue, and the lock is passed to T. If such T is not found, the
-> lock is passed to the first node in the secondary queue. Finally, if the
-> secondary queue is empty, the lock is passed to the next thread in the
-> main queue. For more details, see https://arxiv.org/abs/1810.05600.
-> 
-> Note that this variant of CNA may introduce starvation by continuously
-> passing the lock to threads running on the same node. This issue
-> will be addressed later in the series.
-> 
-> Enabling CNA is controlled via a new configuration option
-> (NUMA_AWARE_SPINLOCKS), which is enabled by default if NUMA is enabled.
-> 
-> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-> ---
->  arch/x86/Kconfig                      |  14 +++
->  include/asm-generic/qspinlock_types.h |  13 +++
->  kernel/locking/mcs_spinlock.h         |  10 ++
->  kernel/locking/qspinlock.c            |  29 +++++-
->  kernel/locking/qspinlock_cna.h        | 173 ++++++++++++++++++++++++++++++++++
->  5 files changed, 236 insertions(+), 3 deletions(-)
->  create mode 100644 kernel/locking/qspinlock_cna.h
-> 
-(SNIP)
-> +
-> +static __always_inline int get_node_index(struct mcs_spinlock *node)
-> +{
-> +	return decode_count(node->node_and_count++);
-When nesting level is > 4, it won't return a index >= 4 here and the numa node number
-is changed by mistake. It will go into a wrong way instead of the following branch.
+> My assumption has always been that these large, potentially sparse
+> hardware tables *must* be mmap()'d with MAP_NORESERVE specified.  That
+> should keep them from being problematic with respect to overcommit.
 
+MAP_NORESERVE pages still count towards the commit limit.  The flag only
+disables checks at allocation time, for this particular allocation.  (At
+least this was the behavior the last time I looked into this, I
+believe.)
 
-	/*
-	 * 4 nodes are allocated based on the assumption that there will
-	 * not be nested NMIs taking spinlocks. That may not be true in
-	 * some architectures even though the chance of needing more than
-	 * 4 nodes will still be extremely unlikely. When that happens,
-	 * we fall back to spinning on the lock directly without using
-	 * any MCS node. This is not the most elegant solution, but is
-	 * simple enough.
-	 */
-	if (unlikely(idx >= MAX_NODES)) {
-		while (!queued_spin_trylock(lock))
-			cpu_relax();
-		goto release;
-	}
-
-> +}
-> +
-> +static __always_inline void release_mcs_node(struct mcs_spinlock *node)
-> +{
-> +	__this_cpu_dec(node->node_and_count);
-> +}
-> +
-> +static __always_inline void cna_init_node(struct mcs_spinlock *node, int cpuid,
-> +					  u32 tail)
-> +{
+Not sure if this makes a difference here.
 
 Thanks,
-Wei
+Florian
