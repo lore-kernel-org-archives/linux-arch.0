@@ -1,95 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:25599 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2389125AbfFKLPB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Jun 2019 07:15:01 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
-Date: Tue, 11 Jun 2019 11:14:57 +0000
-Message-ID: <95decc6904754004af8a5546aca0468a@AcuMS.aculab.com>
-References: <20190522032144.10995-1-deepa.kernel@gmail.com>
-        <20190529161157.GA27659@redhat.com>     <20190604134117.GA29963@redhat.com>
-        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
-        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
- <87lfy96sta.fsf@xmission.com>
- <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
-In-Reply-To: <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
-Content-Language: en-US
+Received: from foss.arm.com ([217.140.110.172]:59198 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2403817AbfFKLlS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Jun 2019 07:41:18 -0400
+Date: Tue, 11 Jun 2019 12:41:09 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v7 22/27] binfmt_elf: Extract .note.gnu.property from an
+ ELF file
+Message-ID: <20190611114109.GN28398@e103592.cambridge.arm.com>
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+ <20190606200646.3951-23-yu-cheng.yu@intel.com>
+ <20190607180115.GJ28398@e103592.cambridge.arm.com>
+ <94b9c55b3b874825fda485af40ab2a6bc3dad171.camel@intel.com>
+ <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "'Eric W. Biederman'" <ebiederm@xmission.com>, 'Oleg Nesterov' <oleg@redhat.com>
-Cc: 'Andrew Morton' <akpm@linux-foundation.org>, 'Deepa Dinamani' <deepa.kernel@gmail.com>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'arnd@arndb.de'" <arnd@arndb.de>, "'dbueso@suse.de'" <dbueso@suse.de>, "'axboe@kernel.dk'" <axboe@kernel.dk>, "'dave@stgolabs.net'" <dave@stgolabs.net>, "'e@80x24.org'" <e@80x24.org>, "'jbaron@akamai.com'" <jbaron@akamai.com>, "'linux-fsdevel@vger.kernel.org'" <linux-fsdevel@vger.kernel.org>, "'linux-aio@kvack.org'" <linux-aio@kvack.org>, "'omar.kilani@gmail.com'" <omar.kilani@gmail.com>, "'tglx@linutronix.de'" <tglx@linutronix.de>, 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
-Message-ID: <20190611111457.fF4XQJgjWbrGETc-Ti3wnmFTYif1O34LqXLgCGmU4x4@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20190611114109.Cr2WJ51xALCEipGK732zy1j1cLYxQtqWqaDEBtIwH4E@z>
 
-From: David Laight
-> Sent: 11 June 2019 10:52
-...
-> If I have an application that has a loop with a pselect call that
-> enables SIGINT (without a handler) and, for whatever reason,
-> one of the fd is always 'ready' then I'd expect a SIGINT
-> (from ^C) to terminate the program.
+On Mon, Jun 10, 2019 at 07:24:43PM +0200, Florian Weimer wrote:
+> * Yu-cheng Yu:
 > 
-> A quick test program:
+> > To me, looking at PT_GNU_PROPERTY and not trying to support anything is a
+> > logical choice.  And it breaks only a limited set of toolchains.
+> >
+> > I will simplify the parser and leave this patch as-is for anyone who wants to
+> > back-port.  Are there any objections or concerns?
 > 
-> #include <sys/time.h>
-> #include <sys/types.h>
-> #include <unistd.h>
-> 
-> #include <sys/select.h>
-> #include <signal.h>
-> 
-> int main(int argc, char **argv)
-> {
->         fd_set readfds;
->         sigset_t sig_int;
->         struct timespec delay = {1, 0};
-> 
->         sigfillset(&sig_int);
->         sigdelset(&sig_int, SIGINT);
-> 
->         sighold(SIGINT);
-> 
->         for (;;) {
->                 FD_ZERO(&readfds);
->                 FD_SET(0, &readfds);
->                 pselect(1, &readfds, NULL, NULL, &delay, &sig_int);
-> 
->                 poll(0,0,1000);
->         }
-> }
-> 
-> Run under strace to see what is happening and send SIGINT from a different terminal.
-> The program sleeps for a second in each of the pselect() and poll() calls.
-> Send a SIGINT and in terminates after pselect() returns ERESTARTNOHAND.
-> 
-> Run again, this time press enter - making fd 0 readable.
-> pselect() returns 1, but the program still exits.
-> (Tested on a 5.1.0-rc5 kernel.)
-> 
-> If a signal handler were defined it should be called instead.
+> Red Hat Enterprise Linux 8 does not use PT_GNU_PROPERTY and is probably
+> the largest collection of CET-enabled binaries that exists today.
 
-If I add a signal handler for SIGINT it is called when pselect()
-returns regardless of the return value.
+For clarity, RHEL is actively parsing these properties today?
 
-If I setup SIGUSR1/2 the same way as SIGINT and get the SIGINT
-handler to sighold() and then raise both of them, the USR1/2
-handlers are both called on the next pselect() call.
-(Without the extra sighold() the handlers are called when kill()
-returns.)
+> My hope was that we would backport the upstream kernel patches for CET,
+> port the glibc dynamic loader to the new kernel interface, and be ready
+> to run with CET enabled in principle (except that porting userspace
+> libraries such as OpenSSL has not really started upstream, so many
+> processes where CET is particularly desirable will still run without
+> it).
+> 
+> I'm not sure if it is a good idea to port the legacy support if it's not
+> part of the mainline kernel because it comes awfully close to creating
+> our own private ABI.
 
-I'd expect the epoll functions to work the same way.
+I guess we can aim to factor things so that PT_NOTE scanning is
+available as a fallback on arches for which the absence of
+PT_GNU_PROPERTY is not authoritative.
 
-sigtimedwait is different though - it returns the number of the
-pending signal (and doesn't call the handler).
-So if two signals are pending neither handler should be called.
-The second signal would be returned on the following sigtimedwait call.
+Can we argue that the lack of PT_GNU_PROPERTY is an ABI bug, fix it
+for new binaries and hence limit the efforts we go to to support
+theoretical binaries that lack the phdrs entry?
 
-	David
+If we can make practical simplifications to the parsing, such as
+limiting the maximum PT_NOTE size that we will search for the program
+properties to 1K (say), or requiring NT_NOTE_GNU_PROPERTY_TYPE_0 to sit
+by itself in a single PT_NOTE then that could help minimse the exec
+overheads and the number of places for bugs to hide in the kernel.
 
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+What we can do here depends on what the tools currently do and what
+binaries are out there.
+
+Cheers
+---Dave
