@@ -1,163 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53922 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39996 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2409269AbfFLOV2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jun 2019 10:21:28 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 1/2] arm64: Define Documentation/arm64/tagged-address-abi.txt
-Date: Wed, 12 Jun 2019 15:21:10 +0100
-Message-ID: <20190612142111.28161-2-vincenzo.frascino@arm.com>
-In-Reply-To: <20190612142111.28161-1-vincenzo.frascino@arm.com>
-References: <cover.1560339705.git.andreyknvl@google.com>
- <20190612142111.28161-1-vincenzo.frascino@arm.com>
+        id S2437202AbfFLPF0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Jun 2019 11:05:26 -0400
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
+ <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <a52a5e25-2b71-b6d9-3fa1-fb43bae1cbc1@redhat.com>
+Date: Wed, 12 Jun 2019 11:05:17 -0400
 MIME-Version: 1.0
+In-Reply-To: <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190612142110.pLkU1QGDUUgX4xdFU6wtVYFZyWicfbt7Oeb6BZ8RJYA@z>
+To: Alex Kogan <alex.kogan@oracle.com>, "liwei (GF)" <liwei391@huawei.com>
+Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, bp@alien8.de, hpa@zytor.com, x86@kernel.org, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>
+Message-ID: <20190612150517.qoIEM0mrCRpTIptwhGjkXTtOQ17AobQczap4Ie8wJ00@z>
 
-On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
-the userspace (EL0) is allowed to set a non-zero value in the
-top byte but the resulting pointers are not allowed at the
-user-kernel syscall ABI boundary.
+On 6/12/19 12:38 AM, Alex Kogan wrote:
+> Hi, Wei.
+>
+>> On Jun 11, 2019, at 12:22 AM, liwei (GF) <liwei391@huawei.com> wrote:
+>>
+>> Hi Alex,
+>>
+>> On 2019/3/29 23:20, Alex Kogan wrote:
+>>> In CNA, spinning threads are organized in two queues, a main queue for
+>>> threads running on the same node as the current lock holder, and a
+>>> secondary queue for threads running on other nodes. At the unlock time,
+>>> the lock holder scans the main queue looking for a thread running on
+>>> the same node. If found (call it thread T), all threads in the main queue
+>>> between the current lock holder and T are moved to the end of the
+>>> secondary queue, and the lock is passed to T. If such T is not found, the
+>>> lock is passed to the first node in the secondary queue. Finally, if the
+>>> secondary queue is empty, the lock is passed to the next thread in the
+>>> main queue. For more details, see https://urldefense.proofpoint.com/v2/url?u=https-3A__arxiv.org_abs_1810.05600&d=DwICbg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=Hvhk3F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=U7mfTbYj1r2Te2BBUUNbVrRPuTa_ujlpR4GZfUsrGTM&s=Dw4O1EniF-nde4fp6RA9ISlSMOjWuqeR9OS1G0iauj0&e=.
+>>>
+>>> Note that this variant of CNA may introduce starvation by continuously
+>>> passing the lock to threads running on the same node. This issue
+>>> will be addressed later in the series.
+>>>
+>>> Enabling CNA is controlled via a new configuration option
+>>> (NUMA_AWARE_SPINLOCKS), which is enabled by default if NUMA is enabled.
+>>>
+>>> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+>>> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+>>> ---
+>>> arch/x86/Kconfig                      |  14 +++
+>>> include/asm-generic/qspinlock_types.h |  13 +++
+>>> kernel/locking/mcs_spinlock.h         |  10 ++
+>>> kernel/locking/qspinlock.c            |  29 +++++-
+>>> kernel/locking/qspinlock_cna.h        | 173 ++++++++++++++++++++++++++++++++++
+>>> 5 files changed, 236 insertions(+), 3 deletions(-)
+>>> create mode 100644 kernel/locking/qspinlock_cna.h
+>>>
+>> (SNIP)
+>>> +
+>>> +static __always_inline int get_node_index(struct mcs_spinlock *node)
+>>> +{
+>>> +	return decode_count(node->node_and_count++);
+>> When nesting level is > 4, it won't return a index >= 4 here and the numa node number
+>> is changed by mistake. It will go into a wrong way instead of the following branch.
+>>
+>>
+>> 	/*
+>> 	 * 4 nodes are allocated based on the assumption that there will
+>> 	 * not be nested NMIs taking spinlocks. That may not be true in
+>> 	 * some architectures even though the chance of needing more than
+>> 	 * 4 nodes will still be extremely unlikely. When that happens,
+>> 	 * we fall back to spinning on the lock directly without using
+>> 	 * any MCS node. This is not the most elegant solution, but is
+>> 	 * simple enough.
+>> 	 */
+>> 	if (unlikely(idx >= MAX_NODES)) {
+>> 		while (!queued_spin_trylock(lock))
+>> 			cpu_relax();
+>> 		goto release;
+>> 	}
+> Good point.
+> This patch does not handle count overflows gracefully.
+> It can be easily fixed by allocating more bits for the count — we don’t really need 30 bits for #NUMA nodes.
 
-With the relaxed ABI proposed through this document, it is now possible
-to pass tagged pointers to the syscalls, when these pointers are in
-memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
+Actually, the default setting uses 2 bits for 4-level nesting and 14
+bits for cpu numbers. That means it can support up to 16k-1 cpus. It is
+a limit that is likely to be exceeded in the foreseeable future.
+qspinlock also supports an additional mode with 21 bits used for cpu
+numbers. That can support up to 2M-1 cpus. However, this mode will be a
+little bit slower. That is why we don't want to use more than 2 bits for
+nesting as I have never see more than 2 level of nesting used in my
+testing. So it is highly unlikely we will ever hit more than 4 levels. I
+am not saying that it is impossible, though.
 
-This change in the ABI requires a mechanism to requires the userspace
-to opt-in to such an option.
-
-Specify and document the way in which sysctl and prctl() can be used
-in combination to allow the userspace to opt-in this feature.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-CC: Andrey Konovalov <andreyknvl@google.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- Documentation/arm64/tagged-address-abi.txt | 111 +++++++++++++++++++++
- 1 file changed, 111 insertions(+)
- create mode 100644 Documentation/arm64/tagged-address-abi.txt
-
-diff --git a/Documentation/arm64/tagged-address-abi.txt b/Documentation/arm64/tagged-address-abi.txt
-new file mode 100644
-index 000000000000..96e149e2c55c
---- /dev/null
-+++ b/Documentation/arm64/tagged-address-abi.txt
-@@ -0,0 +1,111 @@
-+ARM64 TAGGED ADDRESS ABI
-+========================
-+
-+This document describes the usage and semantics of the Tagged Address
-+ABI on arm64.
-+
-+1. Introduction
-+---------------
-+
-+On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64 kernel,
-+hence the userspace (EL0) is allowed to set a non-zero value in the top
-+byte but the resulting pointers are not allowed at the user-kernel syscall
-+ABI boundary.
-+
-+This document describes a relaxation of the ABI with which it is possible
-+to pass tagged tagged pointers to the syscalls, when these pointers are in
-+memory ranges obtained as described in paragraph 2.
-+
-+Since it is not desirable to relax the ABI to allow tagged user addresses
-+into the kernel indiscriminately, arm64 provides a new sysctl interface
-+(/proc/sys/abi/tagged_addr) that is used to prevent the applications from
-+enabling the relaxed ABI and a new prctl() interface that can be used to
-+enable or disable the relaxed ABI.
-+
-+The sysctl is meant also for testing purposes in order to provide a simple
-+way for the userspace to verify the return error checking of the prctl()
-+command without having to reconfigure the kernel.
-+
-+The ABI properties are inherited by threads of the same application and
-+fork()'ed children but cleared when a new process is spawn (execve()).
-+
-+2. ARM64 Tagged Address ABI
-+---------------------------
-+
-+From the kernel syscall interface prospective, we define, for the purposes
-+of this document, a "valid tagged pointer" as a pointer that either it has
-+a zero value set in the top byte or it has a non-zero value, it is in memory
-+ranges privately owned by a userspace process and it is obtained in one of
-+the following ways:
-+  - mmap() done by the process itself, where either:
-+    * flags = MAP_PRIVATE | MAP_ANONYMOUS
-+    * flags = MAP_PRIVATE and the file descriptor refers to a regular
-+      file or "/dev/zero"
-+  - a mapping below sbrk(0) done by the process itself
-+  - any memory mapped by the kernel in the process's address space during
-+    creation and following the restrictions presented above (i.e. data, bss,
-+    stack).
-+
-+The ARM64 Tagged Address ABI is an opt-in feature, and an application can
-+control it using the following prctl()s:
-+  - PR_SET_TAGGED_ADDR_CTRL: can be used to enable the Tagged Address ABI.
-+  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
-+                             Address ABI.
-+
-+As a consequence of invoking PR_SET_TAGGED_ADDR_CTRL prctl() by an applications,
-+the ABI guarantees the following behaviours:
-+
-+  - Every current or newly introduced syscall can accept any valid tagged
-+    pointers.
-+
-+  - If a non valid tagged pointer is passed to a syscall then the behaviour
-+    is undefined.
-+
-+  - Every valid tagged pointer is expected to work as an untagged one.
-+
-+  - The kernel preserves any valid tagged pointers and returns them to the
-+    userspace unchanged in all the cases except the ones documented in the
-+    "Preserving tags" paragraph of tagged-pointers.txt.
-+
-+A definition of the meaning of tagged pointers on arm64 can be found in:
-+Documentation/arm64/tagged-pointers.txt.
-+
-+3. ARM64 Tagged Address ABI Exceptions
-+--------------------------------------
-+
-+The behaviours described in paragraph 2, with particular reference to the
-+acceptance by the syscalls of any valid tagged pointer are not applicable
-+to the following cases:
-+  - mmap() addr parameter.
-+  - mremap() new_address parameter.
-+  - prctl_set_mm() struct prctl_map fields.
-+  - prctl_set_mm_map() struct prctl_map fields.
-+
-+4. Example of correct usage
-+---------------------------
-+
-+void main(void)
-+{
-+	static int tbi_enabled = 0;
-+	unsigned long tag = 0;
-+
-+	char *ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
-+			 MAP_ANONYMOUS, -1, 0);
-+
-+	if (prctl(PR_SET_TAGGED_ADDR_CTRL, PR_TAGGED_ADDR_ENABLE,
-+		  0, 0, 0) == 0)
-+		tbi_enabled = 1;
-+
-+	if (!ptr)
-+		return -1;
-+
-+	if (tbi_enabled)
-+		tag = rand() & 0xff;
-+
-+	ptr = (char *)((unsigned long)ptr | (tag << TAG_SHIFT));
-+
-+	*ptr = 'a';
-+
-+	...
-+}
-+
--- 
-2.21.0
+Cheers,
+Longman
