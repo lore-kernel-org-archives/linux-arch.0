@@ -1,36 +1,87 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC PATCH] Add script to add/remove/rename/renumber syscalls and
- resolve conflicts
-Date: Tue, 11 Jun 2019 16:18:07 -1000
-Message-ID: <CAHk-=wih2Ko+9CBRrdp36G7DPy4EDZKxZQ6q0CNyXRWsy5ujyA@mail.gmail.com>
-References: <156025961444.27052.12727156666287330749.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <156025961444.27052.12727156666287330749.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch <linux-arch@vger.kernel.org>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Wed, 12 Jun 2019 00:38:29 -0400
+Message-ID: <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <20190329152006.110370-4-alex.kogan@oracle.com>
+ <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: "liwei (GF)" <liwei391@huawei.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 11, 2019 at 3:27 AM David Howells <dhowells@redhat.com> wrote:
->
-> Add a script that simplifies the process of altering system call tables in
-> the kernel sources.  It has five functions available:
-
-Ugh, I hate it.
-
-I'm sure the script is all kinds of clever and useful, but I really
-think the solution is not this kind of helper script, but simply that
-we should work at not having each architecture add new system calls
-individually in the first place.
-
-IOW, we should look at having just one unified table for new system
-call numbers, and aim for the per-architecture ones to be for "legacy
-numbering".
-
-Maybe that won't happen, but in the _hope_ that it happens, I really
-would prefer that people not work at making scripts for the current
-nasty situation.
-
-                 Linus
+SGksIFdlaS4KCj4gT24gSnVuIDExLCAyMDE5LCBhdCAxMjoyMiBBTSwgbGl3ZWkgKEdGKSA8bGl3
+ZWkzOTFAaHVhd2VpLmNvbT4gd3JvdGU6Cj4gCj4gSGkgQWxleCwKPiAKPiBPbiAyMDE5LzMvMjkg
+MjM6MjAsIEFsZXggS29nYW4gd3JvdGU6Cj4+IEluIENOQSwgc3Bpbm5pbmcgdGhyZWFkcyBhcmUg
+b3JnYW5pemVkIGluIHR3byBxdWV1ZXMsIGEgbWFpbiBxdWV1ZSBmb3IKPj4gdGhyZWFkcyBydW5u
+aW5nIG9uIHRoZSBzYW1lIG5vZGUgYXMgdGhlIGN1cnJlbnQgbG9jayBob2xkZXIsIGFuZCBhCj4+
+IHNlY29uZGFyeSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIG90aGVyIG5vZGVzLiBBdCB0
+aGUgdW5sb2NrIHRpbWUsCj4+IHRoZSBsb2NrIGhvbGRlciBzY2FucyB0aGUgbWFpbiBxdWV1ZSBs
+b29raW5nIGZvciBhIHRocmVhZCBydW5uaW5nIG9uCj4+IHRoZSBzYW1lIG5vZGUuIElmIGZvdW5k
+IChjYWxsIGl0IHRocmVhZCBUKSwgYWxsIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUKPj4gYmV0
+d2VlbiB0aGUgY3VycmVudCBsb2NrIGhvbGRlciBhbmQgVCBhcmUgbW92ZWQgdG8gdGhlIGVuZCBv
+ZiB0aGUKPj4gc2Vjb25kYXJ5IHF1ZXVlLCBhbmQgdGhlIGxvY2sgaXMgcGFzc2VkIHRvIFQuIElm
+IHN1Y2ggVCBpcyBub3QgZm91bmQsIHRoZQo+PiBsb2NrIGlzIHBhc3NlZCB0byB0aGUgZmlyc3Qg
+bm9kZSBpbiB0aGUgc2Vjb25kYXJ5IHF1ZXVlLiBGaW5hbGx5LCBpZiB0aGUKPj4gc2Vjb25kYXJ5
+IHF1ZXVlIGlzIGVtcHR5LCB0aGUgbG9jayBpcyBwYXNzZWQgdG8gdGhlIG5leHQgdGhyZWFkIGlu
+IHRoZQo+PiBtYWluIHF1ZXVlLiBGb3IgbW9yZSBkZXRhaWxzLCBzZWUgaHR0cHM6Ly91cmxkZWZl
+bnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0dHBzLTNBX19hcnhpdi5vcmdfYWJzXzE4MTAu
+MDU2MDAmZD1Ed0lDYmcmYz1Sb1AxWXVtQ1hDZ2FXSHZsWllSOFBaaDhCdjdxSXJNVUI2NWVhcElf
+Sm5FJnI9SHZoazNGNG9tZENrLUdFMVBUT20zS24wQTdBcFdPWjJhWkxUdVZ4Rks0ayZtPVU3bWZU
+YllqMXIyVGUyQkJVVU5iVnJSUHVUYV91amxwUjRHWmZVc3JHVE0mcz1EdzRPMUVuaUYtbmRlNGZw
+NlJBOUlTbFNNT2pXdXFlUjlPUzFHMGlhdWowJmU9Lgo+PiAKPj4gTm90ZSB0aGF0IHRoaXMgdmFy
+aWFudCBvZiBDTkEgbWF5IGludHJvZHVjZSBzdGFydmF0aW9uIGJ5IGNvbnRpbnVvdXNseQo+PiBw
+YXNzaW5nIHRoZSBsb2NrIHRvIHRocmVhZHMgcnVubmluZyBvbiB0aGUgc2FtZSBub2RlLiBUaGlz
+IGlzc3VlCj4+IHdpbGwgYmUgYWRkcmVzc2VkIGxhdGVyIGluIHRoZSBzZXJpZXMuCj4+IAo+PiBF
+bmFibGluZyBDTkEgaXMgY29udHJvbGxlZCB2aWEgYSBuZXcgY29uZmlndXJhdGlvbiBvcHRpb24K
+Pj4gKE5VTUFfQVdBUkVfU1BJTkxPQ0tTKSwgd2hpY2ggaXMgZW5hYmxlZCBieSBkZWZhdWx0IGlm
+IE5VTUEgaXMgZW5hYmxlZC4KPj4gCj4+IFNpZ25lZC1vZmYtYnk6IEFsZXggS29nYW4gPGFsZXgu
+a29nYW5Ab3JhY2xlLmNvbT4KPj4gUmV2aWV3ZWQtYnk6IFN0ZXZlIFNpc3RhcmUgPHN0ZXZlbi5z
+aXN0YXJlQG9yYWNsZS5jb20+Cj4+IC0tLQo+PiBhcmNoL3g4Ni9LY29uZmlnICAgICAgICAgICAg
+ICAgICAgICAgIHwgIDE0ICsrKwo+PiBpbmNsdWRlL2FzbS1nZW5lcmljL3FzcGlubG9ja190eXBl
+cy5oIHwgIDEzICsrKwo+PiBrZXJuZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2suaCAgICAgICAgIHwg
+IDEwICsrCj4+IGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jICAgICAgICAgICAgfCAgMjkgKysr
+KystCj4+IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaCAgICAgICAgfCAxNzMgKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKysrKysrKwo+PiA1IGZpbGVzIGNoYW5nZWQsIDIzNiBpbnNl
+cnRpb25zKCspLCAzIGRlbGV0aW9ucygtKQo+PiBjcmVhdGUgbW9kZSAxMDA2NDQga2VybmVsL2xv
+Y2tpbmcvcXNwaW5sb2NrX2NuYS5oCj4+IAo+IChTTklQKQo+PiArCj4+ICtzdGF0aWMgX19hbHdh
+eXNfaW5saW5lIGludCBnZXRfbm9kZV9pbmRleChzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlKQo+
+PiArewo+PiArCXJldHVybiBkZWNvZGVfY291bnQobm9kZS0+bm9kZV9hbmRfY291bnQrKyk7Cj4g
+V2hlbiBuZXN0aW5nIGxldmVsIGlzID4gNCwgaXQgd29uJ3QgcmV0dXJuIGEgaW5kZXggPj0gNCBo
+ZXJlIGFuZCB0aGUgbnVtYSBub2RlIG51bWJlcgo+IGlzIGNoYW5nZWQgYnkgbWlzdGFrZS4gSXQg
+d2lsbCBnbyBpbnRvIGEgd3Jvbmcgd2F5IGluc3RlYWQgb2YgdGhlIGZvbGxvd2luZyBicmFuY2gu
+Cj4gCj4gCj4gCS8qCj4gCSAqIDQgbm9kZXMgYXJlIGFsbG9jYXRlZCBiYXNlZCBvbiB0aGUgYXNz
+dW1wdGlvbiB0aGF0IHRoZXJlIHdpbGwKPiAJICogbm90IGJlIG5lc3RlZCBOTUlzIHRha2luZyBz
+cGlubG9ja3MuIFRoYXQgbWF5IG5vdCBiZSB0cnVlIGluCj4gCSAqIHNvbWUgYXJjaGl0ZWN0dXJl
+cyBldmVuIHRob3VnaCB0aGUgY2hhbmNlIG9mIG5lZWRpbmcgbW9yZSB0aGFuCj4gCSAqIDQgbm9k
+ZXMgd2lsbCBzdGlsbCBiZSBleHRyZW1lbHkgdW5saWtlbHkuIFdoZW4gdGhhdCBoYXBwZW5zLAo+
+IAkgKiB3ZSBmYWxsIGJhY2sgdG8gc3Bpbm5pbmcgb24gdGhlIGxvY2sgZGlyZWN0bHkgd2l0aG91
+dCB1c2luZwo+IAkgKiBhbnkgTUNTIG5vZGUuIFRoaXMgaXMgbm90IHRoZSBtb3N0IGVsZWdhbnQg
+c29sdXRpb24sIGJ1dCBpcwo+IAkgKiBzaW1wbGUgZW5vdWdoLgo+IAkgKi8KPiAJaWYgKHVubGlr
+ZWx5KGlkeCA+PSBNQVhfTk9ERVMpKSB7Cj4gCQl3aGlsZSAoIXF1ZXVlZF9zcGluX3RyeWxvY2so
+bG9jaykpCj4gCQkJY3B1X3JlbGF4KCk7Cj4gCQlnb3RvIHJlbGVhc2U7Cj4gCX0KR29vZCBwb2lu
+dC4KVGhpcyBwYXRjaCBkb2VzIG5vdCBoYW5kbGUgY291bnQgb3ZlcmZsb3dzIGdyYWNlZnVsbHku
+Ckl0IGNhbiBiZSBlYXNpbHkgZml4ZWQgYnkgYWxsb2NhdGluZyBtb3JlIGJpdHMgZm9yIHRoZSBj
+b3VudCDigJQgd2UgZG9u4oCZdCByZWFsbHkgbmVlZCAzMCBiaXRzIGZvciAjTlVNQSBub2Rlcy4K
+Ckhvd2V2ZXIsIEkgYW0gd29ya2luZyBvbiBhIG5ldyByZXZpc2lvbiBvZiB0aGUgcGF0Y2gsIGlu
+IHdoaWNoIHRoZSBjbmEgbm9kZSBlbmNhcHN1bGF0ZXMgdGhlIG1jcyBub2RlIChmb2xsb3dpbmcg
+UGV0ZXLigJlzIHN1Z2dlc3Rpb24gYW5kIHNpbWlsYXJseSB0byBwdl9ub2RlKS4KV2l0aCB0aGF0
+IGFwcHJvYWNoLCB0aGlzIGlzc3VlIGlzIGdvbmUuCgpCZXN0IHJlZ2FyZHMsCuKAlCBBbGV4CgoK
+CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1h
+cm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5v
+cmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0t
+a2VybmVsCg==
