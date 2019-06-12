@@ -1,101 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39996 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2437202AbfFLPF0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jun 2019 11:05:26 -0400
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
- <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <a52a5e25-2b71-b6d9-3fa1-fb43bae1cbc1@redhat.com>
-Date: Wed, 12 Jun 2019 11:05:17 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:58798 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2405378AbfFLPLt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2019 11:11:49 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+        <20190529161157.GA27659@redhat.com>
+        <20190604134117.GA29963@redhat.com>
+        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+        <87lfy96sta.fsf@xmission.com>
+        <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
+        <20190612134558.GB3276@redhat.com>
+        <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
+Date: Wed, 12 Jun 2019 10:11:28 -0500
+In-Reply-To: <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com> (David
+        Laight's message of "Wed, 12 Jun 2019 14:18:28 +0000")
+Message-ID: <87v9xayh27.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Content-Language: en-US
+Content-Type: text/plain
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>, "liwei (GF)" <liwei391@huawei.com>
-Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, bp@alien8.de, hpa@zytor.com, x86@kernel.org, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>
-Message-ID: <20190612150517.qoIEM0mrCRpTIptwhGjkXTtOQ17AobQczap4Ie8wJ00@z>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Oleg Nesterov' <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "axboe@kernel.dk" <axboe@kernel.dk>, "dave@stgolabs.net" <dave@stgolabs.net>, "e@80x24.org" <e@80x24.org>, "jbaron@akamai.com" <jbaron@akamai.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, "omar.kilani@gmail.com" <omar.kilani@gmail.com>, "tglx@linutronix.de" <tglx@linutronix.de>, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190612151128.vakogfsRCoGHNOv-vJ7aw7Kxa-BAaOwBtPPnHcXeYBY@z>
 
-On 6/12/19 12:38 AM, Alex Kogan wrote:
-> Hi, Wei.
+David Laight <David.Laight@ACULAB.COM> writes:
+
+> From: Oleg Nesterov
+>> Sent: 12 June 2019 14:46
+>> On 06/11, David Laight wrote:
+>> >
+>> > If I have an application that has a loop with a pselect call that
+>> > enables SIGINT (without a handler) and, for whatever reason,
+>> > one of the fd is always 'ready' then I'd expect a SIGINT
+>> > (from ^C) to terminate the program.
+
+I think this gets into a quality of implementation.
+
+I suspect that set_user_sigmask should do:
+if (signal_pending())
+	return -ERESTARNOSIGHAND; /* -EINTR that restarts if nothing was pending */
+
+Which should be safe as nothing has blocked yet to consume any of the
+timeouts, and it should ensure that none of the routines miss a signal.
+
+>> This was never true.
+>> 
+>> Before Eric's patches SIGINT can kill a process or not, depending on timing.
+>> In particular, if SIGINT was already pending before pselect() and it finds
+>> an already ready fd, the program won't terminate.
 >
->> On Jun 11, 2019, at 12:22 AM, liwei (GF) <liwei391@huawei.com> wrote:
->>
->> Hi Alex,
->>
->> On 2019/3/29 23:20, Alex Kogan wrote:
->>> In CNA, spinning threads are organized in two queues, a main queue for
->>> threads running on the same node as the current lock holder, and a
->>> secondary queue for threads running on other nodes. At the unlock time,
->>> the lock holder scans the main queue looking for a thread running on
->>> the same node. If found (call it thread T), all threads in the main queue
->>> between the current lock holder and T are moved to the end of the
->>> secondary queue, and the lock is passed to T. If such T is not found, the
->>> lock is passed to the first node in the secondary queue. Finally, if the
->>> secondary queue is empty, the lock is passed to the next thread in the
->>> main queue. For more details, see https://urldefense.proofpoint.com/v2/url?u=https-3A__arxiv.org_abs_1810.05600&d=DwICbg&c=RoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=Hvhk3F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=U7mfTbYj1r2Te2BBUUNbVrRPuTa_ujlpR4GZfUsrGTM&s=Dw4O1EniF-nde4fp6RA9ISlSMOjWuqeR9OS1G0iauj0&e=.
->>>
->>> Note that this variant of CNA may introduce starvation by continuously
->>> passing the lock to threads running on the same node. This issue
->>> will be addressed later in the series.
->>>
->>> Enabling CNA is controlled via a new configuration option
->>> (NUMA_AWARE_SPINLOCKS), which is enabled by default if NUMA is enabled.
->>>
->>> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
->>> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
->>> ---
->>> arch/x86/Kconfig                      |  14 +++
->>> include/asm-generic/qspinlock_types.h |  13 +++
->>> kernel/locking/mcs_spinlock.h         |  10 ++
->>> kernel/locking/qspinlock.c            |  29 +++++-
->>> kernel/locking/qspinlock_cna.h        | 173 ++++++++++++++++++++++++++++++++++
->>> 5 files changed, 236 insertions(+), 3 deletions(-)
->>> create mode 100644 kernel/locking/qspinlock_cna.h
->>>
->> (SNIP)
->>> +
->>> +static __always_inline int get_node_index(struct mcs_spinlock *node)
->>> +{
->>> +	return decode_count(node->node_and_count++);
->> When nesting level is > 4, it won't return a index >= 4 here and the numa node number
->> is changed by mistake. It will go into a wrong way instead of the following branch.
->>
->>
->> 	/*
->> 	 * 4 nodes are allocated based on the assumption that there will
->> 	 * not be nested NMIs taking spinlocks. That may not be true in
->> 	 * some architectures even though the chance of needing more than
->> 	 * 4 nodes will still be extremely unlikely. When that happens,
->> 	 * we fall back to spinning on the lock directly without using
->> 	 * any MCS node. This is not the most elegant solution, but is
->> 	 * simple enough.
->> 	 */
->> 	if (unlikely(idx >= MAX_NODES)) {
->> 		while (!queued_spin_trylock(lock))
->> 			cpu_relax();
->> 		goto release;
->> 	}
-> Good point.
-> This patch does not handle count overflows gracefully.
-> It can be easily fixed by allocating more bits for the count — we don’t really need 30 bits for #NUMA nodes.
+> Which matches what I see on a very old Linux system.
+>
+>> After the Eric's patches SIGINT will only kill the program if pselect() does
+>> not find a ready fd.
+>> 
+>> And this is much more consistent. Now we can simply say that the signal will
+>> be delivered only if pselect() fails and returns -EINTR. If it doesn't have
+>> a handler the process will be killed, otherwise the handler will be called.
+>
+> But is it what the standards mandate?
+> Can anyone check how Solaris and any of the BSDs behave?
+> I don't have access to any solaris systems (I doubt I'll get the disk to
+> spin on the one in my garage).
+> I can check NetBSD when I get home.
+>
+> The ToG page for pselect() http://pubs.opengroup.org/onlinepubs/9699919799/functions/pselect.html says:
+>     "If sigmask is not a null pointer, then the pselect() function shall replace
+>     the signal mask of the caller by the set of signals pointed to by sigmask
+>     before examining the descriptors, and shall restore the signal mask of the
+>     calling thread before returning."
+> Note that it says 'before examining the descriptors' not 'before blocking'.
+> Under the general description about signals it also says that the signal handler
+> will be called (or other action happen) when a pending signal is unblocked.
+> So unblocking SIGINT (set to SIG_DFL) prior to examining the descriptors
+> should be enough to cause the process to exit.
+> The fact that signal handlers are not called until 'return to user'
+> is really an implementation choice - but (IMHO) it should appear as if they
+> were called at the time they became unmasked.
+>
+> If nothing else the man pages need a note about the standards and portability.
 
-Actually, the default setting uses 2 bits for 4-level nesting and 14
-bits for cpu numbers. That means it can support up to 16k-1 cpus. It is
-a limit that is likely to be exceeded in the foreseeable future.
-qspinlock also supports an additional mode with 21 bits used for cpu
-numbers. That can support up to 2M-1 cpus. However, this mode will be a
-little bit slower. That is why we don't want to use more than 2 bits for
-nesting as I have never see more than 2 level of nesting used in my
-testing. So it is highly unlikely we will ever hit more than 4 levels. I
-am not saying that it is impossible, though.
+I think the entire point is so that signals can be added to an event
+loop in a race free way.  *cough* signalfd *cough*.  I think if you are
+setting SIGINT to SIG_DFL you would leave SIGINT unblocked so it can
+happen anywhere.
 
-Cheers,
-Longman
+I can see more utility in having a SIGINT handler and you block SIGINT
+except in your polling loop so you can do something deterministic when
+SIGINT comes in.
+
+Which makes it independent of my patches, but still worth fixing.
+
+Eric
