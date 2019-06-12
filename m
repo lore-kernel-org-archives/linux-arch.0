@@ -1,74 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:48554 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2408577AbfFLJcp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jun 2019 05:32:45 -0400
-Date: Wed, 12 Jun 2019 10:32:38 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v7 22/27] binfmt_elf: Extract .note.gnu.property from an
- ELF file
-Message-ID: <20190612093238.GQ28398@e103592.cambridge.arm.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
- <20190606200646.3951-23-yu-cheng.yu@intel.com>
- <20190607180115.GJ28398@e103592.cambridge.arm.com>
- <94b9c55b3b874825fda485af40ab2a6bc3dad171.camel@intel.com>
- <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
- <20190611114109.GN28398@e103592.cambridge.arm.com>
- <031bc55d8dcdcf4f031e6ff27c33fd52c61d33a5.camel@intel.com>
+Received: from out03.mta.xmission.com ([166.70.13.233]:60350 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727047AbfFLMk0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2019 08:40:26 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+        <20190529161157.GA27659@redhat.com>
+        <20190604134117.GA29963@redhat.com>
+        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+        <87lfy96sta.fsf@xmission.com>
+        <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
+        <05ffd0f434c64262aa767db81ad75ac1@AcuMS.aculab.com>
+Date: Wed, 12 Jun 2019 07:40:03 -0500
+In-Reply-To: <05ffd0f434c64262aa767db81ad75ac1@AcuMS.aculab.com> (David
+        Laight's message of "Tue, 11 Jun 2019 15:46:11 +0000")
+Message-ID: <8736kf3rks.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <031bc55d8dcdcf4f031e6ff27c33fd52c61d33a5.camel@intel.com>
+Content-Type: text/plain
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Florian Weimer <fweimer@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20190612093238.mWOxd8Q5wMwNPoYldHtUTW_9Fwrh2ekjq7zxEaGNV_g@z>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Oleg Nesterov' <oleg@redhat.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Deepa Dinamani' <deepa.kernel@gmail.com>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'arnd@arndb.de'" <arnd@arndb.de>, "'dbueso@suse.de'" <dbueso@suse.de>, "'axboe@kernel.dk'" <axboe@kernel.dk>, "'dave@stgolabs.net'" <dave@stgolabs.net>, "'e@80x24.org'" <e@80x24.org>, "'jbaron@akamai.com'" <jbaron@akamai.com>, "'linux-fsdevel@vger.kernel.org'" <linux-fsdevel@vger.kernel.org>, "'linux-aio@kvack.org'" <linux-aio@kvack.org>, "'omar.kilani@gmail.com'" <omar.kilani@gmail.com>, "'tglx@linutronix.de'" <tglx@linutronix.de>, 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
+Message-ID: <20190612124003.MNNJLPCUL0UjRoxY0ew9V2y--4RS5GT7FEqtSZaNzAs@z>
 
-On Tue, Jun 11, 2019 at 12:31:34PM -0700, Yu-cheng Yu wrote:
-> On Tue, 2019-06-11 at 12:41 +0100, Dave Martin wrote:
-> > On Mon, Jun 10, 2019 at 07:24:43PM +0200, Florian Weimer wrote:
-> > > * Yu-cheng Yu:
-> > > 
-> > > > To me, looking at PT_GNU_PROPERTY and not trying to support anything is a
-> > > > logical choice.  And it breaks only a limited set of toolchains.
-> > > > 
-> > > > I will simplify the parser and leave this patch as-is for anyone who wants
-> > > > to
-> > > > back-port.  Are there any objections or concerns?
-> > > 
-> > > Red Hat Enterprise Linux 8 does not use PT_GNU_PROPERTY and is probably
-> > > the largest collection of CET-enabled binaries that exists today.
-> > 
-> > For clarity, RHEL is actively parsing these properties today?
-> > 
-> > > My hope was that we would backport the upstream kernel patches for CET,
-> > > port the glibc dynamic loader to the new kernel interface, and be ready
-> > > to run with CET enabled in principle (except that porting userspace
-> > > libraries such as OpenSSL has not really started upstream, so many
-> > > processes where CET is particularly desirable will still run without
-> > > it).
-> > > 
-> > > I'm not sure if it is a good idea to port the legacy support if it's not
-> > > part of the mainline kernel because it comes awfully close to creating
-> > > our own private ABI.
-> > 
-> > I guess we can aim to factor things so that PT_NOTE scanning is
-> > available as a fallback on arches for which the absence of
-> > PT_GNU_PROPERTY is not authoritative.
-> 
-> We can probably check PT_GNU_PROPERTY first, and fallback (based on ld-linux
-> version?) to PT_NOTE scanning?
+David Laight <David.Laight@ACULAB.COM> writes:
 
-For arm64, we can check for PT_GNU_PROPERTY and then give up
-unconditionally.
+> From: David Laight
+>> Sent: 11 June 2019 10:52
+> ...
+>> FWIW is ERESTARTNOHAND actually sane here?
+>> If I've used setitimer() to get SIGALARM generated every second I'd
+>> expect select() to return EINTR every second even if I don't
+>> have a SIGALARM handler?
+>
+> Actually no - after sigset(SIGALRM, SIG_IGN) I'd expect absolutely
+> nothing to happen when kill(pid, SIGALRM) is called.
+>
+> However if I run:
+>
+> 	struct itimerval itimerval = {{1, 0}, {1, 0}};
+> 	setitimer(ITIMER_REAL, &itimerval, NULL);
+> 	sigset(SIGALRM, SIG_IGN);
+>
+> 	poll(0, 0, big_timeout);
+>
+> I see (with strace) poll() repeatedly returning ERESTART_RESTARTBLOCK
+> and being restarted.
+> Replacing poll() with pselect() returns ERESTARTNOHAND.
+> (In both cases the timeout must be updated since the application
+> does see the timeout.)
+>
+> I'm sure other unix kernels completely ignore signals set to SIG_IGN.
+> So this restart dance just isn't needed.
 
-For x86, we would fall back to PT_NOTE scanning, but this will add a bit
-of cost to binaries that don't have NT_GNU_PROPERTY_TYPE_0.  The ld.so
-version doesn't tell you what ELF ABI a given executable conforms to.
+We also ignore such signals except when the signal is blocked when it is
+received.
 
-Since this sounds like it's largely a distro-specific issue, maybe there
-could be a Kconfig option to turn the fallback PT_NOTE scanning on?
+We don't currently but it would be perfectly legitimate for
+set_current_blocked to dequeue and drop signals that have become
+unblocked whose handler is SIG_IGN.
 
-Cheers
----Dave
+The dance would still be needed for the rare case where TIF_SIGPENDING
+gets set for a non-signal.
+
+Dropping the signal while it is blocked if it's handler is SIG_IGN looks
+like a bad idea.
+
+Eric
