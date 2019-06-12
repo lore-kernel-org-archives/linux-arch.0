@@ -1,97 +1,92 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v2 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 12 Jun 2019 11:05:17 -0400
-Message-ID: <a52a5e25-2b71-b6d9-3fa1-fb43bae1cbc1@redhat.com>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <20190329152006.110370-4-alex.kogan@oracle.com>
- <cc3eee8c-5212-7af5-c932-897ab8f3f8bf@huawei.com>
- <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
+Date: Wed, 12 Jun 2019 10:11:28 -0500
+Message-ID: <87v9xayh27.fsf@xmission.com>
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+        <20190529161157.GA27659@redhat.com>
+        <20190604134117.GA29963@redhat.com>
+        <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+        <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+        <87lfy96sta.fsf@xmission.com>
+        <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
+        <20190612134558.GB3276@redhat.com>
+        <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <54241445-458C-4AE2-840B-6DFCCD410399@oracle.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>, "liwei (GF)" <liwei391@huawei.com>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com> (David
+        Laight's message of "Wed, 12 Jun 2019 14:18:28 +0000")
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Oleg Nesterov' <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Deepa Dinamani <deepa.kernel@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "axboe@kernel.dk" <axboe@kernel.dk>, "dave@stgolabs.net" <dave@stgolabs.net>, "e@80x24.org" <e@80x24.org>, "jbaron@akamai.com" <jbaron@akamai.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, "omar.kilani@gmail.com" <omar.kilani@gmail.com>, "tglx@linutronix.de" <tglx@linutronix.de>, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gNi8xMi8xOSAxMjozOCBBTSwgQWxleCBLb2dhbiB3cm90ZToKPiBIaSwgV2VpLgo+Cj4+IE9u
-IEp1biAxMSwgMjAxOSwgYXQgMTI6MjIgQU0sIGxpd2VpIChHRikgPGxpd2VpMzkxQGh1YXdlaS5j
-b20+IHdyb3RlOgo+Pgo+PiBIaSBBbGV4LAo+Pgo+PiBPbiAyMDE5LzMvMjkgMjM6MjAsIEFsZXgg
-S29nYW4gd3JvdGU6Cj4+PiBJbiBDTkEsIHNwaW5uaW5nIHRocmVhZHMgYXJlIG9yZ2FuaXplZCBp
-biB0d28gcXVldWVzLCBhIG1haW4gcXVldWUgZm9yCj4+PiB0aHJlYWRzIHJ1bm5pbmcgb24gdGhl
-IHNhbWUgbm9kZSBhcyB0aGUgY3VycmVudCBsb2NrIGhvbGRlciwgYW5kIGEKPj4+IHNlY29uZGFy
-eSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIG90aGVyIG5vZGVzLiBBdCB0aGUgdW5sb2Nr
-IHRpbWUsCj4+PiB0aGUgbG9jayBob2xkZXIgc2NhbnMgdGhlIG1haW4gcXVldWUgbG9va2luZyBm
-b3IgYSB0aHJlYWQgcnVubmluZyBvbgo+Pj4gdGhlIHNhbWUgbm9kZS4gSWYgZm91bmQgKGNhbGwg
-aXQgdGhyZWFkIFQpLCBhbGwgdGhyZWFkcyBpbiB0aGUgbWFpbiBxdWV1ZQo+Pj4gYmV0d2VlbiB0
-aGUgY3VycmVudCBsb2NrIGhvbGRlciBhbmQgVCBhcmUgbW92ZWQgdG8gdGhlIGVuZCBvZiB0aGUK
-Pj4+IHNlY29uZGFyeSBxdWV1ZSwgYW5kIHRoZSBsb2NrIGlzIHBhc3NlZCB0byBULiBJZiBzdWNo
-IFQgaXMgbm90IGZvdW5kLCB0aGUKPj4+IGxvY2sgaXMgcGFzc2VkIHRvIHRoZSBmaXJzdCBub2Rl
-IGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIEZpbmFsbHksIGlmIHRoZQo+Pj4gc2Vjb25kYXJ5IHF1
-ZXVlIGlzIGVtcHR5LCB0aGUgbG9jayBpcyBwYXNzZWQgdG8gdGhlIG5leHQgdGhyZWFkIGluIHRo
-ZQo+Pj4gbWFpbiBxdWV1ZS4gRm9yIG1vcmUgZGV0YWlscywgc2VlIGh0dHBzOi8vdXJsZGVmZW5z
-ZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fYXJ4aXYub3JnX2Fic18xODEwLjA1
-NjAwJmQ9RHdJQ2JnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4QnY3cUlyTVVCNjVlYXBJX0pu
-RSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpMVHVWeEZLNGsmbT1VN21mVGJZ
-ajFyMlRlMkJCVVVOYlZyUlB1VGFfdWpscFI0R1pmVXNyR1RNJnM9RHc0TzFFbmlGLW5kZTRmcDZS
-QTlJU2xTTU9qV3VxZVI5T1MxRzBpYXVqMCZlPS4KPj4+Cj4+PiBOb3RlIHRoYXQgdGhpcyB2YXJp
-YW50IG9mIENOQSBtYXkgaW50cm9kdWNlIHN0YXJ2YXRpb24gYnkgY29udGludW91c2x5Cj4+PiBw
-YXNzaW5nIHRoZSBsb2NrIHRvIHRocmVhZHMgcnVubmluZyBvbiB0aGUgc2FtZSBub2RlLiBUaGlz
-IGlzc3VlCj4+PiB3aWxsIGJlIGFkZHJlc3NlZCBsYXRlciBpbiB0aGUgc2VyaWVzLgo+Pj4KPj4+
-IEVuYWJsaW5nIENOQSBpcyBjb250cm9sbGVkIHZpYSBhIG5ldyBjb25maWd1cmF0aW9uIG9wdGlv
-bgo+Pj4gKE5VTUFfQVdBUkVfU1BJTkxPQ0tTKSwgd2hpY2ggaXMgZW5hYmxlZCBieSBkZWZhdWx0
-IGlmIE5VTUEgaXMgZW5hYmxlZC4KPj4+Cj4+PiBTaWduZWQtb2ZmLWJ5OiBBbGV4IEtvZ2FuIDxh
-bGV4LmtvZ2FuQG9yYWNsZS5jb20+Cj4+PiBSZXZpZXdlZC1ieTogU3RldmUgU2lzdGFyZSA8c3Rl
-dmVuLnNpc3RhcmVAb3JhY2xlLmNvbT4KPj4+IC0tLQo+Pj4gYXJjaC94ODYvS2NvbmZpZyAgICAg
-ICAgICAgICAgICAgICAgICB8ICAxNCArKysKPj4+IGluY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5s
-b2NrX3R5cGVzLmggfCAgMTMgKysrCj4+PiBrZXJuZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2suaCAg
-ICAgICAgIHwgIDEwICsrCj4+PiBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYyAgICAgICAgICAg
-IHwgIDI5ICsrKysrLQo+Pj4ga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrX2NuYS5oICAgICAgICB8
-IDE3MyArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCj4+PiA1IGZpbGVzIGNoYW5n
-ZWQsIDIzNiBpbnNlcnRpb25zKCspLCAzIGRlbGV0aW9ucygtKQo+Pj4gY3JlYXRlIG1vZGUgMTAw
-NjQ0IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaAo+Pj4KPj4gKFNOSVApCj4+PiArCj4+
-PiArc3RhdGljIF9fYWx3YXlzX2lubGluZSBpbnQgZ2V0X25vZGVfaW5kZXgoc3RydWN0IG1jc19z
-cGlubG9jayAqbm9kZSkKPj4+ICt7Cj4+PiArCXJldHVybiBkZWNvZGVfY291bnQobm9kZS0+bm9k
-ZV9hbmRfY291bnQrKyk7Cj4+IFdoZW4gbmVzdGluZyBsZXZlbCBpcyA+IDQsIGl0IHdvbid0IHJl
-dHVybiBhIGluZGV4ID49IDQgaGVyZSBhbmQgdGhlIG51bWEgbm9kZSBudW1iZXIKPj4gaXMgY2hh
-bmdlZCBieSBtaXN0YWtlLiBJdCB3aWxsIGdvIGludG8gYSB3cm9uZyB3YXkgaW5zdGVhZCBvZiB0
-aGUgZm9sbG93aW5nIGJyYW5jaC4KPj4KPj4KPj4gCS8qCj4+IAkgKiA0IG5vZGVzIGFyZSBhbGxv
-Y2F0ZWQgYmFzZWQgb24gdGhlIGFzc3VtcHRpb24gdGhhdCB0aGVyZSB3aWxsCj4+IAkgKiBub3Qg
-YmUgbmVzdGVkIE5NSXMgdGFraW5nIHNwaW5sb2Nrcy4gVGhhdCBtYXkgbm90IGJlIHRydWUgaW4K
-Pj4gCSAqIHNvbWUgYXJjaGl0ZWN0dXJlcyBldmVuIHRob3VnaCB0aGUgY2hhbmNlIG9mIG5lZWRp
-bmcgbW9yZSB0aGFuCj4+IAkgKiA0IG5vZGVzIHdpbGwgc3RpbGwgYmUgZXh0cmVtZWx5IHVubGlr
-ZWx5LiBXaGVuIHRoYXQgaGFwcGVucywKPj4gCSAqIHdlIGZhbGwgYmFjayB0byBzcGlubmluZyBv
-biB0aGUgbG9jayBkaXJlY3RseSB3aXRob3V0IHVzaW5nCj4+IAkgKiBhbnkgTUNTIG5vZGUuIFRo
-aXMgaXMgbm90IHRoZSBtb3N0IGVsZWdhbnQgc29sdXRpb24sIGJ1dCBpcwo+PiAJICogc2ltcGxl
-IGVub3VnaC4KPj4gCSAqLwo+PiAJaWYgKHVubGlrZWx5KGlkeCA+PSBNQVhfTk9ERVMpKSB7Cj4+
-IAkJd2hpbGUgKCFxdWV1ZWRfc3Bpbl90cnlsb2NrKGxvY2spKQo+PiAJCQljcHVfcmVsYXgoKTsK
-Pj4gCQlnb3RvIHJlbGVhc2U7Cj4+IAl9Cj4gR29vZCBwb2ludC4KPiBUaGlzIHBhdGNoIGRvZXMg
-bm90IGhhbmRsZSBjb3VudCBvdmVyZmxvd3MgZ3JhY2VmdWxseS4KPiBJdCBjYW4gYmUgZWFzaWx5
-IGZpeGVkIGJ5IGFsbG9jYXRpbmcgbW9yZSBiaXRzIGZvciB0aGUgY291bnQg4oCUIHdlIGRvbuKA
-mXQgcmVhbGx5IG5lZWQgMzAgYml0cyBmb3IgI05VTUEgbm9kZXMuCgpBY3R1YWxseSwgdGhlIGRl
-ZmF1bHQgc2V0dGluZyB1c2VzIDIgYml0cyBmb3IgNC1sZXZlbCBuZXN0aW5nIGFuZCAxNApiaXRz
-IGZvciBjcHUgbnVtYmVycy4gVGhhdCBtZWFucyBpdCBjYW4gc3VwcG9ydCB1cCB0byAxNmstMSBj
-cHVzLiBJdCBpcwphIGxpbWl0IHRoYXQgaXMgbGlrZWx5IHRvIGJlIGV4Y2VlZGVkIGluIHRoZSBm
-b3Jlc2VlYWJsZSBmdXR1cmUuCnFzcGlubG9jayBhbHNvIHN1cHBvcnRzIGFuIGFkZGl0aW9uYWwg
-bW9kZSB3aXRoIDIxIGJpdHMgdXNlZCBmb3IgY3B1Cm51bWJlcnMuIFRoYXQgY2FuIHN1cHBvcnQg
-dXAgdG8gMk0tMSBjcHVzLiBIb3dldmVyLCB0aGlzIG1vZGUgd2lsbCBiZSBhCmxpdHRsZSBiaXQg
-c2xvd2VyLiBUaGF0IGlzIHdoeSB3ZSBkb24ndCB3YW50IHRvIHVzZSBtb3JlIHRoYW4gMiBiaXRz
-IGZvcgpuZXN0aW5nIGFzIEkgaGF2ZSBuZXZlciBzZWUgbW9yZSB0aGFuIDIgbGV2ZWwgb2YgbmVz
-dGluZyB1c2VkIGluIG15CnRlc3RpbmcuIFNvIGl0IGlzIGhpZ2hseSB1bmxpa2VseSB3ZSB3aWxs
-IGV2ZXIgaGl0IG1vcmUgdGhhbiA0IGxldmVscy4gSQphbSBub3Qgc2F5aW5nIHRoYXQgaXQgaXMg
-aW1wb3NzaWJsZSwgdGhvdWdoLgoKQ2hlZXJzLApMb25nbWFuCgoKX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxp
-c3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZy
-YWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+David Laight <David.Laight@ACULAB.COM> writes:
+
+> From: Oleg Nesterov
+>> Sent: 12 June 2019 14:46
+>> On 06/11, David Laight wrote:
+>> >
+>> > If I have an application that has a loop with a pselect call that
+>> > enables SIGINT (without a handler) and, for whatever reason,
+>> > one of the fd is always 'ready' then I'd expect a SIGINT
+>> > (from ^C) to terminate the program.
+
+I think this gets into a quality of implementation.
+
+I suspect that set_user_sigmask should do:
+if (signal_pending())
+	return -ERESTARNOSIGHAND; /* -EINTR that restarts if nothing was pending */
+
+Which should be safe as nothing has blocked yet to consume any of the
+timeouts, and it should ensure that none of the routines miss a signal.
+
+>> This was never true.
+>> 
+>> Before Eric's patches SIGINT can kill a process or not, depending on timing.
+>> In particular, if SIGINT was already pending before pselect() and it finds
+>> an already ready fd, the program won't terminate.
+>
+> Which matches what I see on a very old Linux system.
+>
+>> After the Eric's patches SIGINT will only kill the program if pselect() does
+>> not find a ready fd.
+>> 
+>> And this is much more consistent. Now we can simply say that the signal will
+>> be delivered only if pselect() fails and returns -EINTR. If it doesn't have
+>> a handler the process will be killed, otherwise the handler will be called.
+>
+> But is it what the standards mandate?
+> Can anyone check how Solaris and any of the BSDs behave?
+> I don't have access to any solaris systems (I doubt I'll get the disk to
+> spin on the one in my garage).
+> I can check NetBSD when I get home.
+>
+> The ToG page for pselect() http://pubs.opengroup.org/onlinepubs/9699919799/functions/pselect.html says:
+>     "If sigmask is not a null pointer, then the pselect() function shall replace
+>     the signal mask of the caller by the set of signals pointed to by sigmask
+>     before examining the descriptors, and shall restore the signal mask of the
+>     calling thread before returning."
+> Note that it says 'before examining the descriptors' not 'before blocking'.
+> Under the general description about signals it also says that the signal handler
+> will be called (or other action happen) when a pending signal is unblocked.
+> So unblocking SIGINT (set to SIG_DFL) prior to examining the descriptors
+> should be enough to cause the process to exit.
+> The fact that signal handlers are not called until 'return to user'
+> is really an implementation choice - but (IMHO) it should appear as if they
+> were called at the time they became unmasked.
+>
+> If nothing else the man pages need a note about the standards and portability.
+
+I think the entire point is so that signals can be added to an event
+loop in a race free way.  *cough* signalfd *cough*.  I think if you are
+setting SIGINT to SIG_DFL you would leave SIGINT unblocked so it can
+happen anywhere.
+
+I can see more utility in having a SIGINT handler and you block SIGINT
+except in your polling loop so you can do something deterministic when
+SIGINT comes in.
+
+Which makes it independent of my patches, but still worth fixing.
+
+Eric
