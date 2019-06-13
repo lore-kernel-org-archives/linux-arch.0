@@ -1,85 +1,182 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr50072.outbound.protection.outlook.com ([40.107.5.72]:55105
-        "EHLO EUR03-VE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726773AbfFMPcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 11:32:47 -0400
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [PATCH v4 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.txt
-Date: Thu, 13 Jun 2019 15:32:42 +0000
-Message-ID: <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
-References: <cover.1560339705.git.andreyknvl@google.com>
- <20190612142111.28161-1-vincenzo.frascino@arm.com>
- <20190612142111.28161-2-vincenzo.frascino@arm.com>
- <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
- <20190613092054.GO28951@C02TF0J2HF1T.local>
- <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
- <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
- <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
- <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
-In-Reply-To: <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <F7B0C8D67B5DD5449F2A217A59B054BE@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33420 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728340AbfFMKfU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 06:35:20 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x5DASjbn028228
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:19 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2t3k7rmt7d-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:19 -0400
+Received: from localhost
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Thu, 13 Jun 2019 11:35:17 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [PATCHv2 2/3] s390: improve wait logic of stop_machine
+Date: Thu, 13 Jun 2019 12:35:09 +0200
+In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+Message-ID: <20190613103510.60529-3-heiko.carstens@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
-Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190613153242.cEfiN3iLDOH4JJTNBDz9fmgZwQblRCrjhEQ96-bPCw4@z>
+To: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
+Message-ID: <20190613103509.e6sICs27aYQiWEWXiV7rv0rcxgi0r1M2wRy6o6f1eF4@z>
 
-T24gMTMvMDYvMjAxOSAxNTowMywgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6DQo+IE9uIDEzLzA2
-LzIwMTkgMTM6MjgsIFN6YWJvbGNzIE5hZ3kgd3JvdGU6DQo+PiBPbiAxMy8wNi8yMDE5IDEyOjE2
-LCBWaW5jZW56byBGcmFzY2lubyB3cm90ZToNCj4+PiBPbiAxMy8wNi8yMDE5IDExOjE0LCBTemFi
-b2xjcyBOYWd5IHdyb3RlOg0KPj4+PiBPbiAxMy8wNi8yMDE5IDEwOjIwLCBDYXRhbGluIE1hcmlu
-YXMgd3JvdGU6DQo+Pj4+PiBPbiBXZWQsIEp1biAxMiwgMjAxOSBhdCAwNTozMDozNFBNICswMTAw
-LCBTemFib2xjcyBOYWd5IHdyb3RlOg0KPj4+Pj4+IE9uIDEyLzA2LzIwMTkgMTU6MjEsIFZpbmNl
-bnpvIEZyYXNjaW5vIHdyb3RlOg0KPj4+Pj4+PiArICAtIGEgbWFwcGluZyBiZWxvdyBzYnJrKDAp
-IGRvbmUgYnkgdGhlIHByb2Nlc3MgaXRzZWxmDQo+Pj4+Pj4NCj4+Pj4+PiBkb2Vzbid0IHRoZSBt
-bWFwIHJ1bGUgY292ZXIgdGhpcz8NCj4+Pj4+DQo+Pj4+PiBJSVVDIGl0IGRvZXNuJ3QgY292ZXIg
-aXQgYXMgdGhhdCdzIG1lbW9yeSBtYXBwZWQgYnkgdGhlIGtlcm5lbA0KPj4+Pj4gYXV0b21hdGlj
-YWxseSBvbiBhY2Nlc3MgdnMgYSBwb2ludGVyIHJldHVybmVkIGJ5IG1tYXAoKS4gVGhlIHN0YXRl
-bWVudA0KPj4+Pj4gYWJvdmUgdGFsa3MgYWJvdXQgaG93IHRoZSBhZGRyZXNzIGlzIG9idGFpbmVk
-IGJ5IHRoZSB1c2VyLg0KPj4+Pg0KPj4+PiBvayBpIHJlYWQgJ21hcHBpbmcgYmVsb3cgc2Jyaycg
-YXMgYW4gbW1hcCAocG9zc2libHkgTUFQX0ZJWEVEKQ0KPj4+PiB0aGF0IGhhcHBlbnMgdG8gYmUg
-YmVsb3cgdGhlIGhlYXAgYXJlYS4NCj4+Pj4NCj4+Pj4gaSB0aGluayAiYmVsb3cgc2JyaygwKSIg
-aXMgbm90IHRoZSBiZXN0IHRlcm0gdG8gdXNlOiB0aGVyZQ0KPj4+PiBtYXkgYmUgYWRkcmVzcyBy
-YW5nZSBiZWxvdyB0aGUgaGVhcCBhcmVhIHRoYXQgY2FuIGJlIG1tYXBwZWQNCj4+Pj4gYW5kIHRo
-dXMgYmVsb3cgc2JyaygwKSBhbmQgc2JyayBpcyBhIHBvc2l4IGFwaSBub3QgYSBsaW51eA0KPj4+
-PiBzeXNjYWxsLCB0aGUgbGliYyBjYW4gaW1wbGVtZW50IGl0IHdpdGggbW1hcCBvciB3aGF0ZXZl
-ci4NCj4+Pj4NCj4+Pj4gaSdtIG5vdCBzdXJlIHdoYXQgdGhlIHJpZ2h0IHRlcm0gZm9yICdoZWFw
-IGFyZWEnIGlzDQo+Pj4+ICh0aGUgYWRkcmVzcyByYW5nZSBiZXR3ZWVuIHN5c2NhbGwoX19OUl9i
-cmssMCkgYXQNCj4+Pj4gcHJvZ3JhbSBzdGFydHVwIGFuZCBpdHMgY3VycmVudCB2YWx1ZT8pDQo+
-Pj4+DQo+Pj4NCj4+PiBJIHVzZWQgc2JyaygwKSB3aXRoIHRoZSBtZWFuaW5nIG9mICJlbmQgb2Yg
-dGhlIHByb2Nlc3MncyBkYXRhIHNlZ21lbnQiIG5vdA0KPj4+IGltcGx5aW5nIHRoYXQgdGhpcyBp
-cyBhIHN5c2NhbGwsIGJ1dCBqdXN0IGFzIGEgdXNlZnVsIHdheSB0byBpZGVudGlmeSB0aGUgbWFw
-cGluZy4NCj4+PiBJIGFncmVlIHRoYXQgaXQgaXMgYSBwb3NpeCBmdW5jdGlvbiBpbXBsZW1lbnRl
-ZCBieSBsaWJjIGJ1dCB3aGVuIGl0IGlzIHVzZWQgd2l0aA0KPj4+IDAgZmluZHMgdGhlIGN1cnJl
-bnQgbG9jYXRpb24gb2YgdGhlIHByb2dyYW0gYnJlYWssIHdoaWNoIGNhbiBiZSBjaGFuZ2VkIGJ5
-IGJyaygpDQo+Pj4gYW5kIGRlcGVuZGluZyBvbiB0aGUgbmV3IGFkZHJlc3MgcGFzc2VkIHRvIHRo
-aXMgc3lzY2FsbCBjYW4gaGF2ZSB0aGUgZWZmZWN0IG9mDQo+Pj4gYWxsb2NhdGluZyBvciBkZWFs
-bG9jYXRpbmcgbWVtb3J5Lg0KPj4+DQo+Pj4gV2lsbCBjaGFuZ2luZyBzYnJrKDApIHdpdGggImVu
-ZCBvZiB0aGUgcHJvY2VzcydzIGRhdGEgc2VnbWVudCIgbWFrZSBpdCBtb3JlIGNsZWFyPw0KPj4N
-Cj4+IGkgZG9uJ3QgdW5kZXJzdGFuZCB3aGF0J3MgdGhlIHJlbGV2YW5jZSBvZiB0aGUgKmVuZCoN
-Cj4+IG9mIHRoZSBkYXRhIHNlZ21lbnQuDQo+Pg0KPj4gaSdkIGV4cGVjdCB0aGUgdGV4dCB0byBz
-YXkgc29tZXRoaW5nIGFib3V0IHRoZSBhZGRyZXNzDQo+PiByYW5nZSBvZiB0aGUgZGF0YSBzZWdt
-ZW50Lg0KPj4NCj4+IGkgY2FuIGRvDQo+Pg0KPj4gbW1hcCgodm9pZCopNjU1MzYsIDY1NTM2LCBQ
-Uk9UX1JFQUR8UFJPVF9XUklURSwgTUFQX0ZJWEVEfE1BUF9TSEFSRUR8TUFQX0FOT04sIC0xLCAw
-KTsNCj4+DQo+PiBhbmQgaXQgd2lsbCBiZSBiZWxvdyB0aGUgZW5kIG9mIHRoZSBkYXRhIHNlZ21l
-bnQuDQo+Pg0KPiANCj4gQXMgZmFyIGFzIEkgdW5kZXJzdGFuZCB0aGUgZGF0YSBzZWdtZW50ICJs
-aXZlcyIgYmVsb3cgdGhlIHByb2dyYW0gYnJlYWssIGhlbmNlDQo+IGl0IGlzIGEgd2F5IG9mIGRl
-c2NyaWJpbmcgdGhlIHJhbmdlIGZyb20gd2hpY2ggdGhlIHVzZXIgY2FuIG9idGFpbiBhIHZhbGlk
-DQo+IHRhZ2dlZCBwb2ludGVyLj4NCj4gU2FpZCB0aGF0LCBJIGFtIG5vdCByZWFsbHkgc3VyZSBv
-biBob3cgZG8geW91IHdhbnQgbWUgdG8gZG9jdW1lbnQgdGhpcyAobXkgYWltDQo+IGlzIGZvciB0
-aGlzIHRvIGJlIGNsZWFyIHRvIHRoZSB1c2Vyc3BhY2UgZGV2ZWxvcGVycykuIENvdWxkIHlvdSBw
-bGVhc2UgcHJvcG9zZQ0KPiBzb21ldGhpbmc/DQoNClsuLi5dLCBpdCBpcyBpbiB0aGUgbWVtb3J5
-IHJhbmdlcyBwcml2YXRlbHkgb3duZWQgYnkgYQ0KdXNlcnNwYWNlIHByb2Nlc3MgYW5kIGl0IGlz
-IG9idGFpbmVkIGluIG9uZSBvZiB0aGUNCmZvbGxvd2luZyB3YXlzOg0KDQotIG1tYXAgZG9uZSBi
-eSB0aGUgcHJvY2VzcyBpdHNlbGYsIFsuLi5dDQoNCi0gYnJrIHN5c2NhbGwgZG9uZSBieSB0aGUg
-cHJvY2VzcyBpdHNlbGYuDQogIChpLmUuIHRoZSBoZWFwIGFyZWEgYmV0d2VlbiB0aGUgaW5pdGlh
-bCBsb2NhdGlvbg0KICBvZiB0aGUgcHJvZ3JhbSBicmVhayBhdCBwcm9jZXNzIGNyZWF0aW9uIGFu
-ZCBpdHMNCiAgY3VycmVudCBsb2NhdGlvbi4pDQoNCi0gYW55IG1lbW9yeSBtYXBwZWQgYnkgdGhl
-IGtlcm5lbCBbLi4uXQ0KDQp0aGUgZGF0YSBzZWdtZW50IHRoYXQncyBwYXJ0IG9mIHRoZSBwcm9j
-ZXNzIGltYWdlIGlzDQphbHJlYWR5IGNvdmVyZWQgYnkgdGhlIGxhc3QgcG9pbnQuDQo=
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+The stop_machine loop to advance the state machine and to wait for all
+affected CPUs to check-in calls cpu_relax_yield in a tight loop until
+the last missing CPUs acknowledged the state transition.
+
+On a virtual system where not all logical CPUs are backed by real CPUs
+all the time it can take a while for all CPUs to check-in. With the
+current definition of cpu_relax_yield a diagnose 0x44 is done which
+tells the hypervisor to schedule *some* other CPU. That can be any
+CPU and not necessarily one of the CPUs that need to run in order to
+advance the state machine. This can lead to a pretty bad diagnose 0x44
+storm until the last missing CPU finally checked-in.
+
+Replace the undirected cpu_relax_yield based on diagnose 0x44 with a
+directed yield. Each CPU in the wait loop will pick up the next CPU
+in the cpumask of stop_machine. The diagnose 0x9c is used to tell the
+hypervisor to run this next CPU instead of the current one. If there
+is only a limited number of real CPUs backing the virtual CPUs we
+end up with the real CPUs passed around in a round-robin fashion.
+
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ arch/s390/include/asm/processor.h |  3 ++-
+ arch/s390/kernel/processor.c      | 17 ++++++++++++-----
+ arch/s390/kernel/smp.c            |  2 +-
+ include/linux/sched.h             |  2 +-
+ kernel/stop_machine.c             | 14 +++++++++-----
+ 5 files changed, 25 insertions(+), 13 deletions(-)
+
+diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
+index b0fcbc37b637..445ce9ee4404 100644
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -36,6 +36,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
++#include <linux/cpumask.h>
+ #include <linux/linkage.h>
+ #include <linux/irqflags.h>
+ #include <asm/cpu.h>
+@@ -225,7 +226,7 @@ static __no_kasan_or_inline unsigned short stap(void)
+  * Give up the time slice of the virtual PU.
+  */
+ #define cpu_relax_yield cpu_relax_yield
+-void cpu_relax_yield(void);
++void cpu_relax_yield(const struct cpumask *cpumask);
+ 
+ #define cpu_relax() barrier()
+ 
+diff --git a/arch/s390/kernel/processor.c b/arch/s390/kernel/processor.c
+index 5de13307b703..4cdaefec1b7c 100644
+--- a/arch/s390/kernel/processor.c
++++ b/arch/s390/kernel/processor.c
+@@ -31,6 +31,7 @@ struct cpu_info {
+ };
+ 
+ static DEFINE_PER_CPU(struct cpu_info, cpu_info);
++static DEFINE_PER_CPU(int, cpu_relax_retry);
+ 
+ static bool machine_has_cpu_mhz;
+ 
+@@ -58,13 +59,19 @@ void s390_update_cpu_mhz(void)
+ 		on_each_cpu(update_cpu_mhz, NULL, 0);
+ }
+ 
+-void notrace cpu_relax_yield(void)
++void notrace cpu_relax_yield(const struct cpumask *cpumask)
+ {
+-	if (!smp_cpu_mtid && MACHINE_HAS_DIAG44) {
+-		diag_stat_inc(DIAG_STAT_X044);
+-		asm volatile("diag 0,0,0x44");
++	int cpu, this_cpu;
++
++	this_cpu = smp_processor_id();
++	if (__this_cpu_inc_return(cpu_relax_retry) >= spin_retry) {
++		__this_cpu_write(cpu_relax_retry, 0);
++		cpu = cpumask_next_wrap(this_cpu, cpumask, this_cpu, false);
++		if (cpu >= nr_cpu_ids)
++			return;
++		if (arch_vcpu_is_preempted(cpu))
++			smp_yield_cpu(cpu);
+ 	}
+-	barrier();
+ }
+ EXPORT_SYMBOL(cpu_relax_yield);
+ 
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index 35fafa2b91a8..a8eef7b7770a 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -418,7 +418,7 @@ void smp_yield_cpu(int cpu)
+ 		diag_stat_inc_norecursion(DIAG_STAT_X09C);
+ 		asm volatile("diag %0,0,0x9c"
+ 			     : : "d" (pcpu_devices[cpu].address));
+-	} else if (MACHINE_HAS_DIAG44) {
++	} else if (MACHINE_HAS_DIAG44 && !smp_cpu_mtid) {
+ 		diag_stat_inc_norecursion(DIAG_STAT_X044);
+ 		asm volatile("diag 0,0,0x44");
+ 	}
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 11837410690f..1f9f3160da7e 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1519,7 +1519,7 @@ static inline int set_cpus_allowed_ptr(struct task_struct *p, const struct cpuma
+ #endif
+ 
+ #ifndef cpu_relax_yield
+-#define cpu_relax_yield() cpu_relax()
++#define cpu_relax_yield(cpumask) cpu_relax()
+ #endif
+ 
+ extern int yield_to(struct task_struct *p, bool preempt);
+diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
+index 2b5a6754646f..b8b0c5ff8da9 100644
+--- a/kernel/stop_machine.c
++++ b/kernel/stop_machine.c
+@@ -183,6 +183,7 @@ static int multi_cpu_stop(void *data)
+ 	struct multi_stop_data *msdata = data;
+ 	enum multi_stop_state curstate = MULTI_STOP_NONE;
+ 	int cpu = smp_processor_id(), err = 0;
++	const struct cpumask *cpumask;
+ 	unsigned long flags;
+ 	bool is_active;
+ 
+@@ -192,15 +193,18 @@ static int multi_cpu_stop(void *data)
+ 	 */
+ 	local_save_flags(flags);
+ 
+-	if (!msdata->active_cpus)
+-		is_active = cpu == cpumask_first(cpu_online_mask);
+-	else
+-		is_active = cpumask_test_cpu(cpu, msdata->active_cpus);
++	if (!msdata->active_cpus) {
++		cpumask = cpu_online_mask;
++		is_active = cpu == cpumask_first(cpumask);
++	} else {
++		cpumask = msdata->active_cpus;
++		is_active = cpumask_test_cpu(cpu, cpumask);
++	}
+ 
+ 	/* Simple state machine */
+ 	do {
+ 		/* Chill out and ensure we re-read multi_stop_state. */
+-		cpu_relax_yield();
++		cpu_relax_yield(cpumask);
+ 		if (msdata->state != curstate) {
+ 			curstate = msdata->state;
+ 			switch (curstate) {
+-- 
+2.17.1
