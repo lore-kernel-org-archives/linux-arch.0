@@ -1,124 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr00063.outbound.protection.outlook.com ([40.107.0.63]:2210
-        "EHLO EUR02-AM5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726864AbfFMKQZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 06:16:25 -0400
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Received: from foss.arm.com ([217.140.110.172]:43218 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731932AbfFMPjX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 11:39:23 -0400
+Date: Thu, 13 Jun 2019 16:39:07 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v4 1/2] arm64: Define
  Documentation/arm64/tagged-address-abi.txt
-Date: Thu, 13 Jun 2019 10:14:39 +0000
-Message-ID: <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
+Message-ID: <20190613153906.GV28951@C02TF0J2HF1T.local>
 References: <cover.1560339705.git.andreyknvl@google.com>
  <20190612142111.28161-1-vincenzo.frascino@arm.com>
  <20190612142111.28161-2-vincenzo.frascino@arm.com>
- <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
- <20190613092054.GO28951@C02TF0J2HF1T.local>
-In-Reply-To: <20190613092054.GO28951@C02TF0J2HF1T.local>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <50012C68520D6547A2B2174AAC3FFA16@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+ <20190612153538.GL28951@C02TF0J2HF1T.local>
+ <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
+ <20190613113731.GY28398@e103592.cambridge.arm.com>
+ <20190613122821.GS28951@C02TF0J2HF1T.local>
+ <20190613132342.GZ28398@e103592.cambridge.arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190613132342.GZ28398@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <Catalin.Marinas@arm.com>
-Cc: nd <nd@arm.com>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190613101439.fFNy8glmlmX8N9-cmPQ5q20RKqFEtaNsJCDjjqWnhYk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kselftest@vger.kernel.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190613153907.z6WS26iMY3FZOqFEeC8_Ex6Rs-53dxPbXmOhCSPTG2s@z>
 
-T24gMTMvMDYvMjAxOSAxMDoyMCwgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOg0KPiBIaSBTemFib2xj
-cywNCj4gDQo+IE9uIFdlZCwgSnVuIDEyLCAyMDE5IGF0IDA1OjMwOjM0UE0gKzAxMDAsIFN6YWJv
-bGNzIE5hZ3kgd3JvdGU6DQo+PiBPbiAxMi8wNi8yMDE5IDE1OjIxLCBWaW5jZW56byBGcmFzY2lu
-byB3cm90ZToNCj4+PiArMi4gQVJNNjQgVGFnZ2VkIEFkZHJlc3MgQUJJDQo+Pj4gKy0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLQ0KPj4+ICsNCj4+PiArRnJvbSB0aGUga2VybmVsIHN5c2NhbGwg
-aW50ZXJmYWNlIHByb3NwZWN0aXZlLCB3ZSBkZWZpbmUsIGZvciB0aGUgcHVycG9zZXMNCj4+ICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXg0KPj4gcGVyc3Bl
-Y3RpdmUNCj4+DQo+Pj4gK29mIHRoaXMgZG9jdW1lbnQsIGEgInZhbGlkIHRhZ2dlZCBwb2ludGVy
-IiBhcyBhIHBvaW50ZXIgdGhhdCBlaXRoZXIgaXQgaGFzDQo+Pj4gK2EgemVybyB2YWx1ZSBzZXQg
-aW4gdGhlIHRvcCBieXRlIG9yIGl0IGhhcyBhIG5vbi16ZXJvIHZhbHVlLCBpdCBpcyBpbiBtZW1v
-cnkNCj4+PiArcmFuZ2VzIHByaXZhdGVseSBvd25lZCBieSBhIHVzZXJzcGFjZSBwcm9jZXNzIGFu
-ZCBpdCBpcyBvYnRhaW5lZCBpbiBvbmUgb2YNCj4+PiArdGhlIGZvbGxvd2luZyB3YXlzOg0KPj4+
-ICsgIC0gbW1hcCgpIGRvbmUgYnkgdGhlIHByb2Nlc3MgaXRzZWxmLCB3aGVyZSBlaXRoZXI6DQo+
-Pj4gKyAgICAqIGZsYWdzID0gTUFQX1BSSVZBVEUgfCBNQVBfQU5PTllNT1VTDQo+Pj4gKyAgICAq
-IGZsYWdzID0gTUFQX1BSSVZBVEUgYW5kIHRoZSBmaWxlIGRlc2NyaXB0b3IgcmVmZXJzIHRvIGEg
-cmVndWxhcg0KPj4+ICsgICAgICBmaWxlIG9yICIvZGV2L3plcm8iDQo+Pg0KPj4gdGhpcyBkb2Vz
-IG5vdCBtYWtlIGl0IGNsZWFyIGlmIE1BUF9GSVhFRCBvciBvdGhlciBmbGFncyBhcmUgdmFsaWQN
-Cj4+ICh0aGVyZSBhcmUgbWFueSBtYXAgZmxhZ3MgaSBkb24ndCBrbm93LCBidXQgYXQgbGVhc3Qg
-Zml4ZWQgc2hvdWxkIHdvcmsNCj4+IGFuZCBzdGFjay9ncm93c2Rvd24uIGknZCBleHBlY3QgYW55
-dGhpbmcgdGhhdCdzIG5vdCBpbmNvbXBhdGlibGUgd2l0aA0KPj4gcHJpdmF0ZXxhbm9uIHRvIHdv
-cmspLg0KPiANCj4gSnVzdCB0byBjbGFyaWZ5LCB0aGlzIGRvY3VtZW50IHRyaWVzIHRvIGRlZmlu
-ZSB0aGUgbWVtb3J5IHJhbmdlcyBmcm9tDQo+IHdoZXJlIHRhZ2dlZCBhZGRyZXNzZXMgY2FuIGJl
-IHBhc3NlZCBpbnRvIHRoZSBrZXJuZWwgaW4gdGhlIGNvbnRleHQNCj4gb2YgVEJJIG9ubHkgKG5v
-dCBNVEUpOyB0aGF0IGlzIGZvciBod2FzYW4gc3VwcG9ydC4gRklYRUQgb3IgR1JPV1NET1dODQo+
-IHNob3VsZCBub3QgYWZmZWN0IHRoaXMuDQoNCnllcywgc28gZWl0aGVyIHRoZSB0ZXh0IHNob3Vs
-ZCBsaXN0IE1BUF8qIGZsYWdzIHRoYXQgZG9uJ3QgYWZmZWN0DQp0aGUgcG9pbnRlciB0YWdnaW5n
-IHNlbWFudGljcyBvciBzcGVjaWZ5IHByaXZhdGV8YW5vbiBtYXBwaW5nDQp3aXRoIGRpZmZlcmVu
-dCB3b3JkaW5nLg0KDQo+Pj4gKyAgLSBhIG1hcHBpbmcgYmVsb3cgc2JyaygwKSBkb25lIGJ5IHRo
-ZSBwcm9jZXNzIGl0c2VsZg0KPj4NCj4+IGRvZXNuJ3QgdGhlIG1tYXAgcnVsZSBjb3ZlciB0aGlz
-Pw0KPiANCj4gSUlVQyBpdCBkb2Vzbid0IGNvdmVyIGl0IGFzIHRoYXQncyBtZW1vcnkgbWFwcGVk
-IGJ5IHRoZSBrZXJuZWwNCj4gYXV0b21hdGljYWxseSBvbiBhY2Nlc3MgdnMgYSBwb2ludGVyIHJl
-dHVybmVkIGJ5IG1tYXAoKS4gVGhlIHN0YXRlbWVudA0KPiBhYm92ZSB0YWxrcyBhYm91dCBob3cg
-dGhlIGFkZHJlc3MgaXMgb2J0YWluZWQgYnkgdGhlIHVzZXIuDQoNCm9rIGkgcmVhZCAnbWFwcGlu
-ZyBiZWxvdyBzYnJrJyBhcyBhbiBtbWFwIChwb3NzaWJseSBNQVBfRklYRUQpDQp0aGF0IGhhcHBl
-bnMgdG8gYmUgYmVsb3cgdGhlIGhlYXAgYXJlYS4NCg0KaSB0aGluayAiYmVsb3cgc2JyaygwKSIg
-aXMgbm90IHRoZSBiZXN0IHRlcm0gdG8gdXNlOiB0aGVyZQ0KbWF5IGJlIGFkZHJlc3MgcmFuZ2Ug
-YmVsb3cgdGhlIGhlYXAgYXJlYSB0aGF0IGNhbiBiZSBtbWFwcGVkDQphbmQgdGh1cyBiZWxvdyBz
-YnJrKDApIGFuZCBzYnJrIGlzIGEgcG9zaXggYXBpIG5vdCBhIGxpbnV4DQpzeXNjYWxsLCB0aGUg
-bGliYyBjYW4gaW1wbGVtZW50IGl0IHdpdGggbW1hcCBvciB3aGF0ZXZlci4NCg0KaSdtIG5vdCBz
-dXJlIHdoYXQgdGhlIHJpZ2h0IHRlcm0gZm9yICdoZWFwIGFyZWEnIGlzDQoodGhlIGFkZHJlc3Mg
-cmFuZ2UgYmV0d2VlbiBzeXNjYWxsKF9fTlJfYnJrLDApIGF0DQpwcm9ncmFtIHN0YXJ0dXAgYW5k
-IGl0cyBjdXJyZW50IHZhbHVlPykNCg0KPj4+ICsgIC0gYW55IG1lbW9yeSBtYXBwZWQgYnkgdGhl
-IGtlcm5lbCBpbiB0aGUgcHJvY2VzcydzIGFkZHJlc3Mgc3BhY2UgZHVyaW5nDQo+Pj4gKyAgICBj
-cmVhdGlvbiBhbmQgZm9sbG93aW5nIHRoZSByZXN0cmljdGlvbnMgcHJlc2VudGVkIGFib3ZlIChp
-LmUuIGRhdGEsIGJzcywNCj4+PiArICAgIHN0YWNrKS4NCj4+DQo+PiBPSy4NCj4+DQo+PiBDYW4g
-YSBudWxsIHBvaW50ZXIgaGF2ZSBhIHRhZz8NCj4+IChpbiBjYXNlIE5VTEwgaXMgdmFsaWQgdG8g
-cGFzcyB0byBhIHN5c2NhbGwpDQo+IA0KPiBHb29kIHBvaW50LiBJIGRvbid0IHRoaW5rIGl0IGNh
-bi4gV2UgbWF5IGNoYW5nZSB0aGlzIGZvciBNVEUgd2hlcmUgd2UNCj4gZ2l2ZSBhIGhpbnQgdGFn
-IGJ1dCBubyBoaW50IGFkZHJlc3MsIGhvd2V2ZXIsIHRoaXMgZG9jdW1lbnQgb25seSBjb3ZlcnMN
-Cj4gVEJJIGZvciBub3cuDQoNCk9LLg0KDQo+Pj4gK1RoZSBBUk02NCBUYWdnZWQgQWRkcmVzcyBB
-QkkgaXMgYW4gb3B0LWluIGZlYXR1cmUsIGFuZCBhbiBhcHBsaWNhdGlvbiBjYW4NCj4+PiArY29u
-dHJvbCBpdCB1c2luZyB0aGUgZm9sbG93aW5nIHByY3RsKClzOg0KPj4+ICsgIC0gUFJfU0VUX1RB
-R0dFRF9BRERSX0NUUkw6IGNhbiBiZSB1c2VkIHRvIGVuYWJsZSB0aGUgVGFnZ2VkIEFkZHJlc3Mg
-QUJJLg0KPj4+ICsgIC0gUFJfR0VUX1RBR0dFRF9BRERSX0NUUkw6IGNhbiBiZSB1c2VkIHRvIGNo
-ZWNrIHRoZSBzdGF0dXMgb2YgdGhlIFRhZ2dlZA0KPj4+ICsgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgIEFkZHJlc3MgQUJJLg0KPj4+ICsNCj4+PiArQXMgYSBjb25zZXF1ZW5jZSBvZiBpbnZv
-a2luZyBQUl9TRVRfVEFHR0VEX0FERFJfQ1RSTCBwcmN0bCgpIGJ5IGFuIGFwcGxpY2F0aW9ucywN
-Cj4+PiArdGhlIEFCSSBndWFyYW50ZWVzIHRoZSBmb2xsb3dpbmcgYmVoYXZpb3VyczoNCj4+PiAr
-DQo+Pj4gKyAgLSBFdmVyeSBjdXJyZW50IG9yIG5ld2x5IGludHJvZHVjZWQgc3lzY2FsbCBjYW4g
-YWNjZXB0IGFueSB2YWxpZCB0YWdnZWQNCj4+PiArICAgIHBvaW50ZXJzLg0KPj4+ICsNCj4+PiAr
-ICAtIElmIGEgbm9uIHZhbGlkIHRhZ2dlZCBwb2ludGVyIGlzIHBhc3NlZCB0byBhIHN5c2NhbGwg
-dGhlbiB0aGUgYmVoYXZpb3VyDQo+Pj4gKyAgICBpcyB1bmRlZmluZWQuDQo+Pj4gKw0KPj4+ICsg
-IC0gRXZlcnkgdmFsaWQgdGFnZ2VkIHBvaW50ZXIgaXMgZXhwZWN0ZWQgdG8gd29yayBhcyBhbiB1
-bnRhZ2dlZCBvbmUuDQo+Pj4gKw0KPj4+ICsgIC0gVGhlIGtlcm5lbCBwcmVzZXJ2ZXMgYW55IHZh
-bGlkIHRhZ2dlZCBwb2ludGVycyBhbmQgcmV0dXJucyB0aGVtIHRvIHRoZQ0KPj4+ICsgICAgdXNl
-cnNwYWNlIHVuY2hhbmdlZCBpbiBhbGwgdGhlIGNhc2VzIGV4Y2VwdCB0aGUgb25lcyBkb2N1bWVu
-dGVkIGluIHRoZQ0KPj4+ICsgICAgIlByZXNlcnZpbmcgdGFncyIgcGFyYWdyYXBoIG9mIHRhZ2dl
-ZC1wb2ludGVycy50eHQuDQo+Pg0KPj4gT0suDQo+Pg0KPj4gaSBndWVzcyBwb2ludGVycyBvZiBh
-bm90aGVyIHByb2Nlc3MgYXJlIG5vdCAidmFsaWQgdGFnZ2VkIHBvaW50ZXJzIg0KPj4gZm9yIHRo
-ZSBjdXJyZW50IG9uZSwgc28gZS5nLiBpbiBwdHJhY2UgdGhlIHB0cmFjZXIgaGFzIHRvIGNsZWFy
-IHRoZQ0KPj4gdGFncyBiZWZvcmUgUEVFSyBldGMuDQo+IA0KPiBBbm90aGVyIGdvb2QgcG9pbnQu
-IEFyZSB0aGVyZSBhbnkgcHJvcy9jb25zIGhlcmUgb3IgdXNlLWNhc2VzPyBXaGVuIHdlDQo+IGFk
-ZCBNVEUgc3VwcG9ydCwgc2hvdWxkIHdlIGhhbmRsZSB0aGlzIGRpZmZlcmVudGx5Pw0KDQppJ20g
-bm90IHN1cmUgd2hhdCBnZGIgZG9lcyBjdXJyZW50bHksIGJ1dCBpdCBoYXMNCmFuICdhZGRyZXNz
-X3NpZ25pZmljYW50JyBob29rIHVzZWQgYXQgYSBmZXcgcGxhY2VzDQp0aGF0IGRyb3BzIHRoZSB0
-YWcgb24gYWFyY2g2NCwgc28gaXQgcHJvYmFibHkNCmF2b2lkcyBwYXNzaW5nIHRhZ2dlZCBwb2lu
-dGVyIHRvIHB0cmFjZS4NCg0KaSB3YXMgd29ycmllZCBhYm91dCBzdHJhY2Ugd2hpY2ggdHJpZXMg
-dG8gcHJpbnQNCnN0cnVjdHMgcGFzc2VkIHRvIHN5c2NhbGxzIGFuZCBmb2xsb3cgcG9pbnRlcnMg
-aW4NCnRoZW0gd2hpY2ggY3VycmVudGx5IHdvdWxkIHdvcmssIGJ1dCBpZiB3ZSBhbGxvdw0KdGFn
-cyBpbiBzeXNjYWxscyB0aGVuIGl0IG5lZWRzIHNvbWUgdXBkYXRlLg0KKGkgaGF2ZW4ndCBjaGVj
-a2VkIHRoZSBzdHJhY2UgY29kZSB0aG91Z2gpDQoNCj4+PiArQSBkZWZpbml0aW9uIG9mIHRoZSBt
-ZWFuaW5nIG9mIHRhZ2dlZCBwb2ludGVycyBvbiBhcm02NCBjYW4gYmUgZm91bmQgaW46DQo+Pj4g
-K0RvY3VtZW50YXRpb24vYXJtNjQvdGFnZ2VkLXBvaW50ZXJzLnR4dC4NCj4+PiArDQo+Pj4gKzMu
-IEFSTTY0IFRhZ2dlZCBBZGRyZXNzIEFCSSBFeGNlcHRpb25zDQo+Pj4gKy0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+Pj4gKw0KPj4+ICtUaGUgYmVoYXZpb3VycyBkZXNj
-cmliZWQgaW4gcGFyYWdyYXBoIDIsIHdpdGggcGFydGljdWxhciByZWZlcmVuY2UgdG8gdGhlDQo+
-Pj4gK2FjY2VwdGFuY2UgYnkgdGhlIHN5c2NhbGxzIG9mIGFueSB2YWxpZCB0YWdnZWQgcG9pbnRl
-ciBhcmUgbm90IGFwcGxpY2FibGUNCj4+PiArdG8gdGhlIGZvbGxvd2luZyBjYXNlczoNCj4+PiAr
-ICAtIG1tYXAoKSBhZGRyIHBhcmFtZXRlci4NCj4+PiArICAtIG1yZW1hcCgpIG5ld19hZGRyZXNz
-IHBhcmFtZXRlci4NCj4+PiArICAtIHByY3RsX3NldF9tbSgpIHN0cnVjdCBwcmN0bF9tYXAgZmll
-bGRzLg0KPj4+ICsgIC0gcHJjdGxfc2V0X21tX21hcCgpIHN0cnVjdCBwcmN0bF9tYXAgZmllbGRz
-Lg0KPj4NCj4+IGkgZG9uJ3QgdW5kZXJzdGFuZCB0aGUgZXhjZXB0aW9uOiBkb2VzIGl0IG1lYW4g
-dGhhdCBwYXNzaW5nIGEgdGFnZ2VkDQo+PiBhZGRyZXNzIHRvIHRoZXNlIHN5c2NhbGxzIGlzIHVu
-ZGVmaW5lZD8NCj4gDQo+IEknZCBzYXkgaXQncyBhcyB1bmRlZmluZWQgYXMgaXQgaXMgcmlnaHQg
-bm93IHdpdGhvdXQgdGhlc2UgcGF0Y2hlcy4gV2UNCj4gbWF5IGJlIGFibGUgdG8gZXhwbGFpbiB0
-aGlzIGJldHRlciBpbiB0aGUgZG9jdW1lbnQuDQo+IA0KDQo=
+On Thu, Jun 13, 2019 at 02:23:43PM +0100, Dave P Martin wrote:
+> On Thu, Jun 13, 2019 at 01:28:21PM +0100, Catalin Marinas wrote:
+> > On Thu, Jun 13, 2019 at 12:37:32PM +0100, Dave P Martin wrote:
+> > > On Thu, Jun 13, 2019 at 11:15:34AM +0100, Vincenzo Frascino wrote:
+> > > > On 12/06/2019 16:35, Catalin Marinas wrote:
+> > > > > On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
+> > > > >> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
+> > > > >> +                             Address ABI.
+> > [...]
+> > > Is there a canonical way to detect whether this whole API/ABI is
+> > > available?  (i.e., try to call this prctl / check for an HWCAP bit,
+> > > etc.)
+> > 
+> > The canonical way is a prctl() call. HWCAP doesn't make sense since it's
+> > not a hardware feature. If you really want a different way of detecting
+> > this (which I don't think it's worth), we can reinstate the AT_FLAGS
+> > bit.
+> 
+> Sure, I think this probably makes sense -- I'm still getting my around
+> which parts of the design are directly related to MTE and which aren't.
+> 
+> I was a bit concerned about the interaction between
+> PR_SET_TAGGED_ADDR_CTRL and the sysctl: the caller might conclude that
+> this API is unavailable when actually tagged addresses are stuck on.
+> 
+> I'm not sure whether this matters, but it's a bit weird.
+> 
+> One option would be to change the semantics, so that the sysctl just
+> forbids turning tagging from off to on.  Alternatively, we could return
+> a different error code to distinguish this case.
+
+This is the intention, just to forbid turning tagging on. We could
+return -EPERM instead, though my original intent was to simply pretend
+that the prctl does not exist like in an older kernel version.
+
+-- 
+Catalin
