@@ -1,91 +1,34 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 2/2] arm64: Relax Documentation/arm64/tagged-pointers.txt
-Date: Thu, 13 Jun 2019 16:51:37 +0100
-Message-ID: <20190613155137.47675-3-vincenzo.frascino@arm.com>
-References: <cover.1560339705.git.andreyknvl@google.com>
- <20190613155137.47675-1-vincenzo.frascino@arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCHv2 0/3] improve wait logic of stop_machine
+Date: Thu, 13 Jun 2019 21:57:58 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906132157281.1791@nanos.tec.linutronix.de>
+References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190613155137.47675-1-vincenzo.frascino@arm.com>
+In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
-the userspace (EL0) is allowed to set a non-zero value in the
-top byte but the resulting pointers are not allowed at the
-user-kernel syscall ABI boundary.
+On Thu, 13 Jun 2019, Heiko Carstens wrote:
+> 
+> Heiko Carstens (2):
+>   processor: remove spin_cpu_yield
+>   processor: get rid of cpu_relax_yield
+> 
+> Martin Schwidefsky (1):
+>   s390: improve wait logic of stop_machine
+> 
+>  arch/powerpc/include/asm/processor.h |  2 --
+>  arch/s390/include/asm/processor.h    |  7 +------
+>  arch/s390/kernel/processor.c         | 19 +++++++++++++------
+>  arch/s390/kernel/smp.c               |  2 +-
+>  include/linux/processor.h            |  9 ---------
+>  include/linux/sched.h                |  4 ----
+>  include/linux/stop_machine.h         |  1 +
+>  kernel/stop_machine.c                | 19 ++++++++++++++-----
+>  8 files changed, 30 insertions(+), 33 deletions(-)
 
-With the relaxed ABI proposed in this set, it is now possible to pass
-tagged pointers to the syscalls, when these pointers are in memory
-ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
-
-Relax the requirements described in tagged-pointers.txt to be compliant
-with the behaviours guaranteed by the ARM64 Tagged Address ABI.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-CC: Andrey Konovalov <andreyknvl@google.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- Documentation/arm64/tagged-pointers.txt | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
-
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..e33af14478e3 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -18,7 +18,8 @@ Passing tagged addresses to the kernel
- --------------------------------------
- 
- All interpretation of userspace memory addresses by the kernel assumes
--an address tag of 0x00.
-+an address tag of 0x00, unless the userspace opts-in the ARM64 Tagged
-+Address ABI via the PR_SET_TAGGED_ADDR_CTRL prctl().
- 
- This includes, but is not limited to, addresses found in:
- 
-@@ -31,18 +32,23 @@ This includes, but is not limited to, addresses found in:
-  - the frame pointer (x29) and frame records, e.g. when interpreting
-    them to generate a backtrace or call graph.
- 
--Using non-zero address tags in any of these locations may result in an
--error code being returned, a (fatal) signal being raised, or other modes
--of failure.
-+Using non-zero address tags in any of these locations when the
-+userspace application did not opt-in to the ARM64 Tagged Address ABI
-+may result in an error code being returned, a (fatal) signal being raised,
-+or other modes of failure.
- 
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
--strongly discouraged.
-+For these reasons, when the userspace application did not opt-in, passing
-+non-zero address tags to the kernel via system calls is forbidden, and using
-+a non-zero address tag for sp is strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
- address tags may suffer impaired or inaccurate debug and profiling
- visibility.
- 
-+A definition of the meaning of ARM64 Tagged Address ABI and of the
-+guarantees that the ABI provides when the userspace opts-in via prctl()
-+can be found in: Documentation/arm64/tagged-address-abi.txt.
-+
- 
- Preserving tags
- ---------------
-@@ -57,6 +63,9 @@ be preserved.
- The architecture prevents the use of a tagged PC, so the upper byte will
- be set to a sign-extension of bit 55 on exception return.
- 
-+These behaviours are preserved even when the userspace opts-in to the ARM64
-+Tagged Address ABI via the PR_SET_TAGGED_ADDR_CTRL prctl().
-+
- 
- Other considerations
- --------------------
--- 
-2.21.0
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
