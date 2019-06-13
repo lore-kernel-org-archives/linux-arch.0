@@ -1,7 +1,7 @@
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCHv2 3/3] processor: get rid of cpu_relax_yield
-Date: Thu, 13 Jun 2019 12:35:10 +0200
-Message-ID: <20190613103510.60529-4-heiko.carstens@de.ibm.com>
+Subject: [PATCHv2 1/3] processor: remove spin_cpu_yield
+Date: Thu, 13 Jun 2019 12:35:08 +0200
+Message-ID: <20190613103510.60529-2-heiko.carstens@de.ibm.com>
 References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
@@ -10,117 +10,46 @@ To: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>,
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-stop_machine is the only user left of cpu_relax_yield. Given that it
-now has special semantics which are tied to stop_machine introduce a
-weak stop_machine_yield function which architectures can override, and
-get rid of the generic cpu_relax_yield implementation.
+spin_cpu_yield is unused, therefore remove it.
 
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/s390/include/asm/processor.h | 6 ------
- arch/s390/kernel/processor.c      | 4 ++--
- include/linux/sched.h             | 4 ----
- include/linux/stop_machine.h      | 1 +
- kernel/stop_machine.c             | 7 ++++++-
- 5 files changed, 9 insertions(+), 13 deletions(-)
+ arch/powerpc/include/asm/processor.h | 2 --
+ include/linux/processor.h            | 9 ---------
+ 2 files changed, 11 deletions(-)
 
-diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
-index 445ce9ee4404..14883b1562e0 100644
---- a/arch/s390/include/asm/processor.h
-+++ b/arch/s390/include/asm/processor.h
-@@ -222,12 +222,6 @@ static __no_kasan_or_inline unsigned short stap(void)
- 	return cpu_address;
- }
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index ef573fe9873e..a9993e7a443b 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -346,8 +346,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
  
--/*
-- * Give up the time slice of the virtual PU.
-- */
--#define cpu_relax_yield cpu_relax_yield
--void cpu_relax_yield(const struct cpumask *cpumask);
+ #define spin_cpu_relax()	barrier()
+ 
+-#define spin_cpu_yield()	spin_cpu_relax()
 -
- #define cpu_relax() barrier()
+ #define spin_end()	HMT_medium()
  
- #define ECAG_CACHE_ATTRIBUTE	0
-diff --git a/arch/s390/kernel/processor.c b/arch/s390/kernel/processor.c
-index 4cdaefec1b7c..6ebc2117c66c 100644
---- a/arch/s390/kernel/processor.c
-+++ b/arch/s390/kernel/processor.c
-@@ -7,6 +7,7 @@
- #define KMSG_COMPONENT "cpu"
- #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
- 
-+#include <linux/stop_machine.h>
- #include <linux/cpufeature.h>
- #include <linux/bitops.h>
- #include <linux/kernel.h>
-@@ -59,7 +60,7 @@ void s390_update_cpu_mhz(void)
- 		on_each_cpu(update_cpu_mhz, NULL, 0);
- }
- 
--void notrace cpu_relax_yield(const struct cpumask *cpumask)
-+void notrace stop_machine_yield(const struct cpumask *cpumask)
- {
- 	int cpu, this_cpu;
- 
-@@ -73,7 +74,6 @@ void notrace cpu_relax_yield(const struct cpumask *cpumask)
- 			smp_yield_cpu(cpu);
- 	}
- }
--EXPORT_SYMBOL(cpu_relax_yield);
- 
- /*
-  * cpu_init - initializes state that is per-CPU.
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 1f9f3160da7e..911675416b05 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1518,10 +1518,6 @@ static inline int set_cpus_allowed_ptr(struct task_struct *p, const struct cpuma
- }
+ #define spin_until_cond(cond)					\
+diff --git a/include/linux/processor.h b/include/linux/processor.h
+index dbc952eec869..dc78bdc7079a 100644
+--- a/include/linux/processor.h
++++ b/include/linux/processor.h
+@@ -32,15 +32,6 @@
+ #define spin_cpu_relax() cpu_relax()
  #endif
  
--#ifndef cpu_relax_yield
--#define cpu_relax_yield(cpumask) cpu_relax()
+-/*
+- * spin_cpu_yield may be called to yield (undirected) to the hypervisor if
+- * necessary. This should be used if the wait is expected to take longer
+- * than context switch overhead, but we can't sleep or do a directed yield.
+- */
+-#ifndef spin_cpu_yield
+-#define spin_cpu_yield() cpu_relax_yield()
 -#endif
 -
- extern int yield_to(struct task_struct *p, bool preempt);
- extern void set_user_nice(struct task_struct *p, long nice);
- extern int task_prio(const struct task_struct *p);
-diff --git a/include/linux/stop_machine.h b/include/linux/stop_machine.h
-index 6d3635c86dbe..f9a0c6189852 100644
---- a/include/linux/stop_machine.h
-+++ b/include/linux/stop_machine.h
-@@ -36,6 +36,7 @@ int stop_cpus(const struct cpumask *cpumask, cpu_stop_fn_t fn, void *arg);
- int try_stop_cpus(const struct cpumask *cpumask, cpu_stop_fn_t fn, void *arg);
- void stop_machine_park(int cpu);
- void stop_machine_unpark(int cpu);
-+void stop_machine_yield(const struct cpumask *cpumask);
- 
- #else	/* CONFIG_SMP */
- 
-diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
-index b8b0c5ff8da9..b4f83f7bdf86 100644
---- a/kernel/stop_machine.c
-+++ b/kernel/stop_machine.c
-@@ -177,6 +177,11 @@ static void ack_state(struct multi_stop_data *msdata)
- 		set_state(msdata, msdata->state + 1);
- }
- 
-+void __weak stop_machine_yield(const struct cpumask *cpumask)
-+{
-+	cpu_relax();
-+}
-+
- /* This is the cpu_stop function which stops the CPU. */
- static int multi_cpu_stop(void *data)
- {
-@@ -204,7 +209,7 @@ static int multi_cpu_stop(void *data)
- 	/* Simple state machine */
- 	do {
- 		/* Chill out and ensure we re-read multi_stop_state. */
--		cpu_relax_yield(cpumask);
-+		stop_machine_yield(cpumask);
- 		if (msdata->state != curstate) {
- 			curstate = msdata->state;
- 			switch (curstate) {
+ #ifndef spin_end
+ #define spin_end()
+ #endif
 -- 
 2.17.1
