@@ -1,90 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay.sw.ru ([185.231.240.75]:40016 "EHLO relay.sw.ru"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728483AbfFMKtT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 06:49:19 -0400
-Subject: Re: [PATCH v3 1/3] lib/test_kasan: Add bitops tests
-References: <20190531150828.157832-1-elver@google.com>
- <20190531150828.157832-2-elver@google.com>
-From: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Message-ID: <5c35bc08-749f-dbc4-09d0-fcf14b1da1b3@virtuozzo.com>
-Date: Thu, 13 Jun 2019 13:49:23 +0300
-MIME-Version: 1.0
-In-Reply-To: <20190531150828.157832-2-elver@google.com>
-Content-Type: text/plain; charset=utf-8
+Received: from mail-eopbgr50072.outbound.protection.outlook.com ([40.107.5.72]:55105
+        "EHLO EUR03-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726773AbfFMPcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 11:32:47 -0400
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Subject: Re: [PATCH v4 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.txt
+Date: Thu, 13 Jun 2019 15:32:42 +0000
+Message-ID: <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190612142111.28161-1-vincenzo.frascino@arm.com>
+ <20190612142111.28161-2-vincenzo.frascino@arm.com>
+ <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
+ <20190613092054.GO28951@C02TF0J2HF1T.local>
+ <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
+ <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
+ <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
+ <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
+In-Reply-To: <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <F7B0C8D67B5DD5449F2A217A59B054BE@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>, peterz@infradead.org, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
-Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
-Message-ID: <20190613104923.Mgp7lIyZcbbDSQxbtoOQUIbYIYFr-GdRggTIQa5DQrg@z>
+To: Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
+Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20190613153242.cEfiN3iLDOH4JJTNBDz9fmgZwQblRCrjhEQ96-bPCw4@z>
 
-
-
-On 5/31/19 6:08 PM, Marco Elver wrote:
-> This adds bitops tests to the test_kasan module. In a follow-up patch,
-> support for bitops instrumentation will be added.
-> 
-> Signed-off-by: Marco Elver <elver@google.com>
-> ---
-> Changes in v3:
-> * Use kzalloc instead of kmalloc.
-> * Use sizeof(*bits).
-> 
-> Changes in v2:
-> * Use BITS_PER_LONG.
-> * Use heap allocated memory for test, as newer compilers (correctly)
->   warn on OOB stack access.
-> ---
->  lib/test_kasan.c | 75 ++++++++++++++++++++++++++++++++++++++++++++++--
->  1 file changed, 72 insertions(+), 3 deletions(-)
-> 
-> diff --git a/lib/test_kasan.c b/lib/test_kasan.c
-> index 7de2702621dc..1ef9702327d2 100644
-> --- a/lib/test_kasan.c
-> +++ b/lib/test_kasan.c
-> @@ -11,16 +11,17 @@
->  
->  #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
->  
-> +#include <linux/bitops.h>
->  #include <linux/delay.h>
-> +#include <linux/kasan.h>
->  #include <linux/kernel.h>
-> -#include <linux/mman.h>
->  #include <linux/mm.h>
-> +#include <linux/mman.h>
-> +#include <linux/module.h>
->  #include <linux/printk.h>
->  #include <linux/slab.h>
->  #include <linux/string.h>
->  #include <linux/uaccess.h>
-> -#include <linux/module.h>
-> -#include <linux/kasan.h>
->  
->  /*
->   * Note: test functions are marked noinline so that their names appear in
-> @@ -623,6 +624,73 @@ static noinline void __init kasan_strings(void)
->  	strnlen(ptr, 1);
->  }
->  
-> +static noinline void __init kasan_bitops(void)
-> +{
-> +	long *bits = kzalloc(sizeof(*bits), GFP_KERNEL);
-
-It would be safer to do kzalloc(sizeof(*bits) + 1, GFP_KERNEL) and change tests accordingly to: set_bit(BITS_PER_LONG + 1, bits) ...
-kmalloc will internally round up allocation to 16-bytes, so we won't be actually corrupting someone elses memory.
-
-
-> +	if (!bits)
-> +		return;
-> +
-> +	pr_info("within-bounds in set_bit");
-> +	set_bit(0, bits);
-> +
-> +	pr_info("within-bounds in set_bit");
-> +	set_bit(BITS_PER_LONG - 1, bits);
-
-
-I'd remove these two. There are plenty of within bounds set_bit() in the kernel so they are well tested already.
+T24gMTMvMDYvMjAxOSAxNTowMywgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6DQo+IE9uIDEzLzA2
+LzIwMTkgMTM6MjgsIFN6YWJvbGNzIE5hZ3kgd3JvdGU6DQo+PiBPbiAxMy8wNi8yMDE5IDEyOjE2
+LCBWaW5jZW56byBGcmFzY2lubyB3cm90ZToNCj4+PiBPbiAxMy8wNi8yMDE5IDExOjE0LCBTemFi
+b2xjcyBOYWd5IHdyb3RlOg0KPj4+PiBPbiAxMy8wNi8yMDE5IDEwOjIwLCBDYXRhbGluIE1hcmlu
+YXMgd3JvdGU6DQo+Pj4+PiBPbiBXZWQsIEp1biAxMiwgMjAxOSBhdCAwNTozMDozNFBNICswMTAw
+LCBTemFib2xjcyBOYWd5IHdyb3RlOg0KPj4+Pj4+IE9uIDEyLzA2LzIwMTkgMTU6MjEsIFZpbmNl
+bnpvIEZyYXNjaW5vIHdyb3RlOg0KPj4+Pj4+PiArICAtIGEgbWFwcGluZyBiZWxvdyBzYnJrKDAp
+IGRvbmUgYnkgdGhlIHByb2Nlc3MgaXRzZWxmDQo+Pj4+Pj4NCj4+Pj4+PiBkb2Vzbid0IHRoZSBt
+bWFwIHJ1bGUgY292ZXIgdGhpcz8NCj4+Pj4+DQo+Pj4+PiBJSVVDIGl0IGRvZXNuJ3QgY292ZXIg
+aXQgYXMgdGhhdCdzIG1lbW9yeSBtYXBwZWQgYnkgdGhlIGtlcm5lbA0KPj4+Pj4gYXV0b21hdGlj
+YWxseSBvbiBhY2Nlc3MgdnMgYSBwb2ludGVyIHJldHVybmVkIGJ5IG1tYXAoKS4gVGhlIHN0YXRl
+bWVudA0KPj4+Pj4gYWJvdmUgdGFsa3MgYWJvdXQgaG93IHRoZSBhZGRyZXNzIGlzIG9idGFpbmVk
+IGJ5IHRoZSB1c2VyLg0KPj4+Pg0KPj4+PiBvayBpIHJlYWQgJ21hcHBpbmcgYmVsb3cgc2Jyaycg
+YXMgYW4gbW1hcCAocG9zc2libHkgTUFQX0ZJWEVEKQ0KPj4+PiB0aGF0IGhhcHBlbnMgdG8gYmUg
+YmVsb3cgdGhlIGhlYXAgYXJlYS4NCj4+Pj4NCj4+Pj4gaSB0aGluayAiYmVsb3cgc2JyaygwKSIg
+aXMgbm90IHRoZSBiZXN0IHRlcm0gdG8gdXNlOiB0aGVyZQ0KPj4+PiBtYXkgYmUgYWRkcmVzcyBy
+YW5nZSBiZWxvdyB0aGUgaGVhcCBhcmVhIHRoYXQgY2FuIGJlIG1tYXBwZWQNCj4+Pj4gYW5kIHRo
+dXMgYmVsb3cgc2JyaygwKSBhbmQgc2JyayBpcyBhIHBvc2l4IGFwaSBub3QgYSBsaW51eA0KPj4+
+PiBzeXNjYWxsLCB0aGUgbGliYyBjYW4gaW1wbGVtZW50IGl0IHdpdGggbW1hcCBvciB3aGF0ZXZl
+ci4NCj4+Pj4NCj4+Pj4gaSdtIG5vdCBzdXJlIHdoYXQgdGhlIHJpZ2h0IHRlcm0gZm9yICdoZWFw
+IGFyZWEnIGlzDQo+Pj4+ICh0aGUgYWRkcmVzcyByYW5nZSBiZXR3ZWVuIHN5c2NhbGwoX19OUl9i
+cmssMCkgYXQNCj4+Pj4gcHJvZ3JhbSBzdGFydHVwIGFuZCBpdHMgY3VycmVudCB2YWx1ZT8pDQo+
+Pj4+DQo+Pj4NCj4+PiBJIHVzZWQgc2JyaygwKSB3aXRoIHRoZSBtZWFuaW5nIG9mICJlbmQgb2Yg
+dGhlIHByb2Nlc3MncyBkYXRhIHNlZ21lbnQiIG5vdA0KPj4+IGltcGx5aW5nIHRoYXQgdGhpcyBp
+cyBhIHN5c2NhbGwsIGJ1dCBqdXN0IGFzIGEgdXNlZnVsIHdheSB0byBpZGVudGlmeSB0aGUgbWFw
+cGluZy4NCj4+PiBJIGFncmVlIHRoYXQgaXQgaXMgYSBwb3NpeCBmdW5jdGlvbiBpbXBsZW1lbnRl
+ZCBieSBsaWJjIGJ1dCB3aGVuIGl0IGlzIHVzZWQgd2l0aA0KPj4+IDAgZmluZHMgdGhlIGN1cnJl
+bnQgbG9jYXRpb24gb2YgdGhlIHByb2dyYW0gYnJlYWssIHdoaWNoIGNhbiBiZSBjaGFuZ2VkIGJ5
+IGJyaygpDQo+Pj4gYW5kIGRlcGVuZGluZyBvbiB0aGUgbmV3IGFkZHJlc3MgcGFzc2VkIHRvIHRo
+aXMgc3lzY2FsbCBjYW4gaGF2ZSB0aGUgZWZmZWN0IG9mDQo+Pj4gYWxsb2NhdGluZyBvciBkZWFs
+bG9jYXRpbmcgbWVtb3J5Lg0KPj4+DQo+Pj4gV2lsbCBjaGFuZ2luZyBzYnJrKDApIHdpdGggImVu
+ZCBvZiB0aGUgcHJvY2VzcydzIGRhdGEgc2VnbWVudCIgbWFrZSBpdCBtb3JlIGNsZWFyPw0KPj4N
+Cj4+IGkgZG9uJ3QgdW5kZXJzdGFuZCB3aGF0J3MgdGhlIHJlbGV2YW5jZSBvZiB0aGUgKmVuZCoN
+Cj4+IG9mIHRoZSBkYXRhIHNlZ21lbnQuDQo+Pg0KPj4gaSdkIGV4cGVjdCB0aGUgdGV4dCB0byBz
+YXkgc29tZXRoaW5nIGFib3V0IHRoZSBhZGRyZXNzDQo+PiByYW5nZSBvZiB0aGUgZGF0YSBzZWdt
+ZW50Lg0KPj4NCj4+IGkgY2FuIGRvDQo+Pg0KPj4gbW1hcCgodm9pZCopNjU1MzYsIDY1NTM2LCBQ
+Uk9UX1JFQUR8UFJPVF9XUklURSwgTUFQX0ZJWEVEfE1BUF9TSEFSRUR8TUFQX0FOT04sIC0xLCAw
+KTsNCj4+DQo+PiBhbmQgaXQgd2lsbCBiZSBiZWxvdyB0aGUgZW5kIG9mIHRoZSBkYXRhIHNlZ21l
+bnQuDQo+Pg0KPiANCj4gQXMgZmFyIGFzIEkgdW5kZXJzdGFuZCB0aGUgZGF0YSBzZWdtZW50ICJs
+aXZlcyIgYmVsb3cgdGhlIHByb2dyYW0gYnJlYWssIGhlbmNlDQo+IGl0IGlzIGEgd2F5IG9mIGRl
+c2NyaWJpbmcgdGhlIHJhbmdlIGZyb20gd2hpY2ggdGhlIHVzZXIgY2FuIG9idGFpbiBhIHZhbGlk
+DQo+IHRhZ2dlZCBwb2ludGVyLj4NCj4gU2FpZCB0aGF0LCBJIGFtIG5vdCByZWFsbHkgc3VyZSBv
+biBob3cgZG8geW91IHdhbnQgbWUgdG8gZG9jdW1lbnQgdGhpcyAobXkgYWltDQo+IGlzIGZvciB0
+aGlzIHRvIGJlIGNsZWFyIHRvIHRoZSB1c2Vyc3BhY2UgZGV2ZWxvcGVycykuIENvdWxkIHlvdSBw
+bGVhc2UgcHJvcG9zZQ0KPiBzb21ldGhpbmc/DQoNClsuLi5dLCBpdCBpcyBpbiB0aGUgbWVtb3J5
+IHJhbmdlcyBwcml2YXRlbHkgb3duZWQgYnkgYQ0KdXNlcnNwYWNlIHByb2Nlc3MgYW5kIGl0IGlz
+IG9idGFpbmVkIGluIG9uZSBvZiB0aGUNCmZvbGxvd2luZyB3YXlzOg0KDQotIG1tYXAgZG9uZSBi
+eSB0aGUgcHJvY2VzcyBpdHNlbGYsIFsuLi5dDQoNCi0gYnJrIHN5c2NhbGwgZG9uZSBieSB0aGUg
+cHJvY2VzcyBpdHNlbGYuDQogIChpLmUuIHRoZSBoZWFwIGFyZWEgYmV0d2VlbiB0aGUgaW5pdGlh
+bCBsb2NhdGlvbg0KICBvZiB0aGUgcHJvZ3JhbSBicmVhayBhdCBwcm9jZXNzIGNyZWF0aW9uIGFu
+ZCBpdHMNCiAgY3VycmVudCBsb2NhdGlvbi4pDQoNCi0gYW55IG1lbW9yeSBtYXBwZWQgYnkgdGhl
+IGtlcm5lbCBbLi4uXQ0KDQp0aGUgZGF0YSBzZWdtZW50IHRoYXQncyBwYXJ0IG9mIHRoZSBwcm9j
+ZXNzIGltYWdlIGlzDQphbHJlYWR5IGNvdmVyZWQgYnkgdGhlIGxhc3QgcG9pbnQuDQo=
