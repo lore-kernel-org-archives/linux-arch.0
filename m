@@ -1,80 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34114 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59600 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728304AbfFMKfT (ORCPT
+        by vger.kernel.org with ESMTP id S1728348AbfFMKfV (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 06:35:19 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x5DATYIL138645
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:17 -0400
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2t3jchejhn-1
+        Thu, 13 Jun 2019 06:35:21 -0400
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x5DARxXb185488
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:19 -0400
+Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2t3mjp8wxx-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:17 -0400
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:19 -0400
 Received: from localhost
-        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Thu, 13 Jun 2019 11:35:15 +0100
+        Thu, 13 Jun 2019 11:35:18 +0100
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCHv2 0/3] improve wait logic of stop_machine
-Date: Thu, 13 Jun 2019 12:35:07 +0200
-Message-ID: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+Subject: [PATCHv2 3/3] processor: get rid of cpu_relax_yield
+Date: Thu, 13 Jun 2019 12:35:10 +0200
+In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+Message-ID: <20190613103510.60529-4-heiko.carstens@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
-Message-ID: <20190613103507.kKSZfVBJx3RANcfa0F-zB4kFSKl6dzPkcecwMXjdzjA@z>
+Message-ID: <20190613103510.kbBIhFvPSPjwESFHadK0-llEuTQJXnkFpWKa44ZJLmE@z>
 
-FWIW, it would be nice to get some Acks.
+stop_machine is the only user left of cpu_relax_yield. Given that it
+now has special semantics which are tied to stop_machine introduce a
+weak stop_machine_yield function which architectures can override, and
+get rid of the generic cpu_relax_yield implementation.
 
-Given that this patch set touches common code only in a way that
-shouldn't have any effect on any architecture except s390, I'll add
-this to the s390 tree, unless somebody objects.
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ arch/s390/include/asm/processor.h | 6 ------
+ arch/s390/kernel/processor.c      | 4 ++--
+ include/linux/sched.h             | 4 ----
+ include/linux/stop_machine.h      | 1 +
+ kernel/stop_machine.c             | 7 ++++++-
+ 5 files changed, 9 insertions(+), 13 deletions(-)
 
-RFC->v2:
-  Use cpumask_next_wrap as suggested by Peter Zijlstra.
-
-RFC:
-
-The stop_machine loop to advance the state machine and to wait for all
-affected CPUs to check-in calls cpu_relax_yield in a tight loop until
-the last missing CPUs acknowledged the state transition.
-
-On a virtual system where not all logical CPUs are backed by real CPUs
-all the time it can take a while for all CPUs to check-in. With the
-current definition of cpu_relax_yield on s390 a diagnose 0x44 is done
-which tells the hypervisor to schedule *some* other CPU. That can be
-any CPU and not necessarily one of the CPUs that need to run in order
-to advance the state machine. This can lead to a pretty bad diagnose
-0x44 storm until the last missing CPU finally checked-in.
-
-Replace the undirected cpu_relax_yield based on diagnose 0x44 with an
-architecture specific directed yield. Each CPU in the wait loop will
-pick up the next CPU in the cpumask of stop_machine. The diagnose 0x9c
-is used to tell the hypervisor to run this next CPU instead of the
-current one. If there is only a limited number of real CPUs backing
-the virtual CPUs we end up with the real CPUs passed around in a
-round-robin fashion.
-
-Patches 1 and 3 are just possible cleanups; the interesting part is
-patch 2.
-
-Heiko Carstens (2):
-  processor: remove spin_cpu_yield
-  processor: get rid of cpu_relax_yield
-
-Martin Schwidefsky (1):
-  s390: improve wait logic of stop_machine
-
- arch/powerpc/include/asm/processor.h |  2 --
- arch/s390/include/asm/processor.h    |  7 +------
- arch/s390/kernel/processor.c         | 19 +++++++++++++------
- arch/s390/kernel/smp.c               |  2 +-
- include/linux/processor.h            |  9 ---------
- include/linux/sched.h                |  4 ----
- include/linux/stop_machine.h         |  1 +
- kernel/stop_machine.c                | 19 ++++++++++++++-----
- 8 files changed, 30 insertions(+), 33 deletions(-)
-
+diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
+index 445ce9ee4404..14883b1562e0 100644
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -222,12 +222,6 @@ static __no_kasan_or_inline unsigned short stap(void)
+ 	return cpu_address;
+ }
+ 
+-/*
+- * Give up the time slice of the virtual PU.
+- */
+-#define cpu_relax_yield cpu_relax_yield
+-void cpu_relax_yield(const struct cpumask *cpumask);
+-
+ #define cpu_relax() barrier()
+ 
+ #define ECAG_CACHE_ATTRIBUTE	0
+diff --git a/arch/s390/kernel/processor.c b/arch/s390/kernel/processor.c
+index 4cdaefec1b7c..6ebc2117c66c 100644
+--- a/arch/s390/kernel/processor.c
++++ b/arch/s390/kernel/processor.c
+@@ -7,6 +7,7 @@
+ #define KMSG_COMPONENT "cpu"
+ #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
+ 
++#include <linux/stop_machine.h>
+ #include <linux/cpufeature.h>
+ #include <linux/bitops.h>
+ #include <linux/kernel.h>
+@@ -59,7 +60,7 @@ void s390_update_cpu_mhz(void)
+ 		on_each_cpu(update_cpu_mhz, NULL, 0);
+ }
+ 
+-void notrace cpu_relax_yield(const struct cpumask *cpumask)
++void notrace stop_machine_yield(const struct cpumask *cpumask)
+ {
+ 	int cpu, this_cpu;
+ 
+@@ -73,7 +74,6 @@ void notrace cpu_relax_yield(const struct cpumask *cpumask)
+ 			smp_yield_cpu(cpu);
+ 	}
+ }
+-EXPORT_SYMBOL(cpu_relax_yield);
+ 
+ /*
+  * cpu_init - initializes state that is per-CPU.
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 1f9f3160da7e..911675416b05 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1518,10 +1518,6 @@ static inline int set_cpus_allowed_ptr(struct task_struct *p, const struct cpuma
+ }
+ #endif
+ 
+-#ifndef cpu_relax_yield
+-#define cpu_relax_yield(cpumask) cpu_relax()
+-#endif
+-
+ extern int yield_to(struct task_struct *p, bool preempt);
+ extern void set_user_nice(struct task_struct *p, long nice);
+ extern int task_prio(const struct task_struct *p);
+diff --git a/include/linux/stop_machine.h b/include/linux/stop_machine.h
+index 6d3635c86dbe..f9a0c6189852 100644
+--- a/include/linux/stop_machine.h
++++ b/include/linux/stop_machine.h
+@@ -36,6 +36,7 @@ int stop_cpus(const struct cpumask *cpumask, cpu_stop_fn_t fn, void *arg);
+ int try_stop_cpus(const struct cpumask *cpumask, cpu_stop_fn_t fn, void *arg);
+ void stop_machine_park(int cpu);
+ void stop_machine_unpark(int cpu);
++void stop_machine_yield(const struct cpumask *cpumask);
+ 
+ #else	/* CONFIG_SMP */
+ 
+diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
+index b8b0c5ff8da9..b4f83f7bdf86 100644
+--- a/kernel/stop_machine.c
++++ b/kernel/stop_machine.c
+@@ -177,6 +177,11 @@ static void ack_state(struct multi_stop_data *msdata)
+ 		set_state(msdata, msdata->state + 1);
+ }
+ 
++void __weak stop_machine_yield(const struct cpumask *cpumask)
++{
++	cpu_relax();
++}
++
+ /* This is the cpu_stop function which stops the CPU. */
+ static int multi_cpu_stop(void *data)
+ {
+@@ -204,7 +209,7 @@ static int multi_cpu_stop(void *data)
+ 	/* Simple state machine */
+ 	do {
+ 		/* Chill out and ensure we re-read multi_stop_state. */
+-		cpu_relax_yield(cpumask);
++		stop_machine_yield(cpumask);
+ 		if (msdata->state != curstate) {
+ 			curstate = msdata->state;
+ 			switch (curstate) {
 -- 
 2.17.1
