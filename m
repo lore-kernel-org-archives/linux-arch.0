@@ -1,165 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f202.google.com ([209.85.222.202]:51168 "EHLO
+Received: from mail-qk1-f202.google.com ([209.85.222.202]:35095 "EHLO
         mail-qk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732127AbfFMNAK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 09:00:10 -0400
-Received: by mail-qk1-f202.google.com with SMTP id n77so16488127qke.17
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:00:09 -0700 (PDT)
-Date: Thu, 13 Jun 2019 14:59:48 +0200
-In-Reply-To: <20190613125950.197667-1-elver@google.com>
-Message-ID: <20190613125950.197667-2-elver@google.com>
+        with ESMTP id S1732121AbfFMNAG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 09:00:06 -0400
+Received: by mail-qk1-f202.google.com with SMTP id 5so854994qki.2
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:00:06 -0700 (PDT)
+Date: Thu, 13 Jun 2019 14:59:47 +0200
+Message-ID: <20190613125950.197667-1-elver@google.com>
 Mime-Version: 1.0
-References: <20190613125950.197667-1-elver@google.com>
-Subject: [PATCH v5 1/3] lib/test_kasan: Add bitops tests
+Subject: [PATCH v5 0/3] Bitops instrumentation for KASAN
 From: Marco Elver <elver@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
 Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
-Message-ID: <20190613125948.YLlNo7oJ5-8bnTo2-9eQvwdHr9zclOGhn2KwrpAjlt8@z>
+Message-ID: <20190613125947.rE2pPTbDOTE57bxiRDaAc6FycGZ2llZQPupIsybbHiE@z>
 
-This adds bitops tests to the test_kasan module. In a follow-up patch,
-support for bitops instrumentation will be added.
+Previous version:
+http://lkml.kernel.org/r/20190613123028.179447-1-elver@google.com
 
-Signed-off-by: Marco Elver <elver@google.com>
-Acked-by: Mark Rutland <mark.rutland@arm.com>
-Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
----
-Changes in v5:
-* Remove incorrect comment.
+* Only changed lib/test_kasan in this version.
 
-Changes in v4:
-* Remove "within-bounds" tests.
-* Allocate sizeof(*bite) + 1, to not actually corrupt other memory in
-  case instrumentation isn't working.
-* Clarify that accesses operate on whole longs, which causes OOB
-  regardless of the bit accessed beyond the first long in the test.
+Marco Elver (3):
+  lib/test_kasan: Add bitops tests
+  x86: Use static_cpu_has in uaccess region to avoid instrumentation
+  asm-generic, x86: Add bitops instrumentation for KASAN
 
-Changes in v3:
-* Use kzalloc instead of kmalloc.
-* Use sizeof(*bits).
+ Documentation/core-api/kernel-api.rst     |   2 +-
+ arch/x86/ia32/ia32_signal.c               |   2 +-
+ arch/x86/include/asm/bitops.h             | 189 ++++------------
+ arch/x86/kernel/signal.c                  |   2 +-
+ include/asm-generic/bitops-instrumented.h | 263 ++++++++++++++++++++++
+ lib/test_kasan.c                          |  81 ++++++-
+ 6 files changed, 382 insertions(+), 157 deletions(-)
+ create mode 100644 include/asm-generic/bitops-instrumented.h
 
-Changes in v2:
-* Use BITS_PER_LONG.
-* Use heap allocated memory for test, as newer compilers (correctly)
-  warn on OOB stack access.
----
- lib/test_kasan.c | 81 ++++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 78 insertions(+), 3 deletions(-)
-
-diff --git a/lib/test_kasan.c b/lib/test_kasan.c
-index 7de2702621dc..267f31a61870 100644
---- a/lib/test_kasan.c
-+++ b/lib/test_kasan.c
-@@ -11,16 +11,17 @@
- 
- #define pr_fmt(fmt) "kasan test: %s " fmt, __func__
- 
-+#include <linux/bitops.h>
- #include <linux/delay.h>
-+#include <linux/kasan.h>
- #include <linux/kernel.h>
--#include <linux/mman.h>
- #include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/module.h>
- #include <linux/printk.h>
- #include <linux/slab.h>
- #include <linux/string.h>
- #include <linux/uaccess.h>
--#include <linux/module.h>
--#include <linux/kasan.h>
- 
- /*
-  * Note: test functions are marked noinline so that their names appear in
-@@ -623,6 +624,79 @@ static noinline void __init kasan_strings(void)
- 	strnlen(ptr, 1);
- }
- 
-+static noinline void __init kasan_bitops(void)
-+{
-+	/*
-+	 * Allocate 1 more byte, which causes kzalloc to round up to 16-bytes;
-+	 * this way we do not actually corrupt other memory.
-+	 */
-+	long *bits = kzalloc(sizeof(*bits) + 1, GFP_KERNEL);
-+	if (!bits)
-+		return;
-+
-+	/*
-+	 * Below calls try to access bit within allocated memory; however, the
-+	 * below accesses are still out-of-bounds, since bitops are defined to
-+	 * operate on the whole long the bit is in.
-+	 */
-+	pr_info("out-of-bounds in set_bit\n");
-+	set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __set_bit\n");
-+	__set_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in clear_bit\n");
-+	clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __clear_bit\n");
-+	__clear_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in clear_bit_unlock\n");
-+	clear_bit_unlock(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __clear_bit_unlock\n");
-+	__clear_bit_unlock(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in change_bit\n");
-+	change_bit(BITS_PER_LONG, bits);
-+
-+	pr_info("out-of-bounds in __change_bit\n");
-+	__change_bit(BITS_PER_LONG, bits);
-+
-+	/*
-+	 * Below calls try to access bit beyond allocated memory.
-+	 */
-+	pr_info("out-of-bounds in test_and_set_bit\n");
-+	test_and_set_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in __test_and_set_bit\n");
-+	__test_and_set_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in test_and_set_bit_lock\n");
-+	test_and_set_bit_lock(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in test_and_clear_bit\n");
-+	test_and_clear_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in __test_and_clear_bit\n");
-+	__test_and_clear_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in test_and_change_bit\n");
-+	test_and_change_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in __test_and_change_bit\n");
-+	__test_and_change_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+	pr_info("out-of-bounds in test_bit\n");
-+	(void)test_bit(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+
-+#if defined(clear_bit_unlock_is_negative_byte)
-+	pr_info("out-of-bounds in clear_bit_unlock_is_negative_byte\n");
-+	clear_bit_unlock_is_negative_byte(BITS_PER_LONG + BITS_PER_BYTE, bits);
-+#endif
-+	kfree(bits);
-+}
-+
- static int __init kmalloc_tests_init(void)
- {
- 	/*
-@@ -664,6 +738,7 @@ static int __init kmalloc_tests_init(void)
- 	kasan_memchr();
- 	kasan_memcmp();
- 	kasan_strings();
-+	kasan_bitops();
- 
- 	kasan_restore_multi_shot(multishot);
- 
 -- 
 2.22.0.rc2.383.gf4fbbf30c2-goog
