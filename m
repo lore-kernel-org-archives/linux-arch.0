@@ -1,60 +1,65 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
-Date: Thu, 13 Jun 2019 14:43:48 +0200
-Message-ID: <20190613124347.GB12506@redhat.com>
-References: <87k1dxaxcl.fsf_-_@xmission.com>
- <87ef45axa4.fsf_-_@xmission.com>
- <20190610162244.GB8127@redhat.com>
- <87lfy96sta.fsf@xmission.com>
- <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
- <20190612134558.GB3276@redhat.com>
- <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
- <6e9b964b08d84c99980b1707e5fe3d1d@AcuMS.aculab.com>
- <20190613094324.GA12506@redhat.com>
- <66311ce9762849f7988c16bc752ea5a9@AcuMS.aculab.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v4 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.txt
+Date: Thu, 13 Jun 2019 14:23:43 +0100
+Message-ID: <20190613132342.GZ28398@e103592.cambridge.arm.com>
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190612142111.28161-1-vincenzo.frascino@arm.com>
+ <20190612142111.28161-2-vincenzo.frascino@arm.com>
+ <20190612153538.GL28951@C02TF0J2HF1T.local>
+ <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
+ <20190613113731.GY28398@e103592.cambridge.arm.com>
+ <20190613122821.GS28951@C02TF0J2HF1T.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <66311ce9762849f7988c16bc752ea5a9@AcuMS.aculab.com>
-Sender: owner-linux-aio@kvack.org
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: "'Eric W. Biederman'" <ebiederm@xmission.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Deepa Dinamani' <deepa.kernel@gmail.com>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'arnd@arndb.de'" <arnd@arndb.de>, "'dbueso@suse.de'" <dbueso@suse.de>, "'axboe@kernel.dk'" <axboe@kernel.dk>, "'dave@stgolabs.net'" <dave@stgolabs.net>, "'e@80x24.org'" <e@80x24.org>, "'jbaron@akamai.com'" <jbaron@akamai.com>, "'linux-fsdevel@vger.kernel.org'" <linux-fsdevel@vger.kernel.org>, "'linux-aio@kvack.org'" <linux-aio@kvack.org>, "'omar.kilani@gmail.com'" <omar.kilani@gmail.com>, "'tglx@linutronix.de'" <tglx@linutronix.de>, 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
+In-Reply-To: <20190613122821.GS28951@C02TF0J2HF1T.local>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kselftest@vger.kernel.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 06/13, David Laight wrote:
->
-> > And you interpret this as if a pending signal should be delivered in any case,
-> > even if pselect succeeds. Again, perhaps you are right, but to me this is simply
-> > undocumented.
->
-> This text (from http://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html) is moderately clear:
->     ... if all threads within the process block delivery of the signal, the signal shall
->     remain pending on the process until a thread calls a sigwait() function selecting that
->     signal, a thread unblocks delivery of the signal, or the action associated with the signal
->     is set to ignore the signal.
->
-> So when pselect() 'replaces the signal mask' any pending signals should be delivered.
+On Thu, Jun 13, 2019 at 01:28:21PM +0100, Catalin Marinas wrote:
+> On Thu, Jun 13, 2019 at 12:37:32PM +0100, Dave P Martin wrote:
+> > On Thu, Jun 13, 2019 at 11:15:34AM +0100, Vincenzo Frascino wrote:
+> > > On 12/06/2019 16:35, Catalin Marinas wrote:
+> > > > On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
+> > > >> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
+> > > >> +                             Address ABI.
+> [...]
+> > Is there a canonical way to detect whether this whole API/ABI is
+> > available?  (i.e., try to call this prctl / check for an HWCAP bit,
+> > etc.)
+> 
+> The canonical way is a prctl() call. HWCAP doesn't make sense since it's
+> not a hardware feature. If you really want a different way of detecting
+> this (which I don't think it's worth), we can reinstate the AT_FLAGS
+> bit.
 
-I fail to understand this logic.
+Sure, I think this probably makes sense -- I'm still getting my around
+which parts of the design are directly related to MTE and which aren't.
 
+I was a bit concerned about the interaction between
+PR_SET_TAGGED_ADDR_CTRL and the sysctl: the caller might conclude that
+this API is unavailable when actually tagged addresses are stuck on.
 
-> > However, linux never did this. Until the commit 854a6ed56839 ("signal: Add
-> > restore_user_sigmask()"). This commit caused regression. We had to revert it.
->
-> That change wasn't expected to change the behaviour...
+I'm not sure whether this matters, but it's a bit weird.
 
-Yes.
+One option would be to change the semantics, so that the sysctl just
+forbids turning tagging from off to on.  Alternatively, we could return
+a different error code to distinguish this case.
 
-And the changed behaviour matched your understanding of standard. We had to
-change it back.
+Or we just leave it as proposed.
 
-So what do you want from me? ;)
-
-Oleg.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Cheers
+---Dave
