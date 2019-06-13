@@ -1,165 +1,107 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCHv2 2/3] s390: improve wait logic of stop_machine
-Date: Thu, 13 Jun 2019 12:35:09 +0200
-Message-ID: <20190613103510.60529-3-heiko.carstens@de.ibm.com>
-References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v4 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.txt
+Date: Thu, 13 Jun 2019 16:35:35 +0100
+Message-ID: <a05a2dfb-3398-455d-8586-b79dfb7a772f@arm.com>
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190612142111.28161-1-vincenzo.frascino@arm.com>
+ <20190612142111.28161-2-vincenzo.frascino@arm.com>
+ <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
+ <20190613092054.GO28951@C02TF0J2HF1T.local>
+ <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
+ <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
+ <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
+ <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
+ <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+In-Reply-To: <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
+To: Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
+Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-The stop_machine loop to advance the state machine and to wait for all
-affected CPUs to check-in calls cpu_relax_yield in a tight loop until
-the last missing CPUs acknowledged the state transition.
+On 13/06/2019 16:32, Szabolcs Nagy wrote:
+> On 13/06/2019 15:03, Vincenzo Frascino wrote:
+>> On 13/06/2019 13:28, Szabolcs Nagy wrote:
+>>> On 13/06/2019 12:16, Vincenzo Frascino wrote:
+>>>> On 13/06/2019 11:14, Szabolcs Nagy wrote:
+>>>>> On 13/06/2019 10:20, Catalin Marinas wrote:
+>>>>>> On Wed, Jun 12, 2019 at 05:30:34PM +0100, Szabolcs Nagy wrote:
+>>>>>>> On 12/06/2019 15:21, Vincenzo Frascino wrote:
+>>>>>>>> +  - a mapping below sbrk(0) done by the process itself
+>>>>>>>
+>>>>>>> doesn't the mmap rule cover this?
+>>>>>>
+>>>>>> IIUC it doesn't cover it as that's memory mapped by the kernel
+>>>>>> automatically on access vs a pointer returned by mmap(). The statement
+>>>>>> above talks about how the address is obtained by the user.
+>>>>>
+>>>>> ok i read 'mapping below sbrk' as an mmap (possibly MAP_FIXED)
+>>>>> that happens to be below the heap area.
+>>>>>
+>>>>> i think "below sbrk(0)" is not the best term to use: there
+>>>>> may be address range below the heap area that can be mmapped
+>>>>> and thus below sbrk(0) and sbrk is a posix api not a linux
+>>>>> syscall, the libc can implement it with mmap or whatever.
+>>>>>
+>>>>> i'm not sure what the right term for 'heap area' is
+>>>>> (the address range between syscall(__NR_brk,0) at
+>>>>> program startup and its current value?)
+>>>>>
+>>>>
+>>>> I used sbrk(0) with the meaning of "end of the process's data segment" not
+>>>> implying that this is a syscall, but just as a useful way to identify the mapping.
+>>>> I agree that it is a posix function implemented by libc but when it is used with
+>>>> 0 finds the current location of the program break, which can be changed by brk()
+>>>> and depending on the new address passed to this syscall can have the effect of
+>>>> allocating or deallocating memory.
+>>>>
+>>>> Will changing sbrk(0) with "end of the process's data segment" make it more clear?
+>>>
+>>> i don't understand what's the relevance of the *end*
+>>> of the data segment.
+>>>
+>>> i'd expect the text to say something about the address
+>>> range of the data segment.
+>>>
+>>> i can do
+>>>
+>>> mmap((void*)65536, 65536, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_SHARED|MAP_ANON, -1, 0);
+>>>
+>>> and it will be below the end of the data segment.
+>>>
+>>
+>> As far as I understand the data segment "lives" below the program break, hence
+>> it is a way of describing the range from which the user can obtain a valid
+>> tagged pointer.>
+>> Said that, I am not really sure on how do you want me to document this (my aim
+>> is for this to be clear to the userspace developers). Could you please propose
+>> something?
+> 
+> [...], it is in the memory ranges privately owned by a
+> userspace process and it is obtained in one of the
+> following ways:
+> 
+> - mmap done by the process itself, [...]
+> 
+> - brk syscall done by the process itself.
+>   (i.e. the heap area between the initial location
+>   of the program break at process creation and its
+>   current location.)
+> 
+> - any memory mapped by the kernel [...]
+> 
+> the data segment that's part of the process image is
+> already covered by the last point.
+> 
 
-On a virtual system where not all logical CPUs are backed by real CPUs
-all the time it can take a while for all CPUs to check-in. With the
-current definition of cpu_relax_yield a diagnose 0x44 is done which
-tells the hypervisor to schedule *some* other CPU. That can be any
-CPU and not necessarily one of the CPUs that need to run in order to
-advance the state machine. This can lead to a pretty bad diagnose 0x44
-storm until the last missing CPU finally checked-in.
+Thanks Szabolcs, I will update the document accordingly.
 
-Replace the undirected cpu_relax_yield based on diagnose 0x44 with a
-directed yield. Each CPU in the wait loop will pick up the next CPU
-in the cpumask of stop_machine. The diagnose 0x9c is used to tell the
-hypervisor to run this next CPU instead of the current one. If there
-is only a limited number of real CPUs backing the virtual CPUs we
-end up with the real CPUs passed around in a round-robin fashion.
-
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
----
- arch/s390/include/asm/processor.h |  3 ++-
- arch/s390/kernel/processor.c      | 17 ++++++++++++-----
- arch/s390/kernel/smp.c            |  2 +-
- include/linux/sched.h             |  2 +-
- kernel/stop_machine.c             | 14 +++++++++-----
- 5 files changed, 25 insertions(+), 13 deletions(-)
-
-diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
-index b0fcbc37b637..445ce9ee4404 100644
---- a/arch/s390/include/asm/processor.h
-+++ b/arch/s390/include/asm/processor.h
-@@ -36,6 +36,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <linux/cpumask.h>
- #include <linux/linkage.h>
- #include <linux/irqflags.h>
- #include <asm/cpu.h>
-@@ -225,7 +226,7 @@ static __no_kasan_or_inline unsigned short stap(void)
-  * Give up the time slice of the virtual PU.
-  */
- #define cpu_relax_yield cpu_relax_yield
--void cpu_relax_yield(void);
-+void cpu_relax_yield(const struct cpumask *cpumask);
- 
- #define cpu_relax() barrier()
- 
-diff --git a/arch/s390/kernel/processor.c b/arch/s390/kernel/processor.c
-index 5de13307b703..4cdaefec1b7c 100644
---- a/arch/s390/kernel/processor.c
-+++ b/arch/s390/kernel/processor.c
-@@ -31,6 +31,7 @@ struct cpu_info {
- };
- 
- static DEFINE_PER_CPU(struct cpu_info, cpu_info);
-+static DEFINE_PER_CPU(int, cpu_relax_retry);
- 
- static bool machine_has_cpu_mhz;
- 
-@@ -58,13 +59,19 @@ void s390_update_cpu_mhz(void)
- 		on_each_cpu(update_cpu_mhz, NULL, 0);
- }
- 
--void notrace cpu_relax_yield(void)
-+void notrace cpu_relax_yield(const struct cpumask *cpumask)
- {
--	if (!smp_cpu_mtid && MACHINE_HAS_DIAG44) {
--		diag_stat_inc(DIAG_STAT_X044);
--		asm volatile("diag 0,0,0x44");
-+	int cpu, this_cpu;
-+
-+	this_cpu = smp_processor_id();
-+	if (__this_cpu_inc_return(cpu_relax_retry) >= spin_retry) {
-+		__this_cpu_write(cpu_relax_retry, 0);
-+		cpu = cpumask_next_wrap(this_cpu, cpumask, this_cpu, false);
-+		if (cpu >= nr_cpu_ids)
-+			return;
-+		if (arch_vcpu_is_preempted(cpu))
-+			smp_yield_cpu(cpu);
- 	}
--	barrier();
- }
- EXPORT_SYMBOL(cpu_relax_yield);
- 
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 35fafa2b91a8..a8eef7b7770a 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -418,7 +418,7 @@ void smp_yield_cpu(int cpu)
- 		diag_stat_inc_norecursion(DIAG_STAT_X09C);
- 		asm volatile("diag %0,0,0x9c"
- 			     : : "d" (pcpu_devices[cpu].address));
--	} else if (MACHINE_HAS_DIAG44) {
-+	} else if (MACHINE_HAS_DIAG44 && !smp_cpu_mtid) {
- 		diag_stat_inc_norecursion(DIAG_STAT_X044);
- 		asm volatile("diag 0,0,0x44");
- 	}
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 11837410690f..1f9f3160da7e 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1519,7 +1519,7 @@ static inline int set_cpus_allowed_ptr(struct task_struct *p, const struct cpuma
- #endif
- 
- #ifndef cpu_relax_yield
--#define cpu_relax_yield() cpu_relax()
-+#define cpu_relax_yield(cpumask) cpu_relax()
- #endif
- 
- extern int yield_to(struct task_struct *p, bool preempt);
-diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
-index 2b5a6754646f..b8b0c5ff8da9 100644
---- a/kernel/stop_machine.c
-+++ b/kernel/stop_machine.c
-@@ -183,6 +183,7 @@ static int multi_cpu_stop(void *data)
- 	struct multi_stop_data *msdata = data;
- 	enum multi_stop_state curstate = MULTI_STOP_NONE;
- 	int cpu = smp_processor_id(), err = 0;
-+	const struct cpumask *cpumask;
- 	unsigned long flags;
- 	bool is_active;
- 
-@@ -192,15 +193,18 @@ static int multi_cpu_stop(void *data)
- 	 */
- 	local_save_flags(flags);
- 
--	if (!msdata->active_cpus)
--		is_active = cpu == cpumask_first(cpu_online_mask);
--	else
--		is_active = cpumask_test_cpu(cpu, msdata->active_cpus);
-+	if (!msdata->active_cpus) {
-+		cpumask = cpu_online_mask;
-+		is_active = cpu == cpumask_first(cpumask);
-+	} else {
-+		cpumask = msdata->active_cpus;
-+		is_active = cpumask_test_cpu(cpu, cpumask);
-+	}
- 
- 	/* Simple state machine */
- 	do {
- 		/* Chill out and ensure we re-read multi_stop_state. */
--		cpu_relax_yield();
-+		cpu_relax_yield(cpumask);
- 		if (msdata->state != curstate) {
- 			curstate = msdata->state;
- 			switch (curstate) {
 -- 
-2.17.1
+Regards,
+Vincenzo
