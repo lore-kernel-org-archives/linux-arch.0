@@ -1,56 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43848 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389679AbfFMPvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 11:51:55 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 0/2] arm64 relaxed ABI
-Date: Thu, 13 Jun 2019 16:51:35 +0100
-Message-ID: <20190613155137.47675-1-vincenzo.frascino@arm.com>
-In-Reply-To: <cover.1560339705.git.andreyknvl@google.com>
-References: <cover.1560339705.git.andreyknvl@google.com>
+Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:60782 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1731449AbfFMIsr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 04:48:47 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
+Date: Thu, 13 Jun 2019 08:48:41 +0000
+Message-ID: <6e9b964b08d84c99980b1707e5fe3d1d@AcuMS.aculab.com>
+References: <20190522032144.10995-1-deepa.kernel@gmail.com>
+ <20190529161157.GA27659@redhat.com> <20190604134117.GA29963@redhat.com>
+ <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
+ <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
+ <87lfy96sta.fsf@xmission.com>
+ <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
+ <20190612134558.GB3276@redhat.com>
+ <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
+In-Reply-To: <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
+Content-Language: en-US
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190613155135.OBI2z8_YMd0xz4WhYviIX0IoIkgZSl1X3Swn2UTg1hQ@z>
+To: 'Oleg Nesterov' <oleg@redhat.com>
+Cc: "'Eric W. Biederman'" <ebiederm@xmission.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Deepa Dinamani' <deepa.kernel@gmail.com>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'arnd@arndb.de'" <arnd@arndb.de>, "'dbueso@suse.de'" <dbueso@suse.de>, "'axboe@kernel.dk'" <axboe@kernel.dk>, "'dave@stgolabs.net'" <dave@stgolabs.net>, "'e@80x24.org'" <e@80x24.org>, "'jbaron@akamai.com'" <jbaron@akamai.com>, "'linux-fsdevel@vger.kernel.org'" <linux-fsdevel@vger.kernel.org>, "'linux-aio@kvack.org'" <linux-aio@kvack.org>, "'omar.kilani@gmail.com'" <omar.kilani@gmail.com>, "'tglx@linutronix.de'" <tglx@linutronix.de>, 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
+Message-ID: <20190613084841.4C5xPKWxO_QqKj--D0-pSYA2bffC88mgvfKVl5Y6KhQ@z>
 
-On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64 kernel,
-hence the userspace (EL0) is allowed to set a non-zero value in the top
-byte but the resulting pointers are not allowed at the user-kernel syscall
-ABI boundary.
+From: David Laight
+> Sent: 12 June 2019 15:18
+> From: Oleg Nesterov
+> > Sent: 12 June 2019 14:46
+> > On 06/11, David Laight wrote:
+> > >
+> > > If I have an application that has a loop with a pselect call that
+> > > enables SIGINT (without a handler) and, for whatever reason,
+> > > one of the fd is always 'ready' then I'd expect a SIGINT
+> > > (from ^C) to terminate the program.
+> >
+> > This was never true.
+> >
+> > Before Eric's patches SIGINT can kill a process or not, depending on timing.
+> > In particular, if SIGINT was already pending before pselect() and it finds
+> > an already ready fd, the program won't terminate.
+> 
+> Which matches what I see on a very old Linux system.
+> 
+> > After the Eric's patches SIGINT will only kill the program if pselect() does
+> > not find a ready fd.
+> >
+> > And this is much more consistent. Now we can simply say that the signal will
+> > be delivered only if pselect() fails and returns -EINTR. If it doesn't have
+> > a handler the process will be killed, otherwise the handler will be called.
+> 
+> But is it what the standards mandate?
+> Can anyone check how Solaris and any of the BSDs behave?
+> I don't have access to any solaris systems (I doubt I'll get the disk to
+> spin on the one in my garage).
+> I can check NetBSD when I get home.
 
-This patchset proposes a relaxation of the ABI with which it is possible
-to pass tagged tagged pointers to the syscalls, when these pointers are in
-memory ranges obtained as described in tagged-address-abi.txt contained in
-this patch series.
+I tested NetBSD last night.
+pselect() always calls the signal handlers even when an fd is ready.
+I'm beginning to suspect that this is the 'standards conforming' behaviour.
+I don't remember when pselect() was added to the ToG specs, it didn't
+go through XNET while I  was going to the meetings.
 
-Since it is not desirable to relax the ABI to allow tagged user addresses
-into the kernel indiscriminately, this patchset documents a new sysctl
-interface (/proc/sys/abi/tagged_addr) that is used to prevent the applications
-from enabling the relaxed ABI and a new prctl() interface that can be used to
-enable or disable the relaxed ABI.
+	David
 
-This patchset should be merged together with [1].
+> 
+> The ToG page for pselect() http://pubs.opengroup.org/onlinepubs/9699919799/functions/pselect.html
+> says:
+>     "If sigmask is not a null pointer, then the pselect() function shall replace
+>     the signal mask of the caller by the set of signals pointed to by sigmask
+>     before examining the descriptors, and shall restore the signal mask of the
+>     calling thread before returning."
+> Note that it says 'before examining the descriptors' not 'before blocking'.
+> Under the general description about signals it also says that the signal handler
+> will be called (or other action happen) when a pending signal is unblocked.
+> So unblocking SIGINT (set to SIG_DFL) prior to examining the descriptors
+> should be enough to cause the process to exit.
+> The fact that signal handlers are not called until 'return to user'
+> is really an implementation choice - but (IMHO) it should appear as if they
+> were called at the time they became unmasked.
+> 
+> If nothing else the man pages need a note about the standards and portability.
+> 
+> 	David
 
-[1] https://patchwork.kernel.org/cover/10674351/
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-CC: Andrey Konovalov <andreyknvl@google.com>
-CC: Alexander Viro <viro@zeniv.linux.org.uk>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Vincenzo Frascino (2):
-  arm64: Define Documentation/arm64/tagged-address-abi.txt
-  arm64: Relax Documentation/arm64/tagged-pointers.txt
-
- Documentation/arm64/tagged-address-abi.txt | 134 +++++++++++++++++++++
- Documentation/arm64/tagged-pointers.txt    |  23 ++--
- 2 files changed, 150 insertions(+), 7 deletions(-)
- create mode 100644 Documentation/arm64/tagged-address-abi.txt
-
--- 
-2.21.0
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
