@@ -1,110 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:42400 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731965AbfFMPWx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 11:22:53 -0400
-Subject: Re: [PATCH v4 3/3] kselftest: Extend vDSO selftest to clock_getres
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-References: <20190523112116.19233-1-vincenzo.frascino@arm.com>
- <20190523112116.19233-4-vincenzo.frascino@arm.com>
- <87lfyrp0d2.fsf@concordia.ellerman.id.au>
- <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
-Message-ID: <5262a024-7af1-4792-ec74-4cb5f2b0e76c@arm.com>
-Date: Thu, 13 Jun 2019 16:22:49 +0100
-MIME-Version: 1.0
-In-Reply-To: <afb7395f-43e9-c304-2db2-349e6727b687@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Received: from mail-qk1-f201.google.com ([209.85.222.201]:52512 "EHLO
+        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731962AbfFMMdq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 08:33:46 -0400
+Received: by mail-qk1-f201.google.com with SMTP id v80so16478242qkb.19
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 05:33:45 -0700 (PDT)
+Date: Thu, 13 Jun 2019 14:30:27 +0200
+In-Reply-To: <20190613123028.179447-1-elver@google.com>
+Message-ID: <20190613123028.179447-3-elver@google.com>
+Mime-Version: 1.0
+References: <20190613123028.179447-1-elver@google.com>
+Subject: [PATCH v4 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shuah Khan <shuah@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190613152249.hAFiH0pVyfufWxLhOL9qrvS7drWx4FLaulQx9FC6a98@z>
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
+Message-ID: <20190613123027.xJlLeRW2KJJ4yri-BZaI4MIZC1aSgKqhDRt2IppYmog@z>
 
-Hi Michael,
+This patch is a pre-requisite for enabling KASAN bitops instrumentation;
+using static_cpu_has instead of boot_cpu_has avoids instrumentation of
+test_bit inside the uaccess region. With instrumentation, the KASAN
+check would otherwise be flagged by objtool.
 
-I wanted to check with you if you had time to have a look at my new version (v5)
-of the patches with the fixed test, and if they are ready to be merged or if
-there is anything else I can do.
+For consistency, kernel/signal.c was changed to mirror this change,
+however, is never instrumented with KASAN (currently unsupported under
+x86 32bit).
 
-Thanks and Regards,
-Vincenzo
+Signed-off-by: Marco Elver <elver@google.com>
+Suggested-by: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+---
+Changes in v3:
+* Use static_cpu_has instead of moving boot_cpu_has outside uaccess
+  region.
 
-On 28/05/2019 12:57, Vincenzo Frascino wrote:
-> Hi Michael,
-> 
-> thank you for your reply.
-> 
-> On 28/05/2019 07:19, Michael Ellerman wrote:
->> Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
->>
->>> The current version of the multiarch vDSO selftest verifies only
->>> gettimeofday.
->>>
->>> Extend the vDSO selftest to clock_getres, to verify that the
->>> syscall and the vDSO library function return the same information.
->>>
->>> The extension has been used to verify the hrtimer_resoltion fix.
->>
->> This is passing for me even without patch 1 applied, shouldn't it fail
->> without the fix? What am I missing?
->>
-> 
-> This is correct, because during the refactoring process I missed an "n" :)
-> 
-> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_sec·!=·y.tv_sec))
-> 
-> Should be:
-> 
-> if·((x.tv_sec·!=·y.tv_sec)·||·(x.tv_nsec·!=·y.tv_nsec))
-> 
-> My mistake, I am going to fix the test and re-post v5 of this set.
-> 
-> Without my patch if you pass "highres=off" to the kernel (as a command line
-> parameter) it leads to a broken implementation of clock_getres since the value
-> of CLOCK_REALTIME_RES does not change at runtime.
-> 
-> Expected result (with highres=off):
-> 
-> # uname -r
-> 5.2.0-rc2
-> # ./vdso_clock_getres
-> clock_id: CLOCK_REALTIME [FAIL]
-> clock_id: CLOCK_BOOTTIME [PASS]
-> clock_id: CLOCK_TAI [PASS]
-> clock_id: CLOCK_REALTIME_COARSE [PASS]
-> clock_id: CLOCK_MONOTONIC [FAIL]
-> clock_id: CLOCK_MONOTONIC_RAW [PASS]
-> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
-> 
-> The reason of this behavior is that the only clocks supported by getres on
-> powerpc are CLOCK_REALTIME and CLOCK_MONOTONIC, the rest on the clocks use
-> always syscalls.
-> 
->> # uname -r
->> 5.2.0-rc2-gcc-8.2.0
->>
->> # ./vdso_clock_getres
->> clock_id: CLOCK_REALTIME [PASS]
->> clock_id: CLOCK_BOOTTIME [PASS]
->> clock_id: CLOCK_TAI [PASS]
->> clock_id: CLOCK_REALTIME_COARSE [PASS]
->> clock_id: CLOCK_MONOTONIC [PASS]
->> clock_id: CLOCK_MONOTONIC_RAW [PASS]
->> clock_id: CLOCK_MONOTONIC_COARSE [PASS]
->>
->> cheers
->>
->>> Cc: Shuah Khan <shuah@kernel.org>
->>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->>> ---
->>>
->>> Note: This patch is independent from the others in this series, hence it
->>> can be merged singularly by the kselftest maintainers.
->>>
->>>  tools/testing/selftests/vDSO/Makefile         |   2 +
->>>  .../selftests/vDSO/vdso_clock_getres.c        | 124 ++++++++++++++++++
->>>  2 files changed, 126 insertions(+)
->>>  create mode 100644 tools/testing/selftests/vDSO/vdso_clock_getres.c
-> 
+Changes in v2:
+* Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
+  whitelist'
+---
+ arch/x86/ia32/ia32_signal.c | 2 +-
+ arch/x86/kernel/signal.c    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 629d1ee05599..1cee10091b9f 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 364813cea647..52eb1d551aed 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(&frame->uc, &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+-- 
+2.22.0.rc2.383.gf4fbbf30c2-goog
