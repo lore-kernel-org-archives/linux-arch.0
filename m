@@ -1,63 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi1-f195.google.com ([209.85.167.195]:44733 "EHLO
-        mail-oi1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732139AbfFMNAV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 09:00:21 -0400
-Received: by mail-oi1-f195.google.com with SMTP id e189so14315106oib.11
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:00:21 -0700 (PDT)
-MIME-Version: 1.0
-References: <20190613123028.179447-1-elver@google.com> <20190613123028.179447-2-elver@google.com>
- <6cc5e12d-1492-d9b7-3ea7-6381407439d7@virtuozzo.com>
-In-Reply-To: <6cc5e12d-1492-d9b7-3ea7-6381407439d7@virtuozzo.com>
+Received: from mail-vk1-f202.google.com ([209.85.221.202]:44746 "EHLO
+        mail-vk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732131AbfFMNAN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 09:00:13 -0400
+Received: by mail-vk1-f202.google.com with SMTP id b85so6321022vka.11
+        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:00:12 -0700 (PDT)
+Date: Thu, 13 Jun 2019 14:59:49 +0200
+In-Reply-To: <20190613125950.197667-1-elver@google.com>
+Message-ID: <20190613125950.197667-3-elver@google.com>
+Mime-Version: 1.0
+References: <20190613125950.197667-1-elver@google.com>
+Subject: [PATCH v5 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
 From: Marco Elver <elver@google.com>
-Date: Thu, 13 Jun 2019 15:00:09 +0200
-Message-ID: <CANpmjNNMmSHvP+tzod=WeoDp6jsxGsDKV5cXiTr3F9fxEMasaw@mail.gmail.com>
-Subject: Re: [PATCH v4 1/3] lib/test_kasan: Add bitops tests
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
-Message-ID: <20190613130009.HFhHos2ZkfS_eV5K_a6mETTnnUoG4zo3WTuPvi-5Kq4@z>
+To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
+Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
+Message-ID: <20190613125949.hjvD9E5J8YQ4Q_I_3D45UqDnVljlxHYU2o6h2tWT2XA@z>
 
-On Thu, 13 Jun 2019 at 14:49, Andrey Ryabinin <aryabinin@virtuozzo.com> wrote:
->
->
->
-> On 6/13/19 3:30 PM, Marco Elver wrote:
-> > This adds bitops tests to the test_kasan module. In a follow-up patch,
-> > support for bitops instrumentation will be added.
-> >
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > Acked-by: Mark Rutland <mark.rutland@arm.com>
-> > ---
->
-> Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
->
->
->
->
-> > +static noinline void __init kasan_bitops(void)
-> > +{
-> > +     /*
-> > +      * Allocate 1 more byte, which causes kzalloc to round up to 16-bytes;
-> > +      * this way we do not actually corrupt other memory, in case
-> > +      * instrumentation is not working as intended.
->
-> This sound like working instrumentation somehow save us from corrupting memory. In fact it doesn't,
-> it only reports corruption.
+This patch is a pre-requisite for enabling KASAN bitops instrumentation;
+using static_cpu_has instead of boot_cpu_has avoids instrumentation of
+test_bit inside the uaccess region. With instrumentation, the KASAN
+check would otherwise be flagged by objtool.
 
-Thanks, I removed the confusing wording. Sent v5.
+For consistency, kernel/signal.c was changed to mirror this change,
+however, is never instrumented with KASAN (currently unsupported under
+x86 32bit).
 
-> > +      */
-> > +     long *bits = kzalloc(sizeof(*bits) + 1, GFP_KERNEL);
-> > +     if (!bits)
-> > +             return;
-> > +
->
-> --
-> You received this message because you are subscribed to the Google Groups "kasan-dev" group.
-> To unsubscribe from this group and stop receiving emails from it, send an email to kasan-dev+unsubscribe@googlegroups.com.
-> To post to this group, send email to kasan-dev@googlegroups.com.
-> To view this discussion on the web visit https://groups.google.com/d/msgid/kasan-dev/6cc5e12d-1492-d9b7-3ea7-6381407439d7%40virtuozzo.com.
-> For more options, visit https://groups.google.com/d/optout.
+Signed-off-by: Marco Elver <elver@google.com>
+Suggested-by: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+---
+Changes in v3:
+* Use static_cpu_has instead of moving boot_cpu_has outside uaccess
+  region.
+
+Changes in v2:
+* Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
+  whitelist'
+---
+ arch/x86/ia32/ia32_signal.c | 2 +-
+ arch/x86/kernel/signal.c    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 629d1ee05599..1cee10091b9f 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 364813cea647..52eb1d551aed 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+ 		put_user_ex(&frame->uc, &frame->puc);
+ 
+ 		/* Create the ucontext.  */
+-		if (boot_cpu_has(X86_FEATURE_XSAVE))
++		if (static_cpu_has(X86_FEATURE_XSAVE))
+ 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+ 		else
+ 			put_user_ex(0, &frame->uc.uc_flags);
+-- 
+2.22.0.rc2.383.gf4fbbf30c2-goog
