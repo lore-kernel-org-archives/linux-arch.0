@@ -1,79 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:25328 "EHLO mga07.intel.com"
+Received: from foss.arm.com ([217.140.110.172]:40650 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727120AbfFLTMD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Jun 2019 15:12:03 -0400
-Message-ID: <b8fb6626a6ae415fac4d5daa86225e4c68d56673.camel@intel.com>
-Subject: Re: [PATCH v7 22/27] binfmt_elf: Extract .note.gnu.property from an
- ELF file
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Wed, 12 Jun 2019 12:04:01 -0700
-In-Reply-To: <20190612093238.GQ28398@e103592.cambridge.arm.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
-         <20190606200646.3951-23-yu-cheng.yu@intel.com>
-         <20190607180115.GJ28398@e103592.cambridge.arm.com>
-         <94b9c55b3b874825fda485af40ab2a6bc3dad171.camel@intel.com>
-         <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
-         <20190611114109.GN28398@e103592.cambridge.arm.com>
-         <031bc55d8dcdcf4f031e6ff27c33fd52c61d33a5.camel@intel.com>
-         <20190612093238.GQ28398@e103592.cambridge.arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+        id S1732396AbfFMODQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 10:03:16 -0400
+Subject: Re: [PATCH v4 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.txt
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190612142111.28161-1-vincenzo.frascino@arm.com>
+ <20190612142111.28161-2-vincenzo.frascino@arm.com>
+ <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
+ <20190613092054.GO28951@C02TF0J2HF1T.local>
+ <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
+ <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
+ <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
+Date: Thu, 13 Jun 2019 15:03:12 +0100
+MIME-Version: 1.0
+In-Reply-To: <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Florian Weimer <fweimer@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20190612190401.KmfvUF6INC090VXeD7o_GHgIIrAfB6U2dhllDDouYFE@z>
+To: Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
+Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20190613140312.5TEkJyVFLrteUUXmbmWJ7RV3s3GDXMRL0wT6VN_0YPI@z>
 
-On Wed, 2019-06-12 at 10:32 +0100, Dave Martin wrote:
-> On Tue, Jun 11, 2019 at 12:31:34PM -0700, Yu-cheng Yu wrote:
-> > On Tue, 2019-06-11 at 12:41 +0100, Dave Martin wrote:
-> > > On Mon, Jun 10, 2019 at 07:24:43PM +0200, Florian Weimer wrote:
-> > > > * Yu-cheng Yu:
-> > > > 
-> > > > > To me, looking at PT_GNU_PROPERTY and not trying to support anything
-> > > > > is a
-> > > > > logical choice.  And it breaks only a limited set of toolchains.
-> > > > > 
-> > > > > I will simplify the parser and leave this patch as-is for anyone who
-> > > > > wants
-> > > > > to
-> > > > > back-port.  Are there any objections or concerns?
-> > > > 
-> > > > Red Hat Enterprise Linux 8 does not use PT_GNU_PROPERTY and is probably
-> > > > the largest collection of CET-enabled binaries that exists today.
-> > > 
-> > > For clarity, RHEL is actively parsing these properties today?
-> > > 
-> > > > My hope was that we would backport the upstream kernel patches for CET,
-> > > > port the glibc dynamic loader to the new kernel interface, and be ready
-> > > > to run with CET enabled in principle (except that porting userspace
-> > > > libraries such as OpenSSL has not really started upstream, so many
-> > > > processes where CET is particularly desirable will still run without
-> > > > it).
-> > > > 
-> > > > I'm not sure if it is a good idea to port the legacy support if it's not
-> > > > part of the mainline kernel because it comes awfully close to creating
-> > > > our own private ABI.
-> > > 
-> > > I guess we can aim to factor things so that PT_NOTE scanning is
-> > > available as a fallback on arches for which the absence of
-> > > PT_GNU_PROPERTY is not authoritative.
-> > 
-> > We can probably check PT_GNU_PROPERTY first, and fallback (based on ld-linux
-> > version?) to PT_NOTE scanning?
-> 
-> For arm64, we can check for PT_GNU_PROPERTY and then give up
-> unconditionally.
-> 
-> For x86, we would fall back to PT_NOTE scanning, but this will add a bit
-> of cost to binaries that don't have NT_GNU_PROPERTY_TYPE_0.  The ld.so
-> version doesn't tell you what ELF ABI a given executable conforms to.
-> 
-> Since this sounds like it's largely a distro-specific issue, maybe there
-> could be a Kconfig option to turn the fallback PT_NOTE scanning on?
 
-Yes, I will make it a Kconfig option.
+On 13/06/2019 13:28, Szabolcs Nagy wrote:
+> On 13/06/2019 12:16, Vincenzo Frascino wrote:
+>> Hi Szabolcs,
+>>
+>> thank you for your review.
+>>
+>> On 13/06/2019 11:14, Szabolcs Nagy wrote:
+>>> On 13/06/2019 10:20, Catalin Marinas wrote:
+>>>> Hi Szabolcs,
+>>>>
+>>>> On Wed, Jun 12, 2019 at 05:30:34PM +0100, Szabolcs Nagy wrote:
+>>>>> On 12/06/2019 15:21, Vincenzo Frascino wrote:
+>>>>>> +2. ARM64 Tagged Address ABI
+>>>>>> +---------------------------
+>>>>>> +
+>>>>>> +From the kernel syscall interface prospective, we define, for the purposes
+>>>>>                                      ^^^^^^^^^^^
+>>>>> perspective
+>>>>>
+>>>>>> +of this document, a "valid tagged pointer" as a pointer that either it has
+>>>>>> +a zero value set in the top byte or it has a non-zero value, it is in memory
+>>>>>> +ranges privately owned by a userspace process and it is obtained in one of
+>>>>>> +the following ways:
+>>>>>> +  - mmap() done by the process itself, where either:
+>>>>>> +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+>>>>>> +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
+>>>>>> +      file or "/dev/zero"
+>>>>>
+>>>>> this does not make it clear if MAP_FIXED or other flags are valid
+>>>>> (there are many map flags i don't know, but at least fixed should work
+>>>>> and stack/growsdown. i'd expect anything that's not incompatible with
+>>>>> private|anon to work).
+>>>>
+>>>> Just to clarify, this document tries to define the memory ranges from
+>>>> where tagged addresses can be passed into the kernel in the context
+>>>> of TBI only (not MTE); that is for hwasan support. FIXED or GROWSDOWN
+>>>> should not affect this.
+>>>
+>>> yes, so either the text should list MAP_* flags that don't affect
+>>> the pointer tagging semantics or specify private|anon mapping
+>>> with different wording.
+>>>
+>>
+>> Good point. Could you please propose a wording that would be suitable for this case?
+> 
+> i don't know all the MAP_ magic, but i think it's enough to change
+> the "flags =" to
+> 
+> * flags have MAP_PRIVATE and MAP_ANONYMOUS set or
+> * flags have MAP_PRIVATE set and the file descriptor refers to...
+> 
+> 
 
-Yu-cheng
+Fine by me.  I will add it the next iterations.
+
+>>>>>> +  - a mapping below sbrk(0) done by the process itself
+>>>>>
+>>>>> doesn't the mmap rule cover this?
+>>>>
+>>>> IIUC it doesn't cover it as that's memory mapped by the kernel
+>>>> automatically on access vs a pointer returned by mmap(). The statement
+>>>> above talks about how the address is obtained by the user.
+>>>
+>>> ok i read 'mapping below sbrk' as an mmap (possibly MAP_FIXED)
+>>> that happens to be below the heap area.
+>>>
+>>> i think "below sbrk(0)" is not the best term to use: there
+>>> may be address range below the heap area that can be mmapped
+>>> and thus below sbrk(0) and sbrk is a posix api not a linux
+>>> syscall, the libc can implement it with mmap or whatever.
+>>>
+>>> i'm not sure what the right term for 'heap area' is
+>>> (the address range between syscall(__NR_brk,0) at
+>>> program startup and its current value?)
+>>>
+>>
+>> I used sbrk(0) with the meaning of "end of the process's data segment" not
+>> implying that this is a syscall, but just as a useful way to identify the mapping.
+>> I agree that it is a posix function implemented by libc but when it is used with
+>> 0 finds the current location of the program break, which can be changed by brk()
+>> and depending on the new address passed to this syscall can have the effect of
+>> allocating or deallocating memory.
+>>
+>> Will changing sbrk(0) with "end of the process's data segment" make it more clear?
+> 
+> i don't understand what's the relevance of the *end*
+> of the data segment.
+> 
+> i'd expect the text to say something about the address
+> range of the data segment.
+> 
+> i can do
+> 
+> mmap((void*)65536, 65536, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_SHARED|MAP_ANON, -1, 0);
+> 
+> and it will be below the end of the data segment.
+>
+
+As far as I understand the data segment "lives" below the program break, hence
+it is a way of describing the range from which the user can obtain a valid
+tagged pointer.
+
+Said that, I am not really sure on how do you want me to document this (my aim
+is for this to be clear to the userspace developers). Could you please propose
+something?
+
+>>
+>> I will add what you are suggesting about the heap area.
+>>
+
+-- 
+Regards,
+Vincenzo
