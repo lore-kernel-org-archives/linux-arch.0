@@ -1,68 +1,34 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH v4 2/3] x86: Use static_cpu_has in uaccess region to avoid instrumentation
-Date: Thu, 13 Jun 2019 14:30:27 +0200
-Message-ID: <20190613123028.179447-3-elver@google.com>
-References: <20190613123028.179447-1-elver@google.com>
+Subject: [PATCH v4 0/3] Bitops instrumentation for KASAN
+Date: Thu, 13 Jun 2019 14:30:25 +0200
+Message-ID: <20190613123028.179447-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190613123028.179447-1-elver@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
 Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch is a pre-requisite for enabling KASAN bitops instrumentation;
-using static_cpu_has instead of boot_cpu_has avoids instrumentation of
-test_bit inside the uaccess region. With instrumentation, the KASAN
-check would otherwise be flagged by objtool.
+Previous version:
+http://lkml.kernel.org/r/20190531150828.157832-1-elver@google.com
 
-For consistency, kernel/signal.c was changed to mirror this change,
-however, is never instrumented with KASAN (currently unsupported under
-x86 32bit).
+* This version only changes lib/test_kasan.c.
+* Remaining files are identical to v3.
 
-Signed-off-by: Marco Elver <elver@google.com>
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
----
-Changes in v3:
-* Use static_cpu_has instead of moving boot_cpu_has outside uaccess
-  region.
+Marco Elver (3):
+  lib/test_kasan: Add bitops tests
+  x86: Use static_cpu_has in uaccess region to avoid instrumentation
+  asm-generic, x86: Add bitops instrumentation for KASAN
 
-Changes in v2:
-* Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
-  whitelist'
----
- arch/x86/ia32/ia32_signal.c | 2 +-
- arch/x86/kernel/signal.c    | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ Documentation/core-api/kernel-api.rst     |   2 +-
+ arch/x86/ia32/ia32_signal.c               |   2 +-
+ arch/x86/include/asm/bitops.h             | 189 ++++------------
+ arch/x86/kernel/signal.c                  |   2 +-
+ include/asm-generic/bitops-instrumented.h | 263 ++++++++++++++++++++++
+ lib/test_kasan.c                          |  82 ++++++-
+ 6 files changed, 383 insertions(+), 157 deletions(-)
+ create mode 100644 include/asm-generic/bitops-instrumented.h
 
-diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
-index 629d1ee05599..1cee10091b9f 100644
---- a/arch/x86/ia32/ia32_signal.c
-+++ b/arch/x86/ia32/ia32_signal.c
-@@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
- 		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
- 
- 		/* Create the ucontext.  */
--		if (boot_cpu_has(X86_FEATURE_XSAVE))
-+		if (static_cpu_has(X86_FEATURE_XSAVE))
- 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
- 		else
- 			put_user_ex(0, &frame->uc.uc_flags);
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 364813cea647..52eb1d551aed 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
- 		put_user_ex(&frame->uc, &frame->puc);
- 
- 		/* Create the ucontext.  */
--		if (boot_cpu_has(X86_FEATURE_XSAVE))
-+		if (static_cpu_has(X86_FEATURE_XSAVE))
- 			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
- 		else
- 			put_user_ex(0, &frame->uc.uc_flags);
 -- 
 2.22.0.rc2.383.gf4fbbf30c2-goog
