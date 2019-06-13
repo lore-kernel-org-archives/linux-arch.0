@@ -1,76 +1,181 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 2/3] x86: Use static_cpu_has in uaccess region to
- avoid instrumentation
-Date: Thu, 13 Jun 2019 11:21:23 +0200
-Message-ID: <20190613092123.GO3402@hirez.programming.kicks-ass.net>
-References: <20190531150828.157832-1-elver@google.com>
- <20190531150828.157832-3-elver@google.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 1/2] arm64: Define Documentation/arm64/tagged-address-abi.txt
+Date: Thu, 13 Jun 2019 16:51:36 +0100
+Message-ID: <20190613155137.47675-2-vincenzo.frascino@arm.com>
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190613155137.47675-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190531150828.157832-3-elver@google.com>
+In-Reply-To: <20190613155137.47675-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Marco Elver <elver@google.com>
-Cc: aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com, corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
+To: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 31, 2019 at 05:08:30PM +0200, Marco Elver wrote:
-> This patch is a pre-requisite for enabling KASAN bitops instrumentation;
-> using static_cpu_has instead of boot_cpu_has avoids instrumentation of
-> test_bit inside the uaccess region. With instrumentation, the KASAN
-> check would otherwise be flagged by objtool.
-> 
-> For consistency, kernel/signal.c was changed to mirror this change,
-> however, is never instrumented with KASAN (currently unsupported under
-> x86 32bit).
+On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
+the userspace (EL0) is allowed to set a non-zero value in the
+top byte but the resulting pointers are not allowed at the
+user-kernel syscall ABI boundary.
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+With the relaxed ABI proposed through this document, it is now possible
+to pass tagged pointers to the syscalls, when these pointers are in
+memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
 
-Thanks!
+This change in the ABI requires a mechanism to requires the userspace
+to opt-in to such an option.
 
-> 
-> Signed-off-by: Marco Elver <elver@google.com>
-> Suggested-by: H. Peter Anvin <hpa@zytor.com>
-> ---
-> Changes in v3:
-> * Use static_cpu_has instead of moving boot_cpu_has outside uaccess
->   region.
-> 
-> Changes in v2:
-> * Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
->   whitelist'
-> ---
->  arch/x86/ia32/ia32_signal.c | 2 +-
->  arch/x86/kernel/signal.c    | 2 +-
->  2 files changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
-> index 629d1ee05599..1cee10091b9f 100644
-> --- a/arch/x86/ia32/ia32_signal.c
-> +++ b/arch/x86/ia32/ia32_signal.c
-> @@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
->  		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
->  
->  		/* Create the ucontext.  */
-> -		if (boot_cpu_has(X86_FEATURE_XSAVE))
-> +		if (static_cpu_has(X86_FEATURE_XSAVE))
->  			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
->  		else
->  			put_user_ex(0, &frame->uc.uc_flags);
-> diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-> index 364813cea647..52eb1d551aed 100644
-> --- a/arch/x86/kernel/signal.c
-> +++ b/arch/x86/kernel/signal.c
-> @@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
->  		put_user_ex(&frame->uc, &frame->puc);
->  
->  		/* Create the ucontext.  */
-> -		if (boot_cpu_has(X86_FEATURE_XSAVE))
-> +		if (static_cpu_has(X86_FEATURE_XSAVE))
->  			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
->  		else
->  			put_user_ex(0, &frame->uc.uc_flags);
-> -- 
-> 2.22.0.rc1.257.g3120a18244-goog
-> 
+Specify and document the way in which sysctl and prctl() can be used
+in combination to allow the userspace to opt-in this feature.
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+CC: Andrey Konovalov <andreyknvl@google.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ Documentation/arm64/tagged-address-abi.txt | 134 +++++++++++++++++++++
+ 1 file changed, 134 insertions(+)
+ create mode 100644 Documentation/arm64/tagged-address-abi.txt
+
+diff --git a/Documentation/arm64/tagged-address-abi.txt b/Documentation/arm64/tagged-address-abi.txt
+new file mode 100644
+index 000000000000..0ae900d4bb2d
+--- /dev/null
++++ b/Documentation/arm64/tagged-address-abi.txt
+@@ -0,0 +1,134 @@
++ARM64 TAGGED ADDRESS ABI
++========================
++
++This document describes the usage and semantics of the Tagged Address
++ABI on arm64.
++
++1. Introduction
++---------------
++
++On arm64 the TCR_EL1.TBI0 bit has been always enabled on the kernel, hence
++the userspace (EL0) is entitled to perform a user memory access through a
++64-bit pointer with a non-zero top byte but the resulting pointers are not
++allowed at the user-kernel syscall ABI boundary.
++
++This document describes a relaxation of the ABI that makes it possible to
++to pass tagged pointers to the syscalls, when these pointers are in memory
++ranges obtained as described in section 2.
++
++Since it is not desirable to relax the ABI to allow tagged user addresses
++into the kernel indiscriminately, arm64 provides a new sysctl interface
++(/proc/sys/abi/tagged_addr) that is used to prevent the applications from
++enabling the relaxed ABI and a new prctl() interface that can be used to
++enable or disable the relaxed ABI.
++A detailed description of the newly introduced mechanisms will be provided
++in section 2.
++
++2. ARM64 Tagged Address ABI
++---------------------------
++
++From the kernel syscall interface perspective, we define, for the purposes
++of this document, a "valid tagged pointer" as a pointer that either has a
++zero value set in the top byte or has a non-zero value, it is in memory
++ranges privately owned by a userspace process and it is obtained in one of
++the following ways:
++  - mmap() done by the process itself, where either:
++    * flags have MAP_PRIVATE and MAP_ANONYMOUS
++    * flags have MAP_PRIVATE and the file descriptor refers to a regular
++      file or "/dev/zero"
++  - brk() system call done by the process itself (i.e. the heap area between
++    the initial location of the program break at process creation and its
++    current location).
++  - any memory mapped by the kernel in the process's address space during
++    creation and following the restrictions presented above (i.e. data, bss,
++    stack).
++
++The ARM64 Tagged Address ABI is an opt-in feature, and an application can
++control it using the following:
++ - /proc/sys/abi/tagged_addr: a new sysctl interface that can be used to
++        prevent the applications from enabling the relaxed ABI.
++        The sysctl is meant also for testing purposes in order to provide a
++        simple way for the userspace to verify the return error checking of
++        the prctl() commands without having to reconfigure the kernel.
++        The sysctl supports the following configuration options:
++         - 0: Disable ARM64 Tagged Address ABI for all the applications.
++         - 1 (Default): Enable ARM64 Tagged Address ABI for all the
++                        applications.
++        If the ARM64 Tagged Address ABI is disabled at a certain point in
++        time, all the applications that were using tagging before this event
++        occurs, will continue to use tagging.
++
++ - prctl()s:
++  - PR_SET_TAGGED_ADDR_CTRL: can be used to enable or disable the Tagged
++        Address ABI.
++        The (unsigned int) arg2 argument is a bit mask describing the
++        control mode used:
++          - PR_TAGGED_ADDR_ENABLE: Enable ARM64 Tagged Address ABI.
++        The arguments arg3, arg4, and arg5 are ignored.
++
++  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
++        Address ABI.
++        The arguments arg2, arg3, arg4, and arg5 are ignored.
++
++The ABI properties set by the mechanisms described above are inherited by threads
++of the same application and fork()'ed children but cleared by execve().
++
++As a consequence of invoking PR_SET_TAGGED_ADDR_CTRL prctl() by an applications,
++the ABI guarantees the following behaviours:
++
++  - Every current or newly introduced syscall can accept any valid tagged
++    pointers.
++
++  - If a non valid tagged pointer is passed to a syscall then the behaviour
++    is undefined.
++
++  - Every valid tagged pointer is expected to work as an untagged one.
++
++  - The kernel preserves any valid tagged pointers and returns them to the
++    userspace unchanged (i.e. on syscall return) in all the cases except the
++    ones documented in the "Preserving tags" section of tagged-pointers.txt.
++
++A definition of the meaning of tagged pointers on arm64 can be found in:
++Documentation/arm64/tagged-pointers.txt.
++
++3. ARM64 Tagged Address ABI Exceptions
++--------------------------------------
++
++The behaviours described in section 2, with particular reference to the
++acceptance by the syscalls of any valid tagged pointer are not applicable
++to the following cases:
++  - mmap() addr parameter.
++  - mremap() new_address parameter.
++  - prctl_set_mm() struct prctl_map fields.
++  - prctl_set_mm_map() struct prctl_map fields.
++
++Any attempt to use non-zero tagged pointers will lead to undefined behaviour.
++
++4. Example of correct usage
++---------------------------
++
++void main(void)
++{
++	static int tbi_enabled = 0;
++	unsigned long tag = 0;
++
++	char *ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
++			 MAP_ANONYMOUS, -1, 0);
++
++	if (prctl(PR_SET_TAGGED_ADDR_CTRL, PR_TAGGED_ADDR_ENABLE,
++		  0, 0, 0) == 0)
++		tbi_enabled = 1;
++
++	if (ptr == (void *)-1) /* MAP_FAILED */
++		return -1;
++
++	if (tbi_enabled)
++		tag = rand() & 0xff;
++
++	ptr = (char *)((unsigned long)ptr | (tag << TAG_SHIFT));
++
++	*ptr = 'a';
++
++	...
++}
++
+-- 
+2.21.0
