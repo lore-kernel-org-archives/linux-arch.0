@@ -1,60 +1,76 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.txt
-Date: Thu, 13 Jun 2019 16:39:07 +0100
-Message-ID: <20190613153906.GV28951@C02TF0J2HF1T.local>
-References: <cover.1560339705.git.andreyknvl@google.com>
- <20190612142111.28161-1-vincenzo.frascino@arm.com>
- <20190612142111.28161-2-vincenzo.frascino@arm.com>
- <20190612153538.GL28951@C02TF0J2HF1T.local>
- <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
- <20190613113731.GY28398@e103592.cambridge.arm.com>
- <20190613122821.GS28951@C02TF0J2HF1T.local>
- <20190613132342.GZ28398@e103592.cambridge.arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 2/3] x86: Use static_cpu_has in uaccess region to
+ avoid instrumentation
+Date: Thu, 13 Jun 2019 11:21:23 +0200
+Message-ID: <20190613092123.GO3402@hirez.programming.kicks-ass.net>
+References: <20190531150828.157832-1-elver@google.com>
+ <20190531150828.157832-3-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190613132342.GZ28398@e103592.cambridge.arm.com>
+In-Reply-To: <20190531150828.157832-3-elver@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kselftest@vger.kernel.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Marco Elver <elver@google.com>
+Cc: aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com, corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 13, 2019 at 02:23:43PM +0100, Dave P Martin wrote:
-> On Thu, Jun 13, 2019 at 01:28:21PM +0100, Catalin Marinas wrote:
-> > On Thu, Jun 13, 2019 at 12:37:32PM +0100, Dave P Martin wrote:
-> > > On Thu, Jun 13, 2019 at 11:15:34AM +0100, Vincenzo Frascino wrote:
-> > > > On 12/06/2019 16:35, Catalin Marinas wrote:
-> > > > > On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
-> > > > >> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
-> > > > >> +                             Address ABI.
-> > [...]
-> > > Is there a canonical way to detect whether this whole API/ABI is
-> > > available?  (i.e., try to call this prctl / check for an HWCAP bit,
-> > > etc.)
-> > 
-> > The canonical way is a prctl() call. HWCAP doesn't make sense since it's
-> > not a hardware feature. If you really want a different way of detecting
-> > this (which I don't think it's worth), we can reinstate the AT_FLAGS
-> > bit.
+On Fri, May 31, 2019 at 05:08:30PM +0200, Marco Elver wrote:
+> This patch is a pre-requisite for enabling KASAN bitops instrumentation;
+> using static_cpu_has instead of boot_cpu_has avoids instrumentation of
+> test_bit inside the uaccess region. With instrumentation, the KASAN
+> check would otherwise be flagged by objtool.
 > 
-> Sure, I think this probably makes sense -- I'm still getting my around
-> which parts of the design are directly related to MTE and which aren't.
-> 
-> I was a bit concerned about the interaction between
-> PR_SET_TAGGED_ADDR_CTRL and the sysctl: the caller might conclude that
-> this API is unavailable when actually tagged addresses are stuck on.
-> 
-> I'm not sure whether this matters, but it's a bit weird.
-> 
-> One option would be to change the semantics, so that the sysctl just
-> forbids turning tagging from off to on.  Alternatively, we could return
-> a different error code to distinguish this case.
+> For consistency, kernel/signal.c was changed to mirror this change,
+> however, is never instrumented with KASAN (currently unsupported under
+> x86 32bit).
 
-This is the intention, just to forbid turning tagging on. We could
-return -EPERM instead, though my original intent was to simply pretend
-that the prctl does not exist like in an older kernel version.
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
--- 
-Catalin
+Thanks!
+
+> 
+> Signed-off-by: Marco Elver <elver@google.com>
+> Suggested-by: H. Peter Anvin <hpa@zytor.com>
+> ---
+> Changes in v3:
+> * Use static_cpu_has instead of moving boot_cpu_has outside uaccess
+>   region.
+> 
+> Changes in v2:
+> * Replaces patch: 'tools/objtool: add kasan_check_* to uaccess
+>   whitelist'
+> ---
+>  arch/x86/ia32/ia32_signal.c | 2 +-
+>  arch/x86/kernel/signal.c    | 2 +-
+>  2 files changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+> index 629d1ee05599..1cee10091b9f 100644
+> --- a/arch/x86/ia32/ia32_signal.c
+> +++ b/arch/x86/ia32/ia32_signal.c
+> @@ -358,7 +358,7 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
+>  		put_user_ex(ptr_to_compat(&frame->uc), &frame->puc);
+>  
+>  		/* Create the ucontext.  */
+> -		if (boot_cpu_has(X86_FEATURE_XSAVE))
+> +		if (static_cpu_has(X86_FEATURE_XSAVE))
+>  			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+>  		else
+>  			put_user_ex(0, &frame->uc.uc_flags);
+> diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+> index 364813cea647..52eb1d551aed 100644
+> --- a/arch/x86/kernel/signal.c
+> +++ b/arch/x86/kernel/signal.c
+> @@ -391,7 +391,7 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+>  		put_user_ex(&frame->uc, &frame->puc);
+>  
+>  		/* Create the ucontext.  */
+> -		if (boot_cpu_has(X86_FEATURE_XSAVE))
+> +		if (static_cpu_has(X86_FEATURE_XSAVE))
+>  			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+>  		else
+>  			put_user_ex(0, &frame->uc.uc_flags);
+> -- 
+> 2.22.0.rc1.257.g3120a18244-goog
+> 
