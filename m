@@ -1,83 +1,56 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v7 22/27] binfmt_elf: Extract .note.gnu.property from an
- ELF file
-Date: Thu, 13 Jun 2019 14:26:23 +0100
-Message-ID: <20190613132623.GA28398@e103592.cambridge.arm.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
- <20190606200646.3951-23-yu-cheng.yu@intel.com>
- <20190607180115.GJ28398@e103592.cambridge.arm.com>
- <94b9c55b3b874825fda485af40ab2a6bc3dad171.camel@intel.com>
- <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
- <20190611114109.GN28398@e103592.cambridge.arm.com>
- <031bc55d8dcdcf4f031e6ff27c33fd52c61d33a5.camel@intel.com>
- <20190612093238.GQ28398@e103592.cambridge.arm.com>
- <b8fb6626a6ae415fac4d5daa86225e4c68d56673.camel@intel.com>
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH v4 1/3] lib/test_kasan: Add bitops tests
+Date: Thu, 13 Jun 2019 15:00:09 +0200
+Message-ID: <CANpmjNNMmSHvP+tzod=WeoDp6jsxGsDKV5cXiTr3F9fxEMasaw@mail.gmail.com>
+References: <20190613123028.179447-1-elver@google.com> <20190613123028.179447-2-elver@google.com>
+ <6cc5e12d-1492-d9b7-3ea7-6381407439d7@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b8fb6626a6ae415fac4d5daa86225e4c68d56673.camel@intel.com>
+In-Reply-To: <6cc5e12d-1492-d9b7-3ea7-6381407439d7@virtuozzo.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Florian Weimer <fweimer@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 12, 2019 at 12:04:01PM -0700, Yu-cheng Yu wrote:
-> On Wed, 2019-06-12 at 10:32 +0100, Dave Martin wrote:
-> > On Tue, Jun 11, 2019 at 12:31:34PM -0700, Yu-cheng Yu wrote:
-> > > On Tue, 2019-06-11 at 12:41 +0100, Dave Martin wrote:
-> > > > On Mon, Jun 10, 2019 at 07:24:43PM +0200, Florian Weimer wrote:
-> > > > > * Yu-cheng Yu:
-> > > > > 
-> > > > > > To me, looking at PT_GNU_PROPERTY and not trying to support anything
-> > > > > > is a
-> > > > > > logical choice.  And it breaks only a limited set of toolchains.
-> > > > > > 
-> > > > > > I will simplify the parser and leave this patch as-is for anyone who
-> > > > > > wants
-> > > > > > to
-> > > > > > back-port.  Are there any objections or concerns?
-> > > > > 
-> > > > > Red Hat Enterprise Linux 8 does not use PT_GNU_PROPERTY and is probably
-> > > > > the largest collection of CET-enabled binaries that exists today.
-> > > > 
-> > > > For clarity, RHEL is actively parsing these properties today?
-> > > > 
-> > > > > My hope was that we would backport the upstream kernel patches for CET,
-> > > > > port the glibc dynamic loader to the new kernel interface, and be ready
-> > > > > to run with CET enabled in principle (except that porting userspace
-> > > > > libraries such as OpenSSL has not really started upstream, so many
-> > > > > processes where CET is particularly desirable will still run without
-> > > > > it).
-> > > > > 
-> > > > > I'm not sure if it is a good idea to port the legacy support if it's not
-> > > > > part of the mainline kernel because it comes awfully close to creating
-> > > > > our own private ABI.
-> > > > 
-> > > > I guess we can aim to factor things so that PT_NOTE scanning is
-> > > > available as a fallback on arches for which the absence of
-> > > > PT_GNU_PROPERTY is not authoritative.
-> > > 
-> > > We can probably check PT_GNU_PROPERTY first, and fallback (based on ld-linux
-> > > version?) to PT_NOTE scanning?
-> > 
-> > For arm64, we can check for PT_GNU_PROPERTY and then give up
-> > unconditionally.
-> > 
-> > For x86, we would fall back to PT_NOTE scanning, but this will add a bit
-> > of cost to binaries that don't have NT_GNU_PROPERTY_TYPE_0.  The ld.so
-> > version doesn't tell you what ELF ABI a given executable conforms to.
-> > 
-> > Since this sounds like it's largely a distro-specific issue, maybe there
-> > could be a Kconfig option to turn the fallback PT_NOTE scanning on?
-> 
-> Yes, I will make it a Kconfig option.
+On Thu, 13 Jun 2019 at 14:49, Andrey Ryabinin <aryabinin@virtuozzo.com> wrote:
+>
+>
+>
+> On 6/13/19 3:30 PM, Marco Elver wrote:
+> > This adds bitops tests to the test_kasan module. In a follow-up patch,
+> > support for bitops instrumentation will be added.
+> >
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > Acked-by: Mark Rutland <mark.rutland@arm.com>
+> > ---
+>
+> Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+>
+>
+>
+>
+> > +static noinline void __init kasan_bitops(void)
+> > +{
+> > +     /*
+> > +      * Allocate 1 more byte, which causes kzalloc to round up to 16-bytes;
+> > +      * this way we do not actually corrupt other memory, in case
+> > +      * instrumentation is not working as intended.
+>
+> This sound like working instrumentation somehow save us from corrupting memory. In fact it doesn't,
+> it only reports corruption.
 
-OK, that works for me.  This would also help keep the PT_NOTE scanning
-separate from the rest of the code.
+Thanks, I removed the confusing wording. Sent v5.
 
-For arm64 we could then unconditionally select/deselect that option,
-where x86 could leave it configurable either way.
-
-Cheers
----Dave
+> > +      */
+> > +     long *bits = kzalloc(sizeof(*bits) + 1, GFP_KERNEL);
+> > +     if (!bits)
+> > +             return;
+> > +
+>
+> --
+> You received this message because you are subscribed to the Google Groups "kasan-dev" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to kasan-dev+unsubscribe@googlegroups.com.
+> To post to this group, send email to kasan-dev@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/kasan-dev/6cc5e12d-1492-d9b7-3ea7-6381407439d7%40virtuozzo.com.
+> For more options, visit https://groups.google.com/d/optout.
