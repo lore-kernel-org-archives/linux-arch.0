@@ -1,92 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:60782 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1731449AbfFMIsr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 04:48:47 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [RFC PATCH 1/5] signal: Teach sigsuspend to use set_user_sigmask
-Date: Thu, 13 Jun 2019 08:48:41 +0000
-Message-ID: <6e9b964b08d84c99980b1707e5fe3d1d@AcuMS.aculab.com>
-References: <20190522032144.10995-1-deepa.kernel@gmail.com>
- <20190529161157.GA27659@redhat.com> <20190604134117.GA29963@redhat.com>
- <20190606140814.GA13440@redhat.com> <87k1dxaxcl.fsf_-_@xmission.com>
- <87ef45axa4.fsf_-_@xmission.com> <20190610162244.GB8127@redhat.com>
- <87lfy96sta.fsf@xmission.com>
- <9199239a450d4ea397783ccf98742220@AcuMS.aculab.com>
- <20190612134558.GB3276@redhat.com>
- <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
-In-Reply-To: <6f748b26bef748208e2a74174c0c0bfc@AcuMS.aculab.com>
-Content-Language: en-US
+Received: from Galois.linutronix.de ([146.0.238.70]:36268 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726379AbfFMT6K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 15:58:10 -0400
+Date: Thu, 13 Jun 2019 21:57:58 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCHv2 0/3] improve wait logic of stop_machine
+In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
+Message-ID: <alpine.DEB.2.21.1906132157281.1791@nanos.tec.linutronix.de>
+References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Oleg Nesterov' <oleg@redhat.com>
-Cc: "'Eric W. Biederman'" <ebiederm@xmission.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Deepa Dinamani' <deepa.kernel@gmail.com>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'arnd@arndb.de'" <arnd@arndb.de>, "'dbueso@suse.de'" <dbueso@suse.de>, "'axboe@kernel.dk'" <axboe@kernel.dk>, "'dave@stgolabs.net'" <dave@stgolabs.net>, "'e@80x24.org'" <e@80x24.org>, "'jbaron@akamai.com'" <jbaron@akamai.com>, "'linux-fsdevel@vger.kernel.org'" <linux-fsdevel@vger.kernel.org>, "'linux-aio@kvack.org'" <linux-aio@kvack.org>, "'omar.kilani@gmail.com'" <omar.kilani@gmail.com>, "'tglx@linutronix.de'" <tglx@linutronix.de>, 'Al Viro' <viro@ZenIV.linux.org.uk>, 'Linus Torvalds' <torvalds@linux-foundation.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
-Message-ID: <20190613084841.4C5xPKWxO_QqKj--D0-pSYA2bffC88mgvfKVl5Y6KhQ@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
+Message-ID: <20190613195758.yMw1yaRHkgVZd-jBXlPuZvAyFrYC0UWBst0bg3vSrnE@z>
 
-From: David Laight
-> Sent: 12 June 2019 15:18
-> From: Oleg Nesterov
-> > Sent: 12 June 2019 14:46
-> > On 06/11, David Laight wrote:
-> > >
-> > > If I have an application that has a loop with a pselect call that
-> > > enables SIGINT (without a handler) and, for whatever reason,
-> > > one of the fd is always 'ready' then I'd expect a SIGINT
-> > > (from ^C) to terminate the program.
-> >
-> > This was never true.
-> >
-> > Before Eric's patches SIGINT can kill a process or not, depending on timing.
-> > In particular, if SIGINT was already pending before pselect() and it finds
-> > an already ready fd, the program won't terminate.
+On Thu, 13 Jun 2019, Heiko Carstens wrote:
 > 
-> Which matches what I see on a very old Linux system.
+> Heiko Carstens (2):
+>   processor: remove spin_cpu_yield
+>   processor: get rid of cpu_relax_yield
 > 
-> > After the Eric's patches SIGINT will only kill the program if pselect() does
-> > not find a ready fd.
-> >
-> > And this is much more consistent. Now we can simply say that the signal will
-> > be delivered only if pselect() fails and returns -EINTR. If it doesn't have
-> > a handler the process will be killed, otherwise the handler will be called.
+> Martin Schwidefsky (1):
+>   s390: improve wait logic of stop_machine
 > 
-> But is it what the standards mandate?
-> Can anyone check how Solaris and any of the BSDs behave?
-> I don't have access to any solaris systems (I doubt I'll get the disk to
-> spin on the one in my garage).
-> I can check NetBSD when I get home.
+>  arch/powerpc/include/asm/processor.h |  2 --
+>  arch/s390/include/asm/processor.h    |  7 +------
+>  arch/s390/kernel/processor.c         | 19 +++++++++++++------
+>  arch/s390/kernel/smp.c               |  2 +-
+>  include/linux/processor.h            |  9 ---------
+>  include/linux/sched.h                |  4 ----
+>  include/linux/stop_machine.h         |  1 +
+>  kernel/stop_machine.c                | 19 ++++++++++++++-----
+>  8 files changed, 30 insertions(+), 33 deletions(-)
 
-I tested NetBSD last night.
-pselect() always calls the signal handlers even when an fd is ready.
-I'm beginning to suspect that this is the 'standards conforming' behaviour.
-I don't remember when pselect() was added to the ToG specs, it didn't
-go through XNET while I  was going to the meetings.
-
-	David
-
-> 
-> The ToG page for pselect() http://pubs.opengroup.org/onlinepubs/9699919799/functions/pselect.html
-> says:
->     "If sigmask is not a null pointer, then the pselect() function shall replace
->     the signal mask of the caller by the set of signals pointed to by sigmask
->     before examining the descriptors, and shall restore the signal mask of the
->     calling thread before returning."
-> Note that it says 'before examining the descriptors' not 'before blocking'.
-> Under the general description about signals it also says that the signal handler
-> will be called (or other action happen) when a pending signal is unblocked.
-> So unblocking SIGINT (set to SIG_DFL) prior to examining the descriptors
-> should be enough to cause the process to exit.
-> The fact that signal handlers are not called until 'return to user'
-> is really an implementation choice - but (IMHO) it should appear as if they
-> were called at the time they became unmasked.
-> 
-> If nothing else the man pages need a note about the standards and portability.
-> 
-> 	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
