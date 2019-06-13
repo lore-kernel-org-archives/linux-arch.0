@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53190 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34114 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728310AbfFMKfT (ORCPT
+        by vger.kernel.org with ESMTP id S1728304AbfFMKfT (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Thu, 13 Jun 2019 06:35:19 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x5DAW7v9111438
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x5DATYIL138645
         for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:17 -0400
 Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2t3je46jhu-1
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2t3jchejhn-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 06:35:17 -0400
 Received: from localhost
@@ -16,57 +16,65 @@ Received: from localhost
         for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
         Thu, 13 Jun 2019 11:35:15 +0100
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCHv2 1/3] processor: remove spin_cpu_yield
-Date: Thu, 13 Jun 2019 12:35:08 +0200
-In-Reply-To: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
-References: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
-Message-ID: <20190613103510.60529-2-heiko.carstens@de.ibm.com>
+Subject: [PATCHv2 0/3] improve wait logic of stop_machine
+Date: Thu, 13 Jun 2019 12:35:07 +0200
+Message-ID: <20190613103510.60529-1-heiko.carstens@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org
-Message-ID: <20190613103508.D2PV9LoDx7m5FW9dOdOCWtjpwQ21qFuorgtyqzK3oW0@z>
+Message-ID: <20190613103507.kKSZfVBJx3RANcfa0F-zB4kFSKl6dzPkcecwMXjdzjA@z>
 
-spin_cpu_yield is unused, therefore remove it.
+FWIW, it would be nice to get some Acks.
 
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
----
- arch/powerpc/include/asm/processor.h | 2 --
- include/linux/processor.h            | 9 ---------
- 2 files changed, 11 deletions(-)
+Given that this patch set touches common code only in a way that
+shouldn't have any effect on any architecture except s390, I'll add
+this to the s390 tree, unless somebody objects.
 
-diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-index ef573fe9873e..a9993e7a443b 100644
---- a/arch/powerpc/include/asm/processor.h
-+++ b/arch/powerpc/include/asm/processor.h
-@@ -346,8 +346,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
- 
- #define spin_cpu_relax()	barrier()
- 
--#define spin_cpu_yield()	spin_cpu_relax()
--
- #define spin_end()	HMT_medium()
- 
- #define spin_until_cond(cond)					\
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-index dbc952eec869..dc78bdc7079a 100644
---- a/include/linux/processor.h
-+++ b/include/linux/processor.h
-@@ -32,15 +32,6 @@
- #define spin_cpu_relax() cpu_relax()
- #endif
- 
--/*
-- * spin_cpu_yield may be called to yield (undirected) to the hypervisor if
-- * necessary. This should be used if the wait is expected to take longer
-- * than context switch overhead, but we can't sleep or do a directed yield.
-- */
--#ifndef spin_cpu_yield
--#define spin_cpu_yield() cpu_relax_yield()
--#endif
--
- #ifndef spin_end
- #define spin_end()
- #endif
+RFC->v2:
+  Use cpumask_next_wrap as suggested by Peter Zijlstra.
+
+RFC:
+
+The stop_machine loop to advance the state machine and to wait for all
+affected CPUs to check-in calls cpu_relax_yield in a tight loop until
+the last missing CPUs acknowledged the state transition.
+
+On a virtual system where not all logical CPUs are backed by real CPUs
+all the time it can take a while for all CPUs to check-in. With the
+current definition of cpu_relax_yield on s390 a diagnose 0x44 is done
+which tells the hypervisor to schedule *some* other CPU. That can be
+any CPU and not necessarily one of the CPUs that need to run in order
+to advance the state machine. This can lead to a pretty bad diagnose
+0x44 storm until the last missing CPU finally checked-in.
+
+Replace the undirected cpu_relax_yield based on diagnose 0x44 with an
+architecture specific directed yield. Each CPU in the wait loop will
+pick up the next CPU in the cpumask of stop_machine. The diagnose 0x9c
+is used to tell the hypervisor to run this next CPU instead of the
+current one. If there is only a limited number of real CPUs backing
+the virtual CPUs we end up with the real CPUs passed around in a
+round-robin fashion.
+
+Patches 1 and 3 are just possible cleanups; the interesting part is
+patch 2.
+
+Heiko Carstens (2):
+  processor: remove spin_cpu_yield
+  processor: get rid of cpu_relax_yield
+
+Martin Schwidefsky (1):
+  s390: improve wait logic of stop_machine
+
+ arch/powerpc/include/asm/processor.h |  2 --
+ arch/s390/include/asm/processor.h    |  7 +------
+ arch/s390/kernel/processor.c         | 19 +++++++++++++------
+ arch/s390/kernel/smp.c               |  2 +-
+ include/linux/processor.h            |  9 ---------
+ include/linux/sched.h                |  4 ----
+ include/linux/stop_machine.h         |  1 +
+ kernel/stop_machine.c                | 19 ++++++++++++++-----
+ 8 files changed, 30 insertions(+), 33 deletions(-)
+
 -- 
 2.17.1
