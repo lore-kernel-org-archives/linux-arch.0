@@ -1,98 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr50070.outbound.protection.outlook.com ([40.107.5.70]:47680
-        "EHLO EUR03-VE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731873AbfFMM2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 08:28:14 -0400
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Received: from foss.arm.com ([217.140.110.172]:38718 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729038AbfFMLhj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 07:37:39 -0400
+Date: Thu, 13 Jun 2019 12:37:32 +0100
+From: Dave Martin <Dave.Martin@arm.com>
 Subject: Re: [PATCH v4 1/2] arm64: Define
  Documentation/arm64/tagged-address-abi.txt
-Date: Thu, 13 Jun 2019 12:28:08 +0000
-Message-ID: <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
+Message-ID: <20190613113731.GY28398@e103592.cambridge.arm.com>
 References: <cover.1560339705.git.andreyknvl@google.com>
  <20190612142111.28161-1-vincenzo.frascino@arm.com>
  <20190612142111.28161-2-vincenzo.frascino@arm.com>
- <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
- <20190613092054.GO28951@C02TF0J2HF1T.local>
- <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
- <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
-In-Reply-To: <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <E2C0B65BEF78924CA305C7B3274335E1@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+ <20190612153538.GL28951@C02TF0J2HF1T.local>
+ <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
-Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190613122808.ub2lFUkTxoHcYwlJI5LTz4qZEaWu2aCIzD6w4KHoY5s@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kselftest@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190613113732._R2YjwC21iLWBpE6arVlaRzPeAtVDdYL-_Ke28p34q4@z>
 
-T24gMTMvMDYvMjAxOSAxMjoxNiwgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6DQo+IEhpIFN6YWJv
-bGNzLA0KPiANCj4gdGhhbmsgeW91IGZvciB5b3VyIHJldmlldy4NCj4gDQo+IE9uIDEzLzA2LzIw
-MTkgMTE6MTQsIFN6YWJvbGNzIE5hZ3kgd3JvdGU6DQo+PiBPbiAxMy8wNi8yMDE5IDEwOjIwLCBD
-YXRhbGluIE1hcmluYXMgd3JvdGU6DQo+Pj4gSGkgU3phYm9sY3MsDQo+Pj4NCj4+PiBPbiBXZWQs
-IEp1biAxMiwgMjAxOSBhdCAwNTozMDozNFBNICswMTAwLCBTemFib2xjcyBOYWd5IHdyb3RlOg0K
-Pj4+PiBPbiAxMi8wNi8yMDE5IDE1OjIxLCBWaW5jZW56byBGcmFzY2lubyB3cm90ZToNCj4+Pj4+
-ICsyLiBBUk02NCBUYWdnZWQgQWRkcmVzcyBBQkkNCj4+Pj4+ICstLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0NCj4+Pj4+ICsNCj4+Pj4+ICtGcm9tIHRoZSBrZXJuZWwgc3lzY2FsbCBpbnRlcmZh
-Y2UgcHJvc3BlY3RpdmUsIHdlIGRlZmluZSwgZm9yIHRoZSBwdXJwb3Nlcw0KPj4+PiAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl4NCj4+Pj4gcGVyc3BlY3Rp
-dmUNCj4+Pj4NCj4+Pj4+ICtvZiB0aGlzIGRvY3VtZW50LCBhICJ2YWxpZCB0YWdnZWQgcG9pbnRl
-ciIgYXMgYSBwb2ludGVyIHRoYXQgZWl0aGVyIGl0IGhhcw0KPj4+Pj4gK2EgemVybyB2YWx1ZSBz
-ZXQgaW4gdGhlIHRvcCBieXRlIG9yIGl0IGhhcyBhIG5vbi16ZXJvIHZhbHVlLCBpdCBpcyBpbiBt
-ZW1vcnkNCj4+Pj4+ICtyYW5nZXMgcHJpdmF0ZWx5IG93bmVkIGJ5IGEgdXNlcnNwYWNlIHByb2Nl
-c3MgYW5kIGl0IGlzIG9idGFpbmVkIGluIG9uZSBvZg0KPj4+Pj4gK3RoZSBmb2xsb3dpbmcgd2F5
-czoNCj4+Pj4+ICsgIC0gbW1hcCgpIGRvbmUgYnkgdGhlIHByb2Nlc3MgaXRzZWxmLCB3aGVyZSBl
-aXRoZXI6DQo+Pj4+PiArICAgICogZmxhZ3MgPSBNQVBfUFJJVkFURSB8IE1BUF9BTk9OWU1PVVMN
-Cj4+Pj4+ICsgICAgKiBmbGFncyA9IE1BUF9QUklWQVRFIGFuZCB0aGUgZmlsZSBkZXNjcmlwdG9y
-IHJlZmVycyB0byBhIHJlZ3VsYXINCj4+Pj4+ICsgICAgICBmaWxlIG9yICIvZGV2L3plcm8iDQo+
-Pj4+DQo+Pj4+IHRoaXMgZG9lcyBub3QgbWFrZSBpdCBjbGVhciBpZiBNQVBfRklYRUQgb3Igb3Ro
-ZXIgZmxhZ3MgYXJlIHZhbGlkDQo+Pj4+ICh0aGVyZSBhcmUgbWFueSBtYXAgZmxhZ3MgaSBkb24n
-dCBrbm93LCBidXQgYXQgbGVhc3QgZml4ZWQgc2hvdWxkIHdvcmsNCj4+Pj4gYW5kIHN0YWNrL2dy
-b3dzZG93bi4gaSdkIGV4cGVjdCBhbnl0aGluZyB0aGF0J3Mgbm90IGluY29tcGF0aWJsZSB3aXRo
-DQo+Pj4+IHByaXZhdGV8YW5vbiB0byB3b3JrKS4NCj4+Pg0KPj4+IEp1c3QgdG8gY2xhcmlmeSwg
-dGhpcyBkb2N1bWVudCB0cmllcyB0byBkZWZpbmUgdGhlIG1lbW9yeSByYW5nZXMgZnJvbQ0KPj4+
-IHdoZXJlIHRhZ2dlZCBhZGRyZXNzZXMgY2FuIGJlIHBhc3NlZCBpbnRvIHRoZSBrZXJuZWwgaW4g
-dGhlIGNvbnRleHQNCj4+PiBvZiBUQkkgb25seSAobm90IE1URSk7IHRoYXQgaXMgZm9yIGh3YXNh
-biBzdXBwb3J0LiBGSVhFRCBvciBHUk9XU0RPV04NCj4+PiBzaG91bGQgbm90IGFmZmVjdCB0aGlz
-Lg0KPj4NCj4+IHllcywgc28gZWl0aGVyIHRoZSB0ZXh0IHNob3VsZCBsaXN0IE1BUF8qIGZsYWdz
-IHRoYXQgZG9uJ3QgYWZmZWN0DQo+PiB0aGUgcG9pbnRlciB0YWdnaW5nIHNlbWFudGljcyBvciBz
-cGVjaWZ5IHByaXZhdGV8YW5vbiBtYXBwaW5nDQo+PiB3aXRoIGRpZmZlcmVudCB3b3JkaW5nLg0K
-Pj4NCj4gDQo+IEdvb2QgcG9pbnQuIENvdWxkIHlvdSBwbGVhc2UgcHJvcG9zZSBhIHdvcmRpbmcg
-dGhhdCB3b3VsZCBiZSBzdWl0YWJsZSBmb3IgdGhpcyBjYXNlPw0KDQppIGRvbid0IGtub3cgYWxs
-IHRoZSBNQVBfIG1hZ2ljLCBidXQgaSB0aGluayBpdCdzIGVub3VnaCB0byBjaGFuZ2UNCnRoZSAi
-ZmxhZ3MgPSIgdG8NCg0KKiBmbGFncyBoYXZlIE1BUF9QUklWQVRFIGFuZCBNQVBfQU5PTllNT1VT
-IHNldCBvcg0KKiBmbGFncyBoYXZlIE1BUF9QUklWQVRFIHNldCBhbmQgdGhlIGZpbGUgZGVzY3Jp
-cHRvciByZWZlcnMgdG8uLi4NCg0KDQo+Pj4+PiArICAtIGEgbWFwcGluZyBiZWxvdyBzYnJrKDAp
-IGRvbmUgYnkgdGhlIHByb2Nlc3MgaXRzZWxmDQo+Pj4+DQo+Pj4+IGRvZXNuJ3QgdGhlIG1tYXAg
-cnVsZSBjb3ZlciB0aGlzPw0KPj4+DQo+Pj4gSUlVQyBpdCBkb2Vzbid0IGNvdmVyIGl0IGFzIHRo
-YXQncyBtZW1vcnkgbWFwcGVkIGJ5IHRoZSBrZXJuZWwNCj4+PiBhdXRvbWF0aWNhbGx5IG9uIGFj
-Y2VzcyB2cyBhIHBvaW50ZXIgcmV0dXJuZWQgYnkgbW1hcCgpLiBUaGUgc3RhdGVtZW50DQo+Pj4g
-YWJvdmUgdGFsa3MgYWJvdXQgaG93IHRoZSBhZGRyZXNzIGlzIG9idGFpbmVkIGJ5IHRoZSB1c2Vy
-Lg0KPj4NCj4+IG9rIGkgcmVhZCAnbWFwcGluZyBiZWxvdyBzYnJrJyBhcyBhbiBtbWFwIChwb3Nz
-aWJseSBNQVBfRklYRUQpDQo+PiB0aGF0IGhhcHBlbnMgdG8gYmUgYmVsb3cgdGhlIGhlYXAgYXJl
-YS4NCj4+DQo+PiBpIHRoaW5rICJiZWxvdyBzYnJrKDApIiBpcyBub3QgdGhlIGJlc3QgdGVybSB0
-byB1c2U6IHRoZXJlDQo+PiBtYXkgYmUgYWRkcmVzcyByYW5nZSBiZWxvdyB0aGUgaGVhcCBhcmVh
-IHRoYXQgY2FuIGJlIG1tYXBwZWQNCj4+IGFuZCB0aHVzIGJlbG93IHNicmsoMCkgYW5kIHNicmsg
-aXMgYSBwb3NpeCBhcGkgbm90IGEgbGludXgNCj4+IHN5c2NhbGwsIHRoZSBsaWJjIGNhbiBpbXBs
-ZW1lbnQgaXQgd2l0aCBtbWFwIG9yIHdoYXRldmVyLg0KPj4NCj4+IGknbSBub3Qgc3VyZSB3aGF0
-IHRoZSByaWdodCB0ZXJtIGZvciAnaGVhcCBhcmVhJyBpcw0KPj4gKHRoZSBhZGRyZXNzIHJhbmdl
-IGJldHdlZW4gc3lzY2FsbChfX05SX2JyaywwKSBhdA0KPj4gcHJvZ3JhbSBzdGFydHVwIGFuZCBp
-dHMgY3VycmVudCB2YWx1ZT8pDQo+Pg0KPiANCj4gSSB1c2VkIHNicmsoMCkgd2l0aCB0aGUgbWVh
-bmluZyBvZiAiZW5kIG9mIHRoZSBwcm9jZXNzJ3MgZGF0YSBzZWdtZW50IiBub3QNCj4gaW1wbHlp
-bmcgdGhhdCB0aGlzIGlzIGEgc3lzY2FsbCwgYnV0IGp1c3QgYXMgYSB1c2VmdWwgd2F5IHRvIGlk
-ZW50aWZ5IHRoZSBtYXBwaW5nLg0KPiBJIGFncmVlIHRoYXQgaXQgaXMgYSBwb3NpeCBmdW5jdGlv
-biBpbXBsZW1lbnRlZCBieSBsaWJjIGJ1dCB3aGVuIGl0IGlzIHVzZWQgd2l0aA0KPiAwIGZpbmRz
-IHRoZSBjdXJyZW50IGxvY2F0aW9uIG9mIHRoZSBwcm9ncmFtIGJyZWFrLCB3aGljaCBjYW4gYmUg
-Y2hhbmdlZCBieSBicmsoKQ0KPiBhbmQgZGVwZW5kaW5nIG9uIHRoZSBuZXcgYWRkcmVzcyBwYXNz
-ZWQgdG8gdGhpcyBzeXNjYWxsIGNhbiBoYXZlIHRoZSBlZmZlY3Qgb2YNCj4gYWxsb2NhdGluZyBv
-ciBkZWFsbG9jYXRpbmcgbWVtb3J5Lg0KPiANCj4gV2lsbCBjaGFuZ2luZyBzYnJrKDApIHdpdGgg
-ImVuZCBvZiB0aGUgcHJvY2VzcydzIGRhdGEgc2VnbWVudCIgbWFrZSBpdCBtb3JlIGNsZWFyPw0K
-DQppIGRvbid0IHVuZGVyc3RhbmQgd2hhdCdzIHRoZSByZWxldmFuY2Ugb2YgdGhlICplbmQqDQpv
-ZiB0aGUgZGF0YSBzZWdtZW50Lg0KDQppJ2QgZXhwZWN0IHRoZSB0ZXh0IHRvIHNheSBzb21ldGhp
-bmcgYWJvdXQgdGhlIGFkZHJlc3MNCnJhbmdlIG9mIHRoZSBkYXRhIHNlZ21lbnQuDQoNCmkgY2Fu
-IGRvDQoNCm1tYXAoKHZvaWQqKTY1NTM2LCA2NTUzNiwgUFJPVF9SRUFEfFBST1RfV1JJVEUsIE1B
-UF9GSVhFRHxNQVBfU0hBUkVEfE1BUF9BTk9OLCAtMSwgMCk7DQoNCmFuZCBpdCB3aWxsIGJlIGJl
-bG93IHRoZSBlbmQgb2YgdGhlIGRhdGEgc2VnbWVudC4NCg0KPiANCj4gSSB3aWxsIGFkZCB3aGF0
-IHlvdSBhcmUgc3VnZ2VzdGluZyBhYm91dCB0aGUgaGVhcCBhcmVhLg0KPiANCg==
+On Thu, Jun 13, 2019 at 11:15:34AM +0100, Vincenzo Frascino wrote:
+> Hi Catalin,
+> 
+> On 12/06/2019 16:35, Catalin Marinas wrote:
+> > Hi Vincenzo,
+> > 
+> > Some minor comments below but it looks fine to me overall. Cc'ing
+> > Szabolcs as well since I'd like a view from the libc people.
+> > 
+> 
+> Thanks for this, I saw Szabolcs comments.
+> 
+> > On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
+> >> diff --git a/Documentation/arm64/tagged-address-abi.txt b/Documentation/arm64/tagged-address-abi.txt
+> >> new file mode 100644
+> >> index 000000000000..96e149e2c55c
+> >> --- /dev/null
+> >> +++ b/Documentation/arm64/tagged-address-abi.txt
+
+[...]
+
+> >> +Since it is not desirable to relax the ABI to allow tagged user addresses
+> >> +into the kernel indiscriminately, arm64 provides a new sysctl interface
+> >> +(/proc/sys/abi/tagged_addr) that is used to prevent the applications from
+> >> +enabling the relaxed ABI and a new prctl() interface that can be used to
+> >> +enable or disable the relaxed ABI.
+> >> +
+> >> +The sysctl is meant also for testing purposes in order to provide a simple
+> >> +way for the userspace to verify the return error checking of the prctl()
+> >> +command without having to reconfigure the kernel.
+> >> +
+> >> +The ABI properties are inherited by threads of the same application and
+> >> +fork()'ed children but cleared when a new process is spawn (execve()).
+> > 
+> > "spawned".
+
+I'd just say "cleared by execve()."
+
+"Spawn" suggests (v)fork+exec to me (at least, what's what "spawn" means on
+certain other OSes).
+
+> > 
+> > I guess you could drop these three paragraphs here and mention the
+> > inheritance properties when introducing the prctl() below. You can also
+> > mention the global sysctl switch after the prctl() was introduced.
+> > 
+> 
+> I will move the last two (rewording them) to the _section_ 2, but I would still
+> prefer the Introduction to give an overview of the solution as well.
+> 
+> >> +
+> >> +2. ARM64 Tagged Address ABI
+> >> +---------------------------
+> >> +
+> >> +From the kernel syscall interface prospective, we define, for the purposes
+> >> +of this document, a "valid tagged pointer" as a pointer that either it has
+> > 
+> > "either has" (no 'it') sounds slightly better but I'm not a native
+> > English speaker either.
+> > 
+> >> +a zero value set in the top byte or it has a non-zero value, it is in memory
+> >> +ranges privately owned by a userspace process and it is obtained in one of
+> >> +the following ways:
+> >> +  - mmap() done by the process itself, where either:
+> >> +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+> >> +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
+> >> +      file or "/dev/zero"
+> >> +  - a mapping below sbrk(0) done by the process itself
+> >> +  - any memory mapped by the kernel in the process's address space during
+> >> +    creation and following the restrictions presented above (i.e. data, bss,
+> >> +    stack).
+> >> +
+> >> +The ARM64 Tagged Address ABI is an opt-in feature, and an application can
+> >> +control it using the following prctl()s:
+> >> +  - PR_SET_TAGGED_ADDR_CTRL: can be used to enable the Tagged Address ABI.
+> > 
+> > enable or disable (not sure we need the latter but it doesn't heart).
+> > 
+> > I'd add the arg2 description here as well.
+> > 
+> 
+> Good point I missed this.
+> 
+> >> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
+> >> +                             Address ABI.
+
+For both prctls, you should also document the zeroed arguments up to
+arg5 (unless we get rid of the enforcement and just ignore them).
+
+
+Is there a canonical way to detect whether this whole API/ABI is
+available?  (i.e., try to call this prctl / check for an HWCAP bit,
+etc.)
+
+[...]
+
+Cheers
+---Dave
