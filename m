@@ -1,111 +1,214 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:42986 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:37576 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727564AbfFMPfj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Jun 2019 11:35:39 -0400
+        id S1727045AbfFMKPi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 06:15:38 -0400
 Subject: Re: [PATCH v4 1/2] arm64: Define
  Documentation/arm64/tagged-address-abi.txt
 References: <cover.1560339705.git.andreyknvl@google.com>
  <20190612142111.28161-1-vincenzo.frascino@arm.com>
  <20190612142111.28161-2-vincenzo.frascino@arm.com>
- <a90da586-8ff6-4bed-d940-9306d517a18c@arm.com>
- <20190613092054.GO28951@C02TF0J2HF1T.local>
- <dee7f192-d0f0-558e-3007-eba805c6f2da@arm.com>
- <6ebbda37-5dd9-d0d5-d9cb-286c7a5b7f8e@arm.com>
- <8e3c9537-de10-0d0d-f5bb-c33bde92443f@arm.com>
- <5963d144-be9b-78d8-9130-ef92bc66b1fd@arm.com>
- <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
+ <20190612153538.GL28951@C02TF0J2HF1T.local>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <a05a2dfb-3398-455d-8586-b79dfb7a772f@arm.com>
-Date: Thu, 13 Jun 2019 16:35:35 +0100
+Message-ID: <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
+Date: Thu, 13 Jun 2019 11:15:34 +0100
 MIME-Version: 1.0
-In-Reply-To: <ba822b33-a822-02ef-9b85-725f4353596a@arm.com>
+In-Reply-To: <20190612153538.GL28951@C02TF0J2HF1T.local>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>
-Cc: nd <nd@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190613153535.e8KlfcvLJ0_Gj0IDmuaLaDhOJMpPE9XMRoHQlW6fpDQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Szabolcs Nagy <szabolcs.nagy@arm.com>
+Message-ID: <20190613101534.ZdAN9dB4MlolQVhKF4NmdioqgIa42b_GVCfwrxRSutk@z>
 
+Hi Catalin,
 
-On 13/06/2019 16:32, Szabolcs Nagy wrote:
-> On 13/06/2019 15:03, Vincenzo Frascino wrote:
->> On 13/06/2019 13:28, Szabolcs Nagy wrote:
->>> On 13/06/2019 12:16, Vincenzo Frascino wrote:
->>>> On 13/06/2019 11:14, Szabolcs Nagy wrote:
->>>>> On 13/06/2019 10:20, Catalin Marinas wrote:
->>>>>> On Wed, Jun 12, 2019 at 05:30:34PM +0100, Szabolcs Nagy wrote:
->>>>>>> On 12/06/2019 15:21, Vincenzo Frascino wrote:
->>>>>>>> +  - a mapping below sbrk(0) done by the process itself
->>>>>>>
->>>>>>> doesn't the mmap rule cover this?
->>>>>>
->>>>>> IIUC it doesn't cover it as that's memory mapped by the kernel
->>>>>> automatically on access vs a pointer returned by mmap(). The statement
->>>>>> above talks about how the address is obtained by the user.
->>>>>
->>>>> ok i read 'mapping below sbrk' as an mmap (possibly MAP_FIXED)
->>>>> that happens to be below the heap area.
->>>>>
->>>>> i think "below sbrk(0)" is not the best term to use: there
->>>>> may be address range below the heap area that can be mmapped
->>>>> and thus below sbrk(0) and sbrk is a posix api not a linux
->>>>> syscall, the libc can implement it with mmap or whatever.
->>>>>
->>>>> i'm not sure what the right term for 'heap area' is
->>>>> (the address range between syscall(__NR_brk,0) at
->>>>> program startup and its current value?)
->>>>>
->>>>
->>>> I used sbrk(0) with the meaning of "end of the process's data segment" not
->>>> implying that this is a syscall, but just as a useful way to identify the mapping.
->>>> I agree that it is a posix function implemented by libc but when it is used with
->>>> 0 finds the current location of the program break, which can be changed by brk()
->>>> and depending on the new address passed to this syscall can have the effect of
->>>> allocating or deallocating memory.
->>>>
->>>> Will changing sbrk(0) with "end of the process's data segment" make it more clear?
->>>
->>> i don't understand what's the relevance of the *end*
->>> of the data segment.
->>>
->>> i'd expect the text to say something about the address
->>> range of the data segment.
->>>
->>> i can do
->>>
->>> mmap((void*)65536, 65536, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_SHARED|MAP_ANON, -1, 0);
->>>
->>> and it will be below the end of the data segment.
->>>
->>
->> As far as I understand the data segment "lives" below the program break, hence
->> it is a way of describing the range from which the user can obtain a valid
->> tagged pointer.>
->> Said that, I am not really sure on how do you want me to document this (my aim
->> is for this to be clear to the userspace developers). Could you please propose
->> something?
+On 12/06/2019 16:35, Catalin Marinas wrote:
+> Hi Vincenzo,
 > 
-> [...], it is in the memory ranges privately owned by a
-> userspace process and it is obtained in one of the
-> following ways:
-> 
-> - mmap done by the process itself, [...]
-> 
-> - brk syscall done by the process itself.
->   (i.e. the heap area between the initial location
->   of the program break at process creation and its
->   current location.)
-> 
-> - any memory mapped by the kernel [...]
-> 
-> the data segment that's part of the process image is
-> already covered by the last point.
+> Some minor comments below but it looks fine to me overall. Cc'ing
+> Szabolcs as well since I'd like a view from the libc people.
 > 
 
-Thanks Szabolcs, I will update the document accordingly.
+Thanks for this, I saw Szabolcs comments.
+
+> On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
+>> diff --git a/Documentation/arm64/tagged-address-abi.txt b/Documentation/arm64/tagged-address-abi.txt
+>> new file mode 100644
+>> index 000000000000..96e149e2c55c
+>> --- /dev/null
+>> +++ b/Documentation/arm64/tagged-address-abi.txt
+>> @@ -0,0 +1,111 @@
+>> +ARM64 TAGGED ADDRESS ABI
+>> +========================
+>> +
+>> +This document describes the usage and semantics of the Tagged Address
+>> +ABI on arm64.
+>> +
+>> +1. Introduction
+>> +---------------
+>> +
+>> +On arm64 the TCR_EL1.TBI0 bit has been always enabled on the arm64 kernel,
+>> +hence the userspace (EL0) is allowed to set a non-zero value in the top
+> 
+> I'd be clearer here: "userspace (EL0) is allowed to perform a user
+> memory access through a 64-bit pointer with a non-zero top byte" (or
+> something along the lines). Otherwise setting a non-zero top byte is
+> allowed on any architecture, dereferencing it is a problem.
+> 
+
+Ok.
+
+>> +byte but the resulting pointers are not allowed at the user-kernel syscall
+>> +ABI boundary.
+>> +
+>> +This document describes a relaxation of the ABI with which it is possible
+> 
+> "relaxation of the ABI that makes it possible to..."
+> 
+>> +to pass tagged tagged pointers to the syscalls, when these pointers are in
+>> +memory ranges obtained as described in paragraph 2.
+> 
+> "section 2" is better. There are a lot more paragraphs.
+> 
+
+Agree.
+
+>> +
+>> +Since it is not desirable to relax the ABI to allow tagged user addresses
+>> +into the kernel indiscriminately, arm64 provides a new sysctl interface
+>> +(/proc/sys/abi/tagged_addr) that is used to prevent the applications from
+>> +enabling the relaxed ABI and a new prctl() interface that can be used to
+>> +enable or disable the relaxed ABI.
+>> +
+>> +The sysctl is meant also for testing purposes in order to provide a simple
+>> +way for the userspace to verify the return error checking of the prctl()
+>> +command without having to reconfigure the kernel.
+>> +
+>> +The ABI properties are inherited by threads of the same application and
+>> +fork()'ed children but cleared when a new process is spawn (execve()).
+> 
+> "spawned".
+> 
+> I guess you could drop these three paragraphs here and mention the
+> inheritance properties when introducing the prctl() below. You can also
+> mention the global sysctl switch after the prctl() was introduced.
+> 
+
+I will move the last two (rewording them) to the _section_ 2, but I would still
+prefer the Introduction to give an overview of the solution as well.
+
+>> +
+>> +2. ARM64 Tagged Address ABI
+>> +---------------------------
+>> +
+>> +From the kernel syscall interface prospective, we define, for the purposes
+>> +of this document, a "valid tagged pointer" as a pointer that either it has
+> 
+> "either has" (no 'it') sounds slightly better but I'm not a native
+> English speaker either.
+> 
+>> +a zero value set in the top byte or it has a non-zero value, it is in memory
+>> +ranges privately owned by a userspace process and it is obtained in one of
+>> +the following ways:
+>> +  - mmap() done by the process itself, where either:
+>> +    * flags = MAP_PRIVATE | MAP_ANONYMOUS
+>> +    * flags = MAP_PRIVATE and the file descriptor refers to a regular
+>> +      file or "/dev/zero"
+>> +  - a mapping below sbrk(0) done by the process itself
+>> +  - any memory mapped by the kernel in the process's address space during
+>> +    creation and following the restrictions presented above (i.e. data, bss,
+>> +    stack).
+>> +
+>> +The ARM64 Tagged Address ABI is an opt-in feature, and an application can
+>> +control it using the following prctl()s:
+>> +  - PR_SET_TAGGED_ADDR_CTRL: can be used to enable the Tagged Address ABI.
+> 
+> enable or disable (not sure we need the latter but it doesn't heart).
+> 
+> I'd add the arg2 description here as well.
+> 
+
+Good point I missed this.
+
+>> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
+>> +                             Address ABI.
+>> +
+>> +As a consequence of invoking PR_SET_TAGGED_ADDR_CTRL prctl() by an applications,
+>> +the ABI guarantees the following behaviours:
+>> +
+>> +  - Every current or newly introduced syscall can accept any valid tagged
+>> +    pointers.
+>> +
+>> +  - If a non valid tagged pointer is passed to a syscall then the behaviour
+>> +    is undefined.
+>> +
+>> +  - Every valid tagged pointer is expected to work as an untagged one.
+>> +
+>> +  - The kernel preserves any valid tagged pointers and returns them to the
+>> +    userspace unchanged in all the cases except the ones documented in the
+>> +    "Preserving tags" paragraph of tagged-pointers.txt.
+> 
+> I'd think we need to qualify the context here in which the kernel
+> preserves the tagged pointers. Did you mean on the syscall return?
+> 
+
+What this means is that on syscall return the tags are preserved, but if for
+example you have tagged pointers inside siginfo_t, they will not because
+according to tagged-pointers.txt non-zero tags are not preserved when delivering
+signals.
+
+>> +
+>> +A definition of the meaning of tagged pointers on arm64 can be found in:
+>> +Documentation/arm64/tagged-pointers.txt.
+>> +
+>> +3. ARM64 Tagged Address ABI Exceptions
+>> +--------------------------------------
+>> +
+>> +The behaviours described in paragraph 2, with particular reference to the
+> 
+> "section 2"
+> 
+>> +acceptance by the syscalls of any valid tagged pointer are not applicable
+>> +to the following cases:
+>> +  - mmap() addr parameter.
+>> +  - mremap() new_address parameter.
+>> +  - prctl_set_mm() struct prctl_map fields.
+>> +  - prctl_set_mm_map() struct prctl_map fields.
+>> +
+>> +4. Example of correct usage
+>> +---------------------------
+>> +
+>> +void main(void)
+>> +{
+>> +	static int tbi_enabled = 0;
+>> +	unsigned long tag = 0;
+>> +
+>> +	char *ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
+>> +			 MAP_ANONYMOUS, -1, 0);
+>> +
+>> +	if (prctl(PR_SET_TAGGED_ADDR_CTRL, PR_TAGGED_ADDR_ENABLE,
+>> +		  0, 0, 0) == 0)
+>> +		tbi_enabled = 1;
+>> +
+>> +	if (!ptr)
+>> +		return -1;
+>> +
+>> +	if (tbi_enabled)
+>> +		tag = rand() & 0xff;
+>> +
+>> +	ptr = (char *)((unsigned long)ptr | (tag << TAG_SHIFT));
+>> +
+>> +	*ptr = 'a';
+>> +
+>> +	...
+>> +}
+>> +
+>> -- 
+>> 2.21.0
+> 
 
 -- 
 Regards,
