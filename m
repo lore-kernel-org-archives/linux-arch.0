@@ -1,41 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f201.google.com ([209.85.160.201]:33489 "EHLO
-        mail-qt1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731933AbfFMMdk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2019 08:33:40 -0400
-Received: by mail-qt1-f201.google.com with SMTP id r40so17365971qtk.0
-        for <linux-arch@vger.kernel.org>; Thu, 13 Jun 2019 05:33:39 -0700 (PDT)
-Date: Thu, 13 Jun 2019 14:30:25 +0200
-Message-ID: <20190613123028.179447-1-elver@google.com>
-Mime-Version: 1.0
-Subject: [PATCH v4 0/3] Bitops instrumentation for KASAN
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Received: from foss.arm.com ([217.140.110.172]:39168 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731876AbfFMM2j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Jun 2019 08:28:39 -0400
+Date: Thu, 13 Jun 2019 13:28:21 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.txt
+Message-ID: <20190613122821.GS28951@C02TF0J2HF1T.local>
+References: <cover.1560339705.git.andreyknvl@google.com>
+ <20190612142111.28161-1-vincenzo.frascino@arm.com>
+ <20190612142111.28161-2-vincenzo.frascino@arm.com>
+ <20190612153538.GL28951@C02TF0J2HF1T.local>
+ <141c740a-94c2-2243-b6d1-b44ffee43791@arm.com>
+ <20190613113731.GY28398@e103592.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190613113731.GY28398@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, aryabinin@virtuozzo.com, dvyukov@google.com, glider@google.com, andreyknvl@google.com, mark.rutland@arm.com, hpa@zytor.com
-Cc: corbet@lwn.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jpoimboe@redhat.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Marco Elver <elver@google.com>
-Message-ID: <20190613123025._4dZLGn84i3-1bGSU8xF2AlcH-ELo2-aKOFuZu86MT0@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kselftest@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190613122821.q3zHbteOb1hK96sRPRT-sFy9IgS9U6G4TFdCieFHqsg@z>
 
-Previous version:
-http://lkml.kernel.org/r/20190531150828.157832-1-elver@google.com
+On Thu, Jun 13, 2019 at 12:37:32PM +0100, Dave P Martin wrote:
+> On Thu, Jun 13, 2019 at 11:15:34AM +0100, Vincenzo Frascino wrote:
+> > On 12/06/2019 16:35, Catalin Marinas wrote:
+> > > On Wed, Jun 12, 2019 at 03:21:10PM +0100, Vincenzo Frascino wrote:
+> > >> +  - PR_GET_TAGGED_ADDR_CTRL: can be used to check the status of the Tagged
+> > >> +                             Address ABI.
+[...]
+> Is there a canonical way to detect whether this whole API/ABI is
+> available?  (i.e., try to call this prctl / check for an HWCAP bit,
+> etc.)
 
-* This version only changes lib/test_kasan.c.
-* Remaining files are identical to v3.
-
-Marco Elver (3):
-  lib/test_kasan: Add bitops tests
-  x86: Use static_cpu_has in uaccess region to avoid instrumentation
-  asm-generic, x86: Add bitops instrumentation for KASAN
-
- Documentation/core-api/kernel-api.rst     |   2 +-
- arch/x86/ia32/ia32_signal.c               |   2 +-
- arch/x86/include/asm/bitops.h             | 189 ++++------------
- arch/x86/kernel/signal.c                  |   2 +-
- include/asm-generic/bitops-instrumented.h | 263 ++++++++++++++++++++++
- lib/test_kasan.c                          |  82 ++++++-
- 6 files changed, 383 insertions(+), 157 deletions(-)
- create mode 100644 include/asm-generic/bitops-instrumented.h
+The canonical way is a prctl() call. HWCAP doesn't make sense since it's
+not a hardware feature. If you really want a different way of detecting
+this (which I don't think it's worth), we can reinstate the AT_FLAGS
+bit.
 
 -- 
-2.22.0.rc2.383.gf4fbbf30c2-goog
+Catalin
