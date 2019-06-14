@@ -1,204 +1,43 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v6 03/19] kernel: Unify update_vsyscall implementation
-Date: Fri, 14 Jun 2019 13:10:58 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1906141307430.1722@nanos.tec.linutronix.de>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-4-vincenzo.frascino@arm.com>
+Subject: RE: [PATCH v6 18/19] x86: Add support for generic vDSO
+Date: Fri, 14 Jun 2019 13:15:23 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
+ <20190530141531.43462-19-vincenzo.frascino@arm.com>
+ <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190530141531.43462-4-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Sasha Levin <sashal@kernel.org>, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Salyzyn <salyzyn@android.com>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Russell King <linux@armlinux.org.uk>, Dmitry Safonov <0x7f454c46@gmail.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.inf>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 30 May 2019, Vincenzo Frascino wrote:
-> +
-> +	if (__arch_use_vsyscall(vdata)) {
-> +		vdata[CS_HRES_COARSE].cycle_last	=
-> +						tk->tkr_mono.cycle_last;
-> +		vdata[CS_HRES_COARSE].mask		=
-> +						tk->tkr_mono.mask;
-> +		vdata[CS_HRES_COARSE].mult		=
-> +						tk->tkr_mono.mult;
+On Thu, 30 May 2019, Michael Kelley wrote:
+> Vincenzo -- these changes for Hyper-V are a subset of a larger patch set
+> I have that moves all of the Hyper-V clock/timer code into a separate
+> clocksource driver in drivers/clocksource, with an include file in
+> includes/clocksource.  That new include file should be able to work
+> instead of your new mshyperv-tsc.h.  It also has the benefit of being
+> ISA neutral, so it will work with my in-progress patch set to support
+> Linux on Hyper-V on ARM64.  See https://lkml.org/lkml/2019/5/27/231
+> for the new clocksource driver patch set.
 
-These line breaks make it really hard to read. Can you fold in the patch
-below please?
+Grrr. That's queued in hyperv-next for whatever reasons.
+
+Sasha, can you please provide me the branch to pull from so I can have a
+common base for all the various changes floating around?
 
 Thanks,
 
 	tglx
-8<-----------
---- a/kernel/vdso/vsyscall.c
-+++ b/kernel/vdso/vsyscall.c
-@@ -11,6 +11,66 @@
- #include <vdso/helpers.h>
- #include <vdso/vsyscall.h>
- 
-+static inline void udpate_vdata(struct vdso_data *vdata, struct timekeeper *tk)
-+{
-+	struct vdso_timestamp *vdso_ts;
-+	u64 nsec;
-+
-+	vdata[CS_HRES_COARSE].cycle_last	= tk->tkr_mono.cycle_last;
-+	vdata[CS_HRES_COARSE].mask		= tk->tkr_mono.mask;
-+	vdata[CS_HRES_COARSE].mult		= tk->tkr_mono.mult;
-+	vdata[CS_HRES_COARSE].shift		= tk->tkr_mono.shift;
-+	vdata[CS_RAW].cycle_last		= tk->tkr_raw.cycle_last;
-+	vdata[CS_RAW].mask			= tk->tkr_raw.mask;
-+	vdata[CS_RAW].mult			= tk->tkr_raw.mult;
-+	vdata[CS_RAW].shift			= tk->tkr_raw.shift;
-+
-+	/* CLOCK_REALTIME */
-+	vdso_ts		=  &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME];
-+	vdso_ts->sec	= tk->xtime_sec;
-+	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
-+
-+	/* CLOCK_MONOTONIC */
-+	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC];
-+	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
-+
-+	nsec = tk->tkr_mono.xtime_nsec;
-+	nsec += ((u64)tk->wall_to_monotonic.tv_nsec << tk->tkr_mono.shift);
-+	while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
-+		nsec -= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
-+		vdso_ts->sec++;
-+	}
-+	vdso_ts->nsec	= nsec;
-+
-+	/* CLOCK_MONOTONIC_RAW */
-+	vdso_ts		= &vdata[CS_RAW].basetime[CLOCK_MONOTONIC_RAW];
-+	vdso_ts->sec	= tk->raw_sec;
-+	vdso_ts->nsec	= tk->tkr_raw.xtime_nsec;
-+
-+	/* CLOCK_BOOTTIME */
-+	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_BOOTTIME];
-+	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
-+	nsec = tk->tkr_mono.xtime_nsec;
-+	nsec += ((u64)(tk->wall_to_monotonic.tv_nsec +
-+		       ktime_to_ns(tk->offs_boot)) << tk->tkr_mono.shift);
-+	while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
-+		nsec -= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
-+		vdso_ts->sec++;
-+	}
-+	vdso_ts->nsec	= nsec;
-+
-+	/* CLOCK_TAI */
-+	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_TAI];
-+	vdso_ts->sec	= tk->xtime_sec + (s64)tk->tai_offset;
-+	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
-+
-+	/*
-+	 * Read without the seqlock held by clock_getres().
-+	 * Note: No need to have a second copy.
-+	 */
-+	WRITE_ONCE(vdata[CS_HRES_COARSE].hrtimer_res, hrtimer_resolution);
-+}
-+
- void update_vsyscall(struct timekeeper *tk)
- {
- 	struct vdso_data *vdata = __arch_get_k_vdso_data();
-@@ -32,92 +92,23 @@ void update_vsyscall(struct timekeeper *
- 	vdata[CS_RAW].clock_mode		= __arch_get_clock_mode(tk);
- 
- 	/* CLOCK_REALTIME_COARSE */
--	vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME_COARSE];
--	vdso_ts->sec		= tk->xtime_sec;
--	vdso_ts->nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
-+	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME_COARSE];
-+	vdso_ts->sec	= tk->xtime_sec;
-+	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
-+
- 	/* CLOCK_MONOTONIC_COARSE */
--	vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC_COARSE];
--	vdso_ts->sec		= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
--	nsec			= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
--	nsec			= nsec + tk->wall_to_monotonic.tv_nsec;
-+	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC_COARSE];
-+	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
-+	nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
-+	nsec		= nsec + tk->wall_to_monotonic.tv_nsec;
- 	while (nsec >= NSEC_PER_SEC) {
- 		nsec = nsec - NSEC_PER_SEC;
- 		vdso_ts->sec++;
- 	}
--	vdso_ts->nsec		= nsec;
-+	vdso_ts->nsec	= nsec;
- 
--	if (__arch_use_vsyscall(vdata)) {
--		vdata[CS_HRES_COARSE].cycle_last	=
--						tk->tkr_mono.cycle_last;
--		vdata[CS_HRES_COARSE].mask		=
--						tk->tkr_mono.mask;
--		vdata[CS_HRES_COARSE].mult		=
--						tk->tkr_mono.mult;
--		vdata[CS_HRES_COARSE].shift		=
--						tk->tkr_mono.shift;
--		vdata[CS_RAW].cycle_last		=
--						tk->tkr_raw.cycle_last;
--		vdata[CS_RAW].mask			=
--						tk->tkr_raw.mask;
--		vdata[CS_RAW].mult			=
--						tk->tkr_raw.mult;
--		vdata[CS_RAW].shift			=
--						tk->tkr_raw.shift;
--		/* CLOCK_REALTIME */
--		vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME];
--		vdso_ts->sec		= tk->xtime_sec;
--		vdso_ts->nsec		= tk->tkr_mono.xtime_nsec;
--		/* CLOCK_MONOTONIC */
--		vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC];
--		vdso_ts->sec		= tk->xtime_sec +
--					  tk->wall_to_monotonic.tv_sec;
--		nsec			= tk->tkr_mono.xtime_nsec;
--		nsec			= nsec +
--					  ((u64)tk->wall_to_monotonic.tv_nsec <<
--					  tk->tkr_mono.shift);
--		while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
--			nsec = nsec -
--			       (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
--			vdso_ts->sec++;
--		}
--		vdso_ts->nsec		= nsec;
--		/* CLOCK_MONOTONIC_RAW */
--		vdso_ts			=
--			&vdata[CS_RAW].basetime[CLOCK_MONOTONIC_RAW];
--		vdso_ts->sec		= tk->raw_sec;
--		vdso_ts->nsec		= tk->tkr_raw.xtime_nsec;
--		/* CLOCK_BOOTTIME */
--		vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_BOOTTIME];
--		vdso_ts->sec		= tk->xtime_sec +
--					  tk->wall_to_monotonic.tv_sec;
--		nsec			= tk->tkr_mono.xtime_nsec;
--		nsec			= nsec +
--					  ((u64)(tk->wall_to_monotonic.tv_nsec +
--					  ktime_to_ns(tk->offs_boot)) <<
--					  tk->tkr_mono.shift);
--		while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
--			nsec = nsec -
--				(((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
--			vdso_ts->sec++;
--		}
--		vdso_ts->nsec		= nsec;
--		/* CLOCK_TAI */
--		vdso_ts			=
--			&vdata[CS_HRES_COARSE].basetime[CLOCK_TAI];
--		vdso_ts->sec		= tk->xtime_sec + (s64)tk->tai_offset;
--		vdso_ts->nsec		= tk->tkr_mono.xtime_nsec;
--
--		/*
--		 * Read without the seqlock held by clock_getres().
--		 * Note: No need to have a second copy.
--		 */
--		WRITE_ONCE(vdata[CS_HRES_COARSE].hrtimer_res, hrtimer_resolution);
--	}
-+	if (__arch_use_vsyscall(vdata))
-+		update_vdata(vdata, tk);
- 
- 	__arch_update_vsyscall(vdata, tk);
- 
