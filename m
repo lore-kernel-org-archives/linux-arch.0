@@ -1,68 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60964 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727362AbfFNMTT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Jun 2019 08:19:19 -0400
-Subject: Re: [PATCH v6 00/19] Unify vDSOs across more architectures
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <CAK8P3a11DE0sXteZoaP_N=mDhx3tXitGKddn1ogtFqJBYO-SCA@mail.gmail.com>
- <d96667d5-e43b-d33a-fbd0-5acfb4904316@arm.com>
- <alpine.DEB.2.21.1906141413070.1722@nanos.tec.linutronix.de>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <6f3bcd07-6eb4-53d6-d209-de42396a4ee2@arm.com>
-Date: Fri, 14 Jun 2019 13:19:58 +0100
+Received: from Galois.linutronix.de ([146.0.238.70]:37725 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727362AbfFNMT2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Jun 2019 08:19:28 -0400
+Date: Fri, 14 Jun 2019 14:19:25 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v6 03/19] kernel: Unify update_vsyscall implementation
+In-Reply-To: <a69e48a2-575d-255c-2653-d3e99b7ba760@arm.com>
+Message-ID: <alpine.DEB.2.21.1906141416100.1722@nanos.tec.linutronix.de>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-4-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906141307430.1722@nanos.tec.linutronix.de> <a69e48a2-575d-255c-2653-d3e99b7ba760@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.21.1906141413070.1722@nanos.tec.linutronix.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
-Message-ID: <20190614121958.rSWqgJinEzmpi-j_g-Af34wgNgZwXJ0AjUlYq-iG4qI@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+Message-ID: <20190614121925.c9HtbsEu_GhseMk-321QwV4p0eLMaKHJJ3qBE7yVgag@z>
 
+On Fri, 14 Jun 2019, Vincenzo Frascino wrote:
+> On 6/14/19 12:10 PM, Thomas Gleixner wrote:
+> > On Thu, 30 May 2019, Vincenzo Frascino wrote:
+> >> +
+> >> +	if (__arch_use_vsyscall(vdata)) {
+> >> +		vdata[CS_HRES_COARSE].cycle_last	=
+> >> +						tk->tkr_mono.cycle_last;
+> >> +		vdata[CS_HRES_COARSE].mask		=
+> >> +						tk->tkr_mono.mask;
+> >> +		vdata[CS_HRES_COARSE].mult		=
+> >> +						tk->tkr_mono.mult;
+> > 
+> > These line breaks make it really hard to read. Can you fold in the patch
+> > below please?
+> > 
+> 
+> Thanks for this. I will do it in v7.
 
-On 6/14/19 1:16 PM, Thomas Gleixner wrote:
-> On Tue, 4 Jun 2019, Vincenzo Frascino wrote:
->> On 31/05/2019 09:46, Arnd Bergmann wrote:
->>> One open question I touched in my review is whether we want to
->>> have a vdso version of clock_getres() in all architectures or not.
->>> I'd prefer to leave it out because there is very little advantage to
->>> it over the system call (the results don't change at runtime and
->>> can easily be cached by libc if performance ever matters), and
->>> it takes up a small amount of memory for the implementation.
->>>
->>
->> I thought about it and I ended up with what proposed in this patchset mainly for
->> symmetry across all the architectures since in the end they use the same common
->> code.
->>
->> It seems also that there is some performance impact (i.e.):
->>
->> clock-getres-monotonic:    libc(system call): 296 nsec/call
->> clock-getres-monotonic:    libc(vdso): 5 nsec/call
-> 
-> clock_getres() is usually not a hot path operation.
-> 
->> I agree with you though when you say that caching it in the libc is a
->> possibility to overcome the performance impact.
->>
->>> We shouldn't just need it for consistency because all callers
->>> would require implementing a fallback to the system call
->>> anyway, to deal with old kernels.
-> 
-> libc has the fallback already. Let's aim for 1:1 replacement of the
-> architecture code first and then add the extra bits in separate patches.
->
+Talking about v7. I'd like to get this into 5.3. That means you'd have to
+rebase it on
 
-Ok, thanks Thomas, I will split the patches accordingly.
+  git://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git hyperv-next
 
-> Thanks,
-> 
-> 	tglx
-> 
+to avoid the hyperv conflict. I'll sort this out with the hyperv folks how
+I can get these bits as a base for a tip branch which holds all the vdso
+pieces.
 
--- 
-Regards,
-Vincenzo
+Thanks,
+
+	tglx
