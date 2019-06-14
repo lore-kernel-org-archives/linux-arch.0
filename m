@@ -1,60 +1,54 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [PATCH v6 03/19] kernel: Unify update_vsyscall implementation
-Date: Fri, 14 Jun 2019 13:25:21 +0100
-Message-ID: <9371eabc-ed74-3db8-794c-44c37ada2163@arm.com>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <20190530141531.43462-4-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1906141307430.1722@nanos.tec.linutronix.de>
- <a69e48a2-575d-255c-2653-d3e99b7ba760@arm.com>
- <alpine.DEB.2.21.1906141416100.1722@nanos.tec.linutronix.de>
+Date: Fri, 14 Jun 2019 15:07:25 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906141506500.1722@nanos.tec.linutronix.de>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-4-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906141307430.1722@nanos.tec.linutronix.de> <a69e48a2-575d-255c-2653-d3e99b7ba760@arm.com> <alpine.DEB.2.21.1906141416100.1722@nanos.tec.linutronix.de>
+ <9371eabc-ed74-3db8-794c-44c37ada2163@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1906141416100.1722@nanos.tec.linutronix.de>
-Content-Language: en-US
+In-Reply-To: <9371eabc-ed74-3db8-794c-44c37ada2163@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 6/14/19 1:19 PM, Thomas Gleixner wrote:
-> On Fri, 14 Jun 2019, Vincenzo Frascino wrote:
->> On 6/14/19 12:10 PM, Thomas Gleixner wrote:
->>> On Thu, 30 May 2019, Vincenzo Frascino wrote:
->>>> +
->>>> +	if (__arch_use_vsyscall(vdata)) {
->>>> +		vdata[CS_HRES_COARSE].cycle_last	=
->>>> +						tk->tkr_mono.cycle_last;
->>>> +		vdata[CS_HRES_COARSE].mask		=
->>>> +						tk->tkr_mono.mask;
->>>> +		vdata[CS_HRES_COARSE].mult		=
->>>> +						tk->tkr_mono.mult;
->>>
->>> These line breaks make it really hard to read. Can you fold in the patch
->>> below please?
->>>
->>
->> Thanks for this. I will do it in v7.
+On Fri, 14 Jun 2019, Vincenzo Frascino wrote:
+> On 6/14/19 1:19 PM, Thomas Gleixner wrote:
+> > On Fri, 14 Jun 2019, Vincenzo Frascino wrote:
+> >> On 6/14/19 12:10 PM, Thomas Gleixner wrote:
+> >>> On Thu, 30 May 2019, Vincenzo Frascino wrote:
+> >>>> +
+> >>>> +	if (__arch_use_vsyscall(vdata)) {
+> >>>> +		vdata[CS_HRES_COARSE].cycle_last	=
+> >>>> +						tk->tkr_mono.cycle_last;
+> >>>> +		vdata[CS_HRES_COARSE].mask		=
+> >>>> +						tk->tkr_mono.mask;
+> >>>> +		vdata[CS_HRES_COARSE].mult		=
+> >>>> +						tk->tkr_mono.mult;
+> >>>
+> >>> These line breaks make it really hard to read. Can you fold in the patch
+> >>> below please?
+> >>>
+> >>
+> >> Thanks for this. I will do it in v7.
+> > 
+> > Talking about v7. I'd like to get this into 5.3. That means you'd have to
+> > rebase it on
+> > 
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git hyperv-next
+> > 
+> > to avoid the hyperv conflict. I'll sort this out with the hyperv folks how
+> > I can get these bits as a base for a tip branch which holds all the vdso
+> > pieces.
+> >
 > 
-> Talking about v7. I'd like to get this into 5.3. That means you'd have to
-> rebase it on
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git hyperv-next
-> 
-> to avoid the hyperv conflict. I'll sort this out with the hyperv folks how
-> I can get these bits as a base for a tip branch which holds all the vdso
-> pieces.
->
+> Ok, I will rebase and test the patches against the hyperv-next branch. Could you
+> please let me know when all the bits are sorted?
 
-Ok, I will rebase and test the patches against the hyperv-next branch. Could you
-please let me know when all the bits are sorted?
+Don't worry. Just post it against that branch and I'll sort out the
+logistics independently.
 
-> Thanks,
-> 
-> 	tglx
-> 
+Thanks,
 
--- 
-Regards,
-Vincenzo
+	tglx
