@@ -1,132 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:40188 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726870AbfFOPaL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jun 2019 11:30:11 -0400
-Received: by mail-pl1-f195.google.com with SMTP id a93so2267893pla.7
-        for <linux-arch@vger.kernel.org>; Sat, 15 Jun 2019 08:30:11 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v7 03/14] x86/cet/ibt: Add IBT legacy code bitmap setup function
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <5d7012f6-7ab9-fd3d-4a11-294258e48fb5@intel.com>
-Date: Sat, 15 Jun 2019 08:30:08 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <E68459DD-53D3-42A6-B120-180203791E24@amacapital.net>
-References: <20190606200926.4029-1-yu-cheng.yu@intel.com> <7e0b97bf1fbe6ff20653a8e4e147c6285cc5552d.camel@intel.com>
- <25281DB3-FCE4-40C2-BADB-B3B05C5F8DD3@amacapital.net> <e26f7d09376740a5f7e8360fac4805488b2c0a4f.camel@intel.com>
- <3f19582d-78b1-5849-ffd0-53e8ca747c0d@intel.com> <5aa98999b1343f34828414b74261201886ec4591.camel@intel.com>
- <0665416d-9999-b394-df17-f2a5e1408130@intel.com> <5c8727dde9653402eea97bfdd030c479d1e8dd99.camel@intel.com>
- <ac9a20a6-170a-694e-beeb-605a17195034@intel.com> <328275c9b43c06809c9937c83d25126a6e3efcbd.camel@intel.com>
- <92e56b28-0cd4-e3f4-867b-639d9b98b86c@intel.com> <1b961c71d30e31ecb22da2c5401b1a81cb802d86.camel@intel.com>
- <ea5e333f-8cd6-8396-635f-a9dc580d5364@intel.com> <cf0d1470e95e0a8b88742651d06601a53d6655c1.camel@intel.com>
- <5ddf59e2-c701-3741-eaa1-f63ee741ea55@intel.com> <b5a915602020a6ce26ea1254f7f60e239c91bc9f.camel@intel.com>
- <598edca7-c36a-a236-3b72-08b2194eb609@intel.com> <359e6f64d646d5305c52f393db5296c469630d11.camel@intel.com>
- <5d7012f6-7ab9-fd3d-4a11-294258e48fb5@intel.com>
+Received: from mx1.redhat.com ([209.132.183.28]:58950 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726730AbfFQLI6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Jun 2019 07:08:58 -0400
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [PATCH v7 22/27] binfmt_elf: Extract .note.gnu.property from an ELF file
+References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
+        <20190606200646.3951-23-yu-cheng.yu@intel.com>
+        <20190607180115.GJ28398@e103592.cambridge.arm.com>
+        <94b9c55b3b874825fda485af40ab2a6bc3dad171.camel@intel.com>
+        <87lfy9cq04.fsf@oldenburg2.str.redhat.com>
+        <20190611114109.GN28398@e103592.cambridge.arm.com>
+        <031bc55d8dcdcf4f031e6ff27c33fd52c61d33a5.camel@intel.com>
+        <20190612093238.GQ28398@e103592.cambridge.arm.com>
+Date: Mon, 17 Jun 2019 13:08:14 +0200
+In-Reply-To: <20190612093238.GQ28398@e103592.cambridge.arm.com> (Dave Martin's
+        message of "Wed, 12 Jun 2019 10:32:38 +0100")
+Message-ID: <87imt4jwpt.fsf@oldenburg2.str.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190615153008.F91E7PQbQj20rJJhz8Bb3bId9qbrBjYUwSVpY-rByq0@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20190617110814.xtgrLaqE7CsiTuSqN9MO5QriFGt5jLa9bGtuXpFmb1Q@z>
 
+* Dave Martin:
 
+> On Tue, Jun 11, 2019 at 12:31:34PM -0700, Yu-cheng Yu wrote:
+>> On Tue, 2019-06-11 at 12:41 +0100, Dave Martin wrote:
+>> > On Mon, Jun 10, 2019 at 07:24:43PM +0200, Florian Weimer wrote:
+>> > > * Yu-cheng Yu:
+>> > > 
+>> > > > To me, looking at PT_GNU_PROPERTY and not trying to support anything is a
+>> > > > logical choice.  And it breaks only a limited set of toolchains.
+>> > > > 
+>> > > > I will simplify the parser and leave this patch as-is for anyone who wants
+>> > > > to
+>> > > > back-port.  Are there any objections or concerns?
+>> > > 
+>> > > Red Hat Enterprise Linux 8 does not use PT_GNU_PROPERTY and is probably
+>> > > the largest collection of CET-enabled binaries that exists today.
+>> > 
+>> > For clarity, RHEL is actively parsing these properties today?
+>> > 
+>> > > My hope was that we would backport the upstream kernel patches for CET,
+>> > > port the glibc dynamic loader to the new kernel interface, and be ready
+>> > > to run with CET enabled in principle (except that porting userspace
+>> > > libraries such as OpenSSL has not really started upstream, so many
+>> > > processes where CET is particularly desirable will still run without
+>> > > it).
+>> > > 
+>> > > I'm not sure if it is a good idea to port the legacy support if it's not
+>> > > part of the mainline kernel because it comes awfully close to creating
+>> > > our own private ABI.
+>> > 
+>> > I guess we can aim to factor things so that PT_NOTE scanning is
+>> > available as a fallback on arches for which the absence of
+>> > PT_GNU_PROPERTY is not authoritative.
+>> 
+>> We can probably check PT_GNU_PROPERTY first, and fallback (based on ld-linux
+>> version?) to PT_NOTE scanning?
+>
+> For arm64, we can check for PT_GNU_PROPERTY and then give up
+> unconditionally.
+>
+> For x86, we would fall back to PT_NOTE scanning, but this will add a bit
+> of cost to binaries that don't have NT_GNU_PROPERTY_TYPE_0.  The ld.so
+> version doesn't tell you what ELF ABI a given executable conforms to.
+>
+> Since this sounds like it's largely a distro-specific issue, maybe there
+> could be a Kconfig option to turn the fallback PT_NOTE scanning on?
 
-> On Jun 14, 2019, at 3:06 PM, Dave Hansen <dave.hansen@intel.com> wrote:
->=20
->> On 6/14/19 2:34 PM, Yu-cheng Yu wrote:
->> On Fri, 2019-06-14 at 13:57 -0700, Dave Hansen wrote:
->>>> I have a related question:
->>>>=20
->>>> Do we allow the application to read the bitmap, or any fault from the
->>>> application on bitmap pages?
->>>=20
->>> We have to allow apps to read it.  Otherwise they can't execute
->>> instructions.
->>=20
->> What I meant was, if an app executes some legacy code that results in bit=
-map
->> lookup, but the bitmap page is not yet populated, and if we then populate=
- that
->> page with all-zero, a #CP should follow.  So do we even populate that zer=
-o page
->> at all?
->>=20
->> I think we should; a #CP is more obvious to the user at least.
->=20
-> Please make an effort to un-Intel-ificate your messages as much as
-> possible.  I'd really prefer that folks say "missing end branch fault"
-> rather than #CP.  I had to Google "#CP".
->=20
-> I *think* you are saying that:  The *only* lookups to this bitmap are on
-> "missing end branch" conditions.  Normal, proper-functioning code
-> execution that has ENDBR instructions in it will never even look at the
-> bitmap.  The only case when we reference the bitmap locations is when
-> the processor is about do do a "missing end branch fault" so that it can
-> be suppressed.  Any population with the zero page would be done when
-> code had already encountered a "missing end branch" condition, and
-> populating with a zero-filled page will guarantee that a "missing end
-> branch fault" will result.  You're arguing that we should just figure
-> this out at fault time and not ever reach the "missing end branch fault"
-> at all.
->=20
-> Is that right?
->=20
-> If so, that's an architecture subtlety that I missed until now and which
-> went entirely unmentioned in the changelog and discussion up to this
-> point.  Let's make sure that nobody else has to walk that path by
-> improving our changelog, please.
->=20
-> In any case, I don't think this is worth special-casing our zero-fill
-> code, FWIW.  It's not performance critical and not worth the complexity.
-> If apps want to handle the signals and abuse this to fill space up with
-> boring page table contents, they're welcome to.  There are much easier
-> ways to consume a lot of memory.
+I'm worried that this causes interop issues similarly to what we see
+with VSYSCALL today.  If we need both and a way to disable it, it should
+be something like a personality flag which can be configured for each
+process tree separately.  Ideally, we'd settle on one correct approach
+(i.e., either always process both, or only process PT_GNU_PROPERTY) and
+enforce that.
 
-Isn=E2=80=99t it a special case either way?  Either we look at CR2 and popul=
-ate a page, or we look at CR2 and the =E2=80=9Ctracker=E2=80=9D state and se=
-nd a different signal.  Admittedly the former is very common in the kernel.
-
->=20
->>> We don't have to allow them to (popuating) fault on it.  But, if we
->>> don't, we need some kind of kernel interface to avoid the faults.
->>=20
->> The plan is:
->>=20
->> * Move STACK_TOP (and vdso) down to give space to the bitmap.
->=20
-> Even for apps with 57-bit address spaces?
->=20
->> * Reserve the bitmap space from (mm->start_stack + PAGE_SIZE) to cover a c=
-ode
->> size of TASK_SIZE_LOW, which is (TASK_SIZE_LOW / PAGE_SIZE / 8).
->=20
-> The bitmap size is determined by CR4.LA57, not the app.  If you place
-> the bitmap here, won't references to it for high addresses go into the
-> high address space?
->=20
-> Specifically, on a CR4.LA57=3D0 system, we have 48 bits of address space,
-> so 128TB for apps.  You are proposing sticking the bitmap above the
-> stack which is near the top of that 128TB address space.  But on a
-> 5-level paging system with CR4.LA57=3D1, there could be valid data at
-> 129GB.  Is there something keeping that data from being mistaken for
-> being part of the bitmap?
->=20
-
-I think we need to make the vma be full sized =E2=80=94 it should cover the e=
-ntire range that the CPU might access. If that means it spans the 48-bit bou=
-ndary, so be it.
-
-> Also, if you're limiting it to TASK_SIZE_LOW, please don't forget that
-> this is yet another thing that probably won't work with the vsyscall
-> page.  Please make sure you consider it and mention it in your next post.
-
-Why not?  The vsyscall page is at a negative address.
-
->=20
->> * Mmap the space only when the app issues the first mark-legacy prctl.  T=
-his
->> avoids the core-dump issue for most apps and the accounting problem that
->> MAP_NORESERVE probably won't solve
-
-What happens if there=E2=80=99s another VMA there by the time you map it?=
+Thanks,
+Florian
