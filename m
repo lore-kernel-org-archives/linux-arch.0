@@ -1,55 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:40377 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725983AbfFQOAw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2019 10:00:52 -0400
-Received: by mail-ot1-f67.google.com with SMTP id e8so8393216otl.7
-        for <linux-arch@vger.kernel.org>; Mon, 17 Jun 2019 07:00:51 -0700 (PDT)
+Received: from mail-lf1-f68.google.com ([209.85.167.68]:36417 "EHLO
+        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726047AbfFQR4g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2019 13:56:36 -0400
+Received: by mail-lf1-f68.google.com with SMTP id q26so7208325lfc.3
+        for <linux-arch@vger.kernel.org>; Mon, 17 Jun 2019 10:56:35 -0700 (PDT)
+Received: from mail-lj1-f174.google.com (mail-lj1-f174.google.com. [209.85.208.174])
+        by smtp.gmail.com with ESMTPSA id w28sm2198607ljd.12.2019.06.17.10.56.33
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=AEAD-AES128-GCM-SHA256 bits=128/128);
+        Mon, 17 Jun 2019 10:56:33 -0700 (PDT)
+Received: by mail-lj1-f174.google.com with SMTP id x25so603866ljh.2
+        for <linux-arch@vger.kernel.org>; Mon, 17 Jun 2019 10:56:33 -0700 (PDT)
 MIME-Version: 1.0
-References: <20190613125950.197667-1-elver@google.com>
-In-Reply-To: <20190613125950.197667-1-elver@google.com>
-From: Marco Elver <elver@google.com>
-Date: Mon, 17 Jun 2019 16:00:38 +0200
-Message-ID: <CANpmjNMCmcg8GS_pkKc2gsdtd7-A2t27mOXATY9OLb1vQW5Lsg@mail.gmail.com>
-Subject: Re: [PATCH v5 0/3] Bitops instrumentation for KASAN
+References: <20190319165123.3967889-1-arnd@arndb.de> <alpine.DEB.2.21.1905072249570.19308@digraph.polyomino.org.uk>
+ <87tvd2j9ye.fsf@oldenburg2.str.redhat.com> <CAHk-=wio1e4=WUUwmo-Ph55BEgH_X3oXzBpvPyLQg2TxzfGYuw@mail.gmail.com>
+ <871s05fd8o.fsf@oldenburg2.str.redhat.com> <CAHk-=wg4ijSoPq-w7ct_VuZvgHx+tUv_QX-We-62dEwK+AOf2w@mail.gmail.com>
+ <87sgs8igfj.fsf@oldenburg2.str.redhat.com>
+In-Reply-To: <87sgs8igfj.fsf@oldenburg2.str.redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 17 Jun 2019 10:49:44 -0700
+Message-ID: <CAHk-=wjCwnk0nfgCcMYqqX6o9bBrutDtut_fzZ-2VwiZR1y4kw@mail.gmail.com>
+Subject: Re: [PATCH] uapi: avoid namespace conflict in linux/posix_types.h
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Dmitry Vyukov <dvyukov@google.com>, Alexander Potapenko <glider@google.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Jonathan Corbet <corbet@lwn.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, Linux Memory Management List <linux-mm@kvack.org>
-Message-ID: <20190617140038.zD_CeH-7QBpNs-pKF6lq-0p3QORArdPLYqx-TnOJcNE@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Joseph Myers <joseph@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Laura Abbott <labbott@redhat.com>, Paul Burton <pburton@wavecomp.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>
+Message-ID: <20190617174944.VldPl1_KXck0bt_eoKcYSTMOVoBUAWi5LsaviV54nyI@z>
 
-All 3 patches have now been Acked and Reviewed. Which tree should this land in?
-
-Since this is related to KASAN, would this belong into the MM tree?
-
-Many thanks,
--- Marco
-
-
-
-
-On Thu, 13 Jun 2019 at 15:00, Marco Elver <elver@google.com> wrote:
+On Mon, Jun 17, 2019 at 4:45 AM Florian Weimer <fweimer@redhat.com> wrote:
 >
-> Previous version:
-> http://lkml.kernel.org/r/20190613123028.179447-1-elver@google.com
->
-> * Only changed lib/test_kasan in this version.
->
-> Marco Elver (3):
->   lib/test_kasan: Add bitops tests
->   x86: Use static_cpu_has in uaccess region to avoid instrumentation
->   asm-generic, x86: Add bitops instrumentation for KASAN
->
->  Documentation/core-api/kernel-api.rst     |   2 +-
->  arch/x86/ia32/ia32_signal.c               |   2 +-
->  arch/x86/include/asm/bitops.h             | 189 ++++------------
->  arch/x86/kernel/signal.c                  |   2 +-
->  include/asm-generic/bitops-instrumented.h | 263 ++++++++++++++++++++++
->  lib/test_kasan.c                          |  81 ++++++-
->  6 files changed, 382 insertions(+), 157 deletions(-)
->  create mode 100644 include/asm-generic/bitops-instrumented.h
->
-> --
-> 2.22.0.rc2.383.gf4fbbf30c2-goog
->
+> I wanted to introduce a new header, <asm/kernel_long_t.h>, and include
+> it where the definition of __kernel_long_t is needed, something like
+> this (incomplete, untested):
+
+So this doesn't look interesting to me: __kernel_long_t is neither
+interesting as a type anyway (it's just a way for user space to
+override "long"), nor is it a namespace violation.
+
+So honestly, user space could do whatever it wants for __kernel_long_t anyway.
+
+The thing that I think we should try to fix is just the "val[]" thing, ie
+
+> A different approach would rename <asm/posix_types.h> to something more
+> basic, exclude the two structs, and move all internal #includes which do
+> need the structs to the new header.
+
+In fact, I wouldn't even rename <posix_types.h> at all, I'd just make
+sure it's namespace-clean.
+
+I _think_ the only thing causing problems is  '__kernel_fsid_t' due to
+that "val[]" thing, so just remove ity entirely, and add it to
+<statfs.h> instead.
+
+And yeah, then we'd need to maybe make sure that the (couple) of
+__kernel_fsid_t users properly include that statfs.h file.
+
+Hmm?
+
+               Linus
