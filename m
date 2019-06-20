@@ -1,89 +1,167 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([198.182.47.102]:49902 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726403AbfFTSe6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Jun 2019 14:34:58 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Date: Thu, 20 Jun 2019 18:34:55 +0000
-Message-ID: <a945de7d3b6f2da03c62c9e1043e125b4c4211aa.camel@synopsys.com>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
-         <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-         <20190619081227.GL3419@hirez.programming.kicks-ass.net>
-         <C2D7FE5348E1B147BCA15975FBA2307501A252E40B@us01wembx1.internal.synopsys.com>
-         <20190620070120.GU3402@hirez.programming.kicks-ass.net>
-In-Reply-To: <20190620070120.GU3402@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <B1AC54EE21D2C340AE47EB1977599190@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:43970 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725869AbfFTSoy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jun 2019 14:44:54 -0400
+Date: Thu, 20 Jun 2019 11:44:51 -0700
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
+Message-ID: <20190620184451.GA28543@roeck-us.net>
+References: <20190604160944.4058-1-christian@brauner.io>
+ <20190604160944.4058-2-christian@brauner.io>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190604160944.4058-2-christian@brauner.io>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "peterz@infradead.org" <peterz@infradead.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>
-Cc: "jbaron@akamai.com" <jbaron@akamai.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
-Message-ID: <20190620183455.Cy84vbrIOaMU2fFd-4We0zHVPVCSFfcHvBxO1fG8e0Y@z>
+To: Christian Brauner <christian@brauner.io>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, jannh@google.com, keescook@chromium.org, fweimer@redhat.com, oleg@redhat.com, arnd@arndb.de, dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Message-ID: <20190620184451.-ttTbTpNy89tsAs8yRsWyouyYHxgoy09BthXky4Dl7k@z>
 
-SGkgUGV0ZXIsDQpPbiBUaHUsIDIwMTktMDYtMjAgYXQgMDk6MDEgKzAyMDAsIFBldGVyIFppamxz
-dHJhIHdyb3RlOg0KPiBPbiBXZWQsIEp1biAxOSwgMjAxOSBhdCAxMTo1NTo0MVBNICswMDAwLCBW
-aW5lZXQgR3VwdGEgd3JvdGU6DQo+ID4gT24gNi8xOS8xOSAxOjEyIEFNLCBQZXRlciBaaWpsc3Ry
-YSB3cm90ZToNCj4gPiA+IEknbSBhc3N1bWluZyB5b3UndmUgbG9va2VkIGF0IHdoYXQgeDg2IGN1
-cnJlbnRseSBkb2VzIGFuZCBmb3VuZA0KPiA+ID4gc29tZXRoaW5nIGxpa2UgdGhhdCBkb2Vzbid0
-IHdvcmsgZm9yIEFSQz8NCj4gPiANCj4gPiBKdXN0IGxvb2tlZCBhdCB4ODYgY29kZSBhbmQgaXQg
-c2VlbXMgc2ltaWxhcg0KPiANCj4gSSB0aGluayB5b3UgbWlzc2VkIGEgYml0Lg0KPiANCj4gPiA+
-ID4gPiArCVdSSVRFX09OQ0UoKmluc3RyX2FkZHIsIGluc3RyKTsNCj4gPiA+ID4gPiArCWZsdXNo
-X2ljYWNoZV9yYW5nZShlbnRyeS0+Y29kZSwgZW50cnktPmNvZGUgKyBKVU1QX0xBQkVMX05PUF9T
-SVpFKTsNCj4gPiA+IFNvIGRvIHlvdSBoYXZlIGEgMiBieXRlIG9wY29kZSB0aGF0IHRyYXBzIHVu
-Y29uZGl0aW9uYWxseT8gSW4gdGhhdCBjYXNlDQo+ID4gPiBJJ20gdGhpbmtpbmcgeW91IGNvdWxk
-IGRvIHNvbWV0aGluZyBsaWtlIHg4NiBkb2VzLiBBbmQgaXQgd291bGQgYXZvaWQNCj4gPiA+IHRo
-YXQgTk9QIHBhZGRpbmcgeW91IGRvIHRvIGdldCB0aGUgYWxpZ25tZW50Lg0KPiA+IA0KPiA+IEp1
-c3QgdG8gYmUgY2xlYXIgdGhlcmUgaXMgbm8gdHJhcHBpbmcgZ29pbmcgb24gaW4gdGhlIGNhbm9u
-aWNhbCBzZW5zZSBvZiBpdC4gVGhlcmUNCj4gPiBhcmUgcmVndWxhciBpbnN0cnVjdGlvbnMgZm9y
-IE5PLU9QIGFuZCBCcmFuY2guDQo+ID4gV2UgZG8gaGF2ZSAyIGJ5dGUgb3Bjb2RlcyBmb3IgYm90
-aCBidXQgYXMgZGVzY3JpYmVkIHRoZSBicmFuY2ggb2Zmc2V0IGlzIHRvbw0KPiA+IGxpbWl0ZWQg
-c28gbm90IHVzYWJsZS4NCj4gDQo+IEluIHBhcnRpY3VsYXIgd2UgZG8gbm90IG5lZWQgdGhlIGFs
-aWdubWVudC4NCj4gDQo+IFNvIHdoYXQgdGhlIHg4NiBjb2RlIGRvZXMgaXM6DQo+IA0KPiAgLSBv
-dmVyd3JpdGUgdGhlIGZpcnN0IGJ5dGUgb2YgdGhlIGluc3RydWN0aW9uIHdpdGggYSBzaW5nbGUg
-Ynl0ZSB0cmFwDQo+ICAgIGluc3RydWN0aW9uDQo+IA0KPiAgLSBtYWNoaW5lIHdpZGUgSVBJIHdo
-aWNoIHN5bmNocm9uaXplcyBJJA0KPiANCj4gQXQgdGhpcyBwb2ludCwgYW55IENQVSB0aGF0IGVu
-Y291bnRlcnMgdGhpcyBpbnN0cnVjdGlvbiB3aWxsIHRyYXA7IGFuZA0KPiB0aGUgdHJhcCBoYW5k
-bGVyIHdpbGwgZW11bGF0ZSB0aGUgJ25ldycgaW5zdHJ1Y3Rpb24gLS0gdHlwaWNhbGx5IGEganVt
-cC4NCj4gDQo+ICAgLSBvdmVyd3JpdGUgdGhlIHRhaWwgb2YgdGhlIGluc3RydWN0aW9uIChpZiB0
-aGVyZSBpcyBhIHRhaWwpDQo+IA0KPiAgIC0gbWFjaGluZSB3aWRlIElQSSB3aGljaCBzeW5jcmhv
-bml6ZXMgSSQNCj4gDQo+IEF0IHRoaXMgcG9pbnQsIG5vYm9keSB3aWxsIGV4ZWN1dGUgdGhlIHRh
-aWwsIGJlY2F1c2Ugd2UnbGwgc3RpbGwgdHJhcCBvbg0KPiB0aGF0IGZpcnN0IHNpbmdsZSBieXRl
-IGluc3RydWN0aW9uLCBidXQgaWYgdGhleSB3ZXJlIHRvIHJlYWQgdGhlDQo+IGluc3RydWN0aW9u
-IHN0cmVhbSwgdGhlIHRhaWwgbXVzdCBiZSB0aGVyZS4NCj4gDQo+ICAgLSBvdmVyd3JpdGUgdGhl
-IGZpcnN0IGJ5dGUgb2YgdGhlIGluc3RydWN0aW9uIHRvIG5vdyBoYXZlIGEgY29tcGxldGUNCj4g
-ICAgIGluc3RydWN0aW9uLg0KPiANCj4gICAtIG1hY2hpbmUgd2lkZSBJUEkgd2hpY2ggc3luY3Jo
-b25pemVzIEkkDQo+IA0KPiBBdCB0aGlzIHBvaW50LCBhbnkgQ1BVIHdpbGwgZW5jb3VudGVyIHRo
-ZSBuZXcgaW5zdHJ1Y3Rpb24gYXMgYSB3aG9sZSwNCj4gaXJyZXNwZWN0aXZlIG9mIGFsaWdubWVu
-dC4NCj4gDQo+IA0KPiBTbyB0aGUgYmVuZWZpdCBvZiB0aGlzIHNjaGVtZSBpcyB0aGF0IGlzIHdv
-cmtzIGlycmVzcGVjdGl2ZSBvZiB0aGUNCj4gaW5zdHJ1Y3Rpb24gZmV0Y2ggd2luZG93IHNpemUg
-YW5kIGRvbid0IG5lZWQgdGhlICdmdW5ueScgYWxpZ25tZW50DQo+IHN0dWZmLg0KPiANCg0KVGhh
-bmtzIGZvciBleHBsYW5hdGlvbi4gTm93IEkgdW5kZXJzdGFuZCBob3cgdGhpcyB4ODYgbWFnaWMg
-d29ya3MuDQoNCkhvd2V2ZXIgaXQgbG9va3MgbGlrZSBldmVuIG1vcmUgY29tcGxleCB0aGFuIEFS
-TSBpbXBsZW1lbnRhdGlvbi4NCkFzIEkgdW5kZXJzdGFuZCBvbiBBUk0gdGhleSBkbyBzb21ldGhp
-bmcgbGlrZSB0aGF0Og0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLQ0Kb25fZWFjaF9jcHUgew0KCXdyaXRlX2luc3RydWN0aW9uDQoJZmx1c2hf
-ZGF0YV9jYWNoZV9yZWdpb24NCglpbnZhbGlkYXRlX2luc3RydWN0aW9uX2NhY2hlX3JlZ2lvbg0K
-fQ0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LQ0KDQpodHRwczovL2VsaXhpci5ib290bGluLmNvbS9saW51eC92NS4xL3NvdXJjZS9hcmNoL2Fy
-bS9rZXJuZWwvcGF0Y2guYyNMMTIxDQoNClllcCwgdGhlcmUgaXMgc29tZSBvdmVyaGVhZCAtIGFz
-IHdlIGRvbid0IG5lZWQgdG8gZG8gd2hpdGUgYW5kIEQkIGZsdXNoIG9uIGVhY2ggY3B1DQpidXQg
-dGhhdCBtYWtlcyBjb2RlIHNpbXBsZSBhbmQgYXZvaWRzIGFkZGl0aW9uYWwgY2hlY2tzLg0KDQpB
-bmQgSSBkb24ndCB1bmRlcnN0YW5kIGluIHdoaWNoIGNhc2VzIHg4NiBhcHByb2FjaCB3aXRoIHRy
-YXAgaXMgYmV0dGVyLg0KSW4gdGhpcyBBUk0gaW1wbGVtZW50YXRpb24gd2UgZG8gb25lIG1hY2hp
-bmUgd2lkZSBJUEkgaW5zdGVhZCBvZiB0aHJlZSBpbiB4ODYgdHJhcCBhcHByb2FjaC4NCg0KUHJv
-YmFibHkgdGhlcmUgaXMgc29tZSB4ODYgc3BlY2lmaWNzIEkgZG9uJ3QgZ2V0Pw0KDQoNCj4gTm93
-LCBJJ3ZlIG5vIGlkZWEgaWYgc29tZXRoaW5nIGxpa2UgdGhpcyBpcyBmZWFzaWJsZSBvbiBBUkM7
-IGZvciBpdCB0bw0KPiB3b3JrIHlvdSBuZWVkIHRoYXQgMiBieXRlIHRyYXAgaW5zdHJ1Y3Rpb24g
-LS0gc2luY2UgYWxsIGluc3RydWN0aW9ucyBhcmUNCj4gMiBieXRlIGFsaWduZWQsIHlvdSBjYW4g
-YWx3YXlzIHBva2UgdGhhdCB3aXRob3V0IGlzc3VlLg0KDQpZZXAgd2UgaGF2ZSAyIGJ5dGUgdHJh
-cCAodHJhcF9zIGluc3RydWN0aW9uKS4NCg0KQWN0dWFsbHkgdGhlcmUgYXJlIGV2ZW4gdHdvIGNh
-bmRpZGF0ZXMgYW5vdGhlciBjYW5kaWRhdGVzIHdoaWNoIGNhbiBiZSB1c2VkDQppbnN0ZWFkIHRy
-YXBfcyB0byBhdm9pZCBhZGRpbmcgYWRkaXRpb25hbCBjb2RlIHRvIHRyYXAgaGFuZGxlcjoNClNX
-SV9TIC0gc29mdHdhcmUgaW50ZXJydXB0DQphbmQNClVOSU1QX1MgLSBpbnN0cnVjdGlvbiB3aXRo
-IGZ1bm55IG5hbWUgJ3VuaW1wbGVtZW50ZWQgaW5zdHJ1Y3Rpb24nDQoNCg0KLS0gDQogRXVnZW5p
-eSBQYWx0c2V2DQo=
+On Tue, Jun 04, 2019 at 06:09:44PM +0200, Christian Brauner wrote:
+> Wire up the clone3() call on all arches that don't require hand-rolled
+> assembly.
+> 
+> Some of the arches look like they need special assembly massaging and it is
+> probably smarter if the appropriate arch maintainers would do the actual
+> wiring. Arches that are wired-up are:
+> - x86{_32,64}
+> - arm{64}
+> - xtensa
+> 
+
+This patch results in build failures on various architecetures.
+
+h8300-linux-ld: arch/h8300/kernel/syscalls.o:(.data+0x6d0): undefined reference to `sys_clone3'
+
+nios2-linux-ld: arch/nios2/kernel/syscall_table.o:(.data+0x6d0): undefined reference to `sys_clone3'
+
+There may be others; -next is in too bad shape right now to get a complete
+picture. Wondering, though: What is special with this syscall ? Normally
+one would only get a warning that a syscall is not wired up.
+
+Guenter
+
+> Signed-off-by: Christian Brauner <christian@brauner.io>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Cc: Adrian Reber <adrian@lisas.de>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Al Viro <viro@zeniv.linux.org.uk>
+> Cc: Florian Weimer <fweimer@redhat.com>
+> Cc: linux-api@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> ---
+> v1: unchanged
+> v2: unchanged
+> v3:
+> - Christian Brauner <christian@brauner.io>:
+>   - wire up clone3 on all arches that don't have hand-rolled entry points
+>     for clone
+> ---
+>  arch/arm/tools/syscall.tbl                  | 1 +
+>  arch/arm64/include/asm/unistd.h             | 2 +-
+>  arch/arm64/include/asm/unistd32.h           | 2 ++
+>  arch/microblaze/kernel/syscalls/syscall.tbl | 1 +
+>  arch/x86/entry/syscalls/syscall_32.tbl      | 1 +
+>  arch/x86/entry/syscalls/syscall_64.tbl      | 1 +
+>  arch/xtensa/kernel/syscalls/syscall.tbl     | 1 +
+>  include/uapi/asm-generic/unistd.h           | 4 +++-
+>  8 files changed, 11 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+> index aaf479a9e92d..e99a82bdb93a 100644
+> --- a/arch/arm/tools/syscall.tbl
+> +++ b/arch/arm/tools/syscall.tbl
+> @@ -447,3 +447,4 @@
+>  431	common	fsconfig			sys_fsconfig
+>  432	common	fsmount				sys_fsmount
+>  433	common	fspick				sys_fspick
+> +436	common	clone3				sys_clone3
+> diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+> index 70e6882853c0..24480c2d95da 100644
+> --- a/arch/arm64/include/asm/unistd.h
+> +++ b/arch/arm64/include/asm/unistd.h
+> @@ -44,7 +44,7 @@
+>  #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
+>  #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
+>  
+> -#define __NR_compat_syscalls		434
+> +#define __NR_compat_syscalls		437
+>  #endif
+>  
+>  #define __ARCH_WANT_SYS_CLONE
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index c39e90600bb3..b144ea675d70 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -886,6 +886,8 @@ __SYSCALL(__NR_fsconfig, sys_fsconfig)
+>  __SYSCALL(__NR_fsmount, sys_fsmount)
+>  #define __NR_fspick 433
+>  __SYSCALL(__NR_fspick, sys_fspick)
+> +#define __NR_clone3 436
+> +__SYSCALL(__NR_clone3, sys_clone3)
+>  
+>  /*
+>   * Please add new compat syscalls above this comment and update
+> diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+> index 26339e417695..3110440bcc31 100644
+> --- a/arch/microblaze/kernel/syscalls/syscall.tbl
+> +++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+> @@ -439,3 +439,4 @@
+>  431	common	fsconfig			sys_fsconfig
+>  432	common	fsmount				sys_fsmount
+>  433	common	fspick				sys_fspick
+> +436	common	clone3				sys_clone3
+> diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+> index ad968b7bac72..80e26211feff 100644
+> --- a/arch/x86/entry/syscalls/syscall_32.tbl
+> +++ b/arch/x86/entry/syscalls/syscall_32.tbl
+> @@ -438,3 +438,4 @@
+>  431	i386	fsconfig		sys_fsconfig			__ia32_sys_fsconfig
+>  432	i386	fsmount			sys_fsmount			__ia32_sys_fsmount
+>  433	i386	fspick			sys_fspick			__ia32_sys_fspick
+> +436	i386	clone3			sys_clone3			__ia32_sys_clone3
+> diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+> index b4e6f9e6204a..7968f0b5b5e8 100644
+> --- a/arch/x86/entry/syscalls/syscall_64.tbl
+> +++ b/arch/x86/entry/syscalls/syscall_64.tbl
+> @@ -355,6 +355,7 @@
+>  431	common	fsconfig		__x64_sys_fsconfig
+>  432	common	fsmount			__x64_sys_fsmount
+>  433	common	fspick			__x64_sys_fspick
+> +436	common	clone3			__x64_sys_clone3/ptregs
+>  
+>  #
+>  # x32-specific system call numbers start at 512 to avoid cache impact
+> diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+> index 5fa0ee1c8e00..b2767c8c2b4e 100644
+> --- a/arch/xtensa/kernel/syscalls/syscall.tbl
+> +++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+> @@ -404,3 +404,4 @@
+>  431	common	fsconfig			sys_fsconfig
+>  432	common	fsmount				sys_fsmount
+>  433	common	fspick				sys_fspick
+> +436	common	clone3				sys_clone3
+> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+> index a87904daf103..45bc87687c47 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -844,9 +844,11 @@ __SYSCALL(__NR_fsconfig, sys_fsconfig)
+>  __SYSCALL(__NR_fsmount, sys_fsmount)
+>  #define __NR_fspick 433
+>  __SYSCALL(__NR_fspick, sys_fspick)
+> +#define __NR_clone3 436
+> +__SYSCALL(__NR_clone3, sys_clone3)
+>  
+>  #undef __NR_syscalls
+> -#define __NR_syscalls 434
+> +#define __NR_syscalls 437
+>  
+>  /*
+>   * 32 bit systems traditionally used different
