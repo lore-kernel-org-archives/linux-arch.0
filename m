@@ -1,98 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:34324 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725905AbfFTVbD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jun 2019 17:31:03 -0400
-Date: Thu, 20 Jun 2019 23:30:57 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Message-ID: <20190620213057.GD3436@hirez.programming.kicks-ass.net>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
- <20190619081227.GL3419@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA2307501A252E40B@us01wembx1.internal.synopsys.com>
- <20190620070120.GU3402@hirez.programming.kicks-ass.net>
- <a945de7d3b6f2da03c62c9e1043e125b4c4211aa.camel@synopsys.com>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:33586 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726204AbfFTWKK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jun 2019 18:10:10 -0400
+Received: by mail-wr1-f66.google.com with SMTP id n9so4607057wru.0
+        for <linux-arch@vger.kernel.org>; Thu, 20 Jun 2019 15:10:07 -0700 (PDT)
+Date: Fri, 21 Jun 2019 00:10:04 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
+Message-ID: <20190620221003.ciuov5fzqxrcaykp@brauner.io>
+References: <20190604160944.4058-1-christian@brauner.io>
+ <20190604160944.4058-2-christian@brauner.io>
+ <20190620184451.GA28543@roeck-us.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <a945de7d3b6f2da03c62c9e1043e125b4c4211aa.camel@synopsys.com>
+In-Reply-To: <20190620184451.GA28543@roeck-us.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "jbaron@akamai.com" <jbaron@akamai.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
-Message-ID: <20190620213057.gxKgkDMqhG8DKCwhDiiEIys6ipVgEw0ZNbKx-5RgfmM@z>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, jannh@google.com, keescook@chromium.org, fweimer@redhat.com, oleg@redhat.com, arnd@arndb.de, dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Message-ID: <20190620221004.L-HmR--QBfEhjkgoaj6wCH0YZFcw6I0G4u8dmWp7Dwo@z>
 
-On Thu, Jun 20, 2019 at 06:34:55PM +0000, Eugeniy Paltsev wrote:
-> On Thu, 2019-06-20 at 09:01 +0200, Peter Zijlstra wrote:
-
-> > In particular we do not need the alignment.
+On Thu, Jun 20, 2019 at 11:44:51AM -0700, Guenter Roeck wrote:
+> On Tue, Jun 04, 2019 at 06:09:44PM +0200, Christian Brauner wrote:
+> > Wire up the clone3() call on all arches that don't require hand-rolled
+> > assembly.
 > > 
-> > So what the x86 code does is:
-> > 
-> >  - overwrite the first byte of the instruction with a single byte trap
-> >    instruction
-> > 
-> >  - machine wide IPI which synchronizes I$
-> > 
-> > At this point, any CPU that encounters this instruction will trap; and
-> > the trap handler will emulate the 'new' instruction -- typically a jump.
-> > 
-> >   - overwrite the tail of the instruction (if there is a tail)
-> > 
-> >   - machine wide IPI which syncrhonizes I$
-> > 
-> > At this point, nobody will execute the tail, because we'll still trap on
-> > that first single byte instruction, but if they were to read the
-> > instruction stream, the tail must be there.
-> > 
-> >   - overwrite the first byte of the instruction to now have a complete
-> >     instruction.
-> > 
-> >   - machine wide IPI which syncrhonizes I$
-> > 
-> > At this point, any CPU will encounter the new instruction as a whole,
-> > irrespective of alignment.
-> > 
-> > 
-> > So the benefit of this scheme is that is works irrespective of the
-> > instruction fetch window size and don't need the 'funny' alignment
-> > stuff.
+> > Some of the arches look like they need special assembly massaging and it is
+> > probably smarter if the appropriate arch maintainers would do the actual
+> > wiring. Arches that are wired-up are:
+> > - x86{_32,64}
+> > - arm{64}
+> > - xtensa
 > > 
 > 
-> Thanks for explanation. Now I understand how this x86 magic works.
+> This patch results in build failures on various architecetures.
 > 
-> However it looks like even more complex than ARM implementation.
-> As I understand on ARM they do something like that:
-> ---------------------------->8-------------------------
-> on_each_cpu {
-> 	write_instruction
-> 	flush_data_cache_region
-> 	invalidate_instruction_cache_region
-> }
-> ---------------------------->8-------------------------
+> h8300-linux-ld: arch/h8300/kernel/syscalls.o:(.data+0x6d0): undefined reference to `sys_clone3'
 > 
-> https://elixir.bootlin.com/linux/v5.1/source/arch/arm/kernel/patch.c#L121
+> nios2-linux-ld: arch/nios2/kernel/syscall_table.o:(.data+0x6d0): undefined reference to `sys_clone3'
 > 
-> Yep, there is some overhead - as we don't need to do white and D$ flush on each cpu
-> but that makes code simple and avoids additional checks.
-> 
-> And I don't understand in which cases x86 approach with trap is better.
-> In this ARM implementation we do one machine wide IPI instead of three in x86 trap approach.
-> 
-> Probably there is some x86 specifics I don't get?
+> There may be others; -next is in too bad shape right now to get a complete
+> picture. Wondering, though: What is special with this syscall ? Normally
+> one would only get a warning that a syscall is not wired up.
 
-It's about variable instruction length; ARM (RISC in general) doesn't
-have that, ARC does.
+clone3() was placed under __ARCH_WANT_SYS_CLONE. Most architectures
+simply define __ARCH_WANT_SYS_CLONE and are done with it.
+Some however, such as nios2 and h8300 don't define it but instead
+provide a sys_clone stub of their own because of architectural
+requirements (or tweaks) and they are mostly written in assembly. (That
+should be left to arch maintainers for sys_clone3.)
 
-Your current proposal works by keeping the instruction inside of the
-i-fetch window, but that then results in instruction padding (extra
-NOPs). And that is fine, it really should work.
+The build failures were on my radar already. I hadn't yet replied
+since I haven't pushed the fixup below.
+The solution is to define __ARCH_WANT_SYS_CLONE3 and add a
+cond_syscall(clone3) so we catch all architectures that do not yet
+provide clone3 with a ENOSYS until maintainers have added it.
 
-The x86 approach however allows you to get rid of that padding and
-should work for unaligned variable length instructions (we have 1-15
-byte instructions).
-
-I just wanted to make sure you were aware of the possiblities such that
-you made an informed decision, I'm not trying to force complexity on you
-:-)
+diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
+index 7a39e77984ef..aa35aa5d68dc 100644
+--- a/arch/arm/include/asm/unistd.h
++++ b/arch/arm/include/asm/unistd.h
+@@ -40,6 +40,7 @@
+ #define __ARCH_WANT_SYS_FORK
+ #define __ARCH_WANT_SYS_VFORK
+ #define __ARCH_WANT_SYS_CLONE
++#define __ARCH_WANT_SYS_CLONE3
+ 
+ /*
+  * Unimplemented (or alternatively implemented) syscalls
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 24480c2d95da..e4e0523102e2 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -48,6 +48,7 @@
+ #endif
+ 
+ #define __ARCH_WANT_SYS_CLONE
++#define __ARCH_WANT_SYS_CLONE3
+ 
+ #ifndef __COMPAT_SYSCALL_NR
+ #include <uapi/asm/unistd.h>
+diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
+index 146859efd83c..097589753fec 100644
+--- a/arch/x86/include/asm/unistd.h
++++ b/arch/x86/include/asm/unistd.h
+@@ -54,5 +54,6 @@
+ # define __ARCH_WANT_SYS_FORK
+ # define __ARCH_WANT_SYS_VFORK
+ # define __ARCH_WANT_SYS_CLONE
++# define __ARCH_WANT_SYS_CLONE3
+ 
+ #endif /* _ASM_X86_UNISTD_H */
+diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
+index 30af4dc3ce7b..b52236245e51 100644
+--- a/arch/xtensa/include/asm/unistd.h
++++ b/arch/xtensa/include/asm/unistd.h
+@@ -3,6 +3,7 @@
+ #define _XTENSA_UNISTD_H
+ 
+ #define __ARCH_WANT_SYS_CLONE
++#define __ARCH_WANT_SYS_CLONE3
+ #include <uapi/asm/unistd.h>
+ 
+ #define __ARCH_WANT_NEW_STAT
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 08ff131f26b4..98abea995629 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -2490,7 +2490,9 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
+ 
+ 	return _do_fork(&args);
+ }
++#endif
+ 
++#ifdef __ARCH_WANT_SYS_CLONE3
+ noinline static int copy_clone_args_from_user(struct kernel_clone_args *kargs,
+ 					      struct clone_args __user *uargs,
+ 					      size_t size)
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 4d9ae5ea6caf..34b76895b81e 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -137,6 +137,8 @@ COND_SYSCALL(capset);
+ /* kernel/exit.c */
+ 
+ /* kernel/fork.c */
++/* __ARCH_WANT_SYS_CLONE3 */
++COND_SYSCALL(clone3);
+ 
+ /* kernel/futex.c */
+ COND_SYSCALL(futex);
