@@ -1,167 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:43970 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725869AbfFTSoy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jun 2019 14:44:54 -0400
-Date: Thu, 20 Jun 2019 11:44:51 -0700
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
-Message-ID: <20190620184451.GA28543@roeck-us.net>
-References: <20190604160944.4058-1-christian@brauner.io>
- <20190604160944.4058-2-christian@brauner.io>
+Received: from dc8-smtprelay2.synopsys.com ([198.182.47.102]:50542 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726062AbfFTSsb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Jun 2019 14:48:31 -0400
+Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
+References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
+ <20190619081227.GL3419@hirez.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252E40B@us01wembx1.internal.synopsys.com>
+ <20190620070120.GU3402@hirez.programming.kicks-ass.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <a0a1aa81-d46e-71db-ff7b-207bc468068d@synopsys.com>
+Date: Thu, 20 Jun 2019 11:48:17 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190604160944.4058-2-christian@brauner.io>
+In-Reply-To: <20190620070120.GU3402@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Brauner <christian@brauner.io>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, jannh@google.com, keescook@chromium.org, fweimer@redhat.com, oleg@redhat.com, arnd@arndb.de, dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20190620184451.-ttTbTpNy89tsAs8yRsWyouyYHxgoy09BthXky4Dl7k@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Jason Baron <jbaron@akamai.com>, Paolo Bonzini <pbonzini@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190620184817.aB7KCRJwS9Hl3Q7RpkTdvADz2f83B8vr_JGZV2NYZm0@z>
 
-On Tue, Jun 04, 2019 at 06:09:44PM +0200, Christian Brauner wrote:
-> Wire up the clone3() call on all arches that don't require hand-rolled
-> assembly.
+On 6/20/19 12:01 AM, Peter Zijlstra wrote:
+
 > 
-> Some of the arches look like they need special assembly massaging and it is
-> probably smarter if the appropriate arch maintainers would do the actual
-> wiring. Arches that are wired-up are:
-> - x86{_32,64}
-> - arm{64}
-> - xtensa
+> In particular we do not need the alignment.
 > 
-
-This patch results in build failures on various architecetures.
-
-h8300-linux-ld: arch/h8300/kernel/syscalls.o:(.data+0x6d0): undefined reference to `sys_clone3'
-
-nios2-linux-ld: arch/nios2/kernel/syscall_table.o:(.data+0x6d0): undefined reference to `sys_clone3'
-
-There may be others; -next is in too bad shape right now to get a complete
-picture. Wondering, though: What is special with this syscall ? Normally
-one would only get a warning that a syscall is not wired up.
-
-Guenter
-
-> Signed-off-by: Christian Brauner <christian@brauner.io>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: Adrian Reber <adrian@lisas.de>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Al Viro <viro@zeniv.linux.org.uk>
-> Cc: Florian Weimer <fweimer@redhat.com>
-> Cc: linux-api@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> ---
-> v1: unchanged
-> v2: unchanged
-> v3:
-> - Christian Brauner <christian@brauner.io>:
->   - wire up clone3 on all arches that don't have hand-rolled entry points
->     for clone
-> ---
->  arch/arm/tools/syscall.tbl                  | 1 +
->  arch/arm64/include/asm/unistd.h             | 2 +-
->  arch/arm64/include/asm/unistd32.h           | 2 ++
->  arch/microblaze/kernel/syscalls/syscall.tbl | 1 +
->  arch/x86/entry/syscalls/syscall_32.tbl      | 1 +
->  arch/x86/entry/syscalls/syscall_64.tbl      | 1 +
->  arch/xtensa/kernel/syscalls/syscall.tbl     | 1 +
->  include/uapi/asm-generic/unistd.h           | 4 +++-
->  8 files changed, 11 insertions(+), 2 deletions(-)
+> So what the x86 code does is:
 > 
-> diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
-> index aaf479a9e92d..e99a82bdb93a 100644
-> --- a/arch/arm/tools/syscall.tbl
-> +++ b/arch/arm/tools/syscall.tbl
-> @@ -447,3 +447,4 @@
->  431	common	fsconfig			sys_fsconfig
->  432	common	fsmount				sys_fsmount
->  433	common	fspick				sys_fspick
-> +436	common	clone3				sys_clone3
-> diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-> index 70e6882853c0..24480c2d95da 100644
-> --- a/arch/arm64/include/asm/unistd.h
-> +++ b/arch/arm64/include/asm/unistd.h
-> @@ -44,7 +44,7 @@
->  #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
->  #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
->  
-> -#define __NR_compat_syscalls		434
-> +#define __NR_compat_syscalls		437
->  #endif
->  
->  #define __ARCH_WANT_SYS_CLONE
-> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-> index c39e90600bb3..b144ea675d70 100644
-> --- a/arch/arm64/include/asm/unistd32.h
-> +++ b/arch/arm64/include/asm/unistd32.h
-> @@ -886,6 +886,8 @@ __SYSCALL(__NR_fsconfig, sys_fsconfig)
->  __SYSCALL(__NR_fsmount, sys_fsmount)
->  #define __NR_fspick 433
->  __SYSCALL(__NR_fspick, sys_fspick)
-> +#define __NR_clone3 436
-> +__SYSCALL(__NR_clone3, sys_clone3)
->  
->  /*
->   * Please add new compat syscalls above this comment and update
-> diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
-> index 26339e417695..3110440bcc31 100644
-> --- a/arch/microblaze/kernel/syscalls/syscall.tbl
-> +++ b/arch/microblaze/kernel/syscalls/syscall.tbl
-> @@ -439,3 +439,4 @@
->  431	common	fsconfig			sys_fsconfig
->  432	common	fsmount				sys_fsmount
->  433	common	fspick				sys_fspick
-> +436	common	clone3				sys_clone3
-> diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-> index ad968b7bac72..80e26211feff 100644
-> --- a/arch/x86/entry/syscalls/syscall_32.tbl
-> +++ b/arch/x86/entry/syscalls/syscall_32.tbl
-> @@ -438,3 +438,4 @@
->  431	i386	fsconfig		sys_fsconfig			__ia32_sys_fsconfig
->  432	i386	fsmount			sys_fsmount			__ia32_sys_fsmount
->  433	i386	fspick			sys_fspick			__ia32_sys_fspick
-> +436	i386	clone3			sys_clone3			__ia32_sys_clone3
-> diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-> index b4e6f9e6204a..7968f0b5b5e8 100644
-> --- a/arch/x86/entry/syscalls/syscall_64.tbl
-> +++ b/arch/x86/entry/syscalls/syscall_64.tbl
-> @@ -355,6 +355,7 @@
->  431	common	fsconfig		__x64_sys_fsconfig
->  432	common	fsmount			__x64_sys_fsmount
->  433	common	fspick			__x64_sys_fspick
-> +436	common	clone3			__x64_sys_clone3/ptregs
->  
->  #
->  # x32-specific system call numbers start at 512 to avoid cache impact
-> diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
-> index 5fa0ee1c8e00..b2767c8c2b4e 100644
-> --- a/arch/xtensa/kernel/syscalls/syscall.tbl
-> +++ b/arch/xtensa/kernel/syscalls/syscall.tbl
-> @@ -404,3 +404,4 @@
->  431	common	fsconfig			sys_fsconfig
->  432	common	fsmount				sys_fsmount
->  433	common	fspick				sys_fspick
-> +436	common	clone3				sys_clone3
-> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> index a87904daf103..45bc87687c47 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -844,9 +844,11 @@ __SYSCALL(__NR_fsconfig, sys_fsconfig)
->  __SYSCALL(__NR_fsmount, sys_fsmount)
->  #define __NR_fspick 433
->  __SYSCALL(__NR_fspick, sys_fspick)
-> +#define __NR_clone3 436
-> +__SYSCALL(__NR_clone3, sys_clone3)
->  
->  #undef __NR_syscalls
-> -#define __NR_syscalls 434
-> +#define __NR_syscalls 437
->  
->  /*
->   * 32 bit systems traditionally used different
+>  - overwrite the first byte of the instruction with a single byte trap
+>    instruction
+> 
+>  - machine wide IPI which synchronizes I$
+> 
+> At this point, any CPU that encounters this instruction will trap; and
+> the trap handler will emulate the 'new' instruction -- typically a jump.
+> 
+>   - overwrite the tail of the instruction (if there is a tail)
+> 
+>   - machine wide IPI which syncrhonizes I$
+> 
+> At this point, nobody will execute the tail, because we'll still trap on
+> that first single byte instruction, but if they were to read the
+> instruction stream, the tail must be there.
+> 
+>   - overwrite the first byte of the instruction to now have a complete
+>     instruction.
+> 
+>   - machine wide IPI which syncrhonizes I$
+> 
+> At this point, any CPU will encounter the new instruction as a whole,
+> irrespective of alignment.
+> 
+> 
+> So the benefit of this scheme is that is works irrespective of the
+> instruction fetch window size and don't need the 'funny' alignment
+> stuff.
+> 
+> Now, I've no idea if something like this is feasible on ARC; for it to
+> work you need that 2 byte trap instruction -- since all instructions are
+> 2 byte aligned, you can always poke that without issue.
+
+We do have a 2 byte TRAP_S u6 which is used for all/any trap'ing: syscalls,
+software breakpoint, kprobes etc. But using it like x86 seems a bit excessive for
+ARC. Given that x86 doesn't implement flush_icache_range() it must have I$
+snooping D$ and also this machine wide IPI sync I$ must be totally under the hood
+all hardware affair - unlike ARC which needs on_each_cpu( I$ line range).
+
+Using TRAP_S would actually requires 2 passes (and 2 rounds of IPI) for code
+patching - the last one to undo the TRAP_S itself.
+
+I do worry about the occasional alignment induced extra NOP_S instruction (2 byte)
+but there doesn't seem to be an easy solution. Heck if we could use the NOP_S /
+B_S in first place. While not a clean solution by any standards, could anything be
+done to reduce the code path of DO_ONCE() so that unlikely code is not too far off.
