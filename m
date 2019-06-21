@@ -1,94 +1,191 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:37490 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726596AbfFULSq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jun 2019 07:18:46 -0400
-Received: by mail-wm1-f67.google.com with SMTP id f17so6195986wme.2
-        for <linux-arch@vger.kernel.org>; Fri, 21 Jun 2019 04:18:44 -0700 (PDT)
-Date: Fri, 21 Jun 2019 13:18:41 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
-Message-ID: <20190621111839.v5yqlws6iw7mx4aa@brauner.io>
-References: <20190604160944.4058-1-christian@brauner.io>
- <20190604160944.4058-2-christian@brauner.io>
- <20190620184451.GA28543@roeck-us.net>
- <20190620221003.ciuov5fzqxrcaykp@brauner.io>
- <CAK8P3a2iV7=HkHBVL_puvCQN0DmdKEnVs2aG9MQV_8Q58JSfTA@mail.gmail.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:58686 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726431AbfFUMJa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jun 2019 08:09:30 -0400
+Date: Fri, 21 Jun 2019 14:09:23 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
+Message-ID: <20190621120923.GT3463@hirez.programming.kicks-ass.net>
+References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
+ <20190619081227.GL3419@hirez.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252E40B@us01wembx1.internal.synopsys.com>
+ <20190620070120.GU3402@hirez.programming.kicks-ass.net>
+ <a0a1aa81-d46e-71db-ff7b-207bc468068d@synopsys.com>
+ <20190620212256.GC3436@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a2iV7=HkHBVL_puvCQN0DmdKEnVs2aG9MQV_8Q58JSfTA@mail.gmail.com>
+In-Reply-To: <20190620212256.GC3436@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20190621111841.Fr-gFLTdkvnn0eRHag--A0emSS_vPy5AbxMV4jIPvS8@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Jason Baron <jbaron@akamai.com>, Paolo Bonzini <pbonzini@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, namit@vmware.com
+Message-ID: <20190621120923.1E1PYtDMwGGPqb6vlhjH1ZjwC7uK4K2SMTeg16JfTug@z>
 
-On Fri, Jun 21, 2019 at 11:37:50AM +0200, Arnd Bergmann wrote:
-> On Fri, Jun 21, 2019 at 12:10 AM Christian Brauner <christian@brauner.io> wrote:
-> > On Thu, Jun 20, 2019 at 11:44:51AM -0700, Guenter Roeck wrote:
-> > > On Tue, Jun 04, 2019 at 06:09:44PM +0200, Christian Brauner wrote:
-> >
-> > clone3() was placed under __ARCH_WANT_SYS_CLONE. Most architectures
-> > simply define __ARCH_WANT_SYS_CLONE and are done with it.
-> > Some however, such as nios2 and h8300 don't define it but instead
-> > provide a sys_clone stub of their own because of architectural
-> > requirements (or tweaks) and they are mostly written in assembly. (That
-> > should be left to arch maintainers for sys_clone3.)
-> >
-> > The build failures were on my radar already. I hadn't yet replied
-> > since I haven't pushed the fixup below.
-> > The solution is to define __ARCH_WANT_SYS_CLONE3 and add a
-> > cond_syscall(clone3) so we catch all architectures that do not yet
-> > provide clone3 with a ENOSYS until maintainers have added it.
-> >
-> > diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-> > index 7a39e77984ef..aa35aa5d68dc 100644
-> > --- a/arch/arm/include/asm/unistd.h
-> > +++ b/arch/arm/include/asm/unistd.h
-> > @@ -40,6 +40,7 @@
-> >  #define __ARCH_WANT_SYS_FORK
-> >  #define __ARCH_WANT_SYS_VFORK
-> >  #define __ARCH_WANT_SYS_CLONE
-> > +#define __ARCH_WANT_SYS_CLONE3
+On Thu, Jun 20, 2019 at 11:22:56PM +0200, Peter Zijlstra wrote:
+> On Thu, Jun 20, 2019 at 11:48:17AM -0700, Vineet Gupta wrote:
+
+> > I do worry about the occasional alignment induced extra NOP_S instruction (2 byte)
+> > but there doesn't seem to be an easy solution. Heck if we could use the NOP_S /
+> > B_S in first place. While not a clean solution by any standards, could anything be
+> > done to reduce the code path of DO_ONCE() so that unlikely code is not too far off.
 > 
-> I never really liked having __ARCH_WANT_SYS_CLONE here
-> because it was the only one that a new architecture needed to
-> set: all the other __ARCH_WANT_* are for system calls that
-> are already superseded by newer ones, so a new architecture
-> would start out with an empty list.
+> if one could somehow get the arch_static_branch*() things to
+> conditionally emit either the 2 or 4 byte jump, depending on the offset
+> (which is known there, since we stick it in the __jump_table), then we
+> can have arch_jump_label_transform() use that same condition to switch
+> between 2 and 4 bytes too.
 > 
-> Since __ARCH_WANT_SYS_CLONE3 replaces
-> __ARCH_WANT_SYS_CLONE for new architectures, how about
-> leaving __ARCH_WANT_SYS_CLONE untouched but instead
+> I just don't know if it's possible :-/
 
-__ARCH_WANT_SYS_CLONE is left untouched. :)
+So I had to try; but GAS macro .if directives don't like labels as
+arguments, not constant enough for them.
 
-> coming up with the reverse for clone3 and mark the architectures
-> that specifically don't want it (if any)?
+../arch/x86/include/asm/jump_label.h:26: Error: non-constant expression in ".if" statement
 
-Afaict, your suggestion is more or less the same thing what is done
-here. So I'm not sure it buys us anything apart from future
-architectures not needing to set __ARCH_WANT_SYS_CLONE3.
+Damn!
 
-I expect the macro above to be only here temporarily until all arches
-have caught up and we're sure that they don't require assembly stubs
-(cf. [1]). A decision I'd leave to the maintainers (since even for
-nios2 we were kind of on the fence what exactly the sys_clone stub was
-supposed to do).
-
-But I'm happy to take a patch from you if it's equally or more simple
-than this one right here.
-
-In any case, linux-next should be fine on all arches with this fixup
-now.
-
-Christian
-
-
-[1]: Architectures such as nios2 or h8300 simply take the asm-generic
-     syscall definitions and generate their syscall table from it. But
-     since they don't define __ARCH_WANT_SYS_CLONE the build would fail
-     complaining about sys_clone3 missing. The reason this doesn't
-     happen for legacy clone is that nios2 and h8300 provide assembly
-     stubs for sys_clone but they don't for sys_clone3.
+---
+--- a/arch/x86/include/asm/jump_label.h
++++ b/arch/x86/include/asm/jump_label.h
+@@ -12,24 +12,19 @@
+ # define STATIC_KEY_INIT_NOP GENERIC_NOP5_ATOMIC
+ #endif
+ 
+-#include <asm/asm.h>
+-#include <asm/nops.h>
++asm(".include \"asm/jump_label_asm.h\"");
+ 
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/stringify.h>
+ #include <linux/types.h>
++#include <asm/asm.h>
++#include <asm/nops.h>
+ 
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
+ {
+-	asm_volatile_goto("1:"
+-		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
+-		_ASM_ALIGN "\n\t"
+-		".long 1b - ., %l[l_yes] - . \n\t"
+-		_ASM_PTR "%c0 + %c1 - .\n\t"
+-		".popsection \n\t"
+-		: :  "i" (key), "i" (branch) : : l_yes);
++	asm_volatile_goto("STATIC_BRANCH_NOP l_yes=\"%l[l_yes]\", key=\"%c0\", branch=\"%c1\""
++			  : : "i" (key), "i" (branch) : : l_yes);
+ 
+ 	return false;
+ l_yes:
+@@ -38,57 +33,13 @@ static __always_inline bool arch_static_
+ 
+ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
+ {
+-	asm_volatile_goto("1:"
+-		".byte 0xe9\n\t .long %l[l_yes] - 2f\n\t"
+-		"2:\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
+-		_ASM_ALIGN "\n\t"
+-		".long 1b - ., %l[l_yes] - . \n\t"
+-		_ASM_PTR "%c0 + %c1 - .\n\t"
+-		".popsection \n\t"
+-		: :  "i" (key), "i" (branch) : : l_yes);
++	asm_volatile_goto("STATIC_BRANCH_JMP l_yes=\"%l[l_yes]\", key=\"%c0\", branch=\"%c1\""
++			  : : "i" (key), "i" (branch) : : l_yes);
+ 
+ 	return false;
+ l_yes:
+ 	return true;
+ }
+ 
+-#else	/* __ASSEMBLY__ */
+-
+-.macro STATIC_JUMP_IF_TRUE target, key, def
+-.Lstatic_jump_\@:
+-	.if \def
+-	/* Equivalent to "jmp.d32 \target" */
+-	.byte		0xe9
+-	.long		\target - .Lstatic_jump_after_\@
+-.Lstatic_jump_after_\@:
+-	.else
+-	.byte		STATIC_KEY_INIT_NOP
+-	.endif
+-	.pushsection __jump_table, "aw"
+-	_ASM_ALIGN
+-	.long		.Lstatic_jump_\@ - ., \target - .
+-	_ASM_PTR	\key - .
+-	.popsection
+-.endm
+-
+-.macro STATIC_JUMP_IF_FALSE target, key, def
+-.Lstatic_jump_\@:
+-	.if \def
+-	.byte		STATIC_KEY_INIT_NOP
+-	.else
+-	/* Equivalent to "jmp.d32 \target" */
+-	.byte		0xe9
+-	.long		\target - .Lstatic_jump_after_\@
+-.Lstatic_jump_after_\@:
+-	.endif
+-	.pushsection __jump_table, "aw"
+-	_ASM_ALIGN
+-	.long		.Lstatic_jump_\@ - ., \target - .
+-	_ASM_PTR	\key + 1 - .
+-	.popsection
+-.endm
+-
+-#endif	/* __ASSEMBLY__ */
+-
+-#endif
++#endif /* __ASSEMBLY__ */
++#endif /* _ASM_X86_JUMP_LABEL_H */
+--- /dev/null
++++ b/arch/x86/include/asm/jump_label_asm.h
+@@ -0,0 +1,44 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_X86_JUMP_LABEL_ASM_H
++#define _ASM_X86_JUMP_LABEL_ASM_H
++
++#include <asm/asm.h>
++#include <asm/nops.h>
++
++#ifdef __ASSEMBLY__
++
++.macro STATIC_BRANCH_ENTRY l_target:req l_yes:req key:req branch:req
++	.pushsection __jump_table, "aw"
++	.long		\l_target - ., \l_yes - .
++#ifdef __X86_64__
++	.quad		(\key - .) + \branch
++#else
++	.long		(\key - .) + \branch
++#endif
++	.popsection
++.endm
++
++.macro STATIC_BRANCH_NOP l_yes:req key:req branch:req
++.Lstatic_branch_nop_\@:
++.iflt 127 - .
++	.byte 0x66, 0x90
++.else
++	.byte STATIC_KEY_INIT_NOP
++.endif
++	STATIC_BRANCH_ENTRY l_target=.Lstatic_branch_nop_\@, l_yes=\l_yes, key=\key, branch=\branch
++.endm
++
++.macro STATIC_BRANCH_JMP l_yes:req key:req branch:req
++.Lstatic_branch_jmp_\@:
++.if \l_yes - . < 127
++	.byte 0xeb
++	.byte \l_yes - (. + 1)
++.else
++	.byte 0xe9
++	.long \l_yes - (. + 4)
++.endif
++	STATIC_BRANCH_ENTRY l_target=.Lstatic_branch_jmp_\@, l_yes=\l_yes, key=\key, branch=\branch
++.endm
++
++#endif /* __ASSEMBLY__ */
++#endif /* _ASM_X86_JUMP_LABEL_ASM_H */
