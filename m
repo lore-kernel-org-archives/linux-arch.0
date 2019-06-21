@@ -1,60 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55260 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726796AbfFUJxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:53:22 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 05/25] arm64: Build vDSO with -ffixed-x18
-Date: Fri, 21 Jun 2019 10:52:32 +0100
-Message-ID: <20190621095252.32307-6-vincenzo.frascino@arm.com>
-In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+Received: from mail.codeweavers.com ([50.203.203.244]:48330 "EHLO
+        mail.codeweavers.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726218AbfFUKtM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jun 2019 06:49:12 -0400
+Date: Fri, 21 Jun 2019 11:49:02 +0100
+From: Huw Davies <huw@codeweavers.com>
+Subject: Re: [PATCH v7 03/25] kernel: Unify update_vsyscall implementation
+Message-ID: <20190621104902.GA6646@merlot.physics.ox.ac.uk>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <20190621095252.32307-4-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190621095252.32307-4-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>, Mark Salyzyn <salyzyn@google.com>
-Message-ID: <20190621095232.lqWMSdEYIoyjhenmxGbanzDlGc6Y852-Ta6lpnXMPCA@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Message-ID: <20190621104902.zU5kZJenWeJzjfGEe6yuLoe14aiAWT_tORK6r3g_CfU@z>
 
-From: Peter Collingbourne <pcc@google.com>
+On Fri, Jun 21, 2019 at 10:52:30AM +0100, Vincenzo Frascino wrote:
+> diff --git a/kernel/vdso/vsyscall.c b/kernel/vdso/vsyscall.c
+> new file mode 100644
+> index 000000000000..d1e8074e3d10
+> --- /dev/null
+> +++ b/kernel/vdso/vsyscall.c
+> +static inline void update_vdso_data(struct vdso_data *vdata,
+> +				    struct timekeeper *tk)
+> +{
+> +	struct vdso_timestamp *vdso_ts;
+> +	u64 nsec;
+> +
+> +	vdata[CS_HRES_COARSE].cycle_last	= tk->tkr_mono.cycle_last;
+> +	vdata[CS_HRES_COARSE].mask		= tk->tkr_mono.mask;
+> +	vdata[CS_HRES_COARSE].mult		= tk->tkr_mono.mult;
+> +	vdata[CS_HRES_COARSE].shift		= tk->tkr_mono.shift;
+> +	vdata[CS_RAW].cycle_last		= tk->tkr_raw.cycle_last;
+> +	vdata[CS_RAW].mask			= tk->tkr_raw.mask;
+> +	vdata[CS_RAW].mult			= tk->tkr_raw.mult;
+> +	vdata[CS_RAW].shift			= tk->tkr_raw.shift;
+> +
+> +	/* CLOCK_REALTIME */
+> +	vdso_ts		=  &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME];
 
-The vDSO needs to be build with x18 reserved in order to accommodate
-userspace platform ABIs built on top of Linux that use the register
-to carry inter-procedural state, as provided for by the AAPCS.
-An example of such a platform ABI is the one that will be used by an
-upcoming version of Android.
+There's an extraneous space after the '='.  Hopefully Thomas can
+fix this up if this patchset is otherwise ok.
 
-Although this change is currently a no-op due to the fact that the vDSO
-is currently implemented in pure assembly on arm64, it is necessary
-in order to prepare for another change [1] that will add C code to
-the vDSO.
+> +	vdso_ts->sec	= tk->xtime_sec;
+> +	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
 
-[1] https://patchwork.kernel.org/patch/10044501/
-
-Signed-off-by: Peter Collingbourne <pcc@google.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Tested-by: Shijith Thotton <sthotton@marvell.com>
-Tested-by: Andre Przywara <andre.przywara@arm.com>
-Cc: Mark Salyzyn <salyzyn@google.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
----
- arch/arm64/kernel/vdso/Makefile | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-index 3acfc813e966..ec81d28aeb5d 100644
---- a/arch/arm64/kernel/vdso/Makefile
-+++ b/arch/arm64/kernel/vdso/Makefile
-@@ -20,7 +20,7 @@ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
- ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
- 		--build-id -n -T
- 
--ccflags-y := -fno-common -fno-builtin -fno-stack-protector
-+ccflags-y := -fno-common -fno-builtin -fno-stack-protector -ffixed-x18
- ccflags-y += -DDISABLE_BRANCH_PROFILING
- 
- VDSO_LDFLAGS := -Bsymbolic
--- 
-2.21.0
+Huw.
