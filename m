@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 22/25] x86: Add support for generic vDSO
-Date: Fri, 21 Jun 2019 10:52:49 +0100
-Message-ID: <20190621095252.32307-23-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 16/25] arm: Add support for generic vDSO
+Date: Fri, 21 Jun 2019 10:52:43 +0100
+Message-ID: <20190621095252.32307-17-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,727 +12,201 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The x86 vDSO library requires some adaptations to take advantage of the
-newly introduced generic vDSO library.
+The arm vDSO library requires some adaptations to use to take advantage
+of the newly introduced generic vDSO library.
 
 Introduce the following changes:
- - Modification of vdso.c to be compliant with the common vdso datapage
+ - Modification vdso.c to be compliant with the common vdso datapage
  - Use of lib/vdso for gettimeofday
+ - Implementation of elf note
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Russell King <linux@armlinux.org.uk>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/x86/Kconfig                         |   3 +
- arch/x86/entry/vdso/Makefile             |   9 +
- arch/x86/entry/vdso/vclock_gettime.c     | 241 +++--------------------
- arch/x86/entry/vdso/vdsox32.lds.S        |   1 +
- arch/x86/entry/vsyscall/Makefile         |   2 -
- arch/x86/entry/vsyscall/vsyscall_gtod.c  |  83 --------
- arch/x86/include/asm/pvclock.h           |   2 +-
- arch/x86/include/asm/vdso/gettimeofday.h | 175 ++++++++++++++++
- arch/x86/include/asm/vdso/vsyscall.h     |  44 +++++
- arch/x86/include/asm/vgtod.h             |  75 +------
- arch/x86/include/asm/vvar.h              |   7 +-
- arch/x86/kernel/pvclock.c                |   1 +
- 12 files changed, 270 insertions(+), 373 deletions(-)
- delete mode 100644 arch/x86/entry/vsyscall/vsyscall_gtod.c
- create mode 100644 arch/x86/include/asm/vdso/gettimeofday.h
- create mode 100644 arch/x86/include/asm/vdso/vsyscall.h
+ arch/arm/Kconfig                         |   3 +
+ arch/arm/include/asm/vdso/gettimeofday.h |  74 +++++++
+ arch/arm/include/asm/vdso/vsyscall.h     |  71 +++++++
+ arch/arm/include/asm/vdso_datapage.h     |  29 +--
+ arch/arm/kernel/vdso.c                   |  87 +-------
+ arch/arm/vdso/Makefile                   |  13 +-
+ arch/arm/vdso/note.c                     |  15 ++
+ arch/arm/vdso/vgettimeofday.c            | 256 +----------------------
+ 8 files changed, 192 insertions(+), 356 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/arm/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/arm/vdso/note.c
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 2bbbd4d1ba31..51a98d6eae8e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -17,6 +17,7 @@ config X86_32
- 	select HAVE_DEBUG_STACKOVERFLOW
- 	select MODULES_USE_ELF_REL
- 	select OLD_SIGACTION
-+	select GENERIC_VDSO_32
- 
- config X86_64
- 	def_bool y
-@@ -121,6 +122,7 @@ config X86
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 8869742a85df..a238fc34e478 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -53,6 +53,8 @@ config ARM
+ 	select GENERIC_SMP_IDLE_THREAD
  	select GENERIC_STRNCPY_FROM_USER
  	select GENERIC_STRNLEN_USER
- 	select GENERIC_TIME_VSYSCALL
 +	select GENERIC_GETTIMEOFDAY
- 	select HARDLOCKUP_CHECK_TIMESTAMP	if X86_64
- 	select HAVE_ACPI_APEI			if ACPI
- 	select HAVE_ACPI_APEI_NMI		if ACPI
-@@ -202,6 +204,7 @@ config X86
++	select GENERIC_VDSO_32
+ 	select HANDLE_DOMAIN_IRQ
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_AUDITSYSCALL if AEABI && !OABI_COMPAT
+@@ -101,6 +103,7 @@ config ARM
  	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_UNSTABLE_SCHED_CLOCK
- 	select HAVE_USER_RETURN_NOTIFIER
-+	select HAVE_GENERIC_VDSO
- 	select HOTPLUG_SMT			if SMP
+ 	select HAVE_UID16
+ 	select HAVE_VIRT_CPU_ACCOUNTING_GEN
++	select HAVE_GENERIC_VDSO if AEABI
  	select IRQ_FORCED_THREADING
- 	select NEED_SG_DMA_LENGTH
-diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index 42fe42e82baf..39106111be86 100644
---- a/arch/x86/entry/vdso/Makefile
-+++ b/arch/x86/entry/vdso/Makefile
-@@ -3,6 +3,12 @@
- # Building vDSO images for x86.
- #
- 
-+# Absolute relocation type $(ARCH_REL_TYPE_ABS) needs to be defined before
-+# the inclusion of generic Makefile.
-+ARCH_REL_TYPE_ABS := R_X86_64_JUMP_SLOT|R_X86_64_GLOB_DAT|R_X86_64_RELATIVE|
-+ARCH_REL_TYPE_ABS += R_386_GLOB_DAT|R_386_JMP_SLOT|R_386_RELATIVE
-+include $(srctree)/lib/vdso/Makefile
-+
- KBUILD_CFLAGS += $(DISABLE_LTO)
- KASAN_SANITIZE			:= n
- UBSAN_SANITIZE			:= n
-@@ -51,6 +57,7 @@ VDSO_LDFLAGS_vdso.lds = -m elf_x86_64 -soname linux-vdso.so.1 --no-undefined \
- 
- $(obj)/vdso64.so.dbg: $(obj)/vdso.lds $(vobjs) FORCE
- 	$(call if_changed,vdso)
-+	$(call if_changed,vdso_check)
- 
- HOST_EXTRACFLAGS += -I$(srctree)/tools/include -I$(srctree)/include/uapi -I$(srctree)/arch/$(SUBARCH)/include/uapi
- hostprogs-y			+= vdso2c
-@@ -121,6 +128,7 @@ $(obj)/%.so: $(obj)/%.so.dbg FORCE
- 
- $(obj)/vdsox32.so.dbg: $(obj)/vdsox32.lds $(vobjx32s) FORCE
- 	$(call if_changed,vdso)
-+	$(call if_changed,vdso_check)
- 
- CPPFLAGS_vdso32.lds = $(CPPFLAGS_vdso.lds)
- VDSO_LDFLAGS_vdso32.lds = -m elf_i386 -soname linux-gate.so.1
-@@ -160,6 +168,7 @@ $(obj)/vdso32.so.dbg: FORCE \
- 		      $(obj)/vdso32/system_call.o \
- 		      $(obj)/vdso32/sigreturn.o
- 	$(call if_changed,vdso)
-+	$(call if_changed,vdso_check)
- 
- #
- # The DSO images are built using a special linker script.
-diff --git a/arch/x86/entry/vdso/vclock_gettime.c b/arch/x86/entry/vdso/vclock_gettime.c
-index 310e7bf59ad2..4a7ef4ca4f52 100644
---- a/arch/x86/entry/vdso/vclock_gettime.c
-+++ b/arch/x86/entry/vdso/vclock_gettime.c
-@@ -1,241 +1,58 @@
- // SPDX-License-Identifier: GPL-2.0-only
- /*
-- * Copyright 2006 Andi Kleen, SUSE Labs.
-- *
-  * Fast user context implementation of clock_gettime, gettimeofday, and time.
-  *
-+ * Copyright 2006 Andi Kleen, SUSE Labs.
-+ * Copyright 2019 ARM Limited
-+ *
-  * 32 Bit compat layer by Stefani Seibold <stefani@seibold.net>
-  *  sponsored by Rohde & Schwarz GmbH & Co. KG Munich/Germany
-- *
-- * The code should have no internal unresolved relocations.
-- * Check with readelf after changing.
-  */
--
--#include <uapi/linux/time.h>
--#include <asm/vgtod.h>
--#include <asm/vvar.h>
--#include <asm/unistd.h>
--#include <asm/msr.h>
--#include <asm/pvclock.h>
--#include <asm/mshyperv.h>
--#include <linux/math64.h>
- #include <linux/time.h>
- #include <linux/kernel.h>
--#include <clocksource/hyperv_timer.h>
-+#include <linux/types.h>
- 
--#define gtod (&VVAR(vsyscall_gtod_data))
-+#include "../../../../lib/vdso/gettimeofday.c"
- 
--extern int __vdso_clock_gettime(clockid_t clock, struct timespec *ts);
--extern int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz);
-+extern int __vdso_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz);
- extern time_t __vdso_time(time_t *t);
- 
--#ifdef CONFIG_PARAVIRT_CLOCK
--extern u8 pvclock_page[PAGE_SIZE]
--	__attribute__((visibility("hidden")));
--#endif
--
--#ifdef CONFIG_HYPERV_TSCPAGE
--extern u8 hvclock_page[PAGE_SIZE]
--	__attribute__((visibility("hidden")));
--#endif
--
--#ifndef BUILD_VDSO32
--
--notrace static long vdso_fallback_gettime(long clock, struct timespec *ts)
--{
--	long ret;
--	asm ("syscall" : "=a" (ret), "=m" (*ts) :
--	     "0" (__NR_clock_gettime), "D" (clock), "S" (ts) :
--	     "rcx", "r11");
--	return ret;
--}
--
--#else
--
--notrace static long vdso_fallback_gettime(long clock, struct timespec *ts)
-+int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
-+			struct timezone *tz)
- {
--	long ret;
--
--	asm (
--		"mov %%ebx, %%edx \n"
--		"mov %[clock], %%ebx \n"
--		"call __kernel_vsyscall \n"
--		"mov %%edx, %%ebx \n"
--		: "=a" (ret), "=m" (*ts)
--		: "0" (__NR_clock_gettime), [clock] "g" (clock), "c" (ts)
--		: "edx");
--	return ret;
-+	return __cvdso_gettimeofday(tv, tz);
- }
-+int gettimeofday(struct __kernel_old_timeval *, struct timezone *)
-+	__attribute__((weak, alias("__vdso_gettimeofday")));
- 
--#endif
--
--#ifdef CONFIG_PARAVIRT_CLOCK
--static notrace const struct pvclock_vsyscall_time_info *get_pvti0(void)
-+time_t __vdso_time(time_t *t)
- {
--	return (const struct pvclock_vsyscall_time_info *)&pvclock_page;
-+	return __cvdso_time(t);
- }
-+time_t time(time_t *t)
-+	__attribute__((weak, alias("__vdso_time")));
- 
--static notrace u64 vread_pvclock(void)
--{
--	const struct pvclock_vcpu_time_info *pvti = &get_pvti0()->pvti;
--	u32 version;
--	u64 ret;
--
--	/*
--	 * Note: The kernel and hypervisor must guarantee that cpu ID
--	 * number maps 1:1 to per-CPU pvclock time info.
--	 *
--	 * Because the hypervisor is entirely unaware of guest userspace
--	 * preemption, it cannot guarantee that per-CPU pvclock time
--	 * info is updated if the underlying CPU changes or that that
--	 * version is increased whenever underlying CPU changes.
--	 *
--	 * On KVM, we are guaranteed that pvti updates for any vCPU are
--	 * atomic as seen by *all* vCPUs.  This is an even stronger
--	 * guarantee than we get with a normal seqlock.
--	 *
--	 * On Xen, we don't appear to have that guarantee, but Xen still
--	 * supplies a valid seqlock using the version field.
--	 *
--	 * We only do pvclock vdso timing at all if
--	 * PVCLOCK_TSC_STABLE_BIT is set, and we interpret that bit to
--	 * mean that all vCPUs have matching pvti and that the TSC is
--	 * synced, so we can just look at vCPU 0's pvti.
--	 */
--
--	do {
--		version = pvclock_read_begin(pvti);
--
--		if (unlikely(!(pvti->flags & PVCLOCK_TSC_STABLE_BIT)))
--			return U64_MAX;
- 
--		ret = __pvclock_read_cycles(pvti, rdtsc_ordered());
--	} while (pvclock_read_retry(pvti, version));
-+#if defined(CONFIG_X86_64) && !defined(BUILD_VDSO32_64)
-+/* both 64-bit and x32 use these */
-+extern int __vdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts);
- 
--	return ret;
--}
--#endif
--#ifdef CONFIG_HYPERV_TSCPAGE
--static notrace u64 vread_hvclock(void)
-+int __vdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts)
- {
--	const struct ms_hyperv_tsc_page *tsc_pg =
--		(const struct ms_hyperv_tsc_page *)&hvclock_page;
--
--	return hv_read_tsc_page(tsc_pg);
-+	return __cvdso_clock_gettime(clock, ts);
- }
--#endif
--
--notrace static inline u64 vgetcyc(int mode)
--{
--	if (mode == VCLOCK_TSC)
--		return (u64)rdtsc_ordered();
--#ifdef CONFIG_PARAVIRT_CLOCK
--	else if (mode == VCLOCK_PVCLOCK)
--		return vread_pvclock();
--#endif
--#ifdef CONFIG_HYPERV_TSCPAGE
--	else if (mode == VCLOCK_HVCLOCK)
--		return vread_hvclock();
--#endif
--	return U64_MAX;
--}
--
--notrace static int do_hres(clockid_t clk, struct timespec *ts)
--{
--	struct vgtod_ts *base = &gtod->basetime[clk];
--	u64 cycles, last, sec, ns;
--	unsigned int seq;
--
--	do {
--		seq = gtod_read_begin(gtod);
--		cycles = vgetcyc(gtod->vclock_mode);
--		ns = base->nsec;
--		last = gtod->cycle_last;
--		if (unlikely((s64)cycles < 0))
--			return vdso_fallback_gettime(clk, ts);
--		if (cycles > last)
--			ns += (cycles - last) * gtod->mult;
--		ns >>= gtod->shift;
--		sec = base->sec;
--	} while (unlikely(gtod_read_retry(gtod, seq)));
--
--	/*
--	 * Do this outside the loop: a race inside the loop could result
--	 * in __iter_div_u64_rem() being extremely slow.
--	 */
--	ts->tv_sec = sec + __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
--	ts->tv_nsec = ns;
--
--	return 0;
--}
--
--notrace static void do_coarse(clockid_t clk, struct timespec *ts)
--{
--	struct vgtod_ts *base = &gtod->basetime[clk];
--	unsigned int seq;
-+int clock_gettime(clockid_t, struct __kernel_timespec *)
-+	__attribute__((weak, alias("__vdso_clock_gettime")));
- 
--	do {
--		seq = gtod_read_begin(gtod);
--		ts->tv_sec = base->sec;
--		ts->tv_nsec = base->nsec;
--	} while (unlikely(gtod_read_retry(gtod, seq)));
--}
-+#else
-+/* i386 only */
-+extern int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts);
- 
--notrace int __vdso_clock_gettime(clockid_t clock, struct timespec *ts)
-+int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts)
- {
--	unsigned int msk;
--
--	/* Sort out negative (CPU/FD) and invalid clocks */
--	if (unlikely((unsigned int) clock >= MAX_CLOCKS))
--		return vdso_fallback_gettime(clock, ts);
--
--	/*
--	 * Convert the clockid to a bitmask and use it to check which
--	 * clocks are handled in the VDSO directly.
--	 */
--	msk = 1U << clock;
--	if (likely(msk & VGTOD_HRES)) {
--		return do_hres(clock, ts);
--	} else if (msk & VGTOD_COARSE) {
--		do_coarse(clock, ts);
--		return 0;
--	}
--	return vdso_fallback_gettime(clock, ts);
-+	return __cvdso_clock_gettime32(clock, ts);
- }
--
--int clock_gettime(clockid_t, struct timespec *)
-+int clock_gettime(clockid_t, struct old_timespec32 *)
- 	__attribute__((weak, alias("__vdso_clock_gettime")));
- 
--notrace int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz)
--{
--	if (likely(tv != NULL)) {
--		struct timespec *ts = (struct timespec *) tv;
--
--		do_hres(CLOCK_REALTIME, ts);
--		tv->tv_usec /= 1000;
--	}
--	if (unlikely(tz != NULL)) {
--		tz->tz_minuteswest = gtod->tz_minuteswest;
--		tz->tz_dsttime = gtod->tz_dsttime;
--	}
--
--	return 0;
--}
--int gettimeofday(struct timeval *, struct timezone *)
--	__attribute__((weak, alias("__vdso_gettimeofday")));
--
--/*
-- * This will break when the xtime seconds get inaccurate, but that is
-- * unlikely
-- */
--notrace time_t __vdso_time(time_t *t)
--{
--	/* This is atomic on x86 so we don't need any locks. */
--	time_t result = READ_ONCE(gtod->basetime[CLOCK_REALTIME].sec);
--
--	if (t)
--		*t = result;
--	return result;
--}
--time_t time(time_t *t)
--	__attribute__((weak, alias("__vdso_time")));
-+#endif
-diff --git a/arch/x86/entry/vdso/vdsox32.lds.S b/arch/x86/entry/vdso/vdsox32.lds.S
-index 05cd1c5c4a15..16a8050a4fb6 100644
---- a/arch/x86/entry/vdso/vdsox32.lds.S
-+++ b/arch/x86/entry/vdso/vdsox32.lds.S
-@@ -21,6 +21,7 @@ VERSION {
- 		__vdso_gettimeofday;
- 		__vdso_getcpu;
- 		__vdso_time;
-+		__vdso_clock_getres;
- 	local: *;
- 	};
- }
-diff --git a/arch/x86/entry/vsyscall/Makefile b/arch/x86/entry/vsyscall/Makefile
-index 1ac4dd116c26..93c1b3e949a7 100644
---- a/arch/x86/entry/vsyscall/Makefile
-+++ b/arch/x86/entry/vsyscall/Makefile
-@@ -2,7 +2,5 @@
- #
- # Makefile for the x86 low level vsyscall code
- #
--obj-y					:= vsyscall_gtod.o
--
- obj-$(CONFIG_X86_VSYSCALL_EMULATION)	+= vsyscall_64.o vsyscall_emu_64.o
- 
-diff --git a/arch/x86/entry/vsyscall/vsyscall_gtod.c b/arch/x86/entry/vsyscall/vsyscall_gtod.c
-deleted file mode 100644
-index cfcdba082feb..000000000000
---- a/arch/x86/entry/vsyscall/vsyscall_gtod.c
-+++ /dev/null
-@@ -1,83 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0
--/*
-- *  Copyright (C) 2001 Andrea Arcangeli <andrea@suse.de> SuSE
-- *  Copyright 2003 Andi Kleen, SuSE Labs.
-- *
-- *  Modified for x86 32 bit architecture by
-- *  Stefani Seibold <stefani@seibold.net>
-- *  sponsored by Rohde & Schwarz GmbH & Co. KG Munich/Germany
-- *
-- *  Thanks to hpa@transmeta.com for some useful hint.
-- *  Special thanks to Ingo Molnar for his early experience with
-- *  a different vsyscall implementation for Linux/IA32 and for the name.
-- *
-- */
--
--#include <linux/timekeeper_internal.h>
--#include <asm/vgtod.h>
--#include <asm/vvar.h>
--
--int vclocks_used __read_mostly;
--
--DEFINE_VVAR(struct vsyscall_gtod_data, vsyscall_gtod_data);
--
--void update_vsyscall_tz(void)
--{
--	vsyscall_gtod_data.tz_minuteswest = sys_tz.tz_minuteswest;
--	vsyscall_gtod_data.tz_dsttime = sys_tz.tz_dsttime;
--}
--
--void update_vsyscall(struct timekeeper *tk)
--{
--	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
--	struct vsyscall_gtod_data *vdata = &vsyscall_gtod_data;
--	struct vgtod_ts *base;
--	u64 nsec;
--
--	/* Mark the new vclock used. */
--	BUILD_BUG_ON(VCLOCK_MAX >= 32);
--	WRITE_ONCE(vclocks_used, READ_ONCE(vclocks_used) | (1 << vclock_mode));
--
--	gtod_write_begin(vdata);
--
--	/* copy vsyscall data */
--	vdata->vclock_mode	= vclock_mode;
--	vdata->cycle_last	= tk->tkr_mono.cycle_last;
--	vdata->mask		= tk->tkr_mono.mask;
--	vdata->mult		= tk->tkr_mono.mult;
--	vdata->shift		= tk->tkr_mono.shift;
--
--	base = &vdata->basetime[CLOCK_REALTIME];
--	base->sec = tk->xtime_sec;
--	base->nsec = tk->tkr_mono.xtime_nsec;
--
--	base = &vdata->basetime[CLOCK_TAI];
--	base->sec = tk->xtime_sec + (s64)tk->tai_offset;
--	base->nsec = tk->tkr_mono.xtime_nsec;
--
--	base = &vdata->basetime[CLOCK_MONOTONIC];
--	base->sec = tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
--	nsec = tk->tkr_mono.xtime_nsec;
--	nsec +=	((u64)tk->wall_to_monotonic.tv_nsec << tk->tkr_mono.shift);
--	while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
--		nsec -= ((u64)NSEC_PER_SEC) << tk->tkr_mono.shift;
--		base->sec++;
--	}
--	base->nsec = nsec;
--
--	base = &vdata->basetime[CLOCK_REALTIME_COARSE];
--	base->sec = tk->xtime_sec;
--	base->nsec = tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
--
--	base = &vdata->basetime[CLOCK_MONOTONIC_COARSE];
--	base->sec = tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
--	nsec = tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
--	nsec += tk->wall_to_monotonic.tv_nsec;
--	while (nsec >= NSEC_PER_SEC) {
--		nsec -= NSEC_PER_SEC;
--		base->sec++;
--	}
--	base->nsec = nsec;
--
--	gtod_write_end(vdata);
--}
-diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
-index b6033680d458..19b695ff2c68 100644
---- a/arch/x86/include/asm/pvclock.h
-+++ b/arch/x86/include/asm/pvclock.h
-@@ -2,7 +2,7 @@
- #ifndef _ASM_X86_PVCLOCK_H
- #define _ASM_X86_PVCLOCK_H
- 
--#include <linux/clocksource.h>
-+#include <asm/clocksource.h>
- #include <asm/pvclock-abi.h>
- 
- /* some helper functions for xen and kvm pv clock sources */
-diff --git a/arch/x86/include/asm/vdso/gettimeofday.h b/arch/x86/include/asm/vdso/gettimeofday.h
+ 	select MODULES_USE_ELF_REL
+ 	select NEED_DMA_MAP_STATE
+diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
 new file mode 100644
-index 000000000000..a274d4fea7a5
+index 000000000000..30ce4e87dffc
 --- /dev/null
-+++ b/arch/x86/include/asm/vdso/gettimeofday.h
-@@ -0,0 +1,175 @@
++++ b/arch/arm/include/asm/vdso/gettimeofday.h
+@@ -0,0 +1,74 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * Fast user context implementation of clock_gettime, gettimeofday, and time.
-+ *
-+ * Copyright (C) 2019 ARM Limited.
-+ * Copyright 2006 Andi Kleen, SUSE Labs.
-+ * 32 Bit compat layer by Stefani Seibold <stefani@seibold.net>
-+ *  sponsored by Rohde & Schwarz GmbH & Co. KG Munich/Germany
++ * Copyright (C) 2018 ARM Limited
 + */
 +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
 +#define __ASM_VDSO_GETTIMEOFDAY_H
 +
 +#ifndef __ASSEMBLY__
 +
-+#include <clocksource/hyperv_timer.h>
-+#include <uapi/linux/time.h>
-+#include <asm/vgtod.h>
-+#include <asm/vvar.h>
++#include <asm/barrier.h>
++#include <asm/cp15.h>
 +#include <asm/unistd.h>
-+#include <asm/msr.h>
-+#include <asm/pvclock.h>
++#include <uapi/linux/time.h>
 +
-+#define __vdso_data (VVAR(_vdso_data))
++extern struct vdso_data *__get_datapage(void);
 +
-+#define VDSO_HAS_TIME 1
++static __always_inline int gettimeofday_fallback(
++				struct __kernel_old_timeval *_tv,
++				struct timezone *_tz)
++{
++	register struct timezone *tz asm("r1") = _tz;
++	register struct __kernel_old_timeval *tv asm("r0") = _tv;
++	register long ret asm ("r0");
++	register long nr asm("r7") = __NR_gettimeofday;
 +
-+#ifdef CONFIG_PARAVIRT_CLOCK
-+extern u8 pvclock_page[PAGE_SIZE]
-+	__attribute__((visibility("hidden")));
-+#endif
++	asm volatile(
++	"	swi #0\n"
++	: "=r" (ret)
++	: "r" (tv), "r" (tz), "r" (nr)
++	: "memory");
 +
-+#ifdef CONFIG_HYPERV_TSCPAGE
-+extern u8 hvclock_page[PAGE_SIZE]
-+	__attribute__((visibility("hidden")));
-+#endif
-+
-+#ifndef BUILD_VDSO32
++	return ret;
++}
 +
 +static __always_inline long clock_gettime_fallback(
 +					clockid_t _clkid,
 +					struct __kernel_timespec *_ts)
 +{
-+	long ret;
-+	asm ("syscall" : "=a" (ret), "=m" (*_ts) :
-+	     "0" (__NR_clock_gettime), "D" (_clkid), "S" (_ts) :
-+	     "rcx", "r11");
++	register struct __kernel_timespec *ts asm("r1") = _ts;
++	register clockid_t clkid asm("r0") = _clkid;
++	register long ret asm ("r0");
++	register long nr asm("r7") = __NR_clock_gettime64;
++
++	asm volatile(
++	"	swi #0\n"
++	: "=r" (ret)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "memory");
++
 +	return ret;
 +}
 +
-+static __always_inline long gettimeofday_fallback(
-+					struct __kernel_old_timeval *_tv,
-+					struct timezone *_tz)
++static __always_inline u64 __arch_get_hw_counter(int clock_mode)
 +{
-+	long ret;
-+	asm("syscall" : "=a" (ret) :
-+	    "0" (__NR_gettimeofday), "D" (_tv), "S" (_tz) : "memory");
-+	return ret;
-+}
++#ifdef CONFIG_ARM_ARCH_TIMER
++	u64 cycle_now;
 +
++	isb();
++	cycle_now = read_sysreg(CNTVCT);
++
++	return cycle_now;
 +#else
-+
-+static __always_inline long clock_gettime_fallback(
-+					clockid_t _clkid,
-+					struct __kernel_timespec *_ts)
-+{
-+	long ret;
-+
-+	asm (
-+		"mov %%ebx, %%edx \n"
-+		"mov %[clock], %%ebx \n"
-+		"call __kernel_vsyscall \n"
-+		"mov %%edx, %%ebx \n"
-+		: "=a" (ret), "=m" (*_ts)
-+		: "0" (__NR_clock_gettime64), [clock] "g" (_clkid), "c" (_ts)
-+		: "edx");
-+	return ret;
-+}
-+
-+static __always_inline long gettimeofday_fallback(
-+					struct __kernel_old_timeval *_tv,
-+					struct timezone *_tz)
-+{
-+	long ret;
-+	asm(
-+		"mov %%ebx, %%edx \n"
-+		"mov %2, %%ebx \n"
-+		"call __kernel_vsyscall \n"
-+		"mov %%edx, %%ebx \n"
-+		: "=a" (ret)
-+		: "0" (__NR_gettimeofday), "g" (_tv), "c" (_tz)
-+		: "memory", "edx");
-+	return ret;
-+}
-+
++	return -EINVAL; /* use fallback */
 +#endif
-+
-+#ifdef CONFIG_PARAVIRT_CLOCK
-+static const struct pvclock_vsyscall_time_info *get_pvti0(void)
-+{
-+	return (const struct pvclock_vsyscall_time_info *)&pvclock_page;
-+}
-+
-+static u64 vread_pvclock(void)
-+{
-+	const struct pvclock_vcpu_time_info *pvti = &get_pvti0()->pvti;
-+	u32 version;
-+	u64 ret;
-+
-+	/*
-+	 * Note: The kernel and hypervisor must guarantee that cpu ID
-+	 * number maps 1:1 to per-CPU pvclock time info.
-+	 *
-+	 * Because the hypervisor is entirely unaware of guest userspace
-+	 * preemption, it cannot guarantee that per-CPU pvclock time
-+	 * info is updated if the underlying CPU changes or that that
-+	 * version is increased whenever underlying CPU changes.
-+	 *
-+	 * On KVM, we are guaranteed that pvti updates for any vCPU are
-+	 * atomic as seen by *all* vCPUs.  This is an even stronger
-+	 * guarantee than we get with a normal seqlock.
-+	 *
-+	 * On Xen, we don't appear to have that guarantee, but Xen still
-+	 * supplies a valid seqlock using the version field.
-+	 *
-+	 * We only do pvclock vdso timing at all if
-+	 * PVCLOCK_TSC_STABLE_BIT is set, and we interpret that bit to
-+	 * mean that all vCPUs have matching pvti and that the TSC is
-+	 * synced, so we can just look at vCPU 0's pvti.
-+	 */
-+
-+	do {
-+		version = pvclock_read_begin(pvti);
-+
-+		if (unlikely(!(pvti->flags & PVCLOCK_TSC_STABLE_BIT)))
-+			return U64_MAX;
-+
-+		ret = __pvclock_read_cycles(pvti, rdtsc_ordered());
-+	} while (pvclock_read_retry(pvti, version));
-+
-+	return ret;
-+}
-+#endif
-+#ifdef CONFIG_HYPERV_TSCPAGE
-+static u64 vread_hvclock(void)
-+{
-+	const struct ms_hyperv_tsc_page *tsc_pg =
-+		(const struct ms_hyperv_tsc_page *)&hvclock_page;
-+
-+	return hv_read_tsc_page(tsc_pg);
-+}
-+#endif
-+
-+static inline u64 __arch_get_hw_counter(s32 clock_mode)
-+{
-+	if (clock_mode == VCLOCK_TSC)
-+		return (u64)rdtsc_ordered();
-+#ifdef CONFIG_PARAVIRT_CLOCK
-+	else if (clock_mode == VCLOCK_PVCLOCK)
-+		return vread_pvclock();
-+#endif
-+#ifdef CONFIG_HYPERV_TSCPAGE
-+	else if (clock_mode == VCLOCK_HVCLOCK)
-+		return vread_hvclock();
-+#endif
-+	return U64_MAX;
 +}
 +
 +static __always_inline const struct vdso_data *__arch_get_vdso_data(void)
 +{
-+	return __vdso_data;
++	return __get_datapage();
 +}
 +
 +#endif /* !__ASSEMBLY__ */
 +
 +#endif /* __ASM_VDSO_GETTIMEOFDAY_H */
-diff --git a/arch/x86/include/asm/vdso/vsyscall.h b/arch/x86/include/asm/vdso/vsyscall.h
+diff --git a/arch/arm/include/asm/vdso/vsyscall.h b/arch/arm/include/asm/vdso/vsyscall.h
 new file mode 100644
-index 000000000000..0026ab2123ce
+index 000000000000..c4166f317071
 --- /dev/null
-+++ b/arch/x86/include/asm/vdso/vsyscall.h
-@@ -0,0 +1,44 @@
++++ b/arch/arm/include/asm/vdso/vsyscall.h
+@@ -0,0 +1,71 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef __ASM_VDSO_VSYSCALL_H
 +#define __ASM_VDSO_VSYSCALL_H
 +
 +#ifndef __ASSEMBLY__
 +
-+#include <linux/hrtimer.h>
 +#include <linux/timekeeper_internal.h>
 +#include <vdso/datapage.h>
-+#include <asm/vgtod.h>
-+#include <asm/vvar.h>
++#include <asm/cacheflush.h>
 +
-+int vclocks_used __read_mostly;
++extern struct vdso_data *vdso_data;
++extern bool cntvct_ok;
 +
-+DEFINE_VVAR(struct vdso_data, _vdso_data);
++static __always_inline
++bool tk_is_cntvct(const struct timekeeper *tk)
++{
++	if (!IS_ENABLED(CONFIG_ARM_ARCH_TIMER))
++		return false;
++
++	if (!tk->tkr_mono.clock->archdata.vdso_direct)
++		return false;
++
++	return true;
++}
++
 +/*
 + * Update the vDSO data page to keep in sync with kernel timekeeping.
 + */
 +static __always_inline
-+struct vdso_data *__x86_get_k_vdso_data(void)
++struct vdso_data *__arm_get_k_vdso_data(void)
 +{
-+	return _vdso_data;
++	return vdso_data;
 +}
-+#define __arch_get_k_vdso_data __x86_get_k_vdso_data
++#define __arch_get_k_vdso_data __arm_get_k_vdso_data
 +
 +static __always_inline
-+int __x86_get_clock_mode(struct timekeeper *tk)
++int __arm_update_vdso_data(void)
 +{
-+	int vclock_mode = tk->tkr_mono.clock->archdata.vclock_mode;
-+
-+	/* Mark the new vclock used. */
-+	BUILD_BUG_ON(VCLOCK_MAX >= 32);
-+	WRITE_ONCE(vclocks_used, READ_ONCE(vclocks_used) | (1 << vclock_mode));
-+
-+	return vclock_mode;
++	return !cntvct_ok;
 +}
-+#define __arch_get_clock_mode __x86_get_clock_mode
++#define __arch_update_vdso_data __arm_update_vdso_data
++
++static __always_inline
++int __arm_get_clock_mode(struct timekeeper *tk)
++{
++	u32 __tk_is_cntvct = tk_is_cntvct(tk);
++
++	return __tk_is_cntvct;
++}
++#define __arch_get_clock_mode __arm_get_clock_mode
++
++static __always_inline
++int __arm_use_vsyscall(struct vdso_data *vdata)
++{
++	return vdata[CS_HRES_COARSE].clock_mode;
++}
++#define __arch_use_vsyscall __arm_use_vsyscall
++
++static __always_inline
++void __arm_sync_vdso_data(struct vdso_data *vdata)
++{
++	flush_dcache_page(virt_to_page(vdata));
++}
++#define __arch_sync_vdso_data __arm_sync_vdso_data
 +
 +/* The asm-generic header needs to be included after the definitions above */
 +#include <asm-generic/vdso/vsyscall.h>
@@ -740,142 +214,503 @@ index 000000000000..0026ab2123ce
 +#endif /* !__ASSEMBLY__ */
 +
 +#endif /* __ASM_VDSO_VSYSCALL_H */
-diff --git a/arch/x86/include/asm/vgtod.h b/arch/x86/include/asm/vgtod.h
-index 913a133f8e6f..a2638c6124ed 100644
---- a/arch/x86/include/asm/vgtod.h
-+++ b/arch/x86/include/asm/vgtod.h
-@@ -3,7 +3,9 @@
- #define _ASM_X86_VGTOD_H
+diff --git a/arch/arm/include/asm/vdso_datapage.h b/arch/arm/include/asm/vdso_datapage.h
+index 9be259442fca..bfdbbd2b5fe7 100644
+--- a/arch/arm/include/asm/vdso_datapage.h
++++ b/arch/arm/include/asm/vdso_datapage.h
+@@ -22,35 +22,12 @@
  
- #include <linux/compiler.h>
--#include <linux/clocksource.h>
-+#include <asm/clocksource.h>
+ #ifndef __ASSEMBLY__
+ 
 +#include <vdso/datapage.h>
+ #include <asm/page.h>
+ 
+-/* Try to be cache-friendly on systems that don't implement the
+- * generic timer: fit the unconditionally updated fields in the first
+- * 32 bytes.
+- */
+-struct vdso_data {
+-	u32 seq_count;		/* sequence count - odd during updates */
+-	u16 tk_is_cntvct;	/* fall back to syscall if false */
+-	u16 cs_shift;		/* clocksource shift */
+-	u32 xtime_coarse_sec;	/* coarse time */
+-	u32 xtime_coarse_nsec;
+-
+-	u32 wtm_clock_sec;	/* wall to monotonic offset */
+-	u32 wtm_clock_nsec;
+-	u32 xtime_clock_sec;	/* CLOCK_REALTIME - seconds */
+-	u32 cs_mult;		/* clocksource multiplier */
+-
+-	u64 cs_cycle_last;	/* last cycle value */
+-	u64 cs_mask;		/* clocksource mask */
+-
+-	u64 xtime_clock_snsec;	/* CLOCK_REALTIME sub-ns base */
+-	u32 tz_minuteswest;	/* timezone info for gettimeofday(2) */
+-	u32 tz_dsttime;
+-};
+-
+ union vdso_data_store {
+-	struct vdso_data data;
+-	u8 page[PAGE_SIZE];
++	struct vdso_data	data[CS_BASES];
++	u8			page[PAGE_SIZE];
+ };
+ 
+ #endif /* !__ASSEMBLY__ */
+diff --git a/arch/arm/kernel/vdso.c b/arch/arm/kernel/vdso.c
+index f4dd7f9663c1..9a9cea8b333d 100644
+--- a/arch/arm/kernel/vdso.c
++++ b/arch/arm/kernel/vdso.c
+@@ -34,6 +34,8 @@
+ #include <asm/vdso.h>
+ #include <asm/vdso_datapage.h>
+ #include <clocksource/arm_arch_timer.h>
 +#include <vdso/helpers.h>
++#include <vdso/vsyscall.h>
  
- #include <uapi/linux/time.h>
+ #define MAX_SYMNAME	64
  
-@@ -13,81 +15,10 @@ typedef u64 gtod_long_t;
- typedef unsigned long gtod_long_t;
- #endif
+@@ -48,7 +50,7 @@ unsigned int vdso_total_pages __ro_after_init;
+  * The VDSO data page.
+  */
+ static union vdso_data_store vdso_data_store __page_aligned_data;
+-static struct vdso_data *vdso_data = &vdso_data_store.data;
++struct vdso_data *vdso_data = vdso_data_store.data;
  
--/*
-- * There is one of these objects in the vvar page for each
-- * vDSO-accelerated clockid.  For high-resolution clocks, this encodes
-- * the time corresponding to vsyscall_gtod_data.cycle_last.  For coarse
-- * clocks, this encodes the actual time.
-- *
-- * To confuse the reader, for high-resolution clocks, nsec is left-shifted
-- * by vsyscall_gtod_data.shift.
-- */
--struct vgtod_ts {
--	u64		sec;
--	u64		nsec;
--};
--
--#define VGTOD_BASES	(CLOCK_TAI + 1)
--#define VGTOD_HRES	(BIT(CLOCK_REALTIME) | BIT(CLOCK_MONOTONIC) | BIT(CLOCK_TAI))
--#define VGTOD_COARSE	(BIT(CLOCK_REALTIME_COARSE) | BIT(CLOCK_MONOTONIC_COARSE))
--
--/*
-- * vsyscall_gtod_data will be accessed by 32 and 64 bit code at the same time
-- * so be carefull by modifying this structure.
-- */
--struct vsyscall_gtod_data {
--	unsigned int	seq;
--
--	int		vclock_mode;
--	u64		cycle_last;
--	u64		mask;
--	u32		mult;
--	u32		shift;
--
--	struct vgtod_ts	basetime[VGTOD_BASES];
--
--	int		tz_minuteswest;
--	int		tz_dsttime;
--};
--extern struct vsyscall_gtod_data vsyscall_gtod_data;
--
- extern int vclocks_used;
- static inline bool vclock_was_used(int vclock)
+ static struct page *vdso_data_page __ro_after_init;
+ static const struct vm_special_mapping vdso_data_mapping = {
+@@ -88,7 +90,7 @@ struct elfinfo {
+ /* Cached result of boot-time check for whether the arch timer exists,
+  * and if so, whether the virtual counter is useable.
+  */
+-static bool cntvct_ok __ro_after_init;
++bool cntvct_ok __ro_after_init;
+ 
+ static bool __init cntvct_functional(void)
  {
- 	return READ_ONCE(vclocks_used) & (1 << vclock);
+@@ -274,84 +276,3 @@ void arm_install_vdso(struct mm_struct *mm, unsigned long addr)
+ 		mm->context.vdso = addr;
  }
  
--static inline unsigned int gtod_read_begin(const struct vsyscall_gtod_data *s)
+-static void vdso_write_begin(struct vdso_data *vdata)
 -{
--	unsigned int ret;
+-	++vdso_data->seq_count;
+-	smp_wmb(); /* Pairs with smp_rmb in vdso_read_retry */
+-}
 -
+-static void vdso_write_end(struct vdso_data *vdata)
+-{
+-	smp_wmb(); /* Pairs with smp_rmb in vdso_read_begin */
+-	++vdso_data->seq_count;
+-}
+-
+-static bool tk_is_cntvct(const struct timekeeper *tk)
+-{
+-	if (!IS_ENABLED(CONFIG_ARM_ARCH_TIMER))
+-		return false;
+-
+-	if (!tk->tkr_mono.clock->archdata.vdso_direct)
+-		return false;
+-
+-	return true;
+-}
+-
+-/**
+- * update_vsyscall - update the vdso data page
+- *
+- * Increment the sequence counter, making it odd, indicating to
+- * userspace that an update is in progress.  Update the fields used
+- * for coarse clocks and, if the architected system timer is in use,
+- * the fields used for high precision clocks.  Increment the sequence
+- * counter again, making it even, indicating to userspace that the
+- * update is finished.
+- *
+- * Userspace is expected to sample seq_count before reading any other
+- * fields from the data page.  If seq_count is odd, userspace is
+- * expected to wait until it becomes even.  After copying data from
+- * the page, userspace must sample seq_count again; if it has changed
+- * from its previous value, userspace must retry the whole sequence.
+- *
+- * Calls to update_vsyscall are serialized by the timekeeping core.
+- */
+-void update_vsyscall(struct timekeeper *tk)
+-{
+-	struct timespec64 *wtm = &tk->wall_to_monotonic;
+-
+-	if (!cntvct_ok) {
+-		/* The entry points have been zeroed, so there is no
+-		 * point in updating the data page.
+-		 */
+-		return;
+-	}
+-
+-	vdso_write_begin(vdso_data);
+-
+-	vdso_data->tk_is_cntvct			= tk_is_cntvct(tk);
+-	vdso_data->xtime_coarse_sec		= tk->xtime_sec;
+-	vdso_data->xtime_coarse_nsec		= (u32)(tk->tkr_mono.xtime_nsec >>
+-							tk->tkr_mono.shift);
+-	vdso_data->wtm_clock_sec		= wtm->tv_sec;
+-	vdso_data->wtm_clock_nsec		= wtm->tv_nsec;
+-
+-	if (vdso_data->tk_is_cntvct) {
+-		vdso_data->cs_cycle_last	= tk->tkr_mono.cycle_last;
+-		vdso_data->xtime_clock_sec	= tk->xtime_sec;
+-		vdso_data->xtime_clock_snsec	= tk->tkr_mono.xtime_nsec;
+-		vdso_data->cs_mult		= tk->tkr_mono.mult;
+-		vdso_data->cs_shift		= tk->tkr_mono.shift;
+-		vdso_data->cs_mask		= tk->tkr_mono.mask;
+-	}
+-
+-	vdso_write_end(vdso_data);
+-
+-	flush_dcache_page(virt_to_page(vdso_data));
+-}
+-
+-void update_vsyscall_tz(void)
+-{
+-	vdso_data->tz_minuteswest	= sys_tz.tz_minuteswest;
+-	vdso_data->tz_dsttime		= sys_tz.tz_dsttime;
+-	flush_dcache_page(virt_to_page(vdso_data));
+-}
+diff --git a/arch/arm/vdso/Makefile b/arch/arm/vdso/Makefile
+index fadf554d9391..0c8a819ef4f1 100644
+--- a/arch/arm/vdso/Makefile
++++ b/arch/arm/vdso/Makefile
+@@ -1,7 +1,13 @@
+ # SPDX-License-Identifier: GPL-2.0
++
++# Absolute relocation type $(ARCH_REL_TYPE_ABS) needs to be defined before
++# the inclusion of generic Makefile.
++ARCH_REL_TYPE_ABS := R_ARM_JUMP_SLOT|R_ARM_GLOB_DAT|R_ARM_ABS32
++include $(srctree)/lib/vdso/Makefile
++
+ hostprogs-y := vdsomunge
+ 
+-obj-vdso := vgettimeofday.o datapage.o
++obj-vdso := vgettimeofday.o datapage.o note.o
+ 
+ # Build rules
+ targets := $(obj-vdso) vdso.so vdso.so.dbg vdso.so.raw vdso.lds
+@@ -25,7 +31,11 @@ CFLAGS_REMOVE_vdso.o = -pg
+ 
+ # Force -O2 to avoid libgcc dependencies
+ CFLAGS_REMOVE_vgettimeofday.o = -pg -Os
++ifeq ($(c-gettimeofday-y),)
+ CFLAGS_vgettimeofday.o = -O2
++else
++CFLAGS_vgettimeofday.o = -O2 -include $(c-gettimeofday-y)
++endif
+ 
+ # Disable gcov profiling for VDSO code
+ GCOV_PROFILE := n
+@@ -39,6 +49,7 @@ $(obj)/vdso.o : $(obj)/vdso.so
+ # Link rule for the .so file
+ $(obj)/vdso.so.raw: $(obj)/vdso.lds $(obj-vdso) FORCE
+ 	$(call if_changed,ld)
++	$(call if_changed,vdso_check)
+ 
+ $(obj)/vdso.so.dbg: $(obj)/vdso.so.raw $(obj)/vdsomunge FORCE
+ 	$(call if_changed,vdsomunge)
+diff --git a/arch/arm/vdso/note.c b/arch/arm/vdso/note.c
+new file mode 100644
+index 000000000000..eff5bf9efb8b
+--- /dev/null
++++ b/arch/arm/vdso/note.c
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2012-2018 ARM Limited
++ *
++ * This supplies .note.* sections to go into the PT_NOTE inside the vDSO text.
++ * Here we can supply some information useful to userland.
++ */
++
++#include <linux/uts.h>
++#include <linux/version.h>
++#include <linux/elfnote.h>
++#include <linux/build-salt.h>
++
++ELFNOTE32("Linux", 0, LINUX_VERSION_CODE);
++BUILD_SALT;
+diff --git a/arch/arm/vdso/vgettimeofday.c b/arch/arm/vdso/vgettimeofday.c
+index 7bdbf5d5c47d..fea6b3c89f43 100644
+--- a/arch/arm/vdso/vgettimeofday.c
++++ b/arch/arm/vdso/vgettimeofday.c
+@@ -1,5 +1,8 @@
+ /*
++ * ARM userspace implementations of gettimeofday() and similar.
++ *
+  * Copyright 2015 Mentor Graphics Corporation.
++ * Copyright (C) 2018 ARM Limited
+  *
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+@@ -14,258 +17,19 @@
+  * You should have received a copy of the GNU General Public License
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
+-
+-#include <linux/compiler.h>
+-#include <linux/hrtimer.h>
+ #include <linux/time.h>
+-#include <asm/barrier.h>
+-#include <asm/bug.h>
+-#include <asm/cp15.h>
+-#include <asm/page.h>
+-#include <asm/unistd.h>
+-#include <asm/vdso_datapage.h>
+-
+-#ifndef CONFIG_AEABI
+-#error This code depends on AEABI system call conventions
+-#endif
+-
+-extern struct vdso_data *__get_datapage(void);
+-
+-static notrace u32 __vdso_read_begin(const struct vdso_data *vdata)
+-{
+-	u32 seq;
 -repeat:
--	ret = READ_ONCE(s->seq);
--	if (unlikely(ret & 1)) {
+-	seq = READ_ONCE(vdata->seq_count);
+-	if (seq & 1) {
 -		cpu_relax();
 -		goto repeat;
 -	}
--	smp_rmb();
+-	return seq;
+-}
+-
+-static notrace u32 vdso_read_begin(const struct vdso_data *vdata)
+-{
+-	u32 seq;
+-
+-	seq = __vdso_read_begin(vdata);
+-
+-	smp_rmb(); /* Pairs with smp_wmb in vdso_write_end */
+-	return seq;
+-}
+-
+-static notrace int vdso_read_retry(const struct vdso_data *vdata, u32 start)
+-{
+-	smp_rmb(); /* Pairs with smp_wmb in vdso_write_begin */
+-	return vdata->seq_count != start;
+-}
+-
+-static notrace long clock_gettime_fallback(clockid_t _clkid,
+-					   struct timespec *_ts)
+-{
+-	register struct timespec *ts asm("r1") = _ts;
+-	register clockid_t clkid asm("r0") = _clkid;
+-	register long ret asm ("r0");
+-	register long nr asm("r7") = __NR_clock_gettime;
+-
+-	asm volatile(
+-	"	swi #0\n"
+-	: "=r" (ret)
+-	: "r" (clkid), "r" (ts), "r" (nr)
+-	: "memory");
+-
 -	return ret;
 -}
 -
--static inline int gtod_read_retry(const struct vsyscall_gtod_data *s,
--				  unsigned int start)
+-static notrace int do_realtime_coarse(struct timespec *ts,
+-				      struct vdso_data *vdata)
 -{
--	smp_rmb();
--	return unlikely(s->seq != start);
+-	u32 seq;
+-
+-	do {
+-		seq = vdso_read_begin(vdata);
+-
+-		ts->tv_sec = vdata->xtime_coarse_sec;
+-		ts->tv_nsec = vdata->xtime_coarse_nsec;
+-
+-	} while (vdso_read_retry(vdata, seq));
+-
+-	return 0;
 -}
 -
--static inline void gtod_write_begin(struct vsyscall_gtod_data *s)
+-static notrace int do_monotonic_coarse(struct timespec *ts,
+-				       struct vdso_data *vdata)
 -{
--	++s->seq;
--	smp_wmb();
+-	struct timespec tomono;
+-	u32 seq;
+-
+-	do {
+-		seq = vdso_read_begin(vdata);
+-
+-		ts->tv_sec = vdata->xtime_coarse_sec;
+-		ts->tv_nsec = vdata->xtime_coarse_nsec;
+-
+-		tomono.tv_sec = vdata->wtm_clock_sec;
+-		tomono.tv_nsec = vdata->wtm_clock_nsec;
+-
+-	} while (vdso_read_retry(vdata, seq));
+-
+-	ts->tv_sec += tomono.tv_sec;
+-	timespec_add_ns(ts, tomono.tv_nsec);
+-
+-	return 0;
 -}
 -
--static inline void gtod_write_end(struct vsyscall_gtod_data *s)
+-#ifdef CONFIG_ARM_ARCH_TIMER
+-
+-static notrace u64 get_ns(struct vdso_data *vdata)
 -{
--	smp_wmb();
--	++s->seq;
+-	u64 cycle_delta;
+-	u64 cycle_now;
+-	u64 nsec;
+-
+-	isb();
+-	cycle_now = read_sysreg(CNTVCT);
+-
+-	cycle_delta = (cycle_now - vdata->cs_cycle_last) & vdata->cs_mask;
+-
+-	nsec = (cycle_delta * vdata->cs_mult) + vdata->xtime_clock_snsec;
+-	nsec >>= vdata->cs_shift;
++#include <linux/types.h>
+ 
+-	return nsec;
 -}
 -
- #endif /* _ASM_X86_VGTOD_H */
-diff --git a/arch/x86/include/asm/vvar.h b/arch/x86/include/asm/vvar.h
-index e474f5c6e387..32f5d9a0b90e 100644
---- a/arch/x86/include/asm/vvar.h
-+++ b/arch/x86/include/asm/vvar.h
-@@ -32,19 +32,20 @@
- extern char __vvar_page;
+-static notrace int do_realtime(struct timespec *ts, struct vdso_data *vdata)
+-{
+-	u64 nsecs;
+-	u32 seq;
+-
+-	do {
+-		seq = vdso_read_begin(vdata);
+-
+-		if (!vdata->tk_is_cntvct)
+-			return -1;
+-
+-		ts->tv_sec = vdata->xtime_clock_sec;
+-		nsecs = get_ns(vdata);
+-
+-	} while (vdso_read_retry(vdata, seq));
+-
+-	ts->tv_nsec = 0;
+-	timespec_add_ns(ts, nsecs);
+-
+-	return 0;
+-}
+-
+-static notrace int do_monotonic(struct timespec *ts, struct vdso_data *vdata)
+-{
+-	struct timespec tomono;
+-	u64 nsecs;
+-	u32 seq;
+-
+-	do {
+-		seq = vdso_read_begin(vdata);
+-
+-		if (!vdata->tk_is_cntvct)
+-			return -1;
+-
+-		ts->tv_sec = vdata->xtime_clock_sec;
+-		nsecs = get_ns(vdata);
+-
+-		tomono.tv_sec = vdata->wtm_clock_sec;
+-		tomono.tv_nsec = vdata->wtm_clock_nsec;
+-
+-	} while (vdso_read_retry(vdata, seq));
+-
+-	ts->tv_sec += tomono.tv_sec;
+-	ts->tv_nsec = 0;
+-	timespec_add_ns(ts, nsecs + tomono.tv_nsec);
+-
+-	return 0;
+-}
+-
+-#else /* CONFIG_ARM_ARCH_TIMER */
+-
+-static notrace int do_realtime(struct timespec *ts, struct vdso_data *vdata)
+-{
+-	return -1;
+-}
+-
+-static notrace int do_monotonic(struct timespec *ts, struct vdso_data *vdata)
++int __vdso_clock_gettime(clockid_t clock,
++			 struct old_timespec32 *ts)
+ {
+-	return -1;
++	return __cvdso_clock_gettime32(clock, ts);
+ }
  
- #define DECLARE_VVAR(offset, type, name)				\
--	extern type vvar_ ## name __attribute__((visibility("hidden")));
-+	extern type vvar_ ## name[CS_BASES]				\
-+	__attribute__((visibility("hidden")));
+-#endif /* CONFIG_ARM_ARCH_TIMER */
+-
+-notrace int __vdso_clock_gettime(clockid_t clkid, struct timespec *ts)
++int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
++			struct timezone *tz)
+ {
+-	struct vdso_data *vdata;
+-	int ret = -1;
+-
+-	vdata = __get_datapage();
+-
+-	switch (clkid) {
+-	case CLOCK_REALTIME_COARSE:
+-		ret = do_realtime_coarse(ts, vdata);
+-		break;
+-	case CLOCK_MONOTONIC_COARSE:
+-		ret = do_monotonic_coarse(ts, vdata);
+-		break;
+-	case CLOCK_REALTIME:
+-		ret = do_realtime(ts, vdata);
+-		break;
+-	case CLOCK_MONOTONIC:
+-		ret = do_monotonic(ts, vdata);
+-		break;
+-	default:
+-		break;
+-	}
+-
+-	if (ret)
+-		ret = clock_gettime_fallback(clkid, ts);
+-
+-	return ret;
+-}
+-
+-static notrace long gettimeofday_fallback(struct timeval *_tv,
+-					  struct timezone *_tz)
+-{
+-	register struct timezone *tz asm("r1") = _tz;
+-	register struct timeval *tv asm("r0") = _tv;
+-	register long ret asm ("r0");
+-	register long nr asm("r7") = __NR_gettimeofday;
+-
+-	asm volatile(
+-	"	swi #0\n"
+-	: "=r" (ret)
+-	: "r" (tv), "r" (tz), "r" (nr)
+-	: "memory");
+-
+-	return ret;
+-}
+-
+-notrace int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz)
+-{
+-	struct timespec ts;
+-	struct vdso_data *vdata;
+-	int ret;
+-
+-	vdata = __get_datapage();
+-
+-	ret = do_realtime(&ts, vdata);
+-	if (ret)
+-		return gettimeofday_fallback(tv, tz);
+-
+-	if (tv) {
+-		tv->tv_sec = ts.tv_sec;
+-		tv->tv_usec = ts.tv_nsec / 1000;
+-	}
+-	if (tz) {
+-		tz->tz_minuteswest = vdata->tz_minuteswest;
+-		tz->tz_dsttime = vdata->tz_dsttime;
+-	}
+-
+-	return ret;
++	return __cvdso_gettimeofday(tv, tz);
+ }
  
- #define VVAR(name) (vvar_ ## name)
- 
- #define DEFINE_VVAR(type, name)						\
--	type name							\
-+	type name[CS_BASES]						\
- 	__attribute__((section(".vvar_" #name), aligned(16))) __visible
- 
- #endif
- 
- /* DECLARE_VVAR(offset, type, name) */
- 
--DECLARE_VVAR(128, struct vsyscall_gtod_data, vsyscall_gtod_data)
-+DECLARE_VVAR(128, struct vdso_data, _vdso_data)
- 
- #undef DECLARE_VVAR
- 
-diff --git a/arch/x86/kernel/pvclock.c b/arch/x86/kernel/pvclock.c
-index 0ff3e294d0e5..10125358b9c4 100644
---- a/arch/x86/kernel/pvclock.c
-+++ b/arch/x86/kernel/pvclock.c
-@@ -3,6 +3,7 @@
- 
- */
- 
-+#include <linux/clocksource.h>
- #include <linux/kernel.h>
- #include <linux/percpu.h>
- #include <linux/notifier.h>
+ /* Avoid unresolved references emitted by GCC */
 -- 
 2.21.0
