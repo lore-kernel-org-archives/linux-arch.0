@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55606 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:55296 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726617AbfFUJxt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:53:49 -0400
+        id S1726835AbfFUJxY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:53:24 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 15/25] arm64: Add vDSO compat support
-Date: Fri, 21 Jun 2019 10:52:42 +0100
-Message-ID: <20190621095252.32307-16-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 06/25] arm64: compat: Add missing syscall numbers
+Date: Fri, 21 Jun 2019 10:52:33 +0100
+Message-ID: <20190621095252.32307-7-vincenzo.frascino@arm.com>
 In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,98 +15,40 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190621095242.PDTPcvbXounvRKXk8CMV_D1XNtXSF6_EUe-jQs623xw@z>
+Message-ID: <20190621095233.BAdLJlXZbFeI-Nqms9u0jNW4IhuGbTdOLKs4SStQBNQ@z>
 
-Add vDSO compat support to the arm64 building system.
+vDSO requires gettimeofday and clock_gettime syscalls to implement the
+fallback mechanism.
+
+Add the missing syscall numbers to unistd.h for arm64.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Tested-by: Shijith Thotton <sthotton@marvell.com>
 Tested-by: Andre Przywara <andre.przywara@arm.com>
 ---
- arch/arm64/Kconfig         |  1 +
- arch/arm64/Makefile        | 23 +++++++++++++++++++++--
- arch/arm64/kernel/Makefile |  6 +++++-
- 3 files changed, 27 insertions(+), 3 deletions(-)
+ arch/arm64/include/asm/unistd.h | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 952c9f8cf3b8..f5eb592b8579 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -108,6 +108,7 @@ config ARM64
- 	select GENERIC_STRNLEN_USER
- 	select GENERIC_TIME_VSYSCALL
- 	select GENERIC_GETTIMEOFDAY
-+	select GENERIC_COMPAT_VDSO if (!CPU_BIG_ENDIAN && COMPAT)
- 	select HANDLE_DOMAIN_IRQ
- 	select HARDIRQS_SW_RESEND
- 	select HAVE_PCI
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index b025304bde46..4db50d4b2476 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -49,9 +49,25 @@ $(warning Detected assembler with broken .inst; disassembly will be unreliable)
-   endif
- endif
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 70e6882853c0..81cc05acccc9 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -33,8 +33,13 @@
+ #define __NR_compat_exit		1
+ #define __NR_compat_read		3
+ #define __NR_compat_write		4
++#define __NR_compat_gettimeofday	78
+ #define __NR_compat_sigreturn		119
+ #define __NR_compat_rt_sigreturn	173
++#define __NR_compat_clock_getres	247
++#define __NR_compat_clock_gettime	263
++#define __NR_compat_clock_gettime64	403
++#define __NR_compat_clock_getres_time64	406
  
--KBUILD_CFLAGS	+= -mgeneral-regs-only $(lseinstr) $(brokengasinst)
-+ifeq ($(CONFIG_GENERIC_COMPAT_VDSO), y)
-+  CROSS_COMPILE_COMPAT ?= $(CONFIG_CROSS_COMPILE_COMPAT_VDSO:"%"=%)
-+
-+  ifeq ($(CONFIG_CC_IS_CLANG), y)
-+    $(warning CROSS_COMPILE_COMPAT is clang, the compat vDSO will not be built)
-+  else ifeq ($(CROSS_COMPILE_COMPAT),)
-+    $(warning CROSS_COMPILE_COMPAT not defined or empty, the compat vDSO will not be built)
-+  else ifeq ($(shell which $(CROSS_COMPILE_COMPAT)gcc 2> /dev/null),)
-+    $(error $(CROSS_COMPILE_COMPAT)gcc not found, check CROSS_COMPILE_COMPAT)
-+  else
-+    export CROSS_COMPILE_COMPAT
-+    export CONFIG_COMPAT_VDSO := y
-+    compat_vdso := -DCONFIG_COMPAT_VDSO=1
-+  endif
-+endif
-+
-+KBUILD_CFLAGS	+= -mgeneral-regs-only $(lseinstr) $(brokengasinst) $(compat_vdso)
- KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
--KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst)
-+KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst) $(compat_vdso)
- 
- KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
- KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
-@@ -163,6 +179,9 @@ ifeq ($(KBUILD_EXTMOD),)
- prepare: vdso_prepare
- vdso_prepare: prepare0
- 	$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso include/generated/vdso-offsets.h
-+	$(if $(CONFIG_COMPAT_VDSO),$(Q)$(MAKE) \
-+		$(build)=arch/arm64/kernel/vdso32  \
-+		include/generated/vdso32-offsets.h)
- endif
- 
- define archhelp
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 9e7dcb2c31c7..478491f07b4f 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,10 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
- 
- obj-$(CONFIG_COMPAT)			+= sys32.o signal32.o			\
--					   sigreturn32.o sys_compat.o
-+					   sys_compat.o
-+ifneq ($(CONFIG_COMPAT_VDSO), y)
-+obj-$(CONFIG_COMPAT)			+= sigreturn32.o
-+endif
- obj-$(CONFIG_KUSER_HELPERS)		+= kuser32.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace.o entry-ftrace.o
- obj-$(CONFIG_MODULES)			+= module.o
-@@ -62,6 +65,7 @@ obj-$(CONFIG_ARM64_SSBD)		+= ssbd.o
- obj-$(CONFIG_ARM64_PTR_AUTH)		+= pointer_auth.o
- 
- obj-y					+= vdso/ probes/
-+obj-$(CONFIG_COMPAT_VDSO)		+= vdso32/
- head-y					:= head.o
- extra-y					+= $(head-y) vmlinux.lds
- 
+ /*
+  * The following SVCs are ARM private.
 -- 
 2.21.0
