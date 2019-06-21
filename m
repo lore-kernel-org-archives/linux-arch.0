@@ -1,153 +1,47 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 07/25] arm64: compat: Expose signal related structures
-Date: Fri, 21 Jun 2019 10:52:34 +0100
-Message-ID: <20190621095252.32307-8-vincenzo.frascino@arm.com>
+From: Huw Davies <huw@codeweavers.com>
+Subject: Re: [PATCH v7 03/25] kernel: Unify update_vsyscall implementation
+Date: Fri, 21 Jun 2019 11:49:02 +0100
+Message-ID: <20190621104902.GA6646@merlot.physics.ox.ac.uk>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <20190621095252.32307-4-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+Content-Disposition: inline
+In-Reply-To: <20190621095252.32307-4-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The compat signal data structures are required as part of the compat
-vDSO implementation in order to provide the unwinding information for
-the sigreturn trampolines.
+On Fri, Jun 21, 2019 at 10:52:30AM +0100, Vincenzo Frascino wrote:
+> diff --git a/kernel/vdso/vsyscall.c b/kernel/vdso/vsyscall.c
+> new file mode 100644
+> index 000000000000..d1e8074e3d10
+> --- /dev/null
+> +++ b/kernel/vdso/vsyscall.c
+> +static inline void update_vdso_data(struct vdso_data *vdata,
+> +				    struct timekeeper *tk)
+> +{
+> +	struct vdso_timestamp *vdso_ts;
+> +	u64 nsec;
+> +
+> +	vdata[CS_HRES_COARSE].cycle_last	= tk->tkr_mono.cycle_last;
+> +	vdata[CS_HRES_COARSE].mask		= tk->tkr_mono.mask;
+> +	vdata[CS_HRES_COARSE].mult		= tk->tkr_mono.mult;
+> +	vdata[CS_HRES_COARSE].shift		= tk->tkr_mono.shift;
+> +	vdata[CS_RAW].cycle_last		= tk->tkr_raw.cycle_last;
+> +	vdata[CS_RAW].mask			= tk->tkr_raw.mask;
+> +	vdata[CS_RAW].mult			= tk->tkr_raw.mult;
+> +	vdata[CS_RAW].shift			= tk->tkr_raw.shift;
+> +
+> +	/* CLOCK_REALTIME */
+> +	vdso_ts		=  &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME];
 
-Expose the mentioned data structures as part of signal32.h.
+There's an extraneous space after the '='.  Hopefully Thomas can
+fix this up if this patchset is otherwise ok.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Tested-by: Shijith Thotton <sthotton@marvell.com>
-Tested-by: Andre Przywara <andre.przywara@arm.com>
----
- arch/arm64/include/asm/signal32.h | 46 +++++++++++++++++++++++++++++++
- arch/arm64/kernel/signal32.c      | 46 -------------------------------
- 2 files changed, 46 insertions(+), 46 deletions(-)
+> +	vdso_ts->sec	= tk->xtime_sec;
+> +	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
 
-diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
-index 58e288aaf0ba..1f05268f4c6d 100644
---- a/arch/arm64/include/asm/signal32.h
-+++ b/arch/arm64/include/asm/signal32.h
-@@ -20,6 +20,52 @@
- #ifdef CONFIG_COMPAT
- #include <linux/compat.h>
- 
-+struct compat_sigcontext {
-+	/* We always set these two fields to 0 */
-+	compat_ulong_t			trap_no;
-+	compat_ulong_t			error_code;
-+
-+	compat_ulong_t			oldmask;
-+	compat_ulong_t			arm_r0;
-+	compat_ulong_t			arm_r1;
-+	compat_ulong_t			arm_r2;
-+	compat_ulong_t			arm_r3;
-+	compat_ulong_t			arm_r4;
-+	compat_ulong_t			arm_r5;
-+	compat_ulong_t			arm_r6;
-+	compat_ulong_t			arm_r7;
-+	compat_ulong_t			arm_r8;
-+	compat_ulong_t			arm_r9;
-+	compat_ulong_t			arm_r10;
-+	compat_ulong_t			arm_fp;
-+	compat_ulong_t			arm_ip;
-+	compat_ulong_t			arm_sp;
-+	compat_ulong_t			arm_lr;
-+	compat_ulong_t			arm_pc;
-+	compat_ulong_t			arm_cpsr;
-+	compat_ulong_t			fault_address;
-+};
-+
-+struct compat_ucontext {
-+	compat_ulong_t			uc_flags;
-+	compat_uptr_t			uc_link;
-+	compat_stack_t			uc_stack;
-+	struct compat_sigcontext	uc_mcontext;
-+	compat_sigset_t			uc_sigmask;
-+	int 				__unused[32 - (sizeof(compat_sigset_t) / sizeof(int))];
-+	compat_ulong_t			uc_regspace[128] __attribute__((__aligned__(8)));
-+};
-+
-+struct compat_sigframe {
-+	struct compat_ucontext	uc;
-+	compat_ulong_t		retcode[2];
-+};
-+
-+struct compat_rt_sigframe {
-+	struct compat_siginfo info;
-+	struct compat_sigframe sig;
-+};
-+
- int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 		       struct pt_regs *regs);
- int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index caea6e25db2a..74e06d8c7c2b 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -30,42 +30,6 @@
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
- 
--struct compat_sigcontext {
--	/* We always set these two fields to 0 */
--	compat_ulong_t			trap_no;
--	compat_ulong_t			error_code;
--
--	compat_ulong_t			oldmask;
--	compat_ulong_t			arm_r0;
--	compat_ulong_t			arm_r1;
--	compat_ulong_t			arm_r2;
--	compat_ulong_t			arm_r3;
--	compat_ulong_t			arm_r4;
--	compat_ulong_t			arm_r5;
--	compat_ulong_t			arm_r6;
--	compat_ulong_t			arm_r7;
--	compat_ulong_t			arm_r8;
--	compat_ulong_t			arm_r9;
--	compat_ulong_t			arm_r10;
--	compat_ulong_t			arm_fp;
--	compat_ulong_t			arm_ip;
--	compat_ulong_t			arm_sp;
--	compat_ulong_t			arm_lr;
--	compat_ulong_t			arm_pc;
--	compat_ulong_t			arm_cpsr;
--	compat_ulong_t			fault_address;
--};
--
--struct compat_ucontext {
--	compat_ulong_t			uc_flags;
--	compat_uptr_t			uc_link;
--	compat_stack_t			uc_stack;
--	struct compat_sigcontext	uc_mcontext;
--	compat_sigset_t			uc_sigmask;
--	int		__unused[32 - (sizeof (compat_sigset_t) / sizeof (int))];
--	compat_ulong_t	uc_regspace[128] __attribute__((__aligned__(8)));
--};
--
- struct compat_vfp_sigframe {
- 	compat_ulong_t	magic;
- 	compat_ulong_t	size;
-@@ -92,16 +56,6 @@ struct compat_aux_sigframe {
- 	unsigned long			end_magic;
- } __attribute__((__aligned__(8)));
- 
--struct compat_sigframe {
--	struct compat_ucontext	uc;
--	compat_ulong_t		retcode[2];
--};
--
--struct compat_rt_sigframe {
--	struct compat_siginfo info;
--	struct compat_sigframe sig;
--};
--
- #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
- 
- static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
--- 
-2.21.0
+Huw.
