@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 08/25] arm64: compat: Generate asm offsets for signals
-Date: Fri, 21 Jun 2019 10:52:35 +0100
-Message-ID: <20190621095252.32307-9-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 09/25] lib: vdso: Add compat support
+Date: Fri, 21 Jun 2019 10:52:36 +0100
+Message-ID: <20190621095252.32307-10-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,11 +12,10 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Update asm-offsets for arm64 to generate the correct offsets for
-compat signals.
+Some 64 bit architectures have support for 32 bit applications that
+require a separate version of the vDSOs.
 
-They will be useful for the implementation of the compat sigreturn
-trampolines in vDSO context.
+Add support to the generic code for compat fallback functions.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
@@ -24,32 +23,24 @@ Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Tested-by: Shijith Thotton <sthotton@marvell.com>
 Tested-by: Andre Przywara <andre.przywara@arm.com>
 ---
- arch/arm64/kernel/asm-offsets.c | 6 ++++++
- 1 file changed, 6 insertions(+)
+ lib/vdso/gettimeofday.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-index 9e4b7ccbab2f..c0d8b9f40022 100644
---- a/arch/arm64/kernel/asm-offsets.c
-+++ b/arch/arm64/kernel/asm-offsets.c
-@@ -30,6 +30,7 @@
- #include <asm/fixmap.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
-+#include <asm/signal32.h>
- #include <asm/smp_plat.h>
- #include <asm/suspend.h>
- #include <linux/kbuild.h>
-@@ -77,6 +78,11 @@ int main(void)
-   DEFINE(S_STACKFRAME,		offsetof(struct pt_regs, stackframe));
-   DEFINE(S_FRAME_SIZE,		sizeof(struct pt_regs));
-   BLANK();
-+#ifdef CONFIG_COMPAT
-+  DEFINE(COMPAT_SIGFRAME_REGS_OFFSET,		offsetof(struct compat_sigframe, uc.uc_mcontext.arm_r0));
-+  DEFINE(COMPAT_RT_SIGFRAME_REGS_OFFSET,	offsetof(struct compat_rt_sigframe, sig.uc.uc_mcontext.arm_r0));
-+  BLANK();
-+#endif
-   DEFINE(MM_CONTEXT_ID,		offsetof(struct mm_struct, context.id.counter));
-   BLANK();
-   DEFINE(VMA_VM_MM,		offsetof(struct vm_area_struct, vm_mm));
+diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+index 473e2dda0220..fc43f457ed2c 100644
+--- a/lib/vdso/gettimeofday.c
++++ b/lib/vdso/gettimeofday.c
+@@ -21,7 +21,11 @@
+  * - clock_gettime_fallback(): fallback for clock_gettime.
+  * - clock_getres_fallback(): fallback for clock_getres.
+  */
++#ifdef ENABLE_COMPAT_VDSO
++#include <asm/vdso/compat_gettimeofday.h>
++#else
+ #include <asm/vdso/gettimeofday.h>
++#endif /* ENABLE_COMPAT_VDSO */
+ 
+ static int do_hres(const struct vdso_data *vd,
+ 		   clockid_t clk,
 -- 
 2.21.0
