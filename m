@@ -1,94 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34340 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726002AbfFUPQp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 11:16:45 -0400
-Date: Fri, 21 Jun 2019 16:16:41 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.txt
-Message-ID: <20190621151640.GI18954@arrakis.emea.arm.com>
-References: <cover.1560339705.git.andreyknvl@google.com>
- <20190613155137.47675-1-vincenzo.frascino@arm.com>
- <20190613155137.47675-2-vincenzo.frascino@arm.com>
- <1c55a610-9aa5-4675-f7de-79a1661a660d@arm.com>
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:33440 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726224AbfFUPaS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jun 2019 11:30:18 -0400
+Received: by mail-wr1-f68.google.com with SMTP id n9so7060801wru.0
+        for <linux-arch@vger.kernel.org>; Fri, 21 Jun 2019 08:30:17 -0700 (PDT)
+Date: Fri, 21 Jun 2019 17:30:13 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
+Message-ID: <20190621153012.fxwhx25mzmzueqh7@brauner.io>
+References: <20190604160944.4058-1-christian@brauner.io>
+ <20190604160944.4058-2-christian@brauner.io>
+ <20190620184451.GA28543@roeck-us.net>
+ <20190620221003.ciuov5fzqxrcaykp@brauner.io>
+ <CAK8P3a2iV7=HkHBVL_puvCQN0DmdKEnVs2aG9MQV_8Q58JSfTA@mail.gmail.com>
+ <20190621111839.v5yqlws6iw7mx4aa@brauner.io>
+ <CAK8P3a0T1=eg5ONbMFhHi=vmk1K5uogZ+5=wpsXvjVDzn6vS=Q@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <1c55a610-9aa5-4675-f7de-79a1661a660d@arm.com>
+In-Reply-To: <CAK8P3a0T1=eg5ONbMFhHi=vmk1K5uogZ+5=wpsXvjVDzn6vS=Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20190621151641.T4W7BX3Umj0FnClQUENUbf2Y8vPnXCOX8xBw18nLCXs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>
+Message-ID: <20190621153013.LtKwKQcdfyt1xLRjJnLaSmegEZqtiNbQql2aijwEX4U@z>
 
-On Tue, Jun 18, 2019 at 02:13:01PM +0100, Kevin Brodsky wrote:
-> On 13/06/2019 16:51, Vincenzo Frascino wrote:
-> > +The ARM64 Tagged Address ABI is an opt-in feature, and an application can
-> > +control it using the following:
-> > + - /proc/sys/abi/tagged_addr: a new sysctl interface that can be used to
-> > +        prevent the applications from enabling the relaxed ABI.
-> > +        The sysctl is meant also for testing purposes in order to provide a
-> > +        simple way for the userspace to verify the return error checking of
-> > +        the prctl() commands without having to reconfigure the kernel.
-> > +        The sysctl supports the following configuration options:
-> > +         - 0: Disable ARM64 Tagged Address ABI for all the applications.
-> > +         - 1 (Default): Enable ARM64 Tagged Address ABI for all the
-> > +                        applications.
+On Fri, Jun 21, 2019 at 04:20:15PM +0200, Arnd Bergmann wrote:
+> On Fri, Jun 21, 2019 at 1:18 PM Christian Brauner <christian@brauner.io> wrote:
+> > On Fri, Jun 21, 2019 at 11:37:50AM +0200, Arnd Bergmann wrote:
+> > >
+> > > I never really liked having __ARCH_WANT_SYS_CLONE here
+> > > because it was the only one that a new architecture needed to
+> > > set: all the other __ARCH_WANT_* are for system calls that
+> > > are already superseded by newer ones, so a new architecture
+> > > would start out with an empty list.
+> > >
+> > > Since __ARCH_WANT_SYS_CLONE3 replaces
+> > > __ARCH_WANT_SYS_CLONE for new architectures, how about
+> > > leaving __ARCH_WANT_SYS_CLONE untouched but instead
+> >
+> > __ARCH_WANT_SYS_CLONE is left untouched. :)
+> >
+> > > coming up with the reverse for clone3 and mark the architectures
+> > > that specifically don't want it (if any)?
+> >
+> > Afaict, your suggestion is more or less the same thing what is done
+> > here. So I'm not sure it buys us anything apart from future
+> > architectures not needing to set __ARCH_WANT_SYS_CLONE3.
+> >
+> > I expect the macro above to be only here temporarily until all arches
+> > have caught up and we're sure that they don't require assembly stubs
+> > (cf. [1]). A decision I'd leave to the maintainers (since even for
+> > nios2 we were kind of on the fence what exactly the sys_clone stub was
+> > supposed to do).
+> >
+> > But I'm happy to take a patch from you if it's equally or more simple
+> > than this one right here.
+> >
+> > In any case, linux-next should be fine on all arches with this fixup
+> > now.
 > 
-> I find this very confusing, because it suggests that the default value of
-> PR_GET_TAGGED_ADDR_CTRL for new processes will be set to the value of this
-> sysctl, when in fact this sysctl is about restricting the *availability* of
-> the new ABI. Instead of disabling the ABI, I would talk about disabling
-> access to the new ABI here.
-
-This bullet point needs to be re-written. The sysctl is meant to disable
-opting in to the ABI. I'd also drop the "meant for testing" part. I put
-it in my commit log as justification but I don't think it should be part
-of the ABI document.
-
-> > + - prctl()s:
-> > +  - PR_SET_TAGGED_ADDR_CTRL: can be used to enable or disable the Tagged
-> > +        Address ABI.
-> > +        The (unsigned int) arg2 argument is a bit mask describing the
-> > +        control mode used:
-> > +          - PR_TAGGED_ADDR_ENABLE: Enable ARM64 Tagged Address ABI.
-> > +        The arguments arg3, arg4, and arg5 are ignored.
+> I've looked at bit more closely at the nios2 implementation, and I
+> believe this is purely an artifact of this file being copied over
+> from m68k, which also has an odd definition. The glibc side
+> of nios2 clone() is also odd in other ways, but that appears
+> to be unrelated to the kernel ABI.
 > 
-> Have we definitely decided that arg{3,4,5} are ignored? Catalin?
+> I think the best option here would be to not have any special
+> cases and just hook up clone3() the same way on all
+> architectures, with no #ifdef at all. If it turns out to not work
+> on a particular architecture later, they can still disable the
+> syscall then.
 
-I don't have a strong preference either way. If it's simpler for the
-user to ignore them, fine by me. I can see in the current prctl commands
-a mix if ignore vs forced zero.
+Hm, if you believe that this is fine and want to "vouch" for it by
+whipping up a patch that replaces the wiring up done in [1] I'm happy to
+take it. :) Otherwise I'd feel more comfortable not adding all arches at
+once.
 
-> > +the ABI guarantees the following behaviours:
-> > +
-> > +  - Every current or newly introduced syscall can accept any valid tagged
-> > +    pointers.
-> "pointer". Also, is it really useful to talk about newly introduced syscall?
-> New from which point of view?
+[1]: https://git.kernel.org/pub/scm/linux/kernel/git/brauner/linux.git/log/?h=clone
 
-I think we should drop this guarantee. It would have made sense if we
-allowed tagged pointers everywhere but we already have some exceptions.
-
-> > +3. ARM64 Tagged Address ABI Exceptions
-> > +--------------------------------------
-> > +
-> > +The behaviours described in section 2, with particular reference to the
-> > +acceptance by the syscalls of any valid tagged pointer are not applicable
-> > +to the following cases:
-> > +  - mmap() addr parameter.
-> > +  - mremap() new_address parameter.
-> > +  - prctl_set_mm() struct prctl_map fields.
-> > +  - prctl_set_mm_map() struct prctl_map fields.
-> 
-> prctl_set_mm() and prctl_set_mm_map() are internal kernel functions, not
-> syscall names. IIUC, we don't want to allow any address field settable via
-> the PR_SET_MM prctl() to be tagged. Catalin, is that correct? I think this
-> needs rephrasing.
-
-I fully agree. It should talk about PR_SET_MM, PR_SET_MM_MAP,
-PR_SET_MM_MAP_SIZE.
-
--- 
-Catalin
+Christian
