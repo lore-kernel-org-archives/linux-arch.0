@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55790 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:55260 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727129AbfFUJyD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:54:03 -0400
+        id S1726796AbfFUJxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:53:22 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 20/25] mips: Add clock_getres entry point
-Date: Fri, 21 Jun 2019 10:52:47 +0100
-Message-ID: <20190621095252.32307-21-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 05/25] arm64: Build vDSO with -ffixed-x18
+Date: Fri, 21 Jun 2019 10:52:32 +0100
+Message-ID: <20190621095252.32307-6-vincenzo.frascino@arm.com>
 In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -14,106 +14,47 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190621095247.FfhUn4fpPpHNfVnSb2VP2nAIVwrslWgVx-zayDO89sg@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>, Mark Salyzyn <salyzyn@google.com>
+Message-ID: <20190621095232.lqWMSdEYIoyjhenmxGbanzDlGc6Y852-Ta6lpnXMPCA@z>
 
-The generic vDSO library provides an implementation of clock_getres()
-that can be leveraged by each architecture.
+From: Peter Collingbourne <pcc@google.com>
 
-Add clock_getres() entry point on mips.
+The vDSO needs to be build with x18 reserved in order to accommodate
+userspace platform ABIs built on top of Linux that use the register
+to carry inter-procedural state, as provided for by the AAPCS.
+An example of such a platform ABI is the one that will be used by an
+upcoming version of Android.
 
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
+Although this change is currently a no-op due to the fact that the vDSO
+is currently implemented in pure assembly on arm64, it is necessary
+in order to prepare for another change [1] that will add C code to
+the vDSO.
+
+[1] https://patchwork.kernel.org/patch/10044501/
+
+Signed-off-by: Peter Collingbourne <pcc@google.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Tested-by: Shijith Thotton <sthotton@marvell.com>
+Tested-by: Andre Przywara <andre.przywara@arm.com>
+Cc: Mark Salyzyn <salyzyn@google.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
 ---
- arch/mips/include/asm/vdso/gettimeofday.h | 26 +++++++++++++++++++++++
- arch/mips/vdso/vdso.lds.S                 |  1 +
- arch/mips/vdso/vgettimeofday.c            | 12 +++++++++++
- 3 files changed, 39 insertions(+)
+ arch/arm64/kernel/vdso/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
-index aa20865b288b..c59fe08b0347 100644
---- a/arch/mips/include/asm/vdso/gettimeofday.h
-+++ b/arch/mips/include/asm/vdso/gettimeofday.h
-@@ -22,6 +22,8 @@
- #include <asm/unistd.h>
- #include <asm/vdso.h>
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index 3acfc813e966..ec81d28aeb5d 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -20,7 +20,7 @@ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+ ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
+ 		--build-id -n -T
  
-+#define VDSO_HAS_CLOCK_GETRES		1
-+
- #ifdef CONFIG_MIPS_CLOCK_VSYSCALL
+-ccflags-y := -fno-common -fno-builtin -fno-stack-protector
++ccflags-y := -fno-common -fno-builtin -fno-stack-protector -ffixed-x18
+ ccflags-y += -DDISABLE_BRANCH_PROFILING
  
- static __always_inline long gettimeofday_fallback(
-@@ -79,6 +81,30 @@ static __always_inline long clock_gettime_fallback(
- 	return error ? -ret : ret;
- }
- 
-+static __always_inline int clock_getres_fallback(
-+					clockid_t _clkid,
-+					struct __kernel_timespec *_ts)
-+{
-+	register struct __kernel_timespec *ts asm("a1") = _ts;
-+	register clockid_t clkid asm("a0") = _clkid;
-+	register long ret asm("v0");
-+#if _MIPS_SIM == _MIPS_SIM_ABI64
-+	register long nr asm("v0") = __NR_clock_getres;
-+#else
-+	register long nr asm("v0") = __NR_clock_getres_time64;
-+#endif
-+	register long error asm("a3");
-+
-+	asm volatile(
-+	"       syscall\n"
-+	: "=r" (ret), "=r" (error)
-+	: "r" (clkid), "r" (ts), "r" (nr)
-+	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
-+	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
-+
-+	return error ? -ret : ret;
-+}
-+
- #ifdef CONFIG_CSRC_R4K
- 
- static __always_inline u64 read_r4k_count(void)
-diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
-index 94d90c440590..ad9f2f2c0c97 100644
---- a/arch/mips/vdso/vdso.lds.S
-+++ b/arch/mips/vdso/vdso.lds.S
-@@ -95,6 +95,7 @@ VERSION
- 	global:
- 		__vdso_clock_gettime;
- 		__vdso_gettimeofday;
-+		__vdso_clock_getres;
- #endif
- 	local: *;
- 	};
-diff --git a/arch/mips/vdso/vgettimeofday.c b/arch/mips/vdso/vgettimeofday.c
-index 1c46dace041e..48e1ab32204b 100644
---- a/arch/mips/vdso/vgettimeofday.c
-+++ b/arch/mips/vdso/vgettimeofday.c
-@@ -23,6 +23,12 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
- 	return __cvdso_gettimeofday(tv, tz);
- }
- 
-+int __vdso_clock_getres(clockid_t clock_id,
-+			struct old_timespec32 *res)
-+{
-+	return __cvdso_clock_getres_time32(clock_id, res);
-+}
-+
- #else
- 
- int __vdso_clock_gettime(clockid_t clock,
-@@ -37,4 +43,10 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
- 	return __cvdso_gettimeofday(tv, tz);
- }
- 
-+int __vdso_clock_getres(clockid_t clock_id,
-+			struct __kernel_timespec *res)
-+{
-+	return __cvdso_clock_getres(clock_id, res);
-+}
-+
- #endif
+ VDSO_LDFLAGS := -Bsymbolic
 -- 
 2.21.0
