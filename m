@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55828 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:55894 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727145AbfFUJyG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:54:06 -0400
+        id S1727181AbfFUJyM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:54:12 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 21/25] mips: Add clock_gettime64 entry point
-Date: Fri, 21 Jun 2019 10:52:48 +0100
-Message-ID: <20190621095252.32307-22-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 23/25] x86: Add clock_getres entry point
+Date: Fri, 21 Jun 2019 10:52:50 +0100
+Message-ID: <20190621095252.32307-24-vincenzo.frascino@arm.com>
 In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,54 +15,144 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190621095248.aiTFSlP2PYDeHlg-KzCwd9-8NFEH4cYxRGf_5nUlB6Q@z>
+Message-ID: <20190621095250.hv8YJVdqQUKe_ST750oYzuRd5kucyIK93X1SPjboWBw@z>
 
-With the release of Linux 5.1 has been added a new syscall,
-clock_gettime64, that provided a 64 bit time value for a specified
-clock_ID to make the kernel Y2038 safe on 32 bit architectures.
+The generic vDSO library provides an implementation of clock_getres()
+that can be leveraged by each architecture.
 
-Update the mips32 specific vDSO library accordingly with what it has
-been done for the kernel syscall exposing the clock_gettime64 entry
-point.
+Add clock_getres() entry point on x86.
 
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@mips.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/vdso/vdso.lds.S      | 3 +++
- arch/mips/vdso/vgettimeofday.c | 6 ++++++
- 2 files changed, 9 insertions(+)
+ arch/x86/entry/vdso/vclock_gettime.c     | 17 ++++++++++++++
+ arch/x86/entry/vdso/vdso.lds.S           |  2 ++
+ arch/x86/entry/vdso/vdso32/vdso32.lds.S  |  1 +
+ arch/x86/include/asm/vdso/gettimeofday.h | 30 ++++++++++++++++++++++++
+ 4 files changed, 50 insertions(+)
 
-diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
-index ad9f2f2c0c97..da4627430aba 100644
---- a/arch/mips/vdso/vdso.lds.S
-+++ b/arch/mips/vdso/vdso.lds.S
-@@ -96,6 +96,9 @@ VERSION
- 		__vdso_clock_gettime;
- 		__vdso_gettimeofday;
- 		__vdso_clock_getres;
-+#if _MIPS_SIM != _MIPS_SIM_ABI64
-+		__vdso_clock_gettime64;
-+#endif
+diff --git a/arch/x86/entry/vdso/vclock_gettime.c b/arch/x86/entry/vdso/vclock_gettime.c
+index 4a7ef4ca4f52..de9212a4833e 100644
+--- a/arch/x86/entry/vdso/vclock_gettime.c
++++ b/arch/x86/entry/vdso/vclock_gettime.c
+@@ -36,6 +36,7 @@ time_t time(time_t *t)
+ #if defined(CONFIG_X86_64) && !defined(BUILD_VDSO32_64)
+ /* both 64-bit and x32 use these */
+ extern int __vdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts);
++extern int __vdso_clock_getres(clockid_t clock, struct __kernel_timespec *res);
+ 
+ int __vdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts)
+ {
+@@ -44,9 +45,18 @@ int __vdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts)
+ int clock_gettime(clockid_t, struct __kernel_timespec *)
+ 	__attribute__((weak, alias("__vdso_clock_gettime")));
+ 
++int __vdso_clock_getres(clockid_t clock,
++			struct __kernel_timespec *res)
++{
++	return __cvdso_clock_getres(clock, res);
++}
++int clock_getres(clockid_t, struct __kernel_timespec *)
++	__attribute__((weak, alias("__vdso_clock_getres")));
++
+ #else
+ /* i386 only */
+ extern int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts);
++extern int __vdso_clock_getres(clockid_t clock, struct old_timespec32 *res);
+ 
+ int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts)
+ {
+@@ -55,4 +65,11 @@ int __vdso_clock_gettime(clockid_t clock, struct old_timespec32 *ts)
+ int clock_gettime(clockid_t, struct old_timespec32 *)
+ 	__attribute__((weak, alias("__vdso_clock_gettime")));
+ 
++int __vdso_clock_getres(clockid_t clock,
++			struct old_timespec32 *res)
++{
++	return __cvdso_clock_getres_time32(clock, res);
++}
++int clock_getres(clockid_t, struct old_timespec32 *)
++	__attribute__((weak, alias("__vdso_clock_getres")));
  #endif
+diff --git a/arch/x86/entry/vdso/vdso.lds.S b/arch/x86/entry/vdso/vdso.lds.S
+index d3a2dce4cfa9..36b644e16272 100644
+--- a/arch/x86/entry/vdso/vdso.lds.S
++++ b/arch/x86/entry/vdso/vdso.lds.S
+@@ -25,6 +25,8 @@ VERSION {
+ 		__vdso_getcpu;
+ 		time;
+ 		__vdso_time;
++		clock_getres;
++		__vdso_clock_getres;
  	local: *;
  	};
-diff --git a/arch/mips/vdso/vgettimeofday.c b/arch/mips/vdso/vgettimeofday.c
-index 48e1ab32204b..6ebdc37c89fc 100644
---- a/arch/mips/vdso/vgettimeofday.c
-+++ b/arch/mips/vdso/vgettimeofday.c
-@@ -29,6 +29,12 @@ int __vdso_clock_getres(clockid_t clock_id,
- 	return __cvdso_clock_getres_time32(clock_id, res);
+ }
+diff --git a/arch/x86/entry/vdso/vdso32/vdso32.lds.S b/arch/x86/entry/vdso/vdso32/vdso32.lds.S
+index 422764a81d32..991b26cc855b 100644
+--- a/arch/x86/entry/vdso/vdso32/vdso32.lds.S
++++ b/arch/x86/entry/vdso/vdso32/vdso32.lds.S
+@@ -26,6 +26,7 @@ VERSION
+ 		__vdso_clock_gettime;
+ 		__vdso_gettimeofday;
+ 		__vdso_time;
++		__vdso_clock_getres;
+ 	};
+ 
+ 	LINUX_2.5 {
+diff --git a/arch/x86/include/asm/vdso/gettimeofday.h b/arch/x86/include/asm/vdso/gettimeofday.h
+index a274d4fea7a5..df8c8dfadfa7 100644
+--- a/arch/x86/include/asm/vdso/gettimeofday.h
++++ b/arch/x86/include/asm/vdso/gettimeofday.h
+@@ -24,6 +24,8 @@
+ 
+ #define VDSO_HAS_TIME 1
+ 
++#define VDSO_HAS_CLOCK_GETRES 1
++
+ #ifdef CONFIG_PARAVIRT_CLOCK
+ extern u8 pvclock_page[PAGE_SIZE]
+ 	__attribute__((visibility("hidden")));
+@@ -57,6 +59,17 @@ static __always_inline long gettimeofday_fallback(
+ 	return ret;
  }
  
-+int __vdso_clock_gettime64(clockid_t clock,
-+			   struct __kernel_timespec *ts)
++static __always_inline long clock_getres_fallback(
++					clockid_t _clkid,
++					struct __kernel_timespec *_ts)
 +{
-+	return __cvdso_clock_gettime(clock, ts);
++	long ret;
++	asm ("syscall" : "=a" (ret), "=m" (*_ts) :
++	     "0" (__NR_clock_getres), "D" (_clkid), "S" (_ts) :
++	     "rcx", "r11");
++	return ret;
 +}
 +
  #else
  
- int __vdso_clock_gettime(clockid_t clock,
+ static __always_inline long clock_gettime_fallback(
+@@ -92,6 +105,23 @@ static __always_inline long gettimeofday_fallback(
+ 	return ret;
+ }
+ 
++static __always_inline long clock_getres_fallback(
++					clockid_t _clkid,
++					struct __kernel_timespec *_ts)
++{
++	long ret;
++
++	asm (
++		"mov %%ebx, %%edx \n"
++		"mov %[clock], %%ebx \n"
++		"call __kernel_vsyscall \n"
++		"mov %%edx, %%ebx \n"
++		: "=a" (ret), "=m" (*_ts)
++		: "0" (__NR_clock_getres_time64), [clock] "g" (_clkid), "c" (_ts)
++		: "edx");
++	return ret;
++}
++
+ #endif
+ 
+ #ifdef CONFIG_PARAVIRT_CLOCK
 -- 
 2.21.0
