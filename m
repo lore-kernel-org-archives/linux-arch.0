@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55122 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:55790 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726218AbfFUJxK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:53:10 -0400
+        id S1727129AbfFUJyD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:54:03 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 01/25] kernel: Standardize vdso_datapage
-Date: Fri, 21 Jun 2019 10:52:28 +0100
-Message-ID: <20190621095252.32307-2-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 20/25] mips: Add clock_getres entry point
+Date: Fri, 21 Jun 2019 10:52:47 +0100
+Message-ID: <20190621095252.32307-21-vincenzo.frascino@arm.com>
 In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,122 +15,105 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190621095228.0YPIesX4IjF6M3c9b_7kO54T0UP0txNhYXHjS2h1-Oo@z>
+Message-ID: <20190621095247.FfhUn4fpPpHNfVnSb2VP2nAIVwrslWgVx-zayDO89sg@z>
 
-In an effort to unify the common code for managing the vdso library in
-between all the architectures that support it, this patch tries to
-provide a common format for the vdso datapage.
+The generic vDSO library provides an implementation of clock_getres()
+that can be leveraged by each architecture.
 
-As a result of this, this patch generalized the data structures in vgtod.h
-from x86 private includes to general includes (include/vdso).
+Add clock_getres() entry point on mips.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Tested-by: Shijith Thotton <sthotton@marvell.com>
-Tested-by: Andre Przywara <andre.przywara@arm.com>
 ---
- include/vdso/datapage.h | 93 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 93 insertions(+)
- create mode 100644 include/vdso/datapage.h
+ arch/mips/include/asm/vdso/gettimeofday.h | 26 +++++++++++++++++++++++
+ arch/mips/vdso/vdso.lds.S                 |  1 +
+ arch/mips/vdso/vgettimeofday.c            | 12 +++++++++++
+ 3 files changed, 39 insertions(+)
 
-diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-new file mode 100644
-index 000000000000..770f40254b08
---- /dev/null
-+++ b/include/vdso/datapage.h
-@@ -0,0 +1,93 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_DATAPAGE_H
-+#define __VDSO_DATAPAGE_H
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+index aa20865b288b..c59fe08b0347 100644
+--- a/arch/mips/include/asm/vdso/gettimeofday.h
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -22,6 +22,8 @@
+ #include <asm/unistd.h>
+ #include <asm/vdso.h>
+ 
++#define VDSO_HAS_CLOCK_GETRES		1
 +
-+#ifdef __KERNEL__
+ #ifdef CONFIG_MIPS_CLOCK_VSYSCALL
+ 
+ static __always_inline long gettimeofday_fallback(
+@@ -79,6 +81,30 @@ static __always_inline long clock_gettime_fallback(
+ 	return error ? -ret : ret;
+ }
+ 
++static __always_inline int clock_getres_fallback(
++					clockid_t _clkid,
++					struct __kernel_timespec *_ts)
++{
++	register struct __kernel_timespec *ts asm("a1") = _ts;
++	register clockid_t clkid asm("a0") = _clkid;
++	register long ret asm("v0");
++#if _MIPS_SIM == _MIPS_SIM_ABI64
++	register long nr asm("v0") = __NR_clock_getres;
++#else
++	register long nr asm("v0") = __NR_clock_getres_time64;
++#endif
++	register long error asm("a3");
 +
-+#ifndef __ASSEMBLY__
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
 +
-+#include <linux/bits.h>
-+#include <linux/time.h>
-+#include <linux/types.h>
++	return error ? -ret : ret;
++}
 +
-+#define VDSO_BASES	(CLOCK_TAI + 1)
-+#define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
-+			 BIT(CLOCK_MONOTONIC)		| \
-+			 BIT(CLOCK_BOOTTIME)		| \
-+			 BIT(CLOCK_TAI))
-+#define VDSO_COARSE	(BIT(CLOCK_REALTIME_COARSE)	| \
-+			 BIT(CLOCK_MONOTONIC_COARSE))
-+#define VDSO_RAW	(BIT(CLOCK_MONOTONIC_RAW))
+ #ifdef CONFIG_CSRC_R4K
+ 
+ static __always_inline u64 read_r4k_count(void)
+diff --git a/arch/mips/vdso/vdso.lds.S b/arch/mips/vdso/vdso.lds.S
+index 94d90c440590..ad9f2f2c0c97 100644
+--- a/arch/mips/vdso/vdso.lds.S
++++ b/arch/mips/vdso/vdso.lds.S
+@@ -95,6 +95,7 @@ VERSION
+ 	global:
+ 		__vdso_clock_gettime;
+ 		__vdso_gettimeofday;
++		__vdso_clock_getres;
+ #endif
+ 	local: *;
+ 	};
+diff --git a/arch/mips/vdso/vgettimeofday.c b/arch/mips/vdso/vgettimeofday.c
+index 1c46dace041e..48e1ab32204b 100644
+--- a/arch/mips/vdso/vgettimeofday.c
++++ b/arch/mips/vdso/vgettimeofday.c
+@@ -23,6 +23,12 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
+ 	return __cvdso_gettimeofday(tv, tz);
+ }
+ 
++int __vdso_clock_getres(clockid_t clock_id,
++			struct old_timespec32 *res)
++{
++	return __cvdso_clock_getres_time32(clock_id, res);
++}
 +
-+#define CS_HRES_COARSE	0
-+#define CS_RAW		1
-+#define CS_BASES	(CS_RAW + 1)
+ #else
+ 
+ int __vdso_clock_gettime(clockid_t clock,
+@@ -37,4 +43,10 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
+ 	return __cvdso_gettimeofday(tv, tz);
+ }
+ 
++int __vdso_clock_getres(clockid_t clock_id,
++			struct __kernel_timespec *res)
++{
++	return __cvdso_clock_getres(clock_id, res);
++}
 +
-+/**
-+ * struct vdso_timestamp - basetime per clock_id
-+ * @sec: seconds
-+ * @nsec: nanoseconds
-+ *
-+ * There is one vdso_timestamp object in vvar for each vDSO-accelerated
-+ * clock_id. For high-resolution clocks, this encodes the time
-+ * corresponding to vdso_data.cycle_last. For coarse clocks this encodes
-+ * the actual time.
-+ *
-+ * To be noticed that for highres clocks nsec is left-shifted by
-+ * vdso_data.cs[x].shift.
-+ */
-+struct vdso_timestamp {
-+	u64	sec;
-+	u64	nsec;
-+};
-+
-+/**
-+ * struct vdso_data - vdso datapage representation
-+ * @seq: timebase sequence counter
-+ * @clock_mode: clock mode
-+ * @cycle_last: timebase at clocksource init
-+ * @mask: clocksource mask
-+ * @mult: clocksource multiplier
-+ * @shift: clocksource shift
-+ * @basetime[clock_id]: basetime per clock_id
-+ * @tz_minuteswest: minutes west of Greenwich
-+ * @tz_dsttime: type of DST correction
-+ * @hrtimer_res: hrtimer resolution
-+ * @__unused: unused
-+ *
-+ * vdso_data will be accessed by 64 bit and compat code at the same time
-+ * so we should be careful before modifying this structure.
-+ */
-+struct vdso_data {
-+	u32			seq;
-+
-+	s32			clock_mode;
-+	u64			cycle_last;
-+	u64			mask;
-+	u32			mult;
-+	u32			shift;
-+
-+	struct vdso_timestamp	basetime[VDSO_BASES];
-+
-+	s32			tz_minuteswest;
-+	s32			tz_dsttime;
-+	u32			hrtimer_res;
-+	u32			__unused;
-+};
-+
-+/*
-+ * We use the hidden visibility to prevent the compiler from generating a GOT
-+ * relocation. Not only is going through a GOT useless (the entry couldn't and
-+ * must not be overridden by another library), it does not even work: the linker
-+ * cannot generate an absolute address to the data page.
-+ *
-+ * With the hidden visibility, the compiler simply generates a PC-relative
-+ * relocation, and this is what we need.
-+ */
-+extern struct vdso_data _vdso_data[CS_BASES] __attribute__((visibility("hidden")));
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __VDSO_DATAPAGE_H */
+ #endif
 -- 
 2.21.0
