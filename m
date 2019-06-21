@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55472 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:55188 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726885AbfFUJxj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Jun 2019 05:53:39 -0400
+        id S1726715AbfFUJxQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:53:16 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v7 11/25] arm64: Refactor vDSO code
-Date: Fri, 21 Jun 2019 10:52:38 +0100
-Message-ID: <20190621095252.32307-12-vincenzo.frascino@arm.com>
+Subject: [PATCH v7 03/25] kernel: Unify update_vsyscall implementation
+Date: Fri, 21 Jun 2019 10:52:30 +0100
+Message-ID: <20190621095252.32307-4-vincenzo.frascino@arm.com>
 In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -15,289 +15,290 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190621095238.jyVyt5c6p35ASAsj5bYc7CK7x_oleeOh8riPq2gzlcI@z>
+Message-ID: <20190621095230.RPs2bcRXqDR_XEKCyNaccLPHWgZdU8FpsrHuFY1W3k4@z>
 
-Most of the code for initializing the vDSOs in arm64 and compat will
-be in common, hence a refactor of the current code is required to avoid
-duplication and simplify maintainability.
+With the definition of the unified vDSO library the implementations of
+update_vsyscall and update_vsyscall_tz became quite similar across
+architectures.
 
-Refactor vdso.c to simplify the implementation of arm64 vDSO compat
-(which will be pushed with a future patch).
+Define a unified implementation of these two functions in kernel/vdso
+and provide the bindings that can be implemented by every architecture
+that takes advantage of the unified vDSO library.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Tested-by: Shijith Thotton <sthotton@marvell.com>
 Tested-by: Andre Przywara <andre.przywara@arm.com>
 ---
- arch/arm64/kernel/vdso.c | 215 ++++++++++++++++++++++++++-------------
- 1 file changed, 144 insertions(+), 71 deletions(-)
+ include/asm-generic/vdso/vsyscall.h |  56 ++++++++++++
+ include/linux/timekeeper_internal.h |   9 ++
+ include/vdso/vsyscall.h             |  11 +++
+ kernel/Makefile                     |   1 +
+ kernel/vdso/Makefile                |   2 +
+ kernel/vdso/vsyscall.c              | 131 ++++++++++++++++++++++++++++
+ 6 files changed, 210 insertions(+)
+ create mode 100644 include/asm-generic/vdso/vsyscall.h
+ create mode 100644 include/vdso/vsyscall.h
+ create mode 100644 kernel/vdso/Makefile
+ create mode 100644 kernel/vdso/vsyscall.c
 
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 23c38303a52a..aa1fb25a9fe4 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -40,7 +40,31 @@
- #include <asm/vdso.h>
- 
- extern char vdso_start[], vdso_end[];
--static unsigned long vdso_pages __ro_after_init;
+diff --git a/include/asm-generic/vdso/vsyscall.h b/include/asm-generic/vdso/vsyscall.h
+new file mode 100644
+index 000000000000..9a4b9fbcc9b6
+--- /dev/null
++++ b/include/asm-generic/vdso/vsyscall.h
+@@ -0,0 +1,56 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_VSYSCALL_H
++#define __ASM_GENERIC_VSYSCALL_H
 +
-+/* vdso_lookup arch_index */
-+enum arch_vdso_type {
-+	ARM64_VDSO = 0,
-+};
-+#define VDSO_TYPES		(ARM64_VDSO + 1)
++#ifndef __ASSEMBLY__
 +
-+struct __vdso_abi {
-+	const char *name;
-+	const char *vdso_code_start;
-+	const char *vdso_code_end;
-+	unsigned long vdso_pages;
-+	/* Data Mapping */
-+	struct vm_special_mapping *dm;
-+	/* Code Mapping */
-+	struct vm_special_mapping *cm;
-+};
-+
-+static struct __vdso_abi vdso_lookup[VDSO_TYPES] __ro_after_init = {
-+	{
-+		.name = "vdso",
-+		.vdso_code_start = vdso_start,
-+		.vdso_code_end = vdso_end,
-+	},
-+};
- 
- /*
-  * The vDSO data page.
-@@ -51,10 +75,110 @@ static union {
- } vdso_data_store __page_aligned_data;
- struct vdso_data *vdso_data = vdso_data_store.data;
- 
-+static int __vdso_remap(enum arch_vdso_type arch_index,
-+			const struct vm_special_mapping *sm,
-+			struct vm_area_struct *new_vma)
++#ifndef __arch_get_k_vdso_data
++static __always_inline
++struct vdso_data *__arch_get_k_vdso_data(void)
 +{
-+	unsigned long new_size = new_vma->vm_end - new_vma->vm_start;
-+	unsigned long vdso_size = vdso_lookup[arch_index].vdso_code_end -
-+				  vdso_lookup[arch_index].vdso_code_start;
++	return NULL;
++}
++#endif /* __arch_get_k_vdso_data */
 +
-+	if (vdso_size != new_size)
-+		return -EINVAL;
-+
-+	current->mm->context.vdso = (void *)new_vma->vm_start;
-+
++#ifndef __arch_update_vdso_data
++static __always_inline
++int __arch_update_vdso_data(void)
++{
 +	return 0;
 +}
++#endif /* __arch_update_vdso_data */
 +
-+static int __vdso_init(enum arch_vdso_type arch_index)
++#ifndef __arch_get_clock_mode
++static __always_inline
++int __arch_get_clock_mode(struct timekeeper *tk)
 +{
-+	int i;
-+	struct page **vdso_pagelist;
-+	unsigned long pfn;
++	return 0;
++}
++#endif /* __arch_get_clock_mode */
 +
-+	if (memcmp(vdso_lookup[arch_index].vdso_code_start, "\177ELF", 4)) {
-+		pr_err("vDSO is not a valid ELF object!\n");
-+		return -EINVAL;
++#ifndef __arch_use_vsyscall
++static __always_inline
++int __arch_use_vsyscall(struct vdso_data *vdata)
++{
++	return 1;
++}
++#endif /* __arch_use_vsyscall */
++
++#ifndef __arch_update_vsyscall
++static __always_inline
++void __arch_update_vsyscall(struct vdso_data *vdata,
++			    struct timekeeper *tk)
++{
++}
++#endif /* __arch_update_vsyscall */
++
++#ifndef __arch_sync_vdso_data
++static __always_inline
++void __arch_sync_vdso_data(struct vdso_data *vdata)
++{
++}
++#endif /* __arch_sync_vdso_data */
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __ASM_GENERIC_VSYSCALL_H */
+diff --git a/include/linux/timekeeper_internal.h b/include/linux/timekeeper_internal.h
+index 7acb953298a7..8177e75a71eb 100644
+--- a/include/linux/timekeeper_internal.h
++++ b/include/linux/timekeeper_internal.h
+@@ -135,9 +135,18 @@ struct timekeeper {
+ 
+ #ifdef CONFIG_GENERIC_TIME_VSYSCALL
+ 
++#ifdef CONFIG_HAVE_GENERIC_VDSO
++
++void update_vsyscall(struct timekeeper *tk);
++void update_vsyscall_tz(void);
++
++#else
++
+ extern void update_vsyscall(struct timekeeper *tk);
+ extern void update_vsyscall_tz(void);
+ 
++#endif /* CONFIG_HAVE_GENERIC_VDSO */
++
+ #else
+ 
+ static inline void update_vsyscall(struct timekeeper *tk)
+diff --git a/include/vdso/vsyscall.h b/include/vdso/vsyscall.h
+new file mode 100644
+index 000000000000..2c6134e0c23d
+--- /dev/null
++++ b/include/vdso/vsyscall.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_VSYSCALL_H
++#define __VDSO_VSYSCALL_H
++
++#ifndef __ASSEMBLY__
++
++#include <asm/vdso/vsyscall.h>
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __VDSO_VSYSCALL_H */
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 33824f0385b3..56a98ebb7772 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -48,6 +48,7 @@ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+ obj-$(CONFIG_PROFILING) += profile.o
+ obj-$(CONFIG_STACKTRACE) += stacktrace.o
++obj-$(CONFIG_HAVE_GENERIC_VDSO) += vdso/
+ obj-y += time/
+ obj-$(CONFIG_FUTEX) += futex.o
+ obj-$(CONFIG_GENERIC_ISA_DMA) += dma.o
+diff --git a/kernel/vdso/Makefile b/kernel/vdso/Makefile
+new file mode 100644
+index 000000000000..ad0d3b1a475c
+--- /dev/null
++++ b/kernel/vdso/Makefile
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0
++obj-$(CONFIG_HAVE_GENERIC_VDSO)			+= vsyscall.o
+diff --git a/kernel/vdso/vsyscall.c b/kernel/vdso/vsyscall.c
+new file mode 100644
+index 000000000000..d1e8074e3d10
+--- /dev/null
++++ b/kernel/vdso/vsyscall.c
+@@ -0,0 +1,131 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright 2019 ARM Ltd.
++ *
++ * Generic implementation of update_vsyscall and update_vsyscall_tz.
++ */
++
++#include <linux/hrtimer.h>
++#include <linux/timekeeper_internal.h>
++#include <vdso/datapage.h>
++#include <vdso/helpers.h>
++#include <vdso/vsyscall.h>
++
++static inline void update_vdso_data(struct vdso_data *vdata,
++				    struct timekeeper *tk)
++{
++	struct vdso_timestamp *vdso_ts;
++	u64 nsec;
++
++	vdata[CS_HRES_COARSE].cycle_last	= tk->tkr_mono.cycle_last;
++	vdata[CS_HRES_COARSE].mask		= tk->tkr_mono.mask;
++	vdata[CS_HRES_COARSE].mult		= tk->tkr_mono.mult;
++	vdata[CS_HRES_COARSE].shift		= tk->tkr_mono.shift;
++	vdata[CS_RAW].cycle_last		= tk->tkr_raw.cycle_last;
++	vdata[CS_RAW].mask			= tk->tkr_raw.mask;
++	vdata[CS_RAW].mult			= tk->tkr_raw.mult;
++	vdata[CS_RAW].shift			= tk->tkr_raw.shift;
++
++	/* CLOCK_REALTIME */
++	vdso_ts		=  &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME];
++	vdso_ts->sec	= tk->xtime_sec;
++	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
++
++	/* CLOCK_MONOTONIC */
++	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC];
++	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
++
++	nsec = tk->tkr_mono.xtime_nsec;
++	nsec += ((u64)tk->wall_to_monotonic.tv_nsec << tk->tkr_mono.shift);
++	while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
++		nsec -= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
++		vdso_ts->sec++;
++	}
++	vdso_ts->nsec	= nsec;
++
++	/* CLOCK_MONOTONIC_RAW */
++	vdso_ts		= &vdata[CS_RAW].basetime[CLOCK_MONOTONIC_RAW];
++	vdso_ts->sec	= tk->raw_sec;
++	vdso_ts->nsec	= tk->tkr_raw.xtime_nsec;
++
++	/* CLOCK_BOOTTIME */
++	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_BOOTTIME];
++	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
++	nsec = tk->tkr_mono.xtime_nsec;
++	nsec += ((u64)(tk->wall_to_monotonic.tv_nsec +
++		       ktime_to_ns(tk->offs_boot)) << tk->tkr_mono.shift);
++	while (nsec >= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift)) {
++		nsec -= (((u64)NSEC_PER_SEC) << tk->tkr_mono.shift);
++		vdso_ts->sec++;
++	}
++	vdso_ts->nsec	= nsec;
++
++	/* CLOCK_TAI */
++	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_TAI];
++	vdso_ts->sec	= tk->xtime_sec + (s64)tk->tai_offset;
++	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec;
++
++	/*
++	 * Read without the seqlock held by clock_getres().
++	 * Note: No need to have a second copy.
++	 */
++	WRITE_ONCE(vdata[CS_HRES_COARSE].hrtimer_res, hrtimer_resolution);
++}
++
++void update_vsyscall(struct timekeeper *tk)
++{
++	struct vdso_data *vdata = __arch_get_k_vdso_data();
++	struct vdso_timestamp *vdso_ts;
++	u64 nsec;
++
++	if (__arch_update_vdso_data()) {
++		/*
++		 * Some architectures might want to skip the update of the
++		 * data page.
++		 */
++		return;
 +	}
 +
-+	vdso_lookup[arch_index].vdso_pages = (
-+			vdso_lookup[arch_index].vdso_code_end -
-+			vdso_lookup[arch_index].vdso_code_start) >>
-+			PAGE_SHIFT;
++	/* copy vsyscall data */
++	vdso_write_begin(vdata);
 +
-+	/* Allocate the vDSO pagelist, plus a page for the data. */
-+	vdso_pagelist = kcalloc(vdso_lookup[arch_index].vdso_pages + 1,
-+				sizeof(struct page *),
-+				GFP_KERNEL);
-+	if (vdso_pagelist == NULL)
-+		return -ENOMEM;
++	vdata[CS_HRES_COARSE].clock_mode	= __arch_get_clock_mode(tk);
++	vdata[CS_RAW].clock_mode		= __arch_get_clock_mode(tk);
 +
-+	/* Grab the vDSO data page. */
-+	vdso_pagelist[0] = phys_to_page(__pa_symbol(vdso_data));
++	/* CLOCK_REALTIME_COARSE */
++	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_REALTIME_COARSE];
++	vdso_ts->sec	= tk->xtime_sec;
++	vdso_ts->nsec	= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
 +
++	/* CLOCK_MONOTONIC_COARSE */
++	vdso_ts		= &vdata[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC_COARSE];
++	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
++	nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
++	nsec		= nsec + tk->wall_to_monotonic.tv_nsec;
++	while (nsec >= NSEC_PER_SEC) {
++		nsec = nsec - NSEC_PER_SEC;
++		vdso_ts->sec++;
++	}
++	vdso_ts->nsec	= nsec;
 +
-+	/* Grab the vDSO code pages. */
-+	pfn = sym_to_pfn(vdso_lookup[arch_index].vdso_code_start);
++	if (__arch_use_vsyscall(vdata))
++		update_vdso_data(vdata, tk);
 +
-+	for (i = 0; i < vdso_lookup[arch_index].vdso_pages; i++)
-+		vdso_pagelist[i + 1] = pfn_to_page(pfn + i);
++	__arch_update_vsyscall(vdata, tk);
 +
-+	vdso_lookup[arch_index].dm->pages = &vdso_pagelist[0];
-+	vdso_lookup[arch_index].cm->pages = &vdso_pagelist[1];
++	vdso_write_end(vdata);
 +
-+	return 0;
++	__arch_sync_vdso_data(vdata);
 +}
 +
-+static int __setup_additional_pages(enum arch_vdso_type arch_index,
-+				    struct mm_struct *mm,
-+				    struct linux_binprm *bprm,
-+				    int uses_interp)
++void update_vsyscall_tz(void)
 +{
-+	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
-+	void *ret;
++	struct vdso_data *vdata = __arch_get_k_vdso_data();
 +
-+	vdso_text_len = vdso_lookup[arch_index].vdso_pages << PAGE_SHIFT;
-+	/* Be sure to map the data page */
-+	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
-+
-+	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
-+	if (IS_ERR_VALUE(vdso_base)) {
-+		ret = ERR_PTR(vdso_base);
-+		goto up_fail;
++	if (__arch_use_vsyscall(vdata)) {
++		vdata[CS_HRES_COARSE].tz_minuteswest = sys_tz.tz_minuteswest;
++		vdata[CS_HRES_COARSE].tz_dsttime = sys_tz.tz_dsttime;
 +	}
 +
-+	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
-+				       VM_READ|VM_MAYREAD,
-+				       vdso_lookup[arch_index].dm);
-+	if (IS_ERR(ret))
-+		goto up_fail;
-+
-+	vdso_base += PAGE_SIZE;
-+	mm->context.vdso = (void *)vdso_base;
-+	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
-+				       VM_READ|VM_EXEC|
-+				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
-+				       vdso_lookup[arch_index].cm);
-+	if (IS_ERR(ret))
-+		goto up_fail;
-+
-+	return 0;
-+
-+up_fail:
-+	mm->context.vdso = NULL;
-+	return PTR_ERR(ret);
++	__arch_sync_vdso_data(vdata);
 +}
-+
- #ifdef CONFIG_COMPAT
- /*
-  * Create and map the vectors page for AArch32 tasks.
-  */
-+/*
-+ * aarch32_vdso_pages:
-+ * 0 - kuser helpers
-+ * 1 - sigreturn code
-+ */
- #define C_VECTORS	0
- #define C_SIGPAGE	1
- #define C_PAGES		(C_SIGPAGE + 1)
-@@ -183,18 +307,18 @@ int aarch32_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- static int vdso_mremap(const struct vm_special_mapping *sm,
- 		struct vm_area_struct *new_vma)
- {
--	unsigned long new_size = new_vma->vm_end - new_vma->vm_start;
--	unsigned long vdso_size = vdso_end - vdso_start;
--
--	if (vdso_size != new_size)
--		return -EINVAL;
--
--	current->mm->context.vdso = (void *)new_vma->vm_start;
--
--	return 0;
-+	return __vdso_remap(ARM64_VDSO, sm, new_vma);
- }
- 
--static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
-+/*
-+ * aarch64_vdso_pages:
-+ * 0 - vvar
-+ * 1 - vdso
-+ */
-+#define A_VVAR		0
-+#define A_VDSO		1
-+#define A_PAGES		(A_VDSO + 1)
-+static struct vm_special_mapping vdso_spec[A_PAGES] __ro_after_init = {
- 	{
- 		.name	= "[vvar]",
- 	},
-@@ -206,37 +330,10 @@ static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
- 
- static int __init vdso_init(void)
- {
--	int i;
--	struct page **vdso_pagelist;
--	unsigned long pfn;
--
--	if (memcmp(vdso_start, "\177ELF", 4)) {
--		pr_err("vDSO is not a valid ELF object!\n");
--		return -EINVAL;
--	}
--
--	vdso_pages = (vdso_end - vdso_start) >> PAGE_SHIFT;
--
--	/* Allocate the vDSO pagelist, plus a page for the data. */
--	vdso_pagelist = kcalloc(vdso_pages + 1, sizeof(struct page *),
--				GFP_KERNEL);
--	if (vdso_pagelist == NULL)
--		return -ENOMEM;
--
--	/* Grab the vDSO data page. */
--	vdso_pagelist[0] = phys_to_page(__pa_symbol(vdso_data));
--
-+	vdso_lookup[ARM64_VDSO].dm = &vdso_spec[A_VVAR];
-+	vdso_lookup[ARM64_VDSO].cm = &vdso_spec[A_VDSO];
- 
--	/* Grab the vDSO code pages. */
--	pfn = sym_to_pfn(vdso_start);
--
--	for (i = 0; i < vdso_pages; i++)
--		vdso_pagelist[i + 1] = pfn_to_page(pfn + i);
--
--	vdso_spec[0].pages = &vdso_pagelist[0];
--	vdso_spec[1].pages = &vdso_pagelist[1];
--
--	return 0;
-+	return __vdso_init(ARM64_VDSO);
- }
- arch_initcall(vdso_init);
- 
-@@ -244,41 +341,17 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
- 				int uses_interp)
- {
- 	struct mm_struct *mm = current->mm;
--	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
--	void *ret;
--
--	vdso_text_len = vdso_pages << PAGE_SHIFT;
--	/* Be sure to map the data page */
--	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
-+	int ret;
- 
- 	if (down_write_killable(&mm->mmap_sem))
- 		return -EINTR;
--	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
--	if (IS_ERR_VALUE(vdso_base)) {
--		ret = ERR_PTR(vdso_base);
--		goto up_fail;
--	}
--	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
--				       VM_READ|VM_MAYREAD,
--				       &vdso_spec[0]);
--	if (IS_ERR(ret))
--		goto up_fail;
--
--	vdso_base += PAGE_SIZE;
--	mm->context.vdso = (void *)vdso_base;
--	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
--				       VM_READ|VM_EXEC|
--				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
--				       &vdso_spec[1]);
--	if (IS_ERR(ret))
--		goto up_fail;
- 
-+	ret = __setup_additional_pages(ARM64_VDSO,
-+				       mm,
-+				       bprm,
-+				       uses_interp);
- 
- 	up_write(&mm->mmap_sem);
--	return 0;
- 
--up_fail:
--	mm->context.vdso = NULL;
--	up_write(&mm->mmap_sem);
--	return PTR_ERR(ret);
-+	return ret;
- }
 -- 
 2.21.0
