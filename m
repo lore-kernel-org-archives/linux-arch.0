@@ -1,134 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:33586 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726204AbfFTWKK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jun 2019 18:10:10 -0400
-Received: by mail-wr1-f66.google.com with SMTP id n9so4607057wru.0
-        for <linux-arch@vger.kernel.org>; Thu, 20 Jun 2019 15:10:07 -0700 (PDT)
-Date: Fri, 21 Jun 2019 00:10:04 +0200
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
-Message-ID: <20190620221003.ciuov5fzqxrcaykp@brauner.io>
-References: <20190604160944.4058-1-christian@brauner.io>
- <20190604160944.4058-2-christian@brauner.io>
- <20190620184451.GA28543@roeck-us.net>
+Received: from foss.arm.com ([217.140.110.172]:52154 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726210AbfFUJMD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Jun 2019 05:12:03 -0400
+Subject: Re: [PATCH v6 00/19] Unify vDSOs across more architectures
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
+ <20190620172746.7f92cb14@donnerap.cambridge.arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <40c3e4e9-96d3-f940-f5cb-ed97762ef9b0@arm.com>
+Date: Fri, 21 Jun 2019 10:11:58 +0100
 MIME-Version: 1.0
+In-Reply-To: <20190620172746.7f92cb14@donnerap.cambridge.arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190620184451.GA28543@roeck-us.net>
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, jannh@google.com, keescook@chromium.org, fweimer@redhat.com, oleg@redhat.com, arnd@arndb.de, dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20190620221004.L-HmR--QBfEhjkgoaj6wCH0YZFcw6I0G4u8dmWp7Dwo@z>
+To: Andre Przywara <andre.przywara@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20190621091158.Rw-xB2dDrUjM4QHT90JK0arDrF1VEItq5fe9qwJ3b3Q@z>
 
-On Thu, Jun 20, 2019 at 11:44:51AM -0700, Guenter Roeck wrote:
-> On Tue, Jun 04, 2019 at 06:09:44PM +0200, Christian Brauner wrote:
-> > Wire up the clone3() call on all arches that don't require hand-rolled
-> > assembly.
-> > 
-> > Some of the arches look like they need special assembly massaging and it is
-> > probably smarter if the appropriate arch maintainers would do the actual
-> > wiring. Arches that are wired-up are:
-> > - x86{_32,64}
-> > - arm{64}
-> > - xtensa
-> > 
+On 20/06/2019 17:27, Andre Przywara wrote:
+> On Thu, 30 May 2019 15:15:12 +0100
+> Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
 > 
-> This patch results in build failures on various architecetures.
+> Hi,
 > 
-> h8300-linux-ld: arch/h8300/kernel/syscalls.o:(.data+0x6d0): undefined reference to `sys_clone3'
+>> vDSO (virtual dynamic shared object) is a mechanism that the Linux
+>> kernel provides as an alternative to system calls to reduce where
+>> possible the costs in terms of cycles.
+>> [ ... ]
+>> The porting has been benchmarked and the performance results are
+>> provided as part of this cover letter.
 > 
-> nios2-linux-ld: arch/nios2/kernel/syscall_table.o:(.data+0x6d0): undefined reference to `sys_clone3'
+> I can't reveal the absolute numbers here, but vdsotest-bench gives me
+> quite some performance gain on my board here ("time needed on v6" divided
+> by "time needed on 5.2-rc1", so smaller percentages are better):
+> clock-gettime-monotonic:	23 %
+> clock-gettime-monotonic-raw:	30 %
+> clock-gettime-tai:		 5 %
+> clock-getres-tai:		 5 %
+> clock-gettime-boottime:		 5 %
+> clock-getres-boottime:		 5 %
+> clock-gettime-realtime:		25 %
+> gettimeofday:			26 % 
+> The other numbers stayed the same or differed by just 1 ns, which seems to
+> be within the margin of error, as repeated runs on the same kernel suggest.
+> The 5% numbers are of course those were we went from a syscall-only to the
+> newly added arm64 VDSO implementation, but even the other calls improved
+> by a factor of 3 or more.
 > 
-> There may be others; -next is in too bad shape right now to get a complete
-> picture. Wondering, though: What is special with this syscall ? Normally
-> one would only get a warning that a syscall is not wired up.
+> Sounds like a strong indicator that this is a good thing to have.
+> 
+> Not sure if "running some benchmark a couple of times on a single machine"
+> qualifies for this, but I guess it means:
+> 
+> Tested-by: Andre Przywara <andre.przywara@arm.com>
+>
 
-clone3() was placed under __ARCH_WANT_SYS_CLONE. Most architectures
-simply define __ARCH_WANT_SYS_CLONE and are done with it.
-Some however, such as nios2 and h8300 don't define it but instead
-provide a sys_clone stub of their own because of architectural
-requirements (or tweaks) and they are mostly written in assembly. (That
-should be left to arch maintainers for sys_clone3.)
+Thanks Andre, it sounds great! I will add your tag as well to my patches.
 
-The build failures were on my radar already. I hadn't yet replied
-since I haven't pushed the fixup below.
-The solution is to define __ARCH_WANT_SYS_CLONE3 and add a
-cond_syscall(clone3) so we catch all architectures that do not yet
-provide clone3 with a ENOSYS until maintainers have added it.
+> Cheers,
+> Andre.
+> 
 
-diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-index 7a39e77984ef..aa35aa5d68dc 100644
---- a/arch/arm/include/asm/unistd.h
-+++ b/arch/arm/include/asm/unistd.h
-@@ -40,6 +40,7 @@
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
- 
- /*
-  * Unimplemented (or alternatively implemented) syscalls
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 24480c2d95da..e4e0523102e2 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -48,6 +48,7 @@
- #endif
- 
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
- 
- #ifndef __COMPAT_SYSCALL_NR
- #include <uapi/asm/unistd.h>
-diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
-index 146859efd83c..097589753fec 100644
---- a/arch/x86/include/asm/unistd.h
-+++ b/arch/x86/include/asm/unistd.h
-@@ -54,5 +54,6 @@
- # define __ARCH_WANT_SYS_FORK
- # define __ARCH_WANT_SYS_VFORK
- # define __ARCH_WANT_SYS_CLONE
-+# define __ARCH_WANT_SYS_CLONE3
- 
- #endif /* _ASM_X86_UNISTD_H */
-diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
-index 30af4dc3ce7b..b52236245e51 100644
---- a/arch/xtensa/include/asm/unistd.h
-+++ b/arch/xtensa/include/asm/unistd.h
-@@ -3,6 +3,7 @@
- #define _XTENSA_UNISTD_H
- 
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
- #include <uapi/asm/unistd.h>
- 
- #define __ARCH_WANT_NEW_STAT
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 08ff131f26b4..98abea995629 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -2490,7 +2490,9 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
- 
- 	return _do_fork(&args);
- }
-+#endif
- 
-+#ifdef __ARCH_WANT_SYS_CLONE3
- noinline static int copy_clone_args_from_user(struct kernel_clone_args *kargs,
- 					      struct clone_args __user *uargs,
- 					      size_t size)
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 4d9ae5ea6caf..34b76895b81e 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -137,6 +137,8 @@ COND_SYSCALL(capset);
- /* kernel/exit.c */
- 
- /* kernel/fork.c */
-+/* __ARCH_WANT_SYS_CLONE3 */
-+COND_SYSCALL(clone3);
- 
- /* kernel/futex.c */
- COND_SYSCALL(futex);
+-- 
+Regards,
+Vincenzo
