@@ -1,19 +1,18 @@
-From: Sasha Levin <sashal@kernel.org>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH v6 18/19] x86: Add support for generic vDSO
-Date: Sun, 23 Jun 2019 15:09:29 -0400
-Message-ID: <20190623190929.GL2226@sasha-vm>
+Date: Mon, 24 Jun 2019 07:58:34 +1000
+Message-ID: <20190624075834.2491a61a@canb.auug.org.au>
 References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
  <20190530141531.43462-19-vincenzo.frascino@arm.com>
  <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
  <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
  <20190614211710.GQ1513@sasha-vm>
  <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de>
+ <20190623190929.GL2226@sasha-vm>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/mixed; boundary="===============7388630775926265412=="
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de>
+In-Reply-To: <20190623190929.GL2226@sasha-vm>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -23,96 +22,60 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-hyperv@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kelley <mikelley@microsoft.com>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Peter Collingbourne <pcc@google.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Huw Davies <huw@codeweavers.com>, Greg KH <gregkh@linuxfoundation.org>, "linux-mips@vger.kernel.org" <linux-mi>
+To: Sasha Levin <sashal@kernel.org>
+Cc: linux-hyperv@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Dmitry Safonov <0x7f454c46@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Michael Kelley <mikelley@microsoft.com>, Peter Collingbourne <pcc@google.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Huw Davies <huw@codeweavers.com>, Greg KH <gregkh@linuxfoundation.org>, "linux-mips@vger.kernel.org" <linux-mips@v>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 22, 2019 at 04:46:28PM +0200, Thomas Gleixner wrote:
->On Fri, 14 Jun 2019, Sasha Levin wrote:
->> On Fri, Jun 14, 2019 at 01:15:23PM +0200, Thomas Gleixner wrote:
->> > On Thu, 30 May 2019, Michael Kelley wrote:
->> > > Vincenzo -- these changes for Hyper-V are a subset of a larger patch set
->> > > I have that moves all of the Hyper-V clock/timer code into a separate
->> > > clocksource driver in drivers/clocksource, with an include file in
->> > > includes/clocksource.  That new include file should be able to work
->> > > instead of your new mshyperv-tsc.h.  It also has the benefit of being
->> > > ISA neutral, so it will work with my in-progress patch set to support
->> > > Linux on Hyper-V on ARM64.  See https://lkml.org/lkml/2019/5/27/231
->> > > for the new clocksource driver patch set.
->> >
->> > Grrr. That's queued in hyperv-next for whatever reasons.
->>
->> I queue up our future pull requests there to give them some soaking in
->> -next.
+--===============7388630775926265412==
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/CR.if9_1Fi5MEdkDk1BLyhb"; protocol="application/pgp-signature"
+
+--Sig_/CR.if9_1Fi5MEdkDk1BLyhb
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
+
+Hi Sasha,
+
+On Sun, 23 Jun 2019 15:09:29 -0400 Sasha Levin <sashal@kernel.org> wrote:
 >
->What? You queue completely unreviewed stuff which touches two other
->subsystems to let it soak in next?
+> Appologies about this. I ended up with way more travel than I would have
+> liked (writing this from an airport). I've reset our hyperv-next branch
+> to remove these 3 commits until we figure this out.
 
-It was out on LKML for 2+ weeks before I've pulled it in. As it mostly
-touches hyperv bits I felt comfortable to give it time in -next (but not
-actually to try and merge it until it gets a few acks).
+But not pushed out, yet?
 
->> > Sasha, can you please provide me the branch to pull from so I can have a
->> > common base for all the various changes floating around?
->>
->> I'll send you a unified pull request for these changes.
->
->Which has not materialized yet.
+--=20
+Cheers,
+Stephen Rothwell
 
-Appologies about this. I ended up with way more travel than I would have
-liked (writing this from an airport). I've reset our hyperv-next branch
-to remove these 3 commits until we figure this out.
+--Sig_/CR.if9_1Fi5MEdkDk1BLyhb
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
 
->TBH, I'm pretty grumpy about those clocksource changes. Here is the
->diffstat:
->
-> MAINTAINERS                          |    2
-> arch/x86/entry/vdso/vclock_gettime.c |    1
-> arch/x86/entry/vdso/vma.c            |    2
-> arch/x86/hyperv/hv_init.c            |   91 ---------
-> arch/x86/include/asm/hyperv-tlfs.h   |    6
-> arch/x86/include/asm/mshyperv.h      |   81 +-------
-> arch/x86/kernel/cpu/mshyperv.c       |    2
-> arch/x86/kvm/x86.c                   |    1
-> drivers/clocksource/Makefile         |    1
-> drivers/clocksource/hyperv_timer.c   |  322 +++++++++++++++++++++++++++++++++++
-> drivers/hv/Kconfig                   |    3
-> drivers/hv/hv.c                      |  156 ----------------
-> drivers/hv/hv_util.c                 |    1
-> drivers/hv/hyperv_vmbus.h            |    3
-> drivers/hv/vmbus_drv.c               |   42 ++--
-> include/clocksource/hyperv_timer.h   |  105 +++++++++++
->
->While the world and some more people have been CC'ed on those patches,
->neither the clocksource nor the x86 maintainer have been.
->
->When I gave Vincenzo the advise to base his code on that hyper-v branch, I
->expected that I find the related patches in my mail backlog. No, they have
->not been there because I was not on CC.
->
->Folks, please stop chosing Cc lists as you like. We have well established
->rules for that. And please stop queueing random unreviewed patches in
->next. Next is not a playground for not ready and unreviewed stuff. No, the
->hyper-v inbreed Reviewed-by is not sufficient for anything x86 and
->clocksource related.
+-----BEGIN PGP SIGNATURE-----
 
-I'm sorry for this, you were supposed to be Cc'ed on these patches and I
-see that you were not.
+iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl0P9goACgkQAVBC80lX
+0GyfOQf+KDEXgXOC5E+iMk6d4D73wD02MBcwff9B0zoCSHO7wBwHMfcazt0CBgJn
+kDTyqzDFLcuCIPrA89xcZybdoNMg4aIooHEbEzdjaXFpm/Fs7d+jo+KVC0CoYEw5
+pqOio0r0q85NiYk6eENxVa+j+yfmvnxKcVJO5s+T2ifWbWq06fhziMUkf3ZEytHl
+1n48f9Hc2L5Zp4SoYWSF27Ro4Mo0H9aUH7RPvlt1tZkHN0OdfRS3NR84FN+w+KVU
+TZpFLuislCHo8QKh/5OMv1AxaWP/RX2vJael9DguO+6hZyYBglxTK6+E1IIYe9C/
+h0h8OPDTSELsQJmcd9Mda8F4vKV6qA==
+=/eNi
+-----END PGP SIGNATURE-----
 
->After chasing and looking at those patches, which have horrible subject
->lines and changelogs btw, I was not able to judge quickly whether that
->stuff is self contained or not. So no, I fixed up the fallout and rebased
->Vincenzos VDSO stuff on mainline w/o those hyperv changes simply because if
->they are not self contained they will break bisection badly.
->
->I'm going to push out the VDSO series later today. That will nicely break
->in combination with the hyper-next branch. Stephen, please drop that and do
->not try to handle the fallout. That stuff needs to go through the proper
->channels or at least be acked/reviewed by the relevant maintainers. So the
->hyper-v folks can rebase themself and post it proper.
+--Sig_/CR.if9_1Fi5MEdkDk1BLyhb--
 
-Okay, thank you. We'll rebase and resend.
 
---
-Thanks,
-Sasha
+--===============7388630775926265412==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+linux-arm-kernel mailing list
+linux-arm-kernel@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+
+--===============7388630775926265412==--
