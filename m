@@ -1,95 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:57888 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726138AbfFVOqy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jun 2019 10:46:54 -0400
-Date: Sat, 22 Jun 2019 16:46:28 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v6 18/19] x86: Add support for generic vDSO
-In-Reply-To: <20190614211710.GQ1513@sasha-vm>
-Message-ID: <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-19-vincenzo.frascino@arm.com> <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com> <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
- <20190614211710.GQ1513@sasha-vm>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:57041 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725844AbfFWAat (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 22 Jun 2019 20:30:49 -0400
+Message-ID: <5f3dcc3a8dafad188e3adb8ee9cf347bebdee7f6.camel@kernel.crashing.org>
+Subject: Archs using generic PCI controller drivers vs. resource policy
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Sun, 23 Jun 2019 10:30:42 +1000
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sasha Levin <sashal@kernel.org>
-Cc: Michael Kelley <mikelley@microsoft.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, linux-hyperv@vger.kernel.org, Greg KH <gregkh@linuxfoundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20190622144628.yAMPt1BpGm1XLDlewDwDAF9OrYG9g7OpvfveQUS1AXY@z>
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 14 Jun 2019, Sasha Levin wrote:
-> On Fri, Jun 14, 2019 at 01:15:23PM +0200, Thomas Gleixner wrote:
-> > On Thu, 30 May 2019, Michael Kelley wrote:
-> > > Vincenzo -- these changes for Hyper-V are a subset of a larger patch set
-> > > I have that moves all of the Hyper-V clock/timer code into a separate
-> > > clocksource driver in drivers/clocksource, with an include file in
-> > > includes/clocksource.  That new include file should be able to work
-> > > instead of your new mshyperv-tsc.h.  It also has the benefit of being
-> > > ISA neutral, so it will work with my in-progress patch set to support
-> > > Linux on Hyper-V on ARM64.  See https://lkml.org/lkml/2019/5/27/231
-> > > for the new clocksource driver patch set.
-> > 
-> > Grrr. That's queued in hyperv-next for whatever reasons.
-> 
-> I queue up our future pull requests there to give them some soaking in
-> -next.
+Hi !
 
-What? You queue completely unreviewed stuff which touches two other
-subsystems to let it soak in next?
+As part of my cleanup and consolidation of the PCI resource assignment
+policies, I need to clarify something.
 
-> > Sasha, can you please provide me the branch to pull from so I can have a
-> > common base for all the various changes floating around?
-> 
-> I'll send you a unified pull request for these changes.
+At the moment, unless PCI_PROBE_ONLY is set, a number of
+platforms/archs expect Linux to reassign everything rather than honor
+what has setup, then (re)assign what's left or broken. This is mostly
+the case of embedded platforms. Things like x86 and desktop/server
+powerpc will generally honor the firmware setup.
 
-Which has not materialized yet.
+One problem is that this policy decision tend to be sprinkled in some
+of the controller drivers themselves in drivers/pci/controller (or the
+pci_host_probe helper).
 
-TBH, I'm pretty grumpy about those clocksource changes. Here is the
-diffstat:
+This is wrong. I want to move it to the architecture (initially,
+eventually it should be platform driven, but the default will start
+with architecture specific to avoid changing the existing behaviours
+while consolidating the code).
 
- MAINTAINERS                          |    2 
- arch/x86/entry/vdso/vclock_gettime.c |    1 
- arch/x86/entry/vdso/vma.c            |    2 
- arch/x86/hyperv/hv_init.c            |   91 ---------
- arch/x86/include/asm/hyperv-tlfs.h   |    6 
- arch/x86/include/asm/mshyperv.h      |   81 +-------
- arch/x86/kernel/cpu/mshyperv.c       |    2 
- arch/x86/kvm/x86.c                   |    1 
- drivers/clocksource/Makefile         |    1 
- drivers/clocksource/hyperv_timer.c   |  322 +++++++++++++++++++++++++++++++++++
- drivers/hv/Kconfig                   |    3 
- drivers/hv/hv.c                      |  156 ----------------
- drivers/hv/hv_util.c                 |    1 
- drivers/hv/hyperv_vmbus.h            |    3 
- drivers/hv/vmbus_drv.c               |   42 ++--
- include/clocksource/hyperv_timer.h   |  105 +++++++++++
+To do that right, I want to understand which archs can potentially use
+the code in drivers/pci/controller today so I can change those archs to
+explicitely set the default to "reassign everything" (and take the
+policy out of the drivers themselves).
 
-While the world and some more people have been CC'ed on those patches,
-neither the clocksource nor the x86 maintainer have been.
+So far I've counted arm, arm64 (DT, not ACPI) and nios2. Any other ?
 
-When I gave Vincenzo the advise to base his code on that hyper-v branch, I
-expected that I find the related patches in my mail backlog. No, they have
-not been there because I was not on CC.
+The remaining archs fall into two categories:
 
-Folks, please stop chosing Cc lists as you like. We have well established
-rules for that. And please stop queueing random unreviewed patches in
-next. Next is not a playground for not ready and unreviewed stuff. No, the
-hyper-v inbreed Reviewed-by is not sufficient for anything x86 and
-clocksource related.
+ - Those who have their own existing PCI management code and don't
+use the generic controller drivers. I'm handling these already.
 
-After chasing and looking at those patches, which have horrible subject
-lines and changelogs btw, I was not able to judge quickly whether that
-stuff is self contained or not. So no, I fixed up the fallout and rebased
-Vincenzos VDSO stuff on mainline w/o those hyperv changes simply because if
-they are not self contained they will break bisection badly.
+ - Those who don't seem to have anything to do with PCI (yet ?) or that
+I've missed. Those will default to the x86 model (honor FW setup unless
+it has conflicts or is broken, and (re)assign what's left) unless
+explicitly changed.
 
-I'm going to push out the VDSO series later today. That will nicely break
-in combination with the hyper-next branch. Stephen, please drop that and do
-not try to handle the fallout. That stuff needs to go through the proper
-channels or at least be acked/reviewed by the relevant maintainers. So the
-hyper-v folks can rebase themself and post it proper.
-
-Yours grumpy,
-
-	tglx
+Cheers,
+Ben.
