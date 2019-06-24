@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
-Date: Mon, 24 Jun 2019 07:47:25 +0200
-Message-ID: <20190624054728.30966-3-hch@lst.de>
+Subject: [PATCH 3/5] sh: don't use asm-generic/ptrace.h
+Date: Mon, 24 Jun 2019 07:47:26 +0200
+Message-ID: <20190624054728.30966-4-hch@lst.de>
 References: <20190624054728.30966-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -19,53 +19,54 @@ Note that only the helpers actually used are implemented now.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ arch/sh/include/asm/ptrace.h | 29 +++++++++++++++++++++++++----
+ 1 file changed, 25 insertions(+), 4 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
-index faa5a338ac5a..feee1b21bbd5 100644
---- a/arch/powerpc/include/asm/ptrace.h
-+++ b/arch/powerpc/include/asm/ptrace.h
-@@ -111,18 +111,33 @@ struct pt_regs
+diff --git a/arch/sh/include/asm/ptrace.h b/arch/sh/include/asm/ptrace.h
+index 9143c7babcbe..6c89e3e04cee 100644
+--- a/arch/sh/include/asm/ptrace.h
++++ b/arch/sh/include/asm/ptrace.h
+@@ -16,8 +16,31 @@
+ #define user_mode(regs)			(((regs)->sr & 0x40000000)==0)
+ #define kernel_stack_pointer(_regs)	((unsigned long)(_regs)->regs[15])
  
- #ifndef __ASSEMBLY__
- 
--#define GET_IP(regs)		((regs)->nip)
--#define GET_USP(regs)		((regs)->gpr[1])
--#define GET_FP(regs)		(0)
--#define SET_FP(regs, val)
+-#define GET_FP(regs)	((regs)->regs[14])
+-#define GET_USP(regs)	((regs)->regs[15])
 +static inline unsigned long instruction_pointer(struct pt_regs *regs)
 +{
-+	return regs->nip;
++	return regs->pc;
 +}
-+
 +static inline void instruction_pointer_set(struct pt_regs *regs,
 +		unsigned long val)
 +{
-+	regs->nip = val;
-+}
-+
-+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-+{
-+	return regs->gpr[1];
++	regs->pc = val;
 +}
 +
 +static inline unsigned long frame_pointer(struct pt_regs *regs)
 +{
-+	return 0;
++	return regs->regs[14];
++}
++
++static inline unsigned long user_stack_pointer(struct pt_regs *regs)
++{
++	return regs->regs[15];
++}
++
++static inline void user_stack_pointer_set(struct pt_regs *regs,
++		unsigned long val)
++{
++	regs->regs[15] = val;
 +}
  
- #ifdef CONFIG_SMP
- extern unsigned long profile_pc(struct pt_regs *regs);
+ #define arch_has_single_step()	(1)
+ 
+@@ -112,7 +135,5 @@ static inline unsigned long profile_pc(struct pt_regs *regs)
+ 
+ 	return pc;
+ }
 -#define profile_pc profile_pc
-+#else
-+#define profile_pc(regs) instruction_pointer(regs)
- #endif
  
 -#include <asm-generic/ptrace.h>
--
- #define kernel_stack_pointer(regs) ((regs)->gpr[1])
- static inline int is_syscall_success(struct pt_regs *regs)
- {
+ #endif /* __ASM_SH_PTRACE_H */
 -- 
 2.20.1
