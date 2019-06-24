@@ -1,32 +1,56 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Andre Przywara <andre.przywara@arm.com>
 Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
-Date: Mon, 24 Jun 2019 09:42:19 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1906240935430.32342@nanos.tec.linutronix.de>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de> <CALCETrV-suRS5=JqDjbouXciN_OPsguERjux7fQVFOKGmdrspA@mail.gmail.com>
+Date: Mon, 24 Jun 2019 13:50:55 +0100
+Message-ID: <20190624135055.7020fc2a@donnerap.cambridge.arm.com>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrV-suRS5=JqDjbouXciN_OPsguERjux7fQVFOKGmdrspA@mail.gmail.com>
+In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch <linux-arch@vger.kernel.org>, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.c>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 23 Jun 2019, Andy Lutomirski wrote:
+On Fri, 21 Jun 2019 10:52:27 +0100
+Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
 
-> On Sun, Jun 23, 2019 at 5:34 PM Thomas Gleixner <tglx@linutronix.de> wrote:
-> > +GENERIC VDSO LIBRARY:
-> > +M:     Andy Lutomirksy <luto@kernel.org>
-> 
-> Lutomirski, perhaps?
+Hi,
 
-Ooops. Where did I copy that from?
+> vDSO (virtual dynamic shared object) is a mechanism that the Linux
+> kernel provides as an alternative to system calls to reduce where
+> possible the costs in terms of cycles.
+[ ... ]
 
-> Although I do appreciate the opportunity to say "not me!" :)
+Some numbers for the ARM(32) part:
 
-You just gave me the perfect exit plan. I'll change my surname to Gleyxner
-and head off to the goat farm :)
+I booted my trusted old Calxeda Midway server (Cortex A-15 cores) and ran
+the vdsotest benchmark on it. The results are:
+(vdso: times, in nsec/call; n/t: "not tested" (=not implemented))
+call				5.2-rc3	5.2-rc3-vdso
+clock-gettime-monotonic:        147     142
+clock-getres-monotonic:         n/t     34
+clock-gettime-monotonic-coarse: 90      96
+clock-getres-monotonic-coarse:  n/t     36
+clock-gettime-monotonic-raw:    431     142
+clock-getres-monotonic-raw:     n/t     35
+clock-gettime-tai:              598     150
+clock-getres-tai:               n/t     34
+clock-gettime-boottime:         592     142
+clock-getres-boottime:          n/t     34
+clock-gettime-realtime:         149     142
+clock-getres-realtime:          n/t     34
+clock-gettime-realtime-coarse:  86      96
+clock-getres-realtime-coarse:   n/t     36
+getcpu:                         n/t     n/t
+gettimeofday:                   133     110
 
-Thanks,
+So there are some minor improvements, two minor regressions, some
+significant improvements (factor 3-4), and some dramatic improvements
+(where we actually gained VDSO support).
+Overall a pretty impressive outcome for an "Odd fixes" architecture,
+especially as it should reduce the future maintenance burden.
 
-	tglx
+Cheers,
+Andre.
