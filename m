@@ -1,88 +1,45 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v7 10/25] arm64: compat: Add vDSO
-Date: Mon, 24 Jun 2019 15:00:19 +0100
-Message-ID: <20190624140018.GD29120@arrakis.emea.arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
+Date: Mon, 24 Jun 2019 16:18:28 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906241613280.32342@nanos.tec.linutronix.de>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-11-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190621095252.32307-11-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, linux-arch@vger.kernel.org, Dmitry Safonov <dima@arista.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andre Przywara <andre.przywara@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Michael Kelley <mikelley@microsoft.com>, Peter Collingbourne <pcc@google.com>, LAK <linux-arm-kernel@lists.infradead.org>, Andrei Vagin <avagin@openvz.org>, Huw Davies <huw@codeweavers.com>, LKML <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Shijith
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 21, 2019 at 10:52:37AM +0100, Vincenzo Frascino wrote:
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/vdso/compat_barrier.h
-> @@ -0,0 +1,51 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Copyright (C) 2018 ARM Limited
-> + */
-> +#ifndef __COMPAT_BARRIER_H
-> +#define __COMPAT_BARRIER_H
-> +
-> +#ifndef __ASSEMBLY__
-> +/*
-> + * Warning: This code is meant to be used with
-> + * ENABLE_COMPAT_VDSO only.
-> + */
-> +#ifndef ENABLE_COMPAT_VDSO
-> +#error This header is meant to be used with ENABLE_COMPAT_VDSO only
-> +#endif
-> +
-> +#ifdef dmb
-> +#undef dmb
-> +#endif
-> +
-> +#if __LINUX_ARM_ARCH__ >= 7
-> +#define dmb(option) __asm__ __volatile__ ("dmb " #option : : : "memory")
-> +#elif __LINUX_ARM_ARCH__ == 6
-> +#define dmb(x) __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
-> +				    : : "r" (0) : "memory")
-> +#else
-> +#define dmb(x) __asm__ __volatile__ ("" : : : "memory")
-> +#endif
+Vincenzo,
 
-We don't need pre-ARMv7 barriers (they've been deprecated and the arm64
-kernel actually traps and emulates them by default). Also your Makefile
-changes never define a __LINUX_ARM_ARCH__ lower than 7. Fix-up below:
+On Mon, 24 Jun 2019, Thomas Gleixner wrote:
 
-------8<-----------------------
-From 5655a0313ce7bb731bfed6a19bcfe6b1100b542a Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Mon, 24 Jun 2019 12:16:06 +0100
-Subject: [PATCH] arm64: compat: No need for pre-ARMv7 barriers on an ARMv8
- system
+> I did not merge the ARM and MIPS parts as they lack any form of
+> acknowlegment from their maintainers. Please talk to those folks. If they
+> ack/review the changes then I can pick them up and they go into 5.3 or they
+> have to go in a later cycle. Nevertheless it was well worth the trouble to
+> have those conversions done to confirm that the new common library fits a
+> bunch of different architectures.
 
-This patch removes the deprecated (pre-ARMv7) compat barriers as they
-would not be used on an ARMv8 system.
+I talked to Russell King and he suggested to file the ARM parts into his
+patch system and he'll pick them up after 5.3-rc1.
 
-Fixes: a7f71a2c8903 ("arm64: compat: Add vDSO")
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/vdso/compat_barrier.h | 7 -------
- 1 file changed, 7 deletions(-)
+   https://www.arm.linux.org.uk/developer/patches/
 
-diff --git a/arch/arm64/include/asm/vdso/compat_barrier.h b/arch/arm64/include/asm/vdso/compat_barrier.h
-index ea24ea856b07..fb60a88b5ed4 100644
---- a/arch/arm64/include/asm/vdso/compat_barrier.h
-+++ b/arch/arm64/include/asm/vdso/compat_barrier.h
-@@ -18,14 +18,7 @@
- #undef dmb
- #endif
- 
--#if __LINUX_ARM_ARCH__ >= 7
- #define dmb(option) __asm__ __volatile__ ("dmb " #option : : : "memory")
--#elif __LINUX_ARM_ARCH__ == 6
--#define dmb(x) __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
--				    : : "r" (0) : "memory")
--#else
--#define dmb(x) __asm__ __volatile__ ("" : : : "memory")
--#endif
- 
- #if __LINUX_ARM_ARCH__ >= 8
- #define aarch32_smp_mb()	dmb(ish)
+I paged out how to deal with it, but you'll surely manage :)
+
+Thanks,
+
+	tglx
