@@ -1,86 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51126 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:51214 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727945AbfFXN6S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jun 2019 09:58:18 -0400
-Date: Mon, 24 Jun 2019 14:58:12 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
+        id S1727170AbfFXOAD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Jun 2019 10:00:03 -0400
 Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
  implementation
-Message-ID: <20190624135812.GC29120@arrakis.emea.arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
  <20190621095252.32307-5-vincenzo.frascino@arm.com>
+ <20190624133607.GI29497@fuggles.cambridge.arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <13d00991-aaa0-72f9-4556-1c92eceabd07@arm.com>
+Date: Mon, 24 Jun 2019 14:59:59 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20190624133607.GI29497@fuggles.cambridge.arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190624135812.mlMCZFlmap7iIUSXNQ0Da_w0fryxtGYZeW-Ssaf5A-8@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Message-ID: <20190624135959.dL4xoL2_QZyzlZnlWSsZ4aGtGc_3qMQpMg0kMg59G3M@z>
 
-On Fri, Jun 21, 2019 at 10:52:31AM +0100, Vincenzo Frascino wrote:
-> diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-> index 947e39896e28..9e4b7ccbab2f 100644
-> --- a/arch/arm64/kernel/asm-offsets.c
-> +++ b/arch/arm64/kernel/asm-offsets.c
-> @@ -25,13 +25,13 @@
->  #include <linux/kvm_host.h>
->  #include <linux/preempt.h>
->  #include <linux/suspend.h>
-> +#include <vdso/datapage.h>
->  #include <asm/cpufeature.h>
->  #include <asm/fixmap.h>
->  #include <asm/thread_info.h>
->  #include <asm/memory.h>
->  #include <asm/smp_plat.h>
->  #include <asm/suspend.h>
-> -#include <asm/vdso_datapage.h>
->  #include <linux/kbuild.h>
->  #include <linux/arm-smccc.h>
->  
-> @@ -100,17 +100,28 @@ int main(void)
->    DEFINE(CLOCK_COARSE_RES,	LOW_RES_NSEC);
->    DEFINE(NSEC_PER_SEC,		NSEC_PER_SEC);
->    BLANK();
-> -  DEFINE(VDSO_CS_CYCLE_LAST,	offsetof(struct vdso_data, cs_cycle_last));
-> -  DEFINE(VDSO_RAW_TIME_SEC,	offsetof(struct vdso_data, raw_time_sec));
-> -  DEFINE(VDSO_XTIME_CLK_SEC,	offsetof(struct vdso_data, xtime_clock_sec));
-> -  DEFINE(VDSO_XTIME_CRS_SEC,	offsetof(struct vdso_data, xtime_coarse_sec));
-> -  DEFINE(VDSO_XTIME_CRS_NSEC,	offsetof(struct vdso_data, xtime_coarse_nsec));
-> -  DEFINE(VDSO_WTM_CLK_SEC,	offsetof(struct vdso_data, wtm_clock_sec));
-> -  DEFINE(VDSO_TB_SEQ_COUNT,	offsetof(struct vdso_data, tb_seq_count));
-> -  DEFINE(VDSO_CS_MONO_MULT,	offsetof(struct vdso_data, cs_mono_mult));
-> -  DEFINE(VDSO_CS_SHIFT,		offsetof(struct vdso_data, cs_shift));
-> +  DEFINE(VDSO_SEQ,		offsetof(struct vdso_data, seq));
-> +  DEFINE(VDSO_CLK_MODE,		offsetof(struct vdso_data, clock_mode));
-> +  DEFINE(VDSO_CYCLE_LAST,	offsetof(struct vdso_data, cycle_last));
-> +  DEFINE(VDSO_MASK,		offsetof(struct vdso_data, mask));
-> +  DEFINE(VDSO_MULT,		offsetof(struct vdso_data, mult));
-> +  DEFINE(VDSO_SHIFT,		offsetof(struct vdso_data, shift));
-> +  DEFINE(VDSO_REALTIME_SEC,	offsetof(struct vdso_data, basetime[CLOCK_REALTIME].sec));
-> +  DEFINE(VDSO_REALTIME_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_REALTIME].nsec));
-> +  DEFINE(VDSO_MONO_SEC,		offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC].sec));
-> +  DEFINE(VDSO_MONO_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC].nsec));
-> +  DEFINE(VDSO_MONO_RAW_SEC,	offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC_RAW].sec));
-> +  DEFINE(VDSO_MONO_RAW_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC_RAW].nsec));
-> +  DEFINE(VDSO_BOOTTIME_SEC,	offsetof(struct vdso_data, basetime[CLOCK_BOOTTIME].sec));
-> +  DEFINE(VDSO_BOOTTIME_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_BOOTTIME].nsec));
-> +  DEFINE(VDSO_TAI_SEC,		offsetof(struct vdso_data, basetime[CLOCK_TAI].sec));
-> +  DEFINE(VDSO_TAI_NSEC,		offsetof(struct vdso_data, basetime[CLOCK_TAI].nsec));
-> +  DEFINE(VDSO_RT_COARSE_SEC,	offsetof(struct vdso_data, basetime[CLOCK_REALTIME_COARSE].sec));
-> +  DEFINE(VDSO_RT_COARSE_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_REALTIME_COARSE].nsec));
-> +  DEFINE(VDSO_MONO_COARSE_SEC,	offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC_COARSE].sec));
-> +  DEFINE(VDSO_MONO_COARSE_NSEC,	offsetof(struct vdso_data, basetime[CLOCK_MONOTONIC_COARSE].nsec));
->    DEFINE(VDSO_TZ_MINWEST,	offsetof(struct vdso_data, tz_minuteswest));
-> -  DEFINE(VDSO_USE_SYSCALL,	offsetof(struct vdso_data, use_syscall));
-> +  DEFINE(VDSO_TZ_DSTTIME,	offsetof(struct vdso_data, tz_dsttime));
->    BLANK();
->    DEFINE(TVAL_TV_SEC,		offsetof(struct timeval, tv_sec));
->    DEFINE(TSPEC_TV_SEC,		offsetof(struct timespec, tv_sec));
 
-Now that we are moving this to C, do we actually need the asm-offsets?
-If not, here's a clean-up patch:
 
----------------8<--------------------------------------
+On 24/06/2019 14:36, Will Deacon wrote:
+> Hi Vincenzo,
+> 
+> On Fri, Jun 21, 2019 at 10:52:31AM +0100, Vincenzo Frascino wrote:
+>> To take advantage of the commonly defined vdso interface for
+>> gettimeofday the architectural code requires an adaptation.
+>>
+>> Re-implement the gettimeofday vdso in C in order to use lib/vdso.
+>>
+>> With the new implementation arm64 gains support for CLOCK_BOOTTIME
+>> and CLOCK_TAI.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> Tested-by: Shijith Thotton <sthotton@marvell.com>
+>> Tested-by: Andre Przywara <andre.przywara@arm.com>
+>> ---
+>>  arch/arm64/Kconfig                         |   2 +
+>>  arch/arm64/include/asm/vdso/gettimeofday.h |  86 ++++++
+>>  arch/arm64/include/asm/vdso/vsyscall.h     |  53 ++++
+>>  arch/arm64/include/asm/vdso_datapage.h     |  48 ---
+>>  arch/arm64/kernel/asm-offsets.c            |  33 +-
+>>  arch/arm64/kernel/vdso.c                   |  51 +---
+>>  arch/arm64/kernel/vdso/Makefile            |  34 ++-
+>>  arch/arm64/kernel/vdso/gettimeofday.S      | 334 ---------------------
+>>  arch/arm64/kernel/vdso/vgettimeofday.c     |  28 ++
+> 
+> I'm concerned about an apparent semantic change introduced by your patch:
+> 
+>> +static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
+>> +{
+>> +	u64 res;
+>> +
+>> +	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
+>> +
+>> +	return res;
+>> +}
+> 
+> vs:
+> 
+>> -	.macro	get_clock_shifted_nsec res, cycle_last, mult
+>> -	/* Read the virtual counter. */
+>> -	isb
+>> -	mrs	x_tmp, cntvct_el0
+>> -	/* Calculate cycle delta and convert to ns. */
+>> -	sub	\res, x_tmp, \cycle_last
+>> -	/* We can only guarantee 56 bits of precision. */
+>> -	movn	x_tmp, #0xff00, lsl #48
+>> -	and	\res, x_tmp, \res
+>> -	mul	\res, \res, \mult
+>> -	/*
+>> -	 * Fake address dependency from the value computed from the counter
+>> -	 * register to subsequent data page accesses so that the sequence
+>> -	 * locking also orders the read of the counter.
+>> -	 */
+>> -	and	x_tmp, \res, xzr
+>> -	add	vdso_data, vdso_data, x_tmp
+>> -	.endm
+> 
+> It looks like you're dropping both the preceding ISB (allowing the counter
+> value to be speculated) and also the subsequent dependency (allowing the
+> seq lock to be speculated). If I've missed them, apologies, but I couldn't
+> spot them elsewhere in this patch.
+> 
+> __arch_get_hw_counter should probably be identical to __arch_counter_get_cntvct
+> to avoid these problems. I guess we don't need to care about the case where
+> the counter is unstable, since we'll just disable the vDSO altogether on
+> such systems?
+> 
+
+Oops, I forgot to mirror your patch that introduces this change. I will post a
+fix in reply to this email.
+
+> Will
+> 
+
+-- 
+Regards,
+Vincenzo
