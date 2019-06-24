@@ -1,61 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:39711 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727239AbfFXCr0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 23 Jun 2019 22:47:26 -0400
-Date: Mon, 24 Jun 2019 07:58:34 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v6 18/19] x86: Add support for generic vDSO
-Message-ID: <20190624075834.2491a61a@canb.auug.org.au>
-In-Reply-To: <20190623190929.GL2226@sasha-vm>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
-        <20190530141531.43462-19-vincenzo.frascino@arm.com>
-        <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
-        <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
-        <20190614211710.GQ1513@sasha-vm>
-        <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de>
-        <20190623190929.GL2226@sasha-vm>
+Received: from Galois.linutronix.de ([193.142.43.55]:34711 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726812AbfFXEbg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2019 00:31:36 -0400
+Date: Mon, 24 Jun 2019 02:25:12 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: RE: [PATCH v6 18/19] x86: Add support for generic vDSO
+In-Reply-To: <BYAPR21MB135202F46C4B023B51EBBFD0D7E00@BYAPR21MB1352.namprd21.prod.outlook.com>
+Message-ID: <alpine.DEB.2.21.1906240221550.32342@nanos.tec.linutronix.de>
+References: <20190530141531.43462-1-vincenzo.frascino@arm.com> <20190530141531.43462-19-vincenzo.frascino@arm.com> <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com> <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
+ <20190614211710.GQ1513@sasha-vm> <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de> <20190623190929.GL2226@sasha-vm> <alpine.DEB.2.21.1906240006090.32342@nanos.tec.linutronix.de>
+ <BYAPR21MB135202F46C4B023B51EBBFD0D7E00@BYAPR21MB1352.namprd21.prod.outlook.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/CR.if9_1Fi5MEdkDk1BLyhb"; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sasha Levin <sashal@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Michael Kelley <mikelley@microsoft.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, linux-hyperv@vger.kernel.org, Greg KH <gregkh@linuxfoundation.org>
-Message-ID: <20190623215834.uw9rbCLtfVCJmg-UUB_Zj3Kfesy-0fUmlToiP1FgeIM@z>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: Sasha Levin <sashal@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20190624002512.m7Ho0j9ZFd8IFFpo50CJ8iOmvMZ5z2N6Br1_fj8q7ek@z>
 
---Sig_/CR.if9_1Fi5MEdkDk1BLyhb
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Mon, 24 Jun 2019, Michael Kelley wrote:
+> From: Thomas Gleixner <tglx@linutronix.de> Sent: Sunday, June 23, 2019 3:13 PM
+> > 
+> > I have no objections if you collect hyper-v stuff, quite the contrary, but
+> > changes which touch other subsystems need to be coordinated upfront. That's
+> > all I'm asking for.
+> > 
+> > Btw, that clocksource stuff looks good code wise, just the change logs need
+> > some care and after the VDSO stuff hits next we need to sort out the
+> > logistics. I hope these changes are completely self contained. If not we'll
+> > find a solution.
+> >
+> 
+> In my view, the only thing that potentially needs a solution is where the
+> Hyper-V clock code used by VDSO ends up in the code tree.  I think the
+> right long term place is include/clocksource/hyperv_timer.h.   That location
+> is architecture neutral, and the same Hyper-V clock code will be shared by
+> the Hyper-V on ARM64 support that's in process.
+> 
+> Vincenzo's patch set creates a new file arch/x86/include/asm/mshyperv-tsc.h,
+> which I will want to move when creating the separate Hyper-V clocksource
+> driver.   If you're OK with that file existing for a release and then going away,
+> that's fine.  Alternatively, put the code in include/clocksource/hyperv_timer.h
+> now as part of the VDSO patch set so it's in the right place from the start.  My
+> subsequent patch set will add a few additional tweaks to remove x86-isms
+> and fully integrate with the separate Hyper-V clocksource driver.
 
-Hi Sasha,
+I don't care whether this goes into 5.3 or later. If you can provide me
+rebased self contained patches on top of
 
-On Sun, 23 Jun 2019 15:09:29 -0400 Sasha Levin <sashal@kernel.org> wrote:
->
-> Appologies about this. I ended up with way more travel than I would have
-> liked (writing this from an airport). I've reset our hyperv-next branch
-> to remove these 3 commits until we figure this out.
+  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git timers/vdso
 
-But not pushed out, yet?
+I'm happy to pull them in on top.
 
---=20
-Cheers,
-Stephen Rothwell
+Thanks,
 
---Sig_/CR.if9_1Fi5MEdkDk1BLyhb
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl0P9goACgkQAVBC80lX
-0GyfOQf+KDEXgXOC5E+iMk6d4D73wD02MBcwff9B0zoCSHO7wBwHMfcazt0CBgJn
-kDTyqzDFLcuCIPrA89xcZybdoNMg4aIooHEbEzdjaXFpm/Fs7d+jo+KVC0CoYEw5
-pqOio0r0q85NiYk6eENxVa+j+yfmvnxKcVJO5s+T2ifWbWq06fhziMUkf3ZEytHl
-1n48f9Hc2L5Zp4SoYWSF27Ro4Mo0H9aUH7RPvlt1tZkHN0OdfRS3NR84FN+w+KVU
-TZpFLuislCHo8QKh/5OMv1AxaWP/RX2vJael9DguO+6hZyYBglxTK6+E1IIYe9C/
-h0h8OPDTSELsQJmcd9Mda8F4vKV6qA==
-=/eNi
------END PGP SIGNATURE-----
-
---Sig_/CR.if9_1Fi5MEdkDk1BLyhb--
+	tglx
