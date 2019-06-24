@@ -1,31 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:34992 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:35008 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726077AbfFXHXB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2019 03:23:01 -0400
-Date: Mon, 24 Jun 2019 09:22:39 +0200 (CEST)
+        with ESMTP id S1726077AbfFXHXS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2019 03:23:18 -0400
+Date: Mon, 24 Jun 2019 09:23:02 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 4/5] x86: don't use asm-generic/ptrace.h
-In-Reply-To: <20190624054728.30966-5-hch@lst.de>
-Message-ID: <alpine.DEB.2.21.1906240922270.32342@nanos.tec.linutronix.de>
-References: <20190624054728.30966-1-hch@lst.de> <20190624054728.30966-5-hch@lst.de>
+Subject: Re: remove asm-generic/ptrace.h v3
+In-Reply-To: <20190624054728.30966-1-hch@lst.de>
+Message-ID: <alpine.DEB.2.21.1906240922420.32342@nanos.tec.linutronix.de>
+References: <20190624054728.30966-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20190624072239.V8qPtXqo--gc94qX1BnbFWP_2m-Wzu7jYUafTSOCDZo@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190624072302.DfF-gsc2FbrDoTOjbhmru6EuMcKMToBYUzutpZJHaLA@z>
 
 On Mon, 24 Jun 2019, Christoph Hellwig wrote:
-
-> Doing the indirection through macros for the regs accessors just
-> makes them harder to read, so implement the helpers directly.
 > 
-> Note that only the helpers actually used are implemented now.
+> asm-generic/ptrace.h is a little weird in that it doesn't actually
+> implement any functionality, but it provided multiple layers of macros
+> that just implement trivial inline functions.  We implement those
+> directly in the few architectures and be off with a much simpler
+> design.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Ingo Molnar <mingo@kernel.org>
-> Acked-by: Oleg Nesterov <oleg@redhat.com>
+> I'm not sure which tree is the right place, but may this can go through
+> the asm-generic tree since it removes an asm-generic header?
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Makes sense.
+
+Thanks,
+
+	tglx
