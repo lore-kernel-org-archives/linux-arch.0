@@ -1,21 +1,13 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: RE: [PATCH v6 18/19] x86: Add support for generic vDSO
-Date: Mon, 24 Jun 2019 02:25:12 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1906240221550.32342@nanos.tec.linutronix.de>
-References: <20190530141531.43462-1-vincenzo.frascino@arm.com>
- <20190530141531.43462-19-vincenzo.frascino@arm.com>
- <BYAPR21MB1221D54FCEC97509EEF7395CD7180@BYAPR21MB1221.namprd21.prod.outlook.com>
- <alpine.DEB.2.21.1906141313150.1722@nanos.tec.linutronix.de>
- <20190614211710.GQ1513@sasha-vm>
- <alpine.DEB.2.21.1906221542270.5503@nanos.tec.linutronix.de>
- <20190623190929.GL2226@sasha-vm>
- <alpine.DEB.2.21.1906240006090.32342@nanos.tec.linutronix.de>
- <BYAPR21MB135202F46C4B023B51EBBFD0D7E00@BYAPR21MB1352.namprd21.prod.outlook.com>
+Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
+Date: Mon, 24 Jun 2019 02:34:24 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <BYAPR21MB135202F46C4B023B51EBBFD0D7E00@BYAPR21MB1352.namprd21.prod.outlook.com>
+In-Reply-To: <20190621095252.32307-1-vincenzo.frascino@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -25,44 +17,102 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Michael Kelley <mikelley@microsoft.com>
-Cc: "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Sasha Levin <sashal@kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dmitry Safonov <0x7f454c46@gmail.com>, Peter Collingbourne <pcc@google.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Huw Davies <huw@codeweavers.com>, Greg KH <gregkh@linuxfoundation.org>, linux-kernel@vge
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, linux-arch@vger.kernel.org, Dmitry Safonov <dima@arista.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andre Przywara <andre.przywara@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Michael Kelley <mikelley@microsoft.com>, Peter Collingbourne <pcc@google.com>, LAK <linux-arm-kernel@lists.infradead.org>, Andrei Vagin <avagin@openvz.org>, Huw Davies <huw@codeweavers.com>, LKML <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Shijith
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 24 Jun 2019, Michael Kelley wrote:
-> From: Thomas Gleixner <tglx@linutronix.de> Sent: Sunday, June 23, 2019 3:13 PM
-> > 
-> > I have no objections if you collect hyper-v stuff, quite the contrary, but
-> > changes which touch other subsystems need to be coordinated upfront. That's
-> > all I'm asking for.
-> > 
-> > Btw, that clocksource stuff looks good code wise, just the change logs need
-> > some care and after the VDSO stuff hits next we need to sort out the
-> > logistics. I hope these changes are completely self contained. If not we'll
-> > find a solution.
-> >
+Vincenzo,
+
+On Fri, 21 Jun 2019, Vincenzo Frascino wrote:
+> vDSO (virtual dynamic shared object) is a mechanism that the Linux
+> kernel provides as an alternative to system calls to reduce where
+> possible the costs in terms of cycles.
+> This is possible because certain syscalls like gettimeofday() do
+> not write any data and return one or more values that are stored
+> in the kernel, which makes relatively safe calling them directly
+> as a library function.
 > 
-> In my view, the only thing that potentially needs a solution is where the
-> Hyper-V clock code used by VDSO ends up in the code tree.  I think the
-> right long term place is include/clocksource/hyperv_timer.h.   That location
-> is architecture neutral, and the same Hyper-V clock code will be shared by
-> the Hyper-V on ARM64 support that's in process.
-> 
-> Vincenzo's patch set creates a new file arch/x86/include/asm/mshyperv-tsc.h,
-> which I will want to move when creating the separate Hyper-V clocksource
-> driver.   If you're OK with that file existing for a release and then going away,
-> that's fine.  Alternatively, put the code in include/clocksource/hyperv_timer.h
-> now as part of the VDSO patch set so it's in the right place from the start.  My
-> subsequent patch set will add a few additional tweaks to remove x86-isms
-> and fully integrate with the separate Hyper-V clocksource driver.
+> Even if the mechanism is pretty much standard, every architecture
+> in the last few years ended up implementing their own vDSO library
+> in the architectural code.
 
-I don't care whether this goes into 5.3 or later. If you can provide me
-rebased self contained patches on top of
+....
+ 
+> This implementation contains the portings to the common library for: arm64,
+> compat mode for arm64, arm, mips, x86_64, x32, compat mode for x86_64 and
+> i386.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git timers/vdso
+I picked up the core implementation and the ARM64 and x86 conversion. I did
+some refinements in several places, coding style, naming conventions,
+comments and changelogs including subject prefixes. Please double check!
 
-I'm happy to pull them in on top.
+I did not merge the ARM and MIPS parts as they lack any form of
+acknowlegment from their maintainers. Please talk to those folks. If they
+ack/review the changes then I can pick them up and they go into 5.3 or they
+have to go in a later cycle. Nevertheless it was well worth the trouble to
+have those conversions done to confirm that the new common library fits a
+bunch of different architectures.
+
+As you can see from the commit dates, this has soaked for some time in a
+WIP branch and I did extensive regression testing. So far so good.
+
+Thanks a lot for going through several iterations. It's a very much
+appreciated effort!
+
+Especially with the upcoming time namespaces this will avoid a lot of
+duplicated and pointlessly different horrors all over the architecture
+space. Any architecture which wants to gain that support needs to convert
+to the generic VDSO first.
+
+As you have become the dude who knows almost everything about VDSO
+including all the nasty pitfalls, I propose the patch below.
 
 Thanks,
 
 	tglx
+
+8<------------
+Subject: MAINTAINERS: Add entry for the generic VDSO library
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Mon, 24 Jun 2019 02:03:50 +0200
+
+Asign the following folks in alphabetic order:
+
+ - Andy for being the VDSO wizard of x86 and in general. He's also the
+   performance monitor of choice and the code in the generic library is
+   heavily influenced by his previous x86 VDSO work.
+
+ - Thomas for being the dude who has to deal with any form of time(r)
+   nonsense anyway
+
+ - Vincenzo for being the poor sod who went through all the different
+   architecture implementations in order to unify them. A lot of knowledge
+   gained from VDSO implementation details to the intricacies of taming the
+   build system.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ MAINTAINERS |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -6665,6 +6665,18 @@ L:	kvm@vger.kernel.org
+ S:	Supported
+ F:	drivers/uio/uio_pci_generic.c
+ 
++GENERIC VDSO LIBRARY:
++M:	Andy Lutomirksy <luto@kernel.org>
++M:	Thomas Gleixner <tglx@linutronix.de>
++M:	Vincenzo Frascino <vincenzo.frascino@arm.com>
++L:	linux-kernel@vger.kernel.org
++T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git timers/vdso
++S:	Maintained
++F:	lib/vdso
++F:	kernel/time/vsyscall.c
++F:	include/vdso
++F:	include/asm-generic/vdso/vsyscall.h
++
+ GENWQE (IBM Generic Workqueue Card)
+ M:	Frank Haverkamp <haver@linux.ibm.com>
+ S:	Supported
