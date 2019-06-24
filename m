@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40386 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:40950 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725782AbfFXFrm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2019 01:47:42 -0400
+        with ESMTP id S1725782AbfFXFrt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2019 01:47:49 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] powerpc: don't use asm-generic/ptrace.h
-Date: Mon, 24 Jun 2019 07:47:25 +0200
-Message-ID: <20190624054728.30966-3-hch@lst.de>
+Subject: [PATCH 4/5] x86: don't use asm-generic/ptrace.h
+Date: Mon, 24 Jun 2019 07:47:27 +0200
+Message-ID: <20190624054728.30966-5-hch@lst.de>
 In-Reply-To: <20190624054728.30966-1-hch@lst.de>
 References: <20190624054728.30966-1-hch@lst.de>
 MIME-Version: 1.0
@@ -14,8 +14,8 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190624054725.QYS3gX-9LDNJTmOnCwuJqzosGUjQjx3kuggdbvxeKz4@z>
+Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20190624054727.EwFxGk4e71lmnpvaOnZYl91ISl3V6LGwqjTKuwUMFrY@z>
 
 Doing the indirection through macros for the regs accessors just
 makes them harder to read, so implement the helpers directly.
@@ -23,54 +23,60 @@ makes them harder to read, so implement the helpers directly.
 Note that only the helpers actually used are implemented now.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Oleg Nesterov <oleg@redhat.com>
 ---
- arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/ptrace.h | 30 +++++++++++++++++++++++++-----
+ 1 file changed, 25 insertions(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/ptrace.h b/arch/powerpc/include/asm/ptrace.h
-index faa5a338ac5a..feee1b21bbd5 100644
---- a/arch/powerpc/include/asm/ptrace.h
-+++ b/arch/powerpc/include/asm/ptrace.h
-@@ -111,18 +111,33 @@ struct pt_regs
+diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
+index 8a7fc0cca2d1..e22816e865ca 100644
+--- a/arch/x86/include/asm/ptrace.h
++++ b/arch/x86/include/asm/ptrace.h
+@@ -98,7 +98,6 @@ struct cpuinfo_x86;
+ struct task_struct;
  
- #ifndef __ASSEMBLY__
+ extern unsigned long profile_pc(struct pt_regs *regs);
+-#define profile_pc profile_pc
  
--#define GET_IP(regs)		((regs)->nip)
--#define GET_USP(regs)		((regs)->gpr[1])
--#define GET_FP(regs)		(0)
--#define SET_FP(regs, val)
+ extern unsigned long
+ convert_ip_to_linear(struct task_struct *child, struct pt_regs *regs);
+@@ -175,11 +174,32 @@ static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
+ }
+ #endif
+ 
+-#define GET_IP(regs) ((regs)->ip)
+-#define GET_FP(regs) ((regs)->bp)
+-#define GET_USP(regs) ((regs)->sp)
 +static inline unsigned long instruction_pointer(struct pt_regs *regs)
 +{
-+	return regs->nip;
++	return regs->ip;
 +}
 +
 +static inline void instruction_pointer_set(struct pt_regs *regs,
 +		unsigned long val)
 +{
-+	regs->nip = val;
-+}
-+
-+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-+{
-+	return regs->gpr[1];
++	regs->ip = val;
 +}
 +
 +static inline unsigned long frame_pointer(struct pt_regs *regs)
 +{
-+	return 0;
++	return regs->bp;
 +}
  
- #ifdef CONFIG_SMP
- extern unsigned long profile_pc(struct pt_regs *regs);
--#define profile_pc profile_pc
-+#else
-+#define profile_pc(regs) instruction_pointer(regs)
- #endif
- 
 -#include <asm-generic/ptrace.h>
--
- #define kernel_stack_pointer(regs) ((regs)->gpr[1])
- static inline int is_syscall_success(struct pt_regs *regs)
- {
++static inline unsigned long user_stack_pointer(struct pt_regs *regs)
++{
++	return regs->sp;
++}
++
++static inline void user_stack_pointer_set(struct pt_regs *regs,
++		unsigned long val)
++{
++	regs->sp = val;
++}
+ 
+ /* Query offset/name of register from its name/offset */
+ extern int regs_query_register_offset(const char *name);
 -- 
 2.20.1
