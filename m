@@ -1,87 +1,66 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
- implementation
-Date: Mon, 24 Jun 2019 14:36:07 +0100
-Message-ID: <20190624133607.GI29497@fuggles.cambridge.arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v7 01/25] kernel: Standardize vdso_datapage
+Date: Mon, 24 Jun 2019 14:56:24 +0100
+Message-ID: <20190624135624.GB29120@arrakis.emea.arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-5-vincenzo.frascino@arm.com>
+ <20190621095252.32307-2-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20190621095252.32307-2-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Vincenzo,
-
-On Fri, Jun 21, 2019 at 10:52:31AM +0100, Vincenzo Frascino wrote:
-> To take advantage of the commonly defined vdso interface for
-> gettimeofday the architectural code requires an adaptation.
+On Fri, Jun 21, 2019 at 10:52:28AM +0100, Vincenzo Frascino wrote:
+> In an effort to unify the common code for managing the vdso library in
+> between all the architectures that support it, this patch tries to
+> provide a common format for the vdso datapage.
 > 
-> Re-implement the gettimeofday vdso in C in order to use lib/vdso.
+> As a result of this, this patch generalized the data structures in vgtod.h
+> from x86 private includes to general includes (include/vdso).
 > 
-> With the new implementation arm64 gains support for CLOCK_BOOTTIME
-> and CLOCK_TAI.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
 > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > Tested-by: Shijith Thotton <sthotton@marvell.com>
 > Tested-by: Andre Przywara <andre.przywara@arm.com>
-> ---
->  arch/arm64/Kconfig                         |   2 +
->  arch/arm64/include/asm/vdso/gettimeofday.h |  86 ++++++
->  arch/arm64/include/asm/vdso/vsyscall.h     |  53 ++++
->  arch/arm64/include/asm/vdso_datapage.h     |  48 ---
->  arch/arm64/kernel/asm-offsets.c            |  33 +-
->  arch/arm64/kernel/vdso.c                   |  51 +---
->  arch/arm64/kernel/vdso/Makefile            |  34 ++-
->  arch/arm64/kernel/vdso/gettimeofday.S      | 334 ---------------------
->  arch/arm64/kernel/vdso/vgettimeofday.c     |  28 ++
 
-I'm concerned about an apparent semantic change introduced by your patch:
+Minor clean-up patch (on top of the tip timers/vdso branch):
 
-> +static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
-> +{
-> +	u64 res;
-> +
-> +	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
-> +
-> +	return res;
-> +}
+------------8<------------------------------
+From 2e09fa6fca341b3ec7ecaf0b67a313a167bb4ff2 Mon Sep 17 00:00:00 2001
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Mon, 24 Jun 2019 12:19:23 +0100
+Subject: [PATCH] vdso: Remove superfluous #ifdef __KERNEL__ in
+ vdso/datapage.h
 
-vs:
+With the move to UAPI headers, such #ifdefs are no longer necessary.
 
-> -	.macro	get_clock_shifted_nsec res, cycle_last, mult
-> -	/* Read the virtual counter. */
-> -	isb
-> -	mrs	x_tmp, cntvct_el0
-> -	/* Calculate cycle delta and convert to ns. */
-> -	sub	\res, x_tmp, \cycle_last
-> -	/* We can only guarantee 56 bits of precision. */
-> -	movn	x_tmp, #0xff00, lsl #48
-> -	and	\res, x_tmp, \res
-> -	mul	\res, \res, \mult
-> -	/*
-> -	 * Fake address dependency from the value computed from the counter
-> -	 * register to subsequent data page accesses so that the sequence
-> -	 * locking also orders the read of the counter.
-> -	 */
-> -	and	x_tmp, \res, xzr
-> -	add	vdso_data, vdso_data, x_tmp
-> -	.endm
+Fixes: 361f8aee9b09 ("vdso: Define standardized vdso_datapage")
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ include/vdso/datapage.h | 4 ----
+ 1 file changed, 4 deletions(-)
 
-It looks like you're dropping both the preceding ISB (allowing the counter
-value to be speculated) and also the subsequent dependency (allowing the
-seq lock to be speculated). If I've missed them, apologies, but I couldn't
-spot them elsewhere in this patch.
-
-__arch_get_hw_counter should probably be identical to __arch_counter_get_cntvct
-to avoid these problems. I guess we don't need to care about the case where
-the counter is unstable, since we'll just disable the vDSO altogether on
-such systems?
-
-Will
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index e6eb36c3d54f..2e302c0f41f7 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -2,8 +2,6 @@
+ #ifndef __VDSO_DATAPAGE_H
+ #define __VDSO_DATAPAGE_H
+ 
+-#ifdef __KERNEL__
+-
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/bits.h>
+@@ -88,6 +86,4 @@ extern struct vdso_data _vdso_data[CS_BASES] __attribute__((visibility("hidden")
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+-#endif /* __KERNEL__ */
+-
+ #endif /* __VDSO_DATAPAGE_H */
