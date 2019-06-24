@@ -1,14 +1,13 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 4/5] x86: don't use asm-generic/ptrace.h
-Date: Mon, 24 Jun 2019 09:22:39 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1906240922270.32342@nanos.tec.linutronix.de>
+Subject: Re: remove asm-generic/ptrace.h v3
+Date: Mon, 24 Jun 2019 09:23:02 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906240922420.32342@nanos.tec.linutronix.de>
 References: <20190624054728.30966-1-hch@lst.de>
- <20190624054728.30966-5-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190624054728.30966-5-hch@lst.de>
+In-Reply-To: <20190624054728.30966-1-hch@lst.de>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,18 +18,22 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, 24 Jun 2019, Christoph Hellwig wrote:
-
-> Doing the indirection through macros for the regs accessors just
-> makes them harder to read, so implement the helpers directly.
 > 
-> Note that only the helpers actually used are implemented now.
+> asm-generic/ptrace.h is a little weird in that it doesn't actually
+> implement any functionality, but it provided multiple layers of macros
+> that just implement trivial inline functions.  We implement those
+> directly in the few architectures and be off with a much simpler
+> design.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Ingo Molnar <mingo@kernel.org>
-> Acked-by: Oleg Nesterov <oleg@redhat.com>
+> I'm not sure which tree is the right place, but may this can go through
+> the asm-generic tree since it removes an asm-generic header?
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Makes sense.
+
+Thanks,
+
+	tglx
