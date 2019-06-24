@@ -1,92 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50588 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:51050 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725562AbfFXNgN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Jun 2019 09:36:13 -0400
-Date: Mon, 24 Jun 2019 14:36:07 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
- implementation
-Message-ID: <20190624133607.GI29497@fuggles.cambridge.arm.com>
+        id S1727732AbfFXN4a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Jun 2019 09:56:30 -0400
+Date: Mon, 24 Jun 2019 14:56:24 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v7 01/25] kernel: Standardize vdso_datapage
+Message-ID: <20190624135624.GB29120@arrakis.emea.arm.com>
 References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-5-vincenzo.frascino@arm.com>
+ <20190621095252.32307-2-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20190621095252.32307-2-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
-Message-ID: <20190624133607.7xFnCo4v4k_ZBy8zzU2OkkMZTAktZo7rzuGZ7Akv440@z>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Message-ID: <20190624135624.maYTJo5_uPSu-Qty34aq79cR7AzOg4QulZB1fgx43I8@z>
 
-Hi Vincenzo,
-
-On Fri, Jun 21, 2019 at 10:52:31AM +0100, Vincenzo Frascino wrote:
-> To take advantage of the commonly defined vdso interface for
-> gettimeofday the architectural code requires an adaptation.
+On Fri, Jun 21, 2019 at 10:52:28AM +0100, Vincenzo Frascino wrote:
+> In an effort to unify the common code for managing the vdso library in
+> between all the architectures that support it, this patch tries to
+> provide a common format for the vdso datapage.
 > 
-> Re-implement the gettimeofday vdso in C in order to use lib/vdso.
+> As a result of this, this patch generalized the data structures in vgtod.h
+> from x86 private includes to general includes (include/vdso).
 > 
-> With the new implementation arm64 gains support for CLOCK_BOOTTIME
-> and CLOCK_TAI.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
 > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > Tested-by: Shijith Thotton <sthotton@marvell.com>
 > Tested-by: Andre Przywara <andre.przywara@arm.com>
-> ---
->  arch/arm64/Kconfig                         |   2 +
->  arch/arm64/include/asm/vdso/gettimeofday.h |  86 ++++++
->  arch/arm64/include/asm/vdso/vsyscall.h     |  53 ++++
->  arch/arm64/include/asm/vdso_datapage.h     |  48 ---
->  arch/arm64/kernel/asm-offsets.c            |  33 +-
->  arch/arm64/kernel/vdso.c                   |  51 +---
->  arch/arm64/kernel/vdso/Makefile            |  34 ++-
->  arch/arm64/kernel/vdso/gettimeofday.S      | 334 ---------------------
->  arch/arm64/kernel/vdso/vgettimeofday.c     |  28 ++
 
-I'm concerned about an apparent semantic change introduced by your patch:
+Minor clean-up patch (on top of the tip timers/vdso branch):
 
-> +static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
-> +{
-> +	u64 res;
-> +
-> +	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
-> +
-> +	return res;
-> +}
-
-vs:
-
-> -	.macro	get_clock_shifted_nsec res, cycle_last, mult
-> -	/* Read the virtual counter. */
-> -	isb
-> -	mrs	x_tmp, cntvct_el0
-> -	/* Calculate cycle delta and convert to ns. */
-> -	sub	\res, x_tmp, \cycle_last
-> -	/* We can only guarantee 56 bits of precision. */
-> -	movn	x_tmp, #0xff00, lsl #48
-> -	and	\res, x_tmp, \res
-> -	mul	\res, \res, \mult
-> -	/*
-> -	 * Fake address dependency from the value computed from the counter
-> -	 * register to subsequent data page accesses so that the sequence
-> -	 * locking also orders the read of the counter.
-> -	 */
-> -	and	x_tmp, \res, xzr
-> -	add	vdso_data, vdso_data, x_tmp
-> -	.endm
-
-It looks like you're dropping both the preceding ISB (allowing the counter
-value to be speculated) and also the subsequent dependency (allowing the
-seq lock to be speculated). If I've missed them, apologies, but I couldn't
-spot them elsewhere in this patch.
-
-__arch_get_hw_counter should probably be identical to __arch_counter_get_cntvct
-to avoid these problems. I guess we don't need to care about the case where
-the counter is unstable, since we'll just disable the vDSO altogether on
-such systems?
-
-Will
+------------8<------------------------------
