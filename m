@@ -1,57 +1,74 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] remove arch/sh?
-Date: Tue, 25 Jun 2019 17:48:09 +0200
-Message-ID: <CAK8P3a0j_9fzZxhxqCMHfoJ5DdZpHFvANEPqs1pbP23TCei6ng@mail.gmail.com>
-References: <20190625085616.GA32399@lst.de> <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
- <20190625112146.GA9580@angband.pl> <401b12c0-d175-2720-d26c-b96ce3b28c71@physik.fu-berlin.de>
- <CAK8P3a3irwwwCQ_kPh5BTg-jGGbJOj=3fhVrTDBUZgH1V7bpFQ@mail.gmail.com> <20190625142832.GD1506@brightrain.aerifal.cx>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 2/3] arm64: Fix __arch_get_hw_counter() implementation
+Date: Tue, 25 Jun 2019 17:18:03 +0100
+Message-ID: <20190625161804.38713-2-vincenzo.frascino@arm.com>
+References: <20190624133607.GI29497@fuggles.cambridge.arm.com>
+ <20190625161804.38713-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190625142832.GD1506@brightrain.aerifal.cx>
+In-Reply-To: <20190625161804.38713-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rich Felker <dalias@libc.org>
-Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Adam Borowski <kilobyte@angband.pl>, Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 25, 2019 at 4:28 PM Rich Felker <dalias@libc.org> wrote:
-> On Tue, Jun 25, 2019 at 02:50:01PM +0200, Arnd Bergmann wrote:
-> > don't build, or are incomplete and not worked on for a long
-> > time, compared to the bits that are known to work and that someone
-> > is still using or at least playing with.
-> > I guess a lot of the SoCs that have no board support other than
-> > the Hitachi/Renesas reference platform can go away too, as any products
-> > based on those boards have long stopped updating their kernels.
->
-> My intent here was always, after getting device tree theoretically
-> working for some reasonable subset of socs/boards, drop the rest and
-> add them back as dts files (possibly plus some small drivers) only if
-> there's demand/complaint about regression.
+Provide the following fixes for the __arch_get_hw_counter()
+implementation on arm64:
+ - Fallback on syscall when an unstable counter is detected.
+ - Introduce isb()s before and after the counter read to avoid
+   speculation of the counter value and of the seq lock
+   respectively.
+   The second isb() is a temporary solution that will be revisited
+   in 5.3-rc1.
 
-Do you still think that this is a likely scenario for the future though?
+These fixes restore the semantics that __arch_counter_get_cntvct()
+had on arm64.
 
-If nobody's actively working on the DT support for the old chips and
-this is unlikely to change soon, removing the known-broken bits earlier
-should at least make it easier to keep maintaining the working bits
-afterwards.
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/include/asm/vdso/gettimeofday.h | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-FWIW, I went through the SH2, SH2A and SH3 based boards that
-are supported in the kernel and found almost all of them to
-be just reference platforms, with no actual product ever merged.
-IIRC the idea back then was that users would supply their
-own board files as an add-on patch, but I would consider all the
-ones that did to be obsolete now.
-
-HP Jornada 6xx is the main machine that was once supported, but
-given that according to the defconfig file it only comes with 4MB
-of RAM, it is unlikely to still boot any 5.x kernel, let alone user
-space (wikipedia claims there were models with 16MB of RAM,
-but that is still not a lot these days).
-
-"Magicpanel" was another product that is supported in theory, but
-the google search showed the 2007 patch for the required
-flash storage driver that was never merged.
-
-Maybe everything but J2 and SH4(a) can just get retired?
-
-     Arnd
+diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
+index 447ef417de45..b08f476b72b4 100644
+--- a/arch/arm64/include/asm/vdso/gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/gettimeofday.h
+@@ -10,6 +10,8 @@
+ #include <asm/unistd.h>
+ #include <uapi/linux/time.h>
+ 
++#define __VDSO_USE_SYSCALL		ULLONG_MAX
++
+ #define VDSO_HAS_CLOCK_GETRES		1
+ 
+ static __always_inline
+@@ -68,7 +70,24 @@ static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
+ {
+ 	u64 res;
+ 
++	/*
++	 * clock_mode == 0 implies that vDSO are enabled otherwise
++	 * fallback on syscall.
++	 */
++	if (clock_mode)
++		return __VDSO_USE_SYSCALL;
++
++	/*
++	 * This isb() is required to prevent that the counter value
++	 * is speculated.
++	 */
++	isb();
+ 	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
++	/*
++	 * This isb() is required to prevent that the seq lock is
++	 * speculated.#
++	 */
++	isb();
+ 
+ 	return res;
+ }
+-- 
+2.22.0
