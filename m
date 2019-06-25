@@ -1,75 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:44024 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727540AbfFYRCV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 13:02:21 -0400
-Date: Tue, 25 Jun 2019 19:02:13 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/3] lib/vdso: Delay mask application in do_hres()
-In-Reply-To: <20190625161804.38713-1-vincenzo.frascino@arm.com>
-Message-ID: <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
-References: <20190624133607.GI29497@fuggles.cambridge.arm.com> <20190625161804.38713-1-vincenzo.frascino@arm.com>
+Received: from mail-eopbgr760110.outbound.protection.outlook.com ([40.107.76.110]:34473
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728855AbfFYRLY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jun 2019 13:11:24 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
+Date: Tue, 25 Jun 2019 17:11:20 +0000
+Message-ID: <20190625171118.wznk5nva3h3jetky@pburton-laptop>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
+ <20190624184157.mu6n74a7qqa4z5z5@pburton-laptop>
+ <3ae7f595-0a15-0584-198e-b32fe3e3ea57@arm.com>
+In-Reply-To: <3ae7f595-0a15-0584-198e-b32fe3e3ea57@arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <FD39DF5A3ADB314EAA7DACEAAC30B7A9@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, catalin.marinas@arm.com, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux@armlinux.org.uk, Ralf Baechle <ralf@linux-mips.org>, paul.burton@mips.com, Daniel Lezcano <daniel.lezcano@linaro.org>, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20190625170213.DNvGvRfi2n4z0s0sp34EsqHDZnfsjcT620R7rmZCNcE@z>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>, Dmitry Safonov <dima@arista.com>, Andrei Vagin <avagin@openvz.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <sashal@kernel.org>
+Message-ID: <20190625171120.JGpqT5taklKHA1VpjmlIcL1sRP1FgS20ENQE1LgDmBo@z>
 
-On Tue, 25 Jun 2019, Vincenzo Frascino wrote:
+Hi Vincenzo,
 
-CC+ Andy
+On Tue, Jun 25, 2019 at 12:16:55AM +0100, Vincenzo Frascino wrote:
+> In the end I concluded that all the errors seen here depend on the fact t=
+hat I
+> tested my vdso implementation on MIPS32el only (as stated in the cover le=
+tter)
+> and that when I tried to compile a 32BIT binary on a 64BIT configuration =
+I did
+> it wrongly for two reasons, for N32 and O32 binaries:
+>  - we need to undefine CONFIG_64BIT and define CONFIG_32BIT
+>  - we need to define CONFIG_GENERIC_ATOMIC64
+>=20
+> I have a fix for this (patch in attachment), but I do not have the hardwa=
+re to
+> test it. If you could provide some feedback would be appreciated (really =
+want to
+> see MIPS merged with the other archs in 5.3 :) ).
 
-> do_hres() in the vDSO generic library masks the hw counter value
-> immediately after reading it.
-> 
-> Postpone the mask application after checking if the syscall fallback is
-> enabled, in order to be able to detect a possible fallback for the
-> architectures that have masks smaller than ULLONG_MAX.
+Thanks for the quick turnaround on your patch!
 
-Right. This only worked on x86 because the mask is there ULLONG_MAX for all
-VDSO capable clocksources, i.e. that ever worked just by chance.
-
-As we talked about that already yesterday, I tested this on a couple of
-machines and as expected the outcome is uarch dependent. Minimal deviations
-to both sides and some machines do not show any change at all. I doubt it's
-possible to come up with a solution which makes all uarchs go faster
-magically.
-
-Though, thinking about it, we could remove the mask operation completely on
-X86. /me runs tests
+I'm certainly willing to test it, but in a few hours I'll be spending
+the bulk of a day on airplanes[1] so it might take a few days until I
+get to it.
 
 Thanks,
+    Paul
 
-	tglx
-
-
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->  lib/vdso/gettimeofday.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-> index ef28cc5d7bff..ee1221ba1d32 100644
-> --- a/lib/vdso/gettimeofday.c
-> +++ b/lib/vdso/gettimeofday.c
-> @@ -35,12 +35,12 @@ static int do_hres(const struct vdso_data *vd, clockid_t clk,
->  
->  	do {
->  		seq = vdso_read_begin(vd);
-> -		cycles = __arch_get_hw_counter(vd->clock_mode) &
-> -			vd->mask;
-> +		cycles = __arch_get_hw_counter(vd->clock_mode);
->  		ns = vdso_ts->nsec;
->  		last = vd->cycle_last;
->  		if (unlikely((s64)cycles < 0))
->  			return clock_gettime_fallback(clk, ts);
-> +		cycles &= vd->mask;
->  		if (cycles > last)
->  			ns += (cycles - last) * vd->mult;
->  		ns >>= vd->shift;
-> -- 
-> 2.22.0
-> 
-> 
+[1] ...and travel isn't the hackathon it used to be with my 9 month old
+    son around :)
