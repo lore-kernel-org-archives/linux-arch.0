@@ -1,75 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f193.google.com ([209.85.208.193]:34896 "EHLO
-        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728199AbfFYPTt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 11:19:49 -0400
+Received: from foss.arm.com ([217.140.110.172]:44174 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728273AbfFYPdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jun 2019 11:33:43 -0400
+Date: Tue, 25 Jun 2019 16:33:37 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
+ implementation
+Message-ID: <20190625153336.GZ2790@e103592.cambridge.arm.com>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <20190621095252.32307-5-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-References: <a5fb2545a0cf151bc443efa10c16c5a4de6f2670.1561460681.git.baruch@tkos.co.il>
- <CAADnVQJ3MPVCL-0x2gDYbUQsrmu8WipnisqXoU8ja4vZ-5nTmA@mail.gmail.com> <20190625150835.GA24947@altlinux.org>
-In-Reply-To: <20190625150835.GA24947@altlinux.org>
-From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Date: Tue, 25 Jun 2019 08:19:35 -0700
-Message-ID: <CAADnVQJNLk7tAHRHr7V7ugvCX9iCjaH4_vS9YuNWcMpwnA6ZyA@mail.gmail.com>
-Subject: Re: [PATCH v2] bpf: fix uapi bpf_prog_info fields alignment
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Baruch Siach <baruch@tkos.co.il>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Network Development <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190625151935.6_7L9LY4sLmLIDtOd_P76zvf42Mz_lWLJfbNy7feZUI@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Andre Przywara <andre.przywara@arm.com>, Arnd Bergmann <arnd@arndb.de>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Shijith Thotton <sthotton@marvell.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20190625153337.twC5l3vqmbXeXk5XGDIZMtoy_zbDmyp-DjJUI5GJoZo@z>
 
-On Tue, Jun 25, 2019 at 8:08 AM Dmitry V. Levin <ldv@altlinux.org> wrote:
->
-> On Tue, Jun 25, 2019 at 07:16:55AM -0700, Alexei Starovoitov wrote:
-> > On Tue, Jun 25, 2019 at 4:07 AM Baruch Siach <baruch@tkos.co.il> wrote:
-> > >
-> > > Merge commit 1c8c5a9d38f60 ("Merge
-> > > git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
-> > > fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
-> > > applications") by taking the gpl_compatible 1-bit field definition from
-> > > commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
-> > > bpf_prog_info") as is. That breaks architectures with 16-bit alignment
-> > > like m68k. Embed gpl_compatible into an anonymous union with 32-bit pad
-> > > member to restore alignment of following fields.
-> > >
-> > > Thanks to Dmitry V. Levin his analysis of this bug history.
-> > >
-> > > Cc: Jiri Olsa <jolsa@kernel.org>
-> > > Cc: Daniel Borkmann <daniel@iogearbox.net>
-> > > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> > > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> > > Signed-off-by: Baruch Siach <baruch@tkos.co.il>
-> > > ---
-> > > v2:
-> > > Use anonymous union with pad to make it less likely to break again in
-> > > the future.
-> > > ---
-> > >  include/uapi/linux/bpf.h       | 5 ++++-
-> > >  tools/include/uapi/linux/bpf.h | 5 ++++-
-> > >  2 files changed, 8 insertions(+), 2 deletions(-)
-> > >
-> > > diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
-> > > index a8b823c30b43..766eae02d7ae 100644
-> > > --- a/include/uapi/linux/bpf.h
-> > > +++ b/include/uapi/linux/bpf.h
-> > > @@ -3142,7 +3142,10 @@ struct bpf_prog_info {
-> > >         __aligned_u64 map_ids;
-> > >         char name[BPF_OBJ_NAME_LEN];
-> > >         __u32 ifindex;
-> > > -       __u32 gpl_compatible:1;
-> > > +       union {
-> > > +               __u32 gpl_compatible:1;
-> > > +               __u32 pad;
-> > > +       };
-> >
-> > Nack for the reasons explained in the previous thread
-> > on the same subject.
-> > Why cannot you go with earlier suggestion of _u32 :31; ?
->
-> By the way, why not use aligned types as suggested by Geert?
-> They are already used for other members of struct bpf_prog_info anyway.
->
-> FWIW, we use aligned types for bpf in strace and that approach
-> proved to be more robust than manual padding.
+On Fri, Jun 21, 2019 at 10:52:31AM +0100, Vincenzo Frascino wrote:
+> To take advantage of the commonly defined vdso interface for
+> gettimeofday the architectural code requires an adaptation.
+> 
+> Re-implement the gettimeofday vdso in C in order to use lib/vdso.
+> 
+> With the new implementation arm64 gains support for CLOCK_BOOTTIME
+> and CLOCK_TAI.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Tested-by: Shijith Thotton <sthotton@marvell.com>
+> Tested-by: Andre Przywara <andre.przywara@arm.com>
 
-because __aligned_u64 is used for pointers.
+[...]
+
+> diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
+> new file mode 100644
+> index 000000000000..bc3cb6738051
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/vdso/gettimeofday.h
+> @@ -0,0 +1,86 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * Copyright (C) 2018 ARM Limited
+> + */
+> +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
+> +#define __ASM_VDSO_GETTIMEOFDAY_H
+> +
+> +#ifndef __ASSEMBLY__
+> +
+> +#include <asm/unistd.h>
+> +#include <uapi/linux/time.h>
+> +
+> +#define VDSO_HAS_CLOCK_GETRES		1
+> +
+> +static __always_inline int gettimeofday_fallback(
+> +					struct __kernel_old_timeval *_tv,
+> +					struct timezone *_tz)
+
+Out of interest, does this need to be __always_inline?
+
+> +{
+> +	register struct timezone *tz asm("x1") = _tz;
+> +	register struct __kernel_old_timeval *tv asm("x0") = _tv;
+> +	register long ret asm ("x0");
+> +	register long nr asm("x8") = __NR_gettimeofday;
+> +
+> +	asm volatile(
+> +	"       svc #0\n"
+
+Can inlining of this function result in non-trivial expressions being
+substituted for _tz or _tv?
+
+A function call can clobber register asm vars that are assigned to the
+caller-save registers or that the PCS uses for function arguments, and
+the situations where this can happen are poorly defined AFAICT.  There's
+also no reliable way to detect at build time whether the compiler has
+done this, and no robust way to stop if happening.
+
+(IMHO the compiler is wrong to do this, but it's been that way for ever,
+and I think I saw GCC 9 show this behaviour recently when I was
+investigating something related.)
+
+
+To be safe, it's better to put this out of line, or remove the reg asm()
+specifiers, mark x0-x18 and lr as clobbered here (so that the compiler
+doesn't map arguments to them), and put movs in the asm to move things
+into the right registers.  The syscall number can be passed with an "i"
+constraint.  (And yes, this sucks.)
+
+If the code this is inlined in is simple enough though, we can be fairly
+confident of getting away with it.
+
+[...]
+
+Cheers
+---Dave
