@@ -1,68 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:38728 "EHLO
-        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728710AbfFYOfm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 10:35:42 -0400
-Date: Tue, 25 Jun 2019 10:21:44 -0400
-From: Rich Felker <dalias@libc.org>
-Subject: Re: [RFC] remove arch/sh?
-Message-ID: <20190625142144.GC1506@brightrain.aerifal.cx>
-References: <20190625085616.GA32399@lst.de>
- <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
+Received: from vmicros1.altlinux.org ([194.107.17.57]:47238 "EHLO
+        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730607AbfFYPIj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 11:08:39 -0400
+Date: Tue, 25 Jun 2019 18:08:35 +0300
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: Re: [PATCH v2] bpf: fix uapi bpf_prog_info fields alignment
+Message-ID: <20190625150835.GA24947@altlinux.org>
+References: <a5fb2545a0cf151bc443efa10c16c5a4de6f2670.1561460681.git.baruch@tkos.co.il>
+ <CAADnVQJ3MPVCL-0x2gDYbUQsrmu8WipnisqXoU8ja4vZ-5nTmA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="bg08WKrSYDhXBjb5"
 Content-Disposition: inline
-In-Reply-To: <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
+In-Reply-To: <CAADnVQJ3MPVCL-0x2gDYbUQsrmu8WipnisqXoU8ja4vZ-5nTmA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190625142144.L_NCI_ySv_ptJ4dSsOWpwizZhtdlGxBvil0xeSP6PUk@z>
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: Baruch Siach <baruch@tkos.co.il>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Network Development <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190625150835.8UCJoZS5_ZL19t4ByGsUCiQJspspc8Ik6wRiNNJ9lx4@z>
 
-On Tue, Jun 25, 2019 at 11:02:36AM +0200, John Paul Adrian Glaubitz wrote:
-> Hi Christoph!
-> 
-> On 6/25/19 10:56 AM, Christoph Hellwig wrote:
-> > arch/sh seems pretty much unmaintained these days.  The last time I got
-> > any reply to sh patches from the list maintainers, and the last maintainer
-> > pull request was over a year ago, and even that has been rather sporadic.
-> > 
-> > In the meantime we've not really seen any updates for new kernel features
-> > and code seems to be bitrotting.
-> 
-> We're still using sh4 in Debian and most of the stuff works fine. There is
-> one patch by Michael Karcher that fixes a bug in the kprobes code that someone
-> should pull in as it unbreaks the kernel with kprobes enabled [1].
-> 
-> Yoshinori Sato is still active sporadically and has a kernel tree here
-> where he collects patches for -next [2].
-> 
-> Otherwise, the kernel works fine.
 
-Seconded. I apologize that I haven't been active in maintaining the
-tree as well; funding for time working on it dried up quite a while
-back and I'm stretched rather thin.
+--bg08WKrSYDhXBjb5
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I'm generally okay with all proposed non-functional changes that come
-up that are just eliminating arch-specific cruft to use new shared
-kernel infrastructure. I recall replying to a few indicating this, but
-I missed a lot more. If it would be helpful I think I can commit to
-doing at least this more consistently, but I'm happy to have other
-maintainers make that call too.
+On Tue, Jun 25, 2019 at 07:16:55AM -0700, Alexei Starovoitov wrote:
+> On Tue, Jun 25, 2019 at 4:07 AM Baruch Siach <baruch@tkos.co.il> wrote:
+> >
+> > Merge commit 1c8c5a9d38f60 ("Merge
+> > git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
+> > fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
+> > applications") by taking the gpl_compatible 1-bit field definition from
+> > commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
+> > bpf_prog_info") as is. That breaks architectures with 16-bit alignment
+> > like m68k. Embed gpl_compatible into an anonymous union with 32-bit pad
+> > member to restore alignment of following fields.
+> >
+> > Thanks to Dmitry V. Levin his analysis of this bug history.
+> >
+> > Cc: Jiri Olsa <jolsa@kernel.org>
+> > Cc: Daniel Borkmann <daniel@iogearbox.net>
+> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> > Signed-off-by: Baruch Siach <baruch@tkos.co.il>
+> > ---
+> > v2:
+> > Use anonymous union with pad to make it less likely to break again in
+> > the future.
+> > ---
+> >  include/uapi/linux/bpf.h       | 5 ++++-
+> >  tools/include/uapi/linux/bpf.h | 5 ++++-
+> >  2 files changed, 8 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+> > index a8b823c30b43..766eae02d7ae 100644
+> > --- a/include/uapi/linux/bpf.h
+> > +++ b/include/uapi/linux/bpf.h
+> > @@ -3142,7 +3142,10 @@ struct bpf_prog_info {
+> >         __aligned_u64 map_ids;
+> >         char name[BPF_OBJ_NAME_LEN];
+> >         __u32 ifindex;
+> > -       __u32 gpl_compatible:1;
+> > +       union {
+> > +               __u32 gpl_compatible:1;
+> > +               __u32 pad;
+> > +       };
+>=20
+> Nack for the reasons explained in the previous thread
+> on the same subject.
+> Why cannot you go with earlier suggestion of _u32 :31; ?
 
-I do still have WIP forward-ports of Yoshinori Sato's device tree
-patches from attempts to get them working on Landisk; they're sitting
-in my working tree, but the PCI stuff isn't working, probably due to
-changes out from under it. I'd like to work together on getting that
-fixed to unblock me on something I'm interested in getting working on
-my own time, but we've never managed to sync up on it.
+By the way, why not use aligned types as suggested by Geert?
+They are already used for other members of struct bpf_prog_info anyway.
 
-As Adrian probably remembers, there's also the forked-tree, bitrotted
-STlinux stuff I want to get merged back into mainline based on device
-tree once it's there (doing it now doesn't make sense, as it would
-just add a ton more board-file cruft where it's slated for removal).
-This would improve the future viability of the arch/platform since,
-currently, I think ST's chips are the main SH ones you can find/get --
-for example in the nextvod devices.
+FWIW, we use aligned types for bpf in strace and that approach
+proved to be more robust than manual padding.
 
-Rich
+
+--=20
+ldv
+
+--bg08WKrSYDhXBjb5
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJdEjjzAAoJEAVFT+BVnCUIuHUQAJ9poEDISeOsjNm0n+eD6K1e
+5I13q9FzXE4iUdjLPEWb3O5dzkyM9YE135XEnlFPtUglph8Wx+JH50ojDwan1XpV
+EyyQXsD9xjS2ObrdTatz+vgib70F3kiM6Jzu2PQUt19O3UeVcrHCL2tpyvMLrTKA
+upgleX5wCUHSDKUfyHjs1vpHyGI8OWwck6l+77HTq+Yemle/fS9VRFy3gGy9Lnub
+V9Jo3u8Tc2oPphM05a0jtzLbQ4KEQEMJLbCVudgf/SlQmQvxnC+XLeyzfnVufy/T
+jUIWzT4rmBAG1zuvD3nvtDK+jrBMo2yk5113gt/+zT1k0LbuFSNaohZ+QjYLelBQ
+qXAuQD8KdpkjGw8Vdm9M3Scj/9m6KGsYsgbaymyaiBiZeWUaME/Z2ll85VnbByXP
+jrJ/KBI1XQ/ithVXUf+Xy2nKExM0r5f+XxMF637bTCQroqe1V79olG5A3YTg1Mnh
+CLWMIAZU3JxDLiYQZKuGvVcZS3S1Fxb7HHsTskOdHnxGXkoIyXgi/n3SQiKiNcaf
+GvEVZLUvIpx+gwsbficp79fXEflv+xfsPj7kys7EJN/qm69Z2wy8VuitIbxIGgDw
+dt8A6SUbV0pOPZsQWdrSbsVK0saanvqygeDOjaQhFylpahHwUMEVMZuwjtUVsHx3
+9IYQwUmNwDM8PTTeZwUF
+=QbMx
+-----END PGP SIGNATURE-----
+
+--bg08WKrSYDhXBjb5--
