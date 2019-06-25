@@ -1,76 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51904 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726307AbfFYVtm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jun 2019 17:49:42 -0400
-Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id AB2102147A
-        for <linux-arch@vger.kernel.org>; Tue, 25 Jun 2019 21:49:41 +0000 (UTC)
-Received: by mail-wr1-f46.google.com with SMTP id n4so257890wrw.13
-        for <linux-arch@vger.kernel.org>; Tue, 25 Jun 2019 14:49:41 -0700 (PDT)
+Received: from Galois.linutronix.de ([193.142.43.55]:44570 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726274AbfFYWYx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 18:24:53 -0400
+Date: Wed, 26 Jun 2019 00:24:46 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/3] lib/vdso: Delay mask application in do_hres()
+In-Reply-To: <CALCETrWE3zYN-6h0RkMV9j5kSkSWbJ-nQnjhH=md=ybSR0eZ9Q@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.1906260009260.32342@nanos.tec.linutronix.de>
+References: <20190624133607.GI29497@fuggles.cambridge.arm.com> <20190625161804.38713-1-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de> <alpine.DEB.2.21.1906252024350.32342@nanos.tec.linutronix.de>
+ <CALCETrWE3zYN-6h0RkMV9j5kSkSWbJ-nQnjhH=md=ybSR0eZ9Q@mail.gmail.com>
 MIME-Version: 1.0
-References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com> <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de>
- <87lfxpy614.fsf@oldenburg2.str.redhat.com> <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com>
- <87a7e5v1d9.fsf@oldenburg2.str.redhat.com>
-In-Reply-To: <87a7e5v1d9.fsf@oldenburg2.str.redhat.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Tue, 25 Jun 2019 14:49:27 -0700
-Message-ID: <CALCETrUDt4v3=FqD+vseGTKTuG=qY+1LwRPrOrU8C7vCVbo=uA@mail.gmail.com>
-Subject: Re: Detecting the availability of VSYSCALL
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux API <linux-api@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Carlos O'Donell <carlos@redhat.com>, X86 ML <x86@kernel.org>
-Message-ID: <20190625214927.4LzoPJOuC1mlINnmiLEDAGotDPLIUgoP90rbOPT4olI@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch <linux-arch@vger.kernel.org>, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20190625222446.lrl1QibCZ0QCP5D_4GKwugZYopMXO1pzHrpvLLb93wk@z>
 
-On Tue, Jun 25, 2019 at 1:47 PM Florian Weimer <fweimer@redhat.com> wrote:
->
-> * Andy Lutomirski:
->
-> >> We want binaries that run fast on VSYSCALL kernels, but can fall back to
-> >> full system calls on kernels that do not have them (instead of
-> >> crashing).
+On Tue, 25 Jun 2019, Andy Lutomirski wrote:
+> On Tue, Jun 25, 2019 at 11:27 AM Thomas Gleixner <tglx@linutronix.de> wrote:
 > >
-> > Define "VSYSCALL kernels."  On any remotely recent kernel (*all* new
-> > kernels and all kernels for the last several years that haven't
-> > specifically requested vsyscall=native), using vsyscalls is much, much
-> > slower than just doing syscalls.  I know a way you can tell whether
-> > vsyscalls are fast, but it's unreliable, and I'm disinclined to
-> > suggest it.  There are also at least two pending patch series that
-> > will interfere.
->
-> The fast path is for the benefit of the 2.6.32-based kernel in Red Hat
-> Enterprise Linux 6.  It doesn't have the vsyscall emulation code yet, I
-> think.
->
-> My hope is to produce (statically linked) binaries that run as fast on
-> that kernel as they run today, but can gracefully fall back to something
-> else on kernels without vsyscall support.
->
-> >> We could parse the vDSO and prefer the functions found there, but this
-> >> is for the statically linked case.  We currently do not have a (minimal)
-> >> dynamic loader there in that version of the code base, so that doesn't
-> >> really work for us.
+> > On Tue, 25 Jun 2019, Thomas Gleixner wrote:
 > >
-> > Is anything preventing you from adding a vDSO parser?  I wrote one
-> > just for this type of use:
+> > > On Tue, 25 Jun 2019, Vincenzo Frascino wrote:
+> > >
+> > > CC+ Andy
+> > >
+> > > > do_hres() in the vDSO generic library masks the hw counter value
+> > > > immediately after reading it.
+> > > >
+> > > > Postpone the mask application after checking if the syscall fallback is
+> > > > enabled, in order to be able to detect a possible fallback for the
+> > > > architectures that have masks smaller than ULLONG_MAX.
+> > >
+> > > Right. This only worked on x86 because the mask is there ULLONG_MAX for all
+> > > VDSO capable clocksources, i.e. that ever worked just by chance.
+> > >
+> > > As we talked about that already yesterday, I tested this on a couple of
+> > > machines and as expected the outcome is uarch dependent. Minimal deviations
+> > > to both sides and some machines do not show any change at all. I doubt it's
+> > > possible to come up with a solution which makes all uarchs go faster
+> > > magically.
+> > >
+> > > Though, thinking about it, we could remove the mask operation completely on
+> > > X86. /me runs tests
 > >
-> > $ wc -l tools/testing/selftests/vDSO/parse_vdso.c
-> > 269 tools/testing/selftests/vDSO/parse_vdso.c
+> > Unsurprisingly the results vary. Two uarchs do not care, but they did not
+> > care about moving the mask either. The other two gain performance and the
+> > last one falls back to the state before moving the mask. So in general it
+> > looks like a worthwhile optimization.
 > >
-> > (289 lines includes quite a bit of comment.)
->
-> I'm worried that if I use a custom parser and the binaries start
-> crashing again because something changed in the kernel (within the scope
-> permitted by the ELF specification), the kernel won't be fixed.
->
-> That is, we'd be in exactly the same situation as today.
+> 
+> At one point, I contemplated a different approach: have the "get the
+> counter" routine return 0 and then do if (unlikely(cycles <= last))
+> goto fallback.  This will remove one branch from the hot path.  I got
+> dubious results when I tried benchmarking it, probably because the
+> branch in question was always correctly predicted.
 
-With my maintainer hat on, the kernel won't do that.  Obviously a
-review of my parser would be appreciated, but I consider it to be
-fully supported, just like glibc and musl's parsers are fully
-supported.  Sadly, I *also* consider the version Go forked for a while
-(now fixed) to be supported.  Sigh.
+Just tried and it's the same thing. One drops, one does not care and one
+gains. Did not test the other two as they are asleep already. There is no
+universal cure for this I fear. I even tried a uarch optimized build a few
+days ago which came out worse than the generic one...
+
+The issue in that code path is the fencing of the TSC read. That seems to
+screw up every uarch in a different way.
+
+If you have no objections I'll queue this change (moving the mask) along
+with the other two ARM64 ones to unbreak the fallback path for these errata
+inflicted machines.
+
+Thanks,
+
+	tglx
