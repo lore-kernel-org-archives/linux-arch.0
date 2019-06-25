@@ -1,54 +1,117 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH 1/3] lib/vdso: Delay mask application in do_hres()
-Date: Tue, 25 Jun 2019 13:15:19 -0700
-Message-ID: <CALCETrWE3zYN-6h0RkMV9j5kSkSWbJ-nQnjhH=md=ybSR0eZ9Q@mail.gmail.com>
-References: <20190624133607.GI29497@fuggles.cambridge.arm.com>
- <20190625161804.38713-1-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
- <alpine.DEB.2.21.1906252024350.32342@nanos.tec.linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Qian Cai <cai@lca.pw>
+Subject: [PATCH] asm-generic: fix a compilation warning
+Date: Tue, 25 Jun 2019 16:15:53 -0400
+Message-ID: <1561493753-3860-1-git-send-email-cai@lca.pw>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1906252024350.32342@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch <linux-arch@vger.kernel.org>, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.c>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Qian Cai <cai@lca.pw>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 25, 2019 at 11:27 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->
-> On Tue, 25 Jun 2019, Thomas Gleixner wrote:
->
-> > On Tue, 25 Jun 2019, Vincenzo Frascino wrote:
-> >
-> > CC+ Andy
-> >
-> > > do_hres() in the vDSO generic library masks the hw counter value
-> > > immediately after reading it.
-> > >
-> > > Postpone the mask application after checking if the syscall fallback is
-> > > enabled, in order to be able to detect a possible fallback for the
-> > > architectures that have masks smaller than ULLONG_MAX.
-> >
-> > Right. This only worked on x86 because the mask is there ULLONG_MAX for all
-> > VDSO capable clocksources, i.e. that ever worked just by chance.
-> >
-> > As we talked about that already yesterday, I tested this on a couple of
-> > machines and as expected the outcome is uarch dependent. Minimal deviations
-> > to both sides and some machines do not show any change at all. I doubt it's
-> > possible to come up with a solution which makes all uarchs go faster
-> > magically.
-> >
-> > Though, thinking about it, we could remove the mask operation completely on
-> > X86. /me runs tests
->
-> Unsurprisingly the results vary. Two uarchs do not care, but they did not
-> care about moving the mask either. The other two gain performance and the
-> last one falls back to the state before moving the mask. So in general it
-> looks like a worthwhile optimization.
->
+Fix this compilation warning on x86 by making flush_cache_vmap() inline.
 
-At one point, I contemplated a different approach: have the "get the
-counter" routine return 0 and then do if (unlikely(cycles <= last))
-goto fallback.  This will remove one branch from the hot path.  I got
-dubious results when I tried benchmarking it, probably because the
-branch in question was always correctly predicted.
+lib/ioremap.c: In function 'ioremap_page_range':
+lib/ioremap.c:214:16: warning: variable 'start' set but not used
+[-Wunused-but-set-variable]
+  unsigned long start;
+                ^~~~~
+
+While at it, convert all other similar functions to inline for
+consistency.
+
+Signed-off-by: Qian Cai <cai@lca.pw>
+---
+ include/asm-generic/cacheflush.h | 74 ++++++++++++++++++++++++++++++++--------
+ 1 file changed, 60 insertions(+), 14 deletions(-)
+
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
+index 0dd47a6db2cf..a950a22c4890 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -5,24 +5,70 @@
+ /* Keep includes the same across arches.  */
+ #include <linux/mm.h>
+ 
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
++
+ /*
+  * The cache doesn't need to be flushed when TLB entries change when
+  * the cache is mapped to physical memory, not virtual memory
+  */
+-#define flush_cache_all()			do { } while (0)
+-#define flush_cache_mm(mm)			do { } while (0)
+-#define flush_cache_dup_mm(mm)			do { } while (0)
+-#define flush_cache_range(vma, start, end)	do { } while (0)
+-#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-#define flush_dcache_page(page)			do { } while (0)
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-#define flush_icache_range(start, end)		do { } while (0)
+-#define flush_icache_page(vma,pg)		do { } while (0)
+-#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+-#define flush_cache_vmap(start, end)		do { } while (0)
+-#define flush_cache_vunmap(start, end)		do { } while (0)
++static inline void flush_cache_all(void)
++{
++}
++
++static inline void flush_cache_mm(struct mm_struct *mm)
++{
++}
++
++static inline void flush_cache_dup_mm(struct mm_struct *mm)
++{
++}
++
++static inline void flush_cache_range(struct vm_area_struct *vma,
++				     unsigned long start,
++				     unsigned long end)
++{
++}
++
++static inline void flush_cache_page(struct vm_area_struct *vma,
++				    unsigned long vmaddr,
++				    unsigned long pfn)
++{
++}
++
++static inline void flush_dcache_page(struct page *page)
++{
++}
++
++static inline void flush_dcache_mmap_lock(struct address_space *mapping)
++{
++}
++
++static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
++{
++}
++
++static inline void flush_icache_range(unsigned long start, unsigned long end)
++{
++}
++
++static inline void flush_icache_page(struct vm_area_struct *vma,
++				     struct page *page)
++{
++}
++
++static inline void flush_icache_user_range(struct vm_area_struct *vma,
++					   struct page *page,
++					   unsigned long addr, int len)
++{
++}
++
++static inline void flush_cache_vmap(unsigned long start, unsigned long end)
++{
++}
++
++static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
++{
++}
+ 
+ #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+ 	do { \
+-- 
+1.8.3.1
