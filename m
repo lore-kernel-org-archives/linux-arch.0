@@ -1,79 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44794 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726420AbfFYQSh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Jun 2019 12:18:37 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 2/3] arm64: Fix __arch_get_hw_counter() implementation
-Date: Tue, 25 Jun 2019 17:18:03 +0100
-Message-ID: <20190625161804.38713-2-vincenzo.frascino@arm.com>
-In-Reply-To: <20190625161804.38713-1-vincenzo.frascino@arm.com>
-References: <20190624133607.GI29497@fuggles.cambridge.arm.com>
- <20190625161804.38713-1-vincenzo.frascino@arm.com>
+Received: from Galois.linutronix.de ([193.142.43.55]:43931 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726740AbfFYQac (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 12:30:32 -0400
+Date: Tue, 25 Jun 2019 18:30:29 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: Detecting the availability of VSYSCALL
+In-Reply-To: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
+Message-ID: <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de>
+References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com
-Message-ID: <20190625161803.7s0sNKLlSTB0nU5peOU2OmRmT7ir7AQkCDVUFaZvX40@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: linux-api@vger.kernel.org, kernel-hardening@lists.openwall.com, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Carlos O'Donell <carlos@redhat.com>, x86@kernel.org
+Message-ID: <20190625163029.DmGbFTpbRgw92KQPEPvSkmeAk0Xw8auH99sc1cshn3g@z>
 
-Provide the following fixes for the __arch_get_hw_counter()
-implementation on arm64:
- - Fallback on syscall when an unstable counter is detected.
- - Introduce isb()s before and after the counter read to avoid
-   speculation of the counter value and of the seq lock
-   respectively.
-   The second isb() is a temporary solution that will be revisited
-   in 5.3-rc1.
+On Tue, 25 Jun 2019, Florian Weimer wrote:
+> We're trying to create portable binaries which use VSYSCALL on older
+> kernels (to avoid performance regressions), but gracefully degrade to
+> full system calls on kernels which do not have VSYSCALL support compiled
+> in (or disabled at boot).
+>
+> For technical reasons, we cannot use vDSO fallback.  Trying vDSO first
+> and only then use VSYSCALL is the way this has been tackled in the past,
+> which is why this userspace ABI breakage goes generally unnoticed.  But
+> we don't have a dynamic linker in our scenario.
 
-These fixes restore the semantics that __arch_counter_get_cntvct()
-had on arm64.
+I'm not following. On newer kernels which usually have vsyscall disabled
+you need to use real syscalls anyway, so why are you so worried about
+performance on older kernels. That doesn't make sense.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/include/asm/vdso/gettimeofday.h | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+> Is there any reliable way to detect that VSYSCALL is unavailable,
+> without resorting to parsing /proc/self/maps or opening file
+> descriptors?
 
-diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
-index 447ef417de45..b08f476b72b4 100644
---- a/arch/arm64/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/gettimeofday.h
-@@ -10,6 +10,8 @@
- #include <asm/unistd.h>
- #include <uapi/linux/time.h>
+Not that I'm aware of except
+
+    sigaction(SIG_SEGV,....)
+
+/me hides
  
-+#define __VDSO_USE_SYSCALL		ULLONG_MAX
-+
- #define VDSO_HAS_CLOCK_GETRES		1
- 
- static __always_inline
-@@ -68,7 +70,24 @@ static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
- {
- 	u64 res;
- 
-+	/*
-+	 * clock_mode == 0 implies that vDSO are enabled otherwise
-+	 * fallback on syscall.
-+	 */
-+	if (clock_mode)
-+		return __VDSO_USE_SYSCALL;
-+
-+	/*
-+	 * This isb() is required to prevent that the counter value
-+	 * is speculated.
-+	 */
-+	isb();
- 	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
-+	/*
-+	 * This isb() is required to prevent that the seq lock is
-+	 * speculated.#
-+	 */
-+	isb();
- 
- 	return res;
- }
--- 
-2.22.0
+> Should we try mapping something at the magic address (without MAP_FIXED)
+> and see if we get back a different address?  Something in the auxiliary
+> vector would work for us, too, but nothing seems to exists there
+> unfortunately.
+
+Would, but there is no such thing.
+
+Thanks,
+
+	tglx
