@@ -1,47 +1,30 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/3] lib/vdso: Delay mask application in do_hres()
-Date: Tue, 25 Jun 2019 20:27:13 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1906252024350.32342@nanos.tec.linutronix.de>
-References: <20190624133607.GI29497@fuggles.cambridge.arm.com> <20190625161804.38713-1-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: Detecting the availability of VSYSCALL
+Date: Tue, 25 Jun 2019 13:08:07 -0700
+Message-ID: <201906251131.419D8ACB@keescook>
+References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, catalin.marinas@arm.com, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux@armlinux.org.uk, Ralf Baechle <ralf@linux-mips.org>, paul.burton@mips.com, Daniel Lezcano <daniel.lezcano@linaro.org>, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-16232-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: linux-api@vger.kernel.org, kernel-hardening@lists.openwall.com, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Carlos O'Donell <carlos@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 25 Jun 2019, Thomas Gleixner wrote:
+On Tue, Jun 25, 2019 at 05:15:27PM +0200, Florian Weimer wrote:
+> Should we try mapping something at the magic address (without MAP_FIXED)
+> and see if we get back a different address?  Something in the auxiliary
+> vector would work for us, too, but nothing seems to exists there
+> unfortunately.
 
-> On Tue, 25 Jun 2019, Vincenzo Frascino wrote:
-> 
-> CC+ Andy
-> 
-> > do_hres() in the vDSO generic library masks the hw counter value
-> > immediately after reading it.
-> > 
-> > Postpone the mask application after checking if the syscall fallback is
-> > enabled, in order to be able to detect a possible fallback for the
-> > architectures that have masks smaller than ULLONG_MAX.
-> 
-> Right. This only worked on x86 because the mask is there ULLONG_MAX for all
-> VDSO capable clocksources, i.e. that ever worked just by chance.
-> 
-> As we talked about that already yesterday, I tested this on a couple of
-> machines and as expected the outcome is uarch dependent. Minimal deviations
-> to both sides and some machines do not show any change at all. I doubt it's
-> possible to come up with a solution which makes all uarchs go faster
-> magically.
-> 
-> Though, thinking about it, we could remove the mask operation completely on
-> X86. /me runs tests
+It seems like mmap() won't even work because it's in the high memory
+area. I can't map something a page under the vsyscall page either, so I
+can't distinguish it with mmap, mprotect, madvise, or msync. :(
 
-Unsurprisingly the results vary. Two uarchs do not care, but they did not
-care about moving the mask either. The other two gain performance and the
-last one falls back to the state before moving the mask. So in general it
-looks like a worthwhile optimization.
-
-Thanks,
-
-	tglx
+-- 
+Kees Cook
