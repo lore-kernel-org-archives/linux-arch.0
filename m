@@ -1,56 +1,44 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
-Date: Tue, 25 Jun 2019 18:17:18 +0100
-Message-ID: <28ad9bf4-d639-f77c-8ac0-980f4f4595cd@arm.com>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
- <20190624184157.mu6n74a7qqa4z5z5@pburton-laptop>
- <3ae7f595-0a15-0584-198e-b32fe3e3ea57@arm.com>
- <20190625171118.wznk5nva3h3jetky@pburton-laptop>
+Subject: [PATCH] arm64: vdso: Fix compilation with clang < 8
+Date: Tue, 25 Jun 2019 18:43:16 +0100
+Message-ID: <20190625174316.21946-1-vincenzo.frascino@arm.com>
+References: <20190621095252.32307-5-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190625171118.wznk5nva3h3jetky@pburton-laptop>
-Content-Language: en-US
+In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, luto@kernel.org, Qian Cai <cai@lca.pw>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+clang versions previous to 8 do not support -mcmodel=tiny.
 
-On 25/06/2019 18:11, Paul Burton wrote:
-> Hi Vincenzo,
-> 
-> On Tue, Jun 25, 2019 at 12:16:55AM +0100, Vincenzo Frascino wrote:
->> In the end I concluded that all the errors seen here depend on the fact that I
->> tested my vdso implementation on MIPS32el only (as stated in the cover letter)
->> and that when I tried to compile a 32BIT binary on a 64BIT configuration I did
->> it wrongly for two reasons, for N32 and O32 binaries:
->>  - we need to undefine CONFIG_64BIT and define CONFIG_32BIT
->>  - we need to define CONFIG_GENERIC_ATOMIC64
->>
->> I have a fix for this (patch in attachment), but I do not have the hardware to
->> test it. If you could provide some feedback would be appreciated (really want to
->> see MIPS merged with the other archs in 5.3 :) ).
-> 
-> Thanks for the quick turnaround on your patch!
-> 
-> I'm certainly willing to test it, but in a few hours I'll be spending
-> the bulk of a day on airplanes[1] so it might take a few days until I
-> get to it.
-> 
+Add a check to the vDSO Makefile for arm64 to remove the flag when these
+versions of the compiler are detected.
 
-Sounds like a plan. Let us know when you have an update.
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Reported-by: Qian Cai <cai@lca.pw>
+Tested-by: Qian Cai <cai@lca.pw>
+---
+ arch/arm64/kernel/vdso/Makefile | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-> Thanks,
->     Paul
-> 
-> [1] ...and travel isn't the hackathon it used to be with my 9 month old
->     son around :)
-> 
-
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index ec81d28aeb5d..5154f50aff2d 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -38,6 +38,11 @@ else
+ CFLAGS_vgettimeofday.o = -O2 -mcmodel=tiny -include $(c-gettimeofday-y)
+ endif
+ 
++# Clang versions less than 8 do not support -mcmodel=tiny
++ifeq ($(shell test $(CONFIG_CLANG_VERSION) -lt 80000; echo $$?),0)
++CFLAGS_REMOVE_vgettimeofday.o += -mcmodel=tiny
++endif
++
+ # Disable gcov profiling for VDSO code
+ GCOV_PROFILE := n
+ 
 -- 
-Regards,
-Vincenzo
+2.22.0
