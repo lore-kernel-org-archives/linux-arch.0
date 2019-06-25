@@ -1,124 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:40912 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727033AbfFYUQM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 16:16:12 -0400
-Received: by mail-qk1-f196.google.com with SMTP id c70so13714042qkg.7
-        for <linux-arch@vger.kernel.org>; Tue, 25 Jun 2019 13:16:11 -0700 (PDT)
-From: Qian Cai <cai@lca.pw>
-Subject: [PATCH] asm-generic: fix a compilation warning
-Date: Tue, 25 Jun 2019 16:15:53 -0400
-Message-ID: <1561493753-3860-1-git-send-email-cai@lca.pw>
+Received: from mx1.redhat.com ([209.132.183.28]:49732 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726053AbfFYUrY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jun 2019 16:47:24 -0400
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: Detecting the availability of VSYSCALL
+References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
+        <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de>
+        <87lfxpy614.fsf@oldenburg2.str.redhat.com>
+        <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com>
+Date: Tue, 25 Jun 2019 22:47:14 +0200
+In-Reply-To: <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com>
+        (Andy Lutomirski's message of "Tue, 25 Jun 2019 13:11:25 -0700")
+Message-ID: <87a7e5v1d9.fsf@oldenburg2.str.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Qian Cai <cai@lca.pw>
-Message-ID: <20190625201553.CaincOrlklvtRHE5EinSrN9qxUAFVn5ErKCMILd1Jg0@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux API <linux-api@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Carlos O'Donell <carlos@redhat.com>, X86 ML <x86@kernel.org>
+Message-ID: <20190625204714.3gchAW6krn2rvl4GW09g_ROs9VJkflOIMGGLNibAI38@z>
 
-Fix this compilation warning on x86 by making flush_cache_vmap() inline.
+* Andy Lutomirski:
 
-lib/ioremap.c: In function 'ioremap_page_range':
-lib/ioremap.c:214:16: warning: variable 'start' set but not used
-[-Wunused-but-set-variable]
-  unsigned long start;
-                ^~~~~
+>> We want binaries that run fast on VSYSCALL kernels, but can fall back to
+>> full system calls on kernels that do not have them (instead of
+>> crashing).
+>
+> Define "VSYSCALL kernels."  On any remotely recent kernel (*all* new
+> kernels and all kernels for the last several years that haven't
+> specifically requested vsyscall=native), using vsyscalls is much, much
+> slower than just doing syscalls.  I know a way you can tell whether
+> vsyscalls are fast, but it's unreliable, and I'm disinclined to
+> suggest it.  There are also at least two pending patch series that
+> will interfere.
 
-While at it, convert all other similar functions to inline for
-consistency.
+The fast path is for the benefit of the 2.6.32-based kernel in Red Hat
+Enterprise Linux 6.  It doesn't have the vsyscall emulation code yet, I
+think.
 
-Signed-off-by: Qian Cai <cai@lca.pw>
----
- include/asm-generic/cacheflush.h | 74 ++++++++++++++++++++++++++++++++--------
- 1 file changed, 60 insertions(+), 14 deletions(-)
+My hope is to produce (statically linked) binaries that run as fast on
+that kernel as they run today, but can gracefully fall back to something
+else on kernels without vsyscall support.
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 0dd47a6db2cf..a950a22c4890 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -5,24 +5,70 @@
- /* Keep includes the same across arches.  */
- #include <linux/mm.h>
- 
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-+
- /*
-  * The cache doesn't need to be flushed when TLB entries change when
-  * the cache is mapped to physical memory, not virtual memory
-  */
--#define flush_cache_all()			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--#define flush_dcache_page(page)			do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--#define flush_icache_range(start, end)		do { } while (0)
--#define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
-+static inline void flush_cache_all(void)
-+{
-+}
-+
-+static inline void flush_cache_mm(struct mm_struct *mm)
-+{
-+}
-+
-+static inline void flush_cache_dup_mm(struct mm_struct *mm)
-+{
-+}
-+
-+static inline void flush_cache_range(struct vm_area_struct *vma,
-+				     unsigned long start,
-+				     unsigned long end)
-+{
-+}
-+
-+static inline void flush_cache_page(struct vm_area_struct *vma,
-+				    unsigned long vmaddr,
-+				    unsigned long pfn)
-+{
-+}
-+
-+static inline void flush_dcache_page(struct page *page)
-+{
-+}
-+
-+static inline void flush_dcache_mmap_lock(struct address_space *mapping)
-+{
-+}
-+
-+static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
-+{
-+}
-+
-+static inline void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+}
-+
-+static inline void flush_icache_page(struct vm_area_struct *vma,
-+				     struct page *page)
-+{
-+}
-+
-+static inline void flush_icache_user_range(struct vm_area_struct *vma,
-+					   struct page *page,
-+					   unsigned long addr, int len)
-+{
-+}
-+
-+static inline void flush_cache_vmap(unsigned long start, unsigned long end)
-+{
-+}
-+
-+static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
-+{
-+}
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do { \
--- 
-1.8.3.1
+>> We could parse the vDSO and prefer the functions found there, but this
+>> is for the statically linked case.  We currently do not have a (minimal)
+>> dynamic loader there in that version of the code base, so that doesn't
+>> really work for us.
+>
+> Is anything preventing you from adding a vDSO parser?  I wrote one
+> just for this type of use:
+>
+> $ wc -l tools/testing/selftests/vDSO/parse_vdso.c
+> 269 tools/testing/selftests/vDSO/parse_vdso.c
+>
+> (289 lines includes quite a bit of comment.)
+
+I'm worried that if I use a custom parser and the binaries start
+crashing again because something changed in the kernel (within the scope
+permitted by the ELF specification), the kernel won't be fixed.
+
+That is, we'd be in exactly the same situation as today.
+
+Thanks,
+Florian
