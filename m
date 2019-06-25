@@ -1,47 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tartarus.angband.pl ([54.37.238.230]:50050 "EHLO
-        tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727138AbfFYLV4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2019 07:21:56 -0400
-Date: Tue, 25 Jun 2019 13:21:46 +0200
-From: Adam Borowski <kilobyte@angband.pl>
+Received: from outpost1.zedat.fu-berlin.de ([130.133.4.66]:60817 "EHLO
+        outpost1.zedat.fu-berlin.de" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727091AbfFYMCx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Jun 2019 08:02:53 -0400
 Subject: Re: [RFC] remove arch/sh?
-Message-ID: <20190625112146.GA9580@angband.pl>
 References: <20190625085616.GA32399@lst.de>
  <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
+ <20190625112146.GA9580@angband.pl>
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Message-ID: <401b12c0-d175-2720-d26c-b96ce3b28c71@physik.fu-berlin.de>
+Date: Tue, 25 Jun 2019 14:02:50 +0200
 MIME-Version: 1.0
+In-Reply-To: <20190625112146.GA9580@angband.pl>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+To: Adam Borowski <kilobyte@angband.pl>
 Cc: Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190625112146.TbNZ_7jarefJX2xEqL7l0g73FmSQfApk2LuMYgkkDO8@z>
+Message-ID: <20190625120250.OU8At80xu8dygh5PIcCPQ9mg_KKZnw7B_QfO6YZ3hb8@z>
 
-On Tue, Jun 25, 2019 at 11:02:36AM +0200, John Paul Adrian Glaubitz wrote:
-> On 6/25/19 10:56 AM, Christoph Hellwig wrote:
-> > arch/sh seems pretty much unmaintained these days.  The last time I got
-> > any reply to sh patches from the list maintainers, and the last maintainer
-> > pull request was over a year ago, and even that has been rather sporadic.
-> > 
-> > In the meantime we've not really seen any updates for new kernel features
-> > and code seems to be bitrotting.
+Adam,
+
+On 6/25/19 1:21 PM, Adam Borowski wrote:
+>> We're still using sh4 in Debian
 > 
-> We're still using sh4 in Debian
+> I wouldn't call it "used": it has popcon of 1, and despite watching many
+> Debian channels, I don't recall hearing a word about sh4 in quite a while.
 
-I wouldn't call it "used": it has popcon of 1, and despite watching many
-Debian channels, I don't recall hearing a word about sh4 in quite a while.
+So, according to your logic, Debian should drop the mips64el (popcon 1)
+and riscv64 ports (popcon 2) [1]?
 
-Hardware development is dead: we were promised modern silicon by j-core
-after original patents expired, but after J2 nothing happened, there was
-silence from their side, and now https://j-core.org is down.
+> Hardware development is dead: we were promised modern silicon by j-core
+> after original patents expired, but after J2 nothing happened, there was
+> silence from their side, and now https://j-core.org is down.
 
+It's not dead. You can still run it on an FPGA, the code is freely available.
+Plus, the architecture seems to be still in use in the industry [2].
 
-Meow!
+Adrian
+
+> [1] https://popcon.debian.org/
+> [2] https://marc.info/?l=linux-sh&m=155170489401832&w=2
+
 -- 
-⢀⣴⠾⠻⢶⣦⠀
-⣾⠁⢠⠒⠀⣿⡁ Packager's rule #1: upstream _always_ screws something up.  This
-⢿⡄⠘⠷⠚⠋⠀ is true especially if you're packaging your own project.
-⠈⠳⣄⠀⠀⠀⠀ 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
