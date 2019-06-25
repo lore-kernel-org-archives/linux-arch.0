@@ -1,46 +1,58 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] remove arch/sh?
-Date: Tue, 25 Jun 2019 14:50:01 +0200
-Message-ID: <CAK8P3a3irwwwCQ_kPh5BTg-jGGbJOj=3fhVrTDBUZgH1V7bpFQ@mail.gmail.com>
-References: <20190625085616.GA32399@lst.de> <ccfa78f3-35c2-1d26-98b5-b21a76b90e1e@physik.fu-berlin.de>
- <20190625112146.GA9580@angband.pl> <401b12c0-d175-2720-d26c-b96ce3b28c71@physik.fu-berlin.de>
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Subject: Re: [PATCH v2] bpf: fix uapi bpf_prog_info fields alignment
+Date: Tue, 25 Jun 2019 07:16:55 -0700
+Message-ID: <CAADnVQJ3MPVCL-0x2gDYbUQsrmu8WipnisqXoU8ja4vZ-5nTmA@mail.gmail.com>
+References: <a5fb2545a0cf151bc443efa10c16c5a4de6f2670.1561460681.git.baruch@tkos.co.il>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <401b12c0-d175-2720-d26c-b96ce3b28c71@physik.fu-berlin.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Adam Borowski <kilobyte@angband.pl>, Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <a5fb2545a0cf151bc443efa10c16c5a4de6f2670.1561460681.git.baruch@tkos.co.il>
+Sender: netdev-owner@vger.kernel.org
+To: Baruch Siach <baruch@tkos.co.il>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Network Development <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "Dmitry V . Levin" <ldv@altlinux.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 25, 2019 at 2:02 PM John Paul Adrian Glaubitz
-<glaubitz@physik.fu-berlin.de> wrote:
+On Tue, Jun 25, 2019 at 4:07 AM Baruch Siach <baruch@tkos.co.il> wrote:
 >
-> Adam,
+> Merge commit 1c8c5a9d38f60 ("Merge
+> git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
+> fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
+> applications") by taking the gpl_compatible 1-bit field definition from
+> commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
+> bpf_prog_info") as is. That breaks architectures with 16-bit alignment
+> like m68k. Embed gpl_compatible into an anonymous union with 32-bit pad
+> member to restore alignment of following fields.
 >
-> On 6/25/19 1:21 PM, Adam Borowski wrote:
-> >> We're still using sh4 in Debian
-> >
-> > I wouldn't call it "used": it has popcon of 1, and despite watching many
-> > Debian channels, I don't recall hearing a word about sh4 in quite a while.
+> Thanks to Dmitry V. Levin his analysis of this bug history.
 >
-> So, according to your logic, Debian should drop the mips64el (popcon 1)
-> and riscv64 ports (popcon 2) [1]?
+> Cc: Jiri Olsa <jolsa@kernel.org>
+> Cc: Daniel Borkmann <daniel@iogearbox.net>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Baruch Siach <baruch@tkos.co.il>
+> ---
+> v2:
+> Use anonymous union with pad to make it less likely to break again in
+> the future.
+> ---
+>  include/uapi/linux/bpf.h       | 5 ++++-
+>  tools/include/uapi/linux/bpf.h | 5 ++++-
+>  2 files changed, 8 insertions(+), 2 deletions(-)
 >
-> > Hardware development is dead: we were promised modern silicon by j-core
-> > after original patents expired, but after J2 nothing happened, there was
-> > silence from their side, and now https://j-core.org is down.
->
-> It's not dead. You can still run it on an FPGA, the code is freely available.
-> Plus, the architecture seems to be still in use in the industry [2].
+> diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+> index a8b823c30b43..766eae02d7ae 100644
+> --- a/include/uapi/linux/bpf.h
+> +++ b/include/uapi/linux/bpf.h
+> @@ -3142,7 +3142,10 @@ struct bpf_prog_info {
+>         __aligned_u64 map_ids;
+>         char name[BPF_OBJ_NAME_LEN];
+>         __u32 ifindex;
+> -       __u32 gpl_compatible:1;
+> +       union {
+> +               __u32 gpl_compatible:1;
+> +               __u32 pad;
+> +       };
 
-It would be nice if one of the maintainers or the remaining users could go
-through the code though and figure out which bits are definitely dead
-(e.g. sh5), don't build, or are incomplete and not worked on for a long
-time, compared to the bits that are known to work and that someone
-is still using or at least playing with.
-I guess a lot of the SoCs that have no board support other than
-the Hitachi/Renesas reference platform can go away too, as any products
-based on those boards have long stopped updating their kernels.
-
-       Arnd
+Nack for the reasons explained in the previous thread
+on the same subject.
+Why cannot you go with earlier suggestion of _u32 :31; ?
