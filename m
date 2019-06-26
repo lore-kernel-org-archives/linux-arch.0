@@ -1,42 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50572 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725379AbfFZGPF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Jun 2019 02:15:05 -0400
-From: guoren@kernel.org
-Subject: [GIT PULL] csky fixup gcc unwind for v5.2
-Date: Wed, 26 Jun 2019 14:14:23 +0800
-Message-ID: <1561529663-29852-1-git-send-email-guoren@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:45176 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725876AbfFZGi5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2019 02:38:57 -0400
+Date: Wed, 26 Jun 2019 08:38:48 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/3] lib/vdso: Delay mask application in do_hres()
+In-Reply-To: <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
+Message-ID: <alpine.DEB.2.21.1906260832470.32342@nanos.tec.linutronix.de>
+References: <20190624133607.GI29497@fuggles.cambridge.arm.com> <20190625161804.38713-1-vincenzo.frascino@arm.com> <alpine.DEB.2.21.1906251851350.32342@nanos.tec.linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
-Message-ID: <20190626061423.6T3-VuEqEy4tEaiLN6KFGoSaqLF36B23XnMvu9QPkow@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, LAK <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, catalin.marinas@arm.com, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux@armlinux.org.uk, Ralf Baechle <ralf@linux-mips.org>, paul.burton@mips.com, Daniel Lezcano <daniel.lezcano@linaro.org>, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20190626063848.K8n-isKRbLYgstumvzCIht9RDyFt_bQCfcplW6hMv0I@z>
 
-Hi Linus,
+On Tue, 25 Jun 2019, Thomas Gleixner wrote:
+> On Tue, 25 Jun 2019, Vincenzo Frascino wrote:
+> > do_hres() in the vDSO generic library masks the hw counter value
+> > immediately after reading it.
+> > 
+> > Postpone the mask application after checking if the syscall fallback is
+> > enabled, in order to be able to detect a possible fallback for the
+> > architectures that have masks smaller than ULLONG_MAX.
+> 
+> Right. This only worked on x86 because the mask is there ULLONG_MAX for all
+> VDSO capable clocksources, i.e. that ever worked just by chance.
 
-Only one bugfix for v5.2, please pull.
+But it's actually worse than that:
 
-The following changes since commit 9e0babf2c06c73cda2c0cd37a1653d823adb40ec:
+> > +		cycles &= vd->mask;
+> >  		if (cycles > last)
+> >  			ns += (cycles - last) * vd->mult;
+> >  		ns >>= vd->shift;
 
-  Linux 5.2-rc5 (2019-06-16 08:49:45 -1000)
+This is broken for any clocksource which can legitimately wrap around. The
+core timekeeping does the right thing:
 
-are available in the git repository at:
+     		 (cycles - last) & mask
 
-  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.2-fixup-gcc-unwind
+That makes sure that a wraparound is correctly handled. With the above the
+wrap around would be ignored due to
 
-for you to fetch changes up to 19e5e2ae9c883f5651eaaeab2f258e2c4b78fda3:
+     	    if (cycles > last)
 
-  csky: Fixup libgcc unwind error (2019-06-26 13:45:48 +0800)
+Stupid me. I should have added big fat comments to the x86 vdso why this
+all works correctly and only correctly for the x86 crud. That was part of
+squeezing the last cycles out of the vdso.
 
-----------------------------------------------------------------
-arch/csky fixup for 5.2
+Sorry for not noticing earlier. Working on a fix.
 
-Only 1 fixup patch for rt_sigframe in signal.c
+Thanks,
 
-----------------------------------------------------------------
-Guo Ren (1):
-      csky: Fixup libgcc unwind error
-
- arch/csky/kernel/signal.c | 5 +++++
- 1 file changed, 5 insertions(+)
+	tglx
