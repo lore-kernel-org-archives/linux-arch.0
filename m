@@ -1,51 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59152 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:37276 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726339AbfFZLgs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Jun 2019 07:36:48 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2] arm64: vdso: Fix compilation with clang older then 8
-Date: Wed, 26 Jun 2019 12:36:32 +0100
-Message-ID: <20190626113632.9295-1-vincenzo.frascino@arm.com>
-In-Reply-To: <20190621095252.32307-5-vincenzo.frascino@arm.com>
-References: <20190621095252.32307-5-vincenzo.frascino@arm.com>
+        id S1726131AbfFZMMd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Jun 2019 08:12:33 -0400
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: Detecting the availability of VSYSCALL
+References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
+        <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de>
+        <87lfxpy614.fsf@oldenburg2.str.redhat.com>
+        <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com>
+        <87a7e5v1d9.fsf@oldenburg2.str.redhat.com>
+        <CALCETrUDt4v3=FqD+vseGTKTuG=qY+1LwRPrOrU8C7vCVbo=uA@mail.gmail.com>
+Date: Wed, 26 Jun 2019 14:12:22 +0200
+In-Reply-To: <CALCETrUDt4v3=FqD+vseGTKTuG=qY+1LwRPrOrU8C7vCVbo=uA@mail.gmail.com>
+        (Andy Lutomirski's message of "Tue, 25 Jun 2019 14:49:27 -0700")
+Message-ID: <87o92kmtp5.fsf@oldenburg2.str.redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, luto@kernel.org, Qian Cai <cai@lca.pw>
-Message-ID: <20190626113632.-uS0IThU6L3s8a1li3wcXqoJQ9beSjI_PiiBBcoNvrE@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux API <linux-api@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Carlos O'Donell <carlos@redhat.com>, X86 ML <x86@kernel.org>
+Message-ID: <20190626121222._6XmLZn6AO-XnZabq1YrTvmbkaiLarmpmGF8vSNNK2g@z>
 
-clang versions older then 8 do not support -mcmodel=tiny.
+* Andy Lutomirski:
 
-Add a check to the vDSO Makefile for arm64 to remove the flag when
-these versions of the compiler are detected.
+> On Tue, Jun 25, 2019 at 1:47 PM Florian Weimer <fweimer@redhat.com> wrote:
+>>
+>> * Andy Lutomirski:
+>>
+>> >> We want binaries that run fast on VSYSCALL kernels, but can fall back to
+>> >> full system calls on kernels that do not have them (instead of
+>> >> crashing).
+>> >
+>> > Define "VSYSCALL kernels."  On any remotely recent kernel (*all* new
+>> > kernels and all kernels for the last several years that haven't
+>> > specifically requested vsyscall=native), using vsyscalls is much, much
+>> > slower than just doing syscalls.  I know a way you can tell whether
+>> > vsyscalls are fast, but it's unreliable, and I'm disinclined to
+>> > suggest it.  There are also at least two pending patch series that
+>> > will interfere.
+>>
+>> The fast path is for the benefit of the 2.6.32-based kernel in Red Hat
+>> Enterprise Linux 6.  It doesn't have the vsyscall emulation code yet, I
+>> think.
+>>
+>> My hope is to produce (statically linked) binaries that run as fast on
+>> that kernel as they run today, but can gracefully fall back to something
+>> else on kernels without vsyscall support.
+>>
+>> >> We could parse the vDSO and prefer the functions found there, but this
+>> >> is for the statically linked case.  We currently do not have a (minimal)
+>> >> dynamic loader there in that version of the code base, so that doesn't
+>> >> really work for us.
+>> >
+>> > Is anything preventing you from adding a vDSO parser?  I wrote one
+>> > just for this type of use:
+>> >
+>> > $ wc -l tools/testing/selftests/vDSO/parse_vdso.c
+>> > 269 tools/testing/selftests/vDSO/parse_vdso.c
+>> >
+>> > (289 lines includes quite a bit of comment.)
+>>
+>> I'm worried that if I use a custom parser and the binaries start
+>> crashing again because something changed in the kernel (within the scope
+>> permitted by the ELF specification), the kernel won't be fixed.
+>>
+>> That is, we'd be in exactly the same situation as today.
+>
+> With my maintainer hat on, the kernel won't do that.  Obviously a
+> review of my parser would be appreciated, but I consider it to be
+> fully supported, just like glibc and musl's parsers are fully
+> supported.  Sadly, I *also* consider the version Go forked for a while
+> (now fixed) to be supported.  Sigh.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Reported-by: Qian Cai <cai@lca.pw>
-Tested-by: Qian Cai <cai@lca.pw>
----
- arch/arm64/kernel/vdso/Makefile | 7 +++++++
- 1 file changed, 7 insertions(+)
+We've been burnt once, otherwise we wouldn't be having this
+conversation.  It's not just what the kernel does by default; if it's
+configurable, it will be disabled by some, and if it's label as
+“security hardening”, the userspace ABI promise is suddenly forgotten
+and it's all userspace's fault for not supporting the new way.
 
-diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-index ec81d28aeb5d..4ab863045188 100644
---- a/arch/arm64/kernel/vdso/Makefile
-+++ b/arch/arm64/kernel/vdso/Makefile
-@@ -38,6 +38,13 @@ else
- CFLAGS_vgettimeofday.o = -O2 -mcmodel=tiny -include $(c-gettimeofday-y)
- endif
- 
-+# Clang versions less than 8 do not support -mcmodel=tiny
-+ifeq ($(CONFIG_CC_IS_CLANG), y)
-+  ifeq ($(shell test $(CONFIG_CLANG_VERSION) -lt 80000; echo $$?),0)
-+    CFLAGS_REMOVE_vgettimeofday.o += -mcmodel=tiny
-+  endif
-+endif
-+
- # Disable gcov profiling for VDSO code
- GCOV_PROFILE := n
- 
--- 
-2.22.0
+It looks like parsing the vDSO is the only way forward, and we have to
+move in that direction if we move at all.
+
+It's tempting to read the machine code on the vsyscall page and analyze
+that, but vsyscall=none behavior changed at one point, and you no longer
+any mapping there at all.  So that doesn't work, either.
+
+I do hope the next userspace ABI break will have an option to undo it on
+a per-container basis.  Or at least a flag to detect it.
+
+Thanks,
+Florian
