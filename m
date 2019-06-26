@@ -1,75 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:38597 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726006AbfFZQYl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2019 12:24:41 -0400
-Received: by mail-pg1-f196.google.com with SMTP id z75so1453538pgz.5
-        for <linux-arch@vger.kernel.org>; Wed, 26 Jun 2019 09:24:41 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
+Received: from mx1.redhat.com ([209.132.183.28]:34346 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726006AbfFZQpT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Jun 2019 12:45:19 -0400
+From: Florian Weimer <fweimer@redhat.com>
 Subject: Re: Detecting the availability of VSYSCALL
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <87a7e4jr4s.fsf@oldenburg2.str.redhat.com>
-Date: Wed, 26 Jun 2019 09:24:38 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <6CECE9DE-51AB-4A21-A257-8B85C4C94EB0@amacapital.net>
-References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com> <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de> <87lfxpy614.fsf@oldenburg2.str.redhat.com> <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com> <87a7e5v1d9.fsf@oldenburg2.str.redhat.com> <CALCETrUDt4v3=FqD+vseGTKTuG=qY+1LwRPrOrU8C7vCVbo=uA@mail.gmail.com> <87o92kmtp5.fsf@oldenburg2.str.redhat.com> <CA96B819-30A9-43D3-9FE3-2D551D35369E@amacapital.net> <87r27gjss3.fsf@oldenburg2.str.redhat.com> <534B9F63-E949-4CF5-ACAC-71381190846F@amacapital.net> <87a7e4jr4s.fsf@oldenburg2.str.redhat.com>
+References: <87v9wty9v4.fsf@oldenburg2.str.redhat.com>
+        <alpine.DEB.2.21.1906251824500.32342@nanos.tec.linutronix.de>
+        <87lfxpy614.fsf@oldenburg2.str.redhat.com>
+        <CALCETrVh1f5wJNMbMoVqY=bq-7G=uQ84BUkepf5RksA3vUopNQ@mail.gmail.com>
+        <87a7e5v1d9.fsf@oldenburg2.str.redhat.com>
+        <CALCETrUDt4v3=FqD+vseGTKTuG=qY+1LwRPrOrU8C7vCVbo=uA@mail.gmail.com>
+        <87o92kmtp5.fsf@oldenburg2.str.redhat.com>
+        <CA96B819-30A9-43D3-9FE3-2D551D35369E@amacapital.net>
+        <87r27gjss3.fsf@oldenburg2.str.redhat.com>
+        <534B9F63-E949-4CF5-ACAC-71381190846F@amacapital.net>
+        <87a7e4jr4s.fsf@oldenburg2.str.redhat.com>
+        <6CECE9DE-51AB-4A21-A257-8B85C4C94EB0@amacapital.net>
+Date: Wed, 26 Jun 2019 18:45:08 +0200
+In-Reply-To: <6CECE9DE-51AB-4A21-A257-8B85C4C94EB0@amacapital.net> (Andy
+        Lutomirski's message of "Wed, 26 Jun 2019 09:24:38 -0700")
+Message-ID: <87sgrw1ejv.fsf@oldenburg2.str.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>
+To: Andy Lutomirski <luto@amacapital.net>
 Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux API <linux-api@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Carlos O'Donell <carlos@redhat.com>, X86 ML <x86@kernel.org>
-Message-ID: <20190626162438.Z0ebuWFJOFGyEw0KlCwa4O7fOxDNyVcjJnJwbAT5H_k@z>
+Message-ID: <20190626164508.FPD9i0zLn2hXKP0szSUIP289sqcsL4GGrQNqRpInpqE@z>
 
+* Andy Lutomirski:
 
-> On Jun 26, 2019, at 8:36 AM, Florian Weimer <fweimer@redhat.com> wrote:
->=20
-> * Andy Lutomirski:
->=20
->> I=E2=80=99m wondering if we can still do it: add a note or other ELF indi=
-cator
->> that says =E2=80=9CI don=E2=80=99t need vsyscalls.=E2=80=9D  Then we can c=
-hange the default
->> mode to =E2=80=9Cno vsyscalls if the flag is there, else execute-only
->> vsyscalls=E2=80=9D.
->>=20
->> Would glibc go along with this?
->=20
-> I think we can make it happen, at least for relatively recent glibc
-> linked with current binutils.  It's not trivial because it requires
-> coordination among multiple projects.  We have three or four widely used
-> link editors now, but we could make it happen.  (Although getting to
-> PT_GNU_PROPERTY wasn't exactly easy.)
+> Can’t an ELF note be done with some more or less ordinary asm such
+> that any link editor will insert it correctly?
 
-Can=E2=80=99t an ELF note be done with some more or less ordinary asm such t=
-hat any link editor will insert it correctly?
+We've just been over this for the CET enablement.  ELF PT_NOTE parsing
+was rejected there.
 
->=20
->> Would enterprise distros consider backporting such a thing?
->=20
-> Enterprise distros aren't the problem here because they can't remove
-> vsyscall support for quite a while due to existing customer binaries.
-> For them, it would just be an additional (and welcome) hardening
-> opportunity.
->=20
-> The challenge here are container hosting platforms which have already
-> disabled vsyscall, presumably to protect the container host itself.
-> They would need to rebuild the container host userspace with the markup
-> to keep it protected, and then they could switch to a kernel which has
-> vsyscall-unless-opt-out logic.  That seems to be a bit of a stretch
-> because from their perspective, there's no problem today.
->=20
-> My guess is that it would be easier to have a personality flag.  Then
-> they could keep the host largely as-is, and would =E2=80=9Conly=E2=80=9D n=
-eed a
-> mechanism to pass through the flag from the image metadata to the actual
-> container creation.  It's still a change to the container host (and the
-> kernel change is required as well), but it would not require relinking
-> every statically linked binary.
->=20
->=20
+I don't think binutils ld has a way to set an ELF program header it
+doesn't know anything about.
 
-The problem with a personality flag is that it needs to have some kind of se=
-nsible behavior for setuid programs, and getting that right in a way that do=
-esn=E2=80=99t scream =E2=80=9Cexploit me=E2=80=9D while preserving useful co=
-mpatibility may be tricky.=
+>>> Would enterprise distros consider backporting such a thing?
+>> 
+>> Enterprise distros aren't the problem here because they can't remove
+>> vsyscall support for quite a while due to existing customer binaries.
+>> For them, it would just be an additional (and welcome) hardening
+>> opportunity.
+>> 
+>> The challenge here are container hosting platforms which have already
+>> disabled vsyscall, presumably to protect the container host itself.
+>> They would need to rebuild the container host userspace with the markup
+>> to keep it protected, and then they could switch to a kernel which has
+>> vsyscall-unless-opt-out logic.  That seems to be a bit of a stretch
+>> because from their perspective, there's no problem today.
+>> 
+>> My guess is that it would be easier to have a personality flag.  Then
+>> they could keep the host largely as-is, and would “only” need a
+>> mechanism to pass through the flag from the image metadata to the actual
+>> container creation.  It's still a change to the container host (and the
+>> kernel change is required as well), but it would not require relinking
+>> every statically linked binary.
+
+> The problem with a personality flag is that it needs to have some kind
+> of sensible behavior for setuid programs, and getting that right in a
+> way that doesn’t scream “exploit me” while preserving useful
+> compatibility may be tricky.
+
+Are restrictive personality flags still a problem with user namespaces?
+I think it would be fine to restrict this one to CAP_SYS_ADMIN.
+
+Thanks,
+Florian
