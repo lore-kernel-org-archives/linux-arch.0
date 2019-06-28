@@ -1,73 +1,35 @@
-From: Song Liu <liu.song.a23@gmail.com>
-Subject: Re: [PATCH v3] bpf: fix uapi bpf_prog_info fields alignment
-Date: Fri, 28 Jun 2019 13:19:03 -0700
-Message-ID: <CAPhsuW4woTdoK1gMrFG=BZAXGD=ovYgm1YJ5G88DcWBrhSOYww@mail.gmail.com>
-References: <02938ce219d535a8c7c29ce796b3d6ea59c3ed15.1561694925.git.baruch@tkos.co.il>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <02938ce219d535a8c7c29ce796b3d6ea59c3ed15.1561694925.git.baruch@tkos.co.il>
-Sender: netdev-owner@vger.kernel.org
-To: Baruch Siach <baruch@tkos.co.il>
-Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Networking <netdev@vger.kernel.org>, bpf <bpf@vger.kernel.org>, "Dmitry V . Levin" <ldv@altlinux.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC PATCH 1/3] mm: Introduce VM_IBT for CET legacy code bitmap
+Date: Fri, 28 Jun 2019 14:49:32 -0700
+Message-ID: <CBB8C19E-7F65-4D43-9783-6383478700A1@amacapital.net>
+References: <20190628194158.2431-1-yu-cheng.yu@intel.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190628194158.2431-1-yu-cheng.yu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 27, 2019 at 9:11 PM Baruch Siach <baruch@tkos.co.il> wrote:
->
-> Merge commit 1c8c5a9d38f60 ("Merge
-> git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
-> fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
-> applications") by taking the gpl_compatible 1-bit field definition from
-> commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
-> bpf_prog_info") as is. That breaks architectures with 16-bit alignment
-> like m68k. Add 31-bit pad after gpl_compatible to restore alignment of
-> following fields.
->
-> Thanks to Dmitry V. Levin his analysis of this bug history.
->
-> Cc: Jiri Olsa <jolsa@kernel.org>
-> Cc: Daniel Borkmann <daniel@iogearbox.net>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Baruch Siach <baruch@tkos.co.il>
-Acked-by: Song Liu <songliubraving@fb.com>
 
-> ---
-> v3:
-> Use alignment pad as Alexei Starovoitov suggested
->
-> v2:
-> Use anonymous union with pad to make it less likely to break again in
-> the future.
-> ---
->  include/uapi/linux/bpf.h       | 1 +
->  tools/include/uapi/linux/bpf.h | 1 +
->  2 files changed, 2 insertions(+)
->
-> diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
-> index a8b823c30b43..29a5bc3d5c66 100644
-> --- a/include/uapi/linux/bpf.h
-> +++ b/include/uapi/linux/bpf.h
-> @@ -3143,6 +3143,7 @@ struct bpf_prog_info {
->         char name[BPF_OBJ_NAME_LEN];
->         __u32 ifindex;
->         __u32 gpl_compatible:1;
-> +       __u32 :31; /* alignment pad */
->         __u64 netns_dev;
->         __u64 netns_ino;
->         __u32 nr_jited_ksyms;
-> diff --git a/tools/include/uapi/linux/bpf.h b/tools/include/uapi/linux/bpf.h
-> index a8b823c30b43..29a5bc3d5c66 100644
-> --- a/tools/include/uapi/linux/bpf.h
-> +++ b/tools/include/uapi/linux/bpf.h
-> @@ -3143,6 +3143,7 @@ struct bpf_prog_info {
->         char name[BPF_OBJ_NAME_LEN];
->         __u32 ifindex;
->         __u32 gpl_compatible:1;
-> +       __u32 :31; /* alignment pad */
->         __u64 netns_dev;
->         __u64 netns_ino;
->         __u32 nr_jited_ksyms;
-> --
-> 2.20.1
->
+
+> On Jun 28, 2019, at 12:41 PM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>=20
+> The previous discussion of the IBT legacy code bitmap is here:
+>=20
+>    https://lkml.org/lkml/2019/6/6/1032
+>=20
+> When CET Indirect Branch Tracking (IBT) is enabled, the processor expects
+> every branch target is an ENDBR instruction, or the target's address is
+> marked as legacy in the legacy code bitmap.  The bitmap covers the whole
+> user-mode address space (TASK_SIZE_MAX for 64-bit, TASK_SIZE for IA32),
+> and each bit represents one page of linear address range.
+>=20
+> This patch introduces VM_IBT for the bitmap.
+
+There=E2=80=99s no need to allocate a bit for this and to clutter up the fau=
+lt code with special cases. Use _install_special_mapping(), please.  If you n=
+eed to make it more flexible to cover your use case, please do so.
