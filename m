@@ -1,38 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dc8-smtprelay2.synopsys.com ([198.182.47.102]:55340 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726863AbfF1W7j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Jun 2019 18:59:39 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Date: Fri, 28 Jun 2019 22:59:33 +0000
-Message-ID: <7ef18a49-cc5a-6cd1-bed3-beec003a73c3@synopsys.com>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <31BEBB84CB2C8E47993409B6B497028A@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from www62.your-server.de ([213.133.104.62]:34756 "EHLO
+        www62.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726672AbfF1XhJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Jun 2019 19:37:09 -0400
+Subject: Re: [PATCH v3] bpf: fix uapi bpf_prog_info fields alignment
+References: <02938ce219d535a8c7c29ce796b3d6ea59c3ed15.1561694925.git.baruch@tkos.co.il>
+From: Daniel Borkmann <daniel@iogearbox.net>
+Message-ID: <db429758-7d5a-4b5c-0bb6-2663dfffac37@iogearbox.net>
+Date: Sat, 29 Jun 2019 01:37:03 +0200
 MIME-Version: 1.0
+In-Reply-To: <02938ce219d535a8c7c29ce796b3d6ea59c3ed15.1561694925.git.baruch@tkos.co.il>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Jason Baron <jbaron@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Paolo Bonzini <pbonzini@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190628225933.yPB2H68kkQlP-IuPjKhj8XTJGl_JuPJ2uuMXZqc4LBI@z>
+To: Baruch Siach <baruch@tkos.co.il>, Alexei Starovoitov <ast@kernel.org>
+Cc: Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, netdev@vger.kernel.org, bpf@vger.kernel.org, "Dmitry V . Levin" <ldv@altlinux.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190628233703.vQdosVngkycyWjoDp8br8cKoUf_3TpHlFawCwPrUFt0@z>
 
-T24gNi8xOC8xOSA5OjE2IEFNLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+IE9uIDYvMTQvMTkgOTo0
-MSBBTSwgRXVnZW5peSBQYWx0c2V2IHdyb3RlOg0KPj4gSW1wbGVtZW50IGp1bXAgbGFiZWwgcGF0
-Y2hpbmcgZm9yIEFSQy4gSnVtcCBsYWJlbHMgcHJvdmlkZQ0KPj4gYW4gaW50ZXJmYWNlIHRvIGdl
-bmVyYXRlIGR5bmFtaWMgYnJhbmNoZXMgdXNpbmcNCj4+IHNlbGYtbW9kaWZ5aW5nIGNvZGUuDQo+
-Pg0KPj4gVGhpcyBhbGxvd3MgdXMgdG8gaW1wbGVtZW50IGNvbmRpdGlvbmFsIGJyYW5jaGVzIHdo
-ZXJlDQo+PiBjaGFuZ2luZyBicmFuY2ggZGlyZWN0aW9uIGlzIGV4cGVuc2l2ZSBidXQgYnJhbmNo
-IHNlbGVjdGlvbg0KPj4gaXMgYmFzaWNhbGx5ICdmcmVlJw0KPj4NCj4+IFRoaXMgaW1wbGVtZW50
-YXRpb24gdXNlcyAzMi1iaXQgTk9QIGFuZCBCUkFOQ0ggaW5zdHJ1Y3Rpb25zDQo+PiB3aGljaCBm
-b3JjZWQgdG8gYmUgYWxpZ25lZCBieSA0IHRvIGd1YXJhbnRlZSB0aGF0IHRoZXkgZG9uJ3QNCj4+
-IGNyb3NzIEwxIGNhY2hlIGxpbmUgYW5kIGNhbiBiZSB1cGRhdGUgYXRvbWljYWxseS4NCj4+DQo+
-PiBTaWduZWQtb2ZmLWJ5OiBFdWdlbml5IFBhbHRzZXYgPEV1Z2VuaXkuUGFsdHNldkBzeW5vcHN5
-cy5jb20+DQo+IA0KPiBMR1RNIG92ZXJhbGwgLSBuaXRzIGJlbG93Lg0KDQpAUGV0ZXIgY2FuIHdl
-IGhhdmUgeW91ciByZXZpZXdlZC9hY2sgb3Igc29tZSBzdWNoIGFzc3VtaW5nIHlvdSBkb24ndCBo
-YXZlIGFueQ0Kb2JqZWN0aW9ucyAhDQoNClRoeCwNCi1WaW5lZXQNCg==
+On 06/28/2019 06:08 AM, Baruch Siach wrote:
+> Merge commit 1c8c5a9d38f60 ("Merge
+> git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
+> fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
+> applications") by taking the gpl_compatible 1-bit field definition from
+> commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
+> bpf_prog_info") as is. That breaks architectures with 16-bit alignment
+> like m68k. Add 31-bit pad after gpl_compatible to restore alignment of
+> following fields.
+> 
+> Thanks to Dmitry V. Levin his analysis of this bug history.
+> 
+> Cc: Jiri Olsa <jolsa@kernel.org>
+> Cc: Daniel Borkmann <daniel@iogearbox.net>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Baruch Siach <baruch@tkos.co.il>
+
+Applied, thanks!
