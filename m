@@ -1,29 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33356 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726579AbfF1ApF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Jun 2019 20:45:05 -0400
-Subject: Re: [GIT PULL] csky fixup gcc unwind for v5.2
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <1561529663-29852-1-git-send-email-guoren@kernel.org>
-References: <1561529663-29852-1-git-send-email-guoren@kernel.org>
-Message-ID: <156168270492.1895.4552295813118856621.pr-tracker-bot@kernel.org>
-Date: Fri, 28 Jun 2019 00:45:04 +0000
+Received: from guitar.tcltek.co.il ([192.115.133.116]:34164 "EHLO
+        mx.tkos.co.il" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725792AbfF1EL0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Jun 2019 00:11:26 -0400
+From: Baruch Siach <baruch@tkos.co.il>
+Subject: [PATCH v3] bpf: fix uapi bpf_prog_info fields alignment
+Date: Fri, 28 Jun 2019 07:08:45 +0300
+Message-ID: <02938ce219d535a8c7c29ce796b3d6ea59c3ed15.1561694925.git.baruch@tkos.co.il>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
-Message-ID: <20190628004504.ValccBxO4feLX42RHzssb1EPgVc65qAYEsbq6tz6ogQ@z>
+To: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>
+Cc: Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, netdev@vger.kernel.org, bpf@vger.kernel.org, "Dmitry V . Levin" <ldv@altlinux.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Baruch Siach <baruch@tkos.co.il>, Jiri Olsa <jolsa@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20190628040845.WyjuIRf0yQqfJd_PwnTD3VcaPukcfIBxGP91X_jwaoA@z>
 
-The pull request you sent on Wed, 26 Jun 2019 14:14:23 +0800:
+Merge commit 1c8c5a9d38f60 ("Merge
+git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next") undid the
+fix from commit 36f9814a494 ("bpf: fix uapi hole for 32 bit compat
+applications") by taking the gpl_compatible 1-bit field definition from
+commit b85fab0e67b162 ("bpf: Add gpl_compatible flag to struct
+bpf_prog_info") as is. That breaks architectures with 16-bit alignment
+like m68k. Add 31-bit pad after gpl_compatible to restore alignment of
+following fields.
 
-> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.2-fixup-gcc-unwind
+Thanks to Dmitry V. Levin his analysis of this bug history.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/139ca258055057e64d59ec92b6fd1ad3ca3a9fbc
+Cc: Jiri Olsa <jolsa@kernel.org>
+Cc: Daniel Borkmann <daniel@iogearbox.net>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Baruch Siach <baruch@tkos.co.il>
+---
+v3:
+Use alignment pad as Alexei Starovoitov suggested
 
-Thank you!
+v2:
+Use anonymous union with pad to make it less likely to break again in
+the future.
+---
+ include/uapi/linux/bpf.h       | 1 +
+ tools/include/uapi/linux/bpf.h | 1 +
+ 2 files changed, 2 insertions(+)
 
+diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+index a8b823c30b43..29a5bc3d5c66 100644
+--- a/include/uapi/linux/bpf.h
++++ b/include/uapi/linux/bpf.h
+@@ -3143,6 +3143,7 @@ struct bpf_prog_info {
+ 	char name[BPF_OBJ_NAME_LEN];
+ 	__u32 ifindex;
+ 	__u32 gpl_compatible:1;
++	__u32 :31; /* alignment pad */
+ 	__u64 netns_dev;
+ 	__u64 netns_ino;
+ 	__u32 nr_jited_ksyms;
+diff --git a/tools/include/uapi/linux/bpf.h b/tools/include/uapi/linux/bpf.h
+index a8b823c30b43..29a5bc3d5c66 100644
+--- a/tools/include/uapi/linux/bpf.h
++++ b/tools/include/uapi/linux/bpf.h
+@@ -3143,6 +3143,7 @@ struct bpf_prog_info {
+ 	char name[BPF_OBJ_NAME_LEN];
+ 	__u32 ifindex;
+ 	__u32 gpl_compatible:1;
++	__u32 :31; /* alignment pad */
+ 	__u64 netns_dev;
+ 	__u64 netns_ino;
+ 	__u32 nr_jited_ksyms;
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+2.20.1
