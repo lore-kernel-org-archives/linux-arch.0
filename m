@@ -1,455 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:51702 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726514AbfF1Raq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Jun 2019 13:30:46 -0400
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
-Date: Fri, 28 Jun 2019 10:22:03 -0700
-Message-ID: <20190628172203.797-1-yu-cheng.yu@intel.com>
+Received: from mail-eopbgr770129.outbound.protection.outlook.com ([40.107.77.129]:44558
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725783AbfF1Sdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Jun 2019 14:33:54 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: [PATCH v4 0/2] Drivers: hv: Move Hyper-V clock/timer code to separate
+ clocksource driver
+Date: Fri, 28 Jun 2019 18:33:50 +0000
+Message-ID: <1561746758-23216-1-git-send-email-mikelley@microsoft.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20190628172203.rxB1cmORKMOzYR_UkGKw-XyXqXM28xzAgHel9p79hUs@z>
+To: "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>
+Cc: Michael Kelley <mikelley@microsoft.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, "apw@canonical.com" <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, KY Srinivasan <kys@microsoft.com>, "sashal@kernel.org" <sashal@kernel.org>, "vincenzo.frascino@arm.com" <vincenzo.frascino@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "paul.burton@mips.com" <paul.burton@mips.com>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, "salyzyn@android.com" <salyzyn@android.com>, "pcc@google.com" <pcc@google.com>, "shuah@kernel.org" <shuah@kernel.org>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "huw@codeweavers.com" <huw@codeweavers.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>
+Message-ID: <20190628183350.d5LA6E45y37p85Kcpz92lZAaQfKrSZli3ldFwinG-jk@z>
 
-This patch was part of the Intel Control-flow Enforcement (CET) series at:
-
-    https://lkml.org/lkml/2019/6/6/1014.
-
-In the discussion, we decided to look at only an ELF header's
-PT_GNU_PROPERTY, which is a shortcut pointing to the file's
-.note.gnu.property.
-
-The Linux gABI extension draft is here:
-
-    https://github.com/hjl-tools/linux-abi/wiki/linux-abi-draft.pdf.
-
-A few existing CET-enabled binary files were built without
-PT_GNU_PROPERTY; but those files' .note.gnu.property are checked by
-ld-linux, not Linux.  The compatibility impact from this change is
-therefore managable.
-
-An ELF file's .note.gnu.property indicates features the executable file
-can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
-indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
-GNU_PROPERTY_X86_FEATURE_1_SHSTK.
-
-With this patch, if an arch needs to setup features from ELF properties,
-it needs CONFIG_ARCH_USE_GNU_PROPERTY to be set, and specific
-arch_parse_property() and arch_setup_property().
-
-This work is derived from code provided by H.J. Lu <hjl.tools@gmail.com>.
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- fs/Kconfig.binfmt        |   3 +
- fs/Makefile              |   1 +
- fs/binfmt_elf.c          |  20 +++
- fs/gnu_property.c        | 279 +++++++++++++++++++++++++++++++++++++++
- include/linux/elf.h      |  11 ++
- include/uapi/linux/elf.h |  14 ++
- 6 files changed, 328 insertions(+)
- create mode 100644 fs/gnu_property.c
-
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index f87ddd1b6d72..397138ab305b 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
- 
-+config ARCH_USE_GNU_PROPERTY
-+	bool
-+
- config BINFMT_ELF_FDPIC
- 	bool "Kernel support for FDPIC ELF binaries"
- 	default y if !BINFMT_ELF
-diff --git a/fs/Makefile b/fs/Makefile
-index c9aea23aba56..b69f18c14e09 100644
---- a/fs/Makefile
-+++ b/fs/Makefile
-@@ -44,6 +44,7 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- obj-$(CONFIG_COMPAT_BINFMT_ELF)	+= compat_binfmt_elf.o
- obj-$(CONFIG_BINFMT_ELF_FDPIC)	+= binfmt_elf_fdpic.o
- obj-$(CONFIG_BINFMT_FLAT)	+= binfmt_flat.o
-+obj-$(CONFIG_ARCH_USE_GNU_PROPERTY) += gnu_property.o
- 
- obj-$(CONFIG_FS_MBCACHE)	+= mbcache.o
- obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.o
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 8264b468f283..cbc6d68f4a18 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -852,6 +852,21 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			}
- 	}
- 
-+	if (interpreter) {
-+		retval = arch_parse_property(&loc->interp_elf_ex,
-+					     interp_elf_phdata,
-+					     interpreter, true,
-+					     &arch_state);
-+	} else {
-+		retval = arch_parse_property(&loc->elf_ex,
-+					     elf_phdata,
-+					     bprm->file, false,
-+					     &arch_state);
-+	}
-+
-+	if (retval)
-+		goto out_free_dentry;
-+
- 	/*
- 	 * Allow arch code to reject the ELF at this point, whilst it's
- 	 * still possible to return an error to the code that invoked
-@@ -1080,6 +1095,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 		goto out_free_dentry;
- 	}
- 
-+	retval = arch_setup_property(&arch_state);
-+
-+	if (retval < 0)
-+		goto out_free_dentry;
-+
- 	if (interpreter) {
- 		unsigned long interp_map_addr = 0;
- 
-diff --git a/fs/gnu_property.c b/fs/gnu_property.c
-new file mode 100644
-index 000000000000..37cd503a0c48
---- /dev/null
-+++ b/fs/gnu_property.c
-@@ -0,0 +1,279 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Extract an ELF file's .note.gnu.property.
-+ *
-+ * The path from the ELF header to the note section is the following:
-+ * elfhdr->elf_phdr->elf_note->property[].
-+ */
-+
-+#include <uapi/linux/elf-em.h>
-+#include <linux/processor.h>
-+#include <linux/binfmts.h>
-+#include <linux/elf.h>
-+#include <linux/slab.h>
-+#include <linux/fs.h>
-+#include <linux/uaccess.h>
-+#include <linux/string.h>
-+#include <linux/compat.h>
-+
-+/*
-+ * The .note.gnu.property layout:
-+ *
-+ *	struct elf_note {
-+ *		u32 n_namesz; --> sizeof(n_name[]); always (4)
-+ *		u32 n_ndescsz;--> sizeof(property[])
-+ *		u32 n_type;   --> always NT_GNU_PROPERTY_TYPE_0 (5)
-+ *	};
-+ *	char n_name[4]; --> always 'GNU\0'
-+ *
-+ *	struct {
-+ *		struct gnu_property {
-+ *			u32 pr_type;
-+ *			u32 pr_datasz;
-+ *		};
-+ *		u8 pr_data[pr_datasz];
-+ *	}[];
-+ */
-+
-+typedef bool (test_item_fn)(void *buf, u32 *arg, u32 type);
-+typedef void *(next_item_fn)(void *buf, u32 *arg, u32 type);
-+
-+static bool test_property(void *buf, u32 *max_type, u32 pr_type)
-+{
-+	struct gnu_property *pr = buf;
-+
-+	/*
-+	 * Property types must be in ascending order.
-+	 * Keep track of the max when testing each.
-+	 */
-+	if (pr->pr_type > *max_type)
-+		*max_type = pr->pr_type;
-+
-+	return (pr->pr_type == pr_type);
-+}
-+
-+static void *next_property(void *buf, u32 *max_type, u32 pr_type)
-+{
-+	struct gnu_property *pr = buf;
-+
-+	if ((buf + sizeof(*pr) + pr->pr_datasz < buf) ||
-+	    (pr->pr_type > pr_type) ||
-+	    (pr->pr_type > *max_type))
-+		return NULL;
-+	else
-+		return (buf + sizeof(*pr) + pr->pr_datasz);
-+}
-+
-+/*
-+ * Scan 'buf' for a pattern; return true if found.
-+ * *pos is the distance from the beginning of buf to where
-+ * the searched item or the next item is located.
-+ */
-+static int scan(u8 *buf, u32 buf_size, int item_size, test_item_fn test_item,
-+		next_item_fn next_item, u32 *arg, u32 type, u32 *pos)
-+{
-+	int found = 0;
-+	u8 *p, *max;
-+
-+	max = buf + buf_size;
-+	if (max < buf)
-+		return 0;
-+
-+	p = buf;
-+
-+	while ((p + item_size < max) && (p + item_size > buf)) {
-+		if (test_item(p, arg, type)) {
-+			found = 1;
-+			break;
-+		}
-+
-+		p = next_item(p, arg, type);
-+	}
-+
-+	*pos = (p + item_size <= buf) ? 0 : (u32)(p - buf);
-+	return found;
-+}
-+
-+/*
-+ * Search an NT_GNU_PROPERTY_TYPE_0 for the property of 'pr_type'.
-+ */
-+static int find_property(u32 pr_type, u32 *property, struct file *file,
-+			 loff_t file_offset, unsigned long desc_size)
-+{
-+	u8 *buf;
-+	int buf_size;
-+
-+	u32 buf_pos;
-+	unsigned long read_size;
-+	unsigned long done;
-+	int found = 0;
-+	int ret = 0;
-+	u32 last_pr = 0;
-+
-+	*property = 0;
-+	buf_pos = 0;
-+
-+	buf_size = (desc_size > PAGE_SIZE) ? PAGE_SIZE : desc_size;
-+	buf = kmalloc(buf_size, GFP_KERNEL);
-+	if (!buf)
-+		return -ENOMEM;
-+
-+	for (done = 0; done < desc_size; done += buf_pos) {
-+		read_size = desc_size - done;
-+		if (read_size > buf_size)
-+			read_size = buf_size;
-+
-+		ret = kernel_read(file, buf, read_size, &file_offset);
-+
-+		if (ret != read_size)
-+			return (ret < 0) ? ret : -EIO;
-+
-+		ret = 0;
-+		found = scan(buf, read_size, sizeof(struct gnu_property),
-+			     test_property, next_property,
-+			     &last_pr, pr_type, &buf_pos);
-+
-+		if ((!buf_pos) || found)
-+			break;
-+
-+		file_offset += buf_pos - read_size;
-+	}
-+
-+	if (found) {
-+		struct gnu_property *pr =
-+			(struct gnu_property *)(buf + buf_pos);
-+
-+		if (pr->pr_datasz == 4) {
-+			u32 *max =  (u32 *)(buf + read_size);
-+			u32 *data = (u32 *)((u8 *)pr + sizeof(*pr));
-+
-+			if (data + 1 <= max) {
-+				*property = *data;
-+			} else {
-+				file_offset += buf_pos - read_size;
-+				file_offset += sizeof(*pr);
-+				ret = kernel_read(file, property, 4,
-+						  &file_offset);
-+			}
-+		}
-+	}
-+
-+	kfree(buf);
-+	return ret;
-+}
-+
-+/*
-+ * Look at an ELF file's PT_GNU_PROPERTY for the property of pr_type.
-+ *
-+ * Input:
-+ *	file: the file to search;
-+ *	phdr: the file's elf header;
-+ *	phnum: number of entries in phdr;
-+ *	pr_type: the property type.
-+ *
-+ * Output:
-+ *	The property found.
-+ *
-+ * Return:
-+ *	Zero or error.
-+ */
-+
-+static int scan_segments_64(struct file *file, struct elf64_phdr *phdr,
-+			    int phnum, u32 pr_type, u32 *property)
-+{
-+	int i, err;
-+
-+	err = 0;
-+
-+	for (i = 0; i < phnum; i++, phdr++) {
-+		if (phdr->p_align != 8)
-+			continue;
-+
-+		if (phdr->p_type == PT_GNU_PROPERTY) {
-+			struct elf64_note n;
-+			loff_t pos;
-+
-+			/* read note header */
-+			pos = phdr->p_offset;
-+			err = kernel_read(file, &n, sizeof(n), &pos);
-+			if (err < sizeof(n))
-+				return -EIO;
-+
-+			/* find note payload offset */
-+			pos = phdr->p_offset + round_up(sizeof(n) + n.n_namesz,
-+							phdr->p_align);
-+
-+			err = find_property(pr_type, property, file,
-+					    pos, n.n_descsz);
-+			break;
-+		}
-+	}
-+
-+	return err;
-+}
-+
-+static int scan_segments_32(struct file *file, struct elf32_phdr *phdr,
-+			    int phnum, u32 pr_type, u32 *property)
-+{
-+	int i, err;
-+
-+	err = 0;
-+
-+	for (i = 0; i < phnum; i++, phdr++) {
-+		if (phdr->p_align != 4)
-+			continue;
-+
-+		if (phdr->p_type == PT_GNU_PROPERTY) {
-+			struct elf32_note n;
-+			loff_t pos;
-+
-+			/* read note header */
-+			pos = phdr->p_offset;
-+			err = kernel_read(file, &n, sizeof(n), &pos);
-+			if (err < sizeof(n))
-+				return -EIO;
-+
-+			/* find note payload offset */
-+			pos = phdr->p_offset + round_up(sizeof(n) + n.n_namesz,
-+							phdr->p_align);
-+
-+			err = find_property(pr_type, property, file,
-+					    pos, n.n_descsz);
-+			break;
-+		}
-+	}
-+
-+	return err;
-+}
-+
-+int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
-+		     u32 pr_type, u32 *property)
-+{
-+	struct elf64_hdr *ehdr64 = ehdr_p;
-+	int err = 0;
-+
-+	*property = 0;
-+
-+	if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
-+		struct elf64_phdr *phdr64 = phdr_p;
-+
-+		err = scan_segments_64(f, phdr64, ehdr64->e_phnum,
-+				       pr_type, property);
-+		if (err < 0)
-+			goto out;
-+	} else {
-+		struct elf32_hdr *ehdr32 = ehdr_p;
-+
-+		if (ehdr32->e_ident[EI_CLASS] == ELFCLASS32) {
-+			struct elf32_phdr *phdr32 = phdr_p;
-+
-+			err = scan_segments_32(f, phdr32, ehdr32->e_phnum,
-+					       pr_type, property);
-+			if (err < 0)
-+				goto out;
-+		}
-+	}
-+
-+out:
-+	return err;
-+}
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index e3649b3e970e..c86cbfd17382 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -56,4 +56,15 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
- extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
-+
-+#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
-+extern int arch_parse_property(void *ehdr, void *phdr, struct file *f,
-+			       bool inter, struct arch_elf_state *state);
-+extern int arch_setup_property(struct arch_elf_state *state);
-+extern int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
-+			    u32 pr_type, u32 *feature);
-+#else
-+#define arch_parse_property(ehdr, phdr, file, inter, state) (0)
-+#define arch_setup_property(state) (0)
-+#endif
- #endif /* _LINUX_ELF_H */
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 34c02e4290fe..530ce08467c2 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
- #define PT_LOPROC  0x70000000
- #define PT_HIPROC  0x7fffffff
- #define PT_GNU_EH_FRAME		0x6474e550
-+#define PT_GNU_PROPERTY		0x6474e553
- 
- #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
- 
-@@ -443,4 +444,17 @@ typedef struct elf64_note {
-   Elf64_Word n_type;	/* Content type */
- } Elf64_Nhdr;
- 
-+/* NT_GNU_PROPERTY_TYPE_0 header */
-+struct gnu_property {
-+  __u32 pr_type;
-+  __u32 pr_datasz;
-+};
-+
-+/* .note.gnu.property types */
-+#define GNU_PROPERTY_X86_FEATURE_1_AND		0xc0000002
-+
-+/* Bits of GNU_PROPERTY_X86_FEATURE_1_AND */
-+#define GNU_PROPERTY_X86_FEATURE_1_IBT		0x00000001
-+#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	0x00000002
-+
- #endif /* _UAPI_LINUX_ELF_H */
--- 
-2.17.1
+VGhpcyBwYXRjaCBzZXJpZXMgbW92ZXMgSHlwZXItViBjbG9jay90aW1lciBjb2RlIHRvIGEgc2Vw
+YXJhdGUgSHlwZXItVg0KY2xvY2tzb3VyY2UgZHJpdmVyLiBQcmV2aW91c2x5LCBIeXBlci1WIGNs
+b2NrL3RpbWVyIGNvZGUgYW5kIGRhdGENCnN0cnVjdHVyZXMgd2VyZSBtaXhlZCBpbiB3aXRoIG90
+aGVyIEh5cGVyLVYgY29kZSBpbiB0aGUgSVNBIGluZGVwZW5kZW50DQpkcml2ZXJzL2h2IGNvZGUg
+YXMgd2VsbCBhcyBpbiBJU0EgZGVwZW5kZW50IGNvZGUuIFRoZSBuZXcgSHlwZXItVg0KY2xvY2tz
+b3VyY2UgZHJpdmVyIGlzIElTQSBpbmRlcGVuZGVudCwgd2l0aCBhIGp1c3QgZmV3IGRlcGVuZGVu
+Y2llcyBvbg0KSVNBIHNwZWNpZmljIGZ1bmN0aW9ucy4gVGhlIHBhdGNoIHNlcmllcyBkb2VzIG5v
+dCBjaGFuZ2UgYW55IGJlaGF2aW9yDQpvciBmdW5jdGlvbmFsaXR5IC0tIGl0IG9ubHkgcmVvcmdh
+bml6ZXMgdGhlIGV4aXN0aW5nIGNvZGUgYW5kIGZpeGVzIHVwDQp0aGUgbGlua2FnZXMuIEEgZmV3
+IHBsYWNlcyBvdXRzaWRlIG9mIEh5cGVyLVYgY29kZSBhcmUgZml4ZWQgdXAgdG8gdXNlDQp0aGUg
+bmV3ICNpbmNsdWRlIGZpbGUgc3RydWN0dXJlLg0KDQpUaGlzIHJlc3RydWN0dXJpbmcgaXMgaW4g
+cmVzcG9uc2UgdG8gTWFyYyBaeW5naWVyJ3MgcmV2aWV3IGNvbW1lbnRzDQpvbiBzdXBwb3J0aW5n
+IEh5cGVyLVYgcnVubmluZyBvbiBBUk02NCwgYW5kIGlzIGEgZ29vZCBpZGVhIGluIGdlbmVyYWwu
+DQpJdCBpbmNyZWFzZXMgdGhlIGFtb3VudCBvZiBjb2RlIHNoYXJlZCBiZXR3ZWVuIHRoZSB4ODYg
+YW5kIEFSTTY0DQphcmNoaXRlY3R1cmVzLCBhbmQgcmVkdWNlcyB0aGUgc2l6ZSBvZiB0aGUgbmV3
+IGNvZGUgZm9yIHN1cHBvcnRpbmcNCkh5cGVyLVYgb24gQVJNNjQuIEEgbmV3IHZlcnNpb24gb2Yg
+dGhlIEh5cGVyLVYgb24gQVJNNjQgcGF0Y2hlcyB3aWxsDQpmb2xsb3cgb25jZSB0aGlzIGNsb2Nr
+c291cmNlIHJlc3RydWN0dXJpbmcgaXMgYWNjZXB0ZWQuDQoNClRoZSBjb2RlIGlzIGRpZmYnZWQg
+YWdhaW5zdCB0aGUgdXBzdHJlYW0gdGlwIHRyZWU6DQpnaXQ6Ly9naXQua2VybmVsLm9yZy9wdWIv
+c2NtL2xpbnV4L2tlcm5lbC9naXQvdGlwL3RpcC5naXQgdGltZXJzL3Zkc28NCg0KQ2hhbmdlcyBp
+biB2NDoNCiogUmV2aXNlZCBjb21taXQgbWVzc2FnZXMNCiogUmViYXNlZCB0byB1cHN0cmVhbSB0
+aXAgdHJlZQ0KDQpDaGFuZ2VzIGluIHYzOg0KKiBSZW1vdmVkIGJvb2xlYW4gYXJndW1lbnQgdG8g
+aHZfaW5pdF9jbG9ja3NvdXJjZSgpLiBBbHdheXMgY2FsbA0Kc2NoZWRfY2xvY2tfcmVnaXN0ZXIs
+IHdoaWNoIGlzIG5lZWRlZCBvbiBBUk02NCBidXQgYSBuby1vcCBvbiB4ODYuDQoqIFJlbW92ZWQg
+c2VwYXJhdGUgY3B1aHAgc2V0dXAgaW4gaHZfc3RpbWVyX2FsbG9jKCkgYW5kIGluc3RlYWQNCmRp
+cmVjdGx5IGNhbGwgaHZfc3RpbWVyX2luaXQoKSBhbmQgaHZfc3RpbWVyX2NsZWFudXAoKSBmcm9t
+DQpjb3JyZXNwb25kaW5nIFZNYnVzIGZ1bmN0aW9ucy4gIFRoaXMgbW9yZSBjbG9zZWx5IG1hdGNo
+ZXMgb3JpZ2luYWwNCmNvZGUgYW5kIGF2b2lkcyBjbG9ja3NvdXJjZSBzdG9wL3Jlc3RhcnQgcHJv
+YmxlbXMgb24gQVJNNjQgd2hlbg0KVk1idXMgY29kZSBkZW5pZXMgQ1BVIG9mZmxpbmluZyByZXF1
+ZXN0Lg0KDQpDaGFuZ2VzIGluIHYyOg0KKiBSZXZpc2VkIGNvbW1pdCBzaG9ydCBkZXNjcmlwdGlv
+bnMgc28gdGhlIGRpc3RpbmN0aW9uIGJldHdlZW4NCnRoZSBmaXJzdCBhbmQgc2Vjb25kIHBhdGNo
+ZXMgaXMgY2xlYXJlciBbR3JlZ0tIXQ0KKiBSZW5hbWVkIG5ldyBjbG9ja3NvdXJjZSBkcml2ZXIg
+ZmlsZXMgYW5kIGZ1bmN0aW9ucyB0byB1c2UNCmV4aXN0aW5nICJ0aW1lciIgYW5kICJzdGltZXIi
+IG5hbWVzIGluc3RlYWQgb2YgaW50cm9kdWNpbmcNCiJzeW50aW1lciIuIFtWaXRhbHkgS3V6bmV0
+c292XQ0KKiBJbnRyb2R1Y2VkIENPTkZJR19IWVBFUl9USU1FUiB0byBmaXggYnVpbGQgcHJvYmxl
+bSB3aGVuDQpDT05GSUdfSFlQRVJWPW0gW1ZpdGFseSBLdXpuZXRzb3ZdDQoqIEFkZGVkICJTdWdn
+ZXN0ZWQtYnk6IE1hcmMgWnluZ2llciINCg0KTWljaGFlbCBLZWxsZXkgKDIpOg0KICBEcml2ZXJz
+OiBodjogQ3JlYXRlIEh5cGVyLVYgY2xvY2tzb3VyY2UgZHJpdmVyIGZyb20gZXhpc3RpbmcNCiAg
+ICBjbG9ja2V2ZW50cyBjb2RlDQogIERyaXZlcnM6IGh2OiBNb3ZlIEh5cGVyLVYgY2xvY2tzb3Vy
+Y2UgY29kZSB0byBuZXcgY2xvY2tzb3VyY2UgZHJpdmVyDQoNCiBNQUlOVEFJTkVSUyAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgIHwgICAyICsNCiBhcmNoL3g4Ni9lbnRyeS92ZHNvL3ZtYS5j
+ICAgICAgICAgICAgICAgIHwgICAyICstDQogYXJjaC94ODYvaHlwZXJ2L2h2X2luaXQuYyAgICAg
+ICAgICAgICAgICB8ICA5MSArLS0tLS0tLS0NCiBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9oeXBlcnYt
+dGxmcy5oICAgICAgIHwgICA2ICsNCiBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9tc2h5cGVydi5oICAg
+ICAgICAgIHwgIDgxICsrLS0tLS0tDQogYXJjaC94ODYvaW5jbHVkZS9hc20vdmRzby9nZXR0aW1l
+b2ZkYXkuaCB8ICAgMiArLQ0KIGFyY2gveDg2L2tlcm5lbC9jcHUvbXNoeXBlcnYuYyAgICAgICAg
+ICAgfCAgIDIgKw0KIGFyY2gveDg2L2t2bS94ODYuYyAgICAgICAgICAgICAgICAgICAgICAgfCAg
+IDEgKw0KIGRyaXZlcnMvY2xvY2tzb3VyY2UvTWFrZWZpbGUgICAgICAgICAgICAgfCAgIDEgKw0K
+IGRyaXZlcnMvY2xvY2tzb3VyY2UvaHlwZXJ2X3RpbWVyLmMgICAgICAgfCAzMjEgKysrKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKw0KIGRyaXZlcnMvaHYvS2NvbmZpZyAgICAgICAgICAgICAg
+ICAgICAgICAgfCAgIDMgKw0KIGRyaXZlcnMvaHYvaHYuYyAgICAgICAgICAgICAgICAgICAgICAg
+ICAgfCAxNTYgKy0tLS0tLS0tLS0tLS0tDQogZHJpdmVycy9odi9oeXBlcnZfdm1idXMuaCAgICAg
+ICAgICAgICAgICB8ICAgMyAtDQogZHJpdmVycy9odi92bWJ1c19kcnYuYyAgICAgICAgICAgICAg
+ICAgICB8ICA0MiArKy0tDQogaW5jbHVkZS9jbG9ja3NvdXJjZS9oeXBlcnZfdGltZXIuaCAgICAg
+ICB8IDEwNSArKysrKysrKysrDQogMTUgZmlsZXMgY2hhbmdlZCwgNDgzIGluc2VydGlvbnMoKyks
+IDMzNSBkZWxldGlvbnMoLSkNCiBjcmVhdGUgbW9kZSAxMDA2NDQgZHJpdmVycy9jbG9ja3NvdXJj
+ZS9oeXBlcnZfdGltZXIuYw0KIGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRlL2Nsb2Nrc291cmNl
+L2h5cGVydl90aW1lci5oDQoNCi0tIA0KMS44LjMuMQ0KDQo=
