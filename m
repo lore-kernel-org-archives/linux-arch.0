@@ -1,20 +1,15 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
- implementation
-Date: Sat, 29 Jun 2019 07:58:22 +0100
-Message-ID: <06c264a8-8778-18b1-1094-4281a4a2abc9@arm.com>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-5-vincenzo.frascino@arm.com>
- <CGME20190628130921eucas1p239935b0771032c331911eacc1a69dd2e@eucas1p2.samsung.com>
- <1fd47b0d-f77f-8d07-c039-6ac9072834fc@samsung.com>
- <27386d82-2906-b541-f71d-3c61f5099bdf@arm.com>
- <530cd07e-0da7-1d83-be4e-b14813029424@samsung.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 2/2] Drivers: hv: Move Hyper-V clocksource code to
+ new clocksource driver
+Date: Sat, 29 Jun 2019 09:04:22 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1906290850220.1802@nanos.tec.linutronix.de>
+References: <1561746758-23216-1-git-send-email-mikelley@microsoft.com>
+ <1561746758-23216-3-git-send-email-mikelley@microsoft.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <530cd07e-0da7-1d83-be4e-b14813029424@samsung.com>
-Content-Language: en-US
+In-Reply-To: <1561746758-23216-3-git-send-email-mikelley@microsoft.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -24,67 +19,139 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Sylwester Nawrocki <s.nawrocki@samsung.com>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, Daniel Lezcano <daniel.lezcano@linaro.org>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Andre Przywara <andre.przywara@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org, Huw Davies <huw@codeweavers.com>, linux-mips@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Shijith Thotton <sthotton@marvell.com>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: "mark.rutland@arm.com" <mark.rutland@arm.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "vincenzo.frascino@arm.com" <vincenzo.frascino@arm.com>, "shuah@kernel.org" <shuah@kernel.org>, "sashal@kernel.org" <sashal@kernel.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, KY Srinivasan <kys@microsoft.com>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgU3lsd2VzdGVyLAoKdGhhbmsgeW91IGZvciB0aGUgcXVpY2sgdHVybiBhcm91bmQgdG8gbXkg
-ZW1haWwuCgpPbiA2LzI4LzE5IDU6NTAgUE0sIFN5bHdlc3RlciBOYXdyb2NraSB3cm90ZToKPiBI
-aSBWaW5jZW56bywKPiAKPiBPbiA2LzI4LzE5IDE2OjMyLCBWaW5jZW56byBGcmFzY2lubyB3cm90
-ZToKPj4gT24gNi8yOC8xOSAyOjA5IFBNLCBNYXJlayBTenlwcm93c2tpIHdyb3RlOgo+Pj4gT24g
-MjAxOS0wNi0yMSAxMTo1MiwgVmluY2Vuem8gRnJhc2Npbm8gd3JvdGU6Cj4+Pj4gVG8gdGFrZSBh
-ZHZhbnRhZ2Ugb2YgdGhlIGNvbW1vbmx5IGRlZmluZWQgdmRzbyBpbnRlcmZhY2UgZm9yCj4+Pj4g
-Z2V0dGltZW9mZGF5IHRoZSBhcmNoaXRlY3R1cmFsIGNvZGUgcmVxdWlyZXMgYW4gYWRhcHRhdGlv
-bi4KPj4+Pgo+Pj4+IFJlLWltcGxlbWVudCB0aGUgZ2V0dGltZW9mZGF5IHZkc28gaW4gQyBpbiBv
-cmRlciB0byB1c2UgbGliL3Zkc28uCj4+Pj4KPj4+PiBXaXRoIHRoZSBuZXcgaW1wbGVtZW50YXRp
-b24gYXJtNjQgZ2FpbnMgc3VwcG9ydCBmb3IgQ0xPQ0tfQk9PVFRJTUUKPj4+PiBhbmQgQ0xPQ0tf
-VEFJLgo+Pj4+Cj4+Pj4gQ2M6IENhdGFsaW4gTWFyaW5hcyA8Y2F0YWxpbi5tYXJpbmFzQGFybS5j
-b20+Cj4+Pj4gQ2M6IFdpbGwgRGVhY29uIDx3aWxsLmRlYWNvbkBhcm0uY29tPgo+Pj4+IFNpZ25l
-ZC1vZmYtYnk6IFZpbmNlbnpvIEZyYXNjaW5vIDx2aW5jZW56by5mcmFzY2lub0Bhcm0uY29tPgo+
-Pj4+IFRlc3RlZC1ieTogU2hpaml0aCBUaG90dG9uIDxzdGhvdHRvbkBtYXJ2ZWxsLmNvbT4KPj4+
-PiBUZXN0ZWQtYnk6IEFuZHJlIFByenl3YXJhIDxhbmRyZS5wcnp5d2FyYUBhcm0uY29tPgo+Pj4+
-IFNpZ25lZC1vZmYtYnk6IENhdGFsaW4gTWFyaW5hcyA8Y2F0YWxpbi5tYXJpbmFzQGFybS5jb20+
-Cj4+Pgo+Pj4gVGhpcyBwYXRjaCBjYXVzZXMgc2VyaW91cyByZWdyZXNzaW9uIG9uIFNhbXN1bmcg
-RXh5bm9zNTQzMyBTb0MgYmFzZWQgCj4+PiBUTTIoZSkgYm9hcmRzLiBUaGUgdGltZSBpbiB1c2Vy
-c3BhY2UgaXMgYWx3YXlzIHNldCB0byBiZWdpbiBvZiB0aGUgZXBvY2g6Cj4+Pgo+Pj4gIyBkYXRl
-IDA2MjgxMzE1MjAxOQo+Pj4gRnJpIEp1biAyOCAxMzoxNTowMCBVVEMgMjAxOQo+Pj4gIyBkYXRl
-Cj4+PiBUaHUgSmFuwqAgMSAwMDowMDowMCBVVEMgMTk3MAo+Pj4gIyBkYXRlCj4+PiBUaHUgSmFu
-wqAgMSAwMDowMDowMCBVVEMgMTk3MAo+Pj4KPj4+IEkndmUgbm90aWNlZCB0aGF0IHNpbmNlIHRo
-ZSBwYXRjaCBsYW5kZWQgaW4gTGludXggbmV4dC0yMDE5MDYyNSBhbmQgCj4+PiBiaXNlY3QgaW5k
-ZWVkIHBvaW50ZWQgdG8gdGhpcyBwYXRjaC4KPj4+Cj4+IFRoYW5rIHlvdSBmb3IgcmVwb3J0aW5n
-IHRoaXMsIHNlZW1zIHRoYXQgdGhlIG5leHQgdGhhdCB5b3UgcG9zdGVkIGlzIG1pc3NpbmcKPj4g
-c29tZSBmaXhlcyBmb3IgYXJtNjQuCj4+Cj4+IENvdWxkIHlvdSBwbGVhc2UgdHJ5IHRoZSB0cmVl
-IGJlbG93Pwo+Pgo+PiBnaXQ6Ly9naXQua2VybmVsLm9yZy9wdWIvc2NtL2xpbnV4L2tlcm5lbC9n
-aXQvdGlwL3RpcC5naXQgdGltZXJzL3Zkc28KPj4KPj4gTGV0IHVzIGtub3cgaWYgdGhlIGZ1bmN0
-aW9uYWxpdHkgaXMgcmVzdG9yZWQuIE90aGVyd2lzZSB0aGUgaXNzdWUgd2lsbCByZXF1aXJlCj4+
-IGZ1cnRoZXIgaW52ZXN0aWdhdGlvbi4KPiAgCj4gTWFyZWsgaXMgYWxyZWFkeSBvdXQgZm9yIGhv
-bGlkYXlzLCBJIGdhdmUgeW91ciB0cmVlIGEgdHJ5IGJ1dCBrZXJuZWwgZnJvbSAKPiB0aGF0IGJy
-YW5jaCB3YXMgZmFpbGluZyB0byBib290IG9uIFRNMihlKS4gIAo+IAo+IFRoZW4gSSBoYXZlIGNo
-ZXJyeS1waWNrZWQgNSBwYXRjaGVzIGZyb20gdGhlIGJyYW5jaCB0aGF0IHNlZW1lZCB0byAKPiBi
-ZSBtaXNzaW5nIGluIG5leHQtMjAxOTA2Mjg6Cj4gCj4gMjgwMjhmMzE3NGNmMSAoSEVBRCkgTUFJ
-TlRBSU5FUlM6IEZpeCBBbmR5J3Mgc3VybmFtZSBhbmQgdGhlIGRpcmVjdG9yeSBlbnRyaWVzIG9m
-IFZEU08KPiBlYzhmOGU0YmYyMjA2IGFybTY0OiB2ZHNvOiBGaXggY29tcGlsYXRpb24gd2l0aCBj
-bGFuZyBvbGRlciB0aGFuIDgKPiA3MjE4ODJlYmI1NzI5IGFybTY0OiBjb21wYXQ6IEZpeCBfX2Fy
-Y2hfZ2V0X2h3X2NvdW50ZXIoKSBpbXBsZW1lbnRhdGlvbgo+IDcwMjdmZWE5NzdhM2QgYXJtNjQ6
-IEZpeCBfX2FyY2hfZ2V0X2h3X2NvdW50ZXIoKSBpbXBsZW1lbnRhdGlvbgo+IDEwYjMwNTg1M2Zl
-MjIgbGliL3Zkc286IE1ha2UgZGVsdGEgY2FsY3VsYXRpb24gd29yayBjb3JyZWN0bHkKPiA0ODU2
-OGQ4YzdmNDc5ICh0YWc6IG5leHQtMjAxOTA2MjgsIGxpbnV4LW5leHQvbWFzdGVyKSBBZGQgbGlu
-dXgtbmV4dCBzcGVjaWZpYyBmaWxlcyBmb3IgMjAxOTA2MjgKPiAKPiBXaXRoIHRob3NlIDUgYWRk
-aXRpb25hbCBwYXRjaGVzIG9uIHRvcCBvZiBuZXh0LTIwMTkwNjI4IHRoZSBwcm9ibGVtCj4gaXMg
-bm90IG9ic2VydmVkIGFueSBtb3JlLiBkYXRlLCBwaW5nLCBldGMuIHNlZW1zIHRvIGJlIHdvcmtp
-bmcgd2VsbC4KPiAKPiAjIGRhdGUKPiBGcmkgSnVuIDI4IDE2OjM5OjIyIFVUQyAyMDE5Cj4gIwo+
-ICMgc3lzdGVtY3RsIHN0b3Agc3lzdGVtZC10aW1lc3luY2QKPiAjICAKPiAjIGRhdGUgMDYyODE4
-MzkyMDE5Cj4gRnJpIEp1biAyOCAxODozOTowMCBVVEMgMjAxOQo+ICMgZGF0ZQo+IEZyaSBKdW4g
-MjggMTg6Mzk6MDEgVVRDIDIwMTkKPiAjIAo+ICMgZGF0ZSAwNjI4MTg0MzIwMTk7IGRhdGUKPiBG
-cmkgSnVuIDI4IDE4OjQzOjAwIFVUQyAyMDE5Cj4gRnJpIEp1biAyOCAxODo0MzowMCBVVEMgMjAx
-OQo+ICMgZGF0ZQo+IEZyaSBKdW4gMjggMTg6NDM6MDQgVVRDIDIwMTkKPgoKVGhpcyBzZWVtcyBv
-aywgdGhhbmtzIGZvciBzcGVuZGluZyBzb21lIHRpbWUgdG8gdGVzdCBvdXIgcGF0Y2hlcyBhZ2Fp
-bnN0IHlvdXIgYm9hcmQuCgpJZiBJIG1heSwgSSB3b3VsZCBsaWtlIHRvIGFzayB0byB5b3Ugb25l
-IGZhdm9yLCBjb3VsZCB5b3UgcGxlYXNlIGtlZXAgYW4gZXllIG9uCm5leHQgYW5kIG9uY2UgdGhv
-c2UgcGF0Y2hlcyBhcmUgbWVyZ2VkIHJlcGVhdCB0aGUgdGVzdD8KCkkgd2FudCBqdXN0IHRvIG1h
-a2Ugc3VyZSB0aGF0IHRoZSByZWdyZXNzaW9uIGRvZXMgbm90IHJlYXBwZWFyLgoKSGF2ZSBhIG5p
-Y2Ugd2Vla2VuZC4KCj4gLS0KPiBSZWdhcmRzLAo+IFN5bHdlc3Rlcgo+IAoKLS0gClJlZ2FyZHMs
-ClZpbmNlbnpvCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-XwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmlu
-ZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9s
-aW51eC1hcm0ta2VybmVsCg==
+Michael,
+
+On Fri, 28 Jun 2019, Michael Kelley wrote:
+
+See the other reply vs. prefix and summary
+
+> Continue consolidating Hyper-V clock and timer code into an ISA
+...
+
+> +#ifdef CONFIG_HYPERV_TSCPAGE
+> +
+> +static struct ms_hyperv_tsc_page *tsc_pg;
+> +
+> +struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
+> +{
+> +	return tsc_pg;
+> +}
+> +EXPORT_SYMBOL_GPL(hv_get_tsc_page);
+
+> +static u64 read_hv_sched_clock_tsc(void)
+
+Lacks a notrace annotation as it is used as sched clock.
+
+> +{
+> +	u64 current_tick = hv_read_tsc_page(tsc_pg);
+> +
+> +	if (current_tick == U64_MAX)
+> +		hv_get_time_ref_count(current_tick);
+> +
+> +	return current_tick;
+> +}
+> +
+> +static u64 read_hv_clock_tsc(struct clocksource *arg)
+> +{
+> +	return read_hv_sched_clock_tsc();
+> +}
+> +
+> +static struct clocksource hyperv_cs_tsc = {
+> +		.name		= "hyperv_clocksource_tsc_page",
+> +		.rating		= 400,
+> +		.read		= read_hv_clock_tsc,
+> +		.mask		= CLOCKSOURCE_MASK(64),
+> +		.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+
+One tab indent is sufficient
+
+> +};
+> +#endif
+
+> +void __init hv_init_clocksource(void)
+> +{
+> +#ifdef CONFIG_HYPERV_TSCPAGE
+
+Can you please avoid ifdef blocks in the code and just split out this into
+a helper function and provide an empty stub for the TSCPAGE=n case?
+
+Then you can spare one indent and the ifdeffery is confined. Get's rid of
+the goto as well.
+
+> +	if (ms_hyperv.features & HV_MSR_REFERENCE_TSC_AVAILABLE) {
+> +
+> +		u64		tsc_msr;
+> +		phys_addr_t	phys_addr;
+> +
+> +		tsc_pg = vmalloc(PAGE_SIZE);
+> +		if (!tsc_pg)
+> +			goto register_msr_cs;
+> +
+> +		hyperv_cs = &hyperv_cs_tsc;
+> +		phys_addr = page_to_phys(vmalloc_to_page(tsc_pg));
+> +
+> +		/* The Hyper-V TLFS specifies to preserve the value of
+
+Please use proper multi line comments formatting:
+
+		/*
+		 * This is a proper formatted multi-line comment.
+		 * See?
+		 */
+
+> +		 * reserved bits in registers.  So read the existing
+> +		 * value, preserve the low order 12 bits, and add in
+> +		 * the guest physical address (which already has at
+> +		 * least the low 12 bits set to zero since it is page
+> +		 * aligned). Also set the "enable" bit, which is bit 0.
+> +		 */
+> +		hv_get_reference_tsc(tsc_msr);
+> +		tsc_msr &= GENMASK_ULL(11, 0);
+> +		tsc_msr = tsc_msr | 0x1 | (u64)phys_addr;
+> +		hv_set_reference_tsc(tsc_msr);
+> +
+> +		hv_set_clocksource_vdso(hyperv_cs_tsc);
+> +		clocksource_register_hz(&hyperv_cs_tsc, NSEC_PER_SEC/100);
+> +
+> +		/*
+> +		 * sched_clock_register is needed on ARM64 but
+> +		 * is a no-op on x86
+> +		 */
+> +		sched_clock_register(read_hv_sched_clock_tsc,
+> +						64, HV_CLOCK_HZ);
+
+If you have to use line breaks, then please align them properly
+
+		sched_clock_register(read_hv_sched_clock_tsc,
+				     64, HV_CLOCK_HZ);
+
+
+> +		return;
+> +	}
+> +register_msr_cs:
+> +#endif
+> +	/*
+> +	 * For 32 bit guests just use the MSR based mechanism for reading
+> +	 * the partition counter.
+> +	 */
+> +	hyperv_cs = &hyperv_cs_msr;
+> +	if (ms_hyperv.features & HV_MSR_TIME_REF_COUNT_AVAILABLE) {
+> +		clocksource_register_hz(&hyperv_cs_msr, NSEC_PER_SEC/100);
+> +
+> +		/*
+> +		 * sched_clock_register is needed on ARM64 but
+> +		 * is a no-op on x86
+> +		 */
+> +		sched_clock_register(read_hv_sched_clock_msr,
+> +						64, HV_CLOCK_HZ);
+
+Ditto. But again if you return when the feature is not available you spare
+an indent and the line break.
+
+Thanks,
+
+	tglx
