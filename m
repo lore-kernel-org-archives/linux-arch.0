@@ -1,178 +1,141 @@
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v4 2/2] Drivers: hv: Move Hyper-V clocksource code to new
- clocksource driver
-Date: Mon, 1 Jul 2019 03:27:46 +0000
-Message-ID: <BL0PR2101MB1348F33B06FEAFFD4AC5474ED7F90@BL0PR2101MB1348.namprd21.prod.outlook.com>
-References: <1561746758-23216-1-git-send-email-mikelley@microsoft.com>
- <1561746758-23216-3-git-send-email-mikelley@microsoft.com>
- <alpine.DEB.2.21.1906290850220.1802@nanos.tec.linutronix.de>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH] tools/memory-model: Update the informal documentation
+Date: Sun, 30 Jun 2019 21:04:30 -0700
+Message-ID: <20190701040430.GY26519@linux.ibm.com>
+References: <1561842644-5354-1-git-send-email-andrea.parri@amarulasolutions.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <alpine.DEB.2.21.1906290850220.1802@nanos.tec.linutronix.de>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: "mark.rutland@arm.com" <mark.rutland@arm.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "vincenzo.frascino@arm.com" <vincenzo.frascino@arm.com>, "shuah@kernel.org" <shuah@kernel.org>, "sashal@kernel.org" <sashal@kernel.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, KY Srinivasan <kys@microsoft.com>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1561842644-5354-1-git-send-email-andrea.parri@amarulasolutions.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Thomas Gleixner <tglx@linutronix.de> Sent: Saturday, June 29, 2019 12:04 AM
+On Sat, Jun 29, 2019 at 11:10:44PM +0200, Andrea Parri wrote:
+> The formal memory consistency model has added support for plain accesses
+> (and data races).  While updating the informal documentation to describe
+> this addition to the model is highly desirable and important future work,
+> update the informal documentation to at least acknowledge such addition.
 > 
-> On Fri, 28 Jun 2019, Michael Kelley wrote:
-> 
-> See the other reply vs. prefix and summary
-> 
-> > Continue consolidating Hyper-V clock and timer code into an ISA
-> ...
-> 
-> > +#ifdef CONFIG_HYPERV_TSCPAGE
-> > +
-> > +static struct ms_hyperv_tsc_page *tsc_pg;
-> > +
-> > +struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
-> > +{
-> > +	return tsc_pg;
-> > +}
-> > +EXPORT_SYMBOL_GPL(hv_get_tsc_page);
-> 
-> > +static u64 read_hv_sched_clock_tsc(void)
-> 
-> Lacks a notrace annotation as it is used as sched clock.
+> Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+> Cc: Alan Stern <stern@rowland.harvard.edu>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Boqun Feng <boqun.feng@gmail.com>
+> Cc: Nicholas Piggin <npiggin@gmail.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+> Cc: Luc Maranget <luc.maranget@inria.fr>
+> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> Cc: Akira Yokosawa <akiyks@gmail.com>
+> Cc: Daniel Lustig <dlustig@nvidia.com>
 
-Will add to this and to read_hv_sched_clock_msr().
+Queued for review, thank you, Andrea!
 
-> 
-> > +{
-> > +	u64 current_tick = hv_read_tsc_page(tsc_pg);
-> > +
-> > +	if (current_tick == U64_MAX)
-> > +		hv_get_time_ref_count(current_tick);
-> > +
-> > +	return current_tick;
-> > +}
-> > +
-> > +static u64 read_hv_clock_tsc(struct clocksource *arg)
-> > +{
-> > +	return read_hv_sched_clock_tsc();
-> > +}
-> > +
-> > +static struct clocksource hyperv_cs_tsc = {
-> > +		.name		= "hyperv_clocksource_tsc_page",
-> > +		.rating		= 400,
-> > +		.read		= read_hv_clock_tsc,
-> > +		.mask		= CLOCKSOURCE_MASK(64),
-> > +		.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
-> 
-> One tab indent is sufficient
+							Thanx, Paul
 
-Will fix.
-
+> ---
+>  tools/memory-model/Documentation/explanation.txt | 47 +++++++++++-------------
+>  tools/memory-model/README                        | 18 ++++-----
+>  2 files changed, 30 insertions(+), 35 deletions(-)
 > 
-> > +};
-> > +#endif
+> diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+> index 68caa9a976d0c..b42f7cd718242 100644
+> --- a/tools/memory-model/Documentation/explanation.txt
+> +++ b/tools/memory-model/Documentation/explanation.txt
+> @@ -42,7 +42,8 @@ linux-kernel.bell and linux-kernel.cat files that make up the formal
+>  version of the model; they are extremely terse and their meanings are
+>  far from clear.
+>  
+> -This document describes the ideas underlying the LKMM.  It is meant
+> +This document describes the ideas underlying the LKMM, but excluding
+> +the modeling of bare C (or plain) shared memory accesses.  It is meant
+>  for people who want to understand how the model was designed.  It does
+>  not go into the details of the code in the .bell and .cat files;
+>  rather, it explains in English what the code expresses symbolically.
+> @@ -354,31 +355,25 @@ be extremely complex.
+>  Optimizing compilers have great freedom in the way they translate
+>  source code to object code.  They are allowed to apply transformations
+>  that add memory accesses, eliminate accesses, combine them, split them
+> -into pieces, or move them around.  Faced with all these possibilities,
+> -the LKMM basically gives up.  It insists that the code it analyzes
+> -must contain no ordinary accesses to shared memory; all accesses must
+> -be performed using READ_ONCE(), WRITE_ONCE(), or one of the other
+> -atomic or synchronization primitives.  These primitives prevent a
+> -large number of compiler optimizations.  In particular, it is
+> -guaranteed that the compiler will not remove such accesses from the
+> -generated code (unless it can prove the accesses will never be
+> -executed), it will not change the order in which they occur in the
+> -code (within limits imposed by the C standard), and it will not
+> -introduce extraneous accesses.
+> -
+> -This explains why the MP and SB examples above used READ_ONCE() and
+> -WRITE_ONCE() rather than ordinary memory accesses.  Thanks to this
+> -usage, we can be certain that in the MP example, P0's write event to
+> -buf really is po-before its write event to flag, and similarly for the
+> -other shared memory accesses in the examples.
+> -
+> -Private variables are not subject to this restriction.  Since they are
+> -not shared between CPUs, they can be accessed normally without
+> -READ_ONCE() or WRITE_ONCE(), and there will be no ill effects.  In
+> -fact, they need not even be stored in normal memory at all -- in
+> -principle a private variable could be stored in a CPU register (hence
+> -the convention that these variables have names starting with the
+> -letter 'r').
+> +into pieces, or move them around.  The use of READ_ONCE(), WRITE_ONCE(),
+> +or one of the other atomic or synchronization primitives prevents a
+> +large number of compiler optimizations.  In particular, it is guaranteed
+> +that the compiler will not remove such accesses from the generated code
+> +(unless it can prove the accesses will never be executed), it will not
+> +change the order in which they occur in the code (within limits imposed
+> +by the C standard), and it will not introduce extraneous accesses.
+> +
+> +The MP and SB examples above used READ_ONCE() and WRITE_ONCE() rather
+> +than ordinary memory accesses.  Thanks to this usage, we can be certain
+> +that in the MP example, the compiler won't reorder P0's write event to
+> +buf and P0's write event to flag, and similarly for the other shared
+> +memory accesses in the examples.
+> +
+> +Since private variables are not shared between CPUs, they can be
+> +accessed normally without READ_ONCE() or WRITE_ONCE().  In fact, they
+> +need not even be stored in normal memory at all -- in principle a
+> +private variable could be stored in a CPU register (hence the convention
+> +that these variables have names starting with the letter 'r').
+>  
+>  
+>  A WARNING
+> diff --git a/tools/memory-model/README b/tools/memory-model/README
+> index 2b87f3971548c..fc07b52f20286 100644
+> --- a/tools/memory-model/README
+> +++ b/tools/memory-model/README
+> @@ -167,15 +167,15 @@ scripts	Various scripts, see scripts/README.
+>  LIMITATIONS
+>  ===========
+>  
+> -The Linux-kernel memory model has the following limitations:
+> -
+> -1.	Compiler optimizations are not modeled.  Of course, the use
+> -	of READ_ONCE() and WRITE_ONCE() limits the compiler's ability
+> -	to optimize, but there is Linux-kernel code that uses bare C
+> -	memory accesses.  Handling this code is on the to-do list.
+> -	For more information, see Documentation/explanation.txt (in
+> -	particular, the "THE PROGRAM ORDER RELATION: po AND po-loc"
+> -	and "A WARNING" sections).
+> +The Linux-kernel memory model (LKMM) has the following limitations:
+> +
+> +1.	Compiler optimizations are not accurately modeled.  Of course,
+> +	the use of READ_ONCE() and WRITE_ONCE() limits the compiler's
+> +	ability to optimize, but under some circumstances it is possible
+> +	for the compiler to undermine the memory model.  For more
+> +	information, see Documentation/explanation.txt (in particular,
+> +	the "THE PROGRAM ORDER RELATION: po AND po-loc" and "A WARNING"
+> +	sections).
+>  
+>  	Note that this limitation in turn limits LKMM's ability to
+>  	accurately model address, control, and data dependencies.
+> -- 
+> 2.7.4
 > 
-> > +void __init hv_init_clocksource(void)
-> > +{
-> > +#ifdef CONFIG_HYPERV_TSCPAGE
-> 
-> Can you please avoid ifdef blocks in the code and just split out this into
-> a helper function and provide an empty stub for the TSCPAGE=n case?
-> 
-> Then you can spare one indent and the ifdeffery is confined. Get's rid of
-> the goto as well.
-
-I was trying not to change code unrelated to reorganizing into a clocksource
-driver, but I've coded the approach you suggest and the result is a lot
-cleaner.  I'll include the new approach in v5 of the patch.
-
-> 
-> > +	if (ms_hyperv.features & HV_MSR_REFERENCE_TSC_AVAILABLE) {
-> > +
-> > +		u64		tsc_msr;
-> > +		phys_addr_t	phys_addr;
-> > +
-> > +		tsc_pg = vmalloc(PAGE_SIZE);
-> > +		if (!tsc_pg)
-> > +			goto register_msr_cs;
-> > +
-> > +		hyperv_cs = &hyperv_cs_tsc;
-> > +		phys_addr = page_to_phys(vmalloc_to_page(tsc_pg));
-> > +
-> > +		/* The Hyper-V TLFS specifies to preserve the value of
-> 
-> Please use proper multi line comments formatting:
-> 
-> 		/*
-> 		 * This is a proper formatted multi-line comment.
-> 		 * See?
-> 		 */
-
-Argh.  Old habits ...
-
-> 
-> > +		 * reserved bits in registers.  So read the existing
-> > +		 * value, preserve the low order 12 bits, and add in
-> > +		 * the guest physical address (which already has at
-> > +		 * least the low 12 bits set to zero since it is page
-> > +		 * aligned). Also set the "enable" bit, which is bit 0.
-> > +		 */
-> > +		hv_get_reference_tsc(tsc_msr);
-> > +		tsc_msr &= GENMASK_ULL(11, 0);
-> > +		tsc_msr = tsc_msr | 0x1 | (u64)phys_addr;
-> > +		hv_set_reference_tsc(tsc_msr);
-> > +
-> > +		hv_set_clocksource_vdso(hyperv_cs_tsc);
-> > +		clocksource_register_hz(&hyperv_cs_tsc, NSEC_PER_SEC/100);
-> > +
-> > +		/*
-> > +		 * sched_clock_register is needed on ARM64 but
-> > +		 * is a no-op on x86
-> > +		 */
-> > +		sched_clock_register(read_hv_sched_clock_tsc,
-> > +						64, HV_CLOCK_HZ);
-> 
-> If you have to use line breaks, then please align them properly
-> 
-> 		sched_clock_register(read_hv_sched_clock_tsc,
-> 				     64, HV_CLOCK_HZ);
-> 
-
-Got it.  The line break is no longer needed in the new version anyway.
-
-> 
-> > +		return;
-> > +	}
-> > +register_msr_cs:
-> > +#endif
-> > +	/*
-> > +	 * For 32 bit guests just use the MSR based mechanism for reading
-> > +	 * the partition counter.
-> > +	 */
-> > +	hyperv_cs = &hyperv_cs_msr;
-> > +	if (ms_hyperv.features & HV_MSR_TIME_REF_COUNT_AVAILABLE) {
-> > +		clocksource_register_hz(&hyperv_cs_msr, NSEC_PER_SEC/100);
-> > +
-> > +		/*
-> > +		 * sched_clock_register is needed on ARM64 but
-> > +		 * is a no-op on x86
-> > +		 */
-> > +		sched_clock_register(read_hv_sched_clock_msr,
-> > +						64, HV_CLOCK_HZ);
-> 
-> Ditto. But again if you return when the feature is not available you spare
-> an indent and the line break.
-
-Agreed.
-
-Thanks,
-
-Michael
