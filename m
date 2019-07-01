@@ -1,43 +1,53 @@
-From: Christian Brauner <christian@brauner.io>
-Subject: Re: [PATCH v3 2/2] arch: wire-up clone3() syscall
-Date: Mon, 1 Jul 2019 17:24:14 +0200
-Message-ID: <20190701152413.zfwsxwtgeqtveie6@brauner.io>
-References: <20190604160944.4058-1-christian@brauner.io>
- <20190604160944.4058-2-christian@brauner.io>
- <20190620184451.GA28543@roeck-us.net>
- <20190620221003.ciuov5fzqxrcaykp@brauner.io>
- <CAK8P3a2iV7=HkHBVL_puvCQN0DmdKEnVs2aG9MQV_8Q58JSfTA@mail.gmail.com>
- <20190621111839.v5yqlws6iw7mx4aa@brauner.io>
- <CAK8P3a0T1=eg5ONbMFhHi=vmk1K5uogZ+5=wpsXvjVDzn6vS=Q@mail.gmail.com>
- <20190621153012.fxwhx25mzmzueqh7@brauner.io>
- <CAK8P3a0f_=q88JB=t7fbmweAbZ2E2_uCMt+2JoBYx3od_M6fHQ@mail.gmail.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] csky: Improve abiv1 mem ops performance with glibc codes
+Date: Mon, 1 Jul 2019 23:26:05 +0800
+Message-ID: <CAJF2gTR7ooY=gxKW2zWK9MnuJ9YDm_1r6QTdJ=A=WqRDTuecRQ@mail.gmail.com>
+References: <1561786601-19512-1-git-send-email-guoren@kernel.org> <CAK8P3a0F5-wtJHbLvEwUXE8EnALMpQb5KeX4FK3S90Ce81oN-Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0f_=q88JB=t7fbmweAbZ2E2_uCMt+2JoBYx3od_M6fHQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a0F5-wtJHbLvEwUXE8EnALMpQb5KeX4FK3S90Ce81oN-Q@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 01, 2019 at 05:14:51PM +0200, Arnd Bergmann wrote:
-> On Fri, Jun 21, 2019 at 5:30 PM Christian Brauner <christian@brauner.io> wrote:
-> > On Fri, Jun 21, 2019 at 04:20:15PM +0200, Arnd Bergmann wrote:
-> > > On Fri, Jun 21, 2019 at 1:18 PM Christian Brauner <christian@brauner.io> wrote:
-> > Hm, if you believe that this is fine and want to "vouch" for it by
-> > whipping up a patch that replaces the wiring up done in [1] I'm happy to
-> > take it. :) Otherwise I'd feel more comfortable not adding all arches at
-> > once.
+Hi Arnd,
+
+On Mon, Jul 1, 2019 at 10:52 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Sat, Jun 29, 2019 at 7:36 AM <guoren@kernel.org> wrote:
 > >
-> > [1]: https://git.kernel.org/pub/scm/linux/kernel/git/brauner/linux.git/log/?h=clone
-> 
-> Sorry for my late reply. I had actually looked at the implementations
-> in a little
-> more detail and I think you are right that adding these are better
-> left to the arch
-> maintainers in case of clone3.
+> > From: Guo Ren <ren_guo@c-sky.com>
+> >
+> > These codes are copied from glibc/string directory, they are the generic
+> > implementation for string operations. We may further optimize them with
+> > assembly code in the future.
+> >
+> > In fact these code isn't tested enough for kernel, but we've tested them
+> > on glibc and it seems good. We just trust them :)
+>
+> Are these files from the architecture independent portion of glibc or
+> are they csky specific? If they are architecture independent, we might
+> want to see if they make sense for other architectures as well, and
+> add them to lib/ rather than arch/csky/lib/
+They are just copied from glibc-2.28/string/*.c and they are generic.
+OK, I'll try to add them to lib/.
 
-Perfect, thanks!
+>
+> Should the SPDX identifier list the original LGPL-2.1 license instead
+> of GPL-2.0?
+Yes, I removed full Licenses' description:
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version
 
-Christian
+I'll change it to:
+// SPDX-License-Identifier: LGPL-2.1
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
