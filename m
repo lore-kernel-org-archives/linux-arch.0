@@ -1,47 +1,173 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] csky: Improve abiv1 mem ops performance with glibc codes
-Date: Mon, 1 Jul 2019 17:46:09 +0200
-Message-ID: <CAK8P3a1j+4u_xdP45rEX7H+m+ttd9AEjeL0ittRZjtKN5fApDw@mail.gmail.com>
-References: <1561786601-19512-1-git-send-email-guoren@kernel.org>
- <CAK8P3a0F5-wtJHbLvEwUXE8EnALMpQb5KeX4FK3S90Ce81oN-Q@mail.gmail.com> <CAJF2gTR7ooY=gxKW2zWK9MnuJ9YDm_1r6QTdJ=A=WqRDTuecRQ@mail.gmail.com>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [RFC PATCH] binfmt_elf: Extract .note.gnu.property from an ELF file
+Date: Mon, 1 Jul 2019 21:49:28 +0200
+Message-ID: <CAG48ez0rHHfcRgiVZf5FP0YOzxsXigvpg6ci790cmiN6PBwkhQ@mail.gmail.com>
+References: <20190628172203.797-1-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAJF2gTR7ooY=gxKW2zWK9MnuJ9YDm_1r6QTdJ=A=WqRDTuecRQ@mail.gmail.com>
+In-Reply-To: <20190628172203.797-1-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <guoren@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org, Guo Ren <ren_guo@c-sky.com>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kr>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 1, 2019 at 5:26 PM Guo Ren <guoren@kernel.org> wrote:
-> On Mon, Jul 1, 2019 at 10:52 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > On Sat, Jun 29, 2019 at 7:36 AM <guoren@kernel.org> wrote:
-> > >
-> > > From: Guo Ren <ren_guo@c-sky.com>
-> > >
-> > > These codes are copied from glibc/string directory, they are the generic
-> > > implementation for string operations. We may further optimize them with
-> > > assembly code in the future.
-> > >
-> > > In fact these code isn't tested enough for kernel, but we've tested them
-> > > on glibc and it seems good. We just trust them :)
-> >
-> > Are these files from the architecture independent portion of glibc or
-> > are they csky specific? If they are architecture independent, we might
-> > want to see if they make sense for other architectures as well, and
-> > add them to lib/ rather than arch/csky/lib/
-> They are just copied from glibc-2.28/string/*.c and they are generic.
-> OK, I'll try to add them to lib/.
+On Fri, Jun 28, 2019 at 7:30 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+[...]
+> In the discussion, we decided to look at only an ELF header's
+> PT_GNU_PROPERTY, which is a shortcut pointing to the file's
+> .note.gnu.property.
+>
+> The Linux gABI extension draft is here:
+>
+>     https://github.com/hjl-tools/linux-abi/wiki/linux-abi-draft.pdf.
+>
+> A few existing CET-enabled binary files were built without
+> PT_GNU_PROPERTY; but those files' .note.gnu.property are checked by
+> ld-linux, not Linux.  The compatibility impact from this change is
+> therefore managable.
+>
+> An ELF file's .note.gnu.property indicates features the executable file
+> can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
+> indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
+> GNU_PROPERTY_X86_FEATURE_1_SHSTK.
+>
+> With this patch, if an arch needs to setup features from ELF properties,
+> it needs CONFIG_ARCH_USE_GNU_PROPERTY to be set, and specific
+> arch_parse_property() and arch_setup_property().
+[...]
+> +typedef bool (test_item_fn)(void *buf, u32 *arg, u32 type);
+> +typedef void *(next_item_fn)(void *buf, u32 *arg, u32 type);
+> +
+> +static bool test_property(void *buf, u32 *max_type, u32 pr_type)
+> +{
+> +       struct gnu_property *pr = buf;
+> +
+> +       /*
+> +        * Property types must be in ascending order.
+> +        * Keep track of the max when testing each.
+> +        */
+> +       if (pr->pr_type > *max_type)
+> +               *max_type = pr->pr_type;
+> +
+> +       return (pr->pr_type == pr_type);
+> +}
+> +
+> +static void *next_property(void *buf, u32 *max_type, u32 pr_type)
+> +{
+> +       struct gnu_property *pr = buf;
+> +
+> +       if ((buf + sizeof(*pr) + pr->pr_datasz < buf) ||
 
-Ok. Note that lib/string.c contains very basic versions of these already,
-so please see which of the functions you have actually make a
-difference in practice over those (if you haven't done that already).
+This looks like UB to me, see below.
 
-Otherwise you can probably follow the example of the libgcc functions
-in lib/ashldi3.c etc: add a Kconfig symbol like CONFIG_GENERIC_LIB_ASHLDI3
-for each function you had, put the glibc version into a new file, and allow
-architectures to select them individually, which in turn should
-replace the version from lib/string.c.
+> +           (pr->pr_type > pr_type) ||
+> +           (pr->pr_type > *max_type))
+> +               return NULL;
+> +       else
+> +               return (buf + sizeof(*pr) + pr->pr_datasz);
+> +}
+> +
+> +/*
+> + * Scan 'buf' for a pattern; return true if found.
+> + * *pos is the distance from the beginning of buf to where
+> + * the searched item or the next item is located.
+> + */
+> +static int scan(u8 *buf, u32 buf_size, int item_size, test_item_fn test_item,
+> +               next_item_fn next_item, u32 *arg, u32 type, u32 *pos)
+> +{
+> +       int found = 0;
+> +       u8 *p, *max;
+> +
+> +       max = buf + buf_size;
+> +       if (max < buf)
+> +               return 0;
 
-       Arnd
+How can this ever legitimately happen? If it can't, perhaps you meant
+to put a WARN_ON_ONCE() or something like that here?
+Also, computing out-of-bounds pointers is UB (section 6.5.6 of C99:
+"If both the pointer operand and the result point to elements of the
+same array object, or one past the last element of the array object,
+the evaluation shall not produce an overflow; otherwise, the behavior
+is undefined."), and if the addition makes the pointer wrap, that's
+certainly out of bounds; so I don't think this condition can trigger
+without UB.
+
+> +
+> +       p = buf;
+> +
+> +       while ((p + item_size < max) && (p + item_size > buf)) {
+
+Again, as far as I know, this is technically UB. Please rewrite this.
+For example, you could do something like:
+
+    while (max - p >= item_size) {
+
+and then make sure that next_item() never computes OOB pointers.
+
+> +               if (test_item(p, arg, type)) {
+> +                       found = 1;
+> +                       break;
+> +               }
+> +
+> +               p = next_item(p, arg, type);
+> +       }
+> +
+> +       *pos = (p + item_size <= buf) ? 0 : (u32)(p - buf);
+> +       return found;
+> +}
+> +
+> +/*
+> + * Search an NT_GNU_PROPERTY_TYPE_0 for the property of 'pr_type'.
+> + */
+> +static int find_property(u32 pr_type, u32 *property, struct file *file,
+> +                        loff_t file_offset, unsigned long desc_size)
+> +{
+> +       u8 *buf;
+> +       int buf_size;
+> +
+> +       u32 buf_pos;
+> +       unsigned long read_size;
+> +       unsigned long done;
+> +       int found = 0;
+> +       int ret = 0;
+> +       u32 last_pr = 0;
+> +
+> +       *property = 0;
+> +       buf_pos = 0;
+> +
+> +       buf_size = (desc_size > PAGE_SIZE) ? PAGE_SIZE : desc_size;
+
+open-coded min(desc_size, PAGE_SIZE)
+
+> +       buf = kmalloc(buf_size, GFP_KERNEL);
+> +       if (!buf)
+> +               return -ENOMEM;
+> +
+> +       for (done = 0; done < desc_size; done += buf_pos) {
+> +               read_size = desc_size - done;
+> +               if (read_size > buf_size)
+> +                       read_size = buf_size;
+> +
+> +               ret = kernel_read(file, buf, read_size, &file_offset);
+> +
+> +               if (ret != read_size)
+> +                       return (ret < 0) ? ret : -EIO;
+
+This leaks the memory allocated for `buf`.
+
+> +
+> +               ret = 0;
+> +               found = scan(buf, read_size, sizeof(struct gnu_property),
+> +                            test_property, next_property,
+> +                            &last_pr, pr_type, &buf_pos);
+> +
+> +               if ((!buf_pos) || found)
+> +                       break;
+> +
+> +               file_offset += buf_pos - read_size;
+> +       }
+[...]
+> +       kfree(buf);
+> +       return ret;
+> +}
