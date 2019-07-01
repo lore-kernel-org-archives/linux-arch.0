@@ -1,190 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:28005 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726586AbfGAT6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jul 2019 15:58:10 -0400
-Message-ID: <ddba04d98c31963784231869088a37fe3ccefd09.camel@intel.com>
-Subject: Re: [RFC PATCH] binfmt_elf: Extract .note.gnu.property from an ELF
- file
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Mon, 01 Jul 2019 12:49:51 -0700
-In-Reply-To: <CAG48ez0rHHfcRgiVZf5FP0YOzxsXigvpg6ci790cmiN6PBwkhQ@mail.gmail.com>
-References: <20190628172203.797-1-yu-cheng.yu@intel.com>
-         <CAG48ez0rHHfcRgiVZf5FP0YOzxsXigvpg6ci790cmiN6PBwkhQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:46444 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726652AbfGAUF4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jul 2019 16:05:56 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: single copy atomicity for double load/stores on 32-bit systems
+Date: Mon, 1 Jul 2019 20:05:51 +0000
+Message-ID: <73510bc7-8386-746c-ed1e-422fb5adaec5@synopsys.com>
+References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
+ <20190531082112.GH2623@hirez.programming.kicks-ass.net>
+In-Reply-To: <20190531082112.GH2623@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <294D3C562614794FA2E2F2E3C0D1A171@namprd12.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190701194951.wh4UTRpreKfQtH7ynDT2PDbhSTHg5q_zVtGwt9rdUcc@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <Will.Deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190701200551.pplaW5tHY3m7-mqzUnL-1YA5J5ROIqSMfDySZ_xZPx4@z>
 
-On Mon, 2019-07-01 at 21:49 +0200, Jann Horn wrote:
-> On Fri, Jun 28, 2019 at 7:30 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> [...]
-> > In the discussion, we decided to look at only an ELF header's
-> > PT_GNU_PROPERTY, which is a shortcut pointing to the file's
-> > .note.gnu.property.
-> > 
-> > The Linux gABI extension draft is here:
-> > 
-> >     https://github.com/hjl-tools/linux-abi/wiki/linux-abi-draft.pdf.
-> > 
-> > A few existing CET-enabled binary files were built without
-> > PT_GNU_PROPERTY; but those files' .note.gnu.property are checked by
-> > ld-linux, not Linux.  The compatibility impact from this change is
-> > therefore managable.
-> > 
-> > An ELF file's .note.gnu.property indicates features the executable file
-> > can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
-> > indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
-> > GNU_PROPERTY_X86_FEATURE_1_SHSTK.
-> > 
-> > With this patch, if an arch needs to setup features from ELF properties,
-> > it needs CONFIG_ARCH_USE_GNU_PROPERTY to be set, and specific
-> > arch_parse_property() and arch_setup_property().
-> 
-> [...]
-> > +typedef bool (test_item_fn)(void *buf, u32 *arg, u32 type);
-> > +typedef void *(next_item_fn)(void *buf, u32 *arg, u32 type);
-> > +
-> > +static bool test_property(void *buf, u32 *max_type, u32 pr_type)
-> > +{
-> > +       struct gnu_property *pr = buf;
-> > +
-> > +       /*
-> > +        * Property types must be in ascending order.
-> > +        * Keep track of the max when testing each.
-> > +        */
-> > +       if (pr->pr_type > *max_type)
-> > +               *max_type = pr->pr_type;
-> > +
-> > +       return (pr->pr_type == pr_type);
-> > +}
-> > +
-> > +static void *next_property(void *buf, u32 *max_type, u32 pr_type)
-> > +{
-> > +       struct gnu_property *pr = buf;
-> > +
-> > +       if ((buf + sizeof(*pr) + pr->pr_datasz < buf) ||
-> 
-> This looks like UB to me, see below.
-> 
-> > +           (pr->pr_type > pr_type) ||
-> > +           (pr->pr_type > *max_type))
-> > +               return NULL;
-> > +       else
-> > +               return (buf + sizeof(*pr) + pr->pr_datasz);
-> > +}
-> > +
-> > +/*
-> > + * Scan 'buf' for a pattern; return true if found.
-> > + * *pos is the distance from the beginning of buf to where
-> > + * the searched item or the next item is located.
-> > + */
-> > +static int scan(u8 *buf, u32 buf_size, int item_size, test_item_fn
-> > test_item,
-> > +               next_item_fn next_item, u32 *arg, u32 type, u32 *pos)
-> > +{
-> > +       int found = 0;
-> > +       u8 *p, *max;
-> > +
-> > +       max = buf + buf_size;
-> > +       if (max < buf)
-> > +               return 0;
-> 
-> How can this ever legitimately happen? If it can't, perhaps you meant
-> to put a WARN_ON_ONCE() or something like that here?
-> Also, computing out-of-bounds pointers is UB (section 6.5.6 of C99:
-> "If both the pointer operand and the result point to elements of the
-> same array object, or one past the last element of the array object,
-> the evaluation shall not produce an overflow; otherwise, the behavior
-> is undefined."), and if the addition makes the pointer wrap, that's
-> certainly out of bounds; so I don't think this condition can trigger
-> without UB.
-> 
-> > +
-> > +       p = buf;
-> > +
-> > +       while ((p + item_size < max) && (p + item_size > buf)) {
-> 
-> Again, as far as I know, this is technically UB. Please rewrite this.
-> For example, you could do something like:
-> 
->     while (max - p >= item_size) {
-> 
-> and then make sure that next_item() never computes OOB pointers.
-> 
-> > +               if (test_item(p, arg, type)) {
-> > +                       found = 1;
-> > +                       break;
-> > +               }
-> > +
-> > +               p = next_item(p, arg, type);
-> > +       }
-> > +
-> > +       *pos = (p + item_size <= buf) ? 0 : (u32)(p - buf);
-> > +       return found;
-> > +}
-> > +
-> > +/*
-> > + * Search an NT_GNU_PROPERTY_TYPE_0 for the property of 'pr_type'.
-> > + */
-> > +static int find_property(u32 pr_type, u32 *property, struct file *file,
-> > +                        loff_t file_offset, unsigned long desc_size)
-> > +{
-> > +       u8 *buf;
-> > +       int buf_size;
-> > +
-> > +       u32 buf_pos;
-> > +       unsigned long read_size;
-> > +       unsigned long done;
-> > +       int found = 0;
-> > +       int ret = 0;
-> > +       u32 last_pr = 0;
-> > +
-> > +       *property = 0;
-> > +       buf_pos = 0;
-> > +
-> > +       buf_size = (desc_size > PAGE_SIZE) ? PAGE_SIZE : desc_size;
-> 
-> open-coded min(desc_size, PAGE_SIZE)
-> 
-> > +       buf = kmalloc(buf_size, GFP_KERNEL);
-> > +       if (!buf)
-> > +               return -ENOMEM;
-> > +
-> > +       for (done = 0; done < desc_size; done += buf_pos) {
-> > +               read_size = desc_size - done;
-> > +               if (read_size > buf_size)
-> > +                       read_size = buf_size;
-> > +
-> > +               ret = kernel_read(file, buf, read_size, &file_offset);
-> > +
-> > +               if (ret != read_size)
-> > +                       return (ret < 0) ? ret : -EIO;
-> 
-> This leaks the memory allocated for `buf`.
-> 
-> > +
-> > +               ret = 0;
-> > +               found = scan(buf, read_size, sizeof(struct gnu_property),
-> > +                            test_property, next_property,
-> > +                            &last_pr, pr_type, &buf_pos);
-> > +
-> > +               if ((!buf_pos) || found)
-> > +                       break;
-> > +
-> > +               file_offset += buf_pos - read_size;
-> > +       }
-> 
-> [...]
-> > +       kfree(buf);
-> > +       return ret;
-> > +}
-
-I will fix these.
-
-Thanks,
-Yu-cheng
+T24gNS8zMS8xOSAxOjIxIEFNLCBQZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gVGh1LCBNYXkg
+MzAsIDIwMTkgYXQgMTE6MjI6NDJBTSAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPj4gSGkg
+UGV0ZXIsDQo+Pg0KPj4gSGFkIGFuIGludGVyZXN0aW5nIGx1bmNoIHRpbWUgZGlzY3Vzc2lvbiB3
+aXRoIG91ciBoYXJkd2FyZSBhcmNoaXRlY3RzIHBlcnRpbmVudCB0bw0KPj4gIm1pbmltYWwgZ3Vh
+cmFudGVlcyBleHBlY3RlZCBvZiBhIENQVSIgc2VjdGlvbiBvZiBtZW1vcnktYmFycmllcnMudHh0
+DQo+Pg0KPj4NCj4+IHwgICgqKSBUaGVzZSBndWFyYW50ZWVzIGFwcGx5IG9ubHkgdG8gcHJvcGVy
+bHkgYWxpZ25lZCBhbmQgc2l6ZWQgc2NhbGFyDQo+PiB8ICAgICB2YXJpYWJsZXMuICAiUHJvcGVy
+bHkgc2l6ZWQiIGN1cnJlbnRseSBtZWFucyB2YXJpYWJsZXMgdGhhdCBhcmUNCj4+IHwgICAgIHRo
+ZSBzYW1lIHNpemUgYXMgImNoYXIiLCAic2hvcnQiLCAiaW50IiBhbmQgImxvbmciLiAgIlByb3Bl
+cmx5DQo+PiB8ICAgICBhbGlnbmVkIiBtZWFucyB0aGUgbmF0dXJhbCBhbGlnbm1lbnQsIHRodXMg
+bm8gY29uc3RyYWludHMgZm9yDQo+PiB8ICAgICAiY2hhciIsIHR3by1ieXRlIGFsaWdubWVudCBm
+b3IgInNob3J0IiwgZm91ci1ieXRlIGFsaWdubWVudCBmb3INCj4+IHwgICAgICJpbnQiLCBhbmQg
+ZWl0aGVyIGZvdXItYnl0ZSBvciBlaWdodC1ieXRlIGFsaWdubWVudCBmb3IgImxvbmciLA0KPj4g
+fCAgICAgb24gMzItYml0IGFuZCA2NC1iaXQgc3lzdGVtcywgcmVzcGVjdGl2ZWx5Lg0KPj4NCj4+
+DQo+PiBJJ20gbm90IHN1cmUgaG93IHRvIGludGVycHJldCAibmF0dXJhbCBhbGlnbm1lbnQiIGZv
+ciB0aGUgY2FzZSBvZiBkb3VibGUNCj4+IGxvYWQvc3RvcmVzIG9uIDMyLWJpdCBzeXN0ZW1zIHdo
+ZXJlIHRoZSBoYXJkd2FyZSBhbmQgQUJJIGFsbG93IGZvciA0IGJ5dGUNCj4+IGFsaWdubWVudCAo
+QVJDdjIgTEREL1NURCwgQVJNIExEUkQvU1RSRCAuLi4uKQ0KPiANCj4gTmF0dXJhbCBhbGlnbm1l
+bnQ6ICEoKHVpbnRwdHJfdClwdHIgJSBzaXplb2YoKnB0cikpDQo+IA0KPiBGb3IgYW55IHU2NCB0
+eXBlLCB0aGF0IHdvdWxkIGdpdmUgOCBieXRlIGFsaWdubWVudC4gdGhlIHByb2JsZW0NCj4gb3Ro
+ZXJ3aXNlIGJlaW5nIHRoYXQgeW91ciBkYXRhIHNwYW5zIHR3byBsaW5lcy9wYWdlcyBldGMuLg0K
+PiANCj4+IEkgcHJlc3VtZSAoYW5kIHRoZSBxdWVzdGlvbikgdGhhdCBsa21tIGRvZXNuJ3QgZXhw
+ZWN0IHN1Y2ggOCBieXRlIGxvYWQvc3RvcmVzIHRvDQo+PiBiZSBhdG9taWMgdW5sZXNzIDgtYnl0
+ZSBhbGlnbmVkDQo+Pg0KPj4gQVJNdjcgYXJjaCByZWYgbWFudWFsIHNlZW1zIHRvIGNvbmZpcm0g
+dGhpcy4gUXVvdGluZw0KPj4NCj4+IHwgTERNLCBMREMsIExEQzIsIExEUkQsIFNUTSwgU1RDLCBT
+VEMyLCBTVFJELCBQVVNILCBQT1AsIFJGRSwgU1JTLCBWTERNLCBWTERSLA0KPj4gfCBWU1RNLCBh
+bmQgVlNUUiBpbnN0cnVjdGlvbnMgYXJlIGV4ZWN1dGVkIGFzIGEgc2VxdWVuY2Ugb2Ygd29yZC1h
+bGlnbmVkIHdvcmQNCj4+IHwgYWNjZXNzZXMuIEVhY2ggMzItYml0IHdvcmQgYWNjZXNzIGlzIGd1
+YXJhbnRlZWQgdG8gYmUgc2luZ2xlLWNvcHkgYXRvbWljLiBBDQo+PiB8IHN1YnNlcXVlbmNlIG9m
+IHR3byBvciBtb3JlIHdvcmQgYWNjZXNzZXMgZnJvbSB0aGUgc2VxdWVuY2UgbWlnaHQgbm90IGV4
+aGliaXQNCj4+IHwgc2luZ2xlLWNvcHkgYXRvbWljaXR5DQo+Pg0KPj4gV2hpbGUgaXQgc2VlbXMg
+cmVhc29uYWJsZSBmb3JtIGhhcmR3YXJlIHBvdiB0byBub3QgaW1wbGVtZW50IHN1Y2ggYXRvbWlj
+aXR5IGJ5DQo+PiBkZWZhdWx0IGl0IHNlZW1zIHRoZXJlJ3MgYW4gYWRkaXRpb25hbCBidXJkZW4g
+b24gYXBwbGljYXRpb24gd3JpdGVycy4gVGhleSBjb3VsZA0KPj4gYmUgaGFwcGlseSB1c2luZyBh
+IGxvY2tsZXNzIGFsZ29yaXRobSB3aXRoIGp1c3QgYSBzaGFyZWQgZmxhZyBiZXR3ZWVuIDIgdGhy
+ZWFkcw0KPj4gdy9vIG5lZWQgZm9yIGFueSBleHBsaWNpdCBzeW5jaHJvbml6YXRpb24uDQo+IA0K
+PiBJZiB5b3UncmUgdGhhdCBjYXJlbGVzcyB3aXRoIGxvY2tsZXNzIGNvZGUsIHlvdSBkZXNlcnZl
+IGFsbCB0aGUgcGFpbiB5b3UNCj4gZ2V0Lg0KPiANCj4+IEJ1dCB1cGdyYWRlIHRvIGEgbmV3IGNv
+bXBpbGVyIHdoaWNoDQo+PiBhZ2dyZXNzaXZlbHkgInBhY2tzIiBzdHJ1Y3QgcmVuZGVyaW5nIGxv
+bmcgbG9uZyAzMi1iaXQgYWxpZ25lZCAodnMuIDY0LWJpdCBiZWZvcmUpDQo+PiBjYXVzaW5nIHRo
+ZSBjb2RlIHRvIHN1ZGRlbmx5IHN0b3Agd29ya2luZy4gSXMgdGhlIG9udXMgb24gdGhlbSB0byBk
+ZWNsYXJlIHN1Y2gNCj4+IG1lbW9yeSBhcyBjMTEgYXRvbWljIG9yIHNvbWUgc3VjaC4NCj4gDQo+
+IFdoZW4gYSBwcm9ncmFtbWVyIHdhbnRzIGd1YXJhbnRlZXMgdGhleSBhbHJlYWR5IG5lZWQgdG8g
+a25vdyB3dGggdGhleSdyZQ0KPiBkb2luZy4NCj4gDQo+IEFuZCBJJ2xsIHN0YW5kIGJ5IG15IGVh
+cmxpZXIgY29udmljdGlvbiB0aGF0IGFueSBhcmNoaXRlY3R1cmUgdGhhdCBoYXMgYQ0KPiBuYXRp
+dmUgdTY0IChiZSBpdCBhIDY0Yml0IGFyY2ggb3IgYSAzMmJpdCB3aXRoIGRvdWJsZS13aWR0aA0K
+PiBpbnN0cnVjdGlvbnMpIGJ1dCBoYXMgYW4gQUJJIHRoYXQgYWxsb3dzIHUzMiBhbGlnbm1lbnQg
+b24gdGhlbSBpcyBkYWZ0Lg0KDQpTbyBJIGFncmVlIHdpdGggUGF1bCdzIGFzc2VydGlvbiB0aGF0
+IGl0IGlzIHN0cmFuZ2UgZm9yIDgtYnl0ZSB0eXBlIGJlaW5nIDQtYnl0ZQ0KYWxpZ25lZCBvbiBh
+IDY0LWJpdCBzeXN0ZW0sIGJ1dCBpcyBpdCB0b3RhbGx5IGJyb2tlbiBldmVuIGlmIHRoZSBJU0Eg
+b2YgdGhlIHNhaWQNCjY0LWJpdCBhcmNoIGFsbG93cyBMRC9TVCB0byBiZSBhdWdtZW50ZWQgd2l0
+aCBhY3EvcmVsIHJlc3BlY3RpdmVseS4NCg0KU2F5IHRoZSBJU0EgZ3VhcmFudGVlcyBzaW5nbGUt
+Y29weSBhdG9taWNpdHkgZm9yIGFsaWduZWQgY2FzZXMgKGkuZS4gZm9yIDgtYnl0ZQ0KZGF0YSBv
+bmx5IGlmIGl0IGlzIG5hdHVyYWxseSBhbGlnbmVkKSBhbmQgaW4gbGFjayB0aGVyZW9mIHByb2dy
+YW1tZXIgbmVlZHMgdG8gdXNlDQp0aGUgcHJvcGVyIGFjcS9yZWxlYXNlDQoNCkluIG15IGVhcmxp
+ZXIgZXhhbXBsZSBvbiBsb2NrbGVzcyBjb2RlLCB3ZSBkbyBhc3N1bWUgdGhhdCBwcm9ncmFtbWVy
+IHdpbGwgdXNlIGENCnJlbGVhc2UgaW4gdGhlIHVwZGF0ZSBvZiBmbGFnLg0K
