@@ -1,80 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:46444 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726652AbfGAUF4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jul 2019 16:05:56 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: single copy atomicity for double load/stores on 32-bit systems
-Date: Mon, 1 Jul 2019 20:05:51 +0000
-Message-ID: <73510bc7-8386-746c-ed1e-422fb5adaec5@synopsys.com>
-References: <2fd3a455-6267-5d21-c530-41964a4f6ce9@synopsys.com>
- <20190531082112.GH2623@hirez.programming.kicks-ass.net>
-In-Reply-To: <20190531082112.GH2623@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <294D3C562614794FA2E2F2E3C0D1A171@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32810 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726586AbfGAVj7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jul 2019 17:39:59 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x61Lb484124845
+        for <linux-arch@vger.kernel.org>; Mon, 1 Jul 2019 17:39:58 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2tft458dq1-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 01 Jul 2019 17:39:58 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 1 Jul 2019 22:39:57 +0100
+Date: Mon, 1 Jul 2019 14:39:56 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH] tools/memory-model: Update the informal documentation
+Reply-To: paulmck@linux.ibm.com
+References: <1561842644-5354-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <Pine.LNX.4.44L0.1907011012230.1536-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1907011012230.1536-100000@iolanthe.rowland.org>
+Message-ID: <20190701213956.GU26519@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <Will.Deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190701200551.pplaW5tHY3m7-mqzUnL-1YA5J5ROIqSMfDySZ_xZPx4@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20190701213956.pc4p_gkEe3QdUcKmCJFpjH4QtTtFViXpNCbEk0tZoR0@z>
 
-T24gNS8zMS8xOSAxOjIxIEFNLCBQZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gVGh1LCBNYXkg
-MzAsIDIwMTkgYXQgMTE6MjI6NDJBTSAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPj4gSGkg
-UGV0ZXIsDQo+Pg0KPj4gSGFkIGFuIGludGVyZXN0aW5nIGx1bmNoIHRpbWUgZGlzY3Vzc2lvbiB3
-aXRoIG91ciBoYXJkd2FyZSBhcmNoaXRlY3RzIHBlcnRpbmVudCB0bw0KPj4gIm1pbmltYWwgZ3Vh
-cmFudGVlcyBleHBlY3RlZCBvZiBhIENQVSIgc2VjdGlvbiBvZiBtZW1vcnktYmFycmllcnMudHh0
-DQo+Pg0KPj4NCj4+IHwgICgqKSBUaGVzZSBndWFyYW50ZWVzIGFwcGx5IG9ubHkgdG8gcHJvcGVy
-bHkgYWxpZ25lZCBhbmQgc2l6ZWQgc2NhbGFyDQo+PiB8ICAgICB2YXJpYWJsZXMuICAiUHJvcGVy
-bHkgc2l6ZWQiIGN1cnJlbnRseSBtZWFucyB2YXJpYWJsZXMgdGhhdCBhcmUNCj4+IHwgICAgIHRo
-ZSBzYW1lIHNpemUgYXMgImNoYXIiLCAic2hvcnQiLCAiaW50IiBhbmQgImxvbmciLiAgIlByb3Bl
-cmx5DQo+PiB8ICAgICBhbGlnbmVkIiBtZWFucyB0aGUgbmF0dXJhbCBhbGlnbm1lbnQsIHRodXMg
-bm8gY29uc3RyYWludHMgZm9yDQo+PiB8ICAgICAiY2hhciIsIHR3by1ieXRlIGFsaWdubWVudCBm
-b3IgInNob3J0IiwgZm91ci1ieXRlIGFsaWdubWVudCBmb3INCj4+IHwgICAgICJpbnQiLCBhbmQg
-ZWl0aGVyIGZvdXItYnl0ZSBvciBlaWdodC1ieXRlIGFsaWdubWVudCBmb3IgImxvbmciLA0KPj4g
-fCAgICAgb24gMzItYml0IGFuZCA2NC1iaXQgc3lzdGVtcywgcmVzcGVjdGl2ZWx5Lg0KPj4NCj4+
-DQo+PiBJJ20gbm90IHN1cmUgaG93IHRvIGludGVycHJldCAibmF0dXJhbCBhbGlnbm1lbnQiIGZv
-ciB0aGUgY2FzZSBvZiBkb3VibGUNCj4+IGxvYWQvc3RvcmVzIG9uIDMyLWJpdCBzeXN0ZW1zIHdo
-ZXJlIHRoZSBoYXJkd2FyZSBhbmQgQUJJIGFsbG93IGZvciA0IGJ5dGUNCj4+IGFsaWdubWVudCAo
-QVJDdjIgTEREL1NURCwgQVJNIExEUkQvU1RSRCAuLi4uKQ0KPiANCj4gTmF0dXJhbCBhbGlnbm1l
-bnQ6ICEoKHVpbnRwdHJfdClwdHIgJSBzaXplb2YoKnB0cikpDQo+IA0KPiBGb3IgYW55IHU2NCB0
-eXBlLCB0aGF0IHdvdWxkIGdpdmUgOCBieXRlIGFsaWdubWVudC4gdGhlIHByb2JsZW0NCj4gb3Ro
-ZXJ3aXNlIGJlaW5nIHRoYXQgeW91ciBkYXRhIHNwYW5zIHR3byBsaW5lcy9wYWdlcyBldGMuLg0K
-PiANCj4+IEkgcHJlc3VtZSAoYW5kIHRoZSBxdWVzdGlvbikgdGhhdCBsa21tIGRvZXNuJ3QgZXhw
-ZWN0IHN1Y2ggOCBieXRlIGxvYWQvc3RvcmVzIHRvDQo+PiBiZSBhdG9taWMgdW5sZXNzIDgtYnl0
-ZSBhbGlnbmVkDQo+Pg0KPj4gQVJNdjcgYXJjaCByZWYgbWFudWFsIHNlZW1zIHRvIGNvbmZpcm0g
-dGhpcy4gUXVvdGluZw0KPj4NCj4+IHwgTERNLCBMREMsIExEQzIsIExEUkQsIFNUTSwgU1RDLCBT
-VEMyLCBTVFJELCBQVVNILCBQT1AsIFJGRSwgU1JTLCBWTERNLCBWTERSLA0KPj4gfCBWU1RNLCBh
-bmQgVlNUUiBpbnN0cnVjdGlvbnMgYXJlIGV4ZWN1dGVkIGFzIGEgc2VxdWVuY2Ugb2Ygd29yZC1h
-bGlnbmVkIHdvcmQNCj4+IHwgYWNjZXNzZXMuIEVhY2ggMzItYml0IHdvcmQgYWNjZXNzIGlzIGd1
-YXJhbnRlZWQgdG8gYmUgc2luZ2xlLWNvcHkgYXRvbWljLiBBDQo+PiB8IHN1YnNlcXVlbmNlIG9m
-IHR3byBvciBtb3JlIHdvcmQgYWNjZXNzZXMgZnJvbSB0aGUgc2VxdWVuY2UgbWlnaHQgbm90IGV4
-aGliaXQNCj4+IHwgc2luZ2xlLWNvcHkgYXRvbWljaXR5DQo+Pg0KPj4gV2hpbGUgaXQgc2VlbXMg
-cmVhc29uYWJsZSBmb3JtIGhhcmR3YXJlIHBvdiB0byBub3QgaW1wbGVtZW50IHN1Y2ggYXRvbWlj
-aXR5IGJ5DQo+PiBkZWZhdWx0IGl0IHNlZW1zIHRoZXJlJ3MgYW4gYWRkaXRpb25hbCBidXJkZW4g
-b24gYXBwbGljYXRpb24gd3JpdGVycy4gVGhleSBjb3VsZA0KPj4gYmUgaGFwcGlseSB1c2luZyBh
-IGxvY2tsZXNzIGFsZ29yaXRobSB3aXRoIGp1c3QgYSBzaGFyZWQgZmxhZyBiZXR3ZWVuIDIgdGhy
-ZWFkcw0KPj4gdy9vIG5lZWQgZm9yIGFueSBleHBsaWNpdCBzeW5jaHJvbml6YXRpb24uDQo+IA0K
-PiBJZiB5b3UncmUgdGhhdCBjYXJlbGVzcyB3aXRoIGxvY2tsZXNzIGNvZGUsIHlvdSBkZXNlcnZl
-IGFsbCB0aGUgcGFpbiB5b3UNCj4gZ2V0Lg0KPiANCj4+IEJ1dCB1cGdyYWRlIHRvIGEgbmV3IGNv
-bXBpbGVyIHdoaWNoDQo+PiBhZ2dyZXNzaXZlbHkgInBhY2tzIiBzdHJ1Y3QgcmVuZGVyaW5nIGxv
-bmcgbG9uZyAzMi1iaXQgYWxpZ25lZCAodnMuIDY0LWJpdCBiZWZvcmUpDQo+PiBjYXVzaW5nIHRo
-ZSBjb2RlIHRvIHN1ZGRlbmx5IHN0b3Agd29ya2luZy4gSXMgdGhlIG9udXMgb24gdGhlbSB0byBk
-ZWNsYXJlIHN1Y2gNCj4+IG1lbW9yeSBhcyBjMTEgYXRvbWljIG9yIHNvbWUgc3VjaC4NCj4gDQo+
-IFdoZW4gYSBwcm9ncmFtbWVyIHdhbnRzIGd1YXJhbnRlZXMgdGhleSBhbHJlYWR5IG5lZWQgdG8g
-a25vdyB3dGggdGhleSdyZQ0KPiBkb2luZy4NCj4gDQo+IEFuZCBJJ2xsIHN0YW5kIGJ5IG15IGVh
-cmxpZXIgY29udmljdGlvbiB0aGF0IGFueSBhcmNoaXRlY3R1cmUgdGhhdCBoYXMgYQ0KPiBuYXRp
-dmUgdTY0IChiZSBpdCBhIDY0Yml0IGFyY2ggb3IgYSAzMmJpdCB3aXRoIGRvdWJsZS13aWR0aA0K
-PiBpbnN0cnVjdGlvbnMpIGJ1dCBoYXMgYW4gQUJJIHRoYXQgYWxsb3dzIHUzMiBhbGlnbm1lbnQg
-b24gdGhlbSBpcyBkYWZ0Lg0KDQpTbyBJIGFncmVlIHdpdGggUGF1bCdzIGFzc2VydGlvbiB0aGF0
-IGl0IGlzIHN0cmFuZ2UgZm9yIDgtYnl0ZSB0eXBlIGJlaW5nIDQtYnl0ZQ0KYWxpZ25lZCBvbiBh
-IDY0LWJpdCBzeXN0ZW0sIGJ1dCBpcyBpdCB0b3RhbGx5IGJyb2tlbiBldmVuIGlmIHRoZSBJU0Eg
-b2YgdGhlIHNhaWQNCjY0LWJpdCBhcmNoIGFsbG93cyBMRC9TVCB0byBiZSBhdWdtZW50ZWQgd2l0
-aCBhY3EvcmVsIHJlc3BlY3RpdmVseS4NCg0KU2F5IHRoZSBJU0EgZ3VhcmFudGVlcyBzaW5nbGUt
-Y29weSBhdG9taWNpdHkgZm9yIGFsaWduZWQgY2FzZXMgKGkuZS4gZm9yIDgtYnl0ZQ0KZGF0YSBv
-bmx5IGlmIGl0IGlzIG5hdHVyYWxseSBhbGlnbmVkKSBhbmQgaW4gbGFjayB0aGVyZW9mIHByb2dy
-YW1tZXIgbmVlZHMgdG8gdXNlDQp0aGUgcHJvcGVyIGFjcS9yZWxlYXNlDQoNCkluIG15IGVhcmxp
-ZXIgZXhhbXBsZSBvbiBsb2NrbGVzcyBjb2RlLCB3ZSBkbyBhc3N1bWUgdGhhdCBwcm9ncmFtbWVy
-IHdpbGwgdXNlIGENCnJlbGVhc2UgaW4gdGhlIHVwZGF0ZSBvZiBmbGFnLg0K
+On Mon, Jul 01, 2019 at 10:12:45AM -0400, Alan Stern wrote:
+> On Sat, 29 Jun 2019, Andrea Parri wrote:
+> 
+> > The formal memory consistency model has added support for plain accesses
+> > (and data races).  While updating the informal documentation to describe
+> > this addition to the model is highly desirable and important future work,
+> > update the informal documentation to at least acknowledge such addition.
+> > 
+> > Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > Cc: Alan Stern <stern@rowland.harvard.edu>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Boqun Feng <boqun.feng@gmail.com>
+> > Cc: Nicholas Piggin <npiggin@gmail.com>
+> > Cc: David Howells <dhowells@redhat.com>
+> > Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+> > Cc: Luc Maranget <luc.maranget@inria.fr>
+> > Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+> > Cc: Akira Yokosawa <akiyks@gmail.com>
+> > Cc: Daniel Lustig <dlustig@nvidia.com>
+> > ---
+> 
+> Acked-by: Alan Stern <stern@rowland.harvard.edu>
+
+Applied, thank you both!
+
+							Thanx, Paul
+
+> >  tools/memory-model/Documentation/explanation.txt | 47 +++++++++++-------------
+> >  tools/memory-model/README                        | 18 ++++-----
+> >  2 files changed, 30 insertions(+), 35 deletions(-)
+> > 
+> > diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+> > index 68caa9a976d0c..b42f7cd718242 100644
+> > --- a/tools/memory-model/Documentation/explanation.txt
+> > +++ b/tools/memory-model/Documentation/explanation.txt
+> > @@ -42,7 +42,8 @@ linux-kernel.bell and linux-kernel.cat files that make up the formal
+> >  version of the model; they are extremely terse and their meanings are
+> >  far from clear.
+> >  
+> > -This document describes the ideas underlying the LKMM.  It is meant
+> > +This document describes the ideas underlying the LKMM, but excluding
+> > +the modeling of bare C (or plain) shared memory accesses.  It is meant
+> >  for people who want to understand how the model was designed.  It does
+> >  not go into the details of the code in the .bell and .cat files;
+> >  rather, it explains in English what the code expresses symbolically.
+> > @@ -354,31 +355,25 @@ be extremely complex.
+> >  Optimizing compilers have great freedom in the way they translate
+> >  source code to object code.  They are allowed to apply transformations
+> >  that add memory accesses, eliminate accesses, combine them, split them
+> > -into pieces, or move them around.  Faced with all these possibilities,
+> > -the LKMM basically gives up.  It insists that the code it analyzes
+> > -must contain no ordinary accesses to shared memory; all accesses must
+> > -be performed using READ_ONCE(), WRITE_ONCE(), or one of the other
+> > -atomic or synchronization primitives.  These primitives prevent a
+> > -large number of compiler optimizations.  In particular, it is
+> > -guaranteed that the compiler will not remove such accesses from the
+> > -generated code (unless it can prove the accesses will never be
+> > -executed), it will not change the order in which they occur in the
+> > -code (within limits imposed by the C standard), and it will not
+> > -introduce extraneous accesses.
+> > -
+> > -This explains why the MP and SB examples above used READ_ONCE() and
+> > -WRITE_ONCE() rather than ordinary memory accesses.  Thanks to this
+> > -usage, we can be certain that in the MP example, P0's write event to
+> > -buf really is po-before its write event to flag, and similarly for the
+> > -other shared memory accesses in the examples.
+> > -
+> > -Private variables are not subject to this restriction.  Since they are
+> > -not shared between CPUs, they can be accessed normally without
+> > -READ_ONCE() or WRITE_ONCE(), and there will be no ill effects.  In
+> > -fact, they need not even be stored in normal memory at all -- in
+> > -principle a private variable could be stored in a CPU register (hence
+> > -the convention that these variables have names starting with the
+> > -letter 'r').
+> > +into pieces, or move them around.  The use of READ_ONCE(), WRITE_ONCE(),
+> > +or one of the other atomic or synchronization primitives prevents a
+> > +large number of compiler optimizations.  In particular, it is guaranteed
+> > +that the compiler will not remove such accesses from the generated code
+> > +(unless it can prove the accesses will never be executed), it will not
+> > +change the order in which they occur in the code (within limits imposed
+> > +by the C standard), and it will not introduce extraneous accesses.
+> > +
+> > +The MP and SB examples above used READ_ONCE() and WRITE_ONCE() rather
+> > +than ordinary memory accesses.  Thanks to this usage, we can be certain
+> > +that in the MP example, the compiler won't reorder P0's write event to
+> > +buf and P0's write event to flag, and similarly for the other shared
+> > +memory accesses in the examples.
+> > +
+> > +Since private variables are not shared between CPUs, they can be
+> > +accessed normally without READ_ONCE() or WRITE_ONCE().  In fact, they
+> > +need not even be stored in normal memory at all -- in principle a
+> > +private variable could be stored in a CPU register (hence the convention
+> > +that these variables have names starting with the letter 'r').
+> >  
+> >  
+> >  A WARNING
+> > diff --git a/tools/memory-model/README b/tools/memory-model/README
+> > index 2b87f3971548c..fc07b52f20286 100644
+> > --- a/tools/memory-model/README
+> > +++ b/tools/memory-model/README
+> > @@ -167,15 +167,15 @@ scripts	Various scripts, see scripts/README.
+> >  LIMITATIONS
+> >  ===========
+> >  
+> > -The Linux-kernel memory model has the following limitations:
+> > -
+> > -1.	Compiler optimizations are not modeled.  Of course, the use
+> > -	of READ_ONCE() and WRITE_ONCE() limits the compiler's ability
+> > -	to optimize, but there is Linux-kernel code that uses bare C
+> > -	memory accesses.  Handling this code is on the to-do list.
+> > -	For more information, see Documentation/explanation.txt (in
+> > -	particular, the "THE PROGRAM ORDER RELATION: po AND po-loc"
+> > -	and "A WARNING" sections).
+> > +The Linux-kernel memory model (LKMM) has the following limitations:
+> > +
+> > +1.	Compiler optimizations are not accurately modeled.  Of course,
+> > +	the use of READ_ONCE() and WRITE_ONCE() limits the compiler's
+> > +	ability to optimize, but under some circumstances it is possible
+> > +	for the compiler to undermine the memory model.  For more
+> > +	information, see Documentation/explanation.txt (in particular,
+> > +	the "THE PROGRAM ORDER RELATION: po AND po-loc" and "A WARNING"
+> > +	sections).
+> >  
+> >  	Note that this limitation in turn limits LKMM's ability to
+> >  	accurately model address, control, and data dependencies.
+> > 
+> 
