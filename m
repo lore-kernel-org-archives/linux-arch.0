@@ -1,133 +1,84 @@
-From: Jan Glauber <jglauber@marvell.com>
-Subject: Re: [PATCH v2 0/5] Add NUMA-awareness to qspinlock
-Date: Wed, 3 Jul 2019 11:58:11 +0000
-Message-ID: <CAEiAFz238Ywgn6iDAz9gM_3PgPhs-YuAVDptehUBv7MRRPx8Cw@mail.gmail.com>
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/3] mm: fix the MAP_UNINITIALIZED flag
+Date: Wed,  3 Jul 2019 05:23:57 -0700
+Message-ID: <20190703122359.18200-2-hch@lst.de>
+References: <20190703122359.18200-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190329152006.110370-1-alex.kogan@oracle.com>
-Content-Language: en-US
-Content-ID: <8618D8E8C9EDB64B8668D41F2E521ECB@namprd18.prod.outlook.com>
+In-Reply-To: <20190703122359.18200-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: "linux@armlinux.org.uk" <linux@armlinux.org.uk>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "longman@redhat.com" <longman@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "steven.sistare@oracle.com" <steven.sistare@oracle.com>, "daniel.m.jordan@oracle.com" <daniel.m.jordan@oracle.com>, "dave.dice@oracle.com" <dave.dice@oracle.com>, "rahul.x.yadav@oracle.com" <rahul.x.yadav@oracle.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Vladimir Murzin <vladimir.murzin@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgQWxleCwNCkkndmUgdHJpZWQgdGhpcyBzZXJpZXMgb24gYXJtNjQgKFRodW5kZXJYMiB3aXRo
-IHVwIHRvIFNNVD00ICBhbmQgMjI0IENQVXMpDQp3aXRoIHRoZSBib3JkZXJsaW5lIHRlc3RjYXNl
-IG9mIGFjY2Vzc2luZyBhIHNpbmdsZSBmaWxlIGZyb20gYWxsDQp0aHJlYWRzLiBXaXRoIHRoYXQN
-CnRlc3RjYXNlIHRoZSBxc3BpbmxvY2sgc2xvd3BhdGggaXMgdGhlIHRvcCBzcG90IGluIHRoZSBr
-ZXJuZWwuDQoNClRoZSByZXN1bHRzIGxvb2sgcmVhbGx5IHByb21pc2luZzoNCg0KQ1BVcyAgICBu
-b3JtYWwgICAgbnVtYS1xc3BpbmxvY2tzDQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0NCjU2ICAgICAgICAxNDkuNDEgICAgICAgICAgNzMuOTANCjIyNCAgICAg
-IDU3Ni45NSAgICAgICAgICAyOTAuMzENCg0KQWxzbyBmcm9udGVuZC1zdGFsbHMgYXJlIHJlZHVj
-ZWQgdG8gNTAlIGFuZCBpbnRlcmNvbm5lY3QgdHJhZmZpYyBpcw0KZ3JlYXRseSByZWR1Y2VkLg0K
-VGVzdGVkLWJ5OiBKYW4gR2xhdWJlciA8amdsYXViZXJAbWFydmVsbC5jb20+DQoNCi0tSmFuDQoN
-CkFtIEZyLiwgMjkuIE3DpHJ6IDIwMTkgdW0gMTY6MjMgVWhyIHNjaHJpZWIgQWxleCBLb2dhbiA8
-YWxleC5rb2dhbkBvcmFjbGUuY29tPjoNCj4NCj4gVGhpcyB2ZXJzaW9uIGFkZHJlc3NlcyBmZWVk
-YmFjayBmcm9tIFBldGVyIGFuZCBXYWltYW4uIEluIHBhcnRpY3VsYXIsDQo+IHRoZSBDTkEgZnVu
-Y3Rpb25hbGl0eSBoYXMgYmVlbiBtb3ZlZCB0byBhIHNlcGFyYXRlIGZpbGUsIGFuZCBpcyBjb250
-cm9sbGVkDQo+IGJ5IGEgY29uZmlnIG9wdGlvbiAoZW5hYmxlZCBieSBkZWZhdWx0IGlmIE5VTUEg
-aXMgZW5hYmxlZCkuDQo+IEFuIG9wdGltaXphdGlvbiBoYXMgYmVlbiBpbnRyb2R1Y2VkIHRvIHJl
-ZHVjZSB0aGUgb3ZlcmhlYWQgb2Ygc2h1ZmZsaW5nDQo+IHRocmVhZHMgYmV0d2VlbiB3YWl0aW5n
-IHF1ZXVlcyB3aGVuIHRoZSBsb2NrIGlzIG9ubHkgbGlnaHRseSBjb250ZW5kZWQuDQo+DQo+IFN1
-bW1hcnkNCj4gLS0tLS0tLQ0KPg0KPiBMb2NrIHRocm91Z2hwdXQgY2FuIGJlIGluY3JlYXNlZCBi
-eSBoYW5kaW5nIGEgbG9jayB0byBhIHdhaXRlciBvbiB0aGUNCj4gc2FtZSBOVU1BIG5vZGUgYXMg
-dGhlIGxvY2sgaG9sZGVyLCBwcm92aWRlZCBjYXJlIGlzIHRha2VuIHRvIGF2b2lkDQo+IHN0YXJ2
-YXRpb24gb2Ygd2FpdGVycyBvbiBvdGhlciBOVU1BIG5vZGVzLiBUaGlzIHBhdGNoIGludHJvZHVj
-ZXMgQ05BDQo+IChjb21wYWN0IE5VTUEtYXdhcmUgbG9jaykgYXMgdGhlIHNsb3cgcGF0aCBmb3Ig
-cXNwaW5sb2NrLiBJdCBjYW4gYmUNCj4gZW5hYmxlZCB0aHJvdWdoIGEgY29uZmlndXJhdGlvbiBv
-cHRpb24gKE5VTUFfQVdBUkVfU1BJTkxPQ0tTKS4NCj4NCj4gQ05BIGlzIGEgTlVNQS1hd2FyZSB2
-ZXJzaW9uIG9mIHRoZSBNQ1Mgc3Bpbi1sb2NrLiBTcGlubmluZyB0aHJlYWRzIGFyZQ0KPiBvcmdh
-bml6ZWQgaW4gdHdvIHF1ZXVlcywgYSBtYWluIHF1ZXVlIGZvciB0aHJlYWRzIHJ1bm5pbmcgb24g
-dGhlIHNhbWUNCj4gbm9kZSBhcyB0aGUgY3VycmVudCBsb2NrIGhvbGRlciwgYW5kIGEgc2Vjb25k
-YXJ5IHF1ZXVlIGZvciB0aHJlYWRzDQo+IHJ1bm5pbmcgb24gb3RoZXIgbm9kZXMuIFRocmVhZHMg
-c3RvcmUgdGhlIElEIG9mIHRoZSBub2RlIG9uIHdoaWNoDQo+IHRoZXkgYXJlIHJ1bm5pbmcgaW4g
-dGhlaXIgcXVldWUgbm9kZXMuIEF0IHRoZSB1bmxvY2sgdGltZSwgdGhlIGxvY2sNCj4gaG9sZGVy
-IHNjYW5zIHRoZSBtYWluIHF1ZXVlIGxvb2tpbmcgZm9yIGEgdGhyZWFkIHJ1bm5pbmcgb24gdGhl
-IHNhbWUNCj4gbm9kZS4gSWYgZm91bmQgKGNhbGwgaXQgdGhyZWFkIFQpLCBhbGwgdGhyZWFkcyBp
-biB0aGUgbWFpbiBxdWV1ZQ0KPiBiZXR3ZWVuIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyIGFuZCBU
-IGFyZSBtb3ZlZCB0byB0aGUgZW5kIG9mIHRoZQ0KPiBzZWNvbmRhcnkgcXVldWUsIGFuZCB0aGUg
-bG9jayBpcyBwYXNzZWQgdG8gVC4gSWYgc3VjaCBUIGlzIG5vdCBmb3VuZCwgdGhlDQo+IGxvY2sg
-aXMgcGFzc2VkIHRvIHRoZSBmaXJzdCBub2RlIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIEZpbmFs
-bHksIGlmIHRoZQ0KPiBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIHRoZSBsb2NrIGlzIHBhc3Nl
-ZCB0byB0aGUgbmV4dCB0aHJlYWQgaW4gdGhlDQo+IG1haW4gcXVldWUuIFRvIGF2b2lkIHN0YXJ2
-YXRpb24gb2YgdGhyZWFkcyBpbiB0aGUgc2Vjb25kYXJ5IHF1ZXVlLA0KPiB0aG9zZSB0aHJlYWRz
-IGFyZSBtb3ZlZCBiYWNrIHRvIHRoZSBoZWFkIG9mIHRoZSBtYWluIHF1ZXVlDQo+IGFmdGVyIGEg
-Y2VydGFpbiBleHBlY3RlZCBudW1iZXIgb2YgaW50cmEtbm9kZSBsb2NrIGhhbmQtb2Zmcy4NCj4N
-Cj4gTW9yZSBkZXRhaWxzIGFyZSBhdmFpbGFibGUgYXQgaHR0cHM6Ly9hcnhpdi5vcmcvYWJzLzE4
-MTAuMDU2MDAuDQo+DQo+IFdlIGhhdmUgZG9uZSBzb21lIHBlcmZvcm1hbmNlIGV2YWx1YXRpb24g
-d2l0aCB0aGUgbG9ja3RvcnR1cmUgbW9kdWxlDQo+IGFzIHdlbGwgYXMgd2l0aCBzZXZlcmFsIGJl
-bmNobWFya3MgZnJvbSB0aGUgd2lsbC1pdC1zY2FsZSByZXBvLg0KPiBUaGUgZm9sbG93aW5nIGxv
-Y2t0b3J0dXJlIHJlc3VsdHMgYXJlIGZyb20gYW4gT3JhY2xlIFg1LTQgc2VydmVyDQo+IChmb3Vy
-IEludGVsIFhlb24gRTctODg5NSB2MyBAIDIuNjBHSHogc29ja2V0cyB3aXRoIDE4IGh5cGVydGhy
-ZWFkZWQNCj4gY29yZXMgZWFjaCkuIEVhY2ggbnVtYmVyIHJlcHJlc2VudHMgYW4gYXZlcmFnZSAo
-b3ZlciAyNSBydW5zKSBvZiB0aGUNCj4gdG90YWwgbnVtYmVyIG9mIG9wcyAoeDEwXjcpIHJlcG9y
-dGVkIGF0IHRoZSBlbmQgb2YgZWFjaCBydW4uIFRoZQ0KPiBzdGFuZGFyZCBkZXZpYXRpb24gaXMg
-YWxzbyByZXBvcnRlZCBpbiAoKSwgYW5kIGluIGdlbmVyYWwsIHdpdGggYSBmZXcNCj4gZXhjZXB0
-aW9ucywgaXMgYWJvdXQgMyUuIFRoZSAnc3RvY2snIGtlcm5lbCBpcyB2NS4wLXJjOCwNCj4gY29t
-bWl0IDI4ZDQ5ZTI4MjY2NSAoImxvY2tpbmcvbG9ja2RlcDogU2hyaW5rIHN0cnVjdCBsb2NrX2Ns
-YXNzX2tleSIpLA0KPiBjb21waWxlZCBpbiB0aGUgZGVmYXVsdCBjb25maWd1cmF0aW9uLiAncGF0
-Y2gnIGlzIHRoZSBtb2RpZmllZA0KPiBrZXJuZWwgY29tcGlsZWQgd2l0aCBOVU1BX0FXQVJFX1NQ
-SU5MT0NLUyBub3Qgc2V0OyBpdCBpcyBpbmNsdWRlZCB0byBzaG93DQo+IHRoYXQgYW55IHBlcmZv
-cm1hbmNlIGNoYW5nZXMgdG8gdGhlIGV4aXN0aW5nIHFzcGlubG9jayBpbXBsZW1lbnRhdGlvbiBh
-cmUNCj4gZXNzZW50aWFsbHkgbm9pc2UuICdwYXRjaC1DTkEnIGlzIHRoZSBtb2RpZmllZCBrZXJu
-ZWwgd2l0aA0KPiBOVU1BX0FXQVJFX1NQSU5MT0NLUyBzZXQ7IHRoZSBzcGVlZHVwIGlzIGNhbGN1
-bGF0ZWQgZGl2aWRpbmcNCj4gJ3BhdGNoLUNOQScgYnkgJ3N0b2NrJy4NCj4NCj4gI3RociAgICAg
-c3RvY2sgICAgICAgICAgcGF0Y2ggICAgICAgIHBhdGNoLUNOQSAgIHNwZWVkdXAgKHBhdGNoLUNO
-QS9zdG9jaykNCj4gICAxICAyLjczMSAoMC4xMDIpICAyLjczMiAoMC4wOTMpICAgMi43MTYgKDAu
-MDgyKSAgMC45OTUNCj4gICAyICAzLjA3MSAoMC4xMjQpICAzLjA4NCAoMC4xMDkpICAgMy4wNzkg
-KDAuMTEzKSAgMS4wMDMNCj4gICA0ICA0LjIyMSAoMC4xMzgpICA0LjIyOSAoMC4wODcpICAgNC40
-MDggKDAuMTAzKSAgMS4wNDQNCj4gICA4ICA1LjM2NiAoMC4xNTQpICA1LjI3NCAoMC4wOTQpICAg
-Ni45NTggKDAuMjMzKSAgMS4yOTcNCj4gIDE2ICA2LjY3MyAoMC4xNjQpICA2LjY4OSAoMC4wOTUp
-ICAgOC41NDcgKDAuMTQ1KSAgMS4yODENCj4gIDMyICA3LjM2NSAoMC4xNzcpICA3LjM1MyAoMC4x
-ODMpICAgOS4zMDUgKDAuMjAyKSAgMS4yNjMNCj4gIDM2ICA3LjQ3MyAoMC4xOTgpICA3LjQyMiAo
-MC4xODEpICAgOS40NDEgKDAuMTk2KSAgMS4yNjMNCj4gIDcyICA2LjgwNSAoMC4xODIpICA2LjY5
-OSAoMC4xNzApICAxMC4wMjAgKDAuMjE4KSAgMS40NzINCj4gMTA4ICA2LjUwOSAoMC4wODIpICA2
-LjQ4MCAoMC4xMTUpICAxMC4wMjcgKDAuMTk0KSAgMS41NDANCj4gMTQyICA2LjIyMyAoMC4xMDkp
-ICA2LjI5NCAoMC4xMDApICAgOS44NzQgKDAuMTgzKSAgMS41ODcNCj4NCj4gVGhlIGZvbGxvd2lu
-ZyB0YWJsZXMgY29udGFpbiB0aHJvdWdocHV0IHJlc3VsdHMgKG9wcy91cykgZnJvbSB0aGUgc2Ft
-ZQ0KPiBzZXR1cCBmb3Igd2lsbC1pdC1zY2FsZS9vcGVuMV90aHJlYWRzOg0KPg0KPiAjdGhyICAg
-ICBzdG9jayAgICAgICAgICBwYXRjaCAgICAgICAgcGF0Y2gtQ05BICAgc3BlZWR1cCAocGF0Y2gt
-Q05BL3N0b2NrKQ0KPiAgIDEgIDAuNTY1ICgwLjAwNCkgIDAuNTY3ICgwLjAwMSkgIDAuNTY1ICgw
-LjAwMykgIDAuOTk5DQo+ICAgMiAgMC44OTIgKDAuMDIxKSAgMC44OTkgKDAuMDIyKSAgMC45MDAg
-KDAuMDE4KSAgMS4wMDkNCj4gICA0ICAxLjUwMyAoMC4wMzEpICAxLjUyNyAoMC4wMzgpICAxLjQ4
-MSAoMC4wMjUpICAwLjk4NQ0KPiAgIDggIDEuNzU1ICgwLjEwNSkgIDEuNzE0ICgwLjA3OSkgIDEu
-NjgzICgwLjEwNikgIDAuOTU5DQo+ICAxNiAgMS43NDAgKDAuMDk1KSAgMS43NTIgKDAuMDg3KSAg
-MS42OTMgKDAuMDk4KSAgMC45NzMNCj4gIDMyICAwLjg4NCAoMC4wODApICAwLjkwOCAoMC4wOTAp
-ICAxLjY4NiAoMC4wOTIpICAxLjkwNg0KPiAgMzYgIDAuOTA3ICgwLjA5NSkgIDAuODk0ICgwLjA4
-OCkgIDEuNzA5ICgwLjA4MSkgIDEuODg1DQo+ICA3MiAgMC44NTYgKDAuMDQxKSAgMC44NTggKDAu
-MDQzKSAgMS43MDcgKDAuMDgyKSAgMS45OTQNCj4gMTA4ICAwLjg1OCAoMC4wMzkpICAwLjg2OSAo
-MC4wMzcpICAxLjczMiAoMC4wNzYpICAyLjAyMA0KPiAxNDIgIDAuODA5ICgwLjA0NCkgIDAuODU0
-ICgwLjA0NCkgIDEuNzI4ICgwLjA4MykgIDIuMTM1DQo+DQo+IGFuZCB3aWxsLWl0LXNjYWxlL2xv
-Y2syX3RocmVhZHM6DQo+DQo+ICN0aHIgICAgIHN0b2NrICAgICAgICAgIHBhdGNoICAgICAgICBw
-YXRjaC1DTkEgICBzcGVlZHVwIChwYXRjaC1DTkEvc3RvY2spDQo+ICAgMSAgMS43MTMgKDAuMDA0
-KSAgMS43MTUgKDAuMDA0KSAgMS43MTEgKDAuMDA0KSAgMC45OTkNCj4gICAyICAyLjg4OSAoMC4w
-NTcpICAyLjg2NCAoMC4wNzgpICAyLjg3NiAoMC4wNjYpICAwLjk5NQ0KPiAgIDQgIDQuNTgyICgx
-LjAzMikgIDUuMDY2ICgwLjc4NykgIDQuNzI1ICgwLjk1OSkgIDEuMDMxDQo+ICAgOCAgNC4yMjcg
-KDAuMTk2KSAgNC4xMDQgKDAuMjc0KSAgNC4wOTIgKDAuMzY1KSAgMC45NjgNCj4gIDE2ICA0LjEw
-OCAoMC4xNDEpICA0LjA1NyAoMC4xMzgpICA0LjAxMCAoMC4xNjgpICAwLjk3Ng0KPiAgMzIgIDIu
-Njc0ICgwLjEyNSkgIDIuNjI1ICgwLjE3MSkgIDMuOTU4ICgwLjE1NikgIDEuNDgwDQo+ICAzNiAg
-Mi42MjIgKDAuMTA3KSAgMi41NTMgKDAuMTUwKSAgMy45NzggKDAuMTE2KSAgMS41MTcNCj4gIDcy
-ICAyLjAwOSAoMC4wOTApICAxLjk5OCAoMC4wOTIpICAzLjkzMiAoMC4xMTQpICAxLjk1Nw0KPiAx
-MDggIDIuMTU0ICgwLjA2OSkgIDIuMDg5ICgwLjA5MCkgIDMuODcwICgwLjA4MSkgIDEuNzk3DQo+
-IDE0MiAgMS45NTMgKDAuMTA2KSAgMS45NDMgKDAuMTExKSAgMy44NTMgKDAuMTAwKSAgMS45NzMN
-Cj4NCj4gRnVydGhlciBjb21tZW50cyBhcmUgd2VsY29tZSBhbmQgYXBwcmVjaWF0ZWQuDQo+DQo+
-IEFsZXggS29nYW4gKDUpOg0KPiAgIGxvY2tpbmcvcXNwaW5sb2NrOiBNYWtlIGFyY2hfbWNzX3Nw
-aW5fdW5sb2NrX2NvbnRlbmRlZCBtb3JlIGdlbmVyaWMNCj4gICBsb2NraW5nL3FzcGlubG9jazog
-UmVmYWN0b3IgdGhlIHFzcGlubG9jayBzbG93IHBhdGgNCj4gICBsb2NraW5nL3FzcGlubG9jazog
-SW50cm9kdWNlIENOQSBpbnRvIHRoZSBzbG93IHBhdGggb2YgcXNwaW5sb2NrDQo+ICAgbG9ja2lu
-Zy9xc3BpbmxvY2s6IEludHJvZHVjZSBzdGFydmF0aW9uIGF2b2lkYW5jZSBpbnRvIENOQQ0KPiAg
-IGxvY2tpbmcvcXNwaW5sb2NrOiBJbnRyb2R1Y2UgdGhlIHNodWZmbGUgcmVkdWN0aW9uIG9wdGlt
-aXphdGlvbiBpbnRvDQo+ICAgICBDTkENCj4NCj4gIGFyY2gvYXJtL2luY2x1ZGUvYXNtL21jc19z
-cGlubG9jay5oICAgfCAgIDQgKy0NCj4gIGFyY2gveDg2L0tjb25maWcgICAgICAgICAgICAgICAg
-ICAgICAgfCAgMTQgKysNCj4gIGluY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2NrX3R5cGVzLmgg
-fCAgMTMgKysNCj4gIGtlcm5lbC9sb2NraW5nL21jc19zcGlubG9jay5oICAgICAgICAgfCAgMTYg
-KystDQo+ICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYyAgICAgICAgICAgIHwgIDc3ICsrKysr
-KysrKy0tDQo+ICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2tfY25hLmggICAgICAgIHwgMjQ1ICsr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysNCj4gIDYgZmlsZXMgY2hhbmdlZCwgMzU0
-IGluc2VydGlvbnMoKyksIDE1IGRlbGV0aW9ucygtKQ0KPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGtl
-cm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaA0KPg0KPiAtLQ0KPiAyLjExLjAgKEFwcGxlIEdp
-dC04MSkNCj4NCg==
+We can't expose UAPI symbols differently based on CONFIG_ symbols, as
+userspace won't have them available.  Instead always define the flag,
+but only respect it based on the config option.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Vladimir Murzin <vladimir.murzin@arm.com>
+---
+ arch/xtensa/include/uapi/asm/mman.h    | 6 +-----
+ include/uapi/asm-generic/mman-common.h | 8 +++-----
+ mm/nommu.c                             | 4 +++-
+ 3 files changed, 7 insertions(+), 11 deletions(-)
+
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index be726062412b..ebbb48842190 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -56,12 +56,8 @@
+ #define MAP_STACK	0x40000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x80000		/* create a huge page mapping */
+ #define MAP_FIXED_NOREPLACE 0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
+-#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+-# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
++#define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
+ 					 * uninitialized */
+-#else
+-# define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+-#endif
+ 
+ /*
+  * Flags for msync
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index abd238d0f7a4..cb556b430e71 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -19,15 +19,13 @@
+ #define MAP_TYPE	0x0f		/* Mask for type of mapping */
+ #define MAP_FIXED	0x10		/* Interpret addr exactly */
+ #define MAP_ANONYMOUS	0x20		/* don't use a file */
+-#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+-# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
+-#else
+-# define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+-#endif
+ 
+ /* 0x0100 - 0x80000 flags are defined in asm-generic/mman.h */
+ #define MAP_FIXED_NOREPLACE	0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
++#define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
++					 * uninitialized */
++
+ /*
+  * Flags for mlock
+  */
+diff --git a/mm/nommu.c b/mm/nommu.c
+index d8c02fbe03b5..ec75a0dffd4f 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -1349,7 +1349,9 @@ unsigned long do_mmap(struct file *file,
+ 	add_nommu_region(region);
+ 
+ 	/* clear anonymous mappings that don't ask for uninitialized data */
+-	if (!vma->vm_file && !(flags & MAP_UNINITIALIZED))
++	if (!vma->vm_file &&
++	    (!IS_ENABLED(CONFIG_MMAP_ALLOW_UNINITIALIZED) ||
++	     !(flags & MAP_UNINITIALIZED)))
+ 		memset((void *)region->vm_start, 0,
+ 		       region->vm_end - region->vm_start);
+ 
+-- 
+2.20.1
