@@ -1,105 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49548 "EHLO mail.kernel.org"
+Received: from gate.crashing.org ([63.228.1.57]:60527 "EHLO gate.crashing.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727080AbfGCDI7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Jul 2019 23:08:59 -0400
-Date: Tue, 2 Jul 2019 22:08:55 -0500
-From: Bjorn Helgaas <helgaas@kernel.org>
+        id S1725848AbfGCFbi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Jul 2019 01:31:38 -0400
+Message-ID: <75cae9fa146ec7b28d9da7deaf339e95f77e0efd.camel@kernel.crashing.org>
 Subject: Re: Archs using generic PCI controller drivers vs. resource policy
-Message-ID: <20190703030855.GI128603@google.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Wed, 03 Jul 2019 15:31:30 +1000
+In-Reply-To: <20190703030855.GI128603@google.com>
 References: <5f3dcc3a8dafad188e3adb8ee9cf347bebdee7f6.camel@kernel.crashing.org>
- <20190702201914.GD128603@google.com>
- <eaea693094caecf291e2a40a7ed88cd9fb273ab8.camel@kernel.crashing.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <eaea693094caecf291e2a40a7ed88cd9fb273ab8.camel@kernel.crashing.org>
+         <20190702201914.GD128603@google.com>
+         <eaea693094caecf291e2a40a7ed88cd9fb273ab8.camel@kernel.crashing.org>
+         <20190703030855.GI128603@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Bjorn Helgaas <helgaas@kernel.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Jul 03, 2019 at 10:16:49AM +1000, Benjamin Herrenschmidt wrote:
-> On Tue, 2019-07-02 at 15:19 -0500, Bjorn Helgaas wrote:
-> > On Sun, Jun 23, 2019 at 10:30:42AM +1000, Benjamin Herrenschmidt
-> > wrote:
-> > > Hi !
-> > > 
-> > > As part of my cleanup and consolidation of the PCI resource
-> > > assignment
-> > > policies, I need to clarify something.
-> > > 
-> > > At the moment, unless PCI_PROBE_ONLY is set, a number of
-> > > platforms/archs expect Linux to reassign everything rather than
-> > > honor
-> > > what has setup, then (re)assign what's left or broken.
+On Tue, 2019-07-02 at 22:08 -0500, Bjorn Helgaas wrote:
+> 
+> > No it actually is. The policy on these is to rather explicitely ignore
+> > what was set. If you just switch to honoring it, a good number of those
+> > platforms will break. (We know that happens on arm64 as we are trying
+> > to do just that).
+> 
+> It's only different if you're assuming something about how Linux
+> allocates things.  That assumption is implicit, which makes this
+> fragile.
+
+I don't understand your argument.
+
+Linux has *always* been responsible for the full assignment on these,
+there is no UEFI/ACPI, no runtime firmware involved, I don't see the
+point in trying to change that policy. The owners of these platforms
+chose to do things that way, effectively assuming that Linux will do a
+better job than whatever firmware (if any) did.
+
+I remember cases for example where the firmware would just hard wire a
+BAR for a boot device to some random value right in the middle of the
+address space. If we started honoring this,  it would effectively have
+split the already small available memory space for PCI on that card, it
+made no sense to try to keep that setup. This was a case of some
+obscure ppc embedded board, but that doesn't matter, I dont' see why we
+should even consider changing the policy on these things. It's not like
+we have to maintain two different algorithms anyway, we're just
+skipping the claim pass, At least with my initial patch series it will
+be obvious and done in a single place.
+
+> You could make this concrete by supplying an example of the actual
+> firmware assignments that are broken, and the better ones that Linux
+> produces.  I'm talking about window and BAR values, not all the
+> needless differences in how the resource tree is managed.
+
+Why would I waste time chasing the hundreds of random embedded boards
+around to do that ? I really completely fail to see your point and what
+benefit we would have in trying to change this.
+
+> > Part of the problem is it's not always easy to figure out whether the
+> > existing setup is "broken". It could just be "very suboptimal" for
+> > example. Or broken in ways we don't detect early enough to do a good
+> > job about it.
 > > 
-> > I don't think "reassign everything" is any different from "honor what
-> > has been setup and (re)assign what's left or broken".
-> 
-> No it actually is. The policy on these is to rather explicitely ignore
-> what was set. If you just switch to honoring it, a good number of those
-> platforms will break. (We know that happens on arm64 as we are trying
-> to do just that).
-
-It's only different if you're assuming something about how Linux
-allocates things.  That assumption is implicit, which makes this
-fragile.
-
-You could make this concrete by supplying an example of the actual
-firmware assignments that are broken, and the better ones that Linux
-produces.  I'm talking about window and BAR values, not all the
-needless differences in how the resource tree is managed.
-
-> Part of the problem is it's not always easy to figure out whether the
-> existing setup is "broken". It could just be "very suboptimal" for
-> example. Or broken in ways we don't detect early enough to do a good
-> job about it.
-> 
-> I really wouldn't try to change that at this point. Those platforms are
-> happy with Linux doing the complete setup the way it does, I don't see
-> areason to change it. In fact, in some cases we can do even better (see
-> below).
-> 
-> > "Reassign everything" is clearly allowed to produce the exact same
-> > result as "honor what has been setup and (re)assign what's left or
-> > broken".
-> 
-> Provided we have some IA that can figure out what "broken" means :)
->
-> > I claim any difference between the two is actually a fragile
-> > dependency on the Linux assignment algorithm that is likely to break
-> > as that algorithm changes.
+> > I really wouldn't try to change that at this point. Those platforms are
+> > happy with Linux doing the complete setup the way it does, I don't see
+> > areason to change it. In fact, in some cases we can do even better (see
+> > below).
 > > 
-> > Or am I missing something?
+> > > "Reassign everything" is clearly allowed to produce the exact same
+> > > result as "honor what has been setup and (re)assign what's left or
+> > > broken".
+> > 
+> > Provided we have some IA that can figure out what "broken" means :)
+> > 
+> > > I claim any difference between the two is actually a fragile
+> > > dependency on the Linux assignment algorithm that is likely to break
+> > > as that algorithm changes.
+> > > 
+> > > Or am I missing something?
+> > 
+> > Well, reassign-everything isn't that likely to break when Linux changes
+> > as long as linux doesn't change in ways that are completely busted
+> > anyway. It's a pretty simple process really. And that would be caught
+> > quickly since a LOT of platforms use that method.
+> > 
+> > As for the reasons, well, this tends to be embedded platforms where the
+> > firmware may have left crap behind that we really don't want to honor
+> > and can't really detect as "broken".
+> > 
+> > For example, switches sized incorrectly, or too big, sub optimal
+> > placement with everything in 32-bit space and no room left for SR-IOV,
+> > etc...
 > 
-> Well, reassign-everything isn't that likely to break when Linux changes
-> as long as linux doesn't change in ways that are completely busted
-> anyway. It's a pretty simple process really. And that would be caught
-> quickly since a LOT of platforms use that method.
-> 
-> As for the reasons, well, this tends to be embedded platforms where the
-> firmware may have left crap behind that we really don't want to honor
-> and can't really detect as "broken".
-> 
-> For example, switches sized incorrectly, or too big, sub optimal
-> placement with everything in 32-bit space and no room left for SR-IOV,
-> etc...
+> These are things we should fix by improving the generic assignment
+> code (this might be what you're alluding to below).  I do not want a
+> "reassign everything" mode that does things differently than the
+> "change what's broken" mode.
 
-These are things we should fix by improving the generic assignment
-code (this might be what you're alluding to below).  I do not want a
-"reassign everything" mode that does things differently than the
-"change what's broken" mode.
+They don't fundamentally. With my patches, "reassign everything"
+basically consists of calling pci_assign_unassigned_* without first
+claiming existing resources. It's fundamentally the same algorithm.
 
-I know we sort of have that today, but if we're reworking this code, I
-don't want to perpetuate that kind of black magic.  If we can make the
-difference between "reassign everything" and "change what's broken"
-explicit, then we can make progress.
+The one thing I'm considering changing later is to use the "bridge"
+variant instead so we get distribution of the available space, though
+I'd have to make it work at the root. But that's separate and we can
+discuss it later.
 
-> In fact, I'm thinking that on these platforms (which are basically
-> *all* arm32, all embedded ppc, and pretty much all other non-
-> server/desktop archs that aren't x86), we could in fact go one step
-> further and improve the default algorithm by applying the "distribute
-> available space" method at the top level (we currently only do it for
-> hotplug bridges below that, so the top level bridges will get the
-> default which, for hotplug, isn't likely to be enough).
+> I know we sort of have that today, but if we're reworking this code, I
+> don't want to perpetuate that kind of black magic.  If we can make the
+> difference between "reassign everything" and "change what's broken"
+> explicit, then we can make progress.
+
+I don't think it's black magic. As I said above, the definition of
+"broken" in that context is almost impossible to get right. It could
+just be massively sub-optimal. If we let Linux claim, it will and will
+quickly run out of space if any hotplug or SR-IOV activity tries to
+take place later.
+
+Those platforms have historically chosen to ignore the FW allocation
+for whatever reasons, changing that isn't something we should aim to
+change, I don't see the point or benefit. And the testing burden would
+be astronomical.
+
+If anything, history has chown us that we are a lot better at assigning
+resources that most embedded firmware out there.
+
+> > In fact, I'm thinking that on these platforms (which are basically
+> > *all* arm32, all embedded ppc, and pretty much all other non-
+> > server/desktop archs that aren't x86), we could in fact go one step
+> > further and improve the default algorithm by applying the "distribute
+> > available space" method at the top level (we currently only do it for
+> > hotplug bridges below that, so the top level bridges will get the
+> > default which, for hotplug, isn't likely to be enough).
+
+Cheers,
+Ben.
