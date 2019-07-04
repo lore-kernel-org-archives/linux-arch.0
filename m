@@ -1,37 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dc2-smtprelay2.synopsys.com ([198.182.61.142]:52194 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725933AbfGCQPO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jul 2019 12:15:14 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Date: Wed, 3 Jul 2019 16:15:09 +0000
-Message-ID: <991ace9d-ef6d-0f29-d4f4-03ba47a7f7ff@synopsys.com>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <6F497960BCBDEE4BA2FB30EEE564DBC0@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:50150 "EHLO
+        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726805AbfGDTu2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2019 15:50:28 -0400
+Date: Thu, 4 Jul 2019 21:50:25 +0200
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH] binfmt_elf: Extract .note.gnu.property from an ELF
+ file
+Message-ID: <20190704195024.GA4013@amd>
+References: <20190628172203.797-1-yu-cheng.yu@intel.com>
+ <CAG48ez0rHHfcRgiVZf5FP0YOzxsXigvpg6ci790cmiN6PBwkhQ@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="xHFwDpU9dbj6ez1V"
+Content-Disposition: inline
+In-Reply-To: <CAG48ez0rHHfcRgiVZf5FP0YOzxsXigvpg6ci790cmiN6PBwkhQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190703161509.n3J2rbFy0DlLA61_tq8YsKav-0glrwUBY3Cyo2PQco0@z>
+To: Jann Horn <jannh@google.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190704195025.Pi1DJWL0aGOwSmGPUOWpAc6swzYsffyz6JPcGqFpOfU@z>
 
-T24gNi8xOC8xOSA5OjE2IEFNLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+IE9uIDYvMTQvMTkgOTo0
-MSBBTSwgRXVnZW5peSBQYWx0c2V2IHdyb3RlOg0KPj4gSW1wbGVtZW50IGp1bXAgbGFiZWwgcGF0
-Y2hpbmcgZm9yIEFSQy4gSnVtcCBsYWJlbHMgcHJvdmlkZQ0KPj4gYW4gaW50ZXJmYWNlIHRvIGdl
-bmVyYXRlIGR5bmFtaWMgYnJhbmNoZXMgdXNpbmcNCj4+IHNlbGYtbW9kaWZ5aW5nIGNvZGUuDQo+
-Pg0KPj4gVGhpcyBhbGxvd3MgdXMgdG8gaW1wbGVtZW50IGNvbmRpdGlvbmFsIGJyYW5jaGVzIHdo
-ZXJlDQo+PiBjaGFuZ2luZyBicmFuY2ggZGlyZWN0aW9uIGlzIGV4cGVuc2l2ZSBidXQgYnJhbmNo
-IHNlbGVjdGlvbg0KPj4gaXMgYmFzaWNhbGx5ICdmcmVlJw0KPj4NCj4+IFRoaXMgaW1wbGVtZW50
-YXRpb24gdXNlcyAzMi1iaXQgTk9QIGFuZCBCUkFOQ0ggaW5zdHJ1Y3Rpb25zDQo+PiB3aGljaCBm
-b3JjZWQgdG8gYmUgYWxpZ25lZCBieSA0IHRvIGd1YXJhbnRlZSB0aGF0IHRoZXkgZG9uJ3QNCj4+
-IGNyb3NzIEwxIGNhY2hlIGxpbmUgYW5kIGNhbiBiZSB1cGRhdGUgYXRvbWljYWxseS4NCj4+DQo+
-PiBTaWduZWQtb2ZmLWJ5OiBFdWdlbml5IFBhbHRzZXYgPEV1Z2VuaXkuUGFsdHNldkBzeW5vcHN5
-cy5jb20+DQo+IExHVE0gb3ZlcmFsbCAtIG5pdHMgYmVsb3cuDQo+IA0KDQpDYW4geW91IGFkZHJl
-c3MgdGhlIHJldmlldyBjb21tZW50cyBzb29uIHNvIHRoaXMgZ2V0cyBtZXJnZWQgaW4gNS4zIHdo
-b3NlIG1lcmdlDQp3aW5kb3cgaXMgbG9vbWluZyAhDQo=
+
+--xHFwDpU9dbj6ez1V
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hi!
+
+
+> > +static int scan(u8 *buf, u32 buf_size, int item_size, test_item_fn tes=
+t_item,
+> > +               next_item_fn next_item, u32 *arg, u32 type, u32 *pos)
+> > +{
+> > +       int found =3D 0;
+> > +       u8 *p, *max;
+> > +
+> > +       max =3D buf + buf_size;
+> > +       if (max < buf)
+> > +               return 0;
+>=20
+> How can this ever legitimately happen? If it can't, perhaps you meant
+> to put a WARN_ON_ONCE() or something like that here?
+> Also, computing out-of-bounds pointers is UB (section 6.5.6 of C99:
+> "If both the pointer operand and the result point to elements of the
+> same array object, or one past the last element of the array object,
+> the evaluation shall not produce an overflow; otherwise, the behavior
+> is undefined."), and if the addition makes the pointer wrap, that's
+> certainly out of bounds; so I don't think this condition can trigger
+> without UB.
+
+Kernel assumes sane compiler. We pass flags to get it... C99 does not
+quite apply here.
+								Pavel
+							=09
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--xHFwDpU9dbj6ez1V
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAl0eWIAACgkQMOfwapXb+vLSMgCcC98TTx9pMIkokJGKGUu3i6ME
+o+AAn3TIA7Pjz5wBcK19BycwV2+shMN6
+=83sj
+-----END PGP SIGNATURE-----
+
+--xHFwDpU9dbj6ez1V--
