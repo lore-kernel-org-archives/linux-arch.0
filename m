@@ -1,47 +1,53 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: RE: [tip:timers/core] clocksource/drivers: Make Hyper-V clocksource
- ISA agnostic
-Date: Sun, 7 Jul 2019 12:06:43 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1907071205530.3648@nanos.tec.linutronix.de>
-References: <1561955054-1838-2-git-send-email-mikelley@microsoft.com>
- <tip-fd1fea6834d0f9f93062ae6685862908a9baed39@git.kernel.org>
- <PU1P153MB0169E8E3898897BF3B3BE0F6BFF40@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
- <alpine.DEB.2.21.1907060944200.3648@nanos.tec.linutronix.de>
- <alpine.DEB.2.21.1907061032400.3648@nanos.tec.linutronix.de>
- <PU1P153MB0169C8A38643B9284C938353BFF40@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v9 10/10] selftests: add openat2(2) selftests
+Date: Mon, 08 Jul 2019 11:15:35 +1000
+Message-ID: <878st9iax4.fsf@concordia.ellerman.id.au>
+References: <20190706145737.5299-1-cyphar@cyphar.com> <20190706145737.5299-11-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <PU1P153MB0169C8A38643B9284C938353BFF40@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Dexuan Cui <decui@microsoft.com>
-Cc: "mark.rutland@arm.com" <mark.rutland@arm.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "shuah@kernel.org" <shuah@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "sashal@kernel.org" <sashal@kernel.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, "vincenzo.frascino@arm.com" <vincenzo.frascino@arm.com>, "linux-tip-commits@vger.kernel.org" <linux-tip-commits@vger.kernel.org>, "daniel.lezcano@linaro.org" <daniel.le>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190706145737.5299-11-cyphar@cyphar.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, 6 Jul 2019, Dexuan Cui wrote:
-> > On Sat, 6 Jul 2019, Thomas Gleixner wrote:
-> Hi Thomas,
-> Thanks for the important reminder! I realized actually Michael's patches are
-> good, and hibernation can not work because my own hibernation code is buggy:
-> in the resume path, on CPU0, I should NOT call hv_stimer_init() -> 
-> clockevents_config_and_register(): instead, I should use the event device's 
-> suspend/resume callbacks to save/restore the device's state.
-> 
-> With this kept in mind, I made some small changes to my code and hibernation
-> can work fine for me now!
-> 
-> > > But that needs probably more surgery. I'll add the unbind() call back for
-> > > now.
-> 
-> Can you please drop the unbind() call again? :-)
+Hi Aleksa,
 
-I restored the original commits without the unbind. All good now :)
+A few minor comments below.
+
+Aleksa Sarai <cyphar@cyphar.com> writes:
+> diff --git a/tools/testing/selftests/openat2/Makefile b/tools/testing/selftests/openat2/Makefile
+> new file mode 100644
+> index 000000000000..8235a49928f6
+> --- /dev/null
+> +++ b/tools/testing/selftests/openat2/Makefile
+> @@ -0,0 +1,12 @@
+> +# SPDX-License-Identifier: GPL-2.0
+> +
+> +CFLAGS += -Wall -O2 -g
+> +TEST_GEN_PROGS := linkmode_test resolve_test rename_attack_test
+> +
+> +include ../lib.mk
+> +
+> +$(OUTPUT)/linkmode_test: linkmode_test.c helpers.o
+> +$(OUTPUT)/rename_attack_test: rename_attack_test.c helpers.o
+> +$(OUTPUT)/resolve_test: resolve_test.c helpers.o
+
+You don't need to tell make that foo depends on foo.c.
+
+Also if you make the dependency be on helpers.c then you won't get an
+intermediate helpers.o, and then you don't need to clean it.
+
+So the above three lines could just be:
+
+$(TEST_GEN_PROGS): helpers.c
+
+> +EXTRA_CLEAN = helpers.o $(wildcard /tmp/ksft-openat2-*)
+
+If you follow my advice above you don't need helpers.o in there.
+
+Deleting things from /tmp is also a bit fishy on shared machines, ie. it
+will error if those files happen to be owned by another user.
+
+cheers
