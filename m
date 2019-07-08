@@ -1,91 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:41686 "EHLO mx1.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728654AbfGHFsG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Jul 2019 01:48:06 -0400
-Date: Mon, 8 Jul 2019 15:47:35 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v9 10/10] selftests: add openat2(2) selftests
-Message-ID: <20190708054735.3fepxxtolqaqwmrp@yavin>
-References: <20190706145737.5299-1-cyphar@cyphar.com>
- <20190706145737.5299-11-cyphar@cyphar.com>
- <878st9iax4.fsf@concordia.ellerman.id.au>
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:50347 "EHLO
+        mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731098AbfGHM5T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jul 2019 08:57:19 -0400
+Received: from eucas1p1.samsung.com (unknown [182.198.249.206])
+        by mailout2.w1.samsung.com (KnoxPortal) with ESMTP id 20190708125716euoutp0221220be68333346b7729d7d1979eeb9b~vb_fGgwrk1882318823euoutp02a
+        for <linux-arch@vger.kernel.org>; Mon,  8 Jul 2019 12:57:16 +0000 (GMT)
+Subject: Re: [PATCH v7 04/25] arm64: Substitute gettimeofday with C
+ implementation
+From: Sylwester Nawrocki <s.nawrocki@samsung.com>
+Message-ID: <ed758c10-7260-bec3-caf1-08cae7e0968d@samsung.com>
+Date: Mon, 8 Jul 2019 14:57:11 +0200
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="fv76k6im74ofqhz7"
-Content-Disposition: inline
-In-Reply-To: <878st9iax4.fsf@concordia.ellerman.id.au>
+In-Reply-To: <06c264a8-8778-18b1-1094-4281a4a2abc9@arm.com>
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+        <20190621095252.32307-5-vincenzo.frascino@arm.com>
+        <CGME20190628130921eucas1p239935b0771032c331911eacc1a69dd2e@eucas1p2.samsung.com>
+        <1fd47b0d-f77f-8d07-c039-6ac9072834fc@samsung.com>
+        <27386d82-2906-b541-f71d-3c61f5099bdf@arm.com>
+        <530cd07e-0da7-1d83-be4e-b14813029424@samsung.com>
+        <06c264a8-8778-18b1-1094-4281a4a2abc9@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190708054735.ikb5IeryH32X1iRuoBuJUl3kPEWmPcF_9UAkUo9v3mM@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Andre Przywara <andre.przywara@arm.com>, Arnd Bergmann <arnd@arndb.de>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>, Shijith Thotton <sthotton@marvell.com>, Peter Collingbourne <pcc@google.com>
+Message-ID: <20190708125711.ES8mB9NqBdSV2aKn8CCyYZKB-D1mGT4oWsIS8ZvMVsI@z>
 
+Hi Vincenzo, 
 
---fv76k6im74ofqhz7
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On 6/29/19 08:58, Vincenzo Frascino wrote:
+> If I may, I would like to ask to you one favor, could you please keep an eye on
+> next and once those patches are merged repeat the test?
+> 
+> I want just to make sure that the regression does not reappear.
 
-On 2019-07-08, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Aleksa Sarai <cyphar@cyphar.com> writes:
-> > diff --git a/tools/testing/selftests/openat2/Makefile b/tools/testing/s=
-elftests/openat2/Makefile
-> > new file mode 100644
-> > index 000000000000..8235a49928f6
-> > --- /dev/null
-> > +++ b/tools/testing/selftests/openat2/Makefile
-> > @@ -0,0 +1,12 @@
-> > +# SPDX-License-Identifier: GPL-2.0
-> > +
-> > +CFLAGS +=3D -Wall -O2 -g
-> > +TEST_GEN_PROGS :=3D linkmode_test resolve_test rename_attack_test
-> > +
-> > +include ../lib.mk
-> > +
-> > +$(OUTPUT)/linkmode_test: linkmode_test.c helpers.o
-> > +$(OUTPUT)/rename_attack_test: rename_attack_test.c helpers.o
-> > +$(OUTPUT)/resolve_test: resolve_test.c helpers.o
->=20
-> You don't need to tell make that foo depends on foo.c.
->=20
-> Also if you make the dependency be on helpers.c then you won't get an
-> intermediate helpers.o, and then you don't need to clean it.
->=20
-> So the above three lines could just be:
->=20
-> $(TEST_GEN_PROGS): helpers.c
+My apologies, I forgot about this for a moment. I repeated the test with 
+next-20190705 tag and couldn't see any regressions.
 
-I had some trouble getting this to work (hence why I went with the
-version in the patch), but it looks like this works. I'll include it in
-the next set.
-
-> > +EXTRA_CLEAN =3D helpers.o $(wildcard /tmp/ksft-openat2-*)
->=20
-> If you follow my advice above you don't need helpers.o in there.
->=20
-> Deleting things from /tmp is also a bit fishy on shared machines, ie. it
-> will error if those files happen to be owned by another user.
-
-Good point. I'll drop that hunk in the next set.
-
-Thanks!
-
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---fv76k6im74ofqhz7
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXSLY8wAKCRCdlLljIbnQ
-Enn2AQC9g0o7YHWuxFtQCLt+aHIE39RQMQDzB5QWrvZA8DdIUQEA69BwekXhnh8X
-m2czJJrJISBz5Nz1y3qJzwUUGBvxEgY=
-=RdsA
------END PGP SIGNATURE-----
-
---fv76k6im74ofqhz7--
+-- 
+Regards,
+Sylwester
