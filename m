@@ -1,18 +1,45 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Will Deacon <will@kernel.org>
 Subject: Re: [PATCH v7 10/25] arm64: compat: Add vDSO
-Date: Wed, 10 Jul 2019 08:12:21 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1907100811170.1758@nanos.tec.linutronix.de>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com> <20190621095252.32307-11-vincenzo.frascino@arm.com> <CALAqxLXxE5B+vVLj7NcW8S05nhDQ+XSKVn=_MNDci667JDFEhA@mail.gmail.com>
+Date: Wed, 10 Jul 2019 09:27:50 +0100
+Message-ID: <20190710082750.mvm3e6myzpqsurga@willie-the-truck>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <20190621095252.32307-11-vincenzo.frascino@arm.com>
+ <CALAqxLXxE5B+vVLj7NcW8S05nhDQ+XSKVn=_MNDci667JDFEhA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <CALAqxLXxE5B+vVLj7NcW8S05nhDQ+XSKVn=_MNDci667JDFEhA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: John Stultz <john.stultz@linaro.org>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Andre Przywara <andre.przywara@arm.com>, Arnd Bergmann <arnd@arndb.de>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Shijith Thotton <sthotton@marvell.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Shuah Khan <shuah@kernel.org>, Andre Przywara <andre.przywara@arm.com>, Arnd Bergmann <arnd@arndb.de>, Huw Davies <huw@codeweavers.com>, Catalin Marinas <catalin.marinas@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 9 Jul 2019, John Stultz wrote:
+Hi John,
+
+On Tue, Jul 09, 2019 at 09:02:54PM -0700, John Stultz wrote:
+> On Fri, Jun 21, 2019 at 3:18 AM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
+> >
+> > Provide the arm64 compat (AArch32) vDSO in kernel/vdso32 in a similar
+> > way to what happens in kernel/vdso.
+> >
+> > The compat vDSO leverages on an adaptation of the arm architecture code
+> > with few changes:
+> >  - Use of lib/vdso for gettimeofday
+> >  - Implementation of syscall based fallback
+> >  - Introduction of clock_getres for the compat library
+> >  - Implementation of trampolines
+> >  - Implementation of elf note
+> >
+> > To build the compat vDSO a 32 bit compiler is required and needs to be
+> > specified via CONFIG_CROSS_COMPILE_COMPAT_VDSO.
+> >
+> 
+> Hey Vincenzo!
+>   Congrats on getting this work merged, I know its been a long effort
+> over a number of years!
+> 
 > Though unfortunately, it seems the arm64 vdso code that just landed is
 > breaking AOSP for me.
 > 
@@ -37,10 +64,12 @@ On Tue, 9 Jul 2019, John Stultz wrote:
 > issue with just the 32bit code failing.  While I can try to sort out
 > the proper CROSS_COMPILE_COMPAT in my build environment, I assume
 > userland shouldn't be crashing if that value isn't set.
+> 
+> Any chance this issue has already been raised?
 
-The obvious question is whether the VDSO is mapped to the 32bit process in
-that case. It shouldn't...
+First I've seen of it, although Vincenzo is likely to know better than me.
+In the meantime, please can you share your .config?
 
 Thanks,
 
-	tglx
+Will
