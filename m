@@ -1,69 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55882 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.110.172]:45358 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728026AbfGKLcq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jul 2019 07:32:46 -0400
-Date: Thu, 11 Jul 2019 12:32:39 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v2] arm64: vdso: Fix ABI regression in compat vdso
-Message-ID: <20190711113238.qefdp5zvrjhsmtfu@willie-the-truck>
-References: <20190621095252.32307-11-vincenzo.frascino@arm.com>
- <20190710140119.23417-1-vincenzo.frascino@arm.com>
- <20190711094505.rwy6t6wu2cvmvwr6@willie-the-truck>
- <alpine.DEB.2.21.1907111232000.1889@nanos.tec.linutronix.de>
+        id S1727974AbfGKMOo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jul 2019 08:14:44 -0400
+Subject: Re: [PATCH] vsyscall: use __iter_div_u64_rem()
+References: <20190710130206.1670830-1-arnd@arndb.de>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <33511b0e-6d7b-c156-c415-7a609b049567@arm.com>
+Date: Thu, 11 Jul 2019 13:14:39 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1907111232000.1889@nanos.tec.linutronix.de>
+In-Reply-To: <20190710130206.1670830-1-arnd@arndb.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, shuah@kernel.org, andre.przywara@arm.com, arnd@arndb.de, huw@codeweavers.com, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, salyzyn@android.com, luto@kernel.org, paul.burton@mips.com, john.stultz@linaro.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, sthotton@marvell.com, pcc@google.com
-Message-ID: <20190711113239.t3SaujCJKp-apfqJtTeugr4eWJs-i4cRa3oO9HIYXrw@z>
+To: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com
+Message-ID: <20190711121439.Kfl_TB1lZTFq6fGI1sACp3htGvVJYogoaWf7TwxjiRs@z>
 
-On Thu, Jul 11, 2019 at 12:34:27PM +0200, Thomas Gleixner wrote:
-> On Thu, 11 Jul 2019, Will Deacon wrote:
-> > On Wed, Jul 10, 2019 at 03:01:19PM +0100, Vincenzo Frascino wrote:
-> > > Prior to the introduction of Unified vDSO support and compat layer for
-> > > vDSO on arm64, AT_SYSINFO_EHDR was not defined for compat tasks.
-> > > In the current implementation, AT_SYSINFO_EHDR is defined even if the
-> > > compat vdso layer is not built and this causes a regression in the
-> > > expected behavior of the ABI.
-> > > 
-> > > Restore the ABI behavior making sure that AT_SYSINFO_EHDR for compat
-> > > tasks is defined only when CONFIG_COMPAT_VDSO is enabled.
-> > > 
-> > > Reported-by: John Stultz <john.stultz@linaro.org>
-> > > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > > ---
-> > >  arch/arm64/include/asm/elf.h | 2 +-
-> > >  1 file changed, 1 insertion(+), 1 deletion(-)
-> > > 
-> > > diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-> > > index 3c7037c6ba9b..b618017205a3 100644
-> > > --- a/arch/arm64/include/asm/elf.h
-> > > +++ b/arch/arm64/include/asm/elf.h
-> > > @@ -202,7 +202,7 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-> > >  ({									\
-> > >  	set_thread_flag(TIF_32BIT);					\
-> > >   })
-> > > -#ifdef CONFIG_GENERIC_COMPAT_VDSO
-> > > +#ifdef CONFIG_COMPAT_VDSO
-> > >  #define COMPAT_ARCH_DLINFO						\
-> > >  do {									\
-> > >  	/*								\
-> > 
-> > Acked-by: Will Deacon <will@kernel.org>
-> > 
-> > I can take this at -rc1 via arm64 unless tglx plans to send it during the
-> > rest of the merge window. Please let me know.
+Hi Arnd,
+
+On 10/07/2019 14:01, Arnd Bergmann wrote:
+> On 32-bit x86 when building with clang-9, the loop gets turned back into
+> an inefficient division that causes a link error:
 > 
-> I had no plan to pick it up, but if you want I can route it through timer
-> urgents so it hits Linus tree before rc1.
+> kernel/time/vsyscall.o: In function `update_vsyscall':
+> vsyscall.c:(.text+0xe3): undefined reference to `__udivdi3'
+> 
+> Use the provided __iter_div_u64_rem() function that is meant to address
+> the same case in other files.
+> 
+> Fixes: 44f57d788e7d ("timekeeping: Provide a generic update_vsyscall() implementation")
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  kernel/time/vsyscall.c | 6 +-----
+>  1 file changed, 1 insertion(+), 5 deletions(-)
+> 
+> diff --git a/kernel/time/vsyscall.c b/kernel/time/vsyscall.c
+> index a80893180826..8cf3596a4ce6 100644
+> --- a/kernel/time/vsyscall.c
+> +++ b/kernel/time/vsyscall.c
+> @@ -104,11 +104,7 @@ void update_vsyscall(struct timekeeper *tk)
+>  	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
+>  	nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
+>  	nsec		= nsec + tk->wall_to_monotonic.tv_nsec;
+> -	while (nsec >= NSEC_PER_SEC) {
+> -		nsec = nsec - NSEC_PER_SEC;
+> -		vdso_ts->sec++;
+> -	}
+> -	vdso_ts->nsec	= nsec;
+> +	vdso_ts->sec	+= __iter_div_u64_rem(nsec, NSEC_PER_SEC, &vdso_ts->nsec);
+>  
+>  	if (__arch_use_vsyscall(vdata))
+>  		update_vdso_data(vdata, tk);
+> 
 
-I don't think it's urgent, so I'll just queue it along with any other fixes
-that show up at -rc1.
+I am trying to test this patch using clang-9 tip:
 
-Cheers,
+# clang -v
+clang version 9.0.0 (git@github.com:llvm-mirror/clang.git
+6ed0749151866894a67a3e7eefdc1f3a547daa0e) (git@github.com:llvm-mirror/llvm.git
+a10a70238ace1093cad3adeb94814b422bd1b5c1)
 
-Will
+but I get a lot of errors similar to the one below:
+
+In file included from ~/linux/arch/x86/events/amd/core.c:11:
+~/linux/arch/x86/events/amd/../perf_event.h:824:21: error: invalid output size
+for constraint '=q'
+        u64 disable_mask = __this_cpu_read(cpu_hw_events.perf_ctr_virt_mask);
+                           ^
+~/linux/include/linux/percpu-defs.h:447:2: note: expanded from macro
+'__this_cpu_read'
+        raw_cpu_read(pcp);                                              \
+        ^
+~/linux/include/linux/percpu-defs.h:421:28: note: expanded from macro 'raw_cpu_read'
+#define raw_cpu_read(pcp)               __pcpu_size_call_return(raw_cpu_read_, pcp)
+                                        ^
+~/linux/include/linux/percpu-defs.h:322:23: note: expanded from macro
+'__pcpu_size_call_return'
+        case 1: pscr_ret__ = stem##1(variable); break;                  \
+                             ^
+<scratch space>:110:1: note: expanded from here
+raw_cpu_read_1
+^
+~/linux/arch/x86/include/asm/percpu.h:394:30: note: expanded from macro
+'raw_cpu_read_1'
+#define raw_cpu_read_1(pcp)             percpu_from_op(, "mov", pcp)
+                                        ^
+~/linux/arch/x86/include/asm/percpu.h:189:15: note: expanded from macro
+'percpu_from_op'
+                    : "=q" (pfo_ret__)                  \
+
+Could you please tell me which version of the compiler did you use?
+
+My building command is:
+
+# make mrproper && make CC=clang HOSTCC=clang i386_defconfig && make ARCH=i386
+CC=clang HOSTCC=clang -j56
+
+-- 
+Regards,
+Vincenzo
