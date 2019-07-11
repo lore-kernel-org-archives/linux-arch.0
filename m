@@ -1,57 +1,52 @@
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: Re: [PATCH] vsyscall: use __iter_div_u64_rem()
-Date: Wed, 10 Jul 2019 09:56:51 -0700
-Message-ID: <20190710165651.GA29814@archlinux-threadripper>
-References: <20190710130206.1670830-1-arnd@arndb.de>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2] arm64: vdso: Fix ABI regression in compat vdso
+Date: Thu, 11 Jul 2019 10:45:06 +0100
+Message-ID: <20190711094505.rwy6t6wu2cvmvwr6@willie-the-truck>
+References: <20190621095252.32307-11-vincenzo.frascino@arm.com>
+ <20190710140119.23417-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190710130206.1670830-1-arnd@arndb.de>
+In-Reply-To: <20190710140119.23417-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, linux-kernel@vger.kernel.org, clang-built-linux@googlegrou
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, shuah@kernel.org, andre.przywara@arm.com, arnd@arndb.de, huw@codeweavers.com, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux@armlinux.org.uk, ralf@linux-mips.org, salyzyn@android.com, luto@kernel.org, paul.burton@mips.com, john.stultz@linaro.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, tglx@linutronix.de, sthotton@marvell.com, pcc@google.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 10, 2019 at 03:01:53PM +0200, Arnd Bergmann wrote:
-> On 32-bit x86 when building with clang-9, the loop gets turned back into
-> an inefficient division that causes a link error:
+On Wed, Jul 10, 2019 at 03:01:19PM +0100, Vincenzo Frascino wrote:
+> Prior to the introduction of Unified vDSO support and compat layer for
+> vDSO on arm64, AT_SYSINFO_EHDR was not defined for compat tasks.
+> In the current implementation, AT_SYSINFO_EHDR is defined even if the
+> compat vdso layer is not built and this causes a regression in the
+> expected behavior of the ABI.
 > 
-> kernel/time/vsyscall.o: In function `update_vsyscall':
-> vsyscall.c:(.text+0xe3): undefined reference to `__udivdi3'
+> Restore the ABI behavior making sure that AT_SYSINFO_EHDR for compat
+> tasks is defined only when CONFIG_COMPAT_VDSO is enabled.
 > 
-> Use the provided __iter_div_u64_rem() function that is meant to address
-> the same case in other files.
-> 
-> Fixes: 44f57d788e7d ("timekeeping: Provide a generic update_vsyscall() implementation")
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Reported-by: John Stultz <john.stultz@linaro.org>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > ---
->  kernel/time/vsyscall.c | 6 +-----
->  1 file changed, 1 insertion(+), 5 deletions(-)
+>  arch/arm64/include/asm/elf.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/kernel/time/vsyscall.c b/kernel/time/vsyscall.c
-> index a80893180826..8cf3596a4ce6 100644
-> --- a/kernel/time/vsyscall.c
-> +++ b/kernel/time/vsyscall.c
-> @@ -104,11 +104,7 @@ void update_vsyscall(struct timekeeper *tk)
->  	vdso_ts->sec	= tk->xtime_sec + tk->wall_to_monotonic.tv_sec;
->  	nsec		= tk->tkr_mono.xtime_nsec >> tk->tkr_mono.shift;
->  	nsec		= nsec + tk->wall_to_monotonic.tv_nsec;
-> -	while (nsec >= NSEC_PER_SEC) {
-> -		nsec = nsec - NSEC_PER_SEC;
-> -		vdso_ts->sec++;
-> -	}
-> -	vdso_ts->nsec	= nsec;
-> +	vdso_ts->sec	+= __iter_div_u64_rem(nsec, NSEC_PER_SEC, &vdso_ts->nsec);
->  
->  	if (__arch_use_vsyscall(vdata))
->  		update_vdso_data(vdata, tk);
-> -- 
-> 2.20.0
-> 
+> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+> index 3c7037c6ba9b..b618017205a3 100644
+> --- a/arch/arm64/include/asm/elf.h
+> +++ b/arch/arm64/include/asm/elf.h
+> @@ -202,7 +202,7 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
+>  ({									\
+>  	set_thread_flag(TIF_32BIT);					\
+>   })
+> -#ifdef CONFIG_GENERIC_COMPAT_VDSO
+> +#ifdef CONFIG_COMPAT_VDSO
+>  #define COMPAT_ARCH_DLINFO						\
+>  do {									\
+>  	/*								\
 
-What an interesting function. Looks good to me and I can confirm it
-fixes the link error.
+Acked-by: Will Deacon <will@kernel.org>
 
-Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-Tested-by: Nathan Chancellor <natechancellor@gmail.com>
+I can take this at -rc1 via arm64 unless tglx plans to send it during the
+rest of the merge window. Please let me know.
+
+Will
