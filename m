@@ -1,103 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:58080 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728532AbfGKWMp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jul 2019 18:12:45 -0400
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
-Date: Thu, 11 Jul 2019 18:12:05 -0400
-Message-ID: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:60074 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727061AbfGLEPg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 00:15:36 -0400
+Date: Fri, 12 Jul 2019 05:14:54 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH v9 01/10] namei: obey trailing magic-link DAC permissions
+Message-ID: <20190712041454.GG17978@ZenIV.linux.org.uk>
+References: <20190706145737.5299-1-cyphar@cyphar.com>
+ <20190706145737.5299-2-cyphar@cyphar.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190706145737.5299-2-cyphar@cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: steffen.klassert@secunet.com
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190711221205.UYeHO017xwCccxmFceVqTFCVP6xzDroWeKJhDbeAgKQ@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190712041454.593U2nxTzdbVakAPN6ekdI-9JZbx3XvynvEN6Mlz9f4@z>
 
-Testing padata with the tcrypt module on a 5.2 kernel...
+On Sun, Jul 07, 2019 at 12:57:28AM +1000, Aleksa Sarai wrote:
 
-    # modprobe tcrypt alg="pcrypt(rfc4106(gcm(aes)))" type=3
-    # modprobe tcrypt mode=211 sec=1
+> @@ -514,7 +516,14 @@ static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
+>  	p->stack = p->internal;
+>  	p->dfd = dfd;
+>  	p->name = name;
+> -	p->total_link_count = old ? old->total_link_count : 0;
+> +	p->total_link_count = 0;
+> +	p->acc_mode = 0;
+> +	p->opath_mask = FMODE_PATH_READ | FMODE_PATH_WRITE;
+> +	if (old) {
+> +		p->total_link_count = old->total_link_count;
+> +		p->acc_mode = old->acc_mode;
+> +		p->opath_mask = old->opath_mask;
+> +	}
 
-...produces this splat:
+Huh?  Could somebody explain why traversals of NFS4 referrals should inherit
+->acc_mode and ->opath_mask?
 
-    INFO: task modprobe:10075 blocked for more than 120 seconds.
-          Not tainted 5.2.0-base+ #16
-    modprobe        D    0 10075  10064 0x80004080
-    Call Trace:
-     ? __schedule+0x4dd/0x610
-     ? ring_buffer_unlock_commit+0x23/0x100
-     schedule+0x6c/0x90
-     schedule_timeout+0x3b/0x320
-     ? trace_buffer_unlock_commit_regs+0x4f/0x1f0
-     wait_for_common+0x160/0x1a0
-     ? wake_up_q+0x80/0x80
-     { crypto_wait_req }             # entries in braces added by hand
-     { do_one_aead_op }
-     { test_aead_jiffies }
-     test_aead_speed.constprop.17+0x681/0xf30 [tcrypt]
-     do_test+0x4053/0x6a2b [tcrypt]
-     ? 0xffffffffa00f4000
-     tcrypt_mod_init+0x50/0x1000 [tcrypt]
-     ...
+>  static __always_inline
+> -const char *get_link(struct nameidata *nd)
+> +const char *get_link(struct nameidata *nd, bool trailing)
+>  {
+>  	struct saved *last = nd->stack + nd->depth - 1;
+>  	struct dentry *dentry = last->link.dentry;
+> @@ -1081,6 +1134,44 @@ const char *get_link(struct nameidata *nd)
+>  		} else {
+>  			res = get(dentry, inode, &last->done);
+>  		}
+> +		/* If we just jumped it was because of a magic-link. */
+> +		if (unlikely(nd->flags & LOOKUP_JUMPED)) {
 
-The second modprobe command never finishes because in padata_reorder,
-CPU0's load of reorder_objects is executed before the unlocking store in
-spin_unlock_bh(pd->lock), causing CPU0 to miss CPU1's increment:
+That's not quite guaranteed (it is possible to bind a symlink on top
+of a regular file, and you will get LOOKUP_JUMPED on the entry into
+trailing_symlink() when looking the result up).  Moreover, why bother
+with LOOKUP_JUMPED here?  See that
+	nd->last_type = LAST_BIND;
+several lines prior?  That's precisely to be able to recognize those
+suckers.
 
-CPU0                                 CPU1
+And _that_ would've avoided another piece of ugliness - your LOOKUP_JUMPED
+kludge forces you to handle that cra^Wsclero^Wvaluable security hardening
+in get_link(), instead of trailing_symlink() where you apparently want
+it to be.  Simply because nd_jump_root() done later in get_link() will set
+LOOKUP_JUMPED for absolute symlinks, confusing your test.
 
-padata_reorder                       padata_do_serial
-  LOAD reorder_objects  // 0
-                                       INC reorder_objects  // 1
-                                       padata_reorder
-                                         TRYLOCK pd->lock   // failed
-  UNLOCK pd->lock
+Moreover, I'm not sure that trailing_symlink() is the right place for
+that either - I would be rather tempted to fold do_o_path() into
+path_openat(), inline path_lookupat() there (as in
+        s = path_init(nd, flags);
 
-CPU0 deletes the timer before returning from padata_reorder and since no
-other job is submitted to padata, modprobe waits indefinitely.
+        while (!(error = link_path_walk(s, nd))
+                && ((error = lookup_last(nd)) > 0)) {
+                s = trailing_symlink(nd);
+        }
+        if (!error)
+                error = complete_walk(nd);
+        if (!error && nd->flags & LOOKUP_DIRECTORY)
+                if (!d_can_lookup(nd->path.dentry))
+                        error = -ENOTDIR;
+        if (!error) {
+                audit_inode(nd->name, nd->path.dentry, 0);
+                error = vfs_open(&nd->path, file);
+        }
+        terminate_walk(nd);
+- we don't need LOOKUP_DOWN there) and then we only care about the
+two callers of trailing_symlink() that are in path_openat().  Which
+is where you have your ->acc_mode and ->opath_mask without the need
+to dump them into nameidata.  Or to bring that mess into the
+things like stat(2) et.al. - it simply doesn't belong there.
 
-Add a full barrier to prevent this scenario.  The hang was happening
-about once every three runs, but now the test has finished successfully
-fifty times in a row.
-
-Fixes: 16295bec6398 ("padata: Generic parallelization/serialization interface")
-Signed-off-by: Daniel Jordan <daniel.m.jordan@oracle.com>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Paul E. McKenney <paulmck@linux.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-crypto@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-
-memory-barriers.txt says that a full barrier pairs with a release barrier, but
-I'd appreciate a look from someone more familiar with barriers.  Thanks.
-
- kernel/padata.c | 5 +++++
- 1 file changed, 5 insertions(+)
-
-diff --git a/kernel/padata.c b/kernel/padata.c
-index 2d2fddbb7a4c..9cffd4c303cb 100644
---- a/kernel/padata.c
-+++ b/kernel/padata.c
-@@ -267,7 +267,12 @@ static void padata_reorder(struct parallel_data *pd)
- 	 * The next object that needs serialization might have arrived to
- 	 * the reorder queues in the meantime, we will be called again
- 	 * from the timer function if no one else cares for it.
-+	 *
-+	 * Ensure reorder_objects is read after pd->lock is dropped so we see
-+	 * an increment from another task in padata_do_serial.  Pairs with
-+	 * spin_unlock(&pqueue->reorder.lock) in padata_do_serial.
- 	 */
-+	smp_mb();
- 	if (atomic_read(&pd->reorder_objects)
- 			&& !(pinst->flags & PADATA_RESET))
- 		mod_timer(&pd->timer, jiffies + HZ);
-
-base-commit: 0ecfebd2b52404ae0c54a878c872bb93363ada36
--- 
-2.22.0
+In any case, this "bool trailing" is completely wrong; whether that
+check belongs in trailing_symlink() or (some of) its callers, putting
+it into get_link() is a mistake, forced by kludgy check for procfs-style
+symlinks.
