@@ -1,56 +1,105 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v9 00/10] namei: openat2(2) path resolution restrictions
-Date: Sat, 13 Jul 2019 01:32:27 +1000
-Message-ID: <20190712153227.owkjmx47lzrggweo@yavin>
-References: <20190706145737.5299-1-cyphar@cyphar.com>
- <20190712151118.GP17978@ZenIV.linux.org.uk>
+From: Daniel Jordan <daniel.m.jordan@oracle.com>
+Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
+ padata jobs
+Date: Fri, 12 Jul 2019 12:07:37 -0400
+Message-ID: <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
+References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
+ <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
+ <20190712101012.GW14601@gauss3.secunet.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="whm56wbfs3ehouyz"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190712151118.GP17978@ZenIV.linux.org.uk>
+In-Reply-To: <20190712101012.GW14601@gauss3.secunet.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Tycho Andersen <tycho@tycho.ws>, Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <ole>
+To: Steffen Klassert <steffen.klassert@secunet.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Jul 12, 2019 at 12:10:12PM +0200, Steffen Klassert wrote:
+> On Fri, Jul 12, 2019 at 06:06:36PM +0800, Herbert Xu wrote:
+> > Daniel Jordan <daniel.m.jordan@oracle.com> wrote:
+> > >
+> > > CPU0                                 CPU1
+> > >
+> > > padata_reorder                       padata_do_serial
+> > >  LOAD reorder_objects  // 0
+> > >                                       INC reorder_objects  // 1
+> > >                                       padata_reorder
+> > >                                         TRYLOCK pd->lock   // failed
+> > >  UNLOCK pd->lock
+> >
+> > I think this can't happen because CPU1 won't call padata_reorder
+> > at all as it's the wrong CPU so it gets pushed back onto a work
+> > queue which will go back to CPU0.
 
---whm56wbfs3ehouyz
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Thanks for looking at this.
 
-On 2019-07-12, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Jul 07, 2019 at 12:57:27AM +1000, Aleksa Sarai wrote:
-> > Patch changelog:
-> >   v9:
-> >     * Replace resolveat(2) with openat2(2). [Linus]
-> >     * Output a warning to dmesg if may_open_magiclink() is violated.
-> >     * Add an openat2(O_CREAT) testcase.
->=20
-> One general note for the future, BTW: for such series it's generally
-> a good idea to put it into a public git tree somewhere and mention that
-> in the announcement...
+When you say the wrong CPU, I think you're referring to the reorder_via_wq
+logic in padata_do_serial.  If so, I think my explanation was unclear, because
+there were two padata jobs in flight and my tracepoints showed neither of them
+punted padata_reorder to a workqueue.  Let me expand on this, hopefully it
+helps.
 
-Sure, I'll mention it next time. For the record the tree is
-  <https://github.com/cyphar/linux/tree/resolveat/master>
+pcrypt used CPU 5 for its callback CPU.  The first job in question, with
+sequence number 16581, hashed to CPU 21 on my system.  This is a more complete
+version of what led to the hanging modprobe command.
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+modprobe (CPU2)               kworker/21:1-293 (CPU21)                              kworker/5:2-276 (CPU5)
+--------------------------    ------------------------                              ----------------------
+<submit job, seq_nr=16581>
+...
+  padata_do_parallel
+    queue_work_on(21, ...)
+<sleeps>
+                              padata_parallel_worker
+                                pcrypt_aead_dec
+                                  padata_do_serial
+                                    padata_reorder
+                                    | padata_get_next  // returns job, seq_nr=16581
+                                    | // serialize seq_nr=16581
+                                    | queue_work_on(5, ...)
+                                    | padata_get_next  // returns -EINPROGRESS
+                                    // padata_reorder doesn't return yet!
+                                    | |                                             padata_serial_worker
+                                    | |                                               pcrypt_aead_serial
+                                    | |                                                 <wake up modprobe>
+                                    | |                                             <worker finishes>
+<submit job, seq_nr=16582>          | |
+...                                 | |
+  padata_do_parallel                | |
+    queue_work_on(22, ...)          | | (LOAD reorder_objects as 0 somewhere
+<sleeps>                            | |    in here, before the INC)
+                                    | |                                             kworker/22:1-291 (CPU22)
+                                    | |                                             ------------------------
+                                    | |                                             padata_parallel_worker
+                                    | |                                               pcrypt_aead_dec
+                                    | |                                                 padata_do_serial
+                                    | |                                                   // INC reorder_objects to 1
+                                    | |                                                   padata_reorder
+                                    | |                                                     // trylock fail, CPU21 _should_
+                                    | |                                                     //   serialize 16582 but doesn't
+                                    | |                                             <worker finishes>
+                                    | // deletes pd->timer
+                                    // padata_reorder returns
+                              <worker finishes>
+<keeps on sleeping lazily>
 
---whm56wbfs3ehouyz
-Content-Type: application/pgp-signature; name="signature.asc"
+My tracepoints showed CPU22 increased reorder_objects to 1 but CPU21 read it as
+0.
 
------BEGIN PGP SIGNATURE-----
+I think adding the full barrier guarantees the following ordering, and the
+memory model people can correct me if I'm wrong:
 
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXSioAwAKCRCdlLljIbnQ
-EgzkAQChn28FqDC8mwoRBSpKSsYawQ4zVuMzbt7zKNknJNg7nQD/cmJDlKpmnt40
-Jbd8FP1RPFVHA8Y7yVeIE+cOpg3nbw4=
-=RciL
------END PGP SIGNATURE-----
+CPU21                      CPU22
+------------------------   --------------------------
+UNLOCK pd->lock
+smp_mb()
+LOAD reorder_objects
+                           INC reorder_objects
+                           spin_unlock(&pqueue->reorder.lock) // release barrier
+                           TRYLOCK pd->lock
 
---whm56wbfs3ehouyz--
+So if CPU22 has incremented reorder_objects but CPU21 reads 0 for it, CPU21
+should also have unlocked pd->lock so CPU22 can get it and serialize any
+remaining jobs.
