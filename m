@@ -1,110 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:56766 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726867AbfGLQK0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 12:10:26 -0400
-Date: Fri, 12 Jul 2019 12:07:37 -0400
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
- padata jobs
-Message-ID: <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
-References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
- <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190712101012.GW14601@gauss3.secunet.de>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:42125 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726811AbfGLTXv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 15:23:51 -0400
+Received: by mail-qk1-f196.google.com with SMTP id 201so7243860qkm.9
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jul 2019 12:23:50 -0700 (PDT)
+From: Qian Cai <cai@lca.pw>
+Subject: [PATCH] be2net: fix adapter->big_page_size miscaculation
+Date: Fri, 12 Jul 2019 15:23:21 -0400
+Message-ID: <1562959401-19815-1-git-send-email-cai@lca.pw>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190712160737.6mgAnLd6XVFWTw-BP3V6aOlO98S6_LqzPna1msJ54qE@z>
+To: davem@davemloft.net
+Cc: sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, arnd@arndb.de, dhowells@redhat.com, hpa@zytor.com, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Qian Cai <cai@lca.pw>
+Message-ID: <20190712192321.iVsX8IqbzD4Q4HzmAq7T9kmCZ5KPmWL--UIrROrdOwk@z>
 
-On Fri, Jul 12, 2019 at 12:10:12PM +0200, Steffen Klassert wrote:
-> On Fri, Jul 12, 2019 at 06:06:36PM +0800, Herbert Xu wrote:
-> > Daniel Jordan <daniel.m.jordan@oracle.com> wrote:
-> > >
-> > > CPU0                                 CPU1
-> > >
-> > > padata_reorder                       padata_do_serial
-> > >  LOAD reorder_objects  // 0
-> > >                                       INC reorder_objects  // 1
-> > >                                       padata_reorder
-> > >                                         TRYLOCK pd->lock   // failed
-> > >  UNLOCK pd->lock
-> >
-> > I think this can't happen because CPU1 won't call padata_reorder
-> > at all as it's the wrong CPU so it gets pushed back onto a work
-> > queue which will go back to CPU0.
+The commit d66acc39c7ce ("bitops: Optimise get_order()") introduced a
+problem for the be2net driver as "rx_frag_size" could be a module
+parameter that can be changed while loading the module. That commit
+checks __builtin_constant_p() first in get_order() which cause
+"adapter->big_page_size" to be assigned a value based on the
+the default "rx_frag_size" value at the compilation time. It also
+generate a compilation warning,
 
-Thanks for looking at this.
+In file included from ./arch/powerpc/include/asm/page_64.h:107,
+                 from ./arch/powerpc/include/asm/page.h:242,
+                 from ./arch/powerpc/include/asm/mmu.h:132,
+                 from ./arch/powerpc/include/asm/lppaca.h:47,
+                 from ./arch/powerpc/include/asm/paca.h:17,
+                 from ./arch/powerpc/include/asm/current.h:13,
+                 from ./include/linux/thread_info.h:21,
+                 from ./arch/powerpc/include/asm/processor.h:39,
+                 from ./include/linux/prefetch.h:15,
+                 from drivers/net/ethernet/emulex/benet/be_main.c:14:
+drivers/net/ethernet/emulex/benet/be_main.c: In function
+'be_rx_cqs_create':
+./include/asm-generic/getorder.h:54:9: warning: comparison is always
+true due to limited range of data type [-Wtype-limits]
+   (((n) < (1UL << PAGE_SHIFT)) ? 0 :  \
+         ^
+drivers/net/ethernet/emulex/benet/be_main.c:3138:33: note: in expansion
+of macro 'get_order'
+  adapter->big_page_size = (1 << get_order(rx_frag_size)) * PAGE_SIZE;
+                                 ^~~~~~~~~
 
-When you say the wrong CPU, I think you're referring to the reorder_via_wq
-logic in padata_do_serial.  If so, I think my explanation was unclear, because
-there were two padata jobs in flight and my tracepoints showed neither of them
-punted padata_reorder to a workqueue.  Let me expand on this, hopefully it
-helps.
+Fix it by using __get_order() instead which will calculate in runtime.
 
-pcrypt used CPU 5 for its callback CPU.  The first job in question, with
-sequence number 16581, hashed to CPU 21 on my system.  This is a more complete
-version of what led to the hanging modprobe command.
+Fixes: d66acc39c7ce ("bitops: Optimise get_order()")
+Signed-off-by: Qian Cai <cai@lca.pw>
+---
+ drivers/net/ethernet/emulex/benet/be_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-modprobe (CPU2)               kworker/21:1-293 (CPU21)                              kworker/5:2-276 (CPU5)
---------------------------    ------------------------                              ----------------------
-<submit job, seq_nr=16581>
-...
-  padata_do_parallel
-    queue_work_on(21, ...)
-<sleeps>
-                              padata_parallel_worker
-                                pcrypt_aead_dec
-                                  padata_do_serial
-                                    padata_reorder
-                                    | padata_get_next  // returns job, seq_nr=16581
-                                    | // serialize seq_nr=16581
-                                    | queue_work_on(5, ...)
-                                    | padata_get_next  // returns -EINPROGRESS
-                                    // padata_reorder doesn't return yet!
-                                    | |                                             padata_serial_worker
-                                    | |                                               pcrypt_aead_serial
-                                    | |                                                 <wake up modprobe>
-                                    | |                                             <worker finishes>
-<submit job, seq_nr=16582>          | |
-...                                 | |
-  padata_do_parallel                | |
-    queue_work_on(22, ...)          | | (LOAD reorder_objects as 0 somewhere
-<sleeps>                            | |    in here, before the INC)
-                                    | |                                             kworker/22:1-291 (CPU22)
-                                    | |                                             ------------------------
-                                    | |                                             padata_parallel_worker
-                                    | |                                               pcrypt_aead_dec
-                                    | |                                                 padata_do_serial
-                                    | |                                                   // INC reorder_objects to 1
-                                    | |                                                   padata_reorder
-                                    | |                                                     // trylock fail, CPU21 _should_
-                                    | |                                                     //   serialize 16582 but doesn't
-                                    | |                                             <worker finishes>
-                                    | // deletes pd->timer
-                                    // padata_reorder returns
-                              <worker finishes>
-<keeps on sleeping lazily>
-
-My tracepoints showed CPU22 increased reorder_objects to 1 but CPU21 read it as
-0.
-
-I think adding the full barrier guarantees the following ordering, and the
-memory model people can correct me if I'm wrong:
-
-CPU21                      CPU22
-------------------------   --------------------------
-UNLOCK pd->lock
-smp_mb()
-LOAD reorder_objects
-                           INC reorder_objects
-                           spin_unlock(&pqueue->reorder.lock) // release barrier
-                           TRYLOCK pd->lock
-
-So if CPU22 has incremented reorder_objects but CPU21 reads 0 for it, CPU21
-should also have unlocked pd->lock so CPU22 can get it and serialize any
-remaining jobs.
+diff --git a/drivers/net/ethernet/emulex/benet/be_main.c b/drivers/net/ethernet/emulex/benet/be_main.c
+index 82015c8a5ed7..db13e714df7c 100644
+--- a/drivers/net/ethernet/emulex/benet/be_main.c
++++ b/drivers/net/ethernet/emulex/benet/be_main.c
+@@ -3135,7 +3135,7 @@ static int be_rx_cqs_create(struct be_adapter *adapter)
+ 	if (adapter->num_rx_qs == 0)
+ 		adapter->num_rx_qs = 1;
+ 
+-	adapter->big_page_size = (1 << get_order(rx_frag_size)) * PAGE_SIZE;
++	adapter->big_page_size = (1 << __get_order(rx_frag_size)) * PAGE_SIZE;
+ 	for_all_rx_queues(adapter, rxo, i) {
+ 		rxo->adapter = adapter;
+ 		cq = &rxo->cq;
+-- 
+1.8.3.1
