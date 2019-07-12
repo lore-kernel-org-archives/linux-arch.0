@@ -1,69 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:42125 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726811AbfGLTXv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 15:23:51 -0400
-Received: by mail-qk1-f196.google.com with SMTP id 201so7243860qkm.9
-        for <linux-arch@vger.kernel.org>; Fri, 12 Jul 2019 12:23:50 -0700 (PDT)
-From: Qian Cai <cai@lca.pw>
-Subject: [PATCH] be2net: fix adapter->big_page_size miscaculation
-Date: Fri, 12 Jul 2019 15:23:21 -0400
-Message-ID: <1562959401-19815-1-git-send-email-cai@lca.pw>
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:40446 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727903AbfGLVEs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 17:04:48 -0400
+MIME-Version: 1.0
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 12 Jul 2019 23:04:31 +0200
+Message-ID: <CAK8P3a1ic6ty+ktmur-77f-_=1hu4Drpt617jT8Bz3MMWixvoA@mail.gmail.com>
+Subject: [GIT PULL] asm-generic: remove ptrace.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: davem@davemloft.net
-Cc: sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, arnd@arndb.de, dhowells@redhat.com, hpa@zytor.com, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Qian Cai <cai@lca.pw>
-Message-ID: <20190712192321.iVsX8IqbzD4Q4HzmAq7T9kmCZ5KPmWL--UIrROrdOwk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190712210431.37WnApDbs8RYH5CU81EYZRY7mlXwH4vnpinwC4ZZTiY@z>
 
-The commit d66acc39c7ce ("bitops: Optimise get_order()") introduced a
-problem for the be2net driver as "rx_frag_size" could be a module
-parameter that can be changed while loading the module. That commit
-checks __builtin_constant_p() first in get_order() which cause
-"adapter->big_page_size" to be assigned a value based on the
-the default "rx_frag_size" value at the compilation time. It also
-generate a compilation warning,
+The following changes since commit f2c7c76c5d0a443053e94adb9f0918fa2fb85c3a:
 
-In file included from ./arch/powerpc/include/asm/page_64.h:107,
-                 from ./arch/powerpc/include/asm/page.h:242,
-                 from ./arch/powerpc/include/asm/mmu.h:132,
-                 from ./arch/powerpc/include/asm/lppaca.h:47,
-                 from ./arch/powerpc/include/asm/paca.h:17,
-                 from ./arch/powerpc/include/asm/current.h:13,
-                 from ./include/linux/thread_info.h:21,
-                 from ./arch/powerpc/include/asm/processor.h:39,
-                 from ./include/linux/prefetch.h:15,
-                 from drivers/net/ethernet/emulex/benet/be_main.c:14:
-drivers/net/ethernet/emulex/benet/be_main.c: In function
-'be_rx_cqs_create':
-./include/asm-generic/getorder.h:54:9: warning: comparison is always
-true due to limited range of data type [-Wtype-limits]
-   (((n) < (1UL << PAGE_SHIFT)) ? 0 :  \
-         ^
-drivers/net/ethernet/emulex/benet/be_main.c:3138:33: note: in expansion
-of macro 'get_order'
-  adapter->big_page_size = (1 << get_order(rx_frag_size)) * PAGE_SIZE;
-                                 ^~~~~~~~~
+  Linux 5.2-rc3 (2019-06-02 13:55:33 -0700)
 
-Fix it by using __get_order() instead which will calculate in runtime.
+are available in the Git repository at:
 
-Fixes: d66acc39c7ce ("bitops: Optimise get_order()")
-Signed-off-by: Qian Cai <cai@lca.pw>
----
- drivers/net/ethernet/emulex/benet/be_main.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic-5.3
 
-diff --git a/drivers/net/ethernet/emulex/benet/be_main.c b/drivers/net/ethernet/emulex/benet/be_main.c
-index 82015c8a5ed7..db13e714df7c 100644
---- a/drivers/net/ethernet/emulex/benet/be_main.c
-+++ b/drivers/net/ethernet/emulex/benet/be_main.c
-@@ -3135,7 +3135,7 @@ static int be_rx_cqs_create(struct be_adapter *adapter)
- 	if (adapter->num_rx_qs == 0)
- 		adapter->num_rx_qs = 1;
- 
--	adapter->big_page_size = (1 << get_order(rx_frag_size)) * PAGE_SIZE;
-+	adapter->big_page_size = (1 << __get_order(rx_frag_size)) * PAGE_SIZE;
- 	for_all_rx_queues(adapter, rxo, i) {
- 		rxo->adapter = adapter;
- 		cq = &rxo->cq;
--- 
-1.8.3.1
+for you to fetch changes up to 7f3a8dff1219fba3076fe207972d1d7893c099bb:
+
+  asm-generic: remove ptrace.h (2019-07-01 17:51:40 +0200)
+
+----------------------------------------------------------------
+asm-generic: remove ptrace.h
+
+The asm-generic changes for 5.3 consist of a cleanup series from
+Christoph Hellwig, who explains:
+
+"asm-generic/ptrace.h is a little weird in that it doesn't actually
+implement any functionality, but it provided multiple layers of macros
+that just implement trivial inline functions.  We implement those
+directly in the few architectures and be off with a much simpler
+design."
+
+Link: https://lore.kernel.org/lkml/20190624054728.30966-1-hch@lst.de/
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+----------------------------------------------------------------
+Christoph Hellwig (5):
+      arm64: don't use asm-generic/ptrace.h
+      powerpc: don't use asm-generic/ptrace.h
+      sh: don't use asm-generic/ptrace.h
+      x86: don't use asm-generic/ptrace.h
+      asm-generic: remove ptrace.h
+
+ MAINTAINERS                       |  1 -
+ arch/arm64/include/asm/ptrace.h   | 31 ++++++++++-------
+ arch/mips/include/asm/ptrace.h    |  5 ---
+ arch/powerpc/include/asm/ptrace.h | 29 ++++++++++++----
+ arch/sh/include/asm/ptrace.h      | 29 +++++++++++++---
+ arch/x86/include/asm/ptrace.h     | 30 +++++++++++++---
+ include/asm-generic/ptrace.h      | 73 ---------------------------------------
+ 7 files changed, 91 insertions(+), 107 deletions(-)
+ delete mode 100644 include/asm-generic/ptrace.h
