@@ -1,101 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:2225 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726112AbfGLIMP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Jul 2019 04:12:15 -0400
-Subject: Re: [PATCH v2 0/5] Add NUMA-awareness to qspinlock
-References: <20190329152006.110370-1-alex.kogan@oracle.com>
- <CAEiAFz238Ywgn6iDAz9gM_3PgPhs-YuAVDptehUBv7MRRPx8Cw@mail.gmail.com>
-From: Hanjun Guo <guohanjun@huawei.com>
-Message-ID: <95683b80-f694-cf34-73fc-e6ec05462ee0@huawei.com>
-Date: Fri, 12 Jul 2019 16:12:05 +0800
+Received: from helcar.hmeau.com ([216.24.177.18]:43770 "EHLO deadmen.hmeau.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726002AbfGLKGx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Jul 2019 06:06:53 -0400
+Date: Fri, 12 Jul 2019 18:06:36 +0800
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
+ padata jobs
+Message-ID: <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
 MIME-Version: 1.0
-In-Reply-To: <CAEiAFz238Ywgn6iDAz9gM_3PgPhs-YuAVDptehUBv7MRRPx8Cw@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Glauber <jglauber@marvell.com>, Alex Kogan <alex.kogan@oracle.com>
-Cc: "linux@armlinux.org.uk" <linux@armlinux.org.uk>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "longman@redhat.com" <longman@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "steven.sistare@oracle.com" <steven.sistare@oracle.com>, "daniel.m.jordan@oracle.com" <daniel.m.jordan@oracle.com>, "dave.dice@oracle.com" <dave.dice@oracle.com>, "rahul.x.yadav@oracle.com" <rahul.x.yadav@oracle.com>
-Message-ID: <20190712081205.XNLKCqLxn4X3njht99yEGk-OzQz4ZCEsj3Bp68j85z0@z>
+To: Daniel Jordan <daniel.m.jordan@oracle.com>
+Cc: steffen.klassert@secunet.com, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190712100636.E7_Y-INVntXRVnoiaeC0fYtUdsUS1R0j-5CXSDPLtBE@z>
 
-On 2019/7/3 19:58, Jan Glauber wrote:
-> Hi Alex,
-> I've tried this series on arm64 (ThunderX2 with up to SMT=4  and 224 CPUs)
-> with the borderline testcase of accessing a single file from all
-> threads. With that
-> testcase the qspinlock slowpath is the top spot in the kernel.
+Daniel Jordan <daniel.m.jordan@oracle.com> wrote:
+>
+> CPU0                                 CPU1
 > 
-> The results look really promising:
-> 
-> CPUs    normal    numa-qspinlocks
-> ---------------------------------------------
-> 56        149.41          73.90
-> 224      576.95          290.31
-> 
-> Also frontend-stalls are reduced to 50% and interconnect traffic is
-> greatly reduced.
-> Tested-by: Jan Glauber <jglauber@marvell.com>
+> padata_reorder                       padata_do_serial
+>  LOAD reorder_objects  // 0
+>                                       INC reorder_objects  // 1
+>                                       padata_reorder
+>                                         TRYLOCK pd->lock   // failed
+>  UNLOCK pd->lock
 
-Tested this patchset on Kunpeng920 ARM64 server (96 cores,
-4 NUMA nodes), and with the same test case from Jan, I can
-see 150%+ boost! (Need to add a patch below [1].)
+I think this can't happen because CPU1 won't call padata_reorder
+at all as it's the wrong CPU so it gets pushed back onto a work
+queue which will go back to CPU0.
 
-For the real workload such as Nginx I can see about 10%
-performance improvement as well.
+Steffen, could you please take a look at this as there clearly
+is a problem here?
 
-Tested-by: Hanjun Guo <guohanjun@huawei.com>
-
-Please cc me for new versions and I'm willing to test it.
-
-Thanks
-Hanjun
-
-[1]
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 657bbc5..72c1346 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -792,6 +792,20 @@ config NODES_SHIFT
-          Specify the maximum number of NUMA Nodes available on the target
-          system.  Increases memory reserved to accommodate various tables.
-
-+config NUMA_AWARE_SPINLOCKS
-+ bool "Numa-aware spinlocks"
-+ depends on NUMA
-+ default y
-+ help
-+   Introduce NUMA (Non Uniform Memory Access) awareness into
-+   the slow path of spinlocks.
-+
-+   The kernel will try to keep the lock on the same node,
-+   thus reducing the number of remote cache misses, while
-+   trading some of the short term fairness for better performance.
-+
-+   Say N if you want absolute first come first serve fairness.
-+
- config USE_PERCPU_NUMA_NODE_ID
-        def_bool y
-        depends on NUMA
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index 2994167..be5dd44 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -4,7 +4,7 @@
- #endif
-
- #include <linux/random.h>
--
-+#include <linux/topology.h>
- /*
-  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-  *
-@@ -170,7 +170,7 @@ static __always_inline void cna_init_node(struct mcs_spinlock *node, int cpuid,
-                                          u32 tail)
- {
-        if (decode_numa_node(node->node_and_count) == -1)
--           store_numa_node(node, numa_cpu_node(cpuid));
-+         store_numa_node(node, cpu_to_node(cpuid));
-        node->encoded_tail = tail;
- }
+Thanks,
+-- 
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
