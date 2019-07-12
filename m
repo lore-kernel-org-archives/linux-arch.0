@@ -1,42 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:33532 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725562AbfGLGgu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2019 02:36:50 -0400
-Date: Fri, 12 Jul 2019 07:36:18 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v9 01/10] namei: obey trailing magic-link DAC permissions
-Message-ID: <20190712063617.GJ17978@ZenIV.linux.org.uk>
-References: <20190706145737.5299-1-cyphar@cyphar.com>
- <20190706145737.5299-2-cyphar@cyphar.com>
- <20190712041454.GG17978@ZenIV.linux.org.uk>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:2225 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726112AbfGLIMP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Jul 2019 04:12:15 -0400
+Subject: Re: [PATCH v2 0/5] Add NUMA-awareness to qspinlock
+References: <20190329152006.110370-1-alex.kogan@oracle.com>
+ <CAEiAFz238Ywgn6iDAz9gM_3PgPhs-YuAVDptehUBv7MRRPx8Cw@mail.gmail.com>
+From: Hanjun Guo <guohanjun@huawei.com>
+Message-ID: <95683b80-f694-cf34-73fc-e6ec05462ee0@huawei.com>
+Date: Fri, 12 Jul 2019 16:12:05 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190712041454.GG17978@ZenIV.linux.org.uk>
+In-Reply-To: <CAEiAFz238Ywgn6iDAz9gM_3PgPhs-YuAVDptehUBv7MRRPx8Cw@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190712063618.NDG-wQ-cByOheSporBxZHGmwQWhKLPiWniMyXjbW4es@z>
+To: Jan Glauber <jglauber@marvell.com>, Alex Kogan <alex.kogan@oracle.com>
+Cc: "linux@armlinux.org.uk" <linux@armlinux.org.uk>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "longman@redhat.com" <longman@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "steven.sistare@oracle.com" <steven.sistare@oracle.com>, "daniel.m.jordan@oracle.com" <daniel.m.jordan@oracle.com>, "dave.dice@oracle.com" <dave.dice@oracle.com>, "rahul.x.yadav@oracle.com" <rahul.x.yadav@oracle.com>
+Message-ID: <20190712081205.XNLKCqLxn4X3njht99yEGk-OzQz4ZCEsj3Bp68j85z0@z>
 
-On Fri, Jul 12, 2019 at 05:14:54AM +0100, Al Viro wrote:
+On 2019/7/3 19:58, Jan Glauber wrote:
+> Hi Alex,
+> I've tried this series on arm64 (ThunderX2 with up to SMT=4  and 224 CPUs)
+> with the borderline testcase of accessing a single file from all
+> threads. With that
+> testcase the qspinlock slowpath is the top spot in the kernel.
+> 
+> The results look really promising:
+> 
+> CPUs    normal    numa-qspinlocks
+> ---------------------------------------------
+> 56        149.41          73.90
+> 224      576.95          290.31
+> 
+> Also frontend-stalls are reduced to 50% and interconnect traffic is
+> greatly reduced.
+> Tested-by: Jan Glauber <jglauber@marvell.com>
 
-> That's not quite guaranteed (it is possible to bind a symlink on top
-> of a regular file, and you will get LOOKUP_JUMPED on the entry into
-> trailing_symlink() when looking the result up).  Moreover, why bother
-> with LOOKUP_JUMPED here?  See that
-> 	nd->last_type = LAST_BIND;
-> several lines prior?  That's precisely to be able to recognize those
-> suckers.
+Tested this patchset on Kunpeng920 ARM64 server (96 cores,
+4 NUMA nodes), and with the same test case from Jan, I can
+see 150%+ boost! (Need to add a patch below [1].)
 
-... except that this won't work these days (once upon a time it used
-to, but that had been a long time ago).  However, that doesn't change
-the fact that the test is really wrong.  So let's do it right:
+For the real workload such as Nginx I can see about 10%
+performance improvement as well.
 
-* set a new flag along with LOOKUP_JUMPED in nd_jump_link()
-* clear it in get_link() right before
-	res = READ_ONCE(inode->i_link);
-* check it in trailing_symlink() (or callers thereof)
+Tested-by: Hanjun Guo <guohanjun@huawei.com>
 
-The rest of comments stand, AFAICS.
+Please cc me for new versions and I'm willing to test it.
+
+Thanks
+Hanjun
+
+[1]
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 657bbc5..72c1346 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -792,6 +792,20 @@ config NODES_SHIFT
+          Specify the maximum number of NUMA Nodes available on the target
+          system.  Increases memory reserved to accommodate various tables.
+
++config NUMA_AWARE_SPINLOCKS
++ bool "Numa-aware spinlocks"
++ depends on NUMA
++ default y
++ help
++   Introduce NUMA (Non Uniform Memory Access) awareness into
++   the slow path of spinlocks.
++
++   The kernel will try to keep the lock on the same node,
++   thus reducing the number of remote cache misses, while
++   trading some of the short term fairness for better performance.
++
++   Say N if you want absolute first come first serve fairness.
++
+ config USE_PERCPU_NUMA_NODE_ID
+        def_bool y
+        depends on NUMA
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index 2994167..be5dd44 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,7 +4,7 @@
+ #endif
+
+ #include <linux/random.h>
+-
++#include <linux/topology.h>
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+  *
+@@ -170,7 +170,7 @@ static __always_inline void cna_init_node(struct mcs_spinlock *node, int cpuid,
+                                          u32 tail)
+ {
+        if (decode_numa_node(node->node_and_count) == -1)
+-           store_numa_node(node, numa_cpu_node(cpuid));
++         store_numa_node(node, cpu_to_node(cpuid));
+        node->encoded_tail = tail;
+ }
