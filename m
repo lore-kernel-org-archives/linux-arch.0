@@ -1,46 +1,43 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v9 05/10] namei: O_BENEATH-style path resolution flags
-Date: Sat, 13 Jul 2019 03:41:53 +0100
-Message-ID: <20190713024153.GA3817@ZenIV.linux.org.uk>
-References: <20190706145737.5299-1-cyphar@cyphar.com>
- <20190706145737.5299-6-cyphar@cyphar.com>
- <20190712043341.GI17978@ZenIV.linux.org.uk>
- <20190712105745.nruaftgeat6irhzr@yavin>
- <20190712123924.GK17978@ZenIV.linux.org.uk>
- <20190712125552.GL17978@ZenIV.linux.org.uk>
- <20190712132553.GN17978@ZenIV.linux.org.uk>
- <20190712150026.GO17978@ZenIV.linux.org.uk>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
+ padata jobs
+Date: Sat, 13 Jul 2019 13:03:21 +0800
+Message-ID: <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
+References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
+ <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
+ <20190712101012.GW14601@gauss3.secunet.de>
+ <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190712150026.GO17978@ZenIV.linux.org.uk>
+In-Reply-To: <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org
+To: Daniel Jordan <daniel.m.jordan@oracle.com>
+Cc: Steffen Klassert <steffen.klassert@secunet.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 12, 2019 at 04:00:26PM +0100, Al Viro wrote:
-> On Fri, Jul 12, 2019 at 02:25:53PM +0100, Al Viro wrote:
-> 
-> > 	if (flags & LOOKUP_BENEATH) {
-> > 		nd->root = nd->path;
-> > 		if (!(flags & LOOKUP_RCU))
-> > 			path_get(&nd->root);
-> > 		else
-> > 			nd->root_seq = nd->seq;
-> 
-> BTW, this assignment is needed for LOOKUP_RCU case.  Without it
-> you are pretty much guaranteed that lazy pathwalk will fail,
-> when it comes to complete_walk().
-> 
-> Speaking of which, what would happen if LOOKUP_ROOT/LOOKUP_BENEATH
-> combination would someday get passed?
+On Fri, Jul 12, 2019 at 12:07:37PM -0400, Daniel Jordan wrote:
+>
+> modprobe (CPU2)               kworker/21:1-293 (CPU21)                              kworker/5:2-276 (CPU5)
+> --------------------------    ------------------------                              ----------------------
+> <submit job, seq_nr=16581>
+> ...
+>   padata_do_parallel
+>     queue_work_on(21, ...)
+> <sleeps>
+>                               padata_parallel_worker
+>                                 pcrypt_aead_dec
+>                                   padata_do_serial
+>                                     padata_reorder
 
-I don't understand what's going on with ->r_seq in there - your
-call of path_is_under() is after having (re-)sampled rename_lock,
-but if that was the only .. in there, who's going to recheck
-the value?  For that matter, what's to guarantee that the thing
-won't get moved just as you are returning from handle_dots()?
+This can't happen because if the job started on CPU2 then it must
+go back to CPU2 for completion.  IOW padata_do_serial should be
+punting this to a work queue for CPU2 rather than calling
+padata_reorder on CPU21.
 
-IOW, what does LOOKUP_IN_ROOT guarantee for caller (openat2())?
+Cheers,
+-- 
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
