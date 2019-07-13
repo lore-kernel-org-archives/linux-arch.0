@@ -1,24 +1,66 @@
-From: pr-tracker-bot@kernel.org
-Subject: Re: [GIT PULL] asm-generic: remove ptrace.h
-Date: Fri, 12 Jul 2019 23:20:20 +0000
-Message-ID: <156297362084.22922.12460781197088594776.pr-tracker-bot@kernel.org>
-References: <CAK8P3a1ic6ty+ktmur-77f-_=1hu4Drpt617jT8Bz3MMWixvoA@mail.gmail.com>
+From: Qian Cai <cai@lca.pw>
+Subject: Re: [PATCH] be2net: fix adapter->big_page_size miscaculation
+Date: Fri, 12 Jul 2019 20:27:09 -0400
+Message-ID: <EFD25845-097A-46B1-9C1A-02458883E4DA@lca.pw>
+References: <1562959401-19815-1-git-send-email-cai@lca.pw>
+ <20190712.154606.493382088615011132.davem@davemloft.net>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a1ic6ty+ktmur-77f-_=1hu4Drpt617jT8Bz3MMWixvoA@mail.gmail.com>
+In-Reply-To: <20190712.154606.493382088615011132.davem@davemloft.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, arnd@arndb.de, dhowells@redhat.com, hpa@zytor.com, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The pull request you sent on Fri, 12 Jul 2019 23:04:31 +0200:
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-5.3
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/5f26f1143678d0fed8115afdcc0de99ee7cc9675
+> On Jul 12, 2019, at 6:46 PM, David Miller <davem@davemloft.net> wrote:
+>=20
+> From: Qian Cai <cai@lca.pw>
+> Date: Fri, 12 Jul 2019 15:23:21 -0400
+>=20
+>> The commit d66acc39c7ce ("bitops: Optimise get_order()") introduced a
+>> problem for the be2net driver as "rx_frag_size" could be a module
+>> parameter that can be changed while loading the module.
+>=20
+> Why is this a problem?
 
-Thank you!
+Well, for example, if rx_frag_size was set to 8096 when loading the =
+module, the kernel has already used the default value 2048 during =
+compilation time.
 
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+>=20
+>> That commit checks __builtin_constant_p() first in get_order() which
+>> cause "adapter->big_page_size" to be assigned a value based on the
+>> the default "rx_frag_size" value at the compilation time. It also
+>> generate a compilation warning,
+>=20
+> rx_frag_size is not a constant, therefore the __builtin_constant_p()
+> test should not pass.
+>=20
+> This explanation doesn't seem valid.
+
+Actually, GCC would consider it a const with -O2 optimized level because =
+it found that it was never modified and it does not understand it is a =
+module parameter. Considering the following code.
+
+# cat const.c=20
+#include <stdio.h>
+
+static int a =3D 1;
+
+int main(void)
+{
+	if (__builtin_constant_p(a))
+		printf("a is a const.\n");
+
+	return 0;
+}
+
+# gcc -O2 const.c -o const
+
+# ./const=20
+a is a const.=
