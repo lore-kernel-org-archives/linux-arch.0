@@ -1,7 +1,7 @@
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v3 1/5] locking/qspinlock: Make arch_mcs_spin_unlock_contended more generic
-Date: Mon, 15 Jul 2019 15:25:32 -0400
-Message-ID: <20190715192536.104548-2-alex.kogan@oracle.com>
+Subject: [PATCH v3 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date: Mon, 15 Jul 2019 15:25:35 -0400
+Message-ID: <20190715192536.104548-5-alex.kogan@oracle.com>
 References: <20190715192536.104548-1-alex.kogan@oracle.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190715192536.104548-1-alex.kogan@oracle.com>
@@ -10,70 +10,80 @@ To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@a
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-The arch_mcs_spin_unlock_contended macro should accept the value to be
-stored into the lock argument as another argument. This allows using the
-same macro in cases where the value to be stored is different from 1.
+Choose the next lock holder among spinning threads running on the same
+node with high probability rather than always. With small probability,
+hand the lock to the first thread in the secondary queue or, if that
+queue is empty, to the immediate successor of the current lock holder
+in the main queue.  Thus, assuming no failures while threads hold the
+lock, every thread would be able to acquire the lock after a bounded
+number of lock transitions, with high probability.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
- arch/arm/include/asm/mcs_spinlock.h | 4 ++--
- kernel/locking/mcs_spinlock.h       | 6 +++---
- kernel/locking/qspinlock.c          | 2 +-
- 3 files changed, 6 insertions(+), 6 deletions(-)
+ kernel/locking/qspinlock_cna.h | 36 +++++++++++++++++++++++++++++++++++-
+ 1 file changed, 35 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
-index 529d2cf4d06f..ae6d763477f4 100644
---- a/arch/arm/include/asm/mcs_spinlock.h
-+++ b/arch/arm/include/asm/mcs_spinlock.h
-@@ -14,9 +14,9 @@ do {									\
- 		wfe();							\
- } while (0)								\
- 
--#define arch_mcs_spin_unlock_contended(lock)				\
-+#define arch_mcs_spin_unlock_contended(lock, val)			\
- do {									\
--	smp_store_release(lock, 1);					\
-+	smp_store_release(lock, (val));					\
- 	dsb_sev();							\
- } while (0)
- 
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index 5e10153b4d3c..bc6d3244e1af 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -41,8 +41,8 @@ do {									\
-  * operations in the critical section has been completed before
-  * unlocking.
-  */
--#define arch_mcs_spin_unlock_contended(l)				\
--	smp_store_release((l), 1)
-+#define arch_mcs_spin_unlock_contended(l, val)				\
-+	smp_store_release((l), (val))
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index efb9b12b2f9b..3de5be813a46 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
  #endif
  
+ #include <linux/topology.h>
++#include <linux/random.h>
+ 
  /*
-@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	}
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -36,6 +37,33 @@ struct cna_node {
  
- 	/* Pass lock to next waiter. */
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_spin_unlock_contended(&next->locked, 1);
- }
+ #define CNA_NODE(ptr) ((struct cna_node *)(ptr))
  
- #endif /* __LINUX_MCS_SPINLOCK_H */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index e14b32c69639..961781624638 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -558,7 +558,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
++/* Per-CPU pseudo-random number seed */
++static DEFINE_PER_CPU(u32, seed);
++
++/*
++ * Controls the probability for intra-node lock hand-off. It can be
++ * tuned and depend, e.g., on the number of CPUs per node. For now,
++ * choose a value that provides reasonable long-term fairness without
++ * sacrificing performance compared to a version that does not have any
++ * fairness guarantees.
++ */
++#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
++
++/*
++ * Return false with probability 1 / @range.
++ * @range must be a power of 2.
++ */
++static bool probably(unsigned int range)
++{
++	u32 s;
++
++	s = this_cpu_read(seed);
++	s = next_pseudo_random32(s);
++	this_cpu_write(seed, s);
++
++	return s & (range - 1);
++}
++
+ static void cna_init_node(struct mcs_spinlock *node)
+ {
+ 	struct cna_node *cn = CNA_NODE(node);
+@@ -140,7 +168,13 @@ static inline void cna_pass_mcs_lock(struct mcs_spinlock *node,
+ 	u64 *var = &next->locked;
+ 	u64 val = 1;
  
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_spin_unlock_contended(&next->locked, 1);
- 	pv_kick_node(lock, next);
+-	succ = find_successor(node);
++	/*
++	 * Try to pass the lock to a thread running on the same node.
++	 * For long-term fairness, search for such a thread with high
++	 * probability rather than always.
++	 */
++	if (probably(INTRA_NODE_HANDOFF_PROB_ARG))
++		succ = find_successor(node);
  
- release:
+ 	if (succ) {
+ 		var = &succ->mcs.locked;
 -- 
 2.11.0 (Apple Git-81)
