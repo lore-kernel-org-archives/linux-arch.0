@@ -1,12 +1,12 @@
 From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.19 077/158] x86/atomic: Fix smp_mb__{before,after}_atomic()
-Date: Mon, 15 Jul 2019 10:16:48 -0400
-Message-ID: <20190715141809.8445-77-sashal@kernel.org>
-References: <20190715141809.8445-1-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 4.14 054/105] x86/atomic: Fix smp_mb__{before,after}_atomic()
+Date: Mon, 15 Jul 2019 10:27:48 -0400
+Message-ID: <20190715142839.9896-54-sashal@kernel.org>
+References: <20190715142839.9896-1-sashal@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190715141809.8445-1-sashal@kernel.org>
+In-Reply-To: <20190715142839.9896-1-sashal@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
@@ -76,10 +76,10 @@ index 913396ac5824..ed0d814df7e0 100644
  
    atomic_fetch_add();
 diff --git a/arch/x86/include/asm/atomic.h b/arch/x86/include/asm/atomic.h
-index ce84388e540c..d266a4066289 100644
+index 72759f131cc5..d09dd91dd0b6 100644
 --- a/arch/x86/include/asm/atomic.h
 +++ b/arch/x86/include/asm/atomic.h
-@@ -54,7 +54,7 @@ static __always_inline void arch_atomic_add(int i, atomic_t *v)
+@@ -50,7 +50,7 @@ static __always_inline void atomic_add(int i, atomic_t *v)
  {
  	asm volatile(LOCK_PREFIX "addl %1,%0"
  		     : "+m" (v->counter)
@@ -88,7 +88,7 @@ index ce84388e540c..d266a4066289 100644
  }
  
  /**
-@@ -68,7 +68,7 @@ static __always_inline void arch_atomic_sub(int i, atomic_t *v)
+@@ -64,7 +64,7 @@ static __always_inline void atomic_sub(int i, atomic_t *v)
  {
  	asm volatile(LOCK_PREFIX "subl %1,%0"
  		     : "+m" (v->counter)
@@ -97,29 +97,29 @@ index ce84388e540c..d266a4066289 100644
  }
  
  /**
-@@ -95,7 +95,7 @@ static __always_inline bool arch_atomic_sub_and_test(int i, atomic_t *v)
- static __always_inline void arch_atomic_inc(atomic_t *v)
+@@ -90,7 +90,7 @@ static __always_inline bool atomic_sub_and_test(int i, atomic_t *v)
+ static __always_inline void atomic_inc(atomic_t *v)
  {
  	asm volatile(LOCK_PREFIX "incl %0"
 -		     : "+m" (v->counter));
 +		     : "+m" (v->counter) :: "memory");
  }
- #define arch_atomic_inc arch_atomic_inc
  
-@@ -108,7 +108,7 @@ static __always_inline void arch_atomic_inc(atomic_t *v)
- static __always_inline void arch_atomic_dec(atomic_t *v)
+ /**
+@@ -102,7 +102,7 @@ static __always_inline void atomic_inc(atomic_t *v)
+ static __always_inline void atomic_dec(atomic_t *v)
  {
  	asm volatile(LOCK_PREFIX "decl %0"
 -		     : "+m" (v->counter));
 +		     : "+m" (v->counter) :: "memory");
  }
- #define arch_atomic_dec arch_atomic_dec
  
+ /**
 diff --git a/arch/x86/include/asm/atomic64_64.h b/arch/x86/include/asm/atomic64_64.h
-index 5f851d92eecd..55ca027f8c1c 100644
+index 738495caf05f..e6fad6bbb2ee 100644
 --- a/arch/x86/include/asm/atomic64_64.h
 +++ b/arch/x86/include/asm/atomic64_64.h
-@@ -45,7 +45,7 @@ static __always_inline void arch_atomic64_add(long i, atomic64_t *v)
+@@ -45,7 +45,7 @@ static __always_inline void atomic64_add(long i, atomic64_t *v)
  {
  	asm volatile(LOCK_PREFIX "addq %1,%0"
  		     : "=m" (v->counter)
@@ -128,7 +128,7 @@ index 5f851d92eecd..55ca027f8c1c 100644
  }
  
  /**
-@@ -59,7 +59,7 @@ static inline void arch_atomic64_sub(long i, atomic64_t *v)
+@@ -59,7 +59,7 @@ static inline void atomic64_sub(long i, atomic64_t *v)
  {
  	asm volatile(LOCK_PREFIX "subq %1,%0"
  		     : "=m" (v->counter)
@@ -137,30 +137,30 @@ index 5f851d92eecd..55ca027f8c1c 100644
  }
  
  /**
-@@ -87,7 +87,7 @@ static __always_inline void arch_atomic64_inc(atomic64_t *v)
+@@ -86,7 +86,7 @@ static __always_inline void atomic64_inc(atomic64_t *v)
  {
  	asm volatile(LOCK_PREFIX "incq %0"
  		     : "=m" (v->counter)
 -		     : "m" (v->counter));
 +		     : "m" (v->counter) : "memory");
  }
- #define arch_atomic64_inc arch_atomic64_inc
  
-@@ -101,7 +101,7 @@ static __always_inline void arch_atomic64_dec(atomic64_t *v)
+ /**
+@@ -99,7 +99,7 @@ static __always_inline void atomic64_dec(atomic64_t *v)
  {
  	asm volatile(LOCK_PREFIX "decq %0"
  		     : "=m" (v->counter)
 -		     : "m" (v->counter));
 +		     : "m" (v->counter) : "memory");
  }
- #define arch_atomic64_dec arch_atomic64_dec
  
+ /**
 diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 14de0432d288..84f848c2541a 100644
+index a04f0c242a28..bc88797cfa61 100644
 --- a/arch/x86/include/asm/barrier.h
 +++ b/arch/x86/include/asm/barrier.h
-@@ -80,8 +80,8 @@ do {									\
- })
+@@ -106,8 +106,8 @@ do {									\
+ #endif
  
  /* Atomic operations are already serializing on x86 */
 -#define __smp_mb__before_atomic()	barrier()
