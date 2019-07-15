@@ -1,157 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:38121 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728719AbfGNTWv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jul 2019 15:22:51 -0400
-Received: by mail-wr1-f65.google.com with SMTP id g17so14825235wrr.5
-        for <linux-arch@vger.kernel.org>; Sun, 14 Jul 2019 12:22:50 -0700 (PDT)
-From: Christian Brauner <christian@brauner.io>
-Subject: [PATCH 1/2] arch: mark syscall number 435 reserved for clone3
-Date: Sun, 14 Jul 2019 21:22:04 +0200
-Message-ID: <20190714192205.27190-2-christian@brauner.io>
-In-Reply-To: <20190714192205.27190-1-christian@brauner.io>
-References: <20190714192205.27190-1-christian@brauner.io>
+Received: from bombadil.infradead.org ([198.137.202.133]:32922 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729257AbfGOJMN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 05:12:13 -0400
+From: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+Subject: [PATCH] docs: fix broken doc links due to renames
+Date: Mon, 15 Jul 2019 06:12:08 -0300
+Message-Id: <93185ad3a67685429c84fceb94d20fb500c0aedb.1563181814.git.mchehab+samsung@kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Christian Brauner <christian@brauner.io>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20190714192204.Ac0AVUiJXhb7B37j0NTEowUqe7n-WMY1hr1sq7Na67U@z>
+To: Jonathan Corbet <corbet@lwn.net>
+Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, rcu@vger.kernel.org, linux-doc@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, esc.storagedev@microsemi.com, linux-scsi@vger.kernel.org
 
-A while ago Arnd made it possible to give new system calls the same
-syscall number on all architectures (except alpha). To not break this
-nice new feature let's mark 435 for clone3 as reserved on all
-architectures that do not yet implement it.
-Even if an architecture does not plan to implement it this ensures that
-new system calls coming after clone3 will have the same number on all
-architectures.
+Some files got renamed but the patch was incomplete, as it forgot
+to update the documentation reference accordingly.
 
-Signed-off-by: Christian Brauner <christian@brauner.io>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-mips@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 ---
- arch/alpha/kernel/syscalls/syscall.tbl    | 1 +
- arch/ia64/kernel/syscalls/syscall.tbl     | 1 +
- arch/m68k/kernel/syscalls/syscall.tbl     | 1 +
- arch/mips/kernel/syscalls/syscall_n32.tbl | 1 +
- arch/mips/kernel/syscalls/syscall_n64.tbl | 1 +
- arch/mips/kernel/syscalls/syscall_o32.tbl | 1 +
- arch/parisc/kernel/syscalls/syscall.tbl   | 1 +
- arch/powerpc/kernel/syscalls/syscall.tbl  | 1 +
- arch/s390/kernel/syscalls/syscall.tbl     | 1 +
- arch/sh/kernel/syscalls/syscall.tbl       | 1 +
- arch/sparc/kernel/syscalls/syscall.tbl    | 1 +
- 11 files changed, 11 insertions(+)
 
-diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
-index 1db9bbcfb84e..728fe028c02c 100644
---- a/arch/alpha/kernel/syscalls/syscall.tbl
-+++ b/arch/alpha/kernel/syscalls/syscall.tbl
-@@ -474,3 +474,4 @@
- 542	common	fsmount				sys_fsmount
- 543	common	fspick				sys_fspick
- 544	common	pidfd_open			sys_pidfd_open
-+# 545 reserved for clone3
-diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
-index ecc44926737b..36d5faf4c86c 100644
---- a/arch/ia64/kernel/syscalls/syscall.tbl
-+++ b/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -355,3 +355,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
-index 9a3eb2558568..a88a285a0e5f 100644
---- a/arch/m68k/kernel/syscalls/syscall.tbl
-+++ b/arch/m68k/kernel/syscalls/syscall.tbl
-@@ -434,3 +434,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
-index 97035e19ad03..c9c879ec9b6d 100644
---- a/arch/mips/kernel/syscalls/syscall_n32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
-@@ -373,3 +373,4 @@
- 432	n32	fsmount				sys_fsmount
- 433	n32	fspick				sys_fspick
- 434	n32	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
-index d7292722d3b0..bbce9159caa1 100644
---- a/arch/mips/kernel/syscalls/syscall_n64.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
-@@ -349,3 +349,4 @@
- 432	n64	fsmount				sys_fsmount
- 433	n64	fspick				sys_fspick
- 434	n64	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
-index dba084c92f14..9653591428ec 100644
---- a/arch/mips/kernel/syscalls/syscall_o32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
-@@ -422,3 +422,4 @@
- 432	o32	fsmount				sys_fsmount
- 433	o32	fspick				sys_fspick
- 434	o32	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-index 5022b9e179c2..c7aadfef5386 100644
---- a/arch/parisc/kernel/syscalls/syscall.tbl
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -431,3 +431,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
-index f2c3bda2d39f..3331749aab20 100644
---- a/arch/powerpc/kernel/syscalls/syscall.tbl
-+++ b/arch/powerpc/kernel/syscalls/syscall.tbl
-@@ -516,3 +516,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
-index 6ebacfeaf853..a90d3e945445 100644
---- a/arch/s390/kernel/syscalls/syscall.tbl
-+++ b/arch/s390/kernel/syscalls/syscall.tbl
-@@ -437,3 +437,4 @@
- 432  common	fsmount			sys_fsmount			sys_fsmount
- 433  common	fspick			sys_fspick			sys_fspick
- 434  common	pidfd_open		sys_pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
-index 834c9c7d79fa..b5ed26c4c005 100644
---- a/arch/sh/kernel/syscalls/syscall.tbl
-+++ b/arch/sh/kernel/syscalls/syscall.tbl
-@@ -437,3 +437,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
-diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
-index c58e71f21129..8c8cc7537fb2 100644
---- a/arch/sparc/kernel/syscalls/syscall.tbl
-+++ b/arch/sparc/kernel/syscalls/syscall.tbl
-@@ -480,3 +480,4 @@
- 432	common	fsmount				sys_fsmount
- 433	common	fspick				sys_fspick
- 434	common	pidfd_open			sys_pidfd_open
-+# 435 reserved for clone3
+This patch is against current linus/master branch.
+
+ Documentation/RCU/rculist_nulls.txt                   | 2 +-
+ Documentation/devicetree/bindings/arm/idle-states.txt | 2 +-
+ Documentation/locking/spinlocks.txt                   | 4 ++--
+ Documentation/memory-barriers.txt                     | 2 +-
+ Documentation/translations/ko_KR/memory-barriers.txt  | 2 +-
+ MAINTAINERS                                           | 6 +++---
+ drivers/scsi/hpsa.c                                   | 4 ++--
+ 7 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/Documentation/RCU/rculist_nulls.txt b/Documentation/RCU/rculist_nulls.txt
+index 8151f0195f76..23f115dc87cf 100644
+--- a/Documentation/RCU/rculist_nulls.txt
++++ b/Documentation/RCU/rculist_nulls.txt
+@@ -1,7 +1,7 @@
+ Using hlist_nulls to protect read-mostly linked lists and
+ objects using SLAB_TYPESAFE_BY_RCU allocations.
+ 
+-Please read the basics in Documentation/RCU/listRCU.txt
++Please read the basics in Documentation/RCU/listRCU.rst
+ 
+ Using special makers (called 'nulls') is a convenient way
+ to solve following problem :
+diff --git a/Documentation/devicetree/bindings/arm/idle-states.txt b/Documentation/devicetree/bindings/arm/idle-states.txt
+index 326f29b270ad..2d325bed37e5 100644
+--- a/Documentation/devicetree/bindings/arm/idle-states.txt
++++ b/Documentation/devicetree/bindings/arm/idle-states.txt
+@@ -703,4 +703,4 @@ cpus {
+     https://www.devicetree.org/specifications/
+ 
+ [6] ARM Linux Kernel documentation - Booting AArch64 Linux
+-    Documentation/arm64/booting.txt
++    Documentation/arm64/booting.rst
+diff --git a/Documentation/locking/spinlocks.txt b/Documentation/locking/spinlocks.txt
+index ff35e40bdf5b..430b641ae072 100644
+--- a/Documentation/locking/spinlocks.txt
++++ b/Documentation/locking/spinlocks.txt
+@@ -74,7 +74,7 @@ itself.  The read lock allows many concurrent readers.  Anything that
+ _changes_ the list will have to get the write lock.
+ 
+    NOTE! RCU is better for list traversal, but requires careful
+-   attention to design detail (see Documentation/RCU/listRCU.txt).
++   attention to design detail (see Documentation/RCU/listRCU.rst).
+ 
+ Also, you cannot "upgrade" a read-lock to a write-lock, so if you at _any_
+ time need to do any changes (even if you don't do it every time), you have
+@@ -82,7 +82,7 @@ to get the write-lock at the very beginning.
+ 
+    NOTE! We are working hard to remove reader-writer spinlocks in most
+    cases, so please don't add a new one without consensus.  (Instead, see
+-   Documentation/RCU/rcu.txt for complete information.)
++   Documentation/RCU/rcu.rst for complete information.)
+ 
+ ----
+ 
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 045bb8148fe9..1adbb8a371c7 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -548,7 +548,7 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
+ 
+ 	[*] For information on bus mastering DMA and coherency please read:
+ 
+-	    Documentation/PCI/pci.rst
++	    Documentation/driver-api/pci/pci.rst
+ 	    Documentation/DMA-API-HOWTO.txt
+ 	    Documentation/DMA-API.txt
+ 
+diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+index a33c2a536542..2774624ee843 100644
+--- a/Documentation/translations/ko_KR/memory-barriers.txt
++++ b/Documentation/translations/ko_KR/memory-barriers.txt
+@@ -569,7 +569,7 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
+ 
+ 	[*] 버스 마스터링 DMA 와 일관성에 대해서는 다음을 참고하시기 바랍니다:
+ 
+-	    Documentation/PCI/pci.rst
++	    Documentation/driver-api/pci/pci.rst
+ 	    Documentation/DMA-API-HOWTO.txt
+ 	    Documentation/DMA-API.txt
+ 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index f5533d1bda2e..51ad84a3f4e3 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -899,7 +899,7 @@ L:	linux-iio@vger.kernel.org
+ W:	http://ez.analog.com/community/linux-device-drivers
+ S:	Supported
+ F:	drivers/iio/adc/ad7124.c
+-F:	Documentation/devicetree/bindings/iio/adc/adi,ad7124.txt
++F:	Documentation/devicetree/bindings/iio/adc/adi,ad7124.yaml
+ 
+ ANALOG DEVICES INC AD7606 DRIVER
+ M:	Stefan Popa <stefan.popa@analog.com>
+@@ -6828,7 +6828,7 @@ R:	Sagi Shahar <sagis@google.com>
+ R:	Jon Olson <jonolson@google.com>
+ L:	netdev@vger.kernel.org
+ S:	Supported
+-F:	Documentation/networking/device_drivers/google/gve.txt
++F:	Documentation/networking/device_drivers/google/gve.rst
+ F:	drivers/net/ethernet/google
+ 
+ GPD POCKET FAN DRIVER
+@@ -12077,7 +12077,7 @@ M:	Juergen Gross <jgross@suse.com>
+ M:	Alok Kataria <akataria@vmware.com>
+ L:	virtualization@lists.linux-foundation.org
+ S:	Supported
+-F:	Documentation/virtual/paravirt_ops.txt
++F:	Documentation/virtual/paravirt_ops.rst
+ F:	arch/*/kernel/paravirt*
+ F:	arch/*/include/asm/paravirt*.h
+ F:	include/linux/hypervisor.h
+diff --git a/drivers/scsi/hpsa.c b/drivers/scsi/hpsa.c
+index 43a6b5350775..eaf6177ac9ee 100644
+--- a/drivers/scsi/hpsa.c
++++ b/drivers/scsi/hpsa.c
+@@ -7798,7 +7798,7 @@ static void hpsa_free_pci_init(struct ctlr_info *h)
+ 	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
+ 	/*
+ 	 * call pci_disable_device before pci_release_regions per
+-	 * Documentation/PCI/pci.rst
++	 * Documentation/driver-api/pci/pci.rst
+ 	 */
+ 	pci_disable_device(h->pdev);		/* pci_init 1 */
+ 	pci_release_regions(h->pdev);		/* pci_init 2 */
+@@ -7881,7 +7881,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
+ clean1:
+ 	/*
+ 	 * call pci_disable_device before pci_release_regions per
+-	 * Documentation/PCI/pci.rst
++	 * Documentation/driver-api/pci/pci.rst
+ 	 */
+ 	pci_disable_device(h->pdev);
+ 	pci_release_regions(h->pdev);
 -- 
-2.22.0
+2.21.0
