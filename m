@@ -1,71 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:50876 "EHLO
+Received: from userp2130.oracle.com ([156.151.31.86]:38464 "EHLO
         userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729533AbfGOQLX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 12:11:23 -0400
-Date: Mon, 15 Jul 2019 12:10:46 -0400
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
- padata jobs
-Message-ID: <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
-References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
- <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
- <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
+        with ESMTP id S1730002AbfGOT1G (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 15:27:06 -0400
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v3 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date: Mon, 15 Jul 2019 15:25:33 -0400
+Message-ID: <20190715192536.104548-3-alex.kogan@oracle.com>
+In-Reply-To: <20190715192536.104548-1-alex.kogan@oracle.com>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Steffen Klassert <steffen.klassert@secunet.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190715161046.H3Ps9kmkC52_YKRvkby2HWKwTO2QV4bEvFTpWqBPf28@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190715192533.YthURru-V70qW9_hhUzbet_8jE_o_SeMk0noiOIVtHQ@z>
 
-On Sat, Jul 13, 2019 at 01:03:21PM +0800, Herbert Xu wrote:
-> On Fri, Jul 12, 2019 at 12:07:37PM -0400, Daniel Jordan wrote:
-> >
-> > modprobe (CPU2)               kworker/21:1-293 (CPU21)                              kworker/5:2-276 (CPU5)
-> > --------------------------    ------------------------                              ----------------------
-> > <submit job, seq_nr=16581>
-> > ...
-> >   padata_do_parallel
-> >     queue_work_on(21, ...)
-> > <sleeps>
-> >                               padata_parallel_worker
-> >                                 pcrypt_aead_dec
-> >                                   padata_do_serial
-> >                                     padata_reorder
-> 
-> This can't happen because if the job started on CPU2 then it must
-> go back to CPU2 for completion.  IOW padata_do_serial should be
-> punting this to a work queue for CPU2 rather than calling
-> padata_reorder on CPU21.
+Move some of the code manipulating the spin lock into separate functions.
+This would allow easier integration of alternative ways to manipulate
+that lock.
 
-I've been wrong before plenty of times, and there's nothing preventing this
-from being one of those times :) , but in this case I believe what I'm showing
-is correct.
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+---
+ kernel/locking/qspinlock.c | 40 ++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 38 insertions(+), 2 deletions(-)
 
-The padata_do_serial call for a given job ensures padata_reorder runs on the
-CPU that the job hashed to in padata_do_parallel, which is not necessarily the
-same CPU as the one that padata_do_parallel itself ran on.
-
-In this case, the padata job in question started via padata_do_parallel, where
-it hashed to CPU 21:
-
-  padata_do_parallel                    // ran on CPU 2
-    ...
-    target_cpu = padata_cpu_hash(pd);   // target_cpu == 21
-    padata->cpu = target_cpu;
-    ...
-    queue_work_on(21, ...)
-
-The corresponding kworker then started:
-
-  padata_parallel_worker                // bound to CPU 21
-    pcrypt_aead_dec
-      padata_do_serial
-        padata_reorder
-
-Daniel
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 961781624638..5668466b3006 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -297,6 +297,36 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+ #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+ #endif
+ 
++/*
++ * set_locked_empty_mcs - Try to set the spinlock value to _Q_LOCKED_VAL,
++ * and by doing that unlock the MCS lock when its waiting queue is empty
++ * @lock: Pointer to queued spinlock structure
++ * @val: Current value of the lock
++ * @node: Pointer to the MCS node of the lock holder
++ *
++ * *,*,* -> 0,0,1
++ */
++static __always_inline bool __set_locked_empty_mcs(struct qspinlock *lock,
++						   u32 val,
++						   struct mcs_spinlock *node)
++{
++	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
++}
++
++/*
++ * pass_mcs_lock - pass the MCS lock to the next waiter
++ * @node: Pointer to the MCS node of the lock holder
++ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ */
++static __always_inline void __pass_mcs_lock(struct mcs_spinlock *node,
++					    struct mcs_spinlock *next)
++{
++	arch_mcs_spin_unlock_contended(&next->locked, 1);
++}
++
++#define set_locked_empty_mcs	__set_locked_empty_mcs
++#define pass_mcs_lock		__pass_mcs_lock
++
+ #endif /* _GEN_PV_LOCK_SLOWPATH */
+ 
+ /**
+@@ -541,7 +571,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (set_locked_empty_mcs(lock, val, node))
+ 			goto release; /* No contention */
+ 	}
+ 
+@@ -558,7 +588,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_spin_unlock_contended(&next->locked, 1);
++	pass_mcs_lock(node, next);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+@@ -583,6 +613,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #undef pv_kick_node
+ #undef pv_wait_head_or_lock
+ 
++#undef set_locked_empty_mcs
++#define set_locked_empty_mcs		__set_locked_empty_mcs
++
++#undef pass_mcs_lock
++#define pass_mcs_lock			__pass_mcs_lock
++
+ #undef  queued_spin_lock_slowpath
+ #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+ 
+-- 
+2.11.0 (Apple Git-81)
