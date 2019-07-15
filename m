@@ -1,63 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay.sw.ru ([185.231.240.75]:56018 "EHLO relay.sw.ru"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729428AbfGOKaA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jul 2019 06:30:00 -0400
-Subject: Re: [PATCH] generic arch_futex_atomic_op_inuser() cleanup
-References: <7b963f9a-21b1-4c6d-3ece-556d018508b4@virtuozzo.com>
-From: Vasily Averin <vvs@virtuozzo.com>
-Message-ID: <3d9eef14-4059-0f8a-e76f-a8a09d730913@virtuozzo.com>
-Date: Mon, 15 Jul 2019 13:29:45 +0300
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:41690 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729827AbfGOMG3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 08:06:29 -0400
 MIME-Version: 1.0
-In-Reply-To: <7b963f9a-21b1-4c6d-3ece-556d018508b4@virtuozzo.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <7b963f9a-21b1-4c6d-3ece-556d018508b4@virtuozzo.com> <3d9eef14-4059-0f8a-e76f-a8a09d730913@virtuozzo.com>
+In-Reply-To: <3d9eef14-4059-0f8a-e76f-a8a09d730913@virtuozzo.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 15 Jul 2019 14:06:10 +0200
+Message-ID: <CAK8P3a1sT6y+oWKm4ou1=Y+1n5=1_S6UhJN9kkZ6iMxw18O5yw@mail.gmail.com>
+Subject: Re: [PATCH] generic arch_futex_atomic_op_inuser() cleanup
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20190715102945.g2h5t3FUuzUknkA6_4IAkED4UH2mlLeUjJUlFtue5WQ@z>
+To: Vasily Averin <vvs@virtuozzo.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20190715120610.V_r8imxiV2mMmwDrvhbAoXInawJ6khxoJuZjkd6_AJ4@z>
 
-Looks like this code is dead and therefore looks strange.
-I've found it during manual code review and decided to send patch
-to pay your attention to this problem.
-Probably it's better to remove this code at all?
+On Mon, Jul 15, 2019 at 12:29 PM Vasily Averin <vvs@virtuozzo.com> wrote:
+>
+> Looks like this code is dead and therefore looks strange.
+> I've found it during manual code review and decided to send patch
+> to pay your attention to this problem.
+> Probably it's better to remove this code at all?
+>
+> On 7/15/19 1:27 PM, Vasily Averin wrote:
+> > Access to 'op' variable does not require pagefault_disable(),
+> > 'ret' variable should be initialized before using,
+> > 'oldval' variable can be replaced by constant.
+> >
+> > Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
 
-On 7/15/19 1:27 PM, Vasily Averin wrote:
-> Access to 'op' variable does not require pagefault_disable(),
-> 'ret' variable should be initialized before using,
-> 'oldval' variable can be replaced by constant.
-> 
-> Signed-off-by: Vasily Averin <vvs@virtuozzo.com>
-> ---
->  include/asm-generic/futex.h | 8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
-> 
-> diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-> index 8666fe7f35d7..e9a9655d786d 100644
-> --- a/include/asm-generic/futex.h
-> +++ b/include/asm-generic/futex.h
-> @@ -118,9 +118,7 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
->  static inline int
->  arch_futex_atomic_op_inuser(int op, u32 oparg, int *oval, u32 __user *uaddr)
->  {
-> -	int oldval = 0, ret;
-> -
-> -	pagefault_disable();
-> +	int ret = 0;
->  
->  	switch (op) {
->  	case FUTEX_OP_SET:
-> @@ -132,10 +130,8 @@ arch_futex_atomic_op_inuser(int op, u32 oparg, int *oval, u32 __user *uaddr)
->  		ret = -ENOSYS;
->  	}
->  
-> -	pagefault_enable();
-> -
->  	if (!ret)
-> -		*oval = oldval;
-> +		*oval = 0;
->  
->  	return ret;
->  }
-> 
+I'm not following the reasoning for any of the changes here. Why do you
+think we don't need the pagefault_disable() around get_user()/put_user(),
+and which part of the funtion is dead code?
+
+       Arnd
