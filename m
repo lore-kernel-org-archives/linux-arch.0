@@ -1,101 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:38464 "EHLO
+Received: from userp2130.oracle.com ([156.151.31.86]:38650 "EHLO
         userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730002AbfGOT1G (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 15:27:06 -0400
+        with ESMTP id S1730584AbfGOT1Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2019 15:27:16 -0400
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v3 2/5] locking/qspinlock: Refactor the qspinlock slow path
-Date: Mon, 15 Jul 2019 15:25:33 -0400
-Message-ID: <20190715192536.104548-3-alex.kogan@oracle.com>
+Subject: [PATCH v3 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date: Mon, 15 Jul 2019 15:25:35 -0400
+Message-ID: <20190715192536.104548-5-alex.kogan@oracle.com>
 In-Reply-To: <20190715192536.104548-1-alex.kogan@oracle.com>
 References: <20190715192536.104548-1-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190715192533.YthURru-V70qW9_hhUzbet_8jE_o_SeMk0noiOIVtHQ@z>
+Message-ID: <20190715192535.fGnv8y-cYwxrYlftDLzgRHUykPFQpIBq-z0GNU-ttTk@z>
 
-Move some of the code manipulating the spin lock into separate functions.
-This would allow easier integration of alternative ways to manipulate
-that lock.
+Choose the next lock holder among spinning threads running on the same
+node with high probability rather than always. With small probability,
+hand the lock to the first thread in the secondary queue or, if that
+queue is empty, to the immediate successor of the current lock holder
+in the main queue.  Thus, assuming no failures while threads hold the
+lock, every thread would be able to acquire the lock after a bounded
+number of lock transitions, with high probability.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
- kernel/locking/qspinlock.c | 40 ++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 38 insertions(+), 2 deletions(-)
+ kernel/locking/qspinlock_cna.h | 36 +++++++++++++++++++++++++++++++++++-
+ 1 file changed, 35 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 961781624638..5668466b3006 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -297,6 +297,36 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index efb9b12b2f9b..3de5be813a46 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
  #endif
  
-+/*
-+ * set_locked_empty_mcs - Try to set the spinlock value to _Q_LOCKED_VAL,
-+ * and by doing that unlock the MCS lock when its waiting queue is empty
-+ * @lock: Pointer to queued spinlock structure
-+ * @val: Current value of the lock
-+ * @node: Pointer to the MCS node of the lock holder
-+ *
-+ * *,*,* -> 0,0,1
-+ */
-+static __always_inline bool __set_locked_empty_mcs(struct qspinlock *lock,
-+						   u32 val,
-+						   struct mcs_spinlock *node)
-+{
-+	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
-+}
+ #include <linux/topology.h>
++#include <linux/random.h>
+ 
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -36,6 +37,33 @@ struct cna_node {
+ 
+ #define CNA_NODE(ptr) ((struct cna_node *)(ptr))
+ 
++/* Per-CPU pseudo-random number seed */
++static DEFINE_PER_CPU(u32, seed);
 +
 +/*
-+ * pass_mcs_lock - pass the MCS lock to the next waiter
-+ * @node: Pointer to the MCS node of the lock holder
-+ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ * Controls the probability for intra-node lock hand-off. It can be
++ * tuned and depend, e.g., on the number of CPUs per node. For now,
++ * choose a value that provides reasonable long-term fairness without
++ * sacrificing performance compared to a version that does not have any
++ * fairness guarantees.
 + */
-+static __always_inline void __pass_mcs_lock(struct mcs_spinlock *node,
-+					    struct mcs_spinlock *next)
++#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
++
++/*
++ * Return false with probability 1 / @range.
++ * @range must be a power of 2.
++ */
++static bool probably(unsigned int range)
 +{
-+	arch_mcs_spin_unlock_contended(&next->locked, 1);
++	u32 s;
++
++	s = this_cpu_read(seed);
++	s = next_pseudo_random32(s);
++	this_cpu_write(seed, s);
++
++	return s & (range - 1);
 +}
 +
-+#define set_locked_empty_mcs	__set_locked_empty_mcs
-+#define pass_mcs_lock		__pass_mcs_lock
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
+ static void cna_init_node(struct mcs_spinlock *node)
+ {
+ 	struct cna_node *cn = CNA_NODE(node);
+@@ -140,7 +168,13 @@ static inline void cna_pass_mcs_lock(struct mcs_spinlock *node,
+ 	u64 *var = &next->locked;
+ 	u64 val = 1;
  
- /**
-@@ -541,7 +571,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *       PENDING will make the uncontended transition fail.
- 	 */
- 	if ((val & _Q_TAIL_MASK) == tail) {
--		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
-+		if (set_locked_empty_mcs(lock, val, node))
- 			goto release; /* No contention */
- 	}
+-	succ = find_successor(node);
++	/*
++	 * Try to pass the lock to a thread running on the same node.
++	 * For long-term fairness, search for such a thread with high
++	 * probability rather than always.
++	 */
++	if (probably(INTRA_NODE_HANDOFF_PROB_ARG))
++		succ = find_successor(node);
  
-@@ -558,7 +588,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_spin_unlock_contended(&next->locked, 1);
-+	pass_mcs_lock(node, next);
- 	pv_kick_node(lock, next);
- 
- release:
-@@ -583,6 +613,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
- #undef pv_kick_node
- #undef pv_wait_head_or_lock
- 
-+#undef set_locked_empty_mcs
-+#define set_locked_empty_mcs		__set_locked_empty_mcs
-+
-+#undef pass_mcs_lock
-+#define pass_mcs_lock			__pass_mcs_lock
-+
- #undef  queued_spin_lock_slowpath
- #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
- 
+ 	if (succ) {
+ 		var = &succ->mcs.locked;
 -- 
 2.11.0 (Apple Git-81)
