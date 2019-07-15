@@ -1,13 +1,13 @@
 From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 5.1 103/219] x86/atomic: Fix smp_mb__{before,after}_atomic()
-Date: Mon, 15 Jul 2019 10:01:44 -0400
-Message-ID: <20190715140341.6443-103-sashal@kernel.org>
-References: <20190715140341.6443-1-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 4.19 077/158] x86/atomic: Fix smp_mb__{before,after}_atomic()
+Date: Mon, 15 Jul 2019 10:16:48 -0400
+Message-ID: <20190715141809.8445-77-sashal@kernel.org>
+References: <20190715141809.8445-1-sashal@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20190715140341.6443-1-sashal@kernel.org>
-Sender: stable-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190715141809.8445-1-sashal@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
@@ -76,7 +76,7 @@ index 913396ac5824..ed0d814df7e0 100644
  
    atomic_fetch_add();
 diff --git a/arch/x86/include/asm/atomic.h b/arch/x86/include/asm/atomic.h
-index ea3d95275b43..115127c7ad28 100644
+index ce84388e540c..d266a4066289 100644
 --- a/arch/x86/include/asm/atomic.h
 +++ b/arch/x86/include/asm/atomic.h
 @@ -54,7 +54,7 @@ static __always_inline void arch_atomic_add(int i, atomic_t *v)
@@ -116,7 +116,7 @@ index ea3d95275b43..115127c7ad28 100644
  #define arch_atomic_dec arch_atomic_dec
  
 diff --git a/arch/x86/include/asm/atomic64_64.h b/arch/x86/include/asm/atomic64_64.h
-index dadc20adba21..5e86c0d68ac1 100644
+index 5f851d92eecd..55ca027f8c1c 100644
 --- a/arch/x86/include/asm/atomic64_64.h
 +++ b/arch/x86/include/asm/atomic64_64.h
 @@ -45,7 +45,7 @@ static __always_inline void arch_atomic64_add(long i, atomic64_t *v)
