@@ -1,54 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.mx.secunet.com ([62.96.220.36]:60600 "EHLO a.mx.secunet.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2387553AbfGPLON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Jul 2019 07:14:13 -0400
-Date: Tue, 16 Jul 2019 13:14:10 +0200
-From: Steffen Klassert <steffen.klassert@secunet.com>
-Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
- padata jobs
-Message-ID: <20190716111410.GN17989@gauss3.secunet.de>
-References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
- <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
- <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
- <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
- <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:46483 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728437AbfGPLre (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 07:47:34 -0400
+Date: Tue, 16 Jul 2019 21:47:27 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/5] Add NUMA-awareness to qspinlock
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+In-Reply-To: <20190715192536.104548-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
+Message-ID: <1563277166.m9swqogbqb.astroid@bobo.none>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190716111410.WtF9UdlvKebNqM7nSbhCUm_ONgDkkR2rivSSw52-Vzk@z>
+To: Alex Kogan <alex.kogan@oracle.com>, arnd@arndb.de, bp@alien8.de, guohanjun@huawei.com, hpa@zytor.com, jglauber@marvell.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, longman@redhat.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, will.deacon@arm.com, x86@kernel.org
+Cc: daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, steven.sistare@oracle.com
+Message-ID: <20190716114727.L9SRK51Svt2lDwjh_KPwSpMtaSP1qmNlf9fC-WjHHeE@z>
 
-On Tue, Jul 16, 2019 at 06:04:47PM +0800, Herbert Xu wrote:
-> On Mon, Jul 15, 2019 at 12:10:46PM -0400, Daniel Jordan wrote:
-> >
-> > I've been wrong before plenty of times, and there's nothing preventing this
-> > from being one of those times :) , but in this case I believe what I'm showing
-> > is correct.
-> > 
-> > The padata_do_serial call for a given job ensures padata_reorder runs on the
-> > CPU that the job hashed to in padata_do_parallel, which is not necessarily the
-> > same CPU as the one that padata_do_parallel itself ran on.
-> 
-> You're right.  I was taking the comment in the code at face value,
-> never trust comments :)
-> 
-> While looking at the code in question, I think it is seriously
-> broken.  For instance, padata_replace does not deal with async
-> crypto at all.  It would fail miserably if the underlying async
-> crypto held onto references to the old pd.
+Alex Kogan's on July 16, 2019 5:25 am:
+> Our evaluation shows that CNA also improves performance of user=20
+> applications that have hot pthread mutexes. Those mutexes are=20
+> blocking, and waiting threads park and unpark via the futex=20
+> mechanism in the kernel. Given that kernel futex chains, which
+> are hashed by the mutex address, are each protected by a=20
+> chain-specific spin lock, the contention on a user-mode mutex=20
+> translates into contention on a kernel level spinlock.=20
 
-Hm, yes looks like that.
+What applications are those, what performance numbers? Arguably that's
+much more interesting than microbenchmarks (which are mainly useful to
+help ensure the fast paths are not impacted IMO).
 
-padata_replace should not call padata_free_pd() as long as the
-refcount is not zero. Currenlty padata_flush_queues() will
-BUG if there are references left.
-
-Maybe we can fix it if we call padata_free_pd() from
-padata_serial_worker() when it sent out the last object.
+Thanks,
+Nick
+=
