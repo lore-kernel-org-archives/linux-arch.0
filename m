@@ -1,55 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:46970 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388358AbfGPSz7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 14:55:59 -0400
-Received: by mail-wr1-f66.google.com with SMTP id z1so22050012wru.13
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jul 2019 11:55:58 -0700 (PDT)
-Date: Tue, 16 Jul 2019 20:55:55 +0200
-From: Christian Brauner <christian@brauner.io>
+Received: from smtp.duncanthrax.net ([89.31.1.170]:49247 "EHLO
+        smtp.duncanthrax.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728858AbfGPTaP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 15:30:15 -0400
+Date: Tue, 16 Jul 2019 20:53:10 +0200
+From: Sven Schnelle <svens@stackframe.org>
 Subject: Re: [PATCH 1/2] arch: mark syscall number 435 reserved for clone3
-Message-ID: <20190716185554.gwpppirvmxgvnkgb@brauner.io>
+Message-ID: <20190716185310.GA12537@t470p.stackframe.org>
 References: <20190714192205.27190-1-christian@brauner.io>
  <20190714192205.27190-2-christian@brauner.io>
  <e14eb2f9-43cb-0b9d-dec4-b7e7dcd62091@de.ibm.com>
  <20190716130631.tohj4ub54md25dys@brauner.io>
- <20190716185310.GA12537@t470p.stackframe.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190716185310.GA12537@t470p.stackframe.org>
+In-Reply-To: <20190716130631.tohj4ub54md25dys@brauner.io>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sven Schnelle <svens@stackframe.org>
+To: Christian Brauner <christian@brauner.io>
 Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Vasily Gorbik <gor@linux.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, mpe@ellerman.id.au
-Message-ID: <20190716185555.0VBGkTHRKJdaRjZ5H0EJplxdHKYcMF3Zbd8Jnk3YO1g@z>
+Message-ID: <20190716185310.pAHP042yGVxLacfUkNGRuBKjzh3_N8lX8Pw8S1XwzV0@z>
 
-On Tue, Jul 16, 2019 at 08:53:10PM +0200, Sven Schnelle wrote:
-> Hi,
-> 
-> [Adding Helge to CC list]
-> 
-> On Tue, Jul 16, 2019 at 03:06:33PM +0200, Christian Brauner wrote:
-> > On Mon, Jul 15, 2019 at 03:56:04PM +0200, Christian Borntraeger wrote:
-> > > I think Vasily already has a clone3 patch for s390x with 435. 
-> > 
-> > A quick follow-up on this. Helge and Michael have asked whether there
-> > are any tests for clone3. Yes, there will be and I try to have them
-> > ready by the end of the this or next week for review. In the meantime I
-> > hope the following minimalistic test program that just verifies very
-> > very basic functionality (It's not pretty.) will help you test:
-> > [..]
-> 
-> On PA-RISC this seems to work fine with Helge's patch to wire up the
-> clone3 syscall.
+Hi,
 
-I think I already responded to Helge before and yes, I think that parisc
-doesn't do anything special for fork, vfork, clone, and by extension
-also probably doesn't need to for clone3.
-It should only be a problem for arches that require mucking explicitly
-with arguments of clone-like syscalls.
-In any case, I saw Helge's patch and I think I might've missed to add an
-Acked-by but feel free to add it.
+[Adding Helge to CC list]
 
-Thanks for testing it and sorry that I couldn't test!
-Christian
+On Tue, Jul 16, 2019 at 03:06:33PM +0200, Christian Brauner wrote:
+> On Mon, Jul 15, 2019 at 03:56:04PM +0200, Christian Borntraeger wrote:
+> > I think Vasily already has a clone3 patch for s390x with 435. 
+> 
+> A quick follow-up on this. Helge and Michael have asked whether there
+> are any tests for clone3. Yes, there will be and I try to have them
+> ready by the end of the this or next week for review. In the meantime I
+> hope the following minimalistic test program that just verifies very
+> very basic functionality (It's not pretty.) will help you test:
+> [..]
+
+On PA-RISC this seems to work fine with Helge's patch to wire up the
+clone3 syscall.
+
+root@c3750:/# clonetest
+Parent process received child's pid 84 as return value
+Parent process received child's pidfd 3
+Parent process received child's pid 84 as return argument
+Child process with pid 84
+root@c3750:/# echo $?
+0
+
+Regards
+Sven
