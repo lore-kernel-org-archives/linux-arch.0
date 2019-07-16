@@ -1,95 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from helcar.hmeau.com ([216.24.177.18]:58104 "EHLO deadmen.hmeau.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725926AbfGPM50 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Jul 2019 08:57:26 -0400
-Date: Tue, 16 Jul 2019 20:57:04 +0800
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: [PATCH] padata: Use RCU when fetching pd from do_serial
-Message-ID: <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
-References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
- <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
- <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
- <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
- <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
- <20190716111410.GN17989@gauss3.secunet.de>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:33771 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732472AbfGPNGq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 09:06:46 -0400
+Received: by mail-pf1-f196.google.com with SMTP id g2so9107573pfq.0
+        for <linux-arch@vger.kernel.org>; Tue, 16 Jul 2019 06:06:45 -0700 (PDT)
+Date: Tue, 16 Jul 2019 15:06:33 +0200
+From: Christian Brauner <christian@brauner.io>
+Subject: Re: [PATCH 1/2] arch: mark syscall number 435 reserved for clone3
+Message-ID: <20190716130631.tohj4ub54md25dys@brauner.io>
+References: <20190714192205.27190-1-christian@brauner.io>
+ <20190714192205.27190-2-christian@brauner.io>
+ <e14eb2f9-43cb-0b9d-dec4-b7e7dcd62091@de.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20190716111410.GN17989@gauss3.secunet.de>
+In-Reply-To: <e14eb2f9-43cb-0b9d-dec4-b7e7dcd62091@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190716125704.KNTopuAJ9frNHm8ZD522EfdT-lzLl-_9uadtO3EA2jU@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Vasily Gorbik <gor@linux.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, mpe@ellerman.id.au
+Message-ID: <20190716130633.OkPBLZr8xT2m-T1lNx0sXlAXFG3lp04IU70p7JbiZdQ@z>
 
-On Tue, Jul 16, 2019 at 01:14:10PM +0200, Steffen Klassert wrote:
->
-> Maybe we can fix it if we call padata_free_pd() from
-> padata_serial_worker() when it sent out the last object.
+On Mon, Jul 15, 2019 at 03:56:04PM +0200, Christian Borntraeger wrote:
+> I think Vasily already has a clone3 patch for s390x with 435. 
 
-How about using RCU?
+A quick follow-up on this. Helge and Michael have asked whether there
+are any tests for clone3. Yes, there will be and I try to have them
+ready by the end of the this or next week for review. In the meantime I
+hope the following minimalistic test program that just verifies very
+very basic functionality (It's not pretty.) will help you test:
 
-We still need to fix up the refcnt if it's supposed to limit the
-overall number of outstanding requests.
+#define _GNU_SOURCE
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/sched.h>
+#include <linux/types.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mount.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/sysmacros.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
----8<---
-The function padata_do_serial uses parallel_data without obeying
-the RCU rules around its life-cycle.  This means that a concurrent
-padata_replace call can result in a crash.
+#ifndef CLONE_PIDFD
+#define CLONE_PIDFD 0x00001000
+#endif
 
-This patch fixes it by using RCU just as we do in padata_do_parallel.
+#ifndef __NR_clone3
+#define __NR_clone3 -1
+#endif
 
-Fixes: 16295bec6398 ("padata: Generic parallelization/...")
-Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+static pid_t sys_clone3(struct clone_args *args)
+{
+	return syscall(__NR_clone3, args, sizeof(struct clone_args));
+}
 
-diff --git a/include/linux/padata.h b/include/linux/padata.h
-index 5d13d25da2c8..952f6514dd72 100644
---- a/include/linux/padata.h
-+++ b/include/linux/padata.h
-@@ -35,7 +35,7 @@
-  * struct padata_priv -  Embedded to the users data structure.
-  *
-  * @list: List entry, to attach to the padata lists.
-- * @pd: Pointer to the internal control structure.
-+ * @inst: Pointer to the overall control structure.
-  * @cb_cpu: Callback cpu for serializatioon.
-  * @cpu: Cpu for parallelization.
-  * @seq_nr: Sequence number of the parallelized data object.
-@@ -45,7 +45,7 @@
-  */
- struct padata_priv {
- 	struct list_head	list;
--	struct parallel_data	*pd;
-+	struct padata_instance	*inst;
- 	int			cb_cpu;
- 	int			cpu;
- 	int			info;
-diff --git a/kernel/padata.c b/kernel/padata.c
-index 2d2fddbb7a4c..fb5dd1210d2b 100644
---- a/kernel/padata.c
-+++ b/kernel/padata.c
-@@ -128,7 +128,7 @@ int padata_do_parallel(struct padata_instance *pinst,
- 
- 	err = 0;
- 	atomic_inc(&pd->refcnt);
--	padata->pd = pd;
-+	padata->inst = pinst;
- 	padata->cb_cpu = cb_cpu;
- 
- 	target_cpu = padata_cpu_hash(pd);
-@@ -367,7 +368,7 @@ void padata_do_serial(struct padata_priv *padata)
- 	struct parallel_data *pd;
- 	int reorder_via_wq = 0;
- 
--	pd = padata->pd;
-+	pd = rcu_dereference_bh(padata->inst->pd);
- 
- 	cpu = get_cpu();
- 
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+static int wait_for_pid(pid_t pid)
+{
+	int status, ret;
+
+again:
+	ret = waitpid(pid, &status, 0);
+	if (ret == -1) {
+		if (errno == EINTR)
+			goto again;
+
+		return -1;
+	}
+
+	if (ret != pid)
+		goto again;
+
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+		return -1;
+
+	return 0;
+}
+
+#define ptr_to_u64(ptr) ((__u64)((uintptr_t)(ptr)))
+
+int main(int argc, char *argv[])
+{
+	int pidfd = -1;
+	pid_t parent_tid = -1, pid = -1;
+	struct clone_args args = {0};
+
+	args.parent_tid = ptr_to_u64(&parent_tid); /* CLONE_PARENT_SETTID */
+	args.pidfd = ptr_to_u64(&pidfd); /* CLONE_PIDFD */
+	args.flags = CLONE_PIDFD | CLONE_PARENT_SETTID;
+	args.exit_signal = SIGCHLD;
+
+	pid = sys_clone3(&args);
+	if (pid < 0) {
+		fprintf(stderr, "%s - Failed to create new process\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	if (pid == 0) {
+		printf("Child process with pid %d\n", getpid());
+		exit(EXIT_SUCCESS);
+	}
+
+	printf("Parent process received child's pid %d as return value\n", pid);
+	printf("Parent process received child's pidfd %d\n", *(int *)args.pidfd);
+	printf("Parent process received child's pid %d as return argument\n",
+	       *(pid_t *)args.parent_tid);
+
+	if (wait_for_pid(pid))
+		exit(EXIT_FAILURE);
+
+	if (pid != *(pid_t *)args.parent_tid)
+		exit(EXIT_FAILURE);
+
+	close(pidfd);
+
+	return 0;
+}
