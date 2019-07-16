@@ -1,78 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:34340 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732614AbfGPP7Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 11:59:16 -0400
-Date: Tue, 16 Jul 2019 17:59:00 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Message-ID: <20190716155900.GS3419@hirez.programming.kicks-ass.net>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-5-alex.kogan@oracle.com>
+Received: from userp2130.oracle.com ([156.151.31.86]:40912 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725926AbfGPQdf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 12:33:35 -0400
+From: Daniel Jordan <daniel.m.jordan@oracle.com>
+Subject: [PATCH v2] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
+Date: Tue, 16 Jul 2019 12:32:53 -0400
+Message-ID: <20190716163253.24377-1-daniel.m.jordan@oracle.com>
+In-Reply-To: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
+References: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190715192536.104548-5-alex.kogan@oracle.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190716155900.RJrLhKk2bMXtDhJr-mSU3t5wD46GLipq-T12kN4TDSk@z>
+To: Steffen Klassert <steffen.klassert@secunet.com>
+Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190716163253.oUhHVnKRNiVizIxCSJ6OAnR1ILnIYScGK47BpNC-l6Q@z>
 
-On Mon, Jul 15, 2019 at 03:25:35PM -0400, Alex Kogan wrote:
+Testing padata with the tcrypt module on a 5.2 kernel...
 
-> @@ -36,6 +37,33 @@ struct cna_node {
->  
->  #define CNA_NODE(ptr) ((struct cna_node *)(ptr))
->  
-> +/* Per-CPU pseudo-random number seed */
-> +static DEFINE_PER_CPU(u32, seed);
-> +
-> +/*
-> + * Controls the probability for intra-node lock hand-off. It can be
-> + * tuned and depend, e.g., on the number of CPUs per node. For now,
-> + * choose a value that provides reasonable long-term fairness without
-> + * sacrificing performance compared to a version that does not have any
-> + * fairness guarantees.
-> + */
-> +#define INTRA_NODE_HANDOFF_PROB_ARG 0x10000
-> +
-> +/*
-> + * Return false with probability 1 / @range.
-> + * @range must be a power of 2.
-> + */
-> +static bool probably(unsigned int range)
-> +{
-> +	u32 s;
-> +
-> +	s = this_cpu_read(seed);
-> +	s = next_pseudo_random32(s);
-> +	this_cpu_write(seed, s);
-> +
-> +	return s & (range - 1);
+    # modprobe tcrypt alg="pcrypt(rfc4106(gcm(aes)))" type=3
+    # modprobe tcrypt mode=211 sec=1
 
-This is fragile, better to take a number of bits as argument.
+...produces this splat:
 
-> +}
-> +
->  static void cna_init_node(struct mcs_spinlock *node)
->  {
->  	struct cna_node *cn = CNA_NODE(node);
-> @@ -140,7 +168,13 @@ static inline void cna_pass_mcs_lock(struct mcs_spinlock *node,
->  	u64 *var = &next->locked;
->  	u64 val = 1;
->  
-> -	succ = find_successor(node);
-> +	/*
-> +	 * Try to pass the lock to a thread running on the same node.
-> +	 * For long-term fairness, search for such a thread with high
-> +	 * probability rather than always.
-> +	 */
-> +	if (probably(INTRA_NODE_HANDOFF_PROB_ARG))
-> +		succ = find_successor(node);
->  
->  	if (succ) {
->  		var = &succ->mcs.locked;
+    INFO: task modprobe:10075 blocked for more than 120 seconds.
+          Not tainted 5.2.0-base+ #16
+    modprobe        D    0 10075  10064 0x80004080
+    Call Trace:
+     ? __schedule+0x4dd/0x610
+     ? ring_buffer_unlock_commit+0x23/0x100
+     schedule+0x6c/0x90
+     schedule_timeout+0x3b/0x320
+     ? trace_buffer_unlock_commit_regs+0x4f/0x1f0
+     wait_for_common+0x160/0x1a0
+     ? wake_up_q+0x80/0x80
+     { crypto_wait_req }             # entries in braces added by hand
+     { do_one_aead_op }
+     { test_aead_jiffies }
+     test_aead_speed.constprop.17+0x681/0xf30 [tcrypt]
+     do_test+0x4053/0x6a2b [tcrypt]
+     ? 0xffffffffa00f4000
+     tcrypt_mod_init+0x50/0x1000 [tcrypt]
+     ...
 
-And this is where that tertiary condition comes from.. I think.
+The second modprobe command never finishes because in padata_reorder,
+CPU0's load of reorder_objects is executed before the unlocking store in
+spin_unlock_bh(pd->lock), causing CPU0 to miss CPU1's increment:
+
+CPU0                                 CPU1
+
+padata_reorder                       padata_do_serial
+  LOAD reorder_objects  // 0
+                                       INC reorder_objects  // 1
+                                       padata_reorder
+                                         TRYLOCK pd->lock   // failed
+  UNLOCK pd->lock
+
+CPU0 deletes the timer before returning from padata_reorder and since no
+other job is submitted to padata, modprobe waits indefinitely.
+
+Add a pair of full barriers to guarantee proper ordering:
+
+CPU0                                 CPU1
+
+padata_reorder                       padata_do_serial
+  UNLOCK pd->lock
+  smp_mb()
+  LOAD reorder_objects
+                                       INC reorder_objects
+                                       smp_mb__after_atomic()
+                                       padata_reorder
+                                         TRYLOCK pd->lock
+
+smp_mb__after_atomic is needed so the read part of the trylock operation
+comes after the INC, as Andrea points out.   Thanks also to Andrea for
+help with writing a litmus test.
+
+Fixes: 16295bec6398 ("padata: Generic parallelization/serialization interface")
+Signed-off-by: Daniel Jordan <daniel.m.jordan@oracle.com>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Paul E. McKenney <paulmck@linux.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Steffen Klassert <steffen.klassert@secunet.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-crypto@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ kernel/padata.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/kernel/padata.c b/kernel/padata.c
+index 2d2fddbb7a4c..15a8ad63f4ff 100644
+--- a/kernel/padata.c
++++ b/kernel/padata.c
+@@ -267,7 +267,12 @@ static void padata_reorder(struct parallel_data *pd)
+ 	 * The next object that needs serialization might have arrived to
+ 	 * the reorder queues in the meantime, we will be called again
+ 	 * from the timer function if no one else cares for it.
++	 *
++	 * Ensure reorder_objects is read after pd->lock is dropped so we see
++	 * an increment from another task in padata_do_serial.  Pairs with
++	 * smp_mb__after_atomic in padata_do_serial.
+ 	 */
++	smp_mb();
+ 	if (atomic_read(&pd->reorder_objects)
+ 			&& !(pinst->flags & PADATA_RESET))
+ 		mod_timer(&pd->timer, jiffies + HZ);
+@@ -387,6 +392,13 @@ void padata_do_serial(struct padata_priv *padata)
+ 	list_add_tail(&padata->list, &pqueue->reorder.list);
+ 	spin_unlock(&pqueue->reorder.lock);
+ 
++	/*
++	 * Ensure the atomic_inc of reorder_objects above is ordered correctly
++	 * with the trylock of pd->lock in padata_reorder.  Pairs with smp_mb
++	 * in padata_reorder.
++	 */
++	smp_mb__after_atomic();
++
+ 	put_cpu();
+ 
+ 	/* If we're running on the wrong CPU, call padata_reorder() via a
+
+base-commit: 0ecfebd2b52404ae0c54a878c872bb93363ada36
+-- 
+2.22.0
