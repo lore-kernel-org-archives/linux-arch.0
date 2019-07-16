@@ -1,124 +1,146 @@
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: [PATCH v2] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
-Date: Tue, 16 Jul 2019 12:32:53 -0400
-Message-ID: <20190716163253.24377-1-daniel.m.jordan@oracle.com>
-References: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Tue, 16 Jul 2019 13:19:16 -0400
+Message-ID: <193BBB31-F376-451F-BDE1-D4807140EB51@oracle.com>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+ <20190715192536.104548-4-alex.kogan@oracle.com>
+ <20190716155022.GR3419@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190716155022.GR3419@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Testing padata with the tcrypt module on a 5.2 kernel...
-
-    # modprobe tcrypt alg="pcrypt(rfc4106(gcm(aes)))" type=3
-    # modprobe tcrypt mode=211 sec=1
-
-...produces this splat:
-
-    INFO: task modprobe:10075 blocked for more than 120 seconds.
-          Not tainted 5.2.0-base+ #16
-    modprobe        D    0 10075  10064 0x80004080
-    Call Trace:
-     ? __schedule+0x4dd/0x610
-     ? ring_buffer_unlock_commit+0x23/0x100
-     schedule+0x6c/0x90
-     schedule_timeout+0x3b/0x320
-     ? trace_buffer_unlock_commit_regs+0x4f/0x1f0
-     wait_for_common+0x160/0x1a0
-     ? wake_up_q+0x80/0x80
-     { crypto_wait_req }             # entries in braces added by hand
-     { do_one_aead_op }
-     { test_aead_jiffies }
-     test_aead_speed.constprop.17+0x681/0xf30 [tcrypt]
-     do_test+0x4053/0x6a2b [tcrypt]
-     ? 0xffffffffa00f4000
-     tcrypt_mod_init+0x50/0x1000 [tcrypt]
-     ...
-
-The second modprobe command never finishes because in padata_reorder,
-CPU0's load of reorder_objects is executed before the unlocking store in
-spin_unlock_bh(pd->lock), causing CPU0 to miss CPU1's increment:
-
-CPU0                                 CPU1
-
-padata_reorder                       padata_do_serial
-  LOAD reorder_objects  // 0
-                                       INC reorder_objects  // 1
-                                       padata_reorder
-                                         TRYLOCK pd->lock   // failed
-  UNLOCK pd->lock
-
-CPU0 deletes the timer before returning from padata_reorder and since no
-other job is submitted to padata, modprobe waits indefinitely.
-
-Add a pair of full barriers to guarantee proper ordering:
-
-CPU0                                 CPU1
-
-padata_reorder                       padata_do_serial
-  UNLOCK pd->lock
-  smp_mb()
-  LOAD reorder_objects
-                                       INC reorder_objects
-                                       smp_mb__after_atomic()
-                                       padata_reorder
-                                         TRYLOCK pd->lock
-
-smp_mb__after_atomic is needed so the read part of the trylock operation
-comes after the INC, as Andrea points out.   Thanks also to Andrea for
-help with writing a litmus test.
-
-Fixes: 16295bec6398 ("padata: Generic parallelization/serialization interface")
-Signed-off-by: Daniel Jordan <daniel.m.jordan@oracle.com>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Paul E. McKenney <paulmck@linux.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-crypto@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- kernel/padata.c | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/kernel/padata.c b/kernel/padata.c
-index 2d2fddbb7a4c..15a8ad63f4ff 100644
---- a/kernel/padata.c
-+++ b/kernel/padata.c
-@@ -267,7 +267,12 @@ static void padata_reorder(struct parallel_data *pd)
- 	 * The next object that needs serialization might have arrived to
- 	 * the reorder queues in the meantime, we will be called again
- 	 * from the timer function if no one else cares for it.
-+	 *
-+	 * Ensure reorder_objects is read after pd->lock is dropped so we see
-+	 * an increment from another task in padata_do_serial.  Pairs with
-+	 * smp_mb__after_atomic in padata_do_serial.
- 	 */
-+	smp_mb();
- 	if (atomic_read(&pd->reorder_objects)
- 			&& !(pinst->flags & PADATA_RESET))
- 		mod_timer(&pd->timer, jiffies + HZ);
-@@ -387,6 +392,13 @@ void padata_do_serial(struct padata_priv *padata)
- 	list_add_tail(&padata->list, &pqueue->reorder.list);
- 	spin_unlock(&pqueue->reorder.lock);
- 
-+	/*
-+	 * Ensure the atomic_inc of reorder_objects above is ordered correctly
-+	 * with the trylock of pd->lock in padata_reorder.  Pairs with smp_mb
-+	 * in padata_reorder.
-+	 */
-+	smp_mb__after_atomic();
-+
- 	put_cpu();
- 
- 	/* If we're running on the wrong CPU, call padata_reorder() via a
-
-base-commit: 0ecfebd2b52404ae0c54a878c872bb93363ada36
--- 
-2.22.0
+SGksIFBldGVyLgoKVGhhbmtzIGZvciB0aGUgcmV2aWV3IGFuZCBhbGwgdGhlIHN1Z2dlc3Rpb25z
+IQoKQSBjb3VwbGUgb2YgY29tbWVudHMgYXJlIGlubGluZWQgYmVsb3cuCgo+IE9uIEp1bCAxNiwg
+MjAxOSwgYXQgMTE6NTAgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4g
+d3JvdGU6Cj4gCj4gT24gTW9uLCBKdWwgMTUsIDIwMTkgYXQgMDM6MjU6MzRQTSAtMDQwMCwgQWxl
+eCBLb2dhbiB3cm90ZToKPj4gK3N0YXRpYyBzdHJ1Y3QgY25hX25vZGUgKmZpbmRfc3VjY2Vzc29y
+KHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm1lKQo+PiArewo+PiArCXN0cnVjdCBjbmFfbm9kZSAqbWVf
+Y25hID0gQ05BX05PREUobWUpOwo+PiArCXN0cnVjdCBjbmFfbm9kZSAqaGVhZF9vdGhlciwgKnRh
+aWxfb3RoZXIsICpjdXI7Cj4+ICsJc3RydWN0IGNuYV9ub2RlICpuZXh0ID0gQ05BX05PREUoUkVB
+RF9PTkNFKG1lLT5uZXh0KSk7Cj4+ICsJaW50IG15X25vZGU7Cj4+ICsKPj4gKwkvKiBAbmV4dCBz
+aG91bGQgYmUgc2V0LCBlbHNlIHdlIHdvdWxkIG5vdCBiZSBjYWxsaW5nIHRoaXMgZnVuY3Rpb24u
+ICovCj4+ICsJV0FSTl9PTl9PTkNFKG5leHQgPT0gTlVMTCk7Cj4+ICsKPj4gKwlteV9ub2RlID0g
+bWVfY25hLT5udW1hX25vZGU7Cj4+ICsKPj4gKwkvKgo+PiArCSAqIEZhc3QgcGF0aCAtIGNoZWNr
+IHdoZXRoZXIgdGhlIGltbWVkaWF0ZSBzdWNjZXNzb3IgcnVucyBvbgo+PiArCSAqIHRoZSBzYW1l
+IG5vZGUuCj4+ICsJICovCj4+ICsJaWYgKG5leHQtPm51bWFfbm9kZSA9PSBteV9ub2RlKQo+PiAr
+CQlyZXR1cm4gbmV4dDsKPj4gKwo+PiArCWhlYWRfb3RoZXIgPSBuZXh0Owo+PiArCXRhaWxfb3Ro
+ZXIgPSBuZXh0Owo+PiArCj4+ICsJLyoKPj4gKwkgKiBUcmF2ZXJzZSB0aGUgbWFpbiB3YWl0aW5n
+IHF1ZXVlIHN0YXJ0aW5nIGZyb20gdGhlIHN1Y2Nlc3NvciBvZiBteQo+PiArCSAqIHN1Y2Nlc3Nv
+ciwgYW5kIGxvb2sgZm9yIGEgdGhyZWFkIHJ1bm5pbmcgb24gdGhlIHNhbWUgbm9kZS4KPj4gKwkg
+Ki8KPj4gKwljdXIgPSBDTkFfTk9ERShSRUFEX09OQ0UobmV4dC0+bWNzLm5leHQpKTsKPj4gKwl3
+aGlsZSAoY3VyKSB7Cj4+ICsJCWlmIChjdXItPm51bWFfbm9kZSA9PSBteV9ub2RlKSB7Cj4+ICsJ
+CQkvKgo+PiArCQkJICogRm91bmQgYSB0aHJlYWQgb24gdGhlIHNhbWUgbm9kZS4gTW92ZSB0aHJl
+YWRzCj4+ICsJCQkgKiBiZXR3ZWVuIG1lIGFuZCB0aGF0IG5vZGUgaW50byB0aGUgc2Vjb25kYXJ5
+IHF1ZXVlLgo+PiArCQkJICovCj4+ICsJCQlpZiAobWUtPmxvY2tlZCA+IDEpCj4+ICsJCQkJQ05B
+X05PREUobWUtPmxvY2tlZCktPnRhaWwtPm1jcy5uZXh0ID0KPj4gKwkJCQkJKHN0cnVjdCBtY3Nf
+c3BpbmxvY2sgKiloZWFkX290aGVyOwo+PiArCQkJZWxzZQo+PiArCQkJCW1lLT5sb2NrZWQgPSAo
+dWludHB0cl90KWhlYWRfb3RoZXI7Cj4+ICsJCQl0YWlsX290aGVyLT5tY3MubmV4dCA9IE5VTEw7
+Cj4+ICsJCQlDTkFfTk9ERShtZS0+bG9ja2VkKS0+dGFpbCA9IHRhaWxfb3RoZXI7Cj4+ICsJCQly
+ZXR1cm4gY3VyOwo+PiArCQl9Cj4+ICsJCXRhaWxfb3RoZXIgPSBjdXI7Cj4+ICsJCWN1ciA9IENO
+QV9OT0RFKFJFQURfT05DRShjdXItPm1jcy5uZXh0KSk7Cj4+ICsJfQo+PiArCXJldHVybiBOVUxM
+Owo+PiArfQo+IAo+IHN0YXRpYyB2b2lkIGNuYV9tb3ZlKHN0cnVjdCBjbmFfbm9kZSAqY24sIHN0
+cnVjdCBjbmFfbm9kZSAqY25pKQo+IHsKPiAJc3RydWN0IGNuYV9ub2RlICpoZWFkLCAqdGFpbDsK
+PiAKPiAJLyogcmVtb3ZlIEBjbmkgKi8KPiAJV1JJVEVfT05DRShjbi0+bWNzLm5leHQsIGNuaS0+
+bWNzLm5leHQpOwo+IAo+IAkvKiBzdGljayBAY25pIG9uIHRoZSAnb3RoZXInIGxpc3QgdGFpbCAq
+Lwo+IAljbmktPm1jcy5uZXh0ID0gTlVMTDsKPiAKPiAJaWYgKGNuLT5tY3MubG9ja2VkIDw9IDEp
+IHsKPiAJCS8qIGhlYWQgPSB0YWlsID0gY25pICovCj4gCQloZWFkID0gY25pOwo+IAkJaGVhZC0+
+dGFpbCA9IGNuaTsKPiAJCWNuLT5tY3MubG9ja2VkID0gaGVhZC0+ZW5jb2RlZF90YWlsOwo+IAl9
+IGVsc2Ugewo+IAkJLyogYWRkIHRvIHRhaWwgKi8KPiAJCWhlYWQgPSAoc3RydWN0IGNuYV9ub2Rl
+ICopZGVjb2RlX3RhaWwoY24tPm1jcy5sb2NrZWQpOwo+IAkJdGFpbCA9IHRhaWwtPnRhaWw7Cj4g
+CQl0YWlsLT5uZXh0ID0gY25pOwo+IAl9Cj4gfQo+IAo+IHN0YXRpYyBzdHJ1Y3QgY25hX25vZGUg
+KmNuYV9maW5kX25leHQoc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSkKPiB7Cj4gCXN0cnVjdCBj
+bmFfbm9kZSAqY25pLCAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopbm9kZTsKPiAKPiAJd2hpbGUg
+KChjbmkgPSAoc3RydWN0IGNuYV9ub2RlICopUkVBRF9PTkNFKGNuLT5tY3MubmV4dCkpKSB7Cj4g
+CQlpZiAobGlrZWx5KGNuaS0+bm9kZSA9PSBjbi0+bm9kZSkpCj4gCQkJYnJlYWs7Cj4gCj4gCQlj
+bmFfbW92ZShjbiwgY25pKTsKPiAJfQo+IAo+IAlyZXR1cm4gY25pOwo+IH0KQnV0IHRoZW4geW91
+IG1vdmUgbm9kZXMgZnJvbSB0aGUgbWFpbiBsaXN0IHRvIHRoZSDigJhvdGhlcuKAmSBsaXN0IG9u
+ZS1ieS1vbmUuCknigJltIGFmcmFpZCB0aGlzIHdvdWxkIGJlIHVubmVjZXNzYXJ5IGV4cGVuc2l2
+ZS4KUGx1cywgYWxsIHRoaXMgZXh0cmEgd29yayBpcyB3YXN0ZWQgaWYgeW91IGRvIG5vdCBmaW5k
+IGEgdGhyZWFkIG9uIHRoZSBzYW1lIApOVU1BIG5vZGUgKHlvdSBtb3ZlIGV2ZXJ5b25lIHRvIHRo
+ZSDigJhvdGhlcuKAmSBsaXN0IG9ubHkgdG8gbW92ZSB0aGVtIGJhY2sgaW4gCmNuYV9tY3NfcGFz
+c19sb2NrKCkpLgoKPiAKPj4gK3N0YXRpYyBpbmxpbmUgYm9vbCBjbmFfc2V0X2xvY2tlZF9lbXB0
+eV9tY3Moc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCwKPj4gKwkJCQkJc3RydWN0IG1j
+c19zcGlubG9jayAqbm9kZSkKPj4gK3sKPj4gKwkvKiBDaGVjayB3aGV0aGVyIHRoZSBzZWNvbmRh
+cnkgcXVldWUgaXMgZW1wdHkuICovCj4+ICsJaWYgKG5vZGUtPmxvY2tlZCA8PSAxKSB7Cj4+ICsJ
+CWlmIChhdG9taWNfdHJ5X2NtcHhjaGdfcmVsYXhlZCgmbG9jay0+dmFsLCAmdmFsLAo+PiArCQkJ
+CV9RX0xPQ0tFRF9WQUwpKQo+PiArCQkJcmV0dXJuIHRydWU7IC8qIE5vIGNvbnRlbnRpb24gKi8K
+Pj4gKwl9IGVsc2Ugewo+PiArCQkvKgo+PiArCQkgKiBQYXNzIHRoZSBsb2NrIHRvIHRoZSBmaXJz
+dCB0aHJlYWQgaW4gdGhlIHNlY29uZGFyeQo+PiArCQkgKiBxdWV1ZSwgYnV0IGZpcnN0IHRyeSB0
+byB1cGRhdGUgdGhlIHF1ZXVlJ3MgdGFpbCB0bwo+PiArCQkgKiBwb2ludCB0byB0aGUgbGFzdCBu
+b2RlIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuCj4gCj4gCj4gVGhhdCBjb21tZW50IGRvZXNuJ3Qg
+bWFrZSBzZW5zZTsgdGhlcmUncyBhdCBsZWFzdCBvbmUgY29uZGl0aW9uYWwKPiBtaXNzaW5nLgpJ
+biBDTkEsIHdlIGNhbm5vdCBqdXN0IGNsZWFyIHRoZSB0YWlsIHdoZW4gdGhlIE1DUyBjaGFpbiBp
+cyBlbXB0eSwgYXMgCnRoZXJlIG1pZ2h0IGJlIG5vZGVzIGluIHRoZSDigJhvdGhlcuKAmSBjaGFp
+bi4gSW4gdGhhdCBjYXNlICh0aGlzIGlzIHRoZSDigJxlbHNl4oCdIHBhcnQpLAp3ZSB3YW50IHRv
+IHBhc3MgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IG5vZGUgaW4gdGhlIOKAmG90aGVy4oCZIGNoYWlu
+LCBidXQgCmZpcnN0IHdlIG5lZWQgdG8gcHV0IHRoZSBsYXN0IG5vZGUgZnJvbSB0aGF0IGNoYWlu
+IGludG8gdGhlIHRhaWwuIFBlcmhhcHMgdGhlCmNvbW1lbnQgc2hvdWxkIHJlYWQg4oCc4oCmICBi
+dXQgZmlyc3QgdHJ5IHRvIHVwZGF0ZSB0aGUgKnByaW1hcnkqIHF1ZXVlJ3MgdGFpbCDigKbigJ0s
+IAppZiB0aGF0IG1ha2VzIG1vcmUgc2Vuc2UuCgo+IAo+PiArCQkgKi8KPj4gKwkJc3RydWN0IGNu
+YV9ub2RlICpzdWNjID0gQ05BX05PREUobm9kZS0+bG9ja2VkKTsKPj4gKwkJdTMyIG5ldyA9IHN1
+Y2MtPnRhaWwtPmVuY29kZWRfdGFpbCArIF9RX0xPQ0tFRF9WQUw7Cj4+ICsKPj4gKwkJaWYgKGF0
+b21pY190cnlfY21weGNoZ19yZWxheGVkKCZsb2NrLT52YWwsICZ2YWwsIG5ldykpIHsKPj4gKwkJ
+CWFyY2hfbWNzX3NwaW5fdW5sb2NrX2NvbnRlbmRlZCgmc3VjYy0+bWNzLmxvY2tlZCwgMSk7Cj4+
+ICsJCQlyZXR1cm4gdHJ1ZTsKPj4gKwkJfQo+PiArCX0KPj4gKwo+PiArCXJldHVybiBmYWxzZTsK
+Pj4gK30KPiAKPiBzdGF0aWMgY25hX3RyeV9jbGVhcl90YWlsKHN0cnVjdCBxc3BpbmxvY2sgKmxv
+Y2ssIHUzMiB2YWwsIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5vZGUpCj4gewo+IAlpZiAobm9kZS0+
+bG9ja2VkIDw9IDEpCj4gCQlyZXR1cm4gX190cnlfY2xlYXJfdGFpbChsb2NrLCB2YWwsIG5vZGUp
+Owo+IAo+IAkvKiB0aGUgb3RoZXIgY2FzZSAqLwo+IH0KR29vZCBwb2ludCwgdGhhbmtzLgoKPiAK
+Pj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBjbmFfcGFzc19tY3NfbG9jayhzdHJ1Y3QgbWNzX3NwaW5s
+b2NrICpub2RlLAo+PiArCQkJCSAgICAgc3RydWN0IG1jc19zcGlubG9jayAqbmV4dCkKPj4gK3sK
+Pj4gKwlzdHJ1Y3QgY25hX25vZGUgKnN1Y2MgPSBOVUxMOwo+PiArCXU2NCAqdmFyID0gJm5leHQt
+PmxvY2tlZDsKPj4gKwl1NjQgdmFsID0gMTsKPj4gKwo+PiArCXN1Y2MgPSBmaW5kX3N1Y2Nlc3Nv
+cihub2RlKTsKPiAKPiBUaGlzIG1ha2VzIHVubG9jayBPKG4pLCB3aGljaCBpcyAnZnVubmVoJyBh
+bmQgdW5kb2N1bWVudGVkLgpJIHdpbGwgYWRkIGEgY29tbWVudCBhYm92ZSB0aGUgY2FsbCB0byBm
+aW5kX3N1Y2Nlc3NvcigpIC8gY25hX2ZpbmRfbmV4dCgpLgoKPiAKPj4gKwo+PiArCWlmIChzdWNj
+KSB7Cj4+ICsJCXZhciA9ICZzdWNjLT5tY3MubG9ja2VkOwo+PiArCQkvKgo+PiArCQkgKiBXZSB1
+bmxvY2sgYSBzdWNjZXNzb3IgYnkgcGFzc2luZyBhIG5vbi16ZXJvIHZhbHVlLAo+PiArCQkgKiBz
+byBzZXQgQHZhbCB0byAxIGlmZiBAbG9ja2VkIGlzIDAsIHdoaWNoIHdpbGwgaGFwcGVuCj4+ICsJ
+CSAqIGlmIHdlIGFjcXVpcmVkIHRoZSBNQ1MgbG9jayB3aGVuIGl0cyBxdWV1ZSB3YXMgZW1wdHkK
+Pj4gKwkJICovCj4+ICsJCXZhbCA9IG5vZGUtPmxvY2tlZCArIChub2RlLT5sb2NrZWQgPT0gMCk7
+Cj4+ICsJfSBlbHNlIGlmIChub2RlLT5sb2NrZWQgPiAxKSB7IC8qIGlmIHRoZSBzZWNvbmRhcnkg
+cXVldWUgaXMgbm90IGVtcHR5ICovCj4+ICsJCS8qIHBhc3MgdGhlIGxvY2sgdG8gdGhlIGZpcnN0
+IG5vZGUgaW4gdGhhdCBxdWV1ZSAqLwo+PiArCQlzdWNjID0gQ05BX05PREUobm9kZS0+bG9ja2Vk
+KTsKPj4gKwkJc3VjYy0+dGFpbC0+bWNzLm5leHQgPSBuZXh0Owo+PiArCQl2YXIgPSAmc3VjYy0+
+bWNzLmxvY2tlZDsKPiAKPj4gKwl9CS8qCj4+ICsJCSAqIE90aGVyd2lzZSwgcGFzcyB0aGUgbG9j
+ayB0byB0aGUgaW1tZWRpYXRlIHN1Y2Nlc3Nvcgo+PiArCQkgKiBpbiB0aGUgbWFpbiBxdWV1ZS4K
+Pj4gKwkJICovCj4gCj4gSSBkb24ndCB0aGluayB0aGlzIG1pcy1pbmRlbnRlZCBjb21tZW50IGNh
+biBoYXBwZW4uIFRoZSBjYWxsLXNpdGUKPiBndWFyYW50ZWVzIEBuZXh0IGlzIG5vbi1udWxsLgo+
+IAo+IFRoZXJlZm9yZSwgY25hX2ZpbmRfbmV4dCgpIHdpbGwgZWl0aGVyIHJldHVybiBpdCwgb3Ig
+cGxhY2UgaXQgb24gdGhlCj4gc2Vjb25kYXJ5IGxpc3QuIElmIGl0IChjbmFfZmluZF9uZXh0KSBy
+ZXR1cm5zIE5VTEwsIHdlIG11c3QgaGF2ZSBhCj4gbm9uLWVtcHR5IHNlY29uZGFyeSBsaXN0Lgo+
+IAo+IEluIG5vIGNhc2UgZG8gSSBzZWUgdGhpcyB0ZXJ0aWFyeSBjb25kaXRpb24gYmVpbmcgcG9z
+c2libGUuCmZpbmRfc3VjY2Vzc29yKCkgd2lsbCByZXR1cm4gTlVMTCBpZiBpdCBkb2VzIG5vdCBm
+aW5kIGEgdGhyZWFkIHJ1bm5pbmcgb24gdGhlIApzYW1lIE5VTUEgbm9kZS4gQW5kIHRoZSBzZWNv
+bmRhcnkgcXVldWUgbWlnaHQgYmUgZW1wdHkgYXQgdGhhdCB0aW1lLgoKPiAKPj4gKwo+PiArCWFy
+Y2hfbWNzX3NwaW5fdW5sb2NrX2NvbnRlbmRlZCh2YXIsIHZhbCk7Cj4+ICt9Cj4gCj4gVGhpcyBh
+bHNvIHJlbmRlcnMgdGhpcyBAbmV4dCBhcmd1bWVudCBzdXBlcmZsdW91cy4KPiAKPiBzdGF0aWMg
+Y25hX21jc19wYXNzX2xvY2soc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSwgc3RydWN0IG1jc19z
+cGlubG9jayAqbmV4dCkKPiB7Cj4gCW5leHQgPSBjbmFfZmluZF9uZXh0KG5vZGUpOwo+IAlpZiAo
+IW5leHQpIHsKPiAJCUJVR19PTihub2RlLT5sb2NrZWQgPD0gMSk7Cj4gCQluZXh0ID0gKHN0cnVj
+dCBjbmFfbm9kZSAqKWRlY29kZV90YWlsKG5vZGUtPmxvY2tlZCk7Cj4gCQlub2RlLT5sb2NrZWQg
+PSAxOwo+IAl9Cj4gCj4gCWFyY2hfbWNzX3Bhc3NfbG9jaygmbmV4dC0+bWNzLmxvY2tlZCwgbm9k
+ZS0+bG9ja2VkKTsKPiB9CgpAbmV4dCBpcyBwYXNzZWQgdG8gc2F2ZSB0aGUgbG9hZCBmcm9tIEBu
+b2RlLgpUaGlzIGlzIHByb2JhYmx5IG1vc3QgaW1wb3J0YW50IGZvciB0aGUgbmF0aXZlIGNvZGUg
+KF9fcGFzc19tY3NfbG9jaygpKS4KVGhhdCBmdW5jdGlvbiBzaG91bGQgYmUgaW5saW5lZCwgaG93
+ZXZlciwgYW5kIHRoYXQgbG9hZCBzaG91bGQgbm90IG1hdHRlci4KQm90dG9tIGxpbmUsIEkgYWdy
+ZWUgdGhhdCB3ZSBjYW4gcmVtb3ZlIHRoZSBAbmV4dCBhcmd1bWVudC4KCkJlc3QgcmVnYXJkcywK
+4oCUIEFsZXgKCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5p
+bmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8v
+bGludXgtYXJtLWtlcm5lbAo=
