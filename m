@@ -1,112 +1,55 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Tue, 16 Jul 2019 20:47:24 +0200
-Message-ID: <20190716184724.GH3402@hirez.programming.kicks-ass.net>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-4-alex.kogan@oracle.com>
- <20190716155022.GR3419@hirez.programming.kicks-ass.net>
- <193BBB31-F376-451F-BDE1-D4807140EB51@oracle.com>
+From: Sven Schnelle <svens@stackframe.org>
+Subject: Re: [PATCH 1/2] arch: mark syscall number 435 reserved for clone3
+Date: Tue, 16 Jul 2019 20:53:10 +0200
+Message-ID: <20190716185310.GA12537@t470p.stackframe.org>
+References: <20190714192205.27190-1-christian@brauner.io>
+ <20190714192205.27190-2-christian@brauner.io>
+ <e14eb2f9-43cb-0b9d-dec4-b7e7dcd62091@de.ibm.com>
+ <20190716130631.tohj4ub54md25dys@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 Content-Disposition: inline
-In-Reply-To: <193BBB31-F376-451F-BDE1-D4807140EB51@oracle.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20190716130631.tohj4ub54md25dys@brauner.io>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Christian Brauner <christian@brauner.io>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, arnd@arndb.de, linux-sh@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Vasily Gorbik <gor@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVHVlLCBKdWwgMTYsIDIwMTkgYXQgMDE6MTk6MTZQTSAtMDQwMCwgQWxleCBLb2dhbiB3cm90
-ZToKPiA+IE9uIEp1bCAxNiwgMjAxOSwgYXQgMTE6NTAgQU0sIFBldGVyIFppamxzdHJhIDxwZXRl
-cnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6Cgo+ID4gc3RhdGljIHZvaWQgY25hX21vdmUoc3RydWN0
-IGNuYV9ub2RlICpjbiwgc3RydWN0IGNuYV9ub2RlICpjbmkpCj4gPiB7Cj4gPiAJc3RydWN0IGNu
-YV9ub2RlICpoZWFkLCAqdGFpbDsKPiA+IAo+ID4gCS8qIHJlbW92ZSBAY25pICovCj4gPiAJV1JJ
-VEVfT05DRShjbi0+bWNzLm5leHQsIGNuaS0+bWNzLm5leHQpOwo+ID4gCj4gPiAJLyogc3RpY2sg
-QGNuaSBvbiB0aGUgJ290aGVyJyBsaXN0IHRhaWwgKi8KPiA+IAljbmktPm1jcy5uZXh0ID0gTlVM
-TDsKPiA+IAo+ID4gCWlmIChjbi0+bWNzLmxvY2tlZCA8PSAxKSB7Cj4gPiAJCS8qIGhlYWQgPSB0
-YWlsID0gY25pICovCj4gPiAJCWhlYWQgPSBjbmk7Cj4gPiAJCWhlYWQtPnRhaWwgPSBjbmk7Cj4g
-PiAJCWNuLT5tY3MubG9ja2VkID0gaGVhZC0+ZW5jb2RlZF90YWlsOwo+ID4gCX0gZWxzZSB7Cj4g
-PiAJCS8qIGFkZCB0byB0YWlsICovCj4gPiAJCWhlYWQgPSAoc3RydWN0IGNuYV9ub2RlICopZGVj
-b2RlX3RhaWwoY24tPm1jcy5sb2NrZWQpOwo+ID4gCQl0YWlsID0gdGFpbC0+dGFpbDsKPiA+IAkJ
-dGFpbC0+bmV4dCA9IGNuaTsKPiA+IAl9Cj4gPiB9Cj4gPiAKPiA+IHN0YXRpYyBzdHJ1Y3QgY25h
-X25vZGUgKmNuYV9maW5kX25leHQoc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSkKPiA+IHsKPiA+
-IAlzdHJ1Y3QgY25hX25vZGUgKmNuaSwgKmNuID0gKHN0cnVjdCBjbmFfbm9kZSAqKW5vZGU7Cj4g
-PiAKPiA+IAl3aGlsZSAoKGNuaSA9IChzdHJ1Y3QgY25hX25vZGUgKilSRUFEX09OQ0UoY24tPm1j
-cy5uZXh0KSkpIHsKPiA+IAkJaWYgKGxpa2VseShjbmktPm5vZGUgPT0gY24tPm5vZGUpKQo+ID4g
-CQkJYnJlYWs7Cj4gPiAKPiA+IAkJY25hX21vdmUoY24sIGNuaSk7Cj4gPiAJfQo+ID4gCj4gPiAJ
-cmV0dXJuIGNuaTsKPiA+IH0KPiBCdXQgdGhlbiB5b3UgbW92ZSBub2RlcyBmcm9tIHRoZSBtYWlu
-IGxpc3QgdG8gdGhlIOKAmG90aGVy4oCZIGxpc3Qgb25lLWJ5LW9uZS4KPiBJ4oCZbSBhZnJhaWQg
-dGhpcyB3b3VsZCBiZSB1bm5lY2Vzc2FyeSBleHBlbnNpdmUuCj4gUGx1cywgYWxsIHRoaXMgZXh0
-cmEgd29yayBpcyB3YXN0ZWQgaWYgeW91IGRvIG5vdCBmaW5kIGEgdGhyZWFkIG9uIHRoZSBzYW1l
-IAo+IE5VTUEgbm9kZSAoeW91IG1vdmUgZXZlcnlvbmUgdG8gdGhlIOKAmG90aGVy4oCZIGxpc3Qg
-b25seSB0byBtb3ZlIHRoZW0gYmFjayBpbiAKPiBjbmFfbWNzX3Bhc3NfbG9jaygpKS4KCk15IHBy
-aW1hcnkgY29uY2VybiB3YXMgcmVhZGFiaWxpdHk7IEkgZmluZCB0aGUgYWJvdmUgc3VnZ2VzdGlv
-biBtdWNoCm1vcmUgcmVhZGFibGUuIE1heWJlIGl0IGNhbiBiZSB3cml0dGVuIGRpZmZlcmVudGx5
-OyB5b3UnbGwgaGF2ZSB0byBwbGF5CmFyb3VuZCBhIGJpdC4KCj4gPj4gK3N0YXRpYyBpbmxpbmUg
-Ym9vbCBjbmFfc2V0X2xvY2tlZF9lbXB0eV9tY3Moc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMy
-IHZhbCwKPiA+PiArCQkJCQlzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlKQo+ID4+ICt7Cj4gPj4g
-KwkvKiBDaGVjayB3aGV0aGVyIHRoZSBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHkuICovCj4gPj4g
-KwlpZiAobm9kZS0+bG9ja2VkIDw9IDEpIHsKPiA+PiArCQlpZiAoYXRvbWljX3RyeV9jbXB4Y2hn
-X3JlbGF4ZWQoJmxvY2stPnZhbCwgJnZhbCwKPiA+PiArCQkJCV9RX0xPQ0tFRF9WQUwpKQo+ID4+
-ICsJCQlyZXR1cm4gdHJ1ZTsgLyogTm8gY29udGVudGlvbiAqLwo+ID4+ICsJfSBlbHNlIHsKPiA+
-PiArCQkvKgo+ID4+ICsJCSAqIFBhc3MgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IHRocmVhZCBpbiB0
-aGUgc2Vjb25kYXJ5Cj4gPj4gKwkJICogcXVldWUsIGJ1dCBmaXJzdCB0cnkgdG8gdXBkYXRlIHRo
-ZSBxdWV1ZSdzIHRhaWwgdG8KPiA+PiArCQkgKiBwb2ludCB0byB0aGUgbGFzdCBub2RlIGluIHRo
-ZSBzZWNvbmRhcnkgcXVldWUuCj4gPiAKPiA+IAo+ID4gVGhhdCBjb21tZW50IGRvZXNuJ3QgbWFr
-ZSBzZW5zZTsgdGhlcmUncyBhdCBsZWFzdCBvbmUgY29uZGl0aW9uYWwKPiA+IG1pc3NpbmcuCj4g
-SW4gQ05BLCB3ZSBjYW5ub3QganVzdCBjbGVhciB0aGUgdGFpbCB3aGVuIHRoZSBNQ1MgY2hhaW4g
-aXMgZW1wdHksIGFzIAo+IHRoZXJlIG1pZ2h0IGJlIG5vZGVzIGluIHRoZSDigJhvdGhlcuKAmSBj
-aGFpbi4gSW4gdGhhdCBjYXNlICh0aGlzIGlzIHRoZSDigJxlbHNl4oCdIHBhcnQpLAo+IHdlIHdh
-bnQgdG8gcGFzcyB0aGUgbG9jayB0byB0aGUgZmlyc3Qgbm9kZSBpbiB0aGUg4oCYb3RoZXLigJkg
-Y2hhaW4sIGJ1dCAKPiBmaXJzdCB3ZSBuZWVkIHRvIHB1dCB0aGUgbGFzdCBub2RlIGZyb20gdGhh
-dCBjaGFpbiBpbnRvIHRoZSB0YWlsLiBQZXJoYXBzIHRoZQo+IGNvbW1lbnQgc2hvdWxkIHJlYWQg
-4oCc4oCmICBidXQgZmlyc3QgdHJ5IHRvIHVwZGF0ZSB0aGUgKnByaW1hcnkqIHF1ZXVlJ3MgdGFp
-bCDigKbigJ0sIAo+IGlmIHRoYXQgbWFrZXMgbW9yZSBzZW5zZS4KCkl0IGlzICd0cnkgYW5kIHBh
-c3MgdGhlIGxvY2snIGF0IGJlc3QuIEl0IGlzIG5vdCBhCmRlZmluaXRlL3VuY29uZGl0aW9uYWwg
-dGhpbmcgd2UncmUgZG9pbmcuCgo+ID4+ICsJCSAqLwo+ID4+ICsJCXN0cnVjdCBjbmFfbm9kZSAq
-c3VjYyA9IENOQV9OT0RFKG5vZGUtPmxvY2tlZCk7Cj4gPj4gKwkJdTMyIG5ldyA9IHN1Y2MtPnRh
-aWwtPmVuY29kZWRfdGFpbCArIF9RX0xPQ0tFRF9WQUw7Cj4gPj4gKwo+ID4+ICsJCWlmIChhdG9t
-aWNfdHJ5X2NtcHhjaGdfcmVsYXhlZCgmbG9jay0+dmFsLCAmdmFsLCBuZXcpKSB7Cj4gPj4gKwkJ
-CWFyY2hfbWNzX3NwaW5fdW5sb2NrX2NvbnRlbmRlZCgmc3VjYy0+bWNzLmxvY2tlZCwgMSk7Cj4g
-Pj4gKwkJCXJldHVybiB0cnVlOwo+ID4+ICsJCX0KPiA+PiArCX0KPiA+PiArCj4gPj4gKwlyZXR1
-cm4gZmFsc2U7Cj4gPj4gK30KCj4gPj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBjbmFfcGFzc19tY3Nf
-bG9jayhzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlLAo+ID4+ICsJCQkJICAgICBzdHJ1Y3QgbWNz
-X3NwaW5sb2NrICpuZXh0KQo+ID4+ICt7Cj4gPj4gKwlzdHJ1Y3QgY25hX25vZGUgKnN1Y2MgPSBO
-VUxMOwo+ID4+ICsJdTY0ICp2YXIgPSAmbmV4dC0+bG9ja2VkOwo+ID4+ICsJdTY0IHZhbCA9IDE7
-Cj4gPj4gKwo+ID4+ICsJc3VjYyA9IGZpbmRfc3VjY2Vzc29yKG5vZGUpOwo+ID4+ICsKPiA+PiAr
-CWlmIChzdWNjKSB7Cj4gPj4gKwkJdmFyID0gJnN1Y2MtPm1jcy5sb2NrZWQ7Cj4gPj4gKwkJLyoK
-PiA+PiArCQkgKiBXZSB1bmxvY2sgYSBzdWNjZXNzb3IgYnkgcGFzc2luZyBhIG5vbi16ZXJvIHZh
-bHVlLAo+ID4+ICsJCSAqIHNvIHNldCBAdmFsIHRvIDEgaWZmIEBsb2NrZWQgaXMgMCwgd2hpY2gg
-d2lsbCBoYXBwZW4KPiA+PiArCQkgKiBpZiB3ZSBhY3F1aXJlZCB0aGUgTUNTIGxvY2sgd2hlbiBp
-dHMgcXVldWUgd2FzIGVtcHR5Cj4gPj4gKwkJICovCj4gPj4gKwkJdmFsID0gbm9kZS0+bG9ja2Vk
-ICsgKG5vZGUtPmxvY2tlZCA9PSAwKTsKPiA+PiArCX0gZWxzZSBpZiAobm9kZS0+bG9ja2VkID4g
-MSkgeyAvKiBpZiB0aGUgc2Vjb25kYXJ5IHF1ZXVlIGlzIG5vdCBlbXB0eSAqLwo+ID4+ICsJCS8q
-IHBhc3MgdGhlIGxvY2sgdG8gdGhlIGZpcnN0IG5vZGUgaW4gdGhhdCBxdWV1ZSAqLwo+ID4+ICsJ
-CXN1Y2MgPSBDTkFfTk9ERShub2RlLT5sb2NrZWQpOwo+ID4+ICsJCXN1Y2MtPnRhaWwtPm1jcy5u
-ZXh0ID0gbmV4dDsKPiA+PiArCQl2YXIgPSAmc3VjYy0+bWNzLmxvY2tlZDsKPiA+IAo+ID4+ICsJ
-fQkvKgo+ID4+ICsJCSAqIE90aGVyd2lzZSwgcGFzcyB0aGUgbG9jayB0byB0aGUgaW1tZWRpYXRl
-IHN1Y2Nlc3Nvcgo+ID4+ICsJCSAqIGluIHRoZSBtYWluIHF1ZXVlLgo+ID4+ICsJCSAqLwo+ID4g
-Cj4gPiBJIGRvbid0IHRoaW5rIHRoaXMgbWlzLWluZGVudGVkIGNvbW1lbnQgY2FuIGhhcHBlbi4g
-VGhlIGNhbGwtc2l0ZQo+ID4gZ3VhcmFudGVlcyBAbmV4dCBpcyBub24tbnVsbC4KPiA+IAo+ID4g
-VGhlcmVmb3JlLCBjbmFfZmluZF9uZXh0KCkgd2lsbCBlaXRoZXIgcmV0dXJuIGl0LCBvciBwbGFj
-ZSBpdCBvbiB0aGUKPiA+IHNlY29uZGFyeSBsaXN0LiBJZiBpdCAoY25hX2ZpbmRfbmV4dCkgcmV0
-dXJucyBOVUxMLCB3ZSBtdXN0IGhhdmUgYQo+ID4gbm9uLWVtcHR5IHNlY29uZGFyeSBsaXN0Lgo+
-ID4gCj4gPiBJbiBubyBjYXNlIGRvIEkgc2VlIHRoaXMgdGVydGlhcnkgY29uZGl0aW9uIGJlaW5n
-IHBvc3NpYmxlLgo+IGZpbmRfc3VjY2Vzc29yKCkgd2lsbCByZXR1cm4gTlVMTCBpZiBpdCBkb2Vz
-IG5vdCBmaW5kIGEgdGhyZWFkIHJ1bm5pbmcgb24gdGhlIAo+IHNhbWUgTlVNQSBub2RlLiBBbmQg
-dGhlIHNlY29uZGFyeSBxdWV1ZSBtaWdodCBiZSBlbXB0eSBhdCB0aGF0IHRpbWUuCgpTZWU7IEkg
-Y291bGRuJ3QgdW50YW5nbGUgdGhhdCBjYXNlIGZyb20gdGhlIGNvZGUuIE1lYW5zIHJlYWRhYmxp
-bHR5Cm5lZWRzIGltcHJvdmluZy4KCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJu
-ZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFu
-L2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+Hi,
+
+[Adding Helge to CC list]
+
+On Tue, Jul 16, 2019 at 03:06:33PM +0200, Christian Brauner wrote:
+> On Mon, Jul 15, 2019 at 03:56:04PM +0200, Christian Borntraeger wrote:
+> > I think Vasily already has a clone3 patch for s390x with 435. 
+> 
+> A quick follow-up on this. Helge and Michael have asked whether there
+> are any tests for clone3. Yes, there will be and I try to have them
+> ready by the end of the this or next week for review. In the meantime I
+> hope the following minimalistic test program that just verifies very
+> very basic functionality (It's not pretty.) will help you test:
+> [..]
+
+On PA-RISC this seems to work fine with Helge's patch to wire up the
+clone3 syscall.
+
+root@c3750:/# clonetest
+Parent process received child's pid 84 as return value
+Parent process received child's pidfd 3
+Parent process received child's pid 84 as return argument
+Child process with pid 84
+root@c3750:/# echo $?
+0
+
+Regards
+Sven
