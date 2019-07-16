@@ -1,45 +1,66 @@
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH] padata: Use RCU when fetching pd from do_serial
-Date: Tue, 16 Jul 2019 21:09:28 +0800
-Message-ID: <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
+ padata jobs
+Date: Tue, 16 Jul 2019 15:13:50 +0200
+Message-ID: <20190716131350.GA3402@hirez.programming.kicks-ass.net>
 References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
  <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
  <20190712101012.GW14601@gauss3.secunet.de>
  <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
- <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
- <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
- <20190716111410.GN17989@gauss3.secunet.de>
- <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
+ <20190716125309.GA10672@andrea>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
+In-Reply-To: <20190716125309.GA10672@andrea>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Steffen Klassert <steffen.klassert@secunet.com>, Herbert Xu <herbert@gondor.apana.org.au>, boqun.feng@gmail.com, paulmck@linux.ibm.com, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, will@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 16, 2019 at 08:57:04PM +0800, Herbert Xu wrote:
->
-> How about using RCU?
+On Tue, Jul 16, 2019 at 02:53:09PM +0200, Andrea Parri wrote:
+
+> C daniel-padata
 > 
-> We still need to fix up the refcnt if it's supposed to limit the
-> overall number of outstanding requests.
+> { }
+> 
+> P0(atomic_t *reorder_objects, spinlock_t *pd_lock)
+> {
+> 	int r0;
+> 
+> 	spin_lock(pd_lock);
+> 	spin_unlock(pd_lock);
+> 	smp_mb();
+> 	r0 = atomic_read(reorder_objects);
+> }
+> 
+> P1(atomic_t *reorder_objects, spinlock_t *pd_lock, spinlock_t *reorder_lock)
+> {
+> 	int r1;
+> 
+> 	spin_lock(reorder_lock);
+> 	atomic_inc(reorder_objects);
+> 	spin_unlock(reorder_lock);
+> 	//smp_mb();
+> 	r1 = spin_trylock(pd_lock);
+> }
+> 
+> exists (0:r0=0 /\ 1:r1=0)
+> 
+> It seems worth noticing that this test's "exists" clause is satisfiable
+> according to the (current) memory consistency model.  (Informally, this
+> can be explained by noticing that the RELEASE from the spin_unlock() in
+> P1 does not provide any order between the atomic increment and the read
+> part of the spin_trylock() operation.)  FWIW, uncommenting the smp_mb()
+> in P1 would suffice to prevent this clause from being satisfiable; I am
+> not sure, however, whether this approach is feasible or ideal... (sorry,
+> I'm definitely not too familiar with this code... ;/)
 
-Hmm, it doesn't work because the refcnt is attached to the old
-pd.  That shouldn't be a problem though as we could simply ignore
-the refcnt in padata_flush_queue.
+Urgh, that one again.
 
-However, I think this leads to another bug in that pcrypt doesn't
-support dm-crypt properly.  It never does the backlog stuff and
-therefore can't guarantee reliable processing which dm-crypt requires.
+Yes, you need the smp_mb(); although a whole bunch of architectures can
+live without it. IIRC it is part of the eternal RCsc/RCpc debate.
 
-Is it intentional to only allow pcrypt for IPsec?
-
-Cheers,
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+Paul/RCU have their smp_mb__after_unlock_lock() that is about something
+similar, although we've so far confinsed that to the RCU code, because
+of how confusing that all is.
