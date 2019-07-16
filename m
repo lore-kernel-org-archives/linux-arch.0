@@ -1,185 +1,169 @@
 From: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-Subject: [PATCH 00/14] pending doc patches for 5.3-rc
-Date: Tue, 16 Jul 2019 09:10:39 -0300
-Message-ID: <cover.1563277838.git.mchehab+samsung@kernel.org>
+Subject: [PATCH 03/14] docs: fix broken doc references due to renames
+Date: Tue, 16 Jul 2019 09:10:42 -0300
+Message-ID: <aa415583bf6b812b0249093a601aa31412f3a1cf.1563277838.git.mchehab+samsung@kernel.org>
+References: <cover.1563277838.git.mchehab+samsung@kernel.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <netdev-owner@vger.kernel.org>
-Sender: netdev-owner@vger.kernel.org
-Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, linux-scsi@vger.kernel.org, esc.storagedev@microsemi.com, linuxppc-dev@lists.ozlabs.org, Jonathan Corbet <corbet@lwn.net>, alsa-devel@alsa-project.org, kvm@vger.kernel.org, linux-i2c@vger.kernel.org, rcu@vger.kernel.org, linux-pm@vger.kernel.org, linux-doc@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-watchdog@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-crypto@vger.kernel.org, linux-sh@vger.kernel.org, linux-input@vger.kernel.org, linux-pci@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <cover.1563277838.git.mchehab+samsung@kernel.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+Cc: Mark Rutland <mark.rutland@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Ajay Gupta <ajayg@nvidia.com>, linux-doc@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Akira Yokosawa <akiyks@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Jerry Hoemann <jerry.hoemann@hpe.com>, dri-devel@lists.freedesktop.org, David Howells <dhowells@redhat.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, linux-i2c@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, esc.storagedev@microsemi.com, Maxime Ripard <maxime.ripard@bootlin.com>, Ingo Molnar <mingo@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Jade Alglave <j.alglave@ucl.ac.uk>, Boqun Feng <boqun.feng@gmail.com>, Guenter
 List-Id: linux-arch.vger.kernel.org
 
-Those are the pending documentation patches after my pull request
-for this branch:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/mchehab/linux-media.git tags/docs/v5.3-1
-
-Patches 1 to 13 were already submitted, but got rebased. Patch 14
-is a new fixup one.
-
-Patches 1 and 2 weren't submitted before due to merge conflicts
-that are now solved upstream;
-
-Patch 3 fixes a series of random Documentation/* references that
-are pointing to the wrong places.
-
-Patch 4 fix a longstanding issue: every time a new book is added,
-conf.py need changes, in order to allow generating a PDF file.
-After the patch, conf.py will automatically recognize new books,
-saving the trouble of keeping adding documents to it.
-
-Patches 5 to 11 are due to fonts support when building translations.pdf.
-The main focus is to add xeCJK support. While doing it, I discovered
-some bugs at sphinx-pre-install script after running it with 7 different
-distributions.
-
-Patch 12 improves support for partial doc building. Currently, each
-subdir needs to have its own conf.py, in order to support partial
-doc build. After it, any Documentation subdir can be used to 
-roduce html/pdf docs with:
-
-	make SPHINXDIRS="foo bar" htmldocs
-	(or pdfdocs, latexdocs, epubdocs, ...)
-
-Patch 13 is a cleanup patch: it simply get rid of all those extra
-conf.py files that  aren't needed anymore. The only extra config
-file after it is this one:
-
-	Documentation/media/conf_nitpick.py
-
-With enables some extra optional Sphinx features.
-
-Patch 14 adds Documentation/virtual to the main index.rst file
-and add a new *.rst file that was orphaned there.
-
--
-
-After this series, there's just one more patch meant to be applied
-for 5.3, with is still waiting for some patches to be merged from
-linux-next:
-
-    https://git.linuxtv.org/mchehab/experimental.git/commit/?id=b1b5dc7d7bbfbbfdace2a248c6458301c6e34100
-
-
-Mauro Carvalho Chehab (14):
-  docs: powerpc: convert docs to ReST and rename to *.rst
-  docs: power: add it to to the main documentation index
-  docs: fix broken doc references due to renames
-  docs: pdf: add all Documentation/*/index.rst to PDF output
-  docs: conf.py: add CJK package needed by translations
-  docs: conf.py: only use CJK if the font is available
-  scripts/sphinx-pre-install: fix script for RHEL/CentOS
-  scripts/sphinx-pre-install: don't use LaTeX with CentOS 7
-  scripts/sphinx-pre-install: fix latexmk dependencies
-  scripts/sphinx-pre-install: cleanup Gentoo checks
-  scripts/sphinx-pre-install: seek for Noto CJK fonts for pdf output
-  docs: load_config.py: avoid needing a conf.py just due to LaTeX docs
-  docs: remove extra conf.py files
-  docs: virtual: add it to the documentation body
-
- Documentation/PCI/pci-error-recovery.rst      |   5 +-
- Documentation/RCU/rculist_nulls.txt           |   2 +-
- Documentation/admin-guide/conf.py             |  10 --
- Documentation/conf.py                         |  30 +++-
- Documentation/core-api/conf.py                |  10 --
- Documentation/crypto/conf.py                  |  10 --
- Documentation/dev-tools/conf.py               |  10 --
- .../devicetree/bindings/arm/idle-states.txt   |   2 +-
- Documentation/doc-guide/conf.py               |  10 --
- Documentation/driver-api/80211/conf.py        |  10 --
- Documentation/driver-api/conf.py              |  10 --
- Documentation/driver-api/pm/conf.py           |  10 --
- Documentation/filesystems/conf.py             |  10 --
- Documentation/gpu/conf.py                     |  10 --
- Documentation/index.rst                       |   3 +
- Documentation/input/conf.py                   |  10 --
- Documentation/kernel-hacking/conf.py          |  10 --
- Documentation/locking/spinlocks.rst           |   4 +-
- Documentation/maintainer/conf.py              |  10 --
- Documentation/media/conf.py                   |  12 --
- Documentation/memory-barriers.txt             |   2 +-
- Documentation/networking/conf.py              |  10 --
- Documentation/power/index.rst                 |   2 +-
- .../{bootwrapper.txt => bootwrapper.rst}      |  28 +++-
- .../{cpu_families.txt => cpu_families.rst}    |  23 +--
- .../{cpu_features.txt => cpu_features.rst}    |   6 +-
- Documentation/powerpc/{cxl.txt => cxl.rst}    |  46 ++++--
- .../powerpc/{cxlflash.txt => cxlflash.rst}    |  10 +-
- .../{DAWR-POWER9.txt => dawr-power9.rst}      |  15 +-
- Documentation/powerpc/{dscr.txt => dscr.rst}  |  18 +-
- ...ecovery.txt => eeh-pci-error-recovery.rst} | 108 ++++++------
- ...ed-dump.txt => firmware-assisted-dump.rst} | 117 +++++++------
- Documentation/powerpc/{hvcs.txt => hvcs.rst}  | 108 ++++++------
- Documentation/powerpc/index.rst               |  34 ++++
- Documentation/powerpc/isa-versions.rst        |  15 +-
- .../powerpc/{mpc52xx.txt => mpc52xx.rst}      |  12 +-
- ...nv.txt => pci_iov_resource_on_powernv.rst} |  15 +-
- .../powerpc/{pmu-ebb.txt => pmu-ebb.rst}      |   1 +
- Documentation/powerpc/ptrace.rst              | 156 ++++++++++++++++++
- Documentation/powerpc/ptrace.txt              | 151 -----------------
- .../{qe_firmware.txt => qe_firmware.rst}      |  37 +++--
- .../{syscall64-abi.txt => syscall64-abi.rst}  |  29 ++--
- ...al_memory.txt => transactional_memory.rst} |  45 ++---
- Documentation/process/conf.py                 |  10 --
- Documentation/sh/conf.py                      |  10 --
- Documentation/sound/conf.py                   |  10 --
- Documentation/sphinx/load_config.py           |  27 ++-
- .../translations/ko_KR/memory-barriers.txt    |   2 +-
- Documentation/userspace-api/conf.py           |  10 --
- Documentation/virtual/kvm/index.rst           |   1 +
- Documentation/vm/conf.py                      |  10 --
- Documentation/watchdog/hpwdt.rst              |   2 +-
- Documentation/x86/conf.py                     |  10 --
- MAINTAINERS                                   |  14 +-
- arch/powerpc/kernel/exceptions-64s.S          |   2 +-
- drivers/gpu/drm/drm_modes.c                   |   2 +-
- drivers/i2c/busses/i2c-nvidia-gpu.c           |   2 +-
- drivers/scsi/hpsa.c                           |   4 +-
- drivers/soc/fsl/qe/qe.c                       |   2 +-
- drivers/tty/hvc/hvcs.c                        |   2 +-
- include/soc/fsl/qe/qe.h                       |   2 +-
- scripts/sphinx-pre-install                    | 118 ++++++++++---
- 62 files changed, 738 insertions(+), 678 deletions(-)
- delete mode 100644 Documentation/admin-guide/conf.py
- delete mode 100644 Documentation/core-api/conf.py
- delete mode 100644 Documentation/crypto/conf.py
- delete mode 100644 Documentation/dev-tools/conf.py
- delete mode 100644 Documentation/doc-guide/conf.py
- delete mode 100644 Documentation/driver-api/80211/conf.py
- delete mode 100644 Documentation/driver-api/conf.py
- delete mode 100644 Documentation/driver-api/pm/conf.py
- delete mode 100644 Documentation/filesystems/conf.py
- delete mode 100644 Documentation/gpu/conf.py
- delete mode 100644 Documentation/input/conf.py
- delete mode 100644 Documentation/kernel-hacking/conf.py
- delete mode 100644 Documentation/maintainer/conf.py
- delete mode 100644 Documentation/media/conf.py
- delete mode 100644 Documentation/networking/conf.py
- rename Documentation/powerpc/{bootwrapper.txt => bootwrapper.rst} (93%)
- rename Documentation/powerpc/{cpu_families.txt => cpu_families.rst} (95%)
- rename Documentation/powerpc/{cpu_features.txt => cpu_features.rst} (97%)
- rename Documentation/powerpc/{cxl.txt => cxl.rst} (95%)
- rename Documentation/powerpc/{cxlflash.txt => cxlflash.rst} (98%)
- rename Documentation/powerpc/{DAWR-POWER9.txt => dawr-power9.rst} (95%)
- rename Documentation/powerpc/{dscr.txt => dscr.rst} (91%)
- rename Documentation/powerpc/{eeh-pci-error-recovery.txt => eeh-pci-error-recovery.rst} (82%)
- rename Documentation/powerpc/{firmware-assisted-dump.txt => firmware-assisted-dump.rst} (80%)
- rename Documentation/powerpc/{hvcs.txt => hvcs.rst} (91%)
- create mode 100644 Documentation/powerpc/index.rst
- rename Documentation/powerpc/{mpc52xx.txt => mpc52xx.rst} (91%)
- rename Documentation/powerpc/{pci_iov_resource_on_powernv.txt => pci_iov_resource_on_powernv.rst} (97%)
- rename Documentation/powerpc/{pmu-ebb.txt => pmu-ebb.rst} (99%)
- create mode 100644 Documentation/powerpc/ptrace.rst
- delete mode 100644 Documentation/powerpc/ptrace.txt
- rename Documentation/powerpc/{qe_firmware.txt => qe_firmware.rst} (95%)
- rename Documentation/powerpc/{syscall64-abi.txt => syscall64-abi.rst} (82%)
- rename Documentation/powerpc/{transactional_memory.txt => transactional_memory.rst} (93%)
- delete mode 100644 Documentation/process/conf.py
- delete mode 100644 Documentation/sh/conf.py
- delete mode 100644 Documentation/sound/conf.py
- delete mode 100644 Documentation/userspace-api/conf.py
- delete mode 100644 Documentation/vm/conf.py
- delete mode 100644 Documentation/x86/conf.py
-
--- 
-2.21.0
+U29tZSBmaWxlcyBnb3QgcmVuYW1lZCBidXQgcHJvYmFibHkgZHVlIHRvIHNvbWUgbWVyZ2UgY29u
+ZmxpY3RzLAphIGZldyByZWZlcmVuY2VzIHN0aWxsIHBvaW50IHRvIHRoZSBvbGQgbG9jYXRpb25z
+LgoKU2lnbmVkLW9mZi1ieTogTWF1cm8gQ2FydmFsaG8gQ2hlaGFiIDxtY2hlaGFiK3NhbXN1bmdA
+a2VybmVsLm9yZz4KLS0tCiBEb2N1bWVudGF0aW9uL1JDVS9yY3VsaXN0X251bGxzLnR4dCAgICAg
+ICAgICAgICAgICAgICB8IDIgKy0KIERvY3VtZW50YXRpb24vZGV2aWNldHJlZS9iaW5kaW5ncy9h
+cm0vaWRsZS1zdGF0ZXMudHh0IHwgMiArLQogRG9jdW1lbnRhdGlvbi9sb2NraW5nL3NwaW5sb2Nr
+cy5yc3QgICAgICAgICAgICAgICAgICAgfCA0ICsrLS0KIERvY3VtZW50YXRpb24vbWVtb3J5LWJh
+cnJpZXJzLnR4dCAgICAgICAgICAgICAgICAgICAgIHwgMiArLQogRG9jdW1lbnRhdGlvbi90cmFu
+c2xhdGlvbnMva29fS1IvbWVtb3J5LWJhcnJpZXJzLnR4dCAgfCAyICstCiBEb2N1bWVudGF0aW9u
+L3dhdGNoZG9nL2hwd2R0LnJzdCAgICAgICAgICAgICAgICAgICAgICB8IDIgKy0KIE1BSU5UQUlO
+RVJTICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgOCArKysrLS0t
+LQogZHJpdmVycy9ncHUvZHJtL2RybV9tb2Rlcy5jICAgICAgICAgICAgICAgICAgICAgICAgICAg
+fCAyICstCiBkcml2ZXJzL2kyYy9idXNzZXMvaTJjLW52aWRpYS1ncHUuYyAgICAgICAgICAgICAg
+ICAgICB8IDIgKy0KIGRyaXZlcnMvc2NzaS9ocHNhLmMgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgIHwgNCArKy0tCiAxMCBmaWxlcyBjaGFuZ2VkLCAxNSBpbnNlcnRpb25zKCspLCAx
+NSBkZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9Eb2N1bWVudGF0aW9uL1JDVS9yY3VsaXN0X251
+bGxzLnR4dCBiL0RvY3VtZW50YXRpb24vUkNVL3JjdWxpc3RfbnVsbHMudHh0CmluZGV4IDgxNTFm
+MDE5NWY3Ni4uMjNmMTE1ZGM4N2NmIDEwMDY0NAotLS0gYS9Eb2N1bWVudGF0aW9uL1JDVS9yY3Vs
+aXN0X251bGxzLnR4dAorKysgYi9Eb2N1bWVudGF0aW9uL1JDVS9yY3VsaXN0X251bGxzLnR4dApA
+QCAtMSw3ICsxLDcgQEAKIFVzaW5nIGhsaXN0X251bGxzIHRvIHByb3RlY3QgcmVhZC1tb3N0bHkg
+bGlua2VkIGxpc3RzIGFuZAogb2JqZWN0cyB1c2luZyBTTEFCX1RZUEVTQUZFX0JZX1JDVSBhbGxv
+Y2F0aW9ucy4KIAotUGxlYXNlIHJlYWQgdGhlIGJhc2ljcyBpbiBEb2N1bWVudGF0aW9uL1JDVS9s
+aXN0UkNVLnR4dAorUGxlYXNlIHJlYWQgdGhlIGJhc2ljcyBpbiBEb2N1bWVudGF0aW9uL1JDVS9s
+aXN0UkNVLnJzdAogCiBVc2luZyBzcGVjaWFsIG1ha2VycyAoY2FsbGVkICdudWxscycpIGlzIGEg
+Y29udmVuaWVudCB3YXkKIHRvIHNvbHZlIGZvbGxvd2luZyBwcm9ibGVtIDoKZGlmZiAtLWdpdCBh
+L0RvY3VtZW50YXRpb24vZGV2aWNldHJlZS9iaW5kaW5ncy9hcm0vaWRsZS1zdGF0ZXMudHh0IGIv
+RG9jdW1lbnRhdGlvbi9kZXZpY2V0cmVlL2JpbmRpbmdzL2FybS9pZGxlLXN0YXRlcy50eHQKaW5k
+ZXggMzI2ZjI5YjI3MGFkLi4yZDMyNWJlZDM3ZTUgMTAwNjQ0Ci0tLSBhL0RvY3VtZW50YXRpb24v
+ZGV2aWNldHJlZS9iaW5kaW5ncy9hcm0vaWRsZS1zdGF0ZXMudHh0CisrKyBiL0RvY3VtZW50YXRp
+b24vZGV2aWNldHJlZS9iaW5kaW5ncy9hcm0vaWRsZS1zdGF0ZXMudHh0CkBAIC03MDMsNCArNzAz
+LDQgQEAgY3B1cyB7CiAgICAgaHR0cHM6Ly93d3cuZGV2aWNldHJlZS5vcmcvc3BlY2lmaWNhdGlv
+bnMvCiAKIFs2XSBBUk0gTGludXggS2VybmVsIGRvY3VtZW50YXRpb24gLSBCb290aW5nIEFBcmNo
+NjQgTGludXgKLSAgICBEb2N1bWVudGF0aW9uL2FybTY0L2Jvb3RpbmcudHh0CisgICAgRG9jdW1l
+bnRhdGlvbi9hcm02NC9ib290aW5nLnJzdApkaWZmIC0tZ2l0IGEvRG9jdW1lbnRhdGlvbi9sb2Nr
+aW5nL3NwaW5sb2Nrcy5yc3QgYi9Eb2N1bWVudGF0aW9uL2xvY2tpbmcvc3BpbmxvY2tzLnJzdApp
+bmRleCAwOTgxMDdmYjdkODYuLmU5M2VjNjY0NTIzOCAxMDA2NDQKLS0tIGEvRG9jdW1lbnRhdGlv
+bi9sb2NraW5nL3NwaW5sb2Nrcy5yc3QKKysrIGIvRG9jdW1lbnRhdGlvbi9sb2NraW5nL3NwaW5s
+b2Nrcy5yc3QKQEAgLTgyLDcgKzgyLDcgQEAgaXRzZWxmLiAgVGhlIHJlYWQgbG9jayBhbGxvd3Mg
+bWFueSBjb25jdXJyZW50IHJlYWRlcnMuICBBbnl0aGluZyB0aGF0CiAqKmNoYW5nZXMqKiB0aGUg
+bGlzdCB3aWxsIGhhdmUgdG8gZ2V0IHRoZSB3cml0ZSBsb2NrLgogCiAgICBOT1RFISBSQ1UgaXMg
+YmV0dGVyIGZvciBsaXN0IHRyYXZlcnNhbCwgYnV0IHJlcXVpcmVzIGNhcmVmdWwKLSAgIGF0dGVu
+dGlvbiB0byBkZXNpZ24gZGV0YWlsIChzZWUgRG9jdW1lbnRhdGlvbi9SQ1UvbGlzdFJDVS50eHQp
+LgorICAgYXR0ZW50aW9uIHRvIGRlc2lnbiBkZXRhaWwgKHNlZSBEb2N1bWVudGF0aW9uL1JDVS9s
+aXN0UkNVLnJzdCkuCiAKIEFsc28sIHlvdSBjYW5ub3QgInVwZ3JhZGUiIGEgcmVhZC1sb2NrIHRv
+IGEgd3JpdGUtbG9jaywgc28gaWYgeW91IGF0IF9hbnlfCiB0aW1lIG5lZWQgdG8gZG8gYW55IGNo
+YW5nZXMgKGV2ZW4gaWYgeW91IGRvbid0IGRvIGl0IGV2ZXJ5IHRpbWUpLCB5b3UgaGF2ZQpAQCAt
+OTAsNyArOTAsNyBAQCB0byBnZXQgdGhlIHdyaXRlLWxvY2sgYXQgdGhlIHZlcnkgYmVnaW5uaW5n
+LgogCiAgICBOT1RFISBXZSBhcmUgd29ya2luZyBoYXJkIHRvIHJlbW92ZSByZWFkZXItd3JpdGVy
+IHNwaW5sb2NrcyBpbiBtb3N0CiAgICBjYXNlcywgc28gcGxlYXNlIGRvbid0IGFkZCBhIG5ldyBv
+bmUgd2l0aG91dCBjb25zZW5zdXMuICAoSW5zdGVhZCwgc2VlCi0gICBEb2N1bWVudGF0aW9uL1JD
+VS9yY3UudHh0IGZvciBjb21wbGV0ZSBpbmZvcm1hdGlvbi4pCisgICBEb2N1bWVudGF0aW9uL1JD
+VS9yY3UucnN0IGZvciBjb21wbGV0ZSBpbmZvcm1hdGlvbi4pCiAKIC0tLS0KIApkaWZmIC0tZ2l0
+IGEvRG9jdW1lbnRhdGlvbi9tZW1vcnktYmFycmllcnMudHh0IGIvRG9jdW1lbnRhdGlvbi9tZW1v
+cnktYmFycmllcnMudHh0CmluZGV4IDA0NWJiODE0OGZlOS4uMWFkYmI4YTM3MWM3IDEwMDY0NAot
+LS0gYS9Eb2N1bWVudGF0aW9uL21lbW9yeS1iYXJyaWVycy50eHQKKysrIGIvRG9jdW1lbnRhdGlv
+bi9tZW1vcnktYmFycmllcnMudHh0CkBAIC01NDgsNyArNTQ4LDcgQEAgVGhlcmUgYXJlIGNlcnRh
+aW4gdGhpbmdzIHRoYXQgdGhlIExpbnV4IGtlcm5lbCBtZW1vcnkgYmFycmllcnMgZG8gbm90IGd1
+YXJhbnRlZToKIAogCVsqXSBGb3IgaW5mb3JtYXRpb24gb24gYnVzIG1hc3RlcmluZyBETUEgYW5k
+IGNvaGVyZW5jeSBwbGVhc2UgcmVhZDoKIAotCSAgICBEb2N1bWVudGF0aW9uL1BDSS9wY2kucnN0
+CisJICAgIERvY3VtZW50YXRpb24vZHJpdmVyLWFwaS9wY2kvcGNpLnJzdAogCSAgICBEb2N1bWVu
+dGF0aW9uL0RNQS1BUEktSE9XVE8udHh0CiAJICAgIERvY3VtZW50YXRpb24vRE1BLUFQSS50eHQK
+IApkaWZmIC0tZ2l0IGEvRG9jdW1lbnRhdGlvbi90cmFuc2xhdGlvbnMva29fS1IvbWVtb3J5LWJh
+cnJpZXJzLnR4dCBiL0RvY3VtZW50YXRpb24vdHJhbnNsYXRpb25zL2tvX0tSL21lbW9yeS1iYXJy
+aWVycy50eHQKaW5kZXggYTMzYzJhNTM2NTQyLi4yNzc0NjI0ZWU4NDMgMTAwNjQ0Ci0tLSBhL0Rv
+Y3VtZW50YXRpb24vdHJhbnNsYXRpb25zL2tvX0tSL21lbW9yeS1iYXJyaWVycy50eHQKKysrIGIv
+RG9jdW1lbnRhdGlvbi90cmFuc2xhdGlvbnMva29fS1IvbWVtb3J5LWJhcnJpZXJzLnR4dApAQCAt
+NTY5LDcgKzU2OSw3IEBAIEFDUVVJUkUg64qUIO2VtOuLuSDsmKTtjbzroIjsnbTshZjsnZgg66Gc
+65OcIOu2gOu2hOyXkOunjCDsoIHsmqnrkJjqs6AgUkVMRUFTRSAKIAogCVsqXSDrsoTsiqQg66eI
+7Iqk7YSw66eBIERNQSDsmYAg7J286rSA7ISx7JeQIOuMgO2VtOyEnOuKlCDri6TsnYzsnYQg7LC4
+6rOg7ZWY7Iuc6riwIOuwlOuejeuLiOuLpDoKIAotCSAgICBEb2N1bWVudGF0aW9uL1BDSS9wY2ku
+cnN0CisJICAgIERvY3VtZW50YXRpb24vZHJpdmVyLWFwaS9wY2kvcGNpLnJzdAogCSAgICBEb2N1
+bWVudGF0aW9uL0RNQS1BUEktSE9XVE8udHh0CiAJICAgIERvY3VtZW50YXRpb24vRE1BLUFQSS50
+eHQKIApkaWZmIC0tZ2l0IGEvRG9jdW1lbnRhdGlvbi93YXRjaGRvZy9ocHdkdC5yc3QgYi9Eb2N1
+bWVudGF0aW9uL3dhdGNoZG9nL2hwd2R0LnJzdAppbmRleCA5NGE5NjM3MTExM2UuLjQ5YzY0N2Ri
+YThhYSAxMDA2NDQKLS0tIGEvRG9jdW1lbnRhdGlvbi93YXRjaGRvZy9ocHdkdC5yc3QKKysrIGIv
+RG9jdW1lbnRhdGlvbi93YXRjaGRvZy9ocHdkdC5yc3QKQEAgLTU5LDcgKzU5LDcgQEAgTGFzdCBy
+ZXZpZXdlZDogMDgvMjAvMjAxOAogIGFuZCBsb29wIGZvcmV2ZXIuICBUaGlzIGlzIGdlbmVyYWxs
+eSBub3Qgd2hhdCBhIHdhdGNoZG9nIHVzZXIgd2FudHMuCiAKICBGb3IgdGhvc2Ugd2lzaGluZyB0
+byBsZWFybiBtb3JlIHBsZWFzZSBzZWU6Ci0JRG9jdW1lbnRhdGlvbi9rZHVtcC9rZHVtcC5yc3QK
+KwlEb2N1bWVudGF0aW9uL2FkbWluLWd1aWRlL2tkdW1wL2tkdW1wLnJzdAogCURvY3VtZW50YXRp
+b24vYWRtaW4tZ3VpZGUva2VybmVsLXBhcmFtZXRlcnMudHh0IChwYW5pYz0pCiAJWW91ciBMaW51
+eCBEaXN0cmlidXRpb24gc3BlY2lmaWMgZG9jdW1lbnRhdGlvbi4KIApkaWZmIC0tZ2l0IGEvTUFJ
+TlRBSU5FUlMgYi9NQUlOVEFJTkVSUwppbmRleCBiM2E1YzcyZjMyOTguLmIwYWNjMTM4ZTllOSAx
+MDA2NDQKLS0tIGEvTUFJTlRBSU5FUlMKKysrIGIvTUFJTlRBSU5FUlMKQEAgLTg5OSw3ICs4OTks
+NyBAQCBMOglsaW51eC1paW9Admdlci5rZXJuZWwub3JnCiBXOglodHRwOi8vZXouYW5hbG9nLmNv
+bS9jb21tdW5pdHkvbGludXgtZGV2aWNlLWRyaXZlcnMKIFM6CVN1cHBvcnRlZAogRjoJZHJpdmVy
+cy9paW8vYWRjL2FkNzEyNC5jCi1GOglEb2N1bWVudGF0aW9uL2RldmljZXRyZWUvYmluZGluZ3Mv
+aWlvL2FkYy9hZGksYWQ3MTI0LnR4dAorRjoJRG9jdW1lbnRhdGlvbi9kZXZpY2V0cmVlL2JpbmRp
+bmdzL2lpby9hZGMvYWRpLGFkNzEyNC55YW1sCiAKIEFOQUxPRyBERVZJQ0VTIElOQyBBRDc2MDYg
+RFJJVkVSCiBNOglTdGVmYW4gUG9wYSA8c3RlZmFuLnBvcGFAYW5hbG9nLmNvbT4KQEAgLTQxODks
+NyArNDE4OSw3IEBAIE06CUplbnMgQXhib2UgPGF4Ym9lQGtlcm5lbC5kaz4KIEw6CWNncm91cHNA
+dmdlci5rZXJuZWwub3JnCiBMOglsaW51eC1ibG9ja0B2Z2VyLmtlcm5lbC5vcmcKIFQ6CWdpdCBn
+aXQ6Ly9naXQua2VybmVsLmRrL2xpbnV4LWJsb2NrCi1GOglEb2N1bWVudGF0aW9uL2Nncm91cC12
+MS9ibGtpby1jb250cm9sbGVyLnJzdAorRjoJRG9jdW1lbnRhdGlvbi9hZG1pbi1ndWlkZS9jZ3Jv
+dXAtdjEvYmxraW8tY29udHJvbGxlci5yc3QKIEY6CWJsb2NrL2Jsay1jZ3JvdXAuYwogRjoJaW5j
+bHVkZS9saW51eC9ibGstY2dyb3VwLmgKIEY6CWJsb2NrL2Jsay10aHJvdHRsZS5jCkBAIC02ODQ4
+LDcgKzY4NDgsNyBAQCBSOglTYWdpIFNoYWhhciA8c2FnaXNAZ29vZ2xlLmNvbT4KIFI6CUpvbiBP
+bHNvbiA8am9ub2xzb25AZ29vZ2xlLmNvbT4KIEw6CW5ldGRldkB2Z2VyLmtlcm5lbC5vcmcKIFM6
+CVN1cHBvcnRlZAotRjoJRG9jdW1lbnRhdGlvbi9uZXR3b3JraW5nL2RldmljZV9kcml2ZXJzL2dv
+b2dsZS9ndmUudHh0CitGOglEb2N1bWVudGF0aW9uL25ldHdvcmtpbmcvZGV2aWNlX2RyaXZlcnMv
+Z29vZ2xlL2d2ZS5yc3QKIEY6CWRyaXZlcnMvbmV0L2V0aGVybmV0L2dvb2dsZQogCiBHUEQgUE9D
+S0VUIEZBTiBEUklWRVIKQEAgLTEyMDk2LDcgKzEyMDk2LDcgQEAgTToJSnVlcmdlbiBHcm9zcyA8
+amdyb3NzQHN1c2UuY29tPgogTToJQWxvayBLYXRhcmlhIDxha2F0YXJpYUB2bXdhcmUuY29tPgog
+TDoJdmlydHVhbGl6YXRpb25AbGlzdHMubGludXgtZm91bmRhdGlvbi5vcmcKIFM6CVN1cHBvcnRl
+ZAotRjoJRG9jdW1lbnRhdGlvbi92aXJ0dWFsL3BhcmF2aXJ0X29wcy50eHQKK0Y6CURvY3VtZW50
+YXRpb24vdmlydHVhbC9wYXJhdmlydF9vcHMucnN0CiBGOglhcmNoLyova2VybmVsL3BhcmF2aXJ0
+KgogRjoJYXJjaC8qL2luY2x1ZGUvYXNtL3BhcmF2aXJ0Ki5oCiBGOglpbmNsdWRlL2xpbnV4L2h5
+cGVydmlzb3IuaApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL2RybV9tb2Rlcy5jIGIvZHJp
+dmVycy9ncHUvZHJtL2RybV9tb2Rlcy5jCmluZGV4IDU3ZTY0MDgyODhjOC4uNDY0NWFmNjgxZWY4
+IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vZHJtX21vZGVzLmMKKysrIGIvZHJpdmVycy9n
+cHUvZHJtL2RybV9tb2Rlcy5jCkBAIC0xNjgwLDcgKzE2ODAsNyBAQCBzdGF0aWMgaW50IGRybV9t
+b2RlX3BhcnNlX2NtZGxpbmVfb3B0aW9ucyhjaGFyICpzdHIsIHNpemVfdCBsZW4sCiAgKgogICog
+QWRkaXRpb25hbHMgb3B0aW9ucyBjYW4gYmUgcHJvdmlkZWQgZm9sbG93aW5nIHRoZSBtb2RlLCB1
+c2luZyBhIGNvbW1hIHRvCiAgKiBzZXBhcmF0ZSBlYWNoIG9wdGlvbi4gVmFsaWQgb3B0aW9ucyBj
+YW4gYmUgZm91bmQgaW4KLSAqIERvY3VtZW50YXRpb24vZmIvbW9kZWRiLnR4dC4KKyAqIERvY3Vt
+ZW50YXRpb24vZmIvbW9kZWRiLnJzdC4KICAqCiAgKiBUaGUgaW50ZXJtZWRpYXRlIGRybV9jbWRs
+aW5lX21vZGUgc3RydWN0dXJlIGlzIHJlcXVpcmVkIHRvIHN0b3JlIGFkZGl0aW9uYWwKICAqIG9w
+dGlvbnMgZnJvbSB0aGUgY29tbWFuZCBsaW5lIG1vZGxpbmUgbGlrZSB0aGUgZm9yY2UtZW5hYmxl
+L2Rpc2FibGUgZmxhZy4KZGlmZiAtLWdpdCBhL2RyaXZlcnMvaTJjL2J1c3Nlcy9pMmMtbnZpZGlh
+LWdwdS5jIGIvZHJpdmVycy9pMmMvYnVzc2VzL2kyYy1udmlkaWEtZ3B1LmMKaW5kZXggY2ZjNzZi
+NWRlNzI2Li41YTEyMzVmZDg2YmIgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvaTJjL2J1c3Nlcy9pMmMt
+bnZpZGlhLWdwdS5jCisrKyBiL2RyaXZlcnMvaTJjL2J1c3Nlcy9pMmMtbnZpZGlhLWdwdS5jCkBA
+IC0zNjQsNyArMzY0LDcgQEAgc3RhdGljIHZvaWQgZ3B1X2kyY19yZW1vdmUoc3RydWN0IHBjaV9k
+ZXYgKnBkZXYpCiAvKgogICogV2UgbmVlZCBncHVfaTJjX3N1c3BlbmQoKSBldmVuIGlmIGl0IGlz
+IHN0dWIsIGZvciBydW50aW1lIHBtIHRvIHdvcmsKICAqIGNvcnJlY3RseS4gV2l0aG91dCBpdCwg
+bHNwY2kgc2hvd3MgcnVudGltZSBwbSBzdGF0dXMgYXMgIkQwIiBmb3IgdGhlIGNhcmQuCi0gKiBE
+b2N1bWVudGF0aW9uL3Bvd2VyL3BjaS50eHQgYWxzbyBpbnNpc3RzIGZvciBkcml2ZXIgdG8gcHJv
+dmlkZSB0aGlzLgorICogRG9jdW1lbnRhdGlvbi9wb3dlci9wY2kucnN0IGFsc28gaW5zaXN0cyBm
+b3IgZHJpdmVyIHRvIHByb3ZpZGUgdGhpcy4KICAqLwogc3RhdGljIF9fbWF5YmVfdW51c2VkIGlu
+dCBncHVfaTJjX3N1c3BlbmQoc3RydWN0IGRldmljZSAqZGV2KQogewpkaWZmIC0tZ2l0IGEvZHJp
+dmVycy9zY3NpL2hwc2EuYyBiL2RyaXZlcnMvc2NzaS9ocHNhLmMKaW5kZXggNDNhNmI1MzUwNzc1
+Li5lYWY2MTc3YWM5ZWUgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvc2NzaS9ocHNhLmMKKysrIGIvZHJp
+dmVycy9zY3NpL2hwc2EuYwpAQCAtNzc5OCw3ICs3Nzk4LDcgQEAgc3RhdGljIHZvaWQgaHBzYV9m
+cmVlX3BjaV9pbml0KHN0cnVjdCBjdGxyX2luZm8gKmgpCiAJaHBzYV9kaXNhYmxlX2ludGVycnVw
+dF9tb2RlKGgpOwkJLyogcGNpX2luaXQgMiAqLwogCS8qCiAJICogY2FsbCBwY2lfZGlzYWJsZV9k
+ZXZpY2UgYmVmb3JlIHBjaV9yZWxlYXNlX3JlZ2lvbnMgcGVyCi0JICogRG9jdW1lbnRhdGlvbi9Q
+Q0kvcGNpLnJzdAorCSAqIERvY3VtZW50YXRpb24vZHJpdmVyLWFwaS9wY2kvcGNpLnJzdAogCSAq
+LwogCXBjaV9kaXNhYmxlX2RldmljZShoLT5wZGV2KTsJCS8qIHBjaV9pbml0IDEgKi8KIAlwY2lf
+cmVsZWFzZV9yZWdpb25zKGgtPnBkZXYpOwkJLyogcGNpX2luaXQgMiAqLwpAQCAtNzg4MSw3ICs3
+ODgxLDcgQEAgc3RhdGljIGludCBocHNhX3BjaV9pbml0KHN0cnVjdCBjdGxyX2luZm8gKmgpCiBj
+bGVhbjE6CiAJLyoKIAkgKiBjYWxsIHBjaV9kaXNhYmxlX2RldmljZSBiZWZvcmUgcGNpX3JlbGVh
+c2VfcmVnaW9ucyBwZXIKLQkgKiBEb2N1bWVudGF0aW9uL1BDSS9wY2kucnN0CisJICogRG9jdW1l
+bnRhdGlvbi9kcml2ZXItYXBpL3BjaS9wY2kucnN0CiAJICovCiAJcGNpX2Rpc2FibGVfZGV2aWNl
+KGgtPnBkZXYpOwogCXBjaV9yZWxlYXNlX3JlZ2lvbnMoaC0+cGRldik7Ci0tIAoyLjIxLjAKCl9f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmRyaS1kZXZlbCBt
+YWlsaW5nIGxpc3QKZHJpLWRldmVsQGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczovL2xpc3Rz
+LmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1kZXZlbA==
