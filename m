@@ -1,48 +1,61 @@
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH] padata: use smp_mb in padata_reorder to avoid orphaned
- padata jobs
-Date: Tue, 16 Jul 2019 18:04:47 +0800
-Message-ID: <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
-References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
- <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
- <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
- <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date: Tue, 16 Jul 2019 12:20:34 +0200
+Message-ID: <20190716102034.GN3419@hirez.programming.kicks-ass.net>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+ <20190715192536.104548-3-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Daniel Jordan <daniel.m.jordan@oracle.com>
-Cc: Steffen Klassert <steffen.klassert@secunet.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20190715192536.104548-3-alex.kogan@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 15, 2019 at 12:10:46PM -0400, Daniel Jordan wrote:
->
-> I've been wrong before plenty of times, and there's nothing preventing this
-> from being one of those times :) , but in this case I believe what I'm showing
-> is correct.
-> 
-> The padata_do_serial call for a given job ensures padata_reorder runs on the
-> CPU that the job hashed to in padata_do_parallel, which is not necessarily the
-> same CPU as the one that padata_do_parallel itself ran on.
+On Mon, Jul 15, 2019 at 03:25:33PM -0400, Alex Kogan wrote:
 
-You're right.  I was taking the comment in the code at face value,
-never trust comments :)
+> +/*
+> + * set_locked_empty_mcs - Try to set the spinlock value to _Q_LOCKED_VAL,
+> + * and by doing that unlock the MCS lock when its waiting queue is empty
+> + * @lock: Pointer to queued spinlock structure
+> + * @val: Current value of the lock
+> + * @node: Pointer to the MCS node of the lock holder
+> + *
+> + * *,*,* -> 0,0,1
+> + */
+> +static __always_inline bool __set_locked_empty_mcs(struct qspinlock *lock,
+> +						   u32 val,
+> +						   struct mcs_spinlock *node)
+> +{
+> +	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
+> +}
 
-While looking at the code in question, I think it is seriously
-broken.  For instance, padata_replace does not deal with async
-crypto at all.  It would fail miserably if the underlying async
-crypto held onto references to the old pd.
+That name is nonsense. It should be something like:
 
-So we may have to restrict pcrypt to sync crypto only, which
-would obviously mean that it can no longer use aesni.  Or we
-will have to spend a lot of time to fix this up properly.
+static __always_inline bool __try_clear_tail(...)
 
-Cheers,
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+
+> +/*
+> + * pass_mcs_lock - pass the MCS lock to the next waiter
+> + * @node: Pointer to the MCS node of the lock holder
+> + * @next: Pointer to the MCS node of the first waiter in the MCS queue
+> + */
+> +static __always_inline void __pass_mcs_lock(struct mcs_spinlock *node,
+> +					    struct mcs_spinlock *next)
+> +{
+> +	arch_mcs_spin_unlock_contended(&next->locked, 1);
+> +}
+
+I'm not entirely happy with that name either; but it's not horrible like
+the other one. Why not mcs_spin_unlock_contended() ?
