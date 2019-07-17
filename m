@@ -1,53 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:52610 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728541AbfGQDDQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2019 23:03:16 -0400
-Date: Wed, 17 Jul 2019 04:02:58 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v2 2/4] Add fchmodat4(), a new syscall
-Message-ID: <20190717030258.GT17978@ZenIV.linux.org.uk>
-References: <20190717012719.5524-1-palmer@sifive.com>
- <20190717012719.5524-3-palmer@sifive.com>
- <20190717024046.GI1506@brightrain.aerifal.cx>
+Received: from merlin.infradead.org ([205.233.59.134]:34856 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725890AbfGQHpF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 03:45:05 -0400
+Date: Wed, 17 Jul 2019 09:44:35 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20190717074435.GU3419@hirez.programming.kicks-ass.net>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+ <20190715192536.104548-4-alex.kogan@oracle.com>
+ <9fa54e98-0b9b-0931-db32-c6bd6ccfe75b@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20190717024046.GI1506@brightrain.aerifal.cx>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <9fa54e98-0b9b-0931-db32-c6bd6ccfe75b@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rich Felker <dalias@libc.org>
-Cc: Palmer Dabbelt <palmer@sifive.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, James.Bottomley@hansenpartnership.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, heiko.carstens@de.ibm.com, gor@linux.ibm.com, borntraeger@de.ibm.com, ysato@users.sourceforge.jp, davem@davemloft.net, luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, peterz@infradead.org, acme@kernel.org, alexander.shishkin@linux.intel.com, jolsa@redhat.com, namhyung@kernel.org, dhowells@redhat.com, firoz.khan@linaro.org, stefan@agner.ch, schwidefsky@de.ibm.com, axboe@kernel.dk, christian@brauner.io, hare@suse.com, deepa.kernel@gmail.com, tycho@tycho.ws, kim.phillips@arm.com, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20190717030258.4iqJuXYe5C7Ticjz6VX78yF6qjmHESNSvIJt7FbZ3lQ@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190717074435.kyiD6R7D8VxfypAYH3peNCcfNwwvMs-PkRXqnTCg4mo@z>
 
-On Tue, Jul 16, 2019 at 10:40:46PM -0400, Rich Felker wrote:
-> On Tue, Jul 16, 2019 at 06:27:17PM -0700, Palmer Dabbelt wrote:
-> > man 3p says that fchmodat() takes a flags argument, but the Linux
-> > syscall does not.  There doesn't appear to be a good userspace
-> > workaround for this issue but the implementation in the kernel is pretty
-> > straight-forward.  The specific use case where the missing flags came up
-> > was WRT a fuse filesystem implemenation, but the functionality is pretty
-> > generic so I'm assuming there would be other use cases.
-> 
-> Note that we do have a workaround in musl libc with O_PATH and
-> /proc/self/fd, but a syscall that allows a proper fix with the ugly
-> workaround only in the fallback path for old kernels will be much
-> appreciated!
-> 
-> What about also doing a new SYS_faccessat4 with working AT_EACCESS
-> flag? The workaround we have to do for it is far worse.
+On Tue, Jul 16, 2019 at 10:16:29PM -0400, Waiman Long wrote:
+>  A simple graphic to illustrate those queues will help too, for example
 
-Umm...  That's doable, but getting into the "don't switch creds unless
-needed" territory.  I'll need to play with that a bit and see what
-gives a tolerable variant...
+Very much yes!
 
-What of this part wrt AT_EACCESS?
-        if (!issecure(SECURE_NO_SETUID_FIXUP)) {
-                /* Clear the capabilities if we switch to a non-root user */
-                kuid_t root_uid = make_kuid(override_cred->user_ns, 0);
-                if (!uid_eq(override_cred->uid, root_uid))
-                        cap_clear(override_cred->cap_effective);
-                else
-                        override_cred->cap_effective =
-                                override_cred->cap_permitted;
-        }
+> /*
+>  * MCS lock holder
+>  * ===============
+>  *    mcs_node
+>  *   +--------+      +----+         +----+
+>  *   | next   | ---> |next| -> ...  |next| -> NULL  [Main queue]
+>  *   | locked | -+   +----+         +----+
+>  *   +--------+  |
+>  *               |   +----+         +----+
+>  *               +-> |next| -> ...  |next| -> X     [Secondary queue]
+>  *    cna_node       +----+         +----+
+>  *   +--------*                       ^
+>  *   | tail   | ----------------------+
+>  *   +--------*   
+
+Almost; IIUC that cna_node is the same as the one from locked, so you
+end up with something like:
+
+>  *    mcs_node
+>  *   +--------+      +----+         +----+
+>  *   | next   | ---> |next| -> ...  |next| -> NULL  [Main queue]
+>  *   | locked | -+   +----+         +----+
+>  *   +--------+  |
+>  *               |   +---------+         +----+
+>  *               +-> |mcs::next| -> ...  |next| -> NULL     [Secondary queue]
+>  *                   |cna::tail| -+      +----+
+>  *                   +---------+  |        ^
+>  *                                +--------+
+>  *
+>  * N.B. locked = 1 if secondary queue is absent.
+>  */
