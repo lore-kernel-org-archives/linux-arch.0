@@ -1,71 +1,37 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 17 Jul 2019 09:44:35 +0200
-Message-ID: <20190717074435.GU3419@hirez.programming.kicks-ass.net>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-4-alex.kogan@oracle.com>
- <9fa54e98-0b9b-0931-db32-c6bd6ccfe75b@redhat.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2] kbuild: Fail if gold linker is detected
+Date: Wed, 17 Jul 2019 09:57:01 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1907170955250.1767@nanos.tec.linutronix.de>
+References: <alpine.DEB.2.21.1907161434260.1767@nanos.tec.linutronix.de> <20190716170606.GA38406@archlinux-threadripper> <alpine.DEB.2.21.1907162059200.1767@nanos.tec.linutronix.de> <alpine.DEB.2.21.1907162135590.1767@nanos.tec.linutronix.de>
+ <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <9fa54e98-0b9b-0931-db32-c6bd6ccfe75b@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Nathan Chancellor <natechancellor@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, "H.J. Lu" <hjl.tools@gmail.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "Theodore Y. Ts'o" <tytso@mit.edu>, Mike Lothian <mike@fireburn.co.uk>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 16, 2019 at 10:16:29PM -0400, Waiman Long wrote:
->  A simple graphic to illustrate those queues will help too, for example
+On Wed, 17 Jul 2019, Masahiro Yamada wrote:
+> On Wed, Jul 17, 2019 at 4:47 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > So instead of dealing with attempts to duct tape gold support without
+> > understanding the root cause and without support from the gold folks, fail
+> > the build when gold is detected.
+> >
+> 
+> The code looks OK in the build system point of view.
+> 
+> Please let me confirm this, just in case:
+> For now, we give up all architectures, not only x86, right?
 
-Very much yes!
+Well, that's the logical consequence of a statement which says: don't use
+gold for the kernel.
 
-> /*
-> =A0* MCS lock holder
-> =A0* =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> =A0*=A0=A0=A0 mcs_node
-> =A0*=A0=A0 +--------+=A0=A0=A0=A0=A0 +----+=A0=A0=A0=A0=A0=A0=A0=A0 +----+
-> =A0*=A0=A0 | next=A0=A0 | ---> |next| -> ...=A0 |next| -> NULL=A0 [Main q=
-ueue]
-> =A0*=A0=A0 | locked | -+=A0=A0 +----+=A0=A0=A0=A0=A0=A0=A0=A0 +----+
-> =A0*=A0=A0 +--------+=A0 |
-> =A0*=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0 |=A0=A0 +----+=A0=A0=A0=A0=
-=A0=A0=A0=A0 +----+
-> =A0*=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0 +-> |next| -> ...=A0 |next=
-| -> X=A0=A0=A0=A0 [Secondary queue]
-> =A0*=A0=A0=A0 cna_node=A0=A0=A0=A0=A0=A0 +----+=A0=A0=A0=A0=A0=A0=A0=A0 +=
-----+
-> =A0*=A0=A0 +--------*=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=
-=A0=A0=A0=A0=A0 ^
-> =A0*=A0=A0 | tail=A0=A0 | ----------------------+
-> =A0*=A0=A0 +--------*=A0=A0=A0
+> I have not not heard much from other arch maintainers.
 
-Almost; IIUC that cna_node is the same as the one from locked, so you
-end up with something like:
+Cc'ed linux-arch for that matter.
 
-> =A0*=A0=A0=A0 mcs_node
-> =A0*=A0=A0 +--------+=A0=A0=A0=A0=A0 +----+=A0=A0=A0=A0=A0=A0=A0=A0 +----+
-> =A0*=A0=A0 | next=A0=A0 | ---> |next| -> ...=A0 |next| -> NULL=A0 [Main q=
-ueue]
-> =A0*=A0=A0 | locked | -+=A0=A0 +----+=A0=A0=A0=A0=A0=A0=A0=A0 +----+
-> =A0*=A0=A0 +--------+=A0 |
-> =A0*=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0 |=A0=A0 +---------+=A0=A0=
-=A0=A0=A0=A0=A0=A0 +----+
-> =A0*=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0 +-> |mcs::next| -> ...=A0 =
-|next| -> NULL=A0=A0=A0=A0 [Secondary queue]
->  *                   |cna::tail| -+      +----+
-> =A0*=A0=A0=A0          =A0=A0=A0=A0=A0 +---------+  |        ^
->  *                                +--------+
-> =A0*
-> =A0* N.B. locked =3D 1 if secondary queue is absent.
-> =A0*/
+Thanks,
+
+	tglx
