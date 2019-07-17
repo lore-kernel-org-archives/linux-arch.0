@@ -1,99 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:59650 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727377AbfGQSdF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 14:33:05 -0400
-Date: Wed, 17 Jul 2019 14:32:27 -0400
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: Re: [PATCH] padata: Replace delayed timer with immediate workqueue
- in padata_reorder
-Message-ID: <20190717183227.b3hqphukkndqumhw@ca-dmjordan1.us.oracle.com>
-References: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
- <20190716163253.24377-1-daniel.m.jordan@oracle.com>
- <20190717111147.t776zlyhdqyl5dhc@gondor.apana.org.au>
+Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:55788 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725948AbfGQS4c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jul 2019 14:56:32 -0400
+From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
+Date: Wed, 17 Jul 2019 18:54:59 +0000
+Message-ID: <401bc54416a106141b0ec785bfd9198ed56a84d8.camel@synopsys.com>
+References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
+         <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
+         <57076361ad37f4fe7a5584643ae47adf30a99d35.camel@synopsys.com>
+         <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
+In-Reply-To: <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <D6BC058B74D4F0438B6DC07104F51623@namprd12.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190717111147.t776zlyhdqyl5dhc@gondor.apana.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Steffen Klassert <steffen.klassert@secunet.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>
-Message-ID: <20190717183227.ejpKMpFNBxXG2cTyji7s-oNkPdzRVEVKa1I37TtAl6U@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "peterz@infradead.org" <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "jbaron@redhat.com" <jbaron@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190717185459.xVNyPUk23g6EhdqXhpYpoaFqKvUyMFb3P9T7Z28KzA8@z>
 
-On Wed, Jul 17, 2019 at 07:11:47PM +0800, Herbert Xu wrote:
-> On Tue, Jul 16, 2019 at 12:32:53PM -0400, Daniel Jordan wrote:
-> > Testing padata with the tcrypt module on a 5.2 kernel...
-> 
-> Thanks for the patch!
-> 
-> And here is an incremental patch to get rid of the timer that
-> appears to be an attempt at fixing a problem related to this.
-
-Nice, +1 for getting rid of the timer.
-
-> diff --git a/kernel/padata.c b/kernel/padata.c
-> index 15a8ad63f4ff..b5dfc21e976f 100644
-> --- a/kernel/padata.c
-> +++ b/kernel/padata.c
-> @@ -165,23 +165,12 @@ EXPORT_SYMBOL(padata_do_parallel);
->   */
->  static struct padata_priv *padata_get_next(struct parallel_data *pd)
->  {
-> -	int cpu, num_cpus;
-> -	unsigned int next_nr, next_index;
->  	struct padata_parallel_queue *next_queue;
->  	struct padata_priv *padata;
->  	struct padata_list *reorder;
-> +	int cpu = pd->cpu;
->  
-> -	num_cpus = cpumask_weight(pd->cpumask.pcpu);
-> -
-> -	/*
-> -	 * Calculate the percpu reorder queue and the sequence
-> -	 * number of the next object.
-> -	 */
-> -	next_nr = pd->processed;
-> -	next_index = next_nr % num_cpus;
-> -	cpu = padata_index_to_cpu(pd, next_index);
->  	next_queue = per_cpu_ptr(pd->pqueue, cpu);
-> -
->  	reorder = &next_queue->reorder;
->  
->  	spin_lock(&reorder->lock);
-> @@ -192,7 +181,8 @@ static struct padata_priv *padata_get_next(struct parallel_data *pd)
->  		list_del_init(&padata->list);
->  		atomic_dec(&pd->reorder_objects);
->  
-> -		pd->processed++;
-> +		pd->cpu = cpumask_next_wrap(cpu, pd->cpumask.pcpu, 0,
-> +					    false);
-
-We'll crash when cpumask_next_wrap returns nr_cpumask_bits and later try to get
-the corresponding per-cpu queue.
-
-This handles that as well as the case where there's only 1 CPU in the parallel
-mask:
-
-diff --git a/kernel/padata.c b/kernel/padata.c
-index b5dfc21e976f..ab352839df04 100644
---- a/kernel/padata.c
-+++ b/kernel/padata.c
-@@ -181,8 +181,10 @@ static struct padata_priv *padata_get_next(struct parallel_data *pd)
- 		list_del_init(&padata->list);
- 		atomic_dec(&pd->reorder_objects);
- 
--		pd->cpu = cpumask_next_wrap(cpu, pd->cpumask.pcpu, 0,
--					    false);
-+		if (cpumask_weight(pd->cpumask.pcpu) > 1) {
-+			pd->cpu = cpumask_next_wrap(cpu, pd->cpumask.pcpu, cpu,
-+						    false);
-+		}
- 
- 		spin_unlock(&reorder->lock);
- 		goto out;
-
-
-
-Haven't finished looking at the patch, but have to run somewhere for now, will
-pick it up later today.
+T24gV2VkLCAyMDE5LTA3LTE3IGF0IDE3OjQ1ICswMDAwLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+
+IE9uIDcvMTcvMTkgODowOSBBTSwgRXVnZW5peSBQYWx0c2V2IHdyb3RlOg0KPiA+ID4gPiArLyog
+SGFsdCBzeXN0ZW0gb24gZmF0YWwgZXJyb3IgdG8gbWFrZSBkZWJ1ZyBlYXNpZXIgKi8NCj4gPiA+
+ID4gKyNkZWZpbmUgYXJjX2psX2ZhdGFsKGZvcm1hdC4uLikJCQkJCQlcDQo+ID4gPiA+ICsoewkJ
+CQkJCQkJCVwNCj4gPiA+ID4gKwlwcl9lcnIoSlVNUExBQkVMX0VSUiBmb3JtYXQpOwkJCQkJXA0K
+PiA+ID4gPiArCUJVRygpOwkJCQkJCQkJXA0KPiA+ID4gRG9lcyBpdCBtYWtlIHNlbnNlIHRvIGJy
+aW5nIGRvd24gdGhlIHdob2xlIHN5c3RlbSB2cy4gZmFpbGluZyBhbmQgcmV0dXJuaW5nLg0KPiA+
+ID4gSSBzZWUgdGhlcmUgaXMgbm8gZXJyb3IgcHJvcGFnYXRpb24gdG8gY29yZSBjb2RlLCBidXQg
+c3RpbGwuDQo+ID4gSSB0b3RhbGx5IGFncmVlIHdpdGggUGV0ZXIsIGFuZCBJIHByZWZlciB0byBz
+dG9wIHRoZSBzeXN0ZW0gb24gdGhpcyBlcnJvcnMuIEhlcmUgaXMgZmV3IGFyZ3VtZW50czoNCj4g
+PiBBbGwgdGhpcyBjaGVja3MgY2FuJ3QgYmUgdG9nZ2xlIGluIHN5c3RlbSBvcGVyYXRpbmcgbm9y
+bWFsbHkgYW5kIG9ubHkgbWF5IGJlIGNhdXNlZCBieSBiYWQgY29kZSBnZW5lcmF0aW9uIChvciBz
+b21lIGNvZGUvZGF0YSBjb3JydXB0aW9uKToNCj4gPiAxKSBXZSBnb3Qgb3VyIGluc3RydWN0aW9u
+IHRvIHBhdGNoIHVuYWxpZ25lZCBieSA0IGJ5dGVzIChkZXNwaXRlIHRoZSBmYWN0IHRoYXQgd2Ug
+dXNlZCAnLmJhbGlnbiA0JyB0byBhbGlnbiBpdCkNCj4gPiAyKSBXZSBnb3QgYnJhbmNoIG9mZnNl
+dCB1bmFsaWduZWQgKHdoaWNoIG1lYW5zIHRoYXQgd2UgY2FsY3VsYXRlIGl0IHdyb25nIGF0IGJ1
+aWxkIHRpbWUgb3IgY29ycnVwdCBpdCBpbiBydW4gdGltZSkNCj4gPiAzKSBXZSBnb3QgYnJhbmNo
+IG9mZnNldCB3aGljaCBub3QgZml0cyBpbnRvIHMyNS4gQXMgdGhpcyBpcyBvZmZzZXQgaW5zaWRl
+IG9uZSBmdW5jdGlvbiAoaW5zaWRlIG9uZSAnaWYnIHN0YXRlbWVudCBhY3R1YWxseSkgd2UgbmV3
+ZXIgZ2V0IHN1Y2ggaHVnZQ0KPiA+IG9mZnNldCBpbiByZWFsIGxpZmUgaWYgY29kZSBnZW5lcmF0
+aW9uIGlzIG9rLg0KPiANCj4gSSB1bmRlcnN0YW5kIHRoYXQuIEJ1dCBBRkFJS1IgaW4gaW1wbGVt
+ZW50YXRpb24gYXJjX2psX2ZhdGFsKCkgZ2V0cyBjYWxsZWQgYmVmb3JlDQo+IHdlIGhhdmUgZG9u
+ZSB0aGUgYWN0dWFsIGNvZGUgcGF0Y2hpbmcgYW5kL29yIGZsdXNoaW5nIHRoZSBjYWNoZXMNCg0K
+Q29ycmVjdC4NCg0KPiAgdG8gdGhhdCBlZmZlY3QuDQo+IFNvIGhhcm0gaGFzIGJlZW4gZG9uZSBq
+dXN0IHlldC4gV2UganVzdCBuZWVkIHRvIG1ha2Ugc3VyZSB0aGF0IGFueSBib29rLWtlZXBpbmcg
+b2YNCj4gdHJ1ZS9mYWxzZSBpcyBub3QgeWV0IGRvbmUgb3IgdW5yb2xsZWQuDQoNCkNhbiB5b3Ug
+ZGVzY3JpYmUgeW91ciBwcm9wb3NhbCBpbiBtb3JlIGRldGFpbD8NCg0KQmUgbm90ZWQgdGhhdCBp
+biBjYXNlICgyKSBvciAoMykgd2Uga25vdyB0aGF0IHdlIGFyZSBub3QgYWJsZSB0byBnZW5lcmF0
+ZSBjb3JyZWN0IGluc3RydWN0aW9uIGZvciByZXBsYWNlIGV4aXN0aW5nIG9uZS4gQW5kIHdlIGRv
+bid0IGtub3cgYW55dGhpbmcNCmFib3V0IHRoZSByZWFsIGNhdXNlLg0KU28gd2hhdCB3ZSBjYW4g
+ZG8gaGVyZSBiZXNpZGVzIHRoYXQgd2Ugd2FybiBhYm91dCBpdD8NCg0KLVdlIGNhbiBoYWx0IHRo
+ZSBzeXN0ZW0gdG8gbWFrZSBkZWJ1ZyBlYXN5ICh3aGljaCBJIHByb3Bvc2UpDQotV2UgY2FuIGdl
+bmVyYXRlIGludmFsaWQgaW5zdHJ1Y3Rpb24uDQotV2UgY2FuIGp1c3Qgc2tpcCB0aGlzIHBhdGNo
+aW5nLiBJbiB0aGF0IGNhc2Ugd2UnbGwgZW5kIHdpdGggc29tZSAnaWYnIHN0YXRlbWVudHMgW2lu
+IGtlcm5lbCBjb2RlXSB3b3JraW5nIGluY29ycmVjdGx5LiBJIHJlYWxseSBkb24ndCB3YW50IHRv
+IGRlYnVnDQp0aGlzLg0KDQpHaXZlbiB0aGF0IHdlJ2xsIG5ldmVyIGZhY2Ugd2l0aCB0aGlzIGFz
+c2VydHMgaW4gYW55IGNvbnNpc3RlbnQgc3RhdGUgSSBkb24ndCBzZWUgYW55IHJlYXNvbiB3aHkg
+d2Ugc2hvdWxkbid0IHNpbXBseSBjYWxsIEJVRygpIGhlcmUuDQoNCj4gDQo+ID4gSWYgd2Ugb25s
+eSB3YXJuIHRvIGxvZyBhbmQgcmV0dXJuIHdlIHdpbGwgZmFjZSB3aXRoIGNvbXByb21pc2VkIGtl
+cm5lbCBmbG93IGxhdGVyLg0KPiA+IEkuRS4gaXQgY291bGQgYmUgJ2lmJyBzdGF0ZW1lbnQgaW4g
+a2VybmVsIHRleHQgd2hpY2ggaXMgc3dpdGNoZWQgdG8gd3Jvbmcgc3RhdGU6IHRoZSBjb25kaXRp
+b24gaXMgdHJ1ZSBidXQgd2UgdGFrZSB0aGUgZmFsc2UgYnJhbmNoLg0KPiA+IEFuZCBJdCB3aWxs
+IGJlIHRoZSBpc3N1ZSB3aGljaCBpcyBtdWNoIG1vcmUgZGlmZmljdWx0IHRvIGRlYnVnLg0KPiA+
+IA0KPiA+IERvZXMgaXQgc291bmQgcmVhc29uYWJseT8NCj4gDQo+IEknbSBzdGlsbCBub3QgY29u
+dmluY2VkIHRoYXQgYnkgaGl0dGluZyB0aGUgX2ZhdGFsKCkgd2UgYXJlIGluIHNvbWUgaW5jb25z
+aXN0ZW50DQo+IHN0YXRlIGFscmVhZHkuIEJ1dCBpZiB1IGZlZWwgc3Ryb25nbHkgbGV0cyBrZWVw
+IGl0Lg0KPiANCj4gPiBJZiB5b3UgcmVhbGx5IGRvbid0IHdhbnQgdG8gaGF2ZSBCVUcgaGVyZSwg
+SSBjYW4gbWFrZSBpdCBjb25kaXRpb25hbGx5IGVuYWJsZWQNCj4gDQo+IE5vdCBhIGdvb2QgaWRl
+YS4gSXQgaXMgdW5jb25kaXRpb25hbGx5IHByZXNlbnQgb3Igbm90LiBOb3Qgc29tZXRoaW5nIGlu
+IGJldHdlZW4uDQo+IA0KPiA+IGluIGRlcGVuZCBvbiBDT05GSUdfQVJDX1NUQVRJQ19LRVlTX0RF
+QlVHIGFzIEkgd2FudCB0byBoYXZlIGl0IGVuYWJsZWQgYXQgbGVhc3Qgb24gQVJDIGRldmVsb3Bt
+ZW50IHBsYXRmb3Jtcy4NCj4gDQo+IA0KLS0gDQogRXVnZW5peSBQYWx0c2V2DQo=
