@@ -1,86 +1,70 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 17 Jul 2019 13:44:28 -0400
-Message-ID: <10197432-47E5-49D7-AD68-8A412782012B@oracle.com>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-4-alex.kogan@oracle.com>
- <77bba626-f3e6-45a8-aae8-43b945d0fab9@redhat.com>
- <aa73b86d-902a-bb6f-d372-8645c8299a6d@redhat.com>
- <C1C55A40-FDB1-43B5-B551-F9B8BE776DF8@oracle.com>
- <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, Ingo Molnar <mingo@redhat.com>, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
+Date: Wed, 17 Jul 2019 17:45:52 +0000
+Message-ID: <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
+References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
+ <57076361ad37f4fe7a5584643ae47adf30a99d35.camel@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "peterz@infradead.org" <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "jbaron@redhat.com" <jbaron@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Cj4gT24gSnVsIDE2LCAyMDE5LCBhdCAxMDo1MCBBTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
-aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gNy8xNi8xOSAxMDoyOSBBTSwgQWxleCBLb2dhbiB3cm90
-ZToKPj4gCj4+PiBPbiBKdWwgMTUsIDIwMTksIGF0IDc6MjIgUE0sIFdhaW1hbiBMb25nIDxsb25n
-bWFuQHJlZGhhdC5jb20KPj4+IDxtYWlsdG86bG9uZ21hbkByZWRoYXQuY29tPj4gd3JvdGU6Cj4+
-PiAKPj4+IE9uIDcvMTUvMTkgNTozMCBQTSwgV2FpbWFuIExvbmcgd3JvdGU6Cj4+Pj4+IC0jaWZu
-ZGVmIF9HRU5fUFZfTE9DS19TTE9XUEFUSAo+Pj4+PiArI2lmICFkZWZpbmVkKF9HRU5fUFZfTE9D
-S19TTE9XUEFUSCkgJiYgIWRlZmluZWQoX0dFTl9DTkFfTE9DS19TTE9XUEFUSCkKPj4+Pj4gCj4+
-Pj4+ICNpbmNsdWRlIDxsaW51eC9zbXAuaD4KPj4+Pj4gI2luY2x1ZGUgPGxpbnV4L2J1Zy5oPgo+
-Pj4+PiBAQCAtNzcsMTggKzc3LDE0IEBACj4+Pj4+ICNkZWZpbmUgTUFYX05PREVTCTQKPj4+Pj4g
-Cj4+Pj4+IC8qCj4+Pj4+IC0gKiBPbiA2NC1iaXQgYXJjaGl0ZWN0dXJlcywgdGhlIG1jc19zcGlu
-bG9jayBzdHJ1Y3R1cmUgd2lsbCBiZSAxNiBieXRlcyBpbgo+Pj4+PiAtICogc2l6ZSBhbmQgZm91
-ciBvZiB0aGVtIHdpbGwgZml0IG5pY2VseSBpbiBvbmUgNjQtYnl0ZSBjYWNoZWxpbmUuIEZvcgo+
-Pj4+PiAtICogcHZxc3BpbmxvY2ssIGhvd2V2ZXIsIHdlIG5lZWQgbW9yZSBzcGFjZSBmb3IgZXh0
-cmEgZGF0YS4gVG8gYWNjb21tb2RhdGUKPj4+Pj4gLSAqIHRoYXQsIHdlIGluc2VydCB0d28gbW9y
-ZSBsb25nIHdvcmRzIHRvIHBhZCBpdCB1cCB0byAzMiBieXRlcy4gSU9XLCBvbmx5Cj4+Pj4+IC0g
-KiB0d28gb2YgdGhlbSBjYW4gZml0IGluIGEgY2FjaGVsaW5lIGluIHRoaXMgY2FzZS4gVGhhdCBp
-cyBPSyBhcyBpdCBpcyByYXJlCj4+Pj4+IC0gKiB0byBoYXZlIG1vcmUgdGhhbiAyIGxldmVscyBv
-ZiBzbG93cGF0aCBuZXN0aW5nIGluIGFjdHVhbCB1c2UuIFdlIGRvbid0Cj4+Pj4+IC0gKiB3YW50
-IHRvIHBlbmFsaXplIHB2cXNwaW5sb2NrcyB0byBvcHRpbWl6ZSBmb3IgYSByYXJlIGNhc2UgaW4g
-bmF0aXZlCj4+Pj4+IC0gKiBxc3BpbmxvY2tzLgo+Pj4+PiArICogT24gNjQtYml0IGFyY2hpdGVj
-dHVyZXMsIHRoZSBtY3Nfc3BpbmxvY2sgc3RydWN0dXJlIHdpbGwgYmUgMjAgYnl0ZXMgaW4KPj4+
-Pj4gKyAqIHNpemUuIEZvciBwdnFzcGlubG9jayBvciB0aGUgTlVNQS1hd2FyZSB2YXJpYW50LCBo
-b3dldmVyLCB3ZSBuZWVkIG1vcmUKPj4+Pj4gKyAqIHNwYWNlIGZvciBleHRyYSBkYXRhLiBUbyBh
-Y2NvbW1vZGF0ZSB0aGF0LCB3ZSBpbnNlcnQgdHdvIG1vcmUgbG9uZyB3b3Jkcwo+Pj4+PiArICog
-dG8gcGFkIGl0IHVwIHRvIDM2IGJ5dGVzLgo+Pj4+PiAqLwo+Pj4+IFRoZSAyMCBieXRlcyBmaWd1
-cmUgaXMgd3JvbmcuIEl0IGlzIGFjdHVhbGx5IDI0IGJ5dGVzIGZvciA2NC1iaXQgYXMgdGhlCj4+
-Pj4gbWNzX3NwaW5sb2NrIHN0cnVjdHVyZSBpcyA4LWJ5dGUgYWxpZ25lZC4gRm9yIGJldHRlciBj
-YWNoZWxpbmUKPj4+PiBhbGlnbm1lbnQsIEkgd2lsbCBsaWtlIHRvIGtlZXAgbWNzX3NwaW5sb2Nr
-IHRvIDE2IGJ5dGVzIGFzIGJlZm9yZS4KPj4+PiBJbnN0ZWFkLCB5b3UgY2FuIHVzZSBlbmNvZGVf
-dGFpbCgpIHRvIHN0b3JlIHRoZSBDTkEgbm9kZSBwb2ludGVyIGluCj4+Pj4gImxvY2tlZCIuIEZv
-ciBpbnN0YW5jZSwgdXNlIChlbmNvZGVfdGFpbCgpIDw8IDEpIGluIGxvY2tlZCB0bwo+Pj4+IGRp
-c3Rpbmd1aXNoIGl0IGZyb20gdGhlIHJlZ3VsYXIgbG9ja2VkPTEgdmFsdWUuCj4+PiAKPj4+IEFj
-dHVhbGx5LCB0aGUgZW5jb2RlZCB0YWlsIHZhbHVlIGlzIGFscmVhZHkgc2hpZnQgbGVmdCBlaXRo
-ZXIgMTYgYml0cwo+Pj4gb3IgOSBiaXRzLiBTbyB0aGVyZSBpcyBubyBuZWVkIHRvIHNoaWZ0IGl0
-LiBZb3UgY2FuIGFzc2lnbmVkIGl0IGRpcmVjdGx5Ogo+Pj4gCj4+PiBtY3MtPmxvY2tlZCA9IGNu
-YS0+ZW5jb2RlZF90YWlsOwo+Pj4gCj4+PiBZb3UgZG8gbmVlZCB0byBjaGFuZ2UgdGhlIHR5cGUg
-b2YgbG9ja2VkIHRvICJ1bnNpZ25lZCBpbnQiLCB0aG91Z2gsCj4+PiBmb3IgcHJvcGVyIGNvbXBh
-cmlzb24gd2l0aCAiMSIuCj4+PiAKPj4gR290IGl0LCB0aGFua3MuCj4+IAo+IEkgZm9yZ290IHRv
-IG1lbnRpb24gdGhhdCBJIHdvdWxkIGxpa2UgdG8gc2VlIGEgYm9vdCBjb21tYW5kIGxpbmUgb3B0
-aW9uCj4gdG8gZm9yY2Ugb2ZmIGFuZCBtYXliZSBvbiBhcyB3ZWxsIHRoZSBudW1hIHFzcGlubG9j
-ayBjb2RlLiBUaGlzIGNhbiBoZWxwCj4gaW4gdGVzdGluZyBhcyB5b3UgZG9uJ3QgbmVlZCB0byBi
-dWlsZCAyIHNlcGFyYXRlIGtlcm5lbHMsIG9uZSB3aXRoCj4gTlVNQV9BV0FSRV9TUElOTE9DS1Mg
-b24gYW5kIG9uZSB3aXRoIGl0IG9mZi4KSUlVQyBpdCBzaG91bGQgYmUgZWFzeSB0byBhZGQgYSBi
-b290IG9wdGlvbiB0byBmb3JjZSBvZmYgdGhlIE5VTUEtYXdhcmUgc3BpbmxvY2sgCmV2ZW4gaWYg
-aXQgaXMgZW5hYmxlZCB0aG91Z2ggY29uZmlnLCBidXQgdGhlIG90aGVyIHdheSBhcm91bmQgd291
-bGQgcmVxdWlyZSAKY29tcGlsaW5nIGluIHRoZSBOVU1BLWF3YXJlIHNwaW5sb2NrIHN0dWZmIGV2
-ZW4gaWYgdGhlIGNvbmZpZyBvcHRpb24gaXMgZGlzYWJsZWQuCklzIHRoYXQgb2s/CgpBbHNvLCB3
-aGF0IHNob3VsZCB0aGUgb3B0aW9uIG5hbWUgYmU/CiJudW1hX3NwaW5sb2NrPW9uL29mZuKAnSBp
-ZiB3ZSB3YW50IGJvdGggd2F5cywgb3Ig4oCcbm9fbnVtYV9zcGlubG9jayIgaWYgd2Ugd2FudCBq
-dXN0IHRoZSDigJxmb3JjZSBvZmbigJ0gb3B0aW9uPwoKPiBGb3Igc21hbGwgMi1zb2NrZXQgc3lz
-dGVtcywKPiBudW1hIHFzcGlubG9jayBtYXkgbm90IGhlbHAgbXVjaC4KSXQgYWN0dWFsbHkgaGVs
-cHMgcXVpdGUgYSBiaXQgKGUuZy4sIHNwZWVkdXAgb2YgdXAgdG8gNDItNTclIGZvciB3aWxsLWl0
-LXNjYWxlIG9uIGEgZHVhbC1zb2NrZXQgeDg2IHN5c3RlbSkuCldlIGhhdmUgbnVtYmVycyBhbmQg
-cGxvdHMgaW4gb3VyIHBhcGVyIG9uIGFyeGl2LgoKUmVnYXJkcywK4oCUIEFsZXgKCgpfX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVs
-IG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDov
-L2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
+On 7/17/19 8:09 AM, Eugeniy Paltsev wrote:=0A=
+>>> +/* Halt system on fatal error to make debug easier */=0A=
+>>> +#define arc_jl_fatal(format...)						\=0A=
+>>> +({									\=0A=
+>>> +	pr_err(JUMPLABEL_ERR format);					\=0A=
+>>> +	BUG();								\=0A=
+>> Does it make sense to bring down the whole system vs. failing and return=
+ing.=0A=
+>> I see there is no error propagation to core code, but still.=0A=
+> I totally agree with Peter, and I prefer to stop the system on this error=
+s. Here is few arguments:=0A=
+> All this checks can't be toggle in system operating normally and only may=
+ be caused by bad code generation (or some code/data corruption):=0A=
+> 1) We got our instruction to patch unaligned by 4 bytes (despite the fact=
+ that we used '.balign 4' to align it)=0A=
+> 2) We got branch offset unaligned (which means that we calculate it wrong=
+ at build time or corrupt it in run time)=0A=
+> 3) We got branch offset which not fits into s25. As this is offset inside=
+ one function (inside one 'if' statement actually) we newer get such huge=
+=0A=
+> offset in real life if code generation is ok.=0A=
+=0A=
+I understand that. But AFAIKR in implementation arc_jl_fatal() gets called =
+before=0A=
+we have done the actual code patching and/or flushing the caches to that ef=
+fect.=0A=
+So harm has been done just yet. We just need to make sure that any book-kee=
+ping of=0A=
+true/false is not yet done or unrolled.=0A=
+=0A=
+> If we only warn to log and return we will face with compromised kernel fl=
+ow later.=0A=
+> I.E. it could be 'if' statement in kernel text which is switched to wrong=
+ state: the condition is true but we take the false branch.=0A=
+> And It will be the issue which is much more difficult to debug.=0A=
+>=0A=
+> Does it sound reasonably?=0A=
+=0A=
+I'm still not convinced that by hitting the _fatal() we are in some inconsi=
+stent=0A=
+state already. But if u feel strongly lets keep it.=0A=
+=0A=
+>=0A=
+> If you really don't want to have BUG here, I can make it conditionally en=
+abled=0A=
+=0A=
+Not a good idea. It is unconditionally present or not. Not something in bet=
+ween.=0A=
+=0A=
+> in depend on CONFIG_ARC_STATIC_KEYS_DEBUG as I want to have it enabled at=
+ least on ARC development platforms.=0A=
+=0A=
+=0A=
