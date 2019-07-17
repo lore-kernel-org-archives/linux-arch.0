@@ -1,81 +1,40 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 17 Jul 2019 10:39:44 +0200
-Message-ID: <20190717083944.GR3463@hirez.programming.kicks-ass.net>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-4-alex.kogan@oracle.com>
- <20190716155022.GR3419@hirez.programming.kicks-ass.net>
- <193BBB31-F376-451F-BDE1-D4807140EB51@oracle.com>
- <20190716184724.GH3402@hirez.programming.kicks-ass.net>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH] padata: Use RCU when fetching pd from do_serial
+Date: Wed, 17 Jul 2019 16:47:40 +0800
+Message-ID: <20190717084739.35evhqushmjejmmq@gondor.apana.org.au>
+References: <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
+ <20190712101012.GW14601@gauss3.secunet.de>
+ <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
+ <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
+ <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
+ <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
+ <20190716111410.GN17989@gauss3.secunet.de>
+ <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
+ <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
+ <20190717082815.GP17989@gauss3.secunet.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190716184724.GH3402@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20190717082815.GP17989@gauss3.secunet.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Steffen Klassert <steffen.klassert@secunet.com>
+Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVHVlLCBKdWwgMTYsIDIwMTkgYXQgMDg6NDc6MjRQTSArMDIwMCwgUGV0ZXIgWmlqbHN0cmEg
-d3JvdGU6Cj4gT24gVHVlLCBKdWwgMTYsIDIwMTkgYXQgMDE6MTk6MTZQTSAtMDQwMCwgQWxleCBL
-b2dhbiB3cm90ZToKPiA+ID4gT24gSnVsIDE2LCAyMDE5LCBhdCAxMTo1MCBBTSwgUGV0ZXIgWmlq
-bHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToKPiAKPiA+ID4gc3RhdGljIHZvaWQg
-Y25hX21vdmUoc3RydWN0IGNuYV9ub2RlICpjbiwgc3RydWN0IGNuYV9ub2RlICpjbmkpCj4gPiA+
-IHsKPiA+ID4gCXN0cnVjdCBjbmFfbm9kZSAqaGVhZCwgKnRhaWw7Cj4gPiA+IAo+ID4gPiAJLyog
-cmVtb3ZlIEBjbmkgKi8KPiA+ID4gCVdSSVRFX09OQ0UoY24tPm1jcy5uZXh0LCBjbmktPm1jcy5u
-ZXh0KTsKPiA+ID4gCj4gPiA+IAkvKiBzdGljayBAY25pIG9uIHRoZSAnb3RoZXInIGxpc3QgdGFp
-bCAqLwo+ID4gPiAJY25pLT5tY3MubmV4dCA9IE5VTEw7Cj4gPiA+IAo+ID4gPiAJaWYgKGNuLT5t
-Y3MubG9ja2VkIDw9IDEpIHsKPiA+ID4gCQkvKiBoZWFkID0gdGFpbCA9IGNuaSAqLwo+ID4gPiAJ
-CWhlYWQgPSBjbmk7Cj4gPiA+IAkJaGVhZC0+dGFpbCA9IGNuaTsKPiA+ID4gCQljbi0+bWNzLmxv
-Y2tlZCA9IGhlYWQtPmVuY29kZWRfdGFpbDsKPiA+ID4gCX0gZWxzZSB7Cj4gPiA+IAkJLyogYWRk
-IHRvIHRhaWwgKi8KPiA+ID4gCQloZWFkID0gKHN0cnVjdCBjbmFfbm9kZSAqKWRlY29kZV90YWls
-KGNuLT5tY3MubG9ja2VkKTsKPiA+ID4gCQl0YWlsID0gdGFpbC0+dGFpbDsKPiA+ID4gCQl0YWls
-LT5uZXh0ID0gY25pOwo+ID4gPiAJfQo+ID4gPiB9Cj4gPiA+IAo+ID4gPiBzdGF0aWMgc3RydWN0
-IGNuYV9ub2RlICpjbmFfZmluZF9uZXh0KHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5vZGUpCj4gPiA+
-IHsKPiA+ID4gCXN0cnVjdCBjbmFfbm9kZSAqY25pLCAqY24gPSAoc3RydWN0IGNuYV9ub2RlICop
-bm9kZTsKPiA+ID4gCj4gPiA+IAl3aGlsZSAoKGNuaSA9IChzdHJ1Y3QgY25hX25vZGUgKilSRUFE
-X09OQ0UoY24tPm1jcy5uZXh0KSkpIHsKPiA+ID4gCQlpZiAobGlrZWx5KGNuaS0+bm9kZSA9PSBj
-bi0+bm9kZSkpCj4gPiA+IAkJCWJyZWFrOwo+ID4gPiAKPiA+ID4gCQljbmFfbW92ZShjbiwgY25p
-KTsKPiA+ID4gCX0KPiA+ID4gCj4gPiA+IAlyZXR1cm4gY25pOwo+ID4gPiB9Cj4gPiBCdXQgdGhl
-biB5b3UgbW92ZSBub2RlcyBmcm9tIHRoZSBtYWluIGxpc3QgdG8gdGhlIOKAmG90aGVy4oCZIGxp
-c3Qgb25lLWJ5LW9uZS4KPiA+IEnigJltIGFmcmFpZCB0aGlzIHdvdWxkIGJlIHVubmVjZXNzYXJ5
-IGV4cGVuc2l2ZS4KPiA+IFBsdXMsIGFsbCB0aGlzIGV4dHJhIHdvcmsgaXMgd2FzdGVkIGlmIHlv
-dSBkbyBub3QgZmluZCBhIHRocmVhZCBvbiB0aGUgc2FtZSAKPiA+IE5VTUEgbm9kZSAoeW91IG1v
-dmUgZXZlcnlvbmUgdG8gdGhlIOKAmG90aGVy4oCZIGxpc3Qgb25seSB0byBtb3ZlIHRoZW0gYmFj
-ayBpbiAKPiA+IGNuYV9tY3NfcGFzc19sb2NrKCkpLgo+IAo+IE15IHByaW1hcnkgY29uY2VybiB3
-YXMgcmVhZGFiaWxpdHk7IEkgZmluZCB0aGUgYWJvdmUgc3VnZ2VzdGlvbiBtdWNoCj4gbW9yZSBy
-ZWFkYWJsZS4gTWF5YmUgaXQgY2FuIGJlIHdyaXR0ZW4gZGlmZmVyZW50bHk7IHlvdSdsbCBoYXZl
-IHRvIHBsYXkKPiBhcm91bmQgYSBiaXQuCgpzdGF0aWMgdm9pZCBjbmFfc3BsaWNlX3RhaWwoc3Ry
-dWN0IGNuYV9ub2RlICpjbiwgc3RydWN0IGNuYV9ub2RlICpoZWFkLCBzdHJ1Y3QgY25hX25vZGUg
-KnRhaWwpCnsKCXN0cnVjdCBjbmFfbm9kZSAqbGlzdDsKCgkvKiByZW1vdmUgW2hlYWQsdGFpbF0g
-Ki8KCVdSSVRFX09OQ0UoY24tPm1jcy5uZXh0LCB0YWlsLT5tY3MubmV4dCk7Cgl0YWlsLT5tY3Mu
-bmV4dCA9IE5VTEw7CgoJLyogc3RpY2sgW2hlYWQsdGFpbF0gb24gdGhlIHNlY29uZGFyeSBsaXN0
-IHRhaWwgKi8KCWlmIChjbi0+bWNzLmxvY2tlZCA8PSAxKSB7CgkJLyogY3JlYXRlIHNlY29uZGFy
-eSBsaXN0ICovCgkJaGVhZC0+dGFpbCA9IHRhaWw7CgkJY24tPm1jcy5sb2NrZWQgPSBoZWFkLT5l
-bmNvZGVkX3RhaWw7Cgl9IGVsc2UgewoJCS8qIGFkZCB0byB0YWlsICovCgkJbGlzdCA9IChzdHJ1
-Y3QgY25hX25vZGUgKilkZWNvZGVfdGFpbChjbi0+bWNzLmxvY2tlZCk7CgkJbGlzdC0+dGFpbC0+
-bmV4dCA9IGhlYWQ7CgkJbGlzdC0+dGFpbCA9IHRhaWw7Cgl9Cn0KCnN0YXRpYyBzdHJ1Y3QgY25h
-X25vZGUgKmNuYV9maW5kX25leHQoc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSkKewoJc3RydWN0
-IGNuYV9ub2RlICpjbmksICpjbiA9IChzdHJ1Y3QgY25hX25vZGUgKilub2RlOwoJc3RydWN0IGNu
-YV9ub2RlICpoZWFkLCAqdGFpbCA9IE5VTEw7CgoJLyogZmluZCBhbnkgbmV4dCBsb2NrIGZyb20g
-J291cicgbm9kZSAqLwoJZm9yIChoZWFkID0gY25pID0gKHN0cnVjdCBjbmFfbm9kZSAqKVJFQURf
-T05DRShjbi0+bWNzLm5leHQpOwoJICAgICBjbmkgJiYgY25pLT5ub2RlICE9IGNuLT5ub2RlOwoJ
-ICAgICB0YWlsID0gY25pLCBjbmkgPSAoc3RydWN0IGNuYV9ub2RlICopUkVBRF9PTkNFKGNuaS0+
-bWNzLm5leHQpKQoJCTsKCgkvKiB3aGVuIGZvdW5kLCBzcGxpY2UgYW55IHNraXBwZWQgbG9ja3Mg
-b250byB0aGUgc2Vjb25kYXJ5IGxpc3QgKi8KCWlmIChjbmkgJiYgdGFpbCkKCQljbmFfc3BsaWNl
-X3RhaWwoY24sIGhlYWQsIHRhaWwpOwoKCXJldHVybiBjbmk7Cn0KCkhvdydzIHRoYXQ/CgpfX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2Vy
-bmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0
-cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVs
-Cg==
+On Wed, Jul 17, 2019 at 10:28:15AM +0200, Steffen Klassert wrote:
+>
+> I had a patch to support crypto backlog some years ago,
+> but testing with dm-crypt did not show any performance
+> improvement. So I decided to just skip that patch because
+> it added code for no need.
+
+Well pcrypt is part of the API so it needs to obey the rules.
+So even if it wouldn't make sense to use dm-crypt with pcrypt
+it still needs to do the right thing.
+
+Thanks,`
+-- 
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
