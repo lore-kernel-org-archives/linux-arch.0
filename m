@@ -1,157 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:45726 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725906AbfGQPKB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jul 2019 11:10:01 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Date: Wed, 17 Jul 2019 15:09:34 +0000
-Message-ID: <57076361ad37f4fe7a5584643ae47adf30a99d35.camel@synopsys.com>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
-         <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <D7C326816A754845AF2E747A7106B602@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from aserp2120.oracle.com ([141.146.126.78]:49228 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727255AbfGQRp4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 13:45:56 -0400
+Content-Type: text/plain; charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
+Date: Wed, 17 Jul 2019 13:44:28 -0400
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <10197432-47E5-49D7-AD68-8A412782012B@oracle.com>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+ <20190715192536.104548-4-alex.kogan@oracle.com>
+ <77bba626-f3e6-45a8-aae8-43b945d0fab9@redhat.com>
+ <aa73b86d-902a-bb6f-d372-8645c8299a6d@redhat.com>
+ <C1C55A40-FDB1-43B5-B551-F9B8BE776DF8@oracle.com>
+ <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "peterz@infradead.org" <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "jbaron@redhat.com" <jbaron@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190717150934.YIuv0ju25Xoxkw6xHkYzPAmEwIKCm5Xb0HROJwUkiQs@z>
+To: Waiman Long <longman@redhat.com>
+Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190717174428.mgpfgJ13dmCmBZuoHYGxbLqKx-M7xjNh97fVn44j0MA@z>
 
-SGkgVmluZWV0LA0KSSdtIGZpbmFsbHkgYmFjaywgc28gc2VlIG15IGNvbW1lbnRzIGJlbG93Lg0K
-DQpPbiBUdWUsIDIwMTktMDYtMTggYXQgMTY6MTYgKzAwMDAsIFZpbmVldCBHdXB0YSB3cm90ZToN
-Cj4gT24gNi8xNC8xOSA5OjQxIEFNLCBFdWdlbml5IFBhbHRzZXYgd3JvdGU6DQo+ID4gSW1wbGVt
-ZW50IGp1bXAgbGFiZWwgcGF0Y2hpbmcgZm9yIEFSQy4gSnVtcCBsYWJlbHMgcHJvdmlkZQ0KPiA+
-IGFuIGludGVyZmFjZSB0byBnZW5lcmF0ZSBkeW5hbWljIGJyYW5jaGVzIHVzaW5nDQo+ID4gc2Vs
-Zi1tb2RpZnlpbmcgY29kZS4NCj4gPiANCj4gPiBUaGlzIGFsbG93cyB1cyB0byBpbXBsZW1lbnQg
-Y29uZGl0aW9uYWwgYnJhbmNoZXMgd2hlcmUNCj4gPiBjaGFuZ2luZyBicmFuY2ggZGlyZWN0aW9u
-IGlzIGV4cGVuc2l2ZSBidXQgYnJhbmNoIHNlbGVjdGlvbg0KPiA+IGlzIGJhc2ljYWxseSAnZnJl
-ZScNCj4gPiANCj4gPiBUaGlzIGltcGxlbWVudGF0aW9uIHVzZXMgMzItYml0IE5PUCBhbmQgQlJB
-TkNIIGluc3RydWN0aW9ucw0KPiA+IHdoaWNoIGZvcmNlZCB0byBiZSBhbGlnbmVkIGJ5IDQgdG8g
-Z3VhcmFudGVlIHRoYXQgdGhleSBkb24ndA0KPiA+IGNyb3NzIEwxIGNhY2hlIGxpbmUgYW5kIGNh
-biBiZSB1cGRhdGUgYXRvbWljYWxseS4NCj4gPiANCj4gPiBTaWduZWQtb2ZmLWJ5OiBFdWdlbml5
-IFBhbHRzZXYgPEV1Z2VuaXkuUGFsdHNldkBzeW5vcHN5cy5jb20+DQo+IA0KPiBMR1RNIG92ZXJh
-bGwgLSBuaXRzIGJlbG93Lg0KPiANCj4gPiAtLS0NCj4gPiAgYXJjaC9hcmMvS2NvbmZpZyAgICAg
-ICAgICAgICAgICAgIHwgICA4ICsrDQo+ID4gIGFyY2gvYXJjL2luY2x1ZGUvYXNtL2p1bXBfbGFi
-ZWwuaCB8ICA2OCArKysrKysrKysrKysNCj4gPiAgYXJjaC9hcmMva2VybmVsL01ha2VmaWxlICAg
-ICAgICAgIHwgICAxICsNCj4gPiAgYXJjaC9hcmMva2VybmVsL2p1bXBfbGFiZWwuYyAgICAgIHwg
-MTY4ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKw0KPiA+ICA0IGZpbGVzIGNoYW5nZWQs
-IDI0NSBpbnNlcnRpb25zKCspDQo+ID4gIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL2FyYy9pbmNs
-dWRlL2FzbS9qdW1wX2xhYmVsLmgNCj4gPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJjL2tl
-cm5lbC9qdW1wX2xhYmVsLmMNCj4gPiANCj4gPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcmMvS2NvbmZp
-ZyBiL2FyY2gvYXJjL0tjb25maWcNCj4gPiBpbmRleCBjNzgxZTQ1ZDFkOTkuLmIxMzEzZTAxNmM1
-NCAxMDA2NDQNCj4gPiAtLS0gYS9hcmNoL2FyYy9LY29uZmlnDQo+ID4gKysrIGIvYXJjaC9hcmMv
-S2NvbmZpZw0KPiA+IEBAIC00Nyw2ICs0Nyw3IEBAIGNvbmZpZyBBUkMNCj4gPiAgCXNlbGVjdCBP
-Rl9FQVJMWV9GTEFUVFJFRQ0KPiA+ICAJc2VsZWN0IFBDSV9TWVNDQUxMIGlmIFBDSQ0KPiA+ICAJ
-c2VsZWN0IFBFUkZfVVNFX1ZNQUxMT0MgaWYgQVJDX0NBQ0hFX1ZJUFRfQUxJQVNJTkcNCj4gPiAr
-CXNlbGVjdCBIQVZFX0FSQ0hfSlVNUF9MQUJFTCBpZiBJU0FfQVJDVjIgJiYgIUNQVV9FTkRJQU5f
-QkUzMg0KPiA+ICANCj4gPiAgY29uZmlnIEFSQ0hfSEFTX0NBQ0hFX0xJTkVfU0laRQ0KPiA+ICAJ
-ZGVmX2Jvb2wgeQ0KPiA+IEBAIC01MjksNiArNTMwLDEzIEBAIGNvbmZpZyBBUkNfRFcyX1VOV0lO
-RA0KPiA+ICBjb25maWcgQVJDX0RCR19UTEJfUEFSQU5PSUENCj4gPiAgCWJvb2wgIlBhcmFub2lh
-IENoZWNrcyBpbiBMb3cgTGV2ZWwgVExCIEhhbmRsZXJzIg0KPiA+ICANCj4gPiArY29uZmlnIEFS
-Q19EQkdfU1RBVElDX0tFWVMNCj4gPiArCWJvb2wgIlBhcmFub2lkIGNoZWNrcyBpbiBTdGF0aWMg
-S2V5cyBjb2RlIg0KPiA+ICsJZGVwZW5kcyBvbiBKVU1QX0xBQkVMDQo+ID4gKwlzZWxlY3QgU1RB
-VElDX0tFWVNfU0VMRlRFU1QNCj4gPiArCWhlbHANCj4gPiArCSAgRW5hYmxlIHBhcmFub2lkIGNo
-ZWNrcyBhbmQgc2VsZi10ZXN0IG9mIGJvdGggQVJDLXNwZWNpZmljIGFuZCBnZW5lcmljDQo+ID4g
-KwkgIHBhcnQgb2Ygc3RhdGljLWtleXMtcmVsYXRlZCBjb2RlLg0KPiANCj4gV2h5IGNhbid0IHdl
-IGp1c3QgZW5hYmxlIHRoaXMgaWYgU1RBVElDX0tFWVNfU0VMRlRFU1QNCg0KQXMgd2UgZXh0ZW50
-IFNUQVRJQ19LRVlTX1NFTEZURVNUIG9wdGlvbiBzdWNoIGRlcGVuZGVuY3kgbG9va3MgbW9yZSBy
-ZWFzb25hYmxlIGZvciBtZQ0KKHdlIGVuYWJsZSBvdXIgY2hlY2tzIC0+IGxldHMgZW5hYmxlIGNv
-cnJlc3BvbmRpbmcgZ2VuZXJpYyBvbmVzKQ0KSSBkb24ndCBpbnNpc3QsIHRob3VnaC4NCg0KPiA+
-ICBlbmRpZg0KPiA+ICANCj4gPiAgY29uZmlnIEFSQ19CVUlMVElOX0RUQl9OQU1FDQo+ID4gZGlm
-ZiAtLWdpdCBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2p1bXBfbGFiZWwuaCBiL2FyY2gvYXJjL2lu
-Y2x1ZGUvYXNtL2p1bXBfbGFiZWwuaA0KPiA+IG5ldyBmaWxlIG1vZGUgMTAwNjQ0DQo+ID4gaW5k
-ZXggMDAwMDAwMDAwMDAwLi44OTcxZDA2MDhmMmMNCj4gPiAtLS0gL2Rldi9udWxsDQo+ID4gKysr
-IGIvYXJjaC9hcmMvaW5jbHVkZS9hc20vanVtcF9sYWJlbC5oDQo+ID4gQEAgLTAsMCArMSw2OCBA
-QA0KPiA+ICsvKiBTUERYLUxpY2Vuc2UtSWRlbnRpZmllcjogR1BMLTIuMCAqLw0KPiA+ICsjaWZu
-ZGVmIF9BU01fQVJDX0pVTVBfTEFCRUxfSA0KPiA+ICsjZGVmaW5lIF9BU01fQVJDX0pVTVBfTEFC
-RUxfSA0KPiA+ICsNCj4gPiArI2lmbmRlZiBfX0FTU0VNQkxZX18NCj4gPiArDQo+ID4gKyNpbmNs
-dWRlIDxsaW51eC90eXBlcy5oPg0KPiA+ICsNCj4gPiArI2RlZmluZSBKVU1QX0xBQkVMX05PUF9T
-SVpFIDQNCj4gPiArDQo+ID4gKy8qDQo+ID4gKyAqIFRvIG1ha2UgYXRvbWljIHVwZGF0ZSBvZiBw
-YXRjaGVkIGluc3RydWN0aW9uIGF2YWlsYWJsZSB3ZSBuZWVkIHRvIGd1YXJhbnRlZQ0KPiA+ICsg
-KiB0aGF0IHRoaXMgaW5zdHJ1Y3Rpb24gZG9lc24ndCBjcm9zcyBMMSBjYWNoZSBsaW5lIGJvdW5k
-YXJ5Lg0KPiA+ICsgKg0KPiA+ICsgKiBBcyBvZiB0b2RheSB3ZSBzaW1wbHkgYWxpZ24gaW5zdHJ1
-Y3Rpb24gd2hpY2ggY2FuIGJlIHBhdGNoZWQgYnkgNCBieXRlIHVzaW5nDQo+ID4gKyAqICIuYmFs
-aWduIDQiIGRpcmVjdGl2ZS4gSW4gdGhhdCBjYXNlIHBhdGNoZWQgaW5zdHJ1Y3Rpb24gaXMgYWxp
-Z25lZCB3aXRoIG9uZQ0KPiA+ICsgKiAxNi1iaXQgTk9QX1MgaWYgdGhpcyBpcyByZXF1aXJlZC4N
-Cj4gPiArICogSG93ZXZlciAnYWxpZ24gYnkgNCcgZGlyZWN0aXZlIGlzIG11Y2ggc3RyaWN0ZXIg
-dGhhbiBpdCBhY3R1YWxseSByZXF1aXJlZC4NCj4gPiArICogSXQncyBlbm91Z2ggdGhhdCBvdXIg
-MzItYml0IGluc3RydWN0aW9uIGRvbid0IGNyb3NzIGwxIGNhY2hlIGxpbmUgYm91bmRhcnkNCj4g
-PiArICogd2hpY2ggY2FuIGJlIGFjaGlldmVkIGJ5IHVzaW5nICIuYnVuZGxlX2FsaWduX21vZGUi
-IGRpcmVjdGl2ZS4gVGhhdCB3aWxsIHNhdmUNCj4gPiArICogdXMgZnJvbSBhZGRpbmcgdXNlbGVz
-cyBOT1BfUyBwYWRkaW5nIGluIG1vc3Qgb2YgdGhlIGNhc2VzLg0KPiA+ICsgKg0KPiA+ICsgKiBU
-T0RPOiBzd2l0Y2ggdG8gIi5idW5kbGVfYWxpZ25fbW9kZSIgZGlyZWN0aXZlIHVzaW5nIHdoaW4g
-aXQgd2lsbCBiZQ0KPiA+ICsgKiBzdXBwb3J0ZWQgYnkgQVJDIHRvb2xjaGFpbi4NCj4gPiArICov
-DQo+ID4gKw0KPiANCj4gU28gYmxvY2sgY29tbWVudHMgb24gdG9wIG9mIGEgZnVuY3Rpb24gaW1w
-bHkgc3VtbWFyeSBvZiBmdW5jdGlvbiBldGMuDQo+IFdoYXQgeW91IGFyZSBkb2luZyBoZXJlIGlz
-IGNhbGxpbmcgb3V0IHRoZSBuZWVkIGZvciAuYmFsaWduIHF1aXJrLiBTbyBiZXR0ZXIgdG8NCj4g
-cGhyYXNlIGl0IGlzIGFzICJOb3RlIGFib3V0IC5iYWxpZ24iIGFuZCB0aGVuIGRlc2NyaWJlIHRo
-ZSB0aGluZw0KDQpPaywgd2lsbCBmaXggaW4gdjIuDQoNCj4gPiArc3RhdGljIF9fYWx3YXlzX2lu
-bGluZSBib29sIGFyY2hfc3RhdGljX2JyYW5jaChzdHJ1Y3Qgc3RhdGljX2tleSAqa2V5LA0KPiA+
-ICsJCQkJCSAgICAgICBib29sIGJyYW5jaCkNCj4gPiArew0KPiA+ICsJYXNtX3ZvbGF0aWxlX2dv
-dG8oIi5iYWxpZ24gNAkJCVxuIg0KPiA+ICsJCSAiMToJCQkJCVxuIg0KPiA+ICsJCSAibm9wCQkJ
-CQlcbiINCj4gPiArCQkgIi5wdXNoc2VjdGlvbiBfX2p1bXBfdGFibGUsIFwiYXdcIglcbiINCj4g
-PiArCQkgIi53b3JkIDFiLCAlbFtsX3llc10sICVjMAkJXG4iDQo+ID4gKwkJICIucG9wc2VjdGlv
-bgkJCQlcbiINCj4gPiArCQkgOiA6ICJpIiAoJigoY2hhciAqKWtleSlbYnJhbmNoXSkgOiA6IGxf
-eWVzKTsNCj4gPiArDQo+ID4gKwlyZXR1cm4gZmFsc2U7DQo+ID4gK2xfeWVzOg0KPiA+ICsJcmV0
-dXJuIHRydWU7DQo+ID4gK30NCj4gPiArDQo+ID4gK3N0YXRpYyBfX2Fsd2F5c19pbmxpbmUgYm9v
-bCBhcmNoX3N0YXRpY19icmFuY2hfanVtcChzdHJ1Y3Qgc3RhdGljX2tleSAqa2V5LA0KPiA+ICsJ
-CQkJCQkgICAgYm9vbCBicmFuY2gpDQo+ID4gK3sNCj4gPiArCWFzbV92b2xhdGlsZV9nb3RvKCIu
-YmFsaWduIDQJCQlcbiINCj4gPiArCQkgIjE6CQkJCQlcbiINCj4gPiArCQkgImIgJWxbbF95ZXNd
-CQkJCVxuIg0KPiA+ICsJCSAiLnB1c2hzZWN0aW9uIF9fanVtcF90YWJsZSwgXCJhd1wiCVxuIg0K
-PiA+ICsJCSAiLndvcmQgMWIsICVsW2xfeWVzXSwgJWMwCQlcbiINCj4gPiArCQkgIi5wb3BzZWN0
-aW9uCQkJCVxuIg0KPiA+ICsJCSA6IDogImkiICgmKChjaGFyICopa2V5KVticmFuY2hdKSA6IDog
-bF95ZXMpOw0KPiA+ICsNCj4gPiArCXJldHVybiBmYWxzZTsNCj4gPiArbF95ZXM6DQo+ID4gKwly
-ZXR1cm4gdHJ1ZTsNCj4gPiArfQ0KPiA+ICsNCj4gPiArdHlwZWRlZiB1MzIganVtcF9sYWJlbF90
-Ow0KPiA+ICsNCj4gPiArc3RydWN0IGp1bXBfZW50cnkgew0KPiA+ICsJanVtcF9sYWJlbF90IGNv
-ZGU7DQo+ID4gKwlqdW1wX2xhYmVsX3QgdGFyZ2V0Ow0KPiA+ICsJanVtcF9sYWJlbF90IGtleTsN
-Cj4gPiArfTsNCj4gPiArDQo+ID4gKyNlbmRpZiAgLyogX19BU1NFTUJMWV9fICovDQo+ID4gKyNl
-bmRpZg0KPiA+IGRpZmYgLS1naXQgYS9hcmNoL2FyYy9rZXJuZWwvTWFrZWZpbGUgYi9hcmNoL2Fy
-Yy9rZXJuZWwvTWFrZWZpbGUNCj4gPiBpbmRleCAyZGM1ZjQyOTZkNDQuLjMwN2Y3NDE1NmQ5OSAx
-MDA2NDQNCj4gPiAtLS0gYS9hcmNoL2FyYy9rZXJuZWwvTWFrZWZpbGUNCj4gPiArKysgYi9hcmNo
-L2FyYy9rZXJuZWwvTWFrZWZpbGUNCj4gPiBAQCAtMjIsNiArMjIsNyBAQCBvYmotJChDT05GSUdf
-QVJDX0VNVUxfVU5BTElHTkVEKSAJKz0gdW5hbGlnbmVkLm8NCj4gPiAgb2JqLSQoQ09ORklHX0tH
-REIpCQkJKz0ga2dkYi5vDQo+ID4gIG9iai0kKENPTkZJR19BUkNfTUVUQVdBUkVfSExJTkspCSs9
-IGFyY19ob3N0bGluay5vDQo+ID4gIG9iai0kKENPTkZJR19QRVJGX0VWRU5UUykJCSs9IHBlcmZf
-ZXZlbnQubw0KPiA+ICtvYmotJChDT05GSUdfSlVNUF9MQUJFTCkJCSs9IGp1bXBfbGFiZWwubw0K
-PiA+ICANCj4gPiAgb2JqLSQoQ09ORklHX0FSQ19GUFVfU0FWRV9SRVNUT1JFKQkrPSBmcHUubw0K
-PiA+ICBDRkxBR1NfZnB1Lm8gICArPSAtbWRwZnANCj4gPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcmMv
-a2VybmVsL2p1bXBfbGFiZWwuYyBiL2FyY2gvYXJjL2tlcm5lbC9qdW1wX2xhYmVsLmMNCj4gPiBu
-ZXcgZmlsZSBtb2RlIDEwMDY0NA0KPiA+IGluZGV4IDAwMDAwMDAwMDAwMC4uOTNlM2JjODQyODhm
-DQo+ID4gLS0tIC9kZXYvbnVsbA0KPiA+ICsrKyBiL2FyY2gvYXJjL2tlcm5lbC9qdW1wX2xhYmVs
-LmMNCj4gPiBAQCAtMCwwICsxLDE2OCBAQA0KPiA+ICsvLyBTUERYLUxpY2Vuc2UtSWRlbnRpZmll
-cjogR1BMLTIuMA0KPiA+ICsNCj4gPiArI2luY2x1ZGUgPGxpbnV4L2tlcm5lbC5oPg0KPiA+ICsj
-aW5jbHVkZSA8bGludXgvanVtcF9sYWJlbC5oPg0KPiA+ICsNCj4gPiArI2luY2x1ZGUgImFzbS9j
-YWNoZWZsdXNoLmgiDQo+ID4gKw0KPiA+ICsjZGVmaW5lIEpVTVBMQUJFTF9FUlIJIkFSQzoganVt
-cF9sYWJlbDogRVJST1I6ICINCj4gPiArDQo+ID4gKy8qIEhhbHQgc3lzdGVtIG9uIGZhdGFsIGVy
-cm9yIHRvIG1ha2UgZGVidWcgZWFzaWVyICovDQo+ID4gKyNkZWZpbmUgYXJjX2psX2ZhdGFsKGZv
-cm1hdC4uLikJCQkJCQlcDQo+ID4gKyh7CQkJCQkJCQkJXA0KPiA+ICsJcHJfZXJyKEpVTVBMQUJF
-TF9FUlIgZm9ybWF0KTsJCQkJCVwNCj4gPiArCUJVRygpOwkJCQkJCQkJXA0KPiANCj4gRG9lcyBp
-dCBtYWtlIHNlbnNlIHRvIGJyaW5nIGRvd24gdGhlIHdob2xlIHN5c3RlbSB2cy4gZmFpbGluZyBh
-bmQgcmV0dXJuaW5nLg0KPiBJIHNlZSB0aGVyZSBpcyBubyBlcnJvciBwcm9wYWdhdGlvbiB0byBj
-b3JlIGNvZGUsIGJ1dCBzdGlsbC4NCg0KSSB0b3RhbGx5IGFncmVlIHdpdGggUGV0ZXIsIGFuZCBJ
-IHByZWZlciB0byBzdG9wIHRoZSBzeXN0ZW0gb24gdGhpcyBlcnJvcnMuIEhlcmUgaXMgZmV3IGFy
-Z3VtZW50czoNCkFsbCB0aGlzIGNoZWNrcyBjYW4ndCBiZSB0b2dnbGUgaW4gc3lzdGVtIG9wZXJh
-dGluZyBub3JtYWxseSBhbmQgb25seSBtYXkgYmUgY2F1c2VkIGJ5IGJhZCBjb2RlIGdlbmVyYXRp
-b24gKG9yIHNvbWUgY29kZS9kYXRhIGNvcnJ1cHRpb24pOg0KMSkgV2UgZ290IG91ciBpbnN0cnVj
-dGlvbiB0byBwYXRjaCB1bmFsaWduZWQgYnkgNCBieXRlcyAoZGVzcGl0ZSB0aGUgZmFjdCB0aGF0
-IHdlIHVzZWQgJy5iYWxpZ24gNCcgdG8gYWxpZ24gaXQpDQoyKSBXZSBnb3QgYnJhbmNoIG9mZnNl
-dCB1bmFsaWduZWQgKHdoaWNoIG1lYW5zIHRoYXQgd2UgY2FsY3VsYXRlIGl0IHdyb25nIGF0IGJ1
-aWxkIHRpbWUgb3IgY29ycnVwdCBpdCBpbiBydW4gdGltZSkNCjMpIFdlIGdvdCBicmFuY2ggb2Zm
-c2V0IHdoaWNoIG5vdCBmaXRzIGludG8gczI1LiBBcyB0aGlzIGlzIG9mZnNldCBpbnNpZGUgb25l
-IGZ1bmN0aW9uIChpbnNpZGUgb25lICdpZicgc3RhdGVtZW50IGFjdHVhbGx5KSB3ZSBuZXdlciBn
-ZXQgc3VjaCBodWdlDQpvZmZzZXQgaW4gcmVhbCBsaWZlIGlmIGNvZGUgZ2VuZXJhdGlvbiBpcyBv
-ay4NCg0KSWYgd2Ugb25seSB3YXJuIHRvIGxvZyBhbmQgcmV0dXJuIHdlIHdpbGwgZmFjZSB3aXRo
-IGNvbXByb21pc2VkIGtlcm5lbCBmbG93IGxhdGVyLg0KSS5FLiBpdCBjb3VsZCBiZSAnaWYnIHN0
-YXRlbWVudCBpbiBrZXJuZWwgdGV4dCB3aGljaCBpcyBzd2l0Y2hlZCB0byB3cm9uZyBzdGF0ZTog
-dGhlIGNvbmRpdGlvbiBpcyB0cnVlIGJ1dCB3ZSB0YWtlIHRoZSBmYWxzZSBicmFuY2guDQpBbmQg
-SXQgd2lsbCBiZSB0aGUgaXNzdWUgd2hpY2ggaXMgbXVjaCBtb3JlIGRpZmZpY3VsdCB0byBkZWJ1
-Zy4NCg0KRG9lcyBpdCBzb3VuZCByZWFzb25hYmx5Pw0KDQpJZiB5b3UgcmVhbGx5IGRvbid0IHdh
-bnQgdG8gaGF2ZSBCVUcgaGVyZSwgSSBjYW4gbWFrZSBpdCBjb25kaXRpb25hbGx5IGVuYWJsZWQN
-CmluIGRlcGVuZCBvbiBDT05GSUdfQVJDX1NUQVRJQ19LRVlTX0RFQlVHIGFzIEkgd2FudCB0byBo
-YXZlIGl0IGVuYWJsZWQgYXQgbGVhc3Qgb24gQVJDIGRldmVsb3BtZW50IHBsYXRmb3Jtcy4NCg0K
-W3NuaXBdDQotLSANCiBFdWdlbml5IFBhbHRzZXYNCg==
+
+> On Jul 16, 2019, at 10:50 AM, Waiman Long <longman@redhat.com> wrote:
+>=20
+> On 7/16/19 10:29 AM, Alex Kogan wrote:
+>>=20
+>>> On Jul 15, 2019, at 7:22 PM, Waiman Long <longman@redhat.com
+>>> <mailto:longman@redhat.com>> wrote:
+>>>=20
+>>> On 7/15/19 5:30 PM, Waiman Long wrote:
+>>>>> -#ifndef _GEN_PV_LOCK_SLOWPATH
+>>>>> +#if !defined(_GEN_PV_LOCK_SLOWPATH) && =
+!defined(_GEN_CNA_LOCK_SLOWPATH)
+>>>>>=20
+>>>>> #include <linux/smp.h>
+>>>>> #include <linux/bug.h>
+>>>>> @@ -77,18 +77,14 @@
+>>>>> #define MAX_NODES	4
+>>>>>=20
+>>>>> /*
+>>>>> - * On 64-bit architectures, the mcs_spinlock structure will be 16 =
+bytes in
+>>>>> - * size and four of them will fit nicely in one 64-byte =
+cacheline. For
+>>>>> - * pvqspinlock, however, we need more space for extra data. To =
+accommodate
+>>>>> - * that, we insert two more long words to pad it up to 32 bytes. =
+IOW, only
+>>>>> - * two of them can fit in a cacheline in this case. That is OK as =
+it is rare
+>>>>> - * to have more than 2 levels of slowpath nesting in actual use. =
+We don't
+>>>>> - * want to penalize pvqspinlocks to optimize for a rare case in =
+native
+>>>>> - * qspinlocks.
+>>>>> + * On 64-bit architectures, the mcs_spinlock structure will be 20 =
+bytes in
+>>>>> + * size. For pvqspinlock or the NUMA-aware variant, however, we =
+need more
+>>>>> + * space for extra data. To accommodate that, we insert two more =
+long words
+>>>>> + * to pad it up to 36 bytes.
+>>>>> */
+>>>> The 20 bytes figure is wrong. It is actually 24 bytes for 64-bit as =
+the
+>>>> mcs_spinlock structure is 8-byte aligned. For better cacheline
+>>>> alignment, I will like to keep mcs_spinlock to 16 bytes as before.
+>>>> Instead, you can use encode_tail() to store the CNA node pointer in
+>>>> "locked". For instance, use (encode_tail() << 1) in locked to
+>>>> distinguish it from the regular locked=3D1 value.
+>>>=20
+>>> Actually, the encoded tail value is already shift left either 16 =
+bits
+>>> or 9 bits. So there is no need to shift it. You can assigned it =
+directly:
+>>>=20
+>>> mcs->locked =3D cna->encoded_tail;
+>>>=20
+>>> You do need to change the type of locked to "unsigned int", though,
+>>> for proper comparison with "1".
+>>>=20
+>> Got it, thanks.
+>>=20
+> I forgot to mention that I would like to see a boot command line =
+option
+> to force off and maybe on as well the numa qspinlock code. This can =
+help
+> in testing as you don't need to build 2 separate kernels, one with
+> NUMA_AWARE_SPINLOCKS on and one with it off.
+IIUC it should be easy to add a boot option to force off the NUMA-aware =
+spinlock=20
+even if it is enabled though config, but the other way around would =
+require=20
+compiling in the NUMA-aware spinlock stuff even if the config option is =
+disabled.
+Is that ok?
+
+Also, what should the option name be?
+"numa_spinlock=3Don/off=E2=80=9D if we want both ways, or =
+=E2=80=9Cno_numa_spinlock" if we want just the =E2=80=9Cforce off=E2=80=9D=
+ option?
+
+> For small 2-socket systems,
+> numa qspinlock may not help much.
+It actually helps quite a bit (e.g., speedup of up to 42-57% for =
+will-it-scale on a dual-socket x86 system).
+We have numbers and plots in our paper on arxiv.
+
+Regards,
+=E2=80=94 Alex
