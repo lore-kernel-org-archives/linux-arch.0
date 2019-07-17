@@ -1,9 +1,8 @@
 From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH] padata: Use RCU when fetching pd from do_serial
-Date: Wed, 17 Jul 2019 16:47:40 +0800
-Message-ID: <20190717084739.35evhqushmjejmmq@gondor.apana.org.au>
-References: <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
+Subject: Re: [v2 PATCH] padata: Use RCU when fetching pd from do_serial
+Date: Wed, 17 Jul 2019 16:50:11 +0800
+Message-ID: <20190717085011.hpihksnhrqt2vilo@gondor.apana.org.au>
+References: <20190712101012.GW14601@gauss3.secunet.de>
  <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
  <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
  <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
@@ -11,29 +10,49 @@ References: <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
  <20190716111410.GN17989@gauss3.secunet.de>
  <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
  <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
- <20190717082815.GP17989@gauss3.secunet.de>
+ <20190716132345.ujj2v3kqra2lbi75@gondor.apana.org.au>
+ <20190717083641.GQ17989@gauss3.secunet.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190717082815.GP17989@gauss3.secunet.de>
+In-Reply-To: <20190717083641.GQ17989@gauss3.secunet.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Steffen Klassert <steffen.klassert@secunet.com>
 Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 17, 2019 at 10:28:15AM +0200, Steffen Klassert wrote:
+On Wed, Jul 17, 2019 at 10:36:41AM +0200, Steffen Klassert wrote:
 >
-> I had a patch to support crypto backlog some years ago,
-> but testing with dm-crypt did not show any performance
-> improvement. So I decided to just skip that patch because
-> it added code for no need.
+> > This patch fixes it by using RCU just as we do in padata_do_parallel.
+> 
+> RCU alone won't help because if some object is queued for async
+> crypto, we left the RCU protected aera. I think padata_do_serial
+> needs to do RCU and should free 'parallel_data' if the flag
+> PADATA_RESET is set and the refcount goes to zero. padata_replace
+> should do the same then.
 
-Well pcrypt is part of the API so it needs to obey the rules.
-So even if it wouldn't make sense to use dm-crypt with pcrypt
-it still needs to do the right thing.
+Yes this patch doesn't work because you can't just switch over to
+the new pd as the old pd will then get stuck due to the missing
+entry.
 
-Thanks,`
+> > index 5d13d25da2c8..ce51555cb86c 100644
+> > @@ -367,7 +367,7 @@ void padata_do_serial(struct padata_priv *padata)
+> >  	struct parallel_data *pd;
+> >  	int reorder_via_wq = 0;
+> >  
+> > -	pd = padata->pd;
+> > +	pd = rcu_dereference_bh(padata->inst->pd);
+> 
+> Why not just
+> 
+> pd = rcu_dereference_bh(padata->pd);
+
+I was trying to get the new pd which could only come from the inst.
+In any case the whole RCU idea doesn't work so we'll probably do the
+refcount idea that you suggested.
+
+Cheers,
 -- 
 Email: Herbert Xu <herbert@gondor.apana.org.au>
 Home Page: http://gondor.apana.org.au/~herbert/
