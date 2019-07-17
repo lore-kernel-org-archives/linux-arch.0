@@ -1,75 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.mx.secunet.com ([62.96.220.36]:34262 "EHLO a.mx.secunet.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725873AbfGQIgo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jul 2019 04:36:44 -0400
-Date: Wed, 17 Jul 2019 10:36:41 +0200
-From: Steffen Klassert <steffen.klassert@secunet.com>
-Subject: Re: [v2 PATCH] padata: Use RCU when fetching pd from do_serial
-Message-ID: <20190717083641.GQ17989@gauss3.secunet.de>
-References: <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
- <20190712101012.GW14601@gauss3.secunet.de>
- <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
- <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
- <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
- <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
- <20190716111410.GN17989@gauss3.secunet.de>
- <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
- <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
- <20190716132345.ujj2v3kqra2lbi75@gondor.apana.org.au>
+Received: from bombadil.infradead.org ([198.137.202.133]:45592 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726336AbfGQIkB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 04:40:01 -0400
+Date: Wed, 17 Jul 2019 10:39:44 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20190717083944.GR3463@hirez.programming.kicks-ass.net>
+References: <20190715192536.104548-1-alex.kogan@oracle.com>
+ <20190715192536.104548-4-alex.kogan@oracle.com>
+ <20190716155022.GR3419@hirez.programming.kicks-ass.net>
+ <193BBB31-F376-451F-BDE1-D4807140EB51@oracle.com>
+ <20190716184724.GH3402@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20190716132345.ujj2v3kqra2lbi75@gondor.apana.org.au>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20190716184724.GH3402@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190717083641.XUpciKABUOTYxjRPJSaScUxcurAts0FCcjlHTpCxLeY@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20190717083944.Wz5ay_-C0vdad2IXxcswMitjF1Jdvt4WUOg40swUuP4@z>
 
-On Tue, Jul 16, 2019 at 09:23:45PM +0800, Herbert Xu wrote:
-> On Tue, Jul 16, 2019 at 09:09:28PM +0800, Herbert Xu wrote:
-> >
-> > Hmm, it doesn't work because the refcnt is attached to the old
-> > pd.  That shouldn't be a problem though as we could simply ignore
-> > the refcnt in padata_flush_queue.
+On Tue, Jul 16, 2019 at 08:47:24PM +0200, Peter Zijlstra wrote:
+> On Tue, Jul 16, 2019 at 01:19:16PM -0400, Alex Kogan wrote:
+> > > On Jul 16, 2019, at 11:50 AM, Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> This should fix it:
+> > > static void cna_move(struct cna_node *cn, struct cna_node *cni)
+> > > {
+> > > 	struct cna_node *head, *tail;
+> > > 
+> > > 	/* remove @cni */
+> > > 	WRITE_ONCE(cn->mcs.next, cni->mcs.next);
+> > > 
+> > > 	/* stick @cni on the 'other' list tail */
+> > > 	cni->mcs.next = NULL;
+> > > 
+> > > 	if (cn->mcs.locked <= 1) {
+> > > 		/* head = tail = cni */
+> > > 		head = cni;
+> > > 		head->tail = cni;
+> > > 		cn->mcs.locked = head->encoded_tail;
+> > > 	} else {
+> > > 		/* add to tail */
+> > > 		head = (struct cna_node *)decode_tail(cn->mcs.locked);
+> > > 		tail = tail->tail;
+> > > 		tail->next = cni;
+> > > 	}
+> > > }
+> > > 
+> > > static struct cna_node *cna_find_next(struct mcs_spinlock *node)
+> > > {
+> > > 	struct cna_node *cni, *cn = (struct cna_node *)node;
+> > > 
+> > > 	while ((cni = (struct cna_node *)READ_ONCE(cn->mcs.next))) {
+> > > 		if (likely(cni->node == cn->node))
+> > > 			break;
+> > > 
+> > > 		cna_move(cn, cni);
+> > > 	}
+> > > 
+> > > 	return cni;
+> > > }
+> > But then you move nodes from the main list to the ‘other’ list one-by-one.
+> > I’m afraid this would be unnecessary expensive.
+> > Plus, all this extra work is wasted if you do not find a thread on the same 
+> > NUMA node (you move everyone to the ‘other’ list only to move them back in 
+> > cna_mcs_pass_lock()).
 > 
-> ---8<---
-> The function padata_do_serial uses parallel_data without obeying
-> the RCU rules around its life-cycle.  This means that a concurrent
-> padata_replace call can result in a crash.
-> 
-> This patch fixes it by using RCU just as we do in padata_do_parallel.
+> My primary concern was readability; I find the above suggestion much
+> more readable. Maybe it can be written differently; you'll have to play
+> around a bit.
 
-RCU alone won't help because if some object is queued for async
-crypto, we left the RCU protected aera. I think padata_do_serial
-needs to do RCU and should free 'parallel_data' if the flag
-PADATA_RESET is set and the refcount goes to zero. padata_replace
-should do the same then.
+static void cna_splice_tail(struct cna_node *cn, struct cna_node *head, struct cna_node *tail)
+{
+	struct cna_node *list;
 
-> 
-> As the refcnt may now span two parallel_data structures, this patch
-> moves it to padata_instance instead.  FWIW the refcnt is used to
-> limit the number of outstanding requests (albeit a soft limit as
-> we don't do a proper atomic inc and test).
-> 
-> Fixes: 16295bec6398 ("padata: Generic parallelization/...")
-> Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
-> 
-> diff --git a/include/linux/padata.h b/include/linux/padata.h
+	/* remove [head,tail] */
+	WRITE_ONCE(cn->mcs.next, tail->mcs.next);
+	tail->mcs.next = NULL;
 
-...
+	/* stick [head,tail] on the secondary list tail */
+	if (cn->mcs.locked <= 1) {
+		/* create secondary list */
+		head->tail = tail;
+		cn->mcs.locked = head->encoded_tail;
+	} else {
+		/* add to tail */
+		list = (struct cna_node *)decode_tail(cn->mcs.locked);
+		list->tail->next = head;
+		list->tail = tail;
+	}
+}
 
-> index 5d13d25da2c8..ce51555cb86c 100644
-> @@ -367,7 +367,7 @@ void padata_do_serial(struct padata_priv *padata)
->  	struct parallel_data *pd;
->  	int reorder_via_wq = 0;
->  
-> -	pd = padata->pd;
-> +	pd = rcu_dereference_bh(padata->inst->pd);
+static struct cna_node *cna_find_next(struct mcs_spinlock *node)
+{
+	struct cna_node *cni, *cn = (struct cna_node *)node;
+	struct cna_node *head, *tail = NULL;
 
-Why not just
+	/* find any next lock from 'our' node */
+	for (head = cni = (struct cna_node *)READ_ONCE(cn->mcs.next);
+	     cni && cni->node != cn->node;
+	     tail = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
+		;
 
-pd = rcu_dereference_bh(padata->pd);
+	/* when found, splice any skipped locks onto the secondary list */
+	if (cni && tail)
+		cna_splice_tail(cn, head, tail);
+
+	return cni;
+}
+
+How's that?
