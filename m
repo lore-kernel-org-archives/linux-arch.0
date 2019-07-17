@@ -1,78 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:55788 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725948AbfGQS4c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jul 2019 14:56:32 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
-Date: Wed, 17 Jul 2019 18:54:59 +0000
-Message-ID: <401bc54416a106141b0ec785bfd9198ed56a84d8.camel@synopsys.com>
-References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
-         <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
-         <57076361ad37f4fe7a5584643ae47adf30a99d35.camel@synopsys.com>
-         <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
-In-Reply-To: <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <D6BC058B74D4F0438B6DC07104F51623@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from aserp2120.oracle.com ([141.146.126.78]:37382 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727769AbfGQXWK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 19:22:10 -0400
+Date: Wed, 17 Jul 2019 19:21:36 -0400
+From: Daniel Jordan <daniel.m.jordan@oracle.com>
+Subject: Re: [PATCH] padata: Replace delayed timer with immediate workqueue
+ in padata_reorder
+Message-ID: <20190717232136.pboms73sqf6fdzic@ca-dmjordan1.us.oracle.com>
+References: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
+ <20190716163253.24377-1-daniel.m.jordan@oracle.com>
+ <20190717111147.t776zlyhdqyl5dhc@gondor.apana.org.au>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190717111147.t776zlyhdqyl5dhc@gondor.apana.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "peterz@infradead.org" <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "jbaron@redhat.com" <jbaron@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190717185459.xVNyPUk23g6EhdqXhpYpoaFqKvUyMFb3P9T7Z28KzA8@z>
+To: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Steffen Klassert <steffen.klassert@secunet.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>
+Message-ID: <20190717232136._zg2qCEqnQOkvqJPUtKm9-B4kZMsl8WdRmVvBgd9odE@z>
 
-T24gV2VkLCAyMDE5LTA3LTE3IGF0IDE3OjQ1ICswMDAwLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+
-IE9uIDcvMTcvMTkgODowOSBBTSwgRXVnZW5peSBQYWx0c2V2IHdyb3RlOg0KPiA+ID4gPiArLyog
-SGFsdCBzeXN0ZW0gb24gZmF0YWwgZXJyb3IgdG8gbWFrZSBkZWJ1ZyBlYXNpZXIgKi8NCj4gPiA+
-ID4gKyNkZWZpbmUgYXJjX2psX2ZhdGFsKGZvcm1hdC4uLikJCQkJCQlcDQo+ID4gPiA+ICsoewkJ
-CQkJCQkJCVwNCj4gPiA+ID4gKwlwcl9lcnIoSlVNUExBQkVMX0VSUiBmb3JtYXQpOwkJCQkJXA0K
-PiA+ID4gPiArCUJVRygpOwkJCQkJCQkJXA0KPiA+ID4gRG9lcyBpdCBtYWtlIHNlbnNlIHRvIGJy
-aW5nIGRvd24gdGhlIHdob2xlIHN5c3RlbSB2cy4gZmFpbGluZyBhbmQgcmV0dXJuaW5nLg0KPiA+
-ID4gSSBzZWUgdGhlcmUgaXMgbm8gZXJyb3IgcHJvcGFnYXRpb24gdG8gY29yZSBjb2RlLCBidXQg
-c3RpbGwuDQo+ID4gSSB0b3RhbGx5IGFncmVlIHdpdGggUGV0ZXIsIGFuZCBJIHByZWZlciB0byBz
-dG9wIHRoZSBzeXN0ZW0gb24gdGhpcyBlcnJvcnMuIEhlcmUgaXMgZmV3IGFyZ3VtZW50czoNCj4g
-PiBBbGwgdGhpcyBjaGVja3MgY2FuJ3QgYmUgdG9nZ2xlIGluIHN5c3RlbSBvcGVyYXRpbmcgbm9y
-bWFsbHkgYW5kIG9ubHkgbWF5IGJlIGNhdXNlZCBieSBiYWQgY29kZSBnZW5lcmF0aW9uIChvciBz
-b21lIGNvZGUvZGF0YSBjb3JydXB0aW9uKToNCj4gPiAxKSBXZSBnb3Qgb3VyIGluc3RydWN0aW9u
-IHRvIHBhdGNoIHVuYWxpZ25lZCBieSA0IGJ5dGVzIChkZXNwaXRlIHRoZSBmYWN0IHRoYXQgd2Ug
-dXNlZCAnLmJhbGlnbiA0JyB0byBhbGlnbiBpdCkNCj4gPiAyKSBXZSBnb3QgYnJhbmNoIG9mZnNl
-dCB1bmFsaWduZWQgKHdoaWNoIG1lYW5zIHRoYXQgd2UgY2FsY3VsYXRlIGl0IHdyb25nIGF0IGJ1
-aWxkIHRpbWUgb3IgY29ycnVwdCBpdCBpbiBydW4gdGltZSkNCj4gPiAzKSBXZSBnb3QgYnJhbmNo
-IG9mZnNldCB3aGljaCBub3QgZml0cyBpbnRvIHMyNS4gQXMgdGhpcyBpcyBvZmZzZXQgaW5zaWRl
-IG9uZSBmdW5jdGlvbiAoaW5zaWRlIG9uZSAnaWYnIHN0YXRlbWVudCBhY3R1YWxseSkgd2UgbmV3
-ZXIgZ2V0IHN1Y2ggaHVnZQ0KPiA+IG9mZnNldCBpbiByZWFsIGxpZmUgaWYgY29kZSBnZW5lcmF0
-aW9uIGlzIG9rLg0KPiANCj4gSSB1bmRlcnN0YW5kIHRoYXQuIEJ1dCBBRkFJS1IgaW4gaW1wbGVt
-ZW50YXRpb24gYXJjX2psX2ZhdGFsKCkgZ2V0cyBjYWxsZWQgYmVmb3JlDQo+IHdlIGhhdmUgZG9u
-ZSB0aGUgYWN0dWFsIGNvZGUgcGF0Y2hpbmcgYW5kL29yIGZsdXNoaW5nIHRoZSBjYWNoZXMNCg0K
-Q29ycmVjdC4NCg0KPiAgdG8gdGhhdCBlZmZlY3QuDQo+IFNvIGhhcm0gaGFzIGJlZW4gZG9uZSBq
-dXN0IHlldC4gV2UganVzdCBuZWVkIHRvIG1ha2Ugc3VyZSB0aGF0IGFueSBib29rLWtlZXBpbmcg
-b2YNCj4gdHJ1ZS9mYWxzZSBpcyBub3QgeWV0IGRvbmUgb3IgdW5yb2xsZWQuDQoNCkNhbiB5b3Ug
-ZGVzY3JpYmUgeW91ciBwcm9wb3NhbCBpbiBtb3JlIGRldGFpbD8NCg0KQmUgbm90ZWQgdGhhdCBp
-biBjYXNlICgyKSBvciAoMykgd2Uga25vdyB0aGF0IHdlIGFyZSBub3QgYWJsZSB0byBnZW5lcmF0
-ZSBjb3JyZWN0IGluc3RydWN0aW9uIGZvciByZXBsYWNlIGV4aXN0aW5nIG9uZS4gQW5kIHdlIGRv
-bid0IGtub3cgYW55dGhpbmcNCmFib3V0IHRoZSByZWFsIGNhdXNlLg0KU28gd2hhdCB3ZSBjYW4g
-ZG8gaGVyZSBiZXNpZGVzIHRoYXQgd2Ugd2FybiBhYm91dCBpdD8NCg0KLVdlIGNhbiBoYWx0IHRo
-ZSBzeXN0ZW0gdG8gbWFrZSBkZWJ1ZyBlYXN5ICh3aGljaCBJIHByb3Bvc2UpDQotV2UgY2FuIGdl
-bmVyYXRlIGludmFsaWQgaW5zdHJ1Y3Rpb24uDQotV2UgY2FuIGp1c3Qgc2tpcCB0aGlzIHBhdGNo
-aW5nLiBJbiB0aGF0IGNhc2Ugd2UnbGwgZW5kIHdpdGggc29tZSAnaWYnIHN0YXRlbWVudHMgW2lu
-IGtlcm5lbCBjb2RlXSB3b3JraW5nIGluY29ycmVjdGx5LiBJIHJlYWxseSBkb24ndCB3YW50IHRv
-IGRlYnVnDQp0aGlzLg0KDQpHaXZlbiB0aGF0IHdlJ2xsIG5ldmVyIGZhY2Ugd2l0aCB0aGlzIGFz
-c2VydHMgaW4gYW55IGNvbnNpc3RlbnQgc3RhdGUgSSBkb24ndCBzZWUgYW55IHJlYXNvbiB3aHkg
-d2Ugc2hvdWxkbid0IHNpbXBseSBjYWxsIEJVRygpIGhlcmUuDQoNCj4gDQo+ID4gSWYgd2Ugb25s
-eSB3YXJuIHRvIGxvZyBhbmQgcmV0dXJuIHdlIHdpbGwgZmFjZSB3aXRoIGNvbXByb21pc2VkIGtl
-cm5lbCBmbG93IGxhdGVyLg0KPiA+IEkuRS4gaXQgY291bGQgYmUgJ2lmJyBzdGF0ZW1lbnQgaW4g
-a2VybmVsIHRleHQgd2hpY2ggaXMgc3dpdGNoZWQgdG8gd3Jvbmcgc3RhdGU6IHRoZSBjb25kaXRp
-b24gaXMgdHJ1ZSBidXQgd2UgdGFrZSB0aGUgZmFsc2UgYnJhbmNoLg0KPiA+IEFuZCBJdCB3aWxs
-IGJlIHRoZSBpc3N1ZSB3aGljaCBpcyBtdWNoIG1vcmUgZGlmZmljdWx0IHRvIGRlYnVnLg0KPiA+
-IA0KPiA+IERvZXMgaXQgc291bmQgcmVhc29uYWJseT8NCj4gDQo+IEknbSBzdGlsbCBub3QgY29u
-dmluY2VkIHRoYXQgYnkgaGl0dGluZyB0aGUgX2ZhdGFsKCkgd2UgYXJlIGluIHNvbWUgaW5jb25z
-aXN0ZW50DQo+IHN0YXRlIGFscmVhZHkuIEJ1dCBpZiB1IGZlZWwgc3Ryb25nbHkgbGV0cyBrZWVw
-IGl0Lg0KPiANCj4gPiBJZiB5b3UgcmVhbGx5IGRvbid0IHdhbnQgdG8gaGF2ZSBCVUcgaGVyZSwg
-SSBjYW4gbWFrZSBpdCBjb25kaXRpb25hbGx5IGVuYWJsZWQNCj4gDQo+IE5vdCBhIGdvb2QgaWRl
-YS4gSXQgaXMgdW5jb25kaXRpb25hbGx5IHByZXNlbnQgb3Igbm90LiBOb3Qgc29tZXRoaW5nIGlu
-IGJldHdlZW4uDQo+IA0KPiA+IGluIGRlcGVuZCBvbiBDT05GSUdfQVJDX1NUQVRJQ19LRVlTX0RF
-QlVHIGFzIEkgd2FudCB0byBoYXZlIGl0IGVuYWJsZWQgYXQgbGVhc3Qgb24gQVJDIGRldmVsb3Bt
-ZW50IHBsYXRmb3Jtcy4NCj4gDQo+IA0KLS0gDQogRXVnZW5peSBQYWx0c2V2DQo=
+On Wed, Jul 17, 2019 at 07:11:47PM +0800, Herbert Xu wrote:
+> Note that we don't bother removing the work queue in
+> padata_flush_queues because the whole premise is broken.  You
+> cannot flush async crypto requests so it makes no sense to even
+> try.  A subsequent patch will fix it by replacing it with a ref
+> counting scheme.
+
+Interested to see what happens with the ref counting.
+
+You mean you don't bother removing the serial workqueue flushing, right, not
+the parallel?
+
+> @@ -122,10 +117,10 @@ struct padata_cpumask {
+>   * @reorder_objects: Number of objects waiting in the reorder queues.
+>   * @refcnt: Number of objects holding a reference on this parallel_data.
+>   * @max_seq_nr:  Maximal used sequence number.
+> + * @cpu: Next CPU to be processed.
+
+Maybe something more specific...
+
+      @cpu: CPU of the next reorder queue to process.
+
+>  static struct padata_priv *padata_get_next(struct parallel_data *pd)
+>  {
+> -	int cpu, num_cpus;
+> -	unsigned int next_nr, next_index;
+>  	struct padata_parallel_queue *next_queue;
+>  	struct padata_priv *padata;
+>  	struct padata_list *reorder;
+> +	int cpu = pd->cpu;
+>  
+> -	num_cpus = cpumask_weight(pd->cpumask.pcpu);
+> -
+> -	/*
+> -	 * Calculate the percpu reorder queue and the sequence
+> -	 * number of the next object.
+> -	 */
+> -	next_nr = pd->processed;
+> -	next_index = next_nr % num_cpus;
+> -	cpu = padata_index_to_cpu(pd, next_index);
+
+After this patch padata_index_to_cpu has only one caller, so it doesn't need to
+be a function anymore.
+
+> @@ -246,7 +237,6 @@ static void padata_reorder(struct parallel_data *pd)
+>  		 * so exit immediately.
+>  		 */
+>  		if (PTR_ERR(padata) == -ENODATA) {
+> -			del_timer(&pd->timer);
+>  			spin_unlock_bh(&pd->lock);
+>  			return;
+>  		}
+> @@ -265,70 +255,29 @@ static void padata_reorder(struct parallel_data *pd)
+>  
+>  	/*
+>  	 * The next object that needs serialization might have arrived to
+> -	 * the reorder queues in the meantime, we will be called again
+> -	 * from the timer function if no one else cares for it.
+> +	 * the reorder queues in the meantime.
+>  	 *
+> -	 * Ensure reorder_objects is read after pd->lock is dropped so we see
+> -	 * an increment from another task in padata_do_serial.  Pairs with
+> +	 * Ensure reorder queue is read after pd->lock is dropped so we see
+> +	 * new objects from another task in padata_do_serial.  Pairs with
+>  	 * smp_mb__after_atomic in padata_do_serial.
+>  	 */
+>  	smp_mb();
+> -	if (atomic_read(&pd->reorder_objects)
+> -			&& !(pinst->flags & PADATA_RESET))
+> -		mod_timer(&pd->timer, jiffies + HZ);
+> -	else
+> -		del_timer(&pd->timer);
+>  
+> -	return;
+> +	next_queue = per_cpu_ptr(pd->pqueue, pd->cpu);
+> +	if (!list_empty(&next_queue->reorder.list))
+> +		queue_work(pinst->wq, &pd->reorder_work);
+
+It's possible that the work gets queued when it doesn't need to be when another
+task adds a job to the reorder queue but hasn't grabbed pd->lock yet, but I
+can't think of a way around it...and it does no harm anyway.
+
+> @@ -376,9 +325,8 @@ void padata_do_serial(struct padata_priv *padata)
+>  
+>  	cpu = get_cpu();
+>  
+> -	/* We need to run on the same CPU padata_do_parallel(.., padata, ..)
+> -	 * was called on -- or, at least, enqueue the padata object into the
+> -	 * correct per-cpu queue.
+> +	/* We need to enqueue the padata object into the correct
+> +	 * per-cpu queue.
+>  	 */
+>  	if (cpu != padata->cpu) {
+>  		reorder_via_wq = 1;
+
+reorder_via_wq and I think get_cpu/put_cpu can go away now that we're always
+using padata->cpu to get the parallel queue and then running padata_reorder in
+the current task.
+
+Maybe Steffen can check my reasoning on the get_cpu thing.  It looks like that
+was added in the original padata commit to keep 'cpu' stable for getting the
+parallel queue but is no longer needed because we just use padata->cpu.
+
+> @@ -388,12 +336,12 @@ void padata_do_serial(struct padata_priv *padata)
+>  	pqueue = per_cpu_ptr(pd->pqueue, cpu);
+>  
+>  	spin_lock(&pqueue->reorder.lock);
+> -	atomic_inc(&pd->reorder_objects);
+>  	list_add_tail(&padata->list, &pqueue->reorder.list);
+> +	atomic_inc(&pd->reorder_objects);
+
+Why switch the lines?  Seems ok to not do this.
+
+> @@ -538,8 +479,6 @@ static void padata_flush_queues(struct parallel_data *pd)
+>  		flush_work(&pqueue->work);
+>  	}
+>  
+> -	del_timer_sync(&pd->timer);
+> -
+
+>  	if (atomic_read(&pd->reorder_objects))
+>  		padata_reorder(pd);
+
+I think we can do away with reorder_objects entirely by checking pd->cpu's
+reorder queue here.
+
+It's racy to read pd->cpu without pd->lock, but it doesn't matter.  If there
+are objects left to process and no other task is in padata_reorder, this path
+will notice that, and if there's another task in padata_reorder changing
+pd->cpu from under us, that task will finish the reordering so this path
+doesn't have to.
