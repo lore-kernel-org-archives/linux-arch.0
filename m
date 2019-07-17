@@ -1,115 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:49228 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727255AbfGQRp4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2019 13:45:56 -0400
-Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Subject: Re: [PATCH v3 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-From: Alex Kogan <alex.kogan@oracle.com>
-In-Reply-To: <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
-Date: Wed, 17 Jul 2019 13:44:28 -0400
+Received: from dc8-smtprelay2.synopsys.com ([198.182.47.102]:35920 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727255AbfGQRqH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jul 2019 13:46:07 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] ARC: ARCv2: jump label: implement jump label patching
+Date: Wed, 17 Jul 2019 17:45:52 +0000
+Message-ID: <BN6PR1201MB0035E304FF25609CBCACBD09B6C90@BN6PR1201MB0035.namprd12.prod.outlook.com>
+References: <20190614164049.31626-1-Eugeniy.Paltsev@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA2307501A252CCC3@us01wembx1.internal.synopsys.com>
+ <57076361ad37f4fe7a5584643ae47adf30a99d35.camel@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: quoted-printable
-Message-ID: <10197432-47E5-49D7-AD68-8A412782012B@oracle.com>
-References: <20190715192536.104548-1-alex.kogan@oracle.com>
- <20190715192536.104548-4-alex.kogan@oracle.com>
- <77bba626-f3e6-45a8-aae8-43b945d0fab9@redhat.com>
- <aa73b86d-902a-bb6f-d372-8645c8299a6d@redhat.com>
- <C1C55A40-FDB1-43B5-B551-F9B8BE776DF8@oracle.com>
- <2a7a3ea8-7a94-52d4-b8ef-581de28e0063@redhat.com>
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190717174428.mgpfgJ13dmCmBZuoHYGxbLqKx-M7xjNh97fVn44j0MA@z>
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "peterz@infradead.org" <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "jbaron@redhat.com" <jbaron@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190717174552.LeVje-JwhK_scWIEv6Oo3UdRSEeNpW6Oy57QVm8WqMQ@z>
 
-
-> On Jul 16, 2019, at 10:50 AM, Waiman Long <longman@redhat.com> wrote:
->=20
-> On 7/16/19 10:29 AM, Alex Kogan wrote:
->>=20
->>> On Jul 15, 2019, at 7:22 PM, Waiman Long <longman@redhat.com
->>> <mailto:longman@redhat.com>> wrote:
->>>=20
->>> On 7/15/19 5:30 PM, Waiman Long wrote:
->>>>> -#ifndef _GEN_PV_LOCK_SLOWPATH
->>>>> +#if !defined(_GEN_PV_LOCK_SLOWPATH) && =
-!defined(_GEN_CNA_LOCK_SLOWPATH)
->>>>>=20
->>>>> #include <linux/smp.h>
->>>>> #include <linux/bug.h>
->>>>> @@ -77,18 +77,14 @@
->>>>> #define MAX_NODES	4
->>>>>=20
->>>>> /*
->>>>> - * On 64-bit architectures, the mcs_spinlock structure will be 16 =
-bytes in
->>>>> - * size and four of them will fit nicely in one 64-byte =
-cacheline. For
->>>>> - * pvqspinlock, however, we need more space for extra data. To =
-accommodate
->>>>> - * that, we insert two more long words to pad it up to 32 bytes. =
-IOW, only
->>>>> - * two of them can fit in a cacheline in this case. That is OK as =
-it is rare
->>>>> - * to have more than 2 levels of slowpath nesting in actual use. =
-We don't
->>>>> - * want to penalize pvqspinlocks to optimize for a rare case in =
-native
->>>>> - * qspinlocks.
->>>>> + * On 64-bit architectures, the mcs_spinlock structure will be 20 =
-bytes in
->>>>> + * size. For pvqspinlock or the NUMA-aware variant, however, we =
-need more
->>>>> + * space for extra data. To accommodate that, we insert two more =
-long words
->>>>> + * to pad it up to 36 bytes.
->>>>> */
->>>> The 20 bytes figure is wrong. It is actually 24 bytes for 64-bit as =
-the
->>>> mcs_spinlock structure is 8-byte aligned. For better cacheline
->>>> alignment, I will like to keep mcs_spinlock to 16 bytes as before.
->>>> Instead, you can use encode_tail() to store the CNA node pointer in
->>>> "locked". For instance, use (encode_tail() << 1) in locked to
->>>> distinguish it from the regular locked=3D1 value.
->>>=20
->>> Actually, the encoded tail value is already shift left either 16 =
-bits
->>> or 9 bits. So there is no need to shift it. You can assigned it =
-directly:
->>>=20
->>> mcs->locked =3D cna->encoded_tail;
->>>=20
->>> You do need to change the type of locked to "unsigned int", though,
->>> for proper comparison with "1".
->>>=20
->> Got it, thanks.
->>=20
-> I forgot to mention that I would like to see a boot command line =
-option
-> to force off and maybe on as well the numa qspinlock code. This can =
-help
-> in testing as you don't need to build 2 separate kernels, one with
-> NUMA_AWARE_SPINLOCKS on and one with it off.
-IIUC it should be easy to add a boot option to force off the NUMA-aware =
-spinlock=20
-even if it is enabled though config, but the other way around would =
-require=20
-compiling in the NUMA-aware spinlock stuff even if the config option is =
-disabled.
-Is that ok?
-
-Also, what should the option name be?
-"numa_spinlock=3Don/off=E2=80=9D if we want both ways, or =
-=E2=80=9Cno_numa_spinlock" if we want just the =E2=80=9Cforce off=E2=80=9D=
- option?
-
-> For small 2-socket systems,
-> numa qspinlock may not help much.
-It actually helps quite a bit (e.g., speedup of up to 42-57% for =
-will-it-scale on a dual-socket x86 system).
-We have numbers and plots in our paper on arxiv.
-
-Regards,
-=E2=80=94 Alex
+On 7/17/19 8:09 AM, Eugeniy Paltsev wrote:=0A=
+>>> +/* Halt system on fatal error to make debug easier */=0A=
+>>> +#define arc_jl_fatal(format...)						\=0A=
+>>> +({									\=0A=
+>>> +	pr_err(JUMPLABEL_ERR format);					\=0A=
+>>> +	BUG();								\=0A=
+>> Does it make sense to bring down the whole system vs. failing and return=
+ing.=0A=
+>> I see there is no error propagation to core code, but still.=0A=
+> I totally agree with Peter, and I prefer to stop the system on this error=
+s. Here is few arguments:=0A=
+> All this checks can't be toggle in system operating normally and only may=
+ be caused by bad code generation (or some code/data corruption):=0A=
+> 1) We got our instruction to patch unaligned by 4 bytes (despite the fact=
+ that we used '.balign 4' to align it)=0A=
+> 2) We got branch offset unaligned (which means that we calculate it wrong=
+ at build time or corrupt it in run time)=0A=
+> 3) We got branch offset which not fits into s25. As this is offset inside=
+ one function (inside one 'if' statement actually) we newer get such huge=
+=0A=
+> offset in real life if code generation is ok.=0A=
+=0A=
+I understand that. But AFAIKR in implementation arc_jl_fatal() gets called =
+before=0A=
+we have done the actual code patching and/or flushing the caches to that ef=
+fect.=0A=
+So harm has been done just yet. We just need to make sure that any book-kee=
+ping of=0A=
+true/false is not yet done or unrolled.=0A=
+=0A=
+> If we only warn to log and return we will face with compromised kernel fl=
+ow later.=0A=
+> I.E. it could be 'if' statement in kernel text which is switched to wrong=
+ state: the condition is true but we take the false branch.=0A=
+> And It will be the issue which is much more difficult to debug.=0A=
+>=0A=
+> Does it sound reasonably?=0A=
+=0A=
+I'm still not convinced that by hitting the _fatal() we are in some inconsi=
+stent=0A=
+state already. But if u feel strongly lets keep it.=0A=
+=0A=
+>=0A=
+> If you really don't want to have BUG here, I can make it conditionally en=
+abled=0A=
+=0A=
+Not a good idea. It is unconditionally present or not. Not something in bet=
+ween.=0A=
+=0A=
+> in depend on CONFIG_ARC_STATIC_KEYS_DEBUG as I want to have it enabled at=
+ least on ARC development platforms.=0A=
+=0A=
+=0A=
