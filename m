@@ -1,37 +1,36 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2] kbuild: Fail if gold linker is detected
-Date: Wed, 17 Jul 2019 09:57:01 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1907170955250.1767@nanos.tec.linutronix.de>
-References: <alpine.DEB.2.21.1907161434260.1767@nanos.tec.linutronix.de> <20190716170606.GA38406@archlinux-threadripper> <alpine.DEB.2.21.1907162059200.1767@nanos.tec.linutronix.de> <alpine.DEB.2.21.1907162135590.1767@nanos.tec.linutronix.de>
- <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com>
+From: Steffen Klassert <steffen.klassert@secunet.com>
+Subject: Re: [PATCH] padata: Use RCU when fetching pd from do_serial
+Date: Wed, 17 Jul 2019 10:28:15 +0200
+Message-ID: <20190717082815.GP17989@gauss3.secunet.de>
+References: <20190711221205.29889-1-daniel.m.jordan@oracle.com>
+ <20190712100636.mqdr567p7ozanlyl@gondor.apana.org.au>
+ <20190712101012.GW14601@gauss3.secunet.de>
+ <20190712160737.iniaaxlsnhs6azg5@ca-dmjordan1.us.oracle.com>
+ <20190713050321.c5wq7a7jrb6q2pxn@gondor.apana.org.au>
+ <20190715161045.zqwgsp62uqjnvx3l@ca-dmjordan1.us.oracle.com>
+ <20190716100447.pdongriwwfxsuajf@gondor.apana.org.au>
+ <20190716111410.GN17989@gauss3.secunet.de>
+ <20190716125704.l2jolyyd3bue6hhn@gondor.apana.org.au>
+ <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20190716130928.ga4acvxipsdzyzlp@gondor.apana.org.au>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, "H.J. Lu" <hjl.tools@gmail.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "Theodore Y. Ts'o" <tytso@mit.edu>, Mike Lothian <mike@fireburn.co.uk>, linux-arch@vger.kernel.org
+To: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, andrea.parri@amarulasolutions.com, boqun.feng@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 17 Jul 2019, Masahiro Yamada wrote:
-> On Wed, Jul 17, 2019 at 4:47 AM Thomas Gleixner <tglx@linutronix.de> wrote:
-> > So instead of dealing with attempts to duct tape gold support without
-> > understanding the root cause and without support from the gold folks, fail
-> > the build when gold is detected.
-> >
+On Tue, Jul 16, 2019 at 09:09:28PM +0800, Herbert Xu wrote:
 > 
-> The code looks OK in the build system point of view.
+> However, I think this leads to another bug in that pcrypt doesn't
+> support dm-crypt properly.  It never does the backlog stuff and
+> therefore can't guarantee reliable processing which dm-crypt requires.
 > 
-> Please let me confirm this, just in case:
-> For now, we give up all architectures, not only x86, right?
+> Is it intentional to only allow pcrypt for IPsec?
 
-Well, that's the logical consequence of a statement which says: don't use
-gold for the kernel.
-
-> I have not not heard much from other arch maintainers.
-
-Cc'ed linux-arch for that matter.
-
-Thanks,
-
-	tglx
+I had a patch to support crypto backlog some years ago,
+but testing with dm-crypt did not show any performance
+improvement. So I decided to just skip that patch because
+it added code for no need.
