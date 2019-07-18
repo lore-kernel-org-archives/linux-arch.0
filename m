@@ -1,44 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:42330 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726608AbfGRO1z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2019 10:27:55 -0400
-Date: Thu, 18 Jul 2019 10:27:30 -0400
-From: Daniel Jordan <daniel.m.jordan@oracle.com>
-Subject: Re: [PATCH] padata: Replace delayed timer with immediate workqueue
- in padata_reorder
-Message-ID: <20190718142730.uhdkwx5onigdpxno@ca-dmjordan1.us.oracle.com>
-References: <c1bbbe94-dbdc-da14-e0c3-850c965d8b5d@oracle.com>
- <20190716163253.24377-1-daniel.m.jordan@oracle.com>
- <20190717111147.t776zlyhdqyl5dhc@gondor.apana.org.au>
- <20190717183227.b3hqphukkndqumhw@ca-dmjordan1.us.oracle.com>
- <20190718033131.4m4ypbq7tiucqcsl@gondor.apana.org.au>
+Received: from mail-lj1-f196.google.com ([209.85.208.196]:45328 "EHLO
+        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390719AbfGROsS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2019 10:48:18 -0400
+Received: by mail-lj1-f196.google.com with SMTP id m23so27581477lje.12
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jul 2019 07:48:16 -0700 (PDT)
+Subject: Re: [PATCH v9 08/10] open: openat2(2) syscall
+References: <20190706145737.5299-1-cyphar@cyphar.com>
+ <20190706145737.5299-9-cyphar@cyphar.com>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Message-ID: <845e4364-685f-343b-46fb-c418766dce3e@rasmusvillemoes.dk>
+Date: Thu, 18 Jul 2019 16:48:12 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190718033131.4m4ypbq7tiucqcsl@gondor.apana.org.au>
+In-Reply-To: <20190706145737.5299-9-cyphar@cyphar.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Daniel Jordan <daniel.m.jordan@oracle.com>, Steffen Klassert <steffen.klassert@secunet.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, "Paul E . McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, linux-kernel@vger.kernel.org, Mathias Krause <minipli@googlemail.com>
-Message-ID: <20190718142730.udYMxGuByQ1mB4XAkX0HZRqtpurhd-SjKXxr5ECHrSI@z>
+To: Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>
+Cc: Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190718144812.MEEMkHFJrWBzt-qjklG26KCDHkKLGn9KpBTeuzddniw@z>
 
-On Thu, Jul 18, 2019 at 11:31:31AM +0800, Herbert Xu wrote:
-> On Wed, Jul 17, 2019 at 02:32:27PM -0400, Daniel Jordan wrote:
-> >
-> > We'll crash when cpumask_next_wrap returns nr_cpumask_bits and later try to get
-> > the corresponding per-cpu queue.
+On 06/07/2019 16.57, Aleksa Sarai wrote:
 > 
-> The whole point of cpumask_next_wrap is to wrap around to the
-> beginning when it hits nr_cpumask_bits.  So it cannot return
-> nr_cpumask_bits.
+> --- a/fs/open.c
+> +++ b/fs/open.c
+> @@ -928,24 +928,32 @@ struct file *open_with_fake_path(const struct path *path, int flags,
+>  }
+>  EXPORT_SYMBOL(open_with_fake_path);
+>  
+> -static inline int build_open_flags(int flags, umode_t mode, struct open_flags *op)
+> +static inline int build_open_flags(struct open_how how, struct open_flags *op)
+>  {
 
-That's what I expected when I first saw it too, but nr_cpumask_bits is returned
-to signal the end of the iteration.  The patch always passes 0 for the 'start'
-argument, so when cpumask_next_wrap is called with the last cpu in the mask,
-the end-of-iteration case is triggered.  To reassure you and myself :) I ran it
-and got the expected crash.
+How does passing such a huge struct by value affect code generation?
+Does gcc actually inline the function (and does it even inline the old
+one given that it's already non-trivial and has more than one caller).
 
-Passing pd->cpu for the start argument instead avoids that problem, but the
-one-cpu-in-mask case still needs handling because cpumask_next_wrap always
-signals end of iteration for that, hence the cpumask_weight check.
+>  	int lookup_flags = 0;
+> -	int acc_mode = ACC_MODE(flags);
+> +	int opath_mask = 0;
+> +	int acc_mode = ACC_MODE(how.flags);
+> +
+> +	if (how.resolve & ~VALID_RESOLVE_FLAGS)
+> +		return -EINVAL;
+> +	if (!(how.flags & (O_PATH | O_CREAT | __O_TMPFILE)) && how.mode != 0)
+> +		return -EINVAL;
+> +	if (memchr_inv(how.reserved, 0, sizeof(how.reserved)))
+> +		return -EINVAL;
+
+How about passing how by const reference, and copy the few fields you
+need to local variables. That would at least simplify this patch by
+eliminating a lot of the
+
+> -	flags &= VALID_OPEN_FLAGS;
+> +	how.flags &= VALID_OPEN_FLAGS;
+>  
+> -	if (flags & (O_CREAT | __O_TMPFILE))
+> -		op->mode = (mode & S_IALLUGO) | S_IFREG;
+> +	if (how.flags & (O_CREAT | __O_TMPFILE))
+> +		op->mode = (how.mode & S_IALLUGO) | S_IFREG;
+
+churn.
+
+>  
+> diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+> index 2868ae6c8fc1..e59917292213 100644
+> --- a/include/linux/fcntl.h
+> +++ b/include/linux/fcntl.h
+> @@ -4,13 +4,26 @@
+>  
+>  #include <uapi/linux/fcntl.h>
+>  
+> -/* list of all valid flags for the open/openat flags argument: */
+> +/* Should open_how.mode be set for older syscalls wrappers? */
+> +#define OPENHOW_MODE(flags, mode) \
+> +	(((flags) | (O_CREAT | __O_TMPFILE)) ? (mode) : 0)
+> +
+
+Typo: (((flags) & (O_CREAT | __O_TMPFILE)) ? (mode) : 0)
+
+> +/**
+> + * Arguments for how openat2(2) should open the target path. If @extra is zero,
+> + * then openat2(2) is identical to openat(2).
+> + *
+> + * @flags: O_* flags (unknown flags ignored).
+> + * @mode: O_CREAT file mode (ignored otherwise).
+
+should probably say "O_CREAT/O_TMPFILE file mode".
+
+> + * @upgrade_mask: restrict how the O_PATH may be re-opened (ignored otherwise).
+> + * @resolve: RESOLVE_* flags (-EINVAL on unknown flags).
+> + * @reserved: reserved for future extensions, must be zeroed.
+> + */
+> +struct open_how {
+> +	__u32 flags;
+> +	union {
+> +		__u16 mode;
+> +		__u16 upgrade_mask;
+> +	};
+> +	__u16 resolve;
+
+So mode and upgrade_mask are naturally u16 aka mode_t. And yes, they
+probably never need to be used together, so the union works. That then
+makes the next member 2-byte aligned, so using a u16 for the resolve
+flags brings us to an 8-byte boundary, and 11 unused flag bits should be
+enough for a while. But it seems a bit artificial to cram all this
+together and then add 56 bytes of reserved space.
+
+Rasmus
