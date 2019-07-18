@@ -1,105 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f68.google.com ([209.85.217.68]:41306 "EHLO
-        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727781AbfGRV2v (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2019 17:28:51 -0400
-Received: by mail-vs1-f68.google.com with SMTP id 2so20151372vso.8
-        for <linux-arch@vger.kernel.org>; Thu, 18 Jul 2019 14:28:51 -0700 (PDT)
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:35212 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728014AbfGRVaJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2019 17:30:09 -0400
 MIME-Version: 1.0
-References: <1562959401-19815-1-git-send-email-cai@lca.pw> <20190712.154606.493382088615011132.davem@davemloft.net>
- <EFD25845-097A-46B1-9C1A-02458883E4DA@lca.pw> <20190712.175038.755685144649934618.davem@davemloft.net>
- <D7E57421-A6F4-4453-878A-8F173A856296@lca.pw> <CAKwvOdkCfqfpJYYX+iu2nLCUUkeDorDdVP3e7koB9NYsRwgCNw@mail.gmail.com>
- <CAGG=3QWkgm+YhC=TWEWwt585Lbm8ZPG-uFre-kBRv+roPzZFbA@mail.gmail.com> <CAKwvOd=B=Lj-hTtbe88bo89wLxJrDAsm3fJisSMD=hKkRHf6zw@mail.gmail.com>
-In-Reply-To: <CAKwvOd=B=Lj-hTtbe88bo89wLxJrDAsm3fJisSMD=hKkRHf6zw@mail.gmail.com>
-From: Bill Wendling <morbo@google.com>
-Date: Thu, 18 Jul 2019 14:28:39 -0700
-Message-ID: <CAGG=3QXGqOkfTXC6LRqALJkWaX1L_nnYs3+1xXeojqKF3kftbw@mail.gmail.com>
-Subject: Re: [PATCH] be2net: fix adapter->big_page_size miscaculation
+References: <20190706145737.5299-1-cyphar@cyphar.com> <20190706145737.5299-9-cyphar@cyphar.com>
+ <CAK8P3a33rGhPDFfRBAQyLTMG_WoEgX_toDgWR2O7rSwxKsZG+w@mail.gmail.com> <20190718161231.xcno272nvqpln3wj@yavin>
+In-Reply-To: <20190718161231.xcno272nvqpln3wj@yavin>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 18 Jul 2019 23:29:50 +0200
+Message-ID: <CAK8P3a3MiYK4bJiA3G_m5H-TpfN5__--b+=szsJBhG7_it+NQg@mail.gmail.com>
+Subject: Re: [PATCH v9 08/10] open: openat2(2) syscall
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Qian Cai <cai@lca.pw>, James Y Knight <jyknight@google.com>, David Miller <davem@davemloft.net>, sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, netdev@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Nathan Chancellor <natechancellor@gmail.com>
-Message-ID: <20190718212839.iYlvgQhQueSlk9fh8vGn9m1fkZXufUHJzcK7hS9ADho@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, alpha <linux-alpha@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux <sparclinux@vger.kernel.org>
+Message-ID: <20190718212950.JMSmGxvZ5Tv3AUNRNfGBYybzi5B9f5zOfLV-1al8LNg@z>
 
-Possibly. I'd need to ask him. :-)
+On Thu, Jul 18, 2019 at 6:12 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> On 2019-07-18, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Sat, Jul 6, 2019 at 5:00 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> >
+> > In fact, that seems similar enough to the existing openat() that I think
+> > you could also just add the fifth argument to the existing call when
+> > a newly defined flag is set, similarly to how we only use the 'mode'
+> > argument when O_CREAT or O_TMPFILE are set.
+>
+> I considered doing this (and even had a preliminary version of it), but
+> I discovered that I was not in favour of this idea -- once I started to
+> write tests using it -- for a few reasons:
+>
+>   1. It doesn't really allow for clean extension for a future 6th
+>          argument (because you are using up O_* flags to signify "use the
+>          next argument", and O_* flags don't give -EINVAL if they're
+>          unknown). Now, yes you can do the on-start runtime check that
+>          everyone does -- but I've never really liked having to do it.
+>
+>          Having reserved padding for later extensions (that is actually
+>          checked and gives -EINVAL) matches more modern syscall designs.
+>
+>   2. I really was hoping that the variadic openat(2) could be done away
+>      using this union setup (Linus said he didn't like it, and suggested
+>          using something like 'struct stat' as an argument for openat(2) --
+>          though personally I am not sure I would personally like to use an
+>          interface like that).
+>
+>   3. In order to avoid wasting a syscall argument for mode/mask you need
+>          to either have something like your suggested mode_mask (which makes
+>          the syscall arguments less consistent) or have some sort of
+>          mode-like argument that is treated specially (which is really awful
+>          on multiple levels -- this one I also tried and even wrote my
+>          original tests using). And in both cases, the shims for
+>          open{,at}(2) are somewhat less clean.
 
-On Thu, Jul 18, 2019 at 2:22 PM Nick Desaulniers
-<ndesaulniers@google.com> wrote:
->
-> On Thu, Jul 18, 2019 at 2:18 PM Bill Wendling <morbo@google.com> wrote:
-> >
-> > Top-of-tree clang says that it's const:
-> >
-> > $ gcc a.c -O2 && ./a.out
-> > a is a const.
-> >
-> > $ clang a.c -O2 && ./a.out
-> > a is a const.
->
-> Right, so I know you (Bill) did a lot of work to refactor
-> __builtin_constant_p handling in Clang and LLVM in the
-> pre-llvm-9-release timeframe.  I suspect Qian might not be using
-> clang-9 built from source (as clang-8 is the current release) and thus
-> observing differences.
->
-> >
-> > On Thu, Jul 18, 2019 at 2:10 PM Nick Desaulniers <ndesaulniers@google.com> wrote:
-> >>
-> >> On Thu, Jul 18, 2019 at 2:01 PM Qian Cai <cai@lca.pw> wrote:
-> >> >
-> >> >
-> >> >
-> >> > > On Jul 12, 2019, at 8:50 PM, David Miller <davem@davemloft.net> wrote:
-> >> > >
-> >> > > From: Qian Cai <cai@lca.pw>
-> >> > > Date: Fri, 12 Jul 2019 20:27:09 -0400
-> >> > >
-> >> > >> Actually, GCC would consider it a const with -O2 optimized level because it found that it was never modified and it does not understand it is a module parameter. Considering the following code.
-> >> > >>
-> >> > >> # cat const.c
-> >> > >> #include <stdio.h>
-> >> > >>
-> >> > >> static int a = 1;
-> >> > >>
-> >> > >> int main(void)
-> >> > >> {
-> >> > >>      if (__builtin_constant_p(a))
-> >> > >>              printf("a is a const.\n");
-> >> > >>
-> >> > >>      return 0;
-> >> > >> }
-> >> > >>
-> >> > >> # gcc -O2 const.c -o const
-> >> > >
-> >> > > That's not a complete test case, and with a proper test case that
-> >> > > shows the externalization of the address of &a done by the module
-> >> > > parameter macros, gcc should not make this optimization or we should
-> >> > > define the module parameter macros in a way that makes this properly
-> >> > > clear to the compiler.
-> >> > >
-> >> > > It makes no sense to hack around this locally in drivers and other
-> >> > > modules.
-> >> >
-> >> > If you see the warning in the original patch,
-> >> >
-> >> > https://lore.kernel.org/netdev/1562959401-19815-1-git-send-email-cai@lca.pw/
-> >> >
-> >> > GCC definitely optimize rx_frag_size  to be a constant while I just confirmed clang
-> >> > -O2 does not. The problem is that I have no clue about how to let GCC not to
-> >> > optimize a module parameter.
-> >> >
-> >> > Though, I have added a few people who might know more of compilers than myself.
-> >>
-> >> + Bill and James, who probably knows more than they'd like to about
-> >> __builtin_constant_p and more than other LLVM folks at this point.
-> >>
-> >> --
-> >> Thanks,
-> >> ~Nick Desaulniers
->
->
->
-> --
-> Thanks,
-> ~Nick Desaulniers
+These are all good reasons, thanks for providing the background.
+
+> All of that being said, I'd be happy to switch to whatever you think
+> makes the most sense. As long as it's possible to get an O_PATH with
+> RESOLVE_IN_ROOT set, I'm happy.
+
+I don't feel I should be in charge of making the decision. I'd still
+prefer avoiding the indirect argument structure because
+
+4. it's inconsistent with most other syscalls
+
+5. you get the same problem with seccomp and strace that
+   clone3() has -- these and others only track the register
+   arguments by default.
+
+6. copying the structure adds a small overhead compared to
+   passing registers
+
+7. the calling conventions may be inconvenient for  a user space
+   library, so you end up with different prototypes for the low-level
+   syscall and the libc abstraction.
+
+I don't see any of the above seven points as a showstopper
+either way, so I hope someone else has a strong opinion
+and can make the decision easier for you.
+
+In the meantime just keep what you have, so you don't have
+to change it multiple times.
+
+       Arnd
