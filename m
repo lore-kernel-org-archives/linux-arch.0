@@ -1,70 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.mailbox.org ([80.241.60.212]:20468 "EHLO mx1.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726067AbfGSCTx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Jul 2019 22:19:53 -0400
-Date: Fri, 19 Jul 2019 12:19:31 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v9 08/10] open: openat2(2) syscall
-Message-ID: <20190719021931.ypwvcvp3imbgjjx6@yavin>
-References: <20190706145737.5299-1-cyphar@cyphar.com>
- <20190706145737.5299-9-cyphar@cyphar.com>
- <20190719015933.GA18022@altlinux.org>
+Received: from mail-io1-f68.google.com ([209.85.166.68]:40909 "EHLO
+        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388840AbfGSEUD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jul 2019 00:20:03 -0400
+Received: by mail-io1-f68.google.com with SMTP id h6so55661645iom.7
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jul 2019 21:20:03 -0700 (PDT)
+Date: Thu, 18 Jul 2019 21:20:01 -0700 (PDT)
+From: Paul Walmsley <paul.walmsley@sifive.com>
+Subject: [PATCH] riscv: enable sys_clone3 syscall for rv64
+Message-ID: <alpine.DEB.2.21.9999.1907182118500.7083@viisi.sifive.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="g4nevyq6aunc32xc"
-Content-Disposition: inline
-In-Reply-To: <20190719015933.GA18022@altlinux.org>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190719021931.RirD-pjqDS89Jj-V9DAzoO-fGxnS95ORehMBGnB8nuY@z>
+To: linux-riscv@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, christian@brauner.io
+Message-ID: <20190719042001.i-ZbEmSa3JzGZM3hZm9gaqofjr4p9iFlHyAt4-h4O8g@z>
 
 
---g4nevyq6aunc32xc
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Enable the sys_clone3 syscall for RV64.  We simply include the generic
+version.
 
-On 2019-07-19, Dmitry V. Levin <ldv@altlinux.org> wrote:
-> On Sun, Jul 07, 2019 at 12:57:35AM +1000, Aleksa Sarai wrote:
-> [...]
-> > +/**
-> > + * Arguments for how openat2(2) should open the target path. If @extra=
- is zero,
-> > + * then openat2(2) is identical to openat(2).
-> > + *
-> > + * @flags: O_* flags (unknown flags ignored).
->=20
-> What was the rationale for implementing this semantics?
-> Ignoring unknown flags makes potential extension of this new interface
-> problematic.  This has bitten us many times already, so ...
+Tested by running the program from
 
-I am mirroring the semantics of open(2) and openat(2).
+   https://lore.kernel.org/lkml/20190716130631.tohj4ub54md25dys@brauner.io/
 
-To be clear, I am in favour of doing it -- and it would definitely be
-possible to implement it with -EINVAL (you would just mask off
-~VALID_OPEN_FLAGS for the older syscalls). But Linus' response to my
-point about (the lack of) -EINVAL for unknown open(2) flags gave me the
-impression he would be against this idea (though I might be
-misunderstanding the point he was making).
+and verifying that it completes successfully.
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+Signed-off-by: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Christian Brauner <christian@brauner.io>
+---
+ arch/riscv/include/uapi/asm/unistd.h | 1 +
+ 1 file changed, 1 insertion(+)
 
---g4nevyq6aunc32xc
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXTEorwAKCRCdlLljIbnQ
-Eop3AQDsS+JxsKMay74AdwHvqjPK3crvN47y0krPsv6vGBsWhQD/f+ChPlnwx226
-SbxKk/nCjHvnDSJga0WPUznn7tBxUQQ=
-=7H8a
------END PGP SIGNATURE-----
-
---g4nevyq6aunc32xc--
+diff --git a/arch/riscv/include/uapi/asm/unistd.h b/arch/riscv/include/uapi/asm/unistd.h
+index 0e2eeeb1fd27..13ce76cc5aff 100644
+--- a/arch/riscv/include/uapi/asm/unistd.h
++++ b/arch/riscv/include/uapi/asm/unistd.h
+@@ -18,6 +18,7 @@
+ #ifdef __LP64__
+ #define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_SET_GET_RLIMIT
++#define __ARCH_WANT_SYS_CLONE3
+ #endif /* __LP64__ */
+ 
+ #include <asm-generic/unistd.h>
+-- 
+2.22.0
